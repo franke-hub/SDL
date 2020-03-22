@@ -1,0 +1,37 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       setTITLE
+##
+## Purpose-
+##       Set xterm title
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       setTITLE {title}
+##
+##############################################################################
+if [[ "$TERM" != "xterm" ]] ; then
+  echo "TERM=$TERM, cannot continue"
+  exit
+fi
+
+title=$*
+if [[ -z "$title" ]] ; then
+  title=`whoami`@`hostname`
+fi
+
+echo -ne "\033]0;${title}"
+echo -ne "\007"
+

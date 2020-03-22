@@ -1,0 +1,35 @@
+##############################################################################
+##
+##       Copyright (C) 2007 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.BSD
+##############################################################################
+
+##############################################################################
+## CLASSPATH control
+CLASSPATH:=".:Hello.jar"
+
+##############################################################################
+## Source control
+MAKRUN := Hello
+MAKJAR := Test00.class Test01.class Test02.class Test03.class
+
+##############################################################################
+## Targets
+MAKRUN = Hello
+do : Hello
+
+.PHONY: default
+default: Hello
+
+.PHONY: Hello
+Hello : Hello.class Hello.jar
+
+Hello.jar : $(MAKJAR)
+	$(JAR) -cvf $@ $?
+

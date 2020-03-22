@@ -1,0 +1,33 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       e
+##
+## Purpose-
+##       Edit files.
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       e filename ...
+##
+##############################################################################
+pgm=$HOME/bin/edit
+if [[ ! -x "$pgm" ]] ; then
+  echo "$0 ERROR: can't execute $pgm"
+  exit
+fi
+
+$pgm "$@"
+clear
+

@@ -1,0 +1,80 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       multi-grep
+##
+## Purpose-
+##       Multiple recursive grep
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       multi-grep <-options> string ... <-- directory <file-list>>
+##
+## Notes-
+##       "." may be used either as the directory or the file list.
+##       If the file list is empty or specified as ".", all files are searched.
+##
+## Some grep options-
+##       -i    Ignore case
+##       -l    List of files
+##
+##############################################################################
+
+##############################################################################
+## Extract the switch names
+option=""
+for i in "$@"
+do
+  case $i in
+    -*)
+      option="$option $i"
+      shift
+      ;;
+
+    *)
+      break
+      ;;
+  esac
+done
+
+##############################################################################
+## Extract the search strings
+search=""
+for i in "$@"
+do
+  case $i in
+    --)
+      shift
+      break
+      ;;
+
+    *)
+      search="$search $i"
+      shift
+      ;;
+  esac
+done
+
+if [ -z "$search" ] ; then
+  heading $0
+  exit
+fi
+
+##############################################################################
+## Search for string in target, one by one
+for i in $search
+do
+  rgrep $option $i "$@"
+done
+

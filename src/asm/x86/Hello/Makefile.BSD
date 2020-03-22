@@ -1,0 +1,28 @@
+##############################################################################
+##
+##       Copyright (C) 2010 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+## Makefile.BSD
+##############################################################################
+
+##############################################################################
+## Local module list
+MAKSRC := $(wildcard $(SRCDIR)/*.s)
+MAKOBJ := $(patsubst $(SRCDIR)/%.s,$(OBJDIR)/%.o,$(MAKSRC))
+MAKEXE := $(patsubst $(SRCDIR)/%.s,$(OBJDIR)/%,$(MAKSRC))
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(MAKEXE)
+

@@ -1,0 +1,25 @@
+##############################################################################
+##
+##       Copyright (C) 2007 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.WIN
+##############################################################################
+
+##############################################################################
+## Local module list
+LLIBS  += gdi32.lib winspool.lib
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= make.dir
+endif
+
+.PHONY: make.dir
+make.dir: $(MAKEXE)
+

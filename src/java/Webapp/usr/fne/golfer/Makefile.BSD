@@ -1,0 +1,56 @@
+##############################################################################
+##
+##       Copyright (C) 2008 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       Makefile, BSD version. (Cygwin, Unix)
+##
+## Last change date-
+##       2008/01/01
+##
+##############################################################################
+
+##############################################################################
+## Local controls
+export CLASSPATH=.:OBJHOME:OBJHOME/common.jar
+export SOURCEDIR=SRCHOME
+export OBJECTDIR=OBJHOME
+
+##############################################################################
+## Set default target
+make.dir: $(MAKOBJ)
+	touch $@
+
+Applet/make.dir: $(SRCDIR)/Applet/*
+	(cd Applet; $(MAKE))
+
+run.server: DbServer.class DbRemote.class DbCommon.class
+	$(JRUN) -classpath "$(shell cygpath --path --windows "$(CLASSPATH)")" usr.fne.golfer.DbServer
+
+##############################################################################
+## Dependencies
+make.dir: Applet/make.dir
+
+EventsServlet.class : DbCommon.class DbServer.class
+PlayerServlet.class : DbCommon.class DbServer.class
+
+##############################################################################
+## Makefile.setup contains the local setup controls
+include Makefile.setup
+
+##############################################################################
+## Makefile cleanup
+.phony: MAK_clean
+clean : MAK_clean
+MAK_clean: ;
+	-@rm make.dir >/dev/null 2>/dev/null
+

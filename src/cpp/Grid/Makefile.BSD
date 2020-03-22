@@ -1,0 +1,36 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2017 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2017/01/01
+##
+##############################################################################
+
+##############################################################################
+## Local modifications
+LLIBS  += -lcurl ################## CURL library
+LLIBS  += -L$(LIBDIR) -lgui ####### Personal library
+LLIBS  += -lX11 ################### X11 library
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+

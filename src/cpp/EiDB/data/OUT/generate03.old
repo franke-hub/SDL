@@ -1,0 +1,19 @@
+
+100000 Genes, following lengths are in codons
+ Minimum length:      2
+  Median length:    693
+ Maximum length:  12323
+ Average length:   1002.19
+
+Scan string AC.CT
+  No matches
+
+Scan string AG.GT
+Phase[0]   546940  ( 15.22%)
+Phase[1]  2041870  ( 56.82%)
+Phase[2]  1004958  ( 27.96%)
+
+All string totals:
+Phase[0]   546940  ( 15.22%)
+Phase[1]  2041870  ( 56.82%)
+Phase[2]  1004958  ( 27.96%)

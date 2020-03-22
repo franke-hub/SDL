@@ -1,0 +1,47 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##        .display
+##
+## Function-
+##        Display configurator 1920 x 975.
+##
+## Last change date-
+##       2020/01/05
+##
+## Implementation note-
+##       Created and used when virtualbox extension does not properly
+##       initialize fullscreen window.
+##
+## Usage-
+##       ./.display <sudo>
+##
+##############################################################################
+if [[ ! -z "$1" ]] ; then
+  if [[ "$1" != "sudo" ]] ; then
+    echo 'The only valid parameter is "sudo"'
+    exit 1
+  fi
+fi
+
+if [[ "$DISPLAY" == ":1" ]] ; then
+  disp=`xrandr`
+  disp=`echo $disp | awk '{print $15}'`
+  mode=`cvt 1920 975`
+  mode=`echo $mode | ( read a b c d e f g h i j k l rem ; echo $rem )`
+  echo DISP: $disp
+  echo MODE: $mode
+  echo $1 xrandr --newmode $mode
+  mode=`echo $mode | ( read a rem ; echo $a )`
+  echo $1 xrandr --addmode $disp $mode
+fi
+

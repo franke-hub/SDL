@@ -1,0 +1,105 @@
+##############################################################################
+##
+##       Copyright (C) 2015-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.DIR
+##
+## Purpose-
+##       Control file included from ../Makefile.*
+##
+## Last change date-
+##       2019/01/16
+##
+##############################################################################
+
+##############################################################################
+## TARGET: definition
+.PHONY: target build.bsd build.win
+target: $(OBJDIR)/Shared.dll
+ignore: $(OBJDIR)/Shared.net
+
+build.bsd: target
+build.win: target
+
+##############################################################################
+## DEFINE: prerequisites
+PREREQ := $(wildcard $(SRCDIR)/Shared/*)
+
+##############################################################################
+## TARGET: $(OBJDIR)/Shared.dll
+$(OBJDIR)/Shared/Shared.dll: $(PREREQ)
+	(cd $(OBJDIR)/Shared/; $(MAKE))
+	touch $@
+
+ifeq "$(MAKENV)" "BSD"
+$(OBJDIR)/Shared.dll: $(OBJDIR)/Shared/Shared.dll
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+endif
+
+ifeq "$(MAKENV)" "WIN"
+$(OBJDIR)/Shared.dll: $(OBJDIR)/Shared/Shared.dll
+	cp -Lpf $< $@
+	chmod a+rx,u+w $@
+endif
+
+##############################################################################
+## TARGET: $(OBJDIR)/Shared.net
+$(OBJDIR)/Shared/Shared.net: $(PREREQ)
+	(cd $(OBJDIR)/Shared/; $(MAKE))
+	touch $@
+
+ifeq "$(MAKENV)" "BSD"
+$(OBJDIR)/Shared.net: $(OBJDIR)/Shared/Shared.net
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+endif
+
+ifeq "$(MAKENV)" "WIN"
+$(OBJDIR)/Shared.net: $(OBJDIR)/Shared/Shared.net
+	cp -Lpf $< $@
+	chmod a+rx,u+w $@
+endif
+
+##############################################################################
+## TARGET: Shared.pdb Shared.mdb
+.PHONY: Shared.pdb
+ifeq "$(MAKENV)" "BSD"
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+Shared.pdb: ;
+	$(shell [ ! -L Shared.pdb ] && [ -f Shared/Shared.pdb ] && ln -s Shared/Shared.pdb .)
+	@echo "Shared: *.pdb updated"
+
+else
+.PHONY: Shared.mdb
+Shared.mdb: ;
+	$(shell [ ! -L Shared.dll.mdb ] && [ -f Shared/Shared.dll.mdb ] && ln -s Shared/Shared.dll.mdb .)
+	$(shell [ ! -L Shared.net.mdb ] && [ -f Shared/Shared.net.mdb ] && ln -s Shared/Shared.net.mdb .)
+	@echo "Shared: *.mdb updated"
+endif
+endif
+
+ifeq "$(MAKENV)" "WIN"
+Shared.pdb: ;
+	$(shell [ ! -f Shared.pdb ] && [ -f Shared/Shared.pdb ] && cp -Lpf Shared/Shared.pdb .)
+	$(shell [ -f Shared.pdb ] && chmod a+rx,u+w Shared.pdb)
+	@echo "Shared: *.pdb updated"
+endif
+
+##############################################################################
+## Cleanup
+.PHONY: Shared.pristine Shared.clean
+pristine: Shared.pristine
+clean: Shared.clean
+
+Shared.pristine: ;
+	(cd $(OBJDIR)/Shared/; $(MAKE) pristine)
+
+Shared.clean: ;
+	-@rm -f Shared.dll Shared.net Shared.pdb Shared.mdb >/dev/null 2>/dev/null
+

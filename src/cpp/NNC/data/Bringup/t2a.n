@@ -1,0 +1,81 @@
+//----------------------------------------------------------------------------
+//
+// Title-
+//       t2a.n
+//
+// Description-
+//       Test large-scale FANIN.
+//
+//----------------------------------------------------------------------------
+   FANIN WEIGHT(1.0) CTRL::multiple_fanin::seq;
+
+begin multiple_fanin;
+
+   NEURON(constant) VALUE(1.1)                    a0001; //  1.1
+   NEURON(constant) VALUE(1.0 + 0.2)              a0002; //  1.2
+   NEURON(constant) VALUE(2.0 - 0.7)              a0003; //  1.3
+   NEURON(constant) VALUE(0.7 * 2.0)              a0004; //  1.4
+   NEURON(constant) VALUE(3.0 / 2.0)              a0005; //  1.5
+   NEURON(constant) VALUE(1.6 * 2.0 / (1 + 1))    a0006; //  1.6
+   NEURON(constant) VALUE(1.7)                    a0007; //  1.7
+   NEURON(constant) VALUE(1.8)                    a0008; //  1.8
+   NEURON(constant) VALUE(1.9)                    a0009; //  1.9
+   NEURON(constant) VALUE(2.0 * 3.0 + 4.0)        a0010; // 10.0
+   NEURON(constant) VALUE(1.0 + 2.0 * 3.0 + 4.0)  a0011; // 11.0
+   NEURON(constant) VALUE(12.0)                   a0012; // 12.0
+   NEURON(constant) VALUE(13.0)                   a0013; // 13.0
+   NEURON(constant) VALUE(2.0 + 3.0 * 4.0)        a0014; // 14.0
+   NEURON(constant) VALUE(2.0 * (3.0 + 4.0)+ 1.0) a0015; // 15.0
+   NEURON(constant) VALUE(-64 / 4)                a0016; //-16.0
+   NEURON(constant) VALUE(68 / -4)                a0017; //-17.0
+   NEURON(constant) VALUE(18.0)                   a0018; // 18.0
+   NEURON(constant) VALUE(19.0)                   a0019; // 19.0
+   NEURON(constant) VALUE(20.0)                   a0020; // 20.0
+   NEURON(constant) VALUE(21.0)                   a0021; // 21.0
+   NEURON(constant) VALUE(22.0)                   a0022; // 22.0
+   NEURON(constant) VALUE(23.0)                   a0023; // 23.0
+   NEURON(constant) VALUE(24.0)                   a0024; // 24.0
+   NEURON(constant) VALUE(25.0)                   a0025; // 25.0
+   NEURON(constant) VALUE(26.0)                   a0026; // 26.0
+   NEURON(constant) VALUE(27.0)                   a0027; // 27.0
+   NEURON(constant) VALUE(28.0)                   a0028; // 28.0
+   NEURON(constant) VALUE(29.0)                   a0029; // 29.0
+   NEURON(constant) VALUE(30.0)                   a0030; // 30.0
+   NEURON(constant) VALUE(31.0)                   a0031; // 31.0
+   NEURON(constant) VALUE(32.0)                   a0032; // 32.0
+
+   NEURON(constant) value(0) seq;
+     FANIN(a0001) WEIGHT(1.0);
+     FANIN(a0002) WEIGHT(1.0);
+     FANIN(a0003) WEIGHT(1.0);
+     FANIN(a0004) WEIGHT(1.0);
+     FANIN(a0005) WEIGHT(1.0);
+     FANIN(a0006) WEIGHT(1.0);
+     FANIN(a0007) WEIGHT(1.0);
+     FANIN(a0008) WEIGHT(1.0);
+     FANIN(a0009) WEIGHT(1.0);
+     FANIN(a0010) WEIGHT(1.0);
+     FANIN(a0011) WEIGHT(1.0);
+     FANIN(a0012) WEIGHT(1.0);
+     FANIN(a0013) WEIGHT(1.0);
+     FANIN(a0014) WEIGHT(1.0);
+     FANIN(a0015) WEIGHT(1.0);
+     FANIN(a0016) WEIGHT(1.0);
+     FANIN(a0017) WEIGHT(1.0);
+     FANIN(a0018) WEIGHT(1.0);
+     FANIN(a0019) WEIGHT(1.0);
+     FANIN(a0020) WEIGHT(1.0);
+     FANIN(a0021) WEIGHT(1.0);
+     FANIN(a0022) WEIGHT(1.0);
+     FANIN(a0023) WEIGHT(1.0);
+     FANIN(a0024) WEIGHT(1.0);
+     FANIN(a0025) WEIGHT(1.0);
+     FANIN(a0026) WEIGHT(1.0);
+     FANIN(a0027) WEIGHT(1.0);
+     FANIN(a0028) WEIGHT(1.0);
+     FANIN(a0029) WEIGHT(1.0);
+     FANIN(a0030) WEIGHT(1.0);
+     FANIN(a0031) WEIGHT(1.0);
+     FANIN(a0032) WEIGHT(1.0);
+end  multiple_fanin;
+

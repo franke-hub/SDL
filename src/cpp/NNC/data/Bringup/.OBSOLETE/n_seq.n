@@ -1,0 +1,50 @@
+///////////////////////////////////////////////////////////////////////
+//                                                                   //
+// Title-                                                            //
+//       n_seq.n                                                     //
+//                                                                   //
+// Description-                                                      //
+//       Sequencing and control                                      //
+//                                                                   //
+///////////////////////////////////////////////////////////////////////
+BEGIN SEQ;
+
+// Cycle control: active/train
+   NEURON[nop]      active;         // Operational cycle
+     FANIN           READ[V:SEQ];   // Visual op cycle
+
+   NEURON[nop]      train;          // Training cycle
+     FANIN           READ[V:TRAIN]; // Visual training cycle
+
+   NEURON[nor]      VALUE[0.0] wakemode;
+     FANIN           READ[wakemode] WEIGHT[1.0];
+
+   NEURON[nop]      VALUE[0.0] master_cycle;
+     FANIN           READ[wakemode] WEIGHT[1.0];
+     FANIN           READ[active];
+     FANIN           READ[train];
+
+// Master sequencer
+   NEURON[clock]    VALUE[0.0] master_clock; // Master clock
+   NEURON[dec]      VALUE[0.0] master_loops; // >0.0 if UP
+     FANIN           READ[master_loops] WEIGHT[1.0]; // Still UP?
+
+   NEURON[while]    VALUE[0.0] operate; // Operate the net
+     FANIN           READ[master_loops] WEIGHT[1.0]; // Still UP?
+     FANIN           READ[master_cycle];
+     FANIN           READ[master_clock];
+
+// Initialization
+   NEURON[store]              initializer;
+     FANIN           READ[master_loops] WEIGHT[5.0]; // Indicate UP
+
+   NEURON[nop]      VALUE[0.0] startup;  // The startup neuron
+     FANIN           READ[initializer];
+     FANIN           READ[operate];
+
+   NEURON[nop]      zz_last_neuron;
+     FANIN           READ[zz_last_neuron] zz_last_fanin;
+
+   ENTRY[startup];
+
+END SEQ;

@@ -1,0 +1,126 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       Command usage reminders
+##
+## Last change date-
+##       2019/10/07
+##
+## Usage-
+##       .README (or edit .README)
+##
+##############################################################################
+
+cat $0
+
+##############################################################################
+##
+## Command-
+##       cat /proc/mdstat
+##
+## Purpose-
+##       Display mdadm (RAID) status.
+##
+## Example-
+##       cat /proc/mdstat
+##
+##############################################################################
+
+##############################################################################
+##
+## Command-
+##       gitk (for specific file(s))
+##
+## Purpose-
+##       gitk, limiting the search to specific files
+##
+## Example-
+##       gitk -- */Thread.cpp       ## Only files named Thread.cpp
+##       gitk -- */*Thread.cpp      ## Adds files like ClientThread.cpp etc.
+##
+##############################################################################
+
+##############################################################################
+##
+## Command-
+##       ldd
+##
+## Purpose-
+##       List dynamic load library dependencies
+##
+## Example-
+##       ldd ~/bin/Edit.exe
+##
+##############################################################################
+
+##############################################################################
+##
+## Command-
+##       nmod
+##
+## Purpose-
+##       Disk usage (sami-graphic) monitor.
+##
+## Example-
+##       nmon -s 10
+##
+##############################################################################
+
+##############################################################################
+##
+## Command-
+##       rsync
+##
+## Purpose-
+##       Remote synchronization facility.
+##
+## Example-
+##       rsync -auz --info=del,name1,skip . rainbow:raid/backup/thing
+##       Use: "backup --help" for additional parameter information
+##
+##############################################################################
+
+##############################################################################
+##
+## Command-
+##       systemctl
+##
+## Purpose-
+##       Linux: Manage system services
+##
+## Example-
+##       systemctl restart nfs      ## Restart NFS
+##       systemctl disable nfs      ## Disable the NFS service
+##       systemctl enable nfs       ## Enable the NFS service
+##       man systemctl              ## Manual page
+##
+## See also-
+##       /etc/systemd/system/(multi-user.target.wants)
+##
+##############################################################################
+
+##############################################################################
+##
+## Command-
+##       uuidgen
+##
+## Purpose-
+##       Generate a globally unique identifier
+##
+## Example-
+##       rename something `uuidgen`
+##
+##############################################################################
+

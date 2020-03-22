@@ -1,0 +1,25 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/cpp/data/EiDB/.README
+##
+## Purpose-
+##       Directory content: Regression test inputs/outputs.
+##
+## Implementation notes-
+##       Outputs were generated after updating files after prior regression
+##       test output had been lost.
+##
+##       BIG/gb115.dEID is empty. Its content is lost.
+##       It originally contained a large set of exon/intron sections from
+##       various organisms.
+##
+##############################################################################

@@ -1,0 +1,136 @@
+##############################################################################
+##
+##       Copyright (C) 2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## ** TO DO **
+## Give locking methods consistent names
+## Status.h: Delete associated mutex after post?
+## Events.h: Looks suspiciously like a Semaphore
+##############################################################################
+
+##============================================================================
+## File access header files
+##############################################################################
+## Media.h
+## Contains MediaType, a base class that just defines types.
+## Media provides basic open/close, read/write access.
+## FileMedia implements Media for data storage files.
+## TempMedia implements Media for temporary (memory) files.
+##############################################################################
+## Reader.h
+## Reader defines input access methods.
+## MediaReader implements Reader for any Media.
+## FileReader implements Reader using an internal FileMedia.
+## LineReader extends FileReader, adding a line and column counter.
+##############################################################################
+## Writer.h
+## Writer defines output access methods.
+## MediaWriter implements Writer for any Media.
+## FileWriter implements Writer using an internal FileMedia.
+##############################################################################
+## Buffer.h
+## Buffer combines the Reader and Writer objects.
+## MediaBuffer implements Buffer for any Media.
+## FileBuffer implements Buffer using an internal FileMedia.
+## TempBuffer implements Buffer using an internal TempMedia.
+##############################################################################
+## FileInfo.h
+## Access to file information, similar to stat.
+##############################################################################
+## FileList.h
+## Access to path information and files within path.
+##############################################################################
+## FileName.h
+## Access to file name information.
+##############################################################################
+
+##============================================================================
+## Lock access header files
+##############################################################################
+## Barrier.h, RecursiveBarrier.h
+## A Barrier defines an exclusive spin lock. A RecursiveBarrier contains the
+## same methods, but also provides for recursion within the same Thread.
+## The locks are implemented as structrures so that they may be statically
+## initialized. Since a Barrier object does not need construction, it may be
+## used within constructors.
+##############################################################################
+## Latch.h
+## A Latch is a simple spin lock. It must be constructed before it's used.
+## Unlike a lock, there is no idle waiting for a Latch. Instead, if a latch
+## is not available the program actively waits, attempting to obtain the
+## latch over and over again. The latch program yields control to other
+## threads if the latch cannot be obtained, but has no mechanism for waiting
+## for the latch to become available other than actively retrying.
+##############################################################################
+## NamedLock.h
+## This defines the named Lock interface. Unlike a Latch, Locks are defined
+## to explicitly use a wait interface. That is, if a lock is not available
+## the program waits for it to become available. When the lock becomes
+## available, the waiting program is activated.
+##############################################################################
+## ThreadLock.h
+## ThreadLock implements the NamedLock interface for multi-threaded programs.
+## Additionally, ThreadLock checks for deadlock conditions (within the same
+## ThreadLock) and aborts with a message if detected.
+##############################################################################
+## See also:
+##   Mutex.h       (Mutual exclusion thread lock)
+##   Semaphore.h   (Partial exclusion thread lock)
+##############################################################################
+
+##============================================================================
+## Time related header files:
+##
+## Note that dates and times are approximate. The Clock and Julian objects
+## maintain times as differences from some epoch; the only difference between
+## them is the epoch used. Values are kept in doubles which gives 2^52 bits
+## of precision. This provides the illusion of more accuracy than can be
+## physically obtained. None of the time objects account for leap seconds.
+##
+## Floating point time representation can lead to apparent inconsistencies
+## because the time values are calculated by the implementation.
+## Briefly, differences occur when compare values currently exist in hardware
+## registers with 64 bit precision and in storage with 52 bit precision.
+## When these values with differing precisions are compared, the extra 12 bits
+## cause comparison imprecision.
+## For example:
+##   double then= Clock::current(); double now= Clock::current();
+##   assert( now >= then ); ## THIS ASSERT CAN FAIL!
+## On a multiprocessor system, clocks cannot be exactly synchronized so you
+## might expect this to be a possible but extremely rare condition. But this
+## assertion can even fail on a uniprocessor system!
+##
+## See gcc bugzilla 323 for further discussion. (Won't fail on Windows.)
+##############################################################################
+## Calendar.h
+## A Gregorian calendar.
+## Keeps the year, month, day, hour, minute, second and nanosecond.
+##
+## Can be converted into or from a Clock or Julian.
+##############################################################################
+## Clock.h
+## Contains the number of seconds since the Epoch's origin.
+## The Epoch, currently Jan 1, 1970, is hard coded in Clock.cpp. Therefore
+## it is guaranteed consistent as long at there is no reboot.
+##
+## The static current() method returns the current number of seconds since
+## the 1970 PC Epoch.
+##
+## Addition, subtraction, and comparison operators are provided.
+##############################################################################
+## Interval.h
+## An interval measurement.
+## Uses two Clock objects for the start and stop time.
+##############################################################################
+## Julian.h
+## A Julian chronometer containing the number of seconds since Julian day 1.
+## Note that a double provides about 0.05 millisecond resolution to 2014
+## and about 100 second resolution over a period of 15 billion years.
+##
+## Addition, subtraction, and comparison operators are provided.
+##############################################################################

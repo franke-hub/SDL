@@ -1,0 +1,33 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       connect
+##
+## Purpose-
+##       Connect to a SCREEN
+##
+## Last change date-
+##       2019/10/07
+##
+## Usage-
+##       connect gridname
+##
+##############################################################################
+if [[ -z "$1" ]] ; then echo "Missing SCREEN name"; exit 1; fi
+
+LIST=`ps -fu $LOGNAME| grep SCREEN| grep -v grep| grep $1| awk '{print $2}'`
+if [[ -z "$LIST" ]] ; then echo "Invalid SCREEN name"; exit 1; fi
+for i in $LIST
+do
+  screen -r $i..$HOSTNAME
+done
+

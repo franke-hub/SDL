@@ -1,0 +1,45 @@
+//----------------------------------------------------------------------------
+//
+// Title-
+//       t2.n
+//
+// Description-
+//       Sequencing and control
+//
+//----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
+// Control logics
+//----------------------------------------------------------------------------
+   NEURON                      op_cycle; // Operational cycle
+     FANIN(::TEST::SEQ);            // Cycle
+     #include "t2a.n"               // FANIN level test
+     #include "t2b.n"               // Stack level test
+
+//----------------------------------------------------------------------------
+// Master sequencer
+//----------------------------------------------------------------------------
+   NEURON(DEC)      VALUE(0.0) operational; // >0.0 if UP
+     FANIN;                         // Still UP?
+
+   NEURON(clock)    VALUE(0.0) newtick; // Master clock
+   NEURON(while)    VALUE(0.0) cycle;   // Sequencing element
+     FANIN(operational) WEIGHT(1.0);// Still UP?
+     FANIN(op_cycle);
+     FANIN(newtick);
+
+//----------------------------------------------------------------------------
+// Initialization
+//----------------------------------------------------------------------------
+   NEURON(store) initialize;
+     FANIN(operational) WEIGHT(5.0);// Indicate UP
+
+begin alpha;
+
+   NEURON          VALUE(3.6) entry;// The startup neuron
+     Entry;
+     FANIN(CTRL::initialize);
+     FANIN(CTRL::cycle);
+
+end  alpha;
+

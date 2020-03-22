@@ -1,0 +1,53 @@
+//----------------------------------------------------------------------------
+//
+// Title-
+//       Source.n
+//
+// Description-
+//       Data loader.
+//
+//----------------------------------------------------------------------------
+Source:
+{
+//----------------------------------------------------------------------------
+// Constants for parameterization
+//----------------------------------------------------------------------------
+#define VIDEO_H                 40; // Horizontal input size
+#define VIDEO_V                 40; // Vertical input size
+
+//----------------------------------------------------------------------------
+// Video input array
+//----------------------------------------------------------------------------
+activeVideo[VIDEO_H][VIDEO_V]:
+   NEURON(fetch);                   // Source if active
+trainVideo[VIDEO_H][VIDEO_V]:
+   NEURON(fetch);                   // Source if training
+
+video[VIDEO_H][VIDEO_V]:
+   NEURON(nop);                     // Video array
+
+//----------------------------------------------------------------------------
+// Active video load
+//----------------------------------------------------------------------------
+   for(h=1; h<=VIDEO_H; h++)
+   {
+     for(v=1; v<=VIDEO_V; v++)
+     {
+       FANIN(activeVideo[h][v]) READ(video[h][v]);
+       FANIN(Seq::loadActive) READ(activeVideo[h][v]);
+     }
+   }
+
+//----------------------------------------------------------------------------
+// Train video load
+//----------------------------------------------------------------------------
+   for(h=1; h<=VIDEO_H; h++)
+   {
+     for(v=1; v<=VIDEO_V; v++)
+     {
+       FANIN(trainVideo[h][v]) READ(video[h][v]);
+       FANIN(Seq::loadTrain) READ(trainVideo[h][v]);
+     }
+   }
+
+} // Source

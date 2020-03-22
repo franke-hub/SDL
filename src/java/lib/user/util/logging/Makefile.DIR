@@ -1,0 +1,28 @@
+##############################################################################
+##
+##       Copyright (C) 2007 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.DIR -- Included by ../../../Makefile.BSD
+##############################################################################
+
+##############################################################################
+## TARGET: user.jar
+user.jar : $(OBJDIR)/user/util/logging/make.dir
+
+$(OBJDIR)/user/util/logging/make.dir: $(wildcard $(SRCDIR)/user/util/logging/*.java)
+	(cd $(OBJDIR)/user/util/logging; $(MAKE))
+
+MAKJAR += $(patsubst $(SRCDIR)/user/util/logging/%.java,$(OBJDIR)/user/util/logging/%.class,$(wildcard $(SRCDIR)/user/util/logging/*.java))
+
+##############################################################################
+## Cleanup
+pristine : user.util.logging.pristine
+.PHONY: user.util.logging.pristine
+user.util.logging.pristine : ;
+	(cd user/util/logging; $(MAKE) pristine)
+

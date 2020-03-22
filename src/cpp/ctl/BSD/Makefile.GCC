@@ -1,0 +1,86 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.GCC
+##
+## Purpose-
+##       Default GCC compiler controls
+##
+##############################################################################
+
+##############################################################################
+## CC       (Compiler identifier)
+AR     := ar -r ################### Archiver: ar
+CC     := c++ ##################### Compiler: gnu C++
+LD     := c++ ##################### Loader: gnu C++
+
+##############################################################################
+## System include directory
+INCSYS :=/usr/include############## Default Include directory
+
+##############################################################################
+## CDEFS    (Compiler definitions)
+CDEFS  +=########################## C defines
+CDEFS  += -D_CC_GCC################ CC == GCC
+
+##############################################################################
+## COPTS    (Compiler options)
+ifneq "" "$(OPTIMIZE)"
+COPTS  += $(OPTIMIZE)############## Customized optimization
+
+else
+COPTS  += -g -O3################### Default, debugging, full optimization
+COPTS  += -finline-functions####### Optimize out inline functions
+endif
+
+COPTS  += -std=gnu++17############# Use C++17 standard (gnu version)
+###### += -ansi ################### ANSI level
+###### += -mlong64################# 64 bit longs (DOESN'T WORK)
+###### += -mno-fp-regs############# Don't use FP registers
+###### += -fexceptions############# Enable try/catch exception handling
+################################### (Conflicts with -O3)
+
+################################### Warnings
+###### += -Wall ################### Activate the following warnings
+###### += -W ###################### Extra warnings for some events
+COPTS  += -Wchar-subscripts ####### Array subscript of type char
+COPTS  += -Wcomment ############### Comment within a comment
+COPTS  += -Wformat ################ Extensive printf, etc. checking
+###### += -Wimplicit ############## Implicit function or parameter
+###### += -Wno-deprecated########## Don't warn about deprecated usage
+COPTS  += -Wreturn-type ########### Implicit return type
+COPTS  += -Wswitch ################ Switch, enumerated index lacks case
+###### += -Wtemplate-debugging #### C++ only
+COPTS  += -Wtrigraphs ############# Trigraphs encountered
+COPTS  += -Wuninitialized########## Variable used before being set
+COPTS  += -Wunused################# Unused variable or function
+
+###### += -Wcast-qual ############# Attempt to remove type qualifier
+COPTS  += -Werror ################# Treat warnings as errors
+###### += -Wmissing-prototypes #### Extern function has no prototype
+###### += -Wstrict-prototypes ##### No longer valid for C++
+
+################################### Listing control
+ifneq "" "$(LISTING)"
+COPTS  += -Wa,-ahl=$*.lst ######### Generate listing
+endif
+
+ifneq "" "$(LINKMAP)"
+CLOAD  += -Wl,-Map -Wl,$*.map ##### Generate linker map
+endif
+
+##############################################################################
+## CLIBS    (Loader libraries, set in Makefile.OPT)
+
+##############################################################################
+## CLOAD    (Linker variables, set in Makefile.OPT)
+

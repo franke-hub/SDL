@@ -1,0 +1,69 @@
+##############################################################################
+##
+##       Copyright (C) 2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.WIN
+##
+## Purpose-
+##       WINDOWS Makefile customization.
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## Local module list
+MAKRUN :=
+MAKRUN += tlc
+
+CC     := c++
+CDEFS  := -D_OS_WIN
+CFLAGS :=
+CINCL  :=
+CLIBS  :=
+CLOAD  :=
+COPTS  := -g -O3
+CFLAGS := $(strip $(CDEFS) $(CINCL) $(COPTS))
+
+%.obj : $(SRCDIR)/%.cpp
+	$(CC) -o $@ $(CFLAGS) -c $<
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKRUN)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## Make control: tlc
+TLC := tlc.obj main.obj test.obj
+tlc: $(TLC)
+	$(CC) -o tlc $(TLC) -m32 $(CLIBS) $(CLOAD)
+
+tlc.obj: tlc._s
+	as -als=$*.lst --32 -o $@ $<
+
+tlc._s : tlc.m4
+	m4 >$@ $<
+
+tlc.m4 : $(SRCDIR)/tlc.S $(SRCDIR)/*.m4
+	$(CC) $(CDEFS) -I. -traditional -E -o $@ $<
+
+##############################################################################
+## Makefile cleanup
+clean : MAK_clean
+
+.PHONY : MAK_clean
+MAK_clean: ;
+	-@rm $(MAKRUN) tlc._s tlc.m4 >/dev/null 2>/dev/null

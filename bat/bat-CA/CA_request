@@ -1,0 +1,41 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       CA_request
+##
+## Function-
+##       Generate (create) a certificate request.
+##
+## Last change date-
+##       2019/04/03
+##
+## Usage-
+##       CA_request
+##         Output: private.pem, request.pem
+##
+##############################################################################
+
+##############################################################################
+## Verify the request
+[[ -n "$1" ]] && { echo "No parameters allowed"; exit 1; }
+
+[[ -f "./private.pem" ]] && { echo "./private.pem already exists"; exit 1; }
+[[ -f "./request.pem" ]] && { echo "./request.pem already exists"; exit 1; }
+
+[[ -z "$OPENSSL_CONF" ]] && { echo "OPENSSL_CONF is not set"; exit 1; }
+[[ ! -f "$OPENSSL_CONF" ]] && { echo "$OPENSSL_CONF is not a file"; exit 1; }
+
+##############################################################################
+## Generate / verify the certificate
+openssl req -newkey rsa:1024 -keyout private.pem -keyform PEM -out request.pem -outform PEM
+openssl req -in request.pem -text -noout
+

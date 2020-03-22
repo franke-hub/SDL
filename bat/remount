@@ -1,0 +1,31 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       remount
+##
+## Purpose-
+##       Remount a filesystem.
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       remount fsName
+##
+##############################################################################
+umount $1
+if [ ! $? = 0 ] ; then
+  echo "Unmount failed"
+  exit
+fi
+mount $1
+

@@ -1,0 +1,55 @@
+##############################################################################
+##
+##       Copyright (c) 2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       README.FIRST
+##
+## Purpose-
+##       Document local changes.
+##
+## Implementation notes-
+##       NO CHANGES HAVE BE MADE to the distribution code, except as required
+##       and defined by the distribution itself for configuration.
+##
+##       j*.h files are copied further into include library subdirectories.)
+##       (README.INCLUDE is also copied into each of these subdirectories.)
+##
+##############################################################################
+##
+## Added compilation and distribution control files:
+## -------------------------------------------------
+##    INSTALL.BAT      (Windows installation script)
+##    install.bsd      (Cygwin/Linux installation script)
+##
+##    Makefile.BSD     (Cygwin/Linux Makefile versioning)
+##    Makefile.DIR     (Subdirectory build control)
+##    Makefile.WIN     (Windows Makefile versioning)
+##
+##    README.BUILD     (Build/installation instructions)
+##    README.FIRST     (This file)
+##    README.INCLUDE   (Include file distribution information.)
+##
+## The Makefiles avoid compiling mains and unused memory managers:
+## ---------------------------------------------------------------
+##    ansi2knr.c
+##    cjpeg.c
+##    ckconfig.c
+##    djpeg.c
+##    example.c
+##    jpegtran.c
+##    rdjpgcom.c
+##    wrjpgcom.c
+##
+##    jmemansi.c
+##    jmemdos.c
+##    jmemdosa.asm
+##    jmemmac.c
+##    jmemname.c
+##

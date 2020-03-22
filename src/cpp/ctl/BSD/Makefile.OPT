@@ -1,0 +1,69 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.OPT
+##
+## Purpose-
+##       Default compiler options.
+##
+##############################################################################
+
+##############################################################################
+## AFLAGS   (Assembler flags)
+ifneq "" "$(LISTING)"
+AFLAGS := -l
+else
+AFLAGS :=
+endif
+
+##############################################################################
+## CDEFS    (Compiler defines)
+CDEFS  += $(LDEFS)################# C defines
+CDEFS  += -D_OS_BSD################ OS=BSD
+
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+CDEFS  += -D_HW_X86################ HW=Intel X86
+CDEFS  += -D_OS_CYGWIN############# OS=CYGWIN
+endif
+
+ifeq "Linux"  "$(findstring Linux,$(shell uname))"
+CDEFS  += -D_HW_X86################ HW=Intel X86
+CDEFS  += -D_OS_LINUX############## OS=LINUX
+endif
+
+##############################################################################
+## CINCL    (Include libraries)
+CINCL  += $(LINCL)################# C includes
+CINCL  += -I$(SRCDIR)############## Project source directory
+CINCL  += -I$(INCDIR)############## Project include directory
+
+##############################################################################
+## CLIBS    (Loader libraries)
+CLIBS  += $(LLIBS)################# Load libraries
+CLIBS  += -L$(LIBDIR) -lcom ####### Common library
+###### += -lc###################### Standard C Library
+###### += -lcurses################# CURSES Library
+###### += -lm###################### Mathlib, Security
+###### += -lncurses################ New CURSES Library
+CLIBS  += -lpthread################ Thread library
+###### += -ls###################### Security
+###### += -lX11#################### Standard X Library
+
+##############################################################################
+## CLOAD    (Loader options)
+CLOAD  += $(LLOAD)################# Load options
+###### += -Wl,--print-map ######### Print map to stderr
+
+##############################################################################
+## Set CFLAGS
+CFLAGS  = $(strip $(CDEFS) $(CINCL) $(COPTS))
+

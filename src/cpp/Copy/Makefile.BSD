@@ -1,0 +1,48 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       Sample Makefile.
+##
+## Last change date-
+##       2020/01/29
+##
+## Implementation note-
+##       The basic make file template is given to the public domain.
+##       You can freely use it without attribution of any kind.
+##
+##       The make file's "look and feel" is explicitly not copyrighted.
+##
+##############################################################################
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## Add library controls and dependencies
+include $(INCDIR)/com/Makefile.BSD
+include $(INCDIR)/pub/Makefile.BSD
+
+##############################################################################
+## Cleanup
+.PHONY: MAK_clean
+clean:  MAK_clean
+MAK_clean: ;
+	-@rm debug.* >/dev/null 2>/dev/null

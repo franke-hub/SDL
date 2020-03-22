@@ -1,0 +1,22 @@
+##############################################################################
+##
+##       Copyright (C) 2010 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+## ~/src/asm/x86/boot/.gitignore
+##
+##       This subdirectory contains a sample bootloader for a floppy disk
+##       along with a memory test program.
+##       It may have worked at one time, but it doesn't now.
+##       Even if it did, floppy disks are pretty much obsolete.
+##
+##       Google "x86 assembler bootloader" to find a sample boot loader.
+##
+##############################################################################
+*
+!/.gitignore

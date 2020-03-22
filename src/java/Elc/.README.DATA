@@ -1,0 +1,94 @@
+##############################################################################
+##
+##       Copyright (C) 2017 Frank Eskesen.
+##
+##       This file is free content, distributed under the GNU General
+##       Public License, version 3.0.
+##       (See accompanying file LICENSE.GPL-3.0 or the original
+##       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+##
+##############################################################################
+##
+## Title-
+##       README.DATA
+##
+## Purpose-
+##       Data storage file rules, implemented in ObjectStore.java.
+##
+## Last change date-
+##       2017/01/01
+##
+## Notation-
+##       Files are named wwww-xxxx-yyyy-zzzz, where wwww, xxxx, yyyy, and zzzz
+##       are hexadecimal numbers. Internally, the numbers are combined into a
+##       single Java long used to reference an file.
+##
+## Usage-
+##       The data are divided into directories.
+##
+##       File 0123-4567-89ab-cdef can be found in:
+##       $ROOT/01234/567/89AB/.
+##       (This organizational structure may change.)
+##
+##       A subdirectory contains at most 65536 files
+##
+## About data objects-
+##       Data objects may be general or specific. General objects contain data
+##       relating to some, many, most, or all objects of the same class.
+##       Specific objects contain data relating to one object.
+##
+## Information to keep-
+##       Data source: (Long reference)(http://www.source.com/source/page.html)
+##       Source time: (Long)
+##
+## Data types-
+##       .obj   Java object
+##       .txt   Simple text, either UTF-8 or UNICODE
+##
+## Transactional data update-
+##       0123-4567-89ab-cdef.obj        Current state
+##       0123-4567-89ab-cdef.old        Pending update state
+##       0123-4567-89ab-cdef.obj && .old    Pending update state
+##       0123-4567-89ab-cdef.obj        Updated state
+##
+## Things to consider-
+##       Data will be corrupted and/or lost. This must be handled.
+##       For primary data items, regular backups must occur. This needs to
+##       be done at least as well as system restore.
+##
+##       $ROOT/backup/2007-12-12-1833 (Cannot use ':' char.)
+##           0000-0000-0000-0000.obj    Etc, for all primary files.
+##           use same subdirectory rules.
+##
+##############################################################################
+
+## NEED TO FIGURE OUT WAY TO DIVIDE COMPONENT IDS?
+## Or, for an object, have list of references?
+###### Component id    Description
+0000-                  Users
+0000-0000-             (Computer)
+0000-0000-0000-0000    Directory for 0000-0000-0000-0000
+0000-0000-0000-0001    List of built-in components
+0000-0000-0000-0002    Qualifier lists
+0000-0000-0000-0003    Dictionary lists
+0000-0000-0000-0004    Rule lists
+
+0000-0000-0001-0000    Directory for 0000-0000-0001-0000
+
+0000-0001-             User[1]
+0000-0001-0000-0000    Directory for 0000-0001-0000-0000
+
+0002-                  Logs
+
+0003-                  Sources
+0003-0000-0000-0000    Directory for 0003-0000-0000-0000
+
+
+ffff-                  Temporary
+ffff-ffff-0000-        Temporary filter
+ffff-ffff-0001-        Temporary filter
+ffff-ffff-0002-        Temporary filter
+ffff-ffff-0003-        Temporary filter
+
+ffff-fffe-             To do lists (prioritized, 0000 is highest)
+

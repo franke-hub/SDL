@@ -1,0 +1,43 @@
+///////////////////////////////////////////////////////////////////////
+//                                                                   //
+// Title-                                                            //
+//       l.n                                                         //
+//                                                                   //
+// Description-                                                      //
+//       Bringup test: result= 1,030,200, iterations= 2,060,404      //
+//                                                                   //
+///////////////////////////////////////////////////////////////////////
+begin file[BUP.000] bringup;
+
+#define I 100;
+#define J 101;
+#define K 102;
+#define this I * J * K;             // 1,030,200
+#define that -this;
+
+   NEURON[constant] Value[this] resultant;
+
+   NEURON[constant] Value[this] testme[I][J][K];
+
+   NEURON[constant] Value[that] testit;
+
+   NEURON[nop]     initial;
+   do i= 1 to I;
+     do j= 1 to J by 1;
+       do k= 1 to K by 1;
+         fanin read[testme[i][j][k]];
+         fanin[testme[i][j][k]] read[testit];
+       end;
+     end;
+   end;
+
+   NEURON[nop] refall;
+     fanin read[initial];
+
+   NEURON[add] entry;
+     entry;
+     fanin read[resultant];
+     fanin read[refall];
+
+
+END bringup;

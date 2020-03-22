@@ -1,0 +1,58 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       classpath
+##
+## Purpose-
+##       Append jar files in current directory to classpath.
+##
+## Last change date-
+##       2019/10/07
+##
+## Usage-
+##       . classpath
+##
+##############################################################################
+
+##############################################################################
+# PREREQ functions
+. f.appendstring
+
+##############################################################################
+# If CLASSPATH not already initialized, set it to the default
+if [[ -z "$CLASSPATH" ]] ; then
+  export CLASSPATH=.
+  if [[ ! -z "$JAVA_HOME" ]] ; then
+    if [[ -f "$JAVA_HOME/lib/dt.jar" ]] ; then
+      __pwd=$PWD
+      cd $JAVA_HOME/lib
+      for i in `ls *.jar`
+      do
+        AppendString CLASSPATH "$PWD/$i"
+      done
+      cd $__pwd
+      unset __pwd
+    fi
+  fi
+fi
+
+##############################################################################
+# Add the current directory to CLASSPATH
+AppendString CLASSPATH $PWD
+
+##############################################################################
+# Add current directory jar files to CLASSPATH
+for i in `ls *.jar`
+do
+  AppendString CLASSPATH $PWD/$i
+done
+

@@ -1,0 +1,101 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       mkzip
+##
+## Purpose-
+##       Create a compressed zip file
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       mkzip zip_file_name directory_name
+##
+##############################################################################
+
+##############################################################################
+## Extract the switch names
+sparm=""
+args=""
+
+for i in $*
+do
+  case $i in
+    -*) 
+      sparm="$sparm $i"
+      shift
+      ;;
+
+    *)
+      break 
+      ;;
+
+  esac
+done
+
+##############################################################################
+## Extract parameters
+if [ "" = "$1" ] ; then
+  echo "Missing zip_file name"
+  heading $0
+  exit
+fi
+zip_name=$1
+shift
+
+if [ "" = "$1" ] ; then
+  echo "Missing directory name"
+  heading $0
+  exit
+fi
+dir_name=$1
+shift
+
+if [ "" != "$1" ] ; then
+  echo "Too many parameters"
+  heading $0
+  exit
+fi
+
+##############################################################################
+## Verify parameters
+if [ -f "$zip_name" ] ; then
+  echo "'$zip_name' already exists."
+  echo "Delete it and try again."
+  exit
+fi
+
+if [ -f "$zip_name.zip" ] ; then
+  echo "'$zip_name.zip' already exists."
+  echo "Delete it and try again."
+  exit
+fi
+
+if [ ! -d "$dir_name" ] ; then
+  echo "'$dir_name' is not a directory."
+  echo "Use a real directory name."
+  exit
+fi
+
+##############################################################################
+## Create zip file
+cmd="zip -r -y $zip_name $dir_name"
+echo $cmd
+$cmd
+rc=$?
+
+if [ "0" != "$rc" ] ; then
+  echo "zip command failed, exit code $rc"
+fi
+exit $rc
+

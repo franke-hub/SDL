@@ -1,0 +1,62 @@
+##############################################################################
+##
+##       Copyright (c) 2014-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.DIR
+##
+## Purpose-
+##       Included by ../../../../Makefile.BSD
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## TARGET: newsreader.jar
+newsreader.jar : common.jar $(OBJDIR)/usr/fne/newsreader/make.dir
+	$(JAR) -cvf newsreader.jar $(OBJDIR)/usr/fne/newsreader/*.class
+
+$(OBJDIR)/usr/fne/newsreader/make.dir: $(wildcard $(SRCDIR)/usr/fne/newsreader/*.java)
+	(cd $(OBJDIR)/usr/fne/newsreader; $(MAKE))
+
+##############################################################################
+## APPLICATION: newsreader
+all: newsreader
+install: newsreader.install
+
+.PHONY: newsreader
+newsreader : common.jar
+newsreader : $(SRCDIR)/install/newsreader/index.html
+newsreader : $(SRCDIR)/install/newsreader/web.xml
+newsreader : $(SRCDIR)/install/newsreader/profile/newsreader.pro
+newsreader : newsreader.jar
+
+.PHONY: newsreader.install
+newsreader.install : test newsreader
+	-rm -R -f $(DEPLOYDIR)/webapps/newsreader
+	mkdir $(DEPLOYDIR)/webapps/newsreader
+	mkdir $(DEPLOYDIR)/webapps/newsreader/profile
+	mkdir $(DEPLOYDIR)/webapps/newsreader/WEB-INF
+	mkdir $(DEPLOYDIR)/webapps/newsreader/WEB-INF/lib
+	cp -p $(SRCDIR)/install/newsreader/index.html $(DEPLOYDIR)/webapps/newsreader/.
+	cp -p $(SRCDIR)/install/newsreader/web.xml $(DEPLOYDIR)/webapps/newsreader/WEB-INF/.
+	cp -p $(SRCDIR)/install/newsreader/profile/*.pro $(DEPLOYDIR)/webapps/newsreader/profile/.
+	cp -p $(OBJDIR)/common.jar $(DEPLOYDIR)/webapps/newsreader/WEB-INF/lib/.
+	cp -p $(OBJDIR)/newsreader.jar $(DEPLOYDIR)/webapps/newsreader/WEB-INF/lib/.
+
+##############################################################################
+## Cleanup
+pristine : newsreader.pristine
+.PHONY: newsreader.pristine
+newsreader.pristine : ;
+	(cd usr/fne/newsreader; $(MAKE) pristine)
+	-@rm newsreader.jar
+

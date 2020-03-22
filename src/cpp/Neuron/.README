@@ -1,0 +1,120 @@
+##############################################################################
+##
+##       Copyright (C) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       This directory contains **EXPERIMENTAL** Neural Network Objects
+##
+## Last change date-
+##       2018/07/23
+##
+## Implementation notes-
+##       Does not seem at all useful.
+##
+##############################################################################
+##
+## DOC:
+##
+## Goals-
+##       10^14 Synapses, 10^9 Neurons
+##       100 GB: 8x10^8 Neurons, 8x10^11 Synapses
+##        30 GB: 10^7 Neurons, 10^10 Synapses [Today's hardware]
+##
+## Memory usage-
+##       Notes: The input and output vectors are extremely small parts of the
+##          Synapse size. Some minimal gains will be had by sharing input and
+##          output data areas.
+##
+##       1024x256 Axion x Neurons
+##            128 Bytes (Axion input vector)
+##            128 Bytes (Axion weight vector)
+##             32 Bytes (Neuron output vector)
+##            256 Bytes (Leak vector)
+##            256 Bytes (Remainder vector)
+##            256 Bytes (Threshold vector)
+##         32,768 Bytes (Synapse vector)
+##             40 Bytes (Overhead)
+##          1,264 Bytes (Room for expansion)
+##         ------
+##         35,000 Bytes for 256 Neurons, 1024 Axions, 262,144 Synapses)
+##
+##       About      136 bytes/Neuron [1,024 inputs each]
+##       About     7.85 MegaNeurons/Gigabyte (30,678 x     256)
+##       About     8.07 GigaSynapse/Gigabyte (30,678 x 262,144)
+##
+##       256x1024 Axion x Neurons
+##             32 Bytes (Axion input vector)
+##             32 Bytes (Axion weight vector)
+##            128 Bytes (Neuron output vector)
+##           1024 Bytes (Leak vector)
+##           1024 Bytes (Remainder vector)
+##           1024 Bytes (Threshold vector)
+##         32,768 Bytes (Synapse vector)
+##             40 Bytes (Overhead)
+##            928 Bytes (Room for expansion)
+##         ------
+##         37,000 Bytes for 256 Axions, 1024 Neurons, 262,144 Synapses)
+##
+##       About       36 bytes/Neuron [256 inputs each]
+##       About    29.72 MegaNeurons/Gigabyte (29,020 x   1,024)
+##       About     7.61 GigaSynapse/Gigabyte (29,020 x 262,144)
+##
+
+##############################################################################
+## OPEN:
+2013/09/01 Synapse: Do we want one weight per input Axion?
+           Con: Increases 1024x256 size by 992 bytes
+           Con: Increases 256x1024 size by 224 bytes
+           Pro: Less confusing
+           Pro: More flexible
+
+##############################################################################
+## FEATURE (Synapse):
+## Need: Network sequence bundle:
+##       Load/Dump, Storage allocation controller.
+##
+## Need: Network sequence bundle:
+##       1024x64 => 64x1024 => 1024x64
+##
+## Need: INVERTER:
+##       Use negative weights bias, always set.
+##
+## Need: WEIGHT DIFFUSER:
+##       INP: x7x6x5x4x3x2x1x0y7y6y5y4y3y2y1y0 ... z7z6z5z4z3z2z1z0 [8 bytes]
+##       OUT: x7y7..........z7x6y6..........z6 ... x0y0..........z0 [8 bytes]
+##
+## Need: INVERTER:
+##       DIFFUSER (with negative weights)
+##       ALL ONES (with positive weights)
+##
+##        I   I   I   I               I     I     I     I     G  R  L  T  O
+##       [0] [1] [-] [7]            [K-7] [K-6] [---]  [K]    e  e  e  r  u
+##        |   |   |   |               |     |     |     |     t  m  a  i  t
+## Weight 8   8   -   8               1     1     -     1     s  s  k  g  s
+##        |   |   |   |               |     |     |     |  N  |  |  |  |  |
+##       -*---|---:---|---|---|---|---*-----|-----:-----|-[0]-x--x--x--x--x-
+##       -|---*---:---|---|---|---|---|-----*-----:-----|-[1]-x--x--x--x--x-
+##       -:---:---:---:---|---|---|---:-----:-----:-----:-[-]-x--x--x--x--x-
+##       -|---|---:---*---|---|---|---|-----|-----:-----*-[7]-x--x--x--x--x-
+##        :   :   :   :   :   :   :   :     :     :     :  :
+##       -*---|---:---|---|---|---|---*-----|-----:-----|-[0]-x--x--x--x--x-
+##       -|---*---:---|---|---|---|---|-----*-----:-----|-[1]-x--x--x--x--x-
+##       -:---:---:---:---|---|---|---:-----:-----:-----:-[-]-x--x--x--x--x-
+##       -|---|---:---*---|---|---|---|-----|-----:-----*-[M]-x--x--x--x--x-
+##        |   |   |   |   |   |   |   |     |     |     |     |  |  |  |  |
+##        |   |   |   |   |   |   |   |     |     |     |     |  |  |  |  |
+##        |   |   |   |   |   |   |   |     |     |     |     |  |  |  |  |
+##
+
+##############################################################################
+## CLOSED:
+##

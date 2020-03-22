@@ -1,0 +1,36 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+##
+## Title-
+##       .gitconfig
+##
+## Function-
+##       GIT user configuration file.
+##
+## Last change date-
+##       2020/01/19
+##
+## Implementation notes-
+##       You really should modify the name and email address.
+##
+##############################################################################
+[user]
+	name = Some User
+	email = some.user@some-server.email.broken
+[alias]
+	erase = rm
+	hist = log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short
+	history = log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short
+	load = checkout -f master
+	move = mv
+	print = cat-file -p
+	remove = rm
+	rename = mv

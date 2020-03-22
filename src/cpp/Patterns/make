@@ -1,0 +1,32 @@
+#!/bin/bash
+##############################################################################
+##
+##       Copyright (c) 2014 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       make
+##
+## Function-
+##       Local alias for make
+##
+## Last change date-
+##       2014/01/01
+##
+## Usage-
+##       ./make
+##
+## Notes-
+##       fileformat=unix
+##
+#######
+
+##############################################################################
+# Build the file
+c++ -o Main -D_OS_BSD -I. Main.cpp
+

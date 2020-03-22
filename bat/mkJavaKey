@@ -1,0 +1,60 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2017-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       mkJavaKey
+##
+## Purpose-
+##       Create a new key using $JAVA_HOME/bin/keytool
+##
+## Last change date-
+##       2020/03/17
+##
+## Usage-
+##       mkJavaKey
+##       (This is required when jarsigner complains about an expired key.)
+##
+##############################################################################
+
+##############################################################################
+## Environment check
+if [ -z "$JAVA_HOME" ] ; then
+  . setupJAVA
+  if [ -z "$JAVA_HOME" ] ; then
+    echo "JAVA_HOME environment variable missing"
+    exit 1
+  fi
+fi
+java_home=`cygpath --path --unix $JAVA_HOME`
+
+if [ -z "$HOMEPATH" ] ; then
+  echo "HOMEPATH environment variable missing"
+  echo "Try export HOMEPATH=\Users\$USER"
+  exit 1
+fi
+
+home_path=`cygpath --path --unix C:$HOMEPATH`
+echo "home_path '$home_path'"
+
+PGM=$java_home/bin/keytool
+if [ ! -x "$PGM" ] ; then
+  echo "$PGM not executable"
+  exit 1
+fi
+
+##############################################################################
+## Create a new .keystore
+set -x
+echo "Running..."
+rm -Rf $home_path/.keystore
+$PGM -genkey -alias mydomain -keyalg RSA -storepass password -validity 3600
+
+exit $?

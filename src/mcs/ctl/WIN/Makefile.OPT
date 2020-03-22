@@ -1,0 +1,38 @@
+##############################################################################
+##
+##       Copyright (C) 2015 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/mcs/ctl/WIN/Makefile.OPT
+##
+## Purpose-
+##       Makefile for C# programs
+##
+## Last change date-
+##       2015/01/23 ((NEEDS UPDATE))
+##
+## ~/src/mcs/ctl/WIN/Makefile.OPT
+##############################################################################
+
+##############################################################################
+## CDEFS    (Compiler defines)
+CDEFS  += $(LDEFS)################# C defines
+
+##############################################################################
+## CLIBS    (Loader libraries)
+CLIBS  += $(LLIBS)################# Load libraries
+
+##############################################################################
+## COPTS    (Compile options)
+COPTS  += $(LOPTS)################# Load options
+
+##############################################################################
+## Set CFLAGS
+CFLAGS  = $(strip $(COPTS) $(CDEFS))
+

@@ -1,0 +1,79 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.MSC
+##
+## Purpose-
+##       Default MSC compiler controls
+##
+##############################################################################
+
+##############################################################################
+## CC (Compiler identifier), LD (Linker identifier)
+AR     := link.exe -lib /nologo#### Archiver: Microsoft
+ignore := lib.exe /nologo########## Archiver: Microsoft
+CC     := cl.exe ################## Compiler: Microsoft
+LD     := link.exe ################ Linker: Microsoft
+
+##############################################################################
+## Set optimization level
+ifeq "" "$(OPTIMIZE)"############## Compiler optimization level
+OPTIMIZE :=######################## Optimization controls
+ignore   += /Zi#################### Full debug info
+OPTIMIZE += /O2#################### Maximize speed
+OPTIMIZE += /Ob2################### Inline expansion level 2
+OPTIMIZE += /Oi#################### Enable intrinsic functions
+endif
+
+##############################################################################
+## Compiler defines
+CDEFS  +=########################## C defines
+CDEFS  += -D_CC_MSC################ CC == Microsoft Compiler
+ignore += -DWIN32################## (For library)
+ignore += -D_WINDOWS############### (For library)
+
+##############################################################################
+## Compiler libraries
+ignore += MFC42.LIB################ Microsoft Foundation Class V4.2
+ignore += MFC40.LIB################ Microsoft Foundation Class V4.0
+CLIBS  += WSOCK32.LIB############## WINSOCK library
+CLIBS  += WS2_32.LIB############### WINSOCK TCP/IP library
+
+##############################################################################
+## Compiler options
+COPTS  += /nologo################## Suppress logo
+COPTS  += $(OPTIMIZE) ############# Set optimization level
+COPTS  += /EHs##################### Enable C++ exception handling
+COPTS  += /GR###################### Enable C++ polymorphics (dynamic_cast)
+ignore += /GX###################### Enable C++ exception handling
+COPTS  += /MT###################### Use Multihreaded library
+COPTS  += /std:c++17############### Use C++17 Language Level
+COPTS  += /Zc:inline############### Remove unused inlines
+
+################################### Warnings
+COPTS  += /WX###################### Treat warnings as errors
+COPTS  += /W1###################### Simple warnings
+
+################################### Listing control
+ifneq "" "$(LISTING)"
+COPTS  += -FAsc ################### Generate source, machine, assembler code
+COPTS  += -Fa"$(*).lst" ########### Generate listing
+ignore += -Fc"$(*).lst" ########### Generate listing
+endif
+
+##############################################################################
+## CLOAD    (Linker variables)
+CLOAD  += /nologo################## Suppress logo
+CLOAD  += /subsystem:console####### Console application
+CLOAD  += /incremental:no########## Full link
+CLOAD  += /opt:ref################# Remove duplicate references
+

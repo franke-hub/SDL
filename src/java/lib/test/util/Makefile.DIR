@@ -1,0 +1,30 @@
+##############################################################################
+##
+##       Copyright (C) 2007 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.DIR -- Included by ../../Makefile.BSD
+##############################################################################
+
+##############################################################################
+## TARGET: test
+test : test.util
+
+.PHONY: test.util
+test.util : $(OBJDIR)/test/util/make.dir
+	$(JRUN) -classpath "$(shell cygpath --path --windows "$(CLASSPATH)")" test.util.Main
+
+$(OBJDIR)/test/util/make.dir: $(wildcard $(SRCDIR)/test/util/*.java)
+	(cd $(OBJDIR)/test/util; $(MAKE))
+
+##############################################################################
+## Cleanup
+pristine : test.util.pristine
+.PHONY: test.util.pristine
+test.util.pristine : ;
+	(cd test/util; $(MAKE) pristine)
+

@@ -1,0 +1,72 @@
+###############################################################################
+##
+##       Copyright (c) 2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+###############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2019/01/18
+##
+###############################################################################
+
+###############################################################################
+## Local module list
+MAKEXE :=
+ignore += Dirty.exe                 ## Only built on-demand
+MAKSRC := $(patsubst $(SRCDIR)/Dirty.cs,,$(MAKSRC))
+MAKEXE += Howto.exe
+MAKSRC := $(patsubst $(SRCDIR)/Howto.cs,,$(MAKSRC))
+MAKEXE += Sample.exe
+MAKSRC := $(patsubst $(SRCDIR)/Sample.cs,,$(MAKSRC))
+MAKSRC := $(strip $(MAKSRC))
+
+###############################################################################
+## Common Makefile.BSD
+include $(MAKDIR)/Makefile.BSD
+
+###############################################################################
+## Additional libraries
+ignore += Shared ##################### Included in $(MAKDIR)/Makefile.BSD
+ignore += Import ##################### Included in $(MAKDIR)/Makefile.BSD
+
+###############################################################################
+## On CYGWIN, both libraries can be built, but with compiler warnings
+## The existence of -reference and -addmodule to the same library causes
+## an internal compiler error on Linux. Don't do that.
+ifeq "" ""
+LNETS  += Local ###################### (Builds Local.net)
+else
+LLIBS  += Local ###################### (Builds Local.dll)
+endif
+
+###############################################################################
+## Build local library
+Local.dll: $(MAKSRC)
+	$(CC) -target:library -out:$@ $(CFLAGS) $(CREFS) "$(shell cygpath -w $^)"
+
+###############################################################################
+## Build local module
+Local.net: $(MAKSRC)
+	$(CC) -target:module -out:$@ $(CFLAGS) $(CREFS) "$(shell cygpath -w $^)"
+
+###############################################################################
+## TARGET: dirty do it
+.PHONY: dirty do it
+dirty: default Dirty.exe
+	mono --debug Dirty.exe
+
+do: default
+	mono --debug Sample.exe
+
+it: default
+	mono --debug Howto.exe

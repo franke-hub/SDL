@@ -1,0 +1,75 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       fromgpg
+##
+## Purpose-
+##       Decrypt a GPG encrypted file.
+##
+## Last change date-
+##       2019/11/26
+##
+## Usage-
+##       fromgpg foo
+##
+##############################################################################
+
+##############################################################################
+## Function: USAGE
+function usage
+{
+  echo ""
+  echo "$0: Decrypt a GPG encrypted file."
+  echo "Usage: $0 file"
+  echo "Filename file.gpg must exist, file must not."
+  echo "File \"file.gpg\" is decrypted into \"file\", then erased."
+}
+
+##############################################################################
+## Parameter check
+GPGFILE=$1
+if [ -z "$GPGFILE" ] ; then
+  echo "Error: filename not specified"
+  usage
+  exit 1
+fi
+
+if [ ! -z "$2" ] ; then
+  echo "Error: Extra parameter(s)"
+  usage
+  exit 1
+fi
+
+if [ ! -f "$GPGFILE.gpg" ] ; then
+  echo "Error: file \"$GPGFILE.gpg\" does not exists"
+  usage
+  exit 1
+fi
+
+if [ -f "$GPGFILE" ] ; then
+  echo "Error: file \"$GPGFILE\" already exists."
+  exit 1
+fi
+
+##############################################################################
+## Encrypt
+gpg --output $GPGFILE --decrypt $GPGFILE.gpg
+rc=$?
+if [ $rc != 0 ] ; then
+  rm $GPGFILE 2>/dev/null
+  echo "Error: Decryption failure."
+  echo "No file changed."
+  exit 1
+fi
+
+rm $GPGFILE.gpg
+exit 0

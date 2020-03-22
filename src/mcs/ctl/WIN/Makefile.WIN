@@ -1,0 +1,34 @@
+##############################################################################
+##
+##       Copyright (C) 2015 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/mcs/ctl/WIN/Makefile.WIN
+##
+## Purpose-
+##       Makefile for C# programs
+##
+## Last change date-
+##       2015/01/23 ((NEEDS UPDATE))
+##
+## ~/src/mcs/ctl/WIN/Makefile.WIN
+##############################################################################
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default do
+default: $(DEFAULT)
+
+do: $(DEFAULT)
+	$<
+

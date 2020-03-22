@@ -1,0 +1,58 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## ~/src/cpp/Sample/Multicast/.README
+##############################################################################
+
+##############################################################################
+## FEATURE:
+
+##############################################################################
+## BUGS:
+2016/12/05 xps400 (This machine cannot be used.)
+   The xps400 NIC does not properly support multicast.
+   Sending floods the network, causing telnet sessions to become unstable.
+   Receiving does not work.
+
+2016/12/05 bigblue
+   The Windows machine uses two multicast addresses:
+   192.168.1.240 The host address
+   169.254.38.53 A link-local address, perhaps from VirtualBox
+
+   This causes stange interactions, including duplicate messages.
+   These duplidate addresses are seen when receiving from an outside machine,
+   either Windows to Linux VM, Linux VM to Windows, or Linux VM to Linux VM.
+   The Windows 10 virtual machine has not been tested. (No /home/data access)
+
+   Once one of the listeners (either listen or sample client) gets a duplicate
+   packet, it continues to get duplicate packets until both the sender and
+   the receiver have been terminated. This applies to Windows and to virtual
+   machines running under windows.
+
+   Usage note, running sample client/server with sender/listen
+       sample server 30 12345 (-hcdm)        (with sender)
+       sample client 30 55555 12345 (-hcdm)  (with sender)
+
+       sample client  3 12345 (-hcdm)        (with listen) (One message)
+
+##############################################################################
+## TODO:
+
+##############################################################################
+## FIXED:
+
+##############################################################################
+## CLOSED:
+2016/12/06 Duplicate receives
+2016/12/05 Duplicate receives
+   Provide a mechanism which specifies which interface to use.
+   This has been added.
+
+   Even when only one interface is used the duplicate messages still appear.
+

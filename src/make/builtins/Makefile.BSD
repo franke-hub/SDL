@@ -1,0 +1,94 @@
+##############################################################################
+##
+##       Copyright (C) 2015-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.BSD
+##############################################################################
+
+##############################################################################
+## Built-in rules
+.SUFFIXES:
+%.o : ;
+S/%.C: ;
+
+##############################################################################
+## Local module list
+MAKRUN = \
+    Main.run
+
+MAKOBJ = \
+    Main.o     \
+    Alpha.o    \
+    ../subdir/Beta.o     \
+    Gamma.o    \
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT = $(MAKRUN)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## Make control: Generic rule
+%.s : S/%.C
+	@echo "%.s : S/%.C"
+	@echo "$$ @ $@"
+	@echo "$$ < $<
+	@echo "$$ ^ $^"
+	@echo "$$ ? $?"
+	@echo "$$ + $+"
+	@echo "$$ * $*"
+	@echo "$$ % $%"
+	@echo "$$ | $(|)"
+	@echo "$$ (<D) $(<D)"
+	@echo "$$ (<F) $(<F)"
+	@echo ""
+	@echo "%o: ;"
+	@echo "S/%.C: ;"
+	@echo ""
+	@echo ""
+
+##############################################################################
+## Make control: Main
+Main.run: $(MAKOBJ)
+	@echo "Main.run: $(MAKOBJ)"
+	@echo "$$ @ $(@)"
+	@echo "$$ < $(<)"
+	@echo "$$ ^ $(^)"
+	@echo "$$ ? $(?)"
+	@echo "$$ + $(+)"
+	@echo "$$ * $(*)"
+	@echo "$$ % $(%)"
+	@echo "$$ | $(|)"
+	@echo "$$ (<D) $(<D)"
+	@echo "$$ (<F) $(<F)"
+	@echo ""
+	@echo "Main.run: Other"
+	@echo ""
+
+Main.run: Other
+
+##############################################################################
+## Make control: Other
+Other: foo.o bar.o foo.o bar.o
+	@echo "Other: foo.o bar.o foo.o bar.o"
+	@echo "$$ @ $(@)"
+	@echo "$$ < $(<)"
+	@echo "$$ ^ $(^)"
+	@echo "$$ ? $(?)"
+	@echo "$$ + $(+)"
+	@echo "$$ * $(*)"
+	@echo "$$ % $(%)"
+	@echo "$$ | $(|)"
+	@echo "$$ \(<D\) $(<D)"
+	@echo "$$ \(<F\) $(<F)"
+	@echo ""
+

@@ -1,0 +1,43 @@
+##############################################################################
+##
+##       Copyright (C) 2007-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.BSD
+##############################################################################
+
+##############################################################################
+## Local module list
+MAKOBJ := $(patsubst $(OBJDIR)/Sorttest.o,,$(MAKOBJ))
+MAKEXE := Sorttest
+LLIBS  += -L. -llocal
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= make.dir
+endif
+
+.PHONY: make.dir
+make.dir: $(MAKEXE)
+
+##############################################################################
+## TARGET: liblocal.a
+liblocal.a : $(MAKOBJ)
+	ar -r $(@) $(?)
+
+##############################################################################
+## Dependencies
+Sorttest: liblocal.a
+
+##############################################################################
+## Makefile cleanup
+clean : clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	-@rm liblocal.a >/dev/null 2>/dev/null
+

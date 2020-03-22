@@ -1,0 +1,49 @@
+##############################################################################
+##
+##       Copyright (C) 2015-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2019/01/16
+##
+##############################################################################
+
+##############################################################################
+## Set envionment
+MAKENV := BSD
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT := build.bsd
+endif
+
+.PHONY: default build.bsd
+default: $(DEFAULT)
+
+##############################################################################
+## Include subdirectories
+include $(SRCDIR)/Shared/Makefile.DIR
+include $(SRCDIR)/Import/Makefile.DIR
+
+.PHONY: mdb pdb
+ifeq "Linux" "$(findstring Linux,$(shell uname))"
+mdb: Shared.mdb Import.mdb
+pdb: ;
+	@echo "pdb only available on Cygwin"
+else
+pdb: Shared.pdb Import.pdb
+mdb: ;
+	@echo "mdb only available on Linux"
+endif

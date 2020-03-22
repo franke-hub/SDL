@@ -1,0 +1,29 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       mktar.gz
+##
+## Purpose-
+##       Create a gzipped tar file.
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       mktar.gz outfile inppath
+##
+##############################################################################
+tar -cvf $1.tar -C $2 .
+if [ $? = 0 ] ; then
+  gzip $1.tar
+fi
+

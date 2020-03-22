@@ -1,0 +1,117 @@
+##############################################################################
+##
+##       Copyright (C) 2017 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       Describe the RMI Sample.
+##
+## Last change date-
+##       2017/01/01
+##
+## Needs work-
+##       The client and server processes currently must reside on the same
+##       physical machine.  The java.rmi.server.codebase control is not
+##       fully understood.
+##
+##       The client and server subdirectories contain policy files.
+##       The current versions grant full access to all users because the
+##       permission control policy is not fully understood.  Full access does
+##       allow the sample to work.
+##
+##############################################################################
+
+##############################################################################
+## General Environment Description-
+##
+## There are three directories:
+##       .      (This directory, which contains all source and .class files.)
+##       client (Which contains links to client objects in this directory.)
+##       server (Which contains links to server objects in this directory.)
+##
+## The client and server subdirectories also contain their respective policy
+## control files.
+##
+## Bill of Materials-
+##       LINKME              (Script used to recreate links)
+##       M                   (Common java makefile)
+##       Main.java           (Mainline, calls client or server.)
+##       Makefile            (Build control file)
+##       ObjectIF.java       (Object interface)
+##       ObjectOB.java       (Implements ObjectIF)
+##       ServerIF.java       (Server interface)
+##       ServerOB.java       (Implements ServerIF)
+##
+##       client/             (Client subdirectory)
+##           M@ -> ../../ctl/BSD/
+##           Main.class@ -> ../Main.class
+##           Makefile@ -> ../Makefile
+##           NullSecurityManager.class@ -> ../NullSecurityManager.class
+##           ObjectIF.class@ -> ../ObjectIF.class
+##           ObjectOB.class@ -> ../ObjectOB.class
+##           ObjectOB_Skel.class@ -> ../ObjectOB_Skel.class
+##           ObjectOB_Stub.class@ -> ../ObjectOB_Stub.class
+##           ServerIF.class@ -> ../ServerIF.class
+##           policy           (Client permission control file)
+##
+##       server/             (Server subdirectory)
+##           M@ -> ../../ctl/BSD/
+##           Main.class@ -> ../Main.class
+##           Makefile@ -> ../Makefile
+##           NullSecurityManager.class@ -> ../NullSecurityManager.class
+##           ObjectIF.class@ -> ../ObjectIF.class
+##           ServerIF.class@ -> ../ServerIF.class
+##           ServerOB.class@ -> ../ServerOB.class
+##           ServerOB_Skel.class@ -> ../ServerOB_Skel.class
+##           ServerOB_Stub.class@ -> ../ServerOB_Stub.class
+##           policy           (Server permission control file)
+##
+##############################################################################
+
+##############################################################################
+## Prerequisites
+##############################################################################
+## Restore ../../ctl from CVS
+LINKME          ## Restore links (links are not saved in CVS)
+
+##############################################################################
+## Compilation
+##############################################################################
+. setupJava     ## Sets environment to compile using JDK version 1.3.1
+                ## Lower JDK versions DO NOT WORK
+
+make pristine   ## Remove any old code version (optional)
+make            ## Compile the updated version
+
+##############################################################################
+## Operation
+##
+## Two command prompt windows are required, a client and a server window.
+## Start the server first.  Wait for "ServerOB.run" message before starting
+## the client.
+##
+## After the test completes, there will be a delay before the command prompt
+## appears.  This occurs because RMI needs to insure that the remote objects
+## are no longer in use, i.e. that the client is done with the server objects
+## and vice-versa.
+##
+##############################################################################
+## SERVER operation
+. setupJava     ## (If not already done)
+cd server
+make server
+
+##############################################################################
+## CLIENT operation
+. setupJava     ## (If not already done)
+cd client
+make client
+

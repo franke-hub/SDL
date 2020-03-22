@@ -1,0 +1,27 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       Wilbur data README: Information, status, etc.
+##
+## Last change date-
+##       2020/03/19
+##
+##############################################################################
+
+##############################################################################
+INFO:
+2020/03/19 .DATA download information
+         Source: downloads.dbpedia.org (2014/06/14)
+         Usage:  Currently used only for examination purposes.
+

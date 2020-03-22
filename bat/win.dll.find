@@ -1,0 +1,72 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2015-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       win.dll.find
+##
+## Purpose-
+##       Search a directory subtree for dll files containing entryName.
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       win.dll.find <-options> entryName
+##
+## Some grep options-
+##       -i  Ignore case
+##       -l  List of files
+##
+##############################################################################
+
+##############################################################################
+## Extract the switch names
+sparm=""
+
+for i in $*
+do
+  case $i in
+    -*)
+      sparm="$sparm $i"
+      shift
+      ;;
+
+    *)
+      break
+      ;;
+  esac
+done
+
+##############################################################################
+## Extract the search string
+if [[ "" = "$1" ]] ; then
+  heading $0
+  exit
+fi
+
+string=$1
+shift
+
+##############################################################################
+## Extract the search directory
+srcdir=.
+
+##############################################################################
+## Extract the file extentions
+target="-iname \*.dll"
+
+##############################################################################
+## Search for string in target
+cmd="/usr/bin/find $srcdir \( $target \) -print0"
+cmd="$cmd | xargs --null -rl1 win.dll.grep $sparm \"$string\""
+# echo "bash -c $cmd"
+bash -c "$cmd"
+

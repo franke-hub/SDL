@@ -1,0 +1,29 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       gitbranch
+##
+## Purpose-
+##       Reminder: How to create a git branch
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       git checkout -b branch
+##
+##       git branch <branch>
+##       git checkout branch
+##
+##############################################################################
+echo "REMINDER: git checkout -b <branch>"
+

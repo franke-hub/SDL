@@ -1,0 +1,27 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       dnf.status
+##
+## Purpose-
+##       Update dnf.available and dnf.installed files
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       dnf.status
+##
+##############################################################################
+dnf list available >dnf.available
+dnf list installed >dnf.installed
+

@@ -1,0 +1,64 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       ipcs.clean
+##
+## Purpose-
+##       Clean up ipcs tokens (Semaphores, shared memory)
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       ipcs.clean
+##
+##############################################################################
+
+##############################################################################
+## This script cannot be used by userid root
+user=`whoami`
+if [ "root" = "$user" ] ; then
+  echo "Not allowed for userid root"
+  exit
+fi
+
+##############################################################################
+## Clean up shared memory
+ipcs -m | grep -v 0xffffffff | grep $user >TEMP.WORKFILE
+for i in `cat TEMP.WORKFILE | awk '{print $2}' `
+do
+  echo Removing segment $i
+  ipcrm shm $i
+done
+
+##############################################################################
+## Clean up semaphores
+ipcs -s | grep $user >TEMP.WORKFILE
+for i in `cat TEMP.WORKFILE | awk '{print $2}' `
+do
+  echo Removing semaphore $i
+  ipcrm sem $i
+done
+
+##############################################################################
+## Clean up message queues
+ipcs -q | grep -v 0xffffffff | grep $user >TEMP.WORKFILE
+for i in `cat TEMP.WORKFILE | awk '{print $2}' `
+do
+  echo Removing segment $i
+  ipcrm msg $i
+done
+
+##############################################################################
+## Clean up after this script
+rm TEMP.WORKFILE
+

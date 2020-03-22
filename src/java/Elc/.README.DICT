@@ -1,0 +1,108 @@
+##############################################################################
+##
+##       Copyright (C) 2017 Frank Eskesen.
+##
+##       This file is free content, distributed under the GNU General
+##       Public License, version 3.0.
+##       (See accompanying file LICENSE.GPL-3.0 or the original
+##       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+##
+##############################################################################
+##
+## Title-
+##       README.DICT
+##
+## Purpose-
+##       Dictionary data.
+##
+## Last change date-
+##       2017/01/01
+##
+##############################################################################
+Dictionary
+----------
+
+Root     Word      Rule
+----     ----      ----
+i        -         <self><pronoun><first_person><singular>
+i        i         <subjective>
+i        me        <objective>
+i        mine      <possessive><objective>
+i        my        <possessive><adjective>
+i        myself    <reflexive>
+
+you      -         <you><pronoun><second_person>
+you      you       <or<singular><plural>><or<subjective><objective>>
+you      your      <or<singular><plural>><possessive><objective>
+you      yours     <or<singular><plural>><possessive><adjective>
+you      yourself  <singular><reflexive>
+you      yourselves<plural><reflexive>
+
+we       -         <self><you><opt<other>><pronoun><second_person><plural>
+we       we        <subjective>
+we       us        <objective>
+we       ours      <possessive><objective>
+we       our       <possessive><adjective>
+we       ourselves <reflexive>
+
+they     -         <other><pronoun><second_person><plural>
+they     they      <subjective>
+they     them      <objective>
+they     thier     <possessive><objective>
+they     theirs    <possessive><adjective>
+they     themselves<reflexive>
+
+he       -         <other><pronoun><singular><masculine><third_person>
+he       he        <subjective>
+he       him       <objective>
+he       his       <possessive><objective>
+he       his       <possessive><adjective>
+he       himself   <reflexive>
+
+she      -         <other><pronoun><singular><feminine><third_person>
+she      she       <subjective>
+she      her       <objective>
+she      hers      <possessive><objective>
+she      her       <possessive><adjective>
+she      herself   <reflexive>
+
+it       -         <other><pronoun><singular><neuter><third_person>
+it       it        <subjective>
+it       it        <objective>
+it       its       <possessive><objective>
+it       its       <possessive><adjective>
+it       itself    <reflexive>
+
+ourselves \
+         ourself  <misspelled>
+themselves \
+         themself <misspelled>
+
+go       -        <verb><irregular>
+go       go       <now><or<and<future><verb_will>>>
+go       went     <past>
+
+look     -        <verb><regular>
+look     look     <now>
+look     looked   <past>
+look     looks    <now>
+
+am       -        <verb><irregular>
+am       am       <now><first_person><singular>
+am       are      <now><plural>
+am       is       <now><third_person><singular>
+am       was      <past><first_person><singular>
+am       were     <past><plural>
+am       is       <past><third_person><singular>
+am       be       <future>
+
+to       -
+to       to       <now><adverb><verb_to>
+
+will     -
+will     will     <future><adverb><verb_will>
+
+talk     -        <verb>
+
+
+

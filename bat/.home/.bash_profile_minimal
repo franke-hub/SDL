@@ -1,0 +1,32 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+##
+## Title-
+##       .bash_profile_minimal
+##
+## Function-
+##       Minimal required .bash_profile additions
+##
+## Last change date-
+##        2020/01/19
+##
+## Usage notes-
+##        Add ". bash_profile_minimal" somewhere in your .bash_profile.
+##
+##        This includes this file as if it were part of .bash_profile,
+##        so that your PATH environment variable actually changes.
+##
+##############################################################################
+
+##############################################################################
+# Set PATH
+export PATH="$HOME/bin:$HOME/bat:$PATH"
+## OPTIONAL: export PATH=".:$PATH"

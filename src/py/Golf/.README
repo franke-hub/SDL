@@ -1,0 +1,81 @@
+##############################################################################
+##
+##       Copyright (C) 2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/py/Golf/.README
+##
+## Purpose-
+##       Golfer application documentation.
+##
+## Last change date-
+##       2019/08/15
+##
+##############################################################################
+
+##############################################################################
+## DONE:
+2019/08/15 WindowList.py: Contains a global list of windows and a list
+    of sub-windows created by an application.
+
+2019/08/15 ResultView.py: View result for event.
+    Operational but preliminary.
+
+##############################################################################
+## TEST:
+2019/08/17 WindowList ??_00001
+    I don't understand why the commented out statement works.
+    window is not a _Window, and the _Window.__eq__ type check does not get
+    raised when the if True/False debugging statements are true.
+
+2019/08/16 GolferTest
+    GolferTest TERMINATE button results in segmentation fault.
+    TODO: Add WindowList record keeping to track all WindowList objects
+
+2019/08/15 GolferMain unit test
+    Unable to highlight certain widgets.
+
+2019/08/15 Cygwin python GUI freezes
+    The GUI freezes unpredictively. Why?
+
+##############################################################################
+## USED: (Design decision documentation)
+2019/08/15 (No documentation. Application still preliminary.)
+
+##############################################################################
+## TODO:
+2019/08/15 Next step: Get input fields operational
+
+2019/08/15 GolferMain
+      Separate user and maintenance functions,
+      either by reordering the one window or using separate windows.
+      Missing: Database restart
+
+2019/08/15 ResultEdit
+      Scaffolded: Should not show beer fund, ESC, etc.
+
+2019/08/15 ResultView
+      Does not display beer fund, ESC score, etc.
+
+##############################################################################
+## DONE:
+2019/08/15 Application bringup. TODO completion not reported
+
+##############################################################################
+## BUGS:
+2019/08/15 Unit test mode, bugs not reported
+
+##############################################################################
+## FIXED:
+2019/08/15 Unit test mode, fixes not reported
+
+##############################################################################
+## CLOSED:
+2019/08/15 Unit test mode, oopsies not reported
+

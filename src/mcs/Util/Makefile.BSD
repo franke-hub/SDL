@@ -1,0 +1,78 @@
+###############################################################################
+##
+##       Copyright (c) 2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+###############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2019/01/18
+##
+###############################################################################
+
+###############################################################################
+## Local module list
+######### Dirty.exe ################## Only built on-demand
+MAKEXE := $(patsubst $(OBJDIR)/Dirty.exe,,$(MAKEXE))
+
+MAKLIB :=############################# List of library modules
+MAKLIB += $(SRCDIR)/Options.cs
+MAKEXE := $(patsubst $(OBJDIR)/Options.exe,,$(MAKEXE))
+MAKEXE := $(strip $(MAKEXE))
+
+###############################################################################
+## Common Makefile.BSD
+include $(MAKDIR)/Makefile.BSD
+
+###############################################################################
+## Additional libraries
+ignore += Shared ##################### Included in $(MAKDIR)/Makefile.BSD
+ignore += Import ##################### Included in $(MAKDIR)/Makefile.BSD
+
+ifneq "" "$(MAKLIB)" ################# If building a library
+###############################################################################
+## On CYGWIN, both libraries can be built, but with compiler warnings
+## The existence of -reference and -addmodule to the same library causes
+## an internal compiler error on Linux. Don't do that.
+ifeq "" ""
+LNETS  += Local ###################### (Builds Local.net)
+else
+LLIBS  += Local ###################### (Builds Local.dll)
+endif
+
+###############################################################################
+## Build local library
+Local.dll: $(MAKLIB)
+	$(CC) -target:library -out:$@ $(CFLAGS) $(CREFS) "$(shell cygpath -w $^)"
+
+###############################################################################
+## Build local module
+Local.net: $(MAKLIB)
+	$(CC) -target:module -out:$@ $(CFLAGS) $(CREFS) "$(shell cygpath -w $^)"
+
+###############################################################################
+## Dirty.exe dependencies (only built on-demand)
+Dirty.exe: $(patsubst %,%.dll,$(CLIBS) $(LLIBS)) $(patsubst %,%.net,$(LNETS))
+endif ################################ Building a library
+
+###############################################################################
+## TARGET: dirty do it
+.PHONY: dirty do it
+dirty: default Dirty.exe
+	mono Dirty.exe
+
+do: default
+	@echo DO placeholder
+
+it: default
+	@echo IT placeholder
+

@@ -1,0 +1,43 @@
+##############################################################################
+##
+##       Copyright (C) 2010 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.OPT (Default options)
+##############################################################################
+
+##############################################################################
+## JC (Compiler identifier)
+JAR    := jar###################### Make JAR file
+JC     := javac#################### Java compiler
+JRUN   := java##################### Java execute
+
+##############################################################################
+## Initialize defaults (JDEFS, JINCL, JOPTS)
+JDEFS  +=########################## Java defines
+JOPTS  +=########################## Java options
+
+##############################################################################
+## CLASSPATH
+ifeq "" "$(CLASSPATH)"
+CLASSPATH :=.
+endif
+
+# ifeq "$(findstring CYGWIN,$(shell uname))" "CYGWIN"
+# CLASSPATH :=$(shell cygpath --path --unix "$(CLASSPATH)")
+# endif
+
+##############################################################################
+## JCOMP (Use an absolute final path in CLASSPATH and SOURCEDIR)
+JCOMP   = -classpath  "$(shell cygpath --path --windows "$(CLASSPATH)")" \
+          -sourcepath "$(shell cygpath --path --windows "$(SOURCEDIR)")" \
+          -d          "$(shell cygpath --absolute --windows "$(OBJECTDIR)")"
+
+##############################################################################
+## Set JFLAGS
+JFLAGS  = $(strip $(JDEFS) $(JOPTS) $(JCOMP))
+

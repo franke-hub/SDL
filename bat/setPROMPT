@@ -1,0 +1,26 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       setPROMPT
+##
+## Purpose-
+##       Set PROMPT_COMMAND environment variable
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       . setPROMPT
+##
+##############################################################################
+export PROMPT_COMMAND='echo -ne "\033]0;${USER}@${HOSTNAME%%.*}:${PWD/#$HOME/~}"; echo -ne "\007"'
+

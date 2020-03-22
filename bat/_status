@@ -1,0 +1,52 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2013-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       _status
+##
+## Purpose-
+##       Record status information (until stopped)
+##
+## Last change date-
+##       2019/10/07
+##
+## Usage-
+##       _status
+##
+##############################################################################
+
+##############################################################################
+## Validate that no parameter was specified
+if [[ ! -z "$1" ]] ; then
+  echo "Too many parameters"
+  heading $0
+  exit
+fi
+
+##############################################################################
+## Status recording loop
+loop=1
+line="========================================================================"
+while [ "$loop" = "1" ]
+do
+  echo ""       | tee -a status.out
+  echo "$line"  | tee -a status.out
+  date          | tee -a status.out
+  uptime        | tee -a status.out
+  ps -aef       | tee -a status.out
+  df            | tee -a status.out
+  echo ""       | tee -a status.out
+  vmstat 5 6    | tee -a status.out
+  iostat -d 5 6 | tee -a status.out
+
+  sleep 3600    # 60 Minute intervals
+done
+

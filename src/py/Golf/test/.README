@@ -1,0 +1,33 @@
+##############################################################################
+##
+##       Copyright (C) 2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/py/Golf/test/.README
+##
+## Purpose-
+##       Subdirectory information.
+##
+## Last change date-
+##       2019/08/18
+##
+## Usage information-
+##       No module in this subdirectory is invoked directly.
+##
+##       We import and invoke the Main module from ../UnitTest.py and invoke
+##       all other modules from Main.
+##
+## Implementation note-
+##       Since all modules in this directory are imported either directly by
+##       ../UnitTest.py or indirectly by ./Main.py, they require the test.
+##       prefix to be imported. This procedure requires the empty __init__.py
+##       module, to make the modules visible from the ../. parent directory.
+##
+##############################################################################
+

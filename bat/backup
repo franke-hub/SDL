@@ -1,0 +1,176 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       backup
+##
+## Purpose-
+##       Handle rsync defaulted options.
+##
+## Last change date-
+##       2019/10/07
+##
+## Changeable options-
+##       --del   (Delete files from receiver. Removes --max-delete=0)
+##       -del    (Alias for --del)
+##       +i      (Do not itemize changes)
+##       +O      (Update [do not preserve] directory times)
+##       +u      (Update even when receiver files are newer)
+##       +z      (Do not use compression)
+##
+##       -a      (Standard archive options. NOT MODIFIABLE)
+##       -n      (Dry run, don't make changes. Implies --del)
+##
+## Usage-
+##       opt=`backup opt $*`
+##       rem=`backup rem $*`
+##       set -- $rem
+##       Verify remaining options as required
+##       rsync $opt $rem
+##
+## Usage (preserving blanks in $rem)-
+##       opt=`backup opt $*`
+##       rem=`backup rem $*`
+##       one=
+##       for i in $rem
+##       do
+##          one=$i
+##          break
+##       done
+##
+##       if [[ -n "$one" ]] ; then
+##          for i in $*
+##          do
+##            [[ "$one" == "$i" ]] && break
+##            shift
+##          done
+##       fi
+##
+##       cmdecho $opt "$@"
+##
+##############################################################################
+
+##############################################################################
+## Handle --help parameter
+if [[ "$1" == "--help" ]] ; then
+  echo "--del (Delete files from receiver. Removes --max-delete=0)"
+  echo "-del  (Alias for --del)"
+  echo "+i    (Do not itemize changes)"
+  echo "+O    (Update [do not preserve] directory times)"
+  echo "-n    (Dry run, don't make changes. Implies -del for \"would delete\" messages)"
+  echo "+u    (Update even when receiver files are newer)"
+  echo "+z    (Do not use compression)"
+  exit 0
+fi
+
+##############################################################################
+## Verify opt/rem parameter
+if [[ -z "$1" ]] ; then
+  [[ -x "./.BACKUP.sh" ]] && { exec ./.BACKUP.sh; exit $?; }
+
+  echo "Missing opt/rem parameter"
+  exit 1
+fi
+
+if [[ "$1" != "opt" && "$1" != "rem" ]] ; then
+  [[ -x "./.BACKUP.sh" ]] && { exec ./.BACKUP.sh "$@"; exit $?; }
+
+  echo "Invalid opt/rem parameter"
+  exit 1
+fi
+
+opt=$1
+shift
+
+##############################################################################
+## Extract the switch names
+i="i"
+O="O"
+u="u"
+z="z"
+n=""
+xx=""
+x1=""
+x2=""
+x3=" --info=skip"
+x4=" --del --max-delete=0"
+
+for index in $*
+do
+  case $index in
+    -i | -O | -u | -z | -n)
+      index=${index:1}
+      eval $index="$index"
+      if [[ "$index" == "n" ]] ; then
+        x4=" --del"
+      fi
+      shift
+      ;;
+
+    +i | +O | +u | +z | +n)
+      index=${index:1}
+      eval $index=""
+      if [[ "$index" == "n" ]] ; then
+        x4=" --del --max-delete=0"
+      fi
+      shift
+      ;;
+
+    +*)
+      echo "ERROR: invalid option $index" >&2
+      xx="ERROR"
+      shift
+      ;;
+
+    --)
+      shift
+      break
+      ;;
+
+    --cmd)
+      xx="CMD"
+      shift
+      ;;
+
+    --del | -del)
+      x4=" --del"
+      shift
+      ;;
+
+    --info=*)
+      x3=" $index"
+      shift
+      ;;
+
+    --*)
+      x2="$x2 $index"
+      shift
+      ;;
+
+    -*)
+      index=${index:1}
+      x1="$x1$index"
+      shift
+      ;;
+
+    *)
+      break
+      ;;
+  esac
+done
+
+##############################################################################
+## Return the command options or remaining arguments
+if [[ "$opt" == "opt" ]] ; then
+    echo -a$i$O$u$z$n$x1$x3$x4$x2
+else
+    echo "$@"
+fi

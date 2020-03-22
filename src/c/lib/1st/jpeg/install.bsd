@@ -1,0 +1,143 @@
+#!/bin/bash
+##############################################################################
+##
+##       Copyright (C) Frank Eskesen 2018.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+##  Title-
+##       install.bsd
+##
+##  Purpose-
+##       Install CYGWIN/LINUX version of JPEG library.
+##
+##  Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## Verify environment
+##############################################################################
+_INIT=$PWD
+cd ../../../../..
+_ROOT=$PWD
+cd  "$_INIT"
+
+if [[ ! -f "$_ROOT/obj/c/lib/Makefile" ]] ; then
+  echo Missing: "$_ROOT/obj/c/lib/Makefile"
+  exit 1
+fi
+if [[ ! -f "$_ROOT/obj/c/lib/jpeg/Makefile" ]] ; then
+  echo Missing: "$_ROOT/obj/c/lib/jpeg/Makefile"
+  exit 1
+fi
+if [[ ! -f "$_ROOT/obj/cpp/lib/jpeg/Makefile" ]] ; then
+  echo Missing: "$_ROOT/obj/cpp/lib/jpeg/Makefile"
+  exit 1
+fi
+
+if [[ -d "$_ROOT/src/c/lib/jpeg.bsd" && -d "$_ROOT/src/c/lib/jpeg.bsd.old" ]] ; then
+  echo Error: Both "$_ROOT/src/c/lib/jpeg.bsd" and "$_ROOT/src/c/lib/jpeg.bsd.old" exist
+  exit 1
+fi
+
+if [[ -d "$_ROOT/src/c/inc/jpeg/bsd" && -d "$_ROOT/src/c/inc/jpeg/bsd.old" ]] ; then
+  echo Error: Both "$_ROOT/src/c/inc/jpeg/bsd" and "$_ROOT/src/c/inc/jpeg/bsd.old" exist
+  exit 1
+fi
+
+if [[ -d "$_ROOT/src/cpp/inc/jpeg/bsd" && -d "$_ROOT/src/cpp/inc/jpeg/bsd.old" ]] ; then
+  echo Error: Both "$_ROOT/src/cpp/inc/jpeg/bsd" and "$_ROOT/src/cpp/inc/jpeg/bsd.old" exist
+  exit 1
+fi
+
+_ZIP=""
+for i in jpegsrc.v??.tar.gz
+do
+  _ZIP=$i
+done
+if [[ -z "$_ZIP" ]] ; then
+  echo Missing: jpegsrc.v??.tar.gz
+  exit 1
+fi
+_ZIPDIR=jpeg-${_ZIP:9:2}
+
+##############################################################################
+## SO FAR SO GOOD
+##############################################################################
+echo _INIT=$_INIT
+echo _ROOT=$_ROOT
+echo _ZIP=$_ZIP
+echo _ZIPDIR=$_ZIPDIR
+
+##############################################################################
+## Install the library source
+##############################################################################
+set -x
+[[ -d $_ZIPDIR ]] && rm -Rf $_ZIPDIR
+tar -xvzf $_ZIP
+if [[ $? != 0 ]] ; then
+  echo ERROR: Unable to extract $_ZIP
+  exit 1
+fi
+
+if [[ ! -d "$_ZIPDIR" ]] ; then
+  echo ERROR: Extracting $_ZIP did not create $_ZIPDIR
+  exit 1
+fi
+
+cd $_ZIPDIR
+configure
+if [[ $? != 0 ]] ; then
+  echo ERROR: Unable to configure $_ZIPDIR
+  exit 1
+fi
+cd ..
+
+cp -idp README.*    "$_ZIPDIR/."
+cp -idp Makefile.*  "$_ZIPDIR/."
+
+[[ -d "$_ROOT"/src/c/lib/jpeg.bsd ]]   && mv -i "$_ROOT"/src/c/lib/jpeg.bsd   "$_ROOT"/src/c/lib/jpeg.bsd.old
+[[ -d "$_ROOT"/src/c/inc/jpeg/bsd ]]   && mv -i "$_ROOT"/src/c/inc/jpeg/bsd   "$_ROOT"/src/c/inc/jpeg/bsd.old
+[[ -d "$_ROOT"/src/cpp/inc/jpeg/bsd ]] && mv -i "$_ROOT"/src/cpp/inc/jpeg/bsd "$_ROOT"/src/cpp/inc/jpeg/bsd.old
+mkdir "$_ROOT/src/c/inc/jpeg/bsd"
+mkdir "$_ROOT/src/cpp/inc/jpeg/bsd"
+cp -idp "$_ZIPDIR"/j*.h "$_ROOT"/src/c/inc/jpeg/bsd/.
+cp -idp "$_ZIPDIR"/j*.h "$_ROOT"/src/cpp/inc/jpeg/bsd/.
+mv -i   "$_ZIPDIR"      "$_ROOT"/src/c/lib/jpeg.bsd
+ln -s "$_ROOT"/src/c/lib/jpeg.bsd/README         "$_ROOT"/src/c/inc/jpeg/bsd/.
+ln -s "$_ROOT"/src/c/lib/jpeg.bsd/README.BUILD   "$_ROOT"/src/c/inc/jpeg/bsd/.
+ln -s "$_ROOT"/src/c/lib/jpeg.bsd/README.INCLUDE "$_ROOT"/src/c/inc/jpeg/bsd/.
+ln -s "$_ROOT"/src/c/lib/jpeg.bsd/README         "$_ROOT"/src/cpp/inc/jpeg/bsd/.
+ln -s "$_ROOT"/src/c/lib/jpeg.bsd/README.BUILD   "$_ROOT"/src/cpp/inc/jpeg/bsd/.
+ln -s "$_ROOT"/src/c/lib/jpeg.bsd/README.INCLUDE "$_ROOT"/src/cpp/inc/jpeg/bsd/.
+
+##############################################################################
+## Build the library source
+##############################################################################
+cd "$_ROOT"/obj/c/lib/jpeg
+make pristine
+cd ..
+make libjpeg.a
+if [[ $? != 0 ]] ; then
+  echo ERROR: "$_ROOT"/obj/c/lib/make libjpeg.a FAILED
+  exit 1
+fi
+
+cd "$_ROOT"/obj/cpp/lib/jpeg
+make pristine
+cd ..
+make libjpeg.a
+if [[ $? != 0 ]] ; then
+  echo ERROR: "$_ROOT"/obj/cpp/lib/make libjpeg.a FAILED
+  exit 1
+fi
+
+set +x
+echo "!!SUCCESS!!"
+

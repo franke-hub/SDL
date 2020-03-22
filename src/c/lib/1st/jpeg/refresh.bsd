@@ -1,0 +1,66 @@
+#!/bin/bash
+##############################################################################
+##
+##       Copyright (C) Frank Eskesen 2018.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+##  Title-
+##       refresh.bsd
+##
+##  Purpose-
+##       Remove CYGWIN/LINUX version of JPEG library.
+##
+##  Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## Check whether any remove directories exist
+##############################################################################
+_INIT="$PWD"
+cd ../../../../..
+_ROOT="$PWD"
+cd "$_INIT"
+
+_found=""
+if [[ -d "$_ROOT/src/c/inc/jpeg/bsd" ]]   ; then _found=TRUE ; fi
+if [[ -d "$_ROOT/src/cpp/inc/jpeg/bsd" ]] ; then _found=TRUE ; fi
+if [[ -d "$_ROOT/src/c/lib/jpeg.bsd" ]]   ; then _found=TRUE ; fi
+
+if [[ -z "$_found" ]] ; then
+  echo "Nothing to do"
+  exit 0
+fi
+
+##############################################################################
+## WARNING MESSAGE
+##############################################################################
+echo "** WARNING ** You are about to remove:"
+if [[ -d "$_ROOT/src/c/inc/jpeg/bsd" ]]   ; then echo "$_ROOT/src/c/inc/jpeg/bsd" ; fi
+if [[ -d "$_ROOT/src/cpp/inc/jpeg/bsd" ]] ; then echo "$_ROOT/src/cpp/inc/jpeg/bsd" ; fi
+if [[ -d "$_ROOT/src/c/lib/jpeg.bsd" ]]   ; then echo "$_ROOT/src/c/lib/jpeg.bsd" ; fi
+echo
+echo "** ARE YOU SURE? **"
+read _sure _skip
+if [[ "$_sure" == "YES" ]] ; then  _sure="Y" ; fi
+if [[ "$_sure" == "y" ]]   ; then  _sure="Y" ; fi
+if [[ "$_sure" == "yes" ]] ; then  _sure="Y" ; fi
+
+if [[ "$_sure" != "Y" ]] ; then
+  echo OPERATION CANCELLED
+  exit 0
+fi
+
+##############################################################################
+## Delete existing files
+##############################################################################
+if [[ -d "$_ROOT/src/c/inc/jpeg/bsd" ]]   ; then rm -Rf "$_ROOT/src/c/inc/jpeg/bsd" ; fi
+if [[ -d "$_ROOT/src/cpp/inc/jpeg/bsd" ]] ; then rm -Rf "$_ROOT/src/cpp/inc/jpeg/bsd" ; fi
+if [[ -d "$_ROOT/src/c/lib/jpeg.bsd" ]]   ; then rm -Rf "$_ROOT/src/c/lib/jpeg.bsd" ; fi
+

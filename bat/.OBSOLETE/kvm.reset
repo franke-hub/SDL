@@ -1,0 +1,38 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2013-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       kvm.reset
+##
+## Purpose-
+##       KVM keyboard/mouse reset/repair
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       kvm.reset     [OBSOLETE?]
+##
+##############################################################################
+
+##############################################################################
+## Get SUDO
+sudo echo GET SUDO, then KVM switch
+
+##############################################################################
+## Delay 5 seconds
+echo 5 Second delay
+sleep 5
+
+##############################################################################
+## Rebind USB
+sudo $HOME/bat/kvm.rebind
+

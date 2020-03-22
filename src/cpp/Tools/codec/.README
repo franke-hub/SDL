@@ -1,0 +1,22 @@
+##############################################################################
+##
+##       Copyright (C) 2006-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+CODEC README
+
+##############################################################################
+BUGS:
+
+##############################################################################
+FIXED:
+2006/06/27 Linux detects invalid free for enc/dec,
+           but programs seem to work otherwise.
+
+##############################################################################
+CLOSED:
+

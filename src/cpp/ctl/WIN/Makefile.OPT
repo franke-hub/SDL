@@ -1,0 +1,33 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.OPT
+##
+## Purpose-
+##       Default compiler options
+##
+##############################################################################
+
+##############################################################################
+## Initialize defaults (CDEFS, CINCL, CLIBS, COPTS)
+CDEFS  += -D_HW_X86################ HW=Intel x86
+CDEFS  += -D_OS_WIN################ OS=WIN
+
+CINCL  += -I$(SRCDIR)############## Local include directory
+CINCL  += -I$(INCDIR)############## Project source directory
+
+CLIBS  += $(LIBDIR)/libcom.lib##### Personal library
+
+##############################################################################
+## Set CFLAGS
+CFLAGS  = $(strip $(CDEFS) $(CINCL) $(CLIST) $(COPTS))
+

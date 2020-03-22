@@ -1,0 +1,110 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2016-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       rgrep
+##
+## Purpose-
+##       Recursive grep
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       rgrep <-options> string directory <file-list>
+##
+## Notes-
+##       "." may be used either as the directory or the file list.
+##       If the file list is empty or specified as ".", all files are searched.
+##
+## Some grep options-
+##       -i Ignore case
+##       -l List of files
+##
+##############################################################################
+
+##############################################################################
+## Extract the switch names
+fparm=""
+gparm=""
+for i in "$@"
+do
+  case $i in
+    -depth)
+      fparm="$fparm $1"
+      shift
+      ;;
+
+    -*)
+      gparm="$gparm $1"
+      shift
+      ;;
+
+    *)
+      break
+      ;;
+  esac
+done
+
+##############################################################################
+## Extract the search string
+if [ "" = "$1" ] ; then
+  heading $0
+  exit
+fi
+srcstr="$1"
+shift
+
+##############################################################################
+## Extract the search directory
+if [ "" = "$1" ] ; then
+  srcdir=.
+else
+  srcdir="$1"
+  shift
+fi
+
+##############################################################################
+## Extract the file extentions
+target=""
+while [ "" != "$1" ]
+do
+  case $1 in
+    -*)
+      target="$target $1"
+      ;;
+
+    *)
+      if [ "" != "$target" ] ; then
+        target="$target -o"
+      fi
+
+      if [ "." = "$1" ] ; then
+        target="$target -name '*'"
+
+      else
+        target="$target -name '$1'"
+      fi
+      ;;
+  esac
+  shift
+done
+if [ "" = "$target" ] ; then
+  target="-name '*'"
+fi
+
+##############################################################################
+## Search for string in target
+cmd="/usr/bin/find $srcdir \( $target \) $fparm -print0"
+cmd="$cmd 2>/dev/null | xargs --null grep $gparm \"$srcstr\" ${1}"
+echo "bash -c $cmd"
+bash -c "$cmd 2>/dev/null"
+

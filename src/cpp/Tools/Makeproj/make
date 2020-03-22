@@ -1,0 +1,33 @@
+#!/bin/bash
+##############################################################################
+##
+##       Copyright (c) 2006-2014 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+##
+## Title-
+##       make
+##
+## Function-
+##       Local alias for make
+##
+## Last change date-
+##       2014/01/01
+##
+## Usage-
+##       ./make
+##
+## Notes-
+##       fileformat=unix
+##
+########
+
+########################################################################
+# Build the file
+g++ -o makeproj -D_OS_BSD -I~/src/cpp/inc Makeproj.cpp
+

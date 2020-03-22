@@ -1,0 +1,71 @@
+##############################################################################
+##
+##       Copyright (C) 2019-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/cpp/HTTP/.README
+##
+## Purpose-
+##       Development status, history, and reminders.
+##
+## Last change date-
+##       2020/01/20
+##
+##############################################################################
+
+##############################################################################
+## Subdirectory: Import.CMV
+         Copyrighted content extracted from:
+             Network Security with OpenSSL, 2002 version
+             By Pravir Chandra, Matt Messier, John Viega
+
+             Publisher : O'Reilly
+             ISBN : 0-596-00270-X
+         Redistribution disallowed
+         google "network security with openssl" for a downloadable version.
+
+##############################################################################
+## Subdirectory: Export.CMV
+         Contains a script that automatically generates keys required to
+         build a key subdirectory usable for openssl testing.
+
+##############################################################################
+## STATUS:
+2019/03/25 lib/pub/Socket.cpp; HTTP/SampleSSL.cpp
+         While HTTP/SampleSSL.cpp and HTTP/SampleBIO.cpp currently run without
+         error, possible problems remain.
+
+         A Chrome browser listen can create an unusable socket/BIO. This only
+         occurs with the Chrome browser but symptoms occurs in both SampleSSL
+         and SampleBIO.cpp.
+
+         This problem now occurs in both Cygwin and Linux, but only when a
+         buffer is added to the BIO stack. USE_BUG_WORKAROUND has no effect.
+
+##############################################################################
+## FEATURES:
+
+##############################################################################
+## BUGS:
+
+##############################################################################
+## TODO:
+2019/03/20 Verify SSL_Socket::read/write error recovery
+         Hacked read to handle receive timeout. Don't know how to properly
+         differentiate timeout from something that really should be retried
+         (or how to pass meaningful difference back to user.)
+
+2019/03/16 Build parameter passing and stress test into Sample*.cpp
+
+##############################################################################
+## FIXED:
+
+##############################################################################
+## CLOSED:
+

@@ -1,0 +1,136 @@
+//----------------------------------------------------------------------------
+//
+// Title-
+//       Sequence.n
+//
+// Description-
+//       Sequencing controls.
+//
+//----------------------------------------------------------------------------
+Seq:
+{
+//----------------------------------------------------------------------------
+// Master clock sequencer
+//----------------------------------------------------------------------------
+masterClock:
+   NEURON(clock);                   // Master clock
+
+//----------------------------------------------------------------------------
+// External sequencing controls
+//----------------------------------------------------------------------------
+isActive:
+   NEURON(nop);                     // TRUE if active mode, FALSE if training
+
+initActive:
+   NEURON(store);                   // Go into active state
+     FANIN             READ(isActive)     Weight(1.0);
+     FANIN             READ(cycleCounter) Weight(1.0);
+
+loadActive:
+   NEURON(nop);                     // Active: Load phase
+
+evalActive:
+   NEURON(nop);                     // Active: Evaluation phase
+
+initTrain:
+   NEURON(store);                   // Go into train state
+     FANIN             READ(isActive)     Weight(0.0);
+     FANIN             READ(cycleCounter) Weight(1.0);
+
+loadTrain:
+   NEURON(nop);                     // Training: Load phase
+
+evalTrain:
+   NEURON(nop);                     // Training: Evaluation phase
+
+//----------------------------------------------------------------------------
+// Internal sequencing controls
+//----------------------------------------------------------------------------
+selectActive:
+   NEURON(ifne0);
+     FANIN             READ(isActive);
+     FANIN             READ(activeCycle);
+
+selectTrain:
+   NEURON(ifeq0);
+     FANIN             READ(isActive);
+     FANIN             READ(trainCycle);
+
+activeCycle:
+   NEURON(nop);                     // Operational cycle
+     FANIN             READ(loadActive); // Load
+     FANIN             READ(evalActive); // Evaluate
+
+trainCycle:
+   NEURON(nop);                     // Training cycle
+     FANIN             READ(loadTrain); // Load
+     FANIN             READ(evalTrain); // Evaluate
+
+evaluate:
+   NEURON(nop);                     // State evaluation
+     FANIN             READ(evaluate); // To be determined
+
+re_evaluationCycle:
+   NEURON(mod);                     // Reevaluation cycle?
+     FANIN             READ(cycleCounter);
+     FANIN             READ(Const::one)   Weight(100.0);
+
+re_evaluate:
+   NEURON(ifeq0);
+     FANIN             READ(re_evaluationCycle);
+     FANIN             READ(evaluate);
+
+masterCycle:
+   NEURON(nop);                     // Master cycle
+     FANIN             READ(masterClock);  // Master clock
+     FANIN             READ(cycleCounter); // Statistics
+     FANIN             READ(selectActive);
+     FANIN             READ(selectTrain);
+     FANIN             READ(re_evaluate);
+
+//----------------------------------------------------------------------------
+// Operational controls
+//----------------------------------------------------------------------------
+operational:
+   NEURON(dec);                     // >0 if operational
+     FANIN             READ(operational);
+
+operate:
+   NEURON(while);                   // Operate the net
+     FANIN             READ(operational);
+     FANIN             READ(masterCycle);
+     FANIN             READ(masterClock);
+
+//----------------------------------------------------------------------------
+// Statistics
+//----------------------------------------------------------------------------
+cumulativeClock:
+   NEURON(add);                     // Cumulative clock cycles
+     FANIN             READ(cumulativeClock);
+     FANIN             READ(masterClock);
+
+cycleCounter:
+   NEURON(inc);                     // Number of cycles in current state
+     FANIN             READ(cycleCounter);
+
+//----------------------------------------------------------------------------
+// Initialization controls
+//----------------------------------------------------------------------------
+initialStore:
+   NEURON(store);
+     FANIN             READ(masterClock) WEIGHT(0.0);
+     FANIN             READ(operational) WEIGHT(5000.0);
+
+initializer:
+   NEURON(nop);
+     FANIN             READ(cumulativeClock);
+     FANIN             READ(initialStore);
+     FANIN             READ(initActive);
+     FANIN             READ(evaluate);
+
+startup:
+   NEURON(entry);                   // The startup neuron
+     FANIN             READ(initializer);
+     FANIN             READ(operate);
+
+} // Seq

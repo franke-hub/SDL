@@ -1,0 +1,87 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2016-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       cleanup
+##
+## Purpose-
+##       Clean up files.
+##
+## Last change date-
+##       2020/03/17
+##
+## Usage-
+##       cleanup {-q}
+##
+##############################################################################
+
+##############################################################################
+## Directory cleanup
+function cleandir
+{
+  for i in "$@"
+  do
+    if [[ -d "$i" ]] ; then
+      if [[ -n "$verbose" ]] ; then
+        ls=`ls "$i"`
+        [[ -n "$ls" ]] && echo "Removing: '$i/*'"
+      fi
+      cleanout "$i"/*
+    fi
+  done
+}
+
+##############################################################################
+## File cleanup
+function cleanout
+{
+  for i in "$@"
+  do
+    if [[ -f "$i" ]] ; then
+      rm "$i" 2>/dev/null
+    fi
+  done
+}
+
+##############################################################################
+## Initialize environment
+cd $HOME
+verbose="true"
+if [[ "$1" == "-q" ]] ; then verbose="" ; fi
+
+##############################################################################
+## CYGWIN version
+if [[ -n "`osCYGWIN`" ]] ; then
+   cleandir "/C/Program Files/NVIDIA Corporation/Installer2"
+   cleandir "$USER/AppData/Local/Google/Chrome/User Data/Default/Cache"
+   cleandir  $USER/AppData/Local/Mozilla/Firefox/Profiles/*/cache2/*
+   cleanout  $USER/AppData/Local/Mozilla/Firefox/Profiles/*/cache2/*
+   cleandir  $USER/AppData/Local/Mozilla/Firefox/Profiles/*/thumbnails
+   cleandir  $USER/AppData/Roaming/Microsoft/Windows/Recent/*
+   cleanout  $USER/AppData/Roaming/Microsoft/Windows/Recent/*
+fi
+
+##############################################################################
+## LINUX version
+if [[ -n "`osLINUX`" ]] ; then
+   cleandir ".cache/google-chrome/Default/Cache"
+   cleandir  .cache/mozilla/firefox/*/cache2/*
+   cleanout  .cache/mozilla/firefox/*/cache2/*
+   cleandir  .cache/mozilla/firefox/*/thumbnails
+   cleandir  .firestorm/browser_profile/cache/*
+   cleanout  .firestorm/browser_profile/*
+   cleandir ".thumbnails/large"
+   cleandir ".thumbnails/normal"
+fi
+
+##############################################################################
+## COMMON version
+

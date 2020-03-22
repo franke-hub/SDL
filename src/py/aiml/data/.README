@@ -1,0 +1,31 @@
+##############################################################################
+##
+##       Copyright (C) 2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       Describe directory content.
+##
+## Last change date-
+##       2018/01/01
+##
+## Source material-
+##       https://github.com/cdwfs/pyaiml
+##       (Original content in subdirectory ../.PYAIML/.)
+##
+##       ALL OTHER FILES IN THIS SUBDIRECTORY ARE DISTRIBUTED UNDER COPYRIGHT
+##       AND LICENSE AS SPECIFIED IN "COPYING.txt"
+##
+## Information-
+##       This subdirectory contains the original alicebot aiml with some
+##       minor corrections and additions.
+##
+##############################################################################

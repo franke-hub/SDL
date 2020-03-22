@@ -1,0 +1,47 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       killer
+##
+## Purpose-
+##       kill running process(es)
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       killer process
+##
+##       Where "process" is something which will uniquely identify a process.
+##
+##############################################################################
+user=`whoami`
+if [ "root" = "$user" ] ; then
+  echo "Not allowed for userid root"
+  exit
+fi
+
+echo $user
+
+for i in `ps -ef |grep $user | grep -v grep | grep -v killer | grep $1 | awk '{print $2}' `
+do
+  echo Killing Process $i
+  kill -KILL  $i
+done
+
+for i in `ps -ef |grep $user | grep -v grep | grep -v killer | grep $1 | awk '{print $2}' `
+do
+  echo Killing Process $i
+  kill -11    $i
+  kill -9     $i
+done
+

@@ -1,0 +1,102 @@
+##############################################################################
+##
+##       Copyright (c) 2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.DIR
+##
+## Purpose-
+##       Subdirectory build control: included from ../Makefile.*
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## TARGET: prerequisites
+PREREQ := $(wildcard $(INCDIR)/obj/*)
+PREREQ += $(wildcard $(SRCDIR)/obj/*)
+PREREQ += $(wildcard $(SRCDIR)/obj/OS/USR/*)
+BSD_PREREQ := $(PREREQ)
+BSD_PREREQ += $(wildcard $(SRCDIR)/obj/OS/BSD/*)
+WIN_PREREQ := $(PREREQ)
+WIN_PREREQ += $(wildcard $(SRCDIR)/obj/OS/WIN/*)
+
+##############################################################################
+## TARGET: obj/libobj.a
+$(OBJDIR)/obj/libobj.a: $(BSD_PREREQ) libcom.a
+	(cd $(OBJDIR)/obj/; export MAKRUN=lib; $(MAKE))
+	touch $@
+
+libobj.a: $(OBJDIR)/obj/libobj.a
+	@echo trace11 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+build.bsd.lib: libobj.a
+
+##############################################################################
+## TARGET: obj/libobj.so.1.0
+$(OBJDIR)/obj/libobj.so.1.0: $(BSD_PREREQ) libcom.so
+	(cd $(OBJDIR)/obj/; export MAKRUN=dll; $(MAKE))
+	touch $@
+
+libobj.so.1.0: $(OBJDIR)/obj/libobj.so.1.0
+	@echo trace12 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+~/bin/libobj.so.1.0: libobj.so
+	cp -Lpf $< $@
+	rebase -b 0x230000000 $@
+	touch $@
+
+libobj.dll: $(OBJDIR)/obj/libobj.so.1.0
+	@echo trace13 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+~/bin/libobj.dll: libobj.dll
+	cp -Lpf $< $@
+	rebase -b 0x230000000 $@
+	touch $@
+
+.SECONDARY: libobj.so.1.0 /usr/local/lib/libobj.so.1.0
+build.cygwin.dll: libobj.dll libobj.so ~/bin/libobj.so
+build.linux.so: libobj.so /usr/local/lib/libobj.so
+
+##############################################################################
+## TARGET: libobj.lib
+$(OBJDIR)/obj/libobj.lib: $(WIN_PREREQ)
+	(cd $(OBJDIR)/obj/; $(MAKE))
+	touch $@
+
+libobj.lib: $(OBJDIR)/obj/libobj.lib libcom.lib
+	cp -Lpf $< $@
+	touch $@
+
+build.win.lib: libobj.lib
+
+##############################################################################
+## Cleanup
+.PHONY: obj.pristine
+pristine.bsd: obj.pristine
+pristine.win: obj.pristine
+obj.pristine: ;
+	(cd $(OBJDIR)/obj/; $(MAKE) pristine)
+
+.PHONY: obj.clean.bsd
+clean.bsd: obj.clean.bsd
+obj.clean.bsd: ;
+	-@rm -f libobj.a >/dev/null 2>/dev/null
+	-@rm -f libobj.so* libobj.dll >/dev/null 2>/dev/null
+
+.PHONY: obj.clean.win
+clean.win: obj.clean.win
+obj.clean.win: ;
+	-@rm -f libobj.lib >/dev/null 2>/dev/null
+

@@ -1,0 +1,135 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       backup.raid
+##
+## Purpose-
+##       Backup current directory onto rainbow:raid/backup/<dirname>
+##
+## Last change date-
+##       2019/10/07
+##
+## Usage-
+##       backup.raid [OPTIONS...] dirname
+##         --cmd   (Show command only)
+##         --del   (Delete files from receiver. Removes --max-delete=0)
+##         -del    (Alias for --del)
+##         +i      (Do not itemize changes)
+##         +O      (Update [do not preserve] directory times)
+##         +u      (Update when receiver files are newer)
+##         +z      (Do not use compression)
+##
+##         -a      (Standard archive options. NOT MODIFIABLE)
+##         -n      (Dry run, don't make changes. Implies --del)
+##
+##############################################################################
+
+##############################################################################
+## Extract the switch names
+i="i"
+O="O"
+u="u"
+z="z"
+n=""
+xx=""
+x1=""
+x2=""
+x3=" --info=skip"
+x4=" --del --max-delete=0"
+
+for index in $*
+do
+  case $index in
+    -i | -O | -u | -z | -n)
+      index=${index:1}
+      eval $index="$index"
+      if [[ "$index" == "n" ]] ; then
+        x4=" --del"
+      fi
+      shift
+      ;;
+
+    +i | +O | +u | +z | +n)
+      index=${index:1}
+      eval $index=""
+      if [[ "$index" == "n" ]] ; then
+        x4=" --del --max-delete=0"
+      fi
+      shift
+      ;;
+
+    +*)
+      echo "ERROR: invalid option $index" >&2
+      xx="ERROR"
+      shift
+      ;;
+
+    --)
+      shift
+      break
+      ;;
+
+    --cmd)
+      xx="CMD"
+      shift
+      ;;
+
+    --del | -del)
+      x4=" --del"
+      shift
+      ;;
+
+    --info=*)
+      x3=" $index"
+      shift
+      ;;
+
+    --*)
+      x2="$x2 $index"
+      shift
+      ;;
+
+    -*)
+      index=${index:1}
+      x1="$x1$index"
+      shift
+      ;;
+
+    *)
+      break
+      ;;
+  esac
+done
+
+##############################################################################
+## Verify parameters
+if [[ -z "$1" ]] ; then
+  echo "Missing destination directory parameter"
+  exit 1
+fi
+
+if [[ ! -z "$2" ]] ; then
+  shift
+  echo "Extra parameters: $*"
+  exit 1
+fi
+
+##############################################################################
+## Run (or return) the command
+CMD="rsync -a$i$O$u$z$n$x1$x3$x4$x2 . rainbow:raid/backup/$1"
+if [[ -z "$xx" ]] ; then
+  set -x
+  $CMD
+else
+  echo $CMD
+fi
+

@@ -1,0 +1,44 @@
+##############################################################################
+##
+##       Copyright (C) 2010 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+## Makefile.WIN
+##############################################################################
+
+##############################################################################
+## Local module list
+MAKOBJ := $(patsubst $(OBJDIR)/hello.obj,,$(MAKOBJ))
+MAKEXE := hello.exe
+LLIBS  += $(OBJDIR)/local.lib
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= make.dir
+endif
+
+.PHONY: make.dir
+make.dir: $(MAKEXE)
+
+##############################################################################
+## TARGET: local.lib
+local.lib : $(MAKOBJ)
+	$(AR) /out:"$(@)" $(?)
+
+##############################################################################
+## Dependencies
+hello.exe: local.lib
+
+##############################################################################
+## Makefile cleanup
+clean : clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	-@rm local.lib  >/dev/null 2>/dev/null
+

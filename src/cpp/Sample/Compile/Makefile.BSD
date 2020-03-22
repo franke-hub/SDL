@@ -1,0 +1,38 @@
+##############################################################################
+##
+##       Copyright (C) 2017 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.BSD
+##############################################################################
+
+##############################################################################
+## Local module list
+ignore := $(patsubst $(OBJDIR)/ncurses-mouse,,$(MAKEXE)) ## BROKEN!
+
+##############################################################################
+## Local library list
+CLIBS  += -lboost_coroutine
+CLIBS  += -lboost_filesystem
+CLIBS  += -lboost_system
+CLIBS  += -lncurses
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## Additional targets
+.PHONY: do
+do: default
+	visible
+

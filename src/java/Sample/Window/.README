@@ -1,0 +1,41 @@
+##############################################################################
+##
+##       Copyright (C) 2017 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       Usage notes
+##
+## Last change date-
+##       2017/01/01
+##
+## Simple usage-
+##       . setupJAVA  ## Initialize CLASSPATH and PATH for Java (not supplied)
+##       make do
+##
+## Prerequisites-
+##       src/java/ctl/BSD
+##       JDK 1.3
+##       Unix or Cygwin environment
+##
+## Known bugs in this version-
+##       1) When run remotely with EXCEED, the frame does not appear.
+##          Not only that, but all other exceed frames disappear too!
+##
+##       2) On WIN (Cygwin), the TextFrame object did not appear once.
+##          (This was not repeatable.)
+##
+##############################################################################
+
+The AWT toolkit appears to be rather fragile.  Ordering of object manipulation
+is important and can cause objects to change in unexpected ways.  This sample
+program attempts to show at least one working ordering.
+

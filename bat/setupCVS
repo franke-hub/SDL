@@ -1,0 +1,61 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2016-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       setupCVS
+##
+## Purpose-
+##       Set up environment to use CVS.
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       cd ~/temp
+##       . setupCVS local
+##       cvs login
+##       cvs checkout .
+##       cd src/c/hello
+##       : work on hello.c
+##       cvs commit hello.c
+##       cvs logout
+##
+##############################################################################
+
+##############################################################################
+## Set default target
+target=local
+if [ ! -z "$1" ] ; then
+  target=$1
+fi
+
+##############################################################################
+## Process target
+case $target in
+  local)
+    export CVSROOT=:local:/usr/local/cvsroot
+    ;;
+
+  *)
+    ##########################################################################
+    # List possibilities
+    unset CVSROOT
+    echo 'Use ". setupCVS"'
+    ;;
+esac
+
+##############################################################################
+## completion logic
+if [ "$target" != "list" ] ; then
+  echo Inp: $1
+  echo Out: $CVSROOT
+fi
+

@@ -1,0 +1,113 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2017-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       bash_common
+##
+## Purpose-
+##       Common shell startup script, sourced from .bashrc
+##
+## Last change date-
+##       2019/10/07
+##
+## Usage-
+##       . bash_common
+##
+##############################################################################
+
+##############################################################################
+## Debugging hook
+[ -n "$debugging" ] && date "+%s.%N HOST($HOST) USER($USER) begin bash_common $$ $0" >>$debugging
+
+##############################################################################
+## Local functions
+. $HOME/bat/f.nickdir               ## For function qd
+
+##############################################################################
+## Local aliases
+alias cd='myCD'
+alias cls='clear'
+alias copy='cp -idp'
+alias cs='nickrgb'
+alias df='df -h'
+alias dh='dh -h'
+alias dir='ls -ahlF'
+alias du='du -h'
+alias erase='rm'
+alias logoff='logout'
+alias move='mv -i'
+alias nn='nicknode'
+alias rename='mv -i'
+
+##############################################################################
+## Local environment control
+export BASH_ENV=$HOME/.bashrc
+export EDITOR="e"
+export PS1=$PWD:' '
+export PWD                          ## Required by makefiles
+unset  USERNAME
+export VISUAL="e"
+
+##############################################################################
+## Common envionment
+set -o emacs                        ## Control-P retrieve key
+umask 022                           ## No group or other write
+
+##############################################################################
+## IAM: Display identification
+function iam
+{ export  DISPLAY=$1:0
+  export XSTATION=$1
+}
+
+##############################################################################
+## myCD: cd with prompt change
+function myCD
+{
+  if [[ -z "$1" ]] ; then
+    \cd
+  else
+    \cd "$1"
+  fi
+  export PS1=$PWD:' '
+}
+
+##############################################################################
+## qd: Quickdir
+function qd
+{ if [[ "list" = "$1" ]] ; then
+    nickdir list
+  else
+    myCD `nickdir $*`
+  fi
+}
+
+##############################################################################
+## Terminal type analysis
+if [[ "unknown" = "$TERM" ]] ; then
+  echo \$TERM='unknown', set to vt220
+  TERM=vt220
+fi
+
+case $TERM in
+  vt100|vt220)                      # TELNET terminal
+    export TERM=vt220
+    stty erase ^\?
+    stty rows 48
+    stty columns 80
+    echo $TERM 48x80
+    ;;
+esac
+
+##############################################################################
+## Debugging hook
+[ -n "$debugging" ] && date "+%s.%N HOST($HOST) USER($USER) *end* bash_common $$ $0" >>$debugging
+

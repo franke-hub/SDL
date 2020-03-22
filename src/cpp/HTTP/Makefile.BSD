@@ -1,0 +1,81 @@
+##############################################################################
+##
+##       Copyright (c) 2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2019/02/19
+##
+##############################################################################
+
+##############################################################################
+## Local library list
+LIBOBJ :=
+ignore += Socket.o
+MAKEXE := $(patsubst $(OBJDIR)/Socket,,$(MAKEXE))
+
+LLIBS  += -L. -llocal
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(DEFAULT) liblocal.a
+
+##############################################################################
+## TARGET: liblocal.a
+liblocal.a: $(LIBOBJ)
+	$(AR) $@ $^
+	touch $@
+
+$(MAKEXE): liblocal.a
+
+##############################################################################
+## Library dependencies
+include $(INCDIR)/com/Makefile.BSD
+include $(INCDIR)/pub/Makefile.BSD
+
+##############################################################################
+## Make a certificate
+.PHONY: certificate key
+certificate: ;
+	@echo -e "US\nNew York\nKingston\nCompany\nDivision\nbigblue.org\n\n" |\
+openssl req -x509 -nodes -days 3653 -newkey rsa:1024 -keyout private.key -out public.crt >/dev/null 2>/dev/null
+	@echo "Generated: private.key, public.crt, valid for 10 years"
+
+key: certificate                    ## Alias for certificate
+
+##############################################################################
+## Verify a certificate
+.PHONY: verify
+verify: ;
+	openssl rsa -in private.key -check -noout
+	openssl x509 -in public.crt -text -noout
+
+##############################################################################
+## Run the default program
+.PHONY: do
+do: default
+	@Main
+
+##############################################################################
+## Makefile cleanup
+clean : clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	-@rm liblocal.a      >/dev/null 2>/dev/null
+

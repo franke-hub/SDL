@@ -1,0 +1,30 @@
+#!/bin/bash
+##============================================================================
+##
+##       Copyright (c) 2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the Lesser GNU
+##       General Public License, version 3.0.
+##       (See accompanying file LICENSE.LGPL-3.0 or the original
+##       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+##
+##============================================================================
+##
+## Title-
+##       stress.short
+##
+## Function-
+##       Run short stress test from ~/obj/cpp/lib/obj.
+##
+## Last change date-
+##       2018/01/01
+##
+########
+
+make
+[[ $? != 0 ]] && exit 1
+cd Test
+make Stress
+[[ $? != 0 ]] && exit 1
+time Stress short
+

@@ -1,0 +1,62 @@
+##############################################################################
+##
+##       Copyright (c) 2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.WIN
+##
+## Purpose-
+##       WINDOWS Makefile customization.
+##
+## Last change date-
+##       2018/01/01
+##
+## Implementation notes-
+##       ** NOT TESTED **
+##
+##############################################################################
+
+##############################################################################
+## Local optionas
+COPTS  += /I.
+
+##############################################################################
+## Set defaults
+MAKRUN := libpub.lib
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT := $(MAKRUN)
+endif
+
+default: $(DEFAULT)
+all: $(MAKRUN)
+
+##############################################################################
+## TARGET: libpub.lib
+libpub.lib: $(MAKOBJ)
+	$(AR) /out:"$(@)" $(MAKOBJ)
+	touch $@
+
+##############################################################################
+## Dependencies
+ifneq "" "$(DEPENDS)"
+Makeproj.dep: $(wildcard $(INCDIR)/pub/*)
+Makeproj.dep: $(wildcard $(SRCDIR)/*)
+Makeproj.dep: $(wildcard $(SRCDIR)/pub/OS/USR/*)
+Makeproj.dep: $(wildcard $(SRCDIR)/pub/OS/WIN/*)
+endif
+
+##############################################################################
+## Cleanup
+.PHONY: pub.clean.win
+clean: pub.clean.win
+pub.clean.win: ;
+	-@rm libpub.lib >/dev/null 2>/dev/null

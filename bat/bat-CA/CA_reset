@@ -1,0 +1,52 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       CA_reset
+##
+## Function-
+##       Reset a certificate authority, deleting all certificates.
+##
+## Last change date-
+##       2019/04/03
+##
+## Usage-
+##       CA_reset {/path/to/OPENSSL_CONF/}
+##
+##############################################################################
+
+##############################################################################
+## Verify the request
+[[ -n "$2" ]] && { echo "Extra parameter(s)"; exit 1; }
+OPENSSL_PATH=$PWD
+[[ -n "$1" ]] && OPENSSL_PATH=$1
+[[ "${OPENSSL_PATH:0:1}" != "/" ]] && { echo "Error: '$OPENSSL_PATH'[1] != '/'" ; exit 1; }
+
+if [[ ! -d $OPENSSL_PATH/newcerts ]] ; then
+  echo "'$OPENSSL_PATH' is not a certificate authority directory"
+  exit 1
+fi
+
+text=`ls $OPENSSL_PATH/newcerts`
+if [[ -n "$text" ]] ; then
+  echo "$OPENSSL_PATH/newcerts contains certificate information"
+  echo "These will be LOST FOREVER if you continue"
+  read -p "Continue? N/y " text
+  if [[ "$text" != "y" && "$text" != "Y" ]] ; then
+    echo "Cancelled"
+    exit 0
+  fi
+fi
+
+##############################################################################
+## Remove all files
+rm -Rf $OPENSSL_PATH/*
+

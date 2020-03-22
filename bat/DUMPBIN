@@ -1,0 +1,50 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       DUMPBIN
+##
+## Purpose-
+##       Execute Windows DUMPBIN
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       DUMPBIN xxxxx.dll /EXPORTS
+##       DUMPBIN xxxxx.lib /SYMBOLS
+##
+##############################################################################
+
+##############################################################################
+## Find the real DUMPBIN
+EXE[0]=/cygdrive/c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/2017/Community/VC/Tools/MSVC/14.16.27023/bin/Hostx64/x64/dumpbin.exe
+EXE[1]=/cygdrive/c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio\ 14.0/VC/bin/dumpbin.exe
+EXE[2]=/cygdrive/c/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio\ 12.0/VC/bin/dumpbin.exe
+EXE[3]=ERROR
+typeset i i=0
+while [[ ! -x ${EXE[$i]} ]]
+do
+  if [[ "${EXE[$i]}" == "ERROR" ]] ; then
+    echo "Cannot find Windows DUMPBIN.EXE"
+    exit 1
+  fi
+
+  let i="$i + 1"
+done
+
+PGM=${EXE[$i]}
+
+##############################################################################
+## Run the program
+## set -x
+"$PGM" "$1" $2
+

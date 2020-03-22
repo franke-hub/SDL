@@ -1,0 +1,218 @@
+*** openssl.cnf	2020-01-20 16:25:43.850207200 -0500
+--- openssl.cnf-original	2019-03-15 12:08:17.000000000 -0400
+***************
+*** 23,41 ****
+  # X.509v3 extensions in its main [= default] section.)
+  
+  # Load default TLS policy configuration
+! # NOT SUPPORTED IN CYGWIN
+! # openssl_conf = default_modules
+  
+  [ default_modules ]
+  ssl_conf = ssl_module
+  
+  [ ssl_module ]
+  system_default = crypto_policy
+  
+  [ crypto_policy ]
+  .include = /etc/crypto-policies/back-ends/opensslcnf.config
+  
+  [ new_oids ]
+  # We can add new OIDs in here for use by 'ca', 'req' and 'ts'.
+  # Add a simple OID like this:
+  # testoid1=1.2.3.4
+--- 23,45 ----
+  # X.509v3 extensions in its main [= default] section.)
+  
+  # Load default TLS policy configuration
+! 
+! openssl_conf = default_modules
+  
+  [ default_modules ]
++ 
+  ssl_conf = ssl_module
+  
+  [ ssl_module ]
++ 
+  system_default = crypto_policy
+  
+  [ crypto_policy ]
++ 
+  .include = /etc/crypto-policies/back-ends/opensslcnf.config
+  
+  [ new_oids ]
++ 
+  # We can add new OIDs in here for use by 'ca', 'req' and 'ts'.
+  # Add a simple OID like this:
+  # testoid1=1.2.3.4
+***************
+*** 53,59 ****
+  
+  ####################################################################
+  [ CA_default ]
+! dir             = {CA_PATH}             # Where everything is kept
+  certs           = $dir/certs            # Where the issued certs are kept
+  crl_dir         = $dir/crl              # Where the issued crl are kept
+  database        = $dir/index.txt        # database index file.
+--- 57,64 ----
+  
+  ####################################################################
+  [ CA_default ]
+! 
+! dir		= /etc/pki/CA		# Where everything is kept
+  certs		= $dir/certs		# Where the issued certs are kept
+  crl_dir		= $dir/crl		# Where the issued crl are kept
+  database	= $dir/index.txt	# database index file.
+***************
+*** 118,124 ****
+  [ req ]
+  default_bits            = 2048
+  default_md              = sha256
+! default_keyfile         = private/cakey.pem
+  distinguished_name      = req_distinguished_name
+  attributes              = req_attributes
+  x509_extensions = v3_ca # The extensions to add to the self signed cert
+--- 123,129 ----
+  [ req ]
+  default_bits		= 2048
+  default_md		= sha256
+! default_keyfile 	= privkey.pem
+  distinguished_name	= req_distinguished_name
+  attributes		= req_attributes
+  x509_extensions	= v3_ca	# The extensions to add to the self signed cert
+***************
+*** 140,167 ****
+  
+  [ req_distinguished_name ]
+  countryName                     = Country Name (2 letter code)
+! countryName_default             = US
+  countryName_min                 = 2
+  countryName_max                 = 2
+  
+  stateOrProvinceName             = State or Province Name (full name)
+! stateOrProvinceName_default     = New York
+  
+  localityName                    = Locality Name (eg, city)
+! localityName_default            = New York
+  
+  0.organizationName              = Organization Name (eg, company)
+! 0.organizationName_default      = Default Company
+  
+  # we can do this but it is not needed normally :-)
+  #1.organizationName             = Second Organization Name (eg, company)
+  #1.organizationName_default     = World Wide Web Pty Ltd
+  
+  organizationalUnitName          = Organizational Unit Name (eg, section)
+! organizationalUnitName_default  = Development
+  
+  commonName                      = Common Name (eg, your name or your server\'s hostname)
+- commonName_default              = example.com
+  commonName_max                  = 64
+  
+  emailAddress                    = Email Address
+--- 145,171 ----
+  
+  [ req_distinguished_name ]
+  countryName			= Country Name (2 letter code)
+! countryName_default		= XX
+  countryName_min			= 2
+  countryName_max			= 2
+  
+  stateOrProvinceName		= State or Province Name (full name)
+! #stateOrProvinceName_default	= Default Province
+  
+  localityName			= Locality Name (eg, city)
+! localityName_default		= Default City
+  
+  0.organizationName		= Organization Name (eg, company)
+! 0.organizationName_default	= Default Company Ltd
+  
+  # we can do this but it is not needed normally :-)
+  #1.organizationName		= Second Organization Name (eg, company)
+  #1.organizationName_default	= World Wide Web Pty Ltd
+  
+  organizationalUnitName		= Organizational Unit Name (eg, section)
+! #organizationalUnitName_default	=
+  
+  commonName			= Common Name (eg, your name or your server\'s hostname)
+  commonName_max			= 64
+  
+  emailAddress			= Email Address
+***************
+*** 177,182 ****
+--- 181,187 ----
+  unstructuredName		= An optional company name
+  
+  [ usr_cert ]
++ 
+  # These extensions are added when 'ca' signs a request.
+  
+  # This goes against PKIX guidelines but some CAs do it and some software
+***************
+*** 230,243 ****
+--- 235,252 ----
+  # extendedKeyUsage = critical,timeStamping
+  
+  [ v3_req ]
++ 
+  # Extensions to add to a certificate request
+  
+  basicConstraints = CA:FALSE
+  keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+  
+  [ v3_ca ]
++ 
++ 
+  # Extensions for a typical CA
+  
++ 
+  # PKIX recommendation.
+  
+  subjectKeyIdentifier=hash
+***************
+*** 266,271 ****
+--- 275,281 ----
+  # basicConstraints= critical, DER:30:03:01:01:FF
+  
+  [ crl_ext ]
++ 
+  # CRL extensions.
+  # Only issuerAltName and authorityKeyIdentifier make any sense in a CRL.
+  
+***************
+*** 277,282 ****
+--- 287,293 ----
+  
+  # This goes against PKIX guidelines but some CAs do it and some software
+  # requires this to avoid interpreting an end user certificate as a CA.
++ 
+  basicConstraints=CA:FALSE
+  
+  # Here are some examples of the usage of nsCertType. If it is omitted
+***************
+*** 326,336 ****
+  
+  ####################################################################
+  [ tsa ]
+  default_tsa = tsa_config1       # the default TSA section
+  
+  [ tsa_config1 ]
+  # These are used by the TSA reply generation only.
+! dir             = {CA_PATH}             # TSA root directory
+  serial          = $dir/tsaserial        # The current serial number (mandatory)
+  crypto_device   = builtin               # OpenSSL engine to use for signing
+  signer_cert     = $dir/tsacert.pem      # The TSA signing certificate
+--- 337,349 ----
+  
+  ####################################################################
+  [ tsa ]
++ 
+  default_tsa = tsa_config1	# the default TSA section
+  
+  [ tsa_config1 ]
++ 
+  # These are used by the TSA reply generation only.
+! dir		= /etc/pki/CA		# TSA root directory
+  serial		= $dir/tsaserial	# The current serial number (mandatory)
+  crypto_device	= builtin		# OpenSSL engine to use for signing
+  signer_cert	= $dir/tsacert.pem 	# The TSA signing certificate

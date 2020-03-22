@@ -1,0 +1,41 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       retry
+##
+## Purpose-
+##       Retry a command until it finally works
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       retry command argument list
+##
+##############################################################################
+
+##############################################################################
+## Validate the command line
+if [ -z "$1" ] ; then
+  echo "Error: Command missing"
+  return
+fi
+
+##############################################################################
+## Retry command until it works.
+rc=1
+while [[ "$rc" -ne "0" ]]
+do
+  $*
+  rc=$?
+done
+

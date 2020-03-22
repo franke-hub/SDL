@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# Title-
+#        stress.long
+#
+# Function-
+#        Run long stress test from ~/pub/cpp/lib/obj.
+#
+#######
+
+make
+[[ $? != 0 ]] && exit 1
+cd Test
+make Stress
+[[ $? != 0 ]] && exit 1
+time Stress
+

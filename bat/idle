@@ -1,0 +1,30 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       idle
+##
+## Purpose-
+##       Put window in idle state.
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       idle
+##       . idle [path]
+##
+##############################################################################
+[ -z "$1" ] && cd /
+[ -z "$1" ] || cd $1
+clear
+echo `whoami`@`hostname`
+

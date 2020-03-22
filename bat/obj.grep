@@ -1,0 +1,92 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       obj.grep
+##
+## Purpose-
+##       (Single) dll/lib/obj file name grep.
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       obj.grep <-options> entryName fileName
+##
+## Some grep options-
+##       -i    Ignore case
+##       -l    List of files
+##
+##############################################################################
+
+##############################################################################
+## Extract the switch names
+sparm=""
+
+for i in $*
+do
+  case $i in
+    -*)
+      sparm="$sparm $i"
+      shift
+      ;;
+
+    -useNM)
+      CMD="nm"
+      shift
+      ;;
+
+    *)
+      break
+      ;;
+  esac
+done
+
+##############################################################################
+# Extract the search string
+if [[ "" = "$1" ]] ; then
+  heading $0
+  exit
+fi
+
+string=$1
+shift
+
+##############################################################################
+# Extract the file name
+file=$1
+shift
+
+##############################################################################
+# Extract the file extentions
+if [[ -d "$file" || -L "$file" ]] ; then
+  ## Do not examine directories or links
+  exit 1
+fi
+if [[ ! -f "$file" ]] ; then
+  exit 1
+fi
+
+if [[ -z "`osCYGWIN`" ]] ; then
+# set -x
+  rs=`readelf -s "$file" 2>/dev/null | grep $sparm $string | grep -v UND`
+  if [[ ! -z "$rs" ]] ; then
+      echo $file
+      readelf -s "$file" 2>/dev/null | grep $sparm $string | grep -v UND
+  fi
+else
+  rs=`nm "$file" 2>/dev/null | grep $sparm $string | grep -v " U " | grep -v " I "`
+  if [[ ! -z "$rs" ]] ; then
+      echo $file
+      nm "$file" 2>/dev/null | grep $sparm $string | grep -v " U " | grep -v " I "
+  fi
+fi
+

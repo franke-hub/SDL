@@ -1,0 +1,35 @@
+##############################################################################
+##
+##       Copyright (C) 2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/cpp/Sample/Include/.README
+##
+## Purpose-
+##       Documentation.
+##
+## Last change date-
+##       2018/06/01
+##
+## Implementation notes-
+##       This directory contains stand-alone include files that can be
+##       copied anywhere, including Windows Visual Studio projects.
+##
+##############################################################################
+
+##############################################################################
+## Debug.h
+##       A Minimal subset of com/Debug.h, including debugf and tracef.
+##############################################################################
+
+##############################################################################
+## Include.cpp
+##       Unit test for all include files in this directory.
+##############################################################################
+

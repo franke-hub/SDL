@@ -1,0 +1,69 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2013-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       setupMCS
+##
+## Purpose-
+##       Set up environment to use MONO/MCS
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       . setupMCS
+##
+## Implementation notes-
+##       AppendString gets confused with '(' in path name.
+##       Workaround: Use short name
+##
+##############################################################################
+
+##############################################################################
+## Update environment
+export MONO_THREADS_PER_CPU=1024
+
+##############################################################################
+## Update $PATH, $LD_LIBRARY_PATH
+. $HOME/bat/f.appendstring
+
+__try="$HOME/obj/mcs/lib"
+if [[ -d "$__try" ]] ; then
+    AppendString PATH "$__try"
+    AppendString LD_LIBRARY_PATH "$__try"
+fi
+
+__try="/cygdrive/C/Program Files (x86)/GtkSharp/2.12/lib/gtk-sharp-2.0"
+__try="/cygdrive/C/PROGRA~2/GtkSharp/2.12/lib/gtk-sharp-2.0"
+if [[ -d "$__try" ]] ; then
+    AppendString PATH "$__try"
+    AppendString LD_LIBRARY_PATH "$__try"
+fi
+
+##############################################################################
+## Update $PATH
+__try="$HOME/obj/mcs/lib"
+[[ -d "$__try" ]] && AppendString PATH "$__try"
+
+__try="/C/Program Files x(86)/GtkSharp/2.12/lib/gtk-sharp-2.0"
+[[ -d "$__try" ]] && AppendString PATH "$__try"
+
+##############################################################################
+## Update $PKG_CONFIG_PATH
+AppendString PKG_CONFIG_PATH "$HOME/obj/lib/pkgconfig"
+
+##############################################################################
+## BRINGUP
+echo LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
+echo MONO_THREADS_PER_CPU="$MONO_THREADS_PER_CPU"
+echo PATH="$PATH"
+echo PKG_CONFIG_PATH="$PKG_CONFIG_PATH"
+

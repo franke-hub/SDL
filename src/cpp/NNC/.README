@@ -1,0 +1,49 @@
+##############################################################################
+##
+##       Copyright (C) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       NNC development tree information.
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+DOC: See .DOC.txt
+
+NOTE:
+         The documentation describes a statement as
+         label: neuron ...
+         This is the intent for the future.
+
+         The actual current syntax is
+         NEURON(type) [value(float)] LABEL;
+
+##############################################################################
+RUN: ncmain test ## Compiles test.n
+     nnmain test ## Executes compiled test.n
+
+##############################################################################
+BUGS:
+2016/07/02 Segmentation fault in 64-bit mode (Not in 32-bit mode.)
+
+##############################################################################
+FEATURE:
+
+##############################################################################
+FIXED:
+2016/07/02 Moved PGS here
+2009/11/01 DO/END does not iterate
+2009/11/01 Outer block symbols are not found in inner block
+

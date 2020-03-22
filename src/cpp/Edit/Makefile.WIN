@@ -1,0 +1,54 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2014 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.WIN
+##
+## Purpose-
+##       WINDOWS Makefile versioning
+##
+## Last change date-
+##       2014/01/01
+##
+##############################################################################
+
+##############################################################################
+## Local module list
+MAKOBJ := $(patsubst $(OBJDIR)/Edit.obj,,$(MAKOBJ))
+MAKEXE := Edit.exe
+LLIBS  += $(OBJDIR)/local.lib
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: local.lib $(DEFAULT)
+
+##############################################################################
+## TARGET: local.lib
+local.lib : $(MAKOBJ)
+	$(LD) -lib /nologo /out:"$(@)" $(MAKOBJ)
+
+##############################################################################
+## Dependencies
+Edit.exe: local.lib
+Edit.exe: $(LIBDIR)/libcom.lib
+
+##############################################################################
+## Makefile cleanup
+clean : MAK_clean
+.PHONY: MAK_clean
+MAK_clean: ;
+	-@rm $(MAKEXE)  >/dev/null 2>/dev/null
+	-@rm local.lib  >/dev/null 2>/dev/null
+

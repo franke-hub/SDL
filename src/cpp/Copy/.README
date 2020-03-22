@@ -1,0 +1,52 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/cpp/Copy/.README
+##
+## Purpose-
+##       README information file.
+##
+## Last change date-
+##       2020/01/29
+##
+## Information-
+##       The basic .README file template is given to the public domain.
+##       You can freely use it without attribution of any kind.
+##
+##       A .README file's "look and feel" is explicitly not copyrighted.
+##       Likewise, the source directory's "look and feel" is explicitly
+##       not copyrighted.
+##
+##############################################################################
+
+##############################################################################
+## STATUS: 2020/01/29 Operational
+         This particular README format is used for project tracking.
+         The sample code is as operational as it's going to get.
+
+##############################################################################
+## BUGS:
+
+##############################################################################
+## FEATURES:
+
+##############################################################################
+## TODO:
+
+##############################################################################
+## CLOSED: yyyy/mm/dd
+
+##############################################################################
+## DONE: yyyy/mm/dd
+
+##############################################################################
+## FIXED: yyyy/mm/dd

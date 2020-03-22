@@ -1,0 +1,48 @@
+##############################################################################
+##
+##       Copyright (C) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       Subdirectory change log.
+##
+## Last change date-
+##       2018/07/23
+##
+##############################################################################
+
+##############################################################################
+OPEN:
+
+##############################################################################
+CLOSED: 2016/03/11
+2016/03/02 UpdateDNS.cpp
+           Message look_iptext(0.0.0.0) last_iptext == this_iptext(n.n.n.n)
+           no update performed.
+           (ERROR: Manual IP address validation required)
+
+           This looks more like a temporary glitch than an error.
+           The message needs to be fixed. (DONE.)
+
+2016/03/02 UpdateDNS.cpp
+           Check for file close between operations. This might be better.
+           fflush is done after each operation.
+
+##############################################################################
+CLOSED: 2012/02/22
+2012/01/02 Vistors shows active user, but user is not active.
+           User was not fully logged in, so never got logged out.
+
+##############################################################################
+FIXED: 2012/02/24
+2012/02/22 FEATURE: Only show data for past day/week/month.
+           Added options -begin:yyyy-mm-dd, -all. (Default is one week.)
+

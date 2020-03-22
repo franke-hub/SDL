@@ -1,0 +1,187 @@
+##############################################################################
+##
+##       Copyright (C) 2008 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       Makefile, BSD version. (Cygwin, Unix)
+##
+## Last change date-
+##       2008/01/01
+##
+##############################################################################
+
+##############################################################################
+## Local controls
+export CLASSPATH=.:OBJHOME/common.jar
+export SOURCEDIR=SRCPATH
+export OBJECTDIR=.
+export VIEWPARM=-J-ea -J-esa -J-Djava.security.policy=java.policy
+export VIEWPARM=-J-Djava.security.policy=java.policy
+
+##############################################################################
+## Targets
+make.dir: applet.jar
+	touch $@
+
+applet.jar: $(MAKOBJ)
+	$(JAR) -cvf $@ $(OBJDIR)/*.class
+
+jars/common.jar: OBJHOME/common.jar
+	cp -u $< $@
+
+.phony: test
+test: applet.jar jars/common.jar
+	appletviewer $(VIEWPARM) test.html
+
+% : html/%.html applet.jar
+	appletviewer $(VIEWPARM) $<
+
+.phony: up-to-date
+up-to-date:
+	touch *.class
+	$(MAKE) -t
+	rm applet.jar
+	$(MAKE) applet.jar
+
+##############################################################################
+## Dependencies (in order, using implied dependencies.)
+DebuggingInterface.class: jars/common.jar
+DebuggingAdaptor.class: DebuggingInterface.class
+
+DbStatic.class: DebuggingAdaptor.class
+DbClient.class: DbStatic.class
+
+CourseData.class: DebuggingAdaptor.class
+EventsData.class: DebuggingAdaptor.class
+PlayerData.class: DebuggingAdaptor.class
+TeeboxData.class: DebuggingAdaptor.class
+
+DataField.class: DebuggingInterface.class NextFocusAdapter.class
+DataField.class: EmptyFieldException.class InvalidValueException.class
+SigmaField.class: DataField.class
+
+DataPanel.class: DataField.class
+ItemPanel.class: DataPanel.class
+HolePanel.class: DataPanel.class
+PostPanel.class: DataPanel.class Validator.class
+SigmaHolePanel.class: HolePanel.class SigmaField.class
+
+StaticJApplet.class: DbStatic.class
+StaticJApplet.class: DataField.class
+StaticJApplet.class: HolePanel.class
+
+DatabaseInfo.class: DebuggingAdaptor.class StaticJApplet.class Validator.class
+DatabaseInfo.class: DbClient.class
+HoleInfo.class: DatabaseInfo.class HolePanel.class
+GenericFindInfo.class: DatabaseInfo.class
+GenericItemInfo.class: DatabaseInfo.class
+GenericListInfo.class: DatabaseInfo.class
+GenericNameInfo.class: DatabaseInfo.class
+SigmaHoleInfo.class: HoleInfo.class SigmaHolePanel.class
+SelectHoleInfo.class: HoleInfo.class
+CourseHdcpInfo.class: HoleInfo.class SelectHoleInfo.class
+CourseHoleInfo.class: HoleInfo.class
+CourseLongInfo.class: SelectHoleInfo.class
+CourseNearInfo.class: SelectHoleInfo.class
+CourseParsInfo.class: SigmaHoleInfo.class
+CourseTboxInfo.class: SigmaHoleInfo.class
+CourseLdCpInfo.class: HoleInfo.class CourseLongInfo.class CourseNearInfo.class
+EventsTeamInfo.class: DatabaseInfo.class
+EventsTeamInfo.class: PlayerData.class HolePanel.class CourseLdCpInfo.class
+EventsTeamInfo.class: PlayerCardInfo.class PlayerNetsInfo.class PlayerPostInfo.class
+EventsDateInfo.class: DatabaseInfo.class EventsTeamInfo.class
+PlayerCardInfo.class: SigmaHoleInfo.class
+PlayerCardInfo.class: CourseParsInfo.class CourseTboxInfo.class
+PlayerNetsInfo.class: HoleInfo.class
+PlayerNetsInfo.class: CourseParsInfo.class CourseTboxInfo.class CourseHdcpInfo.class
+PlayerPostInfo.class: DatabaseInfo.class PlayerCardInfo.class
+
+EventsBestPanel.class: EventsTeamInfo.class
+EventsSkinPanel.class: EventsTeamInfo.class
+MonteCarloTeamEvaluator.class: DebuggingAdaptor.class PlayerData.class
+MonteCarloTeamEvaluator.class: EventsDateInfo.class EventsTeamInfo.class
+
+CommonJApplet.class: StaticJApplet.class DebuggingInterface.class
+CommonJApplet.class: CourseData.class
+CommonJApplet.class: EventsData.class
+CommonJApplet.class: PlayerData.class
+CommonJApplet.class: TeeboxData.class
+CommonJApplet.class: SigmaHoleInfo.class
+CommonJApplet.class: GenericFindInfo.class
+CommonJApplet.class: GenericItemInfo.class
+CommonJApplet.class: GenericListInfo.class
+CommonJApplet.class: GenericNameInfo.class
+CommonJApplet.class: CourseHdcpInfo.class
+CommonJApplet.class: CourseHoleInfo.class
+CommonJApplet.class: CourseLdCpInfo.class
+CommonJApplet.class: CourseParsInfo.class
+CommonJApplet.class: CourseTboxInfo.class
+CommonJApplet.class: EventsTeamInfo.class
+CommonJApplet.class: ItemPanel.class
+CommonJApplet.class: PostPanel.class
+CommonJApplet.class: SigmaHolePanel.class
+CommonJApplet.class: PlayerCardInfo.class
+CommonJApplet.class: PlayerNetsInfo.class
+CommonJApplet.class: PlayerPostInfo.class
+CommonJApplet.class: PopupListener.class
+
+Checkstop.class: CommonJApplet.class
+
+CourseView.class: CommonJApplet.class
+CourseEdit.class: CourseView.class
+CourseAdd.class:  CourseEdit.class
+
+DefaultsEdit.class: CommonJApplet.class
+
+EventsStat.class: CommonJApplet.class
+EventsStat.class: EventsBestPanel.class EventsSkinPanel.class
+EventsTeam.class: CommonJApplet.class MonteCarloTeamEvaluator.class
+EventsView.class: CommonJApplet.class
+EventsView.class: EventsBestPanel.class EventsSkinPanel.class
+EventsEdit.class: EventsTeam.class MonteCarloTeamEvaluator.class
+EventsEdit.class: MenuScroller.class
+EventsCard.class: EventsView.class
+## EventsPost.class: EventsView.class
+EventsAdd.class:  EventsEdit.class
+
+FgValidator.class: DebuggingAdaptor.class CommonJApplet.class
+FgValidator.class: CourseData.class TeeboxData.class
+FgValidator.class: EventsData.class PlayerData.class
+BgValidator.class: CommonJApplet.class FgValidator.class
+
+PlayerEdit.class: CommonJApplet.class
+PlayerHdcp.class: CommonJApplet.class
+PlayerStat.class: CommonJApplet.class
+PlayerStat.class: EventsBestPanel.class EventsSkinPanel.class
+PlayerView.class: CommonJApplet.class
+PlayerCard.class: PlayerView.class
+PlayerPost.class: PlayerView.class
+PlayerAdd.class: PlayerEdit.class
+
+##############################################################################
+## Makefile.setup contains the local setup controls
+include Makefile.setup
+
+##############################################################################
+## Makefile cleanup
+.phony: MAK_pristine
+pristine : MAK_pristine
+MAK_pristine: ;
+	-@rm -Rf jars/common.jar >/dev/null 2>/dev/null
+	-@rm -Rf temp >/dev/null 2>/dev/null
+
+.phony: MAK_clean
+clean : MAK_clean
+MAK_clean: ;
+	-@rm applet.jar >/dev/null 2>/dev/null
+	-@rm make.dir   >/dev/null 2>/dev/null
+

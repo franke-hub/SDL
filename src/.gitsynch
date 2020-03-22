@@ -1,0 +1,26 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/.gitsynch
+##
+## Purpose-
+##       Time/date marker for last gitsynch operation.
+##
+## Last change date-
+##       2020/03/19 21:30 Refreshed
+##
+## Implementation note-
+##       The ~/bat/gitsynch operation changes the last modification date and
+##       time for files modified or moved since the previous gitsynch.
+##
+##       This file is a reminder of that fact.
+##
+##############################################################################

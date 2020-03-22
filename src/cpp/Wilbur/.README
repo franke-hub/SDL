@@ -1,0 +1,125 @@
+##############################################################################
+##
+##       Copyright (C) 2010-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       Wilbur README: List of usage notes, bugs, fixes, etc.
+##
+## Last change date-
+##       2018/09/08
+##
+##############################################################################
+
+##############################################################################
+SETUP NOTES:
+Compile:
+    prereq: libdb-devel
+
+Database: Definition:
+    /database/Bringup/Wilbur/temp/
+    /database/Bringup/temp/
+    /database/Wilbur/temp/
+
+Database: Names
+    DbAttr.db, DbFile.db, DbHttp.db, DbText.db, DbWord.db
+
+Database: Load
+    Tester --loadDB DbWord
+
+Database: Test
+    Tester --help (See Tester.cpp for more detail.)
+
+Database: Clean up
+    make cleanDB
+
+##############################################################################
+USAGE NOTES:
+For linux, in order to access the local library you must:
+export LD_LIBRARY_PATH=.:/usr/local/lib
+
+For linux, in order to access the DB libraries you may also need:
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/libdb:/usr/lib64/libdb
+
+##############################################################################
+FEATURE:
+
+##############################################################################
+BUGS:
+
+##############################################################################
+TODO:
+2018/09/11 Word.*: Use uint64_t compare, end of list via
+           int endian= 0 or 1; // Little or big
+           uint64_t endian_array[] = {0xff00000000000000,0x00000000000000ff};
+           (*hunk & endian_array[endian]) == 0
+           maybe use constexpr to eliminate the index somehow.
+
+2018/09/08 Word.*: List of names.
+
+2018/09/08 Word.*: List of places.
+
+2018/09/08 Word.*: List of words missing from spell.
+
+2018/09/08 Word.*: Use compression
+           16 bit indexes. Index > 0xff00 (& 0x00ff) are index to probability
+           tables 1..255. These tables are sorted by usage probability.
+           (Space for 16M+ words)
+
+           Table[  0] 0x00000000..0x000000ff [Characters and punctuation]
+                      0x00000100..0x0000fdff [Most common]
+                      0x0000fe00..0x0000feff [Extenders/Reserved]
+                      0x0000fe00             [16 bit index specifier follows]
+                      0x0000fe01             [32 bit index specifier follows]
+                      0x0000fe02             [48 bit index specifier follows]
+                      0x0000fe03             [64 bit index specifier follows]
+                      0x0000fe04..0x0000feff [Reserved]
+                      0x0000ff00             [Reserved]
+                      0x0000ff01..0x0000ffff [Index specifiers 1..255]
+           Table[  1] 0x00010000..0x0001ffff [Next common 65536]
+           Table[  2] 0x00020000..0x0001ffff   "
+           Table[  3] 0x00030000..0x0003ffff   "
+                     :
+           Table[255] 0x00ff0000..0x00ffffff   "
+
+2011/05/18 DbAttr insert/getvalue need clarification.
+
+##############################################################################
+CLOSED:
+2014/05/25 Cannot reproduce
+2010/04/29 Bringup --testHttpCached does not always complete when
+           run with empty database.
+
+##############################################################################
+FIXED:
+2010/04/29 Generate related buttons in http response.
+
+2011/05/18 Insure that no DbXXXX allows deletion of special records, and
+           that the special records are not indexed. (See DbText.cpp)
+
+##############################################################################
+STATUS:
+
+##############################################################################
+HOWTO:
+2010/04/01 OS/BSD: Compile with HCDM
+           export OPTIMIZE="-g -DHCDM"
+           export CDEFS=-DHCDM
+
+2010/04/01 OS/WIN: Compile with HCDM
+           set OPTIMIZE=/Zi /DHCDM
+           set CDEFS=/DHCDM
+
+##############################################################################
+INFO:
+2010/04/29 static HTML requests are handled in HttpServer.cpp, which also
+           does special case handling for "/" and "/shutdown.html"
+

@@ -1,0 +1,98 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       rexleft
+##
+## Function-
+##       rexterm left of bluebird terminal
+##
+## Last change date-
+##       2019/10/07
+##
+## Usage-
+##       rexleft {-x n} {-y n}
+##
+##############################################################################
+
+##############################################################################
+# Handle -x, -y parameters
+xgeo=(668 1170)
+ygeo=(0 342) ## fedora64
+ygeo=(0 382) ## rainbow
+
+xsiz=${#xgeo[*]}
+ysiz=${#ygeo[*]}
+
+xndx=0
+yndx=0
+
+cs=linux
+skip=""
+parm=""
+
+for i in $*
+do
+  if [[ ! -z "$skip" ]] ; then
+    skip=""
+    shift
+    continue
+  fi
+
+  case $i in
+    -cs)
+      shift
+      cs=$1
+      skip='Y'
+      ;;
+
+    -x | -X)
+      shift
+      v=$1
+      xndx=0
+      if [[ $v -ge $xsiz ]] ; then
+        echo ERROR: $i -ge $xsiz, 0 assumed
+      elif [[ $v -lt 0 ]] ; then
+        echo ERROR: $i -lt 0, 0 assumed
+      else
+        xndx=$v
+      fi
+      skip='Y'
+      ;;
+
+    -y | -Y)
+      shift
+      v=$1
+      yndx=0
+      if [[ $v -ge $ysiz ]] ; then
+        echo ERROR: $i -ge $ysiz, 0 assumed
+      elif [[ $v -lt 0 ]] ; then
+        echo ERROR: $i -lt 0, 0 assumed
+      else
+        yndx=$v
+      fi
+      skip='Y'
+      ;;
+
+    *)
+      parm="$parm $i"
+      shift
+      ;;
+  esac
+done
+
+xoff=${xgeo[$xndx]}
+yoff=${ygeo[$yndx]}
+
+##############################################################################
+# Rexterm left of bluebird
+rexterm -cs $cs -geometry 80x24-$xoff+$yoff $parm
+

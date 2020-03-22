@@ -1,0 +1,28 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       alarm
+##
+## Purpose-
+##       Sleep alarm clock.
+##
+## Last change date-
+##       2019/10/07
+##
+##############################################################################
+sleep $*
+
+while [ 1 = 1 ] ; do
+  echo -n -e ".\a"
+  sleep 0.25
+done
+

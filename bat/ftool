@@ -1,0 +1,110 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2017-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       ftool
+##
+## Purpose-
+##       Look for files within current subtree
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       ftool <fileSpecifier ...>
+##
+## Options-
+##       -date n       Find file modified exactly n days ago. (0 for today)
+##       -days n       Find file modified within n days ago. (1 for today)
+##       -print0       For use with xargs -0
+##
+## Notes-
+##       Omitting (or specifying "." for) the fileSpecifier lists all files.
+##
+##############################################################################
+
+##############################################################################
+## Extract the switch names
+nparm="-name"
+print="-print"
+skipf=""
+sparm=""
+for i in $*
+do
+  if [[ -z "$skipf" ]] ; then
+    case $i in
+      -i)
+        nparm="-iname"
+        shift
+        ;;
+
+      -*)
+        case $i in
+          -date)                    ## On the particular day
+            sparm="$sparm-mtime "
+            skipf="true"
+            ;;
+
+          -days)                    ## Within the number of days
+            sparm="$sparm-mtime -"
+            skipf="true"
+            ;;
+
+          -print*)                  ## Modify -print argument
+            print="$i"
+            ;;
+
+          *)
+            sparm="$sparm$i "
+        esac
+        shift
+        ;;
+
+      *)
+        break
+        ;;
+    esac
+  else
+    sparm="$sparm$i "
+    skipf=""
+    shift
+  fi
+done
+
+# exit 0
+
+##############################################################################
+## Extract the file descriptors
+target=""
+while [ "" != "$1" ]
+do
+  if [ "" != "$target" ] ; then
+    target="$target -o"
+  fi
+
+  if [ "." = "$1" ] ; then
+    target="$target '*'"
+    shift
+
+  else
+    target="$target '$1'"
+    shift
+  fi
+done
+if [ "" = "$target" ] ; then
+  target="'*'"
+fi
+
+##############################################################################
+## Locate specified targets
+cmd="/usr/bin/find . \( $sparm$nparm $target \) $print"
+bash -c "$cmd 2>/dev/null"
+

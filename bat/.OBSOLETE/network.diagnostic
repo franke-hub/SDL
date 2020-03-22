@@ -1,0 +1,49 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2012-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       network.diagnostic
+##
+## Purpose-
+##       Network diagnostic information
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       network.diagnostics
+##
+##############################################################################
+set -x
+lsb_release -a
+
+uname -a
+
+cat /etc/hosts
+
+cat /etc/network/interfaces
+
+cat /etc/NetworkManager/NetworkManager.conf
+
+dmesg | grep eth0
+
+dmesg | grep firm
+
+sudo rfkill list
+
+sudo lshw -short
+
+sudo lshw -C display
+
+sudo lshw -C network
+
+lspci -nn
+

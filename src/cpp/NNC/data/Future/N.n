@@ -1,0 +1,16 @@
+//----------------------------------------------------------------------------
+//
+// Title-
+//       N.n
+//
+// Description-
+//       Master control file.
+//
+//----------------------------------------------------------------------------
+N:
+{
+#include "Const.n"                  // Constants
+#include "Sequence.n"               // Sequencer (entry)
+#include "Source.n"                 // Data load
+#include "Video.n"                  // Video array
+} // N

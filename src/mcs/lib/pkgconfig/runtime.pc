@@ -1,0 +1,15 @@
+## WINDOWS VERSION/FORMAT, gapidir non-existent
+prefix=/C/Program Files x(86)/GtkSharp/2.12
+exec_prefix=${prefix}/bin
+libdir=${prefix}/lib/gtk-sharp-2.0
+
+
+Name: Runtime
+Description: Mono runtime
+Version: 1.0.1
+Cflags:
+Libs:
+GTK2=${prefix}
+PATH=/home/eskesen/obj/mcs/lib:${GTK2}
+LIBS=${PATH}
+

@@ -1,0 +1,106 @@
+##############################################################################
+##
+##       Copyright (C) 2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/py/lib/.README
+##
+## Purpose-
+##       Source library documentation.
+##
+## Last change date-
+##       2018/01/01
+##
+## Usage note-
+##       All code fixes contain the associated fix number, FX_nnnnn, as text
+##       within the source code. Use grep to find code associated with a fix.
+##
+## Implementation note-
+##       Installation example:
+##           sudo su - ## Run as root
+##           cd /usr/local/lib/python3.6/site-packages/.
+##           ln -s ~eskesen/src/py/lib .
+##
+##       Python library upgrade information:
+##           /usr/local/lib/python3.X/site-packages/REQUIRES:
+##               aiml (From prior installation)
+##               lib  (See Installation example, above)
+##
+##           /usr/local/lib64/python3.X/site-packages/REQUIRES:
+##               **Nothing** OK as is.
+##
+##############################################################################
+
+##############################################################################
+## DONE:
+2019/08/17 FX_00002 lib/Debug.py Termination exception handling
+   An exception can occur if Debug.writef is called during termination.
+       NameError: name 'open' is not defined
+   This occurs because termination deletes the open function before calling
+   __del__ for objects that haven't been garbage collected yet.
+
+2018/01/18 Dispatch.py: Moved .enqueue to OBJ, removing the requirement to
+   have an OBJ when constructing a TAB.
+
+2018/01/17 Dispatch.py: Added add_timer, del_timer methods.
+   Now with performance upgrades.
+
+2018/01/16 FX_00001 (AIML/Brian) Shutdown does not always complete.
+   (aiml/Brian)/Common.py: Harden exception handling.
+   Simple errors in HttpServer could cause an exception.
+   The first fix attempt added "except: pass" logic, but this wasn't
+   good enough to allow the problem to be debugged. It didn't help that
+   the debug hooks also caused exceptions.
+
+2018/01/15 Dispatch.py: threading.Timer cannot be used the base for _Timer
+   in python2. For compatability, we'll use object for the _Timer base class
+   and use an inner threading.Timer object.
+
+2018/01/15 FX_00000 (Fix number code reference.)
+   Documents code modified by fix number 00000. Fix numbers are only assigned
+   for unusual problems.
+
+##############################################################################
+TEST:
+2018/01/16 _TEST_0001 COMPLETED
+
+2018/01/15 _TEST_0000 (Debugging test hook test reference.)
+
+##############################################################################
+## TODO:
+2019/08/18 Consider adding Command.Main, see ../Golf/test/Main.py
+
+2018/01/17 Use None as defaults in library functions where possible.
+
+2018/01/15 Dispatch.py needs to use multiprocessing rather than threading
+   Need to check it out.
+
+2018/01/15 Find instances where time already inserted in log message.
+   Change these to use Debug._float_log, printf/writef
+
+2018/01/15 Fix HttpServer.py: Better version coding
+   if PY3: SimpleHTTPServer = http.server
+
+2018/01/15 Alarm.py: Complete persistence load/dump.
+   Use time message lines for debugging.
+
+2018/01/15 PersistFile.py: Have verification callback. Allow data validity
+   to override other considerations. (For Alarm.py, the time must be precisely
+   formatted and the message must decode.)
+
+##############################################################################
+## USED: (Design decision documentation)
+2018/01/17 Debug.py: _format_prt as name for default _format mechanism.
+   This is the same format as print uses. It's a better choice than _format_std
+   because what's 'standard' is indeterminate.
+
+2018/01/17 Use _names for attributes even in _Classes and their methods.
+   This way the same object is accessed using the same attribute name across
+   and within Classes.
+

@@ -1,0 +1,44 @@
+##############################################################################
+##
+##       Copyright (C) Frank Eskesen 2020.
+##
+##       This file is free content, distributed under the Lesser GNU
+##       General Public License, version 3.0.
+##       (See accompanying file LICENSE.LGPL-3.0 or the original
+##       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+##
+##############################################################################
+##
+## Title-
+##       /home/data/usr/.README
+##
+## Purpose-
+##       Describe subdirectory content.
+##
+## Last change date-
+##       2020/01/19
+##
+## Implementation notes-
+##       This directory contains files not maintained in any repository.
+##       This includes:
+##           Files with content of unknown provenance.
+##           Files containing local data, such as machine names.
+##           Content not ready for distribution.
+##           All imported content.
+##           Test input and output files.
+##
+##       Links into this directory explicitly are for local content related to
+##       but not distributed by this application.
+##
+## Implementation notes-
+##       This distribution is kept locally in /home/data/home/. In addition to
+##       this public distribution, this directory contains information
+##       shared between multiple machines. The bulk of this is personal.
+##
+##       Links into /home/data that do not link to part of this distribution
+##       are used at times similarly to links to /home/data/usr/.
+##       In particular, the java web applications cannot use links when
+##       running in Cygwin, so a direct path to /home/data/web/database/.
+##       is used instead.
+##
+##############################################################################

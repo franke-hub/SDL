@@ -1,0 +1,88 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       intogpg
+##
+## Purpose-
+##       Encrypt a file using GPG encryption.
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       intogpg [-as userid] foo
+##
+##############################################################################
+
+##############################################################################
+## Function: USAGE
+function usage
+{
+  echo ""
+  echo "$0: Encrypt a file using GPG encryption."
+  echo "Usage: $0 [-as username] file"
+  echo "Filename file must exist, file.gpg must not."
+  echo "File \"file\" is encrypted into \"file.gpg\", then erased."
+}
+
+##############################################################################
+## Parameter check
+GPGUSER=$USER
+GPGFILE=$1
+if [ "$GPGFILE" = "-as" ] ; then
+  shift
+  GPGUSER=$1
+  shift
+  GPGFILE=$1
+  if [ -z "$GPGUSER" ] ; then
+    echo "Error: username not specified"
+    usage
+    exit 1
+  fi
+fi
+
+if [ -z "$GPGFILE" ] ; then
+  echo "Error: filename not specified"
+  usage
+  exit 1
+fi
+
+if [ ! -z "$2" ] ; then
+  echo "Error: Extra parameter(s)"
+  usage
+  exit 1
+fi
+
+if [ -f "$GPGFILE.gpg" ] ; then
+  echo "Error: file \"$GPGFILE.gpg\" already exists"
+  usage
+  exit 1
+fi
+
+if [ ! -f "$GPGFILE" ] ; then
+  echo "Error: file \"$GPGFILE\" does not exist."
+  exit 1
+fi
+
+##############################################################################
+## Encrypt
+gpg --recipient $GPGUSER --output $GPGFILE.gpg --encrypt $GPGFILE
+rc=$?
+if [ $rc != 0 ] ; then
+  rm $GPGFILE.gpg 2>/dev/null
+  echo "Error: Encryption failure."
+  echo "No file changed."
+  exit 1
+fi
+
+remove $GPGFILE
+exit 0

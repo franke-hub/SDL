@@ -1,0 +1,44 @@
+##############################################################################
+##
+##       Copyright (C) 2015-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.WIN
+##
+## Purpose-
+##       WINDOWS Makefile versioning
+##
+## Last change date-
+##       2019/01/16
+##
+##############################################################################
+
+##############################################################################
+## Set environment
+MAKENV := WIN
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT := build.win
+endif
+
+.PHONY: default build.win
+default: $(DEFAULT)
+
+##############################################################################
+## Include subdirectories
+include $(SRCDIR)/Shared/Makefile.DIR
+include $(SRCDIR)/Import/Makefile.DIR
+
+.PHONY: mdb pdb
+pdb: Shared.pdb Import.pdb
+mdb: ;
+	@echo "mdb only available on Linux"
+

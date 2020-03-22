@@ -1,0 +1,63 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       mono
+##
+## Purpose-
+##       Set up environment to use MONO, then find and run mono
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       mono <windows_command>
+##
+##############################################################################
+
+##############################################################################
+## Common initialization
+export MONO_THREADS_PER_CPU=256     ## Default is too low
+
+##############################################################################
+## Fix4: System.Console Exception: Magic number is wrong: 542
+export TERM=xterm
+
+##############################################################################
+## MONO_BASE=/usr/bin/mono
+if [ -x /usr/bin/mono ] ; then
+    exec /usr/bin/mono "$@"
+    exit $?
+fi
+
+##############################################################################
+## MONO_BASE=/opt/mono
+if [ -x /opt/mono/bin/mono ] ; then
+    export PATH="/opt/mono/bin:$PATH"
+    [ -z "$PKG_CONFIG_PATH" ] && export PKG_CONFIG_PATH="/opt/mono/lib/pkgconfig" || export PKG_CONFIG_PATH="/opt/mono/lib/pkgconfig:$PKG_CONFIG_PATH"
+    # export MANPATH="/opt/mono/share/man:$MANPATH"
+    export LD_LIBRARY_PATH="/opt/mono/lib:$LD_LIBRARY_PATH"
+    exec /opt/mono/bin/mono $*
+    exit $?
+fi
+
+##############################################################################
+## MONO_BASE=/C/Program Files/Mono/bin
+if [ -x "/C/Program Files/Mono/bin/mono.exe" ] ; then
+    exec "/C/Program Files/Mono/bin/mono.exe" "$@"
+    exit $?
+fi
+
+##############################################################################
+## Mono not available
+echo "Cannot find: mono executable"
+exit 1
+

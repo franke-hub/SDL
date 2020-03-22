@@ -1,0 +1,37 @@
+##############################################################################
+##
+##       Copyright (C) 2007 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.BSD
+##############################################################################
+
+##############################################################################
+## Set defaults
+MAKRUN := libcom.a
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKRUN)
+endif
+
+default: $(DEFAULT)
+all: $(MAKRUN)
+
+##############################################################################
+## TARGET: libcom.a
+libcom.a: $(MAKOBJ)
+	ar -r libcom.a $(MAKOBJ)
+
+##############################################################################
+## Cleanup
+clean: MAK_clean
+.PHONY: MAK_clean
+MAK_clean : ;
+	-@rm libcom.a >/dev/null 2>/dev/null
+

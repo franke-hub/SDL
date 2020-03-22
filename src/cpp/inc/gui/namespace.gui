@@ -1,0 +1,22 @@
+//----------------------------------------------------------------------------
+//
+//       Copyright (c) 2010 Frank Eskesen.
+//
+//       This file is free content, distributed under the MIT license.
+//       (See accompanying file LICENSE.MIT or the original contained
+//       within https://opensource.org/licenses/MIT)
+//
+//----------------------------------------------------------------------------
+//
+// Title-
+//       namespace.gui
+//
+// Purpose-
+//       Begin the GUI namespace.
+//
+// Last change date-
+//       2010/01/01
+//
+//----------------------------------------------------------------------------
+////space GUI_a8y7jkxf94r6yu8m {    // Graphical User Interface
+namespace _GUI                 {    // Graphical User Interface

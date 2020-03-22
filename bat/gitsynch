@@ -1,0 +1,60 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       gitsynch
+##
+## Purpose-
+##       Synch the master branch with another branch.
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       gitsynch branch
+##
+##############################################################################
+
+##############################################################################
+## Verify parameters
+if [[ -z "$1" ]] ; then
+    echo "Missing branch name, maint perhaps?"
+    exit 1
+elif [[ "$1" == "master" ]] ; then
+    echo "Cannot synch master with master"
+    exit 1
+elif [[ ! -z "$2" ]] ; then
+    echo "Extra parameter '$2'"
+    exit 1
+fi
+
+##############################################################################
+## Synch a branch with the master branch, then resume that alternate branch
+git checkout master
+if [[ $? != 0 ]] ; then
+    echo "Cannot checkout master, quitting"
+    exit 1
+fi
+
+git merge $1
+if [[ $? != 0 ]] ; then
+    echo "Failed to merge branch $1. You are now in branch master"
+    exit 1
+fi
+
+git checkout $1
+if [[ $? != 0 ]] ; then
+    echo "Failed to checkout branch $1. You are now in branch master"
+    exit 1
+fi
+
+git gc
+

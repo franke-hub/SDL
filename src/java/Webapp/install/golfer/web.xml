@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- ===================================================================== -->
+<!--     Copyright (C) 2008 Frank Eskesen.                                 -->
+<!--                                                                       -->
+<!--     This file is free content, distributed under the GNU General      -->
+<!--     Public License, version 3.0.                                      -->
+<!--     (See accompanying file LICENSE.GPL-3.0 or the original            -->
+<!--     contained within https://www.gnu.org/licenses/gpl-3.0.en.html)    -->
+<!-- ===================================================================== -->
+<!DOCTYPE web-app
+    PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+    "http://java.sun.com/dtd/web-app_2_3.dtd">
+
+<web-app>
+   <servlet>
+     <servlet-name>Applet</servlet-name>
+     <servlet-class>usr.fne.golfer.AppletServlet</servlet-class>
+     <init-param>
+       <param-name>property-path</param-name>
+       <param-value>profile</param-value>
+     </init-param>
+     <init-param>
+       <param-name>property-file</param-name>
+       <param-value>golfer.pro</param-value>
+     </init-param>
+     <load-on-startup>30</load-on-startup>
+   </servlet>
+
+   <servlet-mapping>
+     <servlet-name>Applet</servlet-name>
+     <url-pattern>/Applet.jnlp</url-pattern>
+   </servlet-mapping>
+
+   <servlet>
+     <servlet-name>Events</servlet-name>
+     <servlet-class>usr.fne.golfer.EventsServlet</servlet-class>
+     <init-param>
+       <param-name>property-path</param-name>
+       <param-value>profile</param-value>
+     </init-param>
+     <init-param>
+       <param-name>property-file</param-name>
+       <param-value>golfer.pro</param-value>
+     </init-param>
+     <load-on-startup>30</load-on-startup>
+   </servlet>
+
+   <servlet-mapping>
+     <servlet-name>Events</servlet-name>
+     <url-pattern>/Events</url-pattern>
+   </servlet-mapping>
+
+   <servlet>
+     <servlet-name>Player</servlet-name>
+     <servlet-class>usr.fne.golfer.PlayerServlet</servlet-class>
+     <init-param>
+       <param-name>property-path</param-name>
+       <param-value>profile</param-value>
+     </init-param>
+     <init-param>
+       <param-name>property-file</param-name>
+       <param-value>golfer.pro</param-value>
+     </init-param>
+     <load-on-startup>30</load-on-startup>
+   </servlet>
+
+   <servlet-mapping>
+     <servlet-name>Player</servlet-name>
+     <url-pattern>/Player</url-pattern>
+   </servlet-mapping>
+
+</web-app>

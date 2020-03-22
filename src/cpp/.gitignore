@@ -1,0 +1,14 @@
+##############################################################################
+##
+##       Copyright (C) 2018-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## ~/src/cpp/.gitignore
+##############################################################################
+/Clone.STL
+/Misc
+/lang

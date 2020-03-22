@@ -1,0 +1,35 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2014-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       server
+##
+## Purpose-
+##       Get RdServer status.
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       server
+##
+##############################################################################
+user=`whoami`
+if [ "root" = "$user" ] ; then
+  echo "Not allowed for userid root"
+  exit
+fi
+
+for i in `ps -ef | grep $user | grep -i rdserver | grep -v grep | awk '{print $2}' `
+do
+  kill -31  $i
+done
+

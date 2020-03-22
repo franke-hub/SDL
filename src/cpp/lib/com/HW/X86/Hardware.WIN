@@ -1,0 +1,113 @@
+//----------------------------------------------------------------------------
+//
+//       Copyright (c) 2007 Frank Eskesen.
+//
+//       This file is free content, distributed under the Lesser GNU
+//       General Public License, version 3.0.
+//       (See accompanying file LICENSE.LGPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//
+//----------------------------------------------------------------------------
+//
+// Title-
+//       HW/X86/Hardware.WIN
+//
+// Purpose-
+//       Hardware object implementation: X586 processor, Microsoft compiler
+//
+// Last change date-
+//       2007/01/01
+//
+//----------------------------------------------------------------------------
+#ifdef _WIN64
+  #include <intrin.h>
+#endif
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Hardware::getLR
+//
+// Purpose-
+//       Return the link register.
+//
+//----------------------------------------------------------------------------
+void*                               // The link register
+   Hardware::getLR( void )          // Extract link register
+{
+   void*               result;      // Resultant
+
+#ifdef _WIN64
+   result= _ReturnAddress();
+
+#else
+   __asm                            // Assembler code
+   {
+     mov     eax, [ebp+4]           // Get result
+     mov     DWORD PTR result, eax  // Store result
+   }
+#endif
+
+   return result;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Hardware::getSP
+//
+// Purpose-
+//       Return the stack pointer.
+//
+//----------------------------------------------------------------------------
+void*                               // The stack pointer
+   Hardware::getSP( void )          // Extract stack pointer
+{
+   void*               result;      // Resultant
+
+#ifdef _WIN64
+   result= _AddressOfReturnAddress();
+
+#else
+   __asm                            // Assembler code
+   {
+     mov     DWORD PTR result, ebp  // Store result
+   }
+#endif
+
+   return result;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Hardware::getTSC
+//
+// Purpose-
+//       Get time stamp counter.
+//
+//----------------------------------------------------------------------------
+uint64_t                            // Resultant
+   Hardware::getTSC( void )         // Extract timestamp counter
+{
+   uint64_t            result;      // Resultant
+
+#ifdef _WIN64
+   result= __rdtsc();
+
+#else
+   #if _MSC_VER < 1200
+     #define rdtsc __asm _emit 0x0f __asm _emit 0x31
+   #endif
+
+   __asm                            // Assembler code
+   {
+     rdtsc                          // Read Time-Stamp Counter
+     mov     DWORD PTR result+0, eax// Store result
+     mov     DWORD PTR result+4, edx// Store result
+   }
+#endif
+
+   return result;
+}
+

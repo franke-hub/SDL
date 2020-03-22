@@ -1,0 +1,35 @@
+##############################################################################
+##
+##       Copyright (C) 2010 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+## Makefile.WIN
+##############################################################################
+
+##############################################################################
+## Local module list
+MAKSRC := $(wildcard $(SRCDIR)/*.s)
+MAKOBJ := $(patsubst $(SRCDIR)/%.s,$(OBJDIR)/%.obj,$(MAKSRC))
+MAKEXE := $(patsubst $(SRCDIR)/%.s,$(OBJDIR)/%.exe,$(MAKSRC))
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(MAKEXE)
+
+##############################################################################
+## Fails to LINK
+default : warning
+.PHONY: warning
+warning : ;
+	@echo Sample built for BSD -- does not link
+

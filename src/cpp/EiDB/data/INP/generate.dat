@@ -1,0 +1,54 @@
+******************************************************************************
+* Sample data
+*
+* Empty lines or lines that begin with '*' are comment lines.
+*
+* Note: It is not required that sequences be codons.
+      * Any number of characters can be in a sequence.
+*
+* Sequences can be repeated.
+* Alphabetizing can be used to avoid unwanted duplicates.
+
+0.05  CAG
+0.05  GTG
+0.0501 CCA
+0.0499 GGT
+0.05  CCC
+0.05  AGG
+0.05  TCG
+0.05  GCG
+0.05  AAG
+0.05  GGG
+0.05  AAA
+0.05  TTT
+0.05  CTA
+0.05  GGT
+0.05  GAT
+0.05  AGT
+0.05  CTG
+0.02  CAA
+0.02  GGT
+0.05  TCG
+0.05  TCG
+0.008999 CAG
+******************************************************************************
+* Error sequences
+*
+0.000001 Error codon
+0.0000000 Too many digits! (The codon is ignored)
+0.9999999 Too many digits! (The codon is ignored)
+0.x99999 Invalid digit! (The codon is ignored)
+0.9999.  Invalid digit! (The codon is ignored)
+0.9999x  Invalid digit! (The codon is ignored)
+*        Next entry is missing codon string
+0.99999
+
+******************************************************************************
+* Ending sequences
+*
+* If there are no ending sequences or the ending probability is too low,
+* gene generation stops when about 1,000,000 characters have been generated.
+0.0003 TAA
+0.0003 TAG
+0.0004 TGA
+******************************************************************************

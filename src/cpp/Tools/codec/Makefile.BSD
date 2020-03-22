@@ -1,0 +1,60 @@
+##############################################################################
+##
+##       Copyright (C) 2006-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.BSD
+##############################################################################
+
+##############################################################################
+## Local module list
+MAKEXE := $(patsubst $(OBJDIR)/Codec,,$(MAKEXE))
+MAKOBJ := Codec.o
+
+MAKEXE := $(patsubst $(OBJDIR)/Base64Codec,,$(MAKEXE))
+MAKOBJ += Base64Codec.o
+
+MAKEXE := $(patsubst $(OBJDIR)/UuCodeCodec,,$(MAKEXE))
+MAKOBJ += UuCodeCodec.o
+
+MAKEXE := $(patsubst $(OBJDIR)/YncodeCodec,,$(MAKEXE))
+MAKOBJ += YncodeCodec.o
+
+LLIBS  += -L. -llocal
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= make.dir
+endif
+
+.PHONY: make.dir
+make.dir: $(MAKEXE)
+
+##############################################################################
+## TARGET: liblocal.a
+liblocal.a : $(MAKOBJ)
+	$(AR) $(@) $(MAKOBJ)
+
+##############################################################################
+## Dependencies
+combine:  liblocal.a
+extract:  liblocal.a
+decode64: liblocal.a
+encode64: liblocal.a
+decodeuu: liblocal.a
+encodeuu: liblocal.a
+decodeyn: liblocal.a
+encodeyn: liblocal.a
+
+##############################################################################
+## Makefile cleanup
+clean : clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	-@rm liblocal.a >/dev/null 2>/dev/null
+

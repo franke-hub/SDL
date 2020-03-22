@@ -1,0 +1,42 @@
+##############################################################################
+##
+##       Copyright (C) 2015-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2019/01/16
+##
+##############################################################################
+
+##############################################################################
+## Set targets
+ifeq "" "$(DEFAULT)"
+DEFAULT := Import.dll
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## TARGET: Import.dll
+Import.dll: $(MAKSRC)
+	$(CC) /target:library /out:$@ $(CFLAGS) "$(shell cygpath -w $^)"
+	touch $@
+
+##############################################################################
+## TARGET: Import.net
+Import.net: $(MAKSRC)
+	$(CC) /target:module /out:$@ $(CFLAGS) "$(shell cygpath -w $^)"
+	touch $@
+

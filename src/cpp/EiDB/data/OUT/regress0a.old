@@ -1,0 +1,21 @@
+     0: 'ATGAAAAAAAACCCCCCCCGGGGGGGGTTTTTTTTAAAAAAAACCCCCCCCGGGGGGGGTTTTTTTT'
+     1: 'ATGGGGGGGGGTTTTTTTTAAAAAAAACCCCCCCCGGGGGGGGTTTTTTTT'
+     2: 'ATGAAAAAAAACCCCCCCCGGGGGGGGTTTTTTTT'
+     3: 'ATGGGGGGGGGTTTTTTTT'
+     4: 'ATG'
+     5: 'ATGAAAAAAAACCCCCCCCGGGGGGGGTTTTTTTTAAAAAAAACCCCCCCCGGGGGGGGTTTTTTTT'
+     6: 'ATGGGGGGGGGTTTTTTTTAAAAAAAACCCCCCCCGGGGGGGGTTTTTTTT'
+     7: 'ATGAAAAAAAACCCCCCCCGGGGGGGGTTTTTTTT'
+     8: 'ATGGGGGGGGGTTTTTTTT'
+     9: 'ATG'
+
+Sequence 'AACC'
+     Column      First      Total      Count
+         10          4          4          8
+         26          2          2          6
+         42          0          2          4
+
+Sequence 'TTAA'
+     Column      First      Total      Count
+         18          2          2          6
+         34          2          2          4

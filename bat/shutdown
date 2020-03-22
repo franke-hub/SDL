@@ -1,0 +1,80 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       shutdown
+##
+## Purpose-
+##       Machine shutdown.
+##
+## Last change date-
+##       2019/12/31
+##
+## Usage-
+##       shutdown {-h} {-r} time
+##
+##############################################################################
+if [[ ! -z "`osCYGWIN`" ]] ; then
+  ############################################################################
+  # CYGWIN: Convert unix options to Windows options
+  cmd="/cygdrive/C/Windows/System32/shutdown"
+  r=" /s"
+
+  for index in "$@"
+  do
+    case $index in
+      --help)
+        $cmd /?
+        exit 0
+        ;;
+
+      -c)
+        $cmd /a
+        exit 0
+        ;;
+
+      -h)
+        r=" /s"
+        shift
+        ;;
+
+      -r)
+        r=" /r"
+        shift
+        ;;
+
+      -* | /*)
+        echo "Invalid or unsupported option: $index"
+        echo "Valid options: -c, -h, and -r"
+        exit 1
+        ;;
+
+      *)
+        break
+        ;;
+    esac
+  done
+
+  t=""
+  if [[ ! -z "$1" ]] ; then         ## Time parameter
+    if [[ "$1" == "now" || "$1" == "+0" ]] ; then
+      t=" /t 0"
+      shift
+    else
+      t=" /t $1"
+    fi
+  fi
+
+  $cmd$r$t
+else
+  sudo /sbin/shutdown "$@"
+fi
+

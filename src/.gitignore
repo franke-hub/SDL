@@ -1,0 +1,27 @@
+##############################################################################
+##
+##       Copyright (C) 2018-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## ~/src/.gitignore
+##############################################################################
+## Global file ignores (python compilation object in source directory)
+**/__pycache__/
+**/*.pyc
+
+## Global file ignores (Should not occur)
+**/debug.log
+**/debug.out
+**/*.stackdump
+
+## Global extension ignores (Should not occur)
+**/*.a
+**/*.dll
+**/*.exe
+**/*.lib
+**/*.o
+**/*.obj

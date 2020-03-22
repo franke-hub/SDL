@@ -1,0 +1,105 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.DIR
+##
+## Purpose-
+##       Subdirectory build control: included from ../Makefile.*
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## TARGET: prerequisites
+PREREQ := $(wildcard $(INCDIR)/com/*)
+PREREQ += $(wildcard $(SRCDIR)/com/*)
+PREREQ += $(wildcard $(SRCDIR)/com/HW/PPC/*)
+PREREQ += $(wildcard $(SRCDIR)/com/HW/STD/*)
+PREREQ += $(wildcard $(SRCDIR)/com/HW/X86/*)
+BSD_PREREQ := $(PREREQ)
+BSD_PREREQ += $(wildcard $(SRCDIR)/com/OS/BSD/*)
+BSD_PREREQ += $(wildcard $(SRCDIR)/com/OS/CYGWIN/*)
+WIN_PREREQ := $(PREREQ)
+WIN_PREREQ += $(wildcard $(SRCDIR)/com/OS/WIN/*)
+
+##############################################################################
+## TARGET: com/libcom.a
+$(OBJDIR)/com/libcom.a: $(BSD_PREREQ)
+	(cd $(OBJDIR)/com/; export MAKRUN=lib; $(MAKE))
+	touch $@
+
+libcom.a: $(OBJDIR)/com/libcom.a
+	@echo trace11 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+build.bsd.lib: libcom.a
+
+##############################################################################
+## TARGET: com/libcom.so.1.0
+$(OBJDIR)/com/libcom.so.1.0: $(BSD_PREREQ)
+	(cd $(OBJDIR)/com/; export MAKRUN=dll; $(MAKE))
+	touch $@
+
+libcom.so.1.0: $(OBJDIR)/com/libcom.so.1.0
+	@echo trace12 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+~/bin/libcom.so.1.0: libcom.so
+	cp -Lpf $< $@
+	rebase -b 0x210000000 $@
+	touch $@
+
+libcom.dll: $(OBJDIR)/com/libcom.so.1.0
+	@echo trace13 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+~/bin/libcom.dll: libcom.dll
+	cp -Lpf $< $@
+	rebase -b 0x210000000 $@
+	touch $@
+
+.SECONDARY: libcom.so.1.0 /usr/local/lib/libcom.so.1.0
+build.cygwin.dll: libcom.dll libcom.so ~/bin/libcom.so
+build.linux.so: libcom.so /usr/local/lib/libcom.so
+
+##############################################################################
+## TARGET: libcom.lib
+$(OBJDIR)/com/libcom.lib: $(WIN_PREREQ)
+	(cd $(OBJDIR)/com/; $(MAKE))
+	touch $@
+
+libcom.lib: $(OBJDIR)/com/libcom.lib
+	cp -Lpf $< $@
+	touch $@
+
+build.win.lib: libcom.lib
+
+##############################################################################
+## Cleanup
+.PHONY: com.pristine
+pristine.bsd: com.pristine
+pristine.win: com.pristine
+com.pristine: ;
+	(cd $(OBJDIR)/com/; $(MAKE) pristine)
+
+.PHONY: com.clean.bsd
+clean.bsd: com.clean.bsd
+com.clean.bsd: ;
+	-@rm -f libcom.a >/dev/null 2>/dev/null
+	-@rm -f libcom.so* libcom.dll >/dev/null 2>/dev/null
+
+.PHONY: com.clean.win
+clean.win: com.clean.win
+com.clean.win: ;
+	-@rm -f libcom.lib >/dev/null 2>/dev/null
+

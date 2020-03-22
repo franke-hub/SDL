@@ -1,0 +1,50 @@
+///////////////////////////////////////////////////////////////////////
+//                                                                   //
+// Title-                                                            //
+//       n_v.n                                                       //
+//                                                                   //
+// Description-                                                      //
+//       Visual array.                                               //
+//                                                                   //
+///////////////////////////////////////////////////////////////////////
+BEGIN V;
+
+///////////////////////////////////////////////////////////////////////
+// Constants for parameterization                                    //
+///////////////////////////////////////////////////////////////////////
+////////////////////////////////////// Performance not up to par
+#define V_HMAX                   8; // Horizontal array size
+#define V_VMAX                  14; // Vertical   array size
+#define V_CMAX                   3; // Number of colors
+
+///////////////////////////////////////////////////////////////////////
+// Input color array                                                 //
+///////////////////////////////////////////////////////////////////////
+   NEURON            color[V_HMAX][V_VMAX][V_CMAX]; // Input array
+
+///////////////////////////////////////////////////////////////////////
+// Input greyscale array                                             //
+///////////////////////////////////////////////////////////////////////
+   NEURON[add]       greys[V_HMAX][V_VMAX]; // Greyscale array
+   do i=1 to V_HMAX;
+     do j=1 to V_VMAX;
+       FANIN[greys[i][j]] READ[color[i][j][1]] WEIGHT[1.0];
+       FANIN[greys[i][j]] READ[color[i][j][2]] WEIGHT[1.0];
+       FANIN[greys[i][j]] READ[color[i][j][3]] WEIGHT[1.0];
+     end;
+   end;
+
+///////////////////////////////////////////////////////////////////////
+// Include visual arrays                                             //
+///////////////////////////////////////////////////////////////////////
+#include "n_v1.n"                     // Visual array[1]
+
+///////////////////////////////////////////////////////////////////////
+// Sequencing and control                                            //
+///////////////////////////////////////////////////////////////////////
+   NEURON            SEQ;           // Sequencing element
+     FANIN[SEQ] READ[V1:SEQ];
+
+   NEURON            TRAIN;         // Training element
+     FANIN[TRAIN] READ[V1:TRAIN];
+END V;

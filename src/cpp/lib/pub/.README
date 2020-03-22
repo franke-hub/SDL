@@ -1,0 +1,86 @@
+##############################################################################
+##
+##       Copyright (C) 2018-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/cpp/lib/pub/.README
+##
+## Purpose-
+##       Development status, history, and reminders.
+##
+## Last change date-
+##       2020/01/07
+##
+##############################################################################
+
+##############################################################################
+## STATUS:
+2019/03/15 See ~/src/cpp/HTTP/.README for additional information.
+
+##############################################################################
+## FEATURES:
+
+##############################################################################
+## BUGS:
+
+##############################################################################
+## TODO:
+2018/09/16 Create cascade delete test.
+         ../obj/Ref jumps through hoops to avoid this.
+         Why isn't this necessary in std::smart_ptr?
+
+2018/09/16 Create atomic_shared_ptr, ..., ?? make_atomic ??
+         Using boost until implemented properly.
+
+2018/09/16 Complete test/utf8.sh
+         Not tested:
+           "past end" Exceptions
+           Methods bs(), fs(), and synch()
+
+##############################################################################
+## FIXED:
+2020/01/07 lib/pub/Debug.cpp
+         It's possible for the debug object to change between Debug::get()
+         and the time that the object is used. The debug lock is required
+         for all methods that use get().
+
+2019/03/15 lib/pub/Socket.cpp
+         SampleSSL.cpp Error handling for unusable socket gets a segment
+         exception in Cygwin but not in Linux. (Bug in gcc 7.4.0, not 8.3.1)
+
+         ~/src/cpp/inc/pub/utility/to_string.h: had subroutines
+         static inline std::string to_string(const char*, ...) {} and
+         static inline std::string to_string(const char*, va_list) {}
+         The va_list method is called if there is a single char* parameter,
+         causing a segment exception when it is used.
+
+##############################################################################
+## CLOSED: 2018/12/29 CYGWIN BUG
+         This does not occur in Linux. Closed: CYGWIN's problem.
+
+2018/12/29 CYGWIN ONLY Test_Thr runs (much) better with extra printing
+         Test_Thr runs much longer when not printing during QuietThread
+         startup. Just using fflush(stdout) HELPS performance, but it's even
+         better when printf and fflush are combined.
+
+## CLOSED: 2018/12/29 CYGWIN BUG
+         This does not occur in Linux. Closed: CYGWIN's problem.
+         In Cygwin, sleeping threads interfere with thread start.
+         Timing tests show that thread start occasionally takes about 80x
+         longer while other threads are sleeping. This occurs at regular
+         intervals, but the intervals become longer as the sleeping threads
+         near their wake up time.
+
+2018/12/29 CYGWIN ONLY Test_Thr excessive runtime delay with sleeping threads
+         Test_Thr runs much longer when noisy_delay larger.
+         This seems to somehow slow down thread creation.
+         Does not occur in Linux.
+
+## CLOSED:
+

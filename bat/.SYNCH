@@ -1,0 +1,31 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       .SYNCH
+##
+## Function-
+##       Remote git synchronization
+##
+## Last change date-
+##       2019/10/07
+##
+## Usage-
+##       .SYNCH
+##
+##############################################################################
+## If git pull fails with "local changes will be overwritten by merge.":
+##   git stash save --keep-index
+##   git stash drop
+
+## git pull
+git fetch
+git merge

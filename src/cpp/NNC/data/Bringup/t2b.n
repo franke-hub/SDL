@@ -1,0 +1,49 @@
+//----------------------------------------------------------------------------
+//
+// Title-
+//       t2b.n
+//
+// Description-
+//       Test deep call stack.
+//
+//----------------------------------------------------------------------------
+   FANIN(CTRL::deep_stack::seq) WEIGHT(1.0);
+
+begin deep_stack;
+
+   NEURON(constant) VALUE( 1.0) a0001;
+   NEURON(constant) VALUE( 2.0) a0002; FANIN WEIGHT(1.0) a0001;
+   NEURON(constant) VALUE( 3.0) a0003; FANIN WEIGHT(1.0) a0002;
+   NEURON(constant) VALUE( 4.0) a0004; FANIN WEIGHT(1.0) a0003;
+   NEURON(constant) VALUE( 5.0) a0005; FANIN WEIGHT(1.0) a0004;
+   NEURON(constant) VALUE( 6.0) a0006; FANIN WEIGHT(1.0) a0005;
+   NEURON(constant) VALUE( 7.0) a0007; FANIN WEIGHT(1.0) a0006;
+   NEURON(constant) VALUE( 8.0) a0008; FANIN WEIGHT(1.0) a0007;
+   NEURON(constant) VALUE( 9.0) a0009; FANIN WEIGHT(1.0) a0008;
+   NEURON(constant) VALUE(10.0) a0010; FANIN WEIGHT(1.0) a0009;
+   NEURON(constant) VALUE(11.0) a0011; FANIN WEIGHT(1.0) a0010;
+   NEURON(constant) VALUE(12.0) a0012; FANIN WEIGHT(1.0) a0011;
+   NEURON(constant) VALUE(13.0) a0013; FANIN WEIGHT(1.0) a0012;
+   NEURON(constant) VALUE(14.0) a0014; FANIN WEIGHT(1.0) a0013;
+   NEURON(constant) VALUE(15.0) a0015; FANIN WEIGHT(1.0) a0014;
+   NEURON(constant) VALUE(16.0) a0016; FANIN WEIGHT(1.0) a0015;
+   NEURON(constant) VALUE(17.0) a0017; FANIN WEIGHT(1.0) a0016;
+   NEURON(constant) VALUE(18.0) a0018; FANIN WEIGHT(1.0) a0017;
+   NEURON(constant) VALUE(19.0) a0019; FANIN WEIGHT(1.0) a0018;
+   NEURON(constant) VALUE(20.0) a0020; FANIN WEIGHT(1.0) a0019;
+   NEURON(constant) VALUE(21.0) a0021; FANIN WEIGHT(1.0) a0020;
+   NEURON(constant) VALUE(22.0) a0022; FANIN WEIGHT(1.0) a0021;
+   NEURON(constant) VALUE(23.0) a0023; FANIN WEIGHT(1.0) a0022;
+   NEURON(constant) VALUE(24.0) a0024; FANIN WEIGHT(1.0) a0023;
+   NEURON(constant) VALUE(25.0) a0025; FANIN WEIGHT(1.0) a0024;
+   NEURON(constant) VALUE(26.0) a0026; FANIN WEIGHT(1.0) a0025;
+   NEURON(constant) VALUE(27.0) a0027; FANIN WEIGHT(1.0) a0026;
+   NEURON(constant) VALUE(28.0) a0028; FANIN WEIGHT(1.0) a0027;
+   NEURON(constant) VALUE(29.0) a0029; FANIN WEIGHT(1.0) a0028;
+   NEURON(constant) VALUE(30.0) a0030; FANIN WEIGHT(1.0) a0029;
+   NEURON(constant) VALUE(31.0) a0031; FANIN WEIGHT(1.0) a0030;
+   NEURON(constant) VALUE(32.0) a0032; FANIN WEIGHT(1.0) a0031;
+
+   NEURON(constant) value(0)      seq; FANIN WEIGHT(1.0) a0032;
+
+end  deep_stack;

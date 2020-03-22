@@ -1,0 +1,20 @@
+//----------------------------------------------------------------------------
+//
+// Title-
+//       t.n
+//
+// Description-
+//       Sample (Working) Neural Net file.
+//
+//----------------------------------------------------------------------------
+begin TEST;
+     #include "t1.n"                // Multi-level include
+
+     NEURON(constant) value(1.0) SEQ; // Sequence control
+       FANIN(t1) WEIGHT(1.0);
+
+end   TEST;
+
+begin CTRL;
+     #include "t2.n"
+end   CTRL;

@@ -1,0 +1,141 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       rexterm
+##
+## Purpose-
+##       Remotely login to a different machine using xterm.
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       rexterm {-cs colorset} or {{-fg <color>} | {-bg <color>}}
+##               {[-as | -l] <userid>}
+##               {xterm-parameters: {-geometry <value> or +/-<control>}}
+##               {remote-system}
+##
+##############################################################################
+
+##############################################################################
+## Prereq f.nickrgb
+. f.nickrgb
+
+##############################################################################
+## Extract the switch names
+colorset=""
+pparm="ssh -Y -o ServerAliveInterval=10"
+uparm=""
+xparm=""
+
+for i in $*
+do
+  case $1 in
+    -as | -l)
+      uparm="$2"
+      shift
+      shift
+      ;;
+
+    -cs)
+      colorset=$2
+      shift
+      shift
+      ;;
+
+    -fg | -bg)
+      colorset=none
+      xparm="$xparm $1 $2"
+      shift
+      shift
+      ;;
+
+    ## X11 parameters
+    -geometry)
+      xparm="$xparm $1 $2"
+      shift
+      shift
+      ;;
+
+    -* | +*)
+      xparm="$xparm $1"
+      shift
+      ;;
+
+    ## Destination
+    *)
+      break
+      ;;
+
+  esac
+done
+
+##############################################################################
+## Set host and destination
+host=`hostname`
+dest="$1"
+if [[ -z "$dest" ]] ; then          # If destination not specified
+  dest=$host
+  echo "Destination omitted, assuming $dest"
+else
+  shift
+  if [[ ! -z "$1" ]] ; then
+    echo "ERROR: Parameters after destination '$dest': '$*'"
+    exit 1
+  fi
+fi
+
+##############################################################################
+## Set default colors (if not already set)
+if [[ -z "$colorset" ]] ; then
+  colorset=paper
+  case $dest in
+    bigblue)
+      [[ "$host" != "bigblue" ]] && colorset=partner
+      ;;
+
+    develop | fedora64 | rainbow | ubuntu)
+      colorset=partner
+      if [[ "$host" == "$dest" || -n "`osCYGWIN`" ]] ; then
+          colorset=linux
+      fi
+      ;;
+
+    frank-laptop | win10)
+      [[ "$host" != "frank-laptop" ]] && colorset=partner
+      ;;
+  esac
+fi
+
+##############################################################################
+## Local host login
+if [[ "$dest" = "$host" ]] ; then
+  if [[ ! -z "$uparm" ]] ; then
+    echo "Local host, cannot change userid"
+  fi
+  cd /
+  xterm `nickrgb $colorset` -n $host -T `whoami`"@$host" $xparm $* &
+  exit
+fi
+
+##############################################################################
+## Allow the remote host to access this workstation
+xhost +$dest 1>/dev/null 2>/dev/null
+
+##############################################################################
+## Remote host login
+if [[ -z "$uparm" ]] ; then
+  uparm=$USER
+fi
+cd /
+xterm `nickrgb $colorset` $xparm -e $pparm $dest -l $uparm $* &
+

@@ -1,0 +1,16 @@
+## WINDOWS VERSION/FORMAT, gapidir non-existent
+## Short name is INSTALLATION DEPENDENT
+prefix=C:/PROGRA~2/GtkSharp/2.12
+exec_prefix=${prefix}/bin
+libdir=${prefix}/lib/gtk-sharp-2.0
+## gapidir=${prefix}/share/gapi-2.0
+
+
+Name: Gtk#
+Description: Gtk# - GNOME .NET Binding
+Version: 2.12
+## Cflags: -I:${gapidir}/pango-api.xml -I:${gapidir}/atk-api.xml -I:${gapidir}/gdk-api.xml -I:${gapidir}/gtk-api.xml
+Cflags: -r:${libdir}/pango-sharp.dll -r:${libdir}/atk-sharp.dll -r:${libdir}/gdk-sharp.dll -r:${libdir}/gtk-sharp.dll
+Libs: -r:${libdir}/pango-sharp.dll -r:${libdir}/atk-sharp.dll -r:${libdir}/gdk-sharp.dll -r:${libdir}/gtk-sharp.dll
+Runtime=/C/Program Files x(86)/GtkSharp/2.12/lib/gtk-sharp-2.0
+Requires: glib-sharp-2.0

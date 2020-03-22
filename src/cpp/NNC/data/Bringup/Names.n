@@ -1,0 +1,78 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// Title-                                                                   //
+//       Names.n                                                            //
+//                                                                          //
+// Description-                                                             //
+//       Bringup test.                                                      //
+//                                                                          //
+//////////////////////////////////////////////////////////////////////////////
+begin outer1;
+   Neuron a;
+
+   begin inner1;
+     Neuron b;
+       Fanin(a);
+       Fanin(b);
+       Fanin(c);
+       Fanin(e);
+     Neuron c;
+   end   inner1;
+
+   begin inner2;
+     Neuron b;
+       Fanin(a);
+       Fanin(b);
+       Fanin(e);
+       Fanin(outer1::e);
+     Neuron e;
+   end   inner2;
+
+   Neuron e;
+end   outer1;
+
+begin outer2;
+   Neuron a;
+
+   begin inner1;
+     Neuron b;
+       Fanin(a);
+       Fanin(b);
+       Fanin(c);
+       Fanin(e);
+     Neuron c;
+   end   inner1;
+
+   begin inner3;
+     Neuron b;
+       Fanin(outer2::inner1::b);
+       Fanin(outer2::inner1::c);
+       Fanin(a);
+       Fanin(b);
+       Fanin(e);
+       Fanin(outer2::e);
+     Neuron e;
+   end   inner3;
+
+   Neuron e;
+end   outer2;
+
+begin seq;
+   Neuron entry;
+     Entry;
+     fanin(::outer1::a);
+     fanin(::outer1::inner1::b);
+     fanin(::outer1::inner1::c);
+     fanin(::outer1::inner2::b);
+     fanin(::outer1::inner2::e);
+     fanin(::outer1::e);
+
+     fanin(::outer2::a);
+     fanin(::outer2::inner1::b);
+     fanin(::outer2::inner1::c);
+     fanin(::outer2::inner3::b);
+     fanin(::outer2::inner3::e);
+     fanin(::outer2::e);
+
+     fanin(entry);
+end   seq;

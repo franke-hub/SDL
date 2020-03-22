@@ -1,0 +1,45 @@
+##############################################################################
+##
+##       Copyright (C) 2015 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/mcs/ctl/WIN/Makefile.MCS
+##
+## Purpose-
+##       Makefile for C# programs
+##
+## Last change date-
+##       2015/01/23 ((NEEDS UPDATE))
+##
+## ~/src/mcs/ctl/WIN/Makefile.MCS (MSDN C# Compiler controls)
+##############################################################################
+
+##############################################################################
+## CC       (Compiler identifier)
+CC     := csc ##################### Compiler: Microsoft MSDN C#
+LD     := ILMerge.exe ############# Linker: ILMerge (nuget package)
+
+##############################################################################
+## CDEFS    (Compiler definitions)
+CDEFS  +=########################## C defines
+
+##############################################################################
+## COPTS    (Compiler options)
+ifneq "" "$(OPTIMIZE)"
+COPTS  += $(OPTIMIZE)############## Customized optimization
+
+else
+COPTS  += /debug################### Default, debugging
+COPTS  += /optimize################ Full optimization
+endif
+
+##############################################################################
+## CLIBS    (Loader libraries)
+CLIBS  += $(wildcard $(LIBDIR)/*.dll)
+

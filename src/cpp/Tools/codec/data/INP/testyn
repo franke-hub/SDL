@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -x
+encodeyn encodeyn.exe >encode.yn
+decodeyn out          <encode.yn
+diff out encodeyn.exe
+if [[ $? != 0 ]] ; then
+  echo "en/decodeyn failure"
+  exit 1
+fi
+
+encodeyn test1        >test1.yn
+decodeyn out          <test1.yn
+diff out test1
+if [[ $? != 0 ]] ; then
+  echo "en/decodeyn failure"
+  exit 1
+fi
+
+encodeyn test2        >test2.yn
+decodeyn out          <test2.yn
+diff out test2
+if [[ $? != 0 ]] ; then
+  echo "en/decodeyn failure"
+  exit 1
+fi
+
+encodeyn test3        >test3.yn
+decodeyn out          <test3.yn
+diff out test3
+if [[ $? != 0 ]] ; then
+  echo "en/decodeyn failure"
+  exit 1
+fi
+
+rm out *.yn
+echo "NO errors"
+

@@ -1,0 +1,50 @@
+##############################################################################
+##
+##       Copyright (C) 2007-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## ~/src/cpp/lib/com/.README
+##############################################################################
+
+##############################################################################
+## FEATURE:
+
+##############################################################################
+## BUGS:
+2016/04/16 Test_PGS fails in 64 bit CYGWIN.
+
+2014/01/01 Signal handling does not complete on CYGWIN.
+           (Found by src/cpp/Test/libcom/TestLock.cpp)
+           This appears to be unique to CYGWIN(/WINDOWS?)
+
+2014/02/24 Signal handling does not complete on WINDOWS.
+           (Found by src/cpp/Test/libcom/TestMisc.cpp)
+
+##############################################################################
+## TODO:
+2014/05/16 Windows: get/setPriority not coded yet. (Scaffolding present.)
+
+2014/01/01 Maybe Debug::force to really force Debug::flush.
+
+##############################################################################
+## FIXED:
+2016/11/25 Alarm signal fails in 32 bit linux.
+2016/11/30 See: ~/src/cpp/Sample/Multicast/sample.cpp
+           Race condition between static List and static MySignal initializers
+           Converted the static signal List to dynamically allocated.
+
+2014/01/01 TODO:
+2014/05/16 The annoying Debug::debugIO functions are not really necessary.
+           They can be moved out into static local routines, along with
+           their associated data areas.
+
+2010/06/03 Allow for interrupted system calls, as done in OS/BSD/Status.cpp.
+           Required in Socket.cpp, Mutex.cpp.
+
+##############################################################################
+## CLOSED:
+

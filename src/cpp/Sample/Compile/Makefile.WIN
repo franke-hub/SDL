@@ -1,0 +1,48 @@
+##############################################################################
+##
+##       Copyright (C) 2017 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.WIN
+##############################################################################
+
+##############################################################################
+## BOOST requirements
+CINCL  += -I"$(BOOST_HOME)"
+CLOAD  += "/LIBPATH:$(BOOST_HOME)/stage/lib"
+
+##############################################################################
+## Local module list
+ignore := $(patsubst $(OBJDIR)/ncurses-mouse.exe,,$(MAKEXE)) ## BSD ONLY
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: boost_home $(DEFAULT)
+
+##############################################################################
+## BOOST_HOME verification test
+.PHONY: boost_home
+boost_home: ;
+ifeq "" "$(BOOST_HOME)"
+	@echo "BOOST_HOME environment variable not set"
+	@echo "Use setupBOOST"
+	@false
+else
+	@true
+endif
+
+##############################################################################
+## Additional targets
+.PHONY: do
+do: default
+	visible
+

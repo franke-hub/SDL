@@ -1,0 +1,41 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       CA
+##
+## Purpose-
+##       Run a CA (certificate authority) script
+##
+## Last change date-
+##       2020/01/20
+##
+## Usage-
+##       CA scriptname {options}
+##
+## Getting started-
+##       Follow instructions in bat-CA/.README to obtain openssl.cnf.
+##
+##       cd ~/tmp
+##       mkdir localCA
+##       cd localCA
+##       CA build
+##
+##############################################################################
+pgm=$HOME/bat/bat-CA/CA_$1
+if [[ ! -x "$pgm" ]] ; then
+  echo "ERROR: $pgm non-executable"
+  exit 1
+fi
+
+shift
+$pgm "$@"
+

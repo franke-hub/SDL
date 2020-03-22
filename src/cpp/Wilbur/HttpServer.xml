@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- --------------------------------------------------------------------- -->
+<!--                                                                       -->
+<!-- Copyright:                                                            -->
+<!--     NONE: This sample is in the public domain.                        -->
+<!--                                                                       -->
+<!-- Title:                                                                -->
+<!--     HttpServer.xml                                                    -->
+<!--                                                                       -->
+<!-- Purpose:                                                              -->
+<!--     Define HTTP handlers (BRINGUP)                                    -->
+<!--                                                                       -->
+<!-- --------------------------------------------------------------------- -->
+
+<web-app>
+  <servlet name="File Server">
+    <mapping url="/html" lib="./libFileServer.so.1.0"/>
+
+    <parameter name="property-path" value="profile"/>
+    <parameter name="property-file" value="sample.pro"/>
+  </servlet>
+
+  <servlet name="Post Server">
+    <mapping url="/post" lib="./libPostServer.so.1.0"/>
+
+    <parameter name="property-path" value="profile"/>
+    <parameter name="property-file" value="sample.pro"/>
+  </servlet>
+
+  <servlet name="Test Server">
+    <mapping url="/test" lib="./libPostServer.so.1.0"/>
+
+    <parameter name="property-path" value="profile"/>
+    <parameter name="property-file" value="sample.pro"/>
+  </servlet>
+</web-app>

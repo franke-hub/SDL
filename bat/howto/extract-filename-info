@@ -1,0 +1,59 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2020 Stack Overflow.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       howto/extract-filename-info
+##
+## Purpose-
+##       BASH howto reminder.
+##
+## Last change date-
+##       2020/03/20
+##
+## Source information-
+##       Author: https://stackoverflow.com/users/171236/doctor-j
+##       Source: https://stackoverflow.com/questions/965053/extract-filename-and-extension-in-bash
+##
+##############################################################################
+
+##############################################################################
+## Extract file name information
+##############################################################################
+function extract-test {             ## Function derived from SOURCE
+    name="${1##*/}"
+    path="${1:0:${#1} - ${#name}}"
+    base="${name%.[^.]*}"
+    type="${name:${#base} + 1}"
+    if [[ -z "$base" && -n "$type" ]]; then
+        base=".$type"
+        type=""
+    fi
+
+    echo -e "\n$1:\n\tpath = \"$path\"\n\tbase = \"$base\"\n\ttype = \"$type\""
+}
+
+##############################################################################
+## Run tests (Derived from SOURCE, some additional tests added.)
+##############################################################################
+   extract-test /
+   extract-test /.
+   extract-test /home/user/
+   extract-test /home/user/foo
+   extract-test /home/user/foo.tar
+   extract-test /home/user/foo.tar.gz
+   extract-test /home/user/foo.bar.tar.gz
+   extract-test /home/user/.foo
+   extract-test /home/user/.foo.bar
+   extract-test /home/user/.foo.bar.tar
+   extract-test /home/user/..
+   extract-test .
+   extract-test ./.
+   extract-test ./..

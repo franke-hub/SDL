@@ -1,0 +1,74 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2016-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       setupJAVA
+##
+## Purpose-
+##       Set up environment to use JAVA.
+##
+## Last change date-
+##       2020/01/14
+##
+## Usage-
+##       . setupJAVA
+##
+##############################################################################
+
+##############################################################################
+## PREREQ functions
+. f.appendstring
+
+##############################################################################
+## Function jarpath -- add all jar files in path to CLASSPATH
+function jarpath
+{ __pathname=$1
+  __templist=`ls $__pathname/*.jar 2>/dev/null`
+  for i in $__templist
+  do
+    AppendString CLASSPATH "$i"
+  done
+}
+
+##############################################################################
+## Expand PATH
+if [[ -z "$JAVA_HOME" ]] ; then
+  if [[ -d "/usr/java/" ]] ; then
+    export JAVA_HOME=/usr/java
+  elif [[ -d "/usr/lib/jvm/" ]] ; then
+    export JAVA_HOME=/usr/lib/jvm
+  else
+    echo "Unable to find JAVA_HOME"
+    return
+  fi
+fi
+AppendString PATH "$JAVA_HOME/bin"
+
+##############################################################################
+## Initial CLASSPATH
+export CLASSPATH="."
+jarpath $JAVA_HOME/lib
+jarpath $JAVA_HOME/jre/lib
+jarpath $PWD
+jarpath /usr/local/java/lib
+
+##############################################################################
+## Set _RUNJAVA (For Tomcat)
+if [[ -z "$_RUNJAVA" ]] ; then
+  if [[ -x "$JAVA_HOME/bin/java" ]] ; then
+    export _RUNJAVA=$JAVA_HOME/bin/java
+  elif [[ -x "/usr/bin/java" ]] ; then
+    export _RUNJAVA=/usr/bin/java
+  else
+    echo "Warning: Unable to set _RUNJAVA"
+  fi
+fi
+

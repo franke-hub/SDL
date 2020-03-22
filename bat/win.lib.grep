@@ -1,0 +1,82 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2015-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       win.lib.grep
+##
+## Purpose-
+##       (Single) lib file name grep.
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       win.lib.grep <-options> entryName fileName
+##
+## Prerequisite-
+##       DUMPBIN (script, locates/executes Windows DUMPBIN.EXE)
+##
+## Some grep options-
+##       -i  Ignore case
+##       -l  List of files
+##
+##############################################################################
+
+##############################################################################
+## Extract the switch names
+sparm=""
+
+for i in $*
+do
+  case $i in
+    -*)
+      sparm="$sparm $i"
+      shift
+      ;;
+
+    *)
+      break
+      ;;
+  esac
+done
+
+##############################################################################
+## Extract the search string
+if [[ "" = "$1" ]] ; then
+  heading $0
+  exit
+fi
+
+string=$1
+shift
+
+##############################################################################
+## Extract the file name
+file=$1
+shift
+
+##############################################################################
+## Extract the file extentions
+if [[ -d "$file" ]] ; then
+# echo "$file is a directory"
+  exit 1
+fi
+if [[ ! -f "$file" ]] ; then
+  exit 1
+fi
+
+## echo $file
+rs=`DUMPBIN "$file" /symbols 2>/dev/null | grep $sparm $string | grep External`
+if [[ ! -z "$rs" ]] ; then
+  echo $file
+  DUMPBIN "$file" /symbols 2>/dev/null | grep $sparm $string | grep External
+fi
+

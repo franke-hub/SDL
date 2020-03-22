@@ -1,0 +1,15 @@
+//----------------------------------------------------------------------------
+//
+// Title-
+//       e.n
+//
+// Description-
+//       Sample Neural Net file, error tests.
+//
+//----------------------------------------------------------------------------
+begin e;
+
+  #include "error001.n"             // Sequence errors
+  #include "error002.n"             // Other errors
+
+end   e;

@@ -1,0 +1,183 @@
+##############################################################################
+##
+##       Copyright (c) 2010-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## Local options (-fPIC, but not on CYGWIN)
+ifneq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+COPTS  += -fPIC ################### Generate position independent code
+endif
+
+##############################################################################
+## Local module list
+MAKEXE :=
+MAKEXE += Wilbur
+MAKOBJ := $(patsubst $(OBJDIR)/Wilbur.o,,$(MAKOBJ))
+MAKEXE += Bringup
+MAKOBJ := $(patsubst $(OBJDIR)/Bringup.o,,$(MAKOBJ))
+MAKEXE += Dirty
+MAKOBJ := $(patsubst $(OBJDIR)/Dirty.o,,$(MAKOBJ))
+MAKEXE += Gather
+MAKOBJ := $(patsubst $(OBJDIR)/Gather.o,,$(MAKOBJ))
+MAKEXE += Quick
+MAKOBJ := $(patsubst $(OBJDIR)/Quick.o,,$(MAKOBJ))
+MAKEXE += Tester
+MAKOBJ := $(patsubst $(OBJDIR)/NN_Tester.o,,$(MAKOBJ))
+MAKEXE += NN_Tester
+MAKOBJ := $(patsubst $(OBJDIR)/Tester.o,,$(MAKOBJ))
+
+################################### Unused objects
+MAKOBJ := $(patsubst $(OBJDIR)/DllStartup.o,,$(MAKOBJ))    ## (UNUSED)
+MAKOBJ := $(patsubst $(OBJDIR)/Factory.o,,$(MAKOBJ))       ## (UNUSED)
+MAKOBJ := $(patsubst $(OBJDIR)/SampleDLL.o,,$(MAKOBJ))     ## (UNUSED)
+
+################################### Library objects
+ignore := $(patsubst $(OBJDIR)/Interface.o,,$(MAKOBJ))     ## USED in libWilbur
+ignore := $(patsubst $(OBJDIR)/HttpServer.o,,$(MAKOBJ))    ## USED in libWilbur
+MAKOBJ := $(patsubst $(OBJDIR)/FileHttpServer.o,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/PostHttpServer.o,,$(MAKOBJ))
+MAKOBJ := $(strip $(MAKOBJ))
+
+##############################################################################
+## Local library list
+LIBDBX := $(shell ls -d /usr/lib/libdb 2>/dev/null)
+ifeq "$(strip $(LIBDBX))" ""
+  LIBDBX := $(shell ls -d /usr/lib64/libdb 2>/dev/null)
+endif
+
+LOCLIB :=
+LOCLIB += -L$(LIBDIR) -lgui
+LOCLIB += -L$(LIBDIR) -lobj
+LOCLIB += -L$(LIBDIR) -lcom
+
+ifneq "$(strip $(LIBDBX))" ""
+  LOCLIB += -L$(strip $(LIBDBX))
+endif
+LOCLIB += -ldb -ldb_cxx
+LOCLIB += -ldl
+LOCLIB += -lX11
+LOCLIB += -lbz2 -lz
+
+LLIBS  += -L. -lWilbur
+LLIBS  += $(LOCLIB)
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= make.dir
+endif
+
+.PHONY: default
+.PHONY: make.dir
+default: $(DEFAULT)
+
+.PHONY: run.Wilbur
+run.Wilbur: Wilbur libFileServer.so.1.0 libPostServer.so.1.0
+	(export LD_LIBRARY_PATH=.:/usr/local/lib; Wilbur)
+
+.PHONY: do
+do: NN_Tester
+	NN_Tester --testRandom
+
+.PHONY: bringup ignored ## (For testing)
+bringup: /database/Bringup/Wilbur   ## Prerequisite directory
+bringup: /database/Wilbur           ## Prerequisite directory
+ignored: /database/non-existent     ## Prerequisite (missing) directory
+bringup: ;
+	@echo "MAKOBJ '$(MAKOBJ)'"
+
+##############################################################################
+## TARGET: libWilbur.a
+libWilbur.a: $(MAKOBJ)
+	$(AR) $@ $(MAKOBJ)
+
+make.dir: libWilbur.a
+
+##############################################################################
+## TARGET: libWilbur.so
+libWilbur.so.1.0: libWilbur.a
+libWilbur.so.1.0: $(MAKOBJ)
+	$(CC) -shared -o $@ $(MAKOBJ) -Wl,-Map,libWilbur.map $(LOCLIB)
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+	rebase -b 0x2f0000000 $@
+endif
+
+libWilbur.so: libWilbur.so.1.0
+	ln -sf $< $@
+
+libWilbur.dll: libWilbur.so.1.0
+	ln -sf $< $@
+make.dir: libWilbur.so libWilbur.dll
+
+##############################################################################
+## TARGET: libFileServer.so.1.0
+LIBFILE := FileHttpServer.o HttpServer.o Interface.o
+
+libFileServer.so.1.0: libWilbur.so
+libFileServer.so.1.0: $(LIBFILE)
+	$(CC) -shared -o $@ $(LIBFILE) -Wl,-Map,libFileServer.map $(LLIBS)
+
+make.dir: libFileServer.so.1.0
+
+##############################################################################
+## TARGET: libPostServer.so.1.0
+LIBPOST := PostHttpServer.o HttpServer.o Interface.o
+
+libPostServer.so.1.0: libWilbur.so
+libPostServer.so.1.0: $(LIBPOST)
+	$(CC) -shared -o $@ $(LIBPOST) -Wl,-Map,libPostServer.map $(LLIBS)
+
+make.dir: libPostServer.so.1.0
+
+##############################################################################
+## TARGET: Executables
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+$(MAKEXE): libWilbur.dll            ## Library MUST be built first
+else
+$(MAKEXE): libWilbur.so             ## Library MUST be built first
+endif
+
+$(MAKEXE): libWilbur.a              ## Library MUST be built first
+
+make.dir: $(MAKEXE)
+
+##############################################################################
+## TARGET: Database cleanup utility
+.PHONY: cleanDB
+cleanDB:
+	-rm /database/Bringup/__db*
+	-rm /database/Bringup/log.*
+	-rm /database/Bringup/Wilbur/*
+	-rm /database/Bringup/temp/*
+
+.PHONY: resetDB
+resetDB: cleanDB
+
+##############################################################################
+## Makefile cleanup
+clean: clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	-@rm debug.log       >/dev/null 2>/dev/null
+	-@rm libWilbur.*     >/dev/null 2>/dev/null
+	-@rm libFileServer.* >/dev/null 2>/dev/null
+	-@rm libPostServer.* >/dev/null 2>/dev/null
+	-@rm gather.*        >/dev/null 2>/dev/null
+

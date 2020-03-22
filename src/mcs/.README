@@ -1,0 +1,78 @@
+##############################################################################
+##
+##       Copyright (c) 2019-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       MCS development tree information.
+##
+## Last change date-
+##       2020/03/19
+##
+##############################################################################
+
+##############################################################################
+## IMPORT INFO:
+## ndesk.options-0.2.1.tar.gz
+##       *Date*: 2019/01/15
+##       Source: http://www.ndesk.org/Options
+##       Target: ~/src/mcs/lib/Import/Options.cs (only)
+
+##############################################################################
+## BUGS:
+
+##############################################################################
+## CLOSED: 2019/02/01 (INFO)
+2019/02/01 Dispatcher: Terrible performance on Linux.
+    This is an internal ThreadPool problem.
+    Wrote a ThreadPool substitute, WorkerPool, that re-uses threads rather
+    than creating new ones each time they're used. Timing comparisons:
+                Windows.NET  Windows.MONO    Linux.MONO
+    ThreadPool        7.548        45.377       492.593
+    WorkerPool        9.842        32.720        22.638
+
+## CLOSED: 2019/01/16 (TODO)
+2019/01/12 Unable to use library from in an alternate directory.
+    Visual Studio doesn't do it either:
+    Test: Built a library project and referred to it in "Hello CS World".
+    The library project DLL is just copied into the Release directory.
+    This is true for the "published" as well as the "release" version.
+
+##############################################################################
+## FEATURE:
+
+##############################################################################
+## FIXED:
+
+##############################################################################
+## HOWTO:
+
+##############################################################################
+## TODO: (prioritized)
+2019/01/19 (MED) Complete Dispatch library.
+
+2019/01/19 (MED) src/mcs/Util/Scanner.cs needs error recovery.
+    System.IO.Directory.GetFiles throws an exception rather than ignoring
+    directories it cannot read. This makes it useless for searching an entire
+    disk because it can't read system volume, recycle bin, and so on.
+    Need to redo code to search one directory at a time with try/catch for
+    each subdirectory so errors can be bypassed.
+
+2019/01/19 (LOW) System.Runtime.InteropServices.RuntimeInformation
+    It's available on Windows, but not on Linux.
+    Utility.cs uses it to determine whether or not unixify really needs
+    to do anything.
+
+##############################################################################
+## STATUS: 2019/01/19
+    Dispatch library scaffold primitively operational.
+        Timers and multi-threading not implemented.
+

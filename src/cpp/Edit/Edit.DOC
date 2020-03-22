@@ -1,0 +1,272 @@
+##############################################################################
+##
+##       Copyright (C) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the GNU General
+##       Public License, version 3.0.
+##       (See accompanying file LICENSE.GPL-3.0 or the original
+##       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+##
+##############################################################################
+##
+## Title-
+##       Edit.DOC
+##
+## Purpose-
+##       EDITOR usage information.
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+Using EDIT:
+
+Getting started.
+----------------
+To Edit a file, you type EDIT name.ext, where name.ext is the name of the
+file that you want to edit.  If you know about directory qualifiers, you
+can use them too.  Any file that you can type, you can edit.
+
+If you edit a file that already exists, you will be positioned at the top
+of the file.  You can use the screen movement commands (described later)
+to position yourself anywhere in the file.
+
+If you edit a new file, you only get two lines: the "top of file" line and
+the "end of file" line.  In order to do anything useful, you will first have
+to add lines.  You add lines using the control-enter command.
+
+
+How it works
+------------
+The editor does not change anything that exists on your disk until you
+explicitly tell it to do so.  When you type you only change a temporary copy
+of your file kept in the computer's memory.  This means that even if you make
+changes, you don't have to make them permantend.  You can quit, (F3), and leave
+the editor without changing your file data.
+
+If you've been typing for a while, and want to make sure that you don't lose
+what you've typed, you should save (F2) the copy of your data that's in
+storage onto your disk.  The file command, or F3, saves the file on disk, and
+then exits.  This is what you'll normally do when you're done editing.
+
+The editor is a "what you see is what you get" editor.  What you type on the
+screen is what you get in your file.  If you type the file or print it, except
+for block highlighing text looks exactly like it did when you edited it.  When
+you type on the screen, you immediately change the copy of the editor that's
+in storage, so you always know exactly what you did. Nothing changes on your
+real copy of the file until you save or file it.
+
+When you change a file line, any trailing blanks are removed from the line.
+
+
+Editor commands.
+----------------
+The normal editing commands work exactly like you would expect them to work,
+and you don't need to think of them as commands.  If you type a character,
+the character is put on the screen.  The insert, delete and arrow keys work
+like you expect them to.  If you'd like to try out these commands, go ahead.
+Remember, you won't change the copy of the file that's on the disk until you
+save the file.
+
+The commands with an asterisk in front are commands you absolutely have to
+know about in order to use the editor.  The rest you can learn as you
+need them.
+
+
+Keyname  CMDname   Description
+-------  -------   -----------
+<-      *CSR-LEFT  This key moves the cursor one character to the left.
+
+->      *CSR-RIGHT This key moves the cursor one character to the right.
+
+        *CSR-DOWN  This key moves the cursor one character towards the bottom
+                   of the screen.
+                   If the cursor is on the command line, the next command in
+                   the command line buffer is retrieved and placed on the
+                   command line.
+
+        *CSR-UP    This key moves the cursor one character towards the top of
+                   the screen.
+                   If the cursor is on the command line, the previous command
+                   in the command line buffer is retrieved and placed on the
+                   command line.
+
+->|     *Tab-fwd   This key moves the cursor one tab position to the right.
+
+|<-     *Tab-rev   This key moves the cursor one tab position to the left.
+
+BKSP     (none)    This key is a combination of delete and cursor-left.
+
+Caps     (none)    This key toggles the keyboard Caps-Lock light.  When the
+Lock               Caps-Lock light is on, the meaning of the shift key is
+                   reversed for alphabetic characters.
+
+DELete  *Delete    This key deletes a character, then moves any remaining
+                   characters on the line over to the left
+
+End      End       This key moves the cursor to the right of the last
+                   character in the line.
+
+Enter    Enter     The cursor is moved down one line and placed in the first
+                   character on that line.
+                   If the cursor is on the command line, the command is
+                   executed.
+
+Esc     *Command   This key puts the cursor in the command line, or into
+                   the file line if you were in the command line.
+                   See the editor command section for a list of commands.
+
+F1       No-op     This key has no function.
+
+F2      *Save      The current copy of the file, which was only in storage
+                   is copied out onto your disk.  You can continue editing
+                   the file but you can't undo any changes you made earlier.
+
+F3      *Quit      This command allows you to exit from the editor
+                   without changing the file.  It is real handy when you make
+                   a horrible mistake and don't know what to do next.
+
+F4       Buff      Edit the working buffer rather than a file.
+
+F5       Locate    The next occurance (after the current cursor position)
+                   of the "Locate" string in the file is found.
+
+F6       Change    The next occurance (from the current cursor position)
+                   of the "Locate" string is changed to the "Change" string.
+
+F7       Prev      The previous file in the edit ring is selected for
+                   editing.
+
+F8       Next      The next file in the edit ring is selected for editing.
+
+
+F9       Name      Places the name of the file into the command line.
+
+F10      Undo      The current line is restored to its value before any
+                   typing occurred. If the current line hasn't changed, the
+                   previous delete operation is undone.
+
+F11      Top       This key moves the current line to the top of the screen.
+
+F12      Next      Switch to next screen. (See screen command.)
+
+Home     Home      This key moves the cursor to the beginning of the current
+                   line.
+
+INSert  *Insert    This key toggles the insert mode.  When in insert mode, you
+                   get a large cursor and characters are inserted rather than
+                   replaced.  When you insert a character, all the characters
+                   to the right of the character being inserted move over to
+                   the right.
+
+Num      (none)    This key toggles the keyboard Num-Lock light.  When the
+Lock               Num-Lock light is on, the numeric keypad keys have numeric
+                   values rather than command values.  That is, when the
+                   Num-Lock light is on, typing 7 on the numeric keypad is the
+                   same as typing the character "7".  When the light is off,
+                   typing 7 on the numeric keypad is the same as typing the
+                   "Home" key.
+
+Pause    (none)    This key is used to pause the computer.  On some versions
+                   of Windows, the computer stops until a data key is pressed.
+                   On other versions, the key has no effect.
+
+PgUp    *PgUp      This key is used to move the screen window.  You move one
+                   page closer to the top of the file.
+
+PgDn    *PgDn      This key is used to move the screen window.  You move one
+                   page closer to the end of the file.
+
+Print    (none)    This key has no effect.
+Screen
+
+Scroll   (none)    This key toggles the keyboard Scroll-Lock light.
+Lock               When this light is on, you cannot change the cursor position
+                   outside of the current scren range using the arrow keys,
+                   although other keys (such as tab, PgUp and PgDn) continue
+                   to operate normally.
+
+Command  Name      Description
+-------  ----      -----------
+a-       Alt       Hold the Alt key down while pressing the next key.
+
+a-b      mark-blok Mark a block. If another line in the current ring is already
+                   marked, the marked block is revised.
+
+a-c      copy      Copy the block.  A column block is copied into the current
+                   cursor position. Line blocks are copied after the current
+                   line.
+
+a-d     *delmark   Delete the current block.
+
+a-i   r *insline   Add a line to the file.  The new line is added right after
+                   the line where the cursor is positioned.
+
+a-j      join      The next line is combined with the current line.
+
+a-l      mark-line Mark a line.  If another line in the current ring is already
+                   marked, the set of marked lines is revised.
+
+a-m      move      Move the block.  This is like copy but the block is removed
+                   from its old location and inserted into the new.
+
+a-p      format    The set of marked lines are formatted into a paragraph.
+                   The begin and end columns are set with the margins command.
+
+a-s      Split     The current line becomes two lines.  The line is split at
+                   the cursor.  Characters to the left of the cursor remain
+                   in the current line, characters to the right go in the new
+                   line which follows the current line.
+
+Editor commands    Description
+---------------    -----------
+number             The cursor is positioned at the first character of the file
+                   at the numeric row "number". Rows begin at 1.
+
+/string/           The cursor is positioned at the next occurance of "string"
+l /string/         in the file.  If you need to locate a string which contains
+                   "/", you may use the alternate form which allows any
+                   non-blank character to be the string delimiter.
+
+bot                Move the "End of File" line to the bottom of the view.
+
+c /from/to/        The next occurance of the string "from" is changed to
+                   the string "to".  The first non-blank character in the
+                   command line is used to delimit the strings.  (The "/"
+                   character is normally used, but any character which is
+                   not part of the "from" or "to" string will do.)
+
+detab              Replace tabs within file with space characters.
+
+e, edit <files>    Add more files into the edit ring.
+
+exit               Exit. (Quit all rings.) If a modified file is found,
+                   exit confirmation is requested.
+
+get filename       The named file is copied after the current line
+
+file               The current file is saved on disk and removed from storage.
+
+margins            Set the left and right column margins for the "Alt-p" word
+                   wrap (paragraph) command.
+
+mode               "mode dos" converts all lines in the ring to Windows format,
+                   ending with \r\n.  "mode unix" converts all lines in the
+                   ring to unix format, ending with \n (no \r.)
+
+save               Save the current in-memory copy of the ring to disk. This
+                   also clears the undo buffer.
+
+screen             Set the screen count. Divides the screen into several
+                   split screent.
+
+tabs               Sets the tab stop columns.
+
+top                Move the "Top of File" line to the top of the view.
+
+quit               The current file removed from storage.
+
+save               The current file saved on disk.
+
+Unrecognized       Any other command is passed to the command shell.

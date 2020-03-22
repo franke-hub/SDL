@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -x
+encode64 encode64.exe >encode.64
+decode64 out          <encode.64
+diff out encode64.exe
+if [[ $? != 0 ]] ; then
+  echo "en/decode64 failure"
+  exit 1
+fi
+
+encode64 test1        >test1.64
+decode64 out          <test1.64
+diff out test1
+if [[ $? != 0 ]] ; then
+  echo "en/decode64 failure"
+  exit 1
+fi
+
+encode64 test2        >test2.64
+decode64 out          <test2.64
+diff out test2
+if [[ $? != 0 ]] ; then
+  echo "en/decode64 failure"
+  exit 1
+fi
+
+encode64 test3        >test3.64
+decode64 out          <test3.64
+diff out test3
+if [[ $? != 0 ]] ; then
+  echo "en/decode64 failure"
+  exit 1
+fi
+
+rm out *.64
+echo "NO errors"
+

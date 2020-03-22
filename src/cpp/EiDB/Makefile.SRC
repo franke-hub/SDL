@@ -1,0 +1,35 @@
+##############################################################################
+##
+##       Copyright (C) 2004 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.SRC
+##############################################################################
+
+##############################################################################
+## Set sources.
+EXESRC = \
+    border.cpp   \
+    classify.cpp \
+    dupScan.cpp  \
+    exCodon.cpp  \
+    exFind.cpp   \
+    exPhase.cpp  \
+    exScan.cpp   \
+    generate.cpp \
+
+OBJSRC = \
+    Accumulator.cpp    \
+    common.cpp   \
+    EiDB.cpp     \
+    EiDBLoader.cpp     \
+    Extractor.cpp\
+    List.cpp     \
+    Random.cpp   \
+    Reader.cpp   \
+    Wildstr.cpp  \
+

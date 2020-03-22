@@ -1,0 +1,23 @@
+ /********************************************************************/
+ /*                                                                  */
+ /* Title-                                                           */
+ /*      NOP                                                         */
+ /*                                                                  */
+ /* Function-                                                        */
+ /*      This routine does nothing, but no caller knows this.        */
+ /*      It is used to destroy compiler optimization.                */
+ /*                                                                  */
+ /* Parameters-                                                      */
+ /*      **None**                                                    */
+ /*                                                                  */
+ /* Returns-                                                         */
+ /*      **None**                                                    */
+ /*                                                                  */
+ /********************************************************************/
+ void nop(void)                     /* Nop, no parameters            */
+   {}                               /* Do nothing, but do it well    */
+
+ void ref(void * foo, ...)          /* Nop, reference some stuff     */
+   {}                               /* Do nothing, as quickly as
+                                       possible under the
+                                       circumstances                 */

@@ -1,0 +1,68 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       mcs
+##
+## Purpose-
+##       Find and run C# compiler
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       mcs /debug /optimize Foo.cs
+##
+##############################################################################
+
+##############################################################################
+## Fixes: System.Console Exception: Magic number is wrong: 542
+export TERM=xterm
+
+##############################################################################
+## MCS_EXEC=/usr/bin/mcs
+if [[ -x "/usr/bin/mcs" ]] ; then
+    /usr/bin/mcs $*
+    exit $?
+fi
+
+##############################################################################
+## MCS_EXEC=Mono 4.5
+if [[ -n "$USE_MONO_MCS" ]] ; then  ## Slightly experimental, must be selected
+if [[ -x "/cygdrive/C/Program Files/Mono/lib/mono/4.5/mcs.exe" ]] ; then
+    if [ -x "/C/Program Files/Mono/bin/mono.exe" ] ; then
+        __try=C:\\Program\ Files\\Mono\\lib\\mono\\4.5\\mcs.exe
+        exec "/C/Program Files/Mono/bin/mono.exe" "$__try" $*
+        exit $?
+    fi
+fi
+fi
+
+##############################################################################
+## MCS_EXEC=Visual Studio 2017
+__try="/cygdrive/C/Program Files (x86)/Microsoft Visual Studio/2017/Community/MSBuild/15.0/Bin/Roslyn/csc.exe"
+if [[ -x "$__try"  ]] ; then
+    "$__try" $*
+    exit $?
+fi
+
+##############################################################################
+## MCS_EXEC=Visual Studio 2015
+__try="/cygdrive/C/Program Files (x86)/MSBuild/12.0/Bin/csc.exe"
+if [[ -x "$__try"  ]] ; then
+    "$__try" $*
+    exit $?
+fi
+
+##############################################################################
+## MCS_EXEC=** NOT FOUND**
+echo "Cannot find: mcs executable"
+exit 2

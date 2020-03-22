@@ -1,0 +1,27 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       apt.status
+##
+## Purpose-
+##       Update apt.all-versions and apt.installed files
+##
+## Last change date-
+##       2019/10/07
+##
+## Usage-
+##       apt.status
+##
+##############################################################################
+apt list --all-versions >apt.all-versions
+apt list --installed >apt.installed
+

@@ -1,0 +1,31 @@
+##############################################################################
+##
+##       Copyright (C) 2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/asm/x86/tlc.32/.README
+##
+## Purpose-
+##       Directory information.
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## *** WARNING ***
+##
+## This 32 bit version of TLC does not compile or run in a 64-bit environment.
+## At one time it compiled using 32-bit Windows and Linux, but this has not
+## been attempted in years.
+##
+## It does compile and run using 32-bit CYGWIN, even on 64-bit hardware.
+## The resulting binary can only be run using 32-bit CYGWIN.
+##############################################################################

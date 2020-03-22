@@ -1,0 +1,54 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2016-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       dir_test
+##
+## Purpose-
+##       Test all directories in a file.
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       dir_test
+##
+##############################################################################
+IGNORE=""
+if [[ -x .test-ignore ]] ; then
+    IGNORE=`.test-ignore`
+fi
+
+for tc in *
+do
+    if [[ -x $tc ]] ; then
+        OK=TRUE
+        for ignore in $IGNORE
+        do
+            if [[ "$ignore" == "$tc" ]] ; then
+                OK=FALSE
+                break
+            fi
+        done
+
+        if [[ "$OK" == "TRUE" ]] ; then
+            echo "Testing: " $tc
+            time $tc
+            if [[ $? != 0 ]] ; then
+                echo $tc FAILED
+                exit 1
+            fi
+            echo ""
+        fi
+    fi
+done
+echo "All tests successful"
+

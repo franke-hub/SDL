@@ -1,0 +1,44 @@
+//----------------------------------------------------------------------------
+//
+//       Copyright (C) 2013 Frank Eskesen.
+//
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+//
+//----------------------------------------------------------------------------
+//
+// Title-
+//       Page10.WME
+//
+// Purpose-
+//       Unknown.
+//
+// Last change date-
+//       2013/01/01
+//
+//----------------------------------------------------------------------------
+// Data elements
+W1: (B1 ^ON B2)
+W2: (B1 ^ON B3)
+W3: (B1 ^COLOR RED)
+W4: (B2 ^ON TABLE)
+W5: (B2 ^LEFT-OF B3)
+W6: (B2 ^COLOR blue)
+W7: (B3 ^LEFT-OF B4)
+W8: (B3 ^ON TABLE)
+W9: (B3 ^COLOR RED)
+
+// Condition elements
+C1: (<x> ^ON <y>)
+C2: (<y> ^LEFT-OF <z>)
+C3: (<z> ^COLOR RED)
+C4: (*UNSPECIFIED*)
+C5: (*UNSPECIFIED*)
+
+// Production elements
+P1: (C1^C2^C3)
+P2: (C1^C2^C4^C5)
+P3: (C1^C2^C4^C3)
+

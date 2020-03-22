@@ -1,0 +1,56 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2017-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       unixify
+##
+## Purpose-
+##       Convert a file into unix format.
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       unixify <filename> ...
+##
+##############################################################################
+
+##############################################################################
+## Verify unixify.temp file missing
+TEMPFILE=unixify.temp
+if [[ -f "$TEMPFILE" ]] ; then
+  echo "Error: File $TEMPFILE exists"
+  exit
+fi
+
+##############################################################################
+## Verify format executable present
+PROG=~/bin/format
+if [[ ! -x "$PROG" ]] ; then
+  echo "Error: File $PROG missing"
+  exit
+fi
+
+##############################################################################
+## Unixify each file
+parms=""
+
+for i in "$@"
+do
+  if [[ -f "$i" ]] ; then
+    $PROG -mode:unix <"$i" >$TEMPFILE
+    mv -f $TEMPFILE "$i"
+  else
+    echo "File '$i' missing, skipped"
+  fi
+done
+
+exit 0

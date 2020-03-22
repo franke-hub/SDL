@@ -1,0 +1,206 @@
+     0: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+     1: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+     2: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+     3: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+     4: 'AAAAAAAAAAAAAAAAAAAAAAAA'
+     5: 'TTTGGGCCCAAATTTGGGCCCAAATTTGGGCCCAAATTTGGGCCCAAATTTGGGCCCAAATTTGGGCCCAAA'
+     6: 'TNTGNGCNCANATNTGNGCNCANATNTGNGCNCANATNTGNGCNCANATNTGNGCNCANATNTGNGCNCANA'
+     7: 'TYTGRGCYCARATYTGRGCYCARATYTGRGCYCARATYTGRGCYCARATYTGRGCYCARATYTGRGCYCARA'
+     8: 'TWTGSGCSCAWATWTGSGCSCAWATWTGSGCSCAWATWTGSGCSCAWATWTGSGCSCAWATWTGSGCSCAWA'
+     9: 'TKTGKGCMCAMATKTGKGCMCAMATKTGKGCMCAMATKTGKGCMCAMATKTGKGCMCAMATKTGKGCMCAMA'
+    10: 'TBTGBGCBCAAATBTGBGCBCAAATBTGBGCBCAAATBTGBGCBCAAATBTGBGCBCAAATBTGBGCBCAAA'
+    11: 'TDTGDGCCCADATDTGDGCCCADATDTGDGCCCADATDTGDGCCCADATDTGDGCCCADATDTGDGCCCADA'
+    12: 'TTTGVGCVCAVATTTGVGCVCAVATTTGVGCVCAVATTTGVGCVCAVATTTGVGCVCAVATTTGVGCVCAVA'
+    13: 'THTGGGCHCAHATHTGGGCHCAHATHTGGGCHCAHATHTGGGCHCAHATHTGGGCHCAHATHTGGGCHCAHA'
+    14: 'AAAAAAAA'
+    15: 'CCCCCCCC'
+    16: 'GGGGGGGG'
+    17: 'TTTTTTTT'
+    18: 'AAAAAAAA'
+    19: 'CCCCCCCC'
+    20: 'GGGGGGGG'
+    21: 'TTTTTTTT'
+    22: 'AAAAAAAA'
+    23: 'CCCCCCCC'
+    24: 'GGGGGGGG'
+    25: 'TTTTTTTT'
+    26: 'AAAAAAAA'
+    27: 'CCCCCCCC'
+    28: 'GGGGGGGG'
+    29: 'TTTTTTTT'
+    30: 'AAAAAAAA'
+    31: 'CCCCCCCC'
+    32: 'GGGGGGGG'
+    33: 'TTTTTTTT'
+    34: 'AAAAAAAA'
+    35: 'CCCCCCCC'
+    36: 'GGGGGGGG'
+    37: 'TTTTTTTT'
+    38: 'AAAAAAAAGTA'
+    39: 'CCCCCCCC'
+    40: 'GGGGGGGG'
+    41: 'TTTTTTTT'
+    42: 'AAAAAAAA'
+    43: 'CCCCCCCC'
+    44: 'GGGGGGGG'
+    45: 'TTTTTTTT'
+    46: 'AAAAAAAA'
+    47: 'CCCCCCCC'
+    48: 'GGGGGGGGGTA'
+    49: 'TTTTTTTT'
+    50: 'AAAAAAAA'
+    51: 'CCCCCCCC'
+    52: 'GGGGGGGG'
+    53: 'TTTTTTTT'
+    54: 'AAAAAAAA'
+    55: 'CCCCCCCC'
+    56: 'GGGGGGGG'
+    57: 'TTTTTTTT'
+    58: 'AAAAAAAAGTA'
+    59: 'CCCCCCCC'
+    60: 'GGGGGGGG'
+    61: 'TTTTTTTT'
+    62: 'AAAAAAAA'
+    63: 'CCCCCCCC'
+    64: 'GGGGGGGG'
+    65: 'TTTTTTTT'
+    66: 'AAAAAAAA'
+    67: 'CCCCCCCC'
+    68: 'GGGGGGGGGTA'
+    69: 'TTTTTTTT'
+    70: 'AAAAAAAA'
+    71: 'CCCCCCCC'
+    72: 'GGGGGGGG'
+    73: 'TTTTTTTT'
+    74: 'AAAAAAAA'
+    75: 'CCCCCCCC'
+    76: 'GGGGGGGG'
+    77: 'TTTTTTTT'
+    78: 'GTA'
+    79: 'GTA'
+    80: 'AAAAAAAA'
+    81: 'CCCCCCCC'
+    82: 'GGGGGGGG'
+    83: 'TTTTTTTT'
+    84: 'AAAAAAAA'
+    85: 'CCCCCCCC'
+    86: 'GGGGGGGG'
+    87: 'TTTTTTTT'
+    88: 'AAAAAAAA'
+    89: 'GTACCCCCCCC'
+    90: 'GGGGGGGG'
+    91: 'TTTTTTTT'
+    92: 'AAAAAAAA'
+    93: 'CCCCCCCC'
+    94: 'GGGGGGGG'
+    95: 'TTTTTTTT'
+    96: 'AAAAAAAA'
+    97: 'CCCCCCCC'
+    98: 'GGGGGGGG'
+    99: 'GTATTTTTTTT'
+   100: 'AAAAAAAA'
+   101: 'CCCCCCCC'
+   102: 'GGGGGGGG'
+   103: 'TTTTTTTT'
+   104: 'AAAAAAAA'
+   105: 'CCCCCCCC'
+   106: 'GGGGGGGG'
+   107: 'TTTTTTTT'
+   108: 'AAAAAAAA'
+   109: 'GTACCCCCCCC'
+   110: 'GGGGGGGG'
+   111: 'TTTTTTTT'
+   112: 'AAAAAAAA'
+   113: 'CCCCCCCC'
+   114: 'GGGGGGGG'
+   115: 'TTTTTTTT'
+   116: 'AAAAAAAA'
+   117: 'CCCCCCCC'
+   118: 'GGGGGGGG'
+   119: 'GTATTTTTTTT'
+     Column -------A's -------C's -------G's -------T's ----Others
+      Total        692        442        452        452        168
+          1         31         24         32         33          0
+          2         35         28         30         39          7
+          3         37         24         26         33          0
+          4         31         26         35         26          0
+          5         35         30         35         30          7
+          6         31         26         35         26          0
+          7         31         35         26         26          0
+          8         35         35         30         30          7
+          9          5         11          4          2          0
+         10         14          2          0          6          0
+         11         18          6          4          6          7
+         12         14          0          0          0          0
+         13          5          0          0          9          0
+         14          9          4          4          9          7
+         15          5          0          0          9          0
+         16          5          0          9          0          0
+         17          9          4          9          4          7
+         18          5          0          9          0          0
+         19          5          9          0          0          0
+         20          9          9          4          4          7
+         21          5          9          0          0          0
+         22         14          0          0          0          0
+         23         14          4          4          4          7
+         24         14          0          0          0          0
+         25          4          0          0          9          0
+         26          8          4          4          9          7
+         27          4          0          0          9          0
+         28          4          0          9          0          0
+         29          8          4          9          4          7
+         30          4          0          9          0          0
+         31          4          9          0          0          0
+         32          8          9          4          4          7
+         33          4          9          0          0          0
+         34         13          0          0          0          0
+         35         13          4          4          4          7
+         36         13          0          0          0          0
+         37          3          0          0          9          0
+         38          7          4          4          9          7
+         39          3          0          0          9          0
+         40          3          0          9          0          0
+         41          7          4          9          4          7
+         42          3          0          9          0          0
+         43          3          9          0          0          0
+         44          7          9          4          4          7
+         45          3          9          0          0          0
+         46         12          0          0          0          0
+         47         12          4          4          4          7
+         48         12          0          0          0          0
+         49          2          0          0          9          0
+         50          6          4          4          9          7
+         51          2          0          0          9          0
+         52          2          0          9          0          0
+         53          6          4          9          4          7
+         54          2          0          9          0          0
+         55          2          9          0          0          0
+         56          6          9          4          4          7
+         57          2          9          0          0          0
+         58         11          0          0          0          0
+         59         11          4          4          4          7
+         60         11          0          0          0          0
+         61          1          0          0          9          0
+         62          5          4          4          9          7
+         63          1          0          0          9          0
+         64          1          0          9          0          0
+         65          5          4          9          4          7
+         66          1          0          9          0          0
+         67          1          9          0          0          0
+         68          5          9          4          4          7
+         69          1          9          0          0          0
+         70         10          0          0          0          0
+         71         10          4          4          4          7
+         72         10          0          0          0          0
+
+Sequence 'TTTGGGCCCAAA'
+     Column      First      Total      Count
+          1          9          9         14
+         13          0          9         14
+         25          0          9         13
+         37          0          9         12
+         49          0          9         11
+         61          0          9         10
+
+Sequence 'AAACCCGGGTTT'
+  (Does not occur)

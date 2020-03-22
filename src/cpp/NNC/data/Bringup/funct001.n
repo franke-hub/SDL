@@ -1,0 +1,131 @@
+//----------------------------------------------------------------------------
+//
+// Title-
+//       funct001.n
+//
+// Description-
+//       Function test: Include each type of neuron.
+//
+//----------------------------------------------------------------------------
+begin funct001;
+//----------------------------------------------------------------------------
+// Constants
+//----------------------------------------------------------------------------
+   NEURON(constant) value(0) false;
+   NEURON(constant) value(1) true;
+
+   NEURON(constant) value(3) const3;
+   NEURON(constant) value(5) const5;
+   NEURON(constant) value(7) const7;
+
+//----------------------------------------------------------------------------
+// Type test
+//----------------------------------------------------------------------------
+   neuron(add) add;
+     fanin(const7) weight(1);
+     fanin(const5) weight(1);
+     fanin(const3) weight(1);
+
+   neuron(sub) sub;
+     fanin(const7) weight(1);
+     fanin(const5) weight(1);
+     fanin(const3) weight(1);
+
+   neuron(mul) mul;
+     fanin(const7) weight(1);
+     fanin(const5) weight(1);
+     fanin(const3) weight(1);
+
+   neuron(div) div;
+     fanin(const7) weight(1);
+     fanin(const5) weight(1);
+     fanin(const3) weight(1);
+
+   neuron(inc) inc;
+     fanin;
+
+   neuron(dec) dec;
+     fanin;
+
+   neuron(and) and0;
+     fanin(true);
+     fanin(true);
+     fanin(false);
+     fanin(true);
+
+   neuron(or)  or0;
+     fanin(false);
+     fanin(false);
+     fanin(false);
+     fanin(false);
+
+   neuron(nand) nand0;
+     fanin(true);
+     fanin(true);
+     fanin(true);
+     fanin(true);
+
+   neuron(nor) nor0;
+     fanin(false);
+     fanin(false);
+     fanin(true);
+     fanin(false);
+
+   neuron(nand) notUsingNand0;
+     fanin(nand1);
+
+   neuron(nor)  notUsingNor0;
+     fanin(nor1);
+
+   neuron(and) and1;
+     fanin(true);
+     fanin(true);
+     fanin(true);
+     fanin(true);
+
+   neuron(or)  or1;
+     fanin(false);
+     fanin(false);
+     fanin(true);
+     fanin(false);
+
+   neuron(nand) nand1;
+     fanin(true);
+     fanin(true);
+     fanin(false);
+     fanin(true);
+
+   neuron(nor)  nor1;
+     fanin(false);
+     fanin(false);
+     fanin(false);
+     fanin(false);
+
+   neuron(nand) notUsingNand1;
+     fanin(nand0);
+
+   neuron(nor)  notUsingNor1;
+     fanin(nor0);
+
+   neuron(nop)  entry;
+     entry;
+     fanin(inc);
+     fanin(dec);
+     fanin(add);
+     fanin(sub);
+     fanin(mul);
+     fanin(div);
+     fanin(and0);
+     fanin(or0);
+     fanin(nand0);
+     fanin(nor0);
+     fanin(notUsingNand0);
+     fanin(notUsingNor0);
+     fanin(and1);
+     fanin(or1);
+     fanin(nand1);
+     fanin(nor1);
+     fanin(notUsingNand1);
+     fanin(notUsingNor1);
+
+end   funct001;

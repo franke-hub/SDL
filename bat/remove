@@ -1,0 +1,56 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       remove
+##
+## Purpose-
+##       Remove and shred a file.
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       remove [filename ...]
+##
+##############################################################################
+
+##############################################################################
+## Use shred if available, otherwise use rm
+REMOVE=rm
+if [ -x /bin/shred ] ; then
+  REMOVE="/bin/shred -u -z"
+elif [ -x /usr/bin/shred ] ; then
+  REMOVE="/usr/bin/shred -u -z"
+else
+  echo "Warning: shred not available, using rm"
+  sleep 10
+fi
+
+##############################################################################
+## Shred the files
+rc=0
+for i in "$@"
+do
+  if [[ -h $i ]] ; then
+    echo "File '$i' is a link, try '$REMOVE' instead" 1>&2
+    rc=1
+  elif [[ -w $i ]] ; then
+    $REMOVE $i
+    [[ $rc != 0 ]] && rc=$?
+  else
+    echo "File: '$i' non-existent or not writable" 1>&2
+    rc=1
+  fi
+done
+
+exit $rc
+

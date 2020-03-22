@@ -1,0 +1,15 @@
+	BSP a		Help Apropos
+	C-a		Goto beginning-of-line
+	C-e		Goto end-of-line
+	C-g		Quit
+	C-h k		Describe key binding
+	C-l		Redraw screen
+	C-x b		Switch to buffer
+	C-x k		Kill buffer
+	C-x 0		Delete window
+	C-x o		Switch to other window
+	C-x r d		Delete (don't save) rectangle bounded by point and mark
+	C-x s		Save buffer
+	C-x C-c		Exit emacs
+	C-x C-f		Load buffer
+	C-x C-x		Exchange point and mark

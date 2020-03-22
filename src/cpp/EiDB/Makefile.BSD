@@ -1,0 +1,67 @@
+##############################################################################
+##
+##       Copyright (C) 2004 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.BSD
+##############################################################################
+
+##############################################################################
+## Local module list
+include $(SRCDIR)/Makefile.SRC
+MAKOBJ := $(patsubst %.cpp,%.o,$(OBJSRC))
+MAKEXE := $(patsubst %.cpp,%,$(EXESRC))
+MAKEXE += border3
+MAKEXE += inScan
+LLIBS  += -L. -llocal -Wl,--stack -Wl,0x00100000
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= make.dir
+endif
+
+.PHONY: make.dir
+make.dir: $(MAKEXE)
+
+##############################################################################
+## TARGET: liblocal.a
+liblocal.a : $(MAKOBJ)
+	$(AR) $(@) $(?)
+
+##############################################################################
+## TARGET: border3.o
+border3.o : $(SRCDIR)/border.cpp
+	$(CC) -o $@ -DSEPARATE_BY_PHASE $(CFLAGS) -c $<
+
+##############################################################################
+## TARGET: inScan.o
+inScan.o : $(SRCDIR)/exScan.cpp
+	$(CC) -o $@ -DINTRON_SCANNER $(CFLAGS) -c $<
+
+##############################################################################
+## Dependencies
+border   : liblocal.a
+border3  : liblocal.a
+classify : liblocal.a
+dupScan  : liblocal.a
+exCodon  : liblocal.a
+exFind   : liblocal.a
+exPhase  : liblocal.a
+exScan   : liblocal.a
+generate : liblocal.a
+inScan   : liblocal.a
+
+##############################################################################
+## Makefile cleanup
+clean : clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	-@rm liblocal.a >/dev/null 2>/dev/null
+	-@rm *.new >/dev/null 2>/dev/null
+	-@rm Phases.eidb.* >/dev/null 2>/dev/null
+

@@ -1,0 +1,77 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// Title-                                                                   //
+//       base.n                                                             //
+//                                                                          //
+// Description-                                                             //
+//       Bringup test.                                                      //
+//                                                                          //
+// Controls-                                                                //
+//       #define I (number of elements in array)                            //
+//                                                                          //
+// Entry-                                                                   //
+//       entry                                                              //
+//                                                                          //
+// Resultant-                                                               //
+//       71.875 (incrementing each re-run)                                  //
+//                                                                          //
+//////////////////////////////////////////////////////////////////////////////
+begin base;
+
+#define J I + 2;
+#define K J + 2;
+#define this I * J * K;
+#define that -this;
+
+   NEURON(constant) value(3) p3;
+   NEURON(constant) value(5) p5;
+   NEURON(constant) value(7) p7;
+
+   NEURON(constant) Value(this) testme[I][J][K];
+
+   NEURON(constant) Value(that) testit;
+
+   NEURON(nop)     test48;          // R=  0.0
+   do i= 1 to I;
+     do j= 1 to J by 1;
+       do k= 1 to K by 1;
+         fanin(testme[i][j][k]);
+         fanin(testit) testme[i][j][k];
+       end;
+     end;
+   end;
+
+     fanin(p7) adder;               // OUT OF SEQUENCE
+
+   neuron(add) adder;               // R= 15.0
+//   fanin(p7);                     // OUT OF SEQUENCE
+     fanin(p5);
+     fanin(p3);
+
+   neuron(sub) suber;               // R= -1.0
+     fanin(p7);
+     fanin(p5);
+     fanin(p3);
+
+   neuron(mul) muler;               // R= 56.0
+     fanin(p7);
+     fanin(p5);
+     fanin(p3);
+
+   neuron(div) diver;               // R=  0.875
+     fanin(p7);
+     fanin(p5);
+     fanin(p3);
+
+   neuron(inc) counter;             // R= (1.0) Added
+     fanin(counter);
+
+   neuron(add) entry;
+     fanin(counter);                //   + 1.000 incrementing
+     fanin(test48);                 //     0.000
+     fanin(adder);                  //    15.000
+     fanin(suber);                  //    -1.000
+     fanin(muler);                  //    56.000
+     fanin(diver);                  //     0.875
+
+end  base;

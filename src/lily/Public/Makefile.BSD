@@ -1,0 +1,41 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.BSD
+##############################################################################
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(OBJPDF)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## Set default targets
+ifeq "" "$(SELECT)"
+SELECT:= Moonlight
+endif
+
+.PHONY: do.ps
+do.ps: $(SELECT).ps
+	$(PS) --media=letter $?
+
+.PHONY: do.midi
+do.midi: $(SELECT).midi
+	$(MIDI) $?
+
+.PHONY: do.pdf
+do.pdf: $(SELECT).pdf
+	$(PDF) $?
+
+.PHONY: do
+do: do.midi

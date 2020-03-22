@@ -1,0 +1,64 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.WIN
+##
+## Purpose-
+##       WINDOWS Makefile versioning
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## Local module list
+MAKEXE := $(patsubst $(OBJDIR)/WormBuffer.exe,,$(MAKEXE))
+MAKOBJ := WormBuffer.obj
+
+################################### Controls
+LLIBS  += $(OBJDIR)/local.lib###### Local library
+LLIBS  += $(LIBDIR)/libgui.lib##### GUI library
+LLIBS  += $(LIBDIR)/libjpeg.lib#### JPEG library
+LLIBS  += /FORCE:MULTIPLE########## Allow duplicate entry points
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= make.dir
+endif
+
+.PHONY: make.dir
+make.dir: $(MAKEXE)
+
+.PHONY: make.all
+make.all: $(MAKEXE)
+
+all: make.all
+
+##############################################################################
+## TARGET: local.lib
+local.lib : $(MAKOBJ)
+	$(AR) /out:"$(@)" $(MAKOBJ)
+
+##############################################################################
+## Dependencies
+$(MAKEXE) : $(OBJDIR)/local.lib $(LIBDIR)/libcom.lib $(LIBDIR)/libgui.lib $(LIBDIR)/libjpeg.lib
+
+##############################################################################
+## Makefile cleanup
+clean : clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	-@rm -f sample.log >/dev/null 2>/dev/null
+	-@rm -f simple.log >/dev/null 2>/dev/null
+	-@rm -f local.lib  >/dev/null 2>/dev/null
+

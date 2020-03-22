@@ -1,0 +1,39 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2015-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       memory
+##
+## Purpose-
+##       Display memory statistics
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       memory
+##
+##############################################################################
+echo "free -k"
+free -k
+
+echo ""
+echo "vmstat"
+vmstat
+
+echo ""
+echo "cat /proc/meminfo"
+cat /proc/meminfo
+
+echo ""
+echo "ps -A --sort -rss -o comm,pmem,rss | head -n 11"
+ps -A --sort -rss -o comm,pmem,rss | head -n 11
+

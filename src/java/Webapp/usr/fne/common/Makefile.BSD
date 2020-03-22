@@ -1,0 +1,43 @@
+##############################################################################
+##
+##       Copyright (c) 2008-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       Makefile, BSD version. (Cygwin, Unix)
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## Local controls
+export CLASSPATH=.:OBJHOME:$(PWD)
+export SOURCEDIR=SRCHOME
+export OBJECTDIR=OBJHOME
+
+##############################################################################
+## Set default target
+make.dir: $(MAKOBJ)
+	touch make.dir
+
+##############################################################################
+## Makefile.setup contains the local setup controls
+include Makefile.setup
+
+##############################################################################
+## Makefile cleanup
+.phony: MAK_clean
+clean : MAK_clean
+MAK_clean: ;
+	-@rm make.dir >/dev/null 2>/dev/null
+

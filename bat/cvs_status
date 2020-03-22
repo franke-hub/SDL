@@ -1,0 +1,29 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       cvs_status
+##
+## Purpose-
+##       Get list of changed CVS files
+##
+## Last change date-
+##       2019/10/07
+##
+## Usage-
+##       cvs_status
+##
+## Implementation notes-
+##       DOES NOT warn about missing directories. (DOES warn about files.)
+##
+##############################################################################
+cvs -qn update ## -q: quiet, -n: do not make any changes
+

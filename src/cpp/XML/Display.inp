@@ -1,0 +1,49 @@
+This control file might have been used to set up the Extract parameters:
+  src: Source file name
+  head: Required root node name
+  field: name=,{required=|missing=}  CAN BE NESTED
+  group: required="all" (All fields and groups are required)
+  group: required="any" (Any complete field satisfies group)
+
+Heading:
+time, sensor, ch1.watts, ch2.watts, ... , ch8.watts
+
+<msg>
+  <src>Extract.inp</src>
+  <group name="msg" required="all">
+    <field name="time" required="true"/>
+    <field name="sensor" required="true"/>
+    <group required="any">
+      <group name="ch1" missing="N/A"><field name="watts" required="true"/></group>
+      <group name="ch2" missing="N/A"><field name="watts" required="true"/></group>
+      <group name="ch3" missing="N/A"><field name="watts" required="true"/></group>
+      <group name="ch4" missing="N/A"><field name="watts" required="true"/></group>
+      <group name="ch5" missing="N/A"><field name="watts" required="true"/></group>
+      <group name="ch6" missing="N/A"><field name="watts" required="true"/></group>
+      <group name="ch7" missing="N/A"><field name="watts" required="true"/></group>
+      <group name="ch8" missing="N/A"><field name="watts" required="true"/></group>
+    </group>
+  </group>
+  <debugging>
+    <some>stuff</some>
+<?BOOFLA [CDATA[ begin BOOFLA &lt;&gt;
+---- end BOOFLA?>
+
+<!BOOFLA [CDATA[ begin BOOFLA &lt;&gt;
+---- end BOOFLA>
+
+<!-- begin comment
+<![CDATA[ within comment ]]>
+---- end comment properly -->
+
+<![CDATA[ begin CDATA
+<!-- begin comment within CDATA
+---- end comment improperly ------>
+---- end comment properly -->
+---- end CDATA properly]]>
+    <more>stuff</more>
+    <sample attrib="&lt;attrib&gt;">LT(&lt;) GT(&gt;) AMP(&amp;) APOS(&apos;) QUOT(&quot;) stuff</sample>
+    <sample attrib="&this;"> Sample,  for  this=that  (&this;)  replacement </sample>
+    <sample>Substitution cent(&cent;) euro(&euro;)</sample>
+  </debugging>
+</msg>

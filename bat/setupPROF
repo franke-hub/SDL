@@ -1,0 +1,34 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       setupPROF
+##
+## Purpose-
+##       Set up C++ profiling environment.
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       . setupPROF
+##       qd lib; make pristine; make
+##       qd test; make pristine; make
+##       TestCase <options>
+##       gprof TestCase >profile.out
+##
+##       unset COPTS CLOAD
+##       (recompile)
+##
+##############################################################################
+export COPTS=-pg
+export CLOAD=-pg
+

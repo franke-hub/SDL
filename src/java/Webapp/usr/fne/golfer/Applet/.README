@@ -1,0 +1,215 @@
+##############################################################################
+##
+##       Copyright (C) 2017-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       Golfer implementation information.
+##
+## Last change date-
+##       2020/01/15
+##
+##############################################################################
+
+##############################################################################
+ACRONYMS:
+EDT:  Event Dispatching Thread
+GUI:  Graphical User Interface
+
+##############################################################################
+NOTES:
+Defaults:  Nominal course rating/slope: 70.0/120, about 6000 yards.
+
+##############################################################################
+DOCS: NONE
+
+##############################################################################
+TODO:
+2020/01/21 Replace 'eskesen' in Makefiles with $(USER)
+           (And test, of course.)
+
+2013/02/05 Need to allow for 27 and 36 hole golf courses, don't know which
+           18 will actually be played.
+
+2012/12/11 Courses with 9 hole variations may have duplicate handicaps
+           front and back, but this is not allowed by the verification.
+
+2012/02/09 EventsEdit:
+           When course added or changed, automatically select course teebox
+           closest to nominal rating, slope, and yardage.
+
+2012/02/09 MonteCarloEvaluation:
+           Add optimization to swap players throughout tournament.
+           (Only players that play only on the same dates can be swapped.)
+           Add (optional) override of weights in the evaluation.
+
+2010/10/19 Do we want to change EVENTS.CARD/POST to match PLAYER.CARD/POST?
+
+##############################################################################
+BUGS:
+2019/02/22 When updating Hawks Landing, could not add LD/CP to course.
+           (Had to update by hand.)
+
+2018/02/02 Changing the event courses clears the EVENTS.TIME arrays.
+           This isn't necessary unless the player list changes for any of
+           the days. If only the course changes, nothing else should.
+
+2019/02/22 HIT SAME BUG!!!!
+
+2015/02/15 Default: Nominal rating/slope/distance.
+           Attempt to match this for default teebox.
+
+2015/02/15 The text in the green scorecard panels is hard to read.
+           (It's a lot better when fit to page is NOT selected.)
+
+2014/02/14 Need to have a print scorecard application. This should duplicate
+           the title and course name for each group.
+
+##############################################################################
+FEATURE:
+2008/12/01 Top level selector for Event, Player or Maintenance
+           For Event, only show the associated Courses and Players.
+           For Player, only show the associated Player.
+
+2008/04/08 Need to automate events selection process, perhaps using a
+           login procedure. This could also enable management function.
+
+##############################################################################
+ADDED: 2017/03/24 (Done previously)
+2009/01/21 Courses can change TBOX information from year to year.
+           Historical information should contain rating, slope and yardage.
+           EVENTS.TBOX EVENTS_ID.COURSE_ID.TEEBOX_ID rate slope [yardage] {Color}
+           Fix: EVENTS.POST contains ESC, RATE, SLOPE, COURSE, TEEBOX
+
+ADDED: 2012/05/26
+2012/05/25 PLAYER.HDCP not recognized in PlayerPost.java.
+           Added playerHdcp(playerID, sortedDate) method in CommonJApplet,
+           this is now used in PlayerView.
+
+ADDED: 2012/05/26
+2012/05/26 PlayerView: If date not specified, default to today's date.
+
+ADDED: 2012/02/29
+2010/03/14 Need individual statistics page. (Person-by-person)
+           Added PlayerStat.java
+
+ADDED: 2011/03/06
+2011/03/06 Course update: put tee changes into the database in order.
+
+ADDED: 2008/12/01
+2008/03/06 CourseEdit, CourseView show LD/CP information.
+
+##############################################################################
+FIXED: 2017/04/03
+2014/02/14 In EventsEdit, when changing tee time or player we need to REMOVE
+           all associated EVENTS.TIME entries that exist.
+           (Teams are invalid after any player tee time change.)
+           Also, automatically POST before any team recalculation.
+
+FIXED: 2017/03/24
+2017/03/05 Allow fractional CP value.
+
+2017/03/05 Round CP to nearest tenth. (LD appears to already do this.)
+
+2017/03/05 Add sanity check: CP must be less than 100.
+           LD must be greater than 100.
+
+FIXED: 2013/03/22
+2013/03/21 EventsCard: Does not tab past hole 9 or 18 without data present.
+           The same problem occurs in PlayerCard.
+           Fix: Do not set InputVerifier if SigmaField input is itself a
+           SigmaField. (Tab moves into an invalid, unchangeable field.)
+
+FIXED: 2013/03/21
+2013/03/21 Request: Duplicate hole information for each row in score card.
+
+2012/12/11 When a player is added to an event, his current handicap is
+           not computed.
+
+FIXED: 2013/03/20
+2013/03/20 PlayerHdcp, dates shown in database rather than human order.
+
+2013/02/05 Insert player, PLAYER.FIND nickn (remove) added to DB
+
+FIXED: 2012/02/09
+2012/02/05 Teams obviously not optimized properly.
+           Major repair/update of MonteCarloTeamEvaluator.
+             All evaluators were mathematically incorrect.
+             Added additional evaluations, tweaked evaluation weights.
+             Added optimization routine to improve on Monte Carlo result.
+             Evaluator would get stuck in local minimum and not progress:
+             Added multiple evaluation probes to fix this.
+
+FIXED: 2012/05/27
+
+2012/01/08 When updating events, course names go below bottom of screen
+           making it impossible to set the names via the maintenance panel.
+           Imported MenuScroller.java
+
+FIXED: 2012/05/26
+2012/02/29 Player.add handles nickname incorrectly.
+2012/01/08 When adding player, the nickname was not added properly.
+           PLAYER.FIND P0023 P0023
+           PLAYER.FIND P0023 P0023 (not jerry P0023)
+           PLAYER.NICK P0023 P0023 (not P0023 jerry)
+           (This was a problem with the display, not the logic.)
+
+FIXED: 2011/02/22
+2011/02/20 Can't read yardages for tee boxes with white FG when printed.
+           CourseTboxInfo updated, all colors have black foreground.
+
+FIXED: 2010/10/17
+2010/03/08 Weight day-to-day team variation so that teams change more on
+           a day-to-day basis.
+           Added sameCount array to fix this.
+
+FIXED: 2010/10/16
+2010/03/08 Are DP scores counted for Best2? They shouldn't be.
+           They are: see 2010/03/08 Hole #6.
+
+FIXED: 2009/08/18
+2009/06/09 PlayerCard fails in PlayerView because no score is loaded.
+
+2009/01/21 Match names: COURSE.TBOX and CourseYardInfo.
+           (Now CourseTboxInfo)
+
+FIXED: 2009/05/18 CANNOT REPRODUCE
+2009/03/14 LD/CP does not add to course in CourseAdd, works in CourseEdit.
+
+FIXED: 2009/05/17
+2009/03/14 DP score does not work properly in result viewer, statistics.
+           Frank 3/14 Hole 12
+
+FIXED: 2008/12/03
+2008/12/01 CourseView and EventsCard panels contain editable fields.
+
+FIXED: 2008/06/07
+2008/03/06 Courses may have both Mens and Womens handicap for holes.
+           Need to show both.
+
+FIXED: 2008/04/07
+2008/03/06 DP entry saved as 2xPAR rather than "DP".
+
+##############################################################################
+CLOSED: 2017/03/24 (Already present: PlayerStat.java)
+2017/03/05 Need a beer fund result summary display.
+
+CLOSED: 2013/03/21 Currently not worth fixing.
+2013/02/05 Update Event, players and course both updated even if only one of
+           them changes. (players if only course, course if only players)
+2012/12/11 When updating events, EVENTS.DATE is updated in database
+           even though unchanged when EVENTS.PLAY is also updated.
+
+CLOSED: 2012/05/26
+2012/01/15 When TBOX entry consists only of "COURSE.TBOX C0030.White 69.0 129",
+           Course.View gets array outofbounds exception.
+           Closed: Needs Women's rating and slope.
+

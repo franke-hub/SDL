@@ -1,0 +1,33 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2017-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       filesize
+##
+## Purpose-
+##       Return file size.
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       A=`filesize alpha`; B=`filesize beta`
+##       if [[ $A -gt $B ]] ; then echo alpha -gt beta; fi
+##
+##############################################################################
+if [[ -z $1 || -n $2 ]] ; then
+  echo "$0 ERROR: missing/extra parameters" 1>&2
+  echo "-1"
+  exit
+fi
+
+wc -c $1 | cut -d' ' -f1
+

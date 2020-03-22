@@ -1,0 +1,49 @@
+##############################################################################
+##
+##       Copyright (c) 2014-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       Makefile, BSD version. (Cygwin, Unix)
+##
+## Last change date-
+##       2020/01/21
+##
+##############################################################################
+
+##############################################################################
+## Local controls
+export CLASSPATH=.:OBJHOME:OBJHOME/common.jar
+export SOURCEDIR=SRCHOME
+export OBJECTDIR=OBJHOME
+export MAKRUN=usr.fne.newsreader.MainReader
+
+##############################################################################
+## Set default target
+make.dir: $(MAKOBJ)
+	touch make.dir
+
+.phony: run.server
+run.server: make.dir
+	$(JRUN) -classpath "$(shell cygpath --path --windows "$(CLASSPATH)")" usr.fne.newsreader.MainReader
+
+##############################################################################
+## Makefile.setup contains the local setup controls
+include Makefile.setup
+
+##############################################################################
+## Makefile cleanup
+.phony: MAK_clean
+clean : MAK_clean
+MAK_clean: ;
+	-@rm logfile.out >/dev/null 2>/dev/null
+	-@rm make.dir >/dev/null 2>/dev/null
+

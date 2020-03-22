@@ -1,0 +1,101 @@
+##############################################################################
+##
+##       Copyright (c) 2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.DIR
+##
+## Purpose-
+##       Subdirectory build  control: included from ../Makefile.*
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## TARGET: prerequisites
+PREREQ := $(wildcard $(INCDIR)/pub/*)
+PREREQ += $(wildcard $(SRCDIR)/pub/*)
+PREREQ += $(wildcard $(SRCDIR)/pub/OS/USR/*)
+BSD_PREREQ := $(PREREQ)
+BSD_PREREQ += $(wildcard $(SRCDIR)/pub/OS/BSD/*)
+WIN_PREREQ := $(PREREQ)
+WIN_PREREQ += $(wildcard $(SRCDIR)/pub/OS/WIN/*)
+
+##############################################################################
+## TARGET: pub/libpub.a
+$(OBJDIR)/pub/libpub.a: $(BSD_PREREQ) libcom.a
+	(cd $(OBJDIR)/pub/; export MAKRUN=lib; $(MAKE))
+	touch $@
+
+libpub.a: $(OBJDIR)/pub/libpub.a
+	@echo trace11 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+build.bsd.lib: libpub.a
+
+##############################################################################
+## TARGET: pub/libpub.so.1.0
+$(OBJDIR)/pub/libpub.so.1.0: $(BSD_PREREQ) libcom.so
+	(cd $(OBJDIR)/pub/; export MAKRUN=dll; $(MAKE))
+	touch $@
+
+libpub.so.1.0: $(OBJDIR)/pub/libpub.so.1.0
+	@echo trace12 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+~/bin/libpub.so.1.0: libpub.so
+	cp -Lpf $< $@
+	rebase -b 0x240000000 $@
+	touch $@
+
+libpub.dll: $(OBJDIR)/pub/libpub.so.1.0
+	@echo trace13 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+~/bin/libpub.dll: libpub.dll
+	cp -Lpf $< $@
+	rebase -b 0x240000000 $@
+	touch $@
+
+.SECONDARY: libpub.so.1.0 /usr/local/lib/libpub.so.1.0
+build.cygwin.dll: libpub.dll libpub.so ~/bin/libpub.so
+build.linux.so: libpub.so /usr/local/lib/libpub.so
+
+##############################################################################
+## TARGET: libpub.lib
+$(OBJDIR)/pub/libpub.lib: $(WIN_PREREQ)
+	(cd $(OBJDIR)/pub/; $(MAKE))
+	touch $@
+
+libpub.lib: $(OBJDIR)/pub/libpub.lib libcom.lib
+	cp -Lpf $< $@
+	touch $@
+
+build.win.lib: libpub.lib
+
+##############################################################################
+## Cleanup
+.PHONY: pub.pristine
+pristine.bsd: pub.pristine
+pristine.win: pub.pristine
+pub.pristine: ;
+	(cd $(OBJDIR)/pub/; $(MAKE) pristine)
+
+.PHONY: pub.clean.bsd
+clean.bsd: pub.clean.bsd
+pub.clean.bsd: ;
+	-@rm -f libpub.a >/dev/null 2>/dev/null
+	-@rm -f libpub.so* libpub.dll >/dev/null 2>/dev/null
+
+.PHONY: pub.clean.win
+clean.win: pub.clean.win
+pub.clean.win: ;
+	-@rm -f libpub.lib >/dev/null 2>/dev/null

@@ -1,0 +1,38 @@
+##############################################################################
+##
+##       Copyright (C) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/cpp/Sample/STL/.README
+##
+## Purpose-
+##       Usage notes.
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+Usage of Containers:
+--------------------
+Containers own the Objects that they contain. These objects can be copied
+and/or assigned by the the container.  When the container is deleted, so
+are its contained Objects.
+
+Note that if the container contains pointers, you get what you probably
+expect as long as the object being pointed to does not change. In particular,
+a container<const char*> does not contain the data being referenced, it
+only contains a pointer to it.  Use string objects if that's what you want.
+
+Usage of Allocators:
+--------------------
+Allocators are used by containers to manage the objects that they contain, and
+NOT the container itself.  In a vector of Objects, the Objects are owned by
+the vector, and are copied as the vector expands.
+

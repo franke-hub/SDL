@@ -1,0 +1,30 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/js/sudoku/.README
+##
+## Purpose-
+##       Subdirectory information.
+##
+## Last change date-
+##       2020/03/21
+##
+## Implementation note-
+##       While this subdirectory contains a solve by logic suduku solver,
+##       much of the display logic was extracted from a brute force solver
+##       written in 2005 by Guy Hoghton.
+##
+##       That code did not have a copyright statement and I can no longer
+##       find it anywhere and do not know how to contact the author.
+##       Since the display logic is significant and its redistribution is not
+##       explicitly allowed, it is omitted from this distribution.
+##
+##############################################################################

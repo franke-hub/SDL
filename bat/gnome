@@ -1,0 +1,27 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       gnome
+##
+## Purpose-
+##       Start the gnome terminal session
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       gnome         [OBSOLETE?]
+##
+##############################################################################
+cd /
+dbus-launch /usr/bin/gnome-session 1>~/log/gnome.out 2>~/log/gnome.err &
+

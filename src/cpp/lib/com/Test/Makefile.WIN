@@ -1,0 +1,78 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.WIN
+##
+## Purpose-
+##       WINDOWS Makefile versioning
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## Local module list
+################################### Optional targets
+MAKEXE := $(patsubst $(OBJDIR)/Test_key.exe,,$(MAKEXE))
+MAKEXE := $(patsubst $(OBJDIR)/Test_lex.exe,,$(MAKEXE))
+MAKEXE := $(patsubst $(OBJDIR)/Test_Sys.exe,,$(MAKEXE))
+MAKEXE := $(patsubst $(OBJDIR)/Test_win.exe,,$(MAKEXE))
+MAKEXE := $(patsubst $(OBJDIR)/Testparm.exe,,$(MAKEXE))
+MAKEXE := $(patsubst $(OBJDIR)/TestUnit.exe,,$(MAKEXE))
+
+################################### Objects
+MAKEXE := $(patsubst $(OBJDIR)/Test_SMS.exe,,$(MAKEXE))
+MAKEXE := $(patsubst $(OBJDIR)/SMS_base.exe,,$(MAKEXE))
+MAKEXE := $(patsubst $(OBJDIR)/SMS_Pool.exe,,$(MAKEXE))
+
+################################### Controls
+CINCL  += -I$(OBJDIR)############## Local include directory
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= make.dir
+endif
+
+default: $(DEFAULT)
+
+.PHONY: make.dir
+make.dir: Enviro.exe
+
+.PHONY: make.all
+make.all: $(MAKEXE)
+make.all: Base_SMS.exe Pool_SMS.exe
+
+all: make.all
+
+##############################################################################
+## TARGET: Base_SMS
+Base_SMS.exe: Test_SMS.obj SMS_base.obj
+	$(LD) /out:"$@" $(CLOAD) $? $(CLIBS)
+
+##############################################################################
+## TARGET: Pool_SMS
+Pool_SMS.exe: Test_SMS.obj SMS_Pool.obj
+	$(LD) /out:"$@" $(CLOAD) $? $(CLIBS)
+
+##############################################################################
+## Dependencies
+$(MAKEXE): $(LIBDIR)/libcom.lib
+
+##############################################################################
+## Makefile cleanup
+clean : clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	-@rm debug.out Logger.log    >/dev/null 2>/dev/null
+	-@rm debug.log MediaTest.out >/dev/null 2>/dev/null
+

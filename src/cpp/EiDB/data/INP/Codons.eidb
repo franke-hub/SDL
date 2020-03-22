@@ -1,0 +1,174 @@
+> Short start end
+AaaTG
+
+> Short start end
+ATaaG
+
+> Short start end (no introns)
+ATG
+
+> Short start end
+ATGaaCCCGGG..TTT
+
+> Short start
+A..TGCCC
+
+> Short start
+AT..GCCC
+
+> Short start
+ATG..CCCA
+
+> No end - discarded
+ATGCCC..AAAGAC..
+
+> No end - discarded
+ATGCCC..AAAGA..
+
+> No end - discarded
+ATGCCC..AAAG..
+
+> Short incomplete end
+ATGCCC..A
+
+> Short incomplete end
+ATGCCC..AA
+
+> Short incomplete end
+ATGCCC..A..A
+
+> Short incomplete end
+ATGCCC..AAAC..A
+
+> Short incomplete end
+ATGCCC..AAACCC..A
+
+> Short incomplete end
+ATGCCC..AAACCC..AA
+
+> Short but complete end
+ATGCCC..AAACC..C
+
+> Short but complete end
+ATGCCC..AAAC..CC
+
+> Short but complete end
+ATGCCC..AAACCC..TTT
+
+> Bogus inner sequence
+ATGCCC..G..G..G..TTT
+
+> Partially bogus inner sequence
+ATGCCCCC..G..G..G..TTTTT
+
+> ATG test 0
+ATG
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+GGGGGGGGggggggggTTTTTTTTtttttttt
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+GGGGGGGGggggggggTTTTTTTTtttttttt
+
+> ATG test 1
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+ATG
+GGGGGGGGggggggggTTTTTTTTtttttttt
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+GGGGGGGGggggggggTTTTTTTTtttttttt
+
+> ATG test 2
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+GGGGGGGGggggggggTTTTTTTTtttttttt
+ATG
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+GGGGGGGGggggggggTTTTTTTTtttttttt
+
+> ATG test 3
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+GGGGGGGGggggggggTTTTTTTTtttttttt
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+ATG
+GGGGGGGGggggggggTTTTTTTTtttttttt
+
+> ATG wildcard test 0
+NNN
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+GGGGGGGGggggggggTTTTTTTTtttttttt
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+GGGGGGGGggggggggTTTTTTTTtttttttt
+
+> ATG wildcard test 1
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+AKK
+GGGGGGGGggggggggTTTTTTTTtttttttt
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+GGGGGGGGggggggggTTTTTTTTtttttttt
+
+> ATG wildcard test 2
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+GGGGGGGGggggggggTTTTTTTTtttttttt
+RTR
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+GGGGGGGGggggggggTTTTTTTTtttttttt
+
+> ATG wildcard test 3
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+GGGGGGGGggggggggTTTTTTTTtttttttt
+AAAAAAAAaaaaaaaaCCCCCCCCcccccccc
+WWG
+GGGGGGGGggggggggTTTTTTTTtttttttt
+
+> TTT wildcard test 0
+ATG..GAC..
+TTTTTT
+
+> TTT wildcard test 1
+ATG..GAC..
+NNNTTT
+
+> TTT wildcard test 2
+ATG..GAC..
+YYYTTT
+
+> TTT wildcard test 3
+ATG..GAC..
+WWWTTT
+
+> TTT wildcard test 4
+ATG..GAC..
+KKKTTT
+
+> TTT wildcard test 5
+ATG..GAC..
+BBBTTT
+
+> TTT wildcard test 6
+ATG..GAC..
+DDDTTT
+
+> TTT wildcard test 7
+ATG..GAC..
+HHHTTT
+
+> Phase 0 only
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa
+ATG
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa
+
+> Phase 1 mostly
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa
+ATGaaaaT
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa
+
+> Phase 2 mostly
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa
+ATGaaaaTT
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa
+AAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaaAAACCCGGGTTTaaaa

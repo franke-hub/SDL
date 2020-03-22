@@ -1,0 +1,56 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.WIN
+##
+## Purpose-
+##       WINDOWS Makefile versioning
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## Set defaults
+MAKRUN := libgui.lib
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT := $(MAKRUN)
+endif
+
+default: $(DEFAULT)
+all: $(MAKRUN)
+
+##############################################################################
+## TARGET: libgui.lib
+libgui.lib: $(MAKOBJ)
+	$(AR) /out:"$(@)" $(MAKOBJ)
+	touch $@
+
+##############################################################################
+## Dependencies
+ifneq "" "$(DEPENDS)"
+Makeproj.dep: $(wildcard $(INCDIR)/gui/*)
+Makeproj.dep: $(wildcard $(SRCDIR)/*)
+Makeproj.dep: $(wildcard $(SRCDIR)/gui/OS/USR/*)
+Makeproj.dep: $(wildcard $(SRCDIR)/gui/OS/WIN/*)
+endif
+
+##############################################################################
+## Cleanup
+.PHONY: gui.clean.win
+clean: gui.clean.win
+gui.clean.win: ;
+	-@rm libgui.lib >/dev/null 2>/dev/null
+

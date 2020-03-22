@@ -1,0 +1,26 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       mktar
+##
+## Purpose-
+##       Create a tar file.
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       mktar outfile inppath
+##
+##############################################################################
+tar -cvf $1.tar -C $2 .
+

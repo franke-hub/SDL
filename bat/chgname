@@ -1,0 +1,108 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       chgname
+##
+## Purpose-
+##       Rename a list of files.
+##
+## Last change date-
+##       2019/10/07
+##
+## Usage-
+##       chgname from into file ...
+##
+##       from  Change "from" string
+##       into  Change "into" string
+##       file  List of files for which change applies
+##
+##       Given a list of files in a directory
+##         aa01 aa02 ab03
+##         chgname aa xx *
+##       The files are renamed into
+##         xx01 xx02 ab03
+##
+##############################################################################
+
+##############################################################################
+## Validate environment
+type sed >/dev/null 2>/dev/null
+if [ $? != 0 ] ; then
+  echo "Missing /usr/bin/sed"
+  exit 1
+fi
+
+##############################################################################
+## Function: USAGE
+function usage
+{
+  echo "$0: Rename a list of files"
+  echo ""
+  echo "Usage: $0 from into file ..."
+  echo "For each file in list, if the from string is present in the name"
+  echo "the file is renamed, replacing the from string with the into string."
+  echo "There is a maximum of one replacement per name."
+}
+
+##############################################################################
+## Validate parameters
+if [ -z "$1" ] ; then
+  echo "Missing \"from\" string"
+  usage
+  exit 1
+fi
+from=$1
+shift
+
+if [ -z "$1" ] ; then
+  echo "Missing \"into\" string"
+  usage
+  exit 1
+fi
+into=$1
+shift
+
+if [ -z "$1" ] ; then
+  echo "Missing file list"
+  usage
+  exit 1
+fi
+
+##############################################################################
+## Process the function
+for i in $*
+do
+  oldname=$i
+  newname=`echo $oldname | sed --line-length=1024 --expression="s\"$from\"$into\""`
+  message=""
+  if [ "$oldname" != "$newname" ] ; then
+    if [ -z "$message" ] ; then
+      if [ ! -e "$oldname" ] ; then
+        message="File '$oldname' does not exist"
+      fi
+    fi
+
+    if [ -z "$message" ] ; then
+      if [ -e "$newname" ] ; then
+        message="File '$newname' already exists"
+      fi
+    fi
+
+    if [ -z "$message" ] ; then
+      mv $oldname $newname
+    else
+      echo "Skipped: '$oldname' to '$newname': $message"
+    fi
+  fi
+
+done
+

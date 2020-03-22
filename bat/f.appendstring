@@ -1,0 +1,96 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2012-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       f.appendstring
+##
+## Purpose-
+##       Append to string.
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       . f.appendString
+##       AppendString PATH $HOME/bin
+##       PrependString PATH $HOME/bat
+##       AppendString CLASSPATH $HOME/bin ';'
+##
+##############################################################################
+
+##############################################################################
+## APPENDSTRING: Append data to string
+function AppendString
+{
+# date "+%s.%N AppendString '$1' '$2' '$3'" >>/var/log/user.log
+  __varpath=$1
+  __varfile=$2
+  __sepchar=":"
+  if [[ ! -z "$3" ]] ; then
+    __sepchar="$3"
+  fi
+
+  __current=`eval echo \\${${__varpath?}}`
+  if [[ -z "${__current}" ]] ; then
+    eval ${__varpath?}="${__varfile}"
+    unset __varpath __varfile __sepchar __current
+    return
+  fi
+
+  if [[ "${__current}" == "${__varfile}" ]] ; then
+    unset __varpath __varfile __sepchar __current
+    return
+  fi
+
+  __foundL=`echo "${__current?}" | grep "^${__varfile?}${__sepchar?}"`
+  __foundM=`echo "${__current?}" | grep "${__sepchar?}${__varfile?}${__sepchar?}"`
+  __foundR=`echo "${__current?}" | grep "${__sepchar?}${__varfile?}\\$"`
+  if [[ -z "${__foundL}${__foundM}${__foundR}" ]] ; then
+    export ${__varpath?}="${__current?}${__sepchar?}${__varfile?}"
+  fi
+
+  unset __varpath __varfile __sepchar __current __foundL __foundM __foundR
+}
+
+##############################################################################
+## PREPENDSTRING: Prepend data to string
+function PrependString
+{
+# date "+%s.%N PrependString '$1' '$2' '$3'" >>/var/log/user.log
+  __varpath=$1
+  __varfile=$2
+  __sepchar=":"
+  if [[ ! -z "$3" ]] ; then
+    __sepchar="$3"
+  fi
+
+  __current=`eval echo \\${${__varpath?}}`
+  if [[ -z "${__current}" ]] ; then
+    eval ${__varpath?}="${__varfile}"
+    unset __varpath __varfile __sepchar __current
+    return
+  fi
+
+  if [[ "${__current}" == "${__varfile}" ]] ; then
+    unset __varpath __varfile __sepchar __current
+    return
+  fi
+
+  __foundL=`echo "${__current?}" | grep "^${__varfile?}${__sepchar?}"`
+  __foundM=`echo "${__current?}" | grep "${__sepchar?}${__varfile?}${__sepchar?}"`
+  __foundR=`echo "${__current?}" | grep "${__sepchar?}${__varfile?}\\$"`
+  if [[ -z "${__foundL}${__foundM}${__foundR}" ]] ; then
+    export ${__varpath?}="${__varfile?}${__sepchar?}${__current?}"
+  fi
+
+  unset __varpath __varfile __sepchar __current __foundL __foundM __foundR
+}
+

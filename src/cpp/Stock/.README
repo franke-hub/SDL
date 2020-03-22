@@ -1,0 +1,30 @@
+##############################################################################
+##
+##       Copyright (C) 2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/cpp/Stock/.README
+##
+## Purpose-
+##       Stock .README
+##
+## Last change date-
+##       2019/01/01
+##
+##############################################################################
+##
+## This is a stock analysis program which attempts to create a method for
+## buying and selling stock. Buying and selling are restrictive in that
+## sales could only take place in the day after current information was
+## available.
+##
+## This works OK given the history presented to it. However, it had absolutely
+## no predictive power. Maybe you can do better.
+##
+##############################################################################

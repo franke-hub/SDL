@@ -1,0 +1,38 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2016-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       timer
+##
+## Purpose-
+##       Test ../Time.py, ../Math.py, and ../Format.py
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       timer
+##
+##############################################################################
+foo=`Time.py`
+sleep 3
+bar=`Time.py`
+tod=`Time.py`
+echo `Math.py $bar - $foo`
+echo `Math.py $tod - $bar`
+
+# Need to make Format.py convert numbers
+del=`Math.py $bar - $foo`
+echo `Format.py "%.2f" $del`
+del=`Math.py $tod - $bar`
+echo `Format.py "%.2f" $del`
+# echo `Format.py "%.2f" `Math.py $tod - $bar` ` ## SYNTAX ERROR
+

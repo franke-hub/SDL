@@ -1,0 +1,19 @@
+///////////////////////////////////////////////////////////////////////
+//                                                                   //
+// Title-                                                            //
+//       q.n                                                         //
+//                                                                   //
+// Description-                                                      //
+//       Quick bringup test.                                         //
+//                                                                   //
+// Notes-                                                            //
+//       This should have an incremental result each time it's run   //
+//                                                                   //
+///////////////////////////////////////////////////////////////////////
+begin file[BUP.000] bringup;
+
+   NEURON[inc] counter;
+     entry;
+     fanin read[counter];
+
+END bringup;

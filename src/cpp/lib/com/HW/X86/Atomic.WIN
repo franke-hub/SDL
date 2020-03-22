@@ -1,0 +1,330 @@
+//----------------------------------------------------------------------------
+//
+//       Copyright (c) 2007 Frank Eskesen.
+//
+//       This file is free content, distributed under the Lesser GNU
+//       General Public License, version 3.0.
+//       (See accompanying file LICENSE.LGPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//
+//----------------------------------------------------------------------------
+//
+// Title-
+//       HW/X86/Atomic.WIN
+//
+// Purpose-
+//       Atomic library routines: X586 multiprocessor, Microsoft compiler
+//
+// Last change date-
+//       2007/01/01
+//
+//----------------------------------------------------------------------------
+#ifdef _WIN64
+  #include <intrin.h>
+#endif
+
+//----------------------------------------------------------------------------
+//
+// csb (Compare-and-swap byte)
+//
+// cc= 1;
+// atomic {
+//   if ((*swapAddr) == oldValue) {
+//     *swapAddr= newValue;
+//     cc= 0;
+//     }
+//   }
+// return cc;
+//
+//----------------------------------------------------------------------------
+extern "C" int                      // Condition code
+   csb(                             // Compare-and-swap byte
+     ATOMIC8*          swapAddr,    // -> Swap byte
+     const int8_t      oldValue,    // Old value
+     const int8_t      newValue)    // New value
+{
+   int                 cc;
+
+#ifdef _WIN64
+   int8_t temp= _InterlockedCompareExchange8(
+                    (volatile char*)swapAddr, newValue, oldValue);
+   cc= (temp != oldValue);
+
+#else
+   __asm                            // Assembler code
+   {
+     mov     edi, swapAddr
+
+     mov     bl, newValue
+     mov     al, oldValue
+     lock cmpxchg BYTE PTR [edi], bl
+     jnz     failure
+     xor     edi, edi
+failure:
+     mov     cc, edi
+     ;
+   }
+#endif
+
+   return cc;
+}
+
+//----------------------------------------------------------------------------
+//
+// csh (Compare-and-swap halfword)
+//
+// cc= 1;
+// atomic {
+//   if ((*swapAddr) == oldValue) {
+//     *swapAddr= newValue;
+//     cc= 0;
+//     }
+//   }
+// return cc;
+//
+//----------------------------------------------------------------------------
+extern "C" int                      // Condition code
+   csh(                             // Compare-and-swap halfword
+     ATOMIC16*         swapAddr,    // -> Swap halfword
+     const int16_t     oldValue,    // Old value
+     const int16_t     newValue)    // New value
+{
+   int                 cc;
+
+#ifdef _WIN64
+   int16_t temp= _InterlockedCompareExchange16(swapAddr, newValue, oldValue);
+   cc= (temp != oldValue);
+
+#else
+   __asm                            // Assembler code
+   {
+     mov     edi, swapAddr
+
+     mov     bx, newValue
+     mov     ax, oldValue
+     lock cmpxchg WORD PTR [edi], bx
+     jnz     failure
+     xor     edi, edi
+failure:
+     mov     cc, edi
+     ;
+   }
+#endif
+
+   return cc;
+}
+
+//----------------------------------------------------------------------------
+//
+// csd (Compare-and-swap double)
+//
+// cc= 1;
+// atomic {
+//   if ((*swapAddr) == oldValue) {
+//     *swapAddr= newValue;
+//     cc= 0;
+//     }
+//   }
+// return cc;
+//
+//----------------------------------------------------------------------------
+extern "C" int                      // Condition code
+   csd(                             // Compare-and-swap double
+     ATOMIC64*         swapAddr,    // -> Swap doubleword
+     const int64_t     oldValue,    // Old value
+     const int64_t     newValue)    // New value
+{
+   int                 cc;
+
+#ifdef _WIN64
+   int64_t temp= _InterlockedCompareExchange64(swapAddr, newValue, oldValue);
+   cc= (temp != oldValue);
+
+#else
+   __asm                            // Assembler code
+   {
+     mov     edi, swapAddr
+
+     mov     ebx, DWORD PTR newValue+0
+     mov     ecx, DWORD PTR newValue+4
+
+     mov     eax, DWORD PTR oldValue+0
+     mov     edx, DWORD PTR oldValue+4
+
+     lock cmpxchg8b QWORD PTR [edi]
+     jnz     failure
+     xor     edi, edi
+failure:
+     mov     cc, edi
+     ;
+   }
+#endif
+
+   return cc;
+}
+
+//----------------------------------------------------------------------------
+//
+// csp (Compare-and-swap Pointer
+//
+// cc= 1;
+// atomic {
+//   if ((*swapAddr) == oldValue) {
+//     *swapAddr= newValue;
+//     cc= 0;
+//     }
+//   }
+// return cc;
+//
+//----------------------------------------------------------------------------
+extern "C" int                      // Condition code
+   csp(                             // Compare-and-swap pointer
+     ATOMICP**         swapAddr,    // -> Swap pointer
+     const ATOMICP*    oldValue,    // Old value
+     const ATOMICP*    newValue)    // New value
+{
+   int                 cc;
+
+#ifdef _WIN64
+   void* temp= _InterlockedCompareExchangePointer(
+                   (void* volatile*)swapAddr, (void*)newValue, (void*)oldValue);
+   cc= (temp != oldValue);
+
+#else
+   __asm                            // Assembler code
+   {
+     mov     edi, swapAddr
+     mov     ebx, newValue
+     mov     eax, oldValue
+     lock cmpxchg DWORD PTR [edi], ebx
+     jnz     failure
+     xor     edi, edi
+failure:
+     mov     cc, edi
+     ;
+   }
+#endif
+
+   return cc;
+}
+
+//----------------------------------------------------------------------------
+//
+// csw (Compare-and-swap word)
+//
+// cc= 1;
+// atomic {
+//   if ((*swapAddr) == oldValue) {
+//     *swapAddr= newValue;
+//     cc= 0;
+//     }
+//   }
+// return cc;
+//
+// Implementation note-
+//       Dependent upon the current Windows implementation of 32bit long.
+//
+//----------------------------------------------------------------------------
+extern "C" int                      // Condition code
+   csw(                             // Compare-and-swap word
+     ATOMIC32*         swapAddr,    // -> Swap word
+     const int32_t     oldValue,    // Old value
+     const int32_t     newValue)    // New value
+{
+   int                 cc;
+
+#ifdef _WIN64
+   int32_t temp= _InterlockedCompareExchange(
+                     (volatile long*)swapAddr, newValue, oldValue);
+   cc= (temp != oldValue);
+
+#else
+   __asm                            // Assembler code
+   {
+     mov     edi, swapAddr
+
+     mov     ebx, newValue
+     mov     eax, oldValue
+     lock cmpxchg DWORD PTR [edi], ebx
+     jnz     failure
+     xor     edi, edi
+failure:
+     mov     cc, edi
+     ;
+   }
+#endif
+
+   return cc;
+}
+
+//----------------------------------------------------------------------------
+//
+// isync (Instruction synch)
+//
+// Does not return until all prior machine instructions have completed.
+//
+//----------------------------------------------------------------------------
+extern "C" void
+   isync( void )                    // Instruction synch
+{
+#ifdef _WIN64
+   _ReadWriteBarrier();
+
+#else
+   __asm                            // Assembler code
+   {
+     wait
+   }
+#endif
+}
+
+//----------------------------------------------------------------------------
+//
+// tsb (Test-and-set byte)
+//
+// cc= 1;
+// atomic {
+//   if (((*swapAddr) & 0x80) == 0)
+//     cc= 0;
+//   *swapAddr= 0xFF;
+//   }
+// return cc;
+//
+//----------------------------------------------------------------------------
+extern "C" int                      // Condition code
+   tsb(                             // Test-and-set byte
+     ATOMIC8*          swapAddr)    // -> Test byte
+{
+   int                 cc;
+
+#ifdef _WIN64
+   char oldValue;
+
+   do
+   {
+     oldValue= *swapAddr;
+     int8_t temp= _InterlockedCompareExchange8(
+                     (volatile char*)swapAddr, 0xFF, oldValue);
+     cc= (temp != oldValue);
+   } while(cc != 0);
+
+   cc= ((oldValue & 0x80) != 0);
+
+#else
+   __asm                            // Assembler code
+   {
+     mov     edi, swapAddr
+     mov     al, 0xFF
+     lock xchg BYTE PTR [edi], al
+     and     al, 0x80
+     jnz     failure
+     xor     edi, edi
+failure:
+     mov     cc, edi
+     ;
+   }
+#endif
+
+   return cc;
+}
+

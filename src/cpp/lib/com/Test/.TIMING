@@ -1,0 +1,32 @@
+##############################################################################
+##
+##       Copyright (c) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the Lesser GNU
+##       General Public License, version 3.0.
+##       (See accompanying file LICENSE.LGPL-3.0 or the original
+##       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/cpp/lib/com/Test/.TIMING
+##
+## Purpose-
+##       Timing test results.
+##
+## Last change date-
+##       2020/01/05
+##
+##############################################################################
+
+##############################################################################
+## TestDisp -time (Elapsed time in seconds)
+##############################################################################
+## 2020/01/05 (Windows upgraded to WIN10)
+##                WIN      UIX
+##       Min:  16.854   22.684
+##       Avg:  17.993   23.646
+##       Max:  18.715   24.519
+##
+

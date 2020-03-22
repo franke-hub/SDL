@@ -1,0 +1,36 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+##
+## Title-
+##       ~/bat/.home/.README
+##
+## Purpose-
+##       Describe subdirectory content.
+##
+## Last change date-
+##       2020/01/19
+##
+## Implementation notes-
+##       This subdirectory contains suggested content for your $HOME directory.
+##       Put edited versions of these control files your $HOME directory.
+##
+## Usage notes-
+##       .bash_history -> /etc/RO is used to disable bash history recording.
+##       To create /etc/RO:
+##           sudo touch /etc/RO
+##           sudo chmod a=r /etc/RO
+##
+##       .bash_logout is not included. It is unchanged from whatever version
+##       is provided by your distribution.
+##
+##       .gitconfig ** REQUIRES USER MODIFICATION **
+##
+##############################################################################

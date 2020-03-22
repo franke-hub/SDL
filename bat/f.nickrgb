@@ -1,0 +1,94 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2012-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       f.nickrgb
+##
+## Purpose-
+##       Nickname for color sets
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       `nickrgb alias_name`
+##
+##############################################################################
+
+##############################################################################
+## Define the function
+function nickrgb
+{ COLORSET=""
+
+##############################################################################
+## Determine the actual colorset
+case $1 in
+  linux)
+    COLORSET="-fg wheat -bg SlateBlue4"
+    ;;
+
+  flame)
+    COLORSET="-fg black -bg HotPink"
+    ;;
+
+  indian)
+    COLORSET="-fg wheat -bg IndianRed"
+    ;;
+
+  maroon)
+    COLORSET="-fg yellow -bg Maroon4"
+    ;;
+
+  none)
+    COLORSET=""
+    ;;
+
+  paper)
+    COLORSET="-fg black -bg ivory"
+    ;;
+
+  partner)
+    COLORSET="-fg wheat -bg DarkGreen"
+    ;;
+
+  root)
+    COLORSET="-fg wheat -bg FireBrick"
+    ;;
+
+  temp | test)
+    COLORSET="-fg black -bg PowderBlue"
+    ;;
+
+  list)
+    echo "black   " `cs black`
+    echo "flame   " `cs flame`
+    echo "indian  " `cs indian`
+    echo "linux   " `cs linux`
+    echo "maroon  " `cs maroon`
+    echo "paper   " `cs paper`
+    echo "partner " `cs partner`
+    echo "root    " `cs root`
+    echo "temp    " `cs temp`
+    echo "test    " `cs test`
+    echo "default " `cs default`
+    ;;
+
+  *)
+    COLORSET="-fg wheat -bg Black"
+    ;;
+
+esac
+
+##############################################################################
+## Return the translated directory name
+echo "$COLORSET"
+  }
+

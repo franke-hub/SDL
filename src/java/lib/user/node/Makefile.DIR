@@ -1,0 +1,28 @@
+##############################################################################
+##
+##       Copyright (C) 2007 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.DIR -- Included by ../../Makefile.BSD
+##############################################################################
+
+##############################################################################
+## TARGET: user.jar
+user.jar : $(OBJDIR)/user/node/make.dir
+
+$(OBJDIR)/user/node/make.dir: $(wildcard $(SRCDIR)/user/node/*.java)
+	(cd $(OBJDIR)/user/node; $(MAKE))
+
+MAKJAR += $(patsubst $(SRCDIR)/user/node/%.java,$(OBJDIR)/user/node/%.class,$(wildcard $(SRCDIR)/user/node/*.java))
+
+##############################################################################
+## Cleanup
+pristine : user.node.pristine
+.PHONY: user.node.pristine
+user.node.pristine : ;
+	(cd user/node; $(MAKE) pristine)
+

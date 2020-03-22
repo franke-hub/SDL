@@ -1,0 +1,43 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       heading
+##
+## Purpose-
+##       List a shell script heading formatted like this one.
+##
+## Last change date-
+##       2019/10/07
+##
+## Usage-
+##       heading scriptName
+##
+##############################################################################
+
+##############################################################################
+# Validate the parameters
+if [ -z "$1" ] ; then
+  echo "Usage: heading file_name"
+  exit
+fi
+
+##############################################################################
+# Insure that we are trying to look at flat file.
+if [ ! -f "$1" ] ; then
+  echo $1 is not a file
+  exit
+fi
+
+##############################################################################
+# Print the file header
+sed -n "2,/####/p" -s $1
+

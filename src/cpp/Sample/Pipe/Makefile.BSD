@@ -1,0 +1,46 @@
+##############################################################################
+##
+##       Copyright (C) 2007-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.BSD
+##############################################################################
+
+##############################################################################
+## Local module list
+MAKEXE :=
+MAKOBJ := $(patsubst $(OBJDIR)/main.o,,$(MAKOBJ))
+MAKEXE += main
+MAKOBJ := $(patsubst $(OBJDIR)/sample.o,,$(MAKOBJ))
+MAKEXE += sample
+LLIBS  += -L. -llocal
+## MOPTS  += -bmaxdata:0x80000000
+## MLIBS  += -L. -llocal ## -bmaxdata:0x80000000
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## Build: liblocal.a
+liblocal.a : $(MAKOBJ)
+	$(AR) $(@) $(MAKOBJ)
+
+$(MAKEXE) : liblocal.a
+
+##############################################################################
+## Makefile cleanup
+clean : clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	-@rm liblocal.a >/dev/null 2>/dev/null
+

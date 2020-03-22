@@ -1,0 +1,105 @@
+##############################################################################
+##
+##       Copyright (C) 2015-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.DIR
+##
+## Purpose-
+##       Control file included from ../Makefile.*
+##
+## Last change date-
+##       2019/01/16
+##
+##############################################################################
+
+##############################################################################
+## TARGET: definition
+.PHONY: target build.bsd build.win
+target: $(OBJDIR)/Import.dll
+ignore: $(OBJDIR)/Import.net
+
+build.bsd: target
+build.win: target
+
+##############################################################################
+## DEFINE: prerequisites
+PREREQ := $(wildcard $(SRCDIR)/Import/*)
+
+##############################################################################
+## TARGET: $(OBJDIR)/Import.dll
+$(OBJDIR)/Import/Import.dll: $(PREREQ)
+	(cd $(OBJDIR)/Import/; $(MAKE))
+	touch $@
+
+ifeq "$(MAKENV)" "BSD"
+$(OBJDIR)/Import.dll: $(OBJDIR)/Import/Import.dll
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+endif
+
+ifeq "$(MAKENV)" "WIN"
+$(OBJDIR)/Import.dll: $(OBJDIR)/Import/Import.dll
+	cp -Lpf $< $@
+	chmod a+rx,u+w $@
+endif
+
+##############################################################################
+## TARGET: $(OBJDIR)/Import.net
+$(OBJDIR)/Import/Import.net: $(PREREQ)
+	(cd $(OBJDIR)/Import/; $(MAKE))
+	touch $@
+
+ifeq "$(MAKENV)" "BSD"
+$(OBJDIR)/Import.net: $(OBJDIR)/Import/Import.net
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+endif
+
+ifeq "$(MAKENV)" "WIN"
+$(OBJDIR)/Import.net: $(OBJDIR)/Import/Import.net
+	cp -Lpf $< $@
+	chmod a+rx,u+w $@
+endif
+
+##############################################################################
+## TARGET: Import.pdb Import.mdb
+.PHONY: Import.pdb
+ifeq "$(MAKENV)" "BSD"
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+Import.pdb: ;
+	$(shell [ ! -L Import.pdb ] && [ -f Import/Import.pdb ] && ln -s Import/Import.pdb .)
+	@echo "Import: *.pdb updated"
+
+else
+.PHONY: Import.mdb
+Import.mdb: ;
+	$(shell [ ! -L Import.dll.mdb ] && [ -f Import/Import.dll.mdb ] && ln -s Import/Import.dll.mdb .)
+	$(shell [ ! -L Import.net.mdb ] && [ -f Import/Import.net.mdb ] && ln -s Import/Import.net.mdb .)
+	@echo "Import: *.mdb updated"
+endif
+endif
+
+ifeq "$(MAKENV)" "WIN"
+Import.pdb: ;
+	$(shell [ ! -f Import.pdb ] && [ -f Import/Import.pdb ] && cp -Lpf Import/Import.pdb .)
+	$(shell [ -f Import.pdb ] && chmod a+rx,u+w Import.pdb)
+	@echo "Import: *.pdb updated"
+endif
+
+##############################################################################
+## Cleanup
+.PHONY: Import.pristine Import.clean
+pristine: Import.pristine
+clean: Import.clean
+
+Import.pristine: ;
+	(cd $(OBJDIR)/Import/; $(MAKE) pristine)
+
+Import.clean: ;
+	-@rm -f Import.dll Import.net Import.pdb Import.mdb >/dev/null 2>/dev/null
+

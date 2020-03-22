@@ -1,0 +1,64 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## Local module list
+MAKEXE := $(patsubst $(OBJDIR)/WormBuffer,,$(MAKEXE))
+MAKOBJ := WormBuffer.o
+
+################################### Controls
+LLIBS  += -L$(OBJDIR) -llocal###### Local library
+LLIBS  += -L$(LIBDIR) -lgui ####### GUI library
+LLIBS  += -L$(LIBDIR) -ljpeg ###### JPEG library
+LLIBS  += -lX11 ################### X11 library
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= make.dir
+endif
+
+.PHONY: make.dir
+make.dir: $(MAKEXE)
+
+.PHONY: make.all
+make.all: $(MAKEXE)
+
+all: make.all
+
+##############################################################################
+## TARGET: liblocal.a
+liblocal.a : $(MAKOBJ)
+	$(AR) $(@) $(MAKOBJ)
+
+##############################################################################
+## Dependencies
+$(MAKEXE) : liblocal.a L/libcom.a L/libgui.a
+
+##############################################################################
+## Makefile cleanup
+clean : clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	-@rm -f sample.log >/dev/null 2>/dev/null
+	-@rm -f simple.log >/dev/null 2>/dev/null
+	-@rm -f liblocal.a >/dev/null 2>/dev/null
+

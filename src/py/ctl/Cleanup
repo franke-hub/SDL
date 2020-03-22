@@ -1,0 +1,46 @@
+#!/usr/bin/python3
+##############################################################################
+##
+## Title-
+##       Cleanup
+##
+## Purpose-
+##       Remove all .pyc files from this directory and any subdirectories.
+##
+##############################################################################
+"""Cleanup utility for python subdirectories.
+
+This script removes all .pyc files from the current and any subdirectories.
+(Links are not followed for subdirectories.  However, if you happen to have
+file links with .pyc extensions, they will be deleted.)
+"""
+
+import os                           ## For os.path, os.remove, os.sep, os.walk
+import sys                          ## For sys.argv
+
+##############################################################################
+## Clean up subdirectory tree
+##############################################################################
+def clean(path):
+    # print "clean(%s)" % path
+    tuples = os.walk(path)
+    for tuple in tuples:
+        # tuple = (path, directories, files)
+        for file in tuple[2]:
+            name = os.path.join(tuple[0], file)
+            # print("name:", name)
+            if name.endswith(".pyc"):
+                os.remove(name)
+                print("removed:", name)
+
+    print(".... Done ....")
+
+##############################################################################
+## Mainline code
+##############################################################################
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "__doc__":
+        print(__doc__)
+    else:
+        clean(os.path.dirname(sys.argv[0]))
+

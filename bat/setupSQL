@@ -1,0 +1,32 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2012-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       setupSQL
+##
+## Purpose-
+##       Initialize for MySQL.
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       . setupSQL
+##
+##############################################################################
+mysql=/cygdrive/c/Program\ Files/MySQL/MySQL\ Server\ 5.1
+if [[ -d "$mysql/bin" && -d "$mysql/lib" ]] ; then
+  export PATH=$PATH:$mysql/bin
+  export LD_RUN_PATH=$mysql/lib
+else
+  echo "Cannot find MySQL home"
+fi
+

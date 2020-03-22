@@ -1,0 +1,70 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       CA_build
+##
+## Function-
+##       Initialize a certificate authority directory.
+##
+## Last change date-
+##       2019/04/03
+##
+## Usage-
+##       CA_build {/path/to/OPENSSL_CONF/}
+##
+##############################################################################
+
+##############################################################################
+## Verify the request
+[[ -n "$2" ]] && { echo "Extra parameter(s)"; exit 1; }
+OPENSSL_PATH=$PWD
+[[ -n "$1" ]] && OPENSSL_PATH=$1
+[[ "${OPENSSL_PATH:0:1}" != "/" ]] && { echo "Error: '$OPENSSL_PATH'[1] != '/'" ; exit 1; }
+
+text=`ls $OPENSSL_PATH/.`
+if [[ -n "$text" ]] ; then
+  echo "$OPENSSL_PATH/ Must be empty"
+  exit 1
+fi
+export OPENSSL_CONF=$OPENSSL_PATH/openssl.cnf
+
+echo OPENSSL_PATH \"$OPENSSL_PATH\"
+echo OPENSSL_CONF \"$OPENSSL_CONF\"
+
+##############################################################################
+## Create the required subdirectories
+mkdir $OPENSSL_PATH/certs           ## Certificate database directory
+mkdir $OPENSSL_PATH/crl             ## Revocation list directory
+mkdir $OPENSSL_PATH/newcerts        ## Certificate request directory
+mkdir $OPENSSL_PATH/private         ## Private directory
+chmod go= certs crl newcerts private
+
+##############################################################################
+## Create the index and serial number control files
+touch       $OPENSSL_PATH/index.txt
+echo "01" >>$OPENSSL_PATH/crlnumber
+echo "01" >>$OPENSSL_PATH/serial
+
+##############################################################################
+## Create the configuration control file
+opt=s\"{CA_PATH}\"$OPENSSL_PATH\"
+cat ${0%/CA_build}/openssl.cnf | sed "$opt" >$OPENSSL_CONF
+
+##############################################################################
+## Create the signing key
+echo "Creating the signing key..."
+cd $OPENSSL_PATH
+openssl req -x509 -days 365 -newkey rsa -out ./cacert.pem -outform PEM
+
+echo "Verifying the signing key..."
+openssl x509 -in cacert.pem -text -purpose -noout
+

@@ -1,0 +1,112 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       editgpg
+##
+## Purpose-
+##       Edit a GPG encrypted file.
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       editgpg [-as userid] foo
+##
+##############################################################################
+
+##############################################################################
+## Function: USAGE
+function usage
+{
+  echo ""
+  echo "$0: Edit a GPG encrypted file"
+  echo "Usage: $0 [-as username] file"
+  echo "Filename file.gpg must exist"
+  echo "The GPG encrypted file is decrypted into \"file\", and this"
+  echo "unencrypted file is edited. If \"file\" exists when the editor"
+  echo "exits, the file is reencrypted into \"file.gpg\""
+}
+
+##############################################################################
+## Parameter check
+GPGUSER=$USER
+GPGFILE=$1
+if [ "$GPGFILE" = "-as" ] ; then
+  shift
+  GPGUSER=$1
+  shift
+  GPGFILE=$1
+  if [ -z "$GPGUSER" ] ; then
+    echo "Error: username not specified"
+    usage
+    exit 1
+  fi
+fi
+
+if [ -z "$GPGFILE" ] ; then
+  echo "Error: filename not specified"
+  usage
+  exit 1
+fi
+
+if [ ! -z "$2" ] ; then
+  echo "Error: Extra parameter(s)"
+  usage
+  exit 1
+fi
+
+if [ ! -f "$GPGFILE.gpg" ] ; then
+  echo "Error: file \"$GPGFILE.gpg\" does not exist"
+  usage
+  exit 1
+fi
+
+if [ -f "$GPGFILE" ] ; then
+  echo "Error: file \"$GPGFILE\" exists, but should not."
+  echo "(It may be left over from an earlier error.)"
+  exit 1
+fi
+
+##############################################################################
+## Decrypt
+gpg --output $GPGFILE --decrypt $GPGFILE.gpg
+rc=$?
+if [ $rc != 0 ] ; then
+  echo "Error: Decryption failure."
+  echo "No file changed."
+  exit 1
+fi
+
+##############################################################################
+# Edit, check resultant
+$EDITOR $GPGFILE
+if [ ! -f "$GPGFILE" ] ; then
+  echo "File \"$GPGFILE\" deleted. No change will occur."
+  exit 0
+fi
+
+##############################################################################
+## Encrypt
+rm $GPGFILE.gpg
+gpg --recipient $GPGUSER --encrypt $GPGFILE
+rc=$?
+if [ $rc != 0 ] ; then
+  echo ""
+  echo "gpg --recipient $GPGUSER --encrypt $GPGFILE"
+  echo "Error: Encryption failure."
+  echo "EMERGENCY ACTION REQUIRED."
+  echo "File \"$GPGFILE\" exists but \"$GPGFILE.gpg\" does not."
+  exit 2
+fi
+remove $GPGFILE
+
+exit 0

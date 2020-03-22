@@ -1,0 +1,161 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       EDITOR README information file.
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+DOC: See Edit.DOC (a text file)
+
+##############################################################################
+FEATURE:
+2011/03/23 When appending a file, the CR/LF of the appended file continues
+           so that the result is a MIXED (or BIN) file. (COPY is OK.)
+2010/10/31 change /from/to/ [repeat-count [change-count]]
+2009/06/14 Position cursor on Mouse click.
+
+2008/07/02 Read from STDIN, perhaps via -stdin parameter.
+2008/07/02 Write command STDOUT to buffer.
+2008/07/02 When loading: Write error log to buffer, continue loading.
+
+2007/09/01 Edit this that/. (Implies that/this)
+
+##############################################################################
+OPEN:
+2018/12/01 Move at or near end of screen might get duplicate visible line
+           Text is correct. Don't know exact method to recreate.
+
+##############################################################################
+FIXED: 2016/12/13
+2016/12/13 DEFER logic doesn't seem to be working.
+           Added polling delay to allow repeat characters to accumulate.
+
+##############################################################################
+FIXED: 2016/12/13 FEATURE
+2009/06/14 Scroll up/down on Mouse scroll key.
+
+##############################################################################
+CLOSED: 2016/06/14
+2016/06/14 Storage management error.
+           EdPool had problems with EDBUFF item alignment in 64-bit mode.
+
+##############################################################################
+CLOSED: 2016/01/10 (CANNOT REPRODUCE)
+2012/01/08 Screen 2 (one file), e another file,
+           Line number incorrect, stays incorrect no matter what.
+
+##############################################################################
+FIXED: 2016/01/10
+2015/01/25 A new file in Cygwin has UNIX mode identifier in RED.
+           An old file with at least one line has a WHITE mode identifier.
+
+##############################################################################
+FIXED: 2016/01/10
+2014/09/09 Links are not handled properly.
+           cd ~/obj/cpp/Edit
+           vi   S/Test/Test1.DAT  (OK)
+           edit S/Test/Test1.DAT  (NG)
+
+        This problem occured because strcat does not allow overlap but
+        FileName.cpp relies on overlap when removing /. and /.. from
+        filename strings. Fix is in src/cpp/lib/com/FileName.cpp
+
+##############################################################################
+CLOSED: 2011/05/16 (CANNOT REPRODUCE)
+2009/10/31 (Possible) Block copy inaccurate for columns.
+
+2008/12/17 Copy from alternate ring did not change status to modified???
+
+2008/06/04 TOP takes too long when large files are involved.
+2008/06/04 CURSOR-UP (after CURSOR-DOWN)
+           takes too long when large files are involved.
+
+2011/05/14 Active.cpp fix caused trailing blanks in line
+           (Now always zero out the trailing blanks.)
+
+2011/03/16 Infrequent crash (at least in CYGWIN)
+           1) EdPool.cpp: Does not format free area properly.
+           2) COMPILER BUG: Does not use logical compare for addresses. 
+           In EdPool.cpp, verify that requested size < available size, 
+           not just that the addresses don't match. 
+
+           Active.cpp: Do NOT set trailing blanks to '\0' as this causes 
+           them to be made available for allocation.
+
+2009/12/15 Found AUTOSAVE.000 and AUTOSAVE.001 on D: disk.
+           Current version overwrites RO files.
+
+##############################################################################
+FIXED: 2011/05/09
+2010/06/01 Heading line 0 is messed up on CYGWIN UNIX.
+           The Number of lines field changes length.
+           Found on xterm, column width 100, after redraw.
+           Status.cpp: Columns shown mod 10000, Lines mod 100000000.
+
+2009/07/17 For a new file, mode remains red even after the file is saved.
+           EdRing.cpp: in write, set mode if mode was FM_RESET.
+
+2009/07/23 Outer edit "file with blanks" results in file, with, and blanks.
+2009/07/23 Inner edit "file with blanks" results in file, with, and blanks.
+           Nothing done to fix inner edit. It was already working.
+           The outer edit is a function of the e script. If the command
+           edit is used, the operation works properly. (UNIX only, DOS OK.)
+
+##############################################################################
+FIXED: 2010/08/06
+2007/10/23 INTERMITTENT Segment fault in line copy within a ring.
+           Version: Cygwin BSD.
+2008/01/23 RECUR: Version: Cygwin BSD.
+           BLOCK: } <- First line
+                  :
+                  int sub()
+                  { <- Last line, cursor
+
+2010/08/06 In Active.cpp, when deleting characters from a line, zero
+           characters were inserted in the line. This could cause a line
+           to become eligible for garbage collection. Unlikely to actually
+           fix problem becuase this would only make a difference for lines
+           greater than 512 characters.
+
+##############################################################################
+CLOSED: 2008/06/07
+2007/09/16 Ring-to-ring move takes too long when large copies are involved.
+2008/06/07 In this case, move is really a line-by-line copy since there are
+           different buffer pools for each ring.  If storage allocation fails
+           for the copy, we don't want to lose the original lines.
+
+##############################################################################
+CLOSED: 2008/06/07
+2007/08/01 Top line of screen is not initialized properly on Linux
+2008/06/07 This is a Linux NCURSES library problem, fixed in current Linux.
+
+##############################################################################
+FIXED: 2008/06/07
+2007/12/09 Block delete does not set file change indicator.
+
+##############################################################################
+FIXED: 2008/08/06
+2008/06/11 For split or join on or near bottom line of screen, update happens
+           but view is not modified.
+
+##############################################################################
+FIXED: 2007/08/01
+2007/08/01 Reset undo list after save
+2007/08/01 Mode MIX after get alternate mode file into an empty ring
+2007/08/01 Expand/contract blocks similarly to lines
+

@@ -1,0 +1,219 @@
+//----------------------------------------------------------------------------
+//
+//       Copyright (c) 2007 Frank Eskesen.
+//
+//       This file is free content, distributed under the Lesser GNU
+//       General Public License, version 3.0.
+//       (See accompanying file LICENSE.LGPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//
+//----------------------------------------------------------------------------
+//
+// Title-
+//       Socket.doc
+//
+// Purpose-
+//       Internal documentation for socket structures.
+//
+// Last change date-
+//       2007/01/01
+//
+// Implementation notes-
+//       fd_set
+//       hostent
+//       in_addr
+//       in6_addr
+//       ip_mreq
+//       linger
+//       sockaddr
+//       sockaddr_in
+//       sockaddr_in6
+//
+//----------------------------------------------------------------------------
+#if 0
+
+//----------------------------------------------------------------------------
+//
+// Section-
+//       _OS_WIN
+//
+// Purpose-
+//       Windows version
+//
+//----------------------------------------------------------------------------
+typedef u_int           SOCKET;
+
+/*
+ * Select uses arrays of SOCKETs.  These macros manipulate such
+ * arrays.  FD_SETSIZE may be defined by the user before including
+ * this file, but the default here should be >= 64.
+ *
+ * CAVEAT IMPLEMENTOR and USER: THESE MACROS AND TYPES MUST BE
+ * INCLUDED IN WINSOCK.H EXACTLY AS SHOWN HERE.
+ */
+#ifndef FD_SETSIZE
+#define FD_SETSIZE      64
+#endif /* FD_SETSIZE */
+
+typedef struct fd_set {
+        u_int   fd_count;               /* how many are SET? */
+        SOCKET  fd_array[FD_SETSIZE];   /* an array of SOCKETs */
+} fd_set;
+
+
+struct  hostent {
+   char FAR*           h_name;      /* official name of host */
+   char FAR*FAR*       h_aliases;   /* alias list */
+   short               h_addrtype;  /* host address type */
+   short               h_length;    /* length of address */
+   char FAR*FAR*       h_addr_list; /* list of addresses */
+#define h_addr         h_addr_list[0] /* address, for backward compat */
+};
+
+struct in_addr {
+   union {
+     struct {
+       u_char   s_b1,s_b2,s_b3,s_b4;
+     }          S_un_b;
+     struct {
+       u_short  s_w1,s_w2;
+     }          S_un_w;
+     u_long     S_addr;
+   }            S_un;
+#define s_addr  S_un.S_addr         /* can be used for most tcp & ip code */
+#define s_host  S_un.S_un_b.s_b2    /* host on imp */
+#define s_net   S_un.S_un_b.s_b1    /* network */
+#define s_imp   S_un.S_un_w.s_w2    /* imp */
+#define s_impno S_un.S_un_b.s_b4    /* imp # */
+#define s_lh    S_un.S_un_b.s_b3    /* logical host */
+};
+
+struct in6_addr;                    /* UNDEFINED */
+
+struct ip_mreq {
+   struct in_addr      imr_multiaddr; /* IP multicast address of group */
+   struct in_addr      imr_interface; /* local IP address of interface */
+};
+
+struct  linger {
+   u_short             l_onoff;     /* option on/off */
+   u_short             l_linger;    /* linger time */
+};
+
+struct sockaddr {
+   u_short             sa_family;   /* address family */
+   char                sa_data[14]; /* up to 14 bytes of direct address */
+};
+
+struct sockaddr_in {
+   short               sin_family;
+   u_short             sin_port;
+   struct in_addr      sin_addr;
+   char                sin_zero[8];
+};
+
+struct sockaddr_in6;                /* UNDEFINED */
+
+//----------------------------------------------------------------------------
+//
+// Section-
+//       _OS_BSD
+//
+// Purpose-
+//       BSD version
+//
+//----------------------------------------------------------------------------
+typedef uint16_t       in_port_t;
+typedef uint32_t       in_addr_t;
+typedef uint16_t       sa_family_t;
+/*
+ * Select uses bit masks of file descriptors in longs.
+ * These macros manipulate such bit fields (the filesystem macros use chars).
+ * FD_SETSIZE may be defined by the user, but the default here
+ * should be >= NOFILE (param.h).
+ */
+#ifndef   FD_SETSIZE
+  #define FD_SETSIZE 64
+#endif
+#define NBBY 8                      /* number of bits in a byte */
+
+typedef long           fd_mask;
+#define NFDBITS (sizeof(fd_mask) * NBBY) /* bits per mask */
+#ifndef   howmany
+  #define howmany(x,y) (((x)+((y)-1))/(y))
+#endif
+
+/* We use a macro for fd_set so that including Sockets.h afterwards can work. */
+typedef struct _types_fd_set {
+   fd_mask             fds_bits[howmany(FD_SETSIZE, NFDBITS)];
+} _types_fd_set;
+
+#define fd_set _types_fd_set
+
+#define FD_SET(n, p)    ((p)->fds_bits[(n)/NFDBITS] |= (1L << ((n) % NFDBITS)))
+#define FD_CLR(n, p)    ((p)->fds_bits[(n)/NFDBITS] &= ~(1L << ((n) % NFDBITS)))
+#define FD_ISSET(n, p)  ((p)->fds_bits[(n)/NFDBITS] & (1L << ((n) % NFDBITS)))
+#define FD_ZERO(p)      (__extension__ (void)({ \
+     size_t __i; \
+     char *__tmp = (char *)p; \
+     for (__i = 0; __i < sizeof (*(p)); ++__i) \
+       *__tmp++ = 0; \
+}))
+
+struct hostent {                    /* BSD/WIN hostent */
+   const char*         h_name;      /* official name of host */
+   char**              h_aliases;   /* alias list, NULL terminated */
+   short               h_addrtype;  /* host address type */
+   short               h_length;    /* length of (EACH) address */
+   char**              h_addr_list; /* list of addresses from name server, NULL terminated */
+#define h_addr  h_addr_list[0]      /* address, for backward compatiblity */
+};
+
+struct in_addr
+{
+   in_addr_t           s_addr;
+};
+
+struct in6_addr
+{
+   uint8_t             s6_addr[16];
+};
+
+struct ip_mreq
+{
+   struct in_addr      imr_multiaddr; /* IP multicast address of group */
+   struct in_addr      imr_interface; /* local IP address of interface */
+};
+
+struct linger {
+   unsigned short      l_onoff;     /* Linger active */
+   unsigned short      l_linger;    /* How long to linger for */
+};
+
+struct sockaddr {
+   sa_family_t         sa_family;   /* address family, AF_xxx       */
+   char                sa_data[14]; /* 14 bytes of protocol address */
+};
+
+#define __SOCK_SIZE__  16           /* sizeof(struct sockaddr) */
+struct sockaddr_in
+{
+   sa_family_t         sin_family;  /* Address family */
+   in_port_t           sin_port;    /* Port number */
+   struct in_addr      sin_addr;    /* Internet address */
+
+   /* Pad to size of `struct sockaddr'. */
+   unsigned char       __pad[__SOCK_SIZE__ - sizeof(short int)
+                         - sizeof(unsigned short int) - sizeof(struct in_addr)];
+};
+
+struct sockaddr_in6
+{
+   sa_family_t         sin6_family; /* AF_INET6 */
+   in_port_t           sin6_port;   /* Port number. */
+   uint32_t            sin6_flowinfo; /* Traffic class and flow inf. */
+   struct in6_addr     sin6_addr;   /* IPv6 address. */
+   uint32_t            sin6_scope_id; /* Set of interfaces for a scope. */
+};
+
+#endif // if 0

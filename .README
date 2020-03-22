@@ -1,0 +1,41 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       /home/data/home/.README
+##
+## Purpose-
+##       Describe subdirectory content.
+##
+## Last change date-
+##       2020/02/11
+##
+## Implementation notes-
+##       This distribution is kept locally in /home/data/home/. In addition
+##       to this public distribution, the /home/data/. directory contains
+##       information shared between multiple machines.
+##
+##       Links into /home/data that do not also link to /home/data/home
+##       are used at times similarly to links to /home/data/usr/.
+##       In particular, java web applications cannot use links when running
+##       in Cygwin, so we use a direct path to /home/data/web/database/
+##       instead.
+##
+## Subdirectory information-
+##       .git  The git repository
+##       bat   Cygwin/Linux batch files, most using the bash script engine.
+##       bin   Binary executable (placeholder.)
+##       src   Source files.
+##           src/obj contains the associated object git repository
+##       usr   Imported files (not distributed.)
+##           Kept here for machine-to-machine backup.
+##           (TODO: Provide a mechanism for auto-downloading external content.)
+##
+##############################################################################

@@ -1,0 +1,322 @@
+##############################################################################
+##
+##       Copyright (C) 2017 Frank Eskesen.
+##
+##       This file is free content, distributed under the GNU General
+##       Public License, version 3.0.
+##       (See accompanying file LICENSE.GPL-3.0 or the original
+##       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+##
+##############################################################################
+##
+## Title-
+##       README.RULE
+##
+## Purpose-
+##       Parser rule list
+##
+## Last change date-
+##       2017/01/01
+##
+## Notation-
+##       <AND>     Individulal entry
+##       <OR>      Multiple entries
+##       <rule>    <rule1><rule2> # Match rule1, then rule1 <AND>
+##       <rule>    <rule3><rule4> # <OR>  rule3, then rule4 <AND>
+##       <rule>    <rule3><rule4> # Duplicated rules are IGNORED.
+##
+##       <rule>    <<rule3><rule4>> # Simultaneously match rule3 and rule4
+##
+## Needed-
+##       Invalidation rules: (bigger, not more bigger)
+##       Preferential rules: (bigger, not more big)
+##       Pronunciation rules: present and past tense of read.
+##
+##############################################################################
+
+############################ Articles
+<article>          a
+<article>          an
+<article>          the
+
+<indefinite>       a
+<indefinite>       an
+<definite>         the
+
+############################ Pronouns
+<singular>         i
+<singular>         you
+<plural>           you
+<plural>           we
+<plural>           they
+<singular>         he
+<singular>         she
+<singular>         it
+
+<subjective>       i
+<subjective>       you
+<subjective>       we
+<subjective>       they
+<subjective>       he
+<subjective>       she
+<subjective>       it
+
+<pronoun>          i
+<pronoun>          you
+<pronoun>          we
+<pronoun>          they
+<pronoun>          he
+<pronoun>          she
+<pronoun>          it
+
+<singular>         me
+<singular>         you
+<plural>           you
+<plural>           us
+<plural>           them
+<singular>         him
+<singular>         her
+<singular>         it
+
+<objective>        me
+<objective>        you
+<objective>        us
+<objective>        them
+<objective>        him
+<objective>        her
+<objective>        it
+
+<pronoun>          me
+<pronoun>          you
+<pronoun>          us
+<pronoun>          them
+<pronoun>          him
+<pronoun>          her
+<pronoun>          it
+
+<singular>         my
+<singular>         your
+<plural>           your
+<plural>           our
+<plural>           their
+<singular>         his
+<singular>         her
+<singular>         its
+
+<possessive>       my
+<possessive>       your
+<possessive>       our
+<possessive>       their
+<possessive>       his
+<possessive>       her
+<possessive>       its
+
+<pronoun>          my
+<pronoun>          your
+<pronoun>          our
+<pronoun>          their
+<pronoun>          his
+<pronoun>          her
+<pronoun>          its
+
+############################ Nouns
+<noun>             adjective
+<noun>             adverb
+<noun>             color
+<noun>             conjunction
+<noun>             noun
+<noun>             phrase
+<noun>             preposition
+<noun>             pronoun
+<noun>             sentence
+<noun>             size
+<noun>             verb
+
+<noun>             house
+<noun>             store
+
+############################ Adjectives
+<adj_less>         less
+<adj_more>         more
+
+<adj_color>        red
+<adj_color>        yellow
+<adj_color>        blue
+<adj_color>        orange
+<adj_color>        green
+<adj_color>        white
+<adj_color>        black
+
+<adj_size>         big
+<adj_size>         little
+
+<adjective>        <adj_color>
+<adjective>        <adj_less>
+<adjective>        <adj_more>
+<adjective>        <adj_size>
+
+<adjective>        adjective
+<adjective>        definite
+<adjective>        indefinite
+<adjective>        irregular
+<adjective>        objective
+<adjective>        possessive
+<adjective>        regular
+<adjective>        subjective
+<adjective>        plural
+<adjective>        singular
+
+############################ Verbs.
+<present           <>               ## EMPTY rule
+<past>             <>               ## EMPTY rule
+<future>           will             ## Future modifier
+<future>           will not         ## Future modifier
+<future>           won't            ## Future modifier
+<future>           am going to      ## Future modifier
+<future>           am not going to  ## Future modifier
+
+################## verb      <tense>[     i,   you,    we,  they,    he,   she,    it]
+<regular>          verb    <present>[  verb,  verb,  verb,  verb, verbs, verbs, verbs]
+<regular>          verb       <past>[verbed,verbed,verbed,verbed,verbed,verbed,verbed]
+<regular>          verb     <future>[  verb,  verb,  verb,  verb,  verb,  verb,  verb]
+<regular>          verb    <verbing>[verbing]
+
+<irregular>        am      <present>[    am,   are,   are,   are,    is,    is,    is]
+<irregular>        am         <past>[   was,  were,  were,  were,   was,   was,   was]
+<irregular>        am       <future>[    be,    be,    be,    be,    be,    be,    be]
+
+<irregular>        go      <present>[    go,    go,    go,    go,  goes,  goes,  goes]
+<irregular>        go         <past>[  went,  went,  went,  went,  went,  went,  went]
+<irregular>        go       <future>[    go,    go,    go,    go,    go,    go,    go]
+
+<irregular>        have    <present>[  have,  have,  have,  have,   has,   has,   has]
+<irregular>        have       <past>[   had,   had,   had,   had,   had,   had,   had]
+<irregular>        have     <future>[  have,  have,  have,  have,  have,  have,  have]
+
+<irregular>        hear    <present>[  hear,  hear,  hear,  hear, hears, hears, hears]
+<irregular>        hear       <past>[ heard, heard, heard, heard, heard, heard, heard]
+<irregular>        hear     <future>[  hear,  hear,  hear,  hear,  hear,  hear,  hear]
+
+<irregular>        read    <present>[  read,  read,  read,  read, reads, reads, reads]
+<irregular>        read       <past>[  read,  read,  read,  read,  read,  read,  read]
+<irregular>        read     <future>[  read,  read,  read,  read,  read,  read,  read]
+
+<irregular>        see     <present>[   see,   see,   see,   see,  sees,  sees,  sees]
+<irregular>        see        <past>[   saw,   saw,   saw,   saw,   saw,   saw,   saw]
+<irregular>        see      <future>[   see,   see,   see,   see,   see,   see,   see]
+
+<irregular>        take    <present>[  take,  take,  take,  take, takes, takes, takes]
+<irregular>        take       <past>[  took,  took,  took,  took,  took,  took,  took]
+<irregular>        take     <future>[  take,  take,  take,  take,  take,  take,  take]
+
+<irregular>        write   <present>[ write, write, write, write,writes,writes,writes]
+<irregular>        write      <past>[ wrote, wrote, wrote, wrote, wrote, wrote, wrote]
+<irregular>        write    <future>[ write, write, write, write, write, write, write]
+
+<verb>             am
+<verb>             go
+<verb>             have
+<verb>             hear
+<verb>             read
+<verb>             see
+<verb>             smell
+<verb>             take
+<verb>             taste
+<verb>             touch
+<verb>             walk
+<verb>             write
+
+############################ Adverbs
+<adv_time>         today
+<adv_time>         tomorrow
+<adv_time>         yesterday
+<adv_time>         later
+<adv_time>         sooner
+
+<adverb>           <adv_time>
+
+<adverb>           slowly
+<adverb>           quickly
+
+############################ Prepositions
+<preposition>      at
+<preposition>      between
+<preposition>      from
+<preposition>      in
+<preposition>      inside
+<preposition>      inside of
+<preposition>      into
+<preposition>      in to
+<preposition>      of
+<preposition>      out
+<preposition>      outside
+<preposition>      outside of
+<preposition>      out of
+<preposition>      over
+<preposition>      to
+<preposition>      under
+<preposition>      underneath
+
+############################ Conjunctions
+<conjunction>      and
+<conjunction>      but
+<conjunction>      or
+<conjunction>      then
+
+############################ Terminators
+<sentenceTerminator> .
+<sentenceTerminator> !
+<sentenceTerminator> ?
+
+############################ Production rules
+<adjectivePhrase>  <>
+<adjectivePhrase>  <adjective><adjectivePhrase>
+
+<adverbPhrase>     <>
+<adverbPhrase>     <adverb>
+<adverbPhrase>     <adverb><adverbPhrase>
+
+<verbPhrase>       <adverbPhrase><verb><adverbPhrase>
+<verbPhrase>       <will><adverbPhrase><verb><adverbPhrase>
+
+<nounPhrase>       <adjectivePhrase><noun>
+<nounPhrase>       <article><adjectivePhrase><noun>
+<nounPhrase>       <<possessive><pronoun>><adjectivePhrase><noun>
+
+<prepPhrase>       <preposition><nounPhrase>
+<prepPhrase>       <preposition><<subjective><pronoun>>
+
+<subject>          <<subjective><pronoun>>
+<subject>          <nounPhrase>
+
+<verb>             <verbPhrase>
+
+<predicate>        <<objective><pronoun>>
+<predicate>        <nounPhrase>
+<predicate>        <prepPhrase>
+
+<sentence>         <subject> <verb>
+<sentence>         <subject> <verb> <predicate>
+
+<produce>          <sentence> <sentenceTerminator> ...
+
+############################ Sample sentences
+I will slowly walk to the store.
+<subject>=<<subjective><pronoun>>=I
+<verbPhrase>=<will><adverbPhrase><verb><adverbPhrase>
+             <will>=will
+             <adverbPhrase>=<adverb>=slowly
+             <verb>=walk
+             <adverbPhrase>=<>
+<predicate>=<prepPhrase>=<preposition><nounPhrase>
+            <preposition>=to
+            <nounPhase>=<article><adjectivePhrase><noun>
+                       <article>=the
+                       <adjectivePhrase>=<>
+                       <noun>=store
+<sentenceTerminator>=.
+
+##       "I went to the store yesterday."
+##       "Yesterday I went to the store."
+##       "Yesterday, I went to the store."
+

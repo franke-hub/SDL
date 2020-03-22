@@ -1,0 +1,39 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       sudo
+##
+## Purpose-
+##       Cygwin sudo, requests admin permission.
+##
+## Last change date-
+##       2020/01/19
+##
+## Usage-
+##       sudo command parameters
+##           (On CYGWIN, ust execute command.)
+##
+## Implementation notes-
+##       This DOES NOT WORK for remote connections.
+##
+##############################################################################
+if [[ ! -z "`osCYGWIN`" ]] ; then
+  "$@"
+elif [[ -x "/usr/bin/sudo" ]] ; then
+  /usr/bin/sudo "$@"
+elif [[ -x "/bin/sudo" ]] ; then
+  /bin/sudo "$@"
+else
+  echo "SUDO not found"
+  "$@"
+fi
+

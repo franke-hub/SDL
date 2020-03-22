@@ -1,0 +1,1192 @@
+ #############################################################################
+ ##
+ ##      Copyright (C) 2007-2018 Frank Eskesen.
+ ##
+ ##      This file is free content, distributed under the MIT license.
+ ##      (See accompanying file LICENSE.MIT or the original contained
+ ##      within https://opensource.org/licenses/MIT)
+ ##
+ #############################################################################
+ ##
+ ## Title-
+ ##       .DOC.txt
+ ##
+ ## Purpose-
+ ##       Documentation information.
+ ##
+ ## Last change date-
+ ##       2018/01/01
+ ##
+ #############################################################################
+
+1Overview of a neuron:
+ ---------------------
+   |               |  |               |  |               |  |               |
+   |    NEURON     |  |    NEURON     |  |    NEURON     |  |    NEURON     |
+   |               |  |               |  |               |  |               |
+   |               |  |               |  |               |  |               |
+   |               |  |               |  |               |  |               |
+   |_______o_______|  |_______o_______|  |_______o_______|  |_______o_______|
+           |                  |                  |                  |
+           |                  |                  |                  |
+           |                  |                  |                  |
+           |                  |                  |                  |
+           |                  |                  |                  |
+           |                  |                  |                  |
+           |                  *------*   *-------*                  |
+           |                         |   |                          |
+           *---------------------*   |   |   *----------------------*
+                                 |   |   |   |
+                                |F| |F| |F| |F|   Fan-in array
+                                |w| |w| |w| |w|   Fan-in weights
+                                _|___|___|___|_
+                               | i   i   i   i |  Weight * Value array
+                               |               |
+                               |               |
+                               |    NEURON     |
+                               |               |
+                               |               |
+                               |               |
+                               |_______o_______|  Fan-out value
+                                       |
+                                       |
+                                       |
+
+ Every neuron has two fan-out values, a floating point output value and a
+ string output value.  The floating point value is read using the READV()
+ function and the string value is read using the READS() function.  Most
+ functions provide either a value or a string output variable.  The other
+ function is constant.
+
+ Storage descriptor for a NEURON:
+ --------------------------------
+    typedef struct NN_neuron {
+      NN_clock_t      clock;         /* Last read clock time          */
+      NN_clock_t      train;         /* Last train clock time         */
+      NN_boolean_t    break;         /* TRUE if Neuron breakpoint set */
+      NN_boolean_t    disable;       /* TRUE if Neuron is disabled    */
+      NN_boolean_t    in_training;   /* TRUE if Neuron in-training    */
+      NN_fanin_t     *fanin_array;   /* -> First FANIN element        */
+      NN_class_t      class;         /* Neuron class                  */
+      NN_val_t        output_value;  /* Current output value          */
+      NN_str_t        output_string; /* Current output string         */
+      } NN_neuron_t;
+
+ Storage descriptor for a FANIN element:
+ ---------------------------------------
+    typedef struct NN_fanin {
+      NN_fanin_t     *next;          /* Chain pointer                 */
+      NN_boolean_t    in_training;   /* Neuron is "in training"       */
+      NN_boolean_t    rd_trainable;  /* READ link pointer trainable   */
+      NN_boolean_t    wt_trainable;  /* WEIGHT value is trainable     */
+      NN_neuron_t    *read;          /* READ link pointer             */
+      NN_weight_t     weight;        /* WEIGHT value                  */
+      } NN_fanin_t;
+
+1=======================================================================
+ Building a neural net
+ ---------------------
+ The initial state of the neural net is created using NC, the neural net
+ compiler.  The compiler is a data compiler in that it creates an initial
+ state of the neural net on a set of files.
+
+ =======================================================================
+ Operating a neural net
+ ----------------------
+ The neural net is operated using NN.  NN copies the set of input files
+ and operates on while continuously updating the set of files.  The files
+ can be checkpointed at any time for later restart.
+
+ It is important to note that the state of the network is maintained on
+ disk files.  This allows long-running updates to be made to the network
+ in small steps.  The output from one update is the input to the next
+ update.
+
+1=======================================================================
+ The neural net compiler.
+ ------------------------
+
+ A generic compiler statement:
+
+ <label:> STATEMENT_TYPE<[statement_type_qualifier]>
+    <KEYNAME1["keyname_1 value"]>   // comment
+    <KEYNAME2["keyname_2 value"]>   // comment
+    :
+    <KEYNAMEn["keyname_n value"]>
+    ;
+
+ Statements begin with an optional label, continue with a statement type
+ and an optional qualifier.  Statements may have keyword parameters, which
+ are usually optional.  Statements end with a semicolon.
+
+ The statement label is used to reference the specified element.
+
+ STATEMENT_TYPE specifies the type of statement.  The major statement types
+ are NEURON, FANIN, BEGIN, END and ENTRY.  Case is ignored.
+
+ "//" is used to begin a comment.  Comments end when a '/n' (newline)
+ character is recognised.
+
+
+ =======================================================================
+ #define name value
+
+ All future values for "name" are replaced by "value."  Define values
+ are valid from the point that they are encountered until compilation
+ completes.
+
+
+ =======================================================================
+ #include "filedesc"
+
+ The file filedesc is included and made part of the current compilation.
+
+1=======================================================================
+ <scope_name_identifier:> BEGIN
+     <<FILE["file_identifier"]>
+      <INFO["file information"]>>
+     ;
+
+ The BEGIN statement initiates a grouping.
+
+ The optional FILE declaration defines an output grouping such that all
+ neurons defined in the scope are allocated onto that file.
+ INFO may only be specified if FILE is specified and defines a comment
+ associated with the file.
+
+ Scope_name_identifier, if present, defines an identifier qualifier to
+ be used on label declarations.  This allows duplicate labels to be
+ declared in different include files and also allows symbols declared
+ in different scopes to be differentiated.
+
+ A:
+   BEGIN;
+ dupname:
+     NEURON;
+   END;
+ B:
+   BEGIN;
+ dupname:
+     NEURON;
+   END;
+
+ Symbol A:dupname refers to the first neuron and B:dupname refers to
+ the second neuron.
+
+ Group information is stacked so that the previous scope resumes when
+ an end statement is reached.
+
+ outer:
+   BEGIN;
+     #include "a.dcl", which includes
+       inner:
+         BEGIN;
+         END   inner;
+       #(end of "a.dcl")
+
+ my_neuron:
+     NEURON;
+
+ After the include for a.dcl completes, the scope reverts to "outer".
+ The fully qualified name for my_neuron is outer:my_neuron.
+
+
+ =======================================================================
+ END <scope_identifier>;
+
+ Terminates a group, returning the scope value to its previous value.
+
+1========================================================================
+ <label:> DO i=first to last <BY step>;
+
+    Creates a declarative loop.  "First," "last" and "step" must either be
+    constants or DO control variables.
+
+    During the scope of the DO statement, the local variable 'i' overrides
+    any other definition of a variable by that name.
+
+
+ END <label>;
+
+    Terminates a declarative loop.
+
+
+ =======================================================================
+ ENTRY[initial];
+
+    The entry statement defines the first neuron to be read.
+    When it completes, its return value is displayed.
+
+1=======================================================================
+ FANIN<[neuron_inp]>
+     READ[neuron_out]
+     <WEIGHT[weight_value]>;
+
+ Creates a link between the output of neuron_out and the input to
+ neuron_inp.  FANIN statements may not contain labels.
+
+ If [neuron_inp] is omitted, the FANIN element applies to the most
+ recently defined NEURON element.
+
+ The READ[neuron_out] parameter is required, and specifies the neuron
+ to be read.
+
+ If <WEIGHT[weight_value]> is omittied, a weight of 1.0 is used.
+
+ The special value "train" is also allowed as a weight_value.
+ A "train" value indicates that the weight value is to be modified by
+ NEURON[train].
+
+ The special value "train" may also be used as a neuron_out value.
+ In this context "train" indicates that the link may be modified by
+ NEURON[train].  However, in order to determine limits to which a
+ link can be changed, trainable links must be scoped.  This scoping
+ is specified by ordering the FANIN operations so that trainable
+ links are defined within fixed links.  The following example makes
+ this a little clearer.
+
+ neuron_array[100,100]:
+   NEURON;
+
+ trainable_neuron:
+   NEURON;
+     FANIN READ[neuron_array[ 0, 0]] WEIGHT[train]; // Lower link limit
+                                     // This link is weight trainable
+     DO i= 1 to 40;                  // Define link-trainable FANINs
+       FANIN READ[train] WEIGHT[train]; // 40 Trainable links
+                                     // These links are read trainable within
+                                     // neuron_array[80,81]..[99,98]
+                                     // These links are weight trainable
+     END;
+     FANIN READ[neuron_array[41, 0] WEIGHT[0.0]; // Upper link limit
+                                     // This link is NOT trainable
+
+
+     FANIN READ[neuron_array[80,80]] WEIGHT[train]; // Lower link limit
+                                     // This link is NOT read trainable
+                                     // Note: if this FANIN statement
+                                     // was not present, the lower link
+                                     // value for the next set of trainable
+                                     // links would be Link[41, 1]
+     DO i= 1 to 40;                  // Define link-trainable FANINs
+       FANIN READ[train] WEIGHT[train]; // Read trainable within
+                                     // neuron_array[80,81]..[99,98]
+     END;
+     FANIN READ[neuron_array[99,99]] WEIGHT[train]; // Upper link limit
+                                     // This link is weight trainable
+
+1=======================================================================
+ <label<[array_specifier]>:> NEURON<[type_specifier]>
+     <VALUE[initial_value]>
+     <STRING["initial_string"]>
+     ;
+
+ Creates a neuron variable.  The first declaration of a neuron defines the
+ dimensionality and limits of the neuron array.
+
+ It is not an error and is sometimes useful to redefine a neuron.  The last
+ specified definition is always used.
+
+
+ =======================================================================
+ Standard functions (only shown here)
+ =======================================================================
+ NN_boolean_t output_valid(neuron_var) {
+   if (neuron_var.disable)           /* If disabled                   */
+     return(TRUE);                   /* Indicate output valid         */
+   if (neuron_var.clock == NN_master_clock
+       &&neuron_var.train == NN_master_train)/* If results have
+                                        already been computed         */
+     return(TRUE);                   /* Indicate output valid         */
+
+   neuron_var.clock= NN_master_clock;
+   neuron_var.train= NN_master_train;
+   return(FALSE);
+   }
+
+ Common logic description:
+ -------------------------
+ READV(neuron_var) {
+   /****************************************************************/
+   /* Standard logic                                               */
+   /****************************************************************/
+   if (output_valid(neuron_var))  /* If output is valid            */
+     return(neuron_var.output_value);/* Return current value       */
+
+   /****************************************************************/
+   /* Function-specific logic                                      */
+   /****************************************************************/
+   ;                              /* Neuron logic goes here        */
+   return(neuron_var.output_value);
+   }
+
+1=======================================================================
+ <label:> NEURON                     // Default
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Alternative declarations:
+ -------------------------
+ <label:> NEURON[default]
+     <VALUE[initial_value]>
+     <STRING[initial_string]>
+     ;
+
+ <label:> NEURON[sigmoid]
+     <VALUE[initial_value]>
+     <STRING[initial_string]>
+     ;
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   /****************************************************************/
+   /* NEURON[default]                                              */
+   /****************************************************************/
+   Alpha= 0.0;
+   for(i=0; i<n; i++) {
+     Alpha += READV(fanin_neuron[i]) * fanin_weight[i];
+     }
+   neuron_var.output_value= SIGMOID(Alpha);
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> CONSTANT                   // Arithmetic Constant
+     <VALUE[output_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Creates a neuron with a constant value.
+
+ Programming note:
+ -----------------
+ The output value of a constant neuron may be changed as a result of
+ READS(NEURON[store]), if the neurons read refer to the constant neuron.
+
+ Alternative declaration:
+ ------------------------
+ <label:> NEURON[constant]
+     <VALUE[initial_value]>
+     <STRING[initial_string]>
+     ;
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   for(i=0; i<n; i++) {
+     Ignore= READV(fanin_neuron[i]) * fanin_weight[i];
+     }
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   for(i=0; i<n; i++) {
+     Ignore= READS(fanin_neuron[i]) * fanin_weight[i];
+     }
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[add]                // Arithmetic Add
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[source_neuron]     WEIGHT[source_weight];
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Computes the sum of a group of neurons.
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   Alpha= READV(source_neuron) * source_weight
+   Beta= 0.0;
+   for(i=0; i<n; i++) {
+     Beta += READV(fanin_neuron[i]) * fanin_weight[i];
+     }
+   neuron_var.output_value= Alpha + Beta;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[sub]                // Arithmetic Subtract
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[source_neuron]     WEIGHT[source_weight];
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Computes the difference of a group of neurons.
+
+ Subtracts the weighted sum of a group of neurons from a neuron value.
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   Alpha= READV(source_neuron) * source_weight
+   Beta= 0.0
+   for(i=0; i<n; i++) {
+     Beta += READV(fanin_neuron[i]) * fanin_weight[i];
+     }
+   neuron_var.output_value= Alpha - Beta;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[mul]                // Arithmetic Multiply
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[source_neuron]     WEIGHT[source_weight];
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Computes the weighted product of a group of neurons.
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   Alpha= READV(source_neuron) * source_weight
+   Beta= 0.0
+   for(i=0; i<n; i++) {
+     Beta += READV(fanin_neuron[i]) * fanin_weight[i];
+     }
+   neuron_var.output_value= Alpha * Beta;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[div]                // Arithmetic Divide
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[source_neuron]     WEIGHT[source_weight];
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Divides a neuron value by the weighted sum of a group of neurons.
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   Alpha= READV(source_neuron) * source_weight
+   Beta= 0.0
+   for(i=0; i<n; i++) {
+     Beta += READV(fanin_neuron[i]) * fanin_weight[i];
+     }
+   neuron_var.output_value= Alpha / Beta;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[inc]                // Arithmetic Increment
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[source_neuron]     WEIGHT[source_weight];
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Increments the weighted product of a group of neurons.
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   Alpha= READV(source_neuron) * source_weight
+   Beta= 0.0
+   for(i=0; i<n; i++) {
+     Beta += READV(fanin_neuron[i]) * fanin_weight[i];
+     }
+   neuron_var.output_value= Alpha + Beta + 1.0;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[dec]                // Arithmetic Decrement
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[source_neuron]     WEIGHT[source_weight];
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Increments the weighted product of a group of neurons.
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   Alpha= READV(source_neuron) * source_weight
+   Beta= 0.0
+   for(i=0; i<n; i++) {
+     Beta += READV(fanin_neuron[i]) * fanin_weight[i];
+     }
+   neuron_var.output_value= Alpha + Beta - 1.0;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[and]                // Boolean AND
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Creates a neuron of output value of either 0.0 or 1.0.
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   Alpha= TRUE;
+   for(i=0; i<n; i++) {
+     if ((READV(fanin_neuron[i]) * fanin_weight[i]) == 0.0) {
+       Alpha= FALSE;
+       break;
+       }
+     }
+   If (Alpha)
+     neuron_var.output_value= 1.0;
+   else
+     neuron_var.output_value= 0.0;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[or]                 // Boolean OR
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Creates a neuron of output value of either 0.0 or 1.0.
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   Alpha= FALSE;
+   for(i=0; i<n; i++) {
+     if ((READV(fanin_neuron[i]) * fanin_weight[i]) != 0.0) {
+       Alpha= TRUE;
+       break;
+       }
+     }
+   If (Alpha)
+     neuron_var.output_value= 1.0;
+   else
+     neuron_var.output_value= 0.0;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[nand]               // Boolean NAND (Not AND)
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Creates a neuron of output value of either 0.0 or 1.0.
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   Alpha= FALSE;
+   for(i=0; i<n; i++) {
+     if ((READV(fanin_neuron[i]) * fanin_weight[i]) == 0.0) {
+       Alpha= TRUE;
+       break;
+       }
+     }
+   If (Alpha)
+     neuron_var.output_value= 1.0;
+   else
+     neuron_var.output_value= 0.0;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[nor]                // Boolean NOR (Not OR)
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Creates a neuron of output value of either 0.0 or 1.0.
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   Alpha= TRUE;
+   for(i=0; i<n; i++) {
+     if ((READV(fanin_neuron[i]) * fanin_weight[i]) != 0.0) {
+       Alpha= FALSE;
+       break;
+       }
+     }
+   If (Alpha)
+     neuron_var.output_value= 1.0;
+   else
+     neuron_var.output_value= 0.0;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[while]              // Logical while
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[control_neuron]    WEIGHT[control_weight];
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Creates an active control loop.
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   for(;;) {                      /* Infinite loop                 */
+     Alpha=  READV(control_neuron) * control_weight;
+     if (Alpha <= 0.0)
+       break;
+
+     for(i=0; i<n; i++) {
+       Ignore= READV(fanin_neuron[i]);
+       }
+
+     if (output_valid(neuron_var)) /* Prevent useless recursion   */
+       break;
+     }
+
+   neuron_var.output_value= Alpha;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[until]              // Logical until
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[control_neuron]    WEIGHT[control_weight];
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Creates an active control loop.
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   for(;;) {                      /* Infinite loop                 */
+     Alpha=  READV(control_neuron) * control_weight;
+
+     for(i=0; i<n; i++) {
+       Ignore= READV(fanin_neuron[i]);
+       }
+
+     if (Alpha <= 0.0)
+       break;
+     if (output_valid(neuron_var)) /* Prevent useless recursion   */
+       break;
+     }
+
+   neuron_var.output_value= Alpha;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[store]              // Store output value
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Updates the output_value of the target neurons.
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   for(i=0; i<n; i++) {
+     fanin_neuron[i].output_value= fanin_weight[i];
+     }
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[clock]              // Update master clock
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[fanin_neuron[0]]   WEIGHT[fanin_weight[0]];
+   FANIN  READ[fanin_neuron[1]]   WEIGHT[fanin_weight[1]];
+     :
+   FANIN  READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ The clock neuron updates the master clock.
+
+ The master clock is used to determine whether or not a neuron's value
+ needs to be recomputed.  The training clock is used to determine whether
+ or not a neuron's output value needs to be recomputed while in training.
+
+ Storage description:
+ --------------------
+ NN_clock_t        NN_master_clock;/* Master clock time            */
+ NN_clock_t        NN_master_train;/* Master train time            */
+ NN_neuron_t       neuron_var;    /* Master neuron                 */
+
+ Logic description:
+ ------------------
+ READV(neuron_var) {
+   NN_master_clock++;
+   NN_master_train= 0;
+   neuron_var.output_value= NN_master_clock;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ =======================================================================
+ =======================================================================
+ Deferred items.
+
+ =======================================================================
+ <label:> NEURON[branch]
+     <VALUE[initial_value]>
+     <STRING(initial_string)>
+     ;
+
+   FANIN[branch_var] READ[control_neuron] WEIGHT[control_weight];
+   FANIN[branch_var] READ[branch_neuron[L]];
+   FANIN[branch_var] READ[branch_neuron[E]];
+   FANIN[branch_var] READ[branch_neuron[G]];
+
+ This logic element reads one of three FANIN elements.
+
+ Logic description:
+ ------------------
+ If (there are not exactly 4 fanin elements)
+   checkstop();
+
+ READV(neuron_var) {
+   Alpha= output(control_neuron) * control_weight;
+
+   If (Alpha < 0.0),
+     neuron_var.output_value= READV(branch_neuron[L]);
+   else if (Alpha == 0.0)
+     neuron_var.output_value= READV(branch_neuron[E]);
+   else
+     neuron_var.output_value= READV(branch_neuron[G]).
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   Alpha= output(control_neuron) * control_weight;
+
+   If (Alpha < 0.0),
+     neuron_var.output_string= READS(branch_neuron[L]);
+   else if (Alpha == 0.0)
+     neuron_var.output_string= READS(branch_neuron[E]);
+   else
+     neuron_var.output_string= READS(branch_neuron[G]).
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[switch]
+     <VALUE[initial_value]>
+     <STRING(initial_string)>
+     ;
+
+   FANIN[switch_var] READ[control_neuron] WEIGHT[control_weight];
+   FANIN[switch_var] READ[switch_neuron[0]];
+   FANIN[switch_var] READ[switch_neuron[1]];
+     :
+   FANIN[switch_var] READ[switch_neuron[n-1]];
+
+ Creates a switching list.  Only one of switch_neuron[i] will be examined.
+
+ Logic description:
+ ------------------
+ If (there are not at least 2 fanin elements)
+   checkstop();
+
+ READV(neuron_var) {
+   Alpha= READV(control_neuron) * control_weight
+
+   If (Alpha < 1.0)
+     neuron_var.output_value= READV(switch_neuron[0]);
+   else if (Alpha < n)
+     neuron_var.output_value= READV(switch_neuron[(int)Alpha]);
+   else
+     neuron_var.output_value= READV(switch_neuron[n-1]);
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[disable]
+     <VALUE[initial_value]>
+     <STRING(initial_string)>
+     ;
+
+   FANIN[neuron_var] READ[fanin_neuron[0]];
+   FANIN[neuron_var] READ[fanin_neuron[1]];
+     :
+   FANIN[neuron_var] READ[fanin_neuron[n-1]];
+
+ Disables the fanin_array.
+
+ Logic description:
+ ------------------
+ If (there is not at least 1 fanin element)
+   checkstop();
+
+ READV(neuron_var) {
+   for(i=0; i<n; i++) {
+     DISABLE(fanin_neuron[i]);
+     }
+   neuron_var.output_value= 0.0;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[enable]
+     <VALUE[initial_value]>
+     <STRING(initial_string)>
+     ;
+
+   FANIN[neuron_var] READ[fanin_neuron[0]];
+   FANIN[neuron_var] READ[fanin_neuron[1]];
+     :
+   FANIN[neuron_var] READ[fanin_neuron[n-1]];
+
+ Enables the fanin_array.
+
+ Logic description:
+ ------------------
+ If (there is not at least 1 fanin element)
+   checkstop();
+
+ READV(neuron_var) {
+   for(i=0; i<n; i++) {
+     ENABLE(fanin_neuron[i]);
+     }
+   neuron_var.output_value= 1.0;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[abs]                // Arithmetic absolute
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[source_neuron]     WEIGHT[source_weight];
+
+ Computes the absolute value of a neuron.
+
+ Logic description:
+ ------------------
+ If (there is not exactly 1 fanin element)
+   checkstop();
+
+ READV(neuron_var) {
+   Alpha= READV(source_neuron) * source_weight
+   if (Alpha < 0.0)
+     Alpha= (-Alpha);
+
+   neuron_var.output_value= Alpha;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[neg]                // Arithmetic negate
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN  READ[source_neuron]     WEIGHT[source_weight];
+
+ Computes the absolute value of a neuron.
+
+ Logic description:
+ ------------------
+ If (there is not exactly 1 fanin element)
+   checkstop();
+
+ READV(neuron_var) {
+   Alpha= READV(source_neuron) * source_weight
+   Alpha= (-Alpha);
+
+   neuron_var.output_value= Alpha;
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ <label:> NEURON[random]             // Arithmetic pseudo-random
+     <VALUE[initial_value]>
+     <STRING(initial_string)>
+     ;
+
+   FANIN[neuron_var] READ[control_neuron] WEIGHT[control_weight];
+   FANIN[neuron_var] READ[fanin_neuron[0]] WEIGHT[fanin_weight[0]];
+   FANIN[neuron_var] READ[fanin_neuron[1]] WEIGHT[fanin_weight[1]];
+     :
+   FANIN[neuron_var] READ[fanin_neuron[n-1]] WEIGHT[fanin_weight[n-1]];
+
+ Creates a random neuron variable, neuron_var, which returns a value
+ greater than zero and less than one.
+
+ Logic description:
+ ------------------
+ If (there are not at least 2 fanin elements)
+   checkstop();
+
+ READV(neuron_var) {
+   Alpha= READV(control_neuron) * control_weight;
+   Beta= randomf(Alpha);
+   i= int(Beta * (n+1));
+
+   output_value= READV(fanin_neuron[i]) * fanin_weight[i];
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   Alpha= READV(control_neuron) * control_weight;
+   Beta= randomf(Alpha);
+   i= int(Beta * (n+1));
+
+   output_string= READS(fanin_neuron[i]);
+   return(neuron_var.output_string);
+   }
+
+ Programming notes:
+   If the control neuron is the neuron itself, a self-stepping random
+   value can be obtained.  In this case the initial value will be the
+   inital seed.
+
+   If the initial_value is out of bounds, it is possible to read a
+   value outside of the normal return values in the first clock step.
+
+1=======================================================================
+ <label:> NEURON[train]              // Update links and/or weights
+     <VALUE[initial_value]>
+     <STRING[output_string]>
+     ;
+
+   FANIN   READ[value_neuron]   WEIGHT[value_weight];// Evaluator
+   FANOUT  WRITE[index_neuron];      // Current index
+   FANIN   READ[loader_neuron];      // Loader
+   FANIN   READ[loads_neuron]   WEIGHT[loads_weight];// # of loads
+   FANIN   READ[tests_neuron]   WEIGHT[tests_weight];// # of tests
+   FANIN   READ[units_neuron]   WEIGHT[units_weight];// # of units
+
+   FANIN   READ[fanin_neuron[0]];
+   FANIN   READ[fanin_neuron[1]];
+     :
+   FANIN   READ[fanin_neuron[n-1]];
+
+ Updates the read links and weights of the target neuron.
+
+ Logic description:
+ ------------------
+ If (there are not at least 6 fanin elements)
+   checkstop();
+
+ READV(neuron_var) {
+   /****************************************************************/
+   /* Training controls                                            */
+   /****************************************************************/
+   if (neuron_var.disable)        /* If disabled                   */
+     return(neuron_var.output_value);/* Return current value       */
+   if (neuron_var.clock == NN_master_clock
+       &&neuron_var.train == NN_master_train)/* If results have
+                                     already been computed         */
+     return(neuron_var.output_value);/* Return current value       */
+   if (neuron_var.in_training)    /* If in-training                */
+     return(neuron_var.output_value);/* Return current value       */
+
+   NN_master_train++;
+   neuron_var.clock= NN_master_clock;
+   neuron_var.train= NN_master_train;
+
+   /****************************************************************/
+   /* NEURON[train]                                                */
+   /****************************************************************/
+   units= READV(units_neuron) * units_weight; /* Number of units   */
+   tests= READV(tests_neuron) * tests_weight; /* Number of tests   */
+   loads= READV(loads_neuron) * loads_weight; /* Number of loads   */
+
+   neuron_var.output_value= MINIMUM_EVAL(value_neuron * value_weight);
+   return(neuron_var.output_value);
+   }
+
+ READS(neuron_var) {
+   return(neuron_var.output_string);
+   }
+
+1=======================================================================
+ =======================================================================
+ =======================================================================
+ PGS documentation:
+
+ Storage hierarchy terms:
+ ------------------------
+
+  Subsystem: The conglomeration of all files.
+
+  Group: A set of files.
+
+  File: A storage area backed by a single file.
+
+  Part: (or partition), a block of storage within an file.
+        Each partition is independently addressed.
+
+  Frame: The frame is the unit of allocation from a file and
+        the unit of storage that is locked in memory.
+
+        Since frames are the things that are moved in to and out
+        of memory, no unit can cross a frame boundary.
+
+        A system has one and only one frame size which is the
+        size used by all files within the system.
+
+        The system frame size may not be changed once the
+        system has been started without reformatting all data
+        elements such that the above constraints remain met.
+
+  Unit: An end-user storage element.
+        Bundles, Neurons and fan-in blocks are types of units.

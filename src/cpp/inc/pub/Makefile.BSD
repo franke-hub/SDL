@@ -1,0 +1,32 @@
+##############################################################################
+##
+##       Copyright (c) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       (Include this Makefile to add PUB library controls and dependencies.)
+##
+## Last change date-
+##       2019/02/19
+##
+## Implementation notes-
+##       This version is intended to be included from CYGWIN/LINUX makefiles.
+##
+##############################################################################
+
+################################### Controls
+LLIBS  += -L$(LIBDIR) -lpub ####### PUB library
+CLIBS  += -lssl -lcrypto
+
+##############################################################################
+## Dependencies
+$(MAKEXE): $(LIBDIR)/libpub.a
+

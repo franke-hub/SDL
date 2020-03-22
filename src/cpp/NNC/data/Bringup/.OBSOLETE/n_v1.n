@@ -1,0 +1,182 @@
+///////////////////////////////////////////////////////////////////////
+//                                                                   //
+// Title-                                                            //
+//       n_v1.n                                                      //
+//                                                                   //
+// Description-                                                      //
+//       Visual array.                                               //
+//                                                                   //
+///////////////////////////////////////////////////////////////////////
+BEGIN V1;
+
+///////////////////////////////////////////////////////////////////////
+// Constants for parameterization                                    //
+///////////////////////////////////////////////////////////////////////
+#define L_MAX                    8; // Intermediate array size
+#define X_MAX                    2; // Intermediate array links
+#define O_MAX                   40; // Output array size
+
+///////////////////////////////////////////////////////////////////////
+// Constants for parameterization                                    //
+///////////////////////////////////////////////////////////////////////
+   NEURON[constant]  NULL;          // NULL neuron
+   NEURON[constant]  map_inp;       // I forgot how load was defined
+   NEURON[constant]  map_out;       // ditto
+
+///////////////////////////////////////////////////////////////////////
+// Output array                                                      //
+///////////////////////////////////////////////////////////////////////
+   NEURON            out[O_MAX];    // Output array
+
+///////////////////////////////////////////////////////////////////////
+// L1 trainable array                                                //
+///////////////////////////////////////////////////////////////////////
+   NEURON            L1[L_MAX][L_MAX]; // L1 trainable arrary
+   do i=1 to L_MAX;
+     do j=1 to L_MAX;
+         FANIN[L1[i][j]]
+             READ[V:greys[1][1]] WEIGHT[train];
+         do k=1 to X_MAX;
+           FANIN[L1[i][j]] READ[train] WEIGHT[train];
+         end;
+         FANIN[L1[i][j]]
+             READ[V:greys[V_HMAX][V_VMAX]] WEIGHT[train];
+     end;
+   end;
+
+///////////////////////////////////////////////////////////////////////
+// L2 trainable array                                                //
+///////////////////////////////////////////////////////////////////////
+   NEURON            L2[L_MAX][L_MAX]; // L2 trainable arrary
+   do i=1 to L_MAX;
+     do j=1 to L_MAX;
+       FANIN[L2[i][j]] READ[L1[1][1]] WEIGHT[train];
+       do k=1 to X_MAX;
+         FANIN[L2[i][j]] READ[train] WEIGHT[train];
+       end;
+       FANIN[L2[i][j]] READ[L1[L_MAX][L_MAX]] WEIGHT[train];
+     end;
+   end;
+
+///////////////////////////////////////////////////////////////////////
+// L3 trainable array                                                //
+///////////////////////////////////////////////////////////////////////
+   NEURON            L3[L_MAX][L_MAX]; // L3 trainable arrary
+   do i=1 to L_MAX;
+     do j=1 to L_MAX;
+       FANIN[L3[i][j]] READ[L2[1][1]] WEIGHT[train];
+       do k=1 to X_MAX;
+         FANIN[L3[i][j]] READ[train] WEIGHT[train];
+       end;
+       FANIN[L3[i][j]] READ[L2[L_MAX][L_MAX]] WEIGHT[train];
+     end;
+   end;
+
+///////////////////////////////////////////////////////////////////////
+// Output training array                                             //
+///////////////////////////////////////////////////////////////////////
+   do o=1 to O_MAX;
+     do i=1 to L_MAX;
+       do j=1 to L_MAX;
+         FANIN[out[o]] READ[L1[i][j]] WEIGHT[train];
+         FANIN[out[o]] READ[L2[i][j]] WEIGHT[train];
+         FANIN[out[o]] READ[L3[i][j]] WEIGHT[train];
+       end;
+     end;
+   end;
+
+///////////////////////////////////////////////////////////////////////
+// Training control                                                  //
+///////////////////////////////////////////////////////////////////////
+   CONSTANT VALUE[20.0]      TR_loads;// Number of sources
+   CONSTANT VALUE[16.0]      TR_tests;// Number of test iterations
+   CONSTANT VALUE[32.0]      TR_units;// Number of units
+   CONSTANT VALUE[(L_MAX * L_MAX * (X_MAX+2) * 3)
+                + (        O_MAX * (X_MAX+2) * 3)]
+                             TR_evals;// Number of evaluands
+
+   NEURON                    TR_out[O_MAX];
+
+   NEURON[sub]               TR_del[O_MAX];
+     do i=1 to O_MAX;
+       FANIN[TR_del[i]]  READ[out[i]];// Actual output
+       FANIN[TR_del[i]]  READ[TR_out[i]];// Desired output
+     end;
+
+   NEURON[abs]               TR_abs[O_MAX];
+     do i=1 to O_MAX;
+       FANIN[TR_abs[i]]  READ[TR_del[i]];// Desired output
+     end;
+
+   NEURON[nop]               TR_result;
+     do i=1 to O_MAX;
+       FANIN  READ[TR_abs[i]];      // Desired output
+     end;
+
+   CONSTANT VALUE[0.0]       TR_index;// Loader index
+   NEURON[nop]  VALUE[0.0]   TR_loadr;// Loader
+     FANIN   READ[TR_index];        // Current index
+
+     FANIN   READ[V:color[1][1][1]];// Name of target array[0]
+     FANIN   READ[map_inp];         // Name of source array
+     FANIN   READ[NULL] WEIGHT[3];  // Number of dimensions
+     FANIN   READ[NULL] WEIGHT[V_CMAX];// Dimension(1)
+     FANIN   READ[NULL] WEIGHT[V_HMAX];// Dimension(2)
+     FANIN   READ[NULL] WEIGHT[V_VMAX];// Dimension(3)
+
+     FANIN   READ[TR_out[1]];       // Name of target array
+     FANIN   READ[map_out];         // Name of source array
+     FANIN   READ[NULL] WEIGHT[1];  // Number of dimensions
+     FANIN   READ[NULL] WEIGHT[O_MAX];// Dimension(1)
+
+   NEURON[mul]               TR_cost;// Training cost
+     FANIN   READ[TR_loads]   WEIGHT[1.0];// # of loops/test
+     FANIN   READ[TR_tests]   WEIGHT[1.0];// # of tests
+     FANIN   READ[TR_units]   WEIGHT[1.0];// # of units/test
+     FANIN   READ[TR_evals]   WEIGHT[1.0];// # of evaluands
+
+   NEURON[train]             TRAIN; // Training array
+     FANIN[TRAIN]   READ[TR_result]  WEIGHT[1.0];// Resultant
+//   FANOUT[TRAIN]  WRITE[TR_index];// Current index
+     FANIN[TRAIN]   READ[TR_loadr]; // Loader (source)
+     FANIN[TRAIN]   READ[TR_loads]; // # of loads
+     FANIN[TRAIN]   READ[TR_tests]; // # of tests
+     FANIN[TRAIN]   READ[TR_units]; // # of units
+
+     do i=1 to L_MAX;
+       do j=1 to L_MAX;
+         FANIN[TRAIN]  READ[L1[i][j]];
+       end;
+     end;
+
+     do i=1 to L_MAX;
+       do j=1 to L_MAX;
+         FANIN[TRAIN]  READ[L2[i][j]];
+       end;
+     end;
+
+     do i=1 to L_MAX;
+       do j=1 to L_MAX;
+         FANIN[TRAIN]  READ[L3[i][j]];
+       end;
+     end;
+
+     do i=1 to O_MAX;
+       FANIN[TRAIN]  READ[out[i]];
+     end;
+
+///////////////////////////////////////////////////////////////////////
+// Sequencing element                                                //
+///////////////////////////////////////////////////////////////////////
+   NEURON SEQ;                      // Sequencing element
+   do i=1 to O_MAX;
+     FANIN[SEQ] READ[out[i]];
+   end;
+
+///////////////////////////////////////////////////////////////////////
+// Last element (only appears in symbol table)                       //
+///////////////////////////////////////////////////////////////////////
+   NEURON[nop]      zz_last_neuron;
+     FANIN           READ[zz_last_neuron] zz_last_fanin;
+
+END V1;

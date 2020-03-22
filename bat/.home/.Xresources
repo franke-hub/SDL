@@ -1,0 +1,25 @@
+!!############################################################################
+!!
+!!       Copyright (C) 2020 Frank Eskesen.
+!!
+!!       This file is free content, distributed under the "un-license,"
+!!       explicitly released into the Public Domain.
+!!       (See accompanying file LICENSE.UNLICENSE or the original
+!!       contained within http://unlicense.org)
+!!
+!!############################################################################
+!=============================================================================
+! Resources for XTERM
+!=============================================================================
+xterm*background:                      Ivory
+xterm*foreground:                      Black
+xterm*fontWarnings:                    0
+xterm*scrollBar:                       true
+xterm*savelines:                       1000
+xterm*toolBar:                         false
+
+xterm*utf8: 1
+xterm*eightBitInput: false
+xterm*eightBitControl: false
+xterm*eightBitOutput: true
+

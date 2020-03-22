@@ -1,0 +1,66 @@
+///////////////////////////////////////////////////////////////////////
+//                                                                   //
+// Title-                                                            //
+//       n_str.n                                                     //
+//                                                                   //
+// Description-                                                      //
+//       Storage strings.                                            //
+//                                                                   //
+// Notes-                                                            //
+//       Load via thesaurus.                                         //
+//                                                                   //
+///////////////////////////////////////////////////////////////////////
+BEGIN STR0;
+
+   CONSTANT STRING("error")            VALUE(10000.0) error;
+   CONSTANT STRING("")                 VALUE(  1.000) item00002;
+   CONSTANT STRING("body")             VALUE(  1.000) body;
+   CONSTANT STRING("skin")             VALUE(  1.000) skin;
+   CONSTANT STRING("trunk")            VALUE(  1.000) trunk;
+   CONSTANT STRING("chest")            VALUE(  1.000) chest;
+   CONSTANT STRING("stomach")          VALUE(  1.000) stomach;
+   CONSTANT STRING("appendage")        VALUE(  1.000) appendage;
+   CONSTANT STRING("")                 VALUE(  1.000) item00009;
+   CONSTANT STRING("head")             VALUE(  1.000) head;
+   CONSTANT STRING("face")             VALUE(  1.000) face;
+   CONSTANT STRING("eye")              VALUE(  1.000) eye;
+   CONSTANT STRING("ear")              VALUE(  1.000) ear;
+   CONSTANT STRING("mouth")            VALUE(  1.000) mouth;
+   CONSTANT STRING("nose")             VALUE(  1.000) nose;
+   CONSTANT STRING("")                 VALUE(  1.000) item00016;
+   CONSTANT STRING("shoulder")         VALUE(  1.000) shoulder;
+   CONSTANT STRING("arm")              VALUE(  1.000) arm;
+   CONSTANT STRING("elbow")            VALUE(  1.000) elbow;
+   CONSTANT STRING("hand")             VALUE(  1.000) hand;
+   CONSTANT STRING("finger")           VALUE(  1.000) finger;
+   CONSTANT STRING("thumb")            VALUE(  1.000) thumb;
+   CONSTANT STRING("knuckle")          VALUE(  1.000) knuckle;
+   CONSTANT STRING("fingernail")       VALUE(  1.000) fingernail;
+   CONSTANT STRING("cuticle")          VALUE(  1.000) cuticle;
+   CONSTANT STRING("")                 VALUE(  1.000) item00026;
+   CONSTANT STRING("leg")              VALUE(  1.000) leg;
+   CONSTANT STRING("thigh")            VALUE(  1.000) thigh;
+   CONSTANT STRING("knee")             VALUE(  1.000) knee;
+   CONSTANT STRING("shin")             VALUE(  1.000) shin;
+   CONSTANT STRING("foot")             VALUE(  1.000) foot;
+   CONSTANT STRING("toe")              VALUE(  1.000) toe;
+   CONSTANT STRING("")                 VALUE(  1.000) item00033;
+   CONSTANT STRING("panorama")         VALUE(  1.000) panorama;
+   CONSTANT STRING("vista")            VALUE(  1.000) vista;
+   CONSTANT STRING("mountain")         VALUE(  1.000) mountain;
+   CONSTANT STRING("valley")           VALUE(  1.000) valley;
+   CONSTANT STRING("plain")            VALUE(  1.000) plain;
+   CONSTANT STRING("river")            VALUE(  1.000) river;
+   CONSTANT STRING("flood")            VALUE(  1.000) flood;
+   CONSTANT STRING("lake")             VALUE(  1.000) lake;
+   CONSTANT STRING("ocean")            VALUE(  1.000) ocean;
+   CONSTANT STRING("")                 VALUE(  1.000) item00043;
+   CONSTANT STRING("vegetation")       VALUE(  1.000) vegetation;
+   CONSTANT STRING("tree")             VALUE(  1.000) tree;
+   CONSTANT STRING("bush")             VALUE(  1.000) bush;
+   CONSTANT STRING("plant")            VALUE(  1.000) plant;
+   CONSTANT STRING("grass")            VALUE(  1.000) grass;
+   CONSTANT STRING("")                 VALUE(  1.000) item00049;
+   CONSTANT STRING("")                 VALUE(  1.000) item00050;
+
+END STR0;

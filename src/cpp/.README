@@ -1,0 +1,46 @@
+##############################################################################
+##
+##       Copyright (C) 2007-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       C++ development tree information.
+##
+## Last change date-
+##       2020/01/20
+##
+##############################################################################
+##
+## Intent-
+##       1) Provide a header library and associated (possibly operating
+##          system dependent) implementations.
+##       2) Provide implementation examples, some of which are useful.
+##       3) Provide implementation examples and tests of operating system
+##          and/or library functions.
+##       4) Provide implementation examples and tests of C++ functionality.
+##       5) Provide associated object library skeletons.
+##
+##############################################################################
+##
+## Implementation notes-
+##       GNU makefiles are used for all supported implementations.
+##       For Windows, this can be accomplished by installing CYGWIN and
+##       including C:\CYGWIN\BIN in the %PATH% environment variable.
+##
+## Operating systems supported (and associated #ifdef controls)-
+##       (See ./ctl/. for OS dependent Makefile fragments.)
+##       (#define)   (Environment)
+##       _OS_BSD     (Either _OS_CYGWIN or _OS_LINUX)
+##       _OS_WIN     (Windows (TM))
+##       _OS_CYGWIN  (BSD: If uname output contains "CYGWIN")
+##       _OS_LINUX   (BSD: If uname output contains "Linux")
+##
+##############################################################################

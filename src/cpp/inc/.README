@@ -1,0 +1,103 @@
+##############################################################################
+##
+##       Copyright (C) 2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       README
+##
+## Purpose-
+##       Describe directory content.
+##
+##############################################################################
+##
+## Five include subdirectories exist: com, gui, jpeg, obj, and pub. Their
+## associated method implementations reside in ../lib/ subdirectories.
+## (Some inline implementations are defined in *.i files and are included by
+## the associated *.h file. This "seemed like a good idea at the time," but
+## not so much now.)
+##
+## Coding style is similar to Java: Class names are capitalized CamelCase,
+## sometimes called PascalCase. Methods and variables begin with lower case
+## letters. Multi-word methods and variables separate words using underscores.
+## Expect exceptions to these rules in interfaces to be corrected (eventually.)
+##
+## Class, method, and variable names DO NOT contain any generalized prefixing.
+##
+##############################################################################
+## The com subdirectory:
+## The original intent was for these header files to be completely independent
+## of any underlying implementation. All versioning was to be done within
+## the associated C++ library implementation. This did not work out well,
+## most notably with Socket.h and Software.h.
+##
+## This library is widely used within this distribution. However, this was a
+## first pass and much of its functionality is available through other means.
+##
+## Object.h defines a garbage-collected Object class. This has not been well
+## tested or widely used. It contains a reclaim chain pointer which helps
+## mitigate the cascaded delete problem, but adds a pointer in every object
+## that is needed ONLY for this purpose.
+##
+##############################################################################
+## The gui subdirectory:
+## This was also written with the intent of hiding the underlying
+## implementation. While the code works, a better way of doing this is to
+## pick an existing interface and implement that. Cygwin, for example,
+## provides an X11 interface that runs on Windows. Linux provides WINE for
+## those who prefer Windows interfaces to X11.
+##
+## While the header files and associated implementation contain some somewhat
+## interesting code, no further development is warranted or expected.
+##
+##############################################################################
+## The jpeg subdirectory:
+## The jpeg subdirectory, as distributed, does not contain useful files.
+## It must be built from a separate distribution.
+##
+## JPEG headers and libraries obtained using more standard distribution
+## methods generally place the headers directly in /usr/include rather than
+## /usr/include/jpeg/. This jpeg subdirectory is unused in that case.
+##
+## The instructions below tell you how to build the JPEG library from a
+## source distribution. Following these instructions puts the header and
+## library files in non-standard places. It is often more convenient and
+## more portable to obtain the JPEG headers and library using distribution
+## channels common for your platform. However, should you disagree:
+##
+## See ~/src/c/lib/1st/jpeg for build instructions. The scripts included
+## there build ~/src/cpp/inc/jpeg/bsd and/or ~/src/cpp/inc/jpeg/win from
+## the jpeg distribution source, as well as the C and C++ libraries.
+##
+##############################################################################
+## The obj subdirectory:
+## The Object base class (defined in Object.h) is garbage collected.
+## This essentially differs from std::shared_ptr which puts the reference
+## counter outside of the Object. The Ref_t<Object> class (defined in
+## Ref.h) defines a smart pointer similar to the proposed
+## std::atomic_shared_ptr.
+##
+## This implementation has been stress tested, but is not otherwise used.
+## A particular implementation problem which showed up during this stress
+## test occured during cascading deletes. "Thread starvation" could occur.
+##
+## This has been mitigated by fine tuning the spinlatch algorithm (found
+## in Latch.h,) creating a low-overhead block memory allocator, and moving
+## Object deletion to a separate thread. It will be interesting to see how
+## std::atomic_shared_ptr addresses the cascaded delete problem.
+##
+##############################################################################
+## The pub subdirectory:
+## This contains the recommended general-purpose include files. Since
+## std::atomic_shared_ptr is likely to be well implemented and tested, the base
+## Object class (defined in Object.h) is NOT garbage collected.
+##
+## Useful include files from the com subdirectory will be moved into the pub
+## subdirectory and updated as required.
+##
+##############################################################################

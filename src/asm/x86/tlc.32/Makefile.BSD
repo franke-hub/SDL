@@ -1,0 +1,80 @@
+##############################################################################
+##
+##       Copyright (C) 2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile customization.
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+
+##############################################################################
+## Local module list
+MAKRUN :=
+MAKRUN += tlc
+
+CLIBS  := $(patsubst  -lpthread,,$(CLIBS))
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKRUN)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## Make control: tlc
+tlc: tlc.o main.o test.o
+	$(CC) -o $@ $^ -m32 -static $(CLIBS) $(CLOAD)
+
+tlc.o  : tlc._s
+	as -als=$*.lst --32 -o $@ $<
+
+tlc._s : tlc.m4
+	m4 >$@ $<
+
+tlc.m4 : $(SRCDIR)/tlc.S $(SRCDIR)/*.m4
+	$(CC) $(CDEFS) -I. -traditional -E -o $@ $<
+
+##############################################################################
+## Make control: tlc_cygwin (for 64-bit Cygwin)
+%.o: $(SRCDIR)/%.cpp
+	$(CC) -o $@ -m32 $(CFLAGS) -c $<
+
+## !! THESE FAIL !!
+tlc_cygwin: LIB/crt0.o tlc.o main.o test.o
+	ld -o $@ $^ -mi386pe -static -LLIB -LGCC -LW32 $(CLIBS) $(CLOAD)
+
+tlc_cygwin1: tlc.o main.o test.o LIB/crt0.o
+	ld -o $@ $^ -mi386pe -static -LLIB -LGCC -LW32 -LBIN $(CLIBS) -lcygwin -lc -lstdc++ $(CLOAD)
+
+tlc_cygwinP: LIB/crt0.o tlc.o main.o test.o
+	ld -o $@ $^ -mi386pep -static -LLIB -LGCC -LW32 $(CLIBS) $(CLOAD)
+
+##############################################################################
+## Bringup
+.PHONY: bringup
+bringup: ;
+	@echo "bringup"
+	@echo "CLIBS: $(CLIBS)"
+
+##############################################################################
+## Makefile cleanup
+clean : MAK_clean
+
+.PHONY : MAK_clean
+MAK_clean: ;
+	-@rm $(MAKRUN) tlc._s tlc.m4 >/dev/null 2>/dev/null

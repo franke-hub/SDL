@@ -1,0 +1,242 @@
+//----------------------------------------------------------------------------
+//
+// Title-
+//       Video.n
+//
+// Description-
+//       Visual array controls.
+//
+//----------------------------------------------------------------------------
+Video:
+{
+//----------------------------------------------------------------------------
+// Constants for parameterization
+//----------------------------------------------------------------------------
+#define MAX1H                   60; // Intermediate array size
+#define MAX1V                   60; // Intermediate array size
+#define MAX1L                    8; // Intermediate array links/element
+
+#define MAX2H                  120; // Intermediate array size
+#define MAX2V                  120; // Intermediate array size
+#define MAX2L                    8; // Intermediate array links/element
+
+#define MAX3H                   60; // Intermediate array size
+#define MAX3V                   60; // Intermediate array size
+#define MAX3L                    8; // Intermediate array links/element
+
+#define O_MAX                  128; // Output array size
+#define P_MAX                   32; // Number of old cycles retained
+
+//----------------------------------------------------------------------------
+// Intermediate arrays
+//----------------------------------------------------------------------------
+L1[MAX1H][MAX1V]:
+   NEURON;                          // L1 trainable array
+L2[MAX2H][MAX2V]:
+   NEURON;                          // L2 trainable array
+L3[MAX3H][MAX3V]:
+   NEURON;                          // L3 trainable array
+
+//----------------------------------------------------------------------------
+// Output array
+//----------------------------------------------------------------------------
+out[O_MAX]:
+   NEURON;                          // Output array
+
+old[P_MAX][O_MAX]:
+   NEURON(nop)                      // Prior output array
+
+sel[P_MAX]:
+   NEURON;                          // Prior output array selector
+
+selectIndex:
+   NEURON(mod)
+     FANIN             READ(Seq::cycleCounter);
+     FANIN             READ(Const::One) WEIGHT(P_MAX);
+
+loadOld:
+   NEURON(select);
+     FANIN             READ(selectIndex);
+
+   for(i=1; i<=P_MAX; i++)
+   {
+     FANIN             READ(sel[i]);
+   }
+
+   for(i=1; i<=P_MAX; i++)
+   {
+     for(o=1; o<=O_MAX; o++)
+     {
+       FANIN(sel[i])    READ(old[i][o]);
+       FANIN(old[i][o]) READ(out[o]);
+     }
+   }
+
+//----------------------------------------------------------------------------
+// Sequencing controls
+//----------------------------------------------------------------------------
+ACT:
+   NEURON(nop);                     // Triggered if active cycle
+     FANIN(Seq::evalActive) READ(ACT);
+
+TRN:
+   NEURON(nop);                     // Triggered if train cycle
+     FANIN(Seq::evalTrain) READ(TRN);
+
+SEQ:
+   NEURON(nop);                     // Triggered if cycle
+     FANIN(ACT)        READ(SEQ);
+     FANIN(TRN)        READ(SEQ);
+
+//----------------------------------------------------------------------------
+// Training controls
+//----------------------------------------------------------------------------
+TR_del[O_MAX]:
+   NEURON(sub);                     // SUB (TR_out[i] - out[i])
+TR_abs[O_MAX]:
+   NEURON(abs);                     // ABS (TR_del[i])
+TR_sum:
+   NEURON(add);                     // SUM (TR_abs[i])
+TR_evaluand:
+   NEURON(neg);                     // Evaluation (higher is better)
+
+TR_out[O_MAX]:
+   NEURON(nop);                     // Desired output array
+TR_ctl:
+   NEURON(train);                   // Training control
+
+//----------------------------------------------------------------------------
+// L1 trainable array
+//----------------------------------------------------------------------------
+   for(h=1; h<=MAX1H; h++)
+   {
+     for(v=1; v<=MAX1V; v++)
+     {
+       FANIN(L1[h][v])
+           READ(Source::Video[1][1]) WEIGHT(train);
+
+       for(i=1; i<=MAX1L; i++)
+       {
+         FANIN(L1[h][v]) READ(train) WEIGHT(train);
+       }
+
+       FANIN(L1[h][v])
+           READ(Source::Video[Source::VIDEO_H][Source::VIDEO_V])
+           WEIGHT(train);
+     }
+   }
+
+//----------------------------------------------------------------------------
+// L2 trainable array
+//----------------------------------------------------------------------------
+   for(h=1; h<=MAX2H; h++)
+   {
+     for(v=1; v<=MAX2V; v++)
+     {
+       FANIN(L2[h][v]) READ(L1[1][1]) WEIGHT(train);
+
+       for(i=1; i<=MAX2L; i++)
+       {
+         FANIN(L2[h][v]) READ(train) WEIGHT(train);
+       }
+
+       FANIN(L2[h][v]) READ(L1[MAX1H][MAX1V]) WEIGHT(train);
+     }
+   }
+
+//----------------------------------------------------------------------------
+// L3 trainable array
+//----------------------------------------------------------------------------
+   for(h=1; h<=MAX2H; h++)
+   {
+     for(v=1; v<=MAX2V; v++)
+     {
+       FANIN(L3[h][v]) READ(L2[1][1]) WEIGHT(train);
+
+       for(i=1; i<=MAX2L; i++)
+         FANIN(L3[h][v]) READ(train) WEIGHT(train);
+
+       FANIN(L3[h][v]) READ(L2[MAX2H][MAX2V]) WEIGHT(train);
+     }
+   }
+
+//----------------------------------------------------------------------------
+// Output trainable array
+//----------------------------------------------------------------------------
+   for(o=1; o<=O_MAX; o++)
+   {
+     for(h=1; h<=MAX2H; h++)
+     {
+       for(v=1; v<=MAX2V; v++)
+       {
+         FANIN(out[o]) READ(L3[h][v]) WEIGHT(train);
+       }
+     }
+   }
+
+//----------------------------------------------------------------------------
+// List of trainable neurons
+//----------------------------------------------------------------------------
+   for(o=1; o<=O_MAX; o++)
+     FANIN(TR_ctl)     READ(out[i]);
+
+   for(h=1; h<=MAX1H; h++)
+   {
+     for(v=1; v<=MAX1V; v++)
+     {
+       FANIN(TR_ctl)   READ(L1[h][v]);
+     }
+   }
+
+   for(h=1; h<=MAX2H; h++)
+   {
+     for(v=1; v<=MAX2V; v++)
+     {
+       FANIN(TR_ctl)   READ(L2[h][v]);
+     }
+   }
+
+   for(h=1; h<=MAX3H; h++)
+   {
+     for(v=1; v<=MAX3V; v++)
+     {
+       FANIN(TR_ctl)   READ(L3[h][v]);
+     }
+   }
+
+//----------------------------------------------------------------------------
+// Evaluation function
+//----------------------------------------------------------------------------
+   for(o=1; o<=O_MAX; o++)          // TR_del[i]= SUB(TR_out[i] - out[i])
+   {
+     FANIN(TR_del[i])  READ(TR_out[i]);
+     FANIN(TR_del[i])  READ(out[i]);
+   }
+
+   for(o=1; o<=O_MAX; o++)          // TR_abs[i]= ABS(TR_del[i])
+     FANIN(TR_abs[i])  READ(TR_del[i]);
+
+   for(o=1; o<=O_MAX; o++)          // TR_sum = SUM(TR_abs[i])
+     FANIN(TR_sum)     READ(TR_abs[i]);
+
+   FANIN(TR_evaluand)  READ(TR_sum);// TR_evaluand= -(TR_sum)
+
+//----------------------------------------------------------------------------
+// Cycle
+//----------------------------------------------------------------------------
+   for(o=1; o<=O_MAX; o++)
+   {
+     FANIN(SEQ)        READ(out[i]);
+   }
+
+//----------------------------------------------------------------------------
+// Active cycle
+//----------------------------------------------------------------------------
+   FANIN(ACT)          READ(loadOld);
+
+//----------------------------------------------------------------------------
+// Training cycle
+//----------------------------------------------------------------------------
+   FANIN(TRN)          READ(TR_evaluand);
+
+} // Video

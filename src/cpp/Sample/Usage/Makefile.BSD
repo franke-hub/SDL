@@ -1,0 +1,67 @@
+##############################################################################
+##
+##       Copyright (c) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2019/02/16
+##
+##############################################################################
+
+##############################################################################
+## Local library list
+LIBOBJ :=
+LIBOBJ += Command.o
+MAKEXE := $(patsubst $(OBJDIR)/Command,,$(MAKEXE))
+
+LLIBS  += -L. -llocal
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(DEFAULT) liblocal.a
+
+##############################################################################
+## TARGET: liblocal.a
+liblocal.a: $(LIBOBJ)
+	$(AR) $@ $^
+	touch $@
+
+$(MAKEXE): liblocal.a
+
+##############################################################################
+## Library dependencies
+$(MAKEXE) : L/libcom.a L/libgui.a
+
+##############################################################################
+## External library dependencies
+include $(INCDIR)/pub/Makefile.BSD
+
+##############################################################################
+## Run the default program
+.PHONY: do
+do: default
+	@Main
+
+##############################################################################
+## Makefile cleanup
+clean : clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	-@rm liblocal.a      >/dev/null 2>/dev/null
+

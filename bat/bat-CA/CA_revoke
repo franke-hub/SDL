@@ -1,0 +1,49 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       CA_revoke
+##
+## Function-
+##       Revoke a certificate.
+##
+## Last change date-
+##       2019/04/03
+##
+## Usage-
+##       CA_revoke certificate-filename
+##
+##############################################################################
+
+##############################################################################
+## Verify the request
+[[ -z "$1" ]] && { echo "Missing parameter"; exit 1; }
+[[ -n "$2" ]] && { echo "Extra parameter(s)"; exit 1; }
+
+[[ ! -f "$1" ]] && { echo "$1 is not a file"; exit 1; }
+
+[[ -z "$OPENSSL_CONF" ]] && { echo "OPENSSL_CONF is not set"; exit 1; }
+[[ ! -f "$OPENSSL_CONF" ]] && { echo "\$OPENSSL_CONF is not a file"; exit 1; }
+
+[[ "${OPENSSL_CONF: -12}" != "/openssl.cnf" ]] && { echo "\$OPENSSL_CONF not */openssl.cnf"; exit 1; }
+OPENSSL_PATH=${OPENSSL_CONF:0:-12}
+
+echo OPENSSL_PATH $OPENSSL_PATH
+echo OPENSSL_CONF $OPENSSL_CONF
+
+##############################################################################
+## Revoke the certificate (in certs)
+openssl ca -revoke $1
+
+##############################################################################
+## Update the certificate revocation list
+openssl ca -gencrl -out $OPENSSL_PATH/crl/crl.pem
+

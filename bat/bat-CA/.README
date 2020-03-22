@@ -1,0 +1,58 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       ~/bat/bat-CA/.README
+##
+## Purpose-
+##       Subdirectory information
+##
+## Last change date-
+##       2020/01/19
+##
+## Usage-
+##       .README (or edit .README)
+##
+##############################################################################
+
+cat $0
+
+##############################################################################
+##
+## File-
+##       openssl.cnf
+##
+## Purpose-
+##       Configuration file.
+##
+## Source-
+##       https://github.com/openssl/openssl/blob/master/apps/openssl.cnf
+##
+##############################################################################
+
+##############################################################################
+##
+## File-
+##       openssl.patch
+##
+## Purpose-
+##       Configuration file patch.
+##
+## Source-
+##       (Used edit to expand tabs in openssl.cnf.)
+##       diff -w -c openssl.cnf openssl.cnf-original >openssl.patch
+##       Default state/city = New York
+##       Default common name = example.com
+##
+## Usage notes-
+##       This patch is NOT TESTED against the current openssl.cnf
+##
+##############################################################################

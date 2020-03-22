@@ -1,0 +1,51 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2016-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       setupFUSE
+##
+## Purpose-
+##       Set up environment to use fuseki servicer
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       . setupFUSE
+##
+##############################################################################
+
+##############################################################################
+## Prerequisite: FUSE directory
+if [[ ! -d "/usr/fuse" ]] ; then
+  echo "Unable to find FUSE_HOME"
+  return
+fi
+
+##############################################################################
+## Prerequisite: JAVA
+if [[ -z "$JAVA_HOME" ]] ; then
+  . setupJAVA
+
+  if [[ -z "$JAVA_HOME" ]] ; then
+    echo "Unable to find JAVA_HOME"
+    return
+  fi
+fi
+
+##############################################################################
+## Activate FUSE environment
+if [[ `osCYGWIN` = "CYGWIN64" ]] ; then
+  export JAVA_OPTIONS=-Xmx16384M
+fi
+
+cd /usr/fuse
+

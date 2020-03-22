@@ -1,0 +1,51 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2014-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       forever
+##
+## Purpose-
+##       Execute a command over and over again
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       forever command argument list
+##
+##############################################################################
+
+##############################################################################
+## Validate the command line
+delay=10s
+if [ "$1" == "-t" ] ; then
+  shift
+  if [ -z "$1" ] ; then
+    echo "Delay value missing, default used"
+  else
+    delay=$1
+    shift
+  fi
+fi
+
+cmd=$*
+if [ -z "$cmd" ] ; then
+  cmd="tod"
+fi
+
+##############################################################################
+## Execute command over and over.
+while [[ "0" == "0" ]]
+do
+  $cmd
+  sleep $delay
+done
+

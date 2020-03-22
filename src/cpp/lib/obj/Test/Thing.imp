@@ -1,0 +1,240 @@
+//----------------------------------------------------------------------------
+//
+//       Copyright (c) 2018 Frank Eskesen.
+//
+//       This file is free content, distributed under the Lesser GNU
+//       General Public License, version 3.0.
+//       (See accompanying file LICENSE.LGPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//
+//----------------------------------------------------------------------------
+//
+// Title-
+//       Thing.imp
+//
+// Purpose-
+//       Define static Thing attributes.
+//
+// Last change date-
+//       2018/01/01
+//
+//----------------------------------------------------------------------------
+#ifndef THING_IMP_INCLUDED
+#define THING_IMP_INCLUDED
+
+#include <assert.h>                 // For assert()
+#include <mutex>                    // For std::lock_guard
+#include <com/Debug.h>              // For debugf
+#include "obj/Allocator.h"          // For Allocator, Latch
+
+#include "Thing.h"
+
+//----------------------------------------------------------------------------
+// Constants for parameterization
+//----------------------------------------------------------------------------
+#define USE_ALLOCATOR true          // Use Allocator.h?
+
+#if true
+#define MAX_CACHED_THINGS 1000000   // Maximum number of cached Things
+#define MIN_CACHED_THINGS  750000   // Minimum number of cached Things
+#define USE_CACHED_THINGS  250000   // Allocation block of Things
+#else
+#define MAX_CACHED_THINGS 1048596   // Maximum number of cached Things
+#define MIN_CACHED_THINGS  786448   // Minimum number of cached Things
+#define USE_CACHED_THINGS  786448   // Allocation block of Things
+#endif
+
+//----------------------------------------------------------------------------
+// External data area
+//----------------------------------------------------------------------------
+int                    Thing::errorCount= 0;
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       NewThing
+//
+// Purpose-
+//       Free pool Thing
+//
+//----------------------------------------------------------------------------
+struct NewThing {
+   NewThing*           next;        // Next free NewThing
+};
+
+//----------------------------------------------------------------------------
+// Internal data area
+//----------------------------------------------------------------------------
+#if USE_ALLOCATOR
+static Allocator       allocator(sizeof(Thing), MIN_CACHED_THINGS, USE_CACHED_THINGS);
+#endif
+
+static obj::Latch      one_shot;    // First time allocation Latch
+static obj::Latch      latch;       // Single threaded allocation Latch
+static std::atomic<NewThing*>
+                       freePool(nullptr); // Free allocation pool
+
+static std::atomic<size_t>
+                       allocated(0); // Number of currently allocated Things
+static std::atomic<size_t>
+                       available(0); // Number of currently available Things
+
+static std::atomic<size_t>
+                       del_calls(0); // Number of calls to ::delete()
+static std::atomic<size_t>
+                       new_calls(0); // Number of calls to ::new()
+
+static std::atomic<size_t>
+                       max_allocated(0); // Maximum number of allocated Things
+static std::atomic<size_t>
+                       max_available(0); // Maximum number of available Things
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Thing::debug_static
+//
+// Purpose-
+//       Static debugging.
+//
+//----------------------------------------------------------------------------
+void
+   Thing::debug_static( void )      // Static debug display
+{
+   debugf("\n\n--------------------------------\n");
+#if USE_ALLOCATOR
+   debugf("Thing::debug_static (USE_ALLOCATOR)\n");
+   allocator.debug();
+#else
+   debugf("Thing::debug_static (USE_FREEPOOL)\n");
+   debugf("..freePool(%p) available(%zd) max(%zd)\n"
+          "..allocated(%zd) max(%zd) new_calls(%zd) del_calls(%zd)\n"
+          , freePool.load(), available.load(), max_available.load()
+          , allocated.load(), max_allocated.load()
+          , new_calls.load(), del_calls.load());
+#endif
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       get_allocated
+//
+// Purpose-
+//       Return the allocated counter
+//
+//----------------------------------------------------------------------------
+size_t                              // The allocated counter
+   Thing::get_allocated( void )     // Get allocated counter
+{  return allocated; }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Thing::operator delete
+//
+// Purpose-
+//       Deallocate Thing or Things
+//
+//----------------------------------------------------------------------------
+void
+   Thing::operator delete(void* addr, std::size_t size) // The Thing*
+{  if( false ) debugf("Thing::operator delete(%p,%zd)\n", addr, size);
+
+#if USE_ALLOCATOR
+   return allocator.put(addr);
+#else
+   if( available.load() >= MAX_CACHED_THINGS )
+   {
+     allocated--;
+     del_calls++;
+     ::operator delete(addr, size);
+   }
+   else
+   {
+     NewThing* thing= (NewThing*)addr;
+     NewThing* old= freePool;
+     thing->next= old;
+     while( !freePool.compare_exchange_weak(old, thing) )
+       thing->next= old;
+
+     available++;
+     size_t current_used= available.load();
+     size_t current_max=  max_available.load();
+     while( current_used > current_max )
+     {
+       if( max_available.compare_exchange_weak(current_max, current_used) )
+         break;
+     }
+   }
+#endif
+}
+
+void
+   Thing::operator delete(void* addr) // The Thing*
+{  if( false ) debugf("Thing::operator delete(%p)\n", addr);
+   Thing::operator delete(addr, sizeof(Thing));
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Thing::operator new
+//
+// Purpose-
+//       Allocate Thing or Things
+//
+//----------------------------------------------------------------------------
+void*                               // The Thing*
+   Thing::operator new(std::size_t size) // The allocation length
+{  if( false ) debugf("Thing::operator new(%zd)\n", size);
+
+#if USE_ALLOCATOR
+   return allocator.get();
+#else
+   {{{{ // Attempt allocation from free list
+     std::lock_guard<decltype(latch)> lock(latch);
+
+     NewThing* thing= freePool;
+     while( thing )
+     {
+       NewThing* next= thing->next;
+       if( freePool.compare_exchange_weak(thing, next) )
+       {
+         available--;
+         return thing;
+       }
+     }
+   }}}}
+
+   // Pre-load the available pool
+   if( true  && one_shot.latch == 0 && one_shot.try_lock() )
+   {
+     for(int i= 1; i<MIN_CACHED_THINGS; i++) // One extra allocated after
+     {
+       allocated++;
+       new_calls++;
+       void* addr= ::operator new(size);
+       Thing::operator delete(addr, size);
+     }
+   }
+
+   allocated++;
+#ifdef USE_THING_CHECKING
+   thing_check(allocated.load());
+#endif
+
+   size_t current_used= allocated.load();
+   size_t current_max=  max_allocated.load();
+   while( current_used > current_max )
+   {
+     if( max_allocated.compare_exchange_weak(current_max, current_used) )
+       break;
+   }
+
+   new_calls++;
+   return ::operator new(size);
+#endif
+}
+
+#endif // THING_IMP_INCLUDED

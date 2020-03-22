@@ -1,0 +1,27 @@
+##############################################################################
+##
+##       Copyright (c) 2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .gitignore
+##
+## Purpose-
+##       Distribution maintenance.
+##
+## Last change date-
+##       2019/01/14
+##
+##############################################################################
+
+##############################################################################
+## ~/src/mcs/Sample/.gitignore
+##############################################################################
+
+## The famous Quick and Dirty test
+Dirty.cs

@@ -1,0 +1,42 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+## Makefile.DEP -- Default dependency control
+##############################################################################
+
+##############################################################################
+## TARGET: depend, Unconditionally update the dependency file
+Makeproj.inp : $(MAKSRC)
+	@echo "#################################"                  > Makeproj.inp
+	@echo "## Makeproj.inp -- automatically generated"        >> Makeproj.inp
+	@echo "#################################"                 >> Makeproj.inp
+	@echo "#path $(SRCDIR)"                                   >> Makeproj.inp
+	@echo "#path $(INCDIR)"                                   >> Makeproj.inp
+	@echo "#path $(INCSYS)"                                   >> Makeproj.inp
+ifneq "" "$(INCDEP)"
+	@echo "#path $(INCDEP)"                                   >> Makeproj.inp
+endif
+	@echo ""                                                  >> Makeproj.inp
+	@ls $(MAKSRC)                                             >> Makeproj.inp
+
+Makeproj.out : Makeproj.inp
+	-@rm Makeproj.out >/dev/null 2>/dev/null
+	@makeproj Makeproj.inp
+	@mv Makeproj.incl Makeproj.out
+
+.PHONY: depend
+depend: ;
+	-@rm Makeproj.inp
+	@$(MAKE) Makeproj.out >/dev/null
+
+##############################################################################
+## Include the dependency file
+include Makeproj.out
+

@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<aiml version="1.0">
+<!-- -->
+<!-- Free software (c) 2017 Frank Eskesen. -->
+<!-- This program is open source code released under -->
+<!-- the terms of the GNU General Public License  -->
+<!-- as published by the Free Software Foundation. -->
+<!-- Complies with AIML 1.0 Tag Set Specification -->
+<!-- as adopted by the ALICE A.I. Foundation. -->
+<!-- Last modified 12/15/2017 -->
+<!-- -->
+
+<!-- alice/atomic.aiml ONLY FIXED IN SOURCE -->
+
+<!-- alice/badanswer.aiml -->
+<!-- PARTIAL UPDATE: Added comments. -->
+<!-- NOT FIXED: PARSE ERRORS REMAIN. -->
+
+<!-- alice/bot.aiml -->
+<category><pattern>HOW MANY PEOPLE HAVE YOU MET</pattern>
+<template><bot name="totalclients"/> people since I was first activated on <bot name="birthday"/>.</template>
+</category>
+
+<category><pattern>ARE YOU AI</pattern>
+<template>I am an <bot name="order"/>.</template>
+</category>
+
+<!-- alice/bot_profile.aiml -->
+<category><pattern>AGE</pattern>
+<template><random>
+<li>I was activated on <bot name="birthday"/>.</li>
+<li>I'm told that I'm <bot name="age"/>.</li></random></template>
+</category>
+
+<!-- alice/client.aiml ALSO FIXED IN SOURCE -->
+<category><pattern>I HAVE A BOAT</pattern>
+<template><random>  <li>What kind of boat do you have?</li>  <li>What is her home port?</li>  <li>Do you take her out much?</li>  <li>What is the worst weather you've been in?</li>  <li>What is your farthest trip?</li>  <li>What king of electronics do you have?</li>  <li>Are you a racer or a cruiser?</li>  <li>Do you fish?</li>  <li>Do you water ski?</li>  <li>Do you troll?</li>  <li>Do you do your own upkeep? or do you just let the yard do it?</li>  <li>Whats you favorite anchorage?</li></random>  <think><set name="it"><set name="has"><set name="topic"><person/></set></set></set></think>  </template>
+</category>
+
+<category><pattern>I AM FEMALE</pattern>
+<template><think><set name="gender">she</set></think> <random> <li>Me too. I am a she.</li> <li>I am a girl too.</li> <li>I am a also female.</li> <li>Thanks for telling me your gender.</li> </random></template>
+</category>
+
+<!-- alice/default.aiml ONLY FIXED IN SOURCE -->
+
+<!-- alice/update_mccormick ONLY FIXED IN SOURCE -->
+
+<!-- alice/primitive-math.aiml -->
+<!-- NOT FIXED: PARSE ERRORS (Unexpected <eval> tag) REMAIN. -->
+
+<!-- alice/update1.aiml -->
+<!-- Whitespace changes -->
+<category><pattern>FORMAT PROPERTIES</pattern>
+<template>
+* age = <bot name="age"/><br/>
+* arch = <bot name="arch"/><br/>
+* baseballteam = <bot name="baseballteam"/><br/>
+* birthday = <bot name="birthday"/><br/>
+* birthplace = <bot name="birthplace"/><br/>
+* botmaster = <bot name="botmaster"/><br/>
+* boyfriend = <bot name="boyfriend"/><br/>
+* build = <bot name="build"/><br/>
+* celebrities = <bot name="celebrities"/><br/>
+* celebrity = <bot name="celebrity"/><br/>
+* city = <bot name="city"/><br/>
+* class = <bot name="class"/><br/>
+* country = <bot name="country"/><br/>
+* dailyclients = <bot name="dailyclients"/><br/>
+* domain = <bot name="domain"/><br/>
+* email = <bot name="email"/><br/>
+* emotion = <bot name="emotion"/><br/>
+* emotions = <bot name="emotions"/><br/>
+* ethics = <bot name="ethics"/><br/>
+* etype = <bot name="etype"/><br/>
+* family = <bot name="family"/><br/>
+* favoriteactor = <bot name="favoriteactor"/><br/>
+* favoriteactress = <bot name="favoriteactress"/><br/>
+* favoriteartist = <bot name="favoriteartist"/><br/>
+* favoriteauthor = <bot name="favoriteauthor"/><br/>
+* favoriteband = <bot name="favoriteband"/><br/>
+* favoritebook = <bot name="favoritebook"/><br/>
+* favoritecolor = <bot name="favoritecolor"/><br/>
+* favoritefood = <bot name="favoritefood"/><br/>
+* favoritemovie = <bot name="favoritemovie"/><br/>
+* favoritequestion = <bot name="favoritequestion"/><br/>
+* favoritesong = <bot name="favoritesong"/><br/>
+* favoritesport = <bot name="favoritesport"/><br/>
+* favoritesubject = <bot name="favoritesubject"/><br/>
+* favortemovie = <bot name="favortemovie"/><br/>
+* feeling = <bot name="feeling"/><br/>
+* feelings = <bot name="feelings"/><br/>
+* footballteam = <bot name="footballteam"/><br/>
+* forfun = <bot name="forfun"/><br/>
+* friend = <bot name="friend"/><br/>
+* friends = <bot name="friends"/><br/>
+* gender = <bot name="gender"/><br/>
+* genus = <bot name="genus"/><br/>
+* girlfriend = <bot name="girlfriend"/><br/>
+* hair = <bot name="hair"/><br/>
+* hockeyteam = <bot name="hockeyteam"/><br/>
+* job = <bot name="job"/><br/>
+* kindmusic = <bot name="kindmusic"/><br/>
+* kingdom = <bot name="kingdom"/><br/>
+* language = <bot name="language"/><br/>
+* location = <bot name="location"/><br/>
+* looklike = <bot name="looklike"/><br/>
+* master = <bot name="master"/><br/>
+* memory = <bot name="memory"/><br/>
+* name = <bot name="name"/><br/>
+* nationality = <bot name="nationality"/><br/>
+* nclients = <bot name="nclients"/><br/>
+* ndevelopers = <bot name="ndevelopers"/><br/>
+* order = <bot name="order"/><br/>
+* orientation = <bot name="orientation"/><br/>
+* os = <bot name="os"/><br/>
+* party = <bot name="party"/><br/>
+* phylum = <bot name="phylum"/><br/>
+* president = <bot name="president"/><br/>
+* question = <bot name="question"/><br/>
+* religion = <bot name="religion"/><br/>
+* sign = <bot name="sign"/><br/>
+* size = <bot name="size"/><br/>
+* species = <bot name="species"/><br/>
+* state = <bot name="state"/><br/>
+* talkabout = <bot name="talkabout"/><br/>
+* totalclients = <bot name="totalclients"/><br/>
+* version = <bot name="version"/><br/>
+* vocabulary = <bot name="vocabulary"/><br/>
+* wear = <bot name="wear"/><br/>
+* website = <bot name="website"/><br/>
+</template>
+</category>
+
+<!-- Moved think outside <random></random> -->
+<category><pattern>WHAT IS CONVERSATION</pattern>
+<template><random> <li>Dyslexic people preserving the environment.</li> <li>The act or an instance of talking together.</li> </random>
+          <think><set name="it"><set name="topic">Conversation</set></set></think>
+</template></category>
+
+<!-- ./std-startup.xml -->
+<!-- This overwrites the pattern in ./std-startup.xml -->
+<category>
+  <pattern>LOAD AIML B</pattern>
+  <template>Been there, done that. Nice try, though.</template>
+</category>
+</aiml>

@@ -1,0 +1,30 @@
+##############################################################################
+##
+##       Copyright (C) 2007 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.BSD
+##############################################################################
+
+##############################################################################
+## Local module list
+export CLASSPATH=.:OBJPATH:$(PWD)
+export SOURCEDIR=SRCPATH
+export OBJECTDIR=OBJPATH
+
+##############################################################################
+## Set default target
+make.dir: $(MAKOBJ)
+	touch make.dir
+
+##############################################################################
+## Makefile cleanup
+.phony: MAK_clean
+clean : MAK_clean
+MAK_clean: ;
+	-@rm make.dir >/dev/null 2>/dev/null
+

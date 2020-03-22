@@ -1,0 +1,30 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       kvm.rebind
+##
+## Purpose-
+##       USB rebind
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       sudo kvm.rebind   [OBSOLETE?]
+##
+##############################################################################
+
+##############################################################################
+## Rebind USB
+echo -n "0000:00:07.4" >/sys/bus/pci/drivers/ohci_hcd/unbind
+echo -n "0000:00:07.4" >/sys/bus/pci/drivers/ohci_hcd/bind
+

@@ -1,0 +1,21 @@
+//----------------------------------------------------------------------------
+//
+//       Copyright (c) 2010 Frank Eskesen.
+//
+//       This file is free content, distributed under the MIT license.
+//       (See accompanying file LICENSE.MIT or the original contained
+//       within https://opensource.org/licenses/MIT)
+//
+//----------------------------------------------------------------------------
+//
+// Title-
+//       namespace.end
+//
+// Purpose-
+//       End the GUI namespace.
+//
+// Last change date-
+//       2010/01/01
+//
+//----------------------------------------------------------------------------
+}  // namespace GUI

@@ -1,0 +1,49 @@
+##############################################################################
+##
+##       Copyright (C) 2007 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.DIR -- Included from ../Makefile.*
+##############################################################################
+
+##############################################################################
+## TARGET: libcom.a
+libcom.a : $(wildcard $(SRCDIR)/com/*) $(wildcard $(INCDIR)/com/*)
+	(cd $(OBJDIR)/com/ ; make)
+	ln -s -f $(OBJDIR)/com/libcom.a .
+	touch libcom.a
+
+make.bsd: libcom.a
+
+##############################################################################
+## TARGET: libcom.lib
+libcom.lib : $(wildcard $(SRCDIR)/com/*) $(wildcard $(INCDIR)/com/*)
+	(cd $(OBJDIR)/com/ ; make)
+	cp $(OBJDIR)/com/libcom.lib .
+
+make.win: libcom.lib
+
+##############################################################################
+## Standard targets
+pristine.bsd: com.pristine
+pristine.win: com.pristine
+.PHONY: com.pristine
+com.pristine : ;
+	(cd $(OBJDIR)/com/ ; make pristine)
+
+clean.bsd: com.clean.bsd
+.PHONY: com.clean.bsd
+com.clean.bsd : ;
+	-@rm com/libcom.a >/dev/null 2>/dev/null
+	-@rm libcom.a >/dev/null 2>/dev/null
+
+clean.win: com.clean.win
+.PHONY: com.clean.win
+com.clean.win : ;
+	-@rm com/libcom.lib >/dev/null 2>/dev/null
+	-@rm libcom.lib >/dev/null 2>/dev/null
+

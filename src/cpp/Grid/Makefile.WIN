@@ -1,0 +1,40 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2017 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.WIN
+##
+## Purpose-
+##       WINDOWS Makefile versioning
+##
+## Last change date-
+##       2017/01/01
+##
+##############################################################################
+
+##############################################################################
+## Local modifications
+LLIBS  += $(LIBDIR)/libgui.lib##### GUI library
+LLIBS  += /FORCE:MULTIPLE########## Allow duplicate entry points
+
+##############################################################################
+## WINDOWS incompatibilities
+MAKEXE := $(patsubst $(OBJDIR)/EulerConversionTest.exe,,$(MAKEXE)) ## OpenGL math library not installed
+MAKEXE := $(patsubst $(OBJDIR)/UpdateDNS.exe,,$(MAKEXE)) ## CURL not installed
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+

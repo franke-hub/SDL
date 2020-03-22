@@ -1,0 +1,58 @@
+##############################################################################
+##
+##       Copyright (c) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the Lesser GNU
+##       General Public License, version 3.0.
+##       (See accompanying file LICENSE.LGPL-3.0 or the original
+##       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/cpp/lib/pub/Test/.TIMING
+##
+## Purpose-
+##       Timing test results.
+##
+## Last change date-
+##       2020/03/20
+##
+## Implementation/Usage note-
+##       Only three tests are run. Small differences are irrelevant.
+##
+##############################################################################
+
+##############################################################################
+## TestDisp -time (Reported elapsed time in seconds)
+##############################################################################
+## 2020/03/20 (UIX updated, smaller workload)
+##                WIN      UIX  (AFTER  AU_FIFO UPDATE)
+##       Min:   9.173    5.164
+##       Avg:   9.225    5.202
+##       Max:   9.320    5.229
+##
+##                WIN      UIX  (BEFORE AU_FIFO UPDATE)
+##       Min:   9.550    5.140
+##       Avg:   9.636    5.170
+##       Max:   9.699    5.214
+##
+## 2020/01/05 (Windows upgraded to WIN10, still using AU_FIFO)
+##                WIN      UIX
+##       Min:   9.250    5.487
+##       Avg:   9.389    5.507
+##       Max:   9.576    5.528
+##
+## 2019/02/23 Using AU_FIFO
+##                WIN      UIX
+##       Min:   4.684    5.418
+##       Avg:   4.734    5.430
+##       Max:   4.900    5.438
+##
+## 2019/02/23
+##                WIN      UIX
+##       Min:   8.625    7.655
+##       Avg:   8.642    7.715
+##       Max:   8.656    7.804
+##
+

@@ -1,0 +1,28 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       setupLIB
+##
+## Purpose-
+##       Initialize for LIB
+##
+## Last change date-
+##       2019/10/26
+##
+## Usage-
+##       . setupLIB
+##
+##############################################################################
+export LD_RUN_PATH=$LD_RUN_PATH:$HOME/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/lib
+export LIBPATH=$LIBPATH:$HOME/lib
+

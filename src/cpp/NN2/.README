@@ -1,0 +1,85 @@
+##############################################################################
+##
+##       Copyright (C) 2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       NN2 subdirectory information.
+##
+## Last change date-
+##       2018/07/23
+##
+##############################################################################
+
+##############################################################################
+INFO:
+cifar-10-binary.tar.gz
+         Source: https://www.cs.toronto.edu/~kriz/cifar.html
+         Content: 5000 32x32 training images, 1000 32x32 test images
+
+         Format: data_batch_1.bin .. data_batch_5.bin, test_batch.bin
+             10000 rows: <1 byte identifier><3072 byte image>
+             Image: 32 rows, each: 32 bytes red, 32 bytes green, 32 bytes blue
+         NO DELIMITERS: Each .bin file is 30,730,000 bytes long.
+
+         Format: batches.meta.txt
+             line 0: Name for identifier 0
+             :
+             line 9: Name for identifier 9
+
+2020/03/01 Status
+         EXPERIMENTAL:
+            GetImage: Displays images in set.
+            TestUnit: Displays a few images, writes debugging output.
+                So far, nothing to write home about.
+
+2018/01/01 Overview
+         1) This is a prototype for a more basic neural network, designed
+            to minimize component storage overhead.
+         2) The basic concept is to separate the logic needed to process
+            a Neuron from the storage needed to maintain its state.
+
+##############################################################################
+FEATURE:
+yyyy/mm/dd Description
+
+##############################################################################
+OPEN:
+yyyy/mm/dd Description
+
+##############################################################################
+TODO:
+2018/02/08 Divide Thread work by work units rather than by Token space.
+           (Will still need Token, Count parameters.)
+           Will also need way to dynamically convert work units to tokens.
+           work_tokens_per_charge= (_length + _charge - 1) / _charge    NG
+           Need something based on current position:
+             length charge t_per_c  << Count positions where value changed >>
+                  3      4       1  Want: [1, 1, 2]    1..4/3, 5..8/3, 9..12/3
+                  9      4       1  Want: [1, 1, 2], ...
+                  4      3       2  Want: [0, 1, 1, 1] 1..3/4, 4..6/4, 7.. 9/4, 10..12/4
+
+           VideoInp would have 1 work unit.
+           HiddenNeuron might have 1 work unit for each Token.
+           FaninpNeuron might have 1 work unit for each Token
+           plus some fractional work unit for each output.
+           VideoOut would have 1 work unit.
+
+2018/02/11 FaninpNeuron restricted to same size next Network.
+           Could add an internal Fanout layer, or just leave restriction
+           and let the next layer handle the problem.
+
+2018/02/11 Want to rename Weight_t to something else. Minval_t, maybe.
+           so that name isn't confused with FanoutBundle::Fanout_weight_t
+
+##############################################################################
+FIXED: yyyy/mm/dd
+

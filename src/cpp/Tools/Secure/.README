@@ -1,0 +1,39 @@
+##############################################################################
+##
+##       Copyright (C) 2007-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~src/cpp/Tools/Secure/.README
+##
+## Purpose-
+##       Documentation
+##
+## Last change date-
+##       2019/04/09
+##
+## Usage note-
+##       Although the cryptography used is probably easily breakable,
+##       it's good enough for casual use.
+##
+##############################################################################
+
+##############################################################################
+BUGS:
+
+##############################################################################
+FIXED: 2006/06/29
+2006/06/29 Does not support large files.
+
+FIXED: 2006/06/27
+2006/06/27 Linux detects invalid free for enc/dec,
+           but programs seem to work otherwise.
+
+##############################################################################
+CLOSED:
+

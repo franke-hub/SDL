@@ -1,0 +1,68 @@
+##############################################################################
+##
+##       Copyright (C) 2007 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.BSD
+##############################################################################
+
+##############################################################################
+## Local module list
+export CLASSPATH=.:$(OBJDIR):$(PWD)
+export SOURCEDIR=$(SRCDIR)
+export OBJECTDIR=$(OBJDIR)
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= user.jar
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## TARGET: install
+.PHONY: install
+install : /usr/local/java/lib/user.jar
+
+/usr/local/java/lib/user.jar : user.jar
+	cp $< $@
+
+##############################################################################
+## TARGET: user.jar
+MAKJAR :=
+
+include $(SRCDIR)/user/node/Makefile.DIR
+include $(SRCDIR)/user/util/Makefile.DIR
+
+user.jar: $(MAKJAR)
+	-@rm user.jar >/dev/null 2>/dev/null
+	jar -cvf $(@) $(MAKJAR)
+
+##############################################################################
+## TARGET: test
+.PHONY: test
+test : user.jar
+
+include $(SRCDIR)/test/node/Makefile.DIR
+include $(SRCDIR)/test/util/Makefile.DIR
+
+##############################################################################
+## Echo (makefile debugging)
+.PHONY: echo
+echo : ;
+	@echo MAKSRC: $(MAKSRC)
+	@echo MAKOBJ: $(MAKOBJ)
+
+##############################################################################
+## Makefile cleanup
+pristine : MAK_pristine
+.PHONY: MAK_pristine
+MAK_pristine: ;
+	-@rm *.log >/dev/null 2>/dev/null
+

@@ -1,0 +1,25 @@
+##############################################################################
+##
+##       Copyright (C) 2015-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/mcs/ctl/BSD/Makefile.MCS
+##
+## Purpose-
+##       Cygwin/Linux compiler controls.
+##
+## Last change date-
+##       2019/01/14
+##
+##############################################################################
+
+##############################################################################
+## CC       (Compiler identifier)
+CC     := mcs ##################### Compiler: Mono C# (or alias)
+

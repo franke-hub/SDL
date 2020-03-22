@@ -1,0 +1,19 @@
+//////////////////////////////////////////////////////////////////////////////
+//                                                                          //
+// Title-                                                                   //
+//       big.n                                                              //
+//                                                                          //
+// Description-                                                             //
+//       Bringup test.                                                      //
+//                                                                          //
+// Resultant-                                                               //
+//       71.875 (incrementing each re-run)                                  //
+//                                                                          //
+//////////////////////////////////////////////////////////////////////////////
+begin alpha;
+
+#define I 60;
+#include "base.n"
+   entry(alpha::base::entry);
+end alpha;
+

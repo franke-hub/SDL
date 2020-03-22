@@ -1,0 +1,569 @@
+//----------------------------------------------------------------------------
+//
+//       Copyright (c) 2007 Frank Eskesen.
+//
+//       This file is free content, distributed under the Lesser GNU
+//       General Public License, version 3.0.
+//       (See accompanying file LICENSE.LGPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//
+//----------------------------------------------------------------------------
+//
+// Title-
+//       Socket.u
+//
+// Purpose-
+//       Undefine macros defined in <sys/socket.h>.
+//
+// Last change date-
+//       2007/01/01
+//
+// Implementation notes-
+//       The values are saved before they are deleted.
+//
+//       SOCK_%NAME% renamed to SOCK_ST_%NAME% in enum SOCK_ST
+//       AF_%NAME% renamed to SOCK_AF_%NAME% in enum SOCK_AF
+//       PF_%NAME% renamed to SOCK_PF_%NAME% in enum SOCK_PF
+//       MSG_%NAME% renamed to SOCK_MO_%NAME% in enum SOCK_MO
+//       SO_%NAME% renamed to SOCK_SO_%NAME% in enum SOCK_SO
+//
+//----------------------------------------------------------------------------
+#ifndef SOCKET_U_INCLUDED
+#define SOCKET_U_INCLUDED
+
+//----------------------------------------------------------------------------
+// Define the required values, (-1) indicating not supported
+//----------------------------------------------------------------------------
+#ifndef SOCK_STREAM
+#define SOCK_STREAM (-1)
+#endif
+#ifndef SOCK_DGRAM
+#define SOCK_DGRAM (-1)
+#endif
+#ifndef SOCK_RAW
+#define SOCK_RAW (-1)
+#endif
+#ifndef SOCK_RDM
+#define SOCK_RDM (-1)
+#endif
+#ifndef SOCK_SEQPACKET
+#define SOCK_SEQPACKET (-1)
+#endif
+
+#ifndef AF_NETBIOS
+#define AF_NETBIOS (-1)
+#endif
+#ifndef AF_X25
+#define AF_X25 (-1)
+#endif
+
+#ifndef PF_NETBIOS
+#define PF_NETBIOS (-1)
+#endif
+#ifndef PF_X25
+#define PF_X25 (-1)
+#endif
+
+#ifndef MSG_COMPAT
+#define MSG_COMPAT (-1)
+#endif
+#ifndef MSG_CTRUNC
+#define MSG_CTRUNC (-1)
+#endif
+#ifndef MSG_DONTROUTE
+#define MSG_DONTROUTE (-1)
+#endif
+#ifndef MSG_EOR
+#define MSG_EOR (-1)
+#endif
+#ifndef MSG_MPEG2
+#define MSG_MPEG2 (-1)
+#endif
+#ifndef MSG_NONBLOCK
+  #ifdef MSG_DONTWAIT
+    #define MSG_NONBLOCK MSG_DONTWAIT
+  #else
+    #define MSG_NONBLOCK (-1)
+  #endif
+#endif
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL (-1)
+#endif
+#ifndef MSG_OOB
+#define MSG_OOB (-1)
+#endif
+#ifndef MSG_PEEK
+#define MSG_PEEK (-1)
+#endif
+#ifndef MSG_TRUNC
+#define MSG_TRUNC (-1)
+#endif
+#ifndef MSG_WAITALL
+#define MSG_WAITALL (-1)
+#endif
+
+#ifndef SO_CKSUMRECV
+#define SO_CKSUMRECV (-1)
+#endif
+#ifndef SO_NOREUSEADDR
+#define SO_NOREUSEADDR (-1)
+#endif
+#ifndef SO_REUSEPORT
+#define SO_REUSEPORT (-1)
+#endif
+#ifndef SO_USE_IFBUFS
+#define SO_USE_IFBUFS (-1)
+#endif
+
+//----------------------------------------------------------------------------
+// Rename the old values
+//----------------------------------------------------------------------------
+#ifndef SOCK_UNSPEC
+#define SOCK_UNSPEC 0
+#endif
+enum SOCK_ST                        // Save old values
+{  SOCK_ST_UNSPEC=       SOCK_UNSPEC
+,  SOCK_ST_STREAM=       SOCK_STREAM
+,  SOCK_ST_DGRAM=        SOCK_DGRAM
+,  SOCK_ST_RAW=          SOCK_RAW
+,  SOCK_ST_RDM=          SOCK_RDM
+,  SOCK_ST_SEQPACKET=    SOCK_SEQPACKET
+}; // enum SOCK_ST
+
+enum SOCK_AF                        // Save old values
+{  SOCK_AF_UNSPEC=       AF_UNSPEC  // Required: Unspecified
+,  SOCK_AF_UNIX=         AF_UNIX    // Required: Local
+,  SOCK_AF_INET=         AF_INET    // Required: Internet
+
+#ifdef  AF_APPLETALK
+,  SOCK_AF_APPLETALK=    AF_APPLETALK
+#endif
+#ifdef  AF_ASH
+,  SOCK_AF_ASH=          AF_ASH
+#endif
+#ifdef  AF_ATMPVC
+,  SOCK_AF_ATMPVC=       AF_ATMPVC
+#endif
+#ifdef  AF_ATMSVC
+,  SOCK_AF_ATMSVC=       AF_ATMSVC
+#endif
+#ifdef  AF_BRIDGE
+,  SOCK_AF_BRIDGE=       AF_BRIDGE
+#endif
+#ifdef  AF_CCITT
+,  SOCK_AF_CCITT=        AF_CCITT
+#endif
+#ifdef  AF_CHAOS
+,  SOCK_AF_CHAOS=        AF_CHAOS
+#endif
+#ifdef  AF_DATAKIT
+,  SOCK_AF_DATAKIT=      AF_DATAKIT
+#endif
+#ifdef  AF_DECNET
+,  SOCK_AF_DECNET=       AF_DECNET
+#endif
+#ifdef  AF_DECnet
+,  SOCK_AF_DECnet=       AF_DECnet
+#endif
+#ifdef  AF_DLI
+,  SOCK_AF_DLI=          AF_DLI
+#endif
+#ifdef  AF_ECMA
+,  SOCK_AF_ECMA=         AF_ECMA
+#endif
+#ifdef  AF_ECONET
+,  SOCK_AF_ECONET=       AF_ECONET
+#endif
+#ifdef  AF_HYLINK
+,  SOCK_AF_HYLINK=       AF_HYLINK
+#endif
+#ifdef  AF_IMPLINK
+,  SOCK_AF_IMPLINK=      AF_IMPLINK
+#endif
+#ifdef  AF_INET6
+,  SOCK_AF_INET6=        AF_INET6
+#endif
+#ifdef  AF_IPX
+,  SOCK_AF_IPX=          AF_IPX
+#endif
+#ifdef  AF_IRDA
+,  SOCK_AF_IRDA=         AF_IRDA
+#endif
+#ifdef  AF_ISO
+,  SOCK_AF_ISO=          AF_ISO
+#endif
+#ifdef  AF_KEY
+,  SOCK_AF_KEY=          AF_KEY
+#endif
+#ifdef  AF_LAT
+,  SOCK_AF_LAT=          AF_LAT
+#endif
+#ifdef  AF_NETBEUI
+,  SOCK_AF_NETBEUI=      AF_NETBEUI
+#endif
+#ifdef  AF_NETBIOS
+,  SOCK_AF_NETBIOS=      AF_NETBIOS
+#endif
+#ifdef  AF_NETLINK
+,  SOCK_AF_NETLINK=      AF_NETLINK
+#endif
+#ifdef  AF_NETROM
+,  SOCK_AF_NETROM=       AF_NETROM
+#endif
+#ifdef  AF_NS
+,  SOCK_AF_NS=           AF_NS
+#endif
+#ifdef  AF_OSI
+,  SOCK_AF_OSI=          AF_OSI
+#endif
+#ifdef  AF_PACKET
+,  SOCK_AF_PACKET=       AF_PACKET
+#endif
+#ifdef  AF_PUP
+,  SOCK_AF_PUP=          AF_PUP
+#endif
+#ifdef  AF_ROSE
+,  SOCK_AF_ROSE=         AF_ROSE
+#endif
+#ifdef  AF_ROUTE
+,  SOCK_AF_ROUTE=        AF_ROUTE
+#endif
+#ifdef  AF_SECURITY
+,  SOCK_AF_SECURITY=     AF_SECURITY
+#endif
+#ifdef  AF_SNA
+,  SOCK_AF_SNA=          AF_SNA
+#endif
+#ifdef  AF_X25
+,  SOCK_AF_X25=          AF_X25
+#endif
+}; // enum SOCK_AF
+
+enum SOCK_PF                        // Save old values
+{  SOCK_PF_UNSPEC=       PF_UNSPEC  // Required: Unspecified
+,  SOCK_PF_UNIX=         PF_UNIX    // Required: Local
+,  SOCK_PF_INET=         PF_INET    // Required: Internet
+
+#ifdef  PF_APPLETALK
+,  SOCK_PF_APPLETALK=    PF_APPLETALK
+#endif
+#ifdef  PF_ASH
+,  SOCK_PF_ASH=          PF_ASH
+#endif
+#ifdef  PF_ATMPVC
+,  SOCK_PF_ATMPVC=       PF_ATMPVC
+#endif
+#ifdef  PF_ATMSVC
+,  SOCK_PF_ATMSVC=       PF_ATMSVC
+#endif
+#ifdef  PF_BRIDGE
+,  SOCK_PF_BRIDGE=       PF_BRIDGE
+#endif
+#ifdef  PF_CCITT
+,  SOCK_PF_CCITT=        PF_CCITT
+#endif
+#ifdef  PF_CHAOS
+,  SOCK_PF_CHAOS=        PF_CHAOS
+#endif
+#ifdef  PF_DATAKIT
+,  SOCK_PF_DATAKIT=      PF_DATAKIT
+#endif
+#ifdef  PF_DECNET
+,  SOCK_PF_DECNET=       PF_DECNET
+#endif
+#ifdef  PF_DECnet
+,  SOCK_PF_DECnet=       PF_DECnet
+#endif
+#ifdef  PF_DLI
+,  SOCK_PF_DLI=          PF_DLI
+#endif
+#ifdef  PF_ECMA
+,  SOCK_PF_ECMA=         PF_ECMA
+#endif
+#ifdef  PF_ECONET
+,  SOCK_PF_ECONET=       PF_ECONET
+#endif
+#ifdef  PF_HYLINK
+,  SOCK_PF_HYLINK=       PF_HYLINK
+#endif
+#ifdef  PF_IMPLINK
+,  SOCK_PF_IMPLINK=      PF_IMPLINK
+#endif
+#ifdef  PF_INET6
+,  SOCK_PF_INET6=        PF_INET6
+#endif
+#ifdef  PF_IPX
+,  SOCK_PF_IPX=          PF_IPX
+#endif
+#ifdef  PF_IRDA
+,  SOCK_PF_IRDA=         PF_IRDA
+#endif
+#ifdef  PF_ISO
+,  SOCK_PF_ISO=          PF_ISO
+#endif
+#ifdef  PF_KEY
+,  SOCK_PF_KEY=          PF_KEY
+#endif
+#ifdef  PF_LAT
+,  SOCK_PF_LAT=          PF_LAT
+#endif
+#ifdef  PF_NETBEUI
+,  SOCK_PF_NETBEUI=      PF_NETBEUI
+#endif
+#ifdef  PF_NETBIOS
+,  SOCK_PF_NETBIOS=      PF_NETBIOS
+#endif
+#ifdef  PF_NETLINK
+,  SOCK_PF_NETLINK=      PF_NETLINK
+#endif
+#ifdef  PF_NETROM
+,  SOCK_PF_NETROM=       PF_NETROM
+#endif
+#ifdef  PF_NS
+,  SOCK_PF_NS=           PF_NS
+#endif
+#ifdef  PF_OSI
+,  SOCK_PF_OSI=          PF_OSI
+#endif
+#ifdef  PF_PACKET
+,  SOCK_PF_PACKET=       PF_PACKET
+#endif
+#ifdef  PF_PUP
+,  SOCK_PF_PUP=          PF_PUP
+#endif
+#ifdef  PF_ROSE
+,  SOCK_PF_ROSE=         PF_ROSE
+#endif
+#ifdef  PF_ROUTE
+,  SOCK_PF_ROUTE=        PF_ROUTE
+#endif
+#ifdef  PF_SECURITY
+,  SOCK_PF_SECURITY=     PF_SECURITY
+#endif
+#ifdef  PF_SNA
+,  SOCK_PF_SNA=          PF_SNA
+#endif
+#ifdef  PF_X25
+,  SOCK_PF_X25=          PF_X25
+#endif
+}; // enum SOCK_PF
+
+#ifndef MSG_UNSPEC
+#define MSG_UNSPEC 0
+#endif
+enum SOCK_MO                        // Save old values
+{  SOCK_MO_UNSPEC=       MSG_UNSPEC
+,  SOCK_MO_COMPAT=       MSG_COMPAT
+,  SOCK_MO_CTRUNC=       MSG_CTRUNC
+,  SOCK_MO_DONTROUTE=    MSG_DONTROUTE
+,  SOCK_MO_EOR=          MSG_EOR
+,  SOCK_MO_MPEG2=        MSG_MPEG2
+,  SOCK_MO_NONBLOCK=     MSG_NONBLOCK
+,  SOCK_MO_NOSIGNAL=     MSG_NOSIGNAL
+,  SOCK_MO_OOB=          MSG_OOB
+,  SOCK_MO_PEEK=         MSG_PEEK
+,  SOCK_MO_TRUNC=        MSG_TRUNC
+,  SOCK_MO_WAITALL=      MSG_WAITALL
+}; // enum SOCK_MO
+
+#ifndef SO_UNSPEC
+#define SO_UNSPEC 0
+#endif
+enum SOCK_SO                        // Save old values
+{  SOCK_SO_UNSPEC=       SO_UNSPEC
+#ifdef  SO_ACCEPTCONN
+,  SOCK_SO_ACCEPTCONN=   SO_ACCEPTCONN
+#endif
+#ifdef  SO_BROADCAST
+,  SOCK_SO_BROADCAST=    SO_BROADCAST
+#endif
+#ifdef  SO_CKSUMRECV
+,  SOCK_SO_CKSUMRECV=    SO_CKSUMRECV
+#endif
+#ifdef  SO_DEBUG
+,  SOCK_SO_DEBUG=        SO_DEBUG
+#endif
+#ifdef  SO_DONTROUTE
+,  SOCK_SO_DONTROUTE=    SO_DONTROUTE
+#endif
+#ifdef  SO_ERROR
+,  SOCK_SO_ERROR=        SO_ERROR
+#endif
+#ifdef  SO_KEEPALIVE
+,  SOCK_SO_KEEPALIVE=    SO_KEEPALIVE
+#endif
+#ifdef  SO_LINGER
+,  SOCK_SO_LINGER=       SO_LINGER
+#endif
+#ifdef  SO_NOREUSEADDR
+,  SOCK_SO_NOREUSEADDR=  SO_NOREUSEADDR
+#endif
+#ifdef  SO_OOBINLINE
+,  SOCK_SO_OOBINLINE=    SO_OOBINLINE
+#endif
+#ifdef  SO_RCVBUF
+,  SOCK_SO_RCVBUF=       SO_RCVBUF
+#endif
+#ifdef  SO_RCVLOWAT
+,  SOCK_SO_RCVLOWAT=     SO_RCVLOWAT
+#endif
+#ifdef  SO_RCVTIMEO
+,  SOCK_SO_RCVTIMEO=     SO_RCVTIMEO
+#endif
+#ifdef  SO_REUSEADDR
+,  SOCK_SO_REUSEADDR=    SO_REUSEADDR
+#endif
+#ifdef  SO_REUSEPORT
+,  SOCK_SO_REUSEPORT=    SO_REUSEPORT
+#endif
+#ifdef  SO_SNDBUF
+,  SOCK_SO_SNDBUF=       SO_SNDBUF
+#endif
+#ifdef  SO_SNDLOWAT
+,  SOCK_SO_SNDLOWAT=     SO_SNDLOWAT
+#endif
+#ifdef  SO_SNDTIMEO
+,  SOCK_SO_SNDTIMEO=     SO_SNDTIMEO
+#endif
+#ifdef  SO_TYPE
+,  SOCK_SO_TYPE=         SO_TYPE
+#endif
+#ifdef  SO_USE_IFBUFS
+,  SOCK_SO_USE_IFBUFS=   SO_USE_IFBUFS
+#endif
+#ifdef  SO_USELOOPBACK
+,  SOCK_SO_USELOOPBACK=  SO_USELOOPBACK
+#endif
+}; // enum SOCK_SO
+
+//----------------------------------------------------------------------------
+// Undefine the old values
+//----------------------------------------------------------------------------
+#undef SOCK_UNSPEC
+#undef SOCK_STREM
+#undef SOCK_DGRAM
+#undef SOCK_RAW
+#undef SOCK_RDM
+#undef SOCK_SEQPACKET
+
+#undef AF_APPLETALK
+#undef AF_ASH
+#undef AF_ATMPVC
+#undef AF_ATMSVC
+#undef AF_BRIDGE
+#undef AF_CCITT
+#undef AF_CHAOS
+#undef AF_DATAKIT
+#undef AF_DECNET
+#undef AF_DECnet
+#undef AF_DLI
+#undef AF_ECMA
+#undef AF_ECONET
+#undef AF_FILE
+#undef AF_HYLINK
+#undef AF_IMPLINK
+#undef AF_INET
+#undef AF_INET6
+#undef AF_IPX
+#undef AF_IRDA
+#undef AF_ISO
+#undef AF_KEY
+#undef AF_LAT
+#undef AF_LOCAL
+#undef AF_MAX
+#undef AF_NETBEUI
+#undef AF_NETBIOS
+#undef AF_NETLINK
+#undef AF_NETROM
+#undef AF_NS
+#undef AF_OSI
+#undef AF_PACKET
+#undef AF_PUP
+#undef AF_ROSE
+#undef AF_ROUTE
+#undef AF_SECURITY
+#undef AF_SNA
+#undef AF_UNIX
+#undef AF_UNSPEC
+#undef AF_X25
+
+#undef PF_APPLETALK
+#undef PF_ASH
+#undef PF_ATMPVC
+#undef PF_ATMSVC
+#undef PF_BRIDGE
+#undef PF_CCITT
+#undef PF_CHAOS
+#undef PF_DATAKIT
+#undef PF_DECNET
+#undef PF_DECnet
+#undef PF_DLI
+#undef PF_ECMA
+#undef PF_ECONET
+#undef PF_FILE
+#undef PF_HYLINK
+#undef PF_IMPLINK
+#undef PF_INET
+#undef PF_INET6
+#undef PF_IPX
+#undef PF_IRDA
+#undef PF_ISO
+#undef PF_KEY
+#undef PF_LAT
+#undef PF_LOCAL
+#undef PF_MAX
+#undef PF_NETBEUI
+#undef PF_NETBIOS
+#undef PF_NETLINK
+#undef PF_NETROM
+#undef PF_NS
+#undef PF_OSI
+#undef PF_PACKET
+#undef PF_PUP
+#undef PF_ROSE
+#undef PF_ROUTE
+#undef PF_SECURITY
+#undef PF_SNA
+#undef PF_UNIX
+#undef PF_UNSPEC
+#undef PF_X25
+
+#undef MSG_UNSPEC
+#undef MSG_COMPAT
+#undef MSG_CTRUNC
+#undef MSG_DONTROUTE
+#undef MSG_DONTWAIT
+#undef MSG_EOR
+#undef MSG_MPEG2
+#undef MSG_NONBLOCK
+#undef MSG_NOSIGNAL
+#undef MSG_OOB
+#undef MSG_PEEK
+#undef MSG_TRUNC
+#undef MSG_WAITALL
+
+#undef SO_UNSPEC
+#undef SO_ACCEPTCONN
+#undef SO_BROADCAST
+#undef SO_CKSUMRECV
+#undef SO_DEBUG
+#undef SO_DONTROUTE
+#undef SO_ERROR
+#undef SO_KEEPALIVE
+#undef SO_LINGER
+#undef SO_NONE
+#undef SO_NOREUSEADDR
+#undef SO_OOBINLINE
+#undef SO_RCVBUF
+#undef SO_RCVLOWAT
+#undef SO_RCVTIMEO
+#undef SO_REUSEADDR
+#undef SO_REUSEPORT
+#undef SO_SNDBUF
+#undef SO_SNDLOWAT
+#undef SO_SNDTIMEO
+#undef SO_TYPE
+#undef SO_USE_IFBUFS
+#undef SO_USELOOPBACK
+
+#endif // SOCKET_U_INCLUDED

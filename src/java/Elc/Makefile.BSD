@@ -1,0 +1,35 @@
+##############################################################################
+##
+##       Copyright (C) 2007 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.BSD
+##############################################################################
+
+##############################################################################
+## CLASSPATH control
+## CLASSPATH:=".:Wilbur.jar"
+
+##############################################################################
+## Source control
+MAKRUN := Bringup
+MAKJAR := Test00.class Test01.class Test02.class Test03.class
+
+##############################################################################
+## Targets
+.PHONY: default
+default: $(MAKOBJ)
+
+.PHONY: Bringup
+Bringup : $(MAKOBJ) ## Wilbur.jar
+	$(JRUN) -classpath "$(shell cygpath --path --windows "$(CLASSPATH)")" Bringup
+
+ifeq "true" "false"
+Wilbur.jar : $(MAKJAR)
+	$(JAR) -cvf $@ $?
+endif
+

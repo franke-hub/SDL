@@ -1,0 +1,60 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2014 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2014/01/01
+##
+##############################################################################
+
+##############################################################################
+## Local module list
+MAKSRC := $(wildcard $(SRCDIR)/*.cpp)
+MAKLIB := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(MAKSRC))
+MAKLIB := $(patsubst $(OBJDIR)/Edit.o,,$(MAKLIB))
+MAKEXE := Edit
+LLIBS  += -L. -llocal
+CLIBS  += -lncurses
+
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+CLOAD  += -Wl,--enable-auto-import
+endif
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: liblocal.a $(DEFAULT)
+
+##############################################################################
+## Build: liblocal.a
+liblocal.a : $(MAKLIB)
+	ar -r $(@) $(MAKLIB)
+
+##############################################################################
+## Dependencies
+Edit: liblocal.a
+
+##############################################################################
+## Makefile cleanup
+clean : MAK_clean
+.PHONY: MAK_clean
+MAK_clean: ;
+	-@rm $(MAKEXE)  >/dev/null 2>/dev/null
+	-@rm liblocal.a >/dev/null 2>/dev/null
+

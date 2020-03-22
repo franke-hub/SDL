@@ -1,0 +1,70 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2010-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       jrun
+##
+## Purpose-
+##       Run a java class.
+##
+## Last change date-
+##       2019/10/08
+##
+## Usage-
+##       jrun Main
+##
+##############################################################################
+
+##############################################################################
+## Verify environment
+if [[ -z "$JAVA_HOME" ]] ; then
+  echo "JAVA_HOME not initialized, cannot continue."
+  exit 1
+fi
+
+##############################################################################
+## Extract switches
+ss=-Xss8192000
+sw=""
+for i in $*
+do
+  case $i in
+    -Xss*)
+      ss="$1"
+      shift
+      ;;
+
+    -*)
+      sw="$sw $1"
+      shift
+      ;;
+
+    *)
+      break
+      ;;
+  esac
+done
+
+##############################################################################
+## Verify environment
+if [[ -z "$1" ]] ; then
+  echo "Missing parameter, cannot continue."
+  exit 1
+fi
+
+if [[ ! -f "$1.class" ]] ; then
+  echo "Warning: $1.class does not exist."
+fi
+
+##############################################################################
+## Run the command
+java $ss $sw -classpath "`cygpath --path --windows \"$CLASSPATH\"`" $*
+

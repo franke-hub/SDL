@@ -1,0 +1,45 @@
+##############################################################################
+##
+##       Copyright (c) 2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2019/01/16
+##
+##############################################################################
+
+##############################################################################
+## Local module list
+MAKEXE := Forth.exe
+MAKSRC := $(patsubst $(SRCDIR)/Forth.cs,,$(MAKSRC))
+MAKSRC := $(strip $(MAKSRC))
+
+##############################################################################
+## Common Makefile.BSD
+include $(MAKDIR)/Makefile.BSD
+
+##############################################################################
+## Additional libraries ((Builds both local -reference and -assembly))
+LNETS  += Local ###################### (Local netmodule test)
+
+##############################################################################
+## Build local library
+Local.dll: $(MAKSRC)
+	$(CC) -target:library -out:$@ $(CFLAGS) $(CREFS) "$(shell cygpath -w $^)"
+
+##############################################################################
+## Build local module
+Local.net: $(MAKSRC)
+	$(CC) -target:module -out:$@ $(CFLAGS) $(CREFS) "$(shell cygpath -w $^)"
+

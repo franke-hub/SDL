@@ -1,0 +1,66 @@
+##############################################################################
+##
+##       Copyright (c) 2018-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile customization.
+##
+## Last change date-
+##       2020/01/06
+##
+##############################################################################
+
+##############################################################################
+## Local executables
+MAKEXE := ######################### Default, no executables
+MAKEXE += $(OBJDIR)/Brian
+MAKOBJ := $(patsubst $(OBJDIR)/Brian,,$(MAKOBJ))
+
+LLIBS  += -L. -llocal
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= make.dir
+endif
+
+.PHONY: make.dir
+make.dir: $(MAKEXE)
+
+.PHONY: make.all
+make.all: $(MAKEXE)
+
+all: make.all
+
+##############################################################################
+## TARGET: liblocal.a
+liblocal.a: $(MAKOBJ)
+	$(AR) $@ $^
+	touch $@
+
+$(MAKEXE): liblocal.a
+
+################################### Add pub controls and dependencies
+include $(INCDIR)/pub/Makefile.BSD
+
+##############################################################################
+## Run the default program
+.PHONY: do
+do: make.dir
+	@Brian
+
+##############################################################################
+## Makefile cleanup
+clean : clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	-@rm -f liblocal.a >/dev/null 2>/dev/null

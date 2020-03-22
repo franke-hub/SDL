@@ -1,0 +1,52 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       cygpath
+##
+## Purpose-
+##       CYGPATH, simulated when the real cygpath is not available
+##
+## Last change date-
+##       2019/10/07
+##
+## Usage example-
+##       export CLASSPATH=`cygpath --path --windows "$CLASSPATH"`
+##
+##############################################################################
+
+##############################################################################
+## Real cygpath
+if [ -x "/usr/bin/cygpath" ] ; then
+  /usr/bin/cygpath "$@"
+  exit $?
+fi
+
+##############################################################################
+## Extract the switch names
+for i in $*
+do
+  case $1 in
+    -*)
+      shift
+      ;;
+
+    *)
+      break
+      ;;
+
+  esac
+done
+
+##############################################################################
+## Display what's left
+echo $*
+

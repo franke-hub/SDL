@@ -1,0 +1,43 @@
+##############################################################################
+##
+##       Copyright (C) 2015-2019 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/mcs/ctl/BSD/Makefile.OPT
+##
+## Purpose-
+##       Cygwin/Linux default compiler options.
+##
+## Last change date-
+##       2019/01/14
+##
+##############################################################################
+
+##############################################################################
+## CDEFS    (Compiler defines)
+CDEFS  += ######################### Compiler defines
+
+##############################################################################
+## CLIBS    (Run time libraries. Libraries added in Makefile.BSD)
+CLIBS  += ######################### Run time libraries
+
+##############################################################################
+## COPTS    (Compiler options)
+ifeq "" "$(OPTIMIZE)"
+COPTS  += -debug ################## Debugging activated
+COPTS  += -optimize ############### Full optimization
+
+else
+COPTS  += $(OPTIMIZE) ############# Customized optimization
+endif
+
+##############################################################################
+## Set CFLAGS (Libraries handled in Makefile)
+CFLAGS := $(strip $(COPTS) $(CDEFS))
+

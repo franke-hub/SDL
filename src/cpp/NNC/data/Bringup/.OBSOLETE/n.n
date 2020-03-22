@@ -1,0 +1,25 @@
+///////////////////////////////////////////////////////////////////////
+//                                                                   //
+// Title-                                                            //
+//       n.n                                                         //
+//                                                                   //
+// Description-                                                      //
+//       Neural net definition file.                                 //
+//                                                                   //
+///////////////////////////////////////////////////////////////////////
+BEGIN FILE["BUP.000"];
+
+//       #error;                    // Force error for quicker compile
+
+//       "n_a.n"                    // audio
+//       "n_b.n"                    // balance
+//       "n_o.n"                    // olfactory/taste
+//       "n_t.n"                    // tactile
+#include "n_v.n"                    // visual
+
+//       "n_str.n"                  // Strings
+#include "n_seq.n"                  // Sequencing and control
+
+//       #debug;                    // Debugging hook
+
+END;

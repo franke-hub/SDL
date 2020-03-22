@@ -1,0 +1,60 @@
+##############################################################################
+##
+##       Copyright (c) 2012-2018 Frank Eskesen.
+##
+##       This file is free content, distributed under the GNU General
+##       Public License, version 3.0.
+##       (See accompanying file LICENSE.GPL-3.0 or the original
+##       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+##
+##############################################################################
+##
+## Title-
+##       Documentation.txt
+##
+## Purpose-
+##       Overall documentation.
+##
+## Last change date-
+##       2018/01/01
+##
+##############################################################################
+This is it. There is no other documentation other than the source code.
+
+
+##############################################################################
+##
+## Section-
+##       Function locator
+##
+## Purpose-
+##       Locate the source code supplying a given function.
+##
+##############################################################################
+HTTP input handling:
+  HttpServerThread creates HttpServerItem for each new connection.
+    Each new connection runs in a separate Thread.
+    HttpServerItem contains HttpServerTask, and
+    HttpServerTask contains Socket*.
+
+    HttpServerTask::work contains a HttpSocketServer. HttpServerTask::work()
+    repeatedly calls from HttpSocketServer::work(), creating new requests
+    on each call, until no more input is available. HttpSocketServer::work()
+    calls HttpSocketServer::serve() to handle each request.
+
+    Standard dynamic Task completion processing applies: When complete, the
+    HttpServerItem is redriven on the HttpServerTask with FC_RESET and a NULL
+    (delete DispatchItem) DispatchDone. The HttpServerItem (and therefore the
+    HttpServerTask) are deleted when FC_RESET completes.
+
+  HttpSocketServer::serve currently loads a HttpServer library, then drives
+    HttpServer::serve() using the loaded library object. Root objects are
+    redirected to the /html subdirectory.
+    Currently this routes to HttpServer::serve
+
+  The default HttpServer::serve serves GET and HEAD requests, serving static
+    files from the "html" subdirectory. For the special case of
+    "shutdown.html", Common::shutdown() is called before serving the file.
+    No other dynamic HttpServer libraries are currently created. The plan
+    is to make separate loaded server plug-ins for each subdirectory.
+
