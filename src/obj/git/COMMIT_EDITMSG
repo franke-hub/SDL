@@ -1,0 +1,11 @@
+Verify all project subdirectories.
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch maint
+# Changes to be committed:
+#	new file:   .home
+#	modified:   .ignore
+#	deleted:    src
+#

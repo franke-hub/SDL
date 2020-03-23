@@ -1,0 +1,33 @@
+025bd8dbcf40c2dd225c0d13c3229f5e84292dc5 66ea6a1ec138710b747fa4061e24a928bd24c61d Frank Eskesen <feskesen@hvc.rr.com> 1578852555 -0500	commit: Sample java Http Client/Server.
+66ea6a1ec138710b747fa4061e24a928bd24c61d 0267f68ff9d4bf7ff3d49975344fa8fef47b5d19 Frank Eskesen <feskesen@hvc.rr.com> 1579015537 -0500	commit: obj/c/pbshow not supported.
+0267f68ff9d4bf7ff3d49975344fa8fef47b5d19 c7790b519259ed330e965038841bfce6fcb53375 Frank Eskesen <feskesen@hvc.rr.com> 1579032041 -0500	commit: Moved object information to source directory.
+c7790b519259ed330e965038841bfce6fcb53375 fac9e11fc0c180356da005881d4550cee7191bd8 Frank Eskesen <feskesen@hvc.rr.com> 1579034160 -0500	commit: Use .data in java environment.
+fac9e11fc0c180356da005881d4550cee7191bd8 f2283ce4cf8b61cfcd01b51d8dbc0207a06ebc19 Frank Eskesen <feskesen@hvc.rr.com> 1579130452 -0500	commit: Usability updates.
+f2283ce4cf8b61cfcd01b51d8dbc0207a06ebc19 325f9daba4f3885cb0d122ffbf519ee5af3a55dc Frank Eskesen <feskesen@hvc.rr.com> 1579195966 -0500	commit: Default web setup to use latest java version.
+325f9daba4f3885cb0d122ffbf519ee5af3a55dc 823b4843989c0b8b90282c9ce70d4189b7789aed Frank Eskesen <feskesen@hvc.rr.com> 1579196425 -0500	commit: Removed unused directory.
+823b4843989c0b8b90282c9ce70d4189b7789aed 466750fc0ee849a95568e5a37993221884a7a38c Frank Eskesen <feskesen@hvc.rr.com> 1579288219 -0500	commit: Corrected .gitignore
+466750fc0ee849a95568e5a37993221884a7a38c 67023784366d763a3152a395632f07af29fe7aa8 Frank Eskesen <feskesen@hvc.rr.com> 1579299008 -0500	commit: Added missing lili files.
+67023784366d763a3152a395632f07af29fe7aa8 c90c7a3b6ff1254663e5bffafa598a83f9cd5ca6 Frank Eskesen <feskesen@hvc.rr.com> 1579496487 -0500	commit: Removed news servers.
+c90c7a3b6ff1254663e5bffafa598a83f9cd5ca6 dcdeb69d8e8e9793c7a8689cc3bcc4f73148f01f Frank Eskesen <feskesen@hvc.rr.com> 1579496623 -0500	commit: Ignore .midi and .pdf files.
+dcdeb69d8e8e9793c7a8689cc3bcc4f73148f01f 3dd8769d02a56acb3c5e4ec3b9d776e0eaf5e3d4 Frank Eskesen <feskesen@hvc.rr.com> 1579543559 -0500	commit: Added visible script.
+3dd8769d02a56acb3c5e4ec3b9d776e0eaf5e3d4 444a805723510f2c613fc751f4bb03d26c1a0b29 Frank Eskesen <feskesen@hvc.rr.com> 1579626071 -0500	commit: Synchronization commit.
+444a805723510f2c613fc751f4bb03d26c1a0b29 fe8e0b55ff8911db16dacb47cd35f36b40ea4d30 Frank Eskesen <feskesen@hvc.rr.com> 1579626769 -0500	commit: Deleted unnecessary logfile.
+fe8e0b55ff8911db16dacb47cd35f36b40ea4d30 b08af9b80cf087554379bc03461bfeb687a6c8be Frank Eskesen <feskesen@hvc.rr.com> 1579883613 -0500	commit: Split Fileman from Dataman.
+b08af9b80cf087554379bc03461bfeb687a6c8be 0de0cd632c5ab4f9ef0cbe584d89f9a60b1cf4a7 Frank Eskesen <feskesen@hvc.rr.com> 1580006535 -0500	commit: Added.
+0de0cd632c5ab4f9ef0cbe584d89f9a60b1cf4a7 ea939152eb1c2687e5eded66785a6879b86e16a3 Frank Eskesen <feskesen@hvc.rr.com> 1580250550 -0500	commit: Link to ~/src, for usage convenience.
+ea939152eb1c2687e5eded66785a6879b86e16a3 7eee4e1238990fccc70e5fbae74e6f12f9097051 Frank Eskesen <f.n.eskesen@gmail.com> 1580328748 -0500	commit: Sample object directory, with .README comments.
+7eee4e1238990fccc70e5fbae74e6f12f9097051 f8b54b545f271c6f8cbbac7db624e09cc3bea38c Frank Eskesen <f.n.eskesen@gmail.com> 1580594539 -0500	commit: Removed. Incomplete CarolBell duplicate.
+f8b54b545f271c6f8cbbac7db624e09cc3bea38c cc4a32b227af27e96ef578ff3a3fcd39564dd0d7 Frank Eskesen <f.n.eskesen@gmail.com> 1580594882 -0500	commit: For source directory change: ~/src/lily/.ctl => ctl
+cc4a32b227af27e96ef578ff3a3fcd39564dd0d7 dcbaea863cb12cbe7810454bf4ff7189369da8e0 Frank Eskesen <f.n.eskesen@gmail.com> 1580676195 -0500	commit: All public domain music authors moved here.
+dcbaea863cb12cbe7810454bf4ff7189369da8e0 473da6ce119095a1378afa78936f61aba0f70492 Frank Eskesen <f.n.eskesen@gmail.com> 1580790705 -0500	commit: Ignore .ps files.
+473da6ce119095a1378afa78936f61aba0f70492 c0a58de7a9b6e8aa7bb9a133a2863d87eb2ac982 Frank Eskesen <f.n.eskesen@gmail.com> 1581873789 -0500	commit: Added.
+c0a58de7a9b6e8aa7bb9a133a2863d87eb2ac982 03c521c8a05335378797a7909d78710c709f03ca Frank Eskesen <f.n.eskesen@gmail.com> 1583354825 -0500	commit: Fixed link.
+03c521c8a05335378797a7909d78710c709f03ca c11356c57c8944a5933f412aceddde989ed98b33 Frank Eskesen <f.n.eskesen@gmail.com> 1584473817 -0400	commit: Cleanup synchronization.
+c11356c57c8944a5933f412aceddde989ed98b33 981dc099a3808d1771e0c9d60e4a29dde9fd2677 Frank Eskesen <f.n.eskesen@gmail.com> 1584478109 -0400	commit: Corresponding to src data relocation.
+981dc099a3808d1771e0c9d60e4a29dde9fd2677 1b18a454386a8e756e6cb9a6c8f5a1df5c0567cc Frank Eskesen <f.n.eskesen@gmail.com> 1584480607 -0400	commit: Removed imported content.
+1b18a454386a8e756e6cb9a6c8f5a1df5c0567cc 68687fd5889d64053622890e7ba3eaa76feee745 Frank Eskesen <f.n.eskesen@gmail.com> 1584635092 -0400	commit: Boost samples too close to originals.
+68687fd5889d64053622890e7ba3eaa76feee745 36bd781a0f242e7d74c33f23d732a211725ee404 Frank Eskesen <f.n.eskesen@gmail.com> 1584649199 -0400	commit: Added .gitignore
+36bd781a0f242e7d74c33f23d732a211725ee404 153503e6b87bdedbe7ef955cc39c754ade386211 Frank Eskesen <f.n.eskesen@gmail.com> 1584663593 -0400	commit: Removed copyrighted stuff.
+153503e6b87bdedbe7ef955cc39c754ade386211 afb99a3a55f24aa991f29e6fea88dc3200f3691d Frank Eskesen <f.n.eskesen@gmail.com> 1584663656 -0400	commit: Ignore sample data.
+afb99a3a55f24aa991f29e6fea88dc3200f3691d 9a77f6f401861f10e81f70eec9caaaef36535d58 Frank Eskesen <f.n.eskesen@gmail.com> 1584666185 -0400	commit: Added .ignore file
+9a77f6f401861f10e81f70eec9caaaef36535d58 2593b34e06359ffa83bc5a3b7f70386b7f4d4d90 Frank Eskesen <f.n.eskesen@gmail.com> 1584837003 -0400	commit: Verify all project subdirectories.
