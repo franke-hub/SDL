@@ -1,0 +1,26 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/java/Kernel/.README
+##
+## Purpose-
+##       Describe subdirectory content.
+##
+## Last change date-
+##       2020/03/22
+##
+## Description-
+##       This was a little project trying to invent a machine architecture.
+##       I haven't looked at it in ten years, except to add copyright
+##       statements. I don't think there's anything interesting here.
+##       At some point, this subdirectory will probably be removed.
+##
+##############################################################################
