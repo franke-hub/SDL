@@ -15,7 +15,16 @@
 ##       Golfer application documentation.
 ##
 ## Last change date-
-##       2019/08/15
+##       2020/03/23
+##
+## Implementation notes-
+##       It's getting harder and harder to run the Java golfer application;
+##       Browsers are making it harder to use and changing interfaces and
+##       adding additional security requirements, even when a web server is
+##       on the same machine as the web client browser. Grumble, grumble.
+##
+##       The Java application is being (slowly) rewritten here, in Python
+##       using python3 and PyQt5 graphics.
 ##
 ##############################################################################
 
@@ -50,6 +59,10 @@
 
 ##############################################################################
 ## TODO:
+2020/03/23 Make sure we can poperly color each field.
+      One application has to work well before any time is spent on migrating
+      the other apps.
+
 2019/08/15 Next step: Get input fields operational
 
 2019/08/15 GolferMain
