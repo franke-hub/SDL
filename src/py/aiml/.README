@@ -12,10 +12,10 @@
 ##       ~/src/py/aiml/.README
 ##
 ## Purpose-
-##       AIML server, including site-package/aiml updated for python3
+##       AIML server, using python3/site-package/aiml
 ##
 ## Last change date-
-##       2018/01/01
+##       2020/03/23
 ##
 ## Open problems-
 ##       site-package/stdio threading conflicts with HttpServer.
@@ -24,5 +24,8 @@
 ## Implementation note-
 ##       This subdirectory contains an HTTP server, a console server,
 ##       and customization controls.
+##
+##       You may need to modify the data subdirectory to locate botdata.
+##       Install AIML using: pip install python-aiml
 ##
 ##############################################################################
