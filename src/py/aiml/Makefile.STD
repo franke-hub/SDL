@@ -26,5 +26,6 @@ include M/Makefile.STD
 .PHONY: mak.pristine
 pristine: mak.pristine
 mak.pristine: ;
+	@rm -Rf brain.freeze
 	@rm -Rf log/*.log session/*.session
 
