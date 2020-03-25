@@ -1,11 +1,22 @@
-Verify all project subdirectories.
+Updated Makefile links. Functional enhancement.
 
 # Please enter the commit message for your changes. Lines starting
 # with '#' will be ignored, and an empty message aborts the commit.
 #
 # On branch maint
 # Changes to be committed:
-#	new file:   .home
-#	modified:   .ignore
-#	deleted:    src
+#	new file:   py/Brian/.gitignore
+#	new file:   py/Brian/M
+#	modified:   py/Brian/Makefile
+#	deleted:    py/Brian/temp/alarm-data.pickle
+#	new file:   py/Golf/M
+#	modified:   py/Golf/Makefile
+#	new file:   py/Golf/test/M
+#	modified:   py/Golf/test/Makefile
+#	deleted:    py/Import/.gitignore
+#	new file:   py/Misc/M
+#	modified:   py/Misc/Makefile
+#	new file:   py/lib/M
+#	new file:   py/lib/test/M
+#	modified:   py/lib/test/Makefile
 #
