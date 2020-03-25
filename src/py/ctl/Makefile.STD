@@ -1,0 +1,40 @@
+##############################################################################
+##
+##       Copyright (c) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.STD
+##
+## Purpose-
+##       Default Makefile for Python programs
+##
+##############################################################################
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= do
+endif
+
+.PHONY: default dirty do
+default: $(DEFAULT)
+
+##############################################################################
+## Built-in targets
+dirty: ;
+	-Main dirty 2>debug.err
+	@echo -e "\n\nSTDERR:"
+	@cat debug.err
+
+do: ;
+	-Main main 2>debug.err
+	@echo -e "\n\nSTDERR:"
+	@cat debug.err
+

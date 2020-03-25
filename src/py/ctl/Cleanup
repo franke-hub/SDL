@@ -22,8 +22,9 @@ import sys                          ## For sys.argv
 ## Clean up subdirectory tree
 ##############################################################################
 def clean(path):
-    # print "clean(%s)" % path
+    # print("clean(%s)" % path)
     tuples = os.walk(path)
+    # print(tuples)
     for tuple in tuples:
         # tuple = (path, directories, files)
         for file in tuple[2]:

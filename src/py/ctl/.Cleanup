@@ -1,0 +1,29 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 202 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       .Cleanup
+##
+## Function-
+##       Invoke Cleanup from ~/src/py/.
+##
+## Last change date-
+##       2020/03/25
+##
+## Usage-
+##       (Only called from ~/src/py/Makefile, where Makefile is linked.)
+##
+##############################################################################
+## set -x                           ## Temporary, debugging
+set -P                              ## Stop following reverse links
+cd $PWD/..                          ## Get into upper directory
+./.Cleanup                          ## The real Cleanup, via link
+
