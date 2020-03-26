@@ -148,6 +148,7 @@ git gc
 
 echo "TODO:"
 echo "'git push -u origin'"
+echo "'git push origin release/$2'"
 echo "'git push origin --tags'"
 echo "'git branch -D release/$2'"
 echo "'git push origin :release/$2'"
