@@ -1,0 +1,156 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       gitrelease
+##
+## Purpose-
+##       Create a release, synchonizing with a branch.
+##
+## Last change date-
+##       2020/03/26
+##
+## Usage-
+##       gitrelease branch version
+##
+## Example-
+##       gitrelease maint 0.0.0
+##
+## Implementation note-
+##       This implentation pulls but DOES NOT push the release.
+##
+##############################################################################
+
+##############################################################################
+## User warning
+echo "This script creates a local release, but does not export it."
+echo "The script author is not confident that this script works properly."
+echo "You may want to reconsider whether you want to trust it."
+read -p "Are you really sure you want to continue? N/y " text
+if [[ "$text" != "y" && "$text" != "Y" ]] ; then
+    echo "Cancelled"
+    exit 1
+fi
+
+##############################################################################
+## Verify parameters
+if [[ -z "$1" ]] ; then
+    echo "Missing branch name, maint perhaps?"
+    exit 1
+elif [[ "$1" == "master" ]] ; then
+    echo "Cannot synch master with master"
+    exit 1
+elif [[ -z "$2" ]] ; then
+    echo "Missing version id, format n.n.n"
+    exit 1
+elif [[ ! -z "$3" ]] ; then
+    echo "Extra parameter '$3', quitting"
+    exit 1
+fi
+
+git check-ref-format release/$2
+if [[ $? != 0 ]] ; then
+    echo "Invalid format: 'release/$2'"
+    exit 1
+fi
+
+##############################################################################
+## Insure that the branch is up to date
+git checkout $1
+if [[ $? != 0 ]] ; then
+    echo "Cannot checkout $1, quitting"
+    exit 1
+fi
+
+if [[ -n $(git status --porcelain) ]] ; then
+    echo "Branch $1 is not up to date"
+    git status
+    echo "(You are on branch $1)"
+    exit 1
+fi
+
+##############################################################################
+## Remote synchronization
+git remote update
+if [[ $? != 0 ]] ; then
+    echo "Cannot synchronize remote, quitting"
+    echo "(You are on branch $1)"
+    exit 1
+fi
+
+git pull origin $1
+if [[ $? != 0 ]] ; then
+    echo "Cannot synchronize locally, quitting"
+    echo "(You are on branch $1)"
+    exit 1
+fi
+
+if [[ -n $(git status --porcelain) ]] ; then
+    echo "Something unexpected happened"
+    echo "Branch $1 is not up to date after remote synchonization"
+    git status
+    echo "(You are on branch $1)"
+    exit 1
+fi
+
+##############################################################################
+## Synch the branch with the master branch
+git checkout master
+if [[ $? != 0 ]] ; then
+    echo "Cannot checkout master, quitting"
+    exit 1
+fi
+
+git merge $1
+if [[ $? != 0 ]] ; then
+    echo "Failed to merge branch $1. You are now in branch master"
+    exit 1
+fi
+
+git checkout $1
+if [[ $? != 0 ]] ; then
+    echo "Failed to checkout branch $1. You are now in branch master"
+    exit 1
+fi
+
+##############################################################################
+## Create and synchronize release branch (from branch == master)
+git branch release/$2
+if [[ $? != 0 ]] ; then
+    echo "Failed to create branch release/$2. You are now in branch $1"
+    exit 1
+fi
+
+git merge $1
+if [[ $? != 0 ]] ; then
+    echo "Failed to merge branch $1. You are now in branch $1"
+    exit 1
+fi
+
+git tag -a $2 -m "Create tag $2"
+if [[ $? != 0 ]] ; then
+    echo "Failed to create tag $2. You are now in branch $1"
+    exit 1
+fi
+
+##############################################################################
+## Clean up, tell user what needs to be done, and exit
+## (Not done by script because git push password/userid not automated.)
+git gc
+
+echo "TODO:"
+echo "'git push -u origin'"
+echo "'git push origin --tags'"
+echo "'git branch -D release/$2'"
+echo "'git push origin :release/$2'"
+
+exit 0
+

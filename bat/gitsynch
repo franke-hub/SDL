@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2018-2019 Frank Eskesen.
+##       Copyright (C) 2018-2020 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Synch the master branch with another branch.
 ##
 ## Last change date-
-##       2019/10/08
+##       2020/03/26
 ##
 ## Usage-
 ##       gitsynch branch
@@ -32,7 +32,7 @@ elif [[ "$1" == "master" ]] ; then
     echo "Cannot synch master with master"
     exit 1
 elif [[ ! -z "$2" ]] ; then
-    echo "Extra parameter '$2'"
+    echo "Extra parameter '$2', quitting"
     exit 1
 fi
 
@@ -57,4 +57,5 @@ if [[ $? != 0 ]] ; then
 fi
 
 git gc
+exit 0
 

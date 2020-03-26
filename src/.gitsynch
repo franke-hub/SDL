@@ -12,10 +12,10 @@
 ##       ~/src/.gitsynch
 ##
 ## Purpose-
-##       Time/date marker for last gitsynch operation.
+##       Time/date/version marker for last remote gitsynch operation.
 ##
 ## Last change date-
-##       2020/03/22 16:00 Refreshed
+##       2020/03/26 18:00 Version: 0.0.0
 ##
 ## Implementation note-
 ##       The ~/bat/gitsynch operation changes the last modification date and
