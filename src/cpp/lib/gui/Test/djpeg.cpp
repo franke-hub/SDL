@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010-2018 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       JPEG decode/display.
 //
 // Last change date-
-//       2018/01/01
+//       2020/03/25
 //
 //----------------------------------------------------------------------------
 #include <setjmp.h>
@@ -34,9 +34,7 @@
 #include "gui/Window.h"
 using namespace GUI;
 
-// extern "C" { // Not needed by real jpeglib.h
-#include <jpeglib.h>
-// }
+#include <jpeglib.h>                // (NEW: Standard location)
 
 //----------------------------------------------------------------------------
 // Internal data areas

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       JpegDecoder implementation.
 //
 // Last change date-
-//       2007/01/01
+//       2020/03/25
 //
 //----------------------------------------------------------------------------
 #include <setjmp.h>
@@ -27,9 +27,7 @@
 #include <gui/Types.h>
 using namespace GUI;
 
-extern "C" {
-#include <jpeg/jpeglib.h>
-}
+#include <jpeglib.h>                // (NEW: Standard location)
 
 #include "Decoder.h"
 #include "JpegDecoder.h"
