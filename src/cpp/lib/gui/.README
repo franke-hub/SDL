@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2010-2018 Frank Eskesen.
+##       Copyright (C) 2010-2020 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,6 +15,11 @@ FEATURE:
 
 ##############################################################################
 BUGS:
+2020/03/25 Test/WormBuffer does not operate pixel-by-pixel any more.
+         It used to. Now the WormBuffer updates a buffer at a time.
+         This is the sort of thing that can happen when a project is ignored
+         for years at a time.
+
 2010/04/01 OS/BSD Cannot scroll to view entire window.
 
 2010/04/01 OS/WIN Sample testBringup Window does not start at 600 x 600.

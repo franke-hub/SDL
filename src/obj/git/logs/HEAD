@@ -5,3 +5,10 @@ d69042988c5e6f6082a82956b3218328bcb0e12f 862d30b83245145dde84cf173aed23082b7fdd2
 d69042988c5e6f6082a82956b3218328bcb0e12f 862d30b83245145dde84cf173aed23082b7fdd25 Frank Eskesen <f.n.eskesen@gmail.com> 1585170525 -0400	merge maint: Fast-forward
 862d30b83245145dde84cf173aed23082b7fdd25 862d30b83245145dde84cf173aed23082b7fdd25 Frank Eskesen <f.n.eskesen@gmail.com> 1585170525 -0400	checkout: moving from master to maint
 862d30b83245145dde84cf173aed23082b7fdd25 19486b621b2668469078ae68c31105842ba92e7c Frank Eskesen <f.n.eskesen@gmail.com> 1585172015 -0400	commit: Updated Makefile links. Functional enhancement.
+19486b621b2668469078ae68c31105842ba92e7c dc82de8748cef054ae00a734a7679d959e5f3f70 Frank Eskesen <f.n.eskesen@gmail.com> 1585172463 -0400	commit: Added Makefile. (Not really needed.)
+dc82de8748cef054ae00a734a7679d959e5f3f70 862d30b83245145dde84cf173aed23082b7fdd25 Frank Eskesen <f.n.eskesen@gmail.com> 1585172516 -0400	checkout: moving from maint to master
+862d30b83245145dde84cf173aed23082b7fdd25 dc82de8748cef054ae00a734a7679d959e5f3f70 Frank Eskesen <f.n.eskesen@gmail.com> 1585172516 -0400	merge maint: Fast-forward
+dc82de8748cef054ae00a734a7679d959e5f3f70 dc82de8748cef054ae00a734a7679d959e5f3f70 Frank Eskesen <f.n.eskesen@gmail.com> 1585172516 -0400	checkout: moving from master to maint
+dc82de8748cef054ae00a734a7679d959e5f3f70 e85c7c10b974632c19a43db413c677f63eea4b6f Frank Eskesen <f.n.eskesen@gmail.com> 1585185852 -0400	commit: Don't build jpeg library. Use standard distribution.
+e85c7c10b974632c19a43db413c677f63eea4b6f 6f6ac4293ce1e103a33aa2e2ac3a262699247328 Frank Eskesen <f.n.eskesen@gmail.com> 1585186975 -0400	commit: Added .gitignore
+6f6ac4293ce1e103a33aa2e2ac3a262699247328 73ec124b2f1b5e7a6e64e5123f96d6942244424d Frank Eskesen <f.n.eskesen@gmail.com> 1585187020 -0400	commit: Ignore .gitinored subdirectories.

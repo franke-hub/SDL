@@ -34,9 +34,9 @@
 #include "gui/Window.h"
 using namespace GUI;
 
-extern "C" {
-#include <jpeg/jpeglib.h>
-}
+// extern "C" { // Not needed by real jpeglib.h
+#include <jpeglib.h>
+// }
 
 //----------------------------------------------------------------------------
 // Internal data areas
