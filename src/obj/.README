@@ -16,13 +16,14 @@
 ##       Backup/restore associated repository
 ##
 ## Last change date-
-##       2020/01/21
+##       2020/04/03
 ##
 ## Usage-
 ##       .README {backup | restore}
 ##
 ## Implementation note-
 ##       This subdirectory can be used in-place by renaming git to .git,
+##       creating the files and directories per HOTFIX/0.0.1 (see below,)
 ##       then using "git reset --hard HEAD" to expand it.
 ##
 ##       (You might also want to modify ./.gitignore to reflect these changes.)
@@ -72,6 +73,14 @@ elif [[ "$*" == "restore" ]] ; then
     rm -Rf $REPO/.git
     cp -idpRf git $REPO/.git
     cd $REPO
+
+    ## HOTFIX/0.0.1 >>>>>>>>
+    [[ ! -f .git/FETCH_HEAD ]] && touch .git/FETCH_HEAD
+    [[ ! -d .git/refs ]] && mkdir .git/refs
+    [[ ! -d .git/refs/heads ]] && mkdir .git/refs/heads
+    [[ ! -d .git/refs/tags ]] && mkdir .git/refs/tags
+    ## HOTFIX/0.0.1 <<<<<<<<
+
     git reset --hard HEAD
     set +x
 
