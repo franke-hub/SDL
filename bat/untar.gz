@@ -10,17 +10,17 @@
 ##----------------------------------------------------------------------------
 ##
 ## Title-
-##       mktar.gz
+##       untar.gz
 ##
 ## Purpose-
-##       Create a gzipped tar file.
+##       Expand a gzipped tar file.
 ##
 ## Last change date-
 ##       2020/03/28
 ##
 ## Usage-
-##       mktar.gz outfile inppath
+##       unktar.gz outfile
 ##
 ##############################################################################
-tar -cvzf $1.tgz -C . $2
+tar -xvzf $1.tgz
 

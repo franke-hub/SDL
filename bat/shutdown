@@ -75,6 +75,6 @@ if [[ ! -z "`osCYGWIN`" ]] ; then
 
   $cmd$r$t
 else
-  sudo /sbin/shutdown "$@"
+  /sbin/shutdown "$@"
 fi
 

@@ -16,7 +16,7 @@
 ##        Display configurator 1920 x 975.
 ##
 ## Last change date-
-##       2020/01/05
+##       2020/03/27
 ##
 ## Implementation note-
 ##       Created and used when virtualbox extension does not properly
@@ -33,7 +33,7 @@ if [[ ! -z "$1" ]] ; then
   fi
 fi
 
-if [[ "$DISPLAY" == ":1" ]] ; then
+if [[ "$DISPLAY" == ":0" || "$DISPLAY" == ":1" || "$DISPLAY" == ":0.0" ]] ; then
   disp=`xrandr`
   disp=`echo $disp | awk '{print $15}'`
   mode=`cvt 1920 975`
