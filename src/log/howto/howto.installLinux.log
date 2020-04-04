@@ -1,0 +1,367 @@
+>>year 2020.  (Updated)
+>>date 04/04. (Updated)
+>>info HOWTO (RE)install Linux (Fedora/Ubuntu)
+
+ 0) PREREQ informaton:
+    Install versions:
+        Fedora: Fedora 30-1.2 Workstation
+            Source: https://getfedora.org/en/workstation/download/
+        Ubuntu: Ubuntu 18.04.2
+            Source: https://www.ubuntu.com/download/desktop
+
+    Notation key: <SYSTEM install>
+        Fedora: sudo dnf install
+        Ubuntu: sudo apt install
+
+ 1) Hardware configuration:
+    VirtualBox configuration:
+        Memory:     2048 or 4096
+        Network:    Type: Bridged Adapter (Visible on local and global network)
+        Processors: 4
+        Storage:    Type: vdi  (Space is dynamically allocated)
+                    Size: 40GB (More than enough)
+                    Mount ISO on CD
+                        (Select Empty CD, Icon to right of Optical Drive)
+
+    BIOS Boot order: (Virtualbox: select after ISO selected)
+        1) Hard Disk
+        2) DVD
+        3) *UNUSED* Network
+        4) *UNUSED* Floppy
+
+ 2) Boot with installation disk and install.
+    (Temporarily modify boot order if hard disk is bootable)
+
+    Ubuntu: Minimal installation is usable.
+    Ubuntu: Install 3rd party software tested.
+
+    Virtual machines:
+        Default partioning OK.
+
+    Physical machines:
+        Use manual partitioning
+            a) Delete existing disk
+            b) Set partitions
+               /boot  512+ MB
+               swap  1536+ MB
+               /     (Remainder)
+
+    Root password: (standard)
+    Admin userid:  <userid>
+
+ 3) Software configuration:
+    Set speakers on low, not mute:
+        /Sound & Video/Pulse Audio Volume control.
+
+    Install mandatory packages:
+        <SYSTEM install> firewall-config
+        <SYSTEM install> openssh-server openssh-client
+            Fedora: <service>: sshd.service
+            Ubuntu: <service>: ssh.service
+            sudo systemctl enable <service>
+            sudo systemctl start  <service>
+        <SYSTEM install> xterm
+        Fedora: <SYSTEM install> xorg-x11-fonts-misc ## For xterm
+
+    Install updates:
+        sudo apt update
+        sudo apt upgrade
+        --REBOOT-- (If kernel updated)
+        (Repeat as required)
+
+    Virtualbox extensions:
+        Fedora 30 auto-installed virtualbox extension pack.
+            REQUIRED: Remove Fedora's version, go with guest additions CD.
+
+        Insert guest addtions CD.
+        --REBOOT-- (For full screen verification)
+
+ 4) Update network
+    Static IP:
+        For IP address, see: /etc/hosts in configured machine
+
+    Fedora: Set host IP address/Network Connections
+        sudo hostnamectl set-hostname <host-name> ## (updates /etc/hostname)
+
+        See: https://www.server-world.info/en/note?os=Fedora_27&p=initial_conf&f=3
+        nmcli connection show ## determine connection name
+        nmcli connection mod  <name> ipv4.address 192.168.1.xxx
+        nmcli connection mod  <name> ipv4.gateway 192.168.1.1
+        nmcli connection mod  <name> ipv4.dns     192.168.1.1
+        nmcli connection mod  <name> ipv4.method  manual
+        nmcli connection down <name>
+        nmcli connection up   <name>
+        nmcli device show <name>
+        ip addr show
+
+    Ubuntu: Set host IP address/Network Connections
+        Host name supplied during installation.
+
+        255.255.255.0 Mask
+        192.168.1.1   Gateway
+        192.168.1.1   NS lookup (comma separated)
+        *.*.*.*       NS lookup (comma separated) [A DHCP nameserver]
+        *.*.*.*       NS lookup (comma separated) [Likewise]
+
+    Google Public DNS operates recursive name servers for public use:
+        8.8.8.8              (IPv4)
+        8.8.4.4              (IPv4)
+        2001:4860:4860::8888 (IPv6)
+        2001:4860:4860::8844 (IPv6)
+
+    Update Firewall:
+        firewall-config
+
+        ** BE SURE TO CHANGE PERMANENT CONFIGURATION **
+        Default zone: (Whatever is the default)
+        Service: NFS (Optional, only for NFS server)
+        Service: SSH
+
+        Ports: 1024-65535 TCP,UDP
+    --REBOOT-- (Verify internal/external to/from access)
+    --REBOOT-- (VirtualBox snapshot)
+
+##############################################################################
+## At this point, work can be done using remotely via ssh login
+##############################################################################
+
+ 5) Usability items (in sequence):
+    PREREQ: /home/data:
+        sudo mkdir /home/data
+        sudo chown <userid>:<userid> /home/data
+        ln -s /home/data ~/data
+
+    PREREQ: packages:
+        <SYSTEM install> git
+
+    NFS client (used to populate /home/data):
+        vi /etc/hosts
+            Insert hostname of NFS server, e.g. nfs-server
+
+        Fedora: <SYSTEM install> nfs-utils
+        Ubuntu: <SYSTEM install> nfs-common
+        sudo systemctl enable nfs-client.target
+        sudo systemctl start  nfs-client.target
+
+        Test:
+            mount <hostname>:/home/data /home/data
+            *Verify*
+            umount /home/data
+        Perm: Update /etc/fstab
+            <hostname>:/home/data /home/data nfs ro 0 0
+            sudo systemctl restart nfs-client.target
+            *Verify*
+
+    Alternately, populate /home/data from existing machine:
+        If needed, add new machine to /etc/hosts
+        If new machine is a replacement, remove it from ~/.ssh/known_hosts
+
+        cd ~/data
+        rsync `backup opt` data <new machine>:data
+
+    Create and populate ~/bat and ~/.:
+        <SYSTEM install> git
+        mkdir ~/bat
+        cd ~/bat
+        cp -R ~/data/git/bat .git
+        git reset --hard HEAD
+        cd .home
+        cp -idp .b* .e* .g* .p* .X* ~/.
+
+ 6) Install packages as required:
+    Utility command to list package groups:
+        Fedora: dnf group list
+        Ubuntu: apt-cache search package
+
+    Build envionment packages:
+        <SYSTEM install> autoconf
+        <SYSTEM install> automake
+        <SYSTEM install> binutils
+        <SYSTEM install> gcc
+        Fedora: <SYSTEM install> gcc-c++
+        Ubuntu: <SYSTEM install> g++
+        <SYSTEM install> gdb
+        <SYSTEM install> libtool
+        <SYSTEM install> make
+        <SYSTEM install> patch
+
+    Build library packages (Fedora):
+        <SYSTEM install> boost-devel
+        <SYSTEM install> bzip2-devel
+        <SYSTEM install> libcurl-devel
+        <SYSTEM install> ncurses-devel ## For /usr/include/curses.h
+        <SYSTEM install> glm-devel ## For ~/src/cpp/Grid/EulerConversionTest
+        <SYSTEM install> openssl-devel
+        <SYSTEM install> libX11-devel
+        <SYSTEM install> zlib-devel
+
+    Build library packages (Ubuntu):
+        <SYSTEM install> libboost-all-dev
+        <SYSTEM install> libbz2-dev
+        <SYSTEM install> libcurl4-openssl-dev
+        <SYSTEM install> libglm-dev ## For ~/src/cpp/Grid/EulerConversionTest
+        <SYSTEM install> libncurses5-dev
+        <SYSTEM install> libssl-dev
+        <SYSTEM install> libx11-dev
+        <SYSTEM install> zlib1g-dev
+
+    Build NN2: (Used to display images)
+        <SYSTEM install> ImageMagick-c++-devel
+        <SYSTEM install> ImageMagick-devel
+
+    Build Wilbur PREREQs:
+        Fedora: <SYSTEM install> libdb-devel libdb-cxx-devel
+        Ubuntu: <SYSTEM install> libdb-dev   libdb++-dev
+
+    DOTNET package:
+         https://dotnet.microsoft.com/learn/dotnet/hello-world-tutorial/install
+         dotnet
+             wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb
+             sudo dpkg -i packages-microsoft-prod.deb
+
+             sudo add-apt-repository universe
+             sudo apt install apt-transport-https
+             sudo apt update
+             sudo apt install dotnet-sdk-2.2
+             (See reference site in case of errors)
+
+    MONO package:
+        <SYSTEM install> mono-complete
+
+    MySQL package:
+        sudo dnf install mariadb-server (Ubuntu: Automatically starts)
+        If required: systemctl enable mariadb
+
+        sudo vi /etc/mysql/my.cnf
+            (after)  [client-server]
+            (insert) max_allowed_packet=128M
+        sudo systemctl (re)start mariadb ## (Or wait for next reboot)
+        sudo mysql_secure_installation
+            ## Follow (simple) prompts
+
+        Error recovery: Root password missing or forgotten
+            See: https://www.a2hosting.com/kb/developer-corner/mysql/reset-mysql-root-password
+            sudo su - ## Working as root user
+            systemctl stop mariadb
+            mysqld_safe --skip-grant-tables & ## WARNING: mysql exposed
+            mysql
+                use mysql;
+                UPDATE user SET Password=PASSWORD('NEW-PASSWORD') WHERE User='root';
+                FLUSH PRIVILEGES;
+                exit;
+            mysqladmin -u root -p shutdown ## Shutdown mysqldb
+            ## You will be prompted for NEW-PASSWORD before shutdown completes
+            systemctl start mariadb
+            exit ## Exit root user mode
+
+    NFS Server:
+        See: http://nfs.sourceforge.net/nfs-howto/ar01s03.html
+        <SYSTEM install> nfs-kernel-server
+
+        Update /etc/exports:
+            /home/data     192.168.1.0/255.255.255.0(ro)
+
+        sudo systemctl enable nfs-server.service
+        sudo systemctl start  nfs-server.service
+
+    Opensim:
+        PREREQ: MySQL package
+        PREREQ: MONO package
+
+    Other packages:
+        <SYSTEM install> cvs
+        <SYSTEM install> gimp
+        <SYSTEM install> gpg
+        <SYSTEM install> yum-cron
+
+ 6) Standard customization:
+    User directories:
+        mkdir ~/bin
+        mkdir ~/obj
+            cd ~/obj
+            cp -R ~/data/git/obj .git
+            git reset --hard HEAD
+        mkdir ~/tmp
+        mkdir ~/.gnupg
+        mkdir ~/.ssh
+
+    Root environment:
+        cd ~/bat/.home/Linux/root/bin
+        sudo su mkdir /root/bin
+        sudo cp -idp * /root/bin/.
+        sudo su -
+            (Customize as necessary)
+
+    User build environment:
+        PREREQ: Build environment packages, Build library packages
+        cd ~/obj/cpp/Tools/Makeproj
+        make
+        move makeproj ~/bin
+        qd lib
+        make
+
+    User bin environment:
+        qd edit
+        make
+        strip Edit; move Edit ~/bin/edit
+
+        qd clone
+        make
+        strip rd*; move rd* ~/bin/.
+
+    Update /etc/hosts
+        cd ~/bat/.home/etc
+        sudo edit hosts /etc/hosts
+        ...
+
+    Wilbur PREREQs:
+        Fedora: <SYSTEM install> libdb-devel libdb-cxx-devel
+        Ubuntu: <SYSTEM install> libdb-dev   libdb++-dev
+
+    UNKNOWN PREREQs:
+        ## <SYSTEM install> ImageMagick-c++-devel
+        ## <SYSTEM install> ImageMagick-devel
+
+##############################################################################
+## Additional information
+##############################################################################
+    DO NOT remove zeitgeist, this breaks dash
+        rm -Rf ~/.local/share/zeitgeist/*
+        chmod a-rwx ~/.local/share/zeitgeist
+
+##############################################################################
+## Maintenance (Distribution upgrade)
+##############################################################################
+Upgrade distribution (Fedora):
+    sudo dnf upgrade --refresh
+    ** reboot ** (Make sure latest kernel installed)
+    sudo dnf install dnf-plugin-system-upgrade --best
+    sudo dnf --refresh upgrade
+    sudo dnf system-upgrade download --releasever=XX {--allowerasing} {--best}
+    sudo dnf system-upgrade reboot
+
+    sudo rpm --rebuilddb ## Rebuild RPM database
+    sudo dnf distro-sync --setopt=deltarpm=0 ## Distro Synch
+    sudo dnf clean packages
+    sudo dnf install rpmconf ## (For rpmconf)
+    sudo rpmconf -a ## Find and repair .rpmnew, .rpmsave, .rpmorig
+
+    Troubleshooting: https://fedoraproject.org/wiki/DNF_system_upgrade#Resolving_post-upgrade_issues
+
+Upgrade distribution (Ubuntu):
+    sudo apt update ## (Refresh repository)
+    sudo sudo apt dist-upgrade
+    --REBOOT-- (Verify virtualbox extension pack operation)
+
+##############################################################################
+## Maintenance (Normal)
+##############################################################################
+Install updates (Fedora):
+    sudo dnf update
+    --REBOOT-- (VirtualBox snapshot iff window size OK)
+
+Install updates (Ubuntu):
+    sudo apt update  ## (Refresh repository)
+    sudo apt upgrade
+    --REBOOT-- (VirtualBox snapshot iff window size OK)
+
