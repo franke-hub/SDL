@@ -1,0 +1,80 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       .tweaks
+##
+## Purpose-
+##       Local configuration information.
+##
+## Last change date-
+##       2020/04/10
+##
+## Usage-
+##       Copy this script into your ~/bin directory, then tailor it there.
+##
+##############################################################################
+
+##############################################################################
+## Run ~/bin/tweaks if it exists (with recursion prevention)
+if [[ "$1" != "--bin" && -f ~/bin/.tweaks ]] ; then
+  source ~/bin/.tweaks --bin "$@"
+  return
+fi
+
+shift                               ## (Remove --bin)
+
+##############################################################################
+## ~/bat/backup.raid: The backup disk
+if [[ "$1" == "--backup.raid" ]] ; then
+  backup_raid="backup-raid"
+  return
+fi
+
+##############################################################################
+## ~/bat/bluebird: xterm geometries
+if [[ "$1" == "--bluebird" ]] ; then
+  bluebird_root=80x24-0+164         ## -cs root  window geometry
+  bluebird_user=80x24-164+0         ## -cs linux window geometry
+  return
+fi
+
+##############################################################################
+## ~/bat/rexleft: xterm geometries
+if [[ "$1" == "--rexleft" ]] ; then
+  rexleft_xgeo=(668 1170)
+  rexleft_ygeo=(0 382)
+  return
+fi
+
+##############################################################################
+## ~/bat/rexterm: default colorset by [host][dest]
+if [[ "$1" == "--rexterm" ]] ; then
+  colorset=paper
+  case $dest in
+    primary)
+      [[ "$host" != "primary" ]] && colorset=partner
+      ;;
+
+    fedora | ubuntu | virtual1 | virtual2)
+      colorset=partner
+      if [[ "$host" == "$dest" || -n "`osCYGWIN`" ]] ; then
+        colorset=linux
+      fi
+      ;;
+
+    secondary | secondary-alias)
+      [[ "$host" != "secondary" ]] && colorset=partner
+      ;;
+  esac
+  return
+fi
+

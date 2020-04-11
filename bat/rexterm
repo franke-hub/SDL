@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2010-2019 Frank Eskesen.
+##       Copyright (C) 2010-2020 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,13 +16,16 @@
 ##       Remotely login to a different machine using xterm.
 ##
 ## Last change date-
-##       2019/10/26
+##       2020/04/10
 ##
 ## Usage-
 ##       rexterm {-cs colorset} or {{-fg <color>} | {-bg <color>}}
 ##               {[-as | -l] <userid>}
 ##               {xterm-parameters: {-geometry <value> or +/-<control>}}
 ##               {remote-system}
+##
+## Implementation note-
+##       See: ~/bat/.tweaks --rexterm
 ##
 ##############################################################################
 
@@ -95,26 +98,8 @@ else
 fi
 
 ##############################################################################
-## Set default colors (if not already set)
-if [[ -z "$colorset" ]] ; then
-  colorset=paper
-  case $dest in
-    bigblue)
-      [[ "$host" != "bigblue" ]] && colorset=partner
-      ;;
-
-    develop | fedora64 | rainbow | ubuntu)
-      colorset=partner
-      if [[ "$host" == "$dest" || -n "`osCYGWIN`" ]] ; then
-          colorset=linux
-      fi
-      ;;
-
-    frank-laptop | win10)
-      [[ "$host" != "frank-laptop" ]] && colorset=partner
-      ;;
-  esac
-fi
+## Set default host to destination colors
+[[ -z "$colorset" ]] && source .tweaks --rexterm
 
 ##############################################################################
 ## Local host login

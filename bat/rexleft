@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2018-2019 Frank Eskesen.
+##       Copyright (C) 2018-2020 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,18 +16,21 @@
 ##       rexterm left of bluebird terminal
 ##
 ## Last change date-
-##       2019/10/07
+##       2020/04/10
 ##
 ## Usage-
 ##       rexleft {-x n} {-y n}
+##
+## Implementation note-
+##       See: ~/bat/.tweaks --rexleft
 ##
 ##############################################################################
 
 ##############################################################################
 # Handle -x, -y parameters
-xgeo=(668 1170)
-ygeo=(0 342) ## fedora64
-ygeo=(0 382) ## rainbow
+source .tweaks --rexleft
+xgeo=$rexleft_xgeo
+ygeo=$rexleft_ygeo
 
 xsiz=${#xgeo[*]}
 ysiz=${#ygeo[*]}
