@@ -194,14 +194,14 @@ int                                 // Return code, 0 OK
 
    struct stat st;                  // File stats
    std::string _full= full();       // The fully qualified name
-   int rc= lstat(_full.c_str(), &st); // Get file information
+   int rc= stat(_full.c_str(), &st); // Get file information
    if( rc != 0 )                    // If failure
    {
-     errorp("%4d: Data: lstat(%s) failure: %d", __LINE__, _full.c_str(), rc);
+     errorp("%4d: Data: stat(%s) failure: %d", __LINE__, _full.c_str(), rc);
      return rc;
    }
 
-   size_t size= st.st_size;       // The size of the file
+   size_t size= st.st_size;         // The size of the file
 
    // Allocate the input data area Pool
    Pool* pool= new Pool(size + 1);  // We'll add '\0' to the end
@@ -211,7 +211,7 @@ int                                 // Return code, 0 OK
 
    // Load the file
    FILE* f= fopen(_full.c_str(), "rb");
-   size_t L= fread(text, 1, size, f);
+   size_t L= fread(text, 1, size+1, f);
    if( L != size )
    {
      _damaged= true;

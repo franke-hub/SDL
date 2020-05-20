@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2014 Frank Eskesen.
+##       Copyright (c) 2007-2020 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,18 +15,16 @@
 ##       WINDOWS Makefile versioning
 ##
 ## Last change date-
-##       2014/01/01
+##       2020/05/20
 ##
 ##############################################################################
 
 ##############################################################################
 ## Local module list
 MAKEXE :=
-MAKEXE += RdServer.exe
-MAKEXE += RdClient.exe
-ignore += rdserver.exe
-ignore += rdclient.exe
-MAKEXE += FSlist.exe
+MAKEXE += rdserver.exe
+MAKEXE += rdclient.exe
+ignore += FSlist.exe
 
 ##############################################################################
 ## Set default target
@@ -37,22 +35,12 @@ endif
 default: $(DEFAULT)
 
 ##############################################################################
-## TARGET: RdClient.exe
-RdClient.exe: RdClient.obj RdCommon.obj CommonThread.obj ClientThread.obj
+## TARGET: rdclient.exe
+rdclient.exe: RdClient.obj RdCommon.obj CommonThread.obj ClientThread.obj
 	$(LD) /out:"$@" $(CLOAD) $^ $(CLIBS)
 
 ##############################################################################
-## TARGET: RdServer.exe
-RdServer.exe: RdServer.obj RdCommon.obj CommonThread.obj ListenThread.obj ServerThread.obj
-	$(LD) /out:"$@" $(CLOAD) $^ $(CLIBS)
-
-##############################################################################
-## TARGET: rdclient
-rdclient.exe: rdrem.obj rdist.obj
-	$(LD) /out:"$@" $(CLOAD) $^ $(CLIBS)
-
-##############################################################################
-## TARGET: rdserver
-rdserver.exe: rdloc.obj rdist.obj
+## TARGET: rdserver.exe
+rdserver.exe: RdServer.obj RdCommon.obj CommonThread.obj ListenThread.obj ServerThread.obj
 	$(LD) /out:"$@" $(CLOAD) $^ $(CLIBS)
 

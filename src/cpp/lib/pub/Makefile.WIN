@@ -27,6 +27,22 @@
 COPTS  += /I.
 
 ##############################################################################
+## Not supported on Windows [No compatability attempted]
+MAKOBJ := $(patsubst $(OBJDIR)/Clock.obj,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Console.obj,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Dataman.obj,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Debug.obj,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Dispatch.obj,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Fileman.obj,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Include.obj,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Socket.obj,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Thread.obj,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Trace.obj,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Worker.obj,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/debugging.obj,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/utility.obj,,$(MAKOBJ))
+
+##############################################################################
 ## Set defaults
 MAKRUN := libpub.lib
 
