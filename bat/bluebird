@@ -16,7 +16,7 @@
 ##       Create -cs root/linux rexterm terminals
 ##
 ## Last change date-
-##       2020/04/10
+##       2020/04/11
 ##
 ## Usage-
 ##       bluebird
@@ -27,14 +27,17 @@
 ##############################################################################
 
 ##############################################################################
+## Local options
+source .tweaks --bluebird
+
+##############################################################################
 ## Optional clock window
-if [[ "$1" = "-clock" ]] ; then
+if [[ "$1" = "-clock" || "$bluebird_time" == "true" ]] ; then
   xclock -geometry -0+0 &
 fi
 
 ##############################################################################
 ## Create the xterm windows
-source .tweaks --bluebird
 rexterm -cs root  -geometry $bluebird_root
 rexterm -cs linux -geometry $bluebird_user
 

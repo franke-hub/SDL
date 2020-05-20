@@ -16,7 +16,7 @@
 ##       Local configuration information.
 ##
 ## Last change date-
-##       2020/04/10
+##       2020/04/11
 ##
 ## Usage-
 ##       Copy this script into your ~/bin directory, then tailor it there.
@@ -42,6 +42,7 @@ fi
 ##############################################################################
 ## ~/bat/bluebird: xterm geometries
 if [[ "$1" == "--bluebird" ]] ; then
+  bluebird_time=false               ## Invoke xclock?
   bluebird_root=80x24-0+164         ## -cs root  window geometry
   bluebird_user=80x24-164+0         ## -cs linux window geometry
   return

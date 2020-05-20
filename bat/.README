@@ -9,6 +9,18 @@
 ##
 ##----------------------------------------------------------------------------
 ##
+##       Copyright (C) 2020 Stack Exchange Inc.
+##       Relates only to: Command rsync, section "What the output means-"
+##       user contributions licensed under cc by-sa 4.0 with
+##       attribution required. rev 2020.4.9.36569
+##
+##       Source page: https://stackoverflow.com/questions/4493525/what-does-f-mean-in-rsync-logs
+##       Asker (OP): https://stackoverflow.com/users/449613/godfather
+##       Responder:  https://stackoverflow.com/users/171475/john-mark-mitchell
+##                   (Partner at Cairn Group)
+##
+##----------------------------------------------------------------------------
+##
 ## Title-
 ##       .README
 ##
@@ -16,7 +28,7 @@
 ##       Command usage reminders
 ##
 ## Last change date-
-##       2020/04/10
+##       2020/05/14
 ##
 ## Usage-
 ##       .README (or edit .README)
@@ -49,6 +61,20 @@ cat $0
 ## Example-
 ##       gitk -- */Thread.cpp       ## Only files named Thread.cpp
 ##       gitk -- */*Thread.cpp      ## Adds files like ClientThread.cpp etc.
+##
+##############################################################################
+
+##############################################################################
+##
+## Command-
+##       journalctl
+##
+## Purpose-
+##       Linux: Display system journal
+##
+## Example-
+##       journalctl                 ## Display full journal
+##       journalctl -k              ## Display kernel messages (implies -b)
 ##
 ##############################################################################
 
@@ -90,6 +116,41 @@ cat $0
 ##       rsync -auz --info=del,name1,skip . machine:raid/backup/thing
 ##       Use: "backup --help" for additional parameter information
 ##
+## What the output means-
+##       (This information (C) 2020 Stack Exchange, as describe above)
+##
+##       YXcstpoguax  path/to/file
+##       |||||||||||
+##       ||||||||||*-- x: The extended attribute information changed
+##       |||||||||*--- a: The ACL information changed
+##       ||||||||*---- u: The u slot is reserved for future use
+##       |||||||*----- g: Group is different
+##       ||||||*------ o: Owner is different
+##       |||||*------- p: Permission are different
+##       ||||*-------- t: Modification time is different
+##       |||*--------- s: Size is different
+##       ||*---------- c: Different checksum (for regular files), or changed
+##       ||               value (for symlinks, devices, and special files)
+##       |*----------- the file type:
+##       |             f: for a file,
+##       |             d: for a directory,
+##       |             L: for a symlink,
+##       |             D: for a device,
+##       |             S: for a special file (e.g. named sockets and fifos)
+##       *------------ the type of update being done::
+##                     <: file is being transferred to the remote host (sent)
+##                     >: file is being transferred to the local host (received)
+##                     c: local change/creation for the item, such as:
+##                        - the creation of a directory
+##                        - the changing of a symlink,
+##                        - etc.
+##                     h: the item is a hard link to another item (requires
+##                        --hard-links).
+##                     .: the item is not being updated (though it might have
+##                        attributes that are being modified)
+##                     *: means that the rest of the itemized-output area
+##                        contains a message (e.g. "deleting")
+##
 ##############################################################################
 
 ##############################################################################
@@ -108,6 +169,19 @@ cat $0
 ##
 ## See also-
 ##       /etc/systemd/system/(multi-user.target.wants)
+##
+##############################################################################
+
+##############################################################################
+##
+## Command-
+##       uname -r
+##
+## Purpose-
+##       Linux: Display the kernel version identifier
+##
+## Example-
+##       uname -r
 ##
 ##############################################################################
 

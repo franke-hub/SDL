@@ -38,7 +38,7 @@ ysiz=${#ygeo[*]}
 xndx=0
 yndx=0
 
-cs=linux
+cs=""
 skip=""
 parm=""
 
@@ -53,7 +53,7 @@ do
   case $i in
     -cs)
       shift
-      cs=$1
+      cs="-cs $1"
       skip='Y'
       ;;
 
@@ -97,5 +97,5 @@ yoff=${ygeo[$yndx]}
 
 ##############################################################################
 # Rexterm left of bluebird
-rexterm -cs $cs -geometry 80x24-$xoff+$yoff $parm
+rexterm $cs -geometry 80x24-$xoff+$yoff $parm
 
