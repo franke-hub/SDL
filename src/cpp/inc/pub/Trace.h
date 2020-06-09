@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019 Frank Eskesen.
+//       Copyright (c) 2019-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       In memory trace object.
 //
 // Last change date-
-//       2019/01/01
+//       2020/06/09
 //
 // Implementation notes-
 //       Maximum table size of 4G (-32): 0x00ffffffe0, including header.
@@ -70,6 +70,7 @@ uint32_t               size;        // Available size of trace table
 uint32_t               wrap[4];     // Wrap counters
 
 public:
+enum { ALIGNMENT= 32 };             // Required alignment
 static Trace*          trace;       // Common Trace instance (Application controlled)
 
 //----------------------------------------------------------------------------
@@ -85,8 +86,7 @@ enum                                // Generic enum
 // Trace::Record
 //----------------------------------------------------------------------------
 public:
-struct Record                       // A trace record
-{
+struct Record {                     // A trace record
 }; // struct Trace::Record
 
 //----------------------------------------------------------------------------
@@ -103,10 +103,10 @@ protected:
 Trace& operator=(const Trace&) = delete; // Disallowed assignment operator
 
 public:
-// make() does NOT set the common Trace object
+// make() does NOT set the common Trace object. Set it separately.
 static Trace*                       // The Trace object
    make(                            // Create a Trace object
-     uint32_t          size);       // Of this length
+     size_t            size);       // Of this length
 
 // (Atomically) take the common Trace object, setting it to nullptr
 static Trace*                       // The Trace object

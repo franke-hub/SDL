@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,12 +16,13 @@
 //       IFMACRO defaults and macros.
 //
 // Last change date-
-//       2018/01/01
+//       2020/06/09
 //
 // Controls-
 //       HCDM     Hard Core Debug Mode (Intensive tracing)
 //       IODM     Input/Output Debug mode (I/O tracing)
 //       SCDM     Soft Core Debug Mode (Moderate tracing)
+//       STATS    Statistics trace
 //       TRACE    Memory trace activation
 //
 //----------------------------------------------------------------------------
@@ -35,9 +36,10 @@
 #undef ELIODM
 #undef IFSCDM
 #undef ELSCDM
+#undef IFSTATS
 #undef IFTRACE
 
-#ifdef HCDM
+#ifdef HCDM                         // If defined, Hard Core Debug Mode
   #define IFHCDM(x) {x}
   #define ELHCDM(x) {}
 #else
@@ -45,7 +47,7 @@
   #define ELHCDM(x) {x}
 #endif
 
-#ifdef IODM
+#ifdef IODM                         // If defined, Input/Output Debug Mode
   #define IFIODM(x) {x}
   #define ELIODM(x) {}
 #else
@@ -53,7 +55,7 @@
   #define ELIODM(x) {x}
 #endif
 
-#ifdef SCDM
+#ifdef SCDM                         // If defined, Soft Core Debug Mode
   #define IFSCDM(x) {x}
   #define ELSCDM(x) {}
 #else
@@ -61,7 +63,15 @@
   #define ELSCDM(x) {x}
 #endif
 
-#ifdef TRACE
+//----------------------------------------------------------------------------
+// Note: No ELSE clause for these tracing facilities
+#ifdef STATS                        // If defined, enable statistics counters
+  #define IFSTATS(x) {x}
+#else
+  #define IFSTATS(x) {}
+#endif
+
+#ifdef TRACE                        // If defined, enable in-memory tracing
   #include <pub/Trace.h>
   #define IFTRACE(x) { if( pub::Trace::trace ) {x} }
 #else

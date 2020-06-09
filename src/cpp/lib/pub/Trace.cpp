@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019 Frank Eskesen.
+//       Copyright (c) 2019-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,12 +16,12 @@
 //       Trace object methods.
 //
 // Last change date-
-//       2019/01/01
+//       2020/06/09
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // Atomic operation required
-#include <mutex>                    // For lock_guard
-#include <new>
+#include <mutex>                    // For std::lock_guard
+#include <new>                      // For std::bad_alloc
 #include <stdio.h>
 #include <stdlib.h>                 // For aligned_alloc, ...
 #include <string.h>                 // For memcpy
@@ -34,14 +34,14 @@ using namespace _PUB_NAMESPACE::debugging; // For debugging
 
 namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
+// Constants
+//----------------------------------------------------------------------------
+enum { ALIGNMENT= Trace::ALIGNMENT }; // Storage allocation required alignemnt
+
+//----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
 Trace*                 Trace::trace= nullptr; // The common Trace object
-
-//----------------------------------------------------------------------------
-// Internal data areas
-//----------------------------------------------------------------------------
-#define ALIGNMENT      32           // Required alignment
 
 //----------------------------------------------------------------------------
 //
@@ -90,7 +90,7 @@ Trace*                 Trace::trace= nullptr; // The common Trace object
 //----------------------------------------------------------------------------
 Trace*                              // -> Trace instance
    Trace::make(                     // Allocate the Trace object
-     uint32_t          size)        // Size of trace area
+     size_t            size)        // Size of trace area
 {
    if( size > MAXIMUM_SIZE )        // Silently enforce size restrictions
      size= MAXIMUM_SIZE;
@@ -100,6 +100,8 @@ Trace*                              // -> Trace instance
    size &= ~(ALIGNMENT - 1);
 
    void* addr= aligned_alloc(ALIGNMENT, size); // Allocate the Trace
+   if( addr == nullptr )            // If allocation fails
+     throw std::bad_alloc();        // Bad allocation
    memset(addr, 0, size);           // Initialize the Trace area
 
    Trace* trace= new(addr) Trace(size);
@@ -210,14 +212,13 @@ Trace::Record*                      // -> Trace record
 void
    Trace::dump( void ) const        // Dump the trace table
 {
+   Debug* debug= Debug::get();
+   std::lock_guard<decltype(*debug)> lock(*debug);
+
    tracef("Trace(%p)::dump\n", this);
    tracef("..top(%8x) next(%.8x) bot(%.8x) size(%.8x)\n",
           top, next, bot, size);
    tracef("..wrap %.8x %.8x %.8x %.8x\n", wrap[0], wrap[1], wrap[2], wrap[3]);
-
-   Debug* debug= Debug::get();
-
-   std::lock_guard<decltype(*debug)> lock(*debug);
    ::pub::utility::dump(debug->get_FILE(), this, bot, nullptr);
 }
 }  // namespace _PUB_NAMESPACE
