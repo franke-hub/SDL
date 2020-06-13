@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2019/01/01
+//       2019/06/12
 //
 //----------------------------------------------------------------------------
 #include <chrono>
@@ -30,6 +30,8 @@
 
 #include <assert.h>
 #include <endian.h>
+#include <errno.h>                  // For errno, ...
+#include <limits.h>                 // For INT_MIN, INT_MAX, ...
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -80,6 +82,7 @@ static int             opt_dump= false; // --dump
 static int             opt_help= false; // --help or error
 static int             opt_index;   // Option index
 static int             opt_latch= false; // --latch
+static int             opt_misc= false; // --misc
 static int             opt_must= false; // --must
 static int             opt_signals= false; // --signals
 static int             opt_trace= false; // --trace
@@ -92,6 +95,7 @@ static struct option   OPTS[]=      // Options
 {  {"help",    no_argument,       &opt_help,    true}
 ,  {"dump",    no_argument,       &opt_dump,    true}
 ,  {"latch",   no_argument,       &opt_latch,   true}
+,  {"misc",    no_argument,       &opt_misc,    true}
 ,  {"must",    no_argument,       &opt_must,    true}
 ,  {"signals", no_argument,       &opt_signals, true}
 ,  {"trace",   no_argument,       &opt_trace,   true}
@@ -109,6 +113,7 @@ enum OPT_INDEX
 {  OPT_HELP
 ,  OPT_DUMP
 ,  OPT_LATCH
+,  OPT_MISC
 ,  OPT_MUST
 ,  OPT_SIGNALS
 ,  OPT_TRACE
@@ -218,6 +223,7 @@ static void
              opt_latch= true;
              opt_case= true;
              // opt_dump= true;     // Select separately (visual debugging)
+             opt_misc= true;
              opt_signals= true;
              // opt_trace= true;    // Select separately (visual debugging)
              opt_utf8= true;
@@ -430,6 +436,111 @@ static inline int
         std::lock_guard<decltype(fake_latch)> lock3(fake_latch);
         std::lock_guard<decltype(fake_latch)> lock4(fake_latch);
    }}}}
+
+   return errorCount;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_Misc
+//
+// Purpose-
+//       Miscellaneous tests.
+//
+//----------------------------------------------------------------------------
+static inline int
+   test_Misc( void )                  // Miscellaneous tests
+{
+   debugf("\ntest_Misc\n");
+
+   int                 errorCount= 0; // Number of errors encountered
+
+   // Test utility.h (utility::dump tested separately)
+   using namespace pub::utility;
+   using pub::utility::atoi;
+   using pub::utility::atol;
+   using pub::utility::atox;
+
+   errno= 0;                          // No error
+
+   errorCount += MUST_EQ(atoi("1234567890"), 1234567890);
+   errorCount += MUST_EQ(atol("123456789012345"), 123456789012345L);
+   errorCount += MUST_EQ(atox("12abcdefABCDEF"), 0x12abcdefABCDEF);
+   errorCount += MUST_EQ(atol("0x1234567890"), 0x1234567890L);
+   errorCount += MUST_EQ(atoi("  1234567890  "), 1234567890);
+
+   errorCount += MUST_EQ(strcmp(skip_space("  abcd  "), "abcd  "), 0);
+   errorCount += MUST_EQ(strcmp(find_space("abcd  efgh"), "  efgh"), 0);
+
+   errorCount += MUST_EQ(*skip_space("  "), '\0');
+   errorCount += MUST_EQ(*find_space("abcdefgh"), '\0');
+
+   errorCount += MUST_EQ(errno, 0);
+
+   errno= 0; atoi("");
+   errorCount += MUST_EQ(errno, EINVAL);
+   errno= 0; atoi("0x");
+   errorCount += MUST_EQ(errno, EINVAL);
+   errno= 0; atoi("0x0100000000");
+   errorCount += MUST_EQ(errno, ERANGE);
+
+   errno= 0;
+   errorCount += MUST_EQ(atoi(" 2147483647"),  2147483647);
+   errorCount += MUST_EQ(errno, 0);
+
+   errno= 0;
+   errorCount += MUST_EQ(atoi("+2147483647"), +2147483647);
+   errorCount += MUST_EQ(errno, 0);
+
+   errno= 0; atoi("2147483648");
+   errorCount += MUST_EQ(errno, ERANGE);
+
+   errno= 0;
+   errorCount += MUST_EQ(atoi("-2147483648"), INT_MIN);
+   errorCount += MUST_EQ(errno, 0);
+   IFDEBUG( printf("%4d %d %d\n", __LINE__, errno, atoi("-2147483648")); )
+
+   errno= 0;
+   errorCount += MUST_EQ(atoi(" 0x80000000"), INT_MIN);
+   errorCount += MUST_EQ(errno, 0);
+   IFDEBUG( printf("%4d %d %d %x\n", __LINE__, errno, atoi(" 0x80000000"), atoi(" 0x80000000")); )
+
+   errno= 0; atoi("-2147483649");
+   errorCount += MUST_EQ(errno, ERANGE);
+   IFDEBUG( printf("%4d %d\n", __LINE__, errno); )
+
+   errno= 0;
+   errorCount += MUST_EQ(atol(" 9223372036854775807"), 9223372036854775807L);
+   errorCount += MUST_EQ(errno, 0);
+   IFDEBUG( printf("%4d %d, %ld\n", __LINE__, errno, atol(" 9223372036854775807")); )
+
+   errno= 0;
+   errorCount += MUST_EQ(atol("+9223372036854775807"), +9223372036854775807L);
+   errorCount += MUST_EQ(errno, 0);
+   IFDEBUG( printf("%4d %d, %ld\n", __LINE__, errno, atol("+9223372036854775807")); )
+
+   errno= 0; atol("9223372036854775808");
+   errorCount += MUST_EQ(errno, ERANGE);
+   IFDEBUG( printf("%4d %d\n", __LINE__, errno); )
+
+   errno= 0;
+   errorCount += MUST_EQ(atol("-9223372036854775808"), LONG_MIN);
+   errorCount += MUST_EQ(errno, 0);
+   IFDEBUG( printf("%4d %d, %ld\n", __LINE__, errno, atol("-9223372036854775808")); )
+
+   errno= 0;
+   errorCount += MUST_EQ(atol(" 0X8000000000000000"), LONG_MIN);
+   errorCount += MUST_EQ(errno, 0);
+   IFDEBUG( printf("%4d %d, %ld\n", __LINE__, errno, atol(" 0X8000000000000000")); )
+
+   errno= 0; atol("-9223372036854775809");
+   errorCount += MUST_EQ(errno, ERANGE);
+   IFDEBUG( printf("%4d %d\n", __LINE__, errno); )
+
+   errno= 0; atol(" 0X10000000000000000");
+   errorCount += MUST_EQ(errno, ERANGE);
+   IFDEBUG( printf("%4d %d\n", __LINE__, errno); )
 
    return errorCount;
 }
@@ -869,6 +980,7 @@ extern int                          // Return code
      if( opt_case )    errorCount += test_Case();
      if( opt_dump )    errorCount += test_dump();
      if( opt_latch )   errorCount += test_Latch();
+     if( opt_misc )    errorCount += test_Misc();
      if( opt_must )    errorCount += test_Must();
      if( opt_signals ) errorCount += test_Signals();
      if( opt_utf8 )    errorCount += test_UTF8();

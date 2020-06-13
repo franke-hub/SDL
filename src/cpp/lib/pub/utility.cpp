@@ -16,14 +16,17 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2020/01/27
+//       2020/06/12
 //
 //----------------------------------------------------------------------------
 #include <sstream>                  // For std::stringstream
 #include <string>                   // For std::string
 #include <thread>                   // For std::thread
 
+#include <ctype.h>                  // For isspace
+#include <errno.h>                  // For errno, EINVAL, ERANGE, ...
 #include <inttypes.h>               // For PRIx64
+#include <limits.h>                 // For INT_MIN, INT_MAX, ...
 #include <stdarg.h>                 // For va_list, ...
 #include <stdio.h>                  // For FILE definition
 #include <string.h>                 // For memcpy, ...
@@ -39,11 +42,95 @@ namespace _PUB_NAMESPACE {
 // Purpose-
 //       Implement pub/utility functions.
 //
-// Implementation notes-
-//       Placeholder: TODO: Need to restructure pub/utility.h
-//
 //----------------------------------------------------------------------------
 namespace utility {
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       atoi
+//
+// Purpose-
+//       Convert ascii string to integer.
+//
+// Implementation notes-
+//       errno= EINVAL; // Indicates invalid value detected.
+//       errno= ERANGE; // Indicates invalid range detected.
+//
+//----------------------------------------------------------------------------
+int                                 // Resultant value
+   atoi(                            // Convert ASCII to int
+     const char*       inp)         // Input string
+{
+   inp= skip_space(inp);
+   long result= atol(inp);
+   if( inp[0] == '0' && (inp[1] == 'x' || inp[1] == 'X') ) {
+     if( result & 0xffffffff00000000L )
+       errno= ERANGE;
+   } else if( result < long(INT_MIN) || result > long(INT_MAX) ) {
+       if( result != (long(INT_MAX) + 1) || *inp != '-' )
+         errno= ERANGE;
+   }
+
+   return int(result);
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       atol
+//
+// Purpose-
+//       Convert ascii string to long.
+//
+// Implementation notes-
+//       errno= EINVAL; // Indicates invalid value detected.
+//       errno= ERANGE; // Indicates invalid range detected.
+//
+//----------------------------------------------------------------------------
+long                                // Resultant value
+   atol(                            // Convert ASCII to long
+     const char*       inp)         // Input string
+{
+   long                result= 0;   // Resultant
+
+   inp= skip_space(inp);
+   if( *inp == '0' && (inp[1] == 'x' || inp[1] == 'X') )
+     result= atox(inp);
+   else {
+     bool minus= false;             // True if leading '-'
+
+     if( *inp == '-' ) {            // If leading '-'
+       minus= true;
+       inp++;
+     } else if( *inp == '+' ) {     // If leading '+'
+       inp++;
+     }
+
+     if( *inp == '\0' )             // If empty string
+       errno= EINVAL;
+     while( *inp != '\0' && !isspace(*inp) ) {
+       if( *inp < '0' || *inp > '9') {
+         errno= EINVAL;
+         break;
+       }
+
+       result *= 10;
+       result += *inp - '0';
+       if( result < 0 && (minus == false || result != LONG_MIN) ) { // If overflow
+         errno= ERANGE;
+         break;
+       }
+
+       inp++;
+     }
+
+     if( minus )
+       result= -result;
+   }
+
+   return result;
+}
+
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -54,6 +141,7 @@ namespace utility {
 //
 // Implementation notes-
 //       errno= EINVAL; // Indicates invalid value detected.
+//       errno= ERANGE; // Indicates invalid range detected.
 //
 //----------------------------------------------------------------------------
 long                                // Resultant value
@@ -62,35 +150,30 @@ long                                // Resultant value
 {
    unsigned long       result= 0;   // Resultant
 
+   inp= skip_space(inp);            // Skip leading blanks
    if( *inp == '0' && (inp[1] == 'x' || inp[1] == 'X') )
      inp += 2;
+
    if( *inp == '\0' )               // If empty string
      errno= EINVAL;
-
-   while (*inp != '\0')
-   {
-     unsigned long oldvalue= result;
+   while( *inp != '\0' && !isspace(*inp) ) {
+     if( result & 0xf000000000000000L ) // If overflow will occur
+       errno= ERANGE;
      result <<= 4;
-     if( (result>>4) != oldvalue )  // If bits lost due to overflow
-       errno= EINVAL;
 
-     if (*inp >= '0' && *inp <= '9')
+     if( *inp >= '0' && *inp <= '9')
        result += *inp - '0';
-     else if (*inp >= 'a' && *inp <= 'f')
+     else if( *inp >= 'a' && *inp <= 'f')
        result += (*inp - 'a') + 10;
-     else if (*inp >= 'A' && *inp <= 'F')
+     else if( *inp >= 'A' && *inp <= 'F')
        result += (*inp - 'A') + 10;
-     else
-     {
+     else {
        errno= EINVAL;
        return result;
      }
 
      inp++;
    }
-
-   if( (long)result < 0 )           // If positive to negative overflow
-     errno= EINVAL;
 
    return result;
 }
@@ -147,13 +230,11 @@ enum FSM                            // Finite State machine
    //-------------------------------------------------------------------------
    // Format lines
    //-------------------------------------------------------------------------
-   while( size >= 0 )               // Format lines
-   {
+   while( size >= 0 ) {             // Format lines
      // At this point:
      //   1) The remaining size is >= 16, or
      //   2) This is the last line to be dumped.
-     switch(fsm)                    // Process by state
-     {
+     switch(fsm) {                  // Process by state
        case FSM_FIRST:              // If FIRST file line
          break;                     // Cannot go into UNDUP state
 
@@ -166,8 +247,7 @@ enum FSM                            // Finite State machine
          break;
 
        case FSM_INDUP:              // If INDUP state
-         if( size < 16 || memcmp(newData, oldData, 16) != 0 )
-         {
+         if( size < 16 || memcmp(newData, oldData, 16) != 0 ) {
            fsm= FSM_UNDUP;
            if( sizeof(void*) > 4 )
              fprintf(file, "%.16" PRIX64 "  to %.16" PRIX64
@@ -181,8 +261,7 @@ enum FSM                            // Finite State machine
          break;
      }
 
-     switch(fsm)                    // Process by state
-     {
+     switch(fsm) {                  // Process by state
        case FSM_FIRST:              // If FIRST file line
        case FSM_UNDUP:              // If UNDUP state
          if( size == 0 )
@@ -193,22 +272,19 @@ enum FSM                            // Finite State machine
          for(int i=0; i<16; i++)
            sprintf(output+position(i), "%.2X ", newData[i]&0x00ff);
 
-         for(int i=0; i<16; i++)
-         {
+         for(int i=0; i<16; i++) {
            if( !isprint(newData[i]) )
              newData[i]= '.';
          }
 
          offset= oldAddr & 15;
-         for(int i=0; i<offset; i++)    // Handle leading unused
-         {
+         for(int i=0; i<offset; i++) {  // Handle leading unused
            newData[i]= '~';
            output[position(i)]= '~';
            output[position(i)+1]= '~';
          }
 
-         for(int i=size; i<16; i++)     // Handle trailing unused
-         {
+         for(int i=size; i<16; i++) {   // Handle trailing unused
            newData[i]= '~';
            output[position(i)]= '~';
            output[position(i)+1]= '~';
@@ -253,6 +329,44 @@ void                                // Dump formatter
      const void*       addrp,       // Input data address
      size_t            size)        // Input data size
 {  dump(file, addrp, size, addrp); }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       utility::find_space
+//
+// Purpose-
+//       Find next whitespace (or '\0') character.
+//
+//----------------------------------------------------------------------------
+char*                               // Next whitespace or '\0' character
+   find_space(                      // Find next whitespace character
+     const char*       inp)         // Input string
+{
+   while( *inp != '\0' && !isspace(*inp) )
+     inp++;
+
+   return const_cast<char*>(inp);
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       utility::skip_space
+//
+// Purpose-
+//       Find next non-whitespace character, including '\0'
+//
+//----------------------------------------------------------------------------
+char*                               // Next non-whitespace character
+   skip_space(                      // Find next non-whitespace character
+     const char*       inp)         // Input string
+{
+   while( isspace(*inp) )
+     inp++;
+
+   return const_cast<char*>(inp);
+}
 
 //----------------------------------------------------------------------------
 //
@@ -392,8 +506,7 @@ std::string                         // Resultant
 
    if( L < sizeof(autobuff) )       // If the normal case
      result= std::string(buffer);
-   else
-   {
+   else {
      buffer= new char[L+1];
      vsnprintf(buffer, L, fmt, args);
      result= std::string(buffer);

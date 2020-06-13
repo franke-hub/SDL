@@ -16,7 +16,7 @@
 //       Utility functions.
 //
 // Last change date-
-//       2020/01/24
+//       2020/06/12
 //
 // Comparison operators-
 //       sti_cc   Case insensitive compare: Returns <0, =0, >0
@@ -47,11 +47,47 @@ namespace _PUB_NAMESPACE {
 // Purpose-
 //       Implement pub/utility functions.
 //
-// Implementation notes-
-//       Placeholder: TODO: Need to restructure pub/utility.h
+// Implementation notes (ato* routines)-
+//       These routines DO NOT set errno= 0.
+//       Leading white space is ignored, trailing white space is allowed.
+//       Invalid (hexi)decimal characters are NOT allowed.
 //
 //----------------------------------------------------------------------------
 namespace utility {
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       atoi
+//
+// Purpose-
+//       Convert string to integer.
+//
+// Implementation notes-
+//       errno= EINVAL; // Indicates invalid value detected.
+//       errno= ERANGE; // Indicates invalid range detected.
+//
+//----------------------------------------------------------------------------
+int                                 // Resultant value
+   atoi(                            // Convert ASCII to decimal integer
+     const char*       inp);        // Input string
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       atol
+//
+// Purpose-
+//       Convert string to long integer.
+//
+// Implementation notes-
+//       errno= EINVAL; // Indicates invalid value detected.
+//       errno= ERANGE; // Indicates invalid range detected.
+//
+//----------------------------------------------------------------------------
+long                                // Resultant value
+   atol(                            // Convert ASCII to decimal long inteter
+     const char*       inp);        // Input string
+
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -62,10 +98,11 @@ namespace utility {
 //
 // Implementation notes-
 //       errno= EINVAL; // Indicates invalid value detected.
+//       errno= ERANGE; // Indicates invalid range detected.
 //
 //----------------------------------------------------------------------------
 long                                // Resultant value
-   atox(                            // Convert ASCII to hexidecimal
+   atox(                            // Convert ASCII to hexidecimal long
      const char*       inp);        // Input string
 
 //----------------------------------------------------------------------------
@@ -89,6 +126,32 @@ void                                // Dump formatter
      FILE*             file,        // Output FILE
      const void*       addrp,       // Input data address
      size_t            size);       // Input data size
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       find_space
+//
+// Purpose-
+//       Find next whitespace (or '\0') character.
+//
+//----------------------------------------------------------------------------
+char*                               // Resultant
+   find_space(                      // Find next space character
+     const char*       inp);        // Input string
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       skip_space
+//
+// Purpose-
+//       Find next non-whitespace character, including '\0'.
+//
+//----------------------------------------------------------------------------
+char*                               // Resultant
+   skip_space(                      // Find next non-whitespace character
+     const char*       inp);        // Input string
 
 //----------------------------------------------------------------------------
 //
