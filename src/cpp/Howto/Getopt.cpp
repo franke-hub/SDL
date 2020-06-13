@@ -63,7 +63,8 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 };
 
 enum OPT_INDEX                      // Must match OPTS[]
-{  OPT_DEBUG= 1
+{  OPT_HELP= 0
+,  OPT_DEBUG= 1
 ,  OPT_ERROR= 2
 ,  OPT_VERBOSE= 3
 ,  OPT_SIZE= 4
@@ -198,8 +199,11 @@ static void
              break;
 
            default:
-             fprintf(stderr, "%4d Unexpected opt_index(%d)\n", __LINE__,
-                             opt_index);
+             if( opt_index != OPT_HELP ) {
+               fprintf(stderr, "%4d Unexpected opt_index(%d)\n", __LINE__,
+                               opt_index);
+               debug_opt(__LINE__);
+             }
              break;
          }
          break;
