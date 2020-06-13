@@ -16,7 +16,11 @@
 //       Sample program: How to use getopt_long
 //
 // Last change date-
-//       2020/01/25
+//       2020/06/13
+//
+// Implementation notes-
+//       getopt_long does not print an invalid argument error message when
+//       ':' is the first character of the optstring parameter.
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>                  // For isprint()
@@ -27,6 +31,8 @@
 #include <stdio.h>                  // For printf
 #include <stdlib.h>                 // For various
 #include <string.h>                 // For strcmp
+
+#include <pub/utility.h>            // For pub::utility::atoi
 
 //----------------------------------------------------------------------------
 // Options
@@ -40,16 +46,23 @@ static int             opt_index;   // Option index
 static int             opt_verbose= -1; // --brief or --verbose
 
 static const char*     OSTR= ":abc:"; // The getopt_long optstring parameter
+                                    // Notes:
+                                    // 1st character ':'
+                                    //    Missing argument returns ':', not '?'
+                                    //    (Invalid options always return '?')
+                                    // a  (Switch -a)
+                                    // b  (Switch -b)
+                                    // c: (Argument -c) (Argument required)
 static struct option   OPTS[]=      // The getopt_long longopts parameter
-{  {"help",    no_argument,       &opt_help,    true}
+{  {"help",    no_argument,       &opt_help,    true} // --help (no argument)
 
-,  {"debug",   required_argument, nullptr,      0}
-,  {"opterr",  required_argument, nullptr,      0}
-,  {"verbose", optional_argument, &opt_verbose, true}
+,  {"debug",   required_argument, nullptr,      0} // --debug argument
+,  {"opterr",  required_argument, nullptr,      0} // --opterr argument
+,  {"verbose", optional_argument, &opt_verbose, true} // --verbose {optional}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
-enum OPT_INDEX
+enum OPT_INDEX                      // Must match OPTS[]
 {  OPT_DEBUG= 1
 ,  OPT_ERROR= 2
 ,  OPT_VERBOSE= 3
@@ -93,7 +106,7 @@ static void
    fprintf(stderr, "Getopt <options> parameter ...\n"
                    "Options:\n"
                    "  -a,-b\t\tSwitches\n"
-                   "  -c\t\tSwitch requiring argument\n"
+                   "  -c\t\tSwitch requiring an argument\n"
                    "  --help\tThis help message\n"
                    "  --debug\targument\n"
                    "  --opterr\t{on|off}\n"
@@ -120,25 +133,18 @@ static int                          // The integer value
    parm_int( void )                 // Extract and verify integer value
 {
    errno= 0;
-   char* endptr;
-   long value= strtol(optarg, &endptr, 0);
-   if( errno == EINVAL || *endptr != '\0' )
-   {
+   int value= pub::utility::atoi(optarg);
+   if( errno ) {
      opt_help= true;
-     fprintf(stderr, "--%s, format error: %s\n", OPTS[opt_index].name, optarg);
-   }
-   else if( endptr == optarg )
-   {
-     opt_help= true;
-     fprintf(stderr, "--%s, no value specified\n", OPTS[opt_index].name);
-   }
-   else if( errno || value > INT_MAX || value < INT_MIN )
-   {
-     opt_help= true;
-     fprintf(stderr, "--%s, range error: %s\n", OPTS[opt_index].name, optarg);
+     if( errno == ERANGE )
+       fprintf(stderr, "--%s, range error: '%s'\n", OPTS[opt_index].name, optarg);
+     else if( *optarg == '\0' )
+       fprintf(stderr, "--%s, no value specified\n", OPTS[opt_index].name);
+     else
+       fprintf(stderr, "--%s, format error: '%s'\n", OPTS[opt_index].name, optarg);
    }
 
-   return (int)value;
+   return value;
 }
 
 //----------------------------------------------------------------------------
@@ -192,6 +198,8 @@ static void
              break;
 
            default:
+             fprintf(stderr, "%4d Unexpected opt_index(%d)\n", __LINE__,
+                             opt_index);
              break;
          }
          break;
@@ -228,11 +236,12 @@ static void
            fprintf(stderr, "%4d Unknown option '-%c'.\n", __LINE__, optopt);
          else
            fprintf(stderr, "%4d Unknown option character '0x%x'.\n", __LINE__,
-                           optopt);
+                           (optopt & 0x00ff));
          break;
 
        default:
-         fprintf(stderr, "%4d ShouldNotOccur ('%c',0x%x).\n", __LINE__, C, C);
+         fprintf(stderr, "%4d ShouldNotOccur ('%c',0x%x).\n", __LINE__,
+                         C, (C & 0x00ff));
          break;
      }
    }

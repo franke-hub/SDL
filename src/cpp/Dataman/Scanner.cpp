@@ -16,7 +16,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2020/03/19
+//       2020/06/13
 //
 // Verifications-
 //       File permissions. (Auto-correctable)
@@ -475,25 +475,18 @@ static int                          // The integer value
    parm_int( void )                 // Extract and verify integer value
 {
    errno= 0;
-   char* endptr;
-   long value= strtol(optarg, &endptr, 0);
-   if( errno == EINVAL || *endptr != '\0' )
-   {
+   int value= pub::utility::atoi(optarg);
+   if( errno ) {
      opt_help= true;
-     fprintf(stderr, "--%s, format error: %s\n", OPTS[opt_index].name, optarg);
-   }
-   else if( endptr == optarg )
-   {
-     opt_help= true;
-     fprintf(stderr, "--%s, no value specified\n", OPTS[opt_index].name);
-   }
-   else if( errno || value > INT_MAX || value < INT_MIN )
-   {
-     opt_help= true;
-     fprintf(stderr, "--%s, range error: %s\n", OPTS[opt_index].name, optarg);
+     if( errno == ERANGE )
+       fprintf(stderr, "--%s, range error: '%s'\n", OPTS[opt_index].name, optarg);
+     else if( *optarg == '\0' )
+       fprintf(stderr, "--%s, no value specified\n", OPTS[opt_index].name);
+     else
+       fprintf(stderr, "--%s, format error: '%s'\n", OPTS[opt_index].name, optarg);
    }
 
-   return (int)value;
+   return value;
 }
 
 //----------------------------------------------------------------------------
