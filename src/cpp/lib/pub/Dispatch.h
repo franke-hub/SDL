@@ -16,7 +16,7 @@
 //       Work dispatcher, including local definitions.
 //
 // Last change date-
-//       2020/01/21
+//       2020/06/13
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -25,7 +25,7 @@
 #include <pub/Clock.h>              // DispatchTTL completion time
 #include <pub/Debug.h>              // For debugging
 #include <pub/Latch.h>              // Dispatch::Timers mutex
-#include <pub/LinkedList.h>         // Dispatch::Task itemList
+#include <pub/List.h>               // Dispatch::Task itemList
 #include <pub/Named.h>              // Dispatch::Timers is a Named Thread
 #include <pub/Semaphore.h>          // Dispatch::Timers event
 #include <pub/Worker.h>             // Dispatch::Task base class
@@ -59,7 +59,7 @@ namespace _PUB_NAMESPACE::Dispatch {
 //       Dispatch Timer Thread Link: Keep track of delay request.
 //
 //----------------------------------------------------------------------------
-class DispatchTTL : public Link_List<DispatchTTL>::Link {
+class DispatchTTL : public List<DispatchTTL>::Link {
 //----------------------------------------------------------------------------
 // DispatchTTL::Attributes
 //----------------------------------------------------------------------------
@@ -75,7 +75,7 @@ public:
    DispatchTTL(                     // Constructor
      Clock&            time,        // Completion time
      Item*             item)        // WorkUnit object
-:  Link_List<DispatchTTL>::Link(), time(time), item(item) {}
+:  List<DispatchTTL>::Link(), time(time), item(item) {}
 }; // class DispatchTTL
 
 //----------------------------------------------------------------------------
@@ -93,7 +93,7 @@ class Timers : public Thread, public Named {
 //----------------------------------------------------------------------------
 protected:
 Semaphore              event;       // Synchronization event object
-Link_List<DispatchTTL> list;        // Ordered list of pending events
+List<DispatchTTL>      list;        // Ordered list of pending events
 Latch                  mutex;       // Synchronization mutex
 bool                   operational; // TRUE iff operational
 

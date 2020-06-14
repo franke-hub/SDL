@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Skeleton multi-processor, multi-thread testcase.
 //
 // Last change date-
-//       2007/01/01
+//       2020/06/13
 //
 //----------------------------------------------------------------------------
 #include <new>
@@ -292,7 +292,7 @@ static void
 {
    Clock             nowTime;       // Current time
    char              fmtString[256];// Message formatting area
-   char              msgString[256];// Message formatting area
+   char              msgString[512];// Message formatting area
    va_list           argptr;        // Argument list pointer
 
    va_start(argptr, fmt);           // Initialize va_ functions

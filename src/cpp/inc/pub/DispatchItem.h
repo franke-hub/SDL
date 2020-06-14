@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2019 Frank Eskesen.
+//       Copyright (c) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,13 +16,13 @@
 //       Standard Dispatch work Item object.
 //
 // Last change date-
-//       2019/02/05
+//       2020/06/13
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_DISPATCHITEM_H_INCLUDED
 #define _PUB_DISPATCHITEM_H_INCLUDED
 
-#include "LinkedList.h"             // Base class
+#include "List.h"                   // Base class
 #include "DispatchDone.h"           // Used in post
 
 namespace _PUB_NAMESPACE::Dispatch {

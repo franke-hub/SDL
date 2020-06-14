@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2014 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,33 +16,33 @@
 //       Describe the List objects.
 //
 // Last change date-
-//       2014/01/01
+//       2020/06/13
 //
 // Implementation notes-
 //       For all List classes, the isCoherent and isOnList methods run in
 //       linear time. Method isCoherent examines the entire List and method
-//       isOnList examines the List until the element is found.
+//       isOnList traverses the List until the element is found.
 //
 //       By convention, if it exists in the implementation, the head Link
 //       is the oldest Link, the Link that will be removed by REMQ. Likewise
 //       the tail Link, if it exists in the implementation, is the newest.
-//       It is the final Link on the list available to REMQ.
+//       It is the final Link on the List available to REMQ.
 //
 //       If a List contains more than an implementation defined maximum Link
 //       element count, method isCoherent reports FALSE. (Currently 1G)
 //
 // List types-
-//       AU_List<T>:    Atomic Update List, the only thread-safe List.
+//       AU_List<T>:    Atomic Update Linked List, the only thread-safe List.
 //       DHDL_List<T>:  Doubly Headed Doubly Linked List.
 //       DHSL_List<T>:  Doubly Headed Singly Linked List.
 //       SHSL_List<T>:  Single Headed Singly Linked List.
 //       SORT_List<T>:  privately derived from DHDL_List<T>, implementing all
-//                      of them. A user-defined compare method is added to the
-//                      Link class, and a sort method is added to Sort_List.
-//       List<T>:       publicly derived from DHDL_List<T>.
+//                      methods. A user-defined compare method is added to the
+//                      Link class, and a sort method is added to SORT_List.
+//       List<T>:       Equivalent to DHDL_List<T>.
 //
 //       In each case, the associated Link class is defined within the List
-//       class. Your Link class must be derived from that List::Link class.
+//       class. All Link classes must be derived from that List::Link class.
 //       An example follows:
 //
 // Example declaration and usage-
@@ -50,16 +50,17 @@
 //       public:
 //         My_Link : List<My_List>::Link() { ... }
 //         // Remainder of implementation of My_Link
-//
 //       }; // class My_Link, the elements to be put on a class My_List
 //
 //       List<My_Link> my_list1;    // A List containing My_Link elements
 //       List<My_Link> my_list2;    // Another List contining My_Link Links
 //
-//       My_Link* link1= new My_Link();
-//       my_list1.fifo(link1);
-//       My_link* link2= my_list1.remq();
-//       assert( link1 == link2 );  // link2 must equal link1
+//       My_Link* link1= new My_Link(); // Create a new My_Link
+//       my_list1.fifo(link1);         // Insert it (fifo) onto my_list1
+//       My_link* link2= my_list1.remq(); // Then remove it, emptying my_list1
+//       assert( link1 == link2 );     // The link added is the link removed
+//       my_list2.fifo(link2);         // Insert it (lifo) onto my_list2
+//       // my_list1 is empty, my_list2 contains (only) link2
 //
 //----------------------------------------------------------------------------
 #ifndef LIST_H_INCLUDED
@@ -71,9 +72,9 @@
 template<class T> class AU_List;    // Atomic update List
 template<class T> class DHDL_List;  // DHDL List
 template<class T> class DHSL_List;  // DHSL List
-template<class T> class List;       // List, equivalent to DHDL_List
 template<class T> class SHSL_List;  // SHSL List
-template<class T> class Sort_List;  // Sort List
+template<class T> class SORT_List;  // SORT List
+template<class T> class List;       // List, equivalent to DHDL_List
 
 //----------------------------------------------------------------------------
 //
@@ -84,7 +85,7 @@ template<class T> class Sort_List;  // Sort List
 //       The Atomic Update List is a thread-safe FIFO insertion List.
 //
 // Implementation notes-
-//       The FIFO and RESET methods generally runs in constant time.
+//       The FIFO and RESET methods run in constant time.
 //       The REMQ methods runs in (list size dependent) linear time.
 //
 //       The Atomic Update List is optimized for sequential FIFO insertion
@@ -139,9 +140,8 @@ public:
    AU_List( void );                 // Constructor
 
 private:                            // Bitwise copy prohibited
-   AU_List(const AU_List&);
-AU_List&
-   operator=(const AU_List&);
+   AU_List(const AU_List&) = delete;
+AU_List& operator=(const AU_List&) = delete;
 
 //----------------------------------------------------------------------------
 // AU_List::Accessors
@@ -720,22 +720,6 @@ T*                                  // -> The set of removed Links
 //----------------------------------------------------------------------------
 //
 // Class-
-//       List<T>
-//
-// Purpose-
-//       Typed List object, where T is of class List<T>::Link.
-//
-// Implementation notes-
-//       This is a DHDL_List. See the associated notes.
-//
-//----------------------------------------------------------------------------
-template<class T>
-class List : public DHDL_List<T> {  // List<T>, equivalent to DHDL_List<T>
-}; // class List<T>
-
-//----------------------------------------------------------------------------
-//
-// Class-
 //       SHSL_List
 //
 // Purpose-
@@ -943,29 +927,29 @@ T*                                  // -> The set of removed Links
 //----------------------------------------------------------------------------
 //
 // Class-
-//       Sort_List
+//       SORT_List<void>
 //
 // Purpose-
-//       The Sort_List is a sortable DHDL_List.
+//       The SORT_List is a sortable DHDL_List.
 //
 // Implementation notes-
 //       See DHDL_List for general implementation notes.
 //
-//       A Sort_List is in sorted order (from lowest to highest) only after
+//       A SORT_List is in sorted order (from lowest to highest) only after
 //       the sort method is invoked. If Links are added to the List, the
 //       List remains potentially out of sort order until the sort method
 //       is invoked (again.)
 //
-//       The DHDL_List base is private, making the Sort_List appear to be
+//       The DHDL_List base is private, making the SORT_List appear to be
 //       a separate class. This prevents DHDL_List::Link objects from being
-//       added to a Sort_List at compile time, which is useful.
+//       added to a SORT_List at compile time, which is useful.
 //
 //----------------------------------------------------------------------------
-template<> class Sort_List<void> : private DHDL_List<void> { // Sort_List base
+template<> class SORT_List<void> : private DHDL_List<void> { // SORT_List
 typedef DHDL_List<void>::Link DHDL_Link; // Internal shorthand
 
 public:
-class Link : private DHDL_Link {    // Sort_List<void>::Link
+class Link : private DHDL_Link {    // SORT_List<void>::Link
 public:
 virtual int                         // Result (<0, =0, >0)
    compare(                         // Compare to
@@ -988,20 +972,20 @@ inline void
    setPrev(                         // Set prior Link
      Link*             link)        // -> Prior Link
 {  prev= link; }
-}; // class Sort_List<void>::Link
+}; // class SORT_List<void>::Link
 
 //----------------------------------------------------------------------------
-// Sort_List::Constructors
+// SORT_List::Constructors
 //----------------------------------------------------------------------------
 public:
 inline
-   ~Sort_List( void ) {}            // Default destructor
+   ~SORT_List( void ) {}            // Default destructor
 inline
-   Sort_List( void )                // Default constructor
+   SORT_List( void )                // Default constructor
 :  DHDL_List<void>() {}             // (Construct DHDL_List base)
 
 //----------------------------------------------------------------------------
-// Sort_List::Accessors
+// SORT_List::Accessors
 //----------------------------------------------------------------------------
 public:
 Link*                               // -> Oldest Link on List
@@ -1013,7 +997,7 @@ Link*                               // -> Newest Link on List
 {  return (Link*)tail; }
 
 //----------------------------------------------------------------------------
-// Sort_List::Methods
+// SORT_List::Methods
 //----------------------------------------------------------------------------
 inline void
    fifo(                            // Insert (FIFO order)
@@ -1060,7 +1044,7 @@ inline Link*                        // -> The set of removed Links
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Sort_List::sort
+//       SORT_List::sort
 //
 // Purpose-
 //       Sort the list. After this operation, the list is sorted.
@@ -1070,28 +1054,28 @@ inline Link*                        // -> The set of removed Links
 public:
 void
    sort( void );                    // Sort the list
-}; // class Sort_List
+}; // class SORT_List
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       Sort_List<T>
+//       SORT_List<T>
 //
 // Purpose-
-//       Typed Sort_List object, where T is of class Sort_List<T>::Link.
+//       Typed SORT_List object, where T is of class SORT_List<T>::Link.
 //
 //----------------------------------------------------------------------------
 template<class T>
-class Sort_List : public Sort_List<void> { // Sort_List<T>
+class SORT_List : public SORT_List<void> { // SORT_List<T>
 public:
-class Link : public Sort_List<void>::Link { // Sort_List<T>::Link
+class Link : public SORT_List<void>::Link { // SORT_List<T>::Link
 public:
 //----------------------------------------------------------------------------
 // This method MUST BE supplied. There is no default implementation.
 //
 // Code format:
 //     template<>
-//     Sort_List<T>::Link::compare(const Sort_List<void>::Link* that) const
+//     SORT_List<T>::Link::compare(const SORT_List<void>::Link* that) const
 //     {
 //       // In this implementation,
 //       // use: static_cast<const T*>(this)->  (to refer to this object)
@@ -1106,39 +1090,55 @@ public:
 //     }
 //
 // To override the base class implementation, in class T code:
-//     virtual int compare(const Sort_List<void>::Link* that) const
+//     virtual int compare(const SORT_List<void>::Link* that) const
 //     { implementation; }
+//
 //----------------------------------------------------------------------------
-int                                 // Result (<0, =0, >0)
+virtual int                         // Result (<0, =0, >0)
    compare(                         // Compare to
-     const Sort_List<void>::Link*
+     const SORT_List<void>::Link*
                        that) const; // This (class T) Link
 
 inline T*                           // -> Next Link
    getNext( void ) const            // Get next Link
-{  return static_cast<T*>(Sort_List<void>::Link::getNext()); } // (No direct access to next)
+{  return static_cast<T*>(SORT_List<void>::Link::getNext()); } // (No direct access to next)
 
 inline T*                           // -> Prior Link
    getPrev( void ) const            // Get prior Link
-{  return static_cast<T*>(Sort_List<void>::Link::getPrev()); } // (No direct access to prev)
-}; // class Sort_List<void>::Link
+{  return static_cast<T*>(SORT_List<void>::Link::getPrev()); } // (No direct access to prev)
+}; // class SORT_List<void>::Link
 
 public:
 T*                                  // -> Oldest T* on List
    getHead( void ) const            // Get head link
-{  return static_cast<T*>(Sort_List<void>::getHead()); } // (No direct access to head)
+{  return static_cast<T*>(SORT_List<void>::getHead()); } // (No direct access to head)
 
 T*                                  // -> Newest T* on List
    getTail( void ) const            // Get tail link
-{  return static_cast<T*>(Sort_List<void>::getTail()); } // (No direct access to tail)
+{  return static_cast<T*>(SORT_List<void>::getTail()); } // (No direct access to tail)
 
 T*                                  // Removed T*
    remq( void )                     // Remove oldest/lowest valued link
-{  return static_cast<T*>(Sort_List<void>::remq()); }
+{  return static_cast<T*>(SORT_List<void>::remq()); }
 
 T*                                  // -> The set of removed Links
    reset( void )                    // Reset (empty) the List
-{  return static_cast<T*>(Sort_List<void>::reset()); }
-}; // class Sort_List<T>
+{  return static_cast<T*>(SORT_List<void>::reset()); }
+}; // class SORT_List<T>
 
+//----------------------------------------------------------------------------
+//
+// Class-
+//       List<T>
+//
+// Purpose-
+//       Typed List object, where T is of class List<T>::Link.
+//
+// Implementation notes-
+//       This is a DHDL_List. See the associated notes.
+//
+//----------------------------------------------------------------------------
+template<class T>
+class List : public DHDL_List<T> {  // List<T>, equivalent to DHDL_List<T>
+}; // class List<T>
 #endif // LIST_H_INCLUDED

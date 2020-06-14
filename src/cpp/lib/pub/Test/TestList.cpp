@@ -13,10 +13,10 @@
 //       TestList.cpp
 //
 // Purpose-
-//       Linked list tests.
+//       List tests.
 //
 // Last change date-
-//       2020/01/22
+//       2020/06/13
 //
 //----------------------------------------------------------------------------
 #include <new>
@@ -28,13 +28,13 @@
 #include <pub/Debug.h>
 using namespace pub::debugging;
 
-#include "pub/LinkedList.h"
+#include "pub/List.h"
 using pub::AU_List;
 using pub::DHDL_List;
 using pub::DHSL_List;
 using pub::SHSL_List;
-using pub::Sort_List;
-using pub::Link_List;
+using pub::SORT_List;
+using pub::List;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -154,11 +154,11 @@ struct GEN_block : public Prefix,
 #ifdef USE_STANDALONE_SORT_LINK
                    public DHDL_List<GEN_block>::Link,
 #else
-  #define DHDL_List Sort_List
+  #define DHDL_List SORT_List
 #endif
                    public DHSL_List<GEN_block>::Link,
                    public SHSL_List<GEN_block>::Link,
-                   public Sort_List<GEN_block>::Link,
+                   public SORT_List<GEN_block>::Link,
                    public Suffix {
 // Attributes
 public:
@@ -208,21 +208,21 @@ static inline GEN_block*            // -> GEN_block
 #ifdef USE_STANDALONE_SORT_LINK
 static inline GEN_block*            // -> GEN_block
    make(                            // Convert from Sort_Link
-     Sort_List<GEN_block>::Link*
+     SORT_List<GEN_block>::Link*
                        link)        // -> Link
 {  return (GEN_block*)link; }
 #endif
 
 virtual int
    compare(
-     const Sort_List<void>::Link* that) const
+     const SORT_List<void>::Link* that) const
 {  return (gen_value - static_cast<const GEN_block*>(that)->gen_value); }
 }; // class GEN_block
 
 // Implement BASE CLASS method compare
 template <> int
-   Sort_List<GEN_block>::Link::compare(
-     const Sort_List<void>::Link* that) const
+   SORT_List<GEN_block>::Link::compare(
+     const SORT_List<void>::Link* that) const
 {  printf("This class has been overridden, hasn't it?\n");
    return (static_cast<const GEN_block*>(this)->gen_value
          - static_cast<const GEN_block*>(that)->gen_value); }
@@ -598,15 +598,15 @@ static void
 //       show_SORT
 //
 // Purpose-
-//       Display a Sort_List block doubly linked list.
+//       Display a SORT_List block doubly linked list.
 //
 //----------------------------------------------------------------------------
 static void
    show_SORT(                       // Display a list
-     Sort_List<GEN_block>*
+     SORT_List<GEN_block>*
                        anchor)      // The list anchor
 {
-   Sort_List<GEN_block>::Link* ptr_link;
+   SORT_List<GEN_block>::Link* ptr_link;
    GEN_block*          elem;
 
    printf("List:");
@@ -639,7 +639,7 @@ extern int
    DHSL_List<GEN_block>        dhsl_anchor;
    SHSL_List<GEN_block>        shsl_anchor;
    SHSL_List<AUX_Link>          aux_anchor;
-   Sort_List<GEN_block>        sort_anchor;
+   SORT_List<GEN_block>        sort_anchor;
 
    GEN_block                    gen_array[DIM];
 
@@ -647,7 +647,7 @@ extern int
    DHSL_List<GEN_block>::Link* dhsl_link;
    SHSL_List<GEN_block>::Link* shsl_link;
    AUX_Link*                    aux_ptr;
-   Sort_List<GEN_block>::Link* sort_link;
+   SORT_List<GEN_block>::Link* sort_link;
 
 #ifdef USE_STANDALONE_SORT_LINK
    DHDL_List<GEN_block>        dhdl_anchor;
@@ -718,8 +718,8 @@ extern int
    //-------------------------------------------------------------------------
    printf("\n");
    printf("DHDL Storage:\n");
-   printf("%8ld Sizeof(List)\n", (long)sizeof(Link_List<GEN_block>));
-   printf("%8ld Sizeof(Link)\n", (long)sizeof(Link_List<GEN_block>::Link));
+   printf("%8ld Sizeof(List)\n", (long)sizeof(List<GEN_block>));
+   printf("%8ld Sizeof(Link)\n", (long)sizeof(List<GEN_block>::Link));
    printf("%8zd Sizeof(Link)\n", (size_t)_OFFSET_(DHDL_Block, dhdl_value));
 // printf("%8ld Sizeof(Link)\n", (long)offsetof(DHDL_Block, dhdl_value));
 
@@ -1114,7 +1114,7 @@ extern int
    printf("SORT: USE_STANDALONE_SORT_LINK(%s DEFINED)\n", info);
 
 #ifndef USE_STANDALONE_SORT_LINK
-#if 0 // This no longer compiles with class Sort_list<void> : PRIVATE ...
+#if 0 // This no longer compiles with class SORT_List<void> : PRIVATE ...
    #undef DHDL_List
    try {                            // Verify SortCastException
      DHDL_List<void>::Link* link= &gen_array[0];

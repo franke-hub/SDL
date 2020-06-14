@@ -16,7 +16,7 @@
 //       All the file management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2020/01/29
+//       2020/06/13
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_FILEMAN_H_INCLUDED
@@ -25,7 +25,7 @@
 #include <string>                   // For std::string
 #include <sys/stat.h>               // For struct stat
 
-#include <pub/LinkedList.h>         // For pub::DHDL_List, ...
+#include <pub/List.h>               // For pub::DHDL_List, ...
 
 namespace _PUB_NAMESPACE::Fileman { // The pub::Fileman namespace
 //----------------------------------------------------------------------------
@@ -37,7 +37,7 @@ namespace _PUB_NAMESPACE::Fileman { // The pub::Fileman namespace
 //       File name information
 //
 //----------------------------------------------------------------------------
-class File : public Sort_List<File>::Link { // File name information
+class File : public SORT_List<File>::Link { // File name information
 //----------------------------------------------------------------------------
 // File::Attributes
 //----------------------------------------------------------------------------
@@ -62,7 +62,7 @@ public:
 public:
 virtual int                         // Result (<0, =0, >0)
    compare(                         // Compare this (using file name) to
-     const Sort_List<void>::Link*
+     const SORT_List<void>::Link*
                        _that) const; // That (File*) Link
 }; // class File
 
@@ -81,7 +81,7 @@ class Path {                        // Path name information
 //----------------------------------------------------------------------------
 public:
 const std::string      name;        // The path name (Locally qualified)
-Sort_List<File>        list;        // The (sorted) list of Files
+SORT_List<File>        list;        // The (sorted) list of Files
 
 //----------------------------------------------------------------------------
 // Path::Constructors

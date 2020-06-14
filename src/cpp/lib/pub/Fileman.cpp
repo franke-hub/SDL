@@ -48,7 +48,7 @@ namespace _PUB_NAMESPACE::Fileman { // The Fileman namespace
 //----------------------------------------------------------------------------
 int                                 // Resultant
    File::compare(                   // Compare this File's filename
-     const Sort_List<void>::Link*
+     const SORT_List<void>::Link*
                        _that) const  // To that File's filename
 {
    const File* that= dynamic_cast<const File*>(_that);

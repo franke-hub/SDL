@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2018 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Display files in the current directory, long format.
 //
 // Last change date-
-//       2018/01/01
+//       2020/06/13
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                // Used in timeTest
@@ -63,7 +63,7 @@
 //       Comparable filename link.
 //
 //----------------------------------------------------------------------------
-class CompFile : public Sort_List<CompFile>::Link { // Comparable file descriptor
+class CompFile : public SORT_List<CompFile>::Link { // Comparable file descriptor
 //----------------------------------------------------------------------------
 // CompFile::Attributes
 //----------------------------------------------------------------------------
@@ -112,8 +112,8 @@ inline void
 
 // Implement method compare
 template <> int
-   Sort_List<CompFile>::Link::compare(
-     const Sort_List<void>::Link*
+   SORT_List<CompFile>::Link::compare(
+     const SORT_List<void>::Link*
                        that) const
 {
    const CompFile* comp= dynamic_cast<const CompFile*>(that);
@@ -126,7 +126,7 @@ template <> int
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static Sort_List<CompFile>
+static SORT_List<CompFile>
                        direct;      // Directory content
 static char*           initPath= NULL;// Initial path
 

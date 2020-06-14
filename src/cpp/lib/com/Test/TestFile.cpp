@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test file handling objects: FileList, FileName and FileInfo
 //
 // Last change date-
-//       2007/01/01
+//       2020/06/13
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -337,7 +337,7 @@ static int
    strcat(name, "n");
    if( (CC= FileName::resolve(result,name)) == NULL )
    {
-     fprintf(stderr, "%d %s= resolve(FILENAME_MAX+1) %s\n", __LINE__, CC, result);
+     fprintf(stderr, "%d %s= resolve(FILENAME_MAX+1) %s\n", __LINE__, "(null)", result);
      return 2;
    }
 

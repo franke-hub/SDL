@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2014 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       List object methods.
 //
 // Last change date-
-//       2014/01/01
+//       2020/06/13
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -1049,14 +1049,14 @@ SHSL_List<void>::Link*              // The set of removed Links
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Sort_List<void>::Link::compare
+//       SORT_List<void>::Link::compare
 //
 // Purpose-
 //       Implements pure virtual method.
 //
 //----------------------------------------------------------------------------
 int                                 // Result (<0, =0, >0)
-   Sort_List<void>::Link::compare(  // Compare Link values
+   SORT_List<void>::Link::compare(  // Compare Link values
      const Link*       that) const  // -> Other Link
 {
    return 0;                        // Default implementation
@@ -1065,14 +1065,14 @@ int                                 // Result (<0, =0, >0)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Sort_List<void>::sort
+//       SORT_List<void>::sort
 //
 // Purpose-
 //       Sort the list.
 //
 //----------------------------------------------------------------------------
 void
-   Sort_List<void>::sort( void )    // Sort the list
+   SORT_List<void>::sort( void )    // Sort the list
 {
    Link* head= reset();             // The original head of the list
 
