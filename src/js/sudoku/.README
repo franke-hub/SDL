@@ -18,7 +18,7 @@
 ##       2020/03/21
 ##
 ## Implementation note-
-##       While this subdirectory contains a solve by logic suduku solver,
+##       While this subdirectory contains a solve by logic sudoku solver,
 ##       much of the display logic was extracted from a brute force solver
 ##       written in 2005 by Guy Hoghton.
 ##
