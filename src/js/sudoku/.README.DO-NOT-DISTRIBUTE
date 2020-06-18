@@ -9,13 +9,13 @@
 ##############################################################################
 ##
 ## Title-
-##       ~/src/js/sudoku/.README
+##       ~/src/js/sudoku/.README.DO-NOT-DISTRIBUTE
 ##
 ## Purpose-
 ##       Subdirectory information.
 ##
 ## Last change date-
-##       2020/03/21
+##       2020/06/18
 ##
 ## Implementation note-
 ##       While this subdirectory contains a solve by logic sudoku solver,

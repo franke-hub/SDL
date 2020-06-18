@@ -10,5 +10,5 @@
 ## ~/src/js/sudoku/.gitignore
 ##############################################################################
 /*
-!/.README
+!/.README.DO-NOT-DISTRIBUTE
 !/.gitignore
