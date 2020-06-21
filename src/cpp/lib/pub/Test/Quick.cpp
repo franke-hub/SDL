@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2019 Frank Eskesen.
+//       Copyright (C) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2019/06/12
+//       2020/06/20
 //
 //----------------------------------------------------------------------------
 #include <chrono>
@@ -33,6 +33,7 @@
 #include <errno.h>                  // For errno, ...
 #include <limits.h>                 // For INT_MIN, INT_MAX, ...
 #include <stdio.h>
+#include <stddef.h>                 // For offsetof
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -45,6 +46,7 @@
 #include "pub/Latch.h"              // See test_Latch
 #include "pub/memory.h"             // See test_atomic_shared_ptr, NOT CODED YET
 #include "pub/Signals+Slots.h"      // See test_Signals
+#include "pub/Trace.h"              // See test_Trace
 #include "pub/UTF8.h"               // See test_UTF8
 #include "pub/utility.h"            // For _PUB_NAMESPACE::utility
 using namespace _PUB_NAMESPACE;
@@ -57,21 +59,17 @@ using namespace _PUB_NAMESPACE::debugging;
 #undef  HCDM                        // If defined, Hard Core Debug Mode
 #endif
 
-#ifndef TRACE                       // If defined, use internal trace
-#define TRACE
+#ifndef CHECK                       // If defined, use parameter checking
+#undef  CHECK                       // SHOULD match Trace.cpp
 #endif
 
-#define IFDEBUG(x) { if( opt_debug ) { x }}
+#ifndef TRACE                       // If defined, use internal trace
+#define TRACE                       // (We test the iftrace macro)
+#endif
+
+#define IFDEBUG(x) { if( opt_debug ) {x} }
 
 #include "pub/ifmacro.h"            // Dependent macro
-
-//----------------------------------------------------------------------------
-// External data areas
-//----------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------
-// Internal data areas
-//----------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------
 // Options
@@ -758,68 +756,171 @@ static inline int
 static inline int
    test_Trace( void )               // Test Trace.h
 {
+using _PUB_NAMESPACE::Trace;
+
    debugf("\ntest_Trace\n");
 
    int                 errorCount= 0; // Number of errors encountered
+   uint32_t            size;        // Working size
 
-#ifdef TRACE
-   using _PUB_NAMESPACE::Trace;
+   // Test IFTRACE macro (Reqires: errorCount == 0)
+   #ifdef TRACE
+     errorCount++;
+     IFTRACE(
+       errorCount--;
+       IFHCDM( debugf("%4d HCDM TRACE defined, IFTRACE active\n", __LINE__); )
+     )
+     if( errorCount )
+       debugf("TRACE defined, but IFTRACE() inactive\n");
+   #else
+     IFHCDM( debugf("%4d HCDM TRACE undefined\n", __LINE__); )
+     IFTRACE(
+       errorCount++;
+       debugf("TRACE undefined, but IFTRACE() active\n");
+     )
+   #endif
 
-   uint32_t trace_size= 0x00020000;
-   struct Record : public Trace::Record {
-   void set_ident(const char* id) { ident= *(const uint32_t*)id; }
+   // Test IFCHECK macro (Reqires: errorCount == 0)
+   #ifdef CHECK
+     errorCount++;
+     IFCHECK(
+       errorCount--;
+       IFHCDM( debugf("%4d HCDM CHECK defined, IFCHECK active\n", __LINE__); )
+     )
+     if( errorCount )
+       debugf("CHECK defined, but IFCHECK inactive\n");
+   #else
+     IFHCDM( debugf("%4d HCDM CHECK undefined\n", __LINE__); )
+     IFCHECK(
+       debugf("CHECK undefined but IFCHECK active\n");
+       errorCount++;
+     )
+   #endif
 
-     int32_t           ident;
+   // Define our Trace::Record
+   struct Record : public pub::Trace::Record {
+     using pub::Trace::Record::Record;
      int32_t           offset;
    };
+   Record* record= nullptr;         // Working Record*
 
-   Trace* trace= Trace::make(trace_size);
+   // Allocate the Trace table
+   uint32_t table_size= 0x00020000; // Desired table space
+   table_size += sizeof(pub::Trace); // Address trim allowance
+   table_size += sizeof(pub::Trace); // For header
+   table_size += 7;                 // Insure tail trim
+   void*    table_addr= malloc(table_size);
+   memset(table_addr, 'T', table_size);
+   Trace* trace= Trace::make(table_addr, table_size);
    Trace::trace= trace;
+   utility::dump(Debug::get()->get_FILE(), table_addr, table_size, table_addr);
 
-   for(int i= 0; i<trace_size+12; i++) // 32 wraps + extra
-   {
-     IFTRACE(
-       Record* record= (Record*)trace->allocate(sizeof(Record));
-       record->offset= htobe32((char*)record - (char*)trace);
-       record->set_ident(".FOO");
-     )
+   // Initialization tests
+   if( sizeof(Trace) != trace->zero ) {
+     errorCount++;
+     debugf("%4d sizeof(Trace)(%zd) != trace->zero(%d)\n", __LINE__,
+            sizeof(Trace), trace->zero);
    }
 
-   Trace* taken= Trace::take();
-   if( taken != trace )
+   //-------------------------------------------------------------------------
+   // Test Trace methods, initializing the Trace storage
+   tracef("\n");
+   for(int i= 0; i<table_size+12; i++) // 32 wraps + extra
    {
-     errorCount++;
-     debugf("Trace::take() failure[1]\n");
+       record= (Record*)Trace::storage_if(sizeof(Record));
+       if( record ) {
+         record->init(".FOO", 254);
+         record->offset= htobe32(((char*)record - (char*)trace)
+                       + sizeof(pub::Trace::Record));
+       }
    }
-   if( Trace::trace )
-   {
-     errorCount++;
-     debugf("Trace::take() failure[2]\n");
-   }
-   trace->dump();
+   trace->dump();                   // Look and see
 
    // This test is designed to only show interesting records.
    tracef("\nTest wrap clear\n");
-   memset((char*)trace + sizeof(Trace), 0, trace_size - sizeof(Trace));
-   uint32_t size= trace_size - 512;
+   memset((char*)trace + sizeof(Trace), 0, trace->size-sizeof(Trace));
+   size= trace->size - 512;
    trace->allocate(size);
-   trace->dump();
+   trace->dump();                   // Look and see
+   tracef("\n");                    // Look and see (unformatted)
+   utility::dump(Debug::get()->get_FILE(), table_addr, table_size, table_addr);
 
-   delete trace;
-   trace= nullptr;
-
-   IFTRACE(
+   //-------------------------------------------------------------------------
+   // Size error tests
+   size= trace->size - trace->zero;
+   record= (Record*)trace->allocate(size);
+   if( record == nullptr) {
      errorCount++;
-     debugf("%4d Should not occur\n", __LINE__);
+     debugf("%4d Full length Record NOT allocated\n", __LINE__);
+   }
 
-     Record* record= (Record*)trace->allocate(sizeof(Record));
-     record->offset= htobe32((char*)record - (char*)trace);
-     record->set_ident(".ERR");
+   IFCHECK(
+     record= (Record*)trace->allocate(0);
+     if( record ) {
+       errorCount++;
+       debugf("%4d Zero length Record allocated\n", __LINE__);
+     }
+
+     record= (Record*)trace->allocate(size + 1);
+     if( record ) {
+       errorCount++;
+       debugf("%4d Over-length Record allocated\n", __LINE__);
+     }
+
+     // Arithmetic overflow error requires an overly large table
+     size= Trace::TABLE_SIZE_MAX;
+     void* addr= malloc(size);
+     if( addr == nullptr )
+       debugf("%4d Unable to malloc(%d)\n", __LINE__, size);
+
+     if( addr ) {                   // Check arithmetic overflow?
+       Trace* table= Trace::make(addr, size); // We need a mondo table
+
+       // Prepare to create an overflow condition
+       void* record= table->allocate(table->size - 512);
+       if( record == nullptr) {
+         errorCount++;
+         debugf("%4d Large Record NOT allocated\n", __LINE__);
+       }
+
+       record= table->allocate(4096); // Allocate, arithmetic overflow
+       if( record ) {
+         errorCount++;
+         debugf("%4d Arithmetic overflow not detected\n", __LINE__);
+         table->dump();
+       }
+       free(addr);
+     }
    )
-#else
-   errorCount++;
-   debugf("TRACE not defined. Test aborted\n");
-#endif
+
+   //-------------------------------------------------------------------------
+   // Deactivation error tests
+   trace->deactivate();
+   record= (Record*)Trace::storage_if(sizeof(Record));
+   if( record ) {
+     errorCount++;
+     debugf("%4d Record allocated while trace inactive\n", __LINE__);
+   }
+
+   trace->flag[Trace::X_HALT]= 0;   // (Permitted)
+   record= (Record*)Trace::storage_if(sizeof(Record));
+   if( record == nullptr ) {
+     errorCount++;
+     debugf("%4d Unable to reactivate trace\n", __LINE__);
+   }
+
+   Trace::trace= nullptr;           // Disable global trace
+   record= (Record*)Trace::storage_if(sizeof(Record));
+   if( record ) {
+     errorCount++;
+     debugf("%4d Record allocated while Trace::trace == nullptr\n", __LINE__);
+   }
+
+   //-------------------------------------------------------------------------
+   // Clean up and exit
+   free(table_addr);
+   if( errorCount == 0 )
+     printf("Examine debug.out to verify proper operation\n");
 
    return errorCount;
 }
@@ -973,6 +1074,7 @@ extern int                          // Return code
      char*           argv[])        // Argument array
 {
    unsigned errorCount= 0;
+   debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
 
    try {
      parm(argc, argv);
@@ -998,6 +1100,7 @@ extern int                          // Return code
      debugf("%4d catch(...)\n", __LINE__);
    }
 
+   debugf("\n");
    if( errorCount == 0 )
      debugf("NO errors detected\n");
    else if( errorCount == 1 )

@@ -16,27 +16,34 @@
 //       Trace object methods.
 //
 // Last change date-
-//       2020/06/09
+//       2020/06/20
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // Atomic operation required
+#include <time.h>                   // For clock_gettime
 #include <mutex>                    // For std::lock_guard
 #include <new>                      // For std::bad_alloc
-#include <stdio.h>
-#include <stdlib.h>                 // For aligned_alloc, ...
 #include <string.h>                 // For memcpy
 
 #include <pub/Debug.h>              // For debugging
-#include <pub/utility.h>
+#include <pub/utility.h>            // For pub::utility::dump
 
 #include "pub/Trace.h"
 using namespace _PUB_NAMESPACE::debugging; // For debugging
 
 namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
-// Constants
+// Macros
 //----------------------------------------------------------------------------
-enum { ALIGNMENT= Trace::ALIGNMENT }; // Storage allocation required alignemnt
+#ifndef CHECK                       // If defined, enhanced error checking
+#undef  CHECK
+#endif
+
+#ifndef HCDM                        // If defined, Hard Core Debug Mode
+#undef  HCDM
+#endif
+
+#include <pub/ifmacro.h>
 
 //----------------------------------------------------------------------------
 // External data areas
@@ -52,31 +59,21 @@ Trace*                 Trace::trace= nullptr; // The common Trace object
 //       Constructor.
 //
 // Implementation notes-
-//       make() validates alignment and size.
+//       make() validates alignment and size, initializes storage to zero.
 //
 //----------------------------------------------------------------------------
    Trace::Trace(                    // Constructor
-     uint32_t          size)        // Size of trace area
-:  next(0)
-,  top(0)
-,  bot(0)
-,  size(0)
+     uint32_t          size)        // Length of trace table
 {
-   uintptr_t           header;      // Effective header size
+   unsigned zero= sizeof(Trace);    // The first record offset
+   zero +=  (ALIGNMENT - 1);
+   zero &= ~(ALIGNMENT - 1);
+   size -= zero;
 
-   header= sizeof(Trace);
-   header +=  (ALIGNMENT - 1);
-   header &= ~(ALIGNMENT - 1);
-
-   top=  header;
-   next= header;
-   bot=  size;
-   this->size= size - header;
-
-   wrap[0]= 0;
-   wrap[1]= 0;
-   wrap[2]= 0;
-   wrap[3]= 0;
+   this->zero= zero;
+   this->last= size;
+   this->size= size;
+   this->next= zero;
 }
 
 //----------------------------------------------------------------------------
@@ -85,26 +82,33 @@ Trace*                 Trace::trace= nullptr; // The common Trace object
 //       Trace::make
 //
 // Purpose-
-//       Allocate the Trace object.
+//       Initialize the Trace table
 //
 //----------------------------------------------------------------------------
 Trace*                              // -> Trace instance
-   Trace::make(                     // Allocate the Trace object
-     size_t            size)        // Size of trace area
+   Trace::make(                     // Initialize the Trace table
+     void*             addr,        // Address of trace table
+     size_t            size)        // Length of trace table
 {
-   if( size > MAXIMUM_SIZE )        // Silently enforce size restrictions
-     size= MAXIMUM_SIZE;
-   if( size < MINIMUM_SIZE )
-     size= MINIMUM_SIZE;
-   size +=  (ALIGNMENT - 1);
+   IFCHECK( debugf("%4d HCDM Trace.cpp CHECK active\n", __LINE__); )
+   IFHCDM( debugf("%4d HCDM Trace.cpp HCDM active\n", __LINE__); )
+
+   if( addr == nullptr              // Reject invalid parameters
+       || size < TABLE_SIZE_MIN || size > TABLE_SIZE_MAX )
+     throw std::bad_alloc();
+
+   unsigned diff= (uintptr_t)addr & (ALIGNMENT-1);
+   if( diff != 0 ) {                // If misaligned storage
+     diff= ALIGNMENT - diff;
+     size -= diff;
+     addr= (void*)((uintptr_t)addr + diff);
+   }
    size &= ~(ALIGNMENT - 1);
 
-   void* addr= aligned_alloc(ALIGNMENT, size); // Allocate the Trace
-   if( addr == nullptr )            // If allocation fails
-     throw std::bad_alloc();        // Bad allocation
-   memset(addr, 0, size);           // Initialize the Trace area
+   memset(addr, 0, size);           // Initialize to zeros
+   Trace* trace= new(addr) Trace((uint32_t)size); // Construct the Trace object
+   trace->flag[X_OFFSET]= diff;     // (No real need for this field.)
 
-   Trace* trace= new(addr) Trace(size);
    return trace;
 }
 
@@ -116,18 +120,23 @@ Trace*                              // -> Trace instance
 // Purpose-
 //       Atomically take and reset the commont the Trace object.
 //
+// Implementation note-
+//       Not needed, at least yet. Trace::trace= nullptr suffices.
+//
 //----------------------------------------------------------------------------
-Trace*                              // -> Trace instance
-   Trace::take( void )              // Allocate the Trace object
+#if 0                               // Limited utility, unused
+Trace*                              // Replaced Trace::trace
+   Trace::take( void )              // Reset the global Trace object
 {
-   std::atomic<Trace*>* atomic_trace= (std::atomic<Trace*>*)&trace;
+   std::atomic<Trace*>* atomic_p= (std::atomic<Trace*>*)&trace;
 
-   Trace* oldPointer= atomic_trace->load();
-   while( !atomic_trace->compare_exchange_weak(oldPointer, nullptr) )
+   Trace* old= atomic_p->load();
+   while( !atomic_p->compare_exchange_weak(old, nullptr) )
      ;
 
-   return oldPointer;
+   return old;
 }
+#endif
 
 //----------------------------------------------------------------------------
 //
@@ -135,69 +144,83 @@ Trace*                              // -> Trace instance
 //       Trace::allocate
 //
 // Purpose-
-//       Allocate a trace record.
+//       Allocate storage.
+//
+// Implementation note-
+//       Performance critical path.
+//       A nullptr resultant only occurs as a result of an application error.
 //
 //----------------------------------------------------------------------------
-Trace::Record*                      // -> Trace record
+void*                               // Resultant
    Trace::allocate(                 // Allocate a trace record
-     uint32_t          size)        // Size of trace record
+     uint32_t          size)        // of this length
 {
-   Record*             ptrRecord;   // -> Record
+   void*               result;      // Resultant
 
    uint32_t            newV;        // New value
    uint32_t            oldV;        // Old value
-   uint32_t            wrapped;     // Non-zero iff wrapped
+   uint32_t            last;        // Last oldV when wrapped
 
    size +=  (ALIGNMENT - 1);
    size &= ~(ALIGNMENT - 1);
-   if ( size == 0 || size > this->size )
-     return nullptr;
+// IFCHECK( // Check size parameter?
+     // These size checks are always enabled:
+     //   size == 0: An all too common mistake
+     //   size > (available size): The for(;;) loop never exits
+//// if ( size == 0 || size > (this->size - this->zero) ) // (The real test)
+     if ( size == 0 || size > (this->size - sizeof(Trace)) )
+       return nullptr;
+// ) // IFCHECK
 
-   std::atomic<uint32_t>* atomic_next= (std::atomic<uint32_t>*)&next;
-   oldV= atomic_next->load();
+   oldV= next.load();
    for(;;)
    {
-     wrapped= 0;
-     newV= oldV + size;
-     ptrRecord= (Record*)((char*)this + oldV);
-     if ( newV > bot )
+     last= 0;                       // Indicate not wrapped
+     newV= oldV + size;             // Arithmetic overflow is a user error
+IFCHECK( // Check for arithmetic overflow?
+     // Arithmetic overflow can only occur when the size parameter plus the
+     // size of the table is greater than UINT32_MAX.
+     // This is simple for an application to avoid and while the checking
+     // is small, it's not zero.
+     if( newV < size )              // If arithmetic overflow
+       return nullptr;
+) // IFCHECK
+
+     result= (char*)this + oldV;
+     if ( newV > this->size )       // If wrap
      {
-       wrapped= oldV;
-       ptrRecord= (Record*)((char*)this + top);
-       newV= top + size;
+       last= oldV;
+       result= (char*)this + zero;
+       newV= size + zero;
      }
 
-     if( atomic_next->compare_exchange_strong(oldV, newV) )
+     if( next.compare_exchange_strong(oldV, newV) )
        break;
    }
 
-   // Indicate return record not initialized
-   *(uint32_t*)ptrRecord= *(uint32_t*)(".000");
-   if( wrapped )                    // Handle wrap
-   {
-     std::atomic<uint32_t>* atomic_wrap= (std::atomic<uint32_t>*)wrap;
+IFHCDM( // Clarifies record initialization in progress state
+   memset(result, 0, size);         // Indicate record not initialized
+   memcpy(result, ".000", 4);       // Clarify: record not initialized
+// ((Record*)result)->init(".000", -1); // Alternate clarify option
+) // IFHCDM
 
-     // If there were empty slots skipped at the top, clean the top
-     if( wrapped < bot )
-     {
-       Record* record= (Record*)(char*)this + wrapped;
-       memset(record, 0, bot-wrapped);
-       *(uint32_t*)record= *((uint32_t*)(".END"));
+   if( last ) {                     // Handle wrap
+     wrap++;                        // (Atomically) update the wrap count
+     this->last= last;              // Last valid location
+
+IFHCDM( // Clean up any last empty area
+     // (Candidate for normal use. Doen't occur often, if at all.)
+     // This cleanup makes the last trace entry in the trace table slightly
+     // easier to look at, and doesn't occur in the normal case.
+     if( last < this->size ) {      // If zombie data exists
+       char* atlast= (char*)this + last;
+       memset(atlast, 0, this->size - last);
+       memcpy(atlast, ".END", 4);
      }
-
-     for(int i=3; i>=0; i--)
-     {
-       oldV= atomic_wrap[i].load();
-       do
-       { newV= oldV + 1;
-       } while( !atomic_wrap[i].compare_exchange_strong(oldV, newV) );
-
-       if( newV != 0 )
-         break;
-     }
+) // IFHCDM
    }
 
-   return ptrRecord;
+   return result;
 }
 
 //----------------------------------------------------------------------------
@@ -208,6 +231,10 @@ Trace::Record*                      // -> Trace record
 // Purpose-
 //       Dump the trace table.
 //
+// Implementation note-
+//       For readability the global Debug mutex is held during the entire
+//       dump process.
+//
 //----------------------------------------------------------------------------
 void
    Trace::dump( void ) const        // Dump the trace table
@@ -216,9 +243,36 @@ void
    std::lock_guard<decltype(*debug)> lock(*debug);
 
    tracef("Trace(%p)::dump\n", this);
-   tracef("..top(%8x) next(%.8x) bot(%.8x) size(%.8x)\n",
-          top, next, bot, size);
-   tracef("..wrap %.8x %.8x %.8x %.8x\n", wrap[0], wrap[1], wrap[2], wrap[3]);
-   ::pub::utility::dump(debug->get_FILE(), this, bot, nullptr);
+   tracef("..wrap(%ld) zero(0x%.2x) last(0x%.8x) size(0x%.8x) next(0x%.8x)\n",
+          wrap.load(), zero, last, size, next.load());
+   utility::dump(debug->get_FILE(), this, size, nullptr);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Trace::Record::init
+//
+// Purpose-
+//       Initialize the Trace::Record
+//
+// Implementation note-
+//       Performance critical path.
+//
+//----------------------------------------------------------------------------
+void
+   Trace::Record::init(             // Initialize the Trace::Record
+     const char*       ident,       // The trace type identifier
+     uint32_t          iitem)       // The trace item identifier
+{
+   struct timespec     clock;       // UTC time base
+
+   clock_gettime(CLOCK_REALTIME, &clock); // Get UTC time base
+   uint64_t usec= clock.tv_sec * 1000000000;
+   usec += clock.tv_nsec;
+   this->clock= usec;
+
+   this->iitem= iitem;
+   memcpy(this->ident, ident, sizeof(this->ident));
 }
 }  // namespace _PUB_NAMESPACE
