@@ -16,14 +16,10 @@
 //       Utility functions.
 //
 // Last change date-
-//       2020/06/12
+//       2020/06/22
 //
 // Comparison operators-
-//       sti_cc   Case insensitive compare: Returns <0, =0, >0
-//       sti_lt   Case insensitive LT operator
-//
-//       sts_cc   Case sensitive compare: Returns <0, =0, >0
-// *NOT* sts_lt   Case sensitive LT operator NOT PROVIDED. It's in std::string.
+//       op_lt_istr    Case insensitive s LT operator
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_UTILITY_H_INCLUDED
@@ -57,7 +53,7 @@ namespace utility {
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       atoi
+//       utility::atoi
 //
 // Purpose-
 //       Convert string to integer.
@@ -74,7 +70,7 @@ int                                 // Resultant value
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       atol
+//       utility::atol
 //
 // Purpose-
 //       Convert string to long integer.
@@ -91,7 +87,7 @@ long                                // Resultant value
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       atox
+//       utility::atox
 //
 // Purpose-
 //       Convert hexidecimal string to long.
@@ -130,7 +126,7 @@ void                                // Dump formatter
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       find_space
+//       utility::find_space
 //
 // Purpose-
 //       Find next whitespace (or '\0') character.
@@ -143,7 +139,7 @@ char*                               // Resultant
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       skip_space
+//       utility::skip_space
 //
 // Purpose-
 //       Find next non-whitespace character, including '\0'.
@@ -155,42 +151,30 @@ char*                               // Resultant
 
 //----------------------------------------------------------------------------
 //
-// Struct-
-//       utility::sti_cc
+// Subroutine-
+//       utility::strcasecmp
+//       utility::strncasecmp
 //
 // Purpose-
-//       Define the case-insensitive string comparison operator.
+//       String compare, ignoring case.
+//
+// Implementation note-
+//       ASCII strings disallow characters > 0x7f, so they're always positive.
+//
+//       ::strcasecmp and ::strncasecmp are not standard library functions,
+//       so they are included here.
 //
 //----------------------------------------------------------------------------
-struct sti_cc {
-int operator()(const std::string& L, const std::string& R) const;
-}; // struct sti_cc
+int                                 // Resultant <0,=0,>0
+   strcasecmp(                      // ASCII string insensitive compare
+     const char*       L,           // Left hand side
+     const char*       R);          // Right hand side
 
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       utility::sti_lt
-//
-// Purpose-
-//       Define the case-insensitive string less than operator.
-//
-//----------------------------------------------------------------------------
-struct sti_lt {
-bool operator()(const std::string& L, const std::string& R) const;
-}; // struct sti_lt
-
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       utility::sts_cc
-//
-// Purpose-
-//       Define the case-sensitive string comparison operator.
-//
-//----------------------------------------------------------------------------
-struct sts_cc {
-int operator()(const std::string& L, const std::string& R) const;
-}; // struct sts_cc
+int                                 // Resultant <0,=0,>0
+   strncasecmp(                     // ASCII string insensitive compare
+     const char*       L,           // Left hand side
+     const char*       R,           // Right hand side
+     size_t            size);       // Maximum comparison length
 
 //----------------------------------------------------------------------------
 //
@@ -236,6 +220,22 @@ std::string                         // Resultant string
 std::string                         // The visual representation
    visify(                          // Get visual representation of
      const std::string&inp);        // This string
+
+//============================================================================
+// Operator structures
+//============================================================================
+//
+// Struct-
+//       utility::op_lt_istr
+//
+// Purpose-
+//       Define the less than operator for case-insensitive strings.
+//
+//----------------------------------------------------------------------------
+struct op_lt_istr {
+bool operator()(const std::string& L, const std::string& R) const
+{  return strcasecmp(L.c_str(), R.c_str()) < 0; }
+}; // struct op_lt_istr
 }  // namespace utility
 }  // namespace _PUB_NAMESPACE
 #endif // _PUB_UTILITY_H_INCLUDED

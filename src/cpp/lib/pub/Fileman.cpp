@@ -16,7 +16,7 @@
 //       Fileman.h object methods
 //
 // Last change date-
-//       2020/01/24
+//       2020/06/22
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -30,11 +30,9 @@
 #include <sys/types.h>
 
 #include <pub/Debug.h>              // For pub::debugging::errorp
-#include "pub/utility.h"            // For pub::utility::sts_cc
 #include "pub/Fileman.h"            // The class objects
 
 using _PUB_NAMESPACE::debugging::errorp;
-using _PUB_NAMESPACE::utility::sts_cc;
 
 namespace _PUB_NAMESPACE::Fileman { // The Fileman namespace
 //----------------------------------------------------------------------------

@@ -16,7 +16,7 @@
 //       Name/value string pair map.
 //
 // Last change date-
-//       2020/01/21
+//       2020/06/22
 //
 // Implementation notes-
 //       Property names are case insensitive.
@@ -48,7 +48,7 @@ class Properties {                  // Name/value string pair map
 public:
 typedef std::string    string;      // Using std::string
 
-typedef std::map<string, string, utility::sti_lt>
+typedef std::map<string, string, utility::op_lt_istr>
                        Map_t;       // The Properties Map type
 typedef Map_t::const_iterator
                        MapIter_t;   // The Properties Map iterator type

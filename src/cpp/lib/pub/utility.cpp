@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2020/06/12
+//       2020/06/22
 //
 //----------------------------------------------------------------------------
 #include <sstream>                  // For std::stringstream
@@ -370,101 +370,55 @@ char*                               // Next non-whitespace character
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       utility::sti_cc::operator()
+// Subroutine-
+//       utility::strcasecmp
+//       utility::strncasecmp
 //
 // Purpose-
-//       Define the case-insensitive string comparison operator.
+//       String compare, ignoring case.
+//
+// Implementation note-
+//       ::strcasecmp and ::strncasecmp are not standard library functions
 //
 //----------------------------------------------------------------------------
-int
-   sti_cc::operator()(
-      const std::string&L,
-      const std::string&R) const
+int                                 // Resultant <0,=0,>0
+   strcasecmp(                      // ASCII string insensitive compare
+     const char*       L,           // Left hand side
+     const char*       R)           // Right hand side
 {
-   return strcasecmp(L.c_str(), R.c_str());
-
-#if 0
-   for(;;) {
-     int diff= toupper(*L_char) - toupper(*R_char);
+   while( true ) {
+     int diff= toupper(*L) - toupper(*R);
      if( diff != 0 )
        return diff;
-     if( *L_char == '\0' )
+     if( *L == '\0' )
        break;
 
-     L_char++;
-     R_char++;
+     L++;
+     R++;
    }
 
    return 0;
-#endif
 }
 
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       utility::sti_lt::operator()
-//
-// Purpose-
-//       Define the case-insensitive string less than operator.
-//
-//----------------------------------------------------------------------------
-bool
-   sti_lt::operator()(
-      const std::string&L,
-      const std::string&R) const
+int                                 // Resultant <0,=0,>0
+   strncasecmp(                     // ASCII string insensitive compare
+     const char*       L,           // Left hand side
+     const char*       R,           // Right hand side
+     size_t            size)        // Maximum comparison length
 {
-   return strcasecmp(L.c_str(), R.c_str()) < 0;
-
-#if 0
-   for(;;) {
-     int diff= toupper(*L_char) - toupper(*R_char);
-     if( diff != 0 ) {
-       if( diff > 0 )
-         return false;
-       return true;
-     }
-     if( *L_char == '\0' )
-       break;
-
-     L_char++;
-     R_char++;
-   }
-
-   return false;
-#endif
-}
-
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       utility::sts_cc::operator()
-//
-// Purpose-
-//       Define the case-sensitive string comparison operator.
-//
-//----------------------------------------------------------------------------
-int
-   sts_cc::operator()(
-      const std::string&L,
-      const std::string&R) const
-{
-   return L.compare(R);
-
-#if 0
-   for(;;) {
-     int diff= *L_char - *R_char;
+   while( size != 0 ) {
+     int diff= toupper(*L) - toupper(*R);
      if( diff != 0 )
        return diff;
-     if( *L_char == '\0' )
+     if( *L == '\0' )
        break;
 
-     L_char++;
-     R_char++;
+     L++;
+     R++;
+     size--;
    }
 
    return 0;
-#endif
 }
 
 //----------------------------------------------------------------------------
