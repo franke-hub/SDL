@@ -16,9 +16,9 @@
 //       Sample program: How to use getopt_long
 //
 // Last change date-
-//       2020/06/13
+//       2020/06/22
 //
-// Implementation notes-
+// Usage notes-
 //       getopt_long does not print an invalid argument error message when
 //       ':' is the first character of the optstring parameter.
 //
@@ -73,6 +73,38 @@ enum OPT_INDEX                      // Must match OPTS[]
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       init
+//
+// Purpose-
+//       Initialize
+//
+//----------------------------------------------------------------------------
+static int                          // Return code (0 OK)
+   init(                            // Initialize
+     int               argc,        // Argument count
+     char*             argv[])      // Argument array
+{
+   return 0;                        // Placeholder
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       term
+//
+// Purpose-
+//       terminate
+//
+//----------------------------------------------------------------------------
+static void
+   term( void )                     // Terminate
+{
+// Placeholder
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       debug_opt
 //
 // Purpose-
@@ -90,31 +122,6 @@ static inline void
      opt_name= "<<INVALID>>";
    fprintf(stderr, "%4d index(%d:%s) arg(%s) err(%d) ind(%d) opt(%c)\n",
                    line, opt_index, opt_name, optarg, opterr, optind, optopt);
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       info
-//
-// Purpose-
-//       Parameter description.
-//
-//----------------------------------------------------------------------------
-static void
-   info( void)                      // Parameter description
-{
-   fprintf(stderr, "Getopt <options> parameter ...\n"
-                   "Options:\n"
-                   "  -a,-b\t\tSwitches\n"
-                   "  -c\t\tSwitch requiring an argument\n"
-                   "  --help\tThis help message\n"
-                   "  --debug\targument\n"
-                   "  --opterr\t{on|off}\n"
-                   "  --verbose\t{=n} Verbosity, default 1\n"
-          );
-
-// exit(EXIT_FAILURE);
 }
 
 //----------------------------------------------------------------------------
@@ -151,13 +158,38 @@ static int                          // The integer value
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       info
+//
+// Purpose-
+//       Parameter description.
+//
+//----------------------------------------------------------------------------
+static int                          // Return code (Always 1)
+   info( void)                      // Parameter description
+{
+   fprintf(stderr, "Getopt <options> parameter ...\n"
+                   "Options:\n"
+                   "  -a,-b\t\tSwitches\n"
+                   "  -c\t\tSwitch requiring an argument\n"
+                   "  --help\tThis help message\n"
+                   "  --debug\targument\n"
+                   "  --opterr\t{on|off}\n"
+                   "  --verbose\t{=n} Verbosity, default 1\n"
+          );
+
+   return 1;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       parm
 //
 // Purpose-
 //       Parameter analysis.
 //
 //----------------------------------------------------------------------------
-static void
+static int                          // Return code (0 if OK)
    parm(                            // Parameter analysis
      int               argc,        // Argument count
      char*             argv[])      // Argument array
@@ -250,8 +282,11 @@ static void
      }
    }
 
+   // Return sequence
+   int rc= 0;
    if( opt_help )
-     info();
+     rc= info();
+   return rc;
 }
 
 //----------------------------------------------------------------------------
@@ -269,12 +304,18 @@ extern int                          // Return code
      char*             argv[])      // Argument array
 {
    //-------------------------------------------------------------------------
-   // Mainline code
+   // Initialize
    //-------------------------------------------------------------------------
-   parm(argc, argv);                // Argument analysis
+   int rc= parm(argc, argv);        // Argument analysis
+   if( rc ) return rc;              // Return if invalid
+
+   rc= init(argc, argv);            // Initialize
+   if( rc ) return rc;              // Return if invalid
+
+   printf("Getopt.cpp: %s %s\n", __DATE__, __TIME__); // Compile time message
 
    //-------------------------------------------------------------------------
-   // Display option values
+   // Mainline code: Display option values
    //-------------------------------------------------------------------------
    printf("\n");
    printf("argc(%d)\n", argc);
@@ -292,5 +333,10 @@ extern int                          // Return code
    for(int i= optind; i<argc; i++)
      printf("[%2d] '%s'\n", i, argv[i]);
 
-   return EXIT_SUCCESS;
+   //-------------------------------------------------------------------------
+   // Terminate
+   //-------------------------------------------------------------------------
+   term();                          // Termination cleanup
+
+   return rc;
 }
