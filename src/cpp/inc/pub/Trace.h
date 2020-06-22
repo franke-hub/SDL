@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2020/06/20
+//       2020/06/22
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -69,7 +69,9 @@
 #ifndef _PUB_TRACE_H_INCLUDED
 #define _PUB_TRACE_H_INCLUDED
 
+#include <atomic>                   // For std::atomic_uint64_t, ...
 #include <stdint.h>                 // For uint32_t
+
 #include "config.h"                 // For _PUB_NAMESPACE
 
 namespace _PUB_NAMESPACE {

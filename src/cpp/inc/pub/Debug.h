@@ -16,7 +16,7 @@
 //       Debugging control.
 //
 // Last change date-
-//       2020/01/24
+//       2020/06/22
 //
 // Implementation notes-
 //       A fileName of ">" or "1>" writes the log to stdout.
@@ -148,8 +148,8 @@ static void
 //----------------------------------------------------------------------------
 inline void
    clr_head(                        // Clear a Heading options
-     Heading           head)        // The Heading option to clear
-{  this->head &= ~(int)head; }
+     int               head)        // The Heading options to clear
+{  this->head &= ~head; }
 
 void
    flush( void );                   // Flush the trace file, stdout and stderr
@@ -181,8 +181,8 @@ void
 
 inline void
    set_head(                        // Set a Heading option
-     Heading           head)        // The Heading option to set
-{  this->head |= (int)head; }
+     int               head)        // The Heading options to set
+{  this->head = head; }
 
 inline void
    set_mode(                        // Set the Mode
