@@ -64,7 +64,7 @@ namespace utility {
 //
 //----------------------------------------------------------------------------
 int                                 // Resultant value
-   atoi(                            // Convert ASCII to decimal integer
+   atoi(                            // Convert ASCII to signed integer
      const char*       inp);        // Input string
 
 //----------------------------------------------------------------------------
@@ -81,7 +81,25 @@ int                                 // Resultant value
 //
 //----------------------------------------------------------------------------
 long                                // Resultant value
-   atol(                            // Convert ASCII to decimal long inteter
+   atol(                            // Convert ASCII to signed long
+     const char*       inp);        // Input string
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       utility::atoui
+//       utility::atoul
+//
+// Purpose-
+//       Unsigned versions of atoi, atol.
+//
+//----------------------------------------------------------------------------
+unsigned                            // Resultant value
+   atoui(                           // Convert ASCII to unsigned integer
+     const char*       inp);        // Input string
+
+unsigned long                       // Resultant value
+   atoul(                           // Convert ASCII to unsigned long
      const char*       inp);        // Input string
 
 //----------------------------------------------------------------------------

@@ -31,7 +31,17 @@
 #include <stdio.h>                  // For FILE definition
 #include <string.h>                 // For memcpy, ...
 
+#include <pub/Debug.h>              // For Debug object (see dump())
 #include "pub/utility.h"            // Function definitions
+
+//----------------------------------------------------------------------------
+// Constants for parameterization
+//----------------------------------------------------------------------------
+#ifndef HCDM                        // If defined, Hard Core Debug Mode
+#undef  HCDM
+#endif
+
+#include "pub/ifmacro.h"            // For IFHCDM
 
 namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
@@ -134,6 +144,67 @@ long                                // Resultant value
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       atoui
+//       atoul
+//
+// Purpose-
+//       Unsigned versions of atoi, atol.
+//
+//----------------------------------------------------------------------------
+unsigned                            // Resultant value
+   atoui(                           // Convert ASCII to unsigned integer
+     const char*       inp)         // Input string
+{
+   inp= skip_space(inp);
+   long result= atoul(inp);
+   if( inp[0] == '0' && (inp[1] == 'x' || inp[1] == 'X') ) {
+     if( result & 0xffffffff00000000L )
+       errno= ERANGE;
+   } else if( result > long(UINT_MAX) ) {
+       errno= ERANGE;
+   }
+
+   return int(result);
+}
+
+unsigned long                       // Resultant value
+   atoul(                           // Convert ASCII to unsigned long
+     const char*       inp)         // Input string
+{
+   long                result= 0;   // Resultant
+
+   inp= skip_space(inp);
+   if( *inp == '0' && (inp[1] == 'x' || inp[1] == 'X') )
+     result= atox(inp);
+   else {
+     if( *inp == '+' )              // If leading '+'
+       inp++;
+
+     if( *inp == '\0' )             // If empty string
+       errno= EINVAL;
+     while( *inp != '\0' && !isspace(*inp) ) {
+       if( *inp < '0' || *inp > '9') {
+         errno= EINVAL;
+         break;
+       }
+
+       result *= 10;
+       result += *inp - '0';
+       if( result < 0 ) {           // If overflow
+         errno= ERANGE;
+         break;
+       }
+
+       inp++;
+     }
+   }
+
+   return result;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       atox
 //
 // Purpose-
@@ -192,7 +263,7 @@ void                                // Dump formatter
      FILE*             file,        // Output FILE
      const void*       addrp,       // Input data address
      size_t            size,        // Input data size
-     const void*       addrv)       // Virtual data address (Can be omitted)
+     const void*       addrv)       // Virtual data address (= addrp)
 {
 enum FSM                            // Finite State machine
 {  FSM_FIRST                        // First file line
@@ -278,13 +349,14 @@ enum FSM                            // Finite State machine
          }
 
          offset= oldAddr & 15;
+         length= 16 - offset;
          for(int i=0; i<offset; i++) {  // Handle leading unused
            newData[i]= '~';
            output[position(i)]= '~';
            output[position(i)+1]= '~';
          }
 
-         for(int i=size; i<16; i++) {   // Handle trailing unused
+         for(int i=length; i<16; i++) { // Handle trailing unused
            newData[i]= '~';
            output[position(i)]= '~';
            output[position(i)+1]= '~';
@@ -320,6 +392,12 @@ enum FSM                            // Finite State machine
        memcpy(newData, paddr, 16);
      else if( size > 0 )
        memcpy(newData, paddr, size);
+
+     IFHCDM(
+        if( fsm != FSM_INDUP ) {
+          fflush(file);             // Flush after each output line
+        }
+     )
    }
 }
 
