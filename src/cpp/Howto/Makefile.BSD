@@ -25,6 +25,11 @@ include $(INCDIR)/com/Makefile.BSD
 include $(INCDIR)/pub/Makefile.BSD
 
 ##############################################################################
+## The listing is required for Macros.o
+Macros.o : $(SRCDIR)/Macros.cpp
+	$(CC) -o $@ $(CFLAGS) -Wa,-ahl=$*.lst -c $<
+
+##############################################################################
 ## Cleanup
 .PHONY: MAK_clean
 clean:  MAK_clean
