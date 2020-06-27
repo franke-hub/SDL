@@ -1,7 +1,7 @@
 ##
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2012-2019 Frank Eskesen.
+##       Copyright (C) 2012-2020 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Extract nickname for subdirectory
 ##
 ## Last change date-
-##       2019/10/26
+##       2020/06/26
 ##
 ## Usage-
 ##       cd `nickdir alias_name`
@@ -123,8 +123,12 @@ case $1 in
     __FULLDIR="$HOME/obj/cpp/$1"
     ;;
 
-  cpp.* | obj.*)
+  obj.*)
     __FULLDIR="$HOME/obj/cpp/${1:4}"
+    ;;
+
+  cpp.*)
+    __FULLDIR="$HOME/src/cpp/${1:4}"
     ;;
 
   ## Aliased C++ test object directory
