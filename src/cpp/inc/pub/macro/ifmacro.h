@@ -16,15 +16,20 @@
 //       IFMACRO defaults and macros.
 //
 // Last change date-
-//       2020/06/20
+//       2020/06/26
 //
 // Controls-
 //       HCDM     Hard Core Debug Mode (Intensive tracing)
 //       IODM     Input/Output Debug mode (I/O tracing)
 //       SCDM     Soft Core Debug Mode (Moderate tracing)
+//       SCDM     A.K.A. Special Case Debug Mode (Special case debugging)
 //       CHECK    Enhanced error checking
 //       STATS    Statistics trace
 //       TRACE    Memory trace activation
+//
+// Implementation note-
+//       To be deprecated and replaced by enum declarations.
+//       See detail/Trace.h for example usage.
 //
 //----------------------------------------------------------------------------
 
