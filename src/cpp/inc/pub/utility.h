@@ -16,7 +16,7 @@
 //       Utility functions.
 //
 // Last change date-
-//       2020/06/22
+//       2020/06/27
 //
 // Comparison operators-
 //       op_lt_istr    Case insensitive s LT operator
@@ -193,6 +193,19 @@ int                                 // Resultant <0,=0,>0
      const char*       L,           // Left hand side
      const char*       R,           // Right hand side
      size_t            size);       // Maximum comparison length
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       utility::to_ascii
+//
+// Purpose-
+//       Convert to ascii
+//
+//----------------------------------------------------------------------------
+static inline const char*           // Resultant
+   to_ascii(bool what)              // Convert boolean to ascii
+{  return what ? "true" : "false"; }
 
 //----------------------------------------------------------------------------
 //

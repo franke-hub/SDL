@@ -31,6 +31,7 @@
 #include "pub/Event.h"              // For Event
 #include "pub/Exception.h"          // For Exception
 #include <pub/Interval.h>           // For Interval (performance debugging)
+#include "pub/Mutex.h"              // For Mutex
 #include "pub/Named.h"              // For Named (Threads)
 #include "pub/Semaphore.h"          // For Semaphore
 #include "pub/Thread.h"             // For Thread
@@ -39,6 +40,7 @@ using pub::Debug;
 using pub::Event;
 using pub::Exception;
 using pub::Interval;
+using pub::Mutex;
 using pub::Named;
 using pub::Semaphore;
 using pub::Thread;
@@ -62,7 +64,7 @@ using namespace pub::debugging;
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static std::mutex      alphaMutex;
+static Mutex           alphaMutex;
 static std::mutex      betaMutex;
 static Semaphore       alphaSemaphore(1);
 static Semaphore       betaSemaphore(1);
@@ -235,11 +237,12 @@ virtual void
    debugh("Before betaMutex.lock()\n");
    betaMutex.lock();
 
-   debugh("Before alphaMutex.lock()\n");
-   alphaMutex.lock();
+   {{{{
+     debugh("Before alphaMutex.lock()\n");
+     std::lock_guard<decltype(alphaMutex)> lock(alphaMutex);
 
-   debugh("Before alphaMutex.unlock()\n");
-   alphaMutex.unlock();
+     debugh("Before alphaMutex.unlock()\n");
+   }}}}
 
    debugh("sleep(1.0)...\n");
    Thread::sleep(1.0);
@@ -424,11 +427,12 @@ static inline void
    debugh("Before alphaMutex.unlock()\n");
    alphaMutex.unlock();
 
-   debugh("Before betaMutex.lock()\n");
-   betaMutex.lock();
+   {{{{
+     debugh("Before betaMutex.lock()\n");
+     std::lock_guard<decltype(betaMutex)> lock(betaMutex);
 
-   debugh("Before betaMutex.unlock()\n");
-   betaMutex.unlock();
+     debugh("Before betaMutex.unlock()\n");
+   }}}}
 
    debugh("thread.join()\n");
    mutexThread.join();
@@ -631,6 +635,7 @@ extern int
 {
    debugf("Thread bringup test\n");
    debug_set_head(Debug::HeadThread);
+   debug_set_head(Debug::HeadTime);
 // debug_set_mode(Debug::ModeIntensive);
    if( argc > 1 )
      noisy_delay= atof(argv[1]);

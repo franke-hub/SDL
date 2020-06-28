@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2018 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,9 +16,10 @@
 //       Test debugging methods.
 //
 // Last change date-
-//       2018/01/01
+//       2020/06/28
 //
 //----------------------------------------------------------------------------
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -62,6 +63,8 @@ extern int                          // Return code
    traceh("This appears in %s ONLY\n",   "TRACE");
 
    debug_set_mode(Debug::ModeIgnore);
+   errno= ESRCH;
+   errorp("Ignore mode: (ignored) This appears in STDERR (only)");
    debugf("Ignore mode:\n");
    errorf("Ignore mode:\n");
    tracef("Ignore mode:\n");

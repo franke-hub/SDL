@@ -38,6 +38,8 @@ using namespace pub::debugging;     // Expose debugging subroutines
 //----------------------------------------------------------------------------
 // Contants for parameterization
 //----------------------------------------------------------------------------
+#define USE_ANON_CON_DESTRUCTOR true  // Test anonymous con/destructor?
+
 #ifndef HCDM
 #undef  HCDM                        // If defined, Hard Core Debug Mode
 #endif
@@ -67,6 +69,31 @@ enum OPT_INDEX
 {  OPT_DEBUG= 1
 ,  OPT_VERBOSE= 2
 };
+
+//----------------------------------------------------------------------------
+//
+// Section-
+//       test_anon
+//
+// Purpose-
+//       Test anonymous global constructor/destructor.
+//
+//----------------------------------------------------------------------------
+#if USE_ANON_CON_DESTRUCTOR
+
+static struct {                     // An anonymous class
+  struct N {                        // Wrapping a named class
+    N() { printf("Anon constructor\n"); } // Do something when constructed
+    ~N() { printf("Anon destructor\n"); } // Do something when destroyed
+  } named;                          // Instantiate in anonymous class
+} globalAnon;                       // Construct/Destruct anonymously
+
+static struct N {                   // Verify anonymity (struct N usable)
+  N() { printf("Name constructor\n"); } // Do something when constructed
+  ~N() { printf("Name destructor\n"); } // Do something when destroyed
+} globalName;                       // Construct/Destruct named
+
+#endif
 
 //----------------------------------------------------------------------------
 //

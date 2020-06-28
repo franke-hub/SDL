@@ -16,13 +16,14 @@
 //       Compile header files that have no execution component.
 //
 // Last change date-
-//       2020/04/03
+//       2020/06/23
 //
 //----------------------------------------------------------------------------
 #include "pub/Event.h"
 #include "pub/Exception.h"
 #include "pub/Interval.h"
 #include "pub/Latch.h"
+#include "pub/Mutex.h"
 #include "pub/Semaphore.h"
 #include "pub/Signals+Slots.h"
 #include "pub/UTF8.h"
