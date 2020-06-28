@@ -13,10 +13,10 @@
 ##############################################################################
 ## Local module list
 MAKEXE :=
-MAKOBJ := $(patsubst $(OBJDIR)/main.o,,$(MAKOBJ))
-MAKEXE += main
-MAKOBJ := $(patsubst $(OBJDIR)/sample.o,,$(MAKOBJ))
-MAKEXE += sample
+MAKOBJ := $(patsubst $(OBJDIR)/Main.o,,$(MAKOBJ))
+MAKEXE += Main
+MAKOBJ := $(patsubst $(OBJDIR)/Sample.o,,$(MAKOBJ))
+MAKEXE += Sample
 LLIBS  += -L. -llocal
 ## MOPTS  += -bmaxdata:0x80000000
 ## MLIBS  += -L. -llocal ## -bmaxdata:0x80000000
