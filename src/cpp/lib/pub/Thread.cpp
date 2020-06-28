@@ -32,10 +32,9 @@
 #include <mutex>                    // Used for lock_guard, mutex
 #include <system_error>             // Used by Thread::start()
 
-#include "pub/Debug.h"              // For debugging
-#include "pub/Exception.h"          // For debugging
-#include "pub/Interval.h"           // For performance debugging
-#include "pub/Latch.h"              // For performance comparison
+#include <pub/Debug.h>              // For debugging
+#include <pub/Exception.h>          // For debugging
+
 #include "pub/Thread.h"             // Method declarations
 
 namespace _PUB_NAMESPACE {
