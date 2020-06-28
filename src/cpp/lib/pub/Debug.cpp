@@ -78,18 +78,11 @@ static std::recursive_mutex
                        mutex;       // Recursive serialization Latch
 static Debug*          internal= nullptr; // The auto-allocated Debug object
 
-#define STATIC_STRUCTOR DebugStaticStructor_jIxxwv8w_hiAr_Misreatakjer
-static class STATIC_STRUCTOR {
-public:
+static struct GlobalDestructor {    // On unload, remove Debug::global
 inline
-   ~STATIC_STRUCTOR( void )
-{
-   std::lock_guard<decltype(mutex)> lock(mutex);
-
-   if( internal )
-     delete internal;
-}
-} debugStaticDestructor; // class STATIC_STRUCTOR
+   ~GlobalDestructor( void )
+{  Debug::set(nullptr); }           // Cleans up both Debug::common & internal
+}  globalDestructor;
 
 //----------------------------------------------------------------------------
 //
@@ -149,9 +142,6 @@ static bool                         // true iff STDIO
    Debug::~Debug( void )            // Destructor
 {  IFHCDM( fprintf(stderr, "Debug(%p)::~Debug()\n", this); )
    term();
-
-   if( this == internal )
-     internal= nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -360,7 +350,9 @@ Debug*                              // The removed Debug object
 
    if( removed == internal )
    {
-     delete internal;               // ~Debug sets internal= nullptr
+     delete internal;
+     internal= nullptr;
+
      removed= nullptr;
    }
 
@@ -981,6 +973,24 @@ void
    va_start(argptr, fmt);           // Initialize va_ functions
    verrorh(fmt, argptr);
    va_end(argptr);                  // Close va_ functions
+}
+
+void                                // Note: Does not use Debug object
+   errorp(                          // Write message to stderr (only)
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // The remaining arguments
+{
+   va_list             argptr;      // Argument list pointer
+
+   fflush(NULL);                    // Flush everything first
+
+   char buffer[4096];               // Format buffer
+   va_start(argptr, fmt);           // Initialize va_ functions
+   vsnprintf(buffer, sizeof(buffer), fmt, argptr); // Format the message
+   va_end(argptr);                  // Close va_ functions
+
+   perror(buffer);                  // Write the message in one line
+   fflush(stderr);                  // Flush stderr
 }
 
 void

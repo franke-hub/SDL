@@ -16,7 +16,7 @@
 //       Debugging control.
 //
 // Last change date-
-//       2020/06/22
+//       2020/06/28
 //
 // Implementation notes-
 //       A fileName of ">" or "1>" writes the log to stdout.
@@ -182,7 +182,7 @@ void
 inline void
    set_head(                        // Set a Heading option
      int               head)        // The Heading options to set
-{  this->head = head; }
+{  this->head |= head; }
 
 inline void
    set_mode(                        // Set the Mode
