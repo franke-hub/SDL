@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2020/06/22
+//       2020/06/26
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -197,6 +197,11 @@ void
 //   Note: the global Debug lock is held while dumping.
 void
    dump( void ) const;              // Dump the trace table
+
+uint32_t                            // Offset of record
+   offset(                          // Get offset of
+     void*             record)      // This record
+{  return (char*)record - (char*)this; }
 
 // storage_if: Static storage allocator (with status checking)
 static void*                        // The storage, nullptr if inactive

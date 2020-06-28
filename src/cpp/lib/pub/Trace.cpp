@@ -16,39 +16,42 @@
 //       Trace object methods.
 //
 // Last change date-
-//       2020/06/20
+//       2020/06/26
 //
 //----------------------------------------------------------------------------
-#include <atomic>                   // Atomic operation required
+#include <atomic>                   // For std::atomic
+#include <chrono>                   // For SCDM( std::chrono )
 #include <time.h>                   // For clock_gettime
 #include <mutex>                    // For std::lock_guard
 #include <new>                      // For std::bad_alloc
 #include <string.h>                 // For memcpy
+#include <unistd.h>                 // For sysconf
 
 #include <pub/Debug.h>              // For debugging
+#include <pub/Thread.h>             // For SCDM( Thread::current() )
 #include <pub/utility.h>            // For pub::utility::dump
 
 #include "pub/Trace.h"
+#include "pub/detail/Trace.h"
 using namespace _PUB_NAMESPACE::debugging; // For debugging
+using namespace _PUB_NAMESPACE::detail::Trace; // Our option namespace
 
 namespace _PUB_NAMESPACE {
-//----------------------------------------------------------------------------
-// Macros
-//----------------------------------------------------------------------------
-#ifndef CHECK                       // If defined, enhanced error checking
-#undef  CHECK
-#endif
-
-#ifndef HCDM                        // If defined, Hard Core Debug Mode
-#undef  HCDM
-#endif
-
-#include <pub/ifmacro.h>
-
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
 Trace*                 Trace::trace= nullptr; // The common Trace object
+
+//----------------------------------------------------------------------------
+// The SCDM_record, only used for Special Case Debug Mode
+//----------------------------------------------------------------------------
+static const char*     SCDM_id= ".TAF"; // Trace Allocation Failure
+static const char*     SCDM_name= "Trace.c"; // 8 characters, counting '\0'
+struct SCDM_record : public Trace::Record { // Special Case Trace::Record
+//                     iitem;       // The number of retries
+Thread*                thread;      // The Thread identifier
+char                   name[8];     // This module name
+}; // struct SCDM_record
 
 //----------------------------------------------------------------------------
 //
@@ -58,17 +61,15 @@ Trace*                 Trace::trace= nullptr; // The common Trace object
 // Purpose-
 //       Constructor.
 //
-// Implementation notes-
-//       make() validates alignment and size, initializes storage to zero.
-//
 //----------------------------------------------------------------------------
    Trace::Trace(                    // Constructor
      uint32_t          size)        // Length of trace table
 {
    unsigned zero= sizeof(Trace);    // The first record offset
-   zero +=  (ALIGNMENT - 1);
-   zero &= ~(ALIGNMENT - 1);
-   size -= zero;
+   static_assert( (sizeof(Trace) & (ALIGNMENT-1)) == 0, "Trace.h ALIGNMENT");
+// zero +=  (ALIGNMENT - 1);        // Not needed, static_assert verifies it
+// zero &= ~(ALIGNMENT - 1);
+// size -= zero;
 
    this->zero= zero;
    this->last= size;
@@ -84,14 +85,28 @@ Trace*                 Trace::trace= nullptr; // The common Trace object
 // Purpose-
 //       Initialize the Trace table
 //
+// Implementation notes-
+//       Storage and size alignment are done here, before construction
+//
 //----------------------------------------------------------------------------
 Trace*                              // -> Trace instance
    Trace::make(                     // Initialize the Trace table
      void*             addr,        // Address of trace table
      size_t            size)        // Length of trace table
 {
-   IFCHECK( debugf("%4d HCDM Trace.cpp CHECK active\n", __LINE__); )
-   IFHCDM( debugf("%4d HCDM Trace.cpp HCDM active\n", __LINE__); )
+   if( CHECK ) debugf("%4d HCDM Trace.cpp CHECK active\n", __LINE__);
+   if( HCDM  ) debugf("%4d HCDM Trace.cpp HCDM active\n", __LINE__);
+   if( USE_CACHE_LINE ) {           // TODO: REMOVE
+     // This isn't useful. Level 1 data cache lines are typically small.
+     // While there might be some header/record interference for the first
+     // few records, that would only occur again when the table wraps.
+     // Line sizes are typically 64 bytes but even considering a 256 byte
+     // line size, there would only be a maximum of 3 records per wrap where
+     // the header and a record collided. A typical table size of 16M has
+     // 524K records, so the max interference overhead is 0.00057 percent.
+     // This is WAY less than can be reasonably repeatably measured.
+     debugf("%4d HCDM Trace.cpp USE_CACHE_LINE not implemented\n", __LINE__);
+   }
 
    if( addr == nullptr              // Reject invalid parameters
        || size < TABLE_SIZE_MIN || size > TABLE_SIZE_MAX )
@@ -124,7 +139,7 @@ Trace*                              // -> Trace instance
 //       Not needed, at least yet. Trace::trace= nullptr suffices.
 //
 //----------------------------------------------------------------------------
-#if 0                               // Limited utility, unused
+#if false                           // Limited utility, unused
 Trace*                              // Replaced Trace::trace
    Trace::take( void )              // Reset the global Trace object
 {
@@ -163,28 +178,30 @@ void*                               // Resultant
 
    size +=  (ALIGNMENT - 1);
    size &= ~(ALIGNMENT - 1);
-// IFCHECK( // Check size parameter?
-     // These size checks are always enabled:
+// if( CHECK ) {                    // Check size parameter?
+     // Size checks are always enabled:
      //   size == 0: An all too common mistake
      //   size > (available size): The for(;;) loop never exits
-//// if ( size == 0 || size > (this->size - this->zero) ) // (The real test)
-     if ( size == 0 || size > (this->size - sizeof(Trace)) )
-       return nullptr;
-// ) // IFCHECK
+     // this->zero is rounded size of header, always the header size
+//   if ( size == 0 || size > (this->size - this->zero) ) // If too large
+     if ( size == 0 || size > (this->size - sizeof(Trace) ) ) // If too large
+       throw std::bad_alloc();      // Parameter error
+// } // if( CHECK )
 
+   uint32_t spins= 0;               // Loop retry counter (for SCDM)
    oldV= next.load();
    for(;;)
    {
      last= 0;                       // Indicate not wrapped
      newV= oldV + size;             // Arithmetic overflow is a user error
-IFCHECK( // Check for arithmetic overflow?
-     // Arithmetic overflow can only occur when the size parameter plus the
-     // size of the table is greater than UINT32_MAX.
-     // This is simple for an application to avoid and while the checking
-     // is small, it's not zero.
-     if( newV < size )              // If arithmetic overflow
-       return nullptr;
-) // IFCHECK
+     if( CHECK ) {                  // Check for arithmetic overflow?
+       // Arithmetic overflow can only occur when the size parameter plus the
+       // size of the table is greater than UINT32_MAX.
+       // This is simple for an application to avoid and while the checking
+       // is small, it's not zero.
+       if( newV < size )            // If arithmetic overflow
+         return nullptr;
+     }
 
      result= (char*)this + oldV;
      if ( newV > this->size )       // If wrap
@@ -194,30 +211,48 @@ IFCHECK( // Check for arithmetic overflow?
        newV= size + zero;
      }
 
-     if( next.compare_exchange_strong(oldV, newV) )
+     if( next.compare_exchange_weak(oldV, newV) )
        break;
+
+     if( SCDM ) spins++;          // (Compile-time option)
    }
 
-IFHCDM( // Clarifies record initialization in progress state
-   memset(result, 0, size);         // Indicate record not initialized
-   memcpy(result, ".000", 4);       // Clarify: record not initialized
-// ((Record*)result)->init(".000", -1); // Alternate clarify option
-) // IFHCDM
+   // Special Case Debug Mode ================================================
+   if( SCDM > 0 ) {               // If enabled
+     if( spins > SCDM ) {         // If excessive retries
+       if( USE_DEACTIVATE )       // (Optionally)
+         deactivate();            // Terminate tracing
+
+       SCDM_record* record= (SCDM_record*)result;
+       record->init(SCDM_id, spins);
+       record->thread= Thread::current();
+       strcpy(record->name, SCDM_name);
+       result= nullptr;           // We do not return this record
+     }
+   }
+
+   if( HCDM ) {
+     // Clarifies record initialization in progress state
+     memset(result, 0, size);         // Indicate record not initialized
+     memcpy(result, ".000", 4);       // Clarify: record not initialized
+     // ((Record*)result)->init(".000", -1); // Alternate clarify option
+   }
 
    if( last ) {                     // Handle wrap
      wrap++;                        // (Atomically) update the wrap count
      this->last= last;              // Last valid location
 
-IFHCDM( // Clean up any last empty area
-     // (Candidate for normal use. Doen't occur often, if at all.)
-     // This cleanup makes the last trace entry in the trace table slightly
-     // easier to look at, and doesn't occur in the normal case.
-     if( last < this->size ) {      // If zombie data exists
-       char* atlast= (char*)this + last;
-       memset(atlast, 0, this->size - last);
-       memcpy(atlast, ".END", 4);
+     if( HCDM ) {
+       // Clean up any last empty area
+       // (Candidate for normal use. Doen't occur often, if at all.)
+       // This cleanup makes the last trace entry in the trace table slightly
+       // easier to look at, and doesn't occur in the normal case.
+       if( last < this->size ) {      // If zombie data exists
+         char* atlast= (char*)this + last;
+         memset(atlast, 0, this->size - last);
+         memcpy(atlast, ".END", 4);
+       }
      }
-) // IFHCDM
    }
 
    return result;
