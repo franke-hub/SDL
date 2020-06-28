@@ -9,17 +9,17 @@
 ##############################################################################
 ##
 ## Title-
-##       ~/src/.gitsynch
+##       ~/.gitsynch
 ##
 ## Purpose-
-##       Time/date/version marker for last remote gitsynch operation.
+##       Time/date/version marker for maint branch merge operation.
 ##
 ## Last change date-
-##       2020/04/04 16:45 Version: 0.0.1 HOTFIX
+##       2020/06/28 16:00 (maint merge)
 ##
 ## Implementation note-
-##       The ~/bat/gitsynch operation changes the last modification date and
-##       time for files modified or moved since the previous gitsynch.
+##       The "~/bat/gitsynch maint" operation changes the last modification
+##       date and time for files modified or moved since the prior gitsynch.
 ##
 ##       This file is a reminder of that fact.
 ##
