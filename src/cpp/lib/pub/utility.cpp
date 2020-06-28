@@ -576,7 +576,7 @@ std::string                         // Resultant string
 //----------------------------------------------------------------------------
 std::string                         // The visual representation
    visify(                          // Get visual representation of
-     std::string       inp)         // This string
+     const std::string&inp)         // This string
 {
    std::stringstream   out;         // The output stream
 
