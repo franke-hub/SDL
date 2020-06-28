@@ -16,7 +16,7 @@
 //       Display directory and subdirectory.
 //
 // Last change date-
-//       2020/06/13
+//       2020/06/28
 //
 // Flags-
 //       -d (directory)
@@ -45,6 +45,7 @@
 #include <string.h>                 // For memset
 #include <stdlib.h>                 // For exit
 #include <unistd.h>                 // For readlink
+#include <pub/utility.h>            // For pub::utility::atoi
 
 #include "pub/Fileman.h"
 
@@ -129,20 +130,10 @@ static void
    fprintf(stderr,"\n");
    fprintf(stderr,"Options:\n");
    fprintf(stderr,"-d (Directory) Display directory names\n");
-
-   fprintf(stderr,"\n");
    fprintf(stderr,"-f (File) Display file names\n");
-
-   fprintf(stderr,"\n");
    fprintf(stderr,"-l (Link) Display link names\n");
-
-   fprintf(stderr,"\n");
    fprintf(stderr,"-n Display directory, file, and link names\n");
-
-   fprintf(stderr,"\n");
    fprintf(stderr,"--print0 Use \\0 rather than \\n delimiter\n");
-
-   fprintf(stderr,"\n");
    fprintf(stderr,"--verbose Display debugging information\n");
 
    exit(1);
