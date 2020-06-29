@@ -16,7 +16,7 @@
 //       Trace object methods.
 //
 // Last change date-
-//       2020/06/26
+//       2020/06/28
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -96,17 +96,6 @@ Trace*                              // -> Trace instance
 {
    if( CHECK ) debugf("%4d HCDM Trace.cpp CHECK active\n", __LINE__);
    if( HCDM  ) debugf("%4d HCDM Trace.cpp HCDM active\n", __LINE__);
-   if( USE_CACHE_LINE ) {           // TODO: REMOVE
-     // This isn't useful. Level 1 data cache lines are typically small.
-     // While there might be some header/record interference for the first
-     // few records, that would only occur again when the table wraps.
-     // Line sizes are typically 64 bytes but even considering a 256 byte
-     // line size, there would only be a maximum of 3 records per wrap where
-     // the header and a record collided. A typical table size of 16M has
-     // 524K records, so the max interference overhead is 0.00057 percent.
-     // This is WAY less than can be reasonably repeatably measured.
-     debugf("%4d HCDM Trace.cpp USE_CACHE_LINE not implemented\n", __LINE__);
-   }
 
    if( addr == nullptr              // Reject invalid parameters
        || size < TABLE_SIZE_MIN || size > TABLE_SIZE_MAX )
@@ -163,7 +152,8 @@ Trace*                              // Replaced Trace::trace
 //
 // Implementation note-
 //       Performance critical path.
-//       A nullptr resultant only occurs as a result of an application error.
+//       A nullptr resultant only occurs as a result of an application error
+//       (or when using SCDM, Special Case Debug Mode.)
 //
 //----------------------------------------------------------------------------
 void*                               // Resultant
@@ -239,7 +229,7 @@ void*                               // Resultant
    }
 
    if( last ) {                     // Handle wrap
-     wrap++;                        // (Atomically) update the wrap count
+     wrap++;                        // Update the wrap count
      this->last= last;              // Last valid location
 
      if( HCDM ) {
@@ -278,8 +268,8 @@ void
    std::lock_guard<decltype(*debug)> lock(*debug);
 
    tracef("Trace(%p)::dump\n", this);
-   tracef("..wrap(%ld) zero(0x%.2x) last(0x%.8x) size(0x%.8x) next(0x%.8x)\n",
-          wrap.load(), zero, last, size, next.load());
+   tracef("..wrap(%lu) zero(0x%.2x) last(0x%.8x) size(0x%.8x) next(0x%.8x)\n",
+          wrap, zero, last, size, next.load());
    utility::dump(debug->get_FILE(), this, size, nullptr);
 }
 

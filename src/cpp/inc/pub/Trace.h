@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2020/06/26
+//       2020/06/28
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -101,7 +101,7 @@ enum                                // Generic enum
 static Trace*          trace;       // Common Trace instance (Application controlled)
 
 //// Applications can, but normally do not access these fields
-std::atomic_uint64_t   wrap;        // The wrap counter
+uint64_t               wrap;        // The wrap counter
 uint32_t               _0008;       // Reserved
 uint8_t                flag[4];     // Control flags
 uint32_t               zero;        // Offset: Trace table origin

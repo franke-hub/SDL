@@ -16,7 +16,7 @@
 //       Trace table storage allocator, implementation controls
 //
 // Last change date-
-//       2020/06/26
+//       2020/06/28
 //
 // Usage notes-
 //       This contains implementation controls for ~/lib/Trace.cpp.
@@ -45,9 +45,7 @@ enum // Compile-time options
 {  CHECK= false                     // Check for should not occur conditions?
 ,  HCDM= false                      // Hard Core Debug Mode?
 ,  SCDM= 0                          // Special Case Debug Mode, spin limit
-,  USE_CACHE_LINE= false            // Allocate header in separate cache line?
 ,  USE_DEACTIVATE= false            // SCDM(Deactivate trace option)
-,  USE_SCDM_TIMER= false            // SCDM(Use timer, not spin count)
 }; // Compile-time options
 }  // namespace _PUB_NAMESPACE::detail::Trace
 #endif // _PUB_DETAIL_TRACE_H_INCLUDED
