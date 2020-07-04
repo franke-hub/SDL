@@ -1,0 +1,33 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/cpp/Stress/.TIMING
+##
+## Purpose-
+##       Timing test results.
+##
+## Last change date-
+##       2020/06/19
+##
+## Implementation note-
+##       Only three tests are run. Small differences are irrelevant.
+##
+##############################################################################
+
+##############################################################################
+## (Reported elapsed time in seconds)
+##############################################################################
+## 2020/06/19 (NOT TESTED YET)
+##                WIN      UIX
+##       Min: 000.000, 000.000
+##       Avg: 000.000, 000.000
+##       Max: 000.000, 000.000
+##
