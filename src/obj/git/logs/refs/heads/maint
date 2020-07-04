@@ -1,9 +1,4 @@
-0000000000000000000000000000000000000000 d69042988c5e6f6082a82956b3218328bcb0e12f Frank Eskesen <f.n.eskesen@gmail.com> 1585170462 -0400	branch: Created from HEAD
-d69042988c5e6f6082a82956b3218328bcb0e12f 862d30b83245145dde84cf173aed23082b7fdd25 Frank Eskesen <f.n.eskesen@gmail.com> 1585170494 -0400	commit: Removed invalid links.
-862d30b83245145dde84cf173aed23082b7fdd25 19486b621b2668469078ae68c31105842ba92e7c Frank Eskesen <f.n.eskesen@gmail.com> 1585172015 -0400	commit: Updated Makefile links. Functional enhancement.
-19486b621b2668469078ae68c31105842ba92e7c dc82de8748cef054ae00a734a7679d959e5f3f70 Frank Eskesen <f.n.eskesen@gmail.com> 1585172463 -0400	commit: Added Makefile. (Not really needed.)
-dc82de8748cef054ae00a734a7679d959e5f3f70 e85c7c10b974632c19a43db413c677f63eea4b6f Frank Eskesen <f.n.eskesen@gmail.com> 1585185852 -0400	commit: Don't build jpeg library. Use standard distribution.
-e85c7c10b974632c19a43db413c677f63eea4b6f 6f6ac4293ce1e103a33aa2e2ac3a262699247328 Frank Eskesen <f.n.eskesen@gmail.com> 1585186975 -0400	commit: Added .gitignore
-6f6ac4293ce1e103a33aa2e2ac3a262699247328 73ec124b2f1b5e7a6e64e5123f96d6942244424d Frank Eskesen <f.n.eskesen@gmail.com> 1585187020 -0400	commit: Ignore .gitinored subdirectories.
-73ec124b2f1b5e7a6e64e5123f96d6942244424d c7c070e4026bd932ab8c46b48389b171a0e943f6 Frank Eskesen <f.n.eskesen@gmail.com> 1585326157 -0400	commit: Removed ~(obj)/c/lib/jpeg, no longer supported. Use distributed jpeg instead.
-c7c070e4026bd932ab8c46b48389b171a0e943f6 93d42d1bc7174e9dbd71bddd8ee543b7c8e9822a Frank Eskesen <f.n.eskesen@gmail.com> 1585966190 -0400	commit: Add missing links to repository.
+93d42d1bc7174e9dbd71bddd8ee543b7c8e9822a cdf1d7ce7834be57f4ab658d9e02d918566b23ab Frank Eskesen <f.n.eskesen@gmail.com> 1593874838 -0400	commit: Ignore *.lst files.
+cdf1d7ce7834be57f4ab658d9e02d918566b23ab ebeb24a9f72da94e006d0f013ba69a1faaffdc35 Frank Eskesen <f.n.eskesen@gmail.com> 1593874937 -0400	commit: Corrected copyright statement.
+ebeb24a9f72da94e006d0f013ba69a1faaffdc35 94768357ef20c551600b2053007afcd059cd8a39 Frank Eskesen <f.n.eskesen@gmail.com> 1593874988 -0400	commit: No longer accurate.
+94768357ef20c551600b2053007afcd059cd8a39 c31101d8e222fe15a71de0ad17e8fbb586e795df Frank Eskesen <f.n.eskesen@gmail.com> 1593875549 -0400	commit: Added, operational.
