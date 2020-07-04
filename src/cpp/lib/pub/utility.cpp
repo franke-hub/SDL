@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2020/06/22
+//       2020/07/03
 //
 //----------------------------------------------------------------------------
 #include <sstream>                  // For std::stringstream
@@ -322,10 +322,10 @@ enum FSM                            // Finite State machine
            fsm= FSM_UNDUP;
            if( sizeof(void*) > 4 )
              fprintf(file, "%.16" PRIX64 "  to %.16" PRIX64
-                           ", lines same as above\n",
+                           ", lines duplicated\n",
                            int64_t(oldAddr), int64_t(vaddr-1));
            else
-             fprintf(file, "%.8lX  to %.8lX, lines same as above\n",
+             fprintf(file, "%.8lX  to %.8lX, lines duplicated\n",
                            long(oldAddr), long(vaddr-1));
          }
 
