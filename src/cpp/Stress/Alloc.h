@@ -16,7 +16,7 @@
 //       ~/Stress/Alloc.cpp customization.
 //
 // Last change date-
-//       2020/07/04
+//       2020/07/05
 //
 //----------------------------------------------------------------------------
 #ifndef S_ALLOC_H_INCLUDED
@@ -25,7 +25,7 @@
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-enum // compliation controls
+enum // compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
 
 ,  ITERATIONS= 1'000'000            // Default iterations/Task
@@ -33,7 +33,7 @@ enum // compliation controls
 ,  SLOT_COUNT= 8192                 // Default slot count
 ,  TASK_COUNT= 4                    // Default Task_count
 ,  TRACE_SIZE= 0x01000000           // Default trace table size
-}; // enum comilation controls
+}; // enum compilation controls
 
 //----------------------------------------------------------------------------
 // Task interaction controls
@@ -82,7 +82,7 @@ void
      int               line)        // Caller's line number
 {  debugh("%4d Record(%p) debug()\n", line, this); } // NOT CODED YET
 
-const char*                       // Get record identity (STATIC BUFFER)
+const char*                         // Get record identity (STATIC BUFFER)
    getIdent( void )
 {  static char buffer[SIZE + 4];
    memcpy(buffer, ident, SIZE);
@@ -90,8 +90,8 @@ const char*                       // Get record identity (STATIC BUFFER)
    return buffer;
 }
 
-uint32_t                          // Offset from Trace::trace
-   offset( void )                 // Of this Record
+uint32_t                            // Offset from Trace::trace
+   offset( void )                   // Of this Record
 {  return Trace::trace->offset(this); }
 
 void
@@ -306,37 +306,37 @@ virtual void
    // Run the test
    for(iteration= 1; iteration <= opt_iterations; iteration++) {
      Record* record= (Record*)Trace::trace->allocate_if(sizeof(Record));
-     if( record == nullptr )      // If trace inactive
-       break;                     // Abort test
+     if( record == nullptr )        // If trace inactive
+       break;                       // Abort test
 
      // Progress display
      if( (iteration % (opt_iterations/10)) == 0 ) {
-       if( opt_verbose >= 1 && iteration < opt_iterations )
+       if( opt_verbose >= 2 && iteration < opt_iterations )
          debugf("%4d Thread(%s)  %'12zd of %'12zd\n", __LINE__, ident
                 , iteration, opt_iterations);
      }
 
-     unsigned S= ud_slot(mt);     // Select a slot index
-     Slot* slot= slot_array + S;  // The associated Slot
-     if( slot->addr ) {           // If allocated
-       now_size -= slot->size;    // (Decrement *before* free)
-       now_slot--;                // Slot available
+     unsigned S= ud_slot(mt);       // Select a slot index
+     Slot* slot= slot_array + S;    // The associated Slot
+     if( slot->addr ) {             // If allocated
+       now_size -= slot->size;      // (Decrement *before* free)
+       now_slot--;                  // Slot available
 
        record->trace(ID_FREE, task, S, slot->addr, slot->size);
-       slot->free(S);             // Remove it
+       slot->free(S);               // Remove it
 
-       num_free++;                // Count free operation
-     } else {                     // If not allocated
-       size_t size= ud_size(mt);  // Select a size
-       slot->find(size);          // Allocate slot storage
+       num_free++;                  // Count free operation
+     } else {                       // If not allocated
+       size_t size= ud_size(mt);    // Select a size
+       slot->find(size);            // Allocate slot storage
        record->trace(ID_FIND, task, S, slot->addr, slot->size);
 
-       now_size += slot->size;    // Increment *after* find
+       now_size += slot->size;      // Increment *after* find
        if( now_size > max_size ) max_size= now_size;
-       now_slot++;                // Slot in use
+       now_slot++;                  // Slot in use
        if( now_slot > max_slot ) max_slot= now_slot;
 
-       num_find++;                // Count find operation
+       num_find++;                  // Count find operation
      }
    }
 }
@@ -459,14 +459,14 @@ void
      Thread* t= (Thread*)task_array[i];
      for(unsigned s= 0; s<opt_slots; s++) { // Verify the slot table
        if( ! t->slot_array[s].is_valid(s) ) { // If invalid slot
-         opt_verbose= 3;            // Debugging required
+         opt_verbose= 5;            // Debugging required
          debugf("%4d ERROR: Invalid slot data [%u][%u]\n", __LINE__, i, s);
          break;                     // (Only display one fault per thread)
        }
      }
    }
 
-   if( opt_verbose >= 2 ) {
+   if( opt_verbose >= 3 ) {         // If tracing
      Debug* debug= Debug::get();
      FILE* file= debug->get_FILE();
 
@@ -512,7 +512,7 @@ void
    double total= 0.0;
    for(unsigned i= 0; i<opt_multi; i++) { // Display the thread status
      Thread* t= (Thread*)task_array[i];
-     t->iteration--;                      // (Iteration starts at one)
+     t->iteration--;                // (Iteration starts at one)
 
      double secs= (double)t->time/(double)GIGA_VALUE;
      double iter_sec= (double)t->iteration/secs;

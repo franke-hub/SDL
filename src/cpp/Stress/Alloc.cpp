@@ -16,7 +16,7 @@
 //       ~/src/cpp/inc/pub/Allocator.h Stress test
 //
 // Last change date-
-//       2020/07/04
+//       2020/07/05
 //
 // Parameters-
 //       --help        (Display help message)
@@ -140,7 +140,7 @@ extern "C" void
      case SIGINT:
      case SIGUSR1:
      case SIGUSR2:
-       if( task_array ) {          // Debug if initialized
+       if( task_array ) {           // Debug if initialized
          Main::debug(__LINE__);
          return;
        }

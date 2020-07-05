@@ -16,12 +16,22 @@
 //       Main::Task sequencing controls, including a trace table.
 //
 // Last change date-
-//       2020/07/04
+//       2020/07/05
 //
 // Implementation notes-
 //       Defines class Main and class Task.
 //       Only useful in this subdirectory
 //         Invoked from Module.h, which enumerates compile-time options.
+//
+// Implementation notes-
+//       opt_verbose:
+//         -1 Default, NO verbosity
+//         0  Display options
+//         1  (Unused)
+//         2  Display iteration progress
+//         3  Display diagnostic information
+//         4  (Unused)
+//         5  Diagnostics in signal handler (Set on exception or fault)
 //
 // Main/Task Synchronization logic-
 //       [ Task][ Main] State sequence
@@ -290,7 +300,7 @@ void
 
 virtual void
    run( void )                      // Run the Task
-{  if( opt_verbose >= 1 )           // Task to ident correlation
+{  if( opt_verbose >= 3 )           // Task to ident correlation
      tracef("%14.3f <@%.12zX> Task(%s)::run()\n", epoch_secs()
             , vtos(this), ident);
 
@@ -310,13 +320,13 @@ virtual void
        unsigned size= sizeof(Trace::Record) + 16;
        Trace::Record* record= (Trace::Record*)Trace::storage_if(size);
        Trace::trace->deactivate();  // Terminate testing
-       if( record ) {                 // (Trace termination trace entry.)
+       if( record ) {               // (Trace termination trace entry.)
          memset(record, 0, size);
          strcpy((char*)record + sizeof(Trace::Record), "Exception");
          record->init(ident, __LINE__);
        }
 
-       opt_verbose= 3;              // (Force trace table dump)
+       opt_verbose= 5;              // (Force trace table dump)
        throw;                       // Rethrow the exception
      }
    )
@@ -408,7 +418,7 @@ static void
      task_array[i]->debug(__LINE__);
    }
 
-   if( opt_verbose >= 3 ) {         // (Optionally) dump trace table
+   if( opt_verbose >= 5 ) {         // (Optionally) dump trace table
 #if true
      debugh("Trace::trace(%p)->dump() (See debug.out)\n", Trace::trace);
      Trace::trace->dump();
@@ -478,7 +488,7 @@ static void
    for(int i= 0; i<opt_multi; i++) { // Delete each Task
      delete task_array[i];
    }
-   task_array= nullptr;              // All Tasks deleted
+   task_array= nullptr;             // All Tasks deleted
 
    //-------------------------------------------------------------------------
    // Free the trace table
@@ -498,7 +508,7 @@ static void
             , FSM_NAME[main_fsm]);
 
    // State: Main[idle], Task[into_busy,...]
-   set_fsm(__LINE__, FSM_BUSY);   // Change the FSM first
+   set_fsm(__LINE__, FSM_BUSY);     // Change the FSM first
    task_2busy.post();
 
    // State: Main[busy], Task[busy]

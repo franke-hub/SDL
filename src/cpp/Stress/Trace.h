@@ -16,7 +16,7 @@
 //       ~/Stress/Trace.cpp customization.
 //
 // Last change date-
-//       2020/07/04
+//       2020/07/05
 //
 //----------------------------------------------------------------------------
 #ifndef TRACE_H_INCLUDED
@@ -25,13 +25,13 @@
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-enum // compliation controls
+enum // compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
 
 ,  ITERATIONS= 10'000'000           // Default iterations/Task
 ,  TASK_COUNT= 4                    // Default Task_count
 ,  TRACE_SIZE= 0x01000000           // Default trace table size
-}; // enum comilation controls
+}; // enum compilation controls
 
 //----------------------------------------------------------------------------
 // Task interaction controls
@@ -60,7 +60,7 @@ void
      int               line)        // Caller's line number
 {  debugh("%4d Record(%p) debug()\n", line, this); } // NOT CODED YET
 
-const char*                       // Get record identity (STATIC BUFFER)
+const char*                         // Get record identity (STATIC BUFFER)
    getIdent( void )
 {  static char buffer[SIZE + 4];
    memcpy(buffer, ident, SIZE);
@@ -68,8 +68,8 @@ const char*                       // Get record identity (STATIC BUFFER)
    return buffer;
 }
 
-uint32_t                          // Offset from Trace::trace
-   offset( void )                 // Of this Record
+uint32_t                            // Offset from Trace::trace
+   offset( void )                   // Of this Record
 {  return Trace::trace->offset(this); }
 
 void
@@ -166,7 +166,7 @@ void
    debugf("%.8x:%s %'10d %'12lu\n", prior->offset(), getIdent(), count, value);
 }
 
-const char*                       // Get record identity (STATIC BUFFER)
+const char*                         // Get record identity (STATIC BUFFER)
    getIdent( void )
 {  static char buffer[SIZE + 4];
    memcpy(buffer, ident, Record::SIZE);
@@ -272,16 +272,18 @@ void
    Main::stats( void )              // Statistics display
 {  if( HCDM ) debugf("\nstatistics()\n");
 
-   if( opt_verbose >= 1 ) {         // If verbose, dump trace table
+   //-------------------------------------------------------------------------
+   // Diagnostics
+   if( opt_verbose >= 3 ) {         // If tracing
      debugf("\n");
      debugf("Trace::trace(%p)->dump() (See debug.out)\n", Trace::trace);
      Trace::trace->dump();
      if( opt_hcdm ) debug_flush();  // (Force log completion)
    }
 
+   // Trace table analysis
    unsigned count= 0;               // Number of trace records
 
-   // Trace table analysis
    Trace* trace= Trace::trace;      // The Trace object
    Record* origin= (Record*)((char*)trace + trace->zero);
    Record* middle= (Record*)((char*)trace + trace->next);
