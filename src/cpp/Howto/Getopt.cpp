@@ -16,7 +16,7 @@
 //       Sample program: How to use getopt_long
 //
 // Last change date-
-//       2020/06/22
+//       2020/07/07
 //
 // Usage notes-
 //       getopt_long does not print an invalid argument error message when
@@ -32,16 +32,16 @@
 #include <stdlib.h>                 // For various
 #include <string.h>                 // For strcmp
 
-#include <pub/utility.h>            // For pub::utility::atoi
-
 //----------------------------------------------------------------------------
 // Options
 //----------------------------------------------------------------------------
+static int             opt_help= false; // --help (or error)
+static int             opt_hcdm= false; // Hard Core Debug Mode
+
 static int             opt_a= 0;    // -a
 static int             opt_b= 0;    // -b
 static const char*     opt_c= nullptr; // -c
 static const char*     opt_debug= "none"; // --debug
-static int             opt_help= false; // --help (or error)
 static int             opt_index;   // Option index
 static int             opt_verbose= -1; // --brief or --verbose
 
@@ -54,20 +54,23 @@ static const char*     OSTR= ":abc:"; // The getopt_long optstring parameter
                                     // b  (Switch -b)
                                     // c: (Argument -c) (Argument required)
 static struct option   OPTS[]=      // The getopt_long longopts parameter
-{  {"help",    no_argument,       &opt_help,    true} // --help (no argument)
+{  {"help",    no_argument,       &opt_help,    true} // --help
+,  {"hcdm",    no_argument,       &opt_hcdm,    true} // --hcdm
 
-,  {"debug",   required_argument, nullptr,      0} // --debug argument
-,  {"opterr",  required_argument, nullptr,      0} // --opterr argument
-,  {"verbose", optional_argument, &opt_verbose, true} // --verbose {optional}
+,  {"debug",   required_argument, nullptr,      0} // --debug <string>
+,  {"opterr",  required_argument, nullptr,      0} // --opterr <on || off>
+,  {"verbose", optional_argument, &opt_verbose, 0} // --verbose {optional}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
 enum OPT_INDEX                      // Must match OPTS[]
-{  OPT_HELP= 0
-,  OPT_DEBUG= 1
-,  OPT_ERROR= 2
-,  OPT_VERBOSE= 3
-,  OPT_SIZE= 4
+{  OPT_HELP
+,  OPT_HCDM
+
+,  OPT_DEBUG
+,  OPT_ERROR
+,  OPT_VERBOSE
+,  OPT_SIZE
 };
 
 //----------------------------------------------------------------------------
@@ -141,12 +144,18 @@ static int                          // The integer value
    parm_int( void )                 // Extract and verify integer value
 {
    errno= 0;
-   int value= pub::utility::atoi(optarg);
+   char* strend;                    // Ending character
+   long value= strtol(optarg, &strend, 0);
+   if( value < INT_MIN || value > INT_MAX ) // Error checking
+     errno= ERANGE;
+   else if( strend == optarg || *strend != '\0' ) // If invalid string
+     errno= EINVAL;
+
    if( errno ) {
      opt_help= true;
      if( errno == ERANGE )
        fprintf(stderr, "--%s, range error: '%s'\n", OPTS[opt_index].name, optarg);
-     else if( *optarg == '\0' )
+     else if( strend == optarg )
        fprintf(stderr, "--%s, no value specified\n", OPTS[opt_index].name);
      else
        fprintf(stderr, "--%s, format error: '%s'\n", OPTS[opt_index].name, optarg);
@@ -167,14 +176,17 @@ static int                          // The integer value
 static int                          // Return code (Always 1)
    info( void)                      // Parameter description
 {
-   fprintf(stderr, "Getopt <options> parameter ...\n"
+   fprintf(stderr, "%s <options> parameter ...\n"
                    "Options:\n"
+                   "  --help\tThis help message\n"
+                   "  --hcdm\tHard Core Debug Mode\n"
+
                    "  -a,-b\t\tSwitches\n"
                    "  -c\t\tSwitch requiring an argument\n"
-                   "  --help\tThis help message\n"
                    "  --debug\targument\n"
                    "  --opterr\t{on|off}\n"
-                   "  --verbose\t{=n} Verbosity, default 1\n"
+                   "  --verbose\t{=n} Verbosity, default 0\n"
+                   , __FILE__
           );
 
    return 1;
@@ -209,6 +221,10 @@ static int                          // Return code (0 if OK)
 
          switch( opt_index )
          {
+           case OPT_HELP:           // These options handled by getopt
+           case OPT_HCDM:
+             break;
+
            case OPT_DEBUG:
              opt_debug= optarg;
              break;
@@ -231,11 +247,10 @@ static int                          // Return code (0 if OK)
              break;
 
            default:
-             if( opt_index != OPT_HELP ) {
-               fprintf(stderr, "%4d Unexpected opt_index(%d)\n", __LINE__,
-                               opt_index);
-               debug_opt(__LINE__);
-             }
+             fprintf(stderr, "%4d Unexpected opt_index(%d)\n", __LINE__,
+                             opt_index);
+             debug_opt(__LINE__);
+
              break;
          }
          break;
@@ -312,23 +327,20 @@ extern int                          // Return code
    rc= init(argc, argv);            // Initialize
    if( rc ) return rc;              // Return if invalid
 
-   printf("Getopt.cpp: %s %s\n", __DATE__, __TIME__); // Compile time message
+   printf("%s: %s %s\n", __FILE__, __DATE__, __TIME__); // Compile time message
 
    //-------------------------------------------------------------------------
    // Mainline code: Display option values
    //-------------------------------------------------------------------------
    printf("\n");
-   printf("argc(%d)\n", argc);
-   printf("debug(%s)\n", opt_debug);
-   printf("opterr(%d)\n", opterr);
-   printf("optind(%d)\n", optind);
-   printf("verbose(%d)\n", opt_verbose);
-   if( opt_verbose > 2 )
-     debug_opt(__LINE__);
+   printf("--debug(%s)\n", opt_debug);
+   printf("--hcdm(%d)\n", opt_hcdm);
+   printf("__verbose(%d)\n", opt_verbose);
 
    printf("-a(%d) -b(%d) -c(%s)\n", opt_a, opt_b, opt_c);
 
-   if( opt_verbose > 1 )
+   printf("opterr(%d) optind(%d) argc(%d)\n", opterr, optind, argc);
+   if( opt_verbose > 0 )
      optind= 0;
    for(int i= optind; i<argc; i++)
      printf("[%2d] '%s'\n", i, argv[i]);
