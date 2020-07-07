@@ -37,12 +37,12 @@
 //----------------------------------------------------------------------------
 static int             opt_help= false; // --help (or error)
 static int             opt_hcdm= false; // Hard Core Debug Mode
+static int             opt_index;   // Option index
 
 static int             opt_a= 0;    // -a
 static int             opt_b= 0;    // -b
 static const char*     opt_c= nullptr; // -c
 static const char*     opt_debug= "none"; // --debug
-static int             opt_index;   // Option index
 static int             opt_verbose= -1; // --brief or --verbose
 
 static const char*     OSTR= ":abc:"; // The getopt_long optstring parameter
