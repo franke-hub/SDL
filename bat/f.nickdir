@@ -16,7 +16,7 @@
 ##       Extract nickname for subdirectory
 ##
 ## Last change date-
-##       2020/06/26
+##       2020/07/07
 ##
 ## Usage-
 ##       cd `nickdir alias_name`
@@ -68,6 +68,7 @@ case $1 in
     echo obj.java=`nickdir obj.java`
     echo obj.mcs=`nickdir obj.mcs`
     echo  obj.py=`nickdir obj.py`
+    echo     src=`nickdir src`
     echo    test=`nickdir test`
     echo  wilbur=`nickdir wilbur`
     return
@@ -106,6 +107,10 @@ case $1 in
     __FULLDIR="$HOME/src/cpp/inc"
     ;;
 
+  cpp.* | src.*)
+    __FULLDIR="$HOME/src/cpp/${1:4}"
+    ;;
+
   proj)
     __FULLDIR="$HOME/src/cpp/Tools/Makeproj"
     ;;
@@ -125,10 +130,6 @@ case $1 in
 
   obj.*)
     __FULLDIR="$HOME/obj/cpp/${1:4}"
-    ;;
-
-  cpp.*)
-    __FULLDIR="$HOME/src/cpp/${1:4}"
     ;;
 
   ## Aliased C++ test object directory
