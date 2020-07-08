@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2019 Frank Eskesen.
+//       Copyright (c) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,13 +16,13 @@
 //       Define the Thread Object.
 //
 // Last change date-
-//       2019/02/19
+//       2020/07/08
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_THREAD_H_INCLUDED
 #define _PUB_THREAD_H_INCLUDED
 
-#include <thread>
+#include <thread>                   // For std::thread
 
 #include "utility.h"                // For utility::to_string(std::thread::id)
 #include "Object.h"
@@ -114,7 +114,8 @@ static void
      double            seconds);    // For this many seconds
 
 static void
-   yield( void );                   // Give up time slice
+   yield( void )                    // Give up time slice
+{  std::this_thread::yield(); }
 
 //----------------------------------------------------------------------------
 // Thread::Methods

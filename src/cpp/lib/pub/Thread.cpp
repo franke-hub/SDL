@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2019 Frank Eskesen.
+//       Copyright (c) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2019/02/19
+//       2020/07/08
 //
 // Implementation note-
 //       The global Thread synchronization mutex is used to insure:
@@ -249,17 +249,4 @@ void
      }
    }
 }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Thread::yield
-//
-// Purpose-
-//       Give up time slice
-//
-//----------------------------------------------------------------------------
-void
-   Thread::yield( void )            // Give up time slice
-{  std::this_thread::yield(); }
 } // namespace _PUB_NAMESPACE
