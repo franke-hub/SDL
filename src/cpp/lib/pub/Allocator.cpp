@@ -16,7 +16,7 @@
 //       Allocator method implementations.
 //
 // Last change date-
-//       2020/06/18
+//       2020/07/08
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::bad_alloc
@@ -43,6 +43,18 @@ void*                               // The allocated storage (never nullptr)
      size_t            size)        // Of this length
 {
    void* result= malloc(size);      // Allocate storage
+   if( result == nullptr )          // Exception if failure
+     throw std::bad_alloc();
+
+   return result;
+}
+
+void*                               // The allocated storage (never nullptr)
+   Allocator::get(                  // Allocate aligned storage
+     size_t            size,        // Of this length
+     size_t            align)       // And this alignment
+{
+   void* result= aligned_alloc(size, align); // Allocate storage
    if( result == nullptr )          // Exception if failure
      throw std::bad_alloc();
 
