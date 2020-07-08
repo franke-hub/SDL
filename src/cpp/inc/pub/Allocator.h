@@ -16,7 +16,7 @@
 //       Storage allocator description.                                                                 ts.
 //
 // Last change date-
-//       2020/06/18
+//       2020/07/88
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_ALLOCATOR_H_INCLUDED
@@ -65,6 +65,32 @@ Allocator&
 //----------------------------------------------------------------------------
 //
 // Method-
+//       check
+//
+// Purpose-
+//       Consistency check.
+//
+//----------------------------------------------------------------------------
+public:
+virtual int                         // Return code, 0 OK
+   check( void ) { return 0; }      // The base class does nothing
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       debug
+//
+// Purpose-
+//       Debugging display.
+//
+//----------------------------------------------------------------------------
+public:
+virtual void
+   debug( void ) {}                 // The base class does nothing
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       get
 //
 // Purpose-
@@ -79,6 +105,11 @@ public:
 virtual void*                       // The allocated storage (never nullptr)
    get(                             // Allocate storage
      size_t            size= 0);    // Of this length
+
+virtual void*                       // The allocated storage (never nullptr)
+   get(                             // Allocate storage
+     size_t            size,        // Of this length
+     size_t            align);      // And this (power of two) alignment
 
 //----------------------------------------------------------------------------
 //

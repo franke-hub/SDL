@@ -50,11 +50,12 @@
 #include <string.h>                 // For strcmp
 #include <unistd.h>                 // For getpid, ...
 
-#include <pub/Allocator.h>          // For Allocator
+#include "pub/Allocator.h"          // For pub::Allocator
 #include <pub/Debug.h>              // For pub::debugging::debugf, ...
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Named.h>              // For pub::Named (Threads are named)
+#include "pub/SubAllocator.h"       // For pub::SubAllocator
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For pub::utility::atol
@@ -122,6 +123,8 @@ static sig_handler_t   sys1_handler= nullptr; // System SIGINT  signal handler
 static sig_handler_t   usr1_handler= nullptr; // System SIGUSR1 signal handler
 static sig_handler_t   usr2_handler= nullptr; // System SIGUSR2 signal handler
 
+static void*           sub_alloc= nullptr; // SubAllocator storage
+
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -165,7 +168,22 @@ static int                          // Return code, 0 OK
      char*             argv[])      // Argument array
 {
    //-------------------------------------------------------------------------
-   // Initialize signal handling
+   // Allocate the Allocator
+   if( strcasecmp(opt_alloc, "std") == 0 ) {
+     allocator= new pub::Allocator();
+   } else if( strcasecmp(opt_alloc, "new") == 0 ) {
+     size_t size= size_t(0x08000000);
+     sub_alloc= malloc(size);
+
+     allocator= new pub::SubAllocator((char*)sub_alloc, size);
+     if( opt_verbose >= 1 ) allocator->debug();
+   } else {
+     opt_help= true;
+     fprintf(stderr, "--%s, '%s' not supported\n"
+                   , OPTS[OPT_ALLOC].name, opt_alloc);
+     return 1;
+   }
+
    //-------------------------------------------------------------------------
    // Initialize signal handling
    sys1_handler= signal(SIGINT,  sig_handler);
@@ -202,10 +220,17 @@ extern void
    term( void )                     // Terminate
 {
    //-------------------------------------------------------------------------
-   // Restore syste signal handlers
+   // Restore system signal handlers
    signal(SIGINT,  sys1_handler);
    signal(SIGUSR1, usr1_handler);
    signal(SIGUSR2, usr2_handler);
+
+   //-------------------------------------------------------------------------
+   // Free allocated storage
+   if( sub_alloc ) {
+     free(sub_alloc);
+     sub_alloc= nullptr;
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -308,21 +333,6 @@ static int                          // Return code (0 if OK)
 
            case OPT_ALLOC:
              opt_alloc= optarg;
-             if( allocator != nullptr ) {
-               delete allocator;
-               allocator= nullptr;
-             }
-             if( strcasecmp(optarg, "std") == 0 ) {
-               allocator= new pub::Allocator();
-             } else if( strcasecmp(optarg, "new") == 0 ) {
-               allocator= new pub::Allocator();
-               fprintf(stderr, "--%s, '%s' not available, ignored\n"
-                             , OPTS[opt_index].name, optarg);
-             } else {
-               opt_help= true;
-               fprintf(stderr, "--%s, '%s' not supported\n"
-                             , OPTS[opt_index].name, optarg);
-             }
              break;
 
            case OPT_MULTI:
@@ -431,11 +441,6 @@ static int                          // Return code (0 if OK)
    // Return sequence
    if( opt_help )                   // If --help or error detected
      rc= info();                    // (Always returns non-zero)
-
-   if( rc == 0 ) {                  // Set default options
-     if( allocator == nullptr )
-       allocator= new pub::Allocator();
-   }
 
    return rc;
 }
