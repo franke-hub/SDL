@@ -1,0 +1,69 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       README: List of usage notes, bugs, fixes, etc.
+##
+## Last change date-
+##       2020/07/09
+##
+## Implementation note-
+##       This subdirectory contains bringup test files and imported code.
+##       Interesting imported code packages are documented here.
+##
+##############################################################################
+
+##############################################################################
+## STATUS: (Current status; Significant checkpoints)
+2020/07/09 Imported random number test suites "Diehard" and "TestU01".
+
+##############################################################################
+## INFO: (Generic information)
+2020/07/09 "Diehard" Random number test suite
+         Source: Diehard.tar.gz
+         Version: 2016/01/19
+         Imported from: https://web.archive.org/web/20160119090415/http://stat.fsu.edu/pub/diehard/linux.tar.gz
+         Imported as: linux.tar.gz
+         See also: https://en.wikipedia.org/wiki/Diehard_tests
+
+2020/07/09 "TestU01" Random number test suite
+         Source: TestU01-1.2.3.zip
+         Version: 2009/08/18 (1.2.3)
+         Imported from: http://simul.iro.umontreal.ca/testu01/tu01.html
+         Imported as: TestU01.zip
+         See also: https://en.wikipedia.org/wiki/TestU01
+
+##############################################################################
+## SETUP NOTES: (Setup information)
+
+##############################################################################
+## USAGE NOTES: (Usage information)
+
+##############################################################################
+## HOWTO: (How-to reminders)
+
+##############################################################################
+## TODO: (Work in progress)
+
+##############################################################################
+## FEATURE: (Ideas for improvement)
+
+##############################################################################
+## BUGS: (Open bugs)
+
+##############################################################################
+## FIXED: (Fixed bugs)
+
+##############################################################################
+## CLOSED: (Bugs closed without fixing)
+
