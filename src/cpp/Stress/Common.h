@@ -16,7 +16,7 @@
 //       Main::Task sequencing controls, including a trace table.
 //
 // Last change date-
-//       2020/07/05
+//       2020/07/09
 //
 // Implementation notes-
 //       Defines class Main and class Task.
@@ -69,6 +69,11 @@
 #ifndef MAINTASK_H_INCLUDED
 #define MAINTASK_H_INCLUDED
 
+#include <fcntl.h>                  // For O_* constants
+#include <sys/mman.h>               // For mmap, shm_open, ...
+#include <sys/stat.h>               // For mode constants
+#include <sys/types.h>              // For type definitions
+
 //----------------------------------------------------------------------------
 // Finite states enumberate (and FSM_NAME[] array defined)
 //----------------------------------------------------------------------------
@@ -95,8 +100,10 @@ enum // constants
 ,  MEGA_VALUE= 1'000'000            // Mega value, 1 million
 }; // constants
 
-static size_t           PAGE_MASK= ~4095; // Page mask ~(PAGE_SIZE - 1)
-static size_t           PAGE_SIZE= 4096; // Page size (using sysconf)
+static size_t          PAGE_MASK= ~4095; // Page mask ~(PAGE_SIZE - 1)
+static size_t          PAGE_SIZE= 4096; // Page size (using sysconf)
+static const int       PROT_RW= (PROT_READ | PROT_WRITE);
+static const char*     TRACE_FILE= "./debug.pdf"; // Trace file name
 
 //----------------------------------------------------------------------------
 // Macros
@@ -106,10 +113,11 @@ static size_t           PAGE_SIZE= 4096; // Page size (using sysconf)
 //----------------------------------------------------------------------------
 // Module options: (Defaults enumerated in .h, options initialized in .cpp)
 //----------------------------------------------------------------------------
+static int             opt_hcdm= false; // --hcdm (Hard Core Debug Mode)
 static size_t          opt_iterations= ITERATIONS; // arg[0] Iteration count
 static int             opt_multi= TASK_COUNT; // arg[1] Task count
 
-static int             opt_hcdm= false; // --hcdm (Hard Core Debug Mode)
+static int             opt_mmap= false; // --mmap (Mapped file trace)
 static int             opt_first= false; // --first (task disables trace)
 static uint32_t        opt_trace= TRACE_SIZE; // --trace (table size) argument
 static int             opt_verbose= -1; // --verbose
@@ -440,7 +448,34 @@ static void
 
    //-------------------------------------------------------------------------
    // Allocate the trace table
-   trace_table= malloc(opt_trace);  // Allocate the trace table
+   if( opt_mmap ) {                 // If memory mapped trace table
+     int rc= 1;
+     int fd= open(TRACE_FILE, O_RDWR | O_CREAT, S_IRWXU);
+     if( fd < 0 ) {
+       fprintf(stderr, "%4d HCDM.m open(%s) ", __LINE__, TRACE_FILE);
+       perror("failed");
+     } else {
+       rc= ftruncate(fd, opt_trace); // (Expand to opt_trace)
+       if( rc ) {
+         fprintf(stderr, "%4d HCDM.m ftruncate(%s,%.8x) ", __LINE__
+                 , TRACE_FILE, opt_trace);
+         perror("failed");
+       }
+     }
+     if( rc == 0 ) {
+       trace_table= mmap(nullptr, opt_trace, PROT_RW, MAP_SHARED, fd, 0);
+       if( trace_table == MAP_FAILED ) { // If no can do
+         fprintf(stderr, "%4d HCDM.m mmap(%s,%.8x) ", __LINE__
+                 , TRACE_FILE, opt_trace);
+         perror("failed");
+         trace_table= nullptr;
+       }
+     }
+     if( fd >= 0 )                  // If file opened
+       close(fd);                   // Descriptor not needed when mapped
+   } else {
+     trace_table= malloc(opt_trace); // Allocate the trace table
+   }
    if( trace_table == nullptr ) throw std::bad_alloc();
    Trace::trace= Trace::make(trace_table, opt_trace); // Initialize the table
 
@@ -493,7 +528,10 @@ static void
    //-------------------------------------------------------------------------
    // Free the trace table
    Trace::trace= nullptr;           // Disable tracing
-   free(trace_table);
+   if( opt_mmap )
+     munmap(trace_table, opt_trace);
+   else
+     free(trace_table);
    trace_table= nullptr;
 }
 

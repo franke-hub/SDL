@@ -24,6 +24,7 @@ default: $(DEFAULT)
 include $(INCDIR)/com/Makefile.BSD
 include $(INCDIR)/obj/Makefile.BSD ## TEMPORARY
 include $(INCDIR)/pub/Makefile.BSD
+CLIBS   += -lrt
 
 ##############################################################################
 ## Cleanup

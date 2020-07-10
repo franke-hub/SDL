@@ -16,7 +16,7 @@
 //       ~/src/cpp/inc/pub/Trace.h Stress test
 //
 // Last change date-
-//       2020/07/05
+//       2020/07/09
 //
 // Parameters-
 //       --help        (Display help message)
@@ -72,6 +72,7 @@ static int             opt_index;   // Option index
 //--------------------------------- // Common.h defined options
 ////// int             opt_hcdm= false; // --hcdm (Hard Core Debug Mode)
 ////// int             opt_first= false; // --first
+////// int             opt_mmap= false; // --mmap (Memory map trace file)
 ////// uint32_t        opt_trace= TRACE_SIZE; // --trace argument
 ////// int             opt_verbose= -1; // --verbose
 
@@ -85,6 +86,7 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 
 ,  {"first",   no_argument,       &opt_first,   true} // First finish, untrace
 ,  {"hcdm",    no_argument,       &opt_hcdm,    true} // Hard Core Debug Mode
+,  {"mmap",    no_argument,       &opt_mmap,    true} // Mapped trace file
 ,  {"multi",   required_argument, nullptr,      0} // Multithread count
 ,  {"quick",   no_argument,       nullptr,      0} // Quick test
 ,  {"trace",   required_argument, nullptr,      0} // Trace table size
@@ -96,6 +98,7 @@ enum OPT_INDEX                      // Must match OPTS[]
 {  OPT_HELP
 ,  OPT_FIRST
 ,  OPT_HCDM
+,  OPT_MMAP
 ,  OPT_MULTI
 ,  OPT_QUICK
 ,  OPT_TRACE
@@ -244,6 +247,7 @@ static int                          // Return code (Always 1)
                    "  --first\tThread completion disable tracing\n"
                    "  --hcdm\tHard Core Debug Mode\n"
                    "  --help\tThis help message\n"
+                   "  --mmap\tMemory mapped trace file\n"
                    "  --multi=n\tNumber of threads (Parameter [1])\n"
                    "  --quick\tRun quick test\n"
                    "  --trace=n\tTrace table size\n"
@@ -289,6 +293,7 @@ static int                          // Return code (0 if OK)
            case OPT_HELP:           // These options set by getopt
            case OPT_HCDM:
            case OPT_FIRST:
+           case OPT_MMAP:
              break;
 
            case OPT_MULTI:
@@ -426,8 +431,10 @@ extern int                          // Return code
 
      unsigned records= opt_trace / sizeof(Record); // Nominal record count
      records--;                     // (Header)
-     debugf("--first(%s) --verbose(%d) --trace(%'u,0x%.8x), ~%'u Records\n"
-            , TF(opt_first), opt_verbose, opt_trace, opt_trace, records);
+     debugf("--first(%s) --mmap(%s) --verbose(%d)\n"
+            "--trace(%'u,0x%.8x), ~%'u Records\n"
+            , TF(opt_first), TF(opt_mmap), opt_verbose
+            , opt_trace, opt_trace, records);
 
      // ~/lib/pub/Trace.cpp controls
      using namespace pub::detail;   // For Trace compiler controls
