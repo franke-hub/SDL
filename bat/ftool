@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2017-2019 Frank Eskesen.
+##       Copyright (C) 2017-2020 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Look for files within current subtree
 ##
 ## Last change date-
-##       2019/10/08
+##       2020/07/11
 ##
 ## Usage-
 ##       ftool <fileSpecifier ...>
@@ -87,7 +87,7 @@ target=""
 while [ "" != "$1" ]
 do
   if [ "" != "$target" ] ; then
-    target="$target -o"
+    target="$target -o $nparm"
   fi
 
   if [ "." = "$1" ] ; then
