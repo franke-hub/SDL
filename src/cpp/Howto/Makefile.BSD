@@ -11,6 +11,10 @@
 ##############################################################################
 
 ##############################################################################
+## Extra libraries
+CLIBS   += -lrt
+
+##############################################################################
 ## Set default target
 ifeq "" "$(DEFAULT)"
 DEFAULT:= $(MAKEXE)
@@ -30,8 +34,20 @@ Macros.o : $(SRCDIR)/Macros.cpp
 	$(CC) -o $@ $(CFLAGS) -Wa,-ahl=$*.lst -c $<
 
 ##############################################################################
+## Internal tests
+.PHONY: shm.do shm.redo shm.clean
+shm.do: Shm_demo
+	$< --name /shm_demo.shr --file ./shm_demo.out
+
+shm.redo: Shm_demo
+	$< --name /shm_demo.shr --file ./shm_demo.out --redo
+
+shm.clean:
+	-@[[ -x "Shm_demo" ]] && Shm_demo --name /shm_demo.shr --file ./shm_demo.out --clean
+
+##############################################################################
 ## Cleanup
 .PHONY: MAK_clean
-clean:  MAK_clean
+clean:  MAK_clean shm.clean
 MAK_clean: ;
 	-@rm debug.* >/dev/null 2>/dev/null
