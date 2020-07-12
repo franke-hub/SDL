@@ -124,7 +124,7 @@ public:
 void
    detach( void );                  // Detach execution thread from this Object
 
-void
+virtual void
    join( void )                     // Wait for this Thread to complete
 {  thread.join(); }
 
