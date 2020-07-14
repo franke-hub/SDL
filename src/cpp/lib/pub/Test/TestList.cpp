@@ -16,7 +16,7 @@
 //       List tests.
 //
 // Last change date-
-//       2020/06/13
+//       2020/07/13
 //
 //----------------------------------------------------------------------------
 #include <new>
@@ -32,6 +32,7 @@ using namespace pub::debugging;
 using pub::AU_List;
 using pub::DHDL_List;
 using pub::DHSL_List;
+using pub::NODE_List;
 using pub::SHSL_List;
 using pub::SORT_List;
 using pub::List;
@@ -76,6 +77,12 @@ struct DHSL_Block : public DHSL_List<DHSL_Block>::Link {
 struct SHSL_Block : public SHSL_List<SHSL_Block>::Link {
 // SL_Link             ignored;
    int                 shsl_value;
+};
+
+//----------------------------------------------------------------------------
+// SORT_Link (only used for sizeof)
+//----------------------------------------------------------------------------
+struct SORT_Link : public SORT_List<SORT_Link>::Link {
 };
 
 //----------------------------------------------------------------------------
@@ -228,6 +235,17 @@ template <> int
          - static_cast<const GEN_block*>(that)->gen_value); }
 
 //----------------------------------------------------------------------------
+// NODE_Link
+//----------------------------------------------------------------------------
+struct NODE_Link
+:  public Prefix, public NODE_List<NODE_Link>::Link, public Suffix {
+int                 gen_value;      // (The link number)
+}; // struct NODE_Link
+
+typedef NODE_Link            NODE_Link_t;
+typedef NODE_List<NODE_Link> NODE_List_t;
+
+//----------------------------------------------------------------------------
 //
 // Subroutine-
 //       debug_DHDL
@@ -272,6 +290,33 @@ static inline void
    {
      DHDL_List<void>::Link* link= (DHDL_List<void>::Link*)&block[i];
      printf(": [%.2d] %p %p %p\n", i, link, link->getPrev(), link->getNext());
+   }
+
+   printf("\n");
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       debug_NODE
+//
+// Purpose-
+//       Debug a NODE list.
+//
+//----------------------------------------------------------------------------
+static inline void
+   debug_NODE(                      // Debugging display of NODE list
+     NODE_List_t*      anchor)      // The list anchor
+{
+   NODE_Link_t* link;
+
+   printf("List(%p)[%p,%p]:\n", anchor, anchor->getHead(), anchor->getTail());
+   link= anchor->getHead();         // Get head element
+   while( link != NULL )
+   {
+     printf(": %p %p %p %p\n",
+            link, link->getParent(), link->getPrev(), link->getNext());
+     link= link->getNext();
    }
 
    printf("\n");
@@ -533,6 +578,62 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       show_NODE
+//
+// Purpose-
+//       Display a generic block doubly linked NODE list
+//
+//----------------------------------------------------------------------------
+static void
+   show_NODE(                       // Display a list
+     NODE_List_t*      anchor)      // The list anchor
+{
+   printf("List:");
+   NODE_Link_t* ptr_link= anchor->getHead(); // Get head element
+   while( ptr_link != NULL )
+   {
+     assert( (void*)ptr_link->getParent() == (void*)anchor );
+
+     printf(" %2d", ptr_link->gen_value);
+     ptr_link= ptr_link->getNext();
+   }
+
+   printf("\n");
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       show_NODE
+//
+// Purpose-
+//       Display a generic block doubly linked NODE list.
+//
+//----------------------------------------------------------------------------
+static void
+   show_NODE(                       // Display a list
+     NODE_List_t*      anchor,      // The list anchor
+     NODE_Link_t*      inp_link)    // The removed link
+{
+   printf("List:");
+   NODE_Link_t* ptr_link= anchor->getHead(); // Get head element
+   while( ptr_link != NULL )
+   {
+     assert( (void*)ptr_link->getParent() == (void*)anchor );
+
+     printf(" %2d", ptr_link->gen_value);
+     ptr_link= ptr_link->getNext();
+   }
+
+   printf(" --(%2d)", inp_link->gen_value);
+   assert( inp_link->getParent() == nullptr );
+
+   printf("\n");
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       show_SHSL
 //
 // Purpose-
@@ -635,18 +736,18 @@ static void
 extern int
    main(void)                       // Mainline code
 {
-   AU_List<GEN_block>            au_anchor;
+   AU_List<GEN_block>          au_anchor;
    DHSL_List<GEN_block>        dhsl_anchor;
    SHSL_List<GEN_block>        shsl_anchor;
-   SHSL_List<AUX_Link>          aux_anchor;
+   SHSL_List<AUX_Link>         aux_anchor;
    SORT_List<GEN_block>        sort_anchor;
 
-   GEN_block                    gen_array[DIM];
+   GEN_block                   gen_array[DIM];
 
-   AU_List<GEN_block>::Link*     au_link;
+   AU_List<GEN_block>::Link*   au_link;
    DHSL_List<GEN_block>::Link* dhsl_link;
    SHSL_List<GEN_block>::Link* shsl_link;
-   AUX_Link*                    aux_ptr;
+   AUX_Link*                   aux_ptr;
    SORT_List<GEN_block>::Link* sort_link;
 
 #ifdef USE_STANDALONE_SORT_LINK
@@ -658,13 +759,19 @@ extern int
    #define show_SORT   show_DHDL
 #endif
 
+   NODE_Link                   node_array[DIM];
+   NODE_List<NODE_Link>        node_anchor;
+   NODE_Link*                  node_link;
+
    int                 i;
 
    for(i=0; i<DIM; i++)             // Identify the elements
    {
      new(&gen_array[i]) GEN_block();
-
      gen_array[i].gen_value= i + 1;
+
+     new(&node_array[i]) NODE_Link();
+     node_array[i].gen_value= i + 1;
 
      assert( ((Prefix)gen_array[i]).isValid() );
      assert( ((Suffix)gen_array[i]).isValid() );
@@ -883,6 +990,175 @@ extern int
      assert(dhdl_anchor.isOnList(&gen_array[i]));
    assert(dhdl_anchor.isCoherent());
    dhdl_anchor.reset();
+
+   //-------------------------------------------------------------------------
+   // NODE tests
+   //-------------------------------------------------------------------------
+   printf("\n");
+   printf("NODE Storage:\n");
+   printf("%8ld Sizeof(List)\n", (long)sizeof(NODE_List<NODE_Link>));
+   printf("%8ld Sizeof(Link)\n", (long)sizeof(NODE_List<NODE_Link>::Link));
+
+   printf("\n");
+   printf("Null NODE:\n");
+   show_NODE(&node_anchor);
+
+   //-------------------------------------------------------------------------
+   // NODE LIFO test
+   //-------------------------------------------------------------------------
+   printf("\n");
+   printf("NODE_LIFO test (1..%d):\n", DIM);
+   for(i=0; i<DIM; i++)
+   {
+     node_anchor.lifo(&node_array[i]);
+     show_NODE(&node_anchor);
+   }
+   for(i=0; i<DIM; i++)
+   {
+     assert(node_anchor.isOnList(&node_array[i]));
+   }
+   assert(node_anchor.isCoherent());
+
+   for(;;)
+   {
+     node_link= node_anchor.remq();
+     if( node_link == NULL )
+       break;
+     show_NODE(&node_anchor, node_link);
+   }
+   for(i=0; i<DIM; i++)
+   {
+     assert(!node_anchor.isOnList(&node_array[i]));
+   }
+   assert(node_anchor.isCoherent());
+
+   //-------------------------------------------------------------------------
+   // NODE FIFO test
+   //-------------------------------------------------------------------------
+   printf("\n");
+   printf("NODE_FIFO test:\n");
+   for(i=0; i<DIM; i++)
+   {
+     node_anchor.fifo(&node_array[i]);
+     show_NODE(&node_anchor);
+   }
+   for(i=0; i<DIM; i++)
+   {
+     assert(node_anchor.isOnList(&node_array[i]));
+   }
+   assert(node_anchor.isCoherent());
+
+   for(;;)
+   {
+     node_link= node_anchor.remq();
+     if( node_link == NULL )
+       break;
+     show_NODE(&node_anchor, node_link);
+   }
+   for(i=0; i<DIM; i++)
+   {
+     assert(!node_anchor.isOnList(&node_array[i]));
+   }
+   assert(node_anchor.isCoherent());
+
+   //-------------------------------------------------------------------------
+   // NODE remove/insert specific
+   //-------------------------------------------------------------------------
+   printf("\n");
+   printf("NODE_REMOVE(position) test:\n");
+   for(i=0; i<DIM; i++)
+   {
+     node_anchor.fifo(&node_array[i]);
+   }
+   show_NODE(&node_anchor);
+
+   printf("\n");
+   printf("NODE_REMOVE(1) test:\n");
+   node_link= &node_array[1-1];
+   node_anchor.remove(node_link, node_link);
+   show_NODE(&node_anchor, node_link);
+   assert(!node_anchor.isOnList(&node_array[1-1]));
+   assert(node_anchor.isCoherent());
+
+   printf("\n");
+   printf("NODE_REMOVE(5) test:\n");
+   node_link= &node_array[5-1];
+   node_anchor.remove(node_link, node_link);
+   show_NODE(&node_anchor, node_link);
+   assert(!node_anchor.isOnList(&node_array[5-1]));
+   assert(node_anchor.isCoherent());
+
+   printf("\n");
+   printf("NODE_REMOVE(%d) test:\n", DIM);
+   node_link= &node_array[DIM-1];
+   node_anchor.remove(node_link, node_link);
+   show_NODE(&node_anchor, node_link);
+   assert(!node_anchor.isOnList(&node_array[DIM-1]));
+   assert(node_anchor.isCoherent());
+
+   printf("\n");
+   printf("NODE_INSERT(1) at head:\n");
+   node_anchor.insert(NULL, &node_array[1-1], &node_array[1-1]);
+   show_NODE(&node_anchor);
+   assert(node_anchor.isOnList(&node_array[1-1]));
+   assert(node_anchor.isCoherent());
+
+   printf("\n");
+   printf("NODE_INSERT(%d) at tail:\n", DIM);
+   node_anchor.insert(node_anchor.getTail(), &node_array[DIM-1], &node_array[DIM-1]);
+   show_NODE(&node_anchor);
+   assert(node_anchor.isOnList(&node_array[DIM-1]));
+   assert(node_anchor.isCoherent());
+
+   printf("\n");
+   printf("NODE_INSERT(5) after(4):\n");
+   node_anchor.insert(&node_array[4-1], &node_array[5-1], &node_array[5-1]);
+   show_NODE(&node_anchor);
+   assert(node_anchor.isOnList(&node_array[5-1]));
+   assert(node_anchor.isCoherent());
+
+   printf("\n");
+   printf("NODE_REMOVE(5..8):\n");
+   node_anchor.remove(&node_array[5-1], &node_array[8-1]);
+   show_NODE(&node_anchor);
+   assert(node_anchor.isOnList(&node_array[4-1]));
+   assert(!node_anchor.isOnList(&node_array[5-1]));
+   assert(!node_anchor.isOnList(&node_array[6-1]));
+   assert(!node_anchor.isOnList(&node_array[7-1]));
+   assert(!node_anchor.isOnList(&node_array[8-1]));
+   assert(node_anchor.isOnList(&node_array[9-1]));
+   assert(node_anchor.isCoherent());
+// debug_NODE(&node_anchor);
+// debug_NODE_array(node_array, DIM);
+
+   printf("\n");
+   printf("NODE_INSERT(5..8):\n");
+   node_anchor.insert(&node_array[4-1], &node_array[5-1], &node_array[8-1]);
+   show_NODE(&node_anchor);
+   assert(node_anchor.isOnList(&node_array[4-1]));
+   assert(node_anchor.isOnList(&node_array[5-1]));
+   assert(node_anchor.isOnList(&node_array[6-1]));
+   assert(node_anchor.isOnList(&node_array[7-1]));
+   assert(node_anchor.isOnList(&node_array[8-1]));
+   assert(node_anchor.isOnList(&node_array[9-1]));
+   assert(node_anchor.isCoherent());
+
+   printf("\n");
+   printf("NODE_REMOVE(1..12):\n");
+   node_anchor.remove(&node_array[1-1], &node_array[12-1]);
+   show_NODE(&node_anchor);
+   for(i=0; i<12; i++)
+     assert(!node_anchor.isOnList(&node_array[i]));
+   assert(node_anchor.isCoherent());
+
+   printf("\n");
+   printf("NODE_INSERT(1..12):\n");
+   node_anchor.insert(NULL, &node_array[1-1], &node_array[12-1]);
+   show_NODE(&node_anchor);
+   for(i=0; i<12; i++)
+     assert(node_anchor.isOnList(&node_array[i]));
+   assert(node_anchor.isCoherent());
+   node_anchor.reset();
 
    //-------------------------------------------------------------------------
    // SHSL tests
@@ -1107,6 +1383,10 @@ extern int
    // SORT configuration
    //-------------------------------------------------------------------------
    printf("\n");
+   printf("SORT Storage:\n");
+   printf("%8ld Sizeof(List)\n", (long)sizeof(SORT_List<SORT_Link>));
+   printf("%8ld Sizeof(Link)\n", (long)sizeof(SORT_Link));
+
    const char* info= "NOT";
 #ifdef USE_STANDALONE_SORT_LINK
    info= "IS";

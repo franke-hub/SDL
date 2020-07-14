@@ -16,7 +16,7 @@
 //       Describe the List objects.
 //
 // Last change date-
-//       2020/06/13
+//       2020/07/13
 //
 // Implementation notes-
 //       For all List classes, the isCoherent and isOnList methods run in
@@ -35,6 +35,7 @@
 //       AU_List<T>:    Atomic Update Linked List, the only thread-safe List.
 //       DHDL_List<T>:  Doubly Headed Doubly Linked List.
 //       DHSL_List<T>:  Doubly Headed Singly Linked List.
+//       NODE_List<T>:  Doubly Headed Doubly Linked List, with parent link.
 //       SHSL_List<T>:  Single Headed Singly Linked List.
 //       SORT_List<T>:  privately derived from DHDL_List<T>, implementing all
 //                      methods. A user-defined compare method is added to the
@@ -76,6 +77,7 @@ namespace _PUB_NAMESPACE {
 template<class T> class AU_List;    // Atomic update List
 template<class T> class DHDL_List;  // DHDL List
 template<class T> class DHSL_List;  // DHSL List
+template<class T> class NODE_List;  // NODE List
 template<class T> class SHSL_List;  // SHSL List
 template<class T> class SORT_List;  // SORT List
 template<class T> class List;       // List, equivalent to DHDL_List
@@ -836,6 +838,106 @@ T*                                  // -> The set of removed Links
    reset( void )                    // Reset (empty) the List
 {  return static_cast<T*>(DHSL_List<void>::reset()); }
 }; // class DHSL_List<T>
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       NODE_List<T>
+//
+// Purpose-
+//       Typed NODE_List object, where T is of class NODE_List<T>::Link.
+//
+// Implementation note-
+//       This is a DHDL_List<T>; Links also contain a pointer to parent List
+//
+//----------------------------------------------------------------------------
+template<class T>
+class NODE_List : public DHDL_List<T> { // Node_List<T>
+public:
+class Link : public DHDL_List<T>::Link { // NODE_List<T>::Link
+protected:
+NODE_List<T>*          parent;      // The parent Link
+
+public:
+inline NODE_List<T>*                // The parent List
+   getParent(void) const            // Get parent List
+{  return parent; }
+
+inline void
+   setParent(                       // Set parent Link
+     NODE_List<T>*     list)        // To this Link
+{  parent= list; }
+}; // class NODE_List<T>::Link
+
+public:
+void
+   fifo(                            // Insert (FIFO order)
+     Link*             link)        // -> Link to insert
+{
+   DHDL_List<T>::fifo(link);
+   link->setParent(this);
+}
+
+void
+   insert(                          // Insert at position,
+     Link*             link,        // -> Link to insert after
+     Link*             head,        // -> First Link to insert
+     Link*             tail)        // -> Final Link to insert
+{
+   DHDL_List<T>::insert(link, head, tail);
+   for(;;) {
+     head->setParent(this);
+     if( head == tail )
+       break;
+     head= head->getNext();
+   }
+}
+
+void
+   lifo(                            // Insert (LIFO order)
+     Link*             link)        // -> Link to insert
+{
+   DHDL_List<T>::lifo(link);
+   link->setParent(this);
+}
+
+void
+   remove(                          // Remove from list
+     Link*             head,        // -> First Link to remove
+     Link*             tail)        // -> Final Link to remove
+{
+   DHDL_List<T>::remove(head, tail);
+
+   for(;;) {
+     head->setParent(nullptr);
+     if( head == tail )             // (No error checking!)
+       break;
+     head= head->getNext();
+   }
+}
+
+T*                                  // Removed T*
+   remq( void )                     // Remove oldest link
+{
+   T* link= DHDL_List<T>::remq();
+   if( link )
+     link->setParent(nullptr);
+   return link;
+}
+
+T*                                  // -> The set of removed Links
+   reset( void )                    // Reset (empty) the List
+{
+   T* link= DHDL_List<T>::reset();
+   T* next= link;
+   while( next != nullptr ) {
+     next->setParent(nullptr);
+     next= next->getNext();
+   }
+
+   return link;
+}
+}; // class NODE_List<T>
 
 //----------------------------------------------------------------------------
 //
