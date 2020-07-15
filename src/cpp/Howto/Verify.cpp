@@ -16,10 +16,13 @@
 //       Verify some C++ features.
 //
 // Last change date-
-//       2020/01/25
+//       2020/07/15
 //
 // Tests-
-//       test_opts   Verify options: --debug={Exception,exception,...}
+//       test_opts   Displays options: --throw={Exception,exception,...}
+//         Displays options. If --throw option specified, tests exception
+//         handling for pub::Excepion, std::exception, and const char*.
+//
 //       test_0001   Verifies automatic constructor/destructor invocations.
 //
 //----------------------------------------------------------------------------
@@ -41,7 +44,7 @@ using namespace pub::debugging;     // Expose debugging subroutines
 #define USE_ANON_CON_DESTRUCTOR true  // Test anonymous con/destructor?
 
 #ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
+#define HCDM false                  // Hard Core Debug Mode?
 #endif
 
 #include <pub/ifmacro.h>
@@ -52,22 +55,30 @@ using namespace pub::debugging;     // Expose debugging subroutines
 //----------------------------------------------------------------------------
 // Options
 //----------------------------------------------------------------------------
-static const char*     opt_debug= "none"; // --debug
 static int             opt_help= false; // --help (or error)
+static int             opt_hcdm= false; // --hcdm (Hard Core Debug Mode)
 static int             opt_index;   // Option index
+
+static const char*     opt_throw= nullptr; // --throw
 static int             opt_verbose= -1; // --verbose
+
+static const char*     OSTR= ":";   // The getopt_long optstring parameter
 
 static struct option   OPTS[]=      // Options
 {  {"help",    no_argument,       &opt_help,    true}
+,  {"hcdm",    no_argument,       &opt_hcdm,    true}
 
-,  {"debug",   required_argument, nullptr,      0}
+,  {"throw",   required_argument, nullptr,      0}
 ,  {"verbose", optional_argument, &opt_verbose, true}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
 enum OPT_INDEX
-{  OPT_DEBUG= 1
-,  OPT_VERBOSE= 2
+{  OPT_HELP
+,  OPT_HCDM
+
+,  OPT_THROW
+,  OPT_VERBOSE
 };
 
 //----------------------------------------------------------------------------
@@ -77,6 +88,10 @@ enum OPT_INDEX
 //
 // Purpose-
 //       Test anonymous global constructor/destructor.
+//
+// Implementation note-
+//       Anonymity for static structures isn't needed.
+//       (No external name is generated, so there's no name conflict.)
 //
 //----------------------------------------------------------------------------
 #if USE_ANON_CON_DESTRUCTOR
@@ -130,24 +145,23 @@ static inline int                   // Error count
    int error_count= 0;
 
    debugf("\n%4d test_opts\n", __LINE__);
-   printf("opterr(%d)\n",  optind);
-   printf("optind(%d)\n",  optind);
 
-   printf("debug(%s)\n",   opt_debug);
-   printf("verbose(%d)\n", opt_verbose);
-
-   if( opt_verbose > 2 )
+   printf("--hcdm(%d) --throw(%s) --verbose(%d)\n"
+          , opt_hcdm, opt_throw, opt_verbose);
+   printf("optind(%d) argc(%d)\n", optind, argc);
+   if( opt_verbose > 0 )
      optind= 0;
    for(int i= optind; i<argc; i++)
      printf("[%2d] '%s'\n", i, argv[i]);
 
-   std::string debug(opt_debug);
-   if( debug == "Exception" )
-     throw pub::Exception("debug == Exception");
-   if( debug == "exception" )
-     throw std::bad_exception();
-   if( debug == "..." )
-     throw "Broken code";
+   if( opt_throw ) {
+     std::string debug(opt_throw);
+     if( debug == "Exception" )
+       throw pub::Exception("throw == Exception");
+     if( debug == "exception" )
+       throw std::bad_exception();
+     throw (char*)opt_throw;
+   }
 
    return error_count;
 }
@@ -211,8 +225,10 @@ static void
    fprintf(stderr, "Verify [options] parameter...\n"
                    "Options:\n"
                    "  --help\tThis help message\n"
-                   "  --debug\t{arg} Set debugging arguument\n"
-                   "  --verbose\t{n} Set debugging verbosity\n"
+                   "  --hcdm\tHard Core Debug Mode\n"
+
+                   "  --throw\t{arg} Throw exception\n"
+                   "  --verbose\t{n} Set verbosity\n"
           );
 
 // exit(EXIT_FAILURE);
@@ -239,27 +255,35 @@ static void
    //-------------------------------------------------------------------------
    opterr= 0;                       // Do not write error messages
 
-   while( (C= getopt_long(argc, argv, "", OPTS, &opt_index)) != -1 )
+   while( (C= getopt_long(argc, argv, OSTR, OPTS, &opt_index)) != -1 ) {
+     if( opt_hcdm ) {
+       if( C )
+         printf("%4d {%c,%d} argv[%d] %s=%s\n", __LINE__, C, C
+                , optind-1, argv[optind-1], optarg);
+       else
+         printf("%4d {%c,%d} OPTS[%d] %s=%s\n", __LINE__, C, C
+                , opt_index, OPTS[opt_index].name, optarg);
+     }
+
      switch( C )
      {
        case 0:
          {{{{
-
-         IFHCDM(
-           printf("%4d Option %d %s=%s\n", __LINE__,
-                  opt_index, OPTS[opt_index].name, optarg);
-         )
          switch( opt_index )
          {
-           case OPT_DEBUG:
-             opt_debug= optarg;
+           case OPT_HELP:           // These options handled by getopt
+           case OPT_HCDM:
+             break;
+
+           case OPT_THROW:
+             opt_throw= optarg;
              break;
 
            case OPT_VERBOSE:
              if( optarg )
                opt_verbose= atoi(optarg);
              else
-               opt_verbose= 1;
+               opt_verbose= 0;
              break;
 
            default:
@@ -294,6 +318,7 @@ static void
          fprintf(stderr, "%4d ShoudNotOccur ('%c',0x%x).\n", __LINE__, C, C);
          break;
      }
+   }
 
    if( opt_help )
      info();
@@ -325,13 +350,16 @@ extern int                          // Return code
 
    try {
      error_count += test_opts(argc, argv); // Test options
-     error_count += test_0001();    // Test Things
+     error_count += test_0001();    // Test Things (Constructor/Destructor)
    } catch( pub::Exception& X ) {
      error_count++;
      debugf("\n%4d Exception: %s\n", __LINE__, ((std::string)X).c_str());
    } catch( std::exception& X ) {
      error_count++;
      debugf("\n%4d std::exception: %s\n", __LINE__, X.what());
+   } catch( const char* X ) {
+     error_count++;
+     debugf("\n%4d catch((const char*)%s)\n", __LINE__, X);
    } catch( ... ) {
      error_count++;
      debugf("\n%4d catch(...)\n", __LINE__);

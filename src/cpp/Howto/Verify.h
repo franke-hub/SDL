@@ -16,7 +16,7 @@
 //       Define the Things used in testing
 //
 // Last change date-
-//       2020/01/25
+//       2020/07/15
 //
 // Implementation notes-
 //       Test source must include Verify.i
@@ -172,13 +172,13 @@ static unsigned        counter[4];  // Objects, Constructs, Destructs, unused
 //----------------------------------------------------------------------------
 public:
    ~Thing1( void )
-{  IFHCDM( printf("%4d Thing1(%p)::~Thing1\n", __LINE__, this); );
+{  if( HCDM ) { printf("%4d Thing1(%p)::~Thing1\n", __LINE__, this); }
    counter[IX_OLDS]++;
    counter[IX_OBJS]--;
 }
 
    Thing1( void )
-{  IFHCDM( printf("%4d Thing1(%p)::Thing1\n", __LINE__, this); );
+{  if( HCDM ) { printf("%4d Thing1(%p)::Thing1\n", __LINE__, this); }
    counter[IX_NEWS]++;
    counter[IX_OBJS]++;
 }
@@ -212,13 +212,13 @@ static unsigned        counter[4];  // Objects, Constructs, Destructs, unused
 public:
 virtual
    ~Thing2( void )
-{  IFHCDM( printf("%4d Thing2(%p)::~Thing2\n", __LINE__, this); );
+{  if( HCDM ) { printf("%4d Thing2(%p)::~Thing2\n", __LINE__, this); }
    counter[IX_OLDS]++;
    counter[IX_OBJS]--;
 }
 
    Thing2( void )
-{  IFHCDM( printf("%4d Thing2(%p)::Thing2\n", __LINE__, this); );
+{  if( HCDM ) { printf("%4d Thing2(%p)::Thing2\n", __LINE__, this); }
    counter[IX_NEWS]++;
    counter[IX_OBJS]++;
 }
@@ -237,7 +237,7 @@ virtual
 //       destructor are properly called.
 //
 //----------------------------------------------------------------------------
-class Things {                      // The Thread Object
+class Things {                      // A Thing constructor verifier object
 //----------------------------------------------------------------------------
 // Things::Attributes
 //----------------------------------------------------------------------------
@@ -251,13 +251,13 @@ Thing2                 thing2;
 public:
 #if 0 // Omit wrapping destructor
    ~Things( void )
-{  IFHCDM( printf("%4d Things(%p)::~Things\n", __LINE__, this); );
+{  if( HCDM ) { printf("%4d Things(%p)::~Things\n", __LINE__, this); }
 }
 #endif
 
 #if 0 // Omit wrapping constructor
    Things( void )
-{  IFHCDM( printf("%4d Things(%p)::Things\n", __LINE__, this); );
+{  if( HCDM ) { printf("%4d Things(%p)::Things\n", __LINE__, this); }
 }
 #endif
 }; // class Things
