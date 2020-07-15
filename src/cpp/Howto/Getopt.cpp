@@ -16,7 +16,7 @@
 //       Sample program: How to use getopt_long
 //
 // Last change date-
-//       2020/07/07
+//       2020/07/15
 //
 // Usage notes-
 //       getopt_long does not print an invalid argument error message when
@@ -130,6 +130,33 @@ static inline void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       to_integer
+//
+// Purpose-
+//       Convert string to integer, handling error cases
+//
+// Implementation note-
+//       Leading or trailing blanks are NOT allowed.
+//
+//----------------------------------------------------------------------------
+static int                          // The integer value
+   to_integer(                      // Extract and verify integer value
+     const char*       inp)         // From this string
+{
+   errno= 0;
+   char* strend;                    // Ending character
+   long value= strtol(inp, &strend, 0);
+   if( strend == inp || *inp == ' ' || *strend != '\0' )
+     errno= EINVAL;
+   else if( value < INT_MIN || value > INT_MAX )
+     errno= ERANGE;
+
+   return value;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       parm_int
 //
 // Purpose-
@@ -143,20 +170,11 @@ static inline void
 static int                          // The integer value
    parm_int( void )                 // Extract and verify integer value
 {
-   errno= 0;
-   char* strend;                    // Ending character
-   long value= strtol(optarg, &strend, 0);
-   if( value < INT_MIN || value > INT_MAX ) // Error checking
-     errno= ERANGE;
-   else if( strend == optarg || *strend != '\0' ) // If invalid string
-     errno= EINVAL;
-
+   int value= to_integer(optarg);
    if( errno ) {
      opt_help= true;
      if( errno == ERANGE )
        fprintf(stderr, "--%s, range error: '%s'\n", OPTS[opt_index].name, optarg);
-     else if( strend == optarg )
-       fprintf(stderr, "--%s, no value specified\n", OPTS[opt_index].name);
      else
        fprintf(stderr, "--%s, format error: '%s'\n", OPTS[opt_index].name, optarg);
    }
