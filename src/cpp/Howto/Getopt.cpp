@@ -175,6 +175,8 @@ static int                          // The integer value
      opt_help= true;
      if( errno == ERANGE )
        fprintf(stderr, "--%s, range error: '%s'\n", OPTS[opt_index].name, optarg);
+     else if( *optarg == '\0' )
+       fprintf(stderr, "--%s, no value specified\n", OPTS[opt_index].name);
      else
        fprintf(stderr, "--%s, format error: '%s'\n", OPTS[opt_index].name, optarg);
    }
@@ -351,11 +353,9 @@ extern int                          // Return code
    // Mainline code: Display option values
    //-------------------------------------------------------------------------
    printf("\n");
-   printf("--debug(%s)\n", opt_debug);
-   printf("--hcdm(%d)\n", opt_hcdm);
-   printf("__verbose(%d)\n", opt_verbose);
-
    printf("-a(%d) -b(%d) -c(%s)\n", opt_a, opt_b, opt_c);
+   printf("--debug(%s) --hcdm(%d) --verbose(%d)\n"
+          , opt_debug, opt_hcdm, opt_verbose);
 
    printf("opterr(%d) optind(%d) argc(%d)\n", opterr, optind, argc);
    if( opt_verbose > 0 )
