@@ -353,18 +353,21 @@ int                                 // Error count
    //-------------------------------------------------------------------------
    // Test the lock
    {{{{
+     pub::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
      debugh("[%6d] 002\n", getpid());
      pub::Thread::sleep(0.25);
    }}}}
 
    {{{{
+     pub::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
      debugh("[%6d] 004\n", getpid());
      pub::Thread::sleep(0.25);
    }}}}
 
    {{{{
+     pub::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
      debugh("[%6d] 006\n", getpid());
      pub::Thread::sleep(0.25);
@@ -452,18 +455,21 @@ int                                 // Error count
    pub_lock->unlock();
 
    {{{{
+     pub::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
      debugh("[%6d] 003\n", getpid());
      pub::Thread::sleep(0.25);
    }}}}
 
    {{{{
+     pub::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
      debugh("[%6d] 005\n", getpid());
      pub::Thread::sleep(0.25);
    }}}}
 
    {{{{
+     pub::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
      debugh("[%6d] 007\n", getpid());
    }}}}
