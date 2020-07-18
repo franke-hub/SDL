@@ -16,7 +16,7 @@
 //       Utility functions.
 //
 // Last change date-
-//       2020/06/27
+//       2020/07/18
 //
 // Comparison operators-
 //       op_lt_istr    Case insensitive s LT operator
@@ -138,6 +138,11 @@ void                                // Dump formatter
 void                                // Dump formatter
    dump(                            // Dump formatter
      FILE*             file,        // Output FILE
+     const void*       addrp,       // Input data address
+     size_t            size);       // Input data size
+
+void                                // Dump formatter
+   dump(                            // Dump formatter (Debug::get())
      const void*       addrp,       // Input data address
      size_t            size);       // Input data size
 

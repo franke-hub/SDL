@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2020/06/20
+//       2020/07/18
 //
 //----------------------------------------------------------------------------
 #include <chrono>
@@ -339,6 +339,8 @@ static inline int
    fprintf(file, "\n"); dump(file, buffer+14, 14, (void*)14);
    fprintf(file, "\n"); dump(file, buffer+1, 126, (void*)1);
    fprintf(file, "\n"); dump(file, buffer, 128, (void*)0);
+
+   fprintf(file, "\n"); dump(buffer, sizeof(buffer));
 
    return errorCount;
 }

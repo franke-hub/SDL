@@ -16,9 +16,10 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2020/07/03
+//       2020/07/18
 //
 //----------------------------------------------------------------------------
+#include <mutex>                    // For std::lock_guard
 #include <sstream>                  // For std::stringstream
 #include <string>                   // For std::string
 #include <thread>                   // For std::thread
@@ -407,6 +408,19 @@ void                                // Dump formatter
      const void*       addrp,       // Input data address
      size_t            size)        // Input data size
 {  dump(file, addrp, size, addrp); }
+
+void                                // Dump formatter
+   dump(                            // Dump formatter
+     const void*       addrp,       // Input data address
+     size_t            size)        // Input data size
+{
+   Debug* debug= Debug::get();      // Get Debug*
+   std::lock_guard<decltype(*debug)> lock(*debug);
+
+   FILE* file= debug->get_FILE();
+   dump(file, addrp, size, addrp);
+   debug->flush();
+}
 
 //----------------------------------------------------------------------------
 //
