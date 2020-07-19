@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       Parameter tester.
 //
 // Last change date-
-//       2007/01/01
+//       2020/07/18
 //
 //----------------------------------------------------------------------------
 #include<ctype.h>
@@ -66,7 +66,7 @@ Master*                master= &masterDef; // -> Master area
 //       Find next blank in string.
 //
 //----------------------------------------------------------------------------
-static const char*                  // -> Next blank in string
+static inline const char*           // -> Next blank in string
    findBlank(                       // Find blank in string
      const char*       C)           // -> String
 {
@@ -93,7 +93,7 @@ static const char*                  // -> Next blank in string
 //       Skip over blanks in string.
 //
 //----------------------------------------------------------------------------
-static const char*                  // -> First non-blank in string
+static inline const char*           // -> First non-blank in string
    skipBlank(                       // Skip blanks in string
      const char*       C)           // -> String
 {
@@ -463,10 +463,8 @@ static void
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
-   char*               ptrC;        // Generic pointer to character
    char*               argp;        // Argument pointer
    int                 argi;        // Argument index
-   int                 args;        // Argument string length
 
    int                 error;       // Error count
    int                 verify;      // Verification control
@@ -553,9 +551,9 @@ extern int                          // Return code
    memset(master, 0, sizeof(*master));
    parm(argc, argv);
 
-   printf("parmd: %10d 0x%.8x\n", master->parmd, master->parmd);
+   printf("parmd: %10ld 0x%.8lx\n", master->parmd, master->parmd);
    printf("parmr: %10f %10g\n",   master->parmr, master->parmr);
-   printf("parmx: %10d 0x%.8x\n", master->parmx, master->parmx);
+   printf("parmx: %10ld 0x%.8lx\n", master->parmx, master->parmx);
    for(i= master->firstFile; i<argc; i++)
      printf("File: '%s'\n", argv[i]);
 
