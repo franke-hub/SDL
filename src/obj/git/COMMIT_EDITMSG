@@ -1,13 +1,13 @@
-Added, operational.
+Added missing subdirectory.
 
 # Please enter the commit message for your changes. Lines starting
 # with '#' will be ignored, and an empty message aborts the commit.
 #
 # On branch maint
 # Changes to be committed:
-#	new file:   Stress/H
-#	new file:   Stress/L
-#	new file:   Stress/M
-#	new file:   Stress/Makefile
-#	new file:   Stress/S
+#	new file:   H
+#	new file:   L
+#	new file:   M
+#	new file:   Makefile
+#	new file:   S
 #
