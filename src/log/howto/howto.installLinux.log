@@ -1,5 +1,5 @@
 >>year 2020.  (Updated)
->>date 04/04. (Updated)
+>>date 07/21. (Updated)
 >>info HOWTO (RE)install Linux (Fedora/Ubuntu)
 
  0) PREREQ informaton:
@@ -157,16 +157,7 @@
         If new machine is a replacement, remove it from ~/.ssh/known_hosts
 
         cd ~/data
-        rsync `backup opt` data <new machine>:data
-
-    Create and populate ~/bat and ~/.:
-        <SYSTEM install> git
-        mkdir ~/bat
-        cd ~/bat
-        cp -R ~/data/git/bat .git
-        git reset --hard HEAD
-        cd .home
-        cp -idp .b* .e* .g* .p* .X* ~/.
+        backup <new machine>:data
 
  6) Install packages as required:
     Utility command to list package groups:
@@ -276,17 +267,34 @@
 
  6) Standard customization:
     User directories:
-        mkdir ~/bin
-        mkdir ~/obj
-            cd ~/obj
-            cp -R ~/data/git/obj .git
-            git reset --hard HEAD
-        mkdir ~/tmp
-        mkdir ~/.gnupg
-        mkdir ~/.ssh
+        cd ~/.
+        mkdir bin
+        mkdir obj
+        mkdir tmp
+        mkdir .gnupg
+        mkdir .ssh
+
+        ln -s /home/data/home/bat   .
+        ln -s /home/data/home/src   .
+        ln -s /home/data/home/usr   .
+        ln -s /home/data/build      .
+        ln -s /home/data/tex        .
+        ln -s /home/data/web/tomcat .
+
+        ## Initialize profile
+        cd ~/bat/.home
+        cp -idp .b* .e* .g* .p* .X* ~/.
+
+        ## Initialize ~/obj
+        cd ~/src/obj
+        .README restore
+        ## (Yes, you're sure)
+
+        ## logout/login to activate environment, prompt should be
+           /home/<userid>:
 
     Root environment:
-        cd ~/bat/.home/Linux/root/bin
+        cd ~/usr/bat/Linux/root/bin
         sudo su mkdir /root/bin
         sudo cp -idp * /root/bin/.
         sudo su -
@@ -296,7 +304,7 @@
         PREREQ: Build environment packages, Build library packages
         cd ~/obj/cpp/Tools/Makeproj
         make
-        move makeproj ~/bin
+        strip makeproj; move makeproj ~/bin
         qd lib
         make
 
