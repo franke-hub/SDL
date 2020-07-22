@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define and implement the GzipArchive object.
 //
 // Last change date-
-//       2014/01/01
+//       2020/07/21
 //
 // Implementation notes-
 //       Included from Archive.cpp
@@ -376,7 +376,7 @@ unsigned int
    const char* name= head->getNameAddr(); // Get the name address
    if( name != NULL && strlen(name) > (sizeof(nameBuffer)-1) ) // If name too long
    {
-     sprintf(nameBuffer, "Name too long '%s'\n", name);
+     strcpy(nameBuffer, "Name too long\n");
      return;
    }
    strcpy(nameBuffer, name);        // Save the name
@@ -384,7 +384,7 @@ unsigned int
    name= head->getCommentAddr();    // Get the comment address
    if( name != NULL && strlen(name) > (sizeof(nameBuffer)-1) ) // If comment too long
    {
-     sprintf(nameBuffer, "Comment too long '%s'\n", name);
+     strcpy(nameBuffer, "Comment too long\n");
      return;
    }
 
