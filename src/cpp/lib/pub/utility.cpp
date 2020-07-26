@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2020/07/18
+//       2020/07/25
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -31,6 +31,7 @@
 #include <stdarg.h>                 // For va_list, ...
 #include <stdio.h>                  // For FILE definition
 #include <string.h>                 // For memcpy, ...
+#include <time.h>                   // For clock_gettime, ...
 
 #include <pub/Debug.h>              // For Debug object (see dump())
 #include "pub/utility.h"            // Function definitions
@@ -248,6 +249,27 @@ long                                // Resultant value
    }
 
    return result;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       utility::clock
+//
+// Purpose-
+//       Return the number of nanoseconds since the epoch start
+//
+//----------------------------------------------------------------------------
+uint64_t                            // The nanoseconds since epoch start
+   clock( void )                    // Get nanoseconds since epoch start
+{
+   struct timespec     time;        // UTC time base
+
+   clock_gettime(CLOCK_REALTIME, &time); // Get UTC time base
+   uint64_t nano= time.tv_sec * 1000000000;
+   nano += time.tv_nsec;
+
+   return nano;
 }
 
 //----------------------------------------------------------------------------

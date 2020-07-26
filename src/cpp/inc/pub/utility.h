@@ -16,7 +16,7 @@
 //       Utility functions.
 //
 // Last change date-
-//       2020/07/18
+//       2020/07/25
 //
 // Comparison operators-
 //       op_lt_istr    Case insensitive s LT operator
@@ -118,6 +118,18 @@ unsigned long                       // Resultant value
 long                                // Resultant value
    atox(                            // Convert ASCII to hexidecimal long
      const char*       inp);        // Input string
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       utility::clock
+//
+// Purpose-
+//       Get current epoch time, in nanoseconds.
+//
+//----------------------------------------------------------------------------
+uint64_t                            // The nanoseconds since epoch start
+   clock( void );                   // Get nanoseconds since epoch start
 
 //----------------------------------------------------------------------------
 //
