@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,20 +16,22 @@
 //       File system dump utility
 //
 // Last change date-
-//       2007/01/01
+//       2020/07/28
 //
-// Controls-
+// Options-
 //       filespec = The file to be dumped
 //       origin   = The dump origin [default 0]
-//       length   = The dump length [default 256]
+//       length   = The dump length [default remainder of file]
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #include <com/Debug.h>
 #include <com/nativeio.h>
@@ -62,7 +64,7 @@ int
    char*               inpfile;     // Input file name
    int                 inpnum;      // Input file handle
    size_t              inporg;      // Dump origin
-   long                inplen;      // Dump length
+   size_t              inplen;      // Dump length
 
    int                 chain;       // Current chain state
    unsigned long       lenbuf;      // Sizeof(buffer) this operation
@@ -79,20 +81,24 @@ int
      return 1;
    }
 
-   inporg= 0L;                      // Set default offset
-   inplen= 256L;                    // Set default length
-
    inpfile= argv[1];                // Set filename pointer
 
-   if (argc > 3)                    // If offset present
-   {
-     inporg= atol(argv[2]);         // Set dump offset
-     inplen= atol(argv[3]);         // Set dump length
+   struct stat info;
+   int rc= stat(inpfile, &info);    // Get file length
+   if( rc ) {                       // If error
+     fprintf(stderr, "File(%s): %s\n", inpfile, strerror(errno));
+     return 2;
    }
-   else if (argc > 2)               // If length present
-     inplen= atol(argv[2]);         // Set dump length
 
-   printf("Filename: '%s'[%zd:%ld]\n", inpfile, inporg, inplen);
+   inporg= 0;                       // Set default offset
+   inplen= info.st_size;            // Set default length
+
+   if (argc > 2)                    // If length present
+     inporg= atol(argv[2]);         // Set dump origin
+   if (argc > 3)                    // If length present
+     inplen= atol(argv[3]);         // Set dump length
+
+   printf("Filename: '%s'[%zd:%zd]\n", inpfile, inporg, inplen);
    printf("\n");
 
    //-------------------------------------------------------------------------
