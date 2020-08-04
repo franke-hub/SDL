@@ -16,7 +16,7 @@
 //       All the file management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2020/06/13
+//       2020/08/03
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_FILEMAN_H_INCLUDED
@@ -112,7 +112,7 @@ class Line : public DHDL_List<Line>::Link { // File line
 // Line::Attributes
 //----------------------------------------------------------------------------
 public:
-const char*            const text;  // The associated text
+const char*            text;        // The associated text
 
 //----------------------------------------------------------------------------
 // Line::Constructors
@@ -167,10 +167,10 @@ virtual
 // Pool::Methods
 //----------------------------------------------------------------------------
 public:
-void
+virtual void
    debug( void ) const;             // Debugging display
 
-char*                               // Allocated storage, nullptr on failure
+virtual char*                       // Allocated storage, nullptr on failure
    malloc(                          // Allocate storage
      size_t            _size);      // The required length
 }; // class Pool
