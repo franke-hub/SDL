@@ -16,7 +16,7 @@
 //       Main::Task sequencing controls, including a trace table.
 //
 // Last change date-
-//       2020/07/09
+//       2020/08/04
 //
 // Implementation notes-
 //       Defines class Main and class Task.
@@ -325,13 +325,13 @@ virtual void
      try {
        test();                      // Run the test
      } catch(...) {
-       unsigned size= sizeof(Trace::Record) + 16;
+       unsigned size= sizeof(Trace::Record);
        Trace::Record* record= (Trace::Record*)Trace::storage_if(size);
        Trace::trace->deactivate();  // Terminate testing
        if( record ) {               // (Trace termination trace entry.)
          memset(record, 0, size);
-         strcpy((char*)record + sizeof(Trace::Record), "Exception");
-         record->init(ident, __LINE__);
+         strcpy(record->value, "Exception");
+         record->trace(ident, __LINE__);
        }
 
        opt_verbose= 5;              // (Force trace table dump)
@@ -350,7 +350,7 @@ virtual void
      Trace::trace->deactivate();    // Deactivate the Trace
      if( record ) {                 // (Trace termination trace entry.)
        memset(record, 0, sizeof(Trace));
-       record->init(".HLT", __LINE__);
+       record->trace(".HLT", __LINE__);
      }
    }
 

@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2020/07/18
+//       2020/08/04
 //
 //----------------------------------------------------------------------------
 #include <chrono>
@@ -800,10 +800,7 @@ using _PUB_NAMESPACE::Trace;
    #endif
 
    // Define our Trace::Record
-   struct Record : public pub::Trace::Record {
-     using pub::Trace::Record::Record;
-     int32_t           offset;
-   };
+   typedef pub::Trace::Record Record;
    Record* record= nullptr;         // Working Record*
 
    // Allocate the Trace table
@@ -831,9 +828,9 @@ using _PUB_NAMESPACE::Trace;
    {
        record= (Record*)Trace::storage_if(sizeof(Record));
        if( record ) {
-         record->init(".FOO", 254);
-         record->offset= htobe32(((char*)record - (char*)trace)
-                       + sizeof(pub::Trace::Record));
+         record->trace(".FOO", 254);
+         uint32_t* offset= (uint32_t*)(record->value);
+         *offset= htobe32((char*)offset - (char*)trace);
        }
    }
    trace->dump();                   // Look and see

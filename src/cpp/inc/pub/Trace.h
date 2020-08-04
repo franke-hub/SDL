@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2020/06/28
+//       2020/08/04
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -57,10 +57,10 @@
 //         : // Your data goes here
 //       };
 //       :
-//       Record* record= (Record*)Trace::getRecord(sizeof(Record));
+//       Record* record= (Record*)Trace::storage_if(sizeof(Record));
 //       if( record ) {             // If trace is active
-//         record->init(".xxx", IITEM); // Initialize the record
 //         : // Initialize your data
+//         record->trace(".xxx"); // Initialize the trace identifier + clock
 //       }
 //       :
 //       free(Trace::trace); Trace::trace= nullptr; // Done with trace table
@@ -120,13 +120,18 @@ enum FLAG_X                         // Flag index
 public:
 struct Record {                     // A standard (POD) trace record
 char                   ident[4];    // The trace type identifier
-uint32_t               iitem;       // The trace item identifier
+uint32_t               unit;        // The trace unit identifier
 uint64_t               clock;       // The UTC epoch clock, in nanoseconds
+char                   value[16];   // Data values (For smallest Record)
 
 void
-   init(                            // Initialize the Record
-     const char*       ident,       // The trace type identifier
-     uint32_t          iitem);      // The trace item identifier
+   trace(                           // Initialize the Record type identifier
+     const char*       ident);      // The trace type identifier (+clock)
+
+void
+   trace(                           // Initialize the Record identifiers
+     const char*       ident,       // The trace type identifier (+clock)
+     uint32_t          unit);       // The trace unit identifier
 }; // struct Record
 
 //----------------------------------------------------------------------------

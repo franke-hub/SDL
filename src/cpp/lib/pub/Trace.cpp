@@ -16,7 +16,7 @@
 //       Trace object methods.
 //
 // Last change date-
-//       2020/06/28
+//       2020/08/04
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -47,10 +47,13 @@ Trace*                 Trace::trace= nullptr; // The common Trace object
 //----------------------------------------------------------------------------
 static const char*     SCDM_id= ".TAF"; // Trace Allocation Failure
 static const char*     SCDM_name= "Trace.c"; // 8 characters, counting '\0'
-struct SCDM_record : public Trace::Record { // Special Case Trace::Record
-//                     iitem;       // The number of retries
+
+struct SCDM_record {                // Special Case Trace::Record
+char                   ident[4];    // (Same as pub::Trace::Record)
+uint32_t               spins;       // The number of retries
+uint64_t               clock;       // (Same as pub::Trace::Record)
 Thread*                thread;      // The Thread identifier
-char                   name[8];     // This module name
+char                   name[8];     // This module's name
 }; // struct SCDM_record
 
 //----------------------------------------------------------------------------
@@ -214,9 +217,10 @@ void*                               // Resultant
          deactivate();            // Terminate tracing
 
        SCDM_record* record= (SCDM_record*)result;
-       record->init(SCDM_id, spins);
        record->thread= Thread::current();
        strcpy(record->name, SCDM_name);
+       ((Record*)record)->trace(SCDM_id, spins);
+
        result= nullptr;           // We do not return this record
      }
    }
@@ -225,7 +229,7 @@ void*                               // Resultant
      // Clarifies record initialization in progress state
      memset(result, 0, size);         // Indicate record not initialized
      memcpy(result, ".000", 4);       // Clarify: record not initialized
-     // ((Record*)result)->init(".000", -1); // Alternate clarify option
+     // ((Record*)result)->trace(".000", -1); // Alternate clarify option
    }
 
    if( last ) {                     // Handle wrap
@@ -276,7 +280,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Trace::Record::init
+//       Trace::Record::trace
 //
 // Purpose-
 //       Initialize the Trace::Record
@@ -285,19 +289,35 @@ void
 //       Performance critical path.
 //
 //----------------------------------------------------------------------------
-void
-   Trace::Record::init(             // Initialize the Trace::Record
-     const char*       ident,       // The trace type identifier
-     uint32_t          iitem)       // The trace item identifier
+static inline void
+   set_clock(                       // Set the clock
+     Trace::Record*    record)      // For this Trace::Record
 {
    struct timespec     clock;       // UTC time base
 
    clock_gettime(CLOCK_REALTIME, &clock); // Get UTC time base
    uint64_t usec= clock.tv_sec * 1000000000;
    usec += clock.tv_nsec;
-   this->clock= usec;
+   record->clock= usec;
+}
 
-   this->iitem= iitem;
+void
+   Trace::Record::trace(            // Initialize the Trace::Record
+     const char*       ident)       // The trace type identifier
+{
+   set_clock(this);                 // Set the clock
+
+   memcpy(this->ident, ident, sizeof(this->ident));
+}
+
+void
+   Trace::Record::trace(            // Initialize the Trace::Record
+     const char*       ident,       // The trace type identifier
+     uint32_t          unit)        // The trace unit identifier
+{
+   set_clock(this);                 // Set the clock
+
+   this->unit= unit;
    memcpy(this->ident, ident, sizeof(this->ident));
 }
 }  // namespace _PUB_NAMESPACE
