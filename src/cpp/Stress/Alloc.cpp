@@ -16,18 +16,19 @@
 //       ~/src/cpp/inc/pub/Allocator.h Stress test
 //
 // Last change date-
-//       2020/07/05
+//       2020/08/21
 //
 // Parameters-
 //       --help        (Display help message)
 //       --hcdm        (Hard Core Debug Mode)
 //
-//       --alloc=type  (Select allocator type: new, std)
+//       --alloc=type  (Select allocator type: blk, new, std)
 //       --first       (First completion terminates test)
+//       --maxsz=n     (Slot: Maximum allocation size)
+//       --minsz=n     (Slot: Minimum allocation size)
 //       --multi=n     (Thread count, alternatively)
 //       --quick       (Run quick test)
 //       --slots=n     (Slot: Count)
-//       --smaxs=n     (Slot: Maximum allocation size)
 //       --trace=n     (Trace table size)
 //       --verbose{=n} (Debugging verbosity)
 //
@@ -58,7 +59,7 @@
 #include "pub/SubAllocator.h"       // For pub::SubAllocator
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
-#include <pub/utility.h>            // For pub::utility::atol
+#include <pub/utility.h>            // For pub::utility::atol, ...
 #include <pub/macro/try_catch.h>    // For TRY_CATCH macro
 
 // Global controls
@@ -91,10 +92,11 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 
 ,  {"alloc",   required_argument, nullptr,      0} // Select allocator
 ,  {"first",   no_argument,       &opt_first,   true} // First finish, untrace
+,  {"maxsz",   required_argument, nullptr,      0} // Slot maximum size
+,  {"minsz",   required_argument, nullptr,      0} // Slot minimum size
 ,  {"multi",   required_argument, nullptr,      0} // Multithread count
 ,  {"quick",   no_argument,       nullptr,      0} // Quick test
 ,  {"slots",   required_argument, nullptr,      0} // Slot table size
-,  {"smaxs",   required_argument, nullptr,      0} // Slot maximum entry size
 ,  {"trace",   required_argument, nullptr,      0} // Trace table size
 ,  {"verbose", optional_argument, &opt_verbose, 0} // Verbosity {=optional}
 ,  {0, 0, 0, 0}                     // (End of option list)
@@ -106,13 +108,13 @@ enum OPT_INDEX                      // Must match OPTS[]
 
 ,  OPT_ALLOC
 ,  OPT_FIRST
+,  OPT_MAXSZ
+,  OPT_MINSZ
 ,  OPT_MULTI
 ,  OPT_QUICK
 ,  OPT_SLOTS
-,  OPT_SMAXS
 ,  OPT_TRACE
 ,  OPT_VERBOSE
-,  OPT_SIZE
 };
 
 //----------------------------------------------------------------------------
@@ -171,6 +173,10 @@ static int                          // Return code, 0 OK
    // Allocate the Allocator
    if( strcasecmp(opt_alloc, "std") == 0 ) {
      allocator= new pub::Allocator();
+   } else if( strcasecmp(opt_alloc, "blk") == 0 ) {
+     opt_maxsz= SIZE_BLOCK;
+     opt_minsz= SIZE_BLOCK;
+     allocator= new pub::BlockAllocator(opt_maxsz);
    } else if( strcasecmp(opt_alloc, "new") == 0 ) {
      size_t size= size_t(0x08000000);
      sub_alloc= malloc(size);
@@ -224,6 +230,13 @@ extern void
    signal(SIGINT,  sys1_handler);
    signal(SIGUSR1, usr1_handler);
    signal(SIGUSR2, usr2_handler);
+
+   //-------------------------------------------------------------------------
+   // Delete the Allocator
+   if( allocator ) {
+     delete allocator;
+     allocator= nullptr;
+   }
 
    //-------------------------------------------------------------------------
    // Free allocated storage
@@ -282,10 +295,11 @@ static int                          // Return code (Always 1)
                    "\n"
                    "  --alloc=type\tSelect allocator: {new, std}\n"
                    "  --first\tThread completion disable tracing\n"
+                   "  --maxsz=n\tSlot: Maximum allocation size\n"
+                   "  --minsz=n\tSlot: Minimum allocation size\n"
                    "  --multi=n\tNumber of threads (Parameter [1])\n"
                    "  --quick\tRun quick test\n"
                    "  --slots=n\tSlot: Number of slots/thread\n"
-                   "  --smaxs=n\tSlot: Maximum allocation size\n"
                    "  --trace=n\tTrace table size\n"
                    "  --verbose{=n}\tVerbosity, default 0\n"
                    "\nParameters:\n"
@@ -335,6 +349,14 @@ static int                          // Return code (0 if OK)
              opt_alloc= optarg;
              break;
 
+           case OPT_MAXSZ:
+             opt_maxsz= parm_int();
+             break;
+
+           case OPT_MINSZ:
+             opt_minsz= parm_int();
+             break;
+
            case OPT_MULTI:
              opt_multi= parm_int();
              break;
@@ -346,10 +368,6 @@ static int                          // Return code (0 if OK)
 
            case OPT_SLOTS:
              opt_slots= parm_int();
-             break;
-
-           case OPT_SMAXS:
-             opt_smaxs= parm_int();
              break;
 
            case OPT_TRACE:
@@ -408,6 +426,13 @@ static int                          // Return code (0 if OK)
                        , C, (C & 0x00ff) );
          break;
      }
+   }
+
+   // Verify min/max allocation size
+   if( opt_minsz > opt_maxsz ) {
+     opt_help= true;
+     fprintf(stderr, "--opt_minsz(%u) > --opt_maxsz(%u)\n"
+                   , opt_minsz, opt_maxsz);
    }
 
    // Handle positional options
@@ -478,8 +503,8 @@ extern int                          // Return code
 
      debugf("--first(%s) --verbose(%d) --trace(%'u,0x%.8x)\n"
             , TF(opt_first), opt_verbose, opt_trace, opt_trace);
-     debugf("--alloc(%s) --slots(%'u) --smaxs(%'u)\n"
-            , opt_alloc, opt_slots, opt_smaxs);
+     debugf("--alloc(%s) --slots(%'u) --minsz(%'u) --maxsz(%'u)\n"
+            , opt_alloc, opt_slots, opt_minsz, opt_maxsz);
 
      #undef TF
    }

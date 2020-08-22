@@ -16,16 +16,18 @@
 //       Storage allocator description.                                                                 ts.
 //
 // Last change date-
-//       2020/07/88
+//       2020/08/21
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_ALLOCATOR_H_INCLUDED
 #define _PUB_ALLOCATOR_H_INCLUDED
 
 #include <sys/types.h>              // For size_t
-#include "config.h"                 // For _PUB_NAMESPACE
 
-namespace _PUB_NAMESPACE {
+#include <pub/Latch.h>              // For Latch
+#include <pub/List.h>               // For List
+
+namespace pub {
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -106,11 +108,6 @@ virtual void*                       // The allocated storage (never nullptr)
    get(                             // Allocate storage
      size_t            size= 0);    // Of this length
 
-virtual void*                       // The allocated storage (never nullptr)
-   get(                             // Allocate storage
-     size_t            size,        // Of this length
-     size_t            align);      // And this (power of two) alignment
-
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -120,7 +117,7 @@ virtual void*                       // The allocated storage (never nullptr)
 //       Release storage.
 //
 // Implementation notes-
-//       The size option is ignored for fixed length (block) allocators.
+//       A fixed length (block) Allocator MAY ignore the length option.
 //
 //----------------------------------------------------------------------------
 virtual void
@@ -128,5 +125,86 @@ virtual void
      void*             addr,        // This storage
      size_t            size= 0);    // Of this length (Optional)
 }; // class Allocator
-}  // namespace _PUB_NAMESPACE
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       BlockAllocator
+//
+// Purpose-
+//       Fixed size block Allocator.
+//
+// Implementation notes-
+//       The BlockAllocator is thread-safe.
+//
+//       The BlockAllocator is a Pool allocator. When a BlockAllocator is
+//       deleted, so is all of its associated storage. An implementation
+//       MAY, but is not required to verify that all blocks have been
+//       released.
+//
+//       The BlockAllocator allocates from larger block groups.
+//       The standard Allocator is used if size differs from the block size.
+//
+//----------------------------------------------------------------------------
+class BlockAllocator : public Allocator { // BlockAllocator descriptor
+//----------------------------------------------------------------------------
+// BlockAllocator::Attributes
+//----------------------------------------------------------------------------
+public:
+enum { DIM= 4 };                    // The number of fast slots
+struct Block : public SHSL_List<Block>::Link { // An allocation block
+};
+
+protected:
+size_t                 b_size;      // The allocation block size
+SHSL_List<Block>       b_list;      // The block list
+size_t                 size;        // The allocation size
+
+Latch                  mutex;       // Free slot allocation is single-threaded
+::std::atomic<void*>   fast[DIM];   // Fast allocation/release slots
+::std::atomic<void*>   free;        // Free slot chain, (A.K.A. slow slots)
+
+//----------------------------------------------------------------------------
+// BlockAllocator::Destructor/Constructor/Assignment
+//----------------------------------------------------------------------------
+public:
+virtual
+   ~BlockAllocator( void );         // Destructor
+   BlockAllocator(                  // Constructor
+     size_t            size,        // The allocation item size
+     size_t            b_size= 0);  // The allocation block size
+
+   BlockAllocator(const BlockAllocator&) = delete; // NO copy constructor
+BlockAllocator&
+   operator=(const BlockAllocator&) = delete; // NO assignment operator
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       BlockAllocator::get
+//
+// Purpose-
+//       Allocate storage
+//
+//----------------------------------------------------------------------------
+public:
+virtual void*                       // The allocated storage (never nullptr)
+   get(                             // Allocate storage
+     size_t            size= 0);    // Of this length
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       BlockAllocator::put
+//
+// Purpose-
+//       Release storage.
+//
+//----------------------------------------------------------------------------
+virtual void
+   put(                             // Deallocate
+     void*             addr,        // This storage
+     size_t            size= 0);    // Of this length (Optional)
+}; // class BlockAllocator
+}  // namespace pub
 #endif // _PUB_ALLOCATOR_H_INCLUDED

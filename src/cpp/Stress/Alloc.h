@@ -16,7 +16,7 @@
 //       ~/Stress/Alloc.cpp customization.
 //
 // Last change date-
-//       2020/07/05
+//       2020/08/21
 //
 //----------------------------------------------------------------------------
 #ifndef S_ALLOC_H_INCLUDED
@@ -25,11 +25,14 @@
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
+#define USE_RANDOM_SEED true        // Use Random Seed?
+
 enum // compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
 
 ,  ITERATIONS= 1'000'000            // Default iterations/Task
 ,  SIZE_ALLOC= 1024                 // Default maximum allocation size
+,  SIZE_BLOCK= 256                  // Default block allocation size
 ,  SLOT_COUNT= 8192                 // Default slot count
 ,  TASK_COUNT= 4                    // Default Task_count
 ,  TRACE_SIZE= 0x01000000           // Default trace table size
@@ -46,7 +49,8 @@ enum // compilation controls
 static pub::Allocator* allocator= nullptr; // The selected allocator
 static const char*     opt_alloc= "std"; // The selected allocator's name
 static unsigned        opt_slots= SLOT_COUNT; // The number of slots/Thread
-static unsigned        opt_smaxs= SIZE_ALLOC; // Maximum allocation size
+static unsigned        opt_maxsz= SIZE_ALLOC; // Maximum allocation size
+static unsigned        opt_minsz= 1;     // Minimum allocation size
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -64,8 +68,8 @@ static unsigned        thread_index= 0; // The global thread index
 //
 //----------------------------------------------------------------------------
 // Trace Record identifiers
-static const char*     ID_FIND= ".NEW"; // Storage allocation
-static const char*     ID_FREE= ".DEL"; // Storage release
+static const char*     ID_FIND= ".GET"; // Storage allocation
+static const char*     ID_FREE= ".PUT"; // Storage release
 
 struct Record {                     // A standard (POD) trace record
 enum { SIZE= 4 };                   // Sizeof ident
@@ -141,26 +145,39 @@ void
    size &= ~(sizeof(Slot_word) - 1); // Truncate down
    this->size= size;
 
-   Slot_word* addr= (Slot_word*)allocator->get(size); // Allocate the storage
-   uintptr_t pos= uintptr_t(addr);  // The address, as is
+   Slot_word* word= (Slot_word*)allocator->get(size); // Allocate the storage
+   uintptr_t pos= uintptr_t(word);  // The address, as is
    uintptr_t neg= ~pos;             // The inverted address
-   this->addr= addr;
+   this->addr= word;
 
    size /= sizeof(Slot_word);       // The number of Slot_words
    for(size_t i= 0; i<size; i++) {  // Set slot verifier
-     addr->pos= pos;
-     addr->neg= neg;
-     ++addr;
+     word->pos= pos;
+     word->neg= neg;
+     ++word;
    }
 }
 
 void
    free(unsigned index)             // Release slot[index]
 {
-   if( is_valid(index) == false )   // Verify the data
-     throw "Verification fault";
+   if( is_valid(index) == false ) { // Verify the data
+     pub::utility::dump(this->addr, this->size);
+     debug_flush();
 
-   allocator->put(addr, size);      // Release the storage
+     throw "Verification fault";
+   }
+
+   // Mark slot storage free
+   size_t size= this->size / sizeof(Slot_word); // The number of Slot_words
+   Slot_word* word= this->addr;      // Mark storage free
+   for(size_t i= 0; i<size; i++) {
+     memcpy(word, ">>>>FREEfree<<<<", sizeof(Slot_word));
+     ++word;
+   }
+
+   allocator->put(this->addr, this->size); // Release the storage
+
    this->addr= nullptr;
    this->size= 0;
 }
@@ -178,18 +195,15 @@ int                                 // TRUE iff slot is valid
    size_t size= this->size / sizeof(Slot_word); // The number of Slot_words
    for(size_t i= 0; i<size; i++) {
      if( addr->pos != pos ) {
-       debugh("%4d slot[%u].pos(%.16lx), not(%.16lx)\n", __LINE__, index
-              , addr->pos, pos);
+       debugf("%4d slot[%4u][%4zd].pos(0x%.16lx), not(0x%.16lx)\n", __LINE__
+              , index, i, addr->pos, pos);
        return false;
      }
      if( addr->neg != neg ) {
-       debugh("%4d slot[%u].neg(%.16lx), not(%.16lx)\n", __LINE__, index
-              , addr->neg, neg);
+       debugf("%4d slot[%4u][%4zd].neg(0x%.16lx), not(0x%.16lx)\n", __LINE__
+              , index, i, addr->neg, neg);
        return false;
      }
-
-     memcpy(addr, "FREEfreeFREEfree", sizeof(Slot_word));
-     ++addr;
    }
 
    return true;
@@ -235,27 +249,50 @@ std::uniform_int_distribution<>
                     ud_slot;        // Uniform slot distributor
 
 //----------------------------------------------------------------------------
-// Thread::Constructors
+// Thread::Constructor
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~Thread( void )                  // Destructor
-{
-   if( slot_array ) free(slot_array);
-   slot_array= nullptr;
-}
-
    Thread(                          // Constructor
      const char*       ident,       // The thread identifier
      unsigned          index)       // The thread index
 :  Task(ident), task(index)
-,  rd(), mt(rd()), ud_size(1, opt_smaxs), ud_slot(0, opt_slots - 1)
+#if USE_RANDOM_SEED
+,  rd(), mt(rd()), ud_size(opt_minsz, opt_maxsz), ud_slot(0, opt_slots - 1)
+#else // Use repeatable result
+,  rd(), mt(732), ud_size(opt_minsz, opt_maxsz), ud_slot(0, opt_slots - 1)
+#endif
 {
+   if( opt_hcdm ) debugf("Thread(%p)::Thread\n", this);
+
    slot_array= (Slot*)malloc(opt_slots * sizeof(Slot));
    if( slot_array == nullptr ) throw std::bad_alloc();
    for(size_t i= 0; i<opt_slots; i++) {
      slot_array[i].addr= nullptr;
      slot_array[i].size= 0;
+   }
+}
+
+//----------------------------------------------------------------------------
+// Thread::Destructor
+//----------------------------------------------------------------------------
+public:
+virtual
+   ~Thread( void )                  // Destructor
+{
+   if( opt_hcdm ) debugf("Thread(%p)::~Thread\n", this);
+
+   if( slot_array ) {
+     for(size_t S= 0; S<opt_slots; S++) { // Release any allocated slots
+       Slot& slot= slot_array[S];
+       if( slot.addr ) {
+         Record* record= (Record*)Trace::trace->allocate_if(sizeof(Record));
+         if( record ) record->trace(ID_FREE, task, S, slot.addr, slot.size);
+         slot.free(S);
+       }
+     }
+
+     free(slot_array);
+     slot_array= nullptr;
    }
 }
 
@@ -460,7 +497,6 @@ void
      for(unsigned s= 0; s<opt_slots; s++) { // Verify the slot table
        if( ! t->slot_array[s].is_valid(s) ) { // If invalid slot
          opt_verbose= 5;            // Debugging required
-         debugf("%4d ERROR: Invalid slot data [%u][%u]\n", __LINE__, i, s);
          break;                     // (Only display one fault per thread)
        }
      }

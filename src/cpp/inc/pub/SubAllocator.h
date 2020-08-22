@@ -16,7 +16,7 @@
 //       Storage SubAllocator description.                                                                 ts.
 //
 // Last change date-
-//       2020/06/18
+//       2020/08/21
 //
 // Implementation note-
 //       Placeholder until implemented.
@@ -109,11 +109,6 @@ public:
 // virtual void*                    // The allocated storage (never nullptr)
 //    get(                          // Allocate storage
 //      size_t            size= 0); // Of this length
-//
-// virtual void*                    // The allocated storage (never nullptr)
-//    get(                          // Allocate aligned storage
-//      size_t            size,     // Of this length
-//      size_t            align);   // And this alignment
 
 //----------------------------------------------------------------------------
 //

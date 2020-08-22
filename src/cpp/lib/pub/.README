@@ -15,7 +15,7 @@
 ##       Development status, history, and reminders.
 ##
 ## Last change date-
-##       2020/01/07
+##       2020/08/21
 ##
 ##############################################################################
 
@@ -28,6 +28,11 @@
 
 ##############################################################################
 ## BUGS:
+2020/08/20 SHSL_List should have a previous pointer, not a next pointer.
+         (rename Link getNext->getPrev, test needs updating.)
+
+2020/08/21 utility::dump does not always properly handle misaligned address
+         (Too much ~~~~ at the beginning, to little at the end of the dump)
 
 ##############################################################################
 ## TODO:
