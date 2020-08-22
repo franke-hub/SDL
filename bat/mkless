@@ -1,0 +1,23 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       mkless
+##
+## Purpose-
+##       Invoke make, look at copious output from the beginning
+##
+## Last change date-
+##       2020/08/19
+##
+##############################################################################
+make "$@" 2>&1 | less
+
