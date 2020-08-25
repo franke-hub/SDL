@@ -16,7 +16,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2020/01/13
+//       2020/08/24
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -238,14 +238,14 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       WorkerPool::getRunning
+//       WorkerPool::get_running
 //
 // Purpose-
 //       Accessor: running
 //
 //----------------------------------------------------------------------------
 unsigned                            // The number of running threads
-   WorkerPool::getRunning( void )   // Get number of running threads
+   WorkerPool::get_running( void )  // Get number of running threads
 {  return running; }
 
 //----------------------------------------------------------------------------

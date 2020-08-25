@@ -16,7 +16,7 @@
 //       Name/value string pair map.
 //
 // Last change date-
-//       2020/06/22
+//       2020/08/24
 //
 // Implementation notes-
 //       Property names are case insensitive.
@@ -80,11 +80,11 @@ inline MapIter_t                    // The end iterator
 {  return map.end(); }
 
 virtual const char*                 // The Property value
-   getProperty(                     // Get Property value
+   get_property(                    // Get Property value
      const string&     name) const; // For this Property name
 
 virtual const char*                 // The Property value
-   getProperty(                     // Get Property value
+   get_property(                    // Get Property value
      const string&     name,        // For this Property name
      const string&     value) const; // And this default value
 

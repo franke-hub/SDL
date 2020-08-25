@@ -16,7 +16,7 @@
 //       Brian mainline.
 //
 // Last change date-
-//       2020/01/10
+//       2020/08/23
 //
 // Controls-
 //       If the first parameter is not a switch parameter, it specifies the
@@ -219,9 +219,9 @@ extern int                          // Return code
 
    Debug debug(opt_debug);
    Debug::set(&debug);
-   debug_set_head(Debug::HeadThread);
+   debug_set_head(Debug::HEAD_THREAD);
    if( opt_verbose > 5 )
-     debug_set_mode(Debug::ModeIntensive);
+     debug_set_mode(Debug::MODE_INTENSIVE);
 
    //-------------------------------------------------------------------------
    // Operate Brian

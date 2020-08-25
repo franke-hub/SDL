@@ -16,7 +16,7 @@
 //       Standard Dispatch Task object.
 //
 // Last change date-
-//       2020/01/13
+//       2020/08/24
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_DISPATCHTASK_H_INCLUDED
@@ -68,15 +68,15 @@ virtual
 //----------------------------------------------------------------------------
 public:
 inline int                          // TRUE iff Task has no enqueued work
-   isIdle( void ) const             // Is this Task idle?
+   is_idle( void ) const            // Is this Task idle?
 {
-   return (itemList.getTail() == nullptr);
+   return (itemList.get_tail() == nullptr);
 }
 
 inline int                          // TRUE iff Task has enqueued work
-   isBusy( void ) const             // Is this Task busy?
+   is_busy( void ) const            // Is this Task busy?
 {
-   return (itemList.getTail() != nullptr);
+   return (itemList.get_tail() != nullptr);
 }
 
 virtual void

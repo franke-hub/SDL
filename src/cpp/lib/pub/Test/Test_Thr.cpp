@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Thread function.
 //
 // Last change date-
-//       2018/01/01
+//       2020/08/23
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -634,9 +634,9 @@ extern int
      char*             argv[])      // Argument array
 {
    debugf("Thread bringup test\n");
-   debug_set_head(Debug::HeadThread);
-   debug_set_head(Debug::HeadTime);
-// debug_set_mode(Debug::ModeIntensive);
+   debug_set_head(Debug::HEAD_THREAD);
+   debug_set_head(Debug::HEAD_TIME);
+// debug_set_mode(Debug::MODE_INTENSIVE);
    if( argc > 1 )
      noisy_delay= atof(argv[1]);
    debugf("%10.6f noisy_delay\n", noisy_delay);

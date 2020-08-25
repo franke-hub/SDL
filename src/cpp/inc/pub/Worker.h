@@ -16,7 +16,7 @@
 //       Define a Worker used to handle discrete units of work.
 //
 // Last change date-
-//       2020/01/13
+//       2020/08/24
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_WORKER_H_INCLUDED
@@ -60,7 +60,7 @@ class WorkerPool {
 //----------------------------------------------------------------------------
 public:
 static unsigned                      // The current number of running threads
-   getRunning( void );               // Get current number of running threads
+   get_running( void );              // Get current number of running threads
 
 static void
    debug( void );                    // Debugging display (statistics)

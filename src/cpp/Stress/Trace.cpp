@@ -16,7 +16,7 @@
 //       ~/src/cpp/inc/pub/Trace.h Stress test
 //
 // Last change date-
-//       2020/07/09
+//       2020/08/23
 //
 // Parameters-
 //       --help        (Display help message)
@@ -169,12 +169,12 @@ static int                          // Return code, 0 OK
    setlocale(LC_NUMERIC, "");       // Allows printf("%'d\n", 123456789);
 
    Debug* debug= Debug::get();      // Activate debug tracing
-// debug->set_head(Debug::HeadTime | Debug::HeadThread);
-   debug->set_head(Debug::HeadTime); // All messages have thread identifier
+// debug->set_head(Debug::HEAD_TIME | Debug::HEAD_THREAD);
+   debug->set_head(Debug::HEAD_TIME); // All messages have thread identifier
 
    if( HCDM ) opt_hcdm= true;       // If HCDM compile-time, force opt_hcdm
    if( opt_hcdm ) {                 // If --hcdm option specified
-     debug->set_mode(Debug::ModeIntensive); // Hard Core Debug Mode
+     debug->set_mode(Debug::MODE_INTENSIVE); // Hard Core Debug Mode
      debugf("%4d HCDM.c pid(%d)\n", __LINE__, getpid());
    }
 

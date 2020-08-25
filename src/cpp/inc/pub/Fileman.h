@@ -16,7 +16,7 @@
 //       All the file management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2020/08/03
+//       2020/08/24
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_FILEMAN_H_INCLUDED
@@ -250,8 +250,8 @@ void
    debug( void ) const;             // Debugging trace
 
 Line*                               // Line*, bad_alloc iff failure
-   newLine(                         // Allocate Line
-     const std::string&_string);    // For this string
+   get_line(                        // Allocate a new line Line and
+     const std::string&_string);    // Initialize it with this string
 
 int                                 // Return code, 0 OK
    open(                            // (Re)load data

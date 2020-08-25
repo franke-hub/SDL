@@ -16,7 +16,7 @@
 //       Properties implementation methods.
 //
 // Last change date-
-//       2020/01/11
+//       2020/08/24
 //
 //----------------------------------------------------------------------------
 #include <pub/Exception.h>
@@ -67,14 +67,14 @@ namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Properties::getProperty
+//       Properties::get_property
 //
 // Purpose-
 //       Get Property value
 //
 //----------------------------------------------------------------------------
 const char*                         // The Property value
-   Properties::getProperty(         // Get Property value
+   Properties::get_property(        // Get Property value
      const string&     name) const  // For this Property name
 {
    MapIter_t mi= map.find(name.c_str());
@@ -85,11 +85,11 @@ const char*                         // The Property value
 }
 
 const char*                         // The Property value
-   Properties::getProperty(         // Get Property value
+   Properties::get_property(        // Get Property value
      const string&     name,        // For this Property name
      const string&     value) const // And this default value
 {
-   const char* result= getProperty(name);
+   const char* result= get_property(name);
    if( result == nullptr )
      result= value.c_str();
 
@@ -110,7 +110,7 @@ void
      const string&     name,        // This Property name and
      const string&     value)       // This Property value
 {
-   const char* result= getProperty(name); // Locate current property
+   const char* result= get_property(name); // Locate current property
    if( result != nullptr )          // If property already exists
      throw IndexException(to_string("Property exists: %s", name.c_str()));
 
@@ -150,7 +150,7 @@ const char*                         // The Property value
    Properties::operator[](          // Get Property value
      const string&     name) const  // For this Property name
 {
-   const char* result = getProperty(name);
+   const char* result = get_property(name);
    if( result == nullptr )
      throw IndexException(to_string("Missing property: %s", name.c_str()));
 

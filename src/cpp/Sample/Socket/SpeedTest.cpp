@@ -976,8 +976,8 @@ int                                 // Return code
    // Debugging controls
    //-------------------------------------------------------------------------
    Debug debug;                     // Debugging object
-   debug.set_head(Debug::Heading(Debug::HeadThread | Debug::HeadTime));
-// IFHCDM( debug.set_mode(Debug::ModeIntensive); )
+   debug.set_head(Debug::Heading(Debug::HEAD_THREAD | Debug::HEAD_TIME));
+// IFHCDM( debug.set_mode(Debug::MODE_INTENSIVE); )
    Debug::set(&debug);
 
    //-------------------------------------------------------------------------

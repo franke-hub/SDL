@@ -16,7 +16,7 @@
 //       Test debugging methods.
 //
 // Last change date-
-//       2020/06/28
+//       2020/08/23
 //
 //----------------------------------------------------------------------------
 #include <errno.h>
@@ -53,7 +53,7 @@ extern int                          // Return code
    for(i=0; i<sizeof(buff); i++)
      buff[i]= 0x80 + i;
 
-   debug_set_mode(Debug::ModeStandard);
+   debug_set_mode(Debug::MODE_DEFAULT);
    debugf("Standard mode:\n");
    debugf("This appears in %s and %s\n", "TRACE", "STDOUT");
    errorf("This appears in %s and %s\n", "TRACE", "STDERR");
@@ -62,7 +62,7 @@ extern int                          // Return code
    errorh("This appears in %s and %s\n", "TRACE", "STDERR");
    traceh("This appears in %s ONLY\n",   "TRACE");
 
-   debug_set_mode(Debug::ModeIgnore);
+   debug_set_mode(Debug::MODE_IGNORE);
    errno= ESRCH;
    errorp("Ignore mode: (ignored) This appears in STDERR (only)");
    debugf("Ignore mode:\n");
@@ -72,7 +72,7 @@ extern int                          // Return code
    errorh("Ignore mode:\n");
    traceh("Ignore mode:\n");
 
-   debug_set_mode(Debug::ModeIntensive);
+   debug_set_mode(Debug::MODE_INTENSIVE);
    debugf("Intensive mode:\n");
    debugf("This appears in %s and %s\n", "TRACE", "STDOUT");
    errorf("This appears in %s and %s\n", "TRACE", "STDERR");

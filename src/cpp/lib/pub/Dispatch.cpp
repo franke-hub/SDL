@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2020/01/04
+//       2020/08/24
 //
 //----------------------------------------------------------------------------
 #include "Dispatch.h"
@@ -141,10 +141,10 @@ void
 {
    tracef("Task(%p)::debug()\n", this);
    tracef("..itemList\n");
-   Item* item= itemList.getTail();
+   Item* item= itemList.get_tail();
    while( item ) {
      item->debug();
-     item= item->getPrev();
+     item= item->get_prev();
    }
 }
 
@@ -160,7 +160,7 @@ void
 void
    Task::work( void )               // Worker interface
 {  IFHCDM( traceh("Task(%p):work()\n", this); )
-   if( itemList.getTail() == nullptr ) // If nothing to do (should not occur)
+   if( itemList.get_tail() == nullptr ) // If nothing to do (should not occur)
      return;                        // Do it quickly
 
    //-----------------------------------------------------------------------
@@ -182,7 +182,7 @@ void
        fifo.reset(list);            // Re-initialize the fifo
        item= fifo.remq();           // Remove oldest link (the fake item)
        assert( item == fake );      // Verify what we think we know
-       item->setPrev(nullptr);      // The fake item ends the AU_List
+       item->set_prev(nullptr);     // The fake item ends the AU_List
 
        item= fifo.remq();           // Remove oldest link
        assert( item != nullptr );   // Which should not be a nullptr

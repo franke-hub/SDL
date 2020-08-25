@@ -16,7 +16,7 @@
 //       ~/Stress/Alloc.cpp customization.
 //
 // Last change date-
-//       2020/08/21
+//       2020/08/23
 //
 //----------------------------------------------------------------------------
 #ifndef S_ALLOC_H_INCLUDED
@@ -25,6 +25,7 @@
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
+#define USE_GLOBAL_SLOT true        // Use global slot_array?
 #define USE_RANDOM_SEED true        // Use Random Seed?
 
 enum // compilation controls
@@ -45,18 +46,47 @@ enum // compilation controls
 
 //----------------------------------------------------------------------------
 // Module options: (Defaults enumerated in .h, options initialized in .cpp)
+//   Implementation note: opt_minsz must be >= sizeof(Slot)
 //----------------------------------------------------------------------------
 static pub::Allocator* allocator= nullptr; // The selected allocator
 static const char*     opt_alloc= "std"; // The selected allocator's name
 static unsigned        opt_slots= SLOT_COUNT; // The number of slots/Thread
 static unsigned        opt_maxsz= SIZE_ALLOC; // Maximum allocation size
-static unsigned        opt_minsz= 1;     // Minimum allocation size
+static unsigned        opt_minsz= 16;    // Minimum allocation size
 
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
 static char*     const max_page= (char*)(uintptr_t(-1)); // Largest address
 static unsigned        thread_index= 0; // The global thread index
+
+#if USE_GLOBAL_SLOT
+struct Slot;                        // Forward reference
+static Slot*           slot_array= nullptr; // The slot array
+
+typedef std::atomic_int64_t atomic_int64_t;
+
+static atomic_int64_t  num_find;    // Number of find requests
+static atomic_int64_t  num_free;    // Number of free requests
+static atomic_int64_t  num_lock;    // Number of lock collisions
+
+static atomic_int64_t  max_size;    // Maximum allocation bytes
+static atomic_int64_t  now_size;    // Current allocation bytes
+
+static atomic_int64_t  max_slot;    // Maximum number of slots used
+static atomic_int64_t  now_slot;    // Current number of slots used
+#endif
+
+//----------------------------------------------------------------------------
+// truncate: Remove low order bits from an address
+//----------------------------------------------------------------------------
+static inline void*                 // The address, rounded down
+   truncate(                        // Remove low order address bits
+     void*             address)     // From this address
+{
+   uintptr_t result= uintptr_t(address) & uintptr_t(~0x0007);
+   return (void*)result;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -132,76 +162,104 @@ struct Slot_word {                  // A Slot validator
 uintptr_t              pos;         // The origin address
 uintptr_t              neg;         // ~pos
 }; // struct Slot_word
+static const Slot_word FREE_SLOT= {0xC0ffeeCafeC0ffee, 0xeeffc0fecaeeffc0};
 
 struct Slot {                       // Slot data descriptor
 Slot_word*             addr;        // Slot data address
 size_t                 size;        // Slot data length
 
+// Slot( void ) : addr(nullptr), size(0) {} // Constructor (unused)
+// ~Slot( void ) { if( addr ) { free(); } // Destructor    (unused)
+
+unsigned                            // The Slot index
+   get_index( void );               // Get Slot index (implementation deferred)
+
+bool                                // TRUE iff lock obtained
+   try_lock( void )                 // Attempt to get lock
+{
+   std::atomic<uintptr_t>* atomic_addr= (std::atomic<uintptr_t>*)(&addr);
+   uintptr_t old= atomic_addr->load();
+   old &= uintptr_t(~0x0007);
+   return atomic_addr->compare_exchange_strong(old, (old | 1));
+}
+
 void
+   unlock(                          // Release the lock
+     void*             word)        // Setting this address
+{
+   std::atomic<uintptr_t>* atomic_addr= (std::atomic<uintptr_t>*)(&addr);
+   atomic_addr->store(uintptr_t(word));
+}
+
+void*                               // The allocated slot address
    find(                            // Allocate slot data
      size_t            size)        // Of this length
 {
-   size +=  (sizeof(Slot_word) - 1); // Round up
-   size &= ~(sizeof(Slot_word) - 1); // Truncate down
+// size +=  (sizeof(Slot_word) - 1); // Round up
+// size &= ~(sizeof(Slot_word) - 1); // Truncate down
    this->size= size;
 
-   Slot_word* word= (Slot_word*)allocator->get(size); // Allocate the storage
-   uintptr_t pos= uintptr_t(word);  // The address, as is
+   void* addr= allocator->get(size); // Allocate the storage
+   uintptr_t pos= uintptr_t(addr);  // The address, as is
    uintptr_t neg= ~pos;             // The inverted address
-   this->addr= word;
 
-   size /= sizeof(Slot_word);       // The number of Slot_words
+   Slot_word* word= (Slot_word*)addr;
+   size /= sizeof(Slot_word);       // The number of (complete) Slot_words
    for(size_t i= 0; i<size; i++) {  // Set slot verifier
      word->pos= pos;
      word->neg= neg;
      ++word;
    }
+
+   unlock(addr);                    // (Set the address, releasing the lock)
+   return addr;
 }
 
 void
-   free(unsigned index)             // Release slot[index]
+   free( void )                    // Release slot
 {
-   if( is_valid(index) == false ) { // Verify the data
-     pub::utility::dump(this->addr, this->size);
+   void* addr= truncate(this->addr); // (Remove lock bit)
+   if( ! is_valid() ) {            // Verify the data
+     pub::utility::dump(addr, this->size);
      debug_flush();
 
      throw "Verification fault";
    }
 
    // Mark slot storage free
+   Slot_word* word= (Slot_word*)addr;
    size_t size= this->size / sizeof(Slot_word); // The number of Slot_words
-   Slot_word* word= this->addr;      // Mark storage free
    for(size_t i= 0; i<size; i++) {
-     memcpy(word, ">>>>FREEfree<<<<", sizeof(Slot_word));
-     ++word;
+     word[i]= FREE_SLOT;
    }
 
-   allocator->put(this->addr, this->size); // Release the storage
+   allocator->put(addr, this->size); // Release the storage
 
-   this->addr= nullptr;
    this->size= 0;
+   unlock(nullptr);
 }
 
 int                                 // TRUE iff slot is valid
-   is_valid(unsigned index)         // Verify slot[index]
+   is_valid( void )                 // Verify this Slot
 {
-   Slot_word* addr= this->addr;     // The storage address
+   void* addr= truncate(this->addr); // (Remove lock bit)
    if( addr == nullptr )            // If not allocated
      return true;                   // Free slots always valid
 
    uintptr_t pos= uintptr_t(addr);  // The address, as is
    uintptr_t neg= ~pos;             // The inverted address
 
+   Slot_word* word= (Slot_word*)addr;
    size_t size= this->size / sizeof(Slot_word); // The number of Slot_words
    for(size_t i= 0; i<size; i++) {
-     if( addr->pos != pos ) {
+     if( word->pos != pos ) {
        debugf("%4d slot[%4u][%4zd].pos(0x%.16lx), not(0x%.16lx)\n", __LINE__
-              , index, i, addr->pos, pos);
+              , get_index(), i, word->pos, pos);
        return false;
      }
-     if( addr->neg != neg ) {
+     if( word->neg != neg ) {
        debugf("%4d slot[%4u][%4zd].neg(0x%.16lx), not(0x%.16lx)\n", __LINE__
-              , index, i, addr->neg, neg);
+              , get_index(), i, word->neg, neg);
        return false;
      }
    }
@@ -226,27 +284,33 @@ class Thread : public Task {        // Thread test driver
 // Thread::Attributes
 //----------------------------------------------------------------------------
 public:
-Slot*               slot_array= nullptr; // The slot array
-uint16_t            task= 0;        // Our Task index
-uint16_t            _0001[3];       // Unused, reserved for alignment
+#if USE_GLOBAL_SLOT == false
+Slot*                  slot_array= nullptr; // The slot array
+#endif
+
+uint16_t               task= 0;     // Our Task index
+uint16_t               _0001[3];    // Unused, reserved for alignment
 
 // Statistics
-size_t              num_find= 0;    // Number of find requests
-size_t              num_free= 0;    // Number of free requests
+#if USE_GLOBAL_SLOT == false
+size_t                 num_find= 0; // Number of find requests
+size_t                 num_free= 0; // Number of free requests
+size_t                 num_lock= 0; // Number of lock collisions
 
-size_t              max_size= 0;    // Maximum allocation bytes
-size_t              now_size= 0;    // Current allocation bytes
+size_t                 max_size= 0; // Maximum allocation bytes
+size_t                 now_size= 0; // Current allocation bytes
 
-unsigned            max_slot= 0;    // Maximum number of slots used
-unsigned            now_slot= 0;    // Current number of slots used
+unsigned               max_slot= 0; // Maximum number of slots used
+unsigned               now_slot= 0; // Current number of slots used
+#endif
 
 // Randomizer controls
-std::random_device  rd;             // Use to seed generator
-std::mt19937        mt;             // Standard mersenne_twister_engine
+std::random_device     rd;          // Use to seed generator
+std::mt19937           mt;          // Standard mersenne_twister_engine
 std::uniform_int_distribution<>
-                    ud_size;        // Uniform size distributor
+                       ud_size;     // Uniform size distributor
 std::uniform_int_distribution<>
-                    ud_slot;        // Uniform slot distributor
+                       ud_slot;     // Uniform slot distributor
 
 //----------------------------------------------------------------------------
 // Thread::Constructor
@@ -264,12 +328,15 @@ public:
 {
    if( opt_hcdm ) debugf("Thread(%p)::Thread\n", this);
 
+#if USE_GLOBAL_SLOT == false
    slot_array= (Slot*)malloc(opt_slots * sizeof(Slot));
    if( slot_array == nullptr ) throw std::bad_alloc();
    for(size_t i= 0; i<opt_slots; i++) {
-     slot_array[i].addr= nullptr;
-     slot_array[i].size= 0;
+     Slot& slot= slot_array[i];
+     slot.addr= nullptr;
+     slot.size= 0;
    }
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -281,19 +348,21 @@ virtual
 {
    if( opt_hcdm ) debugf("Thread(%p)::~Thread\n", this);
 
+#if USE_GLOBAL_SLOT == false
    if( slot_array ) {
      for(size_t S= 0; S<opt_slots; S++) { // Release any allocated slots
        Slot& slot= slot_array[S];
        if( slot.addr ) {
          Record* record= (Record*)Trace::trace->allocate_if(sizeof(Record));
          if( record ) record->trace(ID_FREE, task, S, slot.addr, slot.size);
-         slot.free(S);
+         slot.free();
        }
      }
 
      free(slot_array);
      slot_array= nullptr;
    }
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -339,6 +408,13 @@ virtual void
    test( void )                     // Run the test
 {  if( HCDM ) debugf("Thread(%s)::test()\n", ident);
 
+   if( true  ) {                    // TODO: REMOVE.
+     for(unsigned i= 0; i<opt_slots; i++) { // Verify slot.get_index
+       if( slot_array[i].get_index() != i )
+         debugf("%5d= slot[%5d].get_index()\n", slot_array[i].get_index(), i);
+     }
+   }
+
    //-------------------------------------------------------------------------
    // Run the test
    for(iteration= 1; iteration <= opt_iterations; iteration++) {
@@ -353,31 +429,68 @@ virtual void
                 , iteration, opt_iterations);
      }
 
-     unsigned S= ud_slot(mt);       // Select a slot index
-     Slot* slot= slot_array + S;    // The associated Slot
-     if( slot->addr ) {             // If allocated
+     unsigned S;                    // Slot index
+     Slot* slot;                    // Slot address
+     for(;;) {
+       S= ud_slot(mt);              // Select a slot index
+       slot= slot_array + S;        // Address the associated Slot
+       if( slot->try_lock() )       // And lock it
+         break;
+
+       num_lock++;                  // Count lock interference
+     }
+
+     void* slot_addr= truncate(slot->addr);
+     if( slot_addr ) {              // If allocated
        now_size -= slot->size;      // (Decrement *before* free)
        now_slot--;                  // Slot available
 
-       record->trace(ID_FREE, task, S, slot->addr, slot->size);
-       slot->free(S);               // Remove it
+       record->trace(ID_FREE, task, S, slot_addr, slot->size);
+       slot->free();                // Remove it, freeing the lock
 
        num_free++;                  // Count free operation
      } else {                       // If not allocated
        size_t size= ud_size(mt);    // Select a size
-       slot->find(size);            // Allocate slot storage
-       record->trace(ID_FIND, task, S, slot->addr, slot->size);
+       slot_addr= slot->find(size); // Allocate slot storage
+       record->trace(ID_FIND, task, S, slot_addr, slot->size);
 
-       now_size += slot->size;      // Increment *after* find
+#if USE_GLOBAL_SLOT
+       now_size += size;            // Increment *after* find
+       if( now_size.load() > max_size.load() ) max_size.store(now_size);
+       now_slot++;                  // Slot in use
+       if( now_slot.load() > max_slot.load() ) max_slot.store(now_slot);
+
+       num_find++;                  // Count find operation
+#else
+       now_size += size;            // Increment *after* find
        if( now_size > max_size ) max_size= now_size;
        now_slot++;                  // Slot in use
        if( now_slot > max_slot ) max_slot= now_slot;
 
        num_find++;                  // Count find operation
+#endif
      }
    }
 }
 }; // class Thread
+
+//----------------------------------------------------------------------------
+// Slot::get_index: Get current Slot index (only called if error encountered)
+//----------------------------------------------------------------------------
+unsigned
+   Slot::get_index( void )          // Get current Slot index
+{
+#if USE_GLOBAL_SLOT
+   unsigned index= this - slot_array;
+#else
+   unsigned index= opt_slots;       // Default, invalid slot index
+   Thread* thread= dynamic_cast<Thread*>(Thread::current());
+   if( thread )
+     index= this - thread->slot_array;
+#endif
+
+   return index;
+}
 
 //----------------------------------------------------------------------------
 // next_page: (Global) next storage page
@@ -407,6 +520,14 @@ static inline char*                 // The next storage page, if any
 static inline char*                 // The lowest allocated slot address
    slot_zero( void )                // The lowest allocated slot address
 {
+#if USE_GLOBAL_SLOT
+   char* min_slot= max_page;
+   for(unsigned s= 0; s<opt_slots; s++) {
+     char* addr= (char*)slot_array[s].addr;
+     if( addr && addr < min_slot )
+        min_slot= addr;
+   }
+#else
    char* min_slot= max_page;
    for(unsigned i= 0; i<opt_multi; i++) {
      Thread* t= (Thread*)task_array[i];
@@ -416,6 +537,7 @@ static inline char*                 // The lowest allocated slot address
           min_slot= addr;
      }
    }
+#endif
 
    if( min_slot == max_page )
      min_slot= nullptr;
@@ -492,15 +614,24 @@ void
 
    //-------------------------------------------------------------------------
    // Diagnostics
+#if USE_GLOBAL_SLOT
+   for(unsigned s= 0; s<opt_slots; s++) { // Verify the slot table
+     if( ! slot_array[s].is_valid() ) { // If invalid slot
+       opt_verbose= 5;            // Debugging required
+       break;                     // (Only display one fault per thread)
+     }
+   }
+#else
    for(unsigned i= 0; i<opt_multi; i++) { // Verify the slot table
      Thread* t= (Thread*)task_array[i];
      for(unsigned s= 0; s<opt_slots; s++) { // Verify the slot table
-       if( ! t->slot_array[s].is_valid(s) ) { // If invalid slot
+       if( ! t->slot_array[s].is_valid() ) { // If invalid slot
          opt_verbose= 5;            // Debugging required
          break;                     // (Only display one fault per thread)
        }
      }
    }
+#endif
 
    if( opt_verbose >= 3 ) {         // If tracing
      Debug* debug= Debug::get();
@@ -515,6 +646,13 @@ void
      //-----------------------------------------------------------------------
      // Dump the (combined) slot table
      tracef("\n");
+#if USE_GLOBAL_SLOT
+     for(unsigned slot= 0; slot<opt_slots; slot++) {
+       if( slot_array[slot].addr )
+         tracef("[%6d] 0x%.12zx.%.8zx\n", slot
+                , vtos(slot_array[slot].addr), slot_array[slot].size);
+     }
+#else
      for(unsigned i= 0; i<opt_multi; i++) { // Dump the slot table (by Thread)
        Thread* t= (Thread*)task_array[i];
        for(unsigned slot= 0; slot<opt_slots; slot++) {
@@ -523,6 +661,7 @@ void
                   , vtos(t->slot_array[slot].addr), t->slot_array[slot].size);
        }
      }
+#endif
 
      //-----------------------------------------------------------------------
      // Dump all pages with allocated storage (merged across Threads)
@@ -562,12 +701,23 @@ void
 
    //-----------------------------------------------------------------------
    // Display Thread  statistics
+#if USE_GLOBAL_SLOT
+   debugf("..num_lock(%'zd) (collisions)\n", num_lock.load());
+   debugf("..num_find(%'zd) num_free(%'zd)\n"
+         , num_find.load(), num_free.load());
+   debugf("..max_size(%'zd) max_slot(%'zd)\n"
+         , max_size.load(), max_slot.load());
+   debugf("..now_size(%'zd) now_slot(%'zd)\n"
+         , now_size.load(), now_slot.load());
+#else
    for(unsigned i= 0; i<opt_multi; i++) { // Dump the thread state
      Thread* t= (Thread*)task_array[i];
      debugf("\nThread(%s)::stats()\n", t->ident);
+     debugf("..num_lock(%'zd) (collisions)\n", t->num_lock);
      debugf("..num_find(%'zd) num_free(%'zd)\n", t->num_find, t->num_free);
      debugf("..max_size(%'zd) max_slot(%'u)\n", t->max_size, t->max_slot);
      debugf("..now_size(%'zd) now_slot(%'u)\n", t->now_size, t->now_slot);
    }
+#endif
 }
 #endif // S_ALLOC_H_INCLUDED

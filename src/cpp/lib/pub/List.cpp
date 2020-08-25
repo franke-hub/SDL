@@ -16,7 +16,7 @@
 //       List object methods.
 //
 // Last change date-
-//       2020/06/13
+//       2020/08/24
 //
 // Implementation notes-
 //       See Dispatch.cpp, Task::drain for sample AU_FIFO usage.
@@ -73,14 +73,14 @@ namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
 //
 // Method-
-//       AU_List<void>::isCoherent
+//       AU_List<void>::is_coherent
 //
 // Purpose-
 //       Check the object for coherency.
 //
 //----------------------------------------------------------------------------
 int                                 // TRUE if object is coherent
-   AU_List<void>::isCoherent( void ) const // Coherency check
+   AU_List<void>::is_coherent( void ) const // Coherency check
 {
    Link* link= tail.load();         // Address newest Link
    for(int count= 0; count < MAX_COHERENT; count++)
@@ -88,7 +88,7 @@ int                                 // TRUE if object is coherent
      if( link == nullptr )
        return true;
 
-     link= link->getPrev();
+     link= link->get_prev();
    }
 
    return false;
@@ -97,14 +97,14 @@ int                                 // TRUE if object is coherent
 //----------------------------------------------------------------------------
 //
 // Method-
-//       AU_List<void>::isOnList
+//       AU_List<void>::is_on_list
 //
 // Purpose-
 //       Check whether a Link is on the List.
 //
 //----------------------------------------------------------------------------
 int                                 // TRUE if Link is on List
-   AU_List<void>::isOnList(         // Is Link contained?
+   AU_List<void>::is_on_list(       // Is Link contained?
      Link*             link) const  // -> Link
 {
    if( link != nullptr )            // If a link was specified
@@ -115,7 +115,7 @@ int                                 // TRUE if Link is on List
        if( prev == link )
          return true;
 
-       prev= prev->getPrev();
+       prev= prev->get_prev();
      }
    }
 
@@ -138,9 +138,9 @@ AU_List<void>::Link*                // -> Prior tail
    Link*               prev;        // Prior tail value
 
    prev= tail.load();               // The current tail
-   link->setPrev(prev);
+   link->set_prev(prev);
    while( !tail.compare_exchange_weak(prev, link) ) // Add link to list
-     link->setPrev(prev);
+     link->set_prev(prev);
 
    return prev;                     // Return the previous tail
 }
@@ -170,7 +170,7 @@ AU_List<void>::Link*                // The removed link (if on list)
      if( link != item )             // If not the first Link
        break;
 
-     if( tail.compare_exchange_strong(link, link->getPrev()) )
+     if( tail.compare_exchange_strong(link, link->get_prev()) )
        return link;
    }
 
@@ -178,10 +178,10 @@ AU_List<void>::Link*                // The removed link (if on list)
    do                               // Find the prior link
    {
      prev= link;                    // Save the prior Link pointer
-     link= link->getPrev();         // Address the next older Link
+     link= link->get_prev();        // Address the next older Link
      if( link == item )             // If we found the link
      {
-       prev->setPrev(link->getPrev()); // Remove the found link
+       prev->set_prev(link->get_prev()); // Remove the found link
        break;
      }
    } while( link != nullptr );      // Until we run out of links
@@ -216,7 +216,7 @@ AU_List<void>::Link*                // -> Oldest Link
      if( link == nullptr )          // If the List was empty
        return nullptr;              // Exit, function complete
 
-     if( link->getPrev() != nullptr ) // If this is not the only Link
+     if( link->get_prev() != nullptr ) // If this is not the only Link
        break;
 
      if( tail.compare_exchange_strong(link, nullptr) )
@@ -228,10 +228,10 @@ AU_List<void>::Link*                // -> Oldest Link
    do                               // Find the oldest Link
    {
      prev= link;                    // Save the prior Link pointer
-     link= link->getPrev();         // Address the next older Link
-   } while( link->getPrev() != nullptr ); // Until we find the oldest
+     link= link->get_prev();        // Address the next older Link
+   } while( link->get_prev() != nullptr ); // Until we find the oldest
 
-   prev->setPrev(nullptr);          // Remove the oldest link from the list
+   prev->set_prev(nullptr);         // Remove the oldest link from the list
    return link;                     // Return the oldest link
 }
 
@@ -280,7 +280,7 @@ AU_List<void>::Link*                // -> Removed (newest) Link
    }
 
    // Replace the List
-   replace->setPrev(nullptr);
+   replace->set_prev(nullptr);
    while( ! tail.compare_exchange_weak(link, replace) )
      ;
 
@@ -306,7 +306,7 @@ void
    traceh("%4d next\n", next);
    traceh("%4d used\n", used);
    for(int i= std::min(int(SIZE),used)-1; i >= 0; i--) {
-     traceh("[%2d] %p->%p\n", i, array[i], array[i]->getPrev());
+     traceh("[%2d] %p->%p\n", i, array[i], array[i]->get_prev());
    }
 }
 #endif
@@ -349,13 +349,13 @@ void
    DHDL_List<void>::fifo(           // Insert link, FIFO order
      Link*             link)        // -> Link to insert
 {
-   link->setNext(nullptr);          // Set next link pointer
-   link->setPrev(tail);             // Set prior link pointer
+   link->set_next(nullptr);         // Set next link pointer
+   link->set_prev(tail);            // Set prior link pointer
 
    if( head == nullptr )            // If the list is empty
      head= link;                    // Add link to empty list
    else                             // If the list is not empty
-     tail->setNext(link);           // Add link to list
+     tail->set_next(link);          // Add link to list
 
    tail= link;                      // Set new list tail link
 }
@@ -377,45 +377,45 @@ void
 {
    if( link == nullptr )            // If insert at head
    {
-     head->setPrev(nullptr);
+     head->set_prev(nullptr);
      if( this->head == nullptr )    // If the list is empty
      {
-       tail->setNext(nullptr);
+       tail->set_next(nullptr);
        this->tail= tail;
        this->head= head;
      }
      else                           // If the list is populated
      {
-       tail->setNext(this->head);
-       this->head->setPrev(tail);
+       tail->set_next(this->head);
+       this->head->set_prev(tail);
        this->head= head;
      }
    }
    else                             // If the list is not empty
    {
-     Link* next= link->getNext();   // Address the next Link
-     tail->setNext(next);           // Set the forward link pointer
-     head->setPrev(link);           // Set the reverse link pointer
+     Link* next= link->get_next();  // Address the next Link
+     tail->set_next(next);          // Set the forward link pointer
+     head->set_prev(link);          // Set the reverse link pointer
 
-     link->setNext(head);           // Insert onto the forward list
+     link->set_next(head);          // Insert onto the forward list
      if( next == nullptr )          // Insert onto the reverse list
        this->tail= tail;
      else
-       next->setPrev(tail);
+       next->set_prev(tail);
    }
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       DHDL_List<void>::isCoherent
+//       DHDL_List<void>::is_coherent
 //
 // Purpose-
 //       Check the object for coherency.
 //
 //----------------------------------------------------------------------------
 int                                 // TRUE if object is coherent
-   DHDL_List<void>::isCoherent( void ) const // Coherency check
+   DHDL_List<void>::is_coherent( void ) const // Coherency check
 {
    Link*               link;        // Pointer to current link
    Link*               prev;        // Pointer to prior   link
@@ -432,17 +432,17 @@ int                                 // TRUE if object is coherent
    prev= nullptr;
    for(int count= 0;;count++)
    {
-     if( link->getPrev() != prev )
+     if( link->get_prev() != prev )
        return false;
 
-     if( link->getNext() == nullptr )
+     if( link->get_next() == nullptr )
        break;
 
      if( link == tail )
        return false;
 
      prev= link;
-     link= link->getNext();
+     link= link->get_next();
 
      if( count > MAX_COHERENT )
        return false;
@@ -457,14 +457,14 @@ int                                 // TRUE if object is coherent
 //----------------------------------------------------------------------------
 //
 // Method-
-//       DHDL_List<void>::isOnList
+//       DHDL_List<void>::is_on_list
 //
 // Purpose-
 //       Check whether a Link is on the list.
 //
 //----------------------------------------------------------------------------
 int                                 // TRUE if link is in list
-   DHDL_List<void>::isOnList(       // Is Link contained?
+   DHDL_List<void>::is_on_list(     // Is Link contained?
      Link*             link) const  // -> Link
 {
    if( link != nullptr )            // If a Link was specified
@@ -475,7 +475,7 @@ int                                 // TRUE if link is in list
        if( next == link )
          return true;
 
-       next= next->getNext();
+       next= next->get_next();
      }
    }
 
@@ -495,13 +495,13 @@ void
    DHDL_List<void>::lifo(           // Insert link, LIFO order
      Link*             link)        // -> Link to insert
 {
-   link->setNext(head);             // Set next link pointer
-   link->setPrev(nullptr);          // Set prior link pointer
+   link->set_next(head);            // Set next link pointer
+   link->set_prev(nullptr);         // Set prior link pointer
 
    if( head == nullptr )            // If the list is empty
      tail= link;                    // Add link to empty list
    else                             // If the list is not empty
-     head->setPrev(link);           // Add link to list
+     head->set_prev(link);          // Add link to list
 
    head= link;                      // Set new list head link
 }
@@ -520,31 +520,31 @@ void
      Link*             head,        // -> First Link to remove
      Link*             tail)        // -> Final Link to remove
 {
-   Link* prev= head->getPrev();     // Link prior to head
-   Link* next= tail->getNext();     // Link after tail
+   Link* prev= head->get_prev();    // Link prior to head
+   Link* next= tail->get_next();    // Link after tail
 
    if( prev == nullptr )
    {
      this->head= next;
      if( next != nullptr )
-       next->setPrev(nullptr);
+       next->set_prev(nullptr);
    }
    else
    {
-     prev->setNext(next);
-//// head->setPrev(nullptr);        // Not necessary (DO NOT REMOVE COMMENT)
+     prev->set_next(next);
+//// head->set_prev(nullptr);       // Not necessary (DO NOT REMOVE COMMENT)
    }
 
    if( next == nullptr )
    {
      this->tail= prev;
      if( prev != nullptr )
-       prev->setNext(nullptr);
+       prev->set_next(nullptr);
    }
    else
    {
-     next->setPrev(prev);
-//// tail->setNext(nullptr);        // Not necessary (DO NOT REMOVE COMMENT)
+     next->set_prev(prev);
+//// tail->set_next(nullptr);       // Not necessary (DO NOT REMOVE COMMENT)
    }
 }
 
@@ -563,9 +563,9 @@ DHDL_List<void>::Link*              // -> Removed Link
    Link* link= head;                // Address the first Link
    if( link != nullptr )            // If the list is not empty
    {
-     head= link->getNext();         // Remove link from list
+     head= link->get_next();        // Remove link from list
      if( head != nullptr )          // If the list is not empty
-       head->setPrev(nullptr);      // Set first link backchain pointer
+       head->set_prev(nullptr);     // Set first link backchain pointer
      else                           // The list is empty
        tail= nullptr;               // No tail link exists
    }
@@ -631,10 +631,10 @@ void
    DHSL_List<void>::fifo(           // Insert link, FIFO order
      Link*             link)        // -> Link to insert
 {
-   link->setNext(nullptr);          // Set link chain pointer
+   link->set_next(nullptr);         // Set link chain pointer
 
    if( head != nullptr )            // If adding to existing list
-     tail->setNext(link);           // Insert the link onto the list
+     tail->set_next(link);          // Insert the link onto the list
    else                             // If adding to empty list
      head= link;                    // Add link to list
 
@@ -660,22 +660,22 @@ void
    {
      if( this->head == nullptr )    // If the list is empty
      {
-       tail->setNext(nullptr);
+       tail->set_next(nullptr);
        this->head= head;
        this->tail= tail;
      }
      else                           // If the list is populated
      {
-       tail->setNext(this->head);
+       tail->set_next(this->head);
        this->head= head;
      }
    }
    else
    {
-     tail->setNext(link->getNext());// Set link chain pointers
-     link->setNext(head);           // Insert onto the forward list
+     tail->set_next(link->get_next()); // Set link chain pointers
+     link->set_next(head);          // Insert onto the forward list
 
-     if( tail->getNext() == nullptr ) // If insert after last link
+     if( tail->get_next() == nullptr ) // If insert after last link
        this->tail= tail;
    }
 }
@@ -683,21 +683,21 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       DHSL_List::isCoherent
+//       DHSL_List::is_coherent
 //
 // Purpose-
 //       Check the object for coherency.
 //
 //----------------------------------------------------------------------------
 int                                 // TRUE if object is coherent
-   DHSL_List<void>::isCoherent( void ) const // Coherency check
+   DHSL_List<void>::is_coherent( void ) const // Coherency check
 {
    Link* prev= head;
    if( prev != nullptr )
    {
      for(int count= 0;;count++)
      {
-       Link* link= prev->getNext();
+       Link* link= prev->get_next();
        if( link == nullptr )
          break;
        if( prev == tail || count > MAX_COHERENT )
@@ -713,14 +713,14 @@ int                                 // TRUE if object is coherent
 //----------------------------------------------------------------------------
 //
 // Method-
-//       DHSL_List<void>::isOnList
+//       DHSL_List<void>::is_on_list
 //
 // Purpose-
 //       Check whether a link is on the list.
 //
 //----------------------------------------------------------------------------
 int                                 // TRUE if link is in list
-   DHSL_List<void>::isOnList(       // Is Link contained?
+   DHSL_List<void>::is_on_list(     // Is Link contained?
      Link*             link) const  // -> Link
 {
    if( link != nullptr )            // If a link was specified
@@ -731,7 +731,7 @@ int                                 // TRUE if link is in list
        if( next == link )
          return true;
 
-       next= next->getNext();
+       next= next->get_next();
      }
    }
 
@@ -751,7 +751,7 @@ void
    DHSL_List<void>::lifo(           // Insert link, LIFO order
      Link*             link)        // -> Link to insert
 {
-   link->setNext(head);             // Set link chain pointer
+   link->set_next(head);            // Set link chain pointer
 
    if( head == nullptr )            // If adding to empty list
      tail= link;                    // Add to empty list
@@ -779,7 +779,7 @@ void
 
    if( link == head )               // If removing head element
    {
-     this->head= tail->getNext();
+     this->head= tail->get_next();
      if( this->head == nullptr )    // If the list is now empty
        this->tail= nullptr;         // Make it completely empty
      return;
@@ -787,16 +787,16 @@ void
 
    for(;;)                          // Search for prior element
    {
-     if( link->getNext() == head )
+     if( link->get_next() == head )
        break;
 
-     link= link->getNext();
+     link= link->get_next();
      if( link == nullptr )
        return;
    }
 
-   link->setNext(tail->getNext());  // Remove from within list
-   if( link->getNext() == nullptr )
+   link->set_next(tail->get_next()); // Remove from within list
+   if( link->get_next() == nullptr )
      this->tail= link;
 }
 
@@ -815,7 +815,7 @@ DHSL_List<void>::Link*              // -> Removed Link
    Link* link= head;                // Address oldest link
    if( link != nullptr )            // If the list is empty
    {
-     head= link->getNext();         // Remove link from list
+     head= link->get_next();        // Remove link from list
      if( head == nullptr )          // If the list is now empty
        tail= nullptr;               // Make it completely empty
    }
@@ -881,7 +881,7 @@ void
    SHSL_List<void>::fifo(           // Insert link, FIFO order
      Link*             link)        // -> Link to insert
 {
-   link->setNext(nullptr);          // Set link chain pointer
+   link->set_next(nullptr);         // Set link chain pointer
 
    Link* last= head;                // Address first link on list
    if( last == nullptr )            // If adding to empty list
@@ -890,23 +890,47 @@ void
      return;                        // Exit, function complete
    }
 
-   while( last->getNext() != nullptr ) // Find the end of the list
-     last= last->getNext();
+   while( last->get_next() != nullptr ) // Find the (tail) end of the list
+     last= last->get_next();
 
-   last->setNext(link);             // Add link to list
+   last->set_next(link);            // Add link to list
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       SHSL_List<void>::isCoherent
+//       SHSL_List<void>::insert
+//
+// Purpose-
+//       Insert a chain onto the list at the specified position.
+//
+//----------------------------------------------------------------------------
+void
+   SHSL_List<void>::insert(         // Add to list at position,
+     Link*             link,        // -> Link to insert after
+     Link*             head,        // -> First Link to insert
+     Link*             tail)        // -> Final Link to insert
+{
+   if( link ) {
+     tail->set_next(link->get_next());
+     link->set_next(head);
+   } else {
+     tail->set_next(this->head);
+     this->head= head;
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       SHSL_List<void>::is_coherent
 //
 // Purpose-
 //       Check whether this list is coherent.
 //
 //----------------------------------------------------------------------------
 int                                 // TRUE if the object is coherent
-   SHSL_List<void>::isCoherent( void ) const // Is this list coherent?
+   SHSL_List<void>::is_coherent( void ) const // Is this list coherent?
 {
    Link* link= head;
    for(int count= 0;;count++)
@@ -916,7 +940,7 @@ int                                 // TRUE if the object is coherent
      if( count > MAX_COHERENT )
        return false;
 
-     link= link->getNext();
+     link= link->get_next();
    }
 
    return true;
@@ -925,14 +949,14 @@ int                                 // TRUE if the object is coherent
 //----------------------------------------------------------------------------
 //
 // Method-
-//       SHSL_List<void>::isOnList
+//       SHSL_List<void>::is_on_list
 //
 // Purpose-
 //       Check whether a link is on the list.
 //
 //----------------------------------------------------------------------------
 int                                 // TRUE if link is in list
-   SHSL_List<void>::isOnList(       // Is Link contained?
+   SHSL_List<void>::is_on_list(     // Is Link contained?
      Link*             link) const  // -> Link
 {
    if( link != nullptr )            // If a link was specified
@@ -943,7 +967,7 @@ int                                 // TRUE if link is in list
        if( next == link )
          return true;
 
-       next= next->getNext();
+       next= next->get_next();
      }
    }
 
@@ -963,7 +987,7 @@ void
    SHSL_List<void>::lifo(           // Insert link, LIFO order
      Link*             link)        // -> Link to insert
 {
-   link->setNext(head);             // Set link chain pointer
+   link->set_next(head);            // Set link chain pointer
    head= link;                      // Add link to list
 }
 
@@ -981,27 +1005,27 @@ void
      Link*             head,        // -> First Link to remove
      Link*             tail)        // -> Last Link to remove
 {
-   Link* link= this->head;          // Address oldest link
+   Link* link= this->head;          // Address head link
    if( link == nullptr )            // If the list is empty
      return;                        // Exit, function complete
 
    if( link == head )               // If removing head element
    {
-     this->head= tail->getNext();
+     this->head= tail->get_next();
      return;
    }
 
    for(;;)                          // Search for prior element
    {
-     if( link->getNext() == head )
+     if( link->get_next() == head )
        break;
 
-     link= link->getNext();
-     if( link == nullptr )
+     link= link->get_next();
+     if( link == nullptr )          // IGNORE: Error if head not on List
        return;
    }
 
-   link->setNext(tail->getNext());  // Remove from within list
+   link->set_next(tail->get_next()); // Remove from within list
 }
 
 //----------------------------------------------------------------------------
@@ -1010,17 +1034,17 @@ void
 //       SHSL_List<void>::remq
 //
 // Purpose-
-//       Remove oldest link from the list.
+//       Remove head link from the list.
 //
 //----------------------------------------------------------------------------
 SHSL_List<void>::Link*              // -> Removed Link
-   SHSL_List<void>::remq( void )    // Remove oldest link
+   SHSL_List<void>::remq( void )    // Remove head link
 {
-   Link* link= head;                // Address oldest link
+   Link* link= head;                // Address head link
    if( link != nullptr )            // If the list is not empty
-     head= link->getNext();         // Remove link from list
+     head= link->get_next();        // Remove link from list
 
-   return link;                     // Return the oldest link
+   return link;                     // Return the head link
 }
 
 //----------------------------------------------------------------------------
@@ -1073,22 +1097,22 @@ void
    while( head != nullptr )         // Sort the list
    {
      Link* low= head;
-     Link* next= low->getNext();
+     Link* next= low->get_next();
      while( next != nullptr )
      {
        if( low->compare(next) > 0 )
          low= next;
 
-       next= next->getNext();
+       next= next->get_next();
      }
 
      if( low == head )
-       head= head->getNext();
+       head= head->get_next();
      else
      {
-       if( low->getNext() != nullptr )
-         low->getNext()->setPrev(low->getPrev());
-       low->getPrev()->setNext(low->getNext());
+       if( low->get_next() != nullptr )
+         low->get_next()->set_prev(low->get_prev());
+       low->get_prev()->set_next(low->get_next());
      }
 
      fifo(low);

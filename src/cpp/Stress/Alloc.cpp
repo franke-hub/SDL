@@ -16,7 +16,7 @@
 //       ~/src/cpp/inc/pub/Allocator.h Stress test
 //
 // Last change date-
-//       2020/08/21
+//       2020/08/23
 //
 // Parameters-
 //       --help        (Display help message)
@@ -190,6 +190,19 @@ static int                          // Return code, 0 OK
      return 1;
    }
 
+   // Verify min/max allocation size
+   if( opt_minsz < sizeof(Slot) ) {
+     fprintf(stderr, "--opt_minsz(%u) increased to(%zd)\n"
+                   , opt_minsz, sizeof(Slot));
+     opt_minsz= sizeof(Slot);
+   }
+
+   if( opt_minsz > opt_maxsz ) {
+     fprintf(stderr, "--opt_maxsz(%u) increased to(%u)\n"
+                   , opt_maxsz, opt_minsz);
+     opt_maxsz= opt_minsz;
+   }
+
    //-------------------------------------------------------------------------
    // Initialize signal handling
    sys1_handler= signal(SIGINT,  sig_handler);
@@ -201,14 +214,26 @@ static int                          // Return code, 0 OK
    setlocale(LC_NUMERIC, "");       // Allows printf("%'d\n", 123456789);
 
    Debug* debug= Debug::get();      // Activate debug tracing
-// debug->set_head(Debug::HeadTime | Debug::HeadThread);
-   debug->set_head(Debug::HeadTime); // All messages have thread identifier
+// debug->set_head(Debug::HEAD_TIME | Debug::HEAD_THREAD);
+   debug->set_head(Debug::HEAD_TIME); // All messages have thread identifier
 
    if( HCDM ) opt_hcdm= true;       // If HCDM compile-time, force opt_hcdm
    if( opt_hcdm ) {                 // If --hcdm option specified
-     debug->set_mode(Debug::ModeIntensive); // Hard Core Debug Mode
+     debug->set_mode(Debug::MODE_INTENSIVE); // Hard Core Debug Mode
      debugf("%4d HCDM.c pid(%d)\n", __LINE__, getpid());
    }
+
+   //-------------------------------------------------------------------------
+   // Allocate and initialize the slot_array
+#if USE_GLOBAL_SLOT
+   slot_array= (Slot*)malloc(opt_slots * sizeof(Slot));
+   if( slot_array == nullptr ) throw std::bad_alloc();
+   for(size_t i= 0; i<opt_slots; i++) {
+     Slot& slot= slot_array[i];
+     slot.addr= nullptr;
+     slot.size= 0;
+   }
+#endif
 
    return 0;
 }
@@ -230,6 +255,24 @@ extern void
    signal(SIGINT,  sys1_handler);
    signal(SIGUSR1, usr1_handler);
    signal(SIGUSR2, usr2_handler);
+
+   //-------------------------------------------------------------------------
+   // Free allocated storage
+#if USE_GLOBAL_SLOT
+   if( slot_array ) {
+     for(size_t S= 0; S<opt_slots; S++) { // Release any allocated slots
+       Slot& slot= slot_array[S];
+       if( slot.addr ) {
+         Record* record= (Record*)Trace::storage_if(sizeof(Record));
+         if( record ) record->trace(ID_FREE, -1, S, slot.addr, slot.size);
+         slot.free();
+       }
+     }
+
+     free(slot_array);
+     slot_array= nullptr;
+   }
+#endif
 
    //-------------------------------------------------------------------------
    // Delete the Allocator
@@ -426,13 +469,6 @@ static int                          // Return code (0 if OK)
                        , C, (C & 0x00ff) );
          break;
      }
-   }
-
-   // Verify min/max allocation size
-   if( opt_minsz > opt_maxsz ) {
-     opt_help= true;
-     fprintf(stderr, "--opt_minsz(%u) > --opt_maxsz(%u)\n"
-                   , opt_minsz, opt_maxsz);
    }
 
    // Handle positional options

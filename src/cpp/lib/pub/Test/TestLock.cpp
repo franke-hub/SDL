@@ -16,7 +16,7 @@
 //       Test Lock.h
 //
 // Last change date-
-//       2020/07/18
+//       2020/08/23
 //
 //----------------------------------------------------------------------------
 #include "pub/Lock.h"               // The test object
@@ -135,13 +135,13 @@ static int                          // Return code (0 OK)
 {
    //-------------------------------------------------------------------------
    // Initialize/activate debugging trace
-   Debug* debug= Debug::get();      // (To set fileMode before use)
-   debug->set_fileMode("ab");       // (Append so second PID doesn't truncate)
-   debug->set_head(Debug::HeadTime); // Include heading in time
+   Debug* debug= Debug::get();      // (To set file mode before use)
+   debug->set_file_mode("ab");      // (Append so second PID doesn't truncate)
+   debug->set_head(Debug::HEAD_TIME); // Include heading in time
 
    if( HCDM ) opt_hcdm= true;       // If HCDM compile-time, force opt_hcdm
    if( opt_hcdm ) {                 // If --hcdm option specified
-     debug->set_mode(Debug::ModeIntensive); // Hard Core Debug Mode
+     debug->set_mode(Debug::MODE_INTENSIVE); // Hard Core Debug Mode
    }
 
    return 0;

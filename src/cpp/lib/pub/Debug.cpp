@@ -16,7 +16,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2020/01/25
+//       2020/08/23
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -69,7 +69,14 @@ namespace _PUB_NAMESPACE {
 // External data areas
 //----------------------------------------------------------------------------
 Debug*                 Debug::common= nullptr; // -> The common Debug instance
-int                    Debug::level= 0; // The current Debug level
+
+int                    debugging::options::opt_check= false;
+int                    debugging::options::opt_hcdm= false;
+int                    debugging::options::opt_verbose= -1;
+
+int                    debugging::options::pub_check= false;
+int                    debugging::options::pub_hcdm= false;
+int                    debugging::options::pub_verbose= -1;
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -111,19 +118,19 @@ static bool                         // true iff different
 //       isSTDIO
 //
 // Purpose-
-//       Does a fileName imply a STDIO FILE?
+//       Does a file name imply a STDIO FILE?
 //
 //----------------------------------------------------------------------------
 static bool                         // true iff STDIO
-   isSTDIO(                         // Does fileName imply STDIO?
-     const char*       fileName)    // The file name
+   isSTDIO(                         // Does file name imply STDIO?
+     const char*       file_name)   // The file name
 {
-   if( fileName[0] == '>' && fileName[1] == '\0' )
+   if( file_name[0] == '>' && file_name[1] == '\0' )
      return true;
 
-   if( fileName[0] == '1' || fileName[0] == '2' )
+   if( file_name[0] == '1' || file_name[0] == '2' )
    {
-     if( fileName[1] == '>' && fileName[2] == '\0' )
+     if( file_name[1] == '>' && file_name[2] == '\0' )
        return true;
    }
 
@@ -154,16 +161,16 @@ static bool                         // true iff STDIO
 //
 // Implementation notes-
 //       Constructors MUST NOT call init(), which would defeat the purpose of
-//       the set_fileName and set_fileMode functions.
+//       the set_file_name and set_file_mode functions.
 //
 //----------------------------------------------------------------------------
    Debug::Debug(                    // Constructor
-     const char*       name)        // The output filename, default "debug.out"
+     const char*       name)        // The output file_name, default "debug.out"
 {  IFHCDM( fprintf(stderr, "Debug(%p)::Debug(%s)\n", this, name); )
    if( name != nullptr && name[0] != '\0' )
-     this->fileName= name;
+     this->file_name= name;
 
-   IFHCDM( mode= ModeIntensive; )
+   IFHCDM( mode= MODE_INTENSIVE; )
 }
 
 //----------------------------------------------------------------------------
@@ -206,7 +213,7 @@ void
    Debug::heading(                  // Debug heading
      FILE*             file)        // The target FILE
 {
-   if( head & HeadTime )            // Time of day heading
+   if( head & HEAD_TIME )           // Time of day heading
    {
      struct timespec     ticker;    // UTC time base
      clock_gettime(CLOCK_REALTIME, &ticker);
@@ -216,7 +223,7 @@ void
      fprintf(file, "%14.3f ", tod);
    }
 
-   if( head & HeadThread )          // Thread heading
+   if( head & HEAD_THREAD )         // Thread heading
    {
      Thread* current= Thread::current();
      Named* named= dynamic_cast<Named*>(current);
@@ -249,20 +256,20 @@ void
 {  IFHCDM( fprintf(stderr, "Debug(%p)::init()\n", this); )
    if( handle == nullptr )          // If still not active
    {
-     if( isSTDIO(fileName.c_str()) )
+     if( isSTDIO(file_name.c_str()) )
      {
-       if( fileName[0] == '>' || fileName[0] == '1' )
+       if( file_name[0] == '>' || file_name[0] == '1' )
          handle= stdout;
        else
          handle= stderr;
      }
      else
      {
-       handle= fopen(fileName.c_str(), fileMode.c_str());// Open the trace file
+       handle= fopen(file_name.c_str(), file_mode.c_str());// Open the trace file
        if( handle == nullptr )      // If the open failed
        {
          fprintf(stderr, "DEBUG: Error: fopen(%s,%s) error\n",
-                         fileName.c_str(), fileMode.c_str());
+                         file_name.c_str(), file_mode.c_str());
          handle= stderr;
        }
      }
@@ -289,7 +296,7 @@ void
      int rc= fclose(handle);        // Close the file
      if( rc != 0 )                  // If error encountered
        fprintf(stderr, "DEBUG: Error: file(%s), close error(%d)\n",
-                       fileName.c_str(), rc);
+                       file_name.c_str(), rc);
    }
 
    handle= nullptr;                 // Indicate closed
@@ -408,12 +415,13 @@ void
      {
        int rc= fclose(handle);      // Close the trace file
        if( rc != 0 )                // If the close failed
-         fprintf(stderr, "DEBUG: Error: file(%s) close error\n", fileName.c_str());
+         fprintf(stderr, "DEBUG: Error: file(%s) close error\n", file_name.c_str());
 
-       handle= fopen(fileName.c_str(), "ab"); // Re-open the trace file
+       handle= fopen(file_name.c_str(), "ab"); // Re-open the trace file
        if( handle == nullptr )      // If the re-open failed
        {
-         fprintf(stderr, "DEBUG: Error: file(%s) open(\"ab\") error\n", fileName.c_str());
+         fprintf(stderr, "DEBUG: Error: file(%s) open(\"ab\") error\n"
+                       , file_name.c_str());
          handle= stderr;
        }
      }
@@ -423,38 +431,38 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Debug::set_fileMode
+//       Debug::set_file_mode
 //
 // Function-
 //       Set the trace file modee
 //
 //----------------------------------------------------------------------------
 void
-   Debug::set_fileMode(             // Set the trace file mode
-     const char*       mode)        // The trace filemode
+   Debug::set_file_mode(            // Set the trace file mode
+     const char*       mode)        // The trace file mode
 {  IFHCDM( fprintf(stderr, "Debug(%p)::setMode(%s)\n", this, name); )
    std::lock_guard<decltype(mutex)> lock(mutex);
 
    if( handle )                     // If file is open
      throw Exception(
-         utility::to_string("Debug(%p)::set_fileMode, File(%s) open",
-                            this, fileName.c_str()));
+         utility::to_string("Debug(%p)::set_file_mode, File(%s) open",
+                            this, file_name.c_str()));
 
-   fileMode= mode;                  // Set the file mode
+   file_mode= mode;                 // Set the file mode
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Debug::set_fileName
+//       Debug::set_file_name
 //
 // Function-
 //       Set the trace file name
 //
 //----------------------------------------------------------------------------
 void
-   Debug::set_fileName(             // Set the trace file name
-     const char*       name)        // The trace filename
+   Debug::set_file_name(            // Set the trace file name
+     const char*       name)        // The trace file name
 {  IFHCDM( fprintf(stderr, "Debug(%p)::setName(%s)\n", this, name); )
    std::lock_guard<decltype(mutex)> lock(mutex);
 
@@ -462,7 +470,7 @@ void
 
    if( name == nullptr || name[0] == '\0' )
      name= "debug.out";
-   fileName= name;
+   file_name= name;
 }
 
 //----------------------------------------------------------------------------
@@ -628,7 +636,7 @@ void
      const char*       fmt,         // The PRINTF format string
      va_list           argptr)      // VALIST
 {
-   if( mode != ModeIgnore )         // If not ignore mode
+   if( mode != MODE_IGNORE )        // If not ignore mode
    {
      std::lock_guard<decltype(mutex)> lock(mutex);
 
@@ -644,7 +652,7 @@ void
      }
      vfprintf(handle, fmt, argptr); // Write to trace
 
-     if( mode == ModeIntensive )    // If intensive trace mode
+     if( mode == MODE_INTENSIVE )   // If intensive trace mode
        flush();                     // Flush the buffer
    }
 }
@@ -663,7 +671,7 @@ void
      const char*       fmt,         // The PRINTF format string
      va_list           argptr)      // VALIST
 {
-   if( mode != ModeIgnore )         // If not ignore mode
+   if( mode != MODE_IGNORE )        // If not ignore mode
    {
      std::lock_guard<decltype(mutex)> lock(mutex);
 
@@ -683,7 +691,7 @@ void
      heading(handle);
      vfprintf(handle, fmt, argptr); // Write to trace
 
-     if( mode == ModeIntensive )    // If intensive trace mode
+     if( mode == MODE_INTENSIVE )   // If intensive trace mode
        flush();                     // Flush the buffer
    }
 }
@@ -702,7 +710,7 @@ void
      const char*       fmt,         // The PRINTF format string
      va_list           argptr)      // VALIST
 {
-   if( mode != ModeIgnore )         // If not ignore mode
+   if( mode != MODE_IGNORE )        // If not ignore mode
    {
      std::lock_guard<decltype(mutex)> lock(mutex);
 
@@ -718,7 +726,7 @@ void
      }
      vfprintf(handle, fmt, argptr); // Write to trace
 
-     if( mode == ModeIntensive )    // If intensive trace mode
+     if( mode == MODE_INTENSIVE )   // If intensive trace mode
        flush();                     // Flush the buffer
    }
 }
@@ -737,7 +745,7 @@ void
      const char*       fmt,         // The PRINTF format string
      va_list           argptr)      // VALIST
 {
-   if( mode != ModeIgnore )         // If not ignore mode
+   if( mode != MODE_IGNORE )        // If not ignore mode
    {
      std::lock_guard<decltype(mutex)> lock(mutex);
 
@@ -757,7 +765,7 @@ void
      heading(handle);
      vfprintf(handle, fmt, argptr); // Write to trace
 
-     if( mode == ModeIntensive )    // If intensive trace mode
+     if( mode == MODE_INTENSIVE )   // If intensive trace mode
        flush();                     // Flush the buffer
    }
 }
@@ -800,7 +808,7 @@ void
 
      fprintf(handle, "\n");
      fflush(handle);                // Flush the handle buffer
-     if( mode == ModeIntensive )    // If intensive trace mode
+     if( mode == MODE_INTENSIVE )   // If intensive trace mode
        flush();                     // Intensive buffer flush
    }}}}
 
@@ -826,7 +834,7 @@ void
      const char*       fmt,         // The PRINTF format string
      va_list           argptr)      // VALIST
 {
-   if( mode != ModeIgnore )         // If not ignore mode
+   if( mode != MODE_IGNORE )        // If not ignore mode
    {
      std::lock_guard<decltype(mutex)> lock(mutex);
 
@@ -835,7 +843,7 @@ void
 
      vfprintf(handle, fmt, argptr); // Write to trace
 
-     if( mode == ModeIntensive )    // If intensive trace mode
+     if( mode == MODE_INTENSIVE )   // If intensive trace mode
        flush();                     // Flush the buffer
    }
 }
@@ -854,7 +862,7 @@ void
      const char*       fmt,         // The PRINTF format string
      va_list           argptr)      // VALIST
 {
-   if( mode != ModeIgnore )         // If not ignore mode
+   if( mode != MODE_IGNORE )        // If not ignore mode
    {
      std::lock_guard<decltype(mutex)> lock(mutex);
 
@@ -864,7 +872,7 @@ void
      heading(handle);               // Write heading
      vfprintf(handle, fmt, argptr); // Write to trace
 
-     if( mode == ModeIntensive )    // If intensive trace mode
+     if( mode == MODE_INTENSIVE )   // If intensive trace mode
        flush();                     // Flush the buffer
    }
 }
@@ -894,9 +902,9 @@ void
 }
 
 std::string                         // The trace file name
-   debug_get_fileName( void )       // Get the trace file name
+   debug_get_file_name( void )      // Get the trace file name
 {  std::lock_guard<decltype(mutex)> lock(mutex);
-   return Debug::get()->get_fileName();
+   return Debug::get()->get_file_name();
 }
 
 void
@@ -907,17 +915,17 @@ void
 }
 
 void
-   debug_set_fileMode(              // Set the trace file mode
-     const char*       mode)        // The trace filemode
+   debug_set_file_mode(             // Set the trace file mode
+     const char*       mode)        // The trace file mode
 {  std::lock_guard<decltype(mutex)> lock(mutex);
-   Debug::get()->set_fileMode(mode);
+   Debug::get()->set_file_mode(mode);
 }
 
 void
-   debug_set_fileName(              // Set the trace file name
-     const char*       name)        // The trace filename
+   debug_set_file_name(             // Set the trace file name
+     const char*       name)        // The trace file name
 {  std::lock_guard<decltype(mutex)> lock(mutex);
-   Debug::get()->set_fileName(name);
+   Debug::get()->set_file_name(name);
 }
 
 void

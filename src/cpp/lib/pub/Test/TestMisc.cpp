@@ -16,7 +16,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2020/01/27
+//       2020/08/24
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -251,29 +251,29 @@ static inline int
    if( opt_debug ) {
      debugf("%s: %s\n", s.c_str(), props[ s ]);
      debugf("%s: %s\n", "yY"     , props["yY"]);
-     debugf("%s: %s\n", "Yy"     , props.getProperty("Yy"));
+     debugf("%s: %s\n", "Yy"     , props.get_property("Yy"));
    }
    errorCount += VERIFY(strcmp(props[ s ], "yar") == 0);
    errorCount += VERIFY(strcmp(props["yY"], "yar") == 0);
-   errorCount += VERIFY(strcmp(props.getProperty("Yy"), "yar") == 0);
+   errorCount += VERIFY(strcmp(props.get_property("Yy"), "yar") == 0);
 
    s= "Nn";
    props.insert("Nn", "nar");
    errorCount += VERIFY(strcmp(props[ s ], "nar") == 0);
    errorCount += VERIFY(strcmp(props["Nn"], "nar") == 0);
-   errorCount += VERIFY(strcmp(props.getProperty("nN"), "nar") == 0);
+   errorCount += VERIFY(strcmp(props.get_property("nN"), "nar") == 0);
 
    s= "W";
    props.insert(s, "wasp");
    errorCount += VERIFY(strcmp(props[ s ], "wasp") == 0);
    errorCount += VERIFY(strcmp(props["W"], "wasp") == 0);
-   errorCount += VERIFY(strcmp(props.getProperty("w"), "wasp") == 0);
+   errorCount += VERIFY(strcmp(props.get_property("w"), "wasp") == 0);
 
-   errorCount += VERIFY(strcmp(props.getProperty("Foo", "bar"), "bar") == 0);
+   errorCount += VERIFY(strcmp(props.get_property("Foo", "bar"), "bar") == 0);
    props.insert("foo", "bart s");
-   errorCount += VERIFY(strcmp(props.getProperty("Foo", "bar"), "bart s") == 0);
+   errorCount += VERIFY(strcmp(props.get_property("Foo", "bar"), "bart s") == 0);
    props.remove("foo");
-   errorCount += VERIFY(props.getProperty("foo") == nullptr);
+   errorCount += VERIFY(props.get_property("foo") == nullptr);
 
    if( opt_debug ) {
      debugf("\nProperties:\n");
@@ -335,7 +335,7 @@ static inline int
    //-------------------------------------------------------------------------
    // Verify Properties.reset() method
    props.reset();
-   errorCount += VERIFY(props.getProperty("S") == nullptr);
+   errorCount += VERIFY(props.get_property("S") == nullptr);
    errorCount += VERIFY(props.begin() == props.end());
 
    return errorCount;

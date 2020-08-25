@@ -16,7 +16,7 @@
 //       Work dispatcher, including local definitions.
 //
 // Last change date-
-//       2020/06/13
+//       2020/08/24
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -118,7 +118,7 @@ void
 {
    std::lock_guard<decltype(mutex)> lock(mutex);
 
-   DispatchTTL* link= list.getHead();
+   DispatchTTL* link= list.get_head();
    while( link ) {
      if( (void*)link == token ) {
        list.remove(link, link);
@@ -151,13 +151,13 @@ void*                               // Cancellation token
    }
 
    DispatchTTL* after= nullptr;
-   DispatchTTL* work= list.getHead();
+   DispatchTTL* work= list.get_head();
    while( work ) {
      if( link->time < work->time )
        break;
 
      after= work;
-     work= work->getNext();
+     work= work->get_next();
    }
 
    list.insert(after, link, link);
@@ -179,7 +179,7 @@ virtual void                        // Operate the Thread
        std::lock_guard<decltype(mutex)> lock(mutex);
 
        // Drive all expired timers
-       DispatchTTL* link= list.getHead();
+       DispatchTTL* link= list.get_head();
        while( link ) {
          delay= link->time.get() - Clock::now();
          if( delay > 0.015625 ) {
@@ -193,7 +193,7 @@ virtual void                        // Operate the Thread
          link->item->post();
          delete link;
 
-         link= list.getHead();
+         link= list.get_head();
        }
      }}}}
 
@@ -203,13 +203,13 @@ virtual void                        // Operate the Thread
    // Non-operational. Purge all timers before we go.
    std::lock_guard<decltype(mutex)> lock(mutex);
 
-   DispatchTTL* link= list.getHead();
+   DispatchTTL* link= list.get_head();
    while( link ) {
      list.remove(link, link);
      link->item->post(Item::CC_PURGE);
      delete link;
 
-     link= list.getHead();
+     link= list.get_head();
    }
 
    IFHCDM( traceh("Dispatch::Timers ...terminated"); )

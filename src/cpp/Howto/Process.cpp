@@ -16,7 +16,7 @@
 //       Sample program: How to create and use processes.
 //
 // Last change date-
-//       2020/07/18
+//       2020/08/23
 //
 // Implementation notes-
 //       mqueue.h:     Defines inter-process message queue functions.
@@ -221,15 +221,15 @@ static int                          // Return code (0 OK)
 
      if( HCDM ) opt_hcdm= true;     // If HCDM compile-time, force opt_hcdm
      if( opt_hcdm ) {               // If --hcdm option specified
-       debug->set_mode(Debug::ModeIntensive); // Hard Core Debug Mode
+       debug->set_mode(Debug::MODE_INTENSIVE); // Hard Core Debug Mode
      }
    } else {
-     Debug* debug= Debug::get();    // (To set fileMode before use)
-     debug->set_fileMode("ab");     // (Append so second PID doesn't truncate)
+     Debug* debug= Debug::get();    // (To set file mode before use)
+     debug->set_file_mode("ab");    // (Append so second PID doesn't truncate)
 
      if( HCDM ) opt_hcdm= true;     // If HCDM compile-time, force opt_hcdm
      if( opt_hcdm ) {               // If --hcdm option specified
-       debug->set_mode(Debug::ModeIntensive); // Hard Core Debug Mode
+       debug->set_mode(Debug::MODE_INTENSIVE); // Hard Core Debug Mode
      }
    }
 

@@ -16,7 +16,7 @@
 //       Display directory and subdirectory.
 //
 // Last change date-
-//       2020/06/28
+//       2020/08/24
 //
 // Flags-
 //       -d (directory)
@@ -473,8 +473,8 @@ static void
    //-------------------------------------------------------------------------
    // List items in this directory
    //-------------------------------------------------------------------------
-   for(File* file= static_cast<File*>(path.list.getHead()); file != nullptr;
-       file= static_cast<File*>(file->getNext())) {
+   for(File* file= static_cast<File*>(path.list.get_head()); file != nullptr;
+       file= static_cast<File*>(file->get_next())) {
      if( opt_verbose > 1 )
        fprintf(stderr, "F: %.8x %10ld %s/%s\n", file->st.st_mode,
                file->st.st_size, name.c_str(), file->name.c_str());
@@ -500,8 +500,8 @@ static void
    //-------------------------------------------------------------------------
    // Process subdirectories
    //-------------------------------------------------------------------------
-   for(File* file= static_cast<File*>(path.list.getHead()); file != nullptr;
-       file= static_cast<File*>(file->getNext())) {
+   for(File* file= static_cast<File*>(path.list.get_head()); file != nullptr;
+       file= static_cast<File*>(file->get_next())) {
      if( S_ISDIR(file->st.st_mode) ) // If this is a directory
        listDirectory(name + "/" + file->name); // Process the subdirectory
    }

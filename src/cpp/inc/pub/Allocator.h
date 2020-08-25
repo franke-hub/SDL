@@ -16,7 +16,7 @@
 //       Storage allocator description.                                                                 ts.
 //
 // Last change date-
-//       2020/08/21
+//       2020/08/22
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_ALLOCATOR_H_INCLUDED
@@ -88,7 +88,7 @@ virtual int                         // Return code, 0 OK
 //----------------------------------------------------------------------------
 public:
 virtual void
-   debug( void ) {}                 // The base class does nothing
+   debug(const char* info= nullptr ) {} // The base class does nothing
 
 //----------------------------------------------------------------------------
 //
@@ -135,15 +135,25 @@ virtual void
 //       Fixed size block Allocator.
 //
 // Implementation notes-
+// ***************************************************************************
+// *** While the BlockAllocator operates properly, unexplained performance ***
+// *** issues remain. While the Cygwin version performs ~40 times faster   ***
+// *** than malloc/free, Linux malloc/free outperforms the BlockAllocator  ***
+// *** using about 25% less system cpu and elapsed time.                   ***
+// ***                                                                     ***
+// *** When storage is allocated and released by the same thread, Linux    ***
+// *** malloc/free significantly outperforms BlockAllocator. When storage  ***
+// *** allocated and released by randomly selected threads, Linux          ***
+// *** malloc/free still marginally outperforms BlockAllocator.            ***
+// *** BlockAllocator usage is not currently recommended.                  ***
+// ***************************************************************************
+//
 //       The BlockAllocator is thread-safe.
 //
 //       The BlockAllocator is a Pool allocator. When a BlockAllocator is
-//       deleted, so is all of its associated storage. An implementation
-//       MAY, but is not required to verify that all blocks have been
-//       released.
-//
-//       The BlockAllocator allocates from larger block groups.
-//       The standard Allocator is used if size differs from the block size.
+//       deleted, so is all of its associated storage. This implementation's
+//       destructor verifies that all blocks have been released, throwing
+//       std::runtime_error if verification fails.
 //
 //----------------------------------------------------------------------------
 class BlockAllocator : public Allocator { // BlockAllocator descriptor
@@ -153,6 +163,7 @@ class BlockAllocator : public Allocator { // BlockAllocator descriptor
 public:
 enum { DIM= 4 };                    // The number of fast slots
 struct Block : public SHSL_List<Block>::Link { // An allocation block
+uint64_t               _0004;       // Padding (16-byte 1st block alignment)
 };
 
 protected:

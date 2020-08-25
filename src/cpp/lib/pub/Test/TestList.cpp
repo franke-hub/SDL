@@ -16,7 +16,7 @@
 //       List tests.
 //
 // Last change date-
-//       2020/07/13
+//       2020/08/24
 //
 //----------------------------------------------------------------------------
 #include <new>
@@ -260,12 +260,12 @@ static inline void
 {
    DHDL_List<void>::Link* link;
 
-   printf("List(%p,%p):\n", anchor->getHead(), anchor->getTail());
-   link= anchor->getHead();         // Get head element
+   printf("List(%p,%p):\n", anchor->get_head(), anchor->get_tail());
+   link= anchor->get_head();        // Get head element
    while( link != NULL )
    {
-     printf(": %p %p %p\n", link, link->getPrev(), link->getNext());
-     link= link->getNext();
+     printf(": %p %p %p\n", link, link->get_prev(), link->get_next());
+     link= link->get_next();
    }
 
    printf("\n");
@@ -289,7 +289,7 @@ static inline void
    for(int i= 0; i<count; i++)
    {
      DHDL_List<void>::Link* link= (DHDL_List<void>::Link*)&block[i];
-     printf(": [%.2d] %p %p %p\n", i, link, link->getPrev(), link->getNext());
+     printf(": [%.2d] %p %p %p\n", i, link, link->get_prev(), link->get_next());
    }
 
    printf("\n");
@@ -310,13 +310,13 @@ static inline void
 {
    NODE_Link_t* link;
 
-   printf("List(%p)[%p,%p]:\n", anchor, anchor->getHead(), anchor->getTail());
-   link= anchor->getHead();         // Get head element
+   printf("List(%p)[%p,%p]:\n", anchor, anchor->get_head(), anchor->get_tail());
+   link= anchor->get_head();        // Get head element
    while( link != NULL )
    {
      printf(": %p %p %p %p\n",
-            link, link->getParent(), link->getPrev(), link->getNext());
-     link= link->getNext();
+            link, link->get_parent(), link->get_prev(), link->get_next());
+     link= link->get_next();
    }
 
    printf("\n");
@@ -340,13 +340,13 @@ static void
    GEN_block*          elem;
 
    printf("List:");
-   ptr_link= anchor->getTail();     // Get head element
+   ptr_link= anchor->get_tail();     // Get head element
    while( ptr_link != NULL )
    {
      elem= GEN_block::make(ptr_link);
 
      printf(" %2d", elem->gen_value);
-     ptr_link= ptr_link->getPrev();
+     ptr_link= ptr_link->get_prev();
    }
 
    printf("\n");
@@ -371,11 +371,11 @@ static void
    AU_List<GEN_block>::Link* ptr_link;
 
    printf("List:");
-   ptr_link= anchor->getTail(); // Get head element
+   ptr_link= anchor->get_tail(); // Get head element
    while( ptr_link != NULL )
    {
      printf(" %2d", GEN_block::make(ptr_link)->gen_value);
-     ptr_link= ptr_link->getPrev();
+     ptr_link= ptr_link->get_prev();
    }
 
    printf(" --(%2d)", GEN_block::make(inp_link)->gen_value);
@@ -401,13 +401,13 @@ static void
    GEN_block*          elem;
 
    printf("List:");
-   ptr_link= anchor->getHead(); // Get head element
+   ptr_link= anchor->get_head();    // Get head element
    while( ptr_link != NULL )
    {
      elem= GEN_block::make(ptr_link);
 
      printf(" %2d", elem->gen_value);
-     ptr_link= ptr_link->getNext();
+     ptr_link= ptr_link->get_next();
    }
 
    printf("\n");
@@ -431,11 +431,11 @@ static void
    AUX_Link*           ptr_link;
 
    printf("List:");
-   ptr_link= anchor->getHead();     // Get head element
+   ptr_link= anchor->get_head();    // Get head element
    while( ptr_link != NULL )
    {
      printf(" %2d", GEN_block::make(ptr_link)->gen_value);
-     ptr_link= ptr_link->getNext();
+     ptr_link= ptr_link->get_next();
    }
 
    printf(" --(%2d)", GEN_block::make(inp_link)->gen_value);
@@ -461,13 +461,13 @@ static void
    GEN_block*          elem;
 
    printf("List:");
-   ptr_link= anchor->getHead();     // Get head element
+   ptr_link= anchor->get_head();    // Get head element
    while( ptr_link != NULL )
    {
      elem= GEN_block::make(ptr_link);
 
      printf(" %2d", elem->gen_value);
-     ptr_link= ptr_link->getNext();
+     ptr_link= ptr_link->get_next();
    }
 
    printf("\n");
@@ -493,13 +493,13 @@ static void
    GEN_block*          elem;
 
    printf("List:");
-   ptr_link= anchor->getHead();     // Get head element
+   ptr_link= anchor->get_head();    // Get head element
    while( ptr_link != NULL )
    {
      elem= GEN_block::make(ptr_link);
 
      printf(" %2d", elem->gen_value);
-     ptr_link= ptr_link->getNext();
+     ptr_link= ptr_link->get_next();
    }
 
    elem= GEN_block::make(inp_link);
@@ -527,13 +527,13 @@ static void
    GEN_block*          elem;
 
    printf("List:");
-   ptr_link= anchor->getHead(); // Get head element
+   ptr_link= anchor->get_head();    // Get head element
    while( ptr_link != NULL )
    {
      elem= GEN_block::make(ptr_link);
 
      printf(" %2d", elem->gen_value);
-     ptr_link= ptr_link->getNext();
+     ptr_link= ptr_link->get_next();
    }
 
    printf("\n");
@@ -560,13 +560,13 @@ static void
    GEN_block*          elem;
 
    printf("List:");
-   ptr_link= anchor->getHead();     // Get head element
+   ptr_link= anchor->get_head();    // Get head element
    while( ptr_link != NULL )
    {
      elem= GEN_block::make(ptr_link);
 
      printf(" %2d", elem->gen_value);
-     ptr_link= ptr_link->getNext();
+     ptr_link= ptr_link->get_next();
    }
 
    elem= GEN_block::make(inp_link);
@@ -589,13 +589,13 @@ static void
      NODE_List_t*      anchor)      // The list anchor
 {
    printf("List:");
-   NODE_Link_t* ptr_link= anchor->getHead(); // Get head element
+   NODE_Link_t* ptr_link= anchor->get_head(); // Get head element
    while( ptr_link != NULL )
    {
-     assert( (void*)ptr_link->getParent() == (void*)anchor );
+     assert( (void*)ptr_link->get_parent() == (void*)anchor );
 
      printf(" %2d", ptr_link->gen_value);
-     ptr_link= ptr_link->getNext();
+     ptr_link= ptr_link->get_next();
    }
 
    printf("\n");
@@ -616,17 +616,17 @@ static void
      NODE_Link_t*      inp_link)    // The removed link
 {
    printf("List:");
-   NODE_Link_t* ptr_link= anchor->getHead(); // Get head element
+   NODE_Link_t* ptr_link= anchor->get_head(); // Get head element
    while( ptr_link != NULL )
    {
-     assert( (void*)ptr_link->getParent() == (void*)anchor );
+     assert( (void*)ptr_link->get_parent() == (void*)anchor );
 
      printf(" %2d", ptr_link->gen_value);
-     ptr_link= ptr_link->getNext();
+     ptr_link= ptr_link->get_next();
    }
 
    printf(" --(%2d)", inp_link->gen_value);
-   assert( inp_link->getParent() == nullptr );
+   assert( inp_link->get_parent() == nullptr );
 
    printf("\n");
 }
@@ -649,13 +649,13 @@ static void
    GEN_block*          elem;
 
    printf("List:");
-   ptr_link= anchor->getHead();     // Get head element
+   ptr_link= anchor->get_head();    // Get head element
    while( ptr_link != NULL )
    {
      elem= GEN_block::make(ptr_link);
 
      printf(" %2d", elem->gen_value);
-     ptr_link= ptr_link->getNext();
+     ptr_link= ptr_link->get_next();
    }
 
    printf("\n");
@@ -680,11 +680,11 @@ static void
    SHSL_List<GEN_block>::Link* ptr_link;
 
    printf("List:");
-   ptr_link= anchor->getHead();     // Get head element
+   ptr_link= anchor->get_head();    // Get head element
    while( ptr_link != NULL )
    {
      printf(" %2d", GEN_block::make(ptr_link)->gen_value);
-     ptr_link= ptr_link->getNext();
+     ptr_link= ptr_link->get_next();
    }
 
    printf(" --(%2d)", GEN_block::make(inp_link)->gen_value);
@@ -711,13 +711,13 @@ static void
    GEN_block*          elem;
 
    printf("List:");
-   ptr_link= anchor->getHead();     // Get head element
+   ptr_link= anchor->get_head();    // Get head element
    while( ptr_link != NULL )
    {
      elem= GEN_block::make(ptr_link);
 
      printf(" %2d", elem->gen_value);
-     ptr_link= ptr_link->getNext();
+     ptr_link= ptr_link->get_next();
    }
 
    printf("\n");
@@ -803,9 +803,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(au_anchor.isOnList(&gen_array[i]));
+     assert(au_anchor.is_on_list(&gen_array[i]));
    }
-   assert(au_anchor.isCoherent());
+   assert(au_anchor.is_coherent());
 
    for(;;)
    {
@@ -816,9 +816,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(!au_anchor.isOnList(&gen_array[i]));
+     assert(!au_anchor.is_on_list(&gen_array[i]));
    }
-   assert(au_anchor.isCoherent());
+   assert(au_anchor.is_coherent());
 
    //-------------------------------------------------------------------------
    // DHDL tests
@@ -846,9 +846,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(dhdl_anchor.isOnList(&gen_array[i]));
+     assert(dhdl_anchor.is_on_list(&gen_array[i]));
    }
-   assert(dhdl_anchor.isCoherent());
+   assert(dhdl_anchor.is_coherent());
 
    for(;;)
    {
@@ -859,9 +859,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(!dhdl_anchor.isOnList(&gen_array[i]));
+     assert(!dhdl_anchor.is_on_list(&gen_array[i]));
    }
-   assert(dhdl_anchor.isCoherent());
+   assert(dhdl_anchor.is_coherent());
 
    //-------------------------------------------------------------------------
    // DHDL FIFO test
@@ -875,9 +875,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(dhdl_anchor.isOnList(&gen_array[i]));
+     assert(dhdl_anchor.is_on_list(&gen_array[i]));
    }
-   assert(dhdl_anchor.isCoherent());
+   assert(dhdl_anchor.is_coherent());
 
    for(;;)
    {
@@ -888,9 +888,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(!dhdl_anchor.isOnList(&gen_array[i]));
+     assert(!dhdl_anchor.is_on_list(&gen_array[i]));
    }
-   assert(dhdl_anchor.isCoherent());
+   assert(dhdl_anchor.is_coherent());
 
    //-------------------------------------------------------------------------
    // DHDL remove/insert specific
@@ -908,57 +908,57 @@ extern int
    dhdl_link= &gen_array[1-1];
    dhdl_anchor.remove(dhdl_link, dhdl_link);
    show_DHDL(&dhdl_anchor, dhdl_link);
-   assert(!dhdl_anchor.isOnList(&gen_array[1-1]));
-   assert(dhdl_anchor.isCoherent());
+   assert(!dhdl_anchor.is_on_list(&gen_array[1-1]));
+   assert(dhdl_anchor.is_coherent());
 
    printf("\n");
    printf("DHDL_REMOVE(5) test:\n");
    dhdl_link= &gen_array[5-1];
    dhdl_anchor.remove(dhdl_link, dhdl_link);
    show_DHDL(&dhdl_anchor, dhdl_link);
-   assert(!dhdl_anchor.isOnList(&gen_array[5-1]));
-   assert(dhdl_anchor.isCoherent());
+   assert(!dhdl_anchor.is_on_list(&gen_array[5-1]));
+   assert(dhdl_anchor.is_coherent());
 
    printf("\n");
    printf("DHDL_REMOVE(%d) test:\n", DIM);
    dhdl_link= &gen_array[DIM-1];
    dhdl_anchor.remove(dhdl_link, dhdl_link);
    show_DHDL(&dhdl_anchor, dhdl_link);
-   assert(!dhdl_anchor.isOnList(&gen_array[DIM-1]));
-   assert(dhdl_anchor.isCoherent());
+   assert(!dhdl_anchor.is_on_list(&gen_array[DIM-1]));
+   assert(dhdl_anchor.is_coherent());
 
    printf("\n");
    printf("DHDL_INSERT(1) at head:\n");
    dhdl_anchor.insert(NULL, &gen_array[1-1], &gen_array[1-1]);
    show_DHDL(&dhdl_anchor);
-   assert(dhdl_anchor.isOnList(&gen_array[1-1]));
-   assert(dhdl_anchor.isCoherent());
+   assert(dhdl_anchor.is_on_list(&gen_array[1-1]));
+   assert(dhdl_anchor.is_coherent());
 
    printf("\n");
    printf("DHDL_INSERT(%d) at tail:\n", DIM);
-   dhdl_anchor.insert(dhdl_anchor.getTail(), &gen_array[DIM-1], &gen_array[DIM-1]);
+   dhdl_anchor.insert(dhdl_anchor.get_tail(), &gen_array[DIM-1], &gen_array[DIM-1]);
    show_DHDL(&dhdl_anchor);
-   assert(dhdl_anchor.isOnList(&gen_array[DIM-1]));
-   assert(dhdl_anchor.isCoherent());
+   assert(dhdl_anchor.is_on_list(&gen_array[DIM-1]));
+   assert(dhdl_anchor.is_coherent());
 
    printf("\n");
    printf("DHDL_INSERT(5) after(4):\n");
    dhdl_anchor.insert(&gen_array[4-1], &gen_array[5-1], &gen_array[5-1]);
    show_DHDL(&dhdl_anchor);
-   assert(dhdl_anchor.isOnList(&gen_array[5-1]));
-   assert(dhdl_anchor.isCoherent());
+   assert(dhdl_anchor.is_on_list(&gen_array[5-1]));
+   assert(dhdl_anchor.is_coherent());
 
    printf("\n");
    printf("DHDL_REMOVE(5..8):\n");
    dhdl_anchor.remove(&gen_array[5-1], &gen_array[8-1]);
    show_DHDL(&dhdl_anchor);
-   assert(dhdl_anchor.isOnList(&gen_array[4-1]));
-   assert(!dhdl_anchor.isOnList(&gen_array[5-1]));
-   assert(!dhdl_anchor.isOnList(&gen_array[6-1]));
-   assert(!dhdl_anchor.isOnList(&gen_array[7-1]));
-   assert(!dhdl_anchor.isOnList(&gen_array[8-1]));
-   assert(dhdl_anchor.isOnList(&gen_array[9-1]));
-   assert(dhdl_anchor.isCoherent());
+   assert(dhdl_anchor.is_on_list(&gen_array[4-1]));
+   assert(!dhdl_anchor.is_on_list(&gen_array[5-1]));
+   assert(!dhdl_anchor.is_on_list(&gen_array[6-1]));
+   assert(!dhdl_anchor.is_on_list(&gen_array[7-1]));
+   assert(!dhdl_anchor.is_on_list(&gen_array[8-1]));
+   assert(dhdl_anchor.is_on_list(&gen_array[9-1]));
+   assert(dhdl_anchor.is_coherent());
 // debug_DHDL(&dhdl_anchor);
 // debug_DHDL_array(gen_array, DIM);
 
@@ -966,29 +966,29 @@ extern int
    printf("DHDL_INSERT(5..8):\n");
    dhdl_anchor.insert(&gen_array[4-1], &gen_array[5-1], &gen_array[8-1]);
    show_DHDL(&dhdl_anchor);
-   assert(dhdl_anchor.isOnList(&gen_array[4-1]));
-   assert(dhdl_anchor.isOnList(&gen_array[5-1]));
-   assert(dhdl_anchor.isOnList(&gen_array[6-1]));
-   assert(dhdl_anchor.isOnList(&gen_array[7-1]));
-   assert(dhdl_anchor.isOnList(&gen_array[8-1]));
-   assert(dhdl_anchor.isOnList(&gen_array[9-1]));
-   assert(dhdl_anchor.isCoherent());
+   assert(dhdl_anchor.is_on_list(&gen_array[4-1]));
+   assert(dhdl_anchor.is_on_list(&gen_array[5-1]));
+   assert(dhdl_anchor.is_on_list(&gen_array[6-1]));
+   assert(dhdl_anchor.is_on_list(&gen_array[7-1]));
+   assert(dhdl_anchor.is_on_list(&gen_array[8-1]));
+   assert(dhdl_anchor.is_on_list(&gen_array[9-1]));
+   assert(dhdl_anchor.is_coherent());
 
    printf("\n");
    printf("DHDL_REMOVE(1..12):\n");
    dhdl_anchor.remove(&gen_array[1-1], &gen_array[12-1]);
    show_DHDL(&dhdl_anchor);
    for(i=0; i<12; i++)
-     assert(!dhdl_anchor.isOnList(&gen_array[i]));
-   assert(dhdl_anchor.isCoherent());
+     assert(!dhdl_anchor.is_on_list(&gen_array[i]));
+   assert(dhdl_anchor.is_coherent());
 
    printf("\n");
    printf("DHDL_INSERT(1..12):\n");
    dhdl_anchor.insert(NULL, &gen_array[1-1], &gen_array[12-1]);
    show_DHDL(&dhdl_anchor);
    for(i=0; i<12; i++)
-     assert(dhdl_anchor.isOnList(&gen_array[i]));
-   assert(dhdl_anchor.isCoherent());
+     assert(dhdl_anchor.is_on_list(&gen_array[i]));
+   assert(dhdl_anchor.is_coherent());
    dhdl_anchor.reset();
 
    //-------------------------------------------------------------------------
@@ -1015,9 +1015,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(node_anchor.isOnList(&node_array[i]));
+     assert(node_anchor.is_on_list(&node_array[i]));
    }
-   assert(node_anchor.isCoherent());
+   assert(node_anchor.is_coherent());
 
    for(;;)
    {
@@ -1028,9 +1028,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(!node_anchor.isOnList(&node_array[i]));
+     assert(!node_anchor.is_on_list(&node_array[i]));
    }
-   assert(node_anchor.isCoherent());
+   assert(node_anchor.is_coherent());
 
    //-------------------------------------------------------------------------
    // NODE FIFO test
@@ -1044,9 +1044,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(node_anchor.isOnList(&node_array[i]));
+     assert(node_anchor.is_on_list(&node_array[i]));
    }
-   assert(node_anchor.isCoherent());
+   assert(node_anchor.is_coherent());
 
    for(;;)
    {
@@ -1057,9 +1057,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(!node_anchor.isOnList(&node_array[i]));
+     assert(!node_anchor.is_on_list(&node_array[i]));
    }
-   assert(node_anchor.isCoherent());
+   assert(node_anchor.is_coherent());
 
    //-------------------------------------------------------------------------
    // NODE remove/insert specific
@@ -1077,57 +1077,57 @@ extern int
    node_link= &node_array[1-1];
    node_anchor.remove(node_link, node_link);
    show_NODE(&node_anchor, node_link);
-   assert(!node_anchor.isOnList(&node_array[1-1]));
-   assert(node_anchor.isCoherent());
+   assert(!node_anchor.is_on_list(&node_array[1-1]));
+   assert(node_anchor.is_coherent());
 
    printf("\n");
    printf("NODE_REMOVE(5) test:\n");
    node_link= &node_array[5-1];
    node_anchor.remove(node_link, node_link);
    show_NODE(&node_anchor, node_link);
-   assert(!node_anchor.isOnList(&node_array[5-1]));
-   assert(node_anchor.isCoherent());
+   assert(!node_anchor.is_on_list(&node_array[5-1]));
+   assert(node_anchor.is_coherent());
 
    printf("\n");
    printf("NODE_REMOVE(%d) test:\n", DIM);
    node_link= &node_array[DIM-1];
    node_anchor.remove(node_link, node_link);
    show_NODE(&node_anchor, node_link);
-   assert(!node_anchor.isOnList(&node_array[DIM-1]));
-   assert(node_anchor.isCoherent());
+   assert(!node_anchor.is_on_list(&node_array[DIM-1]));
+   assert(node_anchor.is_coherent());
 
    printf("\n");
    printf("NODE_INSERT(1) at head:\n");
    node_anchor.insert(NULL, &node_array[1-1], &node_array[1-1]);
    show_NODE(&node_anchor);
-   assert(node_anchor.isOnList(&node_array[1-1]));
-   assert(node_anchor.isCoherent());
+   assert(node_anchor.is_on_list(&node_array[1-1]));
+   assert(node_anchor.is_coherent());
 
    printf("\n");
    printf("NODE_INSERT(%d) at tail:\n", DIM);
-   node_anchor.insert(node_anchor.getTail(), &node_array[DIM-1], &node_array[DIM-1]);
+   node_anchor.insert(node_anchor.get_tail(), &node_array[DIM-1], &node_array[DIM-1]);
    show_NODE(&node_anchor);
-   assert(node_anchor.isOnList(&node_array[DIM-1]));
-   assert(node_anchor.isCoherent());
+   assert(node_anchor.is_on_list(&node_array[DIM-1]));
+   assert(node_anchor.is_coherent());
 
    printf("\n");
    printf("NODE_INSERT(5) after(4):\n");
    node_anchor.insert(&node_array[4-1], &node_array[5-1], &node_array[5-1]);
    show_NODE(&node_anchor);
-   assert(node_anchor.isOnList(&node_array[5-1]));
-   assert(node_anchor.isCoherent());
+   assert(node_anchor.is_on_list(&node_array[5-1]));
+   assert(node_anchor.is_coherent());
 
    printf("\n");
    printf("NODE_REMOVE(5..8):\n");
    node_anchor.remove(&node_array[5-1], &node_array[8-1]);
    show_NODE(&node_anchor);
-   assert(node_anchor.isOnList(&node_array[4-1]));
-   assert(!node_anchor.isOnList(&node_array[5-1]));
-   assert(!node_anchor.isOnList(&node_array[6-1]));
-   assert(!node_anchor.isOnList(&node_array[7-1]));
-   assert(!node_anchor.isOnList(&node_array[8-1]));
-   assert(node_anchor.isOnList(&node_array[9-1]));
-   assert(node_anchor.isCoherent());
+   assert(node_anchor.is_on_list(&node_array[4-1]));
+   assert(!node_anchor.is_on_list(&node_array[5-1]));
+   assert(!node_anchor.is_on_list(&node_array[6-1]));
+   assert(!node_anchor.is_on_list(&node_array[7-1]));
+   assert(!node_anchor.is_on_list(&node_array[8-1]));
+   assert(node_anchor.is_on_list(&node_array[9-1]));
+   assert(node_anchor.is_coherent());
 // debug_NODE(&node_anchor);
 // debug_NODE_array(node_array, DIM);
 
@@ -1135,29 +1135,29 @@ extern int
    printf("NODE_INSERT(5..8):\n");
    node_anchor.insert(&node_array[4-1], &node_array[5-1], &node_array[8-1]);
    show_NODE(&node_anchor);
-   assert(node_anchor.isOnList(&node_array[4-1]));
-   assert(node_anchor.isOnList(&node_array[5-1]));
-   assert(node_anchor.isOnList(&node_array[6-1]));
-   assert(node_anchor.isOnList(&node_array[7-1]));
-   assert(node_anchor.isOnList(&node_array[8-1]));
-   assert(node_anchor.isOnList(&node_array[9-1]));
-   assert(node_anchor.isCoherent());
+   assert(node_anchor.is_on_list(&node_array[4-1]));
+   assert(node_anchor.is_on_list(&node_array[5-1]));
+   assert(node_anchor.is_on_list(&node_array[6-1]));
+   assert(node_anchor.is_on_list(&node_array[7-1]));
+   assert(node_anchor.is_on_list(&node_array[8-1]));
+   assert(node_anchor.is_on_list(&node_array[9-1]));
+   assert(node_anchor.is_coherent());
 
    printf("\n");
    printf("NODE_REMOVE(1..12):\n");
    node_anchor.remove(&node_array[1-1], &node_array[12-1]);
    show_NODE(&node_anchor);
    for(i=0; i<12; i++)
-     assert(!node_anchor.isOnList(&node_array[i]));
-   assert(node_anchor.isCoherent());
+     assert(!node_anchor.is_on_list(&node_array[i]));
+   assert(node_anchor.is_coherent());
 
    printf("\n");
    printf("NODE_INSERT(1..12):\n");
    node_anchor.insert(NULL, &node_array[1-1], &node_array[12-1]);
    show_NODE(&node_anchor);
    for(i=0; i<12; i++)
-     assert(node_anchor.isOnList(&node_array[i]));
-   assert(node_anchor.isCoherent());
+     assert(node_anchor.is_on_list(&node_array[i]));
+   assert(node_anchor.is_coherent());
    node_anchor.reset();
 
    //-------------------------------------------------------------------------
@@ -1186,9 +1186,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(shsl_anchor.isOnList(&gen_array[i]));
+     assert(shsl_anchor.is_on_list(&gen_array[i]));
    }
-   assert(shsl_anchor.isCoherent());
+   assert(shsl_anchor.is_coherent());
 
    for(;;)
    {
@@ -1199,9 +1199,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(!shsl_anchor.isOnList(&gen_array[i]));
+     assert(!shsl_anchor.is_on_list(&gen_array[i]));
    }
-   assert(shsl_anchor.isCoherent());
+   assert(shsl_anchor.is_coherent());
 
    //-------------------------------------------------------------------------
    // SHSL FIFO test
@@ -1215,9 +1215,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(shsl_anchor.isOnList(&gen_array[i]));
+     assert(shsl_anchor.is_on_list(&gen_array[i]));
    }
-   assert(shsl_anchor.isCoherent());
+   assert(shsl_anchor.is_coherent());
 
    for(;;)
    {
@@ -1228,9 +1228,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(!shsl_anchor.isOnList(&gen_array[i]));
+     assert(!shsl_anchor.is_on_list(&gen_array[i]));
    }
-   assert(shsl_anchor.isCoherent());
+   assert(shsl_anchor.is_coherent());
 
    // Leave the list populated
    for(i=0; i<DIM; i++)
@@ -1262,9 +1262,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(dhsl_anchor.isOnList(&gen_array[i]));
+     assert(dhsl_anchor.is_on_list(&gen_array[i]));
    }
-   assert(dhsl_anchor.isCoherent());
+   assert(dhsl_anchor.is_coherent());
 
    for(;;)
    {
@@ -1275,9 +1275,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(!dhsl_anchor.isOnList(&gen_array[i]));
+     assert(!dhsl_anchor.is_on_list(&gen_array[i]));
    }
-   assert(dhsl_anchor.isCoherent());
+   assert(dhsl_anchor.is_coherent());
 
    //-------------------------------------------------------------------------
    // DHSL FIFO test
@@ -1291,9 +1291,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(dhsl_anchor.isOnList(&gen_array[i]));
+     assert(dhsl_anchor.is_on_list(&gen_array[i]));
    }
-   assert(dhsl_anchor.isCoherent());
+   assert(dhsl_anchor.is_coherent());
 
    for(;;)
    {
@@ -1304,9 +1304,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(!dhsl_anchor.isOnList(&gen_array[i]));
+     assert(!dhsl_anchor.is_on_list(&gen_array[i]));
    }
-   assert(dhsl_anchor.isCoherent());
+   assert(dhsl_anchor.is_coherent());
 
    //-------------------------------------------------------------------------
    // AUX tests
@@ -1333,9 +1333,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(aux_anchor.isOnList(&gen_array[i].aux_link));
+     assert(aux_anchor.is_on_list(&gen_array[i].aux_link));
    }
-   assert(aux_anchor.isCoherent());
+   assert(aux_anchor.is_coherent());
 
    for(;;)
    {
@@ -1346,9 +1346,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(!aux_anchor.isOnList(&gen_array[i].aux_link));
+     assert(!aux_anchor.is_on_list(&gen_array[i].aux_link));
    }
-   assert(aux_anchor.isCoherent());
+   assert(aux_anchor.is_coherent());
 
    //-------------------------------------------------------------------------
    // AUX FIFO test
@@ -1362,9 +1362,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(aux_anchor.isOnList(&gen_array[i].aux_link));
+     assert(aux_anchor.is_on_list(&gen_array[i].aux_link));
    }
-   assert(aux_anchor.isCoherent());
+   assert(aux_anchor.is_coherent());
 
    for(;;)
    {
@@ -1375,9 +1375,9 @@ extern int
    }
    for(i=0; i<DIM; i++)
    {
-     assert(!aux_anchor.isOnList(&gen_array[i].aux_link));
+     assert(!aux_anchor.is_on_list(&gen_array[i].aux_link));
    }
-   assert(aux_anchor.isCoherent());
+   assert(aux_anchor.is_coherent());
 
    //-------------------------------------------------------------------------
    // SORT configuration
@@ -1425,8 +1425,8 @@ extern int
    show_SORT(&sort_anchor);
 
    for(i=0; i<DIM; i++)
-     assert(sort_anchor.isOnList(&gen_array[i]));
-   assert(sort_anchor.isCoherent());
+     assert(sort_anchor.is_on_list(&gen_array[i]));
+   assert(sort_anchor.is_coherent());
    sort_anchor.reset();
 
    //-------------------------------------------------------------------------
@@ -1441,8 +1441,8 @@ extern int
    show_SORT(&sort_anchor);
 
    for(i=0; i<DIM; i++)
-     assert(sort_anchor.isOnList(&gen_array[i]));
-   assert(sort_anchor.isCoherent());
+     assert(sort_anchor.is_on_list(&gen_array[i]));
+   assert(sort_anchor.is_coherent());
    sort_anchor.reset();
 
    return 0;

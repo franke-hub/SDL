@@ -16,11 +16,11 @@
 //       Debugging control.
 //
 // Last change date-
-//       2020/06/28
+//       2020/08/23
 //
 // Implementation notes-
-//       A fileName of ">" or "1>" writes the log to stdout.
-//       A fileName of "2>" writes the log to stderr.
+//       A file name of ">" or "1>" writes the log to stdout.
+//       A file name of "2>" writes the log to stderr.
 //
 //       The static Debug::debug instance is closed and deleted using a
 //       static destructor.
@@ -54,15 +54,15 @@ class Debug {                       // Debugging control
 //----------------------------------------------------------------------------
 public:
 enum Mode                           // Debug::Mode
-{  ModeIgnore                       // Ignore all calls
-,  ModeStandard                     // Standard debug mode
-,  ModeIntensive                    // Hard Core Debug Mode
+{  MODE_DEFAULT                     // Default debug mode
+,  MODE_IGNORE                      // Ignore all calls
+,  MODE_INTENSIVE                   // Hard Core Debug Mode
 }; // enum Mode
 
 enum Heading                        // Debug::Heading
-{  HeadTime=    0x00000001          // Add time to heading
-,  HeadThread=  0x00000002          // Add thread to heading
-,  HeadStandard= HeadTime           // Default heading
+{  HEAD_TIME=   0x00000001          // Add time to heading
+,  HEAD_THREAD= 0x00000002          // Add thread to heading
+,  HEAD_DEFAULT= HEAD_TIME          // Default heading
 }; // enum Heading
 
 //----------------------------------------------------------------------------
@@ -70,19 +70,16 @@ enum Heading                        // Debug::Heading
 //----------------------------------------------------------------------------
 protected:
 FILE*                  handle= nullptr; // Debug file handle
-std::string            fileMode= "wb"; // Debug file mode
-std::string            fileName= "debug.out"; // Debug file name
-int                    head= HeadStandard; // Heading options
-int                    mode= ModeStandard; // Debugging mode
+std::string            file_mode= "wb"; // Debug file mode
+std::string            file_name= "debug.out"; // Debug file name
+int                    head= HEAD_DEFAULT; // Heading options
+int                    mode= MODE_DEFAULT; // Debugging mode
 
 //----------------------------------------------------------------------------
 // Debug::Static attributes
 //----------------------------------------------------------------------------
 protected:
 static Debug*          common;      // -> The Common Debug instance
-
-public:
-static int             level;       // The Common Debug level
 
 //----------------------------------------------------------------------------
 // Debug::Constructors
@@ -164,20 +161,20 @@ inline FILE*                        // The handle
 }
 
 std::string
-   get_fileMode( void )             // Get the trace filename
-{  return fileMode; }
+   get_file_mode( void )            // Get the trace file mode
+{  return file_mode; }
 
 std::string
-   get_fileName( void )             // Get the trace filename
-{  return fileName; }
+   get_file_name( void )            // Get the trace file name
+{  return file_name; }
 
 void
-   set_fileMode(                    // Set the trace file mode
-     const char*       mode);       // The trace filemode
+   set_file_mode(                   // Set the trace file mode
+     const char*       mode);       // The trace file mode
 
 void
-   set_fileName(                    // Set the trace file name
-     const char*       name);       // The trace filename
+   set_file_name(                   // Set the trace file name
+     const char*       name);       // The trace file name
 
 inline void
    set_head(                        // Set a Heading option
@@ -281,7 +278,7 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Namespace-
-//       debugging
+//       pub::debugging
 //
 // Purpose-
 //       Ease of use function calls operate using the common Debug instance
@@ -291,6 +288,20 @@ virtual void
 //
 //----------------------------------------------------------------------------
 namespace debugging {
+namespace options {
+//----------------------------------------------------------------------------
+// (Settable) application debugging controls:
+extern int             opt_check;   // Enable checking?      [default: false]
+extern int             opt_hcdm;    // Hard Core Debug Mode? [default: false]
+extern int             opt_verbose; // Debugging verbosity   [default: -1]
+
+//----------------------------------------------------------------------------
+// (Settable) library debugging controls:
+extern int             pub_check;   // Enable checking?      [default: false]
+extern int             pub_hcdm;    // Hard Core Debug Mode? [default: false]
+extern int             pub_verbose; // Debugging verbosity   [default: -1]
+}  // namespace options
+
 void
    debug_clr_head(                  // Clear a Heading options
      Debug::Heading    head);       // The Heading option to clear
@@ -299,19 +310,19 @@ void
    debug_flush( void );             // Flush write the trace file
 
 std::string
-   debug_get_fileName( void );      // Get the trace file name
+   debug_get_file_name( void );     // Get the trace file name
 
 void
    debug_set_head(                  // Set a Heading options
      Debug::Heading    head);       // The Heading option to set
 
 void
-   debug_set_fileMode(              // Set the trace file mode
-     const char*       mode);       // The trace filemode
+   debug_set_file_mode(             // Set the trace file mode
+     const char*       mode);       // The trace file mode
 
 void
-   debug_set_fileName(              // Set the trace file name
-     const char*       name);       // The trace filename
+   debug_set_file_name(             // Set the trace file name
+     const char*       name);       // The trace file name
 
 void
    debug_set_mode(                  // Set the Mode

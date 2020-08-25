@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2020/01/05
+//       2020/08/23
 //
 // Arguments: (For testtime only)
 //       [1] 10240 Number of outer loops
@@ -447,7 +447,7 @@ static int
    }
 
    // Run the test
-// debug_set_mode(Debug::ModeIgnore);
+// debug_set_mode(Debug::MODE_IGNORE);
    Interval interval;
 
    interval.start();
@@ -465,7 +465,7 @@ static int
 
    // Test complete
    double elapsed= interval.stop();
-// debug_set_mode(Debug::ModeIntensive);
+// debug_set_mode(Debug::MODE_INTENSIVE);
    debugf("%16.3f seconds elapsed\n", elapsed);
    double ops= (double)TASKS + 1.0;
    ops *= (double)MULTI;
@@ -513,9 +513,9 @@ extern int
 {
    int                 result= 0;
 
-   debug_set_head(Debug::HeadThread); // Include thread in heading
-   debug_set_fileMode("ab");        // Append trace file
-   IFHCDM( debug_set_mode(Debug::ModeIntensive); )
+   debug_set_head(Debug::HEAD_THREAD); // Include thread in heading
+   debug_set_file_mode("ab");       // Append trace file
+   IFHCDM( debug_set_mode(Debug::MODE_INTENSIVE); )
    debugh("TestDisp started\n");
 
    try {

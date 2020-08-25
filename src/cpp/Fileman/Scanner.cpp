@@ -16,7 +16,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2020/06/13
+//       2020/08/24
 //
 // Verifications-
 //       File permissions. (Auto-correctable)
@@ -332,9 +332,9 @@ static void
    // Get list of IGNORE files
    IGNORE.open(".", ".ignore");     // List of files to ignore
    Line fake(nullptr);              // Replacement for comment line
-   for(Line* line= IGNORE.line().getHead(); line; line= line->getNext()) {
+   for(Line* line= IGNORE.line().get_head(); line; line= line->get_next()) {
      if( line->text[0] == '\0' || line->text[0] == '#' ) {
-       fake.setNext(line->getNext());
+       fake.set_next(line->get_next());
        IGNORE.line().remove(line, line);
        delete line;
        line= &fake;
@@ -385,7 +385,7 @@ static void
    //-------------------------------------------------------------------------
    if( opt_verbose > 2 ) {
      bool once= true;
-     for(Line* line= IGNORE.line().getHead(); line; line= line->getNext())
+     for(Line* line= IGNORE.line().get_head(); line; line= line->get_next())
      {
        if( once ) {
          fprintf(stderr, "\n.ignore files not found:\n");
@@ -603,9 +603,9 @@ static inline Line*                 // The third data line, nullptr if none
    get_copyline(                    // Get copyright line
      Data&             data)        // From this Data
 {
-   Line* line= data.line().getHead();
-   if( line ) line= line->getNext();
-   if( line ) line= line->getNext();
+   Line* line= data.line().get_head();
+   if( line ) line= line->get_next();
+   if( line ) line= line->get_next();
 
    int count= 3;
    while( line != nullptr && count > 0 ) {
@@ -613,7 +613,7 @@ static inline Line*                 // The third data line, nullptr if none
         return line;
 
      count--;
-     line= line->getNext();
+     line= line->get_next();
    }
 
    return nullptr;
@@ -833,7 +833,7 @@ static void
    // Find last change date line
    int lineno= 0;                   // The current line counter
    Line* line;                      // The current Line
-   for(line= data.line().getHead(); line; line= line->getNext()) {
+   for(line= data.line().get_head(); line; line= line->get_next()) {
       if( strcasestr(line->text, "Last change date") )
         break;
 
@@ -842,7 +842,7 @@ static void
    }
    if( line == nullptr )            // If not found
      return;                        // Nothing to compare against
-   line= line->getNext();           // The actual last change date line
+   line= line->get_next();           // The actual last change date line
    if( line == nullptr ) {          // If not found
      printf("File(%s) Missing last change date\n", full.c_str());
      return;
@@ -947,7 +947,7 @@ static void
          comment += string(9 - comment.length(), ' ');
        comment += "Copyright (c) " + n_year + " " + owner;
 
-       Line* repl= data.newLine(comment);
+       Line* repl= data.get_line(comment);
        data.line().insert(line, repl, repl);
        data.line().remove(line, line);
        delete line;
@@ -1055,7 +1055,7 @@ static int                          // The copyright year, -1 if invalid
          text += string(9 - text.length(), ' ');
        text += "Copyright (c) " + next + " " + owner + ".";
 
-       Line* repl= data.newLine(text);
+       Line* repl= data.get_line(text);
        data.line().insert(line, repl, repl);
        data.line().remove(line, line);
        delete line;
@@ -1110,12 +1110,12 @@ static void
 
    for(int i= 0; table[i].name; i++) {
      Data* info= *table[i].data;
-     Line* lhs= info->line().getHead();
-     if( lhs ) lhs= lhs->getNext();
-     if( lhs ) lhs= lhs->getNext();
-     if( lhs ) lhs= lhs->getNext();
+     Line* lhs= info->line().get_head();
+     if( lhs ) lhs= lhs->get_next();
+     if( lhs ) lhs= lhs->get_next();
+     if( lhs ) lhs= lhs->get_next();
      Line* rhs= line;
-     if( rhs ) rhs= rhs->getNext();
+     if( rhs ) rhs= rhs->get_next();
      while( lhs ) {
        if( !rhs )
          break;
@@ -1123,8 +1123,8 @@ static void
        if( strcmp(lhs->text+2, rhs->text+2) != 0 )
          break;
 
-       lhs= lhs->getNext();
-       rhs= rhs->getNext();
+       lhs= lhs->get_next();
+       rhs= rhs->get_next();
      }
      if( lhs == nullptr ) {
        if( opt_verbose > 1 )
@@ -1263,11 +1263,11 @@ static void
    // Handle items in this directory
    //-------------------------------------------------------------------------
    Path path_(path);                // The directory content
-   for(File* file= path_.list.getHead(); file; file= file->getNext())
+   for(File* file= path_.list.get_head(); file; file= file->get_next())
    {
      if( opt_verbose == OPT_EXTENSIONS ) {
        string extension= get_extension(file->name);
-       if( props.getProperty(extension) == nullptr )
+       if( props.get_property(extension) == nullptr )
          props.insert(extension, extension);
 
        continue;
@@ -1279,7 +1279,7 @@ static void
 
      if( S_ISREG(file->st.st_mode) ) {
        string full= path + "/" + file->name; // The fully qualified name
-       for(line= IGNORE.line().getHead(); line; line= line->getNext())
+       for(line= IGNORE.line().get_head(); line; line= line->get_next())
        {
          if( strcmp(line->text, full.c_str()) == 0 ) // If IGNORE file
            break;
@@ -1359,12 +1359,12 @@ static void
    //-------------------------------------------------------------------------
    // Process subdirectories
    //-------------------------------------------------------------------------
-   for(File* file= path_.list.getHead(); file != nullptr; file= file->getNext())
+   for(File* file= path_.list.get_head(); file != nullptr; file= file->get_next())
    {
      if( S_ISDIR(file->st.st_mode) ) // Handle directory ignore
      {
        string full= path + "/" + file->name + "/*";
-       for(line= IGNORE.line().getHead(); line; line= line->getNext())
+       for(line= IGNORE.line().get_head(); line; line= line->get_next())
        {
          if( full == line->text )
            break;

@@ -16,7 +16,7 @@
 //       Sample HTTP/HTTPS Client/Server, using openssl/bio.h functions.
 //
 // Last change date-
-//       2020/01/25
+//       2020/08/22
 //
 // Known bugs-
 //       std/ssl_stressor both eventually fail on Cygwin. (OK in Linux)
@@ -1255,9 +1255,9 @@ extern int                          // Return code
    // Set debugging object
    Debug debug(opt_debug);
    debug.set(&debug);
-   debug.set_head(Debug::HeadThread);
-   IFHCDM( debug.set_mode(Debug::ModeIntensive); )
-   ELHCDM( if(opt_runtime > 0) debug.set_mode(Debug::ModeIntensive); )
+   debug.set_head(Debug::HEAD_THREAD);
+   IFHCDM( debug.set_mode(Debug::MODE_INTENSIVE); )
+   ELHCDM( if(opt_runtime > 0) debug.set_mode(Debug::MODE_INTENSIVE); )
    debug.debugh("SampleBIO started...\n");
 
    debugf("\n");

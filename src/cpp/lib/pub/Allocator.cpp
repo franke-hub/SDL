@@ -16,7 +16,7 @@
 //       Allocator method implementations.
 //
 // Last change date-
-//       2020/08/21
+//       2020/08/24
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::bad_alloc, ...
@@ -184,7 +184,7 @@ void
      // Count the elements found on the free list
      size_t per_block= (b_size - sizeof(Block)) / size; // Units per block
      size_t total= 0;              // The number of allocated blocks
-     for(Block* block= b_list.getHead(); block; block= block->getNext() )
+     for(Block* block= b_list.get_head(); block; block= block->get_next() )
        total += per_block;
 
      Free* free= (Free*)old;
@@ -256,7 +256,7 @@ void*                               // The allocated storage (never nullptr)
    //-------------------------------------------------------------------------
    // No storage available: Allocate and format a new block
    size_t b_size= this->b_size;
-   char* alloc= (char*)::malloc(b_size);
+   char* alloc= (char*)::aligned_alloc(BLOCK_ALIGN, b_size);
    if( alloc == nullptr )
      throw std::bad_alloc();
 

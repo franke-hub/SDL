@@ -16,7 +16,7 @@
 //       Common include, defines macros and externals.
 //
 // Last change date-
-//       2020/01/25
+//       2020/08/23
 //
 //----------------------------------------------------------------------------
 #ifndef TLC_H_INCLUDED
@@ -50,17 +50,6 @@ using namespace pub::debugging;
 #endif
 
 #include <pub/ifmacro.h>
-
-//----------------------------------------------------------------------------
-// Macros
-//----------------------------------------------------------------------------
-#ifdef CHECK
-#define IFCHECK(X) {X}
-#define ELCHECK(X) { }
-#else
-#define IFCHECK(X) { }
-#define ELCHECK(X) {X}
-#endif
 
 //----------------------------------------------------------------------------
 // Enumerations and typedefs
