@@ -16,7 +16,7 @@
 ##       Local configuration information.
 ##
 ## Last change date-
-##       2020/04/11
+##       2020/09/05
 ##
 ## Usage-
 ##       Copy this script into your ~/bin directory, then tailor it there.
@@ -29,7 +29,6 @@ if [[ "$1" != "--bin" && -f ~/bin/.tweaks ]] ; then
   source ~/bin/.tweaks --bin "$@"
   return
 fi
-
 shift                               ## (Remove --bin)
 
 ##############################################################################
@@ -61,19 +60,13 @@ fi
 if [[ "$1" == "--rexterm" ]] ; then
   colorset=paper
   case $dest in
-    primary)
-      [[ "$host" != "primary" ]] && colorset=partner
+    windows1 | windows2 | windowsN)
+      [[ "$host" != "$dest" ]] && colorset=partner
       ;;
 
-    fedora | ubuntu | virtual1 | virtual2)
+    linux1 | linux2 | linuxN)
       colorset=partner
-      if [[ "$host" == "$dest" || -n "`osCYGWIN`" ]] ; then
-        colorset=linux
-      fi
-      ;;
-
-    secondary | secondary-alias)
-      [[ "$host" != "secondary" ]] && colorset=partner
+      [[ "$host" == "$dest" || -n "`osCYGWIN`" ]] && colorset=linux
       ;;
   esac
   return
