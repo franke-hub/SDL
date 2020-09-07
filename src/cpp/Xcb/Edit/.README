@@ -1,0 +1,60 @@
+##############################################################################
+##
+##       Copyright (c) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       EDITOR README information file.
+##
+## Last change date-
+##       2020/09/06
+##
+##############################################################################
+
+##############################################################################
+## STATUS:
+2020/09/06 ** EXPERIMENTAL, BRINGUP MODE **
+         Basic editing functions implemented.
+         Valid only as quasi-working XCB example program.
+         ** ALL INTERFACES ARE PRELIMINARY, SUBJECT TO MAJOR CHANGE **
+
+2020/07/19 Started
+
+##############################################################################
+## TODO:
+2020/09/05 ** EXPERIMENTAL **
+         Code review. Completely test all implemented functions.
+            ==> Invalid font: Need better user error message
+         Multiple windows. (No search, status, command, or message lines)
+         File write not implemented.
+         Hide system cursor when typing. (Show when moving mouse.)
+         Is draw optimization (double buffering) required?
+
+2020/07/28 Xcb/Device base class: Widget or Window?
+         Window (at least for now)
+
+2020/07/28 Need to check whether file is a file or a directory.
+         If directory, load R/O file list, selectable files/directories
+
+2020/07/28 Background file loader. Synch with EdText
+
+##############################################################################
+## FEATURE:
+
+##############################################################################
+## OPEN:
+
+##############################################################################
+## CLOSED:
+
+##############################################################################
+## FIXED:
+

@@ -1,0 +1,89 @@
+##############################################################################
+##
+##       Copyright (c) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2020/07/19
+##
+##############################################################################
+
+##############################################################################
+## Local module list
+MAKOBJ := $(patsubst $(OBJDIR)/Edit.o,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Include.o,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Dirty.o,,$(MAKOBJ))
+
+MAKEXE := Edit
+ignore += Dirty                     ## (Dirty only made on demand)
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## TARGET: liblocal.a
+liblocal.a: $(MAKOBJ)
+	ar -r $@ $(MAKOBJ)
+
+##############################################################################
+## TARGET: dirty
+Dirty: liblocal.a
+.PHONY: dirty
+dirty: Dirty
+	Dirty
+
+##############################################################################
+## TARGET: do
+.PHONY: do
+do: Edit
+	Edit $(EDIT_OPTIONS)
+
+##############################################################################
+## TARGET: include
+.PHONY: include
+include: Include.o
+	echo "include.o should fail to compile"
+
+##############################################################################
+## Dependencies
+$(MAKEXE): liblocal.a
+
+##############################################################################
+## Controls
+CLIBS  += -l X11
+CLIBS  += -l xcb
+CLIBS  += -l xcb-xfixes
+LLIBS  += -L. -l local
+include $(INCDIR)/pub/Makefile.BSD
+
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+CLOAD  += -Wl,--enable-auto-import
+endif
+
+##############################################################################
+## Makefile cleanup
+.PHONY: clean.dir
+clean:  clean.dir
+clean.dir: ;
+	-@rm $(MAKEXE)  >/dev/null 2>/dev/null
+	-@rm liblocal.a >/dev/null 2>/dev/null
+	-@rm debug.*    >/dev/null 2>/dev/null
+	-@rm trace.*    >/dev/null 2>/dev/null
+

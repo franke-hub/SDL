@@ -1,0 +1,99 @@
+//----------------------------------------------------------------------------
+//
+//       Copyright (c) 2020 Frank Eskesen.
+//
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+//
+//----------------------------------------------------------------------------
+//
+// Title-
+//       EdPool.h
+//
+// Purpose-
+//       Editor: Storage Pool descriptor
+//
+// Last change date-
+//       2020/09/06
+//
+//----------------------------------------------------------------------------
+#ifndef EDPOOL_H_INCLUDED
+#define EDPOOL_H_INCLUDED
+
+#include "Editor.h"                 // TODO: REMOVE. For include file debugging
+
+#include <pub/List.h>               // For pub::List
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       EdPool
+//
+// Purpose-
+//       Editor Pool
+//
+// Implementation note-
+//       Lines are allocated and deleted, but text is never deleted
+//
+//----------------------------------------------------------------------------
+class EdPool : public pub::List<EdPool>::Link { // Editor line descriptor
+//----------------------------------------------------------------------------
+// EdPool::Enumerations and typedefs
+public:
+enum // Compile time constants
+{  MIN_SIZE= 65536                  // Minimum text pool size
+}; // Compile time constants
+
+//----------------------------------------------------------------------------
+// EdPool::Attributes
+protected:
+size_t                 used;        // Number of bytes used
+size_t                 size;        // The total Pool size
+char*                  data;        // The Pool data area
+
+//----------------------------------------------------------------------------
+// EdPool::Constructor/Destructor
+//----------------------------------------------------------------------------
+public:
+   EdPool(                          // Constructor
+     size_t            size)        // The allocation size
+:  ::pub::List<EdPool>::Link()
+,  used(0), size(size), data(new char[size])
+{
+   if( opt_hcdm )
+     debugh("EdPool(%p)::EdPool\n", this);
+}
+
+//----------------------------------------------------------------------------
+virtual
+   ~EdPool( void )                  // Destructor
+{
+   if( opt_hcdm )
+     debugh("EdPool(%p)::~EdPool, used %5zd of %5zd\n", this, used, size);
+
+   delete [] data;                  // Delete the data
+}
+
+//----------------------------------------------------------------------------
+// EdPool::Methods
+//----------------------------------------------------------------------------
+public:
+char*                               // The allocated storage, nullptr if none
+   malloc(                          // Get allocated storage
+     size_t            size)        // Of this length
+{
+   char* result= nullptr;
+   if( used + size <= this->size ) { // If storage is available
+     result= data + used;
+     used += size;
+   }
+
+   if( opt_hcdm )
+     debugh("%p= EdPool(%p)::malloc(%zd)\n", result, this, size);
+
+   return result;
+}
+}; // class EdPool
+#endif // EDPOOL_H_INCLUDED
