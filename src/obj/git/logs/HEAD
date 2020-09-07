@@ -4,3 +4,4 @@ ebeb24a9f72da94e006d0f013ba69a1faaffdc35 94768357ef20c551600b2053007afcd059cd8a3
 94768357ef20c551600b2053007afcd059cd8a39 c31101d8e222fe15a71de0ad17e8fbb586e795df Frank Eskesen <f.n.eskesen@gmail.com> 1593875549 -0400	commit: Added, operational.
 c31101d8e222fe15a71de0ad17e8fbb586e795df c31101d8e222fe15a71de0ad17e8fbb586e795df Frank Eskesen <f.n.eskesen@gmail.com> 1595110909 -0400	reset: moving to HEAD
 c31101d8e222fe15a71de0ad17e8fbb586e795df ec695f191f9169939edf2fa820dc3ee91e6e9f02 Frank Eskesen <f.n.eskesen@gmail.com> 1595120936 -0400	commit: Added missing subdirectory.
+ec695f191f9169939edf2fa820dc3ee91e6e9f02 769ad834e88e9e70407b2aa8e1972c6d7ad8948e Frank Eskesen <f.n.eskesen@gmail.com> 1599333180 -0400	commit: Combined Dataman/Fileman. Added preliminary Xcb/Edit.
