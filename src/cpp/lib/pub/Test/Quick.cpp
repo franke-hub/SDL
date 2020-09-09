@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2020/08/04
+//       2020/09/09
 //
 //----------------------------------------------------------------------------
 #include <chrono>
@@ -316,31 +316,77 @@ static inline int
 //       Test utility::dump.h
 //
 //----------------------------------------------------------------------------
+static inline void
+   test_dump(                         // Test utility::dump.h
+     const char*       buffer,        // The test buffer
+     unsigned int      origin,        // The dump origin
+     unsigned int      length,        // The dump length
+     unsigned int      offset)        // The (virtual) origin
+{
+   using pub::utility::dump;
+
+   char* ORIGIN= nullptr;
+   ORIGIN += offset;
+
+   FILE* stdbug= Debug::get()->get_FILE();
+   fprintf(stdbug, "\n%p[%.2x:%.4x:%.2x]\n", buffer, origin, length, offset);
+   dump(stdbug, buffer + origin, length, ORIGIN);
+
+   if( opt_verbose ) {
+     fprintf(stdout, "\n%p[%.2x:%.4x:%.2x]\n", buffer, origin, length, offset);
+     dump(stdout, buffer + origin, length, ORIGIN);
+   }
+}
+
+static inline void
+   test_dump(                         // Test utility::dump.h
+     const char*       buffer,        // The test buffer
+     unsigned int      origin,        // The dump origin
+     unsigned int      length)        // The dump length
+{
+   using pub::utility::dump;
+
+   FILE* stdbug= Debug::get()->get_FILE();
+   fprintf(stdbug, "\n%p[%.2x:%.4x]\n", buffer, origin, length);
+   dump(buffer + origin, length);
+
+   if( opt_verbose ) {
+     fprintf(stdout, "\n%p[%.2x:%.4x]\n", buffer, origin, length);
+     dump(stdout, buffer + origin, length);
+   }
+}
+
+
 static inline int
    test_dump( void )                  // Test utility::dump.h
 {
-   debugf("\ntest_dump\n");
+   debugf("\ntest_dump%s\n", opt_verbose ? "" : " (See: debug.out)" );
 
    int                 errorCount= 0; // Number of errors encountered
 
    using pub::utility::dump;
-   alignas(16) char buffer[256];
-   for(int i= 0; i<sizeof(buffer); i++)
+   alignas(256) char buffer[256];
+   for(int i=  0; i<32; i++)
+     buffer[i]= i;
+   for(int i= 32; i<sizeof(buffer); i++)
      buffer[i]= "0123456789ABCDEF"[i%16];
 
-   FILE* file= Debug::get()->get_FILE();
-                        dump(file, buffer+3, 29);
-   fprintf(file, "\n"); dump(file, buffer+3, 3);
-   fprintf(file, "\n"); dump(file, buffer+14, 14);
-   fprintf(file, "\n"); dump(file, buffer+1, 126);
-   fprintf(file, "\n"); dump(file, buffer, 128);
+   test_dump(buffer,  3,   3);
+   test_dump(buffer,  3,  29);
+   test_dump(buffer, 14,  14);
+   test_dump(buffer,  1, 126);
+   test_dump(buffer, 33, 126);
+   test_dump(buffer,  0, 128);
+   test_dump(buffer,  1, 128);
 
-   fprintf(file, "\n"); dump(file, buffer+3, 3, (void*)3);
-   fprintf(file, "\n"); dump(file, buffer+14, 14, (void*)14);
-   fprintf(file, "\n"); dump(file, buffer+1, 126, (void*)1);
-   fprintf(file, "\n"); dump(file, buffer, 128, (void*)0);
+   test_dump(buffer,  3,   3,  3);
+   test_dump(buffer,  3,  29,  3);
+   test_dump(buffer, 14,  14, 14);
+   test_dump(buffer,  1, 126,  1);
+   test_dump(buffer,  0, 128,  0);
+   test_dump(buffer,  1, 128,  1);
 
-   fprintf(file, "\n"); dump(buffer, sizeof(buffer));
+   test_dump(buffer,  0, 256);
 
    return errorCount;
 }

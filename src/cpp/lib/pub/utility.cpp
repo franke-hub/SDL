@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2020/07/25
+//       2020/09/09
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -35,15 +35,6 @@
 
 #include <pub/Debug.h>              // For Debug object (see dump())
 #include "pub/utility.h"            // Function definitions
-
-//----------------------------------------------------------------------------
-// Constants for parameterization
-//----------------------------------------------------------------------------
-#ifndef HCDM                        // If defined, Hard Core Debug Mode
-#undef  HCDM
-#endif
-
-#include "pub/ifmacro.h"            // For IFHCDM
 
 namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
@@ -372,14 +363,13 @@ enum FSM                            // Finite State machine
          }
 
          offset= oldAddr & 15;
-         length= 16 - offset;
-         for(int i=0; i<offset; i++) {  // Handle leading unused
+         for(int i=0; i<offset; i++) { // Handle leading unused
            newData[i]= '~';
            output[position(i)]= '~';
            output[position(i)+1]= '~';
          }
 
-         for(int i=length; i<16; i++) { // Handle trailing unused
+         for(int i=size; i<16; i++) { // Handle trailing unused
            newData[i]= '~';
            output[position(i)]= '~';
            output[position(i)+1]= '~';
@@ -415,12 +405,6 @@ enum FSM                            // Finite State machine
        memcpy(newData, paddr, 16);
      else if( size > 0 )
        memcpy(newData, paddr, size);
-
-     IFHCDM(
-        if( fsm != FSM_INDUP ) {
-          fflush(file);             // Flush after each output line
-        }
-     )
    }
 }
 
