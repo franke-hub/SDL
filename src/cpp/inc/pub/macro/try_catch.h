@@ -16,17 +16,21 @@
 //       TRY_CATCH macro definition.
 //
 // Last change date-
-//       2020/06/27
+//       2020/09/09
+//
+// Usage notes, requires:
+//       #include <pub/Exception.h> // For pub::Exception, std::exception
+//       #include <stdio>           // For fprintf
 //
 //----------------------------------------------------------------------------
 #undef  TRY_CATCH                   // (Allow redefine)
 #define TRY_CATCH(x) try { x        \
    } catch(pub::Exception& X) {     \
-     debugf("%s\n", std::string(X).c_str()); \
+     fprintf(stderr, "%s\n", std::string(X).c_str()); \
    } catch(std::exception& X) {     \
-     printf("std::exception.what(%s))\n", X.what()); \
+     fprintf(stderr, "std::exception.what(%s))\n", X.what()); \
    } catch(const char* X) {         \
-     printf("catch(const char* '%s')\n", X); \
+     fprintf(stderr, "catch(const char* '%s')\n", X); \
    } catch(...) {                   \
-     printf("catch(...)\n");        \
+     fprintf(stderr, "catch(...)\n"); \
    }
