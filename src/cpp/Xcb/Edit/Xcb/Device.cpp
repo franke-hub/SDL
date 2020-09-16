@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/09/06
+//       2020/09/16
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -687,7 +687,7 @@ void
          }
          default:
            // case 1: xcb_generic_reply NOT EXPECTED but handled here.
-           debugh("Event(%.2u) NOT HANDLED\n", e->response_type);
+           debugh("Event(%.2u) NOT HANDLED\n", e->response_type & 0x007f);
            dump(e, sizeof(xcb_generic_event_t));
            break;
        }

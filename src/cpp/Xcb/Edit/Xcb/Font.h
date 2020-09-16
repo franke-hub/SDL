@@ -16,7 +16,7 @@
 //       XCB Font descriptor
 //
 // Last change date-
-//       2020/09/06
+//       2020/09/16
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_FONT_H_INCLUDED
@@ -79,7 +79,7 @@ xcb_point_t            offset= {0, 0}; // Font offset
 WH_size_t              length= {0, 0}; // Font length
 
 xcb_query_font_reply_t*
-                       font_info;   // The Font information
+                       font_info= nullptr; // The Font information
 
 //----------------------------------------------------------------------------
 // xcb::Font::Constructor
