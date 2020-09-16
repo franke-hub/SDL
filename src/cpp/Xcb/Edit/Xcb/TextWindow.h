@@ -16,11 +16,11 @@
 //       XCB based text Window
 //
 // Last change date-
-//       2020/09/06
+//       2020/09/16
 //
 // Implementation note-
 //                    ******** DO NOT SIMULTANEOUSLY USE ********
-//       XCB_EVENT_MASK_RESIZE_REDIRECT and XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
+//       XCB_EVENT_MASK_RESIZE_REDIRECT and XCB_EVENT_MASK_STRUCTURE_NOTIFY
 //       When used together, actually changing the window size is problematic.
 //       TODO: Understand why this happens.
 //

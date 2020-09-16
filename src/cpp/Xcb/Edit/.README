@@ -26,6 +26,33 @@
          Valid only as quasi-working XCB example program.
          ** ALL INTERFACES ARE PRELIMINARY, SUBJECT TO MAJOR CHANGE **
 
+2020/09/07 (MORE) Pre-requisite packages
+         (Red Hat Fedora) Linux:
+         xcb-util-cursor-devel
+
+         Cygwin:
+         libxcb-cursor-devel
+
+2020/09/06 Linux pre-requisite packages
+         (Nothing new installed: /usr/include/xcb already up to date.)
+
+2020/09/06 Cygwin pre-requisite packages
+         libX11-devel                  (probable maintenance update)
+            /usr/include/X11/XKBlib.h  [[ NEEDED ]]
+
+         libxcb-devel                  [[ PREREQUISITE ]]
+            /usr/include/xcb/xcb.h
+            /usr/include/xcb/xproto.h
+            /usr/lib/libxcb.dll.a
+
+         libxcb-xfixes-devel           [[ PREREQUISITE ]]
+            /usr/include/xcb/xfixes.h
+            /usr/lib/libxcb-fixes.dll.a
+
+         [[ Needed, already present ]]
+            /usr/include/X11/keysymdef.h
+
+
 2020/07/19 Started
 
 ##############################################################################
