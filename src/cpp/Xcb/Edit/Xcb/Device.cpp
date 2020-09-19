@@ -79,7 +79,7 @@ static const char*                  // name->get_name().c_str()  or "<nullptr>"
    if( display == nullptr ) {
      const char* disp= getenv("DISPLAY");
      if( disp == nullptr )
-       disp= "<UNDEFINED>";
+       disp= "";
      user_debug("Cannot open DISPLAY(%s)\n", disp);
      exit(EXIT_FAILURE);
    }
