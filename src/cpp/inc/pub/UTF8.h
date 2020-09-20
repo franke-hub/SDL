@@ -37,7 +37,6 @@
 
 #include "config.h"                 // For _PUB_NAMESPACE
 #include "utility.h"                // For utility::to_string(), prereqs above
-#include "Exception.h"              // For Exception
 
 namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
@@ -73,21 +72,6 @@ protected:
 unsigned char*         utf8= nullptr; // The UTF-8 encoded string
 mutable size_t         used= 0;     // The current size of the string
 size_t                 size= 0;     // The maximum size of the string
-
-//----------------------------------------------------------------------------
-// UTF8::Exceptions
-//----------------------------------------------------------------------------
-public:
-class UTF8Error : public Exception { using Exception::Exception;
-}; // class UTF8Error
-
-class BufferEmpty : public UTF8Error {
-using UTF8Error::UTF8Error;
-}; // class BufferEmpty
-
-class BufferFull : public UTF8Error {
-using UTF8Error::UTF8Error;
-}; // class BufferFull
 
 //----------------------------------------------------------------------------
 // UTF8::Constructor/Destructor
