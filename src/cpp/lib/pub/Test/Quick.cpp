@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2020/09/09
+//       2020/09/20
 //
 //----------------------------------------------------------------------------
 #include <chrono>
@@ -992,25 +992,28 @@ static inline int
 
    for(code= 0; code < 0x00110000; code++)
    {
-     if( code >= 0x0000D800 && code <= 0x0000DFFF )
-     {
+     if( code >= 0x0000D800 && code <= 0x0000DFFF ) {
        code= 0x0000DFFF;
        continue;
      }
 
+     memset(buffer, 0xff, 8);
      utf8.set_used(0);
      utf8.encode(code);
-//// debugf("%4d HCDM %.6x %.2x %.2x %.2x %.2x\n", __LINE__, code,
-////        buffer[0], buffer[1], buffer[2], buffer[3]);
+     if( false )                    // (Visual verification)
+       debugf("%4d HCDM %.6x %zu/%zu:%.2x %.2x %.2x %.2x\n", __LINE__, code
+             , utf8.get_used(), utf8.get_size()
+             , buffer[0], buffer[1], buffer[2], buffer[3]);
 
      utf8.set_used(0);
      if( code != utf8.decode() )
      {
-       debugf("%4d %.2x %.2x %.2x %.2x\n", __LINE__,
-              buffer[0], buffer[1], buffer[2], buffer[3]);
+       debugf("%4d HCDM %.2x %.2x %.2x %.2x\n", __LINE__
+             , buffer[0], buffer[1], buffer[2], buffer[3]);
 
        utf8.set_used(0);
-       debugf("%4d code(0x%x) utf8(0x%x)\n", __LINE__, code, utf8.decode());
+       debugf("%4d HCDM code(0x%x) utf8(0x%x)\n", __LINE__
+             , code, utf8.decode());
        return 1;
      }
    }
@@ -1041,8 +1044,9 @@ static inline int
    unsigned code= utility::atox(utf8_encode);
    utf8.encode(code);
 
-   debugf("%.6x %.2x %.2x %.2x %.2x\n", code,
-          buffer[0], buffer[1], buffer[2], buffer[3]);
+   debugf("%.6x %zu/%zu:%.2x %.2x %.2x %.2x\n", code
+         , utf8.get_used(), utf8.get_size()
+         , buffer[0], buffer[1], buffer[2], buffer[3]);
 
    return errorCount;
 }
@@ -1091,13 +1095,15 @@ static inline int
    try {
      for(;;)
      {
-       unsigned code= utf8.decode();
+       int code= utf8.decode();
+       if( code < 0 )
+         break;
        debugf("%.6x\n", code);
      }
-   } catch( pub::UTF8::BufferEmpty& X ) {
-     debugf("** DONE **\n");
+     debugf("*DONE*\n");
    } catch( ... ) {
      errorCount++;
+     debugf("catch(...)\n");
      throw;
    }
 

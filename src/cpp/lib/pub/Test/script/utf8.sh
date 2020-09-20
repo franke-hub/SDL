@@ -1,12 +1,24 @@
 #!/bin/bash
-#
-# Title-
-#        utf8.wh
-#
-# Function-
-#        Make + run regression set
-#
-#######
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2018-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       utf8.wh
+##
+## Function-
+##       Make + run regression set
+##
+## Last change date-
+##       2020/09/20
+##
+##############################################################################
 
 DO=Quick
 make $DO
@@ -21,11 +33,11 @@ $DO --utf8.decode=80               ## error[1] Smallest
 $DO --utf8.decode=A0               ## error[1] Sample
 $DO --utf8.decode=BF               ## error[1] Largest
 $DO --utf8.decode=F5808080         ## error[4] Smallest
-$DO --utf8.decode=F880808080       ## error[5] Smallest
-$DO --utf8.decode=FC8080808080     ## error[6] Smallest
-$DO --utf8.decode=FE8080808080     ## error[7] Smallest
-$DO --utf8.decode=FF808080808080   ## error[8] Smallest
-$DO --utf8.decode=00BF             ## Second character
+$DO --utf8.decode=F880808080       ## error[5] Smallest (/invalid start)
+$DO --utf8.decode=FC8080808080     ## error[6] Smallest (/invalid start)
+$DO --utf8.decode=FE8080808080     ## error[7] Smallest (/invalid start)
+$DO --utf8.decode=FF808080808080   ## error[8] Smallest (/invalid start)
+$DO --utf8.decode=20BF             ## Second character
 
 ##############################################################################
 echo -e "\n\n================================================================"
@@ -38,13 +50,13 @@ $DO --utf8.decode="C280 C2FF"
 $DO --utf8.decode="E0A080 E80080"
 $DO --utf8.decode="E0A080 E88080 E880C0"
 
-$DO --utf8.decode="F0B08080 F100BFBF"
-$DO --utf8.decode="F0B08080 F0B08080 F1B0C2BF"
-$DO --utf8.decode="F0B08080 F0B08080 F0B08080 F1B080FF"
+$DO --utf8.decode="F4808080 F100BFBF"
+$DO --utf8.decode="F4808080 F1B0C2BF"
+$DO --utf8.decode="F4808080 F1B080FF"
 
 ##############################################################################
 echo -e "\n\n================================================================"
-echo "Invalid encodings: too small for range"
+echo "Invalid encodings: overlong"
 $DO --utf8.decode=C080             ## error[2] Smallest too small
 $DO --utf8.decode=C0BF             ## error[2] Too small
 $DO --utf8.decode=C1BF             ## error[2] Largest too small

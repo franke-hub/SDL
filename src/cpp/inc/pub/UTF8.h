@@ -16,7 +16,7 @@
 //       UTF-8 Encoder/decoder
 //
 // Last change date-
-//       2020/01/24
+//       2020/09/20
 //
 // Usage notes-
 //       This implementation is NOT thread-safe.
@@ -25,16 +25,14 @@
 //       generally use different objects for encoding and decoding within
 //       different threads.
 //
-//       This encoder/decoder implements 3629, UTF-8 translation format.
-//       The encode(code, unsigned char*) internal method is non-conformant
-//       because it does not provide required error checking. It is in a
-//       protected method not intended for conformant use.
+//       This encoder/decoder implements RFC 3629, UTF-8 translation format.
+//       Protected methods are called after error checking.
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_UTF8_H_INCLUDED
 #define _PUB_UTF8_H_INCLUDED
 
-#include <stdio.h>                  // For sprintf
+#include <stdio.h>                  // For fprintf, ...
 #include <string.h>                 // For memcpy
 
 #include "config.h"                 // For _PUB_NAMESPACE
@@ -63,12 +61,18 @@ namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
 class UTF8 {                        // UTF-8 encoding/decoding
 //----------------------------------------------------------------------------
+// UTF8::Typedefs and enumerations
+//----------------------------------------------------------------------------
+public:
+enum { REPLACE_CHAR= 0x0000FFFD };  // Error replacement character
+
+//----------------------------------------------------------------------------
 // UTF8::Attributes
 //----------------------------------------------------------------------------
 protected:
-unsigned char*         utf8;        // The UTF-8 encoded string
-mutable size_t         used;        // The current size of the string
-size_t                 size;        // The maximum size of the string
+unsigned char*         utf8= nullptr; // The UTF-8 encoded string
+mutable size_t         used= 0;     // The current size of the string
+size_t                 size= 0;     // The maximum size of the string
 
 //----------------------------------------------------------------------------
 // UTF8::Exceptions
@@ -91,114 +95,131 @@ using UTF8Error::UTF8Error;
 public:
    ~UTF8( void ) {}                 // Destructor
 
-   UTF8( void ) = delete;           // NO default constructor
+   UTF8( void )                     // Default constructor
+:  utf8(nullptr), used(0), size(0) {}
 
    UTF8(                            // String constructor
-     char*             outs,        // The output character string
-     size_t            size)        // The output string maximum size
-:  utf8((unsigned char*)outs), used(0), size(size) {}
+     char*             buff,        // The encode/decode character string
+     size_t            size= 0)     // The encode/decode string maximum size
+{  reset(buff, size); }
 
    UTF8(                            // String constructor
-     unsigned char*    outs,        // The output character string
-     size_t            size)        // The output string maximum size
-:  utf8(outs), used(0), size(size) {}
+     unsigned char*    buff,        // The encode/decode character string
+     size_t            size= 0)     // The encode/decode string maximum size
+{  reset((char*)buff, size); }
+
+void
+   reset(                           // Reset the encode/decode buffer
+     char*             buff,        // The encode/decode buffer
+     size_t            size= 0)     // The encode/decode buffer length
+{
+   if( size == 0 && buff )          // Allow reset(nullptr{, 0})
+     size= strlen(buff);
+
+   this->utf8= (unsigned char*)buff;
+   this->size= size;
+   this->used= 0;
+}
 
 //----------------------------------------------------------------------------
 // UTF8::Protected methods
 //----------------------------------------------------------------------------
 protected:
+inline int                          // Return code, 0 OK
+   chkX(                            // Verify extended characters
+     unsigned          L)           // For this length
+{
+   if( (used + L) > size ) {        // If length outsize of buffer
+     fprintf(stderr, "UTF8.decode [0x%.4zx]+%d >= size(%.4zx)\n"
+                   , used - 1, L, size);
+     used= size;
+     return REPLACE_CHAR;
+   }
+
+   for(unsigned i= 0; i<L; i++) {
+     int C= utf8[used+i];
+     if( C < 0x0080 || C > 0x00BF ) {
+       fprintf(stderr, "UTF8.decode [0x%.4zx]+%d Data char(0x%.2x)\n"
+                     , used - 1, i + 1, C);
+       used += i;
+       return REPLACE_CHAR;
+     }
+   }
+
+   return 0;
+}
+
 inline unsigned                     // The extended value
-   get2(                            // Get extended value
-     unsigned          X)           // At this offset
+   getX(                            // Get extended value (UNCHECKED)
+     unsigned          L)           // For this length
 {
-   if( used >= size )
-     throw UTF8Error(utility::to_string("decode[%zd] 0x%.2x[%d] past end",
-                                        used-1, utf8[used-X-1], X));
+   unsigned result= 0;
+   for(unsigned i= 0; i<L; i++) {
+     result <<= 6;
+     unsigned C= utf8[used++];
+     result += (C & 0x003F);
+   }
 
-   unsigned bits= utf8[used++];
-   if( bits < 0x00000080 || bits >= 0x000000C0 )
-     throw UTF8Error(utility::to_string("decode[%zd] 0x%.2x[%d] 0x%.2x invalid",
-                                        used-1, utf8[used-X-1], X, bits));
-
-   return (bits & 0x0000003F);
+   return result;
 }
 
-static inline unsigned              // The value to insert
-   set2(                            // Insert extended value
-     unsigned          bits)        // The extended value
+inline void
+   setX(                            // Insert extended value (UNCHECKED)
+     unsigned          code,        // The extended value
+     unsigned          L)           // The extended length
 {
-   bits &= 0x0000003F;
-   return (bits | 0x00000080);
-}
-
-void
-   encode(                          // Encode (NO ERROR CHECKING)
-     unsigned          code,        // This Unicode code point
-     unsigned char*    outs)        // Into this output string
-{
-   if( code < 0x00000080 )          // If encoding size == 1
-   {
-     outs[0]= code;
-   } else if( code < 0x00000800 )   // If encoding size == 2
-   {
-     outs[0]= (code >> 6) | 0x000000C0;
-     outs[1]= set2(code);
-   }
-   else if( code < 0x00010000 )     // If encoding size == 3
-   {
-     outs[0]= (code >> 12) | 0x000000E0;
-     outs[1]= set2(code >> 6);
-     outs[2]= set2(code);
-   }
-   else if( code < 0x00200000 )     // If encoding size == 4
-   {
-     outs[0]= (code >> 18) | 0x000000F0;
-     outs[1]= set2(code >> 12);
-     outs[2]= set2(code >>  6);
-     outs[3]= set2(code);
-   }
+   if( L )                          // If additional characters
+     setX(code >> 6, L - 1);        // Insert partial
+   utf8[used++]= (code & 0x0000003F) | 0x00000080;
 }
 
 static inline bool                  // TRUE iff code is a valid start code
    is_start_encoding(               // Is
      unsigned          code)        // This a valid UTF-8 start encoding
 {
-     if( code < 0x00000080 )
-       return true;
-     if( code >= 0x000000C2 && code < 0x000000F5 )
+     if( code < 0x00000080 || (code >= 0x000000C0 && code < 0x000000F7) )
        return true;
 
      return false;
 }
 
-// Exception generators
-inline void
-   encoding(                        // ERROR: Invalid encoding
-     unsigned          code) const  // For this Unicode code point
+// Decode error handlers
+inline int                          // Always REPLACE_CHAR
+   bad_decode(                      // ERROR: Attempt to decode
+     unsigned          code,        // This invalid Unicode code point and
+     unsigned          L) const     // This encoding length
 {
-   throw UTF8Error(utility::to_string("decode[%zd] 0x%.6x encoding",
-                                      used, code));
+   fprintf(stderr, "UTF8.decode [0x%.4zx] Overlong(0x%.6x)\n"
+                 , used - L, code);
+   return REPLACE_CHAR;
 }
 
-static inline void
-   not_decode(                      // ERROR: Attempt to decode
-     unsigned          code)        // This invalid Unicode code point
+inline int                          // Always REPLACE_CHAR
+   bad_start(                       // ERROR: Invalid UTF-8 start char
+     unsigned          code)        // (The invalid char)
 {
-   throw UTF8Error(utility::to_string("decode(0x%.6x) not Unicode", code));
+   fprintf(stderr, "UTF8.decode [0x%.4zx] Start char(0x%.2x)\n"
+                 , used - 1, code);
+   return REPLACE_CHAR;
 }
 
-static inline void
-   not_encode(                      // ERROR: Attempt to encode
-     unsigned          code)        // This invalid Unicode code point
+inline int                          // Always REPLACE_CHAR
+   bad_unicode(                     // ERROR: Attempt to decode
+     unsigned          code,        // This invalid Unicode code point and
+     unsigned          L) const     // This encoding length
 {
-   throw UTF8Error(utility::to_string("encode(0x%.6x) not Unicode", code));
+   fprintf(stderr, "UTF8.decode [0x%.4zx] Not unicode(0x%.6x)\n"
+                 , used - L, code);
+   return REPLACE_CHAR;
 }
 
-inline void
-   not_start( void ) const          // ERROR: Invalid UTF-8 start code
+// Encode error handlers
+inline ssize_t                      // Always -1
+   not_unicode(                     // ERROR: Attempt to encode
+     unsigned          code) const  // This invalid Unicode code point
 {
-   throw UTF8Error(utility::to_string("decode[%zd] 0x%.2x[0] invalid",
-                                      used-1, utf8[used-1]));
+   fprintf(stderr, "UTF8.encode(0x%.4x) Not unicode\n", code);
+   return -1;
 }
 
 //----------------------------------------------------------------------------
@@ -212,95 +233,132 @@ void set_used(size_t used_) { this->used= used_; } // Set used count
 //----------------------------------------------------------------------------
 // UTF8::Methods
 //----------------------------------------------------------------------------
-size_t                              // Offset after encoding [==  get_used()]
+ssize_t                             // Offset after encoding, -1 if error
    encode(                          // Encode
      unsigned          code)        // This Unicode code point
 {
    unsigned L= 1;
-   if( code >= 0x00000080 )
-   {
+   if( code >= 0x00000080 ) {
      L= 2;
-     if( code >= 0x00000800 )
-     {
+     if( code >= 0x00000800 ) {
        L= 3;
-       if( code >= 0x00010000 )
-       {
+       if( code >= 0x00010000 ) {
          L= 4;
          if( code >= 0x00110000 )
-           not_encode(code);
+           return not_unicode(code);
        } else if( code >= 0x0000D800 && code <= 0x0000DFFF )
-           not_encode(code);
+         return not_unicode(code);
      }
    }
 
-   // If the buffer does not have enough space to encode the code point, the
-   // BufferFull exception is thrown. The encoder state remains unchanged.
-   if( (size - used) <= L )
-     throw BufferFull();
+   // If the buffer does not have enough space to encode the code point, an
+   // error message is displayed and the encoder state remains unchanged.
+   if( (used + L) > size ) {
+     fprintf(stderr, "UTF8.encode(0x%.6x) Used(0x%zx)+%d > size(0x%zx)\n"
+                   , code, used, L, size);
+     return -1;
+   }
 
-   encode(code, utf8+used);
-   used += L;
+   // Disallowed value ranges have been detected
+   switch(L) {
+     case 1:                        // Range 0x000000..0x00007F
+       utf8[used++]= code;
+       break;
+
+     case 2:                        // Range 0x000080..0x0007FF
+       utf8[used++]= (code >>  6) | 0x000000C0;
+       setX(code, 0);
+       break;
+
+     case 3:                        // Range 0x000800..0x00FFFF
+       utf8[used++]= (code >> 12) | 0x000000E0;
+       setX(code, 1);
+       break;
+
+     case 4:                        // Range 0x010000..0x1FFFFF
+       utf8[used++]= (code >> 18) | 0x000000F0;
+       setX(code, 2);
+       break;
+
+     default:
+       fprintf(stderr, "%4d UTF8.encode(%.6x) Internal error\n", __LINE__
+                     , code);
+       throw "Should Not Occur";
+       break;
+   }
+
    return used;
 }
 
-unsigned                            // The next Unicode code point
+int                                 // The next Unicode code point, -1 if EOF
    decode( void )                   // Get next Unicode code point
 {
-   if( used >= size )
-     throw BufferEmpty();
+   if( used >= size ) return -1;    // If EOF, return -1
 
    unsigned            code= utf8[used++]; // First input character
 
-   if( code < 0x000000C0 )
-   {
-     if( code >= 0x00000080 )
-       not_start();
+   unsigned L= 0;
+   if( code < 0x000000C0 ) {        // Range 0x000000..0x00007F
+     if( code >= 0x00000080 )       // Range 0x000080..0x0000BF (invalid start)
+       return bad_start(code);
+   } else if( code < 0x000000E0 ) { // Range 0x000080..0x0007FF
+     L= 1;
+   } else if( code < 0x000000F0 ) { // Range 0x000800..0x00FFFF (w/disallowed)
+     L= 2;
+   } else if( code < 0x000000F8 ) { // Range 0x010000..0x1FFFFF (w/disallowed)
+     L= 3;
+   } else {
+     return bad_start(code);
    }
-   else if( code < 0x000000E0 )
-   {
-     code &= 0x0000003F;
-     code <<= 6;
-     code  += get2(1);
-     if( code < 0x00000080 )
-       encoding(code);
+
+   if( chkX(L) )                    // If invalid continuation character/length
+     return REPLACE_CHAR;
+
+   switch( L ) {
+     case 0:                        // Range 0x000000..0x00007F
+       break;                       // (No translation)
+
+     case 1:                        // Range 0x000080..0x0007FF
+       code  &= 0x0000001F;
+       code <<=  6;
+       code  |= getX(1);
+       if( code < 0x00000080 )
+         return bad_decode(code, 2);
+       break;
+
+     case 2:                        // Range 0x000800..0x00FFFF (w/disallowed)
+       code  &= 0x0000000F;
+       code <<= 12;
+       code  |= getX(2);
+       if( code < 0x00000800 )
+         return bad_decode(code, 3);
+       if( code > 0x0000D7FF && code < 0x0000E000 )
+         return bad_unicode(code, 3);
+       break;
+
+     case 3:                        // Range 0x010000..0x1FFFFF (w/disallowed)
+       code  &= 0x00000007;
+       code <<= 18;
+       code  |= getX(3);
+       if( code < 0x010000 )
+         return bad_decode(code, 4);
+       if( code > 0x0010FFFF )
+         return bad_unicode(code, 4);
+       break;
+
+     default:
+       fprintf(stderr, "%4d UTF8.decode(%d) Internal error\n", __LINE__, L);
+       throw "Should Not Occur";
+       break;
    }
-   else if( code < 0x000000F0 )
-   {
-     code &= 0x0000001F;
-     code <<= 6;
-     code  += get2(1);
-     code <<= 6;
-     code  += get2(2);
-     if( code < 0x00000800 )
-       encoding(code);
-     else if( code >= 0x0000D800 && code <= 0x0000DFFF )
-       not_decode(code);
-   }
-   else if( code < 0x000000F5 )
-   {
-     code &= 0x0000000F;
-     code <<= 6;
-     code  += get2(1);
-     code <<= 6;
-     code  += get2(2);
-     code <<= 6;
-     code  += get2(3);
-     if( code < 0x00010000 )
-       encoding(code);
-     else if( code >= 0x00110000 )
-       not_decode(code);
-   }
-   else
-     not_start();
 
    return code;
 }
 
 void
-   bs( void )                       // Back space
+   bs( void )                       // Decode: Back Space
 {
-   while( used > 0 )                // While backward space exists
-   {
+   while( used > 0 ) {              // While backward space exists
      unsigned code= utf8[used];
      if( is_start_encoding(code) )
        return;
@@ -310,49 +368,13 @@ void
 }
 
 void
-   fs( void )                       // Forward space
+   fs( void )                       // Decode: Forward Space
 {
-   if( used < size )                // If there is any forward space
-   {
-     unsigned code= utf8[used];
-     unsigned L= 1;
-     if( code < 0x000000C0 )
-     {
-       if( code >= 0x00000080 )
-         not_start();
-     }
-     else if( code < 0x000000E0 )
-       L= 2;
-     else if( code < 0x000000F0 )
-       L= 3;
-     else if( code < 0x000000F5 )
-       L= 4;
-     else
-       throw UTF8Error(utility::to_string("fs[%zd] 0x%.2x[0] invalid",
-                                          used, utf8[used]));
-
-     if( (size - used) > L )
-       throw UTF8Error(utility::to_string("fs[%zd] 0x%.2x[0] past end",
-                                          used, utf8[used]));
-   }
-
-   throw BufferEmpty("fs");
-}
-
-// After an error, find the next valid start character
-void
-   synch( void )                    // Skip to next valid start character
-{
-   while( used < size )
-   {
-     unsigned code= utf8[used];
+   while( used < size ) {           // While forward space exists
+     unsigned code= utf8[++used];
      if( is_start_encoding(code) )
        return;
-
-     used++;
    }
-
-   throw BufferEmpty("synch failure");
 }
 }; // class UTF8
 }  // namespace _PUB_NAMESPACE
