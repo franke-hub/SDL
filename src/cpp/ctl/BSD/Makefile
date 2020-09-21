@@ -16,7 +16,7 @@
 ##       Makefile for C++/Assembler programs
 ##
 ## Last change date-
-##       2020/01/25
+##       2020/09/21
 ##
 ## Preparation-
 ##       In your object directory,
@@ -90,16 +90,16 @@ vpath
 ## make% : ;
 
 % : %.o
-	$(CC) -o $@ $(CLOAD) $< $(CLIBS)
+	$(CC) -o $@ $< $(CLOAD) $(CLIBS)
 
 %.o : $(SRCDIR)/%.cpp
-	$(CC) -o $@ $(CFLAGS) -c $<
+	$(CC) -o $@ -c $<  $(CFLAGS)
 
 %.o : $(SRCDIR)/%.C
-	$(CC) -o $@ $(CFLAGS) -c $<
+	$(CC) -o $@ -c $< $(CFLAGS)
 
 %.o : $(SRCDIR)/%.c
-	$(CC) -o $@ $(CFLAGS) -c $<
+	$(CC) -o $@ -c $<  $(CFLAGS)
 
 %.o : $(SRCDIR)/%.s
 	m4 $< | as -o $@ $(AFLAGS)
