@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/09/16
+//       2020/09/30
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -35,7 +35,8 @@
 #include "Xcb/Layout.h"             // For Layout
 #include "Xcb/Widget.h"             // For Widget
 #include "Xcb/Types.h"              // For enum KEY_STATE, DEV_EVENT_MASK
-#include "Xcb/Window.h"             // For Window
+
+#include "Xcb/Window.h"             // For Window (Base class)
 
 using pub::Debug;                   // For Debug object
 using pub::Trace;                   // For Trace object
@@ -47,7 +48,6 @@ using namespace pub::utility;       // For utility subroutines
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_DEVICE_WINDOW= false         // Create Device WIndow?
 }; // Compilation controls
 
 namespace xcb {
@@ -69,13 +69,13 @@ static const char*                  // name->get_name().c_str()  or "<nullptr>"
 //
 //----------------------------------------------------------------------------
    Device::Device( void )           // Constructor
-:  Window(nullptr, "Device"), signal(this, "DeviceSignal") , font(this)
+:  Window(nullptr, "Device"), signal(this, "DeviceSignal")
 {
    if( opt_hcdm )
      debugh("Device(%p)::Device()\n", this);
 
    // Connect to the XCB server
-   display= XOpenDisplay(nullptr); // For X11Device
+   display= XOpenDisplay(nullptr); // For X11 Display
    if( display == nullptr ) {
      const char* disp= getenv("DISPLAY");
      if( disp == nullptr )
@@ -85,20 +85,20 @@ static const char*                  // name->get_name().c_str()  or "<nullptr>"
    }
 
    int rc;                          // Working return code
-   connection= xcb_connect(nullptr, &rc);
-   if( xcb_connection_has_error(connection) )
+   c= xcb_connect(nullptr, &rc);
+   if( xcb_connection_has_error(c) )
      checkstop(__LINE__, "xcb_connect");
 
    // Get the current screen
-   const xcb_setup_t* setup= xcb_get_setup(connection);
+   const xcb_setup_t* setup= xcb_get_setup(c);
    xcb_screen_iterator_t iter= xcb_setup_roots_iterator(setup);
    for(; iter.rem; --rc, xcb_screen_next(&iter) ) {
      if( rc == 0 ) {
-       screen= iter.data;
+       s= iter.data;
        break;
      }
    }
-   XCBCHECK(screen, "xcb_get_screen");
+   XCBCHECK(s, "xcb_get_screen");
 
    // Bringup: List atoms (only) =============================================
    if( false ) {                                                            //
@@ -109,17 +109,17 @@ static const char*                  // name->get_name().c_str()  or "<nullptr>"
      operational= false;                                                    //
    } //=======================================================================
 
-   // Window configuration
+   // Pixmap configuration
    device= this;
    window= this;
-   parent_id= screen->root;
-   window_id= screen->root;
+   parent_id= s->root;
+   widget_id= s->root;
 
    // Initialize Layout geometry
    geom.x= 0;                       // The screen geometry
    geom.y= 0;
-   geom.width=  screen->width_in_pixels;
-   geom.height= screen->height_in_pixels;
+   geom.width=  s->width_in_pixels;
+   geom.height= s->height_in_pixels;
 // rect= geom;                      // The Layout rectangle (Set in configure)
 }
 
@@ -139,7 +139,57 @@ static const char*                  // name->get_name().c_str()  or "<nullptr>"
 
    // Clean up
    if( display ) XCloseDisplay(display);
-   if( connection) xcb_disconnect(connection);
+   if( c) xcb_disconnect(c);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Device::atom_to_name
+//       Device::name_to_atom
+//
+// Purpose-
+//       Extract name from xcb_atom_t
+//       Extract xcb_atom_t from name
+//
+// Implementation notes-
+//       Duplicates Window::atom_to_name, name_to_atom
+//
+//----------------------------------------------------------------------------
+std::string                         // The associated name
+   Device::atom_to_name(            // Get associated name
+     xcb_atom_t        atom)        // For this atom
+{
+   xcb_get_atom_name_cookie_t
+       cookie= xcb_get_atom_name(c, atom);
+   xcb_get_atom_name_reply_t*
+       reply= xcb_get_atom_name_reply(c, cookie, nullptr);
+   if( reply == nullptr ) return "<null>";
+   int size= xcb_get_atom_name_name_length(reply);
+   const char* name= xcb_get_atom_name_name(reply);
+   std::string result;
+   if( name ) {
+     std::string s(name, size);
+     result= s;
+   }
+   free(reply);
+
+   return result;
+}
+
+xcb_atom_t                          // The associated xcb_atom_t
+   Device::name_to_atom(            // Get xcb_atom_t
+     const char*       name,        // For this name
+     int               only)        // (Do not create atom indicator)
+{
+   xcb_intern_atom_cookie_t
+       cookie= xcb_intern_atom(c, only, strlen(name), name);
+   xcb_intern_atom_reply_t*
+       reply= xcb_intern_atom_reply(c, cookie, nullptr);
+   xcb_atom_t result= reply->atom;
+   free(reply);
+
+   return result;
 }
 
 //----------------------------------------------------------------------------
@@ -152,23 +202,25 @@ static const char*                  // name->get_name().c_str()  or "<nullptr>"
 //
 //----------------------------------------------------------------------------
 static void
-   configure_window(                // Recursively configure Window tree
+   configure_pixmap(                // Recursively configure Window tree
      Widget*           widget,      // For this Widget
      Device*           device,      // Using this Parent Device and
      Window*           parent)      // Using this Parent Window
 {
    for(Widget* child= widget->get_first(); child; child= child->get_next()) {
-     Window* window= dynamic_cast<Window*>(child);
-     if( window ) {
+     Pixmap* pixmap= dynamic_cast<Pixmap*>(child);
+     if( pixmap ) {
        if( opt_hcdm && opt_verbose > 1 )
          debugf("%4d Device %s->configure(%s,%s)\n", __LINE__
-               , get_name(window), get_name(device), get_name(parent) );
+               , get_name(pixmap), get_name(device), get_name(parent) );
 
-       window->configure(device, parent);
-       parent= window;
+       pixmap->configure(device, parent);
+       Window* window= dynamic_cast<Window*>(child);
+       if( window )
+         parent= window;
      }
 
-     configure_window(child, device, parent);
+     configure_pixmap(child, device, parent);
    }
 }
 
@@ -212,7 +264,7 @@ void
      debugh("Device(%p)::configure\n", this);
 
    // Window: Device, Parent, Child configurator
-   configure_window(this, this, this);
+   configure_pixmap(this, this, this);
 
    // Layout configuration, depth and breadth recursion controlled by Layout.
    Layout::config_t config;
@@ -225,10 +277,6 @@ void
      debug_tree("Device::configure(config_t&)");
 
    // Widget: configuration
-   if( USE_DEVICE_WINDOW ) {
-     window_id= 0;                  // (Required)
-     Window::configure();           // Create Device Window
-   }
    configure_widget(this);
 
    // Widget: Set up WM_DELETE_WINDOW protocol handler
@@ -246,7 +294,7 @@ void
      wm_close= name_to_atom("WM_DELETE_WINDOW");
      window->enqueue(__LINE__, "xcb_change_property"
                     , xcb_change_property_checked
-                    ( connection, XCB_PROP_MODE_REPLACE, window->window_id
+                    ( c, XCB_PROP_MODE_REPLACE, window->widget_id
                     , protocol, 4, 32, 1, &wm_close) );
      if( opt_verbose > 0 )
        debugf("atom PROTOCOL(%d)\natom WM_CLOSE(%d)\n", protocol, wm_close);
@@ -337,7 +385,7 @@ static Window*                      // Resultant Window
      xcb_window_t      target,      // This XCB window
      Device*           device)      // For this Device
 {
-   if( target == device->window_id ) // If looking for the Device drawable
+   if( target == device->widget_id ) // If looking for the Device drawable
      return device;                 // We found it
 
    std::lock_guard<decltype(*device)> lock(*device);
@@ -377,7 +425,7 @@ Window*                             // The Window, if located
 
    for(Widget* child= widget->get_first(); child; child= child->get_next()) {
      Window* window= dynamic_cast<Window*>(child);
-     if( window && window->window_id == target )
+     if( window && window->widget_id == target )
        return window;
    }
 
@@ -434,7 +482,7 @@ void
    int run_hcdm= opt_hcdm | HCDM;
 
    while( operational ) {
-     xcb_generic_event_t* e= xcb_wait_for_event(connection);
+     xcb_generic_event_t* e= xcb_wait_for_event(c);
      if( e ) {
        // Trace XCB event
        if( opt_verbose > -2 ) {     // (If not forbidden)

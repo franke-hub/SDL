@@ -16,7 +16,7 @@
 //       Global data areas and utilities
 //
 // Last change date-
-//       2020/09/06
+//       2020/09/30
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_GLOBAL_H_INCLUDED
@@ -37,6 +37,10 @@ namespace xcb {
 #define CHECKSTOP(name) checkstop(__LINE__, name)
 #define XCBCHECK(xc, name) xcbcheck(__LINE__, name, xc)
 #define XCBDEBUG(xc, name) xcbdebug(__LINE__, name, xc)
+
+// ENQUEUE/NOQUEUE may be used with Pixmaps or Windows
+#define ENQUEUE(name, op) enqueue(__LINE__, name, op)
+#define NOQUEUE(name, op) noqueue(__LINE__, name, op)
 
 //----------------------------------------------------------------------------
 // (Settable) options

@@ -16,7 +16,7 @@
 //       Editor: (Dummy window placeholder.)
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/02
 //
 //----------------------------------------------------------------------------
 #ifndef EDMISC_H_INCLUDED
@@ -71,7 +71,7 @@ virtual
      debugh("EdMisc(%s)::~EdMisc\n", this->get_name().c_str());
 
    if( drawGC ) {
-     ENQUEUE("xcb_free_gc", xcb_free_gc_checked(connection, drawGC) );
+     ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, drawGC) );
      drawGC= 0;
    }
 
@@ -97,8 +97,8 @@ virtual void
    Window::configure();
 
    // Create the Graphic Context
-   xcb_connection_t* const conn= window->connection;
-   xcb_drawable_t    const draw= window->window_id;
+   xcb_connection_t* const conn= window->c;
+   xcb_drawable_t    const draw= window->widget_id;
    xcb::Pixel_t bg= 0x00FFFFFF;
    xcb::Pixel_t fg= 0x00FF0000;
 

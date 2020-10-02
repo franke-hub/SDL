@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2020/09/06
+//       2020/09/24
 //
 // Implementation notes-
 //       TODO: REMOVE: Debugging controls
@@ -117,6 +117,18 @@ int                                 // Return code, 0 OK
 int                                 // Return code, 0 OK
    do_exit(                         // (Safely) remove
      EdFile*           file);       // This file from the ring
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Editor::do_help
+//
+// Purpose-
+//       Console help message.
+//
+//----------------------------------------------------------------------------
+int                                 // Return code, 0 OK
+   do_help( void );                 // Display help message (to stdout)
 
 //----------------------------------------------------------------------------
 //

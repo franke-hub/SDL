@@ -13,10 +13,10 @@
 //       Xcb/Font.h
 //
 // Purpose-
-//       XCB Font descriptor
+//       XCB Font descriptor (X11 compatibile version)
 //
 // Last change date-
-//       2020/09/16
+//       2020/10/02
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_FONT_H_INCLUDED
@@ -25,6 +25,8 @@
 #include "Bringup.h"                // TODO: REMOVE
 
 #include <exception>                // For std::runtime_error
+
+#include <pub/UTF8.h>               // For pub::UTF8
 
 #include "Xcb/Global.h"             // For opt_* definitions, ...
 #include "Xcb/Types.h"              // For type definitions
@@ -56,14 +58,13 @@ namespace xcb {
 //         2) Use Font::makeGC to create a graphics context.
 //            The first one created will be the inital default.
 //            Note: Font::makeGC is not useable until Window::configure
-//            (That's when the
+//            (That's when the dimensions are known.)
 //         3) When done creating graphics contexts, you can (optionally)
 //            close the Font. The (needed) offset remains.
 //       Note that when using putxy the drawable and graphics context must
 //       match. You can use putxy with multiple drawable/graphic pairs.
 //
 //       The underlying xcb operation is xcb_image_text_8.
-//       UTF8 is (currently) NOT supported.
 //
 //----------------------------------------------------------------------------
 class Font {                        // Font descriptor
@@ -81,6 +82,9 @@ WH_size_t              length= {0, 0}; // Font length
 xcb_query_font_reply_t*
                        font_info= nullptr; // The Font information
 
+public: // == STATICS ========================================================
+// tic FT_Library      library;     // The FreeType library (!UNUSED!)
+
 //----------------------------------------------------------------------------
 // xcb::Font::Constructor
 //----------------------------------------------------------------------------
@@ -90,13 +94,12 @@ public:
 :  window(window)
 {
    if( opt_hcdm )
-     debugh("Font(%p)::Font(%p)\n", this, window);
+     debugh("Font(%p)::Font(%p) (Bitmapped)\n", this, window);
 }
 
 //----------------------------------------------------------------------------
 // xcb::Font::Destructor
 //----------------------------------------------------------------------------
-public:
    ~Font( void )                    // Destructor
 {
    if( opt_hcdm )
@@ -121,7 +124,7 @@ void
    if( opt_hcdm )
      debugh("Font(%p)::close\n", this);
 
-   xcb_connection_t* const conn= window->connection;
+   xcb_connection_t* const conn= window->c;
    if( fontID) {                    // If font exists
      window->ENQUEUE("xcb_close_font", xcb_close_font_checked(conn, fontID) );
      fontID= 0;
@@ -174,6 +177,20 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       xcb::Font::int2char2b
+//
+// Purpose-
+//       Convert a 16-bit integer to xcb_char2b_t
+//
+//----------------------------------------------------------------------------
+static inline xcb_char2b_t          // The output character
+   int2char2b(                      // Convert integer to xcb_char2b_t
+     int               inp)         // This (16 bit) integer
+{  return { (uint8_t)(inp>>8), (uint8_t)inp }; }
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       xcb::Font::makeGC
 //
 // Purpose-
@@ -191,14 +208,14 @@ xcb_gcontext_t                      // The created graphic context
    if( opt_hcdm && opt_verbose > 1 )
      debugh("Font(%p)::makeGC(%.6x,%.6x)\n", this, uint32_t(fg), uint32_t(bg));
 
-   if( fontID == 0 || font_info == nullptr ) {
+   if( fontID == 0 ) {
      user_debug("Font(%p)::makeGC, Font not open\n", this);
      return 0;
    }
 
    // Create the Graphic Context
-   xcb_connection_t* const conn= window->connection;
-   xcb_drawable_t    const draw= window->window_id;
+   xcb_connection_t* const conn= window->c;
+   xcb_drawable_t    const draw= window->widget_id;
 
    xcb_gcontext_t fontGC= xcb_generate_id(conn);
    uint32_t mask= XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_FONT;
@@ -242,7 +259,7 @@ int                                 // Return code, 0 OK
    if( name == nullptr )            // If using system-wide default font
      name= "7x13";
 
-   xcb_connection_t* const conn= window->connection;
+   xcb_connection_t* const conn= window->c;
 
    fontID= xcb_generate_id(conn);
    xcb_void_cookie_t void_cookie=
@@ -284,7 +301,6 @@ int                                 // Return code, 0 OK
 //       Draw text at [left,top] point
 //
 //----------------------------------------------------------------------------
-public:
 void
    putxy(                           // Draw text
      xcb_gcontext_t    fontGC,      // The target graphic context
@@ -296,11 +312,32 @@ void
      debugh("Font(%p)::putxy(%u,[%d,%d],'%s')\n", this
            , fontGC, left, top, text);
 
-   uint8_t length= strlen(text);
-   if( length > 255 ) length= 255;
-   window->NOQUEUE("xcb_image_text_8", xcb_image_text_8
-                  ( window->connection, length, window->window_id, fontGC
-                  , left, top + offset.y, text) );
+   pub::UTF8    inp((char*)text);   // UTF8 input buffer (Decode is const)
+   xcb_char2b_t out[256];           // UTF16 output buffer
+   int length;                      // Output buffer length
+   for(length= 0; length<256; length++) {
+     int code= inp.decode();        // Next input character
+     if( code < 0 )                 // If none left
+       break;
+
+     if( code >= 0x00010000 ) {     // If two characters required
+       if( length >= 255 )          // If there's only room for one character
+         break;
+       code -= 0x00010000;          // Subtract extended origin
+//     code &= 0x000fffff;          // 20 bit remainder (operation not needed)
+       out[length++]= int2char2b(0x0000d800 | (code >> 10)); // High order code
+       code &= 0x000003ff;          // Low order 10 bits
+       code |= 0x0000dc00;          // Low order code word
+     }
+
+     out[length]= int2char2b(code); // Set (possibly low order) code
+   }
+   if( length == 0 ) return;        // Zero length easy to render
+   if( length >= 256 ) length= 255; // Only 8-bit length allowed
+
+   window->NOQUEUE("xcb_image_text_16", xcb_image_text_16
+                  ( window->c, length, window->widget_id, fontGC
+                  , left, top + offset.y, out) );
 }
 
 void

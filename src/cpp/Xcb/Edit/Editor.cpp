@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2020/09/06
+//       2020/09/24
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -298,8 +298,8 @@ static inline bool use_debug( void ) { return HCDM || USE_BRINGUP || opt_hcdm; }
 //       Handle DONE function: Safely exit all EdFiles
 //
 //----------------------------------------------------------------------------
-int                                      // Return code, 0OK
-   Editor::do_done( void )               // Handle DONE
+int                                 // Return code, 0OK
+   Editor::do_done( void )          // Handle DONE
 {  device->operational= false; return 0; } // TODO: Safely exit
 
 //----------------------------------------------------------------------------
@@ -311,10 +311,32 @@ int                                      // Return code, 0OK
 //       Handle EXIT function: Exit if file unchanged
 //
 //----------------------------------------------------------------------------
-int                                      // Return code, 0 OK
-   Editor::do_exit(                      // Handle (safe) exit
-     EdFile*           file)             // For this EdFile
+int                                 // Return code, 0 OK
+   Editor::do_exit(                 // Handle (safe) exit
+     EdFile*           file)        // For this EdFile
 {  do_quit(file); return 0; } // TODO: NOT CODED YET, FILES CAN'T CHANGE
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Editor::do_help
+//
+// Purpose-
+//       Handle HELP function: Display active keys
+//
+//----------------------------------------------------------------------------
+int                                 // Return code, 0 OK
+   Editor::do_help( void )          // Display help information
+{
+   printf("F1:  This help message\n"
+          "F3:  Quit File\n"
+          "F7:  Previous File\n"
+          "F8:  Next File\n"
+          "F12: Bringup test\n"
+          "C-Q: Quit\n"
+   );
+   return 0;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -326,19 +348,19 @@ int                                      // Return code, 0 OK
 //
 //----------------------------------------------------------------------------
 void
-   Editor::do_quit(                      // Handle QUIT (Unconditional)
-     EdFile*           file)             // For this EdFile
+   Editor::do_quit(                 // Handle QUIT (Unconditional)
+     EdFile*           file)        // For this EdFile
 {
    EdFile* next= file->get_prev();
    if( next == nullptr ) {
      next= file->get_next();
-     if( next == nullptr )               // If no more files
-       device->operational= false;       // No need to stay around
+     if( next == nullptr )          // If no more files
+       device->operational= false;  // No need to stay around
    }
 
    text->set_file(next);
-   ring.remove(file, file);              // Remove the File from the Ring
-   delete file;                          // And delete it
+   ring.remove(file, file);         // Remove the File from the Ring
+   delete file;                     // And delete it
 }
 
 //----------------------------------------------------------------------------
@@ -351,15 +373,17 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   Editor::do_test( void )               // Bringup test
+   Editor::do_test( void )          // Bringup test
 {
-   if( window->get_parent() ) {         // If TestWindow active
+   if( window && window->get_parent() ) { // If TestWindow active
+     fprintf(stderr, "Editor(%p)::do_test\n", this);
      if( window->state.visible )
        window->hide();
      else
        window->show();
      device->draw();
-   }
+   } else
+     fprintf(stderr, "Editor(%p)::do_test NOT CONFIGURED\n", this);
 }
 
 //----------------------------------------------------------------------------
@@ -551,8 +575,8 @@ void
        , {X, Y}
        };
 
-   ENQUEUE("xcb_poly_line", xcb_poly_line_checked(connection
-          , XCB_COORD_MODE_ORIGIN, window_id, drawGC, 6, points));
+   ENQUEUE("xcb_poly_line", xcb_poly_line_checked(c
+          , XCB_COORD_MODE_ORIGIN, widget_id, drawGC, 6, points));
    if( opt_hcdm || false ) {        // ???WHY IS THIS NEEDED???
      debugf("EdMisc::draw %u:[%d,%d]\n", drawGC, X, Y);
      for(int i= 0; i<6; i++)

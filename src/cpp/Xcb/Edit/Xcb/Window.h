@@ -16,10 +16,9 @@
 //       XCB based Window
 //
 // Last change date-
-//       2020/09/06
+//       2020/09/30
 //
 // Implementation notes-
-//       The Window object can be used for either xcb Windows or Pixmaps.
 //       The window field addresses the PARENT window. (Widget already has a
 //       parent field. The parent Widget is not necessarily the parent Window.)
 //
@@ -33,17 +32,12 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
+#include "Xcb/Global.h"             // For ENQUEUE/NOQUEUE macros
 #include "Xcb/Types.h"              // For namespace xcb types
-#include "Xcb/Layout.h"             // For Layout (base class)
-#include "Xcb/Signal.h"             // For Signal (base class)
+#include "Xcb/Pixmap.h"             // For xcb::Pixmap (base class)
+#include "Xcb/Signal.h"             // For xcb::Signal
 
 namespace xcb {
-//----------------------------------------------------------------------------
-// Macros
-//----------------------------------------------------------------------------
-#define ENQUEUE(name, op) enqueue(__LINE__, name, op)
-#define NOQUEUE(name, op) noqueue(__LINE__, name, op)
-
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
@@ -58,23 +52,7 @@ class Device;
 //       Window object.
 //
 //----------------------------------------------------------------------------
-class Window : public Layout {      // The Window object
-public:
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       xcb::Window::Pending
-//
-// Purpose-
-//       Pending XCB request table entry.
-//
-//----------------------------------------------------------------------------
-struct Pending {                    // Pending XCB request table
-const char*            opname;      // The operation name
-int                    opline;      // The associated line number
-xcb_void_cookie_t      op;          // The Cookie
-}; // struct Pending
-
+class Window : public Pixmap {      // The Window object
 //----------------------------------------------------------------------------
 //
 // Struct-
@@ -84,10 +62,10 @@ xcb_void_cookie_t      op;          // The Cookie
 //       Window state controls
 //
 //----------------------------------------------------------------------------
+public:
 struct State {                      // Window state
+unsigned               reserved: 31;// Reserved for expansion
 unsigned               visible:  1; // Window is visible
-unsigned               pixmap:   1; // Window is a Pixmap
-unsigned               reserved: 30;// Reserved for expansion
 
    State( void )                    // Constructor
 {
@@ -99,22 +77,8 @@ unsigned               reserved: 30;// Reserved for expansion
 //----------------------------------------------------------------------------
 // xcb::Window::Attributes
 //----------------------------------------------------------------------------
-protected:
-enum { DIM_PENDING= 16 };           // Number of available queued operations
-Pending                pending[DIM_PENDING]; // The pending operation queue
-unsigned               penduse= 0;  // Number of operations pending
-
 public:
 State                  state;       // Window state
-
-Device*                device= nullptr; // Our parent Device
-Window*                window= nullptr; // The PARENT Window
-xcb_connection_t*      connection= nullptr; // XCB connection*
-xcb_screen_t*          screen= nullptr;     // XCB screen*
-xcb_window_t           parent_id= 0;        // XCB parent window id
-xcb_window_t           window_id= 0;        // (This) XCB window/pixmap id
-Pixel_t                fg_pixel= 0x00000000; // Foreground, default BLACK
-Pixel_t                bg_pixel= 0x00FFFFFF; // Background, default WHITE
 
 //----------------------------------------------------------------------------
 // xcb::Window::Constructors/Destructors/Operators
@@ -138,11 +102,6 @@ virtual
 //
 //----------------------------------------------------------------------------
 public:
-virtual void                        // (Not normally overridden)
-   configure(                       // Initialize using
-     Device*           device,      // This parent device and
-     Window*           window);     // This parent window
-
 virtual void                        // (Optionally) override to
    configure( void );               // Create the Window (Layout complete)
 
@@ -250,7 +209,7 @@ void
      const char*       text)        // Using this text
 {
    NOQUEUE("xcb_change_property", xcb_change_property
-          ( connection, XCB_PROP_MODE_REPLACE, window_id
+          ( c, XCB_PROP_MODE_REPLACE, widget_id
           , atom, XCB_ATOM_STRING, 8, strlen(text), text) );
 }
 
@@ -260,7 +219,7 @@ void
 //       xcb::Window::set_size
 //
 // Purpose-
-//       Set current width and height
+//       Update width and height
 //
 //----------------------------------------------------------------------------
 void
@@ -287,49 +246,7 @@ std::string                         // The associated name
 xcb_atom_t                          // The associated xcb_atom_t
    name_to_atom(                    // Get xcb_atom_t
      const char*       name,        // For this name
-     int               only= false);// (Do not create atom indicator)
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       xcb::Window::enqueue
-//       xcb::Window::noqueue
-//
-// Purpose-
-//       Add operation to pending queue
-//
-// Implementation note-
-//       The noqueue method does nothing. It can be used to switch back and
-//       forth when deciding between an xcb_* or a xcb_*_checked interface.
-//       (Use enqueue when using the xcb_*_checked interface.)
-//
-//----------------------------------------------------------------------------
-void
-   enqueue(                         // Add operation to pending queue
-     int               line,        // Source line number
-     const char*       name,        // Operation name
-     xcb_void_cookie_t op);         // Operation cookie
-
-void                                // Response handled in reply loop
-   noqueue(                         // Drive operation
-     int               line,        // Source line number
-     const char*       name,        // Operation name
-     xcb_void_cookie_t op);         // Operation cookie
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       xcb::Window::flush
-//
-// Purpose-
-//       Complete all pending enqueued operations.
-//
-// Implementation note-
-//       This also invokes xcb_flush.
-//
-//----------------------------------------------------------------------------
-void
-   flush( void );                   // Complete all pending operations
+     int               only= false); // (Do not create atom indicator)
 
 //----------------------------------------------------------------------------
 //
@@ -346,25 +263,6 @@ void
 
 void
    show( void );                    // Show the Window
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       xcb::Window::synchronously
-//
-// Purpose-
-//       Synchronous operation, or operation completion
-//
-//----------------------------------------------------------------------------
-void
-   synchronously(                   // Synchronous XCB operation
-     int               line,        // Source line number
-     const char*       name,        // The operation name
-     xcb_void_cookie_t op);         // The synchronous operation (cookie)
-
-void
-   synchronously(                   // Synchronous XCB operation
-     xcb_void_cookie_t op);         // The synchronous operation (cookie)
 
 //----------------------------------------------------------------------------
 // xcb::Window::Event handlers, overridden in implementation class.
@@ -424,6 +322,7 @@ virtual void
 virtual void
    focus_in(                        // Handle this
      xcb_focus_in_event_t*) {}      // Focus in event
+
 
 virtual void
    focus_out(                       // Handle this

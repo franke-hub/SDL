@@ -15,16 +15,19 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2020/09/06
+##       2020/10/02
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
-2020/09/06 ** EXPERIMENTAL, BRINGUP MODE **
-         Basic editing functions implemented.
-         Valid only as quasi-working XCB example program.
+2020/10/02 ** EXPERIMENTAL, BRINGUP MODE **
          ** ALL INTERFACES ARE PRELIMINARY, SUBJECT TO MAJOR CHANGE **
+         Pixmap is now the base drawable.
+         Attempted but deferred truetype font implementation.
+
+2020/09/06 Basic editing functions implemented.
+         Valid only as quasi-working XCB example program.
 
 2020/09/07 (MORE) Pre-requisite packages
          (Red Hat Fedora) Linux:
@@ -52,7 +55,6 @@
          [[ Needed, already present ]]
             /usr/include/X11/keysymdef.h
 
-
 2020/07/19 Started
 
 ##############################################################################
@@ -72,6 +74,17 @@
          If directory, load R/O file list, selectable files/directories
 
 2020/07/28 Background file loader. Synch with EdText
+
+##############################################################################
+## DEFERRED:
+2020/10/02 Fontconfig / Truetype fonts
+         Fontconfig easy enough to use.
+         Truetype extremely difficult to use.
+             ONE working example found.
+             Most documentation is incomplete. That which exists mostly
+             recommends using a higher level interface rather than the X11/XCB
+             interface. While looking at source code could be an option, it's
+             too time consuming.
 
 ##############################################################################
 ## FEATURE:

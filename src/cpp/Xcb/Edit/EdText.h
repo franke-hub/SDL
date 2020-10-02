@@ -16,7 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2020/09/06
+//       2020/09/24
 //
 //----------------------------------------------------------------------------
 #ifndef EDTEXT_H_INCLUDED
@@ -265,6 +265,8 @@ virtual void
 {
    TextWindow::draw();
    cursor_S();
+
+   show();
 }
 
 //----------------------------------------------------------------------------
@@ -405,7 +407,7 @@ virtual int                         // Return code, 0 if handled
    int rc= 0;                       // Return code, default handled
    switch(key) {
      default:
-       debugf("alt(%c) ignored\n", key);
+       fprintf(stderr, "Alt(%c) ignored\n", key);
        rc= 1;
    }
 
@@ -423,7 +425,7 @@ virtual int                         // Return code, 0 if handled
        break;
 
      default:
-       debugf("ctrl(%c) ignored\n", key);
+       fprintf(stderr, "Ctrl(%c) ignored\n", key);
        rc= 1;
    }
 
@@ -470,7 +472,7 @@ virtual int                         // Return code, 0 if handled
 
          default:                   // (KS_ALT *AND* KS_CTRL)
            // BRINGUP TEST. TODO:REMOVE
-           debugf("alt+ctrl(0x%.4x,%c) ignored\n", key, key);
+           debugf("Alt+Ctrl(0x%.4x,%c) ignored\n", key, key);
            rc= 1;
        }
        return rc;
@@ -589,6 +591,10 @@ virtual int                         // Return code, 0 if handled
 
      //-----------------------------------------------------------------------
      // Function keys
+     case XK_F1: {
+       editor->do_help();
+       break;
+     }
      case XK_F3: {
        commit();
        editor->do_exit(this->file);

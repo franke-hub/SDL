@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2020/07/19
+##       2020/10/02
 ##
 ##############################################################################
 
@@ -67,9 +67,11 @@ $(MAKEXE): liblocal.a
 
 ##############################################################################
 ## Controls
-CLIBS  += -l X11
-CLIBS  += -l xcb
-CLIBS  += -l xcb-xfixes
+ignore += $(shell pkg-config --cflags fontconfig freetype2)
+ignore += $(shell pkg-config --libs   fontconfig freetype2)
+CLIBS  += $(shell pkg-config --libs   xcb xcb-xfixes)
+ignore += $(shell pkg-config --libs   xcb-render xcb-renderutil)
+CLIBS  += -lX11
 LLIBS  += -L. -l local
 include $(INCDIR)/pub/Makefile.BSD
 

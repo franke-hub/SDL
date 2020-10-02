@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/09/06
+//       2020/09/30
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_DEVICE_H_INCLUDED
@@ -25,7 +25,6 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
-#include "Xcb/Font.h"               // For Font
 #include "Xcb/Signal.h"             // For Signal
 #include "Xcb/Widget.h"             // For Widget
 #include "Xcb/Window.h"             // Our base class
@@ -69,9 +68,6 @@ bool                   operational= true; // TRUE while operational
 
 // Defaults
 xcb_rectangle_t        geom= {0,0,0,0}; // Device geometry
-Font                   font;        // Default font
-Pixel_t                bg_pixel;    // Foreground pixel (normally white)
-Pixel_t                fg_pixel;    // Foreground pixel (normally black)
 
 // XCB atoms
 xcb_atom_t             protocol= 0; // WM_PROTOCOLS atom
@@ -85,6 +81,26 @@ public:
 
 virtual
    ~Device( void );                 // Destructor
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::Device::atom_to_name
+//       xcb::Device::name_to_atom
+//
+// Purpose-
+//       Extract name from xcb_atom_t
+//       Extract xcb_atom_t from name
+//
+//----------------------------------------------------------------------------
+std::string                         // The associated name
+   atom_to_name(                    // Get associated name
+     xcb_atom_t        atom);       // For this atom
+
+xcb_atom_t                          // The associated xcb_atom_t
+   name_to_atom(                    // Get xcb_atom_t
+     const char*       name,        // For this name
+     int               only= false); // (Do not create atom indicator)
 
 //----------------------------------------------------------------------------
 // xcb::Device::Methods

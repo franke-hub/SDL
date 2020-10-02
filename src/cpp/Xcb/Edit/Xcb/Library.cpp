@@ -16,7 +16,7 @@
 //       Temporary implementations until appropriate .cpp files created
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/02
 //
 // Implementation notes-
 //       TODO: REMOVE (This is just to have one .cpp file during bringup)
@@ -52,6 +52,11 @@ enum // Compilation controls
 
 namespace xcb {
 //----------------------------------------------------------------------------
+// xcb::Font::Attributes
+//----------------------------------------------------------------------------
+// Library             Font::library; // The FreeType library
+
+//----------------------------------------------------------------------------
 // TextWindow.cpp: Default geometry
 //----------------------------------------------------------------------------
 enum                                // Default geometry [rows, columns]
@@ -60,6 +65,30 @@ enum                                // Default geometry [rows, columns]
 ,  MINI_W=10                        // Minimum columns
 ,  MINI_H=10                        // Minimum rows
 }; // enum Geometry
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       Init_term
+//
+// Purpose-
+//       Initialization/Termination (Currently a placeholder)
+//
+//----------------------------------------------------------------------------
+static struct Init_term {
+   Init_term( void )                // Constructor (initialize)
+{
+// // Initialize the Freetype library
+// FT_Error error= FT_Init_FreeType(&Font::library);
+// if( error ) {
+//   fprintf(stderr, "%d= FT_Init_Freetype\n", error);
+//   exit(EXIT_FAILURE);
+// }
+}
+
+   ~Init_term( void )               // Destructor (termination cleanup)
+{  /* Nothing to clean up */ }
+}  init_term;                       // Static constructor/destructor
 
 //----------------------------------------------------------------------------
 //
@@ -78,7 +107,7 @@ enum                                // Default geometry [rows, columns]
    if( opt_hcdm )
      debugh("TextWindow(%p)::TextWindow()\n", this);
 
-   bg_pixel= 0x00FFFFF0;            // (Pale Yellow Background)
+   bg= 0x00FFFFF0;                  // (Pale Yellow Background)
 }
 
 //----------------------------------------------------------------------------
@@ -97,12 +126,12 @@ enum                                // Default geometry [rows, columns]
 
    // Free the graphic contexts
    if( flipGC ) {
-     ENQUEUE("xcb_free_gc", xcb_free_gc_checked(connection, flipGC) );
+     ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, flipGC) );
      flipGC= 0;
    }
 
    if( fontGC ) {
-     ENQUEUE("xcb_free_gc", xcb_free_gc_checked(connection, fontGC) );
+     ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, fontGC) );
      fontGC= 0;
    }
 
@@ -147,8 +176,8 @@ void
 
    // Create the graphic contexts
 // xcb_screen_t* const S= screen;   // (UNUSED)
-   fontGC= font.makeGC(fg_pixel, bg_pixel); // (The default)
-   flipGC= font.makeGC(bg_pixel, fg_pixel); // (Inverted)
+   fontGC= font.makeGC(fg, bg);     // (The default)
+   flipGC= font.makeGC(bg, fg);     // (Inverted)
 
    // Default: show the window
    show();
@@ -201,7 +230,7 @@ void
    rect.width=  size.width;
    rect.height= size.height;
    NOQUEUE("xcb_clear_area", xcb_clear_area
-          ( connection, 0, window_id, 0, 0, rect.width, rect.height) );
+          ( c, 0, widget_id, 0, 0, rect.width, rect.height) );
 
    // Display the text (if any)
    if( this->line ) {
@@ -240,8 +269,8 @@ void
          xcb_point_t points[2]= { {0,                0}
                                 , {PT_t(rect.width), PT_t(rect.height)}
                                 };
-         NOQUEUE("xcb_poly_line", xcb_poly_line(connection
-                , XCB_COORD_MODE_ORIGIN, window_id, font.fontGC, 2, points));
+         NOQUEUE("xcb_poly_line", xcb_poly_line(c
+                , XCB_COORD_MODE_ORIGIN, widget_id, font.fontGC, 2, points));
          if( opt_verbose > 2 )
            debugf("%4d POLY {0,{%d,%d}}\n", __LINE__, rect.width, rect.height);
        }
@@ -331,9 +360,9 @@ int                                 // Return code, 0 OK
      const char*       name)        // To this name
 {
    if( opt_hcdm )
-     debugh("TextWindow(%p)::set_font(%s) conn(%p)\n", this, name, connection);
+     debugh("TextWindow(%p)::set_font(%s) conn(%p)\n", this, name, c);
 
-   if( connection == nullptr ) {    // If not connected
+   if( c == nullptr ) {            // If not connected
      this->font_name= name;
      return 0;
    }
@@ -348,7 +377,7 @@ int                                 // Return code, 0 OK
                , WH_t(row_size * font.length.height + 2) };
      use_unit= { WH_t(font.length.width), WH_t(font.length.height) };
 
-     if( window_id ) {              // TODO: NEEDS WORK, Layout::configure
+     if( widget_id ) {              // TODO: NEEDS WORK, Layout::configure
        draw();                      // Maybe resize?
      }
    }

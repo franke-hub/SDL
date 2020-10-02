@@ -16,7 +16,7 @@
 //       Editor: Main Window
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/02
 //
 // Implementation note-
 //       Used to test utility of a built-in DeviceWindow.
@@ -134,7 +134,7 @@ virtual void
    }
 
    NOQUEUE("xcb_clear_area", xcb_clear_area
-          ( connection, 0, window_id, 0, 0, rect.width, rect.height) );
+          ( c, 0, widget_id, 0, 0, rect.width, rect.height) );
 
    if( USE_BRINGUP && false ) {
      // BRINGUP: Draw diagonal line (to see where boundaries are)
@@ -143,8 +143,8 @@ virtual void
        xcb_point_t points[2]= { {0,                0}
                               , {PT_t(rect.width), PT_t(rect.height)}
                               };
-       NOQUEUE("xcb_poly_line", xcb_poly_line(connection
-              , XCB_COORD_MODE_ORIGIN, window_id, font.fontGC, 2, points));
+       NOQUEUE("xcb_poly_line", xcb_poly_line(c
+              , XCB_COORD_MODE_ORIGIN, widget_id, font.fontGC, 2, points));
        if( opt_verbose > 2 )
          debugf("%4d POLY {0,{%d,%d}}\n", __LINE__, rect.width, rect.height);
      }

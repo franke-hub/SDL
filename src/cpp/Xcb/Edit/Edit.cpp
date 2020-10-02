@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2020/09/06
+//       2020/09/24
 //
 // Implementation note-
 //       TODO: Debug mode *ALWAYS* intensive move
@@ -38,6 +38,7 @@
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/mman.h>               // For mmap, shm_open, ...
 #include <sys/stat.h>               // For S_* constants
+#include <sys/signal.h>             // For signal, SIGINT, SIGSEGV
 #include <sys/types.h>              // For type definitions
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
@@ -131,6 +132,42 @@ static inline const char* oops( void ) { return strerror(errno); }
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       sig_handler
+//
+// Purpose-
+//       Handle signals.
+//
+//----------------------------------------------------------------------------
+extern "C" void
+   sig_handler(                     // Handle signals
+     int               id)          // The signal identifier
+{
+   const char* text= "<<Unexpected>>";
+   if( id == SIGINT ) text= "SIGINT";
+   else if( id == SIGSEGV ) text= "SIGSEGV";
+
+   fprintf(stderr, "\n\nsig_handler(%d) %s pid(%d)\n", id, text, getpid());
+
+   switch(id) {                     // Handle the signal
+     case SIGINT:
+     case SIGSEGV:
+       exit(EXIT_FAILURE);          // Exit, no dump
+       break;
+   }
+
+   fprintf(stderr, "Signal(%d) ignored\n", id);
+}
+
+//----------------------------------------------------------------------------
+// Internal data areas
+//----------------------------------------------------------------------------
+typedef void (*sig_handler_t)(int);
+static sig_handler_t   sys1_handler= nullptr; // System SIGINT  signal handler
+static sig_handler_t   sys2_handler= nullptr; // System SIGSEGV signal handler
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       init
 //
 // Purpose-
@@ -142,6 +179,12 @@ static int                          // Return code (0 OK)
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
+   //-------------------------------------------------------------------------
+   // Initialize signal handling
+   //-------------------------------------------------------------------------
+   sys1_handler= signal(SIGINT,  sig_handler);
+   sys2_handler= signal(SIGSEGV, sig_handler);
+
    //-------------------------------------------------------------------------
    // (Conditionally) create memory-mapped trace file
    if( opt_hcdm && opt_verbose > 3)
@@ -169,7 +212,7 @@ static int                          // Return code (0 OK)
        return 1;
      }
 
-     close(fd);                     // Descriptor not needed when mapped
+     close(fd);                     // Descriptor not needed once mapped
      Trace::trace= Trace::make(trace_table, TRACE_SIZE); // Activate trace
    } else {                         // Remove TRACE_FILE if not tracing
      unlink(TRACE_FILE);
@@ -225,6 +268,11 @@ static void
      munmap(trace_table, TRACE_SIZE);
      trace_table= nullptr;
    }
+
+   //-------------------------------------------------------------------------
+   // Restore system signal handlers
+   signal(SIGINT,  sys1_handler);
+   signal(SIGSEGV, sys2_handler);
 }
 
 //----------------------------------------------------------------------------
@@ -244,6 +292,7 @@ static int                          // Return code (Always 1)
                    "  --help\tThis help message\n"
                    "  --hcdm\tHard Core Debug Mode\n"
 
+                   "  --font=F\tSelect font F\n"
                    "  --test=T\tSelect test T\n" // (See Editor.cpp)
                    "  --trace\tUse internal trace\n"
                    "  --verbose\t{=n} Verbosity, default 0\n"
