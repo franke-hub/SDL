@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Writer object methods.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>
@@ -245,7 +245,7 @@ void
      debugf("Writer(%p)::vprintf(%s,...)\n", this, fmt);
    #endif
 
-   long                L;           // Number of bytes transmitted
+   Size_t              L;           // Number of bytes transmitted
 
    if( getState() != STATE_OUTPUT )
    {
@@ -258,12 +258,12 @@ void
 
    L= vsnprintf(buffer+size, length-size, fmt, argptr);
 
-   if( L < 0 || L >= (length-size) )
+   if( ssize_t(L) < 0 || L >= (length-size) )
    {
      output();
      L= vsnprintf(buffer+size, length-size, fmt, argptr);
 
-     if( L < 0 || L >= (length-size) )
+     if( ssize_t(L) < 0 || L >= (length-size) )
      {
        debugf("Writer(%p)::printf(%s,...) buffer overflow\n", this, fmt);
        throw "OutputException";

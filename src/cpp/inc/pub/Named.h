@@ -16,7 +16,7 @@
 //       Define the the Named attribute and the NamedObject class.
 //
 // Last change date-
-//       2020/01/06
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_NAMED_H_INCLUDED
@@ -85,11 +85,11 @@ virtual
 
    NamedObject(                     // Constructor
      const char*       name)        // The associated name
-:  Object(), Named(name) {}
+:  Named(name), Object() {}
 
    NamedObject(                     // Constructor
      const std::string name)        // The associated name
-:  Object(), Named(name) {}
+:  Named(name), Object() {}
 }; // class Named
 }  // namespace _PUB_NAMESPACE
 #endif // _PUB_NAMED_H_INCLUDED

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019 Frank Eskesen.
+//       Copyright (c) 2019-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2019/05/11
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <errno.h>                  // For errno
@@ -266,7 +266,7 @@ int                                 // Return code (0 OK)
      socklen_t         peer_size)   // Peer address length
 {  IFHCDM( debugh("Socket(%p)::connect(%p,%d)\n", this, peer_addr, peer_size); )
 
-   if( peer_size > sizeof(this->peer_addr) )
+   if( size_t(peer_size) > sizeof(this->peer_addr) )
      throw SocketException("Socket::connect peer_size");
    int rc= ::connect(handle, peer_addr, peer_size);
    IFIODM(

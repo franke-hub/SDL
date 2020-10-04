@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       SMS test using malloc/free.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>
@@ -123,6 +123,8 @@ void*                               // -> Allocated storage
      unsigned long   size,          // Required length
      unsigned        subpool)       // Required subpool
 {
+   (void)size; (void)subpool;       // Unused parameters
+
    fprintf(stderr, "%s %d: allocate(subpool) not supported\n",
                    __SOURCE__, __LINE__);
    return NULL;
@@ -177,6 +179,8 @@ void
      unsigned long   size,          // Required length
      unsigned        subpool)       // Required subpool
 {
+   (void)addr; (void)size; (void)subpool; // Unused parameters
+
    fprintf(stderr, "%s %d: release(subpool) not supported\n",
                    __SOURCE__, __LINE__);
    exit(EXIT_FAILURE);
@@ -195,6 +199,8 @@ void
    Test_SMS::release(               // Release subpool
      unsigned        subpool)       // Required subpool
 {
+   (void)subpool;                   // Unused parameter
+
    fprintf(stderr, "%s %d: release(subpool) not supported\n",
                    __SOURCE__, __LINE__);
    exit(EXIT_FAILURE);

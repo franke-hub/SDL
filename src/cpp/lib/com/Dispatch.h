@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010-2018 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Work dispatcher, including local definitions.
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <com/Debug.h>
@@ -117,8 +117,8 @@ class DispatchMaster : public StatusThread { // The DispatchMaster thread
 //----------------------------------------------------------------------------
 protected:
 Dispatch*              owner;       // The associated Dispatch object
-AU_List<DispatchTask>  taskList;    // List of DispatchTask elements
 AU_List<DispatchDTL>   dtlList;     // List of DispatchDTL objects
+AU_List<DispatchTask>  taskList;    // List of DispatchTask elements
 
 unsigned               count;       // The number of allocated Threads
 

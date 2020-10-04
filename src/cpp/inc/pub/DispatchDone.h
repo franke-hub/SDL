@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2019 Frank Eskesen.
+//       Copyright (c) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Standard Dispatch Done callback objects.
 //
 // Last change date-
-//       2019/02/15
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_DISPATCHDONE_H_INCLUDED
@@ -97,7 +97,7 @@ virtual
 public:
 virtual void
    done(                            // Complete
-     Item*             item)        // This work Item
+     Item*             )            // This (ignored) work Item
 {  event.post(); }
 
 void

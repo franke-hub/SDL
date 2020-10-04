@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Graphical User Interface: Action implementation
 //
 // Last change date-
-//       2010/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stddef.h>
@@ -89,5 +89,7 @@ void
      Logger::log("%4d: Action(%p)::callback()\n",
                  __LINE__, this);
    #endif
+
+   (void)e;                         // (Unused)
 }
 

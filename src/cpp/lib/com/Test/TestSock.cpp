@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2014 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 // Usage-
 //       TestSock receive
@@ -242,7 +242,7 @@ debugSetIntensiveMode();
 //       Test Datagram Socket recv.
 //
 //----------------------------------------------------------------------------
-void
+static void
    dgramRecv( void )                // Test datagram recv
 {
    Socket              base(Socket::ST_DGRAM);
@@ -297,7 +297,7 @@ void
 //       Test Stream Socket recv.
 //
 //----------------------------------------------------------------------------
-void
+static void
    streamRecv( void )               // Test stream recv
 {
    Socket              listen(Socket::ST_STREAM);
@@ -353,7 +353,7 @@ void
 //       Test Media Socket read.
 //
 //----------------------------------------------------------------------------
-void
+static void
    mediaRecv( void )                // Test media recv
 {
    Socket              listen(Socket::ST_STREAM);
@@ -413,7 +413,7 @@ void
 //       Test Datagram Socket send.
 //
 //----------------------------------------------------------------------------
-void
+static void
    dgramSend( void )                // Test send
 {
    Socket*             talk;
@@ -456,7 +456,7 @@ void
 //       Test Stream Socket send.
 //
 //----------------------------------------------------------------------------
-void
+static void
    streamSend( void )               // Test send
 {
    Socket*             talk;
@@ -505,7 +505,7 @@ void
 //       Test Media Socket send.
 //
 //----------------------------------------------------------------------------
-void
+static void
    mediaSend( void )                // Test send
 {
    SockMedia           media;

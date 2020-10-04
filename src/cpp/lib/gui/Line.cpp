@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Graphical User Interface: Line implementation
 //
 // Last change date-
-//       2010/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stdarg.h>
@@ -253,6 +253,7 @@ void
          break;
 
        case 4:
+       default:                     // Only regions 1..4 valid
          for(x= offset.x; x<xL; x++)
          {
            y= (int)(x * dy);
@@ -293,6 +294,7 @@ void
          break;
 
        case 4:
+       default:                     // Only regions 1..4 valid
          for(y= offset.y; y<yL; y++)
          {
            x= (int)(y * dx);

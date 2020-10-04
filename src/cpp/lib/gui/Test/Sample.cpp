@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Sample usage of GUI Objects.
 //
 // Last change date-
-//       2010/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stdarg.h>
@@ -465,7 +465,7 @@ Object*                             // Always returns object
 //       Basic Object function test.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testObject( void )               // Verify static Object operation
 {
    #ifdef HCDM
@@ -489,7 +489,7 @@ void
 //       Insure Windows operate correctly
 //
 //----------------------------------------------------------------------------
-void
+static void
    testBringup( void )              // Verify that Windows work properly
 {
    #ifdef HCDM
@@ -543,7 +543,7 @@ void
 //       Test a Line
 //
 //----------------------------------------------------------------------------
-void
+static void
    testLine(                        // Test a Line
      Line&             line,        // The Line
      XOffset_t         left,
@@ -565,7 +565,7 @@ void
 //       Insure Windows operate correctly
 //
 //----------------------------------------------------------------------------
-void
+static void
    testWindow( void )               // Verify that Windows work properly
 {
    int                 deltaT;      // Delay time
@@ -661,8 +661,7 @@ void
    text.setText("Hello, text world!");
    text.setJustification(Justification::LR_CENTER + Justification::TB_CENTER);
 
-   if( 0 )
-     xy10.raise(&xy20); xy10.redraw();
+   if( 0 ) { xy10.raise(&xy20); xy10.redraw(); }
 
    //-------------------------------------------------------------------------
    // Make window visible
@@ -867,7 +866,7 @@ void
 //       Test the WormBuffer dohickey
 //
 //----------------------------------------------------------------------------
-void
+static void
    testWormBuffer( void )           // Test the WormBuffer
 {
    int                 deltaT;      // Delay time

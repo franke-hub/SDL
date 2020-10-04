@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2020/09/09
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -302,7 +302,7 @@ enum FSM                            // Finite State machine
    //-----------------------------------------------------------------------
    oldAddr= vaddr;
    int offset= vaddr & 15;
-   int length= 16 - offset;
+   size_t length= 16 - offset;
    if( length > size )
      length= size;
 
@@ -315,14 +315,11 @@ enum FSM                            // Finite State machine
    //-------------------------------------------------------------------------
    // Format lines
    //-------------------------------------------------------------------------
-   while( size >= 0 ) {             // Format lines
+   while( size > 0 ) {              // Format lines
      // At this point:
      //   1) The remaining size is >= 16, or
      //   2) This is the last line to be dumped.
      switch(fsm) {                  // Process by state
-       case FSM_FIRST:              // If FIRST file line
-         break;                     // Cannot go into UNDUP state
-
        case FSM_UNDUP:              // If UNDUP state
          if( size <= 16 )           // If this is the last line
            break;                   // Do not go into INDUP state
@@ -344,6 +341,10 @@ enum FSM                            // Finite State machine
          }
 
          break;
+
+       case FSM_FIRST:              // If FIRST file line
+       default:                     // (No other case exists)
+         break;                     // Cannot go into UNDUP state
      }
 
      switch(fsm) {                  // Process by state
@@ -389,6 +390,7 @@ enum FSM                            // Finite State machine
          break;
 
        case FSM_INDUP:              // If INDUP state
+       default:                     // (No other case exists)
          break;
      }
 

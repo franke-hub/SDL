@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2014 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       String functions which ignore case.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>
@@ -58,10 +58,8 @@ int                                 // Resultant
    int                 c1;          // Character in string1
    int                 c2;          // Character in string2
 
-   int                 i;
-
    result= 0;
-   for(i= 0; i<length; i++)
+   for(size_t i= 0; i<length; i++)
    {
      c1= *string1;
      c2= *string2;

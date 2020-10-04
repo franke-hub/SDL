@@ -16,7 +16,7 @@
 //       Storage allocator description.                                                                 ts.
 //
 // Last change date-
-//       2020/08/22
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_ALLOCATOR_H_INCLUDED
@@ -88,7 +88,8 @@ virtual int                         // Return code, 0 OK
 //----------------------------------------------------------------------------
 public:
 virtual void
-   debug(const char* info= nullptr ) {} // The base class does nothing
+   debug(const char* info= nullptr ) // The base class does nothing
+{  (void)info; }                    // And therefore ignores the parameter
 
 //----------------------------------------------------------------------------
 //

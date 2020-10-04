@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Simulate BSD shared storage methods.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -562,7 +562,7 @@ void*                               // Resultant segment address
      }
 
      // Consistency checks
-     assert( segment >= 0 && segment < MAX_TOKEN );
+     assert( segment < MAX_TOKEN );
      assert( localObject[segment].token != InvalidToken );
      assert( localObject[segment].token == globalObject[segment].token );
      assert( localObject[segment].size  == globalObject[segment].size  );
@@ -670,7 +670,7 @@ void
      }
 
      // Consistency checks
-     assert( segment >= 0 && segment < MAX_TOKEN );
+     assert( segment < MAX_TOKEN );
      assert( localObject[segment].token != InvalidToken );
      assert( localObject[segment].token == globalObject[segment].token );
      assert( localObject[segment].size  == globalObject[segment].size  );

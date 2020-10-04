@@ -16,7 +16,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2020/08/24
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -285,7 +285,7 @@ void
    WorkerPool::reset( void )        // Reset (Empty) the WorkerThread pool
 {  std::lock_guard<decltype(mutex)> lock(mutex);
 
-   for(int i= 0; i<used; i++) {
+   for(unsigned i= 0; i<used; i++) {
      WorkerThread* thread= pool[i];
      thread->detach();
      thread->stop();

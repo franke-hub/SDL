@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For new(void*) {in-place operator}
@@ -184,7 +184,7 @@ virtual int
 //       Test Exception::backtrace (Just adds another layer to the trace.)
 //
 //----------------------------------------------------------------------------
-void
+static void
    testBacktrace( void )            // Test Exception::backtrace
 {
    debugf("\n");
@@ -203,7 +203,7 @@ void
 //       Test the VerifyEC object -- must be first
 //
 //----------------------------------------------------------------------------
-int                                 // Number of VerifyEC object errors
+static int                          // Number of VerifyEC object errors
    testVerify( void )               // Test VerifyEC object
 {
    int                 errorCount= 0; // Number of VerifyEC object errors
@@ -267,7 +267,7 @@ int                                 // Number of VerifyEC object errors
 //       Test the Clock object.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testClock( void )                // Test Clock object
 {
    debugf("\n");
@@ -325,6 +325,7 @@ void
 //       Throw an Exception to test the Exception object.
 //
 //----------------------------------------------------------------------------
+extern "C" void subException( void ); // (Not very far) Forward reference
 extern "C" void
    subException( void )             // Test Exception in subroutine call
 {
@@ -340,7 +341,7 @@ extern "C" void
 //       Test the Exception object.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testException( void )            // Test Exception
 {
    debugf("\n");
@@ -354,7 +355,7 @@ void
      throw autoException;
      verify("AutoException not thrown" == NULL );
    }
-   catch(Exception e)
+   catch(Exception& e)
    {
      verify( strcmp((const char*)e, "AutomaticException") == 0);
    }
@@ -368,7 +369,7 @@ void
      throw staticException;
      verify("StaticException not thrown" == NULL );
    }
-   catch(Exception e)
+   catch(Exception& e)
    {
      verify( strcmp(e.what(), "StaticException") == 0);
    }
@@ -382,7 +383,7 @@ void
      throw Exception("NewException");
      verify("NewException not thrown" == NULL );
    }
-   catch(Exception e)
+   catch(Exception& e)
    {
      verify( strcmp(e.what(), "NewException") == 0);
    }
@@ -396,7 +397,7 @@ void
      throw NoStorageException();
      verify("NoStorageException not thrown" == NULL );
    }
-   catch(Exception e)
+   catch(Exception& e)
    {
      verify( strcmp(e.what(), "NoStorageException") == 0);
    }
@@ -410,7 +411,7 @@ void
      subException();
      verify("SubException not thrown" == NULL );
    }
-   catch(Exception e)
+   catch(Exception& e)
    {
      verify( strcmp(e.what(), "SubException") == 0);
    }
@@ -430,7 +431,7 @@ void
 //       Test the Handler object.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testHandler( void )              // Test Handler object
 {
    debugf("\n");
@@ -458,7 +459,7 @@ void
 //       Test the MinMax and Normalizer objects
 //
 //----------------------------------------------------------------------------
-void
+static void
    testMath( void )                 // Test math objects
 {
    debugf("\n");
@@ -502,7 +503,7 @@ void
 //       Test the Signal object
 //
 //----------------------------------------------------------------------------
-void
+static void
    testSignal( void )               // Test Signal object
 {
    debugf("\n");
@@ -524,7 +525,7 @@ void
 //       Test the istring object
 //
 //----------------------------------------------------------------------------
-void
+static void
    testString( void )               // Test istring object
 {
    debugf("\n");
@@ -674,7 +675,7 @@ void
 //       Test the Trace objects
 //
 //----------------------------------------------------------------------------
-void
+static void
    testTrace( void )                // Test Trace objects
 {
    debugf("\n");
@@ -713,9 +714,9 @@ void
 //
 //----------------------------------------------------------------------------
 extern int
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
 {
    //-------------------------------------------------------------------------
    // Initialization

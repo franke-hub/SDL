@@ -116,6 +116,10 @@ static inline void
 #elif FALSE
    tracef("%4d {%24.18e %24.18e} %s\n", line, L.getTime(), R.getTime(),
           (L.getTime() == R.getTime()) ? "==" : "!=");
+#else                               // Parameters unused
+   (void)line;
+   (void)L;
+   (void)R;
 #endif
 }
 
@@ -129,9 +133,9 @@ static inline void
 //
 //----------------------------------------------------------------------------
 extern int
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
 {
    Julian              delJ, oldJ, nowJ, usrJ;
    Clock               delC, oldC, nowC, usrC;

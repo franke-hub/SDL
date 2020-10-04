@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Binary object methods.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/02
 //
 //----------------------------------------------------------------------------
 #define __STDC_FORMAT_MACROS        // For linux inttypes.h
@@ -143,28 +143,6 @@ static inline void
 {
    #ifdef HCDM
      debugf("Binary(%p)::Binary()\n", this);
-   #endif
-
-#ifdef INSTRUMENTATION
-   objectCount++;
-#endif
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Binary::Binary(const Binary&))
-//
-// Purpose-
-//       Copy constructor
-//
-//----------------------------------------------------------------------------
-   Binary::Binary(
-     const Binary&     R)
-:  dataL(NULL)
-{
-   #ifdef HCDM
-     debugf("Binary(%p)::Binary(const Binary& %p)\n", this, &R);
    #endif
 
 #ifdef INSTRUMENTATION
@@ -1143,8 +1121,6 @@ std::string                         // The resultant string
    const char*         table;       // Conversion table
    int                 x;           // Format index
 
-   int                 i;
-
    if( fmt != NULL )
    {
      for(x= 0; fmt[x] != '\0'; x++)
@@ -1236,6 +1212,7 @@ std::string                         // The resultant string
          case 'u':
            isLT= FALSE;
            v.setSigned(FALSE);
+           [[ fallthrough ]]
            ;;
 
          case 'd':
@@ -1243,7 +1220,7 @@ std::string                         // The resultant string
            while( v != 0 )
            {
              isNZ= TRUE;
-             i= v.div(10);
+             int i= v.div(10);
              invert += toDec[i+9];
            }
 
@@ -1322,7 +1299,7 @@ std::string                         // The resultant string
 
        result += prefix;
        M= invert.size();
-       for(i= 0; i<M; i++)
+       for(size_t i= 0; i<M; i++)
          result += invert[M-i-1];
 
        while( fw > 0 )

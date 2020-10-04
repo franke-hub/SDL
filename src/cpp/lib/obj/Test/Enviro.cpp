@@ -178,6 +178,10 @@ static inline int                   // Returns !cc
 static inline int
    demo_std_exception( void )
 {
+#ifdef _CC_GCC                      // We demo this error
+   #pragma GCC diagnostic ignored "-Wcatch-value"
+#endif
+
    try {
      MyException up("oops");
      throw up;
@@ -523,9 +527,9 @@ static inline int
 //
 //----------------------------------------------------------------------------
 int                                 // Return code
-   main(                            // Mainline entry
-     int             argc,          // Parameter count
-     char*           argv[])        // Parameter vector
+   main(int, char**)                // Mainline entry
+//   int             argc,          // Parameter count
+//   char*           argv[])        // Parameter vector
 {
    int               result= 0;     // Function resultant
 

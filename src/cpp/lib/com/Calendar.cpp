@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Calendar object methods.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/02
 //
 //----------------------------------------------------------------------------
 #include <com/Clock.h>
@@ -58,7 +58,7 @@ static const int       dayOfYear[2][12]=
 ,  {   0,  31,  60,  91, 121, 152, 182, 213, 244, 274, 305, 335} // Leap year
 };
 
-static const int       daysPerMonth[2][12]=
+static const unsigned  daysPerMonth[2][12]=
 {  {  31,  28,  31,  30,  31,  30,  31,  31,  30,  31,  30,  31} // Ordinary
 ,  {  31,  29,  31,  30,  31,  30,  31,  31,  30,  31,  30,  31} // Leap year
 };

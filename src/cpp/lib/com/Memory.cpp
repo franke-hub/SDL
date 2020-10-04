@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Storage allocation controller.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stdlib.h>
@@ -83,5 +83,6 @@ void
      unsigned          size)        // Allocated length
 {
    free(addr);                      // Release the storage
+   (void)size;                      // (size unused)
 }
 

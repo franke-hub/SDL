@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define and implement the _tbzArchive object.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/02
 //
 // Implementation notes-
 //       Included from Archive.cpp
@@ -66,7 +66,7 @@ virtual unsigned int                // Number of bytes read
 
 virtual int                         // Return code (0 OK)
    setOffset(                       // Position within current item
-     int64_t           offset);     // Offset
+     size_t            offset);     // Offset
 }; // class _tbzArchive
 
 //----------------------------------------------------------------------------
@@ -272,7 +272,7 @@ unsigned int                        // The number of bytes read
 //----------------------------------------------------------------------------
 int                                 // Return code (0 OK)
    _tbzArchive::setOffset(          // Set position
-     int64_t           offset)      // Offset
+     size_t            offset)      // Offset
 {
    int rc= disk->setOffset(offset);
    offset= disk->getOffset();

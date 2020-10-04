@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Stress tests.
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/03
 //
 // Implementation notes-
 //       Timings use old Thing.imp block sizes and run with Chrome active.
@@ -86,7 +86,7 @@ static size_t          iterations= ITERATIONS;
 static size_t          things=     THING_COUNT;
 static size_t          threads=    THREAD_COUNT;
 
-int                    readyThreads= 0; // Number of ready TestThreads
+static size_t          readyThreads= 0; // Number of ready TestThreads
 static Latch           readyMutex;  // Single threaded initialization
 static Latch           gc_mutex;    // Single threaded garbage collection
 
@@ -215,7 +215,7 @@ void
    int*                slot= nullptr; // For testing random distribution
 
    // Initialize the Thing array
-   int                 newCount;    // The number of ready threads
+   size_t              newCount;    // The number of ready threads
    {{{{
        // On many systems, memory allocation requires a thread lock.
        // It's much quicker to initialize one thread at a time.
@@ -317,9 +317,9 @@ void
 
    if( THREAD0 )
    {
-     for(int ix= 0; ix<things; ix+=10)
+     for(size_t ix= 0; ix<things; ix+=10)
      {
-       debugf("[%8d] %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d\n", ix,
+       debugf("[%8zd] %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d\n", ix,
               slot[ix+0], slot[ix+1], slot[ix+2], slot[ix+3], slot[ix+4],
               slot[ix+5], slot[ix+6], slot[ix+7], slot[ix+8], slot[ix+9]);
      }

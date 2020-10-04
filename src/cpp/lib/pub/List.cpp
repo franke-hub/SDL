@@ -16,7 +16,7 @@
 //       List object methods.
 //
 // Last change date-
-//       2020/08/24
+//       2020/10/03
 //
 // Implementation notes-
 //       See Dispatch.cpp, Task::drain for sample AU_FIFO usage.
@@ -1077,7 +1077,7 @@ SHSL_List<void>::Link*              // The set of removed Links
 //----------------------------------------------------------------------------
 int                                 // Result (<0, =0, >0)
    SORT_List<void>::Link::compare(  // Compare Link values
-     const Link*       that) const  // -> Other Link
+     const Link*       ) const      // -> Other Link (ignored in base class)
 {  return 0; }                      // Default implementation
 
 //----------------------------------------------------------------------------

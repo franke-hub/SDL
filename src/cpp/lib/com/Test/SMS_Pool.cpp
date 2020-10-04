@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       SMS test: Test Pool object.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <new>
@@ -81,7 +81,7 @@ struct Imp
      abort();
    }
    imp= ptrImp;
-   memset(ptrImp, 0, sizeof(Imp));
+   memset((char*)ptrImp, 0, sizeof(Imp));
 
    for(i=0; i<SUBPOOLS; i++)
    {

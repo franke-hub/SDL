@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,11 +16,11 @@
 //       Define and implement the Zz64Archive object.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/02
 //
 // Implementation notes-
-//       Included from Archive.cpp
-//       Implemented for little-endian architecture ONLY.
+//       Included from Archive.cpp (NOT)
+//       ** NOT IMPLEMENTED **
 //
 //----------------------------------------------------------------------------
 

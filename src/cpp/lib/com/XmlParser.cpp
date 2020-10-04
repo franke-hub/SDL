@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2012 Frank Eskesen.
+//       Copyright (c) 2012-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       XmlParser object methods.
 //
 // Last change date-
-//       2012/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>                  // For isspace()
@@ -241,8 +241,8 @@ void
 //----------------------------------------------------------------------------
 XmlNode*                            // The new attribute node
    XmlParser::genAttr(              // Generate attribute node
-     XmlNode*          parent,      // Parent node (may be NULL)
-     Reader&           reader)      // The PRINTF format string
+     XmlNode*          parent,      // Parent node
+     Reader&           reader)      // The Reader
 {
    int C= reader.skipBlank();       // Current character
    if( C == '/' || C == '>' )       // If end of attributes
@@ -318,13 +318,14 @@ XmlNode*                            // The new attribute node
 //----------------------------------------------------------------------------
 XmlNode*                            // The new data node
    XmlParser::genData(              // Generate data nodes
-     XmlNode*          parent,      // Parent node (may be NULL)
-     Reader&           reader)      // The PRINTF format string
+     XmlNode*          parent,      // Parent node
+     Reader&           reader)      // The Reader
 {
    XmlNode*            node= NULL;  // Resultant
    int                 C;           // Current character
    char                term[8];     // Termination string accumulator
 
+   (void)parent;                    // (Currently) unused
    memset(term, 0, sizeof(term));   // (Removes erroneous compiler warnings)
    string text= "<!";               // Resultant text
    for(;;)
@@ -446,12 +447,13 @@ XmlNode*                            // The new data node
 //----------------------------------------------------------------------------
 XmlNode*                            // The new declarative node
    XmlParser::genDesc(              // Generate declarative node
-     XmlNode*          parent,      // Parent node (may be NULL)
-     Reader&           reader)      // The PRINTF format string
+     XmlNode*          parent,      // Parent node
+     Reader&           reader)      // The Reader
 {
    XmlNode*            node= NULL;  // Resultant
    int                 C;           // Current character
 
+   (void)parent;                    // (Currently) unused
    string text= "<?";               // Resultant text
    char term[8];                    // Termination string accumulator
    term[0]= '\0';
@@ -494,8 +496,8 @@ XmlNode*                            // The new declarative node
 //----------------------------------------------------------------------------
 XmlNode*                            // The new child node
    XmlParser::genNode(              // Generate child nodes
-     XmlNode*          parent,      // Parent node (may be NULL)
-     Reader&           reader)      // The PRINTF format string
+     XmlNode*          parent,      // Parent node
+     Reader&           reader)      // The Reader
 {
    int                 C;           // Current character
    string              name;        // Current name string

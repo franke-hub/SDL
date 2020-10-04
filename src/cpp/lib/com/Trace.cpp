@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Trace object methods.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -120,8 +120,8 @@ Trace::Record*                      // -> Trace record
    Record*             ptrRecord;   // -> Record
    int                 wrapped;     // TRUE if wrapped
 
-   ATOMIC32            oldV;        // Old value
-   ATOMIC32            newV;        // New value
+   uint32_t            oldV;        // Old value
+   uint32_t            newV;        // New value
 
    int                 cc;
    int                 i;

@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2020/09/20
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <chrono>
@@ -134,7 +134,7 @@ enum OPT_INDEX
 //----------------------------------------------------------------------------
 static void
    hcdmf(int line)
-{  IFHCDM( debugf("%4d Quick (HCDM)\n", line); ) }
+{  IFHCDM( debugf("%4d Quick (HCDM)\n", line); ) ELHCDM((void)line;) }
 
 //----------------------------------------------------------------------------
 //
@@ -368,7 +368,7 @@ static inline int
    alignas(256) char buffer[256];
    for(int i=  0; i<32; i++)
      buffer[i]= i;
-   for(int i= 32; i<sizeof(buffer); i++)
+   for(size_t i= 32; i<sizeof(buffer); i++)
      buffer[i]= "0123456789ABCDEF"[i%16];
 
    test_dump(buffer,  3,   3);
@@ -467,7 +467,7 @@ static inline int
        {{{{ std::lock_guard<decltype(nonrecursive)> lock2(nonrecursive);
          errorCount += MUST_NOT(Recursively hold NonRecursiveLatch);
        }}}}
-     } catch(Exception X) {
+     } catch(Exception& X) {
        IFDEBUG( debugf("....Expected: %s\n", ((std::string)X).c_str()); )
        errorCount += MUST_EQ(nonrecursive.latch, not_thread);
      }
@@ -870,7 +870,7 @@ using _PUB_NAMESPACE::Trace;
    //-------------------------------------------------------------------------
    // Test Trace methods, initializing the Trace storage
    tracef("\n");
-   for(int i= 0; i<table_size+12; i++) // 32 wraps + extra
+   for(uint32_t i= 0; i<table_size+12; i++) // 32 wraps + extra
    {
        record= (Record*)Trace::storage_if(sizeof(Record));
        if( record ) {
@@ -1006,7 +1006,7 @@ static inline int
              , buffer[0], buffer[1], buffer[2], buffer[3]);
 
      utf8.set_used(0);
-     if( code != utf8.decode() )
+     if( code != unsigned(utf8.decode()) )
      {
        debugf("%4d HCDM %.2x %.2x %.2x %.2x\n", __LINE__
              , buffer[0], buffer[1], buffer[2], buffer[3]);
@@ -1031,7 +1031,9 @@ static inline int
 //
 //----------------------------------------------------------------------------
 static inline int
-   test_UTF8_encode(int argc, char** argv) // Test UTF8::encode
+   test_UTF8_encode(int, char**)    // Test UTF8::encode
+//   int               argc,        // Argument count (unused)
+//   char**            argv)        // Argument array (unused)
 {
    debugf("\ntest_UTF8_encode(%s)\n", utf8_encode);
 
@@ -1061,7 +1063,9 @@ static inline int
 //
 //----------------------------------------------------------------------------
 static inline int
-   test_UTF8_decode(int argc, char** argv) // Test UTF8::decode
+   test_UTF8_decode(int, char**)    // Test UTF8::decode
+//   int               argc,        // Argument count (unused)
+//   char**            argv)        // Argument array (unused)
 {
    debugf("\ntest_UTF8_decode(%s)\n", utf8_decode);
 

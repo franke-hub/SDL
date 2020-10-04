@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2018 Frank Eskesen.
+##       Copyright (c) 2007-2020 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the "un-license,"
 ##       explicitly released into the Public Domain.
@@ -14,6 +14,9 @@
 ##
 ## Purpose-
 ##       Default GCC compiler controls
+##
+## Last change date-
+##       2020/10/02
 ##
 ##############################################################################
 
@@ -49,25 +52,27 @@ COPTS  += -std=gnu++17############# Use C++17 standard (gnu version)
 ###### += -fexceptions############# Enable try/catch exception handling
 ################################### (Conflicts with -O3)
 
-################################### Warnings
-###### += -Wall ################### Activate the following warnings
-###### += -W ###################### Extra warnings for some events
-COPTS  += -Wchar-subscripts ####### Array subscript of type char
-COPTS  += -Wcomment ############### Comment within a comment
-COPTS  += -Wformat ################ Extensive printf, etc. checking
+################################### Warnings (-Wall/extras commented out)
+COPTS  += -Wall ################### Activate the following warnings
+COPTS  += -Wextra ################# Extra warnings for some events
+###### += -Wchar-subscripts ####### Array subscript of type char
+###### += -Wcomment ############### Comment within a comment
+###### += -Wdangling-else ######### Possible if-else confusion
+###### += -Wformat ################ Extensive printf, etc. checking
 ###### += -Wimplicit ############## Implicit function or parameter
+COPTS  += -Wmissing-declarations ## Global function has no prototype
 ###### += -Wno-deprecated########## Don't warn about deprecated usage
-COPTS  += -Wreturn-type ########### Implicit return type
-COPTS  += -Wswitch ################ Switch, enumerated index lacks case
+###### += -Wreturn-type ########### Implicit return type
+ignore += -Wshadow ################ Disallow shadow variables
+###### += -Wswitch ################ Switch, enumerated index lacks case
+COPTS  += -Wswitch-default ######## Switch, missing default case
 ###### += -Wtemplate-debugging #### C++ only
-COPTS  += -Wtrigraphs ############# Trigraphs encountered
-COPTS  += -Wuninitialized########## Variable used before being set
-COPTS  += -Wunused################# Unused variable or function
+###### += -Wtrigraphs ############# Trigraphs encountered
+###### += -Wuninitialized########## Variable used before being set
+###### += -Wunused################# Unused variable or function
 
-###### += -Wcast-qual ############# Attempt to remove type qualifier
 COPTS  += -Werror ################# Treat warnings as errors
-###### += -Wmissing-prototypes #### Extern function has no prototype
-###### += -Wstrict-prototypes ##### No longer valid for C++
+###### += -Wfatal-errors ########## Abort on first error
 
 ################################### Listing control
 ifneq "" "$(LISTING)"

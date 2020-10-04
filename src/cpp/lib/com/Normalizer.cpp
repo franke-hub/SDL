@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Normalizer object methods.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <math.h>
@@ -61,8 +61,8 @@
 //
 //----------------------------------------------------------------------------
    Normalizer::Normalizer( void )   // Constructor
-:  nomNorm(0.0)
-,  nomData(0.0)
+:  nomData(0.0)
+,  nomNorm(0.0)
 ,  toNormal(0.0)
 ,  unNormal(0.0)
 {

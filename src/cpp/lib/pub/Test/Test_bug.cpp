@@ -16,7 +16,7 @@
 //       Test debugging methods.
 //
 // Last change date-
-//       2020/08/23
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <errno.h>
@@ -43,14 +43,13 @@ static pub::Debug      debug;         // Debug object
 //
 //----------------------------------------------------------------------------
 extern int                          // Return code
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count (UNUSED)
+//   char*             argv[])      // Argument array (UNUSED)
 {
    char                buff[128];
-   int                 i;
 
-   for(i=0; i<sizeof(buff); i++)
+   for(size_t i=0; i<sizeof(buff); i++)
      buff[i]= 0x80 + i;
 
    debug_set_mode(Debug::MODE_DEFAULT);

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2017 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2017/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -533,7 +533,7 @@ void
    fflush(stderr);
 
    int L= vsnprintf(buffer, sizeof(buffer), fmt, argptr);
-   if( L < 0 || L >= sizeof(buffer) ) // If cannot properly format
+   if( L < 0 || size_t(L) >= sizeof(buffer) ) // If cannot properly format
      throw fmt;                     // Just throw format string
 
    throw buffer;
@@ -742,7 +742,7 @@ void
    //-------------------------------------------------------------------------
    // Format lines
    //-------------------------------------------------------------------------
-   while( size >= 0 )               // Format lines
+   while( size > 0 )                // Format lines
    {
      if( size < 16 )                // If the line is not full
      {

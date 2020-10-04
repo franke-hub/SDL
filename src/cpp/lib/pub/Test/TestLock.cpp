@@ -16,7 +16,7 @@
 //       Test Lock.h
 //
 // Last change date-
-//       2020/08/23
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include "pub/Lock.h"               // The test object
@@ -129,9 +129,9 @@ static inline const char* oops( void ) { return strerror(errno); }
 //
 //----------------------------------------------------------------------------
 static int                          // Return code (0 OK)
-   init(                            // Initialize
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   init(int, char**)                // Initialize
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
 {
    //-------------------------------------------------------------------------
    // Initialize/activate debugging trace

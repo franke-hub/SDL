@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010-2018 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Dispatch internal Threads
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <com/Interval.h>
@@ -228,8 +228,10 @@ void
 //       Constructor.
 //
 //----------------------------------------------------------------------------
+#ifdef _OS_WIN
 #pragma warning( push )             // Microsoft
 #pragma warning( disable: 4355 )    // Microsoft
+#endif
    DispatchThread::DispatchThread(
      Dispatch*         dispatch,    // The associated Dispatch
      DispatchMaster*   owner)       // The associated DispatchMaster
@@ -241,7 +243,9 @@ void
 {
    IFHCDM( logf("DispatchThread(%p)::DispatchThread()\n", this); )
 }
+#ifdef _OS_WIN
 #pragma warning( pop )              // Microsoft
+#endif
 
 //----------------------------------------------------------------------------
 //
@@ -500,9 +504,10 @@ void*                               // Cancellation token
 //----------------------------------------------------------------------------
 int                                 // Return code
    DispatchTimers::notify(          // Notify DispatchTimers
-     int               code)        // Notification code
+     int               code)        // With this (unused) code
 {
    IFHCDM( logf("DispatchTimers(%p)::notify(%d)\n", this, code); )
+   (void)code;                      // code is ignored
 
    AutoBarrier lock(owner->barrier);
    if( fsm != FSM_CLOSE )           // If not already notified

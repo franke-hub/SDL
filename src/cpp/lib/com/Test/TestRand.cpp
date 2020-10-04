@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <inttypes.h>
@@ -212,7 +212,7 @@ static void
 //       Test the hardware functions used by the Random objects
 //
 //----------------------------------------------------------------------------
-void
+static void
    testHardware( void )             // Test Hardware functions
 {
    uint64_t            array[DIM_ARRAY]; // Resultant array
@@ -271,7 +271,7 @@ void
 //       Test the Random object basic functions.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testRandom(                      // Test Random object functions
      const char*       name,        // The name of the generator
      Random&           rng)         // The random number generator
@@ -456,7 +456,7 @@ void
 //       Test the Random object get function.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testRandom_get(                  // Test Random object get function
      const char*       name,        // The name of the generator
      Random&           rng)         // The random number generator
@@ -567,7 +567,7 @@ void
 //       Extensively test the Random object randomize function.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testRandom_randomize(            // Test Random object functions
      const char*       name,        // The name of the generator
      Random&           rng)         // The random number generator
@@ -664,9 +664,9 @@ void
 //
 //----------------------------------------------------------------------------
 extern int
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
 {
    Random              simpleRandom;  // Base class
    PseudoRandom        pseudoRandom;  // Pseudo random object

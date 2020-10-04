@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Symbol Table functions.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -118,7 +118,7 @@ inline int                          // <0, 0, >0
 //       Show a the symbol table address, value, qualifier and name
 //
 //----------------------------------------------------------------------------
-extern void
+static void
    show(                            // Show symbol's name and value
      Symtab&         table,         // The symbol table
      const Symval*   ptrSymbol)     // -> Symval
@@ -139,7 +139,7 @@ extern void
 //       Show a symbol's name and value.
 //
 //----------------------------------------------------------------------------
-extern void
+static void
    showme(                          // Show symbol's name and value
      const void*     qual,          // Symbol qualifier
      const char*     name)          // Symbol name
@@ -255,10 +255,10 @@ static void
 //       Mainline code.
 //
 //----------------------------------------------------------------------------
-extern int
-   main(                            // Mainline code
-     int             argc,          // Argument count
-     char*           argv[])        // Argument array
+int
+   main(int, char**)                // Mainline code
+//   int             argc,          // Argument count
+//   char*           argv[])        // Argument array
 {
    Symval            symbolValue;   // For construction of symbol table
 

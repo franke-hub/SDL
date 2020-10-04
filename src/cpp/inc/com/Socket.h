@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2014 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Socket descriptor.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #ifndef SOCKET_H_INCLUDED
@@ -162,9 +162,7 @@ static const char*                  // Resultant string
 
 static const char*                  // String representaton of address
    addrToChar(                      // Convert address to string
-     Addr              addr,        // The network address
-     char*             result= NULL,// Resultant (NULL value not reentrant)
-     unsigned          length= 0);  // Resultant length
+     Addr              addr);       // The network address
 
 static Name                         // Associated Name, NULL if error
    addrToName(                      // Convert address to name

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       FileData object methods.
 //
 // Last change date-
-//       2010/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -221,8 +221,8 @@ int                                 // Resultant (<0, 0, >0)
      size_t length= size;
      while( result == 0 && length > 0 )
      {
-       int tSize= fread(tAddr, 1, length, tFile);
-       int cSize= fread(cAddr, 1, length, cFile);
+       size_t tSize= fread(tAddr, 1, length, tFile);
+       size_t cSize= fread(cAddr, 1, length, cFile);
        if( tSize != length || cSize != length )
          throw "fread";
 

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2013 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Atomic functions, then Hardware and Software objects.
 //
 // Last change date-
-//       2013/01/01
+//       2020/10/03
 //
 // Implementation notes-
 //       Functions are not declared static so that compilation completes
@@ -222,7 +222,7 @@ class AtomicMpThread : public Thread {
 //       Initialize TestArea
 //
 //----------------------------------------------------------------------------
-void
+static void
    atomicMpInit( void )             // Initialize TestArea
 {
    testArea= (char*)malloc(sizeof(TestArea) + 4096);
@@ -254,7 +254,7 @@ void
 //       Run the test
 //
 //----------------------------------------------------------------------------
-void
+static void
    atomicMpTest(                    // Run the test
      AtomicMpThread*   thread)      // For this AtomicMpThread
 {
@@ -943,7 +943,7 @@ void
 //       Verify test results
 //
 //----------------------------------------------------------------------------
-void
+static void
    atomicMpTerm( void )             // Verify test results
 {
    TestArea* T= (TestArea*)testPage;
@@ -1030,7 +1030,7 @@ void
 //       Test the Atomic functions in multiprocessor mode
 //
 //----------------------------------------------------------------------------
-void
+static void
    testAtomicMP( void )             // Test Atomic functions on multiprocessor
 {
    //-------------------------------------------------------------------------
@@ -1083,7 +1083,7 @@ void
 //       Test the Atomic functions in uniprocessor mode.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testAtomicUP( void )             // Test Atomic functions on uniprocessor
 {
    ATOMIC8             array8[32];  // Atomic array
@@ -1142,7 +1142,7 @@ void
      assert( cc != 0 );
      assert( atomic64 == 9876543210LL );
    }
-   catch(Exception e)
+   catch(Exception&e)
    {
      errorf("%s %4d: testAtomicUP Exception(%s)\n", __SOURCE__, __LINE__,
             (const char*)e);
@@ -1238,7 +1238,11 @@ void
 
    for(i= 0; i<32; i++)
    {
-     assert( array8[i] == ATOMIC8(0xff) );
+     if( uint8_t(array8[i]) != 0xff ) {
+       errorf("array8[%d] == 0x%.2d, not 0xff\n", i, array8[i]);
+     }
+
+     assert( uint8_t(array8[i]) == 0xff );
      array8[i]= 0x80;
    }
 
@@ -1250,7 +1254,7 @@ void
 
    for(i= 0; i<32; i++)
    {
-     assert( array8[i] == ATOMIC8(0xff) );
+     assert( uint8_t(array8[i]) == 0xff );
    }
 
    for(i= 0; i<32; i++)
@@ -1289,7 +1293,7 @@ void
      for(i= 0; i<32; i++)
      {
        if( i == j )
-         assert( array8[i] == ATOMIC8(0xff) );
+         assert( uint8_t(array8[i]) == 0xff );
        else
          assert( array8[i] == 0 );
      }
@@ -1308,7 +1312,7 @@ void
 //       Test the Hardware object functions.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testHardware( void )             // Test Hardware
 {
    Hardware            hardware;    // Hardware object
@@ -1431,7 +1435,7 @@ void
 //       Test the Software object functions.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testSoftware( void )             // Test Software object
 {
    unsigned int        id1;         // Process/Thread id
@@ -1476,9 +1480,9 @@ void
 //
 //----------------------------------------------------------------------------
 extern int
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
 {
    testAtomicUP();
    testAtomicMP();

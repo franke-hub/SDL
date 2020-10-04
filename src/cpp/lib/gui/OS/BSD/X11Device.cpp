@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Graphical User Interface: X11Device implementation.
 //
 // Last change date-
-//       2010/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 // Included only from OS/BSD/Device.cpp
@@ -205,6 +205,7 @@ static int
    x11fatal(                        // Handle X11 error
      Display*          disp)        // -> Display
 {
+   (void)disp;                      // (Parameter unused) TODO: FIX?
    fprintf(stderr, "_X fatal error, goodbye.\n");
    return 1;
 }
@@ -850,6 +851,7 @@ const char*                         // Exception message (NULL OK)
    IFHCDM( Logger::log("%4d X11Device(%p)::move({%d,%d})\n",
                        __LINE__, this, offset.x, offset.y); )
 
+   (void)offset;                    // NOT CODED YET
 // device.offset= offset;           // NOT CODED YET
 
    return "NOT CODED YET";
@@ -927,7 +929,7 @@ void
 
          rc= XGetWindowAttributes(disp, xwin, &xwa);
          X11DEBUG(rc, "XGetWindowAttributes");
-         if( xwa.width == length.x && xwa.height == length.y )
+         if( xwa.width == int(length.x) && xwa.height == int(length.y) )
          {
            //-----------------------------------------------------------------
            // At long, long last, we are resized. In the end, so simple.

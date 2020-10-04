@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Graphical User Interface: Object implementation
 //
 // Last change date-
-//       2010/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stdarg.h>
@@ -430,7 +430,8 @@ Buffer*                             // The target Buffer
 
    offset.x= offset.y= 0;             // Default resultant
    length.x= length.y= 0;
-   Buffer* buffer= buffer= getBuffer(); // Get associated Buffer
+// Buffer* buffer= buffer= getBuffer(); // Get associated Buffer (Weird code)
+   Buffer* buffer= getBuffer(); // Get associated Buffer
    if( buffer != NULL )             // If a Buffer exists
    {
      Offset_t xOffset= 0;

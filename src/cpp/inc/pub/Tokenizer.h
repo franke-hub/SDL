@@ -16,7 +16,7 @@
 //       Tokenizer object.
 //
 // Last change date-
-//       2020/01/27
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_TOKENIZER_H_INCLUDED
@@ -111,12 +111,12 @@ const char*                         // The remaining source
 public:
    Tokenizer(                       // Constructor
      const string&     input)       // The source string
-:  _input(input), input(_input.c_str()), _delim(), delim(nullptr) {}
+:  _delim(), _input(input), delim(nullptr), input(_input.c_str()) {}
 
    Tokenizer(                       // Constructor
      const string&     input,       // The source string
      const string&     delim)       // The token delimiter
-:  _input(input), input(_input.c_str()), _delim(delim), delim(_delim.c_str()) {}
+:  _delim(delim), _input(input), delim(_delim.c_str()), input(_input.c_str()) {}
 
    Tokenizer(const Tokenizer&) = default; // Copy constructor
 Tokenizer& operator=(const Tokenizer&) = default; // Assignment operator

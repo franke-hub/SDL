@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Buffer object methods.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/02
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>
@@ -247,7 +247,7 @@ void
 //----------------------------------------------------------------------------
    MediaBuffer::MediaBuffer(        // Constructor
      Size_t            size)        // Initial length
-:  Buffer()
+:  Buffer(size)
 ,  media()
 ,  state(STATE_RESET)
 {

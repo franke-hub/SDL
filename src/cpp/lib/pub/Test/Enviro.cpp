@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Display environmental control variables.
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #define _FILE_OFFSET_BITS 64        // (Required for LINUX)
@@ -157,6 +157,10 @@ static inline int                   // Returns !cc
 static inline int
    demo_std_exception( void )
 {
+#ifdef _CC_GCC                      // (This DEMOs the problem)
+   #pragma GCC diagnostic ignored "-Wcatch-value"
+#endif
+
    try {
      MyException up("oops");
      throw up;
@@ -502,9 +506,9 @@ static inline int
 //
 //----------------------------------------------------------------------------
 int                                 // Return code
-   main(                            // Mainline entry
-     int             argc,          // Parameter count
-     char*           argv[])        // Parameter vector
+   main(int, char**)                // Mainline entry
+//   int             argc,          // Parameter count
+//   char*           argv[])        // Parameter vector
 {
    int               result= 0;     // Function resultant
 

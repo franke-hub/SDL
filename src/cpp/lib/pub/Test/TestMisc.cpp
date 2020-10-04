@@ -16,7 +16,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2020/08/24
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -288,11 +288,11 @@ static inline int
      props.insert("Yy", "yard");
      errorf("%4d Missing IndexException\n", __LINE__);
      errorCount++;
-   } catch(IndexException X) {
+   } catch(IndexException& X) {
      if( opt_debug)
        debugf("%4d Expected IndexException caught: %s\n", __LINE__,
              std::string(X).c_str());
-   } catch(std::exception X) {
+   } catch(std::exception& X) {
      errorf("%4d Wrong exception type(%s)\n", __LINE__, X.what());
      errorCount++;
    } catch(...) {
@@ -304,11 +304,11 @@ static inline int
      props["foo"];
      errorf("%4d Missing IndexException\n", __LINE__);
      errorCount++;
-   } catch(IndexException X) {
+   } catch(IndexException& X) {
      if( opt_debug)
        debugf("%4d Expected IndexException caught: %s\n", __LINE__,
              std::string(X).c_str());
-   } catch(std::exception X) {
+   } catch(std::exception& X) {
      errorf("%4d Wrong exception type(%s)\n", __LINE__, X.what());
      errorCount++;
    } catch(...) {
@@ -320,11 +320,11 @@ static inline int
      props.remove("foo");
      errorf("%4d Missing IndexException\n", __LINE__);
      errorCount++;
-   } catch(IndexException X) {
+   } catch(IndexException& X) {
      if( opt_debug)
        debugf("%4d Expected IndexException caught: %s\n", __LINE__,
              std::string(X).c_str());
-   } catch(std::exception X) {
+   } catch(std::exception& X) {
      errorf("%4d Wrong exception type(%s)\n", __LINE__, X.what());
      errorCount++;
    } catch(...) {

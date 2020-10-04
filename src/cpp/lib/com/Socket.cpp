@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2014 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Instantiate Socket methods.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #define FD_SETSIZE 512
@@ -334,8 +334,7 @@ static int                          // Resultant
 //----------------------------------------------------------------------------
 static Socket::Addr                 // The Addr
    toAddr(                          // Convert sockaddr to Addr
-     const char*       addr,        // The raw sockaddr
-     Socket::Size_t    size)        // String length
+     const char*       addr)        // The raw sockaddr
 {
    Socket::Addr        result= 0;   // Resultant
 
@@ -362,8 +361,7 @@ static Socket::Addr                 // The Addr
 //----------------------------------------------------------------------------
 static Socket::Port                 // The Port
    toPort(                          // Convert sockaddr to Port
-     const char*       addr,        // The raw sockaddr
-     Socket::Size_t    size)        // String length
+     const char*       addr)        // The raw sockaddr
 {
    Socket::Port        result= 0;   // Resultant
 
@@ -872,9 +870,7 @@ const char*                         // Resultant
 //----------------------------------------------------------------------------
 const char*                         // Constant name representation
    Socket::addrToChar(              // Convert network address to string
-     const Addr        addr,        // The network address
-     char*             result,      // Resultant (NULL value not reentrant)
-     unsigned          length)      // Resultant length
+     Addr              addr)        // The network address
 {
    in_addr             temp;        // The network address
 
@@ -1036,7 +1032,7 @@ void
 Socket::Addr                        // The host network address
    Socket::getHostAddr( void ) const// Get host network address
 {
-   return toAddr(hInet, hSize);
+   return toAddr(hInet);
 }
 
 //----------------------------------------------------------------------------
@@ -1082,7 +1078,7 @@ Socket::Name                        // The host network name
 Socket::Port                        // The host port number
    Socket::getHostPort( void ) const// Get host port number
 {
-   return toPort(hInet, hSize);
+   return toPort(hInet);
 }
 
 //----------------------------------------------------------------------------
@@ -1097,7 +1093,7 @@ Socket::Port                        // The host port number
 Socket::Addr                        // The peer network address
    Socket::getPeerAddr( void ) const// Get peer network address
 {
-   return toAddr(pInet, pSize);
+   return toAddr(pInet);
 }
 
 //----------------------------------------------------------------------------
@@ -1143,7 +1139,7 @@ Socket::Name                        // The peer network name
 Socket::Port                        // The peer port number
    Socket::getPeerPort( void ) const// Get peer port number
 {
-   return toPort(pInet, pSize);
+   return toPort(pInet);
 }
 
 //----------------------------------------------------------------------------

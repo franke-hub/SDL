@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Graphical User Interface: WormBuffer implementation
 //
 // Last change date-
-//       2010/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stddef.h>
@@ -439,13 +439,13 @@ void
    x= offset[0].x + dX;
    if( x < 0 )
      x= buffer->getLength().x - 1;
-   else if( x >= buffer->getLength().x )
+   else if( unsigned(x) >= buffer->getLength().x )
      x= 0;
 
    y= offset[0].y + dY;
    if( y < 0 )
      y= buffer->getLength().y - 1;
-   else if( y >= buffer->getLength().y )
+   else if( unsigned(y) >= buffer->getLength().y )
      y= 0;
 
    offset[0].x= x;

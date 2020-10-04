@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Graphical User Interface: Font implementation
 //
 // Last change date-
-//       2010/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stddef.h>
@@ -217,7 +217,7 @@ void
    _SystemFont::extent(             // Get text extent for this Font for
      const std::string&text,        // This text
      XYLength&         length)      // (OUTPUT) Pixel length
-{
+{  (void)text; (void)length;        // Unused here
 }
 
 //----------------------------------------------------------------------------
@@ -236,7 +236,8 @@ void
      const XYLength&   length,      // This pixel length using
      const std::string&text,        // This text and
      int               justify)     // This Justification mode
-{
+{  // Parameters unused here
+   (void)buffer; (void)offset; (void)length; (void)text; (void)justify;
 }
 
 //----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Service object methods.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <new>
@@ -361,7 +361,7 @@ void
          Service::global= initGlobal(global, SERVICE_PAGE_COUNT);
          useCount++;
 
-       } catch(Exception e) {
+       } catch(Exception& e) {
          fprintf(stderr, "Failed(%s)\n", e.what());
 
        } catch(char* c) {

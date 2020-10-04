@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Garbage collected Object and associated helper objects.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 // Implementation notes-
 //       Also defines Ref<T>, the Cloneable and String Objects, and the
@@ -81,14 +81,14 @@ inline
 :  reclaim(NULL), refCount(0) { objectCounter(+1); }
 
 public:                             // Bitwise copy/assignment allowed
+// These two methods provided to allow copy/assignment inheritance.
+// (The source Object is unused.)
 inline
-   Object(                          // Copy constructor
-     const Object&     source)      // Source Object&
+   Object(const Object&)            // Copy constructor
 :  reclaim(NULL), refCount(0) { objectCounter(+1); }
 
 inline Object&                      // (Always *this)
-   operator=(                       // Assignment operator
-     const Object&     source)
+   operator=(const Object&)         // Assignment operator
 {  return *this; }
 
 //----------------------------------------------------------------------------
@@ -381,11 +381,13 @@ virtual inline
    ~Cloneable( void ) {}            // Destructor
 
 inline
-   Cloneable( void ) {}             // Default constructor
+   Cloneable( void )                // Default constructor
+:  Object() {}
 
 inline                              // Bitwise copy is allowed
-   Cloneable(                       // Copy constructor
-     const Cloneable&  source) {}   // Source Cloneable&
+   Cloneable(
+     const Cloneable&  source)      // Copy constructor
+:  Object(source) {}                // (Source not referenced)
 
 //----------------------------------------------------------------------------
 // Cloneable::Methods

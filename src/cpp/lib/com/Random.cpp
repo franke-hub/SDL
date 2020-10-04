@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2014 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement the Random objects.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -63,7 +63,7 @@ static volatile int32_t shift_ix= 32; // Shift counter
 //       Calculate the number of constant TSC bits.
 //
 //----------------------------------------------------------------------------
-int                                 // The number of constant TSC bits
+static int                          // The number of constant TSC bits
    getShiftTSC( void )              // Get number of constant TSC bits
 {
    int ix= shift_ix;                // Current shift index

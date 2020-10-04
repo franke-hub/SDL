@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       A standard _PUB_OBJECT::Object
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/03
 //
 // Implementation notes-
 //       This header is guaranteed to #include "config.h"
@@ -60,7 +60,7 @@ virtual
    ~Object( void );                 // Destructor {}
    Object( void ) {}                // Default constructor
 
-   Object(const Object& source) {}  // Default copy constructor
+   Object(const Object&) {}         // Default copy constructor
 Object& operator=(const Object&) { return *this; } // Default assignment operator
 
 //----------------------------------------------------------------------------

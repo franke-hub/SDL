@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Graphical User Interface: X11Thread implementation.
 //
 // Last change date-
-//       2010/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 // Included only from OS/BSD/Thread.cpp
@@ -69,6 +69,7 @@ int                                 // Return code (UNUSED)
 {
    IFHCDM( Logger::log("%4d X11Thread(%p)::notify(%d)\n",
                        __LINE__, this, id); )
+   ELHCDM((void)id;)                // Unused parameter
 
    operational= FALSE;              // Timer takes care of the rest
 

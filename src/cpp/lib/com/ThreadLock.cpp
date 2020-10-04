@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement ThreadLock object methods
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -335,8 +335,6 @@ static void
    updateCounter(                   // Update the table change counter
      Object*           O)           // For this Object
 {
-   int                 i;
-
    O->counter++;
    if( O->counter < O->trigger )
      return;
@@ -344,7 +342,7 @@ static void
 
    // Determine the number of existing lock names
    unsigned lockCount= 0;           // Number of existing lock names
-   for(i= 0; i<O->lockCount; i++)
+   for(unsigned i= 0; i<O->lockCount; i++)
    {
      LockEntry* lockEntry= O->lockTable[i];
      while( lockEntry != NULL )
@@ -391,7 +389,7 @@ static void
 
    //-------------------------------------------------------------------------
    // Table replacement (Inverts lock order on hash list)
-   for(i= 0; i<O->lockCount; i++)
+   for(unsigned i= 0; i<O->lockCount; i++)
    {
      LockEntry* lockEntry= O->lockTable[i];
      while( lockEntry != NULL )
@@ -509,12 +507,10 @@ static void
    debugObject(                     // Debugging display
      Object*           O)           // For this Object
 {
-   int                 i;
-
    debugf(".. %4u counter\n", O->counter);
    debugf(".. %4u trigger\n", O->trigger);
    debugf(".. %4u lockCount\n", O->lockCount);
-   for(i= 0; i<O->lockCount; i++)
+   for(unsigned i= 0; i<O->lockCount; i++)
    {
      LockEntry* lockEntry= O->lockTable[i];
      if( lockEntry != NULL )
@@ -550,7 +546,7 @@ static void
    }
 
    debugf(".. %4u userCount\n", O->userCount);
-   for(i= 0; i<O->userCount; i++)
+   for(unsigned i= 0; i<O->userCount; i++)
    {
      UserEntry* userEntry= O->userTable[i];
      while( userEntry != NULL )
@@ -995,6 +991,10 @@ static void
                     modeName(mode), lockEntry->name); )
 
      #ifndef USE_LAZY_DEADLOCK_DETECTION
+       (void)O;                     // Unused on this path
+       (void)mode;                  // Unused on this path (unless HCDM)
+       (void)lockEntry;             // Unused on this path (unless HCDM)
+
        lockQueue->semaphore->wait();  // Wait for posting
        IFHCDM( debugf("...Wait complete T(%lx) %s(%s)\n", lockQueue->thread,
                       modeName(mode), lockEntry->name); )
@@ -1042,7 +1042,7 @@ static void
    Object* O= (Object*)object;
    if( O != NULL )                  // (Should always be TRUE)
    {
-     for(int i= 0; i<O->lockCount; i++)
+     for(unsigned i= 0; i<O->lockCount; i++)
      {
        LockEntry* lockEntry= O->lockTable[i];
        if( lockEntry != NULL )      // If some lock is held
@@ -1481,7 +1481,7 @@ void
    UserEntry* userEntry= O->userTable[index];
    while( userEntry != NULL )
    {
-     if( userEntry->thread == thread )
+     if( userEntry->thread == intptr_t(thread) )
        break;
 
      userEntry= userEntry->next;

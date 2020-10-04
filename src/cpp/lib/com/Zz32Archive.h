@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define and implement the Zz32Archive object.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/02
 //
 // Implementation notes-
 //       Included from Archive.cpp
@@ -230,7 +230,7 @@ virtual int                         // Return code (0 OK)
    decompress(                      // Decompressor
      int               mode,        // Compression mode
      DataSource*       file,        // DataSource
-     uint64_t          size);       // Compressed size
+     size_t            size);       // Compressed size
 }; // class Zz32Archive
 
 //----------------------------------------------------------------------------
@@ -655,7 +655,7 @@ int                                 // Return code (0 OK)
    Zz32Archive::decompress(         // Decompressor
      int               mode,        // Compression mode
      DataSource*       file,        // DataSource
-     uint64_t          size)        // Compressed Archive length
+     size_t            size)        // Compressed Archive length
 {
    Bytef*              inp;         // Compressed input buffer
    unsigned long       offset;      // Current offset

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2014 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Primitive mechanism for granting exclusive access to a resource.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #ifndef RECURSIVEBARRIER_H_INCLUDED
@@ -104,7 +104,7 @@ inline
 inline
    AutoRecursiveBarrier(            // Constructor
      RecursiveBarrier& barrier)     // Associated RecursiveBarrier
-:  barrier(barrier), cc(0)
+:  cc(0), barrier(barrier)
 {
    cc= barrier.obtain();
 }

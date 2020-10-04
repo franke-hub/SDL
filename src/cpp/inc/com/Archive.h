@@ -172,7 +172,7 @@ virtual const char*                 // The next object name
 public:
 virtual int                         // Return code (0 OK)
    setOffset(                       // Set data offset
-     int64_t           offset);     // To this value
+     size_t            offset);     // To this value
 
 //----------------------------------------------------------------------------
 //

@@ -16,7 +16,7 @@
 //       Allocator method implementations.
 //
 // Last change date-
-//       2020/08/24
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::bad_alloc, ...
@@ -103,7 +103,7 @@ void
    Allocator::put(                  // Deallocate
      void*             addr,        // This storage
      size_t            size)        // Of this length
-{  free(addr); }                    // Release storage, ignoring size
+{  free(addr); (void)size; }        // Release storage, ignoring size
 
 //----------------------------------------------------------------------------
 //

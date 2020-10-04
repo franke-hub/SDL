@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       File parameter controls.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -79,7 +79,7 @@ struct Object {
 //       Write error message.
 //
 //----------------------------------------------------------------------------
-void
+static void
    error(                           // Handle error
      const char*       fileName,    // The parameter file name
      long              lineNumber,  // The line number
@@ -98,7 +98,7 @@ void
 //       Skip blanks in the parameter file.
 //
 //----------------------------------------------------------------------------
-int                                 // The next non-blank character
+static int                          // The next non-blank character
    skipBlanks(                      // Skip blanks
      FILE*             handle)      // The file handle
 {
@@ -122,7 +122,7 @@ int                                 // The next non-blank character
 //       Skip to end of line (or end of file).
 //
 //----------------------------------------------------------------------------
-int                                 // The delimiting character
+static int                          // The delimiting character
    skipToEndOfLine(                 // Skip to end of line
      FILE*             handle)      // The file handle
 {

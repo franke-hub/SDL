@@ -16,7 +16,7 @@
 //       Examine request management receive.
 //
 // Last change date-
-//       2020/06/13
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <new>
@@ -66,7 +66,7 @@
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
-long                                // Completion Code
+static long                         // Completion Code
    doThread(                        // Thread function
      int               pid,         // Process identifier
      int               tid);        // Thread identifier
@@ -422,7 +422,7 @@ static void
 //       Run test under control of a Thread.
 //
 //----------------------------------------------------------------------------
-long                                // Completion Code
+static long                         // Completion Code
    doThread(                        // Thread function
      int               pid,         // Process identifier
      int               tid)         // Thread identifier
@@ -432,14 +432,12 @@ long                                // Completion Code
    Socket*             ioSock;      // -> I/O Socket
    SockSelect          select;      // Socket selector
 
-   int                 sid;         // Socket identifier
+   unsigned            sid;         // Socket identifier
 
    char                buffChar[sizeof(Network::Net16)]; // Buffer
    short               buffSize;    // Buffer size
    int                 L;           // Transmission size
    int                 O;           // Transmission offset
-
-   int                 i;
 
    T.latch.obtainXCL();
    T.fsm= PerThread::PS_OPERATIONAL;
@@ -485,6 +483,7 @@ dropSocket:
      }
    #endif
 
+   unsigned i;
    for(i= 0; i<T.inUse; i++)
    {
      if( ioSock == T.socket[i] )
@@ -618,7 +617,7 @@ waitForData:
 //       Run test under control of a Process.
 //
 //----------------------------------------------------------------------------
-void
+static void
    doProcess(                       // Process function
      int               pid)         // Process identifier
 {
@@ -627,8 +626,8 @@ void
    Socket*             listen;
    Socket*             ioSock;
 
-   unsigned            attempts;    // Connection attempts
-   unsigned            failures;    // Connection attempt failures
+   int                 attempts;    // Connection attempts
+   int                 failures;    // Connection attempt failures
    int                 sid;         // Socket identifier
    int                 tid;         // Thread identifier
 
@@ -753,7 +752,7 @@ void
 //       Handle connection requests.
 //
 //----------------------------------------------------------------------------
-void
+static void
    doConnect( void )                // Make connection requests
 {
    Common&             C= *common;

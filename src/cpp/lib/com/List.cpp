@@ -16,7 +16,7 @@
 //       List object methods.
 //
 // Last change date-
-//       2020/06/13
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -1057,7 +1057,7 @@ SHSL_List<void>::Link*              // The set of removed Links
 //----------------------------------------------------------------------------
 int                                 // Result (<0, =0, >0)
    SORT_List<void>::Link::compare(  // Compare Link values
-     const Link*       that) const  // -> Other Link
+     const Link*           ) const  // -> Other Link
 {
    return 0;                        // Default implementation
 }

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2014 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Thread object methods.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -281,6 +281,7 @@ int                                 // Return code (UNDEFINED)
    Thread::notify(                  // Notify the Thread
      int               nid)         // Using this notify identifier
 {
+   (void)nid;                       // Notify identifier ignored
    return (-1);
 }
 

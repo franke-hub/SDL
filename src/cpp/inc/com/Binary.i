@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement the methods defined in Binary.h.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/02
 //
 // Implementation notes-
 //       if defined(HCDM), inttypes.h is required.
@@ -493,7 +493,7 @@ inline VarBinary
 inline VarBinary
    operator++(                      // Postfix unary operator ++
      Binary&           U,
-     int               R)
+     int               )            // (Indicates postfix)
 {
    VarBinary           resultant(U);
 
@@ -514,7 +514,7 @@ inline VarBinary
 inline VarBinary
    operator--(                      // Postfix unary operator --
      Binary&           U,
-     int               R)
+     int               )            // (Indicates postfix)
 {
    VarBinary           resultant(U);
 

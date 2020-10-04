@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Terminal functions.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #ifndef HCDM                        // INLINE HCDM
@@ -113,13 +113,12 @@ static void
    char            buff[256];       // Line pattern
 
    unsigned int    row;             // Current row
-   int             i;
 
    terminal.clearScreen();
    for(row=0; row<terminal.getYSize(); row++)
    {
      strcpy(buff, "line");
-     for(i=4; i<sizeof(buff)-2; i+=2)
+     for(size_t i=4; i<sizeof(buff)-2; i+=2)
        sprintf(&buff[i],"%.2d",row);
      terminal.wr(row, buff, strlen(buff));
    }
@@ -135,9 +134,9 @@ static void
 //
 //----------------------------------------------------------------------------
 extern int                          // Return code
-   main(                            // Mainline code
-     int             argc,          // Argument count
-     char*           argv[])        // Argument array
+   main(int, char**)                // Mainline code
+//   int             argc,          // Argument count
+//   char*           argv[])        // Argument array
 {
    Color::VGA        bg, fg;        // BackGround color, ForeGround color
    unsigned int      col;           // Current column

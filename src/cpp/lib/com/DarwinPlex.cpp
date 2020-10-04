@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       DarwinPlex methods.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -72,11 +72,11 @@ static Random&         RNG= Random::standard; // Our random number generator
      unsigned int      elements)    // The number of group elements
 :  className(NULL)
 ,  count(elements)
+,  used(0)
 ,  generation(0)
 ,  mutation(0)
 ,  probCull(0.5)
 ,  probMute(0.0)
-,  used(0)
 {
    unsigned int        i;
 

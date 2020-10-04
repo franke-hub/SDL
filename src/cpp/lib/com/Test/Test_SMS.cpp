@@ -158,29 +158,27 @@ static void
    void*             addr;          // The element address
    long              tlength;       // Total allocated storage length
 
-   int               i, j;          // General index variable
-
    //-------------------------------------------------------------------------
    // Display the Slot allocation table
    //-------------------------------------------------------------------------
-   for( i=0; i<maxSlot2; i++ )      // Display the slot table
+   for(unsigned long i=0; i<maxSlot2; i++ ) // Display the slot table
    {
      pool= sysslot[i].subpool;      // Get the subpool index
      size= sysslot[i].length;       // Get the element length
      addr= sysslot[i].address;      // Get the element address
 
-     tracef("[%5d] SP=%3d, L=%6ld, A=%p    ", i, pool, size, addr);
+     tracef("[%5ld] SP=%3d, L=%6ld, A=%p    ", i, pool, size, addr);
 
-     j= i+maxSlot2;
+     unsigned long j= i+maxSlot2;
      pool= sysslot[j].subpool;      // Get the subpool index
      size= sysslot[j].length;       // Get the element length
      addr= sysslot[j].address;      // Get the element address
 
-     tracef("[%5d] SP=%3d, L=%6ld, A=%p\n", j, pool, size, addr);
+     tracef("[%5ld] SP=%3d, L=%6ld, A=%p\n", j, pool, size, addr);
    }
 
    tlength= 0;                      // Initialize for summation
-   for( i=0; i<maxSlots; i++ )      // Sum allocated storage
+   for(unsigned long i=0; i<maxSlots; i++ ) // Sum allocated storage
    {
      if( sysslot[i].address != NULL ) // If the slot is allocated
        tlength += sysslot[i].length;// Account for it
@@ -539,12 +537,10 @@ static void
 static void
    releaseAllStorage( void )        // Release all allocated slots
 {
-   int               i;             // General index variable
-
    //-------------------------------------------------------------------------
    // Release all allocated slots
    //-------------------------------------------------------------------------
-   for( i=0; i<maxSlots; i++ )      // Release all storage
+   for(unsigned long i=0; i<maxSlots; i++ ) // Release all storage
    {
      if( sysslot[i].address != NULL ) // If the Slot is allocated
        release(i);                  // Release the element
@@ -564,14 +560,12 @@ static void
    releaseSubpool(                  // Release all allocated slots
      unsigned int    pool)          // The subpool index
 {
-   int               i;             // General index variable
-
    //-------------------------------------------------------------------------
    // Release the subpool
    //-------------------------------------------------------------------------
    testObj.release(pool);           // Release the subpool
 
-   for( i=0; i<maxSlots; i++ )      // Account for release
+   for(unsigned long i=0; i<maxSlots; i++ ) // Account for release
    {
      if( sysslot[i].address != NULL // If the Slot was allocated
          &&sysslot[i].subpool == pool ) // to this pool
@@ -738,7 +732,7 @@ static void
 //       Informational exit.
 //
 //----------------------------------------------------------------------------
-static volatile void                // (Does not return)
+[[noreturn]] static void
    info( void )                     // Informational exit
 {
    fprintf(stderr, "Parameters:\n");

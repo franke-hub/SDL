@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2018 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Display environmental control variables.
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #define _FILE_OFFSET_BITS 64        // (Required for LINUX)
@@ -649,6 +649,9 @@ static inline int
 {
    int                 result= 0;
 
+#ifdef _CC_GCC                      // We demo why this is needed
+   #pragma GCC diagnostic ignored "-Wcatch-value"
+#endif
    try {
      MyException up("oops");
      throw up;
@@ -841,9 +844,7 @@ static inline int
 //
 //----------------------------------------------------------------------------
 int                                 // Return code
-   main(                            // Mainline entry
-     int             argc,          // Parameter count
-     char*           argv[])        // Parameter vector
+   main(int, char**)                // Mainline entry
 {
    int               result= 0;     // Function resultant
 

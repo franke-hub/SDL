@@ -16,7 +16,7 @@
 //       Examine request management send.
 //
 // Last change date-
-//       2020/06/13
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <new>
@@ -237,6 +237,8 @@ static void debugThread(int tid)
 #if 0
    debugf("Thread[%d].debug()\n", tid);
    thread[tid].thread->debug();
+#else                               // Parameters unused here
+   (void)tid;
 #endif
 }
 
@@ -586,7 +588,7 @@ long                                // Completion Code
 
    int                 l;           // Transmission size (required)
    int                 L;           // Transmission size (actual)
-   int                 O;           // Transmission offset
+   unsigned            O;           // Transmission offset
 
    if( verbose > 2 || (verbose > 0 && pid == (pCount-1)) )
    {
@@ -649,7 +651,7 @@ long                                // Completion Code
 //       Run test under control of a Process.
 //
 //----------------------------------------------------------------------------
-int                                 // Completion code
+static int                          // Completion code
    doProcess(                       // Process function
      int               pid)         // Process identifier
 {
@@ -756,7 +758,7 @@ int                                 // Completion code
            L= dgSock->send((char*)&connQ, sizeof(connQ));
            if( L == (-1) )
            {
-             debugf("dgSock->send() EC(%d) EI(%s)\n",
+             debugf("%4d dgSock->send() EC(%d) EI(%s)\n", __LINE__,
                     dgSock->getSocketEC(), dgSock->getSocketEI());
              exit(EXIT_FAILURE);
            }
@@ -983,10 +985,10 @@ int
    #ifdef HCDM
      debugf("%s %d: mainline\n", __SOURCE__, __LINE__);
 
-     debugf("%s %d: Common(%d) Global(%d)\n", __SOURCE__, __LINE__,
+     debugf("%s %d: Common(%zd) Global(%zd)\n", __SOURCE__, __LINE__,
                     sizeof(Common), sizeof(Global));
    #endif
-   memset(common, 0, sizeof(Common));
+   memset((char*)common, 0, sizeof(Common));
    memset(global, 0, sizeof(Global));
    new (common) Common();
    new (global) Global();

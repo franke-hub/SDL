@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Quick, minimal tests.
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <chrono>
@@ -495,9 +495,9 @@ static inline int
 //
 //----------------------------------------------------------------------------
 extern int                          // Return code
-   main(                            // Mainline code
-     int             argc,          // Argument count
-     char*           argv[])        // Argument array
+   main(int, char**)                // Mainline code
+//   int             argc,          // Argument count
+//   char*           argv[])        // Argument array
 {
    int               errorCount= 0; // Error counter
 

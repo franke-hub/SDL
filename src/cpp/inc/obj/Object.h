@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Garbage collected Object, including associated helper objects.
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/03
 //
 // Usage notes-
 //       Object.h includes define.h, built_in.h, Exception.h, and Ref.h.
@@ -88,7 +88,7 @@ public:                             // Bitwise copy/assignment allowed
 inline
    Object(                          // Copy constructor
      const Object&     source)      // Source Object&
-:  references(0) { }
+:  references(0) { (void)source; }  // (Unused parameter)
 
 //----------------------------------------------------------------------------
 // Object::Operators
@@ -96,7 +96,7 @@ inline
 inline Object&                      // (Always *this)
    operator=(                       // Assignment operator
      const Object&     source)
-{  return *this; }                  // There is nothing to copy
+{  (void)source; return *this; }    // There is nothing to copy
 
 //----------------------------------------------------------------------------
 // Object::Accessors

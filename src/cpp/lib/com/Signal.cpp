@@ -16,7 +16,7 @@
 //       Instantiate Signal object methods.
 //
 // Last change date-
-//       2020/01/25
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE 700           // CYGWIN: Required for signal.h
@@ -586,6 +586,7 @@ void
      };
 
 //   siginfo_t*    si= (siginfo_t*)_siginfo;
+     (void)_siginfo;                // (Currently) unused
      sig_ucontext* uc= (sig_ucontext*)_context;
      sigcontext*   sc= &uc->uc_mcontext;
 
@@ -628,6 +629,9 @@ void
        debugf("[bt]: [%2d] %s\n", i-3, messages[i]);
 
      free(messages);
+   #else
+     (void)_siginfo;                // Unused parameter
+     (void)_context;                // Unused parameter
    #endif
 
    //-------------------------------------------------------------------------

@@ -51,7 +51,7 @@
 //       Test constructors.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testConstructors( void )         // Test constructors
 {
    verify_info(); debugf("testConstructors()\n");
@@ -71,7 +71,7 @@ void
 //       Test the FileMedia methods.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testFileMedia( void )            // Test FileMedia object
 {
    verify_info(); debugf("testFileMedia()\n");
@@ -129,7 +129,7 @@ void
 //       Test the TempMedia methods.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testTempMedia( void )            // Test TempMedia object
 {
    verify_info(); debugf("testTempMedia()\n");
@@ -187,7 +187,7 @@ void
 //       Test the FileBuffer object.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testFileBuffer( void )           // Test FileBuffer object
 {
    verify_info(); debugf("testFileBuffer()\n");
@@ -245,7 +245,7 @@ void
 //       Test the TempBuffer object.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testTempBuffer( void )           // Test TempBuffer object
 {
    verify_info(); debugf("testTempBuffer()\n");
@@ -303,7 +303,7 @@ void
 //       Test the Buffer push and pull methods.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testPushPull( void )             // Test Buffer push/pull
 {
    verify_info(); debugf("testPushPull()\n");
@@ -367,7 +367,7 @@ void
 //       Test the Buffer put and get methods.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testPutGet( void )               // Test Buffer put/get
 {
    verify_info(); debugf("testPutGet()\n");
@@ -378,8 +378,8 @@ void
    TempMedia           media;       // The Media
    MediaBuffer         buffer(4096);// The MediaBuffer
    int                 C= EOF;      // Input character
-   unsigned long       length;      // Desired length
-   int                 i, j;
+   size_t              length;      // Desired length
+   int                 i;
 
    buffer.attach(media);
    buffer.attach(media);
@@ -392,7 +392,7 @@ void
    for(i= 1; i<=ITERATIONS; i++)
    {
      sprintf(string, "This is line %6d of %6d\n", i, ITERATIONS);
-     for(j= 0; string[j] != '\0'; j++)
+     for(size_t j= 0; string[j] != '\0'; j++)
        buffer.put(string[j]);
    }
    buffer.close();
@@ -401,7 +401,7 @@ void
    for(i=1;;i++)
    {
      sprintf(string, "This is line %6d of %6d\n", i, ITERATIONS);
-     for(j= 0; j<length; j++)
+     for(size_t j= 0; j<length; j++)
      {
        C= buffer.get();
        if( C == EOF )
@@ -435,7 +435,7 @@ void
 //       Test the Buffer write and read methods.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testWriteRead( void )            // Test Buffer write/read
 {
    verify_info(); debugf("testWriteRead()\n");
@@ -495,7 +495,7 @@ void
 //       Test the Buffer printf method.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testPrintf( void )               // Test Buffer printf, read
 {
    verify_info(); debugf("testPrintf()\n");
@@ -550,7 +550,7 @@ void
 //       Test the Buffer write and readLine methods.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testReadline( void )             // Test Buffer write/readLine
 {
    verify_info(); debugf("testReadline()\n");
@@ -613,7 +613,7 @@ void
 //       Test the Buffer write and skipLine methods.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testSkipline( void )             // Test Buffer write/skipLine
 {
    verify_info(); debugf("testSkipline()\n");
@@ -679,9 +679,9 @@ void
 //
 //----------------------------------------------------------------------------
 extern int
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
 {
    //-------------------------------------------------------------------------
    // Initialization

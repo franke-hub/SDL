@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Graphical User Interface: Device implementation
 //
 // Last change date-
-//       2010/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stddef.h>
@@ -128,6 +128,8 @@ void
    #ifdef HCDM
      Logger::log("%4d: Device(%p)::change({%d,%d},{%d,%d})\n",
                  __LINE__, this, offset.x, offset.y, length.x, length.y);
+   #else                            // Parameters only used if HCDM defined
+     (void)offset; (void)length;
    #endif
 }
 
@@ -162,6 +164,8 @@ const char*                         // Return message (NULL OK)
    #ifdef HCDM
      Logger::log("%4d: Device(%p)::move({%d,%d})\n",
                  __LINE__, this, offset.x, offset.y);
+   #else                            // Parameters only used if HCDM defined
+     (void)offset;
    #endif
 
    return NOT_CAPABLE;
@@ -183,6 +187,8 @@ const char*                         // Return message (NULL OK)
    #ifdef HCDM
      Logger::log("%4d: Device(%p)::resize({%d,%d})\n",
                  __LINE__, this, length.x, length.y);
+   #else                            // Parameters only used if HCDM defined
+     (void)length;
    #endif
 
    return NOT_CAPABLE;

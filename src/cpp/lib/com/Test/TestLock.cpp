@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test locking and latching functions.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 // Implementation notes-
 //       Functions are not declared static so that compilation completes
@@ -185,7 +185,7 @@ class MyThread : public Thread {
 //       Test Latch functions
 //
 //----------------------------------------------------------------------------
-void
+static void
    testLatch( void )                // Test Latch functions
 {
    debugf("\n");
@@ -204,7 +204,7 @@ void
 //       Test ThreadLock deadlock detector
 //
 //----------------------------------------------------------------------------
-void
+static void
    mpDeadlockTest(                  // Test ThreadLock deadlock
      MyThread*         thread)      // For this thread
 {
@@ -270,7 +270,7 @@ void
 //       Test ThreadLock cyclic deadlock.
 //
 //----------------------------------------------------------------------------
-void
+static inline void                  // (Conditionally tested)
    testLockMPdeadlock( void )       // Test Lock functions on multiprocessor
 {
    debugf("\n");
@@ -312,7 +312,7 @@ void
 //       Test ThreadLock in MP mode
 //
 //----------------------------------------------------------------------------
-void
+static void
    mpStandardTest(                  // Test ThreadLock deadlock
      MyThread*         thread)      // For this thread
 {
@@ -376,7 +376,7 @@ void
 //       Test ThreadLock cyclic deadlock.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testLockMP( void )               // Test Lock functions on multiprocessor
 {
    debugf("\n");
@@ -418,7 +418,7 @@ void
 //       Test Lock functions on uniprocessor
 //
 //----------------------------------------------------------------------------
-void
+static void
    testLockUP( void )               // Test Lock functions on uniprocessor
 {
    debugf("\n");
@@ -534,9 +534,9 @@ long
 //
 //----------------------------------------------------------------------------
 extern int
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
 {
    // When debugging, the default debug object is set when in
    // Hard Core Debug Mode. We create an alternate debug object.

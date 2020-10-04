@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2020/01/05
+//       2020/10/03
 //
 // Arguments: (For testtime only)
 //       [1] 10240 Number of outer loops
@@ -194,9 +194,9 @@ static void
 //
 //----------------------------------------------------------------------------
 static int
-   test0000(                        // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   test0000(int, char**)            // Mainline code
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
 {
    int                 result= 1;   // Resultant
 
@@ -265,9 +265,9 @@ static int
 //
 //----------------------------------------------------------------------------
 static int
-   test0001(                        // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   test0001(int, char**)            // Mainline code
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
 {
    RondesvousTask*     Task[64];    // RondesvousTask array
    DispatchItem*       Item[64];    // RondexvousItem array

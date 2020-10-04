@@ -16,7 +16,7 @@
 //       Skeleton multi-processor, multi-thread testcase.
 //
 // Last change date-
-//       2020/06/13
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <new>
@@ -314,7 +314,7 @@ static void
 //       Get the stack offset.
 //
 //----------------------------------------------------------------------------
-int                                 // The stack offset
+static inline int                   // The stack offset (Currently unused)
    stackOffset( void )              // Get the stack offset
 {
    void*             stack;         // Stack pointer
@@ -332,11 +332,11 @@ int                                 // The stack offset
 //       Run test under control of a Thread.
 //
 //----------------------------------------------------------------------------
-int                                 // Completion Code
+static int                          // Completion Code
    doThread(                        // Thread function
      int             pid,           // Process identifier
-     int             tid,           // Thread identifier
-     MyThread*       thread)        // -> Thread object
+     int             tid)           // Thread identifier
+//   MyThread*       thread)        // -> Thread object
 {
    Global*           G= global;
    Common*           C= common;
@@ -498,7 +498,7 @@ long
    int               returncd;
 
    SERVICE_INFO((tid<<16) + pid);
-   returncd= doThread(pid, tid, this);
+   returncd= doThread(pid, tid);
    SERVICE_INFO((tid<<16) + pid);
 
    return returncd;
@@ -792,7 +792,7 @@ static void
 //       Run test under control of a Process.
 //
 //----------------------------------------------------------------------------
-int                                 // Completion code
+static int                          // Completion code
    doProcess(                       // Process function
      int             pid)           // Process identifier
 {
@@ -1053,8 +1053,8 @@ int
    #ifdef HCDM
      debugf("%s %4d: mainline\n", __SOURCE__, __LINE__);
    #endif
-   memset(common, 0, sizeof(Common));
-   memset(global, 0, sizeof(Global));
+   memset((char*)common, 0, sizeof(Common));
+   memset((char*)global, 0, sizeof(Global));
    new (common) Common();
    new (global) Global();
 

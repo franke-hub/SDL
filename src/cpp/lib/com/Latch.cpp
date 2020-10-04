@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2014 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Instantiate Latch methods.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 // Latchword format-
 //       xxxx.ssss
@@ -283,7 +283,7 @@ int                                 // TRUE iff successful
      if( (oldValue & 0x0000ffff) != 1 ) // If multiple SHR holders
        return FALSE;                // Cannot upgrade
 
-     int32_t newValue= oldValue & 0xffff0000; // Reservation count
+     uint32_t newValue= oldValue & 0xffff0000; // Reservation count
      if( newValue == 0xfffe0000 )   // If at capacity
        return FALSE;                // Cannot upgrade
 

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Zeroed object methods.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memset
@@ -97,6 +97,9 @@ void
 {
    #ifdef HCDM
      debugf("Zeroed::operator delete(%p,%p)\n", addr, dupAddr);
+   #else
+     (void)addr;                    // (Unused)
+     (void)dupAddr;                 // (Unused)
    #endif
 }
 

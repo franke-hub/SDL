@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       File data container.
 //
 // Last change date-
-//       2010/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #ifndef FILEDATA_H_INCLUDED
@@ -37,8 +37,8 @@ class FileData {
 //----------------------------------------------------------------------------
 protected:
 char*                  name;        // The file name (copied)
-unsigned long          size;        // The file size
 void*                  addr;        // The file data
+size_t                 size;        // The file size
 
 //----------------------------------------------------------------------------
 // FileData::Constructors

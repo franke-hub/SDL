@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010-2018 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include "Dispatch.h"
@@ -518,12 +518,12 @@ void
 //       DispatchDone::done
 //
 // Purpose-
-//       Handle work Item completion
+//       Handle work Item completion (DOES NOTHING, SHOULD NOT OCCUR)
 //
 //----------------------------------------------------------------------------
 void
    DispatchDone::done(              // Handle work Item completion
-     DispatchItem*     item)        // The Item that completed
+     DispatchItem*)                 // The Item that completed
 {
    IFHCDM( logf("DispatchDone(%p)::done() SHOULD NOT OCCUR\n", this); )
 }

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010-2014 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Extract information about a particular file.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #define __STDC_FORMAT_MACROS        // For linux inttypes.h
@@ -595,7 +595,7 @@ void
    if( fileName != NULL )
      free(fileName);
 
-   memset(this, 0, sizeof(*this));
+   memset((char*)this, 0, sizeof(*this));
 }
 
 void

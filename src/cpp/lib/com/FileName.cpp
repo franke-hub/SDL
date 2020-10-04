@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Extract information about a file name.
 //
 // Last change date-
-//       2010/01/01
+//       2020/10/03
 //
 // Needs work-
 //       TODO: Handle // and //computer_name/ prefix in Windows.
@@ -199,10 +199,10 @@ static inline int                   // TRUE iff path separator
 //       Get the next path delimiter index from a string
 //
 //----------------------------------------------------------------------------
-static inline int                   // The next delimiter index
+static inline ssize_t               // The next delimiter index
    getNextPathDelimiterIndex(       // Get next delimiter index
      const char*       source,      // From this string
-     int               offset)      // Starting at this offset
+     size_t            offset)      // Starting at this offset
 {
    if( offset >= strlen(source) )
      return (-1);
@@ -247,6 +247,8 @@ static inline void
        if( result[i] == '/' )
          result[i]= '\\';
      }
+   #else
+     (void)result;                  // (Unused parameter in NOP function)
    #endif
 }
 
@@ -301,7 +303,7 @@ static inline void
 //       isPathSep(), getNextPathDelimiterIndex()
 //
 //----------------------------------------------------------------------------
-static inline int                   // The first delimiter index
+static inline ssize_t               // The first delimiter index
    getPrefixIndex(                  // Get first delimiter index
      const char*       source)      // From this string
 {
@@ -309,7 +311,7 @@ static inline int                   // The first delimiter index
      const int length= strlen(source);
      if( isPathSep(source[0]) && isPathSep(source[1]) )
      {
-       int offset= getNextPathDelimiterIndex(source, 2);
+       ssize_t offset= getNextPathDelimiterIndex(source, 2);
        if( offset < 0 )
          offset= length;
 
@@ -323,6 +325,10 @@ static inline int                   // The first delimiter index
 
      if( length > 3 && source[3] == ':' )
        return 3;
+   #endif
+
+   #ifdef _OS_LINUX
+     (void)source;                  // (Unused parameter)
    #endif
 
    return (-1);
@@ -1027,7 +1033,7 @@ static const char*                  // NULL iff successful
    const size_t        length= strlen(source); // strlen(source);
    struct stat         statBuff;    // Stat buffer
    unsigned            unit= 0;     // The absolute unit index (invalid)
-   int                 x= 0;        // Current source index
+   ssize_t             x= 0;        // Current source index
 
    int                 i;
 

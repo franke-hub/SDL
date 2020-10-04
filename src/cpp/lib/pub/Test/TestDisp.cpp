@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2020/08/23
+//       2020/10/03
 //
 // Arguments: (For testtime only)
 //       [1] 10240 Number of outer loops
@@ -207,9 +207,9 @@ static void
 //
 //----------------------------------------------------------------------------
 static int
-   test0000(                        // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   test0000(int, char**)            // Mainline code
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
 {
    int                 result= 1;   // Resultant
 
@@ -280,9 +280,9 @@ static int
 //
 //----------------------------------------------------------------------------
 static int
-   test0001(                        // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   test0001(int, char**)            // Mainline code
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
 {
    RondesvousTask*     TASK[64];    // Rondesvous Task array
    Dispatch::Item*     ITEM[64];    // Rondesvous Item array
@@ -337,9 +337,9 @@ static int
 //
 //----------------------------------------------------------------------------
 static int
-   test0002(                        // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   test0002(int, char**)            // Mainline code
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
 {
 #if 0 // Implementation not exposed ==========================================
    IFHCDM( debugf("%4d test0002\n", __LINE__); )

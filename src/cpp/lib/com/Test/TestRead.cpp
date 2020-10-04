@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test the Reader and Writer objects.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -52,7 +52,7 @@
 //       Test constructors.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testConstructors( void )         // Test constructors
 {
    verify_info(); debugf("testConstructors()\n");
@@ -74,7 +74,7 @@ void
 //       Test the FileMedia methods.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testFileMedia( void )            // Test FileMedia object
 {
    verify_info(); debugf("testFileMedia()\n");
@@ -132,7 +132,7 @@ void
 //       Test the TempMedia methods.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testTempMedia( void )            // Test TempMedia object
 {
    verify_info(); debugf("testTempMedia()\n");
@@ -190,7 +190,7 @@ void
 //       Test the Writer push and Reader pull methods.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testPushPull( void )             // Test Writer push, Reader pull
 {
    verify_info(); debugf("testPushPull()\n");
@@ -256,7 +256,7 @@ void
 //       Test the Writer put and Reader get methods.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testPutGet( void )               // Test Writer put, Reader get
 {
    verify_info(); debugf("testPutGet()\n");
@@ -268,8 +268,8 @@ void
    MediaReader         reader(4096);// The MediaReader
    MediaWriter         writer(4096);// The MediaWriter
    int                 C= EOF;      // Input character
-   unsigned long       length;      // Desired length
-   int                 i, j;
+   size_t              length;      // Desired length
+   int                 i;
 
    reader.attach(media);
    writer.attach(media);
@@ -282,7 +282,7 @@ void
    for(i= 1; i<=ITERATIONS; i++)
    {
      sprintf(string, "This is line %6d of %6d\n", i, ITERATIONS);
-     for(j= 0; string[j] != '\0'; j++)
+     for(size_t j= 0; string[j] != '\0'; j++)
        writer.put(string[j]);
    }
    writer.close();
@@ -291,7 +291,7 @@ void
    for(i=1;;i++)
    {
      sprintf(string, "This is line %6d of %6d\n", i, ITERATIONS);
-     for(j= 0; j<length; j++)
+     for(size_t j= 0; j<length; j++)
      {
        C= reader.get();
        if( C == EOF )
@@ -325,7 +325,7 @@ void
 //       Test the Writer write and Reader read methods.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testWriteRead( void )            // Test Writer write, Reader read
 {
    verify_info(); debugf("testWriteRead()\n");
@@ -387,7 +387,7 @@ void
 //       Test the Writer printf method.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testPrintf( void )               // Test Writer printf, Reader read
 {
    verify_info(); debugf("testPrintf()\n");
@@ -444,7 +444,7 @@ void
 //       Test the Writer write and Reader readLine methods.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testReadline( void )             // Test Writer write, Reader readLine
 {
    verify_info(); debugf("testReadline()\n");
@@ -509,7 +509,7 @@ void
 //       Test the Writer write and Reader skipLine methods.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testSkipline( void )             // Test Writer write, Reader skipLine
 {
    verify_info(); debugf("testSkipline()\n");
@@ -577,9 +577,9 @@ void
 //
 //----------------------------------------------------------------------------
 extern int
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
 {
    //-------------------------------------------------------------------------
    // Initialization

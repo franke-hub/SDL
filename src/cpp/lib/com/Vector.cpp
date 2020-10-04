@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Vector Object implementation.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stddef.h>
@@ -232,7 +232,7 @@ unsigned                            // The new element index
        count= used + 32;
 
      Ref<Object>* clone= new Ref<Object>[count];
-     for(int i= 0; i<used; i++)
+     for(unsigned i= 0; i<used; i++)
        clone[i]= refs[i];
 
      delete [] refs;

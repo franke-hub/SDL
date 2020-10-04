@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       ParseINI tests.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stddef.h>
@@ -34,7 +34,7 @@
 //       Show the resultant.
 //
 //----------------------------------------------------------------------------
-void
+static void
    resultant(                       // Show resultant
      ParseINI&       object,        // This object
      const char*     sect,          // Object section

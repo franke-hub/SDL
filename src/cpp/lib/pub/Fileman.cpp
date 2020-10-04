@@ -16,7 +16,7 @@
 //       Fileman.h object methods
 //
 // Last change date-
-//       2020/08/24
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -221,7 +221,7 @@ int                                 // Return code, 0 OK
 
    // Insure that the file does not contain a '\0' delimiter
    char* last= strchr(text, '\0');  // Locate first '\0' delimiter
-   if( (last-text) < size )         // If file contains '\0' delimiter
+   if( size_t(last-text) < size )   // If file contains '\0' delimiter
    {
      _damaged= true;
      fprintf(stderr, "%4d Data: File(%s) contains '\\0' delimiter\n", __LINE__,

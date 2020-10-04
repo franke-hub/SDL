@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Calendar functions.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 // Notes-
 //       Input: Calendar day: mm dd year
@@ -133,7 +133,7 @@ static int                          // Return code (0 OK)
    random.randomize();
 
    printf("\n\n");
-   printf("Running built-in tests\n");
+   printf("Running built-in tests (random time of day)\n");
    try {
      verifyJulian();                // Verify the object
 
@@ -264,8 +264,8 @@ extern int
 
      if( calendar != crosscheck
          || crosscheck.getYear() != yy
-         || crosscheck.getMonth() != mm
-         || crosscheck.getDay() != dd )
+         || crosscheck.getMonth() != unsigned(mm)
+         || crosscheck.getDay() != unsigned(dd) )
      {
        printf("CA: "); printCalendar(calendar);
        printf("CC: "); printCalendar(crosscheck);

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test istring functions.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -54,7 +54,7 @@
 //       Hard core debug mode testing.
 //
 //----------------------------------------------------------------------------
-void
+static void
    tester(                          // Test character
      char            c)             // This character
 {
@@ -72,7 +72,7 @@ void
 //       stricmp test.
 //
 //----------------------------------------------------------------------------
-int                                 // Error count
+static int                          // Error count
    testLE(                          // Test stricmp
      const char*     p1,            // Parameter[1]
      const char*     p2)            // Parameter[2]

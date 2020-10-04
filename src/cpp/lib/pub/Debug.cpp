@@ -16,7 +16,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2020/08/23
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -194,6 +194,8 @@ void
    } else {
      printf("common(%p)\n", common);
    }
+#else                               // No function, parameters ignored
+   (void)info;
 #endif
 }
 
@@ -814,7 +816,7 @@ void
 
 static char            buffer[512]; // Work buffer (Mutex protected)
    int L= vsnprintf(buffer, sizeof(buffer), fmt, argptr);
-   if( L < 0 || L >= sizeof(buffer) ) // If cannot properly format
+   if( L < 0 || size_t(L) >= sizeof(buffer) ) // If cannot properly format
      throw fmt;                     // Just throw format string
 
    throw buffer;

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define a number of any size, fixed or variable.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/02
 //
 // Implementation notes-
 //       The size is specified in bytes, or octets and can range from one
@@ -98,9 +98,9 @@ virtual
 
    Binary( void );                  // Default constructor
 
-private:
+private:                            // DISALLOWED copy constructor
    Binary(                          // Copy constructor
-     const Binary&    source);      // Source Binary
+     const Binary&    source) = delete; // Source Binary
 
 //----------------------------------------------------------------------------
 // Binary::Assignment operators

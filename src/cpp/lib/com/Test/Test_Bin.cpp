@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test the Binary object.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 // #include "../../../../src/cpp/lib/com/Binary.cpp"
@@ -630,6 +630,10 @@ static void
 static void
    testUnsigned( void )             // Test UnsignedBinary
 {
+#ifdef _CC_GCC
+   #pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
    debugf("\n");
    verify_info(); debugf("testUnsigned\n");
 
@@ -1079,9 +1083,7 @@ static void
 //
 //----------------------------------------------------------------------------
 extern int
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
 {
    //-------------------------------------------------------------------------
    // Initialization

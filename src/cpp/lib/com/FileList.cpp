@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Extract information about a list of files.
 //
 // Last change date-
-//       2010/01/01
+//       2020/10/03
 //
 // Needs work-
 //       TODO: Handle // and //computer_name/ prefix in Windows.
@@ -98,7 +98,7 @@ static inline int                   // OS-dependent toupper
 //       Determine filename match, with wildcards
 //
 //----------------------------------------------------------------------------
-int                                 // TRUE if filename qualifies
+static int                          // TRUE if filename qualifies
    isWildMatch(                     // Does the current filename qualify?
      const char*       ptrQual,     // -> Qualifier name
      const char*       ptrName)     // -> True file name

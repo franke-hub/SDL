@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Object Reference Object.
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/03
 //
 // Implementation notes-
 //       The implementation may perform garbage collection either in the
@@ -155,7 +155,7 @@ inline bool                         // true iff get() == source.get()
 inline bool                         // true iff get() == source.get()
    operator==(                      // Compare associated (Object*)s
      nullptr_t         empty) const // Source nullptr
-{  return (object == nullptr); }
+{  (void)empty; return (object == nullptr); } // (Unused nullptr parameter)
 
 inline bool                         // true iff get() != source.get()
    operator!=(                      // Compare associated (Object*)s
@@ -165,7 +165,7 @@ inline bool                         // true iff get() != source.get()
 inline bool                         // true iff get() == source.get()
    operator!=(                      // Compare associated (Object*)s
      nullptr_t         empty) const // Source nullptr
-{  return (object != nullptr); }
+{  (void)empty; return (object != nullptr); } // (Unused nullptr parameter)
 
 inline Object&                      // Associated Object&
    operator*( void ) const          // *(Ref_t)

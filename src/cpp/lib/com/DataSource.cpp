@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010-2014 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       DataSource implementation methods.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/02
 //
 //----------------------------------------------------------------------------
 #include <stdint.h>
@@ -73,7 +73,7 @@
    DataSource::DataSource(          // Constructor
      const char*       name,        // Source name
      void*             origin,      // Source address
-     int64_t           length)      // Source length
+     size_t            length)      // Source length
 :  origin(NULL)
 ,  offset(0)
 ,  length(0)
@@ -162,9 +162,9 @@ DataSource&                         // Always *this
 //----------------------------------------------------------------------------
 int                                 // Return code (0 OK)
    DataSource::setOffset(           // Set Data offset
-     int64_t           offset)      // To this value
+     size_t            offset)      // To this value
 {
-   if( offset < 0 || offset > length )
+   if( offset > length )
      return CC_ERR;
 
    this->offset= offset;
@@ -208,9 +208,9 @@ int                                 // The next data "character"
        width= (-width);
    }
 
-   unsigned char buffer[sizeof(int)]; // Input buffer
-   if( width > sizeof(buffer) )     // (Should not occur)
-     width= sizeof(buffer);
+   unsigned char buffer[4];         // Input buffer
+   if( width > 4 )                  // (Should not occur)
+     width= 4;
 
    int L= read(buffer, width);      // Read next character
    if( L == 0 )
@@ -438,7 +438,7 @@ void
          && *(origin+2) == 0xFE && *(origin+3) == 0xFF )
      {
        width= 4;
-       if( *((int32_t*)origin) == 0xFFFE0000 )
+       if( *((uint32_t*)origin) == 0xFFFE0000 )
          width= -4;
 
        return;
@@ -448,7 +448,7 @@ void
          && *(origin+2) == '\0' && *(origin+3) == '\0' )
      {
        width= -4;
-       if( *((int32_t*)origin) == 0x0000FEFF )
+       if( *((uint32_t*)origin) == 0x0000FEFF )
          width= 4;
 
        return;
@@ -460,7 +460,7 @@ void
      if( *(origin) == 0xFE && *(origin+1) == 0xFF )
      {
        width= 2;
-       if( *((int16_t*)origin) == 0xFFFE )
+       if( *((uint16_t*)origin) == 0xFFFE )
          width= -2;
 
        return;
@@ -469,7 +469,7 @@ void
      if( *(origin) == 0xFF && *(origin+1) == 0xFE )
      {
        width= -2;
-       if( *((int16_t*)origin) == 0xFEFF )
+       if( *((uint16_t*)origin) == 0xFEFF )
          width= 2;
 
        return;

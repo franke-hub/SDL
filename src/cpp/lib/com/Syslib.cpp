@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       System library functions.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>
@@ -101,89 +101,5 @@ extern "C" void
 {
    if (ignored == NULL)
      whocares++;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       debugMalloc
-//
-// Purpose-
-//       Debugging version of malloc()
-//
-//----------------------------------------------------------------------------
-extern "C" void*                    // Allocated storage address
-   debugMalloc(                     // Debugging version of malloc
-     const char*       file,        // File name
-     int               line,        // File line
-     size_t            size)        // Allocation length
-{
-   void*               resultant;   // Resultant
-
-   resultant= malloc(size);
-   tracef("%s %d: %p= malloc(%ld)\n", file, line, resultant, (long)size);
-
-   return resultant;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       debugFree
-//
-// Purpose-
-//       Debugging version of free()
-//
-//----------------------------------------------------------------------------
-extern "C" void
-   debugFree(                       // Debugging version of malloc
-     const char*       file,        // File name
-     int               line,        // File line
-     void*             addr)        // Release address
-{
-   tracef("%s %d: free(%p)\n", file, line, addr);
-   free(addr);
-}
-
-//----------------------------------------------------------------------------
-//
-// Function-
-//       ::operator new(size_t, const char*, int)
-//
-// Purpose-
-//       Traced ::operator new().
-//
-//----------------------------------------------------------------------------
-void*                               // -> Allocated storage
-   operator new(                    // In-place new operator
-     size_t            size,        // Size of object
-     const char*       file,        // File name
-     int               line)        // File line
-{
-   void*               resultant;   // Pointer to storage
-
-   resultant= ::operator new(size); // Allocate the storage
-   tracef("%s %d: %p= operator new(%ld)\n", file, line, resultant, (long)size);
-
-   return resultant;
-}
-
-//----------------------------------------------------------------------------
-//
-// Function-
-//       ::operator delete(void*, size_t, const char*, int)
-//
-// Purpose-
-//       Traced ::operator delete().
-//
-//----------------------------------------------------------------------------
-void
-   operator delete(                 // In-place delete operator
-     void*             addr,        // Address of object
-     const char*       file,        // File name
-     int               line)        // File line
-{
-   tracef("%s %d: operator delete(%p)\n", file, line, addr);
-   ::operator delete(addr);         // Release the storage
 }
 

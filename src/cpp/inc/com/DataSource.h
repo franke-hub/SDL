@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010-2014 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,14 +16,15 @@
 //       Defines an input data source.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/02
 //
 //----------------------------------------------------------------------------
 #ifndef DATASOURCE_H_INCLUDED
 #define DATASOURCE_H_INCLUDED
 
-#include <stdint.h>
-#include <string>
+#include <string>                   // For std::string
+#include <stddef.h>                 // For size_t
+#include <stdint.h>                 // For integer types
 
 //----------------------------------------------------------------------------
 //
@@ -55,8 +56,8 @@ class DataSource {
 //----------------------------------------------------------------------------
 protected:
 unsigned char*         origin;      // Data origin
-int64_t                offset;      // Data offset
-int64_t                length;      // Data length
+size_t                 offset;      // Data offset
+size_t                 length;      // Data length
 int                    width;       // Data width
 
 std::string            name;        // Source name
@@ -85,7 +86,7 @@ virtual
    DataSource(                      // Constructor
      const char*       name,        // Source name
      void*             origin,      // Source address
-     int64_t           length);     // Source length
+     size_t            length);     // Source length
 
    DataSource(                      // Copy constructor
      const DataSource& source);     // Source DataSource
@@ -108,7 +109,7 @@ inline const char*                  // C-String
    return name.c_str();
 }
 
-inline int64_t                      // The data length
+inline size_t                       // The data length
    getLength( void ) const          // Get data length
 {
    return length;
@@ -120,7 +121,7 @@ inline std::string                  // The source name
    return name;
 }
 
-inline int64_t                      // The data offset (in bytes)
+inline size_t                       // The data offset (in bytes)
    getOffset( void ) const          // Get data offset
 {
    return offset;
@@ -149,7 +150,7 @@ inline unsigned long                // The line number
 
 virtual int                         // Return code (0 OK)
    setOffset(                       // Set data offset
-     int64_t           offset);     // To this value
+     size_t            offset);     // To this value
 
 public:
 //----------------------------------------------------------------------------
@@ -254,7 +255,7 @@ inline void
    setWidth(                        // Set the data width
      const unsigned char*
                        origin,      // From this origin
-     int64_t           length)      // And this length
+     size_t            length)      // And this length
 {
    unsigned int size= 4;
    size += (length&3);

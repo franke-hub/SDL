@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define and implement the DiskArchive object.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/02
 //
 // Implementation notes-
 //       Included from Archive.cpp
@@ -151,7 +151,7 @@ char                   suffix[12];  // (Unused) suffix
 };
 
 protected: // ATTRIBUTES
-uint64_t               origin;      // Origin of this file
+size_t                 origin;      // Origin of this file
 Buffer                 buffer;      // The GNU/POSIX header buffer
 
 public: // CONSTRUCTORS
@@ -180,7 +180,7 @@ virtual unsigned int                // Number of bytes read
 
 virtual int                         // Return code (0 OK)
    setOffset(                       // Position within current item
-     int64_t           offset);     // Offset
+     size_t            offset);     // Offset
 }; // class DiskArchive
 
 const char*            DiskArchive::GMAGIC= "ustar  "; // With trailing NUL
@@ -324,7 +324,7 @@ const char*                         // The item name
          // Check for end of Archive
          int isEOF= TRUE;
          const unsigned char* C= (const unsigned char*)&buffer;
-         for(int i= 0; i<sizeof(buffer); i++)
+         for(size_t i= 0; i<sizeof(buffer); i++)
          {
            if( C[i] != '\0' )
            {
@@ -350,8 +350,8 @@ const char*                         // The item name
      return NULL;
    }
 
-   long checksum= toOctal(head->chksum);
-   if( checksum < 0 )
+   unsigned long checksum= toOctal(head->chksum);
+   if( long(checksum) < 0 )
    {
      IFHCDM(
        debugf("%4d File(%s) checksum(%s)\n", __LINE__,
@@ -362,7 +362,7 @@ const char*                         // The item name
 
    memset(head->chksum, ' ', sizeof(head->chksum)); // Replace with blanks
    unsigned long matchsum= 0;
-   for(int i= 0; i<sizeof(GNU_HEADER); i++)
+   for(size_t i= 0; i<sizeof(GNU_HEADER); i++)
      matchsum += *((unsigned char*)(&buffer) + i);
 
    matchsum &= 0x00007fff;
@@ -370,7 +370,7 @@ const char*                         // The item name
    {
      IFHCDM( printf("%4d using signed checksum\n", __LINE__); )
 
-     for(int i= 0; i<sizeof(GNU_HEADER); i++)
+     for(size_t i= 0; i<sizeof(GNU_HEADER); i++)
        matchsum += *((signed char*)(&buffer) + i);
 
      matchsum &= 0x00007fff;
@@ -474,9 +474,9 @@ unsigned int                        // The number of bytes read
 //----------------------------------------------------------------------------
 int                                 // Return code (0 OK)
    DiskArchive::setOffset(          // Set position
-     int64_t           offset)      // Offset
+     size_t            offset)      // Offset
 {
-   if( offset < 0 || offset > length )
+   if( offset > length )
      return (-1);
 
    this->offset= offset;

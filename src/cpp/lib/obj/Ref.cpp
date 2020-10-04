@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Ref method implementations.
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <condition_variable>       // Used with collector thread
@@ -245,7 +245,7 @@ inline void
 
 inline void check_object(Object* O) {checker.check_object(O);}
 #else
-inline void check_object(Object* O) {} // No object checking
+inline void check_object(Object*) { } // No object checking (Unused parameter)
 #endif
 
 //----------------------------------------------------------------------------

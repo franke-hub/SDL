@@ -16,7 +16,7 @@
 //       All the file management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2020/08/24
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_FILEMAN_H_INCLUDED
@@ -55,6 +55,11 @@ public:
      const stat_t&     _st,         // Stat descriptor
      const std::string&_name)       // File name
 :  name(_name), st(_st) {}
+
+//----------------------------------------------------------------------------
+// File::Destructor
+//----------------------------------------------------------------------------
+virtual ~File( void ) {}            // Destructor
 
 //----------------------------------------------------------------------------
 // File::Methods

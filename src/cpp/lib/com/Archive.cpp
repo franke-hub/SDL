@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement the Archive object.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/02
 //
 //----------------------------------------------------------------------------
 #define _FILE_OFFSET_BITS 64
@@ -68,7 +68,7 @@ enum COMP_MODE                      // Compression mode
 #include "DiskArchive.h"            // (Disk resident, TAR format)
 #include "GzipArchive.h"            // GZIP  (single file)
 #include "Zz32Archive.h"            // ZIP32 (multi-file)
-#include "Zz64Archive.h"            // ZIP64 (multi-file)
+// clude "Zz64Archive.h"            // ZIP64 (multi-file) ** NOT IMPLEMENTED **
 #include "_tbzArchive.h"            // .tar.bz archive
 #include "_tgzArchive.h"            // .tar.gz archive
 
@@ -210,9 +210,10 @@ Archive*                            // Resultant Archive
      if( archive != NULL )
        return archive;
 
-     archive= Zz64Archive::make(file);
-     if( archive != NULL )
-       return archive;
+//   // Zz64Archive NOT IMPLEMENTED
+//   archive= Zz64Archive::make(file);
+//   if( archive != NULL )
+//     return archive;
    }
 
    // Select using trial and error for magic number matching
@@ -222,9 +223,10 @@ Archive*                            // Resultant Archive
      if( archive != NULL )
        return archive;
 
-     archive= Zz64Archive::make(file);
-     if( archive != NULL )
-       return archive;
+//   // Zz64Archive NOT IMPLEMENTED
+//   archive= Zz64Archive::make(file);
+//   if( archive != NULL )
+//     return archive;
    }
 
    if( stricmp(name, ".tar") != 0 ) // If not TAR file name extension
@@ -271,9 +273,9 @@ Archive*                            // Resultant Archive
 //----------------------------------------------------------------------------
 int                                 // Return code (0 OK)
    Archive::setOffset(              // Set position
-     int64_t           offset)      // Offset
+     size_t            offset)      // Offset
 {
-   if( offset < 0 || offset > length )
+   if( offset > length )
      return (-1);
 
    this->offset= offset;
@@ -313,6 +315,7 @@ const char*                         // The item name (ALWAYS NULL)
    Archive::index(                  // Select
      unsigned int      index)       // This item index
 {
+   (void)index;                     // Unused in base class
    return NULL;
 }
 

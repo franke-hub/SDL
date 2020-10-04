@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Graphical User Interface: Buffer implementation
 //
 // Last change date-
-//       2010/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stddef.h>
@@ -245,7 +245,7 @@ const char*                         // Exception message (NULL OK)
    this->length= length;
 
    // Redraw the buffer
-   memset(pixel, 0, size);
+   memset((char*)pixel, 0, size);
    RenderVisitor visitor;
    visit(visitor);
 

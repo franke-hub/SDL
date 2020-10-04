@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Verification error counter, for test cases.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 // Macros-
 //       verify() : Like standard assert macro, but counts error (no abort)
@@ -127,7 +127,7 @@ static inline const char*           // First non-path character
 
    int                 i;
 
-   if( strlen(source) >= length )
+   if( strlen(source) >= size_t(length) )
    {
      memcpy(target, source, length-1);
      target[length-1]= '\0';
@@ -403,6 +403,7 @@ static inline int                   // Returns FALSE
 
    // Write the error message
    message(file, line, "Verify error: %s\n", verificand);
+   (void)fmt;                       // Unused argument
 
    return FALSE;
 }

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Quick and dirty test.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 // Usage-
 //       1) Modify this file, the "quick and dirty test"
@@ -67,9 +67,7 @@ static void
 //
 //----------------------------------------------------------------------------
 extern int
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
 {
    test000();
    verify_exit();

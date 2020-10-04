@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Aligned storage allocator definition and implementation.
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 
@@ -329,7 +329,8 @@ Bulk*                               // The resultant Bulk*
    // Allocate the Bulk descriptor from the Bulk area. It goes either at the
    // beginning or the end of the allocated space.
    Bulk* bulk= (Bulk*)origin;
-   if( prefix_space >= sizeof(Bulk) || suffix_space < sizeof(Bulk) )
+   if( size_t(prefix_space) >= sizeof(Bulk)
+       || size_t(suffix_space) < sizeof(Bulk) )
    {
      // bulk= (Bulk*)origin;
      origin += sizeof(Bulk);
@@ -338,7 +339,7 @@ Bulk*                               // The resultant Bulk*
      bulk= (Bulk*)ending;
    }
 
-   memset(bulk, 0, sizeof(Bulk));
+   memset((char*)bulk, 0, sizeof(Bulk));
    origin= (char*)((intptr_t(origin) + SIZE_ZERO - 1) & ~intptr_t(SIZE_ZERO-1));
    ending= (char*)(intptr_t(ending) & ~intptr_t(SIZE_ZERO - 1));
    bulk->storage= storage;

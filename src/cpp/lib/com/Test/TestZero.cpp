@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test the Zeroed object.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stdlib.h>
@@ -118,7 +118,7 @@ protected:
 //       Test the Zeroed object function.
 //
 //----------------------------------------------------------------------------
-void
+static void
    testZeroed( void )               // Test Zeroed object functions
 {
    debugf("\n");
@@ -152,9 +152,9 @@ void
 //
 //----------------------------------------------------------------------------
 extern int
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int             argc,          // Argument count
+//   char*           argv[])        // Argument array
 {
    testZeroed();
    verify_exit();

@@ -16,7 +16,7 @@
 //       Define and implement the GzipArchive object.
 //
 // Last change date-
-//       2020/07/21
+//       2020/10/02
 //
 // Implementation notes-
 //       Included from Archive.cpp
@@ -132,7 +132,7 @@ virtual unsigned int                // Number of bytes read
 
 virtual int                         // Return code (0 OK)
    setOffset(                       // Position within current item
-     int64_t           offset);     // Offset
+     size_t            offset);     // Offset
 
 //----------------------------------------------------------------------------
 // The resetFile method is not externally visible.
@@ -579,45 +579,38 @@ unsigned int                        // The number of bytes read
 //----------------------------------------------------------------------------
 int                                 // Return code (0 OK)
    GzipArchive::setOffset(          // Set position
-     int64_t           offset)      // Offset
+     size_t            offset)      // Offset
 {
-   int rc= (-1);                    // Return code
+   if( offset < this->offset )      // If reverse seek
+     index(0);                      // Reposition to offset 0
+   else
+     offset -= this->offset;        // Relative to current
 
-   if( offset >= 0 )                // If valid offset
+   // Lame way to seek forward
+   char buffer[512];
+   while( offset >= sizeof(buffer) )
    {
-     if( offset < this->offset )    // If reverse seek
-       index(0);                    // Reposition to offset 0
-     else
-       offset -= this->offset;      // Relative to current
-
-     // Lame way to seek forward
-     char buffer[512];
-     while( offset >= sizeof(buffer) )
+     size_t L= read(buffer, sizeof(buffer));
+     if( L == 0 )
      {
-       int L= read(buffer, sizeof(buffer));
-       if( L == 0 )
-       {
-         debugf("GzipArchive seek past EOF\n");
-         return (-1);
-       }
-
-       offset -= L;
+       debugf("GzipArchive seek past EOF\n");
+       return (-1);
      }
 
-     if( offset > 0 )
-     {
-       int L= read(buffer, offset);
-       if( L != offset )
-       {
-         debugf("GzipArchive seek past EOF\n");
-         return (-1);
-       }
-     }
-
-     rc= 0;                       // Must reach here for success
+     offset -= L;
    }
 
-   return rc;
+   if( offset > 0 )
+   {
+     size_t L= read(buffer, offset);
+     if( L != offset )
+     {
+       debugf("GzipArchive seek past EOF\n");
+       return (-1);
+     }
+   }
+
+   return 0;
 }
 
 //----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2016 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Storage allocation from Pool.
 //
 // Last change date-
-//       2016/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -177,7 +177,7 @@ inline int                          // TRUE if element is valid
 //       traceAllocate
 //
 // Purpose-
-//       Trace allocation
+//       Trace allocation (HCDM only)
 //
 //----------------------------------------------------------------------------
 inline void
@@ -188,6 +188,10 @@ inline void
 {
    #ifdef HCDM
      tracef("%p= Pool(%p)::allocate(%lu)\n", addr, pool, size);
+   #else                            // Parameters unused unless HCDM defined
+     (void)pool;
+     (void)addr;
+     (void)size;
    #endif
 }
 
@@ -197,7 +201,7 @@ inline void
 //       traceRelease
 //
 // Purpose-
-//       Trace release.
+//       Trace release (HCDM only)
 //
 //----------------------------------------------------------------------------
 inline void
@@ -208,6 +212,10 @@ inline void
 {
    #ifdef HCDM
      tracef("Pool(%p)::release(%p,%lu)\n", pool, addr, size);
+   #else                            // Parameters unused unless HCDM defined
+     (void)pool;
+     (void)addr;
+     (void)size;
    #endif
 }
 

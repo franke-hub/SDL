@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2018 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Text Screen control.
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #ifndef HCDM                        // INLINE HDCM
@@ -83,6 +83,7 @@ inline unsigned                     // The BSD Color
        return COLOR_YELLOW;
 
      case VGAColor::Grey:
+     default:
        return COLOR_WHITE;
    }
 
@@ -314,8 +315,8 @@ inline void
 {
    WINDOW&             W= *dspH;    // Working Window
 
-   int                 oldX;        // Old X-size
-   int                 oldY;        // Old Y-size
+   unsigned            oldX;        // Old X-size
+   unsigned            oldY;        // Old Y-size
 
    #if defined(HCDM) && TRUE
      tracef("%8s= TextScreenAttr(%p)::handleResizeEvent()\n", "", this);
@@ -509,15 +510,13 @@ inline void                         // No return value
    Color::Char*        buffer;      // Working buffer pointer
    int                 nextAttr;    // Next Attribute character
    int                 workChar;    // Working character
-   int                 row;         // Working row
-   int                 col;         // Working column
 
    #ifdef HCDM
      tracef("%8s= TextScreenAttr(%p)::write(%d,%d,%d,%d)\n", "", this,
             Lcol, Trow, Rcol, Brow);
    #endif
 
-   for(row= Trow; row<=Brow; row++)
+   for(unsigned row= Trow; row<=Brow; row++)
    {
      physicalXY(Lcol, row);
      buffer= addrXY(Lcol, row);
@@ -525,7 +524,7 @@ inline void                         // No return value
      #if defined(HCDM) && TRUE
        tracef("[%4d,%4d]", Lcol, row);
      #endif
-     for(col= Lcol; col<=Rcol; col++)
+     for(unsigned col= Lcol; col<=Rcol; col++)
      {
        nextAttr= attrArray[buffer->attr&0x00ff]; // Marker
        workChar= buffer->data & 0x00ff;
@@ -1162,8 +1161,9 @@ void
            currentRow= 0;           // Wrap to row[0]
            maxRow= attr.rows-1;
          }
-
          // Continue, set currentCol= 0
+         [[ fallthrough ]]
+         ;;
 
        case '\r':                   // If carriage return
          currentCol= 0;

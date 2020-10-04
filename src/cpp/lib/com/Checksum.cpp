@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Checksum methods.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -246,12 +246,11 @@ uint16_t                            // Updated accumulator
 {
    const uint8_t*    ptrU08;        // -> Current byte
    uint32_t          accum;         // Accumulator
-   int               i;
 
    ptrU08= (const uint8_t*)buffer;  // Address the buffer
 
    accum= prior;
-   for(i=0; i < length; i++)        // Accumulate the bytes
+   for(unsigned i=0; i < length; i++) // Accumulate the bytes
    {
      accum += ptrU08[i]/* & 0x00ff*/;
    }
