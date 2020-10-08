@@ -93,7 +93,7 @@ void
      int flip= pseudo.get() & 1;    // (Pragmatically: better than constant)
      for(int i= 0; i<exponent; i++)
      {
-       if( (pseudo.get() & 1) != flip )
+       if( int(pseudo.get() & 1) != flip )
          return;
      }
 

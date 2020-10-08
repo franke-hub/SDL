@@ -16,7 +16,7 @@
 //       Sample program: How to use std::shared_ptr
 //
 // Last change date-
-//       2020/06/18
+//       2020/10/04
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::shared_ptr
@@ -78,6 +78,7 @@ static inline void                  // Give up ownership of an object
    give(                            // Give up ownership Thing*
      Thing_p&          thing)       // From this Thing_p
 {
+   (void)thing;                     // Parameter ignored
    throw "This is unreasonable, perhaps impossible";
 }
 
@@ -222,8 +223,9 @@ inline void
 extern int                          // Return code
    main(                            // Mainline code
      int               argc,        // Argument count
-     char*             argv[])      // Argument array
+     char*             argv[])      // Argument array (Unused)
 {
+   (void)argv;                      // Unused parameter
    printf("main...\n");
 
    printf("\n");                    // Demonstrate proper usage

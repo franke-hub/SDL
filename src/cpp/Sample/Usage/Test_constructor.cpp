@@ -181,15 +181,15 @@ static inline int                   // Return code
 //
 //----------------------------------------------------------------------------
 int                                 // Return code
-   main(                            // Mainline entry
-     int             argc,          // Parameter count
-     const char*     argv[])        // Parameter vector
+   main(int, char**)                // Mainline entry
+//   int             argc,          // Parameter count (Unused)
+//   const char*     argv[])        // Parameter array (Unused)
 {
    int errorCount= 0;               // Number of errors detected
 
    try {
      errorCount += dirty();
-   } catch(std::exception X) {
+   } catch(std::exception& X) {
      errorCount++;
      debugf("Exception what(%s)\n", X.what());
    }

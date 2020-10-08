@@ -15,14 +15,9 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2020/09/21
+##       2020/10/07
 ##
 ##############################################################################
-
-##############################################################################
-## Use CURSES library
-CLIBS  += -lncurses################### Use CURSES library (after -lcom)
-include $(INCDIR)/pub/Makefile.BSD
 
 ##############################################################################
 ## Set default target
@@ -32,4 +27,9 @@ endif
 
 .PHONY: default
 default: $(DEFAULT)
+
+##############################################################################
+## Use CURSES library
+CLIBS  += -lncurses################### Use CURSES library (after -lcom)
+include $(INCDIR)/pub/Makefile.BSD
 

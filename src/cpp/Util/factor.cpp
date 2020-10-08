@@ -50,7 +50,7 @@ unsigned char          sieve[SIEVESIZE];
 //       Factor a number
 //
 //----------------------------------------------------------------------------
-int                                 // Return code (0 if prime)
+static int                          // Return code (0 if prime)
    factor(                          // Factor a number
      int64_t           value,       // The number
      int64_t&          fact1,       // Lowest factor (1 if prime)
@@ -150,7 +150,25 @@ int                                 // Return code
    }
 
    try {
-     param.inp(argv[1]);            // Get the parameter value
+     for(int i= 1; i<argc; i++) {
+       param.inp(argv[i]);          // Get the parameter value
+       value= param.toInt();
+       printf("%" PRId64 ":", value);
+       for(;;)
+       {
+         rc= factor(value, remainder, value);
+         if (rc == FALSE)
+           break;
+
+         factors= 1;
+         printf(" %" PRId64, remainder);
+       }
+
+       if (factors)
+         printf(" %" PRId64 "\n", value);
+       else
+         printf(" is a PRIME\n");
+     }
    } catch(const char* X) {
      printf("Error(%s)\n", X);
      return 1;
@@ -158,23 +176,6 @@ int                                 // Return code
      printf("Error(...)\n");
      return 1;
    }
-
-   value= param.toInt();
-   printf("%" PRId64 ":", value);
-   for(;;)
-   {
-     rc= factor(value, remainder, value);
-     if (rc == FALSE)
-       break;
-
-     factors= 1;
-     printf(" %" PRId64, remainder);
-   }
-
-   if (factors)
-     printf(" %" PRId64 "\n", value);
-   else
-     printf(" is a PRIME\n");
 
    return 0;
 }

@@ -100,6 +100,7 @@ virtual void
 //       Test std::async
 //
 //----------------------------------------------------------------------------
+extern void testAsync( void );      // (Not very far) Forward reference
 extern void
    testAsync( void )
 {

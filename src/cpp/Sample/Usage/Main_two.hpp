@@ -46,6 +46,7 @@ static int                          // Return code, always 0
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
 {
+   (void)argc; (void)argv;          // Currently unused
    throw NullPointerException("BOTCHED");
    return 2;                        // You can't get here from there
 }
@@ -70,6 +71,7 @@ static int                          // Return code, always 0
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
 {
+   (void)argc; (void)argv;          // Currently unused
    std::cout << "Hello from Main_two.hpp\n";
    return 0;
 }
@@ -81,7 +83,9 @@ static int                          // Return code, always 0
    list(                            // The built-in 'list' command
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
-{  std::string list= command.list();
+{
+   (void)argc; (void)argv;          // Currently unused
+   std::string list= command.list();
    std::cout << "Command list: " << list << std::endl << std::flush;
    return 0;
 }
@@ -108,6 +112,7 @@ static int                          // Return code, always 0
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
 {
+   (void)argc; (void)argv;          // Currently unused
    try {
      throw TemplateException("IS: TemplateException");
    } catch(TemplateException& x) {

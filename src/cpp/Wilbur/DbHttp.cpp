@@ -90,6 +90,7 @@ static int                          // Return code, 0 OK
      const Dbt*         vInp,       // (Input) value Dbt
      Dbt*               sKey)       // Resultant (secondary index)
 {
+   (void)db;                        // Unused
    if( *(uint64_t*)pKey->get_data() == 0 )
      return DB_DONOTINDEX;
 
@@ -114,6 +115,7 @@ static int                          // Return code, 0 OK
      const Dbt*         vInp,       // (Input) value Dbt
      Dbt*               sKey)       // Resultant (secondary index)
 {
+   (void)db;                        // Unused
    if( *(uint64_t*)pKey->get_data() == 0 )
      return DB_DONOTINDEX;
 
@@ -362,7 +364,7 @@ uint64_t                            // The Http index (0 if error)
        result= insertIX;
        insertIX++;
      }
-   } catch( DbException x ) {
+   } catch( DbException& x ) {
      debugf("DbHttp(%p)::insert(%s) exception(%s)\n", this,
             value->name, x.what());
    }
@@ -752,7 +754,7 @@ int                                 // Return code (0 if OK)
        rc= dbc->put(&pKey, &vOut, DB_CURRENT); // Replace the current entry
        DBDEBUG(rc, "db->put");
      }
-   } catch( DbException x ) {
+   } catch( DbException& x ) {
      rc= x.get_errno();             // Indicate error
      if( rc == 0 )                  // (Do not allow zero)
        rc= (-2);

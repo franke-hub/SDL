@@ -43,7 +43,7 @@ static double        steps= 128.0;  // Evaluation steps
 //       The function to be Evaluated
 //
 //----------------------------------------------------------------------------
-inline double                       // Resultant (y)
+static inline double                // Resultant (y)
    f(                               // The function
      double          x)             // Argument  (x)
 {
@@ -59,7 +59,7 @@ inline double                       // Resultant (y)
 //       The name of the function to be Evaluated
 //
 //----------------------------------------------------------------------------
-const char*                         // The function name
+static inline const char*           // The function name
    fName( void )                    // The function's name
 {
    return "sigmoid(x)= 1.0 / (1.0 + exp(-x))";
@@ -74,7 +74,7 @@ const char*                         // The function name
 //       Display local parameter information.
 //
 //----------------------------------------------------------------------------
-void
+static inline void
    fInfo( void )                    // Display local information
 {
 }
@@ -88,10 +88,11 @@ void
 //       Analyze a parameter.
 //
 //----------------------------------------------------------------------------
-int                                 // TRUE if valid
+static inline int                   // TRUE if valid
    fParm(                           // Analyze a parameter
      const char*     argp)          // -> Argument
 {
+   (void)argp;                      // (Parameter ignored)
    return FALSE;
 }
 
@@ -104,7 +105,7 @@ int                                 // TRUE if valid
 //       Display local values.
 //
 //----------------------------------------------------------------------------
-void
+static inline void
    fShow( void )                    // Display local values
 {
 }

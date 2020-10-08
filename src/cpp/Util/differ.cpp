@@ -140,7 +140,7 @@ static void
 //       Compare two files.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code
+static int                          // Return code
    differ(                          // Compare files
      char*           base,          // Base file
      char*           comp)          // Comparand

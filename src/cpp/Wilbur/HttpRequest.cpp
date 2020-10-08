@@ -250,7 +250,7 @@ int                                 // Return code (0 OK)
    int                 result= 0;   // Resultant
    char                chunk[4096]; // Request chunk size
 
-   unsigned length= retrieveLength(*this);
+   int length= retrieveLength(*this);
    Interval interval;
    for(;;)
    {

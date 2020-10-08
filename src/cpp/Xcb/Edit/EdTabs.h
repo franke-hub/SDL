@@ -16,7 +16,7 @@
 //       Editor: Tabs (placeholder)
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/07
 //
 //----------------------------------------------------------------------------
 #ifndef EDTABS_H_INCLUDED
@@ -54,6 +54,7 @@ public:
      Widget*           parent= nullptr) // Parent Widget
 :  EdMisc(128, 14, "EdTabs"), editor(editor)
 {
+   (void)parent;                    // TODO: Parent always first (possible?)
    if( opt_hcdm )
     debugh("EdTabs(%p)::EdTabs\n", this);
 }

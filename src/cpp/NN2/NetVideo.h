@@ -162,7 +162,7 @@ virtual RC                          // Fanin count
    fanin(                           // Process fanin
      Token             token,       // Token address
      Pulse             pulse)       // Weighted fanout value
-{  return 1; }                      // Base class implementation
+{  (void)token; (void)pulse; return 1; } // Base class implementation
 
 virtual RC                          // Fanin count
    fanout(                          // Process fanout

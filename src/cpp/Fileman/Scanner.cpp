@@ -16,7 +16,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2020/08/24
+//       2020/10/04
 //
 // Verifications-
 //       File permissions. (Auto-correctable)
@@ -918,7 +918,7 @@ static void
        int t_year= f_year;
        if( s_year.length() == 9 )
          t_year= string2int(s_year.substr(5));
-       if( f_year < 0 | t_year < f_year )
+       if( f_year < 0 || t_year < f_year )
          is_error= true;
 
        string owner=  (++tok_iter).remainder();
@@ -1210,7 +1210,7 @@ static void
 static void
    handle_html(                     // Handle an html file
      Data&             data)        // The content
-{  // TODO: NOT CODED YET
+{  (void)data; // TODO: NOT CODED YET
 }
 
 //----------------------------------------------------------------------------

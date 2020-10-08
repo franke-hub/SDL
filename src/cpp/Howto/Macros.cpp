@@ -16,7 +16,7 @@
 //       Sample program: Macro usage, including using enums for #defines
 //
 // Last change date-
-//       2020/06/29
+//       2020/10/04
 //
 // Usage notes-
 //       You need to look at the listing to verify that compiler optimization
@@ -99,9 +99,9 @@ static inline int                   // Always -1, for convenience
 //
 //----------------------------------------------------------------------------
 static int                          // Return code (0 OK)
-   init(                            // Initialize, for example
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   init(int, char**)                // Initialize, for example
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    int rc= 5;
    if( option::USE_VALUE )          // (We know it's false)
@@ -197,7 +197,10 @@ static void
 static int                          // Always returns 44
    empty_parm(                      // Empty subroutine, returns 44
      int               line)        // Caller's line number
-{  return 44; }                     // Placeholder
+{
+   (void)line;                      // Unused parameter
+   return 44;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -214,7 +217,7 @@ static int                          // Always returns 44
 static void
    empty_void(                      // Empty subroutine, no return value
      int               line = 0)    // Caller's line number (ignored)
-{  }                                // Placeholder
+{  (void)line; }                    // Placeholder, parameter ignored
 
 //----------------------------------------------------------------------------
 //
@@ -255,7 +258,7 @@ static inline int                   // Number of errors encountered
    printf("\ntest_macros(%d)\n",  USE_DEFINE_INSIDE_MACRO);
 
    // This just tests normal usage
-   unsigned opt_verbose= 0;         // (We're just testing here)
+   int opt_verbose= 0;              // (We're just testing here)
    IFVERBOSE(1,                     // 'Tis false
      error_count += should_not_occur(__LINE__);
    )

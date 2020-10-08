@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Dump GIF file.
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/04
 //
 //----------------------------------------------------------------------------
 #include <getopt.h>
@@ -103,18 +103,16 @@ static int                          // Number of bytes read (EOF not allowed!)
      void*             addr,        // Input address
      size_t            size)        // Input length
 {
-   int                 L;           // Number of bytes read
-
-   L= fread(addr, 1, size, fileHand);
+   ssize_t L= fread(addr, 1, size, fileHand);
    if( L <= 0 )
    {
      fprintf(stderr, "File(%s): ", fileName);
      perror("read error: ");
      throw Exception("Read error");
    }
-   else if( L < size )
+   else if( size_t(L) < size )
    {
-     fprintf(stderr, "File(%s): %d= read(%zd)\n", fileName, L, size);
+     fprintf(stderr, "File(%s): %zd= read(%zd)\n", fileName, L, size);
      throw Exception("Read error");
    }
 
@@ -760,10 +758,10 @@ extern int                          // Return code
 
      try {
        rc= readGIF();
-     } catch(Exception X) {
+     } catch(Exception& X) {
        printf("Error: %s\n", X.string().c_str());
        rc= 2;
-     } catch(std::exception X) {
+     } catch(std::exception& X) {
        printf("Error: exception(%s)\n", X.what());
        rc= 2;
      }

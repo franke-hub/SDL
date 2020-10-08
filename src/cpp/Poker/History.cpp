@@ -39,7 +39,7 @@
 //       Initialize an integer array.
 //
 //----------------------------------------------------------------------------
-int*                                // The resultant array
+static int*                         // The resultant array
    initIntArray(                    // Initialize an integer array
      int               count)       // Of this many elements
 {

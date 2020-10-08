@@ -234,7 +234,7 @@ static int                          // Number of active axons
    unsigned            minTrigger=   Neuron::minTrigger;
    unsigned            maxTrigger=   Neuron::maxTrigger;
 
-   int                 cycle;
+   unsigned            cycle;
    int                 triggered;
    int                 total;
 
@@ -350,7 +350,7 @@ static void
 //       Axon/Dendrite/Neuron test
 //
 //----------------------------------------------------------------------------
-extern int                          // Return code
+static int                          // Return code
    test0000(                        // Axon/Dendrite/Neuron test
      int               argc,        // Argument count
      char*             argv[])      // Argument array
@@ -380,11 +380,12 @@ extern int                          // Return code
 //       Synapse test (Hand-verification)
 //
 //----------------------------------------------------------------------------
-extern int                          // Return code
+static int                          // Return code
    test0001(                        // Synapse test
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
+   (void)argc; (void)argv;          // (Parameters ignored)
    const int INPS= 1024;            // Number of inputs
    const int OUTS= INPS/4;          // Number of outputs
 
@@ -498,11 +499,12 @@ extern int                          // Return code
 //       Synapse timing test
 //
 //----------------------------------------------------------------------------
-extern int                          // Return code
+static int                          // Return code
    test0002(                        // Synapse timing test
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
+   (void)argc; (void)argv;          // (Parameters ignored)
    const int INPS= 1024;            // Number of inputs
    const int OUTS= INPS/4;          // Number of outputs
    const int OtoI= (OUTS/8);        // Number of bytes to copy OUT to INP
@@ -643,7 +645,7 @@ extern int                          // Return code
 //       (The trigger, leakage, and input setting ratios are critical.)
 //
 //----------------------------------------------------------------------------
-extern int                          // Return code
+static int                          // Return code
    test0003(                        // Synapse timing test, large Neuron count
      int               argc,        // Argument count
      char*             argv[])      // Argument array
@@ -651,6 +653,7 @@ extern int                          // Return code
 #undef  MEMCPY
 #define MEMCPY 0                    // [[ Highly unstable ]]
 
+   (void)argc; (void)argv;          // (Parameters ignored)
    const int SIZE= 3000;            // Number of blocks
    const int INPS= 1024;            // Number of inputs
    const int OUTS= INPS/4;          // Number of outputs
@@ -910,18 +913,19 @@ extern int                          // Return code
 //       EXPERIMENTAL, MEMCPY ONLY
 //
 //----------------------------------------------------------------------------
-extern int                          // Return code
+static int                          // Return code
    test0004(                        // Synapse timing test, large Neuron count
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
+   (void)argc; (void)argv;          // (Parameters ignored)
    const int INPS= 1024;            // Number of inputs
    const int OUTS= INPS/4;          // Number of outputs
 
-   int                 bx0;         // B[0] index
-   int                 bx1;         // B[1] index
-   int                 bx2;         // B[2] index
-   int                 bx3;         // B[3] index
+   unsigned            bx0;         // B[0] index
+   unsigned            bx1;         // B[1] index
+   unsigned            bx2;         // B[2] index
+   unsigned            bx3;         // B[3] index
 
    Synapse*            sp0;         // B[0] Synapse*
    Synapse*            sp1;         // B[1] Synapse*

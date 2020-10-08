@@ -155,6 +155,7 @@ static void
 //       Test <vector>
 //
 //----------------------------------------------------------------------------
+extern void testVector( void );     // (Not very far) Forward reference
 extern void
    testVector( void )
 {

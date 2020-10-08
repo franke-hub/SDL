@@ -44,6 +44,7 @@
 //       NN_RDVAL(neuron[until]).
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_until_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_until_V(                      // nn_rdval(neuron[until])
      Neuron*           ptr_N,       // -> Neuron (Internal address)
@@ -88,12 +89,13 @@ extern NN::Value
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       NN_WHILE_V
+//       NN_while_V
 //
 // Function-
 //       NN_RDVAL(neuron[while]).
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_while_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_while_V(                      // nn_rdval(neuron[while])
      Neuron*           ptr_N,       // -> Neuron (Internal address)

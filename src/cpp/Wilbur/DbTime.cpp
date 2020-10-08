@@ -81,7 +81,7 @@ uint64_t                            // The index (0 if error)
      DbInfo*           assoc,       // Associated information
      DbTxn*            parent)      // Parent transaction
 {
-   return BRINGUP_INDEX;
+   (void)value; (void)assoc; (void)parent; return BRINGUP_INDEX;
 }
 
 //----------------------------------------------------------------------------
@@ -99,6 +99,7 @@ int                                 // Return code (0 if OK)
      DbInfo*           assoc,       // (OUT) Associated DbInfo (May be NULL)
      uint64_t*         value)       // (OUT) Expiration time (Julian second)
 {
+   (void)assoc;                     // (Unused) TODO: CHECK
    int result= (-1);
    if( index == BRINGUP_INDEX )
    {
@@ -144,6 +145,7 @@ uint64_t                            // Result (0 if error/missing/last)
      DbInfo*           assoc,       // (OUT) Associated DbInfo (May be NULL)
      uint64_t*         value)       // (OUT) value (Julian second)
 {
+   (void)assoc;                     // (Unused) TODO: CHECK
    uint64_t result= 0;
    if( index == 0 )
    {
@@ -189,6 +191,7 @@ int                                 // Return code (0 if OK)
      DbInfo*           assoc,       // (OUT) Associated DbInfo (May be NULL)
      uint64_t*         value)       // (OUT) Expiration time (Julian second)
 {
+   (void)assoc; (void)value;        // (Unused) TODO: CHECK
    int result= (-1);
    if( index == BRINGUP_INDEX )
      result= 0;

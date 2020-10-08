@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Dump object file.
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/04
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -345,9 +345,9 @@ static IMAGE_ROM_OPTIONAL_HEADER
 //
 //----------------------------------------------------------------------------
 static void
-   info(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   info(int, char**)                // Mainline code
+//   int               argc,        // Argument count (Currently unused)
+//   char*             argv[])      // Argument array (Currently unused)
 {
    fprintf(stderr, "%s filename ...\n", __SOURCE__);
    exit(EXIT_FAILURE);
@@ -473,15 +473,13 @@ static int                          // Number of bytes read
      void*             addr,        // Input address
      unsigned          size)        // Input length
 {
-   int                 L;           // Number of bytes read
-
-   L= fread(addr, 1, size, fileHand);
+   int L= fread(addr, 1, size, fileHand);
    if( L < 0 )
    {
      fprintf(stderr, "File(%s): ", fileName);
      perror("read error");
    }
-   else if( L < size )
+   else if( unsigned(L) < size )
    {
      fprintf(stderr, "File(%s): %d= read(%u)\n", fileName, L, size);
      L= (-1);
@@ -507,8 +505,6 @@ static int                          // Return code
    char                string[32];  // Working string
    int                 L;           // Read length
    int                 S;           // Seek offset
-
-   int                 i;
 
    //-------------------------------------------------------------------------
    // Read the file dosHeader
@@ -611,7 +607,7 @@ static int                          // Return code
 
      if( result == 0 )
      {
-       for(i= 0; i<ntsHeader.OptionalHeader.NumberOfRvaAndSizes; i++)
+       for(unsigned i= 0; i<ntsHeader.OptionalHeader.NumberOfRvaAndSizes; i++)
        {
          printf("                         [%2d] %.8lx.%.8lx\n", i,
           (long)ntsHeader.OptionalHeader.DataDirectory[i].VirtualAddress,
@@ -645,7 +641,7 @@ static int                          // Return code
        return 1;
 
      memset(string, 0, sizeof(string));
-     for(i= 0; i<sectCount; i++)
+     for(unsigned i= 0; i<sectCount; i++)
      {
        L= readf(&section[i], sizeof(section[i]));
        if( L <= 0 )

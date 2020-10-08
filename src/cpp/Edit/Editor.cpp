@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2018 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor object methods.
 //
 // Last change date-
-//       2018/01/01 (Version 2, Release 1) - Mouse wheel support
+//       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>
@@ -277,6 +277,8 @@ void
 
    mark->debug("Editor");
    status->debug("Editor");
+#else                               // Parameter ignored unless HCDM
+   (void)message;
 #endif
 }
 
@@ -1304,21 +1306,19 @@ unsigned                            // Next tab stop
 //----------------------------------------------------------------------------
 unsigned                            // Next tab stop
    Editor::tabRight(                // Tab right
-     unsigned          column)      // From this column
+     unsigned          inpcol)      // From this column
 {
-   int                 i;
+   unsigned outcol= ((inpcol+8)/8*8); // Next default tab stop
 
-   for(i= 0; i<tabUsed; i++)
+   for(unsigned i= 0; i<tabUsed; i++)
    {
-     if( tabStop[i] > column )
+     if( tabStop[i] > inpcol ) {
+       outcol= tabStop[i];
        break;
+     }
    }
 
-   column= ((column+8)/8*8);        // Next default tab stop
-   if( i < tabUsed )
-     column= tabStop[i];
-
-   return column;
+   return outcol;
 }
 
 //----------------------------------------------------------------------------
@@ -1441,7 +1441,7 @@ const char*                         // (The input format string)
      va_start(argptr, fmt);         // Initialize va_ functions
      int L= vsnprintf(string, sizeof(string)-1, fmt, argptr); // Create string in buffer
      va_end(argptr);                // Close va_ functions
-     if( L >= sizeof(string) )
+     if( size_t(L) >= sizeof(string) )
        string[sizeof(string) - 1]= '\0';
 
      status->message(MSG_WARN, string);

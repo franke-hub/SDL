@@ -92,7 +92,7 @@ static inline Command*              // The built-in command instance
    return _command;
 }
 
-inline const Function               // The function
+inline Function                     // The function
    get(                             // Get dictionary entry
      const char*       name)        // The entry name
 {

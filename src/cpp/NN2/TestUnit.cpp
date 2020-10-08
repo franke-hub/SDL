@@ -257,4 +257,3 @@ extern int                          // Return code
    debugf("%d Error%s encountered\n", error_count, error_count == 1 ? "" : "s");
    return error_count == 0 ? 0 : 1;
 }
-

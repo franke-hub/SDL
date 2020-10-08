@@ -41,7 +41,7 @@
 {
    if( bundle != NULL )
    {
-     for(int x= 0; x<bCount; x++)
+     for(unsigned x= 0; x<bCount; x++)
      {
        delete bundle[x];
        bundle[x]= NULL;
@@ -77,7 +77,7 @@
      throw "SynapseBundle: Storage shortage";
    memset(bundle, 0, bCount*sizeof(Synapse*)); // All entries NULL
 
-   for(int x= 0; x<bCount; x++)
+   for(unsigned x= 0; x<bCount; x++)
    {
      bundle[x]= new Synapse(iCount, oCount);
      if( bundle[x] == NULL )
@@ -97,7 +97,7 @@
 void
    SynapseBundle::update( void )    // Read inputs, write outputs
 {
-   for(int x= 0; x<bCount; x++)
+   for(unsigned x= 0; x<bCount; x++)
      bundle[x]->update();
 }
 

@@ -93,7 +93,7 @@ static int             RECODE[256]; // Recoding table
 ,  checksum()
 ,  size(0)
 {
-   int                 i;
+   unsigned            i;
 
    // Only initialize static areas once
    if( init != 0 )

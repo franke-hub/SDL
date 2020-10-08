@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement ClientThread object methods
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <exception>
@@ -770,7 +770,7 @@ long                                // Return code (always 0)
    } catch( const char* X ) {
      fprintf(stderr, "Client: exception(%s)\n", X);
               msglog("Client: exception(%s)\n", X);
-   } catch( std::exception X ) {
+   } catch( std::exception& X ) {
      fprintf(stderr, "Client: exception(%s)\n", X.what());
               msglog("Client: exception(%s)\n", X.what());
    } catch(...) {
@@ -928,6 +928,8 @@ void
    #ifdef USE_ASYNCHRONOUS_LOADER
      if( dirList != NULL )          // If not the base DirEntry
        dirList->wait();             // Wait for dirEntry->list to be set
+   #else
+     (void)dirList;                 // (Parameter unused in this path)
    #endif
    clientL= dirEntry->list;         // Get the sorted subdirectory list
    clientP= NULL;                   // Indicate first entry

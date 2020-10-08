@@ -16,7 +16,7 @@
 //       Signal descriptor.
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/07
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_SIGNAL_H_INCLUDED
@@ -209,8 +209,9 @@ public:
    Signal(
      Widget*           owner,       // The owning Widget
      const char*       name= nullptr) // Signal name
-:  Named(name ? name : "Signal"), owner(owner)
+:  Named(name ? name : "Signal")
 ,  list(std::make_shared<ListenerList<Event>>())
+,  owner(owner)
 {
    if( opt_hcdm )
      debugf("Signal(%p)::Signal(%p,%s)\n", this, owner, get_name().c_str());

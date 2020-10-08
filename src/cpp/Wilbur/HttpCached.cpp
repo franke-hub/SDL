@@ -141,7 +141,7 @@ int                                 // Return code (0 OK)
 
    uint64_t            httpIX;      // The DbHttp index
    uint64_t            textIX;      // The DbText index
-   uint64_t            timeEX;      // Expiration time (Julian second)
+   int64_t             timeEX;      // Expiration time (Julian second)
 
    Julian              now;         // The current time
 

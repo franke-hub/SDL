@@ -78,9 +78,9 @@ static void snap(const void* _addr, long _size) {
 //
 //----------------------------------------------------------------------------
 int                                 // Return code
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    const char*         test =
                            " !\"#$%&\'()*+,-./"

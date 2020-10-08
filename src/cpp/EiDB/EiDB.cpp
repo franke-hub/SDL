@@ -79,7 +79,7 @@ struct Segment {                    // Line array segment
 //       Allocate a Segment
 //
 //----------------------------------------------------------------------------
-Segment*                            // -> Segment
+static Segment*                     // -> Segment
    allocateSegment( void )          // Allocate a Segment
 {
    Segment*            ptrS;        // Working Segment pointer
@@ -104,13 +104,11 @@ Segment*                            // -> Segment
 //       Release a Segment
 //
 //----------------------------------------------------------------------------
-void
+static void
    releaseSegment(                  // Release a Segment
      Segment*          ptrS)        // Segment to release
 {
-   int                 i;
-
-   for(i=0; i<ptrS->used; i++)
+   for(unsigned i=0; i<ptrS->used; i++)
      free(ptrS->line[i]);
 
    free(ptrS);

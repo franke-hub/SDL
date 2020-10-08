@@ -47,6 +47,7 @@ static int                          // Return code, always 0
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
 {
+   (void)argc; (void)argv;          // Currently unused
    throw NullPointerException("BOTCHED");
    return 2;                        // You can't get here from there
 }
@@ -61,7 +62,8 @@ static int                          // Return code, always 0
    echo(                            // The echo command
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
-{  for(int i= 0; i<argc; i++)
+{
+   for(int i= 0; i<argc; i++)
      printf("[%2d] '%s'\n", i, argv[i]);
    return 0;
 }
@@ -76,6 +78,7 @@ static int                          // Return code, always 0
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
 {
+   (void)argc; (void)argv;          // Currently unused
    std::cout << "Hello from Main_one.hpp\n";
    return 0;
 }
@@ -89,7 +92,9 @@ static int                          // Return code, always 0
    list(                            // The built-in 'list' command
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
-{  std::string list= command.list();
+{
+   (void)argc; (void)argv;          // Currently unused
+   std::string list= command.list();
    std::cout << "Command list: " << list << std::endl << std::flush;
    return 0;
 }
@@ -118,6 +123,7 @@ static int                          // Return code, always 0
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
 {
+   (void)argc; (void)argv;          // Currently unused
    try {
      throw TemplateException("IS: TemplateException");
    } catch(TemplateException& x) {
@@ -142,7 +148,9 @@ static int                          // Return code, always 0
    try_(                            // The 'try' command
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
-{  std::cout << "try worked. It does nothing but write this message.\n";
+{
+   (void)argc; (void)argv;          // Currently unused
+   std::cout << "try worked. It does nothing but write this message.\n";
    return 0;
 }
 
@@ -158,6 +166,7 @@ INSTALL_COMMAND_NAME("try", try_, Main_one::try_)
 //       The Main_one command processor.
 //
 //----------------------------------------------------------------------------
+int main(int, const char**);        // Main_one::main
 int                                 // Return code
    main(                            // Mainline entry
      int             argc,          // Parameter count

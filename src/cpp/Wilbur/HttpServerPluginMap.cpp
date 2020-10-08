@@ -56,7 +56,7 @@ using namespace std;
 //       ABORT, invalid file.
 //
 //----------------------------------------------------------------------------
-void
+static void
    invalidFile(                     // Handle invalid file
      const char*       name,        // With this name
      const string&     text= "")    // Addendum

@@ -273,9 +273,9 @@ char*                               // Next item in sequence
    Extractor::getNext(              // Extract the next Item
      unsigned          lineNo)      // Input line number (for messages)
 {
-   char*               result;      // Resultant
+   (void)lineNo;                    // (Parameter currently unused)
 
-   result= gene;
+   char* result= gene;
    gene= NULL;
    return result;
 }

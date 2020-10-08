@@ -124,6 +124,7 @@ virtual int
    doSomething( void )              // Implements Interface
 {
    printf("SAMPLEINTERFACE1 does something\n");
+   return 0;
 }
 }; // class SampleInterface1
 
@@ -165,6 +166,7 @@ virtual int
    doSomething( void )              // Implements Interface
 {
    printf("SAMPLEINTERFACE2 does something else\n");
+   return 0;
 }
 }; // class SampleInterface2
 #endif  // SAMPLEINTERFACE_H_INCLUDED

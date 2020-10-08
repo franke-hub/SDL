@@ -47,7 +47,7 @@ static double        scale= 0.0;    // Scale override value
 //       Prepare to plot.
 //
 //----------------------------------------------------------------------------
-void
+static inline void
    prePlot( void )                  // Prepare to plot
 {
    double            delta;         // The step factor
@@ -93,18 +93,16 @@ void
 //       Plot a value.
 //
 //----------------------------------------------------------------------------
-inline void
+static inline void
    plot(                            // Plot
      double            x)           // X Value
 {
    unsigned            m;
    double              y= PLOTF(x);
 
-   int                 i;
-
    fprintf(plotFile, "x(%12.6f) y(%12.6f)", x, y);
    m= (unsigned)((y-plotMin)*plotScale);
-   for(i=0; i<m; i++)
+   for(unsigned i=0; i<m; i++)
      fprintf(plotFile, " ");
    fprintf(plotFile, "*\n");
 }
@@ -118,7 +116,7 @@ inline void
 //       Close plot file.
 //
 //----------------------------------------------------------------------------
-void
+static inline void
    endPlot( void )                  // Close plot file
 {
    fclose(plotFile);

@@ -41,6 +41,7 @@
 //       Bringup test.
 //
 //----------------------------------------------------------------------------
+extern void test00( void );         // (Not very far) Forward reference
 extern void
    test00( void )
 {
@@ -56,6 +57,7 @@ extern void
 //       Test Thingy.
 //
 //----------------------------------------------------------------------------
+extern void testThingy( void );     // (Not very far) Forward reference
 extern void
    testThingy( void )
 {

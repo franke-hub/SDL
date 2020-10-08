@@ -43,7 +43,7 @@ public:
 // Object::Methods
 //----------------------------------------------------------------------------
 public:
-virtual int                         // Comparitor (<0, =0, >0)
+int                                 // Comparitor (<0, =0, >0)
    compare(                         // Compare this object
      Object*           source);     // To this Object
 

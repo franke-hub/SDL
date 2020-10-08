@@ -191,8 +191,8 @@ static void
 //
 //----------------------------------------------------------------------------
    Message::Message( void )         // Constructor
-:  callback(&defaultCallback)
-,  subpool()
+:  subpool()
+,  callback(&defaultCallback)
 {
    int                 i;
 
@@ -265,7 +265,7 @@ int                                 // Return code (0 OK)
    char                text[1024];  // Message text
 
    int                 C;           // Current character
-   int                 i;
+   unsigned            i;
 
    if( reader.open(fileName) != 0 )
    {
@@ -445,9 +445,9 @@ void
 
    char*               ptrC;        // -> String
    int                 C;           // Current character
-   int                 X;           // Current index
+   unsigned            X;           // Current index
    int                 i;
-   int                 j;
+   unsigned            j;
 
    ptrLink= locate(ident);          // Locate the message
    if( ptrLink == NULL )

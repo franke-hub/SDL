@@ -769,7 +769,7 @@ int                                 // Return code
    // Validate the RFT internal storage map
    char* storage= (char*)this->storage;
    storage += 4095;
-   storage= (char*)(long(storage) & 0xfffff000);
+   storage= (char*)(intptr_t(storage) & intptr_t(-4095));
    for(i=0; i<rframes; i++)
    {
      ptrrfd= &rfdall[i];
@@ -824,6 +824,7 @@ int                                 // Return code
 
    long                i;
 
+// debugf("%4d HCDM PGS\n", __LINE__); debugSetIntensiveMode();
    tracef("\n\n");
    tracef("VHash Array\n"
           "-----------\n");
@@ -890,7 +891,7 @@ int                                 // Return code
 void
    PGS::statistics( void )          // Statistics display
 {
-   int                 i;
+   unsigned            i;
 
    //-------------------------------------------------------------------------
    // Statistics
@@ -1141,7 +1142,7 @@ PGS::VFD*                           // -> VFD
    long                size;        // Working size
    long                H;           // Hash index
 
-   int                 i;
+   unsigned            i;
 
    //-------------------------------------------------------------------------
    // Insure that the frame is not already mapped
@@ -1204,7 +1205,7 @@ PGS::VFD*                           // -> VFD
    // Allocate an external frame
    //-------------------------------------------------------------------------
    if( fileno < 0                   // If fileno too small
-       ||fileno >= fileu )          // or fileno too large
+       ||unsigned(fileno) >= fileu ) // or fileno too large
    {
      errorf("allocateVFD invalid file(%d)\n", fileno);
      fileno= 0;
@@ -1836,7 +1837,7 @@ void
    RFD*                ptrrfd;      // Pointer to real frame descriptor
 
    int32_t             vaddr;       // Disk offset
-   int                 i;           // General index variable
+   unsigned            i;           // General index variable
 
    //-------------------------------------------------------------------------
    // No cleanup unless initialized
@@ -1977,7 +1978,7 @@ int                                 // Return code
    RFD*                ptrrfd;      // Pointer to real frame descriptor
 
    long                size;        // Temporary work variable
-   int                 i;           // General index variables
+   unsigned            i;           // General index variables
 
    //-------------------------------------------------------------------------
    // Validate the parameters
@@ -2036,7 +2037,7 @@ framesize_OK:
    }
 
    char* p= (char*)storage + 4095;
-   p= (char*)(long(p) & 0xfffff000);
+   p= (char*)(intptr_t(p) & intptr_t(-4095));
    for(i=0; i<realframeno; i++)     // Initialize the array
    {
      ptrrfd= &rfdall[i];
@@ -2086,7 +2087,7 @@ framesize_OK:
      term();
      return PGSINIT_MEMORY;
    }
-   memset(fdlist, 0, size);         // Clear the array
+   memset((char*)fdlist, 0, size);  // Clear the array
 
    files= fileno;
    fileu= 0;
@@ -2203,7 +2204,7 @@ int                                 // Return code (see init)
    int32_t             vaddr;       // File position
 
    int                 rc;
-   int                 i;
+   unsigned            i;
 
    //-------------------------------------------------------------------------
    // Read the control file header
@@ -2405,8 +2406,8 @@ int                                 // The inserted file number (if >0)
        return (-1);
      }
 
-     memset(ptriod, 0, size);
-     memcpy(ptriod, fdlist, fileu*sizeof(IOD));
+     memset((char*)ptriod, 0, size);
+     memcpy((char*)ptriod, fdlist, fileu*sizeof(IOD));
      free(fdlist);
      fdlist= ptriod,
      this->files= files;

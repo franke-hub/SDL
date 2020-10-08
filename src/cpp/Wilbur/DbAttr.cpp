@@ -82,6 +82,7 @@ static int                          // Return code, 0 OK
      const Dbt*         vDbt,       // Value Dbt descriptor
      Dbt*               sDbt)       // Resultant (secondary index)
 {
+   (void)db;                        // (Unused)
    uint64_t index= DbBase::fetch64((uint64_t*)xDbt->get_data());
    if( index <= 1 )
      return DB_DONOTINDEX;
@@ -397,6 +398,7 @@ int                                 // Return code (0 OK)
      uint64_t          assoc,       // The association link or value
      DbTxn*            parent)      // Parent transaction
 {
+   (void)parent;                    // (Unused)
    int                 result= (-1);// Resultant
    Attribute           aBuff[DIM_ATTRIB]; // Association buffer
    uint64_t            xBuff;       // Index buffer
@@ -405,7 +407,7 @@ int                                 // Return code (0 OK)
    Dbt                 vDbt;        // Value Dbt
    Dbt                 vRet;        // Value Dbt (Returned)
 
-   int                 i;
+   unsigned            i;
    int                 rc;
 
    //-------------------------------------------------------------------------
@@ -700,7 +702,7 @@ int                                 // Return code (0 OK)
      uint64_t          index,       // For this index
      unsigned          key)         // And this key
 {
-   return (-1); // NOT CODED YET
+   (void)index; (void)key; return (-1); // NOT CODED YET
 }
 
 //----------------------------------------------------------------------------

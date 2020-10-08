@@ -69,13 +69,13 @@ virtual RC                          // Fanin count
    fanin(                           // Process fanin
      Token             token,       // Storage locator
      Pulse             pulse)       // Weighted fanout value
-{  return 1; }                      // Base class implementation
+{  (void)token; (void)pulse; return 1; } // Base class implementation
 
 virtual RC                          // Fanin count
    fanout(                          // Process fanout
      Token             token,       // Starting Token
      Count             count)       // Token count
-{  return 0; }                      // Base class implementation
+{  (void)token; (void)count; return 0; } // Base class implementation
 
 virtual Count                       // The number of associated Tokens
    length( void ) const             // Return the associated Token count

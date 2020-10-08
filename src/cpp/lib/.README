@@ -1,0 +1,42 @@
+##############################################################################
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/cpp/lib/.README
+##
+## Purpose-
+##       Development status, history, and reminders.
+##
+## Last change date-
+##       2020/10/07
+##
+##############################################################################
+
+##############################################################################
+## STATUS:
+2020/10/07 Updated for compiler options: -Wall -Wextra -Werror
+
+##############################################################################
+## FEATURES:
+
+##############################################################################
+## BUGS:
+
+##############################################################################
+## TODO:
+2020/10/07 Add compiler option -Wconversion (and possibly -Warith-conversion)
+2020/10/07 Add compiler option -Wshadow (Big effort: extensive shadowing)
+
+##############################################################################
+## FIXED:
+
+##############################################################################
+## CLOSED:
+

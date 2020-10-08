@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2006-2016 Frank Eskesen.
+//       Copyright (C) 2006-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       determine what dependencies to put in PROJECT and MAKE files.
 //
 // Last change date-
-//       2016/01/01
+//       2020/10/07
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -655,16 +655,16 @@ unsigned int                        // HASH(fileName)
      Type            type,          // Entity Type
      const char*     descName,      // Desc name (may be qualified)
      const char*     pathName)      // Path name (may be NULL)
-:  child(NULL)
-,  isCompiled(FALSE)
+:  isCompiled(FALSE)
 ,  isExistant(FALSE)
 ,  isHandled(FALSE)
 ,  isInclude(FALSE)
 ,  isSource(FALSE)
-,  nextHash(NULL)
 ,  type(type)
+,  nextHash(NULL)
+,  nextSource(NULL)
+,  child(NULL)
 {
-   Depend*           ptrDepend;     // -> Depend
    unsigned int      hashX;         // Hash index
 
 #if DEBUGGING
@@ -1845,7 +1845,6 @@ static void
    char*             ptrC;          // Generic character
    char*             pathSpec;      // -> Path specifier
 
-   Depend*           ptrDepend;     // -> Depend descriptor
    Entity*           ptrEntity;     // -> Entity
    FILE*             inpFile;       // Input file
 
@@ -1995,7 +1994,6 @@ static void
    char              outWord[2048]; // Input word
    const char*       ptrC;          // Generic character
 
-   Depend*           ptrDepend;     // -> Depend
    Entity*           priEntity;     // -> Primary Entity
    Entity*           ptrEntity;     // -> Entity
    FILE*             ptrFile;       // -> FILE
@@ -2276,13 +2274,9 @@ int                                 // Return code
 {
    char              inpName[FILENAME_SIZE]; // The input file name
 
-   char*             ptrC;          // -> Generic character
-   Depend*           ptrDepend;     // -> Depend
-   Entity*           prvEntity;     // -> Entity
    Entity*           ptrEntity;     // -> Entity
    FILE*             inpFile;       // Input file
 
-   unsigned int      hashX;
    int               i;
 
    // Initialize

@@ -57,6 +57,7 @@ COPTS  += -Wall ################### Activate the following warnings
 COPTS  += -Wextra ################# Extra warnings for some events
 ###### += -Wchar-subscripts ####### Array subscript of type char
 ###### += -Wcomment ############### Comment within a comment
+ignore += -Wconversion ############ Implicit conversion can change value
 ###### += -Wdangling-else ######### Possible if-else confusion
 ###### += -Wformat ################ Extensive printf, etc. checking
 ###### += -Wimplicit ############## Implicit function or parameter

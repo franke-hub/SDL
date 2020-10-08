@@ -194,7 +194,7 @@ static void
 //       Copy input file into output file.
 //
 //----------------------------------------------------------------------------
-void
+static void
    inp2out( void )                  // Copy stdin to stdout
 {
    int                 blankCount;  // Number of skipped blanks

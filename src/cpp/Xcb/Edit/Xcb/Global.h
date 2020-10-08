@@ -16,7 +16,7 @@
 //       Global data areas and utilities
 //
 // Last change date-
-//       2020/09/30
+//       2020/10/07
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_GLOBAL_H_INCLUDED
@@ -67,6 +67,7 @@ extern uint32_t        keystate;    // THE Global keyboard state
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       xcb::debug_flush
 //       xcb::debugf
 //       xcb::debugh
 //       xcb::tracef
@@ -76,6 +77,9 @@ extern uint32_t        keystate;    // THE Global keyboard state
 //       Debugging interfaces, the same as ::pub::debugging
 //
 //----------------------------------------------------------------------------
+void
+   debug_flush( void );             // Flush write the trace file
+
 void
    debugf(                          // Write to trace and stdout
      const char*       fmt,         // The PRINTF format string

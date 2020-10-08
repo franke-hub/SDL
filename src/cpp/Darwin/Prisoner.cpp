@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       (Scientic American, July, 1992)
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -78,16 +78,14 @@ static Random&         RNG= Random::standard; // Our random number generator
 :  DarwinUnit()
 ,  ptrPrison(NULL)
 {
-   int               i;
-
 #ifdef HCDM
    debugf("Prisoner(%p)::Prisoner()\n", this);
 #endif
 
-   for(i=0; i<sizeof(rule); i++)
+   for(size_t i=0; i<sizeof(rule); i++)
      rule[i]= RNG.get();
 
-   for(i=0; i<PrisonerCount; i++)
+   for(int i=0; i<PrisonerCount; i++)
      historyArray[i]= RNG.get();
 }
 
@@ -186,14 +184,12 @@ Prisoner::Evaluation                // Evaluation
    int                 ourNew;
 #endif
 
-   int                 i;
-
    ptrPrison= this->ptrPrison;
    assert(ptrPrison != NULL);
 
    // Evaluate
    used= ptrPrison->getUsed();
-   for(i=0; i<used; i++)
+   for(unsigned i=0; i<used; i++)
    {
      ptrPrisoner= (Prisoner*)((ptrPrison->getUnit(i))->castConcrete());
      if( this != ptrPrisoner && RNG.isTrue(ptrPrison->probTest) )
@@ -259,8 +255,6 @@ void
    Prisoner*           father= (Prisoner*)(inpFather->castConcrete());
    Prisoner*           mother= (Prisoner*)(inpMother->castConcrete());
 
-   int                 i;
-
    ptrPrison= this->ptrPrison;
    assert( ptrPrison != NULL );
 
@@ -283,7 +277,7 @@ void
 
    if( forgetNewUnits )
    {
-     for(i= 0; i<PrisonerCount; i++)
+     for(unsigned i= 0; i<PrisonerCount; i++)
      {
        // Our history array is no longer valid
        historyArray[i]= RNG.get();
@@ -292,7 +286,7 @@ void
 
    if( newUnitsForget )
    {
-     for(i= 0; i<PrisonerCount; i++)
+     for(unsigned i= 0; i<PrisonerCount; i++)
      {
        // His history array is no longer valid
        ptrPrisoner= (Prisoner*)((ptrPrison->getUnit(i))->castConcrete());

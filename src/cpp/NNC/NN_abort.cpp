@@ -69,6 +69,7 @@ static void
 //       READ_STR(Neuron[abort]).
 //
 //----------------------------------------------------------------------------
+extern NN::String NN_abort_S(Neuron*, NN::FileId); // (Defined where needed)
 extern NN::String
    NN_abort_S(                      // read_str(neuron[abort])
      Neuron*           ptr_N,       // -> Neuron (Internal address)
@@ -90,6 +91,7 @@ extern NN::String
 //       NN_RDVAL(neuron[abort]).
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_abort_V(Neuron*, NN::FileId); // (Defined where needed)
 extern NN::Value
    NN_abort_V(                      // nn_rdval(neuron[abort])
      Neuron*           ptr_N,       // -> Neuron (Internal address)

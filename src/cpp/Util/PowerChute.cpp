@@ -263,9 +263,9 @@ static int                          // Return code
 //
 //----------------------------------------------------------------------------
 extern int                          // Return code
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     const char*       argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    int                 rc;          // Return code
 

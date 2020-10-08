@@ -34,9 +34,9 @@
 //
 //----------------------------------------------------------------------------
 int
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     const char*       argv[])      // Argument list
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count (Unused)
+//   const char*       argv[])      // Argument array (Unused)
 {
    tracef("This only goes to debug.log\n");
    debugf("This goes to stdout and debug.log\n");

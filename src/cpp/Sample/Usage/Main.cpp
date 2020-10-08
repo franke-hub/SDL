@@ -34,6 +34,7 @@ static int                          // Return code, always 0
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
 {
+   (void)argc; (void)argv;          // Currently unused
    return 1;
 }
 
@@ -47,6 +48,7 @@ static int                          // Return code, always 0
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
 {
+   (void)argc; (void)argv;          // Currently unused
    std::cout << "Hello from Main.cpp\n";
    return 0;
 }
@@ -76,7 +78,9 @@ inline static int                   // Return code, always 0
    unused(                          // The 'unused' command
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
-{  printf("Unused via comment out\n");
+{
+   (void)argc; (void)argv;          // Currently unused
+   printf("Unused via comment out\n");
    return 1;
 }
 
@@ -97,6 +101,7 @@ int                                 // Return code
      int             argc,          // Parameter count
      const char*     argv[])        // Parameter vector
 {
+   (void)argc; (void)argv;          // Currently unused
    return INSTALL_COMMAND_AT.main(argc, argv);
 }
 

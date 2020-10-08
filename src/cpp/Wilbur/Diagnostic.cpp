@@ -59,7 +59,7 @@ void
      const char*       buffer,      // Buffer address
      unsigned          length)      // Buffer length
 {
-   int                 offset;      // Working buffer offset
+   unsigned            offset;      // Working buffer offset
    int                 C;           // Current character
 
    for(offset= 0; offset<length; offset++)
@@ -81,7 +81,7 @@ void
    int X= 0;
    for(offset= 0; offset < length; offset++)
    {
-     if( X >= (sizeof(temp)-2) )
+     if( size_t(X) >= (sizeof(temp)-2) )
      {
        temp[sizeof(temp)-1]= '\0';
        logf("%s %s...[%u]\n", prefix, temp, length);
@@ -177,7 +177,7 @@ int                                 // Return code, 0 OK
 {
    int                 result= 0;   // Resultant
    int                 L;           // Receive length
-   int                 x;           // Buffer index
+   unsigned            x;           // Buffer index
 
    x= 0;
    for(;;)

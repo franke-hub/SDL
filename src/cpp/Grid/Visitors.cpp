@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2011-2018 Frank Eskesen.
+//       Copyright (c) 2011-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Read the log, looking for visitors to a SIM.
 //
 // Last change date-
-//       2018/01/01 [Adapt to log message change.]
+//       2020/10/04 (More compiler warnings)
 //
 // Parameters-
 //       Optional: -npc (Include NPC avatars.)
@@ -84,7 +84,7 @@
 //       Return Julian for today's date
 //
 //----------------------------------------------------------------------------
-Julian                              // Resultant
+static Julian                       // Resultant
    getToday( void )                 // Get Julian for today's date
 {
    time_t              now_time_t;  // Current time

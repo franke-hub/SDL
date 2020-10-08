@@ -136,6 +136,7 @@ static void
 //       Test <string>
 //
 //----------------------------------------------------------------------------
+extern void testString( void );     // (Not very far) Forward reference
 extern void
    testString( void )
 {

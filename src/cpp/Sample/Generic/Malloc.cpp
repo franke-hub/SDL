@@ -88,9 +88,9 @@ static int                          // Error count
    Data*               head;        // First Data pointer
    Data*               tail;        // Last Data pointer
    Data*               data;        // Current Data pointer
-   int                 last;        // Last random value
+   unsigned            last;        // Last random value
 
-   int                 i, j;
+   size_t              i, j;
 
    syslog(LOG_INFO, "MALLOC: test01: %d blocks of size %zd\n",
           DIM_DATA, sizeof(Data));
@@ -180,10 +180,11 @@ static int                          // Error count
 //       MALLOC test
 //
 //----------------------------------------------------------------------------
-int                                 // Error count
-   malloc(                          // MALLOC test
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+extern int malloc(int, char**);     // (Not very far) Forward reference
+extern int                          // Error count
+   malloc(int, char**)              // MALLOC test
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    int                 errorCount= 0; // Error count
 

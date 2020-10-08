@@ -16,7 +16,7 @@
 //       Display files in the current directory, long format.
 //
 // Last change date-
-//       2020/06/13
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                // Used in timeTest
@@ -202,17 +202,17 @@ static char*                        // Resultant
 {
    char                temp[32];    // temporary string
    int                 L;           // Length of temporary
-   int                 sign;        // Sign of result
+// int                 sign;        // Sign of result (Value is UNSIGNED)
 
    int                 m;           // Modulo remainder
    int                 comma;       // Comma indicator
 
-   sign= 1;
-   if( value < 0 )
-   {
-     sign= (-1);
-     value= -value;
-   }
+// sign= 1;
+// if( value < 0 )                  // Value is UNSIGNED (must be positive)
+// {
+//   sign= (-1);
+//   value= -value;
+// }
 
    L= 0;
    comma= 3;
@@ -230,8 +230,8 @@ static char*                        // Resultant
    }
    if( L == 0 )
      temp[L++]= '0';
-   if( sign < 0 )
-     temp[L++]= '-';
+// if( sign < 0 )                   // Value is UNSIGNED (must be positive)
+//   temp[L++]= '-';
    while( L < 14 )
      temp[L++]= ' ';
    while( L > 0 )
@@ -592,7 +592,7 @@ static void
 //       Test Calendar/Clock/Julian.
 //
 //----------------------------------------------------------------------------
-void
+static inline void                  // (May be unused)
    timeTest( void )                 // Display the directory tree
 {
    double   tod= 86400;             // 01/02/1970

@@ -97,8 +97,8 @@ enum
 
    unsigned          index0;        // First used history index
    unsigned          indexN;        // Highest used history index
-   unsigned          julian0;       // Julian date associated with index0
-   unsigned          julianN;       // Julian date associated with indexN
+   int               julian0;       // Julian date associated with index0
+   int               julianN;       // Julian date associated with indexN
 
    struct Evaluation
    {

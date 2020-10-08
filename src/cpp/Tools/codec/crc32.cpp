@@ -41,7 +41,7 @@
 //       Display CRC32 for file.
 //
 //----------------------------------------------------------------------------
-void
+static void
    crc32(                           // Display CRC32
      char*             name)        // File name
 {

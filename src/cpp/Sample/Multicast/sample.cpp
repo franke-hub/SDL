@@ -670,7 +670,7 @@ virtual int
 //       List the interfaces
 //
 //----------------------------------------------------------------------------
-void
+static void
    list( void )                     // List the interfaces
 {
    Common common("common");         // For formatAddrinfo
@@ -854,7 +854,7 @@ static void
          if( j >= argc ) {
            error= TRUE;
            fprintf(stderr, "Missing interface index\n");
-         } else
+         } else {
            ifIndex= atol(argv[j]);
            if( ifIndex < 0 || ifIndex > ifCount )
            {
@@ -862,6 +862,7 @@ static void
              fprintf(stderr, "Invalid interface index(%d) of(%d)\n",
                      ifIndex, ifCount);
            }
+         }
        }
 
        else if( strcmp(argv[j], "-test") == 0 ) {

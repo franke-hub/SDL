@@ -235,7 +235,8 @@ virtual void
 virtual bool                        // TRUE if another pass needed
    build_update(                    // Update the build
      int               pass)        // Build pass number
-{  update();                        // Initialize _getter and _setter
+{  (void)pass;                      // (Unused parameter)
+   update();                        // Initialize _getter and _setter
    return false;
 }
 
@@ -366,7 +367,7 @@ virtual RC                          // Fanin count
    fanin(                           // Process fanin
      Token             token,       // Storage locator
      Pulse             pulse)       // Weighted fanout value
-{  return 0; }                      // Not counted!
+{  (void)token; (void)pulse; return 0; } // Not counted!
 
 virtual RC                          // Fanin count
    fanout(                          // Process fanout

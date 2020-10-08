@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2011-2017 Frank Eskesen.
+//       Copyright (c) 2011-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Generate raw terraform data.
 //
 // Last change date-
-//       2017/01/01
+//       2020/10/03
 //
 // Parameters-
 //       NONE IMPLEMENTED.
@@ -133,6 +133,9 @@ static inline void
      va_start(argptr, fmt);         // Initialize va_ functions
      vfprintf(stderr, fmt, argptr);
      va_end(argptr);                // Close va_ functions
+
+   #else                            // Parameter unused without HCDM
+     (void)fmt;
    #endif
 }
 
@@ -980,9 +983,9 @@ static void
 //
 //----------------------------------------------------------------------------
 static void
-   parm(                            // Parameter analysis
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   parm(int, char**)                // Parameter analysis
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    if( FALSE )
      info();

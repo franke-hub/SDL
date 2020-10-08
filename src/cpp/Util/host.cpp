@@ -33,9 +33,9 @@
 //
 //----------------------------------------------------------------------------
 extern int                          // Return code
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    Socket::Addr        addr;        // Working address
 

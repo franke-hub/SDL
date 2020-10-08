@@ -16,7 +16,7 @@
 //       Storage SubAllocator description.                                                                 ts.
 //
 // Last change date-
-//       2020/08/21
+//       2020/10/07
 //
 // Implementation note-
 //       Placeholder until implemented.
@@ -64,7 +64,7 @@ virtual
    SubAllocator(                    // Constructor
      char*             addr,        // Origin address
      size_t            size)        // Size, range 64K .. 4G
-:  Allocator() {} // NOT CODED YET. Parameters ignored
+:  Allocator() { (void)addr; (void)size; } // NOT CODED YET. Parameters ignored
 
    SubAllocator(const SubAllocator&) = delete; // NO copy constructor
 SubAllocator&

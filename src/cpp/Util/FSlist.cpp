@@ -425,7 +425,7 @@ void
    DirEntry*           newE;        // Pointer to queue element
    DirEntry*           oldE;        // Pointer to queue element
 
-   if( this == NULL )               // If release of empty array
+   if( ptrA == NULL )               // If release of empty array
      return;                        // No problem
 
    newE= head;                      // Address the first element
@@ -460,10 +460,11 @@ void
 void
    DirArray::debugCoherency( void ) // Diagnostic display
 {
+   DirArray*           ptrA= this;
    DirEntry*           ptrE;
 
    debugf("DirArray(%p)::debugCoherency()\n", this);
-   if( this == NULL )
+   if( ptrA == NULL )
      return;
 
    for(ptrE= head; ptrE != NULL; ptrE= ptrE->next)

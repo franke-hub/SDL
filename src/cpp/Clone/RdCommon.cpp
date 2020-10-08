@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Common routines used by RdClient and RdServer.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 // Environment variables-
 //       LOG_HCDM=n    Hard Core Debug Mode verbosity
@@ -163,7 +163,7 @@ static Block*          dirList= NULL;  // The head dirList  Block
 //       Backout function.
 //
 //----------------------------------------------------------------------------
-void
+static void
    abortHandler( void )             // Handle backout
 {
    msglog("abortHandler()\n");
@@ -729,9 +729,7 @@ int                                 // Return code (0 OK)
    int                 hand;        // File handle
    unsigned            left;        // File size remaining
    unsigned            size;        // Transfer length
-   int                 L;           // Number of bytes read
-
-   int                 i;
+   unsigned            L;           // Number of bytes read
 
    //-------------------------------------------------------------------------
    // Set initial checksum
@@ -778,7 +776,7 @@ int                                 // Return code (0 OK)
        return (-1);
      }
 
-     for(i= 0; i<(size+(sizeof(PEER64)-1))/sizeof(PEER64); i++)
+     for(size_t i= 0; i<(size+(sizeof(PEER64)-1))/sizeof(PEER64); i++)
        ksum += hostToPeer(word[i]);
 
      left -= size;
@@ -1042,7 +1040,7 @@ void
        throwf("%4d RdCommon: errno(%d) %d=readlink(%s) failure",
               __LINE__, errno, rc, info.getFileName());
 
-     if( rc >= sizeof(linkName) )   // If link name too large
+     if( size_t(rc) >= sizeof(linkName) ) // If link name too large
        throwf("%4d RdCommon: fileName(%s) link name too large",
               __LINE__, info.getFileName());
 
@@ -1174,8 +1172,6 @@ int                                 // Return code (0 OK)
    int                 count;       // Number of directory entries
    int                 size;        // Size of fileName
 
-   int                 i, j;
-
    IFHCDM( debugf("DirList(%p)::DirList(%s,%s)\n", this, path, inpE->fileName); )
    ELHCDM( msglog("DirList(%p)::DirList(%s,%s)\n", this, path, inpE->fileName); )
 
@@ -1226,15 +1222,15 @@ int                                 // Return code (0 OK)
      ptrSort= (DirEntry**)must_malloc(count*sizeof(DirEntry*));
 
      ptrE= this->head;              // Populate the sort array
-     for(i=0; i<count; i++)
+     for(int i=0; i<count; i++)
      {
        ptrSort[i]= ptrE;
        ptrE= ptrE->next;
      }
 
-     for(i=0; i<count; i++)         // Sort by name
+     for(int i=0; i<count; i++)     // Sort by name
      {
-       for(j=i+1; j<count; j++)
+       for(int j=i+1; j<count; j++)
        {
          if( strCompare(owner,ptrSort[i]->fileName,ptrSort[j]->fileName) > 0 )
          {
@@ -1246,7 +1242,7 @@ int                                 // Return code (0 OK)
      }
 
      this->head= ptrSort[0];        // Create the sorted list
-     for(i=1; i<count; i++)
+     for(int i=1; i<count; i++)
        ptrSort[i-1]->next= ptrSort[i];
      ptrSort[count-1]->next= NULL;
 
@@ -1352,13 +1348,11 @@ void
 {
    DirEntry*           ptrE;        // -> Entry
 
-   int                 i;
-
    AutoRecursiveBarrier lock(barrier); // For multi-thread neatness
    msglog("DirList(%p)::display(%s) count(%d)\n", this, text, count);
 
    ptrE= head;
-   for(i= 0; i<count; i++)
+   for(unsigned i= 0; i<count; i++)
    {
      if( ptrE == NULL )
        throwf("%4d RdCommon: Should not occur", __LINE__);
@@ -1559,8 +1553,6 @@ long                                // Return code
 void
    InputBuffer::fill( void )        // Fill the buffer
 {
-   int                 i;
-
    if( iodm && hcdm > 1 )
      msglog("InputBuffer::fill used(%u) size(%u)\n", used, size);
 
@@ -1576,7 +1568,7 @@ void
 
    if( used > 0 )                   // If buffer is used
    {
-     for(i=0; i<(size-used); i++)   // Move to buffer origin
+     for(unsigned i=0; i<(size-used); i++) // Move to buffer origin
        buffer[i]= buffer[i+used];
 
      size -= used;

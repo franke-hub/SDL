@@ -49,7 +49,7 @@ using namespace std;
 //       Debugging display of an exception.
 //
 //----------------------------------------------------------------------------
-void
+static void
    debug(                           // Debugging
      const exception   x)           // Exception
 {
@@ -66,7 +66,7 @@ void
 //       Debugging display of an exception.
 //
 //----------------------------------------------------------------------------
-void
+static void
    debugRef(                        // Debugging
      const exception&  x)           // Exception reference
 {
@@ -94,10 +94,8 @@ virtual
    MyBadException( void ) throw();
 
    MyBadException(const exception& source); // Copy constructor
-MyBadException&
-   operator=(const MyBadException& source); // Assignment operator
-MyBadException&
-   operator=(const exception& source); // Assignment operator
+// MyBadException& operator=(const MyBadException& source); // Assignment operator
+MyBadException& operator=(const exception& source); // Assignment operator
 
 virtual const char*
    what() const throw();
@@ -106,8 +104,7 @@ virtual const char*
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static const MyBadException
-                       t_t_t_thats_all_folks;
+static MyBadException  t_t_t_thats_all_folks;
 
 //----------------------------------------------------------------------------
 //
@@ -194,6 +191,7 @@ MyBadException&
    return *this;
 }
 
+#if 0 // DEPRECATED
 MyBadException&
    MyBadException::operator=(const MyBadException& source) // Assignment operator
 {
@@ -205,6 +203,7 @@ MyBadException&
    printf("cCount(%d) dCount(%d)\n", constructCount, destructCount);
    return *this;
 }
+#endif
 
 //----------------------------------------------------------------------------
 //
@@ -231,7 +230,7 @@ const char*
 //       Catch(exception x)
 //
 //----------------------------------------------------------------------------
-int                                 // Error count
+static int                          // Error count
    test00( void )                   // Testcase
 {
    int                 errorCount= 0;
@@ -242,7 +241,7 @@ int                                 // Error count
    error= FALSE;
    try {
      shouldNotOccur(__LINE__, "Normal exception");
-   } catch(exception x) {           // This down-casts the exception
+   } catch(exception& x) {          // This down-casts the exception
      error= TRUE;
      printf("test00 Caught: exception(%p) what(%s)\n", &x, x.what());
    }
@@ -265,7 +264,7 @@ int                                 // Error count
 //       Catch(exception& x)
 //
 //----------------------------------------------------------------------------
-int                                 // Error count
+static int                          // Error count
    test01( void )                   // Testcase
 {
    int                 errorCount= 0;
@@ -299,7 +298,7 @@ int                                 // Error count
 //       Display exception
 //
 //----------------------------------------------------------------------------
-int                                 // Error count
+static int                          // Error count
    test02( void )                   // Testcase
 {
    int                 errorCount= 0;
@@ -322,7 +321,7 @@ int                                 // Error count
 //       Throw an exception.
 //
 //----------------------------------------------------------------------------
-int                                 // Error count
+static inline int                   // Error count
    test99( void )                   // Testcase
 {
    int                 errorCount= 0;
@@ -344,9 +343,9 @@ int                                 // Error count
 //
 //----------------------------------------------------------------------------
 int                                 // Return code
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     const char*       argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count (Unused)
+//   const char*       argv[])      // Argument array (Unused)
 {
    int                 errorCount= 0;
 

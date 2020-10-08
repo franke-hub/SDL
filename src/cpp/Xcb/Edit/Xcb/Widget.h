@@ -16,7 +16,7 @@
 //       XCB Widget descriptor
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/07
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_WIDGET_H_INCLUDED
@@ -128,7 +128,7 @@ virtual void                        // (Configure phase III)
 virtual void
    debug(                           // Debugging display
      const char*       info= nullptr) const // Caller information
-{  }                                // (Ignored unless overridden)
+{  (void)info; }                    // (Ignored unless overridden)
 
 virtual void
    draw( void )                     // (Re)draw

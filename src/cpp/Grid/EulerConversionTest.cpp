@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2011-2019 Frank Eskesen.
+//       Copyright (c) 2011-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Quick and dirty Euler conversion test.
 //
 // Last change date-
-//       2019/05/21
+//       2020/10/04
 //
 //----------------------------------------------------------------------------
 #define GLM_ENABLE_EXPERIMENTAL     // Wasn't needed before but needed now
@@ -30,7 +30,7 @@
 
 using namespace std;
 
-float ROUND3(float v)
+static float ROUND3(float v)
 {
 //  long l = v * 10000.0;
 //  if( l >= 0 )
@@ -43,31 +43,31 @@ float ROUND3(float v)
     return round(v*1000.0)/1000.0;
 }
 
-inline std::ostream&
+static inline std::ostream&
     operator<<(
       std::ostream&    s,
       const glm::quat  v)
 {   return s << "<" << v.x << "," << v.y << "," << v.z << "," << v.w << ">";
 }
 
-inline std::ostream&
+static inline std::ostream&
     operator<<(
       std::ostream&    s,
       const glm::tvec3<float> v)
 {   return s << "<" << v.x << "," << v.y << "," << v.z  << ">";
 }
 
-void say(glm::quat v) {
+static inline void say(glm::quat v) {
 //  cout << "QUAT: ";
     cout << "<" << v.x << "," << v.y << "," << v.z << "," << v.w << ">";
 }
 
-void say(glm::tvec3<float> v) {
+static inline void say(glm::tvec3<float> v) {
 //  cout << "VEC3: ";
     cout << "<" << v.x << "," << v.y << "," << v.z << ">";
 }
 
-void say(glm::tvec4<float> v) {
+static inline void say(glm::tvec4<float> v) {
 //  cout << "VEC4: ";
     cout << "<" << v.x << "," << v.y << "," << v.z << "," << v.w << ">";
 }

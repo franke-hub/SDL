@@ -67,6 +67,7 @@ static void
 //       Usage examples.
 //
 //----------------------------------------------------------------------------
+extern void exemplar( void );       // (Not very far) Forward reference
 extern void
    exemplar( void )
 {

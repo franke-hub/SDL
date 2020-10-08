@@ -403,6 +403,7 @@ static void
 //       Parameter analysis
 //
 //----------------------------------------------------------------------------
+extern void parm(int,char*[]);      // (Called from Main.cpp)
 extern void
    parm(                            // Parameter analysis
      int               argc,        // Argument count

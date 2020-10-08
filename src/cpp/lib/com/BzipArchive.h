@@ -90,10 +90,10 @@ virtual const char*                 // The object name (NULL if missing)
 virtual const char*                 // The next object name
    next( void );                    // Skip to the next object
 
-virtual unsigned int                // Number of bytes read
+virtual unsigned                    // Number of bytes read
    read(                            // Read (from current item)
      void*             addr,        // Input buffer address
-     unsigned int      size);       // Input buffer length
+     unsigned          size);       // Input buffer length
 
 virtual int                         // Return code (0 OK)
    setOffset(                       // Position within current item
@@ -334,10 +334,10 @@ const char*                         // The object name
 //       Read from current item.
 //
 //----------------------------------------------------------------------------
-unsigned int                        // The number of bytes read
+unsigned                            // The number of bytes read
    BzipArchive::read(               // Read from current item
      void*             addr,        // Into this buffer address
-     unsigned int      size)        // For this length
+     unsigned          size)        // For this length
 {
 // IFHCDM( debugf("BzipArchive(%p)::read(%p,%d)\n", this, addr, size); )
 
@@ -395,7 +395,7 @@ int                                 // Return code (0 OK)
    char buffer[512];
    while( offset >= sizeof(buffer) )
    {
-     size_t L= read(buffer, sizeof(buffer));
+     unsigned L= read(buffer, sizeof(buffer));
      if( L == 0 )
      {
        debugf("BzipArchive seek past EOF\n");
@@ -407,7 +407,7 @@ int                                 // Return code (0 OK)
 
    if( offset > 0 )
    {
-     size_t L= read(buffer, offset);
+     unsigned L= read(buffer, unsigned(offset));
      if( L != offset )
      {
        debugf("BzipArchive seek past EOF\n");

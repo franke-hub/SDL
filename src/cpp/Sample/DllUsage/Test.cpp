@@ -60,6 +60,7 @@ static char            buffer[1024];// Test buffer
 //       Simple test routine.
 //
 //----------------------------------------------------------------------------
+extern "C" Interface* DLL_make( void ); // (Not very far) Forward reference
 extern "C"
 Interface*                          // Our Interface (and Factory)
    DLL_make( void )                 // Get Interface (and Factory)
@@ -67,12 +68,13 @@ Interface*                          // Our Interface (and Factory)
    return &factory;
 }
 
+extern "C" void DLL_take(Interface*); // (Not very far) Forward reference
 extern "C"
 void
    DLL_take(                        // Recycle
      Interface*        object)      // This Interface Object
 {
-   // STATIC OBJECT, DELETED ON EXIT.
+   (void)object; // STATIC OBJECT, DELETED ON EXIT.
 }
 
 #if( 1 )
@@ -87,7 +89,7 @@ void
 //----------------------------------------------------------------------------
 #ifdef _OS_BSD
 __attribute__((constructor))
-void my_init()
+static void my_init()
 {
    #ifdef HCDM
      printf("Inside my_init()\n");
@@ -101,7 +103,7 @@ void my_init()
 } 
 
 __attribute__((destructor))
-void my_fini()
+static void my_fini()
 {
    #ifdef HCDM
      printf("Inside my_fini()\n");

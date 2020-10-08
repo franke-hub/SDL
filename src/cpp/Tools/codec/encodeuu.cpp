@@ -125,7 +125,7 @@ static void
 //       UU encode a file into STDOUT.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code
+static int                          // Return code
    encodeuu(                        // UU encode a file
      const char*       fileName)    // -> FileName to encode
 {

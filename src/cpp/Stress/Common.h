@@ -16,7 +16,7 @@
 //       Main::Task sequencing controls, including a trace table.
 //
 // Last change date-
-//       2020/08/04
+//       2020/10/07
 //
 // Implementation notes-
 //       Defines class Main and class Task.
@@ -269,7 +269,7 @@ void
      debugh("%4d Task(%s).done() Task[%s] Main[%s]>>>>>>>>>>>>>>\n"
             , line, ident, FSM_NAME[fsm], FSM_NAME[main_fsm]);
 
-   uint32_t            count;       // Working counter
+   int                 count;       // Working counter
 
    // State: Task[busy]; Main[into_idle]
    count= ++main_count;

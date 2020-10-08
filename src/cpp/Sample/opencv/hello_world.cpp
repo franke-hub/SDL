@@ -18,7 +18,7 @@
 
 using namespace cv;
 
-int main(int argc, char** argv) {
+int main(int, char**) {
     //create a gui window:
     namedWindow("Output",1);
 

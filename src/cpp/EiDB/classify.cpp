@@ -159,7 +159,7 @@ static void
 //       Parameter analysis routine.
 //
 //----------------------------------------------------------------------------
-extern void
+static void
    parm(                            // Analyze parameters
      int               argc,        // Argument count
      char*             argv[])      // Argument vector

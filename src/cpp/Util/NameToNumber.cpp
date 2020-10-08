@@ -66,7 +66,7 @@ static const int       number[]=
 //       Get the value of a letter
 //
 //----------------------------------------------------------------------------
-extern int                          // The letter value
+static int                          // The letter value
    getLetter(                       // Get letter value
      int             L)             // The letter
 {
@@ -91,7 +91,7 @@ extern int                          // The letter value
 //       Get the value of a string
 //
 //----------------------------------------------------------------------------
-extern int                          // The string value
+static int                          // The string value
    string(                          // Get string value
      const char*     string)        // The string
 {

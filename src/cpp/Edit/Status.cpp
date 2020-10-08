@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2016 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Status object methods.
 //
 // Last change date-
-//       2016/01/01 (Version 2, Release 1)
+//       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -93,6 +93,9 @@ void
             , changed, ring->changed, damaged, ring->damaged
             , ring->type);
    tracef("\n");
+
+#else                               // Parameter ignored without HCDM
+   (void)message;
 #endif
 }
 
@@ -228,11 +231,9 @@ const char*                         // Return message (NULL)
    Color::Char         buffer[600]; // Screen line buffer
    int                 deferCol;    // Column number changed
    int                 deferRow;    // Row number changed
-   int                 L;           // Working length
+   unsigned            L;           // Working length
    char                string[2048];// Working string
    const char*         text;        // -> Text
-
-   int                 i;
 
    #ifdef HCDM
      tracef("%4d Status(%p)::display()\n", __LINE__, this);
@@ -291,7 +292,7 @@ const char*                         // Return message (NULL)
      }
 
      memset(string, ' ', L);
-     i= snprintf(string, sizeof(string)-1,
+     size_t x= snprintf(string, sizeof(string)-1,
                  "C[%4d] L[%8d,%8d] [%s] [%s] %s, %s"
                  , (view->getColumn() + 1) % 10000
                  , (view->getRow()) % 100000000
@@ -301,11 +302,11 @@ const char*                         // Return message (NULL)
                  , EDIT_VERSION
                  , ring->fileName
                  );
-     if( i >= sizeof(string) )
-       i= sizeof(string) - 1;
-     string[i]= ' ';
+     if( x >= sizeof(string) )
+       x= sizeof(string) - 1;
+     string[x]= ' ';
 
-     for(i= 0; i<L; i++)
+     for(unsigned i= 0; i<L; i++)
      {
        buffer[i].setAttribute(stsNorm[0], stsNorm[1]);
        buffer[i].data= string[i] & 0x00ff;
@@ -320,7 +321,7 @@ const char*                         // Return message (NULL)
      #else
        if( ring->mode != EdRing::FM_UNIX )
        {
-         for(i= 36; i<40; i++)
+         for(unsigned i= 36; i<40; i++)
            buffer[i].setAttribute(stsChng[0], stsChng[1]);
        }
      #endif
@@ -330,7 +331,7 @@ const char*                         // Return message (NULL)
        attr= stsErrs;
      else if( ring->changed )
        attr= stsChng;
-     for(i= 53; i<L; i++)
+     for(unsigned i= 53; i<L; i++)
        buffer[i].setAttribute(attr[0], attr[1]);
 
      if( deferSts )
@@ -500,7 +501,7 @@ const char*                         // (The input format string)
      va_start(argptr, fmt);         // Initialize va_ functions
      int L= vsnprintf(string, sizeof(string)-1, fmt, argptr); // Create string in buffer
      va_end(argptr);                // Close va_ functions
-     if( L >= sizeof(string) )
+     if( size_t(L) >= sizeof(string) )
        string[sizeof(string)-1]= '\0';
 
      message(MSG_WARN, string);

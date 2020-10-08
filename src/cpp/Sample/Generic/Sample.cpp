@@ -65,10 +65,11 @@ using namespace std;
 //       SAMPLE test
 //
 //----------------------------------------------------------------------------
+int sample(int, char**);            // (Not very far) Forward reference
 int                                 // Error count
-   sample(                          // MALLOC test
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   sample(int, char**)              // MALLOC test
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    int                 errorCount= 0; // Error count
    Sample              object;      // Sample object

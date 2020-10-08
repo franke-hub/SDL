@@ -16,7 +16,7 @@
 //       Sample program: POSIX shared memory example.
 //
 // Last change date-
-//       2020/07/11
+//       2020/10/04
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>                  // For isprint()
@@ -94,7 +94,7 @@ static int                          // Return code (0 OK)
    init(                            // Initialize
      int               argc,        // Argument count
      char*             argv[])      // Argument array
-{  return 0; } // Placeholder
+{  (void)argc; (void)argv; return 0; } // Placeholder, parameters unused
 
 //----------------------------------------------------------------------------
 //

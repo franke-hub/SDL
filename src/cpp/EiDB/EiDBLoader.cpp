@@ -236,7 +236,7 @@ int                                 // Return code (0 OK)
          // Insert the line into the database
          if( loadMode == MODE_RIGHTLEFT )
            strrev(ptrL);
-         if( (unsigned)eidb.putLine(ptrL) < 0 )
+         if( signed(eidb.putLine(ptrL)) < 0 )
          {
            if( warnings < MAX_WARNING )
              fprintf(stderr, "Line %d: No storage\n", lineNo);

@@ -179,7 +179,7 @@ void
    NN::FileId          fileId;      // File identifier
    NN::Offset          offset;      // Offset
 
-   long                i;
+   unsigned            i;
 
    //-------------------------------------------------------------------------
    // Initialize the neuron(s) in the output file
@@ -197,7 +197,7 @@ void
        return;
      }
 
-     memset(ptrN, 0, sizeof(Neuron));
+     memset((char*)ptrN, 0, sizeof(Neuron));
      ptrN->cbid= Neuron::CBID;
      ptrN->type= symbol->subType;
      ptrN->value= value->getFloat();
@@ -230,7 +230,7 @@ static int
    NC_opFixed*         bound[NC_dim::MAX_DIM]; // Bounding element array
    int                 stmtix;      // Current statement index
 
-   int                 i;
+   unsigned            i;
 
    //-------------------------------------------------------------------------
    // Initialize

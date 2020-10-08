@@ -50,7 +50,7 @@ V                      v_array[MAX];
 
 V& operator[](const X& x)           // MUTATOR: Can create entry
 {
-   for(int i= 0; i<used; i++)
+   for(unsigned i= 0; i<used; i++)
    {
      if( x == x_array[i] )
        return v_array[i];
@@ -64,7 +64,7 @@ V& operator[](const X& x)           // MUTATOR: Can create entry
 
 const V& operator[](const X& x) const // ACCESSOR: Does not create entry
 {
-   for(int i= 0; i<used; i++)
+   for(unsigned i= 0; i<used; i++)
    {
      if( x == x_array[i] )
        return v_array[i];
@@ -84,9 +84,9 @@ const V& operator[](const X& x) const // ACCESSOR: Does not create entry
 //
 //----------------------------------------------------------------------------
 int                                 // Return code
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    //-------------------------------------------------------------------------
    // Initialize the Index
@@ -117,7 +117,7 @@ int                                 // Return code
    index["A"]= 10;
 
    printf("DEBUG %u\n", index.used);
-   for(int i= 0; i<index.used; i++)
+   for(unsigned i= 0; i<index.used; i++)
    {
      std::string s= index.x_array[i];
      if( i & 1 )
@@ -136,7 +136,7 @@ int                                 // Return code
             -1, ((const Index)index)[s], s.c_str());
      printf("Used(%d)\n", index.used);
 
-     s= "h";
+     s= "h";                        // (This new insert fails)
      printf("[%2d] %2zu= Index[\"%s\"] A\n",
             -1, ((const Index)index)[s], s.c_str());
      printf("Used(%d)\n", index.used);

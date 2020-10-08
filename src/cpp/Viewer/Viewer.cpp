@@ -42,6 +42,7 @@ extern int                          // Return code
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
+   (void)argc;                      // Unused parameter
    unsigned int        errorCount= 0;
    Window              window;
 

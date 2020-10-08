@@ -234,7 +234,7 @@ void
    if( inp >= 0 )
      throw "TextBuffer::put Exception";
 
-   for(int i= 0; i<size; i++)
+   for(unsigned i= 0; i<size; i++)
    {
      if( out >= textSize )
        expand(out+4096);

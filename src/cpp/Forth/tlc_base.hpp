@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019 Frank Eskesen.
+//       Copyright (c) 2019-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       TLC built-in functions
 //
 // Last change date-
-//       2019/01/01
+//       2020/10/04
 //
 //----------------------------------------------------------------------------
 
@@ -201,7 +201,7 @@ static const bool      fancy_hex= true; // Fancy hexidecimal?
      work[size++]= '-';
 
    // Reverse the work buffer into the output buffer
-   for(int i= 0; i<size; i++)
+   for(unsigned i= 0; i<size; i++)
    {
      int j= size - i - 1;
      buff[i]= work[j];

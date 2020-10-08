@@ -281,7 +281,7 @@ void
    Word::append(                    // Append file
      const char*       name)        // The file name
 {
-   throw std::runtime_error("NOT CODED YET");
+   (void)name; throw std::runtime_error("NOT CODED YET");
 }
 
 //----------------------------------------------------------------------------
@@ -297,7 +297,7 @@ void
    Word::loader(                    // File loader
      const char*       name)        // The file name
 {
-   throw std::runtime_error("NOT CODED YET");
+   (void)name; throw std::runtime_error("NOT CODED YET");
 }
 
 //----------------------------------------------------------------------------
@@ -557,7 +557,7 @@ void
    Word_refs::append(               // Append file
      const char*       name)        // The file name
 {
-   throw std::runtime_error("NOT CODED YET");
+   (void)name; throw std::runtime_error("NOT CODED YET");
 }
 
 //----------------------------------------------------------------------------
@@ -573,6 +573,6 @@ void
    Word_refs::loader(               // File loader
      const char*       name)        // The file name
 {
-   throw std::runtime_error("NOT CODED YET");
+   (void)name; throw std::runtime_error("NOT CODED YET");
 }
 

@@ -100,6 +100,7 @@ virtual void
 //       Test std::thread
 //
 //----------------------------------------------------------------------------
+extern void testThread( void );     // (Not very far) Forward reference
 extern void
    testThread( void )
 {

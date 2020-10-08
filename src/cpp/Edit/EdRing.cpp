@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2018 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       EdRing object methods.
 //
 // Last change date-
-//       2018/01/01 (V2R1) Added delimiters: "\r\r\n", "\r\r\r\n", multi-nul
+//       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
 //
 //----------------------------------------------------------------------------
 #include <new>
@@ -303,6 +303,9 @@ void
      tracef("*\n");
    }
 #endif
+
+#else                               // Parameter ignored without HCDM
+   (void)message;
 #endif
 }
 
@@ -987,8 +990,6 @@ void
 {
    EdLine*             line;        // Working line pointer
 
-   int                 i;
-
    IFHCDM(
      tracef("%4d EdRing(%p)::resetUndo()\n", __LINE__, this);
      check();
@@ -998,7 +999,7 @@ void
    //-------------------------------------------------------------------------
    // Reset the undo array
    //-------------------------------------------------------------------------
-   for(i= 0; i<undoCount; i++)
+   for(unsigned i= 0; i<undoCount; i++)
    {
      line= undoArray[i];
      deleteList(line);

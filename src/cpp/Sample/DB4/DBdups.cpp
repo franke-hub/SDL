@@ -143,6 +143,7 @@ static int                          // Return code, 0 OK
      const Dbt*         data,       // Data descriptor
      Dbt*               sKey)       // Resultant
 {
+   (void)db; (void)pKey;            // (Unused)
 // printf("Record::setNameKey()\n");
 
    Record* record= (Record*)data->get_data();
@@ -161,6 +162,7 @@ static int                          // Return code, 0 OK
      const Dbt*         data,       // Data descriptor
      Dbt*               sKey)       // Resultant
 {
+   (void)db; (void)pKey;            // (Unused)
 // printf("Record::setSizeKey()\n");
 
    Record* record= (Record*)data->get_data();
@@ -187,6 +189,7 @@ static void
       int              argc,        // Argument count
       char*            argv[])      // Argument array
 {
+   (void)argc;                      // (Unused)
    printf("Usage: %s {options} {.type ...}\n"
           "Search filesystem (from current directory) looking for duplicates\n"
           "Duplicate files are written to stdout\n"

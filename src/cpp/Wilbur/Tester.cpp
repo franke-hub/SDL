@@ -536,7 +536,7 @@ static void
    FileSource source("inp/DbWord.inp");
    for(int count= 0;; count++)
    {
-     int x= 0;
+     size_t x= 0;
      int C= source.get();
      if( C == EOF )
        break;
@@ -1280,7 +1280,7 @@ static void
 
    // Test String operator[]
    printf("String operator[]: '");
-   for(int i= 0; i<s1.length(); i++)
+   for(size_t i= 0; i<s1.length(); i++)
      printf("%c", s1[i]);
    printf("'\n");
 
@@ -1477,7 +1477,7 @@ static void
 
    for(;;)
    {
-     int x= 0;
+     size_t x= 0;
      int C= source.get();
      if( C == EOF )
        break;
@@ -1512,7 +1512,8 @@ static void
      {
        sprintf(buff3, "echo %s | aspell list >/tmp/aspell.out", buff2);
 ////   printf("%s\n", buff3);
-       if( system(buff3) ) ;        // Avoids compiler complaint
+//     if( system(buff3) ) { ; }    // Avoids compiler complaint
+       system(buff3);
 
        struct stat filestat;
        memset(&filestat, 0, sizeof(filestat));

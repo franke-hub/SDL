@@ -43,6 +43,7 @@
 //       NN_RDVAL(neuron[clock]).
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_clock_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_clock_V(                      // nn_rdval(neuron[clock])
      Neuron*           ptr_N,       // -> Neuron (Internal address)

@@ -16,7 +16,7 @@
 //       Implement Xcb/Window.h
 //
 // Last change date-
-//       2020/09/30
+//       2020/10/07
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -145,7 +145,7 @@ void
    debugf("..widget_id(%d)\n", widget_id);
    debugf("..rect(%d,%d,%u,%u)\n", rect.x, rect.y, rect.width, rect.height);
    debugf("..penduse(%d)\n", penduse);
-   for(int i= 0; i<penduse; i++) {
+   for(unsigned i= 0; i<penduse; i++) {
      const Pending& p= pending[i];
      debugf("..[%2d] %4d: (%6u) %s\n", i, p.opline, p.op.sequence, p.opname);
    }
@@ -254,6 +254,7 @@ void                                // Response handled in reply loop
      const char*       name,        // Operation name
      xcb_void_cookie_t op)          // Operation cookie
 {
+   (void)op;                        // Unused parameter
    if( opt_hcdm && opt_verbose > 0 )
      traceh("Pixmap(%p)::noqueue(%d,%s)\n", this, line, name);
 }
@@ -273,7 +274,7 @@ void
    if( opt_hcdm )
      debugh("Pixmap(%p)::flush()\n", this);
 
-   for(int i= 0; i<penduse; i++) {  // Complete pending operations
+   for(unsigned i= 0; i<penduse; i++) {  // Complete pending operations
      Pending& pending= this->pending[i];
      synchronously(pending.opline, pending.opname, pending.op);
    }

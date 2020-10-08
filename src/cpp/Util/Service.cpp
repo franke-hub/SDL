@@ -61,7 +61,7 @@ static void
 //       Dump data area.
 //
 //----------------------------------------------------------------------------
-void
+static void
    dumpData(                        // Diagnostic display
      const void*       inpAddr,     // Physical origin
      unsigned          inpSize)     // Display length

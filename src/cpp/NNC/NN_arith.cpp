@@ -53,6 +53,7 @@
 //       NN_RDVAL(neuron[constant]).
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_const_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_const_V(                      // nn_rdval(neuron[constant])
      Neuron*           ptr_N,       // -> Neuron (Internal address)
@@ -81,6 +82,7 @@ extern NN::Value
 //       resultant= (fanin[0]+fanin[1]+fanin[2]+...+fanin[n])+1
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_incr1_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_incr1_V(                      // nn_rdval(neuron[inc])
      Neuron*           ptr_N,       // -> Neuron (Internal address)
@@ -114,6 +116,7 @@ extern NN::Value
 //       resultant= (fanin[0]+fanin[1]+fanin[2]+...+fanin[n])-1
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_decr1_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_decr1_V(                      // nn_rdval(neuron[dec])
      Neuron*           ptr_N,       // -> Neuron (Internal address)
@@ -147,6 +150,7 @@ extern NN::Value
 //       resultant= fanin[0]+(fanin[1]+fanin[2]+...+fanin[n])
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_add_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_add_V(                        // nn_rdval(neuron[add])
      Neuron*           ptr_N,       // -> Neuron (Internal address)
@@ -174,6 +178,7 @@ extern NN::Value
 //       resultant= fanin[0]-(fanin[1]+fanin[2]+...+fanin[n])
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_sub_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_sub_V(                        // nn_rdval(neuron[sub])
      Neuron*           ptr_N,       // -> Neuron (Internal address)
@@ -203,6 +208,7 @@ extern NN::Value
 //       resultant= fanin[0]*(fanin[1]+fanin[2]+...+fanin[n])
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_mul_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_mul_V(                        // nn_rdval(neuron[mul])
      Neuron*           ptr_N,       // -> Neuron (Internal address)
@@ -232,6 +238,7 @@ extern NN::Value
 //       resultant= fanin[0]/(fanin[1]+fanin[2]+...+fanin[n])
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_div_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_div_V(                        // nn_rdval(neuron[div])
      Neuron*           ptr_N,       // -> Neuron (Internal address)
@@ -258,6 +265,7 @@ extern NN::Value
 //       NN_RDVAL(neuron[sigmoid]).
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_sigmd_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_sigmd_V(                      // nn_rdval(neuron[sigmoid])
      Neuron*           ptr_N,       // -> Neuron (Internal address)

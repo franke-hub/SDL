@@ -184,7 +184,7 @@ static NC_opArith*                  // Resultant
    NC_sym*             symbol;      // Symbol resultant
 
    char                c;           // Current character
-   int                 symbix;      // Resultant symbol index
+   unsigned            symbix;      // Resultant symbol index
    int                 stmtix;      // Current character index
 
    symbix= 0;                       // Initialize the symbol index
@@ -1523,7 +1523,7 @@ NC_opNeuronAddr*                    // Resultant operator
    unsigned            dim;         // Number of dimensions
    int                 stmtix;      // Current statement index
 
-   int                 i;
+   size_t              i;
 
    //-------------------------------------------------------------------------
    // Initialize

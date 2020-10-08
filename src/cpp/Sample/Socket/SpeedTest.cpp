@@ -518,7 +518,7 @@ static int             swOnline;    // TRUE when connection is active
 //       Set a socket option
 //
 //----------------------------------------------------------------------------
-extern void
+static inline void
    setOption(                       // Set a Socket option
      int               talk,        // The socket handle
      int               so,          // The option to set
@@ -768,7 +768,7 @@ debugf("h_addr: %d.%d.%d.%d\n", (Q>>24)&0x00ff, (Q>>16)&0x00ff, (Q>>8)&0x00ff, Q
 ////   logf("send...\n");
        int L= send(talk, buffer, size, 0); // Transmit the buffer
 ////   logf("...send\n");
-       if( L != size ) {
+       if( size_t(L) != size ) {
          swOnline= false;
          debugh("%4d shouldNotOccur: %d= send(%zd)\n", __LINE__, L, size);
          break;

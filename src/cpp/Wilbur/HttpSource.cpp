@@ -322,6 +322,7 @@ DataSource*                         // Resultant DataSource
      const char*       name) const  // With this (relative) name
 {
    IFSCDM( logf("%4d HttpSource::clone(%s)\n", __LINE__, name); )
+   ELSCDM( (void)name; )            // Parameter unused without SCDM
 
    return NULL; // TODO: NOT CODED YET
 }
@@ -621,14 +622,14 @@ int                                 // Return code (0 OK)
        }
 
        interval.start();
-       if( L > sizeof(chunk) )
+       if( size_t(L) > sizeof(chunk) )
        {
          errorf("%4d %s SHOULD NOT OCCUR\n", __LINE__, __FILE__);
          L= sizeof(chunk);
        }
 
        text.put(chunk, L);
-       if( text.size() >= contentLength )
+       if( (unsigned)text.size() >= contentLength )
          break;
      }
    }

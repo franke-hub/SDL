@@ -57,9 +57,9 @@ static double
 //
 //----------------------------------------------------------------------------
 extern int                          // Return code
-   main(                            // Sigmoid test program
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Sigmoid test program
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    double              x;
 

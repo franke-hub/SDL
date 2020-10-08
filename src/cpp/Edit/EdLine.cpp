@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2016 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       EdLine object methods.
 //
 // Last change date-
-//       2016/01/01 (Version 2, Release 1)
+//       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -60,6 +60,8 @@ void
 #ifdef HCDM
    tracef("%4d EdLine(%p)::debug(%s) %.2x '%s'\n", __LINE__, this, message,
           *((int*)&ctrl), getText());
+#else                               // Parameter ignored unless HCDM
+   (void)message;
 #endif
 }
 
@@ -90,7 +92,14 @@ void
 :  List<EdLine>::Link()
 ,  text(NULL)
 {
-   *((unsigned*)&ctrl)= 0;
+// *((unsigned*)&ctrl)= 0;          // (Disallowed easy initializer)
+   ctrl._0= 0;                      // Field by field initializer
+   ctrl._1= 0;
+   ctrl.readonly= 0;
+   ctrl.marked= 0;
+   ctrl._2= 0;
+   ctrl.hidden= 0;
+   ctrl.delim= 0;
 }
 
 //----------------------------------------------------------------------------

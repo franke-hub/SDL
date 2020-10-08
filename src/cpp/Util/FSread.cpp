@@ -228,7 +228,7 @@ static void
        k= lenbuff;                  // Use remaining buffer length
 
      p= (char*)memccpy(ptrdata, ptrbuff, '\n', k);// Move until end of line
-     if (p == NULL)                 // If no delimiter found
+     if (p == NULL) {               // If no delimiter found
        if (k == lenbuff)            // If end of buffer
        {
          ptrdata += k;              // Update buffer pointer
@@ -250,6 +250,7 @@ static void
          lenbuff -= k;
          continue;                  // End of line
        }
+     }
 
      k= p - ptrdata;                // Calculate move length
      ptrbuff += k;                  // Adjust pointers

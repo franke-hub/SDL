@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2016 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       EdMark object methods.
 //
 // Last change date-
-//       2016/01/01 (Version 2, Release 1)
+//       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -229,6 +229,9 @@ void
      line= (EdLine*)line->getNext();
    }
 #endif
+
+#else                               // Parameter unused without HCDM
+   (void)message;
 #endif
 }
 
@@ -779,9 +782,9 @@ const char*                         // Return message (NULL OK)
    if( column >= 0 )                // If column operation
    {
      state= FSM_BLOCK;
-     if( column < left )
+     if( unsigned(column) < left )
        left= column;
-     else if( column > right )
+     else if( unsigned(column) > right )
        right= column;
      else if( left == touchCol )
        right= column;
@@ -980,6 +983,8 @@ void
    #ifdef HCDM
      tracef("%4d EdMark(%p)::removeLine(%p,%p,%p)\n", __LINE__, this,
             edRing, head, tail);
+   #else                            // Parameter unused without HCDM
+     (void)edRing;
    #endif
 
    if( first->between(head, tail) ) // Removing first line

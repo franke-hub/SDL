@@ -16,7 +16,7 @@
 //       Decode and display CIFAR-10 images.
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/06
 //
 //----------------------------------------------------------------------------
 #include <list>
@@ -32,7 +32,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "X11Device.h"
+#include "X11Device.h"              // (Include BEFORE Magick++.h)
 #include <Magick++.h>
 using namespace Magick;
 
@@ -213,7 +213,8 @@ static inline void
    unsigned char       i_red[DIM2]; // Image red channel
    unsigned char       i_green[DIM2]; // Image green channel
    unsigned char       i_blue[DIM2]; // Image blue channel
-   Image               image("32x32", "white"); // The display image
+// Image               image("32x32", "white"); // The display image
+   Magick::Image       image("32x32", "white"); // The display image
 
    X11Device           disp(ZOOM, ZOOM); // The X11 display
 
@@ -443,26 +444,34 @@ static inline void
 //----------------------------------------------------------------------------
      // Build the image
      // Use ImageMagic PixelPacket for interpolated zoom
-     Image image("32x32", "white"); // The display image
+//   Image image("32x32", "white"); // The display image
+     Magick::Image image("32x32", "white"); // The display image
      image.modifyImage();
-     Pixels cache(image);
-     PixelPacket* packet= cache.get(0, 0, DIM, DIM);
+//   Pixels cache(image);
+//   PixelPacket* packet= cache.get(0, 0, DIM, DIM);
 
-     for(int y= 0; y<DIM; y++)
+     for(unsigned y= 0; y<DIM; y++)
      {
-       for(int x= 0; x<DIM; x++)
+       for(unsigned x= 0; x<DIM; x++)
        {
-         packet->red= toRange(i_red[y*DIM+x]);
-         packet->green= toRange(i_green[y*DIM+x]);
-         packet->blue= toRange(i_blue[y*DIM+x]);
-         packet->opacity= 0;
+//       packet->red= toRange(i_red[y*DIM+x]);
+//       packet->green= toRange(i_green[y*DIM+x]);
+//       packet->blue= toRange(i_blue[y*DIM+x]);
+//       packet->opacity= 0;
+//       packet++;
 
-         packet++;
+         Color color(toRange(i_red[y*DIM+x]),
+                     toRange(i_green[y*DIM+x]),
+                     toRange(i_blue[y*DIM+x]),
+                     0);
+
+         image.pixelColor(x, y, color);
+         assert( image.pixelColor(x,y) == color );
        }
      }
 
      // Zoom the image
-     cache.sync();
+//   cache.sync();
      image.zoom(Geometry("256x256"));
 
      // Display the image
@@ -512,4 +521,3 @@ int                                 // Return code
    printf("..DONE..\n");
    return 0;
 }
-

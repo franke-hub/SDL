@@ -145,7 +145,7 @@ static void
 //       Parameter analysis routine.
 //
 //----------------------------------------------------------------------------
-extern void
+static void
    parm(                            // Analyze parameters
      int               argc,        // Argument count
      char*             argv[])      // Argument vector
@@ -244,9 +244,9 @@ extern void
 //
 //----------------------------------------------------------------------------
 static void
-   init(                            // Initialize
-     int               argc,        // Argument count
-     char*             argv[])      // Argument vector
+   init(int, char**)                // Initialize
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    // Set wildcards
    #ifdef INTRON_SCANNER
@@ -311,7 +311,6 @@ static void
    EiDBLoader          loader;      // The loader
    char*               item;        // Current exon or intron
 
-   int                 i;
    int                 rc;
 
    // Load the labels
@@ -367,7 +366,7 @@ static void
 
    // Extract the items
    list= (List*)malloc(eidb.getLineCount()*sizeof(List));
-   for(i= 0; i<eidb.getLineCount(); i++)
+   for(unsigned i= 0; i<eidb.getLineCount(); i++)
    {
      new(&list[i]) List();
      itemExtractor->load((char*)eidb.getLine(i));
@@ -405,9 +404,9 @@ static void
 static void
    split(                           // Split database by phase
      const char*       fileName,    // Output file name
-     int               inpPhase)    // Target phase
+     unsigned          inpPhase)    // Target phase
 {
-   int                 const m= eidb.getLineCount();
+   unsigned            const m= eidb.getLineCount();
 
    FILE*               file;        // Output file handle
    char                name[1024];  // Output file name

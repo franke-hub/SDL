@@ -88,16 +88,13 @@ void
      Object**          array)       // Object array
 {
    Object*             object;      // Temporary
-   int                 increment;   // Search increment
 
-   int                 i, j;
-
-   increment= 3;
+   unsigned increment= 3;
    while( increment > 0 )
    {
-     for(i= 0; i<count; i++)
+     for(unsigned i= 0; i<count; i++)
      {
-       j= i;
+       unsigned j= i;
        object= array[i];
        while( j >= increment && array[j-increment]->compare(object) > 0 )
        {

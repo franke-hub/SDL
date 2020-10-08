@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement CommonThread object methods
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <stdlib.h>
@@ -176,7 +176,7 @@ void
    CommonThread::globalVersionInformation( void ) // Initialize global info
 {
    gVersionInfo= lVersionInfo;
-   for(int i=0; i<sizeof(gVersionInfo.f); i++)
+   for(size_t i=0; i<sizeof(gVersionInfo.f); i++)
      gVersionInfo.f[i]= lVersionInfo.f[i] & rVersionInfo.f[i];
 }
 
@@ -227,6 +227,7 @@ int                                 // Return code (always 0)
      int               code)        // Using this enum NFC
 {
    IFHCDM( debugf("%4d CommonThread(%p)::notify(%d)\n", __LINE__, this, code); )
+   ELHCDM( (void)code; )            // Parameter unused without HCDM
 
    // If already terminated, ignore
    if( fsm == FSM_FINAL )
@@ -337,8 +338,6 @@ DirList*                            // -> DirList
    PEER16              peerSize;    // String length (network format)
    unsigned            L;           // Generic length
 
-   int                 i;
-
    msglog("nRecvDirectory(%s)\n", path);
 
    while( iBuffer.getDataSize() < sizeof(peerPath) )
@@ -354,7 +353,7 @@ DirList*                            // -> DirList
    count= peerToHost(peerPath.count);
    ptrL= new DirList(this, path);   // Allocate a DirList
    prvE= NULL;
-   for(i=0; i<count; i++)           // Read the directory
+   for(unsigned i=0; i<count; i++)  // Read the directory
    {
      ptrE= new DirEntry(this);      // Allocate a DirEntry
      if( prvE == NULL )
@@ -463,11 +462,8 @@ void
      void*             addr,        // Data address
      unsigned          size)        // Data length
 {
-   char*               ccp;         // Current character position
-   int                 L;           // Read length
-
-   ccp= (char*)addr;
-   L= 0;
+   char* ccp= (char*)addr;          // Current character position
+   unsigned L= 0;                   // Read length
    while( L < size )
    {
      ccp  += L;
@@ -533,13 +529,11 @@ void
    PEER16              peerSize;    // String length (network format)
    unsigned            L;           // Generic length
 
-   int                 i;
-
    msglog("nSendDirectory\n");
 
    peerPath.count= hostToPeer(ptrL->count);
    ptrC= (char*)&peerPath;
-   for(i=0; i<sizeof(peerPath); i++)
+   for(size_t i=0; i<sizeof(peerPath); i++)
      oBuffer.putChar(ptrC[i]);
    if( hcdm > 8 )
    {
@@ -635,7 +629,7 @@ void
      unsigned          size)        // Data length
 {
    const char*         ccp;         // Current character position
-   int                 L;           // Send length
+   unsigned            L;           // Send length
 
    ccp= (const char*)addr;
    L= 0;
@@ -688,6 +682,9 @@ void
 
          case FSM_FINAL:
            state= "FSM_FINAL";
+           break;
+
+         default:
            break;
        }
 

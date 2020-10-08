@@ -437,7 +437,7 @@ static void
    LineReader        histFile("pgm.inp"); // History data file
    int               c;             // Current character
 
-   int               index;         // History index
+   unsigned          index;         // History index
    int               date;          // Date
    int               yyyy, mm, dd;  // Date components
    int               dow;           // Day of week

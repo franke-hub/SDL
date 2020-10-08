@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement ServerThread object methods
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 // Implementation notes-
 //       This multi-threaded server DOES NOT change path or file permissions
@@ -194,7 +194,7 @@ long                                // Return code (always 0)
    } catch( const char* X ) {
      fprintf(stderr, "Server: exception(%s)\n", X);
               msglog("Server: exception(%s)\n", X);
-   } catch( std::exception X ) {
+   } catch( std::exception& X ) {
      fprintf(stderr, "Server: exception(%s)\n", X.what());
               msglog("Server: exception(%s)\n", X.what());
    } catch(...) {

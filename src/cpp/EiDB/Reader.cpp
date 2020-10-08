@@ -73,6 +73,8 @@ int                                 // Return code (0 OK)
      const char*     fileName,      // The name of the File to be read
      unsigned        mode)          // The associated mode (ignored)
 {
+   (void)mode;                      // (Ignored)
+
    if( fileHandle != NULL )
      close();
 

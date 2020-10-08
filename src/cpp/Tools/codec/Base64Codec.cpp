@@ -179,7 +179,7 @@ static int                          // Resultant character
    Base64Codec::Base64Codec( void ) // Default constructor
 :  Codec()
 {
-   int                 i;
+   unsigned            i;
 
    if( init != 0 )
      return;
@@ -396,7 +396,7 @@ int                                 // Return code (0 OK)
      outWord  = (inpBuff[iX+0] & 0x00FF) << 16;
      outWord |= (inpBuff[iX+1] & 0x00FF) <<  8;
      outWord |= (inpBuff[iX+2] & 0x00FF);
-     if( iX < sizeof(inpBuff) )     // Short last line
+     if( size_t(iX) < sizeof(inpBuff) ) // Short last line
      {
        switch(L-iX)                 // Number of bytes remaining to process
        {

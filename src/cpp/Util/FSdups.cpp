@@ -130,6 +130,8 @@ static inline void
    va_start(argptr, fmt);           // Initialize va_ functions
    vprintf(fmt, argptr);
    va_end(argptr);                  // Close va_ functions
+#else                               // Parameter unused without HCDM defined
+   (void)fmt;
 #endif
 }
 
@@ -153,6 +155,8 @@ static inline void
    va_start(argptr, fmt);           // Initialize va_ functions
    vprintf(fmt, argptr);
    va_end(argptr);                  // Close va_ functions
+#else                               // Parameter unused without HCDM defined
+   (void)fmt;
 #endif
 }
 
@@ -241,6 +245,7 @@ static void
       int              argc,        // Argument count
       char*            argv[])      // Argument array
 {
+   (void)argc;                      // (Parameter unused)
    printf("Usage: %s\n"
           "Search filesystem (from current directory) looking for duplicates\n"
           "Duplicate file names are written to stdout\n"
@@ -361,7 +366,7 @@ static void
    dbLoad(".");                     // Begin with the current directory
 
    RecordLink*         link;        // -> RecordLink
-   int                 i, j;
+   unsigned long       i, j;
 
    ::count= 0;
    link= list.getTail();
@@ -436,7 +441,7 @@ static void
    if( array == NULL )
      return;
 
-   for(int i= 0; i < ::count; i++)
+   for(unsigned long i= 0; i < ::count; i++)
    {
      Record* iRec= array[i];
      if( iRec == NULL )
@@ -445,7 +450,7 @@ static void
      outHCDM("%8ld %s\n", iRec->getFileSize(), iRec->fileName);
      FileData iFile(iRec->fileName);
 
-     for(int j= i+1; j < ::count; j++)
+     for(unsigned long j= i+1; j < ::count; j++)
      {
        Record* jRec= array[j];
        if( jRec == NULL )

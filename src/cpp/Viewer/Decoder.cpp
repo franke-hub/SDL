@@ -66,6 +66,6 @@ int                                 // Return code (0 OK)
    Decoder::decode(                 // Decode a file
      const char*       name)        // File name
 {
-   return (-1);                     // Need derived class
+   (void)name; return (-1);         // Need derived class
 }
 

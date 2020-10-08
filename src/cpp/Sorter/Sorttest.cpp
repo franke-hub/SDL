@@ -110,16 +110,12 @@ static void
    randomize(                       // Unsort the array
      int               count)       // Unsort counter
 {
-   unsigned            x;           // Source index
-
-   unsigned            i;
-
-   for(i= 0; i<count; i++)
+   for(int i= 0; i<count; i++)
      picks[i]= array[i];
 
-   for(i= 0; i<count; i++)
+   for(int i= 0; i<count; i++)
    {
-     x= RNG.get() % count;
+     int x= RNG.get() % count;
      while( picks[x] == NULL )
      {
        x++;
@@ -134,23 +130,21 @@ static void
 
 //----------------------------------------------------------------------------
 //
-// Method-
+// Subroutine-
 //       verify
 //
 // Purpose-
 //       Sort and test the resultant
 //
 //----------------------------------------------------------------------------
-int                                 // Error counter
+static int                          // Error counter
    verify(                          // Sort and test.
      int               count,       // Working count
      Sorter*           sorter)      // Sorter
 {
-   unsigned            i;
-
    randomize(count);
    sorter->sort(count, unsorted);
-   for(i= 0; i<count; i++)
+   for(int i= 0; i<count; i++)
    {
      if( array[i] != unsorted[i] )
      {
@@ -165,7 +159,7 @@ int                                 // Error counter
    return 0;
 }
 
-int                                 // Error counter
+static int                          // Error counter
    verify(                          // Sort and test.
      Sorter*           sorter)      // Sorter
 {

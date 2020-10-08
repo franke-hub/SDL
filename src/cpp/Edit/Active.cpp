@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2018 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Active object methods.
 //
 // Last change date-
-//       2018/01/01 (Version 2, Release 1)
+//       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -99,6 +99,8 @@ void
 
    if( text != NULL && textSize > 0 )
      dump(text, textSize);
+#else                               // Parameter unused with HCDM
+   (void)message;
 #endif
 }
 
@@ -137,12 +139,12 @@ void
 //----------------------------------------------------------------------------
    Active::Active(                  // Constructor
      unsigned          size)        // Working line size
-:  base(NULL)
+:  state(FSM_RESET)
+,  base(NULL)
 ,  baseSize(size)
 ,  text(NULL)
 ,  textSize(0)
 ,  textUsed(0)
-,  state(FSM_RESET)
 ,  ring(NULL)
 ,  line(NULL)
 {
@@ -540,7 +542,7 @@ const char*                         // Return message (NULL OK)
      const char*       string)      // The replacement (insert) string
 {
    const char*         result;      // Resultant
-   int                 L= strlen(string); // Replacement length
+   unsigned            L= strlen(string); // Replacement length
    unsigned            textUsed= this->textUsed; // Strlen(text) on entry
 
    #ifdef SCDM

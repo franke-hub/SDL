@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2020/09/24
+//       2020/10/07
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -498,6 +498,9 @@ const char*
 
      case XK_Down:
        return "Down arrow";
+
+     default:
+       break;
    }
 
    return "???";

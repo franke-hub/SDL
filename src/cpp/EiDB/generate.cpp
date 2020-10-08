@@ -487,7 +487,7 @@ static int                          // Return code (always 1)
 //       String (The value delimiter)
 //
 //----------------------------------------------------------------------------
-long                                // Return value
+static long                         // Return value
    parseValue(                      // Extract probability value from string
      char*&            C)           // -> String (updated)
 {
@@ -771,7 +771,7 @@ static void
 //       HEAP sort the data descriptor.
 //
 //----------------------------------------------------------------------------
-void
+static void
    sortDescriptor(                  // Sort the data
      int               parent,      // Leftmost index
      int               count)       // Rightmost index
@@ -799,7 +799,7 @@ void
    gSize[parent]= tSize;
 }
 
-void
+static void
    sortDescriptor( void )           // Sort the data
 {
    char*               tAddr;       // Temporary text
@@ -832,7 +832,7 @@ void
 //       Static data, Hard Core Debug Mode
 //
 //----------------------------------------------------------------------------
-void
+static void
    hcdmDescriptor( void )           // Describe the data
 {
    #if( FALSE )
@@ -856,7 +856,7 @@ void
 //       Describe the data.
 //
 //----------------------------------------------------------------------------
-void
+static void
    dataDescriptor( void )           // Describe the data
 {
    double              total;       // Total length
@@ -903,7 +903,7 @@ void
 //       Write the descriptor data.
 //
 //----------------------------------------------------------------------------
-void
+static void
    writeDescriptor(                 // Write the descriptor data
      const char*       fileName)    // Output fileName
 {
@@ -964,7 +964,7 @@ void
 //       iLine = the scan string.
 //
 //----------------------------------------------------------------------------
-const char*                         // Return message (NULL OK)
+static const char*                  // Return message (NULL OK)
    scanString(                      // Analyze the scan string
      const char*       string,      // INP: Argument
      int&              pScan,       // OUT: Scan phase
@@ -1051,7 +1051,7 @@ const char*                         // Return message (NULL OK)
 //       Scan the descriptor data.
 //
 //----------------------------------------------------------------------------
-void
+static void
    scanDescriptor(                  // Examine the data
      const char*       inpstr)      // Argument
 {
@@ -1227,7 +1227,7 @@ static void
 //       This destroys the gSize array.
 //
 //----------------------------------------------------------------------------
-void
+static void
    symmetricAnalysis(               // Symmetric analysis
      int               argc,        // Argument count
      const char*       argv[])      // Argument array

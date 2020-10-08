@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2017 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       EdPool object methods.
 //
 // Last change date-
-//       2017/01/01 (Version 2, Release 1)
+//       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -463,7 +463,7 @@ void
      }
 
      // Add the element to the free list
-     freeSize= TRUNC(textAddr - freeAddr, MIN_ELEMENT);
+     freeSize= TRUNC((textAddr - freeAddr), MIN_ELEMENT);
 //   tracef("freeAddr(%p) freeSize(%d)\n", freeAddr, freeSize);
      if( freeSize >= MIN_ELEMENT )
      {

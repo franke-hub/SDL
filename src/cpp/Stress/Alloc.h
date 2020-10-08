@@ -16,7 +16,7 @@
 //       ~/Stress/Alloc.cpp customization.
 //
 // Last change date-
-//       2020/08/23
+//       2020/10/07
 //
 //----------------------------------------------------------------------------
 #ifndef S_ALLOC_H_INCLUDED
@@ -500,7 +500,7 @@ static inline char*                 // The next storage page, if any
      char*             after)       // After this page
 {
    char* min_page= max_page;
-   for(unsigned i= 0; i<opt_multi; i++) {
+   for(int i= 0; i<opt_multi; i++) {
      Thread* t= (Thread*)task_array[i];
      char* page= t->next_page(after);
      if( page > after && page < min_page ) {
@@ -529,7 +529,7 @@ static inline char*                 // The lowest allocated slot address
    }
 #else
    char* min_slot= max_page;
-   for(unsigned i= 0; i<opt_multi; i++) {
+   for(int i= 0; i<opt_multi; i++) {
      Thread* t= (Thread*)task_array[i];
      for(unsigned s= 0; s<opt_slots; s++) {
        char* addr= (char*)t->slot_array[s].addr;
@@ -557,7 +557,7 @@ static inline size_t                // The size of this storage area
    while( found ) {                 // Repeat for each contiguous area
      found= false;
      size_t max_size= 0;
-     for(unsigned i= 0; i<opt_multi; i++) {
+     for(int i= 0; i<opt_multi; i++) {
        Thread* t= (Thread*)task_array[i];
        size_t size= t->this_size(page);
        if( size > max_size ) {
@@ -584,9 +584,9 @@ static inline size_t                // The size of this storage area
 static inline void                  // (Currently unused)
    unused_sort( void )              // Sort the Thread array
 {
-   for(unsigned i= 0; i<opt_multi; i++) { // Bubble sort the task_array
+   for(int i= 0; i<opt_multi; i++) { // Bubble sort the task_array
      Thread* it= (Thread*)task_array[i];
-     for(unsigned j= i+1; j<opt_multi; j++) {
+     for(int j= i+1; j<opt_multi; j++) {
        Thread* jt= (Thread*)task_array[j];
        if( jt->time < it->time ) {
          task_array[i]= jt;
@@ -685,7 +685,7 @@ void
    // Task completion status display
    debugf("\n");
    double total= 0.0;
-   for(unsigned i= 0; i<opt_multi; i++) { // Display the thread status
+   for(int i= 0; i<opt_multi; i++) { // Display the thread status
      Thread* t= (Thread*)task_array[i];
      t->iteration--;                // (Iteration starts at one)
 

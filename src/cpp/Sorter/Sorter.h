@@ -39,6 +39,7 @@ class Sorter {                      // Sorter base class
 // Sorter::Constructors
 //----------------------------------------------------------------------------
 public:
+virtual
    ~Sorter( void );                 // Destructor
    Sorter( void );                  // Constructor
 

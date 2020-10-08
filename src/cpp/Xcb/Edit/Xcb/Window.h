@@ -16,7 +16,7 @@
 //       XCB based Window
 //
 // Last change date-
-//       2020/09/30
+//       2020/10/07
 //
 // Implementation notes-
 //       The window field addresses the PARENT window. (Widget already has a
@@ -145,13 +145,13 @@ virtual void
    expose(                          // (Partially) (re)draw this Window
      const
      xcb_rectangle_t   rect)        // This (relative) Window range
-{  }
+{  (void)rect; }
 
 virtual int                         // Return code, 0 if handled
    key_input(                       // Handle this
      xcb_keysym_t      key,         // Key input event
      int               state)       // Alt/Ctl/Shift state mask
-{  return 1; }                      // NOT HANDLED!
+{  (void)key; (void)state; return 1; } // NOT HANDLED!
 
 //----------------------------------------------------------------------------
 //

@@ -43,7 +43,9 @@
 //       Mainline code.
 //
 //----------------------------------------------------------------------------
+#if 0 // TODO: REMOVE: UNUSED
 extern void
    nnexto( void )                   // Neuron external output
 {
 }
+#endif

@@ -16,7 +16,7 @@
 //       ~/Stress/Tdisp.cpp customization.
 //
 // Last change date-
-//       2020/07/05
+//       2020/10/07
 //
 //----------------------------------------------------------------------------
 #ifndef S_TDISP_H_INCLUDED
@@ -122,12 +122,12 @@ virtual
 {
    // Cleanup
    FINAL.reset();
-   for(int i= 0; i<opt_dtask; i++) {
+   for(unsigned i= 0; i<opt_dtask; i++) {
      TASK[i]->reset();
      delete TASK[i];
    }
 
-   for(int i= 0; i<opt_ditem; i++) {
+   for(unsigned i= 0; i<opt_ditem; i++) {
      delete ITEM[i];
      delete WAIT[i];
    }
@@ -154,7 +154,7 @@ virtual
    // Create the ITEM and WAIT arrays
    ITEM= new DispItem*[opt_ditem];
    WAIT= new DispWait*[opt_ditem];
-   for(int i= 0; i < opt_ditem; i++) {
+   for(unsigned i= 0; i < opt_ditem; i++) {
      WAIT[i]= new DispWait();
      ITEM[i]= new DispItem(0, WAIT[i]);
    }
@@ -182,10 +182,10 @@ virtual void
                 , iteration, opt_iterations);
      }
 
-     for(int i= 0; i < opt_ditem; i++)
+     for(unsigned i= 0; i < opt_ditem; i++)
        TASK[0]->enqueue(ITEM[i]);
 
-     for(int i= 0; i < opt_ditem; i++) {
+     for(unsigned i= 0; i < opt_ditem; i++) {
        WAIT[i]->wait();
        WAIT[i]->reset();
      }
@@ -229,7 +229,7 @@ void
    ops *= (double)opt_ditem;
 
    double total= 0.0;
-   for(unsigned i= 0; i<opt_multi; i++) { // Display the thread status
+   for(int i= 0; i<opt_multi; i++) { // Display the thread status
      Thread* t= (Thread*)task_array[i];
      t->iteration--;                // (Iteration starts at one)
 

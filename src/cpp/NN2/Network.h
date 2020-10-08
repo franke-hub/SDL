@@ -135,7 +135,7 @@ virtual Count                       // The content count, in Tokens
 virtual bool                        // TRUE if build_update should be recalled
    build_update(                    // Update build
      int               pass)        // Build update counter
-{  return false; }
+{  (void)pass; return false; }      // (Parameter unused)
 
 //----------------------------------------------------------------------------
 // Network::Layer methods (These do not apply to leaf Network objects)
@@ -144,14 +144,14 @@ public:
 virtual Network*                    // The associated Network*
    build_locate(                    // Locate the Network
      Token             token) const // For this token
-{  not_implemented("build_locate"); // Should never be called
+{  (void)token; not_implemented("build_locate"); // Should never be called
 // return this;                     // Probably won't get here
 }
 
 virtual Network*                    // The associated Network*
    locate(                          // Locate the Network
      Token             token) const // For this token
-{  not_implemented("locate");       // Should never be called
+{  (void)token; not_implemented("locate"); // Should never be called
 // return this;                     // Probably won't get here
 }
 
@@ -228,7 +228,7 @@ virtual RC                          // Fanin count
    fanin(                           // Process fanin
      Token             token,       // Token address
      Pulse             pulse)       // Weighted fanout value
-{  return 1; }                      // Base class implementation
+{  (void)token; (void)pulse; return 1; } // Base class implementation
 
 inline void
    fanout_begin(                    // Fanout begin message
@@ -252,7 +252,7 @@ virtual RC                          // Fanin count                  ts
    fanout(                          // Process fanout
      Token             token,       // Token address
      Count             count)       // Token count
-{  return 0; }                      // Base class implementation
+{  (void)token; (void)count; return 0; } // Base class implementation
 
 virtual void
    update( void )                   // Clock update
@@ -262,7 +262,7 @@ virtual void
    work(                            // Begin work
      Token             token,       // Work Token address
      Count             count)       // Work Token count
-{  }
+{  (void)token; (void)count; }      // Base class implementation NOP
 }; // class Network
 
 //----------------------------------------------------------------------------
@@ -283,7 +283,7 @@ public:
 virtual Value_t                     // The current Value_t
    to_value(                        // Get Value_t of
      Token             token) const // This Token
-{  return 0; }                      // Override this method
+{  (void)token; return 0; }         // Override this method
 }; // class InpNetwork
 
 //----------------------------------------------------------------------------

@@ -120,7 +120,7 @@ void
 
      debugf(">>>> Getters\n");
      count= 0;
-     for(int j= 0; j<_length; j++) {
+     for(unsigned j= 0; j<_length; j++) {
        if( count == 0 )
          debugf(">>>> [%.6x]", j);
        debugf(" %6d", *getter);
@@ -136,7 +136,7 @@ void
 
      debugf(">>>> Setters\n");
      count= 0;
-     for(int j= 0; j<_length; j++) {
+     for(unsigned j= 0; j<_length; j++) {
        if( count == 0 )
          debugf(">>>> [%.6x]", j);
        debugf(" %6d", *setter);
@@ -290,7 +290,7 @@ void
      FanoutBundle* bundle= _layer.bundle + _bundle_index;
      debugf(">>>> Getters\n");
      int count= 0;
-     for(int j= 0; j<_length; j++) {
+     for(unsigned j= 0; j<_length; j++) {
        if( count == 0 )
          debugf(">>>> [%.6x]", j);
        debugf(" %6d", faninp_bundle(*bundle));
@@ -444,7 +444,7 @@ bool                                // TRUE if build not completed
        Bundle_index_t L= j-1;
        Bundle_index_t R= j+1;
        if( j == 0 ) L= _length - 1;
-       if( R >= _length ) R= 0;
+       if( size_t(R) >= _length ) R= 0;
        _thisBundle->index[0]= L;
        _thisBundle->index[1]= j;
        _thisBundle->index[2]= R;
@@ -488,7 +488,7 @@ void
 
      debugf(">>>> Getters\n");
      count= 0;
-     for(int j= 0; j<_length; j++) {
+     for(unsigned j= 0; j<_length; j++) {
        if( count == 0 )
          debugf(">>>> [%.6x]", j);
        debugf(" %6d", *getter);
@@ -504,7 +504,7 @@ void
 
      debugf(">>>> Setters\n");
      count= 0;
-     for(int j= 0; j<_length; j++) {
+     for(unsigned j= 0; j<_length; j++) {
        if( count == 0 )
          debugf(">>>> [%.6x]", j);
        debugf(" %6d", *setter);

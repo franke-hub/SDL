@@ -135,7 +135,7 @@ static const char*     user_agent=
    //-------------------------------------------------------------------------
    // Initialize the Global
    global= (Global*)Unconditional::malloc(sizeof(Global));
-   memset(global, 0, sizeof(Global));
+   memset((char*)global, 0, sizeof(Global));
    strcpy((char*)global->VERSION_ID, ID_VERSION);
    global->refCounter= 1;
 

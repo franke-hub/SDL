@@ -135,7 +135,7 @@ extern void
 {
    Fanin*              ptrF;        // -> Fanin (Internal address)
 
-   int                 fanix;       // Current FANIN index
+   unsigned            fanix;       // Current FANIN index
    NN::Offset          offset;      // -> Fanin (Internal, current)
 
    //-------------------------------------------------------------------------
@@ -175,7 +175,7 @@ extern NN::Value
    NN::Value           resultant;   // Resultant
    Fanin*              ptrF;        // -> Fanin (Internal address)
 
-   int                 fanix;       // Current FANIN index
+   unsigned            fanix;       // Current FANIN index
    NN::Offset          offset;      // -> Fanin (Internal, current)
 
    //-------------------------------------------------------------------------
@@ -219,7 +219,7 @@ extern NN::Value
    NN::Value           resultant;   // Resultant
    Fanin*              ptrF;        // -> Fanin (Internal address)
 
-   int                 fanix;       // Current FANIN index
+   unsigned            fanix;       // Current FANIN index
    NN::Offset          offset;      // -> Fanin (Internal, current)
 
    //-------------------------------------------------------------------------

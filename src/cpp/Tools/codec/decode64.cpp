@@ -138,7 +138,7 @@ static void
 //       Base64 decode STDIN into a file.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code
+static int                          // Return code
    decode64(                        // Base64 decode a file
      const char*       fileName)    // -> Target filename
 {

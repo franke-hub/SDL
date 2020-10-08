@@ -157,7 +157,7 @@ static int                          // Number of errors encountered
 //       Display a Hand
 //
 //----------------------------------------------------------------------------
-extern void
+static void
    showHand(                        // Display Hand
      Card&             c1,          // Card 1
      Card&             c2,          // Card 2
@@ -415,9 +415,9 @@ static int                          // Number of errors encountered
 //
 //----------------------------------------------------------------------------
 int                                 // Return code
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    int                 errorCount= 0;
 

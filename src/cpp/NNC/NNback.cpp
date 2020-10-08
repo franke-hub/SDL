@@ -37,11 +37,15 @@
 //       Back propagation training algorigthm
 //
 //----------------------------------------------------------------------------
+#if 0
+extern NN::Value nnback(Neuron*, NN::FO*); // (Defined where used)
 extern NN::Value                    // Resultant
    nnback(                          // Back propagation training
      Neuron*           ptrN,        // -> Neuron (Internal address)
      NN::FO*           fxoN)        // -> Neuron (External address)
-{
+{                                   // TODO: REMOVE: UNUSED??
+   (void)ptrN; (void)fxoN;          // (Parameters unused)
    return(0.0);                     // Function not defined
 }
+#endif
 

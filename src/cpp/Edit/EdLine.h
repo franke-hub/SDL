@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2017 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Line.
 //
 // Last change date-
-//       2017/01/01 (Version 2, Release 1)
+//       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
 //
 //----------------------------------------------------------------------------
 #ifndef EDLINE_H_INCLUDED
@@ -102,11 +102,11 @@ public:
    char*             text;          // -> Text string
    struct                           // Line controls
    {
-     unsigned                 : 8;  // Reserved for expansion
-     unsigned                 : 8;  // Reserved for expansion
+     unsigned        _0       : 8;  // Reserved for expansion
+     unsigned        _1       : 8;  // Reserved for expansion
      unsigned        readonly : 1;  // This line is a protected, system line
      unsigned        marked   : 1;  // This line is marked
-     unsigned                 : 5;  // Reserved for expansion
+     unsigned        _2       : 5;  // Reserved for expansion
      unsigned        hidden   : 1;  // This is a hidden line
 
      unsigned        delim    : 8;  // Line delimiter type

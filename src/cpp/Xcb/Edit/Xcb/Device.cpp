@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/09/30
+//       2020/10/07
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -224,7 +224,7 @@ static void
    }
 }
 
-void
+static void
    configure_widget(                // Recursively configure Widget tree
      Widget*           widget)      // Below this Widget
 {
@@ -268,7 +268,7 @@ void
 
    // Layout configuration, depth and breadth recursion controlled by Layout.
    Layout::config_t config;
-   memset(&config, 0, sizeof(config));
+// memset((char*)&config, 0, sizeof(config)); // (Already initialized)
    rect= geom;                      // Initialize rectangle
    Layout::configure(config);
    rect= {20, 20, config.max_size.width, config.max_size.height};

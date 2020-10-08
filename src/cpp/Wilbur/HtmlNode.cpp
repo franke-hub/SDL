@@ -85,7 +85,7 @@ HtmlNode*                           // The associated attribute HtmlNode
    HtmlNode::getAttr(               // Get attribute
      std::string       attr) const  // For this attribute name
 {
-   return NULL;
+   (void)attr; return NULL;         // (Unused parameter)
 }
 
 std::string                         // Resultant

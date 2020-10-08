@@ -199,6 +199,7 @@ static int                          // Return code, 0 OK
      const Dbt*         vDbt,       // Value Dbt descriptor
      Dbt*               sDbt)       // Resultant (secondary index)
 {
+   (void)db; (void)xDbt;            // (Unused)
    sDbt->set_data(vDbt->get_data());// The secondary key *IS* the value
    sDbt->set_size(vDbt->get_size());
    return 0;
@@ -449,7 +450,7 @@ uint32_t                            // The word index (0 if error)
    Dbt                 xDbt(&xBuff, sizeof(uint32_t)); // Index Dbt
    Dbt                 vDbt((void*)value, length); // Value Dbt
 
-   int                 i;
+   unsigned            i;
    int                 rc;
 
    // If the word is already indexed, return that word

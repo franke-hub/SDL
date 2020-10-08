@@ -243,7 +243,7 @@ static void
 //       Parameter analysis routine.
 //
 //----------------------------------------------------------------------------
-extern void
+static void
    parm(                            // Analyze parameters
      int               argc,        // Argument count
      char*             argv[])      // Argument vector
@@ -443,9 +443,9 @@ extern void
 //
 //----------------------------------------------------------------------------
 static void
-   init(                            // Initialize
-     int               argc,        // Argument count
-     char*             argv[])      // Argument vector
+   init(int, char**)                // Initialize
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    // Set wildcards
    #ifdef INTRON_SCANNER
@@ -508,14 +508,13 @@ static void
    Extractor*          itemExtractor; // Item Extractor
    Extractor           fullExtractor; // Full Extractor
 
-   int                 col;         // Current column number
+   unsigned            col;         // Current column number
    const char*         item;        // Current exon or intron
-   int                 row;         // Current database row
+   unsigned            row;         // Current database row
    EiDBLoader::LOADMODE
                        mode;        // Loading mode
 
    int                 rc;
-   int                 i;
 
    // Load the items
    accumulator= new DataAccumulator();
@@ -571,7 +570,7 @@ static void
        printf("%6d: ", row);
 
        col= 0;
-       for(i=0;;i++)
+       for(unsigned i=0;;i++)
        {
          item= (char*)list[row].getItem(i);
          if( item == NULL )

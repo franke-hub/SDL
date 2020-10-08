@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       (Scientic American, July, 1992)
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/04
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -103,7 +103,7 @@ static char*                        // Resultant
 //       Show the rules.
 //
 //----------------------------------------------------------------------------
-extern void
+static inline void                  // (May be unused)
    debugInfo( void )                // Debugging information
 {
 #if 0  // Debugging info
@@ -203,8 +203,6 @@ static void
    int                 os, is;      // Zeros and ones
    int                 refs;        // Number of references
 
-   int                 i, j, k;
-
    // Common information
    ptrC= "unknown";
    switch(evolveRc)
@@ -256,7 +254,7 @@ static void
    debugf("\n");
 
    // Show the rules
-   for(j=0; j<Prisoner::PrisonerCount; j++)
+   for(int j=0; j<Prisoner::PrisonerCount; j++)
    {
      ptrUnit= prison.getUnit(j);
      ptrPrisoner= (Prisoner*)(ptrUnit->castConcrete());
@@ -278,20 +276,21 @@ static void
    }
 
    // Show the states
-   for(j=0; j<Prisoner::PrisonerCount; j++)
+   for(unsigned j=0; j<Prisoner::PrisonerCount; j++)
    {
-     for(i=0; i<Prisoner::PrisonerCount; i++)
+     for(int i=0; i<Prisoner::PrisonerCount; i++)
      {
        ptrPrisoner= (Prisoner*)(prison.getUnit(i)->castConcrete());
-       if( ptrPrisoner->cellNumber == j )
+       if( ptrPrisoner->cellNumber == j ) {
+         debugf("[%2d]=[%2d] ", ptrPrisoner->cellNumber, i);
          break;
+       }
      }
 
-     debugf("[%2d]=[%2d] ", ptrPrisoner->cellNumber, i);
      debugf("E(%4ld) H[", ptrPrisoner->evaluation);
 
      debugf("%.2X", ptrPrisoner->historyArray[0]);
-     for(i=1; i<Prisoner::PrisonerCount; i++)
+     for(int i=1; i<Prisoner::PrisonerCount; i++)
      {
        debugf(".%.2X", ptrPrisoner->historyArray[i]);
      }
@@ -300,11 +299,11 @@ static void
 
    // Show the history
    ptrHighRank= (Prisoner*)((prison.getUnit(0))->castConcrete());
-   for(i=0; i<256; i++)
+   for(int i=0; i<256; i++)
    {
      os= 0;
      is= 0;
-     for(j=0; j<Prisoner::PrisonerCount/2; j++)
+     for(int j=0; j<Prisoner::PrisonerCount/2; j++)
      {
        ptrPrisoner= (Prisoner*)((prison.getUnit(j))->castConcrete());
        if( Bit::get(ptrPrisoner->rule,i) == 0 )
@@ -314,10 +313,10 @@ static void
      }
 
      refs= 0;
-     for(j=0; j<Prisoner::PrisonerCount; j++)
+     for(int j=0; j<Prisoner::PrisonerCount; j++)
      {
        ptrPrisoner= (Prisoner*)((prison.getUnit(j))->castConcrete());
-       for(k=0; k<Prisoner::PrisonerCount; k++)
+       for(unsigned k=0; k<Prisoner::PrisonerCount; k++)
        {
          if( ptrPrisoner->cellNumber != k
              && ptrPrisoner->historyArray[k] == i )
@@ -362,7 +361,7 @@ static void
 
 #if 0
    // Last born generation
-   for(i=0; i<Prisoner::PrisonerCount; i++)
+   for(int i=0; i<Prisoner::PrisonerCount; i++)
    {
      ptrPrisoner= (Prisoner*)((prison.getUnit(i))->castConcrete());
      debugf("[%2d] b(%5d)\n", i, ptrPrisoner->generation);
@@ -452,8 +451,8 @@ static void
    error=  FALSE;                   // Default, no error
    verify= TRUE;                    // Default, verification
 
-   prison.minGeneration= 10000;     // Minimum number of generations
-   prison.maxGeneration= 10000;     // Maximum Number of generations
+   prison.minGeneration=  100000;   // Minimum number of generations
+   prison.maxGeneration= 1000000;   // Maximum Number of generations
 
    prison.probCull= 0.250;
    prison.probMute= 0.001;

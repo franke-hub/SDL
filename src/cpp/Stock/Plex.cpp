@@ -167,8 +167,6 @@ void
 void
    Plex::evaluate( void )           // Evaluate and sort the group
 {
-   int               i;
-
    #ifdef HCDM
      debugf("Plex(%p)::evaluate() started\n", this);
    #endif
@@ -176,7 +174,7 @@ void
    DarwinPlex::evaluate();
 
    // Evaluation makes the unit valid
-   for(i=0; i<used; i++)
+   for(unsigned i=0; i<used; i++)
    {
      unit[i]->isValid= 1;
    }
@@ -233,8 +231,6 @@ void
    Network::Byte     outsum[sizeof(uint64_t)]; // Output checksum
    Unit*             ptrUnit;       // -> Unit
 
-   int               i, j;
-
    //-------------------------------------------------------------------------
    // Validate current parameters
    //-------------------------------------------------------------------------
@@ -281,7 +277,7 @@ void
    header.julian0= histJulian[histIndex0];
    header.julianN= histJulian[histIndexN-1];
 
-   for(i= 0; i<DIM_UNIT; i++)
+   for(int i= 0; i<DIM_UNIT; i++)
    {
      ptrUnit= (Unit*)getUnit(i)->castConcrete();
      header.unit[i].evaluation=   ptrUnit->evaluation;
@@ -289,7 +285,7 @@ void
      header.unit[i].stock=        ptrUnit->stock;
      header.unit[i].lastTransfer= ptrUnit->lastTransfer;
      header.unit[i].fee=          ptrUnit->fee;
-     for(j=0; j<DIM_OUT; j++)
+     for(int j=0; j<DIM_OUT; j++)
      {
        header.unit[i].outs[j]=    ptrUnit->outs[j];
      }
@@ -316,7 +312,7 @@ void
    // Write the Rules
    //-------------------------------------------------------------------------
    keep= DIM_UNIT-header.cullCount;
-   for(i= 0; i<keep; i++)
+   for(int i= 0; i<keep; i++)
    {
      ptrUnit= (Unit*)getUnit(i)->castConcrete();
      checksum.accumulate((char*)ptrUnit->rule, RULE_SIZE);
@@ -392,8 +388,6 @@ void
    unsigned          saveIndex0;    // Saved histIndex0
    uint64_t          validator;     // Checksum validator
 
-   int               i, j;
-
    //-------------------------------------------------------------------------
    // Read and verify the header
    //-------------------------------------------------------------------------
@@ -419,7 +413,7 @@ void
    // Load the Rules
    //-------------------------------------------------------------------------
    keep= DIM_UNIT - header.cullCount;
-   for(i= 0; i<keep; i++)
+   for(int i= 0; i<keep; i++)
    {
      ptrUnit= (Unit*)(getUnit(i)->castConcrete());
      ptrUnit->evaluation=   header.unit[i].evaluation;
@@ -427,7 +421,7 @@ void
      ptrUnit->stock=        header.unit[i].stock;
      ptrUnit->lastTransfer= header.unit[i].lastTransfer;
      ptrUnit->fee=          header.unit[i].fee;
-     for(j=0; j<DIM_OUT; j++)
+     for(int j=0; j<DIM_OUT; j++)
      {
        ptrUnit->outs[j]=    header.unit[i].outs[j];
      }
@@ -435,7 +429,7 @@ void
      diskRead(handle, ptrUnit->rule, RULE_SIZE);
      checksum.accumulate((char*)ptrUnit->rule, RULE_SIZE);
    }
-   for(i= keep; i<DIM_UNIT; i++)
+   for(int i= keep; i<DIM_UNIT; i++)
    {
      ptrUnit= (Unit*)(getUnit(i)->castConcrete());
      ptrUnit->random();
@@ -463,11 +457,11 @@ void
    ptrUnit= (Unit*)(getUnit(0)->castConcrete());
    oldRule= (char*)ptrUnit->rule;
    diff= 0;
-   for(i= 0; i<keep; i++)
+   for(int i= 0; i<keep; i++)
    {
      ptrUnit= (Unit*)(getUnit(i)->castConcrete());
      oldRule= (char*)ptrUnit->rule;
-     for(j= i+1; j<keep; j++)
+     for(int j= i+1; j<keep; j++)
      {
        ptrUnit= (Unit*)(getUnit(j)->castConcrete());
        if( memcmp(oldRule, ptrUnit->rule, RULE_SIZE) != 0 )
@@ -495,7 +489,7 @@ void
        && histJulian[histIndexN-1] == header.julianN )
    {
      debugf("Continuing evaluation, %d units already valid\n", keep);
-     for(i= 0; i<keep; i++)
+     for(int i= 0; i<keep; i++)
      {
        ptrUnit= (Unit*)(getUnit(i)->castConcrete());
        ptrUnit->isValid= 1;
@@ -510,7 +504,7 @@ void
      debugf("Incremental evaluation\n");
      saveIndex0= histIndex0;
      histIndex0= header.indexN;
-     for(i= 0; i<keep; i++)
+     for(int i= 0; i<keep; i++)
      {
        ptrUnit= (Unit*)(getUnit(i)->castConcrete());
        ptrUnit->isValid= 1;         // Indicate incremental evaluation
@@ -565,13 +559,16 @@ void
                      O_RDONLY|O_BINARY); // (in read-only binary mode)
    }
 
+   bool found= false;
    for(i=0; i<DIM_BACKUP; i++)
    {
-     if( handle[i] >= 0 )
+     if( handle[i] >= 0 ) {
+       found= true;
        break;
+     }
    }
 
-   if( i == DIM_BACKUP )            // If no files open
+   if( !found )                     // If no files open
    {
      fprintf(stderr, "\n\n");
      fprintf(stderr, "No restore file!\n");

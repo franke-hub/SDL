@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2011 Frank Eskesen.
+//       Copyright (c) 2011-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Generate raw height data for volcano region.
 //
 // Last change date-
-//       2011/01/01
+//       2020/10/04
 //
 // Implementation data-
 //       25 30 25
@@ -200,9 +200,9 @@ static void
 //
 //----------------------------------------------------------------------------
 extern int                          // Return code
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    if( FALSE )
      info();

@@ -299,7 +299,7 @@ static int                          // New offset
    if( length < 0 )
      return offset;
 
-   if( offset + length >= sizeof(buffer) )
+   if( size_t(offset + length) >= sizeof(buffer) )
    {
      error("Buffer overflow\n");
      exit(EXIT_FAILURE);

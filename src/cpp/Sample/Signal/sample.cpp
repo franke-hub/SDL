@@ -138,7 +138,7 @@ static void
 {
    fprintf(stderr, "\n");
    fprintf(stderr, "%s SIGNAL(%d) '%s' Received\n", __SOURCE__, ident,
-                   ident < ELEMENTS(sigList)
+                   size_t(ident) < ELEMENTS(sigList)
                      ? sigList[ident]
                      : "Unknown signal");
 

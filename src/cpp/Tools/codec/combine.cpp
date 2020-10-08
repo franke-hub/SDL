@@ -290,7 +290,7 @@ static void
 //       Add a file to the list of output files.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code
+static int                          // Return code
    combine(                         // Add a file to the list of output files
      const char*       fileName)    // -> FileName to combine
 {
@@ -399,7 +399,7 @@ int                                 // Return code
 //       Write the combined and sorted output files.
 //
 //----------------------------------------------------------------------------
-void                                // Return code
+static void                         // Return code
    writer( void )                   // Write the output files
 {
    Content*            content;     // -> Content descriptor

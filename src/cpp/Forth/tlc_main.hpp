@@ -16,7 +16,7 @@
 //       TLC mainline. Runs TLC interpreter.
 //
 // Last change date-
-//       2020/01/10
+//       2020/10/04
 //
 // Implementation notes-
 //       Interpretation code is almost wholly C++.
@@ -252,7 +252,7 @@ static Word TH_MAIN[]=              // Initial program
 //============================================================================
 // CC_MAIN: Startup code
 //============================================================================
-void CC_MAIN( void ) {
+static void CC_MAIN( void ) {
    load_map();                      // Load the symbol table
    CRESET();                        // Reset the environment
    data.push(Data(TH_MAIN));        // Set program word

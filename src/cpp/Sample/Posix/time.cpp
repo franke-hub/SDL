@@ -65,7 +65,7 @@ static time_t          tod;         // Time of day
 //
 //----------------------------------------------------------------------------
 #ifdef _OS_BSD
-void _strdate(char* tmpbuf)
+static inline void _strdate(char* tmpbuf)
 {
    struct tm* tmp_tm= localtime(&tod);
 
@@ -83,7 +83,7 @@ void _strdate(char* tmpbuf)
 //
 //----------------------------------------------------------------------------
 #ifdef _OS_BSD
-void _strtime(char* tmpbuf)
+static inline void _strtime(char* tmpbuf)
 {
    struct tm* tmp_tm= localtime(&tod);
 

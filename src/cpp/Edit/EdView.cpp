@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2018 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       EdView object methods.
 //
 // Last change date-
-//       2018/01/01 (Version 2, Release 1)
+//       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -176,6 +176,9 @@ void
      line= (EdLine*)line->getNext();
    }
 #endif
+
+#else                               // Parameter ignored without HCDM
+   (void)message;
 #endif
 }
 
@@ -208,24 +211,24 @@ void
      Editor*           parent,      // Editor object
      Active*           active)      // Initial Active object
 :  List<EdView>::Link(), EdDraw(parent->getTerminal())
-,  active(active)
-,  vid(parent->viewCount)
-,  cols(0)
-,  curCol(0)
-,  curLine(NULL)
-,  curRing(NULL)
-,  curRow(0)
-,  deferRow(0)
-,  deferBuf(FALSE)
 ,  edit(parent)
-,  firstCol(0)
-,  firstLine(NULL)
-,  firstRow(0)
+,  vid(parent->viewCount)
+,  zcol(0)
+,  zrow(2)
+,  cols(0)
 ,  rows(0)
 ,  rowMin(0)
 ,  rowMax(0)
-,  zcol(0)
-,  zrow(2)
+,  active(active)
+,  firstCol(0)
+,  firstRow(0)
+,  firstLine(NULL)
+,  curCol(0)
+,  curRow(0)
+,  curLine(NULL)
+,  curRing(NULL)
+,  deferRow(0)
+,  deferBuf(FALSE)
 {
    #ifdef SCDM
      tracef("%4d EdView(%p)::EdView(%p)\n", __LINE__, this, parent);
@@ -318,14 +321,14 @@ const char*                         // Return message (NULL OK)
    // Position right
    if( right >= 0 )
    {
-     if( firstCol > right )
+     if( firstCol > unsigned(right) )
      {
        firstCol= 0;
-       if( right > cols )
+       if( unsigned(right) > cols )
          firstCol= right - cols + 1;
      }
 
-     if( firstCol+cols <= right )
+     if( firstCol+cols <= unsigned(right) )
        firstCol= right - cols + 1;
 
      curCol= right - firstCol;
@@ -334,13 +337,13 @@ const char*                         // Return message (NULL OK)
    // Position left
    if( left >= 0 )
    {
-     if( firstCol > left )
+     if( firstCol > unsigned(left) )
      {
        firstCol= left;
        curCol= 0;
      }
 
-     if( firstCol+cols <= left )
+     if( firstCol+cols <= unsigned(left) )
        firstCol= left - cols + 1;
 
      curCol= left - firstCol;
@@ -483,7 +486,7 @@ const char*                         // Return message (NULL)
      size= cols;
 
    for(i=0; i < size ; i++)
-     buffer[i].data= toPrint[(const unsigned char)text[i]];
+     buffer[i].data= toPrint[(unsigned char)text[i]];
 
    for(i=size; i < cols ; i++)
      buffer[i].data= ' ';
@@ -1246,7 +1249,6 @@ const char*                         // Return message (NULL)
      const EdLine*     edLine)      // For this line
 {
    EdLine*             line;        // Working line
-   int                 row;         // Working row
 
    #ifdef HCDM
      tracef("%4d EdView(%p)::viewChange(%p,%p)\n", __LINE__, this,
@@ -1256,7 +1258,7 @@ const char*                         // Return message (NULL)
    if( edRing == curRing )
    {
      line= firstLine;
-     for(row= rowMin; row<=rowMax; row++)
+     for(unsigned row= rowMin; row<=rowMax; row++)
      {
        if( edLine == line )
        {
@@ -1282,6 +1284,8 @@ const char*                         // Return message (NULL)
    #ifdef HCDM
      tracef("%4d EdView(%p)::viewChange(%p,%p,%d)\n", __LINE__, this,
             edRing, edLine, column);
+   #else                            // column ignored without HCDM
+     (void)column;
    #endif
 
    return viewChange(edRing, edLine);
@@ -1294,7 +1298,6 @@ const char*                         // Return message (NULL)
      const EdLine*     tail)        // Last changed line
 {
    EdLine*             line;        // Working line
-   int                 row;         // Working row
 
    #ifdef HCDM
      tracef("%4d EdView(%p)::viewChange(%p,%p,%p)\n", __LINE__, this,
@@ -1307,7 +1310,7 @@ const char*                         // Return message (NULL)
        return defer(RESHOW_BUF);
 
      line= firstLine;
-     for(row= rowMin; row<=rowMax; row++)
+     for(unsigned row= rowMin; row<=rowMax; row++)
      {
        if( head == line )
        {

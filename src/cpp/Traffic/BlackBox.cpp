@@ -77,9 +77,9 @@ static const double    SECONDS_PER_HOUR= 3600; // Number of seconds per hour
    BlackBox::BlackBox(              // Constructor
      int               rows,        // Number of history rows
      int               cols)        // Number of history columns
-:  history(NULL)
-,  cols(cols)
+:  cols(cols)
 ,  rows(rows)
+,  history(NULL)
 {
    int                 col;         // Current column
    int                 row;         // Current row

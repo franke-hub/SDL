@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2016 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor built-in functions.
 //
 // Last change date-
-//       2016/01/01 (Version 2, Release 1)
+//       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>
@@ -158,6 +158,7 @@ static const char*                  // Return message (NULL OK)
      Editor*           edit,        // The Editor object
      const char*       ptrchs)      // Command string
 {
+   (void)ptrchs;                    // Command string ignored
    edit->activate(edit->dataView->moveLast());
    edit->dataView->column(0);
    return NULL;
@@ -413,6 +414,7 @@ static const char*                  // Return message (NULL OK)
 {
    const char*         result;      // Return message
    EdRing*             ring;        // Working ring
+   (void)ptrchs;                    // Command string ignored
 
    while( edit->online )            // While files left to edit
    {
@@ -676,6 +678,8 @@ static const char*                  // Return message (NULL OK)
      Editor*           edit,        // The Editor object
      const char*       ptrchs)      // Command string
 {
+   (void)edit; (void)ptrchs;        // Parameters ignored
+   (void)ptrchs;                    // Command string ignored
    return NULL;
 }
 
@@ -927,6 +931,8 @@ static const char*                  // Return message (NULL OK)
      Editor*           edit,        // The Editor object
      const char*       ptrchs)      // Command string
 {
+   (void)ptrchs;                    // Command string ignored
+
    edit->activate(edit->dataView->moveFirst());
    edit->dataView->column(0);
    return NULL;
@@ -1004,8 +1010,6 @@ const char*                         // Return message (NULL OK)
    const char*         ptrcmd;      // -> Command name
    const char*         ptrchs;      // -> Command string
 
-   int                 i;
-
    #ifdef HCDM
      tracef("%4d Editor(%p)::execute(%s)\n", __LINE__, this,
             histActive->getText());
@@ -1037,7 +1041,7 @@ const char*                         // Return message (NULL OK)
    // Extract the command name
    //-------------------------------------------------------------------------
    memcpy(cmdname, "        ", 8);  // Initialize the command name
-   for(i=0; i<8; i++)
+   for(int i=0; i<8; i++)
    {
      if( ptrcmd[i] == '\0' )        // If end of command
        break;                       // Break, command name complete
@@ -1051,7 +1055,7 @@ const char*                         // Return message (NULL OK)
    //-------------------------------------------------------------------------
    ptrchs= findBlank(ptrcmd);
    ptrchs= skipBlank(ptrchs);
-   for(i=0; i<DIM(command); i++)
+   for(unsigned i=0; i<DIM(command); i++)
    {
      if( memcmp(cmdname, command[i].name, 8) == 0 )
      {

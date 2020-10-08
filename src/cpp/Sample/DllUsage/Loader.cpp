@@ -77,9 +77,9 @@
 //----------------------------------------------------------------------------
    Loader::Loader(                  // Constructor
      const char*       name)        // Name of library
-:  handle(NULL)
+:  name(name)
+,  handle(NULL)
 ,  makef(NULL), takef(NULL)
-,  name(name)
 {
    IFHCDM( debugf("Loader(%p)::Loader(%s)\n", this, name); )
 

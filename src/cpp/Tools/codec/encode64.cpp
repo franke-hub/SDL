@@ -125,7 +125,7 @@ static void
 //       Base64 encode a file into STDOUT.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code
+static int                          // Return code
    encode64(                        // Base64 encode a file
      const char*       fileName)    // -> FileName to encode
 {

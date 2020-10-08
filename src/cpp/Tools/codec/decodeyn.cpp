@@ -79,7 +79,7 @@ struct Yline {                      // =y Control line descriptor
      uint32_t            v;         // Value
    }                   data;        // Value or Pointer
 }; // struct Yline
-#define YLINE(name, type, required) {name, Yline::TYPE_ ## type, required}
+#define YLINE(name, type, required) {name, Yline::TYPE_ ## type, required, false, .data= {.p= nullptr}}
 
 //----------------------------------------------------------------------------
 // Local data areas
@@ -404,7 +404,7 @@ static const Yline*                 // The element
 //       yEnc decode STDIN into a file.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code
+static int                          // Return code
    decodeyn(                        // yEnc decode a file
      const char*       fileName)    // -> Target filename
 {

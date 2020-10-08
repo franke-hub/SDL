@@ -189,7 +189,7 @@ static void
 //       Parameter analysis routine.
 //
 //----------------------------------------------------------------------------
-extern void
+static void
    parm(                            // Analyze parameters
      int               argc,        // Argument count
      char*             argv[])      // Argument vector
@@ -340,9 +340,9 @@ extern void
 //
 //----------------------------------------------------------------------------
 static void
-   init(                            // Initialize
-     int               argc,        // Argument count
-     char*             argv[])      // Argument vector
+   init(int, char**)                // Initialize
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    // Set wildcards
    #ifdef INTRON_SCANNER
@@ -750,7 +750,7 @@ static void
           ACount, CCount, GCount, TCount, oCount);
 
    // Column counter
-   for(col= 0; col<eidb.getLargest(); col++)
+   for(col= 0; unsigned(col) < eidb.getLargest(); col++)
    {
      ACount= 0;
      CCount= 0;
@@ -859,7 +859,7 @@ itemScan:
        for(row= 0; row<m; row++)
        {
          C= eidb.getLine(row);
-         if( strlen(C) >= (sw_verify+L-colZero) )
+         if( strlen(C) >= size_t(sw_verify+L-colZero) )
          {
            lCounter++;
            if( (memcmp(C+sw_verify-colZero, argv[item], L) == 0)

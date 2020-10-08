@@ -49,6 +49,7 @@
 //       resultant= (fanin[0]&fanin[1]&fanin[2]&...&fanin[n])
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_and_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_and_V(                        // nn_rdval(neuron[and])
      Neuron*           ptr_N,       // -> Neuron (Internal address)
@@ -88,6 +89,7 @@ extern NN::Value
 //       resultant= (fanin[0]|fanin[1]|fanin[2]|...|fanin[n])
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_or_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_or_V(                         // nn_rdval(neuron[or])
      Neuron*           ptr_N,       // -> Neuron (Internal address)
@@ -127,6 +129,7 @@ extern NN::Value
 //       resultant= !(fanin[0]&fanin[1]&fanin[2]&...&fanin[n])
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_nand_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_nand_V(                       // nn_rdval(neuron[nand])
      Neuron*           ptr_N,       // -> Neuron (Internal address)
@@ -166,6 +169,7 @@ extern NN::Value
 //       resultant= !(fanin[0]|fanin[1]|fanin[2]|...|fanin[n])
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_nor_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_nor_V(                        // nn_rdval(neuron[nor])
      Neuron*           ptr_N,       // -> Neuron (Internal address)

@@ -63,6 +63,7 @@
 //       Storage access display control
 //
 //----------------------------------------------------------------------------
+#if 0 // TODO: REMOVE: UNUSED
 extern void
    nndisp(                          // Storage access display
      int               fc,          // Function code
@@ -70,3 +71,4 @@ extern void
      int               blockid)     // Target frame identifier
 {
 }
+#endif

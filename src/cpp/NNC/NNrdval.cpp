@@ -284,6 +284,7 @@ static NN_READSTR_T*   readstr[Neuron::TypeCOUNT]= { // READS vector
 //       Read Neuron string.
 //
 //----------------------------------------------------------------------------
+extern NN::String nnreads(NN::FileId, NN::Offset); // TODO: IS THIS USED?
 extern NN::String
    nnreads(                         // Read Neuron string
      NN::FileId        fileId,      // FileId

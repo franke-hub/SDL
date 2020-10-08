@@ -66,6 +66,7 @@ static int                          // Return code, 0 OK
      const Dbt*         vDbt,       // Value Dbt descriptor
      Dbt*               sDbt)       // Resultant (secondary index)
 {
+   (void)db;                        // (Unused)
    if( *(uint64_t*)xDbt->get_data() == 0 )
      return DB_DONOTINDEX;
 

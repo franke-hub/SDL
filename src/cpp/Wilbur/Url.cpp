@@ -398,13 +398,12 @@ int                                 // Resultant
 {
    string              text= parser(uri, ITEM_AUTHPORT);
    int                 port= (-1);  // Resultant
-   int                 i;
 
    if( text.size() > 0 )
    {
      port= 0;
 
-     for(i= 0; i<text.size(); i++)
+     for(size_t i= 0; i<text.size(); i++)
      {
        port *= 10;
        port += (text[i] - '0');

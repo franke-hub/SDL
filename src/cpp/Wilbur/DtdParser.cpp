@@ -557,6 +557,7 @@ int                                 // Return code (0 OK)
    int                 rc;
 
    IFHCDM( printf(" SOURCE(%s)\n", file.getName().c_str()); )
+   ELHCDM( (void)file; )            // (Unused) TODO: INVESTIGATE
 
    angle= brace= quote= 0;
    prior= ' ';

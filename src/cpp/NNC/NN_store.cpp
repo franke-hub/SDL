@@ -43,6 +43,7 @@
 //       NN_RDVAL(neuron[store]).
 //
 //----------------------------------------------------------------------------
+extern NN::Value NN_store_V(Neuron*, NN::FileId); // (Defined where used)
 extern NN::Value
    NN_store_V(                      // nn_rdval(neuron[store])
      Neuron*           ptrN,        // -> Neuron (Internal address)
@@ -51,7 +52,7 @@ extern NN::Value
    Fanin*              ptrF;        // -> Fanin (Internal address)
    Neuron*             setN;        // -> Neuron (Internal address)
 
-   int                 fanix;       // Fanin index
+   unsigned            fanix;       // Fanin index
    NN::Offset          offset;      // -> Fanin (Internal, current)
 
    //-------------------------------------------------------------------------

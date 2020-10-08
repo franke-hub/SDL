@@ -125,7 +125,7 @@ static const char*               // Case-insensitive find
      int               n,
      char              a)
 {
-   char A= toupper(a);
+   int A= toupper(a);
 
    while( n-- > 0 && toupper(*s) != A )
      ++s;

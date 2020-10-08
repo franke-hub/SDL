@@ -16,7 +16,7 @@
 //       Sample program: How to create and use processes.
 //
 // Last change date-
-//       2020/08/23
+//       2020/10/04
 //
 // Implementation notes-
 //       mqueue.h:     Defines inter-process message queue functions.
@@ -191,9 +191,9 @@ static sigaction_t     sys1_action; // System MQ_SIGNO signal handler
 //
 //----------------------------------------------------------------------------
 static int                          // Return code (0 OK)
-   init(                            // Initialize
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   init(int, char**)                // Initialize
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    //-------------------------------------------------------------------------
    // Initialize signal handling
@@ -499,6 +499,8 @@ void
      siginfo_t*        siginfo,     // Signal information
      void*             ignore)      // Context
 {
+   (void)ignore;                    // Unused parameter
+
    Main* main= (Main*)siginfo->si_value.sival_ptr;
    mqd_t fd= main->fd;
 

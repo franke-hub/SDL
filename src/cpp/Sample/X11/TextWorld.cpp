@@ -68,8 +68,8 @@
 static Display*        disp;        // The X server connection
 static int             xscr;        // The default screen
 static Window          xwin;        // Our Window
-static int             xwinHeight= 64; // Window height
-static int             xwinWidth=  768; // Window width
+static unsigned        xwinHeight= 64; // Window height
+static unsigned        xwinWidth=  768; // Window width
 static GC              wgco;        // Our Graphics Context (Window)
 static XImage*         ximg= NULL;  // Our XImage
 static Pixmap          xmap;        // Our Pixmap
@@ -220,6 +220,7 @@ static void
      int               argc,        // Argument count (For XSetWMProperties)
      char**            argv)        // Argument array (For XSetWMProperties)
 {
+   (void)argc; (void)argv;          // Currently unused
    int                 rc;
 
    // Connect to the X server

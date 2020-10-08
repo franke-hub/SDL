@@ -598,7 +598,7 @@ void
    unsigned char*      sets= this->sets; // Working sets pointer
 
    const int M= (iCount >> 3);      // Number of Axion bytes
-   for(int n= 0; n<oCount; n++)     // For each Neuron
+   for(unsigned n= 0; n<oCount; n++) // For each Neuron
    {
      int gets= rems[n];             // Start with remainder
 

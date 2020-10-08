@@ -268,8 +268,6 @@ static void
    Card::Rank          rankLo;      // Lower card's Rank
    int                 suited;      // TRUE iff suited
 
-   int                 i;
-
    rankHi= down[0]->getRank();
    rankLo= down[1]->getRank();
    if( rankHi < rankLo )
@@ -291,7 +289,7 @@ static void
    result.allWins= 0.0;
    result.allTies= 0.0;
    result.allLoss= 0.0;
-   for(i= 0; i<DIM_DEALTABLE; i++)
+   for(size_t i= 0; i<DIM_DEALTABLE; i++)
    {
      if( dealTable[i].downHi == rankHi
          && dealTable[i].downLo == rankLo

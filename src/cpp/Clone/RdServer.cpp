@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       The (multi-threaded) file server.
 //
 // Last change date-
-//       2014/01/01
+//       2020/10/03
 //
 // Usage-
 //       RdServer <-options>
@@ -113,7 +113,7 @@ static void
 //       Parameter analysis.
 //
 //----------------------------------------------------------------------------
-void
+static void
    parm(                            // Parameter analysis
      int               argc,        // Argument count
      char*             argv[])      // Argument array

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2018 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,20 +15,13 @@
 //       Hello, C++ world.
 //
 // Last change date-
-//       2018/01/01
+//       2020/10/04
 //
 //----------------------------------------------------------------------------
 #include <iostream>
+#include "Hello.h"
 
 using namespace std;
-
-//----------------------------------------------------------------------------
-// Function prototypes
-//----------------------------------------------------------------------------
-extern int test00( void );
-extern int test01( void );
-extern int test02( void );
-extern int test03( void );
 
 //----------------------------------------------------------------------------
 //
@@ -40,9 +33,9 @@ extern int test03( void );
 //
 //----------------------------------------------------------------------------
 extern int                          // Return code
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    unsigned int        errorCount= 0;
 

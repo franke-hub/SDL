@@ -76,7 +76,7 @@ int                                 // Comparitor (<0, =0, >0)
      Object*           source)      // To this Object
 {
    #ifdef HCDM
-     if( this == NULL || source == NULL )
+     if( source == NULL )
      {
        fprintf(stderr, "Object(%p)::compare(%p) NULL pointer\n",
                        this, source);

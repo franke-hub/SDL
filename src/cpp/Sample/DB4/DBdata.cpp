@@ -81,6 +81,8 @@ static void
      va_start(argptr, fmt);         // Initialize va_ functions
      vprintf(fmt, argptr);
      va_end(argptr);                // Close va_ functions
+   #else                            // Parameter unused without HCDM defined
+     (void)fmt;
    #endif
 }
 
@@ -107,6 +109,8 @@ static inline void
      memcpy(buffer, dbt->get_data(), size);
      buffer[size]= '\0';
      printf("%s", buffer);
+   #else                            // Parameter unused without HCDM defined
+     (void)dbt;
    #endif
 }
 
@@ -144,8 +148,8 @@ static inline void
 //       Clear a structure to zeroes
 //
 //----------------------------------------------------------------------------
-#define ZERO_OBJ(x) memset(&x, 0, sizeof(x))
-#define ZERO_PTR(x) memset(x, 0, sizeof(*x))
+#define ZERO_OBJ(x) memset((char*)&x, 0, sizeof(x))
+#define ZERO_PTR(x) memset((char*)x, 0, sizeof(*x))
 
 //----------------------------------------------------------------------------
 //
@@ -253,11 +257,12 @@ char*                  headFile;    // The header file
 
 static int                          // Return code, 0 OK
    setNameKey(                      // Extract the name key(s)
-     Db*               db,          // -> DB (unused)
+     Db*               db,          // -> DB
      const Dbt*        key,         // Key descriptor (unused)
      const Dbt*        data,        // Data descriptor
      Dbt*              sKey)        // Resultant
 {
+   (void)key;                       // Unused parameter
    int                 count= 0;    // Number of Multiple DBT
 
    char* CO= (char*)data->get_data();
@@ -290,7 +295,7 @@ static int                          // Return code, 0 OK
        fprintf(stderr, "NameRecord::setNameKey() dynamic_cast failure\n");
      else
      {
-       memcpy(&myDB->workDBT[0], sKey, sizeof(Dbt));
+       memcpy((char*)&myDB->workDBT[0], sKey, sizeof(Dbt));
 
        for(count= 1; CN != NULL && CN < CM; count++)
        {
@@ -310,7 +315,7 @@ static int                          // Return code, 0 OK
          size= CT-CO;
          sKey->set_data(CO);
          sKey->set_size(size);
-         memcpy(&myDB->workDBT[count], sKey, sizeof(Dbt));
+         memcpy((char*)&myDB->workDBT[count], sKey, sizeof(Dbt));
 
          CN= strstr(CT, "NAME: ");
        }
@@ -345,6 +350,7 @@ static int                          // Return code, 0 OK
      const Dbt*        data,        // Data descriptor
      Dbt*              sKey)        // Resultant
 {
+   (void)db; (void)key;             // Unused parameters
    char* CO= (char*)data->get_data();
    char* CM= strstr(CO, "THIS: ");
    if( CM == NULL )
@@ -733,7 +739,7 @@ void
      const char*       name)        // Using this database name
 {
    // TODO: NEEDS WORK
-   throw "NOT CODED YET";
+   (void)name; throw "NOT CODED YET";
 }
 
 //----------------------------------------------------------------------------

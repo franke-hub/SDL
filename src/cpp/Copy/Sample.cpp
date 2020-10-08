@@ -16,7 +16,7 @@
 //       Sample source file.
 //
 // Last change date-
-//       2020/01/29
+//       2020/10/04
 //
 // Implementation note-
 //       The basic source file template is given to the public domain.
@@ -129,9 +129,9 @@ void
 //
 //----------------------------------------------------------------------------
 int                                 // void also allowed
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    pub::Sample sample;
    sample.debug();

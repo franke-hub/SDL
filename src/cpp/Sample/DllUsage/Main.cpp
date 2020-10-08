@@ -53,7 +53,7 @@
 //       Run the tests.
 //
 //----------------------------------------------------------------------------
-void
+static void
    test( void )
 {
    {{{{
@@ -128,9 +128,9 @@ void
 //
 //----------------------------------------------------------------------------
 int                                 // Return code
-   main(                            // Mainline code
-     int             argc,          // Argument count
-     char*           argv[])        // Argument array
+   main(int, char**)                // Mainline code
+//   int             argc,          // Argument count (Unused)
+//   char*           argv[])        // Argument array (Unused)
 {
    #ifdef SCDM
      printf("%4d Main.main() %p\n", __LINE__, main);

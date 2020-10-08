@@ -260,7 +260,7 @@ inline void
    unsigned int size= 4;
    size += (length&3);
    if( size > length )
-     size= length;
+     size= unsigned(length);
 
    setWidth(origin, size);
 }
@@ -272,7 +272,7 @@ inline void
    length += (this->length&3);
 
    if( length > this->length )
-     length= this->length;
+     length= unsigned(this->length);
 
    setWidth(origin, length);
 }

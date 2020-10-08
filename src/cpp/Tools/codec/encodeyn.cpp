@@ -137,7 +137,7 @@ static void
 //       yEnc encode a file into STDOUT.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code
+static int                          // Return code
    encodeyn(                        // yEnc encode a file
      const char*       fileName)    // -> FileName to encode
 {

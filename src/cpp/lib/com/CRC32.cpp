@@ -169,9 +169,9 @@ uint32_t                            // Updated checksum
 //----------------------------------------------------------------------------
 #ifdef CRC32_GENERATE_MAIN
 int                                 // Return code
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   main(int, char**)                // Mainline code
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    uint32_t            table[256];  // Resultant table
 

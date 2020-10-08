@@ -51,6 +51,7 @@
 //       Do nothing in a way that the compiler can't tell.
 //
 //----------------------------------------------------------------------------
+extern void nop(void*);             // (Not very far) Forward reference
 extern void
    nop(                             // Do nothing, but don't tell compiler
      void*             reference)   // Reference this variable

@@ -125,8 +125,8 @@ virtual
 
    PseudoThread(
      const char*       name)
-:  name(name)
-,  tid(0)
+:  tid(0)
+,  name(name)
 {
 }
 

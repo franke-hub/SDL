@@ -75,6 +75,7 @@ int                                 // Return code (0 to visit subtree)
 {
    // Since this NodeVisitor does nothing, there is no point in visiting any
    // child nodes since this HtmlNodeVisitor will do nothing with them, either.
+   (void)node;                      // (Parameter ignored)
    return (-1);
 }
 

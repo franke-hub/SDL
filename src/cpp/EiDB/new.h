@@ -27,6 +27,7 @@ inline void*                        // ptrVoid
      size_t          size,          // Size of object
      void*           ptrVoid)       // In-place address
 {
+   (void)size;                      // (Unused)
    return ptrVoid;
 }
 

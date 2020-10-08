@@ -177,7 +177,7 @@ public:
    ~Root( void )
 {  IFDEBUG( debugf("Root(%p).~Root\n", this); )
 
-   for(int i= 0; i<thread_count; i++)
+   for(unsigned i= 0; i<thread_count; i++)
      delete thread_array[i];
 
    delete thread_array;
@@ -190,7 +190,7 @@ public:
 {  IFDEBUG( debugf("Root(%p).Root\n", this); )
 
    thread_array= new Thread*[thread_count];
-   for(int i= 0; i<thread_count; i++)
+   for(unsigned i= 0; i<thread_count; i++)
      thread_array[i]= new Thread(*this);
 }
 

@@ -284,7 +284,7 @@ static void
          k= inpsize;                // Use remaining buffer length
 
        p= (char*)memccpy(outaddr, inpaddr, '\n', k);// Move until end of line
-       if (p == NULL)               // If no delimiter found
+       if (p == NULL) {             // If no delimiter found
          if (k == inpsize)          // If end of buffer
          {
            outaddr += k;            // Update buffer pointer
@@ -308,6 +308,7 @@ static void
            inpsize -= k;
            continue;                // End of line
          }
+       }
 
        k= p - outaddr;              // Calculate move length
        inpaddr += k;                // Adjust pointers

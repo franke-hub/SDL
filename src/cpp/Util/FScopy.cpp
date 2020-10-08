@@ -247,14 +247,14 @@ static int                          // Return code (0 OK)
    // Read the file
    //-------------------------------------------------------------------------
    offset= 0;
-   for(;;)                          // Write the file
+   for(;;)                          // Read the file
    {
      size= outSize - offset;        // Remaining length
      L= fread(outBuff+offset, 1, size, file);
      if( L == size )
        break;
 
-     if( ferror(file) || L < 0 )
+     if( ferror(file) || int(L) < 0 )
      {
        fprintf(stderr, "File(%s) ", inpName);
        perror("read failure");

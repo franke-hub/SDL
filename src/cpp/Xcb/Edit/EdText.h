@@ -16,7 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2020/09/24
+//       2020/10/07
 //
 //----------------------------------------------------------------------------
 #ifndef EDTEXT_H_INCLUDED
@@ -249,7 +249,7 @@ int                                 // Return code, 0 if draw performed
 virtual const char*                 // The cursor line text
    cursor_text(                     // Get cursor line text
      const xcb::Line*  line) const  // For this (cursor) line
-{  return active.get_buffer(); }
+{  (void)line; return active.get_buffer(); }
 
 //----------------------------------------------------------------------------
 //
@@ -456,7 +456,7 @@ virtual int                         // Return code, 0 if handled
    xcb::trace(".KEY", (state<<16) | (key & 0x0000ffff), name);
 
    int rc= 0;                       // Return code, default handled
-   ssize_t column= col_zero + col;  // The cursor column
+   size_t column= col_zero + col;   // The cursor column
    if( key >= 0x0020 && key < 0x007f ) { // If text key
      int mask= state & (xcb::KS_ALT | xcb::KS_CTRL);
      if( mask ) {
@@ -620,6 +620,7 @@ virtual int                         // Return code, 0 if handled
      }
      case XK_F12: {                 // Bringup test
        editor->do_test();
+       break;
      }
 
      //-----------------------------------------------------------------------

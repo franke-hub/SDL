@@ -252,7 +252,7 @@ static const char*                  // buffer (or NULL)
    if( C == EOF )
      return NULL;
 
-   int x= 0;
+   unsigned x= 0;
    while( C != EOF && isalpha(C) && x < (length-2) )
    {
      buffer[x++]= tolower(C);
@@ -557,7 +557,7 @@ static int                          // TRUE iff word is valid
 
    if( strchr(word, '\'') )         // If word contains a quote
    {
-     int j= 0;
+     size_t j= 0;
      for(int i= 0; word[i] != '\0'; i++)
      {
        if( j >= (sizeof(copied) - 2) )
@@ -607,7 +607,7 @@ static int                          // TRUE iff word is valid
 
    int L= snprintf(buffer, sizeof(buffer),
                    "echo %s | aspell list >" GATHER_TEMP, word);
-   if( L < (sizeof(buffer) - 2) )
+   if( size_t(L) < (sizeof(buffer) - 2) )
    {
      int rc= system(buffer);
      if( rc != 0 )

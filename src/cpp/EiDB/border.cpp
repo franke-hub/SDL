@@ -272,7 +272,7 @@ static void
 //       Parameter analysis routine.
 //
 //----------------------------------------------------------------------------
-extern void
+static void
    parm(                            // Analyze parameters
      int               argc,        // Argument count
      char*             argv[])      // Argument vector
@@ -471,9 +471,9 @@ extern void
 //
 //----------------------------------------------------------------------------
 static void
-   init(                            // Initialize
-     int               argc,        // Argument count
-     char*             argv[])      // Argument vector
+   init(int, char**)                // Initialize
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    list= NULL;                      // No list exists
 
@@ -518,9 +518,7 @@ static void
 static void
    term( void )                     // Initialize
 {
-   int                 row;         // List row
-
-   for(row= 0; row<eidb.getLineCount(); row++)
+   for(unsigned row= 0; row<eidb.getLineCount(); row++)
       list[row].empty();
    free(list);
 
@@ -548,7 +546,6 @@ static void
    const char*         item;        // Current exon or intron
    EiDBLoader::LOADMODE
                        loadMode;    // Loading mode
-   int                 row;         // Current database row
 
    int                 rc;
    int                 i;
@@ -583,7 +580,7 @@ static void
 
    // Extract the items
    list= (List*)malloc(eidb.getLineCount()*sizeof(List));
-   for(row= 0; row<eidb.getLineCount(); row++)
+   for(unsigned row= 0; row<eidb.getLineCount(); row++)
    {
      new(&list[row]) List();
      itemExtractor->load((char*)eidb.getLine(row));
@@ -602,7 +599,7 @@ static void
    // Display the database
    if( sw_out )
    {
-     for(row= 0; row<eidb.getLineCount(); row++)
+     for(unsigned row= 0; row<eidb.getLineCount(); row++)
      {
        printf("%6d: ", row);
 

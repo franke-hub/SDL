@@ -357,7 +357,7 @@ static void
 //       Flush socket option
 //
 //----------------------------------------------------------------------------
-extern void
+static void
    setFlush(                        // Flush a Socket option
      int               talk)        // The socket handle
 {
@@ -371,6 +371,8 @@ logf("%p= FILE(%d)\n", file, talk);
 
    rc= fflush(file);
 logf("%d= fflush()\n", rc);
+#else                               // If function disabled
+   (void)talk;                      // The parameter is unused
 #endif
 }
 
@@ -383,7 +385,7 @@ logf("%d= fflush()\n", rc);
 //       Set a socket option
 //
 //----------------------------------------------------------------------------
-extern void
+static inline void
    setOption(                       // Set a Socket option
      int               talk,        // The socket handle
      int               so,          // The option to set
@@ -426,14 +428,14 @@ extern void
 //       Receive a string message.
 //
 //----------------------------------------------------------------------------
-int                                 // Number of bytes read
+static int                          // Number of bytes read
    recvLine(                        // Receive a string message
      int             talk,          // Socket handle
      char*           addr,          // Message address
      unsigned        size)          // Maximum message length
 {
    int               L;             // Read length
-   int               used;          // Number of bytes read
+   unsigned          used;          // Number of bytes read
 
    used= 0;
    while( used < size )             // Read the string
@@ -475,7 +477,7 @@ int                                 // Number of bytes read
 //       Send a string message.
 //
 //----------------------------------------------------------------------------
-int                                 // Number of bytes sent
+static int                          // Number of bytes sent
    sendLine(                        // Send a message
      int               talk,        // Socket handle
      const char*       addr)        // Message address

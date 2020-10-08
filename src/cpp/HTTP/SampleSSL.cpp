@@ -16,7 +16,7 @@
 //       Sample HTTP/HTTPS Client/Server, using openssl socket layer.
 //
 // Last change date-
-//       2020/08/22
+//       2020/10/04
 //
 // Known bugs-
 //       std/ssl_stressor both eventually fail on Cygwin. (OK in Linux)
@@ -193,7 +193,9 @@ static int                          // Actual password length
     int                size,        // Return buffer length  (for password)
     int                rwflag,      // FALSE:decryption, TRUE:encryption
     void*              userdata)    // User data
-{//debugf("%4d HCDM(%p,%d,%d,%p\n", __LINE__, buff, size, rwflag, userdata);
+{
+   if( false )                      // Note: only usage of userdata parameter
+     debugf("%4d HCDM(%p,%d,%d,%p)\n", __LINE__, buff, size, rwflag, userdata);
 
    if( rwflag ) {                   // If encryption
      debugf("%4d HCDM SHOULD NOT OCCUR\n", __LINE__);

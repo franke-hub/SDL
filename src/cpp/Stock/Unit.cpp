@@ -453,7 +453,7 @@ Unit::Evaluation                    // Evaluation
    double            today, prior;  // Valuations
 
    int               i;
-   int               x;
+   unsigned          x;
 
    #ifdef HCDM
      debugf("Unit(%p)::evaluate() started\n", this);
@@ -559,9 +559,9 @@ Unit::Evaluation                    // Evaluation
                   x, (stock+cash)/100, stock/100, cash/100, xferAmount/100);
 
          if( xferAmount > 0 )
-           assert( cash >= xferAmount);
+           assert( cash >= (unsigned long)xferAmount );
          else
-           assert( stock >= -xferAmount);
+           assert( stock >= (unsigned long)(-xferAmount) );
 
          stock += xferAmount;
          cash  -= xferAmount;
@@ -639,7 +639,7 @@ void
    Unit::random( void )             // Random rule
 {
    char*             R= (char*)rule;
-   int               i;
+   unsigned          i;
 
    for(i=0; i<RULE_SIZE; i++)
      R[i]= RNG.get();

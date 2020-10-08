@@ -130,6 +130,7 @@ ostream&
 }
 }; // class Poorly
 
+#if 0  // USED??
 ostream& operator<<(
            ostream&      stream,
            const Poorly& Poorly) {return Poorly.print(stream);}
@@ -137,6 +138,7 @@ ostream& operator<<(
 ostream& operator+=(
            ostream&      stream,
            const Poorly& Poorly) {return Poorly.debug(stream);}
+#endif
 
 //----------------------------------------------------------------------------
 //
@@ -234,6 +236,7 @@ static void
 //       Test <string>
 //
 //----------------------------------------------------------------------------
+extern void testPoorly( void );     // (Not very far) Forward reference
 extern void
    testPoorly( void )
 {

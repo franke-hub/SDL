@@ -119,7 +119,7 @@ static unsigned char   outbuf[INPSIZE]; // The I/O buffer itself
 //       Initialization.
 //
 //----------------------------------------------------------------------------
-void
+static void
    init( void )                     // Initialize
 {
    ctlh= inph= outh= (-1);
@@ -151,7 +151,7 @@ void
 //       Termination cleanup.
 //
 //----------------------------------------------------------------------------
-int                                 // Resultant, 0 OK
+static int                          // Resultant, 0 OK
    term( void )                     // Terminate
 {
    int                 result= (-1);// Resultant
@@ -221,7 +221,7 @@ static INLINE Word                  // Resultant word, host format
    Word                result;      // Resultant
    WC                  wc;          // Conversion word
 
-   int                 i;
+   size_t              i;
 
    result= 0;
    wc.w= source;
@@ -396,7 +396,7 @@ static INLINE Word                  // Resultant Word
    ctlWord( void )                  // Read the next control file word
 {
    Word                result;      // Resultant
-   int                 i;
+   size_t              i;
 
    result= 0;
    for(i= 0; i<sizeof(Word); i++)
@@ -461,7 +461,7 @@ static INLINE Word                  // Resultant Word
    inpWord( void )                  // Read next input file word
 {
    Word                result;      // Resultant
-   int                 i;           // General index variable
+   size_t              i;           // General index variable
 
    result= 0;
    for(i= 0; i<sizeof(Word); i++)
@@ -481,6 +481,7 @@ static INLINE Word                  // Resultant Word
    return result;
 }
 
+extern Word outline_inpWord( void ); // (Not very far) Forward reference
 extern Word                         // Resultant Word
    outline_inpWord( void )          // Read next input file word
 {
@@ -561,7 +562,7 @@ static INLINE void
    writer(                          // Write next output file word
      Word              oword)       // The word to be written
 {
-   int                 i, j;
+   size_t              i, j;
 
    if( OUTSIZE-outndx < 4 )         // If the buffer is full
      wflush();                      // Flush the output buffer
@@ -607,6 +608,7 @@ static INLINE Word                  // The encrypted resultant
    return result;
 }
 
+extern Word outline_encipher(Word); // (Not very far) Forward reference
 extern Word                         // The encrypted resultant
    outline_encipher(                // Encrypt one word
      Word              source)      // The source word
@@ -638,6 +640,7 @@ static INLINE Word                  // The decrypted resultant
    return result;
 }
 
+extern Word outline_decipher(Word); // (Not very far) Forward reference
 extern Word                         // The decrypted resultant
    outline_decipher(                // Decrypt one word
      Word              source)      // The source word
@@ -790,7 +793,7 @@ int
 
 #if( ENCRYPT )                      // If encrypting
    openout();                       // Open the output file
-   for(i=0; i<sizeof(WC); i++)      // Set verification word
+   for(i=0; size_t(i)<sizeof(WC); i++) // Set verification word
      xword.c[i]= random(256);       // Fill with random characters
 
    ctext= outline_encipher(frNetFormat(xword.w)); // Encipher the word

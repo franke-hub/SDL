@@ -103,7 +103,7 @@ static int                          // Resultant character
    UuCodeCodec::UuCodeCodec( void ) // Default constructor
 :  Codec()
 {
-   int                 i;
+   unsigned            i;
 
    if( init != 0 )
      return;
@@ -254,7 +254,7 @@ int                                 // Return code (0 OK)
        break;
      }
 
-     if( L < sizeof(inpBuff) )
+     if( size_t(L) < sizeof(inpBuff) )
        memset(&inpBuff[L], 0, sizeof(inpBuff)-L);
      oX= 0;
      outBuff[oX++]= ENCODE[L];

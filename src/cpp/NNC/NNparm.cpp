@@ -92,6 +92,7 @@ static void
 //       Parameter analysis.
 //
 //----------------------------------------------------------------------------
+extern void nnparm(int, char**);    // (Defined where used)
 extern void
    nnparm(                          // Parameter analysis routine
      int               argc,        // Argument count

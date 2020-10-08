@@ -16,7 +16,7 @@
 //       ~/src/cpp/inc/pub/Trace.h Stress test
 //
 // Last change date-
-//       2020/08/23
+//       2020/10/07
 //
 // Parameters-
 //       --help        (Display help message)
@@ -123,20 +123,14 @@ static sig_handler_t   usr2_handler= nullptr; // System SIGUSR2 signal handler
 //       Handle signals.
 //
 //----------------------------------------------------------------------------
-extern "C" void
+static void
    sig_handler(                     // Handle signals
      int               id)          // The signal identifier
 {  debugh("\n\nsig_handler(%d) pid(%d)\n", id, getpid());
 
-   switch(id) {                     // Handle the signal
-     case SIGINT:
-     case SIGUSR1:
-     case SIGUSR2:
-       if( task_array ) {           // Debug if initialized
-         Main::debug(__LINE__);
-         return;
-       }
-       break;
+   if( task_array ) {               // Debug if initialized
+     Main::debug(__LINE__);
+     return;
    }
 
    debugh("Signal(%d) ignored\n", id);
@@ -152,9 +146,9 @@ extern "C" void
 //
 //----------------------------------------------------------------------------
 static int                          // Return code, 0 OK
-   init(                            // Initialize
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   init(int, char**)                // Initialize
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    //-------------------------------------------------------------------------
    // Initialize signal handling
@@ -190,7 +184,7 @@ static int                          // Return code, 0 OK
 //       Global termination
 //
 //----------------------------------------------------------------------------
-extern void
+static void
    term( void )                     // Terminate
 {
    //-------------------------------------------------------------------------

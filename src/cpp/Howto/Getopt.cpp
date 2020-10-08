@@ -16,7 +16,7 @@
 //       Sample program: How to use getopt_long
 //
 // Last change date-
-//       2020/07/15
+//       2020/10/04
 //
 // Usage notes-
 //       getopt_long does not print an invalid argument error message when
@@ -87,6 +87,7 @@ static int                          // Return code (0 OK)
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
+   (void)argc; (void)argv;          // Placeholder, parameters unused
    return 0;                        // Placeholder
 }
 

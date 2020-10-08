@@ -253,7 +253,7 @@ static void
        C= fgetc(inp);
      }
 
-     int i= 0;
+     size_t i= 0;
      while( C > 0 && !isspace(C) )
      {
        buffer[i++]= C;
@@ -303,7 +303,7 @@ static void
        Random::standard.randomize();
        unsigned int RANDOM_COUNT= 1000000;
        Word::Total total_have= 0;
-       for(int i= 0; i<RANDOM_COUNT; i++)
+       for(unsigned i= 0; i<RANDOM_COUNT; i++)
        {
          Word::Index X= word.random_select();
          Word::Text  T= word.index(X);

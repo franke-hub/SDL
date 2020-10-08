@@ -16,7 +16,7 @@
 //       ~/src/cpp/inc/pub/Allocator.h Stress test
 //
 // Last change date-
-//       2020/08/23
+//       2020/10/07
 //
 // Parameters-
 //       --help        (Display help message)
@@ -136,20 +136,14 @@ static void*           sub_alloc= nullptr; // SubAllocator storage
 //       Handle signals.
 //
 //----------------------------------------------------------------------------
-extern "C" void
+static void
    sig_handler(                     // Handle signals
      int               id)          // The signal identifier
 {  debugh("\n\nsig_handler(%d) pid(%d)\n", id, getpid());
 
-   switch(id) {                     // Handle the signal
-     case SIGINT:
-     case SIGUSR1:
-     case SIGUSR2:
-       if( task_array ) {           // Debug if initialized
-         Main::debug(__LINE__);
-         return;
-       }
-       break;
+   if( task_array ) {               // Debug if initialized
+     Main::debug(__LINE__);
+     return;
    }
 
    debugh("Signal(%d) ignored\n", id);
@@ -165,9 +159,9 @@ extern "C" void
 //
 //----------------------------------------------------------------------------
 static int                          // Return code, 0 OK
-   init(                            // Initialize
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   init(int, char**)                // Initialize
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    //-------------------------------------------------------------------------
    // Allocate the Allocator
@@ -247,7 +241,7 @@ static int                          // Return code, 0 OK
 //       Global termination
 //
 //----------------------------------------------------------------------------
-extern void
+static void
    term( void )                     // Terminate
 {
    //-------------------------------------------------------------------------
@@ -336,7 +330,7 @@ static int                          // Return code (Always 1)
                    "  --help\tThis help message\n"
                    "  --hcdm\tHard Core Debug Mode\n"
                    "\n"
-                   "  --alloc=type\tSelect allocator: {new, std}\n"
+                   "  --alloc=type\tSelect allocator: {new, blk, std}\n"
                    "  --first\tThread completion disable tracing\n"
                    "  --maxsz=n\tSlot: Maximum allocation size\n"
                    "  --minsz=n\tSlot: Minimum allocation size\n"

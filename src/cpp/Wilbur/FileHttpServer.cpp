@@ -64,6 +64,7 @@
 //       Allocate and initialize a PostHttpServer object
 //
 //----------------------------------------------------------------------------
+extern "C" Interface* DLL_make( void ); // (Not very far) Forward reference
 extern "C"
 Interface*                          // Our Interface
    DLL_make( void )                 // Get Interface
@@ -81,6 +82,7 @@ Interface*                          // Our Interface
 //       Finalize and release storage for an Interface Object.
 //
 //----------------------------------------------------------------------------
+extern "C" void DLL_take(Interface*); // (Not very far) Forward reference
 extern "C"
 void
    DLL_take(                        // Recycle

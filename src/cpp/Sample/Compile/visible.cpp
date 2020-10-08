@@ -29,7 +29,7 @@
 using std::cout;
 using std::endl;
 
-static int             default_argc= 2;
+// tic int             default_argc= 2;
 static const char*     default_argv[]= { "a", "parm" };
 
 namespace ADL {
@@ -42,20 +42,24 @@ namespace ADL {
         }; // class Name
 #endif
 
+    std::string foo(Name& name);
     std::string foo(Name& name)
     {   std::string out; out= "foo(" + name + ")";
-        return std::move(out);
+//      return std::move(out);
+        return out;
     }
 
+    std::string bar(std::string& name);
     std::string bar(std::string& name)
     {   std::string out; out= "bar(" + name + ")";
-        return std::move(out);
+//      return std::move(out);
+        return out;
     }
 } // namespace ADL
 
-int main(int argc, const char* argv[]) {
-    argc= default_argc;
-    argv= default_argv;
+int main(int, char**) {
+//  int          argc= default_argc;
+    const char** argv= default_argv;
 
     ADL::Name name("jolly good name");
     cout << foo(name) << endl;      // Argument requires
@@ -64,6 +68,8 @@ int main(int argc, const char* argv[]) {
 #if( USE_COMPILE_ERROR2 )
     cout << foo(argv[1]) << endl;
     cout << bar(argv[1]) << endl;
+#else                               // Parameter argv needs USE_COMPILE_ERROR2
+    (void)argv;
 #endif
 
     return 0;

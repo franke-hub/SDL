@@ -197,6 +197,8 @@ static int
      int               inpndx,      // Current buffer index
      NC_opEntry*       op)          // -> ENTRY operator
 {
+   (void)op;                        // (Unused parameter)
+
    //-------------------------------------------------------------------------
    // Handle End of statement
    //-------------------------------------------------------------------------

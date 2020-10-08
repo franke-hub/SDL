@@ -84,6 +84,7 @@ static bool                         // Resultant
 //       Demonstrate function operator usage.
 //
 //----------------------------------------------------------------------------
+extern void test00( void );         // (Not very far) Forward reference
 extern void
    test00( void )
 {

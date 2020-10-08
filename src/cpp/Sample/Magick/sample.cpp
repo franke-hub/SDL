@@ -29,6 +29,9 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifdef __GNUC__                     // Magic++ Library problem work-around
+  #pragma GCC diagnostic ignored "-Wignored-qualifiers"
+#endif
 #include <Magick++.h>
 using namespace Magick;
 

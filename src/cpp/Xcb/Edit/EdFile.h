@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/07
 //
 //----------------------------------------------------------------------------
 #ifndef EDFILE_H_INCLUDED
@@ -61,14 +61,14 @@ enum FLAGS                          // Status flags
 // EdLine::Attributes
 //----------------------------------------------------------------------------
 struct {                            // Status/control flags
-  unsigned                      : 8; // Reserved for expansion
-  unsigned                      : 5; // Reserved for expansion
+  unsigned               _00    : 8; // Reserved for expansion
+  unsigned               _01    : 5; // Reserved for expansion
   unsigned               rdonly : 1; // Line is read-only
   unsigned               hidden : 1; // Line is hidden
   unsigned               marked : 1; // Line is marked
 }                      flags;       // Control flags
 
-unsigned char          delim[2];    // Delimiter
+unsigned char          delim[2] = {0, 0}; // Delimiter
 //   For [0]= '\n', [1]= either '\r' or '\0' for DOS or Unix format.
 //   For [0]= '\0', [1]= repetition count. {'\0',0}= NO delimiter
 
@@ -79,11 +79,10 @@ public:
    EdLine(                          // Constructor
      const char*       text= nullptr) // Line text
 :  ::xcb::Line(text)
+,  flags {0, 0, 0, 0, 0}
 {
    if( opt_hcdm && opt_verbose > 2 )
      debugh("EdLine(%p)::EdLine\n", this);
-
-   *(uint32_t*)(&flags)= 0;         // Initialize flags/delimiter
 }
 
 //----------------------------------------------------------------------------
@@ -196,11 +195,13 @@ virtual
 public: // None defined
 void
    redo(                            // Redo this action
-     EdFile*           file) {}     // For this File
+     EdFile*           file)        // For this File
+{  (void)file; }                    // NOT CODED YET
 
 void
    undo(                            // Undo this action
-     EdFile*           file) {}     // For this File
+     EdFile*           file)        // For this File
+{  (void)file; }                    // NOT CODED YET
 }; // class EdUndo
 
 //----------------------------------------------------------------------------
@@ -244,8 +245,9 @@ public:
    EdFile(                          // Constructor
      Editor*           editor,      // The associated Editor
      const char*       name= nullptr) // File name
-:  ::pub::List<EdFile>::Link(), name(name ? name : "unnamed.txt")
+:  ::pub::List<EdFile>::Link()
 ,  editor(editor)
+,  name(name ? name : "unnamed.txt")
 {
    if( opt_hcdm )
      debugh("EdFile(%p)::EdFile(%p)\n", this, editor);
@@ -330,7 +332,7 @@ EdLine*                             // The last inserted line
 
    // Insure that the file does not contain a '\0' delimiter
    char* last= strchr(text, '\0');  // Locate first '\0' delimiter
-   if( (last-text) < size )         // If file contains '\0' delimiter
+   if( size_t(last-text) < size )   // If file contains '\0' delimiter
    {
      damaged= true;
      messages.fifo(new EdMess("File contains '\\0' delimiter"));

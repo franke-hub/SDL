@@ -155,8 +155,10 @@ static inline void
 
    ptrC= (char*)ssr + ptrCommand->name; debugf("..name(%s)\n", ptrC);
    ptrC= (char*)ssr + ptrCommand->code; debugf("..code(%s)\n", ptrC);
-   if( ptrCommand->deps != 0 )
-     ptrC= (char*)ssr + ptrCommand->deps; debugf("..deps(%s)\n", ptrC);
+   if( ptrCommand->deps != 0 ) {
+     ptrC= (char*)ssr + ptrCommand->deps;
+     debugf("..deps(%s)\n", ptrC);
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -168,7 +170,7 @@ static inline void
 //       Handle a "should not occur" error.
 //
 //----------------------------------------------------------------------------
-static volatile void
+static void
    shouldNotOccur( void )           // This error should not occur
 {
    if( cmdType == TypeBoot          // If -boot command
@@ -197,7 +199,7 @@ static volatile void
 //       Handle an internal logic error.
 //
 //----------------------------------------------------------------------------
-static volatile void
+static void
    internalError(                   // Internal logic error
      int               line)        // Failing line number
 {
@@ -213,7 +215,7 @@ static volatile void
 //       Handle an external system error.
 //
 //----------------------------------------------------------------------------
-static volatile void
+static void
    externalError(                   // External system error
      int               line)        // Failing line number
 {
@@ -983,6 +985,8 @@ static void*                        // Return value (always NULL)
    startupThread(                   // Startup control thread
      void*             parm)        // Parameter
 {
+   (void)parm;                      // Parameter is not used
+
 #if 0
    Offset              oldValue, newValue; // Used in csw
    pid_t               controlPid;  // Special process identifier
@@ -1045,7 +1049,6 @@ static void*                        // Return value (always NULL)
    controlPid= specialPid;
    specialPid= (-1);
    kill(controlPid, SIGKILL);
-
 #endif
    return NULL;
 }
@@ -1063,6 +1066,8 @@ static void*                        // Return value (always NULL)
    waitforThread(                   // Waitfor control thread
      void*             parm)        // Parameter
 {
+   (void)parm;                      // Parameter is not used
+
    Offset              offset;      // Command offset
    pid_t               controlPid;  // Special process identifier
    pid_t               pid;         // Process identifier

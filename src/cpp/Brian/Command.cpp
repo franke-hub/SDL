@@ -16,7 +16,7 @@
 //       Command object methods
 //
 // Last change date-
-//       2020/01/25
+//       2020/10/03
 //
 //----------------------------------------------------------------------------
 #include <map>
@@ -137,9 +137,9 @@ Command&                            // The associated Command
 //
 //----------------------------------------------------------------------------
 void
-   Command::work(                   // Handle Command
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   Command::work(int, char**)       // Handle Command
+//   int               argc,        // Argument count (UNUSED parameter)
+//   char*             argv[])      // Argument array (UNUSED parameter)
 {  }
 
 //----------------------------------------------------------------------------
@@ -159,9 +159,9 @@ virtual
 {  CommandMap[this]; }
 
 virtual void
-   work(                            // Handle Command
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   work(int, char**)                // Handle Command
+//   int               argc,        // Argument count (UNUSED parameter)
+//   char*             argv[])      // Argument array (UNUSED parameter)
 {
    debugf("Command list: ");
    typedef CommandMap::MapIter_t MapIter_t;

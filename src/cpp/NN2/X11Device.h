@@ -38,6 +38,10 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xos.h>
+
+#ifdef __GNUC__
+   #pragma GCC diagnostic ignored "-Wignored-qualifiers"
+#endif
 #include <Magick++.h>
 
 //----------------------------------------------------------------------------
@@ -114,8 +118,9 @@ virtual
 }
 
    X11DeviceAttr( void )            // Constructor
-:  disp(nullptr), ximg(nullptr), xvis(nullptr)
+:  disp(nullptr)
 ,  xgcx(), xscr(0), xwin(), xevt()
+,  ximg(nullptr), xvis(nullptr)
 {
 // debugf("X11DeviceAttr\n");
 
@@ -188,21 +193,59 @@ static inline unsigned              // Resultant
      Magick::Color&    color)       // The source Color
 {
    using namespace Magick;
-   unsigned R= color.redQuantum();
-   unsigned G= color.greenQuantum();
-   unsigned B= color.blueQuantum();
-
+#if MagickLibVersion >= 0x700
+   int R= color.quantumRed();
+   int G= color.quantumGreen();
+   int B= color.quantumBlue();
+#else
+   int R= color.redQuantum();
+   int G= color.greenQuantum();
+   int B= color.blueQuantum();
+#endif
    if( QuantumRange == 65535 )
    {
      R >>= 8;
      G >>= 8;
      B >>= 8;
    }
-// debugf("%x,%x,%x\n", R, G, B);
 
-   assert( R < 256 );
-   assert( G < 256 );
-   assert( B < 256 );
+// if( R < 0 || G < 0 || B < 0 ) {
+//   fprintf(stderr, "< %d,%d,%d\n", R, G, B);
+//   int min= R;
+//   if( G < min ) min= G;
+//   if( B < min ) min= B;
+//
+//   R -= min;                      // Minimum < 0, so this adds abs(min)
+//   G -= min;
+//   B -= min;
+//   fprintf(stderr, "< %d,%d,%d\n", R, G, B);
+// }
+
+// if( R > 255 || G > 255 || B > 255 ) {
+//   fprintf(stderr, "> %d,%d,%d\n", R, G, B);
+//   int max= R;
+//   if( G > max ) max= G;
+//   if( B > max ) max= B;
+//
+//   max -= 255;
+//   R -= max;
+//   G -= max;
+//   B -= max;
+//   fprintf(stderr, "> %d,%d,%d\n", R, G, B);
+// }
+
+   if( R < 0 ) R= 0;                // Cap: Minimum 0
+   if( G < 0 ) G= 0;
+   if( B < 0 ) B= 0;
+
+   if( R > 255 ) R= 255;            // Cap: Maximum 255
+   if( G > 255 ) G= 255;
+   if( B > 255 ) B= 255;
+
+// Asserts not needed with capping
+// assert( R < 256 );
+// assert( G < 256 );
+// assert( B < 256 );
    return R << 16 | G << 8 | B;
 }
 
@@ -389,17 +432,18 @@ inline void
 
    resize(image.rows(), image.columns());
 
-   Pixels cache((Image&)image);     // We only read the image
-   PixelPacket* packet= cache.get(0, 0, x_length, y_length);
-   for(int y= 0; y<y_length; y++)
+// Pixels cache((Image&)image);     // We only read the image
+// PixelPacket* packet= cache.get(0, 0, x_length, y_length);
+   for(unsigned y= 0; y<y_length; y++)
    {
-     for(int x= 0; x<x_length; x++)
+     for(unsigned x= 0; x<x_length; x++)
      {
-       Color color(*packet);
+//     Color color(*packet);
+//     packet++;
+
+       Color color= image.pixelColor(x, y);
        uint32_t pixel= toRGB(color);
        XPutPixel(ximg, x, y, pixel);
-
-       packet++;
      }
    }
 
@@ -414,9 +458,9 @@ inline void
    Geometry geometry(x_length, y_length);
    image.resize(geometry);
 
-   for(int y= 0; y<y_length; y++)
+   for(unsigned y= 0; y<y_length; y++)
    {
-     for(int x= 0; x<x_length; x++)
+     for(unsigned x= 0; x<x_length; x++)
      {
        uint32_t pixel= XGetPixel(ximg, x, y);
        unsigned R= (pixel >> 16) & 0x000000ff;

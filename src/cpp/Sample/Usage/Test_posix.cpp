@@ -75,6 +75,7 @@ size_t                              // The number of bytes received
      size_t            length)      // Maximum data length
      // May need socket options
 {
+   (void)addr; (void)length;        // Unused (Not implemented)
    throw NotImplementedException("PosixSocket::read");
    return 0;
 }
@@ -85,6 +86,7 @@ void
      size_t            length)      // Data length
      // May need socket options
 {
+   (void)addr; (void)length;        // Unused (Not implemented)
    throw NotImplementedException("PosixSocket::write");
 }
 
@@ -187,6 +189,7 @@ static inline int                   // Return code
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
 {
+   (void)argc; (void)argv;          // (Currently unused)
    return 1;
 }
 
@@ -200,6 +203,7 @@ static inline int                   // Return code
      int               argc,        // Argument count
      const char*       argv[])      // Arguments
 {
+   (void)argc; (void)argv;          // (Currently unused)
    printf("bringup...\n");
 
    PosixThread& listener= *(new ListenerThread());

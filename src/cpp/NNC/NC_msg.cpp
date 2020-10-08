@@ -52,9 +52,9 @@
 //----------------------------------------------------------------------------
    NC_msg::NC_msg( void )           // Constructor
 :  Message()
+,  stopLevel(ML_Error)
 ,  highLevel(ML_Info)
 ,  showLevel(ML_Info)
-,  stopLevel(ML_Error)
 ,  infoCount(0)
 ,  warnCount(0)
 ,  errsCount(0)

@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2020/09/24
+//       2020/10/07
 //
 // Implementation note-
 //       TODO: Debug mode *ALWAYS* intensive move
@@ -138,7 +138,7 @@ static inline const char* oops( void ) { return strerror(errno); }
 //       Handle signals.
 //
 //----------------------------------------------------------------------------
-extern "C" void
+static void
    sig_handler(                     // Handle signals
      int               id)          // The signal identifier
 {
@@ -152,6 +152,9 @@ extern "C" void
      case SIGINT:
      case SIGSEGV:
        exit(EXIT_FAILURE);          // Exit, no dump
+       break;
+
+     default:
        break;
    }
 
@@ -175,9 +178,9 @@ static sig_handler_t   sys2_handler= nullptr; // System SIGSEGV signal handler
 //
 //----------------------------------------------------------------------------
 static int                          // Return code (0 OK)
-   init(                            // Initialize
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
+   init(int, char**)                // Initialize
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    //-------------------------------------------------------------------------
    // Initialize signal handling

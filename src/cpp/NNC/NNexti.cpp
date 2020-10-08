@@ -37,13 +37,16 @@
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+
 //       nnexti
 //
 // Purpose-
 //       Mainline code.
 //
 //----------------------------------------------------------------------------
+#if 0 // TODO: REMOVE: UNUSED
 extern void
    nnexti( void )                   // Neuron external input
 {
 }
+#endif

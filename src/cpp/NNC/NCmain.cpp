@@ -224,7 +224,7 @@ static int                          // Return code
    NC_NeuronSymbol*    symbol;      // Symbol table entry
    NN::FPO             fpo;         // File/Part/Offset
 
-   int                 i;
+   unsigned            i;
    int                 rc;
 
    //-------------------------------------------------------------------------

@@ -129,7 +129,7 @@ int                                 // TRUE if all Segments are present
 
 Segment*                            // -> Segment
    open(                            // Open Segment
-     int               index);      // Segment index
+     unsigned          index);      // Segment index
 
 void
    close(                           // Close Segment
@@ -525,7 +525,7 @@ static void
 static Content*                     // -> Content
    getContent(                      // Locate Content
      const char*       fileName,    // Associated fileName
-     int               count)       // Number of Segments
+     unsigned          count)       // Number of Segments
 {
    Content*            content;     // Resultant
 
@@ -584,7 +584,7 @@ static int                          // TRUE iff delimiter line
      const char*       delimit)     // The delimiter
 {
    // Look for property delimiter
-   for(int i= 0; i<ELEMENTS(propName); i++)
+   for(unsigned i= 0; i<ELEMENTS(propName); i++)
    {
      if( memicmp(propName[i], inpLine, propSize[i]) == 0 )
        return TRUE;
@@ -638,7 +638,7 @@ static int                          // TRUE if extension is valid
    validExt(                        // Validate extension
      const char*       ext)         // The extension
 {
-   for(int i= 0; i<ELEMENTS(xName); i++)
+   for(unsigned i= 0; i<ELEMENTS(xName); i++)
    {
      if( stricmp(ext, xName[i]) == 0 )
        return TRUE;
@@ -863,7 +863,7 @@ int                                 // TRUE if all Segments are present
    Content::isComplete( void ) const// Are all Segments present?
 {
    Segment*            segment;     // -> Current Segment
-   int                 index;       // Current file index
+   unsigned            index;       // Current file index
 
    index= 0;
    for(segment= head; segment != NULL; segment= segment->next)
@@ -889,7 +889,7 @@ int                                 // TRUE if all Segments are present
 //----------------------------------------------------------------------------
 Segment*                            // -> Segment
    Content::open(                   // Open Segment
-     int               index)       // Segment index
+     unsigned          index)       // Segment index
 {
    Segment*            segment;     // Resultant
    Segment*            ptrS;        // -> Segment
@@ -1098,7 +1098,7 @@ void
 {
    Segment*            segment;     // -> Current Segment
    TempBuffer          temp;        // Temporary
-   int                 index;       // Current file index
+   unsigned            index;       // Current file index
    int                 C;           // Current character
 
    #ifdef HCDM
@@ -1453,7 +1453,7 @@ const char*                         // Return message (NULL OK)
    int                 index;       // Property name index
    const char*         string;      // String remainder
 
-   int                 i;
+   unsigned            i;
 
    #ifdef HCDM
      printf("Multipart(%p)::parseProp(%s)\n", this, inpLine);
@@ -2227,7 +2227,7 @@ static void
    inpProp= (char*)Unconditional::malloc(INP_SIZE);
 
    // Initialize propSize array
-   for(int i= 0; i<ELEMENTS(propSize); i++)
+   for(unsigned i= 0; i<ELEMENTS(propSize); i++)
      propSize[i]= strlen(propName[i]);
 
    // Get today's number
@@ -2282,7 +2282,7 @@ static void
 static void
    resetProp( void )                // Reset properties
 {
-   for(int i= 0; i<ELEMENTS(propValue); i++)
+   for(unsigned i= 0; i<ELEMENTS(propValue); i++)
      propValue[i]= NULL;
 }
 
@@ -2339,7 +2339,7 @@ static const char*                  // Return message (NULL OK)
      printf("%4d: parseProp(%s)\n", __LINE__, inpLine);
    #endif
 
-   for(int i= 0; i<ELEMENTS(propName); i++)
+   for(unsigned i= 0; i<ELEMENTS(propName); i++)
    {
      if( memicmp(propName[i], inpLine, propSize[i]) == 0 )
      {

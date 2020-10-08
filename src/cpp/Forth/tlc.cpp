@@ -16,7 +16,7 @@
 //       Threaded Language Compiler, i.e. Forth
 //
 // Last change date-
-//       2020/01/10
+//       2020/10/04
 //
 //----------------------------------------------------------------------------
 #include "tlc.h"
@@ -115,7 +115,7 @@ static void debug_dump( void )
 //       Display a thread
 //
 //----------------------------------------------------------------------------
-void
+static void
    debug_list(                      // Display a thread
      void**            list)        // The list of instructions
 {
@@ -172,7 +172,7 @@ static void
 //       Display the current thread content
 //
 //----------------------------------------------------------------------------
-void
+static void
    debug_this( void )               // Display current thread
 {  debug_list((void**)(Word*)i_addr); };
 
@@ -468,7 +468,7 @@ static inline void
    parm(                            // Parameter analysis
      int             argc,          // Argument count
      char*           argv[])        // Argument array
-{  } // NOT CODED YET
+{  (void)argc; (void)argv; } // NOT CODED YET
 
 //----------------------------------------------------------------------------
 //

@@ -112,7 +112,7 @@ static void
 //       Parameter analysis routine.
 //
 //----------------------------------------------------------------------------
-extern void
+static void
    parm(                            // Analyze parameters
      int               argc,        // Argument count
      char*             argv[])      // Argument vector
@@ -200,9 +200,9 @@ extern void
 //
 //----------------------------------------------------------------------------
 static void
-   init(                            // Initialize
-     int               argc,        // Argument count
-     char*             argv[])      // Argument vector
+   init(int, char**)                // Initialize
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
    // Set wildcards
    setWild('N', "ACTG");
@@ -254,7 +254,6 @@ static void
    EiDBLoader          loader;      // The loader
    char*               exon;        // Current exon
 
-   int                 i;
    int                 rc;
 
    accumulator= new DataAccumulator();
@@ -275,7 +274,7 @@ static void
 
    assert( eidb.getLineCount() == label.getLineCount() );
    list= (List*)malloc(eidb.getLineCount()*sizeof(List));
-   for(i= 0; i<eidb.getLineCount(); i++)
+   for(unsigned i= 0; i<eidb.getLineCount(); i++)
    {
      new(&list[i]) List();
      if( sw_exon )
@@ -315,14 +314,14 @@ static void
 //
 //----------------------------------------------------------------------------
 static void
-   scan(                            // Scan the data table
-     int               argc,        // Argument count
-     char*             argv[])      // Argument vector
+   scan(int, char**)                // Scan the data table
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
 {
-   int                 const m= eidb.getLineCount();
+   unsigned            const m= eidb.getLineCount();
 
-   int                 dupCount;    // Number of duplicates encountered
-   int                 dupTotal;    // Number of duplicates encountered
+   unsigned            dupCount;    // Number of duplicates encountered
+   unsigned            dupTotal;    // Number of duplicates encountered
    char*               sourceExon;  // Source database Exon
    char*               targetExon;  // Target database Exon
 

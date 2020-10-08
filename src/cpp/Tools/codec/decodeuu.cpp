@@ -139,7 +139,7 @@ static void
 //       UU decode STDIN into a file.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code
+static int                          // Return code
    decodeuu(                        // UU decode a file
      const char*       fileName)    // -> Target filename
 {

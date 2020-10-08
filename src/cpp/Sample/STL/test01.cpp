@@ -73,6 +73,7 @@ static void
 //       Test "Nice.h"
 //
 //----------------------------------------------------------------------------
+extern void test01( void );         // (Not very far) Forward reference
 extern void
    test01( void )
 {

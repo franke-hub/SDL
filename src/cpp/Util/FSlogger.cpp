@@ -622,7 +622,7 @@ void
    DirEntry*           newE;        // Pointer to queue element
    DirEntry*           oldE;        // Pointer to queue element
 
-   if( this == NULL )               // If release of empty array
+   if( ptrA == NULL )               // If release of empty array
      return;                        // No problem
 
    newE= head;                      // Address the first element
@@ -658,10 +658,11 @@ void
 void
    DirArray::debugCoherency( void ) // Diagnostic display
 {
+   DirArray*           ptrA= this;
    DirEntry*           ptrE;
 
    debugf("DirArray(%p)::debugCoherency()\n", this);
-   if( this == NULL )
+   if( ptrA == NULL )
      return;
 
    for(ptrE= head; ptrE != NULL; ptrE= ptrE->next)
@@ -891,7 +892,7 @@ DirArray*                           // -> Sorted DirArray list
    unsigned            count;       // Number of entries
    unsigned            L;           // Generic length
    unsigned            R;           // Remaining length
-   int                 i;
+   unsigned            i;
 
    //-------------------------------------------------------------------------
    // Initialize
@@ -1220,7 +1221,7 @@ DirEntry*                           // -> DirEntry
    }
 
    ptrE= (DirEntry*)zalloc(sizeof(DirEntry));// Allocate a new element
-   memset(ptrE, 0, sizeof(*ptrE));  // Clear the entry
+   memset((char*)ptrE, 0, sizeof(*ptrE));  // Clear the entry
    return(ptrE);                    // Return pointer to element
 }
 

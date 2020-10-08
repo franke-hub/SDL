@@ -64,6 +64,7 @@
 //----------------------------------------------------------------------------
    NoisyNice::NoisyNice(            // Copy constructor
      const NoisyNice&  source)      // Source NoisyNice&
+:  Nice()
 {
    wtlc(LevelInfo, "NoisyNice(%p)::NoisyNice(%p) %d(%d)\n", this, &source,
                    serialNum, source.serialNum);

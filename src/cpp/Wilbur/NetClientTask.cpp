@@ -138,6 +138,7 @@ virtual void
    done(                            // Work Item completion
      DispatchItem*     item)        // With this Item
 {
+   (void)item;                      // (Parameter ignored)
    IFSCDM( logf("NetClientTask_Wait(%p)::done()\n", this); )
 
    task->timer();                   // Note: May delete Task and this

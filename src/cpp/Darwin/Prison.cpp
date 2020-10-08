@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -17,7 +17,7 @@
 //       (Scientic American, July, 1992)
 //
 // Last change date-
-//       2007/01/01
+//       2020/10/04
 //
 //----------------------------------------------------------------------------
 #include <limits.h>
@@ -57,24 +57,22 @@
    Prison::Prison(                  // Constructor
      unsigned int    elements)      // The number of group elements
 :  DarwinPlex(elements)
-,  checkChange(FALSE)
-,  checkMutate(FALSE)
-,  checkRank(FALSE)
-,  checkRule(FALSE)
-,  completionReason(NotComplete)
 ,  minGeneration(0)
 ,  maxGeneration(ULONG_MAX)
-,  stopOnTimer(FALSE)
-,  stopOnCount(FALSE)
+,  completionReason(NotComplete)
+,  checkRank(FALSE)
+,  checkRule(FALSE)
+,  checkChange(FALSE)
+,  checkMutate(FALSE)
 ,  someNormal(FALSE)
+,  stopOnCount(FALSE)
+,  stopOnTimer(FALSE)
 {
-   int               i;
-
 #ifdef HCDM
    debugf("Prison(%p)::Prison()\n", this);
 #endif
 
-   for(i=0; i<256; i++)
+   for(int i=0; i<256; i++)
      historyArray[i]= 0;
 }
 
@@ -230,12 +228,10 @@ Prison::EvolveRc                    // Return code
    Interval            interval;    // (local) Interval
    double              deltaTime;   // Elapsed time
 
-   int                 i;
-
    if( !stopOnCount )
      evolveCount= ULONG_MAX;
 
-   for(i=0; i<used; i++)
+   for(unsigned i=0; i<used; i++)
    {
      unit[i]->changed= FALSE;
      unit[i]->mutated= FALSE;
@@ -261,7 +257,7 @@ Prison::EvolveRc                    // Return code
        }
 
        // Reset for next interval
-       for(i=0; i<used; i++)
+       for(unsigned i=0; i<used; i++)
        {
          unit[i]->changed= FALSE;
          unit[i]->mutated= FALSE;

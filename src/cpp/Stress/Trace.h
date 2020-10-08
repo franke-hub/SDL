@@ -16,7 +16,7 @@
 //       ~/Stress/Trace.cpp customization.
 //
 // Last change date-
-//       2020/07/05
+//       2020/10/07
 //
 //----------------------------------------------------------------------------
 #ifndef TRACE_H_INCLUDED
@@ -189,8 +189,8 @@ static TraceCounter    traceCounter[TraceCounter::DIM];
 void
    TraceCounter::sort( void )       // Sort the traceCounter array
 {
-   for(unsigned i= 1; i<used; i++) { // Bubble sort is good enough
-     for(unsigned j= i+1; j<used; j++) {
+   for(int i= 1; i<used; i++) {     // Bubble sort is good enough
+     for(int j= i+1; j<used; j++) {
        if( memcmp(traceCounter[i].ident, traceCounter[j].ident, SIZE) > 0 ) {
          TraceCounter temp= traceCounter[i];
          traceCounter[i]= traceCounter[j];
@@ -322,7 +322,7 @@ void
    debugf("  offset:Type      Count        Value\n");
    size_t total= 0;                 // Number of valid records
    TraceCounter::sort();            // Sort the table
-   for(unsigned i= 0; i<TraceCounter::used; i++) {
+   for(int i= 0; i<TraceCounter::used; i++) {
      traceCounter[i].debug();
      total += traceCounter[i].value;
    }
@@ -332,9 +332,9 @@ void
    //-------------------------------------------------------------------------
    // Task completion status display
    debugf("\n");
-   for(unsigned i= 0; i<opt_multi; i++) { // Bubble sort the task_array
+   for(int i= 0; i<opt_multi; i++) { // Bubble sort the task_array
      Thread* it= (Thread*)task_array[i];
-     for(unsigned j= i+1; j<opt_multi; j++) {
+     for(int j= i+1; j<opt_multi; j++) {
        Thread* jt= (Thread*)task_array[j];
        if( jt->time < it->time ) {
          task_array[i]= jt;
@@ -344,7 +344,7 @@ void
      }
    }
 
-   for(unsigned i= 0; i<opt_multi; i++) { // Display the thread status
+   for(int i= 0; i<opt_multi; i++) { // Display the thread status
      Thread* it= (Thread*)task_array[i];
 
      double secs= (double)it->time/(double)GIGA_VALUE;

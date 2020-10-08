@@ -16,7 +16,7 @@
 //       Curl-based HTTP client.
 //
 // Last change date-
-//       2020/01/10
+//       2020/10/03
 //
 // Prerequisites-
 //       cURL: http://curl.haxx.se/ (Also google "cURL")
@@ -190,6 +190,8 @@ static int                          // Number of bytes written
      size_t            chunk,       // Number of bytes in each element
      void*             handle)      // User data (UNUSED)
 {
+   (void)handle;                    // (Indicate unused)
+
    IFHCDM( logger("accr(%p,%u,%u,%p) %u\n", addr, length, chunk, handle, respSize); )
    if( length >= sizeof(response) || chunk >= sizeof(response) )
      return 0;                      // ERROR: RESPONSE TOO BIG
@@ -435,7 +437,7 @@ static CURLcode                     // The response code
    // Remove trailing CR/LF from response (if present)
    int L= strlen(response);
    L--;
-   while( L >= 0 && response[L] == '\r' || response[L] == '\n' )
+   while( L >= 0 && (response[L] == '\r' || response[L] == '\n') )
    {
      response[L]= '\0';
      L--;
@@ -493,7 +495,7 @@ static int64_t                      // The host IP address, 0 if unavailable
    // Validate the response (numeric values unchecked)
    int dots= 0;                     // Number of '.' characters
    int numb= 1;                     // Number required
-   int x= 0;                        // Reponse index
+   size_t x= 0;                     // Reponse index
    while( response[x] != '\0' )
    {
      if( isdigit(response[x]) )

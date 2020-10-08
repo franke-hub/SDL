@@ -85,7 +85,7 @@ static Item*           head= NULL;  // -> First free Item
 //       Release an Item
 //
 //----------------------------------------------------------------------------
-void
+static void
    releaseItem(                     // Release an Item
      Item*             ptrI)        // Item to release
 {
@@ -107,7 +107,7 @@ void
 //       the operating system.
 //
 //----------------------------------------------------------------------------
-Item*                               // -> Item
+static Item*                        // -> Item
    allocateItem( void )             // Allocate an Item
 {
    Item*               ptrI;        // Working Item pointer
