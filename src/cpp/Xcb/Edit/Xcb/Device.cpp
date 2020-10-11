@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/10/07
+//       2020/10/08
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -183,7 +183,7 @@ xcb_atom_t                          // The associated xcb_atom_t
      int               only)        // (Do not create atom indicator)
 {
    xcb_intern_atom_cookie_t
-       cookie= xcb_intern_atom(c, only, strlen(name), name);
+       cookie= xcb_intern_atom(c, bool(only), uint16_t(strlen(name)), name);
    xcb_intern_atom_reply_t*
        reply= xcb_intern_atom_reply(c, cookie, nullptr);
    xcb_atom_t result= reply->atom;

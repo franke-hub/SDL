@@ -16,7 +16,7 @@
 //       XCB based Window
 //
 // Last change date-
-//       2020/10/07
+//       2020/10/08
 //
 // Implementation notes-
 //       The window field addresses the PARENT window. (Widget already has a
@@ -210,7 +210,7 @@ void
 {
    NOQUEUE("xcb_change_property", xcb_change_property
           ( c, XCB_PROP_MODE_REPLACE, widget_id
-          , atom, XCB_ATOM_STRING, 8, strlen(text), text) );
+          , atom, XCB_ATOM_STRING, 8, uint32_t(strlen(text)), text) );
 }
 
 //----------------------------------------------------------------------------

@@ -31,8 +31,9 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
-#include <pub/Debug.h>              // For Debug
-#include <pub/Trace.h>              // For Trace
+#include <pub/Debug.h>              // For pub::Debug
+#include <pub/Trace.h>              // For pub::Trace
+#include <pub/UTF8.h>               // For pub::UTF8
 
 #include "Xcb/Global.h"             // For xcb globals
 #include "Xcb/Types.h"              // For xcb types
@@ -249,13 +250,8 @@ void
        if( line == cursor )         // If cursor line
          text= cursor_text(cursor); // Get cursor line text
 
-       if( col_zero ) {             // If offset
-         size_t L= strlen(text);    // Get text length
-         if( L > col_zero )
-           text += col_zero;
-         else
-           text= "";
-       }
+       if( col_zero )               // If offset
+         text= text + pub::UTF8::index((const unsigned char*)text, col_zero);
        putxy(1, y, text);
        y += font_height;
        line= line->get_next();

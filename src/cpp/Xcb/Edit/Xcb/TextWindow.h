@@ -16,7 +16,7 @@
 //       XCB based text Window
 //
 // Last change date-
-//       2020/09/16
+//       2020/10/08
 //
 // Implementation note-
 //                    ******** DO NOT SIMULTANEOUSLY USE ********
@@ -209,6 +209,14 @@ void
      xcb_point_t       xy,          // At this offset
      const char*       text)        // Using this text
 {  font.putxy(fontGC, unsigned(xy.x), unsigned(xy.y), text); }
+
+void
+   putxy(                           // Draw text
+     xcb_gcontext_t    fontGC,      // Using this graphic context
+     unsigned          left,        // At this left (X) offset
+     unsigned          top,         // At this top  (Y) offset
+     const char*       text)        // Using this text
+{  font.putxy(fontGC, left, top, text); }
 
 //----------------------------------------------------------------------------
 //

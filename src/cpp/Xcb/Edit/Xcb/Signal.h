@@ -16,7 +16,7 @@
 //       Signal descriptor.
 //
 // Last change date-
-//       2020/10/07
+//       2020/10/08
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_SIGNAL_H_INCLUDED
@@ -57,19 +57,16 @@ Widget*                widget;      // The Widget originating this Event
 
 // xcb::Event::Constructors
    Event( void )                    // Default constructor
-:  type(0), offset({0,0}), widget(nullptr)
-{  detail[0]= 0; detail[1]= 0; detail[2]= 0; }
+:  type(0), detail{0,0,0}, offset({0,0}), widget(nullptr) {}
 
    Event(                           // Constructor
-     Widget*           widget)      // The source Widget
-:  type(0), offset({0,0}), widget(widget)
-{  detail[0]= 0; detail[1]= 0; detail[2]= 0; }
+     Widget*           _widget)     // The source Widget
+:  type(0), detail{0,0,0}, offset({0,0}), widget(_widget) {}
 
    Event(                           // Constructor
-     Widget*           widget,      // The source Widget
-     int               type)        // The Event type
-:  type(type), offset({0,0}), widget(widget)
-{  detail[0]= 0; detail[1]= 0; detail[2]= 0; }
+     Widget*           _widget,     // The source Widget
+     uint8_t           _type)       // The Event type
+:  type(_type), detail{0,0,0}, offset({0,0}), widget(_widget) {}
 
 // xcb::Event::Destructor
 virtual

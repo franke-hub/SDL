@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2020/10/03
+//       2020/10/10
 //
 //----------------------------------------------------------------------------
 #include <chrono>
@@ -984,41 +984,71 @@ static inline int
 {
    debugf("\ntest_UTF8\n");
 
-   int                 errorCount= 0; // Number of errors encountered
-
-   unsigned char       buffer[32];  // Working buffer
-   unsigned            code;        // Working code point
-   UTF8                utf8(buffer, sizeof(buffer));
-
-   for(code= 0; code < 0x00110000; code++)
+   for(int code= 0; code < 0x00110000; code++)
    {
-     if( code >= 0x0000D800 && code <= 0x0000DFFF ) {
+     if( code == 0x0000D800 ) {
        code= 0x0000DFFF;
        continue;
      }
 
+     unsigned char buffer[32];      // Working buffer
      memset(buffer, 0xff, 8);
-     utf8.set_used(0);
-     utf8.encode(code);
+     UTF8::Encoder encoder(buffer, sizeof(buffer));
+     encoder.encode(code);
      if( false )                    // (Visual verification)
-       debugf("%4d HCDM %.6x %zu/%zu:%.2x %.2x %.2x %.2x\n", __LINE__, code
-             , utf8.get_used(), utf8.get_size()
+       debugf("%4d HCDM %.6x %zu/%zu [%.2x,%.2x,%.2x,%.2x]\n", __LINE__, code
+             , encoder.get_used(), encoder.get_size()
              , buffer[0], buffer[1], buffer[2], buffer[3]);
 
-     utf8.set_used(0);
-     if( code != unsigned(utf8.decode()) )
-     {
-       debugf("%4d HCDM %.2x %.2x %.2x %.2x\n", __LINE__
-             , buffer[0], buffer[1], buffer[2], buffer[3]);
+     unsigned char* addr= buffer + encoder.get_used();
+     if( UTF8::inc(buffer) != addr ) {
+       debugf("%4d HCDM Got(%p) Expected(%p)\n", __LINE__
+             , UTF8::inc(buffer), addr);
+       return 1;
+     }
+     if( UTF8::dec(addr) != buffer ) {
+       debugf("%4d HCDM %p != %p [%.2x,%.2x,%.2x,%.2x,%.2x] %p\n", __LINE__
+             , UTF8::dec(addr), buffer
+             , buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], addr);
+       return 1;
+     }
+     if( UTF8::dec(addr, encoder.get_used()) != buffer ) {
+       debugf("%4d HCDM %p != %p [%.2x,%.2x,%.2x,%.2x,%.2x] %p\n", __LINE__
+             , UTF8::dec(addr, encoder.get_used()), buffer
+             , buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], addr);
+       return 1;
+     }
+     if( code ) {
+       if( UTF8::index(buffer, 1) != encoder.get_used() ) {
+         debugf("%4d HCDM Got(%zd) Expected(%zd) [%.2x,%.2x,%.2x,%.2x]\n"
+               , __LINE__ , UTF8::index(buffer,1), encoder.get_used()
+               , buffer[0], buffer[1], buffer[2], buffer[3]);
+         return 1;
+       }
+     } else {
+       if( UTF8::index(buffer, 1) != 0 ) { // (Don't go past end of string)
+         debugf("%4d HCDM Got(%zd) Expected(%zd) [%.2x,%.2x,%.2x,%.2x]\n"
+               , __LINE__ , UTF8::index(buffer,1), encoder.get_used()
+               , buffer[0], buffer[1], buffer[2], buffer[3]);
+         return 1;
+       }
+     }
 
-       utf8.set_used(0);
-       debugf("%4d HCDM code(0x%x) utf8(0x%x)\n", __LINE__
-             , code, utf8.decode());
+     UTF8::Decoder decoder(buffer, encoder.get_used());
+     int test= decoder.decode();
+     if( code != test ) {
+       debugf("%4d HCDM %.6x [%.2x,%.2x,%.2x,%.2x] %.6x\n", __LINE__
+             , code, buffer[0], buffer[1], buffer[2], buffer[3], test);
+       return 1;
+     }
+     if( encoder.get_used() != decoder.get_used() ) {
+       debugf("%4d HCDM SIZE: %.6x out(%zd) inp(%zd)\n", __LINE__
+             , code, decoder.get_used(), encoder.get_used());
        return 1;
      }
    }
 
-   return errorCount;
+   return 0;
 }
 
 //----------------------------------------------------------------------------
@@ -1037,20 +1067,17 @@ static inline int
 {
    debugf("\ntest_UTF8_encode(%s)\n", utf8_encode);
 
-   int                 errorCount= 0; // Number of errors encountered
-
-   unsigned char       buffer[64];    // The encode buffer
+   unsigned char       buffer[32];    // The encode buffer
    memset(buffer, 0xff, sizeof(buffer));
-   UTF8                utf8(buffer, sizeof(buffer)); // Encoder
+   UTF8::Encoder       encoder(buffer, sizeof(buffer)); // Encoder
 
-   unsigned code= utility::atox(utf8_encode);
-   utf8.encode(code);
-
-   debugf("%.6x %zu/%zu:%.2x %.2x %.2x %.2x\n", code
-         , utf8.get_used(), utf8.get_size()
+   int code= utility::atox(utf8_encode);
+   encoder.encode(code);
+   debugf("%.6x %zu/%zu [%.2x,%.2x,%.2x,%.2x]\n", code
+         , encoder.get_used(), encoder.get_size()
          , buffer[0], buffer[1], buffer[2], buffer[3]);
 
-   return errorCount;
+   return 0;
 }
 
 //----------------------------------------------------------------------------
@@ -1069,10 +1096,9 @@ static inline int
 {
    debugf("\ntest_UTF8_decode(%s)\n", utf8_decode);
 
-   int                 errorCount= 0; // Number of errors encountered
-
    char                buffer[1024];  // The encode buffer
    unsigned            size= 0;       // Number of bytes used
+   int                 errorCount= 0; // Number of errors encountered
 
    // Fill the buffer
    const char* C= utf8_decode;
@@ -1094,12 +1120,11 @@ static inline int
      buffer[size++]= V;
    }
 
-   UTF8                utf8(buffer, size); // Encoder
-
+   UTF8::Decoder decoder(buffer, size); // Decoder
    try {
      for(;;)
      {
-       int code= utf8.decode();
+       int code= decoder.decode();
        if( code < 0 )
          break;
        debugf("%.6x\n", code);

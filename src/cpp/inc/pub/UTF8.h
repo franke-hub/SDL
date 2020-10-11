@@ -13,20 +13,14 @@
 //       ~/pub/UTF8.h
 //
 // Purpose-
-//       UTF-8 Encoder/decoder
+//       UTF-8 utilities
 //
 // Last change date-
-//       2020/09/20
+//       2020/10/10
 //
 // Usage notes-
-//       This implementation is NOT thread-safe.
-//
-//       There is only one buffer and one active offset pointer. You should
-//       generally use different objects for encoding and decoding within
-//       different threads.
-//
-//       This encoder/decoder implements RFC 3629, UTF-8 translation format.
-//       Protected methods are called after error checking.
+//       The Encoder/Decoder implement RFC 3629, UTF-8 translation format.
+//       Protected methods are only called after error checking.
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_UTF8_H_INCLUDED
@@ -35,14 +29,11 @@
 #include <stdio.h>                  // For fprintf, ...
 #include <string.h>                 // For memcpy
 
-#include "config.h"                 // For _PUB_NAMESPACE
-#include "utility.h"                // For utility::to_string(), prereqs above
-
-namespace _PUB_NAMESPACE {
+namespace pub::UTF8 {
 //----------------------------------------------------------------------------
 //
-// Class-
-//       UTF8
+// Namespace-
+//       pub::UTF8
 //
 // Purpose-
 //       UTF-8 encoding and decoding.
@@ -58,55 +49,220 @@ namespace _PUB_NAMESPACE {
 //     4   21 U+110000 U+1FFFFF Disallowed: Outside Unicode range
 //
 //----------------------------------------------------------------------------
-class UTF8 {                        // UTF-8 encoding/decoding
-//----------------------------------------------------------------------------
-// UTF8::Typedefs and enumerations
-//----------------------------------------------------------------------------
-public:
 enum { REPLACE_CHAR= 0x0000FFFD };  // Error replacement character
+typedef uint8_t        utf8_t;      // The UTF-8 character (octet) type
+typedef int            utf32_t;     // The UTF-32 code point type
 
 //----------------------------------------------------------------------------
-// UTF8::Attributes
+//
+// Subroutine-
+//       pub::UTF8::dec
+//
+// Purpose-
+//       Locate prior start code. (Maximum skip: 4 bytes)
+//
 //----------------------------------------------------------------------------
-protected:
-unsigned char*         utf8= nullptr; // The UTF-8 encoded string
-mutable size_t         used= 0;     // The current size of the string
-size_t                 size= 0;     // The maximum size of the string
-
-//----------------------------------------------------------------------------
-// UTF8::Constructor/Destructor
-//----------------------------------------------------------------------------
-public:
-   ~UTF8( void ) {}                 // Destructor
-
-   UTF8( void )                     // Default constructor
-:  utf8(nullptr), used(0), size(0) {}
-
-   UTF8(                            // String constructor
-     char*             buff,        // The encode/decode character string
-     size_t            size= 0)     // The encode/decode string maximum size
-{  reset(buff, size); }
-
-   UTF8(                            // String constructor
-     unsigned char*    buff,        // The encode/decode character string
-     size_t            size= 0)     // The encode/decode string maximum size
-{  reset((char*)buff, size); }
-
-void
-   reset(                           // Reset the encode/decode buffer
-     char*             buff,        // The encode/decode buffer
-     size_t            size= 0)     // The encode/decode buffer length
+#ifdef __GNUC__
+   #pragma GCC diagnostic push;
+   #pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+static inline const utf8_t*         // The next start code
+   dec(                             // Get next start code
+     const utf8_t*     addr)        // The current start code, length >= 4
 {
-   if( size == 0 && buff )          // Allow reset(nullptr{, 0})
-     size= strlen(buff);
+   if( addr[-1] < 0x80 || addr[-1] >= 0xC0 ) // Normal || error
+     return addr - 1;
 
-   this->utf8= (unsigned char*)buff;
-   this->size= size;
-   this->used= 0;
+   if( addr[-2] < 0x80 || addr[-2] >= 0xC0 ) // Error || normal
+     return addr - 2;
+
+   if( addr[-3] < 0x80 || addr[-3] >= 0xC0 ) // Error || normal
+     return addr - 3;
+
+   return addr - 4;                 // Normal || error
+}
+static inline utf8_t* dec(utf8_t* addr)
+{ return const_cast<utf8_t*>(dec(const_cast<const utf8_t*>(addr))); }
+
+static inline const utf8_t*         // The prior start code
+   dec(                             // Get prior start code
+     const utf8_t*     addr,        // The current start code
+     size_t            size)        // Buffer origin offset
+{
+   if( size == 0 ) return addr;     // Do not decrement beyond origin
+   if( addr[-1] < 0x80 || addr[-1] >= 0xC0 ) // Normal || error
+     return addr - 1;
+
+   if( size == 1 ) return addr - 1; // Do not decrement beyond origin
+   if( addr[-2] < 0x80 || addr[-2] >= 0xC0 ) // Error || normal
+     return addr - 2;
+
+   if( size == 2 ) return addr - 2; // Do not decrement beyond origin
+   if( addr[-3] < 0x80 || addr[-3] >= 0xC0 ) // Error || normal
+     return addr - 3;
+
+   if( size == 3 ) return addr - 3; // Do not decrement beyond origin
+   return addr - 4;                 // Normal || error
+}
+static inline utf8_t* dec(utf8_t* addr, size_t size)
+{ return const_cast<utf8_t*>(dec(const_cast<const utf8_t*>(addr), size)); }
+#ifdef __GNUC__
+   #pragma GCC diagnostic pop;
+#endif
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       pub::UTF8::inc
+//
+// Purpose-
+//       Locate next start code (Maximum skip: 4 bytes)
+//
+//----------------------------------------------------------------------------
+static inline const utf8_t*         // The next valid start code
+   inc(                             // Get next valid start code
+     const utf8_t*     addr)        // The current start code
+{
+     if( *addr < 0xC0 )             // (Skips invalid starts 0x80..0xBF)
+       return addr + 1;
+
+     if( *addr < 0xE0 )
+       return addr + 2;
+
+     if( *addr < 0xF0 )
+       return addr + 3;
+
+     return addr + 4;
+}
+static inline utf8_t* inc(utf8_t* addr)
+{ return const_cast<utf8_t*>(inc(const_cast<const utf8_t*>(addr))); }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       pub::UTF8::index
+//
+// Purpose-
+//       Get utf_t* offset for logical index
+//
+//----------------------------------------------------------------------------
+static inline size_t                // The utf8_t* offset
+   index(                           // Get utf8_t* offset of
+     const utf8_t*     addr,        // This ('\0' terminated) utf8_t* string
+     size_t            X)           // For this logical index of
+{
+     size_t O= 0;                   // Current offset
+     while( X > 0 ) {
+       uint8_t SC= addr[O];         // The current start character
+       if( SC == '\0' ) break;
+       if( SC < 0xC0 ) {            // If one character (or error) encoding
+         ++O;
+       } else if( SC < 0xE0 ) {     // If two character encoding
+         if( addr[++O] == '\0' ) break;
+         ++O;
+       } else if( SC < 0xF0 ) {     // If three character encoding
+         if( addr[++O] == '\0' ) break;
+         if( addr[++O] == '\0' ) break;
+         ++O;
+       } else {                     // If four character encoding
+         if( addr[++O] == '\0' ) break;
+         if( addr[++O] == '\0' ) break;
+         if( addr[++O] == '\0' ) break;
+         ++O;
+       }
+
+       --X;
+     }
+
+     return O;
 }
 
 //----------------------------------------------------------------------------
-// UTF8::Protected methods
+//
+// Subroutine-
+//       pub::UTF8::is_start_encoding
+//
+// Purpose-
+//       Determine whether a UTF-8 character is a valid start code
+//
+//----------------------------------------------------------------------------
+static inline bool                  // TRUE iff code is a valid start code
+   is_start_encoding(               // Is the UTF-8 character a valid start?
+     int               code)        // The UTF-8 start character
+{
+     if( code < 0x00000080 || (code >= 0x000000C0 && code < 0x000000F7) )
+       return true;
+
+     return false;
+}
+
+class Decoder {                     // UTF-8 decoder
+//----------------------------------------------------------------------------
+//
+// Class-
+//       pub::UTF8::Decoder
+//
+// Purpose-
+//       Convert (const) utf8_t* string into utf32_t words
+//
+//----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+// pub::UTF8::Decoder::Attributes
+//----------------------------------------------------------------------------
+protected:
+const utf8_t*          utf8= nullptr; // The UTF-8 encoded string
+mutable size_t         used= 0;     // The current string index
+size_t                 size= 0;     // The size of the string
+
+//----------------------------------------------------------------------------
+// pub::UTF8::Decoder::Destructor
+//----------------------------------------------------------------------------
+public:
+   ~Decoder( void ) {}              // Destructor (does nothing)
+
+//----------------------------------------------------------------------------
+// pub::UTF8::Decoder::Constructors
+//----------------------------------------------------------------------------
+public:
+   Decoder( void )                  // Default constructor
+:  utf8(nullptr), used(0), size(0) {}
+
+   Decoder(                         // String constructor
+     const char*       _buff,       // The decode character string
+     size_t            _size= 0)    // The decode string size
+{  reset(_buff, _size); }
+
+   Decoder(                         // String constructor
+     const utf8_t*     _buff,       // The decode character string
+     size_t            _size= 0)    // The decode string size
+{  reset(_buff, _size); }
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       pub::UTF8::Decoder::reset
+//
+// Purpose-
+//       Reset the decode buffer
+//
+//----------------------------------------------------------------------------
+void
+   reset(                           // Reset the encode buffer
+     const utf8_t*     _buff,       // The encode buffer
+     size_t            _size= 0)    // The encode buffer length
+{
+   if( _size == 0 && _buff )        // Allow reset(nullptr{, 0})
+     _size= strlen((const char*)_buff);
+
+   this->utf8= _buff;
+   this->size= _size;
+   this->used= 0;
+}
+void reset(const char* buff, size_t _size= 0)
+{ reset((const utf8_t*)buff, _size); }
+
+//----------------------------------------------------------------------------
+// pub::UTF8::Decoder::Protected methods
 //----------------------------------------------------------------------------
 protected:
 inline int                          // Return code, 0 OK
@@ -147,28 +303,8 @@ inline unsigned                     // The extended value
    return result;
 }
 
-inline void
-   setX(                            // Insert extended value (UNCHECKED)
-     unsigned          code,        // The extended value
-     unsigned          L)           // The extended length
-{
-   if( L )                          // If additional characters
-     setX(code >> 6, L - 1);        // Insert partial
-   utf8[used++]= (code & 0x0000003F) | 0x00000080;
-}
-
-static inline bool                  // TRUE iff code is a valid start code
-   is_start_encoding(               // Is
-     unsigned          code)        // This a valid UTF-8 start encoding
-{
-     if( code < 0x00000080 || (code >= 0x000000C0 && code < 0x000000F7) )
-       return true;
-
-     return false;
-}
-
 // Decode error handlers
-inline int                          // Always REPLACE_CHAR
+inline utf32_t                      // Always REPLACE_CHAR
    bad_decode(                      // ERROR: Attempt to decode
      unsigned          code,        // This invalid Unicode code point and
      unsigned          L) const     // This encoding length
@@ -178,7 +314,7 @@ inline int                          // Always REPLACE_CHAR
    return REPLACE_CHAR;
 }
 
-inline int                          // Always REPLACE_CHAR
+inline utf32_t                      // Always REPLACE_CHAR
    bad_start(                       // ERROR: Invalid UTF-8 start char
      unsigned          code)        // (The invalid char)
 {
@@ -187,7 +323,7 @@ inline int                          // Always REPLACE_CHAR
    return REPLACE_CHAR;
 }
 
-inline int                          // Always REPLACE_CHAR
+inline utf32_t                      // Always REPLACE_CHAR
    bad_unicode(                     // ERROR: Attempt to decode
      unsigned          code,        // This invalid Unicode code point and
      unsigned          L) const     // This encoding length
@@ -197,92 +333,24 @@ inline int                          // Always REPLACE_CHAR
    return REPLACE_CHAR;
 }
 
-// Encode error handlers
-inline ssize_t                      // Always -1
-   not_unicode(                     // ERROR: Attempt to encode
-     unsigned          code) const  // This invalid Unicode code point
-{
-   fprintf(stderr, "UTF8.encode(0x%.4x) Not unicode\n", code);
-   return -1;
-}
-
 //----------------------------------------------------------------------------
-// UTF8::Accessors
+// pub::UTF8::Decoder::::Accessors
 //----------------------------------------------------------------------------
 public:
 size_t get_size(void) const { return size; } // Get buffer size
 size_t get_used(void) const { return used; } // Get number of bytes used
-void set_used(size_t used_) { this->used= used_; } // Set used count
 
 //----------------------------------------------------------------------------
-// UTF8::Methods
+// pub::UTF8::Decoder::::Methods
 //----------------------------------------------------------------------------
-ssize_t                             // Offset after encoding, -1 if error
-   encode(                          // Encode
-     unsigned          code)        // This Unicode code point
-{
-   unsigned L= 1;
-   if( code >= 0x00000080 ) {
-     L= 2;
-     if( code >= 0x00000800 ) {
-       L= 3;
-       if( code >= 0x00010000 ) {
-         L= 4;
-         if( code >= 0x00110000 )
-           return not_unicode(code);
-       } else if( code >= 0x0000D800 && code <= 0x0000DFFF )
-         return not_unicode(code);
-     }
-   }
-
-   // If the buffer does not have enough space to encode the code point, an
-   // error message is displayed and the encoder state remains unchanged.
-   if( (used + L) > size ) {
-     fprintf(stderr, "UTF8.encode(0x%.6x) Used(0x%zx)+%d > size(0x%zx)\n"
-                   , code, used, L, size);
-     return -1;
-   }
-
-   // Disallowed value ranges have been detected
-   switch(L) {
-     case 1:                        // Range 0x000000..0x00007F
-       utf8[used++]= code;
-       break;
-
-     case 2:                        // Range 0x000080..0x0007FF
-       utf8[used++]= (code >>  6) | 0x000000C0;
-       setX(code, 0);
-       break;
-
-     case 3:                        // Range 0x000800..0x00FFFF
-       utf8[used++]= (code >> 12) | 0x000000E0;
-       setX(code, 1);
-       break;
-
-     case 4:                        // Range 0x010000..0x1FFFFF
-       utf8[used++]= (code >> 18) | 0x000000F0;
-       setX(code, 2);
-       break;
-
-     default:
-       fprintf(stderr, "%4d UTF8.encode(%.6x) Internal error\n", __LINE__
-                     , code);
-       throw "Should Not Occur";
-       break;
-   }
-
-   return used;
-}
-
-int                                 // The next Unicode code point, -1 if EOF
+utf32_t                             // The next Unicode code point, -1 if EOF
    decode( void )                   // Get next Unicode code point
 {
    if( used >= size ) return -1;    // If EOF, return -1
 
-   unsigned            code= utf8[used++]; // First input character
-
-   unsigned L= 0;
-   if( code < 0x000000C0 ) {        // Range 0x000000..0x00007F
+   utf32_t code= utf8[used++];      // Working resultant; Start character
+   unsigned L= 0;                   // Number of additional characters
+   if( code < 0x000000C0 ) {        // Range 0x000000..0x0000BF
      if( code >= 0x00000080 )       // Range 0x000080..0x0000BF (invalid start)
        return bad_start(code);
    } else if( code < 0x000000E0 ) { // Range 0x000080..0x0007FF
@@ -298,7 +366,7 @@ int                                 // The next Unicode code point, -1 if EOF
    if( chkX(L) )                    // If invalid continuation character/length
      return REPLACE_CHAR;
 
-   switch( L ) {
+   switch( L ) {                    // Check for disallowed range
      case 0:                        // Range 0x000000..0x00007F
        break;                       // (No translation)
 
@@ -340,7 +408,7 @@ int                                 // The next Unicode code point, -1 if EOF
 }
 
 void
-   bs( void )                       // Decode: Back Space
+   dec( void )                      // Decode: Back Space
 {
    while( used > 0 ) {              // While backward space exists
      unsigned code= utf8[used];
@@ -352,7 +420,7 @@ void
 }
 
 void
-   fs( void )                       // Decode: Forward Space
+   inc( void )                      // Decode: Forward Space
 {
    while( used < size ) {           // While forward space exists
      unsigned code= utf8[++used];
@@ -360,6 +428,175 @@ void
        return;
    }
 }
-}; // class UTF8
+}; // class Decoder
+
+class Encoder {                     // UTF-8 encoder
+//----------------------------------------------------------------------------
+//
+// Class-
+//       pub::UTF8::Encoder
+//
+// Purpose-
+//       Convert utf32_t words into utf8_t* string
+//
+//----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+// pub::UTF8::Encoder::Attributes
+//----------------------------------------------------------------------------
+protected:
+utf8_t*                utf8= nullptr; // The UTF-8 encoded string
+mutable size_t         used= 0;     // The current size of the string
+size_t                 size= 0;     // The maximum size of the string
+
+//----------------------------------------------------------------------------
+// pub::UTF8::Encoder::Destructor
+//----------------------------------------------------------------------------
+public:
+   ~Encoder( void ) {}              // Destructor (does nothing)
+
+//----------------------------------------------------------------------------
+// pub::UTF8::Encoder::Constructors
+//----------------------------------------------------------------------------
+public:
+   Encoder( void )                  // Default constructor
+:  utf8(nullptr), used(0), size(0) {}
+
+   Encoder(                         // String constructor
+     char*             _buff,       // The encode/decode character string
+     size_t            _size= 0)    // The encode/decode string maximum size
+{  reset(_buff, _size); }
+
+   Encoder(                         // String constructor
+     utf8_t*           _buff,       // The encode/decode character string
+     size_t            _size= 0)    // The encode/decode string maximum size
+{  reset(_buff, _size); }
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       pub::UTF8::Encoder::reset
+//
+// Purpose-
+//       Reset the decode buffer
+//
+//----------------------------------------------------------------------------
+void
+   reset(                           // Reset the encode buffer
+     utf8_t*           _buff,       // The encode buffer
+     size_t            _size= 0)    // The encode buffer length
+{
+   if( _size == 0 && _buff )        // Allow reset(nullptr{, 0})
+     _size= strlen((char*)_buff);
+
+   this->utf8= _buff;
+   this->size= _size;
+   this->used= 0;
+}
+void reset(char* buff, size_t _size= 0) { reset((utf8_t*)buff, _size); }
+
+//----------------------------------------------------------------------------
+// pub::UTF8::Encoder::Protected methods
+//----------------------------------------------------------------------------
+protected:
+inline unsigned                     // The extended value
+   getX(                            // Get extended value (UNCHECKED)
+     unsigned          L)           // For this length
+{
+   unsigned result= 0;
+   for(unsigned i= 0; i<L; i++) {
+     result <<= 6;
+     unsigned C= utf8[used++];
+     result += (C & 0x003F);
+   }
+
+   return result;
+}
+
+inline void
+   setX(                            // Insert extended value (UNCHECKED)
+     unsigned          code,        // The extended value
+     unsigned          L)           // The extended length
+{
+   if( L )                          // If additional characters
+     setX(code >> 6, L - 1);        // Insert partial
+   utf8[used++]= utf8_t((code & 0x0000003F) | 0x00000080);
+}
+
+// Encode error handlers
+inline ssize_t                      // Always -1
+   not_unicode(                     // ERROR: Attempt to encode
+     unsigned          code) const  // This invalid Unicode code point
+{
+   fprintf(stderr, "UTF8.encode(0x%.4x) Not unicode\n", code);
+   return -1;
+}
+
+//----------------------------------------------------------------------------
+// pub::UTF8::Encoder::Accessors
+//----------------------------------------------------------------------------
+public:
+size_t get_size(void) const { return size; } // Get buffer size
+size_t get_used(void) const { return used; } // Get number of bytes used
+
+//----------------------------------------------------------------------------
+// pub::UTF8::Encoder::Methods
+//----------------------------------------------------------------------------
+ssize_t                             // Offset after encoding, -1 if error
+   encode(                          // Encode
+     int               code)        // This Unicode code point
+{
+   unsigned L= 1;
+   if( code >= 0x00000080 ) {
+     L= 2;
+     if( code >= 0x00000800 ) {
+       L= 3;
+       if( code >= 0x00010000 ) {
+         L= 4;
+         if( code >= 0x00110000 )
+           return not_unicode(code);
+       } else if( code >= 0x0000D800 && code <= 0x0000DFFF )
+         return not_unicode(code);
+     }
+   }
+
+   // If the buffer does not have enough space to encode the code point, an
+   // error message is displayed and the encoder state remains unchanged.
+   if( (used + L) > size ) {
+     fprintf(stderr, "UTF8.encode(0x%.6x) Used(0x%zx)+%d > size(0x%zx)\n"
+                   , code, used, L, size);
+     return -1;
+   }
+
+   // Disallowed value ranges have been detected
+   switch(L) {
+     case 1:                        // Range 0x000000..0x00007F
+       utf8[used++]= utf8_t(code);
+       break;
+
+     case 2:                        // Range 0x000080..0x0007FF
+       utf8[used++]= utf8_t((code >>  6) | 0x000000C0);
+       setX(code, 0);
+       break;
+
+     case 3:                        // Range 0x000800..0x00FFFF
+       utf8[used++]= utf8_t((code >> 12) | 0x000000E0);
+       setX(code, 1);
+       break;
+
+     case 4:                        // Range 0x010000..0x1FFFFF
+       utf8[used++]= utf8_t((code >> 18) | 0x000000F0);
+       setX(code, 2);
+       break;
+
+     default:
+       fprintf(stderr, "%4d UTF8.encode(%.6x) Internal error\n", __LINE__
+                     , code);
+       throw "Should Not Occur";
+       break;
+   }
+
+   return used;
+}
+}; // class Encoder
 }  // namespace _PUB_NAMESPACE
 #endif // _PUB_UTF8_H_INCLUDED

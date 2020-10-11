@@ -16,7 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2020/10/07
+//       2020/10/08
 //
 //----------------------------------------------------------------------------
 #ifndef EDTEXT_H_INCLUDED
@@ -137,14 +137,15 @@ size_t                              // The current cursor column
      debugh("EdText(%p)::cursor_%s cursor[%u,%u]\n", this, set ? "S" : "C"
            , col, row);
 
-   char buffer[2];                  // Character buffer
-   buffer[0]= ' ';
-   buffer[1]= '\0';
-
-   size_t length= active.get_used();
-   size_t current= col_zero + col;  // The current cursor column
-   if( length > current )
-     buffer[0]= active.get_buffer()[current];
+   size_t column= col_zero + col;   // The current column
+   char buffer[8];                  // Encoder buffer
+   pub::UTF8::Encoder encoder(buffer, sizeof(buffer));
+   pub::UTF8::Decoder decoder(active.get_buffer(column));
+   int code= decoder.decode();
+   if( code <= 0 )
+     code= ' ';
+   encoder.encode(code);
+   buffer[encoder.get_used()]= '\0';
 
    if( set )                        // If cursor set
      putxy(flipGC, getxy(col, row), buffer);
@@ -152,7 +153,7 @@ size_t                              // The current cursor column
      putxy(getxy(col, row), buffer);
    flush();
 
-   return current;
+   return column;
 }
 
 size_t                              // The current cursor column
@@ -181,7 +182,7 @@ int                                 // Return code, 0 if draw performed
        col_zero= column - col_size + col_move;
      }
    }
-   col= column - col_zero;
+   col= unsigned(column - col_zero);
 
    if( rc == 0 )                    // If redraw needed
      draw();
@@ -351,7 +352,7 @@ void
      // Update window title, omitting middle of file name if necessary
      char buffer[64];
      const char* C= file->name.c_str();
-     unsigned    L= strlen(C);
+     size_t      L= strlen(C);
 
      strcpy(buffer, "Editor: ");
      if( L > 55 ) {
@@ -448,7 +449,8 @@ virtual int                         // Return code, 0 if handled
 {
    if( opt_hcdm ) {
      char B[2]; B[0]= '\0'; B[1]= '\0'; const char* K= B;
-     if( key >= 0x0020 && key < 0x007f ) B[0]= key; else K= editor->key_to_name(key);
+     if( key >= 0x0020 && key < 0x007f ) B[0]= char(key);
+     else K= editor->key_to_name(key);
      debugh("EdText(%p)::key_input(0x%.4x,%.4x) '%s'\n", this, key, state, K);
    }
 
@@ -486,13 +488,13 @@ virtual int                         // Return code, 0 if handled
        active.insert_char(column, key);
        if( cursor_H(column + 1) ) {
          const char* buffer= active.get_buffer();
-         putxy(getxy(col - 1, row), buffer + column);
+         putxy(getxy(col - 1, row), buffer + active.index(column));
        }
      } else {
        active.replace_char(column, key);
        if( cursor_H(column + 1) ) {
          char buffer[2];
-         buffer[0]= key;
+         buffer[0]= char(key);
          buffer[1]= '\0';
          putxy(getxy(col - 1, row), buffer);
        }
@@ -528,10 +530,9 @@ virtual int                         // Return code, 0 if handled
        active.remove_char(column);
        int rc= cursor_H(column);
        if( rc ) {
-         const char* buffer= active.get_buffer();
-         putxy(getxy(col, row), buffer + column);
-         column= active.get_used() - col_zero;
-         putxy(getxy(column, row), " ");
+         active.append_text(" ");   // (Clear removed character)
+         const char* buffer= active.get_buffer(column - col_zero);
+         putxy(getxy(col, row), buffer);
          cursor_S();
          flush();
        }
@@ -540,22 +541,17 @@ virtual int                         // Return code, 0 if handled
      case 0x007f:                  // (Should not occur)
      case XK_Delete: {
        active.remove_char(column);
-       if( column < active.get_used() ) {
-         const char* buffer= active.get_buffer();
-         putxy(getxy(col, row), buffer + column);
-       }
-       column= active.get_used();
-       if( column >= col_zero && column < (col_zero + col_size) ) {
-         column -= col_zero;
-         putxy(getxy(column, row), " ");
-       }
+       active.append_text(" ");
+       const char* buffer= active.get_buffer(column);
+       putxy(getxy(col, row), buffer);
+       cursor_S();
        flush();
        break;
      }
      case XK_Escape:                // Escape: UNDO
        active.undo();
-       active.fetch(col_zero+col_size);
-       putxy(getxy(0, row), active.get_buffer() + col_zero);
+       active.index(col_zero+col_size); // Blank fill
+       putxy(getxy(0, row), active.get_buffer(col_zero));
        cursor_S();
        break;
 
@@ -683,7 +679,7 @@ virtual int                         // Return code, 0 if handled
        break;
      }
      case XK_End: {                 // End key
-       cursor_H(active.get_used());
+       cursor_H(active.get_cols());
        break;
      }
 

@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2020/08/04
+//       2020/10/08
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -206,7 +206,7 @@ void
 uint32_t                            // Offset of record
    offset(                          // Get offset of
      void*             record)      // This record
-{  return (char*)record - (char*)this; }
+{  return uint32_t((char*)record - (char*)this); }
 
 // storage_if: Static storage allocator (with status checking)
 static void*                        // The storage, nullptr if inactive

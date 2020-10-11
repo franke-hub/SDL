@@ -16,7 +16,7 @@
 //       XCB Font descriptor (X11 compatibile version)
 //
 // Last change date-
-//       2020/10/02
+//       2020/10/08
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_FONT_H_INCLUDED
@@ -263,7 +263,7 @@ int                                 // Return code, 0 OK
 
    fontID= xcb_generate_id(conn);
    xcb_void_cookie_t void_cookie=
-   xcb_open_font_checked(conn, fontID, strlen(name), name);
+   xcb_open_font_checked(conn, fontID, uint16_t(strlen(name)), name);
    xcb_generic_error_t* error=
    xcb_request_check(conn, void_cookie);
    if( error ) {
@@ -287,7 +287,8 @@ int                                 // Return code, 0 OK
    offset.x= 0;
    offset.y= font_info->max_bounds.ascent;
    length.width= font_info->max_bounds.character_width;
-   length.height= font_info->max_bounds.ascent + font_info->max_bounds.descent;
+   length.height= uint16_t( font_info->max_bounds.ascent
+                          + font_info->max_bounds.descent);
 
    return 0;
 }
@@ -312,11 +313,11 @@ void
      debugh("Font(%p)::putxy(%u,[%d,%d],'%s')\n", this
            , fontGC, left, top, text);
 
-   pub::UTF8    inp((char*)text);   // UTF8 input buffer (Decode is const)
+   pub::UTF8::Decoder decoder(text); // UTF8 input buffer
    xcb_char2b_t out[256];           // UTF16 output buffer
    int length;                      // Output buffer length
    for(length= 0; length<256; length++) {
-     int code= inp.decode();        // Next input character
+     int code= decoder.decode();    // Next input character
      if( code < 0 )                 // If none left
        break;
 
@@ -336,8 +337,8 @@ void
    if( length >= 256 ) length= 255; // Only 8-bit length allowed
 
    window->NOQUEUE("xcb_image_text_16", xcb_image_text_16
-                  ( window->c, length, window->widget_id, fontGC
-                  , left, top + offset.y, out) );
+                  ( window->c, uint8_t(length), window->widget_id, fontGC
+                  , uint16_t(left), uint16_t(top + offset.y), out) );
 }
 
 void

@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2020/10/07
+//       2020/10/08
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -448,7 +448,7 @@ const char*
 {
    if( key >= 0x0020 && key <= 0x007f ) { // If text key
      static char buffer[2];
-     buffer[0]= key;
+     buffer[0]= char(key);
      buffer[1]= '\0';
      return buffer;
    }

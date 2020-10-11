@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2020/10/07
+//       2020/10/08
 //
 // Implementation note-
 //       TODO: Debug mode *ALWAYS* intensive move
@@ -329,7 +329,7 @@ static int                          // The integer value
    else if( value < INT_MIN || value > INT_MAX )
      errno= ERANGE;
 
-   return value;
+   return int(value);
 }
 
 //----------------------------------------------------------------------------

@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2020/10/02
+##       2020/10/08
 ##
 ##############################################################################
 
@@ -67,6 +67,7 @@ $(MAKEXE): liblocal.a
 
 ##############################################################################
 ## Controls
+COPTS  += -Wconversion
 ignore += $(shell pkg-config --cflags fontconfig freetype2)
 ignore += $(shell pkg-config --libs   fontconfig freetype2)
 CLIBS  += $(shell pkg-config --libs   xcb xcb-xfixes)

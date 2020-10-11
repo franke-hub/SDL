@@ -16,7 +16,7 @@
 //       Instantiate externals.
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/08
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For Debug object
@@ -167,10 +167,10 @@ void
   Record* record= (Record*)::pub::Trace::storage_if(sizeof(Record));
   if( record ) {                    // Trace event
     char* unit= (char*)&record->unit;
-    unit[3]= code >> 0;
-    unit[2]= code >> 8;
-    unit[1]= code >> 16;
-    unit[0]= code >> 24;
+    unit[3]= char(code >>  0);
+    unit[2]= char(code >>  8);
+    unit[1]= char(code >> 16);
+    unit[0]= char(code >> 24);
 
     memset(record->value, 0, sizeof(record->value));
     if( text )

@@ -16,10 +16,13 @@
 //       XCB Active Line descriptor.
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/11
 //
 // Implementation note-
-//       Any Line changes also remove any trailing blanks.
+//       Changed Lines also automatically remove any trailing blanks.
+//
+//       All length parameters are byte counts; column parameters are logical
+//       and are automatically converted internally to byte offsets.
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_ACTIVE_H_INCLUDED
@@ -39,9 +42,14 @@ namespace xcb {
 //----------------------------------------------------------------------------
 class Active {                      // Active editor line
 //----------------------------------------------------------------------------
-// xcb::Active::Enumerations
+// xcb::Active::Typedefs and enumerations
 //----------------------------------------------------------------------------
-public:
+public:                             // UTF8 size_t aliases
+typedef size_t         Ccount;      // A column count
+typedef size_t         Column;      // A column number
+typedef size_t         Length;      // A length in bytes
+typedef size_t         Offset;      // A column number offset in bytes
+
 enum FSM                            // Finite State Machine states
 {  FSM_RESET= 0                     // Unchanged, Reset
 ,  FSM_FETCHED                      // Unchanged, Fetched
@@ -52,10 +60,10 @@ enum FSM                            // Finite State Machine states
 // xcb::Active::Attributes
 //----------------------------------------------------------------------------
 protected:
-const char*            source;      // The source text
-mutable char*          buffer= nullptr; // The working buffer (Never shrinks)
-size_t                 buffer_size; // The buffer size, always > buffer_used
-size_t                 buffer_used; // The number of bytes used
+const unsigned char*   source;      // The source text
+mutable unsigned char* buffer= nullptr; // The working buffer (Never shrinks)
+Length                 buffer_size; // The buffer size, always > buffer_used
+Length                 buffer_used; // The number of bytes used
 
 FSM                    fsm= FSM_RESET; // Finite State Machine (state)
 
@@ -79,7 +87,7 @@ virtual void
 protected:
 void
    expand(                           // Expand buffer_size (Does not fetch)
-     size_t            column);      // To this length (+1)
+     Length            length);      // To this length (+1)
 
 //----------------------------------------------------------------------------
 //
@@ -94,7 +102,7 @@ public:
 void
    append_text(                     // Concatenate text
      const char*       join,        // The join substring
-     size_t            size);       // The substring size
+     Length            size);       // The substring size
 
 void
    append_text(                     // Concatenate text
@@ -111,7 +119,7 @@ void
 //----------------------------------------------------------------------------
 void
    fetch(                            // Fetch the source line
-     size_t            column= 0);   // With blank fill to this length
+     Length            length= 0);   // With blank fill to this length
 
 //----------------------------------------------------------------------------
 //
@@ -123,7 +131,8 @@ void
 //
 //----------------------------------------------------------------------------
 const char*                         // The current buffer
-   get_buffer( void ) const;        // Get '\0' delimited buffer
+   get_buffer(                      // Get ('\0' delimited) buffer
+     Column            column= 0) const; // Starting at this column
 
 //----------------------------------------------------------------------------
 //
@@ -138,7 +147,19 @@ const char*                         // The current buffer
 //
 //----------------------------------------------------------------------------
 const char*                         // The changed text, nullptr if unchanged
-   get_changed( void ) const;       // Get changed text string
+   get_changed( void ) const;       // Get ('\0' delimited) changed buffer
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::Active::get_cols
+//
+// Purpose-
+//       Return the buffer Column count
+//
+//----------------------------------------------------------------------------
+Ccount                              // The current buffer used Ccount
+   get_cols( void );                // Get current buffer used Ccount
 
 //----------------------------------------------------------------------------
 //
@@ -149,8 +170,21 @@ const char*                         // The changed text, nullptr if unchanged
 //       Return the buffer length (including trailing blanks, if present)
 //
 //----------------------------------------------------------------------------
-size_t                              // The current buffer used length
-   get_used( void );                // Get current buffer used length
+Length                              // The current buffer used Length
+   get_used( void );                // Get current buffer used Length
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::Active::index
+//
+// Purpose-
+//       Convert column to offset.
+//
+//----------------------------------------------------------------------------
+Offset                              // The character buffer Offset
+   index(                           // Get character buffer Offset for
+     Column            column);     // This Column
 
 //----------------------------------------------------------------------------
 //
@@ -163,7 +197,7 @@ size_t                              // The current buffer used length
 //----------------------------------------------------------------------------
 void
    insert_char(                     // Insert character
-     size_t            column,      // The current column
+     Column            column,      // The current Column
      int               code);       // The insert character
 
 //----------------------------------------------------------------------------
@@ -177,7 +211,7 @@ void
 //----------------------------------------------------------------------------
 void
    insert_text(                     // Insert text
-     size_t            column,      // The insert column
+     Column            column,      // The insert Column
      const char*       text);       // The insert text
 
 //----------------------------------------------------------------------------
@@ -191,7 +225,7 @@ void
 //----------------------------------------------------------------------------
 void
    remove_char(                     // Remove the character
-     size_t            column);     // At this column
+     Column            column);     // At this Column
 
 //----------------------------------------------------------------------------
 //
@@ -204,7 +238,7 @@ void
 //----------------------------------------------------------------------------
 void
    replace_char(                    // Replace the character
-     size_t            column,      // At this column
+     Column            column,      // At this Column
      int               code);       // With this character
 
 //----------------------------------------------------------------------------
@@ -213,13 +247,13 @@ void
 //       xcb::Active::replace_text
 //
 // Purpose-
-//       Replace (or insert) a text string.
+//       Replace (or insert) a ('\0' delimited) text string.
 //
 //----------------------------------------------------------------------------
 void
    replace_text(                    // Replace (or insert) text
-     size_t            column,      // The replacement column
-     size_t            length,      // The replacement (delete) length
+     Column            column,      // The replacement Column
+     Ccount            ccount,      // The Column count of deleted columns
      const char*       text);       // The replacement (insert) text
 
 //----------------------------------------------------------------------------

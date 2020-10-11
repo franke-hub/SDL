@@ -16,13 +16,14 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/11
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
 
-#include <pub/Debug.h>              // For Debug object
-#include <pub/Must.h>               // For Must methods
+#include <pub/Debug.h>              // For pub::Debug object
+#include <pub/Must.h>               // For pub::Must methods
+#include <pub/UTF8.h>               // For pub::UTF8 methods and objects
 
 #include "Xcb/Global.h"             // For opt_hcdm, opt_verbose
 #include "Xcb/Active.h"             // Implementation class
@@ -67,10 +68,10 @@ namespace xcb {
    if( opt_hcdm )
      debugh("Active(%p)::Active\n", this);
 
-   source= "";                      // Initial text
+   source= (const unsigned char*)""; // Initial text
    buffer_size= BUFFER_SIZE;        // Default buffer size
    buffer_used= 0;
-   buffer= (char*)Must::malloc(buffer_size);
+   buffer= (unsigned char*)Must::malloc(buffer_size);
    fsm= FSM_RESET;
 }
 
@@ -103,20 +104,20 @@ void
 //       xcb::Active::expand
 //
 // Purpose-
-//       Expand the buffer to the appropriate size. (Does not fetch)
+//       Expand the buffer to the appropriate character size. (Does not fetch)
 //
 //----------------------------------------------------------------------------
 void
    Active::expand(                  // Expand the buffer
-     size_t            column)      // To this length (+1)
+     Length            length)      // To this length (+1)
 {
    if( opt_hcdm )
-     debugh("Active(%p)::expand(%zd) [%zd,%zd]\n", this, column, buffer_used, buffer_size);
+     debugh("Active(%p)::expand(%zd) [%zd,%zd]\n", this, length, buffer_used, buffer_size);
 
-   if( column >= buffer_size ) {    // If expansion required
-     size_t replace_size= column + BUFFER_SIZE + BUFFER_SIZE;
+   if( length >= buffer_size ) {    // If expansion required
+     size_t replace_size= length + BUFFER_SIZE + BUFFER_SIZE;
      replace_size &= ~(BUFFER_SIZE - 1);
-     char* replace= (char*)Must::malloc(replace_size);
+     unsigned char* replace= (unsigned char*)Must::malloc(replace_size);
      if( fsm != FSM_RESET )
        memcpy(replace, buffer, buffer_used);
      Must::free(buffer);
@@ -124,6 +125,35 @@ void
      buffer_size= replace_size;
    }
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::Active::append_text
+//
+// Purpose-
+//       Concatenate text substring.
+//
+//----------------------------------------------------------------------------
+void
+   Active::append_text(             // Concatenate text
+     const char*       join,        // The join substring
+     Length            size)        // The substring Length
+{
+   if( size == 0 )                  // If nothing to insert
+     return;                        // (Line unchanged)
+
+   fetch();
+   fetch(buffer_used + size + 1);   // Insure room for concatenation
+   memcpy(buffer + buffer_used, join, size); // Concatenate
+   buffer_used += size;
+   fsm= FSM_CHANGED;
+}
+
+void
+   Active::append_text(             // Concatenate text
+     const char*       join)        // The join string
+{  append_text(join, strlen(join)); }
 
 //----------------------------------------------------------------------------
 //
@@ -136,10 +166,10 @@ void
 //----------------------------------------------------------------------------
 void
    Active::fetch(                   // Fetch the text
-     size_t            column)      // With blank fill to this length
+     Length            column)      // With blank fill to this length
 {
    if( fsm == FSM_RESET )
-     buffer_used= strlen(source);
+     buffer_used= strlen((const char*)source);
 
    size_t buffer_need= buffer_used + 1;
    if( column >= buffer_need )
@@ -165,49 +195,21 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       xcb::Active::append_text
-//
-// Purpose-
-//       Concatenate text substring.
-//
-//----------------------------------------------------------------------------
-void
-   Active::append_text(             // Concatenate text
-     const char*       join,        // The join substring
-     size_t            size)        // The substring size
-{
-   if( size == 0 )                  // If nothing to insert
-     return;                        // (Line unchanged)
-
-   fetch();
-   fetch(buffer_used + size + 1);   // Insure room for concatenation
-   memcpy(buffer + buffer_used, join, size); // Concatenate
-   buffer_used += size;
-   fsm= FSM_CHANGED;
-}
-
-void
-   Active::append_text(             // Concatenate text
-     const char*       join)        // The join string
-{  size_t L= strlen(join); append_text(join, L); }
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       xcb::Active::get_buffer
 //
 // Purpose-
-//       (Unconditionally) access the buffer
+//       (Unconditionally) access the buffer, leaving trailing blanks.
 //
 //----------------------------------------------------------------------------
 const char*                         // The current buffer
-   Active::get_buffer( void ) const // Get '\0' delimited buffer
+   Active::get_buffer(              // Get '\0' delimited buffer
+     Column            column) const // Starting at this Column
 {
    if( fsm == FSM_RESET )
-     return source;
+     return (const char*)source + pub::UTF8::index(source, column);
 
    buffer[buffer_used]= '\0';       // Set string delimiter (buffer mutable)
-   return buffer;
+   return (const char*)buffer + pub::UTF8::index(buffer, column);
 }
 
 //----------------------------------------------------------------------------
@@ -225,16 +227,43 @@ const char*                         // The changed text, nullptr if unchanged
    if( fsm != FSM_CHANGED )         // If unchanged
      return nullptr;
 
-   size_t buffer_used= this->buffer_used; // (For const)
-   while( buffer_used > 0 ) {       // Remove trailing blanks
-     if( buffer[buffer_used - 1] != ' ' )
+   Length used_buffer= this->buffer_used; // (For const)
+   while( used_buffer > 0 ) {       // Remove trailing blanks
+     if( buffer[used_buffer - 1] != ' ' )
        break;
 
-     buffer_used--;
+     used_buffer--;
    }
 
-   buffer[buffer_used]= '\0';       // Set string delimiter (buffer mutable)
-   return buffer;
+   buffer[used_buffer]= '\0';       // Set string delimiter (buffer mutable)
+   return (const char*)buffer;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::Active::get_cols
+//
+// Purpose-
+//       Return the buffer length (removing trailing blanks, if present)
+//
+//----------------------------------------------------------------------------
+Active::Ccount                      // The current buffer Column count
+   Active::get_cols( void )         // Get current buffer Column count
+{
+   fetch();                         // (Initialize buffer_used)
+   while( buffer_used > 0 && buffer[buffer_used - 1] == ' ' )
+     buffer_used--;
+   buffer[buffer_used]= '\0';
+
+   pub::UTF8::Decoder decoder(buffer);
+   Ccount ccount= 0;                // Number of columns
+   for(;;) {
+     if( decoder.decode() <= 0 )
+       return ccount;
+
+     ccount++;
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -246,9 +275,37 @@ const char*                         // The changed text, nullptr if unchanged
 //       Return the buffer length (including trailing blanks, if present)
 //
 //----------------------------------------------------------------------------
-size_t                              // The current buffer used length
+Active::Length                      // The current buffer used length
    Active::get_used( void )         // Get current buffer used length
 {  fetch(); return buffer_used; }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::Active::index
+//
+// Purpose-
+//       Address character at column index, fetching if required.
+//
+//----------------------------------------------------------------------------
+Active::Offset                      // The character Offset
+   Active::index(                   // Get character Offset for
+     Column            column)      // This Column
+{
+   fetch(column + 1);               // Load the buffer
+   Offset offset= 0;
+   while( column > 0 ) {
+     if( buffer_used <= offset ) {  // If blank fill required
+       fetch(buffer_used + column);
+       offset= buffer_used - 1;
+       break;
+     }
+     offset += pub::UTF8::index(buffer + offset, 1); // Next character length
+     --column;
+   }
+
+   return offset;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -256,19 +313,21 @@ size_t                              // The current buffer used length
 //       xcb::Active::insert_char
 //
 // Purpose-
-//       Insert a character.
+//       Insert a (UTF32) character.
 //
 //----------------------------------------------------------------------------
 void
    Active::insert_char(             // Insert character
-     size_t            column,      // The current column
+     Column            column,      // The current column
      int               code)        // The insert character
 {
-   fetch(column + 1);
-   memmove(buffer + column + 1, buffer + column, buffer_used - column + 1);
-   buffer[column]= code;
-   buffer_used++;
-   fsm= FSM_CHANGED;
+   if( code <= 0 ) return;          // Ignore invalid codes
+
+   char insert_buff[8];             // The insert character encoder buffer
+   pub::UTF8::Encoder encoder(insert_buff, sizeof(insert_buff));
+   encoder.encode(code);
+   insert_buff[encoder.get_used()]= '\0';
+   replace_text(column, 0, insert_buff);
 }
 
 //----------------------------------------------------------------------------
@@ -282,7 +341,7 @@ void
 //----------------------------------------------------------------------------
 void
    Active::insert_text(             // Insert text
-     size_t            column,      // The insert column
+     Column            column,      // The insert column
      const char*       text)        // The insert text
 {  replace_text(column, 0, text); }
 
@@ -297,17 +356,8 @@ void
 //----------------------------------------------------------------------------
 void
    Active::remove_char(             // Remove the character
-     size_t            column)      // At this column
-{
-   fetch();
-   if( column > buffer_used )
-     return;
-
-   memmove(buffer + column, buffer + column + 1, buffer_used - column + 1);
-   if( buffer_used )
-     buffer_used--;
-   fsm= FSM_CHANGED;
-}
+     Column            column)      // At this column
+{  replace_text(column, 1, ""); }   // (Replace it with nothing)
 
 //----------------------------------------------------------------------------
 //
@@ -320,12 +370,16 @@ void
 //----------------------------------------------------------------------------
 void
    Active::replace_char(            // Replace the character
-     size_t            column,      // At this column
+     Column            column,      // At this column
      int               code)        // With this character
 {
-   fetch(column + 1);
-   buffer[column]= code;
-   fsm= FSM_CHANGED;
+   if( code <= 0 ) return;          // Ignore invalid codes
+
+   char insert_buff[8];             // The replace character encoder buffer
+   pub::UTF8::Encoder encoder(insert_buff, sizeof(insert_buff));
+   encoder.encode(code);
+   insert_buff[encoder.get_used()]= '\0';
+   replace_text(column, 1, insert_buff);
 }
 
 //----------------------------------------------------------------------------
@@ -339,31 +393,31 @@ void
 //----------------------------------------------------------------------------
 void
    Active::replace_text(            // Replace (or insert) text
-     size_t            column,      // The replacement column
-     size_t            length,      // The replacement (delete) length
+     Column            column,      // The replacement Column
+     Ccount            ccount,      // The replacement (delete) Ccount
      const char*       text)        // The replacement (insert) text
 {
-   fetch(column);                   // Initialize with blank fill
-
-   size_t L= strlen(text);          // The inserted text length
-   size_t remain_size= 0;           // Text remaining in buffer
-   if( buffer_used - column > length ) // If text will remain
-     remain_size= buffer_used - column - length;
-   expand(column + L + remain_size); // If necessary, expand the buffer
-
-   if( length && remain_size ) {    // If removing part of text
-     memmove(buffer + column + length + remain_size
-           , buffer + column + length
-           , remain_size);          // Preserve remaining text
+   Offset offset= index(column);    // Initialize with blank fill
+   Length insert= strlen(text);     // The inserted text length
+   buffer[buffer_used]= '\0';
+   Length remain_size= 0;           // Trailing text Length remaining in buffer
+   Length remove= pub::UTF8::index(buffer + offset, ccount);
+   if( buffer_used - offset > remove ) // If text will remain
+     remain_size= buffer_used - offset - remove;
+   expand(offset + insert + remain_size); // If necessary, expand the buffer
+   if( remove && remain_size ) {    // If removing part of text
+     memmove( buffer + offset + insert
+            , buffer + offset + remove
+            , remain_size);        // Preserve remaining text
      fsm= FSM_CHANGED;
    }
 
-   if( L ) {                        // If inserting text
-     memmove(buffer + column, text, L); // Insert the text
+   if( insert ) {                   // If inserting text
+     memmove(buffer + offset, text, insert); // Insert the text
      fsm= FSM_CHANGED;
    }
 
-   buffer_used= column + L + remain_size;
+   buffer_used= offset + insert + remain_size;
 }
 
 //----------------------------------------------------------------------------
@@ -379,7 +433,7 @@ void
    Active::reset(                   // Set source
      const char*       text)        // To this (immutable) text
 {
-   source= text;
+   source= (const unsigned char*)text;
    fsm= FSM_RESET;
 }
 

@@ -16,7 +16,7 @@
 //       Implement Xcb/Window.h
 //
 // Last change date-
-//       2020/10/07
+//       2020/10/08
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -203,8 +203,8 @@ void
    if( opt_hcdm )
      debugf("%4d set_size(%d,%d)\n", line, x, y);
 
-   rect.width= x;
-   rect.height= y;
+   rect.width=  uint16_t(x);
+   rect.height= uint16_t(y);
 
    // Free any existing Pixmap
    if( widget_id != 0 )             // If already created, replace it
@@ -387,7 +387,7 @@ xcb_atom_t                          // The associated xcb_atom_t
      int               only)        // (Do not create atom indicator)
 {
    xcb_intern_atom_cookie_t
-       cookie= xcb_intern_atom(c, only, strlen(name), name);
+       cookie= xcb_intern_atom(c, bool(only), uint16_t(strlen(name)), name);
    xcb_intern_atom_reply_t*
        reply= xcb_intern_atom_reply(c, cookie, nullptr);
    xcb_atom_t result= reply->atom;
@@ -525,7 +525,7 @@ void
      int               y,           // New height
      int               line)        // Caller's line number
 {
-   int32_t mask= XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+   int16_t mask= XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
    int32_t parm[2]= { x, y };
    synchronously(__LINE__
                 , "xcb_configure_window", xcb_configure_window_checked
