@@ -15,70 +15,81 @@
 ##       README information file.
 ##
 ## Last change date-
-##       2020/01/20
+##       2020/10/12
 ##
 ##############################################################################
 
 ##############################################################################
-TODO:
-2016/11/21 Windows version: rdclient bigblue subdirectory did not switch to
-           subdirectory in server, installing the server base onto the
-           subdirectory.
+## INFO:
+         This package provides similar functionality to rsync. Prefer rsync
+         when copying many or large files. Prefer this package for smaller
+         update sets or when you want to be more careful about copying into
+         or from the correct subdirectory.
 
-2016/02/26 Runs slow when both client and server are on same linux machine
-           (Seems to happen on .png files.)
-           These files are small, less than 10M.
-           Note: Cancelled server, client took 10s to notice.
-
-2016/02/26 Linux unexplained DISALLOWED BY SERVER. [First OK, but not others.]
-           The files are missing because they were deleted, but
-           how can the client ask for them after switching directories?
-           Isn't the directory file list refreshed at that point?
+         Run rdserver from the subdirectory you want to copy from, and
+         run rdclient in the subdirectory you want to copy into.
+         See Rdclient.cpp and Rdserver.cpp for option information.
 
 ##############################################################################
-BUGS:
+## TODO:
+2016/11/21 Windows version: rdclient subdirectory did not switch to the same
+         subdirectory in server, installing the server base onto the wrong
+         subdirectory.
+
+2016/02/26 Runs slow when both client and server are on same linux machine
+         (Seems to happen on .png files.)
+         These files are small, less than 10M.
+         Note: Cancelled server, client took 10s to notice.
+
+2016/02/26 Linux unexplained DISALLOWED BY SERVER. [First OK, but not others.]
+         The files are missing because they were deleted, but
+         how can the client ask for them after switching directories?
+         Isn't the directory file list refreshed at that point?
+
+##############################################################################
+## BUGS:
 2014/01/01 *.lnk Files are not removed on Linux.
 
 ##############################################################################
-DONE: 2014/05/01
+## DONE: 2014/05/01
 2015/06/01 Times are not accurate to the second.
-           Solution: Only compare to the nearest second, or two seconds if
-           a Windows FAT filesystem is involved.
+         Solution: Only compare to the nearest second, or two seconds if
+         a Windows FAT filesystem is involved.
 
-           This was not the problem. Somehow \!const file attributes got
-           changed in the server.
+         This was not the problem. Somehow \!const file attributes got
+         changed in the server.
 
 2013/07/18 Multi-thread: Allow multiple server instances.
 
 ##############################################################################
-FIXED: 2018/07/23
+## FIXED: 2018/07/23
 2018/07/23 Linux: When connecting but port non-existent and control-c
-           get recursive segment violation.
-           Error in src/cpp/lib/com/Debug.cpp: should use va_copy in vthrowf
+         get recursive segment violation.
+         Error in src/cpp/lib/com/Debug.cpp: should use va_copy in vthrowf
 
 2014/01/01 Directory dates are not initialized on Linux
 2016/02/26 Linux directory dates should ignore data. Currently year -4713.
-           Fix: Any file with date < 2000/01/01 gets current date.
-           (All directory attributes are always [silently] updated.)
+         Fix: Any file with date < 2000/01/01 gets current date.
+         (All directory attributes are always [silently] updated.)
 
 ##############################################################################
-FIXED: 2017/01/30
+## FIXED: 2017/01/30
 2017/01/30 ClientThread unnecessarily asks for name with trailing '\0'.
 
 ##############################################################################
-FIXED:
+## FIXED:
 2014/05/20 Multi-thread version compiles but does not run on Windows.
 
 2014/05/20 Multi-thread version
-           Need to have Backout run on any exit.
+         Need to have Backout run on any exit.
 
 2013/07/20 By default, need to make sure that clone is running in the
-           same directory on both machines. -U (Unsafe) overrides.
-           This requires a parameter passing update.
+         same directory on both machines. -U (Unsafe) overrides.
+         This requires a parameter passing update.
 
 2012/09/08 Error when reading checksum but file not readable.
-           Set file temporarily readable when reading checksum.
+         Set file temporarily readable when reading checksum.
 
 2010/02/25 Still having problems with transfer times.
-           It looks like READING a file in XP can affect the MOD time.
-           Now use FileInfo which corrects this problem.
+         It looks like READING a file in XP can affect the MOD time.
+         Now use FileInfo which corrects this problem.

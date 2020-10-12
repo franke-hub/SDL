@@ -19,6 +19,5 @@
 ## Public subdirectories
 !/bat
 !/bin
-!/obj
 !/src
 !/usr

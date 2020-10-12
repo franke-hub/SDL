@@ -24,6 +24,6 @@
 ##
 ## This 16 bit version of TLC has not been compiled in years.
 ## There is NO CURRENT BUILD PROCEDURE to compile this code.
-## You can compile and use the 32 bit version, but the code only compiles
+## You can compile and use the 32 bit version, but that code only compiles
 ## and operates using 32-bit CYGWIN.
 ##############################################################################

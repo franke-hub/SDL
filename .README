@@ -15,7 +15,7 @@
 ##       Describe subdirectory content.
 ##
 ## Last change date-
-##       2020/02/11
+##       2020/10/12
 ##
 ## Implementation notes-
 ##       This distribution is kept locally in /home/data/home/. In addition
@@ -32,10 +32,191 @@
 ##       .git  The git repository
 ##       bat   Cygwin/Linux batch files, most using the bash script engine.
 ##       bin   Binary executable (placeholder.)
+##       obj   Object subdirectory.
+##           Note: this subdirectory IS NOT included in the distribution.
+##           Normally you create it using: mkdir ~/obj; mkdir ~/obj/.git
+##           and populate it using: cd src; .README restore
 ##       src   Source files.
 ##           src/obj contains the associated object git repository
-##       usr   Imported files (not distributed.)
-##           Kept here for machine-to-machine backup.
+##       usr   Imported files (content not distributed.)
+##           Kept here for personal machine-to-machine backup.
 ##           (TODO: Provide a mechanism for auto-downloading external content.)
+##
+## Development tree installation-
+##       Create a link to this subdirectory
+##           (sudo) ln -s <this subdirectory> /home/data
+##
+##       Create build subdirectory (These instructions assume it's: ~/.)
+##           ln -s /home/data/bat ~/.
+##           ln -s /home/data/src ~/.
+##           ln -s /home/data/usr ~/.
+##           mkdir ~/bin
+##           mkdir ~/obj; mkdir ~/obj/.git
+##           cd ~/src/obj
+##           ./.README restore
+##
+##       Make sure ~/bat and ~/bin are in your $PATH
+##           export PATH="$HOME/bat:~HOME/bin:$PATH"
+##           (Normally placed somewhere in .bash_profile)
+##
+##       Install prerequisite build binary
+##           cd ~/obj/cpp/Tools/Makeproj
+##           ./make
+##           strip makeproj; mv -i makeproj ~/bin
+##
+##       Install C++ library
+##           cd ~/obj/cpp/lib
+##           make
+##
+## Included C++ libraries-
+##   src/cpp/inc-
+##   src/cpp/lib (built in obj/cpp/lib)-
+##       This is a set of four sub-libraries: com, gui, obj, and pub.
+##       For each library LIB, the interfaces are defined in src/cpp/inc/LIB;
+##       outline code is in src/cpp/lib/LIB; and a set of regression tests
+##       are in src/cpp/lib/LIB/Test.
+##       The com library contains a large set of general-purpose functions.
+##
+##       The gui library contains a small set of graphical user interface
+##       functions.
+##
+##       The obj library contains a small set of objects. The Object class
+##       defines an object to be deleted when its reference count becomes 0.
+##       The Ref object references an object. The Object/Ref relationship
+##       is completely thread-safe.
+##
+##       The pub library is the current function development library.
+##
+##       The com, gui, and obj libraries operate on Linux, Cygwin, and
+##       Windows systems. The pub library is limited to Linux and Cygwin only.
+##       Most Linux testing is done using Red Hat Fedora, but Ubuntu is also
+##       used for regression testing. Cygwin is tested under Windows 10.
+##
+##       Windows functionality is no longer developed or regression tested,
+##       and the object subdirectory required to build using Windows is not
+##       provided. (It exists but has not recently been regression tested.)
+##
+##       Of note: src/cpp/inc/pub/Worker.h
+##         Worker.h provides an efficient thread pool control mechanism.
+##
+##       Of note: src/cpp/inc/pub/Dispatch*.h
+##         The Dispatcher objects provide an efficient work flow control
+##         mechanism. While each Dispatcher Task processes one work Item at
+##         a time (in single threaded mode,) multiple Tasks can simultaneously
+##         enqueue work items. The atomic operations required for this
+##         functionality are provided by the library.
+##
+## C++ (interesting) packages-
+##   ** ALL included packages require library package installation **
+##
+##   ~/obj/cpp/Clone
+##       Clone subdirectory using rdserver/rdclient pair.
+##       Similar to rsync.  See S/.README for detailed information.
+##
+##   ~/obj/cpp/Edit
+##       Source code editor using ncurses library. (Well tested.)
+##       In development: ~/obj/cpp/Xcb/Edit
+##           Source code editor using Xcb interfaces.
+##
+##   ~/obj/cpp/Fileman
+##       Subdirectory file search, uses src/cpp/inc/pub/Fileman.h interfaces.
+##       Subdirectory file checker. (Used to find/fix source problems.)
+##
+##   ~/obj/cpp/Forth
+##       A trivial Forth interpreter. (Only usable from console.)
+##       Derived from src/asm/x86/tlc.32, omitting compile features.
+##
+##   ~/obj/cpp/Howto
+##       A somewhat useful set of C++ how-to reminders.
+##       Most used: src/cpp/Howto/Getopt.cpp (skeleton program)
+##
+##   ~/obj/cpp/HTTP
+##       Sample SLL client/server programs.
+##       One uses openssl socket layer, another uses openssl/bio.h interfaces.
+##
+##   ~/obj/cpp/Poker
+##       For Texas Hold-'em hand monte-carlo evaluation.
+##       (The self-play strategy needs work.)
+##
+##   ~/obj/cpp/Sample
+##       A set of pretty naive sample programs. These are mostly used to
+##       get a handle on how system interface usage.
+##
+##   ~/obj/cpp/Sorter
+##       A comparison of different sorting techniques.
+##
+##   ~/obj/cpp/Stock
+##       An attempt to beat the stock market using historical data.
+##       Result: Don't bet on the past predicting the future.
+##
+##   ~/obj/cpp/Stress
+##       Some pub library stress tests.
+##
+##   ~/obj/cpp/Util
+##       Some utility functions and tiny fun programs.
+##
+##   ~/obj/cpp/Wilbur
+##       A set of tools used to evaluate word usage patterns.
+##       (VERY preliminary to a lanuage interpreter.)
+##       See also: ~/obj/cpp/Brian (Brian is dyslexic for Brain.)
+##
+##   ~/obj/cpp/Xcb/Edit
+##       Migrating ~/obj/cpp/Edit to use xcb interfaces.
+##       (Watch the progress of an editor being developed.)
+##       This might get split into Editor and Xcb interface components,
+##       once completed.
+##       (Watch the progress of an editor being developed.)
+##       (Already contains some WORKING sample xcb interface usage I couldn't
+##       find anywhere else.)
+##
+## C# packages-
+##   ~/src/mcs/*
+##   ~/obj/mcs/*
+##       Mostly basic C# code. Nothing really new here.
+##       Contains some C++ code migrated to C#.
+##
+## Python packages-
+##   ~/obj/py/*
+##       Similarly to other compiled packages, compilation and execution run
+##       from the object directory even though the python byte code is kept
+##       in the source directory by the compiler.
+##   ~/src/py/lib
+##       Contains the python library. In order for python to find this library,
+##       use: (sudo) ln -s /usr/lib/python3.6/site-packages/lib ~/src/py/lib
+##       (for each python version used)
+##
+##   ~/obj/py/aiml
+##       This is a wrapper for the AIML ALICE interpreter, with extensions.
+##       The interpreter runs both from an HTTP client and the local console.
+##
+##   ~/obj/py/Brian
+##       Similar to ~/obj/cpp/Brian, an extendable command handling platform.
+##
+##   ~/obj/py/Golf
+##       Migration of ~/obj/java/Webapp/usr/fne/golfer
+##       Java is becoming less usable as an application platform.
+##
+##  ~/obj/py/Sample/Http{Client, Server, Middle}
+##       Example HTTP Client, Server, and Middle (forwarding) programs.
+##
+##  ~/obj/py/site-packages/stdio
+##       A .c module allowing asynchronous console character input and output.
+##       Provides: Module stdio, methods: getch and putch
+##       Includes: setup.py (for site-package installation.)
+##
+##############################################################################
+## Included OBSOLETE packages-
+##
+##   src/asm/x86
+##       This is a set of OBSOLETE assembler programs. It contains a 16-bit
+##       and a 32-bit version of TLC, a trivial Forth (Threaded Language)
+##       Compiler. See src/cpp/Forth for the C++ version of this package.
+##
+##   src/c/lib
+##       This has never been productively used except for a jpeg library.
+##       The jpeg library build has now been removed. Since it is provided
+##       with all major distributions, use the standard package instead.
+##       The src/c/inc/com and src/c/lib/com libraries are only used as a
+##       placeholder. No useful code is provided in src/c/.
 ##
 ##############################################################################

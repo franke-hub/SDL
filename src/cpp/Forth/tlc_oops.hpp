@@ -20,7 +20,7 @@
 //
 // Implementation notes-
 //       This is a *FAILED* attempt to duplicate the TLC assembler version.
-//       While it currently completes, expected functionality not verified.
+//       While it currently compiles, it doesn't function correctly.
 //       It is only minimally maintained, if that.
 //
 //----------------------------------------------------------------------------
