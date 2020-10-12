@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2020/09/24
+//       2020/10/12
 //
 // Implementation notes-
 //       TODO: REMOVE: Debugging controls
@@ -52,12 +52,17 @@ class EdText;                       // Editor text Window
 // Purpose-
 //       Editor: Global data areas
 //
+// Implementation note-
+//       The Editor object is a singleton. Only one Editor exists per process.
+//
 //----------------------------------------------------------------------------
 class Editor : public xcb::Widget { // The Editor control object
 //----------------------------------------------------------------------------
 // Editor::Attributes
 //----------------------------------------------------------------------------
 public:
+static Editor*         editor;      // The Editor singleton
+
 xcb::Device*           device= nullptr; // The root Device
 xcb::Window*           window= nullptr; // The test Window
 
@@ -73,7 +78,10 @@ pub::List<EdPool>      textPool;    // Text allocation EdPool
 
 xcb::Active            active;      // The current active text
 xcb::Connector<xcb::DeviceEvent>
-                       lambda_connector; // Our DeviceListener Connector
+                       device_listener; // Our DeviceListener Connector
+
+std::string            locate_string; // The locate string
+std::string            change_string; // The change string
 
 //----------------------------------------------------------------------------
 // Constants

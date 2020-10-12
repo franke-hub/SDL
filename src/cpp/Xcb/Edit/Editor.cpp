@@ -16,9 +16,11 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2020/10/08
+//       2020/10/12
 //
 //----------------------------------------------------------------------------
+#include <mutex>                    // For std::mutex, std::lock_guard
+
 #include <assert.h>                 // For assert
 #include <stdio.h>                  // For printf
 #include <stdlib.h>                 // For various
@@ -66,6 +68,16 @@ enum // Compilation controls
 static inline bool use_debug( void ) { return HCDM || USE_BRINGUP || opt_hcdm; }
 
 //----------------------------------------------------------------------------
+// Internal data areas
+//----------------------------------------------------------------------------
+static std::mutex      mutex;       // Singleton mutex
+
+//----------------------------------------------------------------------------
+// External data areas
+//----------------------------------------------------------------------------
+Editor*                Editor::editor= nullptr; // The Editor singleton
+
+//----------------------------------------------------------------------------
 //
 // Method-
 //       Editor::Editor
@@ -79,9 +91,16 @@ static inline bool use_debug( void ) { return HCDM || USE_BRINGUP || opt_hcdm; }
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 :  Widget(nullptr, "Editor"), ring(), filePool(), textPool(), active()
+,  locate_string(), change_string()
 {
    if( opt_hcdm )
      debugh("Editor(%p)::Editor\n", this);
+
+   // Initialize singleton
+   {{ std::lock_guard<decltype(mutex)> lock(mutex);
+      if( editor ) throw "Multiple Editors"; // Enforce singleton
+      editor= this;
+   }}
 
    // Allocate initial textPool
    textPool.fifo(new EdPool(EdPool::MIN_SIZE));
@@ -93,22 +112,45 @@ static inline bool use_debug( void ) { return HCDM || USE_BRINGUP || opt_hcdm; }
    find= new EdFind();
    main= new EdMain();
    menu= new EdMenu();
-   tabs= new EdTabs(this);
-   text= new EdText(this);
+   tabs= new EdTabs();
+   text= new EdText();
 
+   //-------------------------------------------------------------------------
+   // Create device_listener, our DeviceEvent handler
+   if( use_debug() ) debugf("\ndevice_listener:\n");
+   device_listener=
+   device->signal.connect([this](const DeviceEvent& event)->int {
+     if( use_debug() ) {
+       debugf("\nE.Listener(%p)::operator()(<D.Event>%p) op(%d)\n"
+             , this, &event, event.type);
+       this->device_listener.debug("E.Listener.operator()");
+     }
+
+     if( event.type == int(xcb::DeviceEvent::TYPE_CLOSE) ) {
+       xcb::Device* device= static_cast<Device*>(event.widget);
+       device->operational= false;
+       return true;
+     }
+
+     return false;
+   });
+
+   //-------------------------------------------------------------------------
    // Load the text files
    for(int i= argi; i<argc; i++) {
-     ring.fifo(new EdFile(this, argv[i]));
+     ring.fifo(new EdFile(argv[i]));
    }
    if( argi >= argc ) {             // Always have something
-     ring.fifo(new EdFile(this, nullptr)); // Even if it's an empty file
+     ring.fifo(new EdFile(nullptr)); // Even if it's an empty file
    }
 
    // Select-a-Config ========================================================
    if( opt_test ) {                 // If optional test selected
      std::string test= opt_test;    // The test name (For string == function)
      if( test == "insert" ) {       // Works OK
-       device->insert(this);        // Should have only minimal effect
+       // Result: No detectable change
+       //   Device->Editor->EdText
+       device->insert(this);        // (This "Widget" does nothing Widgety)
        device->insert(text);
 
      } else if( test == "mainwindow" ) { // Only EdText visible
@@ -126,8 +168,7 @@ static inline bool use_debug( void ) { return HCDM || USE_BRINGUP || opt_hcdm; }
      } else if( test == "miscwindow" ) { // EdText overlayed with EdMisc
        // Result: EdMisc over EdText window, as expected
        //   Device->EdText->EdMisc
-       window= new EdMisc(64, 64, "Bringup");
-       text->insert(window);
+       window= new EdMisc(text, "Misc00", 64, 64);
        device->insert(text);
 
      } else if( test == "testwindow" ) { // EdText overlayed with TestWindow
@@ -143,7 +184,7 @@ static inline bool use_debug( void ) { return HCDM || USE_BRINGUP || opt_hcdm; }
        // PROBLEM: CLOSE Window gets SIGABRT, unable to diagnose
        //          (only occurs after screen enlarged)
        RowLayout* row= new xcb::RowLayout(device, "Row");
-       window= new EdMisc(64, 64, "Bottom");
+       window= new EdMisc(nullptr, "Bottom", 64, 64);
        row->insert( text );
        row->insert( window );
 
@@ -160,7 +201,7 @@ static inline bool use_debug( void ) { return HCDM || USE_BRINGUP || opt_hcdm; }
        //   Device->Col->(EdMisc,EdText)
        //   (CLOSE Window checkstop: Bad Window when closing window)
        ColLayout* col= new xcb::ColLayout(device, "Col");
-       window= new EdMisc(14, 64,"Left");
+       window= new EdMisc(nullptr, "Left", 14, 64);
        col->insert(window);         // Apparently visible
        col->insert(text);           // Not visible
 
@@ -175,9 +216,9 @@ static inline bool use_debug( void ) { return HCDM || USE_BRINGUP || opt_hcdm; }
 
        ColLayout* col= new xcb::ColLayout(row, "Col"); // (Row->insert(col))
        if( false ) row->insert( col ); // (Tests duplicate insert)
-       col->insert( new EdMisc(14, 64,"Left") );
+       col->insert( new EdMisc(nullptr, "Left", 14, 64) );
        col->insert( text );
-       row->insert( new EdMisc(64,14,"Bottom"));
+       row->insert( new EdMisc(nullptr, "Bottom", 64, 14));
 
      } else {
        user_debug("Test(%s) not available\n", opt_test);
@@ -185,53 +226,10 @@ static inline bool use_debug( void ) { return HCDM || USE_BRINGUP || opt_hcdm; }
      }
 
      user_debug("Test(%s) selected\n", opt_test);
-   } else {                         // Default: No substructure
+   } else {                         // Default: No substructure =============
      device->insert(text);
    }
    // Select-a-Config ========================================================
-
-   //-------------------------------------------------------------------------
-   // BRINGUP: Test drive: Drive the DeviceEvent handler(s) w/o Listeners.
-   //-------------------------------------------------------------------------
-   if( USE_BRINGUP ) {              // Drive Signal with no listeners
-     debugf("Before....................\n");
-     DeviceEvent de(device, int(xcb::DeviceEvent::TYPE_ERROR));
-     device->signal.inform(de);     // Test drive
-     device->signal.inform(de);     // Test drive
-     debugf(".....................After\n");
-   }
-
-   //-------------------------------------------------------------------------
-   // Create lambda_connector, our DeviceEvent handler
-   //-------------------------------------------------------------------------
-   if( use_debug() ) debugf("\nlambda_connector:\n");
-   lambda_connector=
-   device->signal.connect([this](const DeviceEvent& event)->int {
-     if( use_debug() ) {
-       debugf("\nL.Listener(%p)::operator()(<D.Event>%p) op(%d)\n"
-             , this, &event, event.type);
-       this->lambda_connector.debug("L.Listener.operator()");
-     }
-
-     if( event.type == int(xcb::DeviceEvent::TYPE_CLOSE) ) {
-       xcb::Device* device= static_cast<Device*>(event.widget);
-       device->operational= false;
-       return true;
-     }
-
-     return false;
-   });
-
-   //-------------------------------------------------------------------------
-   // BRINGUP: Test drive: Drive the DeviceEvent handler(s). Twice.
-   //-------------------------------------------------------------------------
-   if( USE_BRINGUP ) {
-     debugf("Before....................\n");
-     DeviceEvent de(device, int(xcb::DeviceEvent::TYPE_ERROR));
-     device->signal.inform(de);       // Test drive
-     device->signal.inform(de);       // Test drive
-     debugf(".....................After\n");
-   }
 }
 
 //----------------------------------------------------------------------------
@@ -287,6 +285,11 @@ static inline bool use_debug( void ) { return HCDM || USE_BRINGUP || opt_hcdm; }
    delete menu;
    delete main;
    delete find;
+
+   // Remove the Editor singleton
+   std::lock_guard<decltype(mutex)> lock(mutex);
+   if( editor == this )
+     editor= nullptr;
 }
 
 //----------------------------------------------------------------------------

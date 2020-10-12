@@ -16,7 +16,7 @@
 //       Editor: Tabs (placeholder)
 //
 // Last change date-
-//       2020/10/07
+//       2020/10/12
 //
 //----------------------------------------------------------------------------
 #ifndef EDTABS_H_INCLUDED
@@ -42,17 +42,17 @@ class EdTabs : public EdMisc {      // Editor tabs Window (placeholder)
 //----------------------------------------------------------------------------
 //----------------------------------------------------------------------------
 // EdTabs::Attributes
-public:
-Editor*                editor;      // The associated Editor
+//----------------------------------------------------------------------------
+public: // None defined
 
 //----------------------------------------------------------------------------
 // EdTabs::Constructor/Destructor
 //----------------------------------------------------------------------------
 public:
    EdTabs(                          // Constructor
-     Editor*           editor,      // The control Editor
-     Widget*           parent= nullptr) // Parent Widget
-:  EdMisc(128, 14, "EdTabs"), editor(editor)
+     Widget*           parent= nullptr, // Parent Widget
+     const char*       name= "EdTabs") // Widget name
+:  EdMisc(parent, name, 128, 14)
 {
    (void)parent;                    // TODO: Parent always first (possible?)
    if( opt_hcdm )

@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2020/10/07
+//       2020/10/12
 //
 //----------------------------------------------------------------------------
 #ifndef EDFILE_H_INCLUDED
@@ -217,8 +217,6 @@ class EdFile : public ::pub::List<EdFile>::Link { // Editor file descriptor
 //----------------------------------------------------------------------------
 // EdFile::Attributes
 public:
-Editor*                editor;      // The Editor
-
 ::pub::List<EdMess>    messages;    // The List of warning messages
 ::pub::List<EdLine>    lines;       // The line list
 ::std::string          name;        // The file name
@@ -243,14 +241,12 @@ unsigned               row= 0;      // The current cursor row (offset)
 //----------------------------------------------------------------------------
 public:
    EdFile(                          // Constructor
-     Editor*           editor,      // The associated Editor
      const char*       name= nullptr) // File name
 :  ::pub::List<EdFile>::Link()
-,  editor(editor)
 ,  name(name ? name : "unnamed.txt")
 {
    if( opt_hcdm )
-     debugh("EdFile(%p)::EdFile(%p)\n", this, editor);
+     debugh("EdFile(%p)::EdFile(%s)\n", this, get_name().c_str());
 
    EdLine* top= new EdLine("* * * * Top of file * * * *");
    EdLine* bot= new EdLine("* * * * End of file * * * *");
@@ -285,13 +281,17 @@ virtual
 }
 
 //----------------------------------------------------------------------------
-// EdFile::Methods
+// EdFile::Accessor methods
 //----------------------------------------------------------------------------
-protected:
+public:
+std::string
+   get_name( void ) const           // Get the file name (Named interface)
+{  return name; }
+
 char*
    get_text(                        // Allocate file text
-     size_t            size)        // Of this length
-{  return editor->get_text(size); }
+     size_t            size) const  // Of this length
+{  return Editor::editor->get_text(size); }
 
 //----------------------------------------------------------------------------
 //

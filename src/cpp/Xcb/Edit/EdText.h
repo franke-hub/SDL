@@ -16,7 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2020/10/08
+//       2020/10/12
 //
 //----------------------------------------------------------------------------
 #ifndef EDTEXT_H_INCLUDED
@@ -50,8 +50,6 @@ class EdText : public xcb::TextWindow { // Editor TextWindow viewport
 // EdText::Attributes
 //----------------------------------------------------------------------------
 public:
-Editor*                editor;        // The owning Editor
-
 xcb::Active            active;        // The Active buffer
 EdFile*                file= nullptr; // The current File object
 EdFind*                find= nullptr; // The Search control window
@@ -60,13 +58,12 @@ EdFind*                find= nullptr; // The Search control window
 // EdText::Constructor/Destructor
 //----------------------------------------------------------------------------
    EdText(                          // Constructor
-     Editor*           editor,      // The Editor object
      Widget*           parent= nullptr, // Parent Widget
      const char*       name= nullptr)
-:  TextWindow(parent, name ? name : "EdText"), editor(editor), active()
+:  TextWindow(parent, name ? name : "EdText"), active()
 {
    if( opt_hcdm )
-     debugh("EdText(%p)::EdText(%p)\n", this, parent);
+     debugh("EdText(%p)::EdText\n", this);
 }
 
 //----------------------------------------------------------------------------
@@ -114,7 +111,7 @@ void
      if( length == 0 )
        line->text= Editor::NO_STRING;
      else {
-       char* revise= editor->get_text(length + 1);
+       char* revise= Editor::editor->get_text(length + 1);
        strcpy(revise, buffer);
        cursor->text= revise;
      }
@@ -422,7 +419,7 @@ virtual int                         // Return code, 0 if handled
    int rc= 0;                       // Return code, default handled
    switch(key) {
      case 'Q':                       // ctrl-Q (Quit)
-       editor->do_done();
+       Editor::editor->do_done();
        break;
 
      default:
@@ -450,11 +447,11 @@ virtual int                         // Return code, 0 if handled
    if( opt_hcdm ) {
      char B[2]; B[0]= '\0'; B[1]= '\0'; const char* K= B;
      if( key >= 0x0020 && key < 0x007f ) B[0]= char(key);
-     else K= editor->key_to_name(key);
+     else K= Editor::editor->key_to_name(key);
      debugh("EdText(%p)::key_input(0x%.4x,%.4x) '%s'\n", this, key, state, K);
    }
 
-   const char* name= editor->key_to_name(key);
+   const char* name= Editor::editor->key_to_name(key);
    xcb::trace(".KEY", (state<<16) | (key & 0x0000ffff), name);
 
    int rc= 0;                       // Return code, default handled
@@ -588,19 +585,19 @@ virtual int                         // Return code, 0 if handled
      //-----------------------------------------------------------------------
      // Function keys
      case XK_F1: {
-       editor->do_help();
+       Editor::editor->do_help();
        break;
      }
      case XK_F3: {
        commit();
-       editor->do_exit(this->file);
+       Editor::editor->do_exit(this->file);
        break;
      }
      case XK_F7: {                  // Prior file
        commit();
        EdFile* file= this->file->get_prev();
        if( file == nullptr )
-         file= editor->ring.get_tail();
+         file= Editor::editor->ring.get_tail();
        if( file != this->file )
          set_file(file);
        break;
@@ -609,13 +606,13 @@ virtual int                         // Return code, 0 if handled
        commit();
        EdFile* file= this->file->get_next();
        if( file == nullptr )
-         file= editor->ring.get_head();
+         file= Editor::editor->ring.get_head();
        if( file != this->file )
          set_file(file);
        break;
      }
      case XK_F12: {                 // Bringup test
-       editor->do_test();
+       Editor::editor->do_test();
        break;
      }
 

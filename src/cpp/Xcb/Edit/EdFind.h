@@ -16,7 +16,7 @@
 //       Editor: Find/replace Popup
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/12
 //
 // Implementation notes-
 //       PLACEHOLDEER ONLY: NO (substantial) IMPLEMENTAITON
@@ -43,19 +43,19 @@ class EdFind : public EdMisc {        // Editor Find/Replace Windows
 //----------------------------------------------------------------------------
 // EdFind::Attributes
 //----------------------------------------------------------------------------
-public:
-std::string            locate_string; // The locate string
-std::string            change_string; // The change string
+public: // None defined
 
 //----------------------------------------------------------------------------
 // EdFind::Constructor/Destructor
 //----------------------------------------------------------------------------
 public:
-   EdFind( void )                   // Constructor
-:  EdMisc(128, 14, "EdFind")
+   EdFind(                          // Constructor
+     Widget*           parent= nullptr, // Parent Widget
+     const char*       name= "EdFind") // Widget name
+:  EdMisc(parent, name, 128, 14)
 {
    if( opt_hcdm )
-    debugh("EdFind(%p)::EdFind Named(%s)\n", this, get_name().c_str());
+    debugh("EdFind(%p)::EdFind\n", this);
 }
 
 //----------------------------------------------------------------------------

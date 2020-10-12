@@ -16,7 +16,7 @@
 //       Editor: (Dummy window placeholder.)
 //
 // Last change date-
-//       2020/10/02
+//       2020/10/12
 //
 //----------------------------------------------------------------------------
 #ifndef EDMISC_H_INCLUDED
@@ -49,14 +49,16 @@ xcb_gcontext_t         drawGC= 0;   // The default graphic context
 //----------------------------------------------------------------------------
 public:
    EdMisc(                          // Constructor
-     unsigned          width,       // (X) size width
-     unsigned          height,      // (Y) size height
-     const char*       name= nullptr) // Widget name
-:  Window(nullptr, name ? name : "EdMisc")
+     Widget*           parent= nullptr, // The parent Widget
+     const char*       name= nullptr, // The Widget name
+     unsigned          width= 0,    // (X) size width
+     unsigned          height= 0)   // (Y) size height
+:  Window(parent, name ? name : "EdMisc")
 {
    if( opt_hcdm )
      debugh("EdMisc(%p)::EdMisc(%u,%u)\n", this, width, height);
 
+   if( width  < 14 ) width=  14;    // Must be large enough for text
    if( height < 14 ) height= 14;    // Must be large enough for text
    use_size.width=  xcb::WH_t(width);
    use_size.height= xcb::WH_t(height);

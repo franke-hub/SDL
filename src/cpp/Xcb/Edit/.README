@@ -15,16 +15,26 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2020/10/02
+##       2020/10/12
+##
+## Implementation notes-
+##       This is an EXPERIMENTAL project in BRINGUP mode.
+##       ALL interfaces are preliminary and subject to major change.
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
-2020/10/02 ** EXPERIMENTAL, BRINGUP MODE **
-         ** ALL INTERFACES ARE PRELIMINARY, SUBJECT TO MAJOR CHANGE **
-         Pixmap is now the base drawable.
-         Attempted but deferred truetype font implementation.
+2020/10/12 Editor singleton object available using Editor::editor
+         Fixed Active::replace_text (insert_char wasn't working properly)
+
+2020/10/11 Improved UTF8 handling and documentation
+         Combining characters are not handled properly; They don't combine.
+         Multiple size_t aliases defined for different purposes.
+         (This does not prevent mis-use, but does clarify usage.)
+
+2020/10/02 Pixmap is now the base drawable.
+         Deferred truetype font implementation.
 
 2020/09/06 Basic editing functions implemented.
          Valid only as quasi-working XCB example program.

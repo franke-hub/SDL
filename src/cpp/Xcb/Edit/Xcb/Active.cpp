@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2020/10/11
+//       2020/10/12
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -399,25 +399,22 @@ void
 {
    Offset offset= index(column);    // Initialize with blank fill
    Length insert= strlen(text);     // The inserted text length
-   buffer[buffer_used]= '\0';
-   Length remain_size= 0;           // Trailing text Length remaining in buffer
+   buffer[buffer_used]= '\0';       // (For pub::UTF8::index delimiter)
    Length remove= pub::UTF8::index(buffer + offset, ccount);
+   Length remain= 0;                // Trailing text Length remaining in buffer
    if( buffer_used - offset > remove ) // If text will remain
-     remain_size= buffer_used - offset - remove;
-   expand(offset + insert + remain_size); // If necessary, expand the buffer
-   if( remove && remain_size ) {    // If removing part of text
-     memmove( buffer + offset + insert
-            , buffer + offset + remove
-            , remain_size);        // Preserve remaining text
+     remain= buffer_used - offset - remove;
+   expand(offset + insert + remain); // If necessary, expand the buffer
+   if( insert || remove ) {        // If inserting or removing text
+     if( remain )                  // If text remains after removal
+       memmove( buffer + offset + insert, buffer + offset + remove, remain);
+     if( insert )                  // If inserting text
+       memmove(buffer + offset, text, insert);
+
      fsm= FSM_CHANGED;
    }
 
-   if( insert ) {                   // If inserting text
-     memmove(buffer + offset, text, insert); // Insert the text
-     fsm= FSM_CHANGED;
-   }
-
-   buffer_used= offset + insert + remain_size;
+   buffer_used= offset + insert + remain;
 }
 
 //----------------------------------------------------------------------------

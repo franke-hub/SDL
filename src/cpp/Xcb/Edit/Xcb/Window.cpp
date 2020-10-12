@@ -16,7 +16,7 @@
 //       Implement Xcb/Window.h
 //
 // Last change date-
-//       2020/10/08
+//       2020/10/12
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -615,7 +615,7 @@ virtual void
           "resulting in an infinite loop.\n"
           "When RESIZE_REDIRECT is used instead of STRUCTURE_NOTIFY,"
           "the window background is not filled in.\n"
-          "Since STRUCTURE_NOTIFY logic is working, debugging RESIZE_REDIRECT "
+          "Since STRUCTURE_NOTIFY logic is working, debugging this anomaly "
           "isn't a high priority.\n"
           );
 }
