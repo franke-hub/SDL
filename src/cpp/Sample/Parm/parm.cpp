@@ -15,7 +15,7 @@
 //       Parameter tester.
 //
 // Last change date-
-//       2020/07/18
+//       2020/10/12
 //
 //----------------------------------------------------------------------------
 #include<ctype.h>
@@ -40,22 +40,22 @@
 //----------------------------------------------------------------------------
 //
 // Struct-
-//       Master
+//       Sample
 //
 // Purpose-
-//       Master parameter area.
+//       Sample parameter area.
 //
 //----------------------------------------------------------------------------
-struct Master                       // Master parameter area
+struct Sample                       // Sample parameter area
 {
    long                parmd;
    double              parmr;
    long                parmx;
    int                 firstFile;
-}; // struct Master
+}; // struct Sample
 
-static Master          masterDef;   // Master area
-Master*                master= &masterDef; // -> Master area
+static Sample          sampleDef;   // Sample area
+Sample*                sample= &sampleDef; // -> Sample area
 
 //----------------------------------------------------------------------------
 //
@@ -474,7 +474,7 @@ static void
    //-------------------------------------------------------------------------
    error=  0;                       // Default, no errors found
    verify= 0;                       // Default, no verification
-   master->firstFile= argc;         // Default, no filename specified
+   sample->firstFile= argc;         // Default, no filename specified
 
    //-------------------------------------------------------------------------
    // Argument analysis
@@ -489,13 +489,13 @@ static void
        if( strcmp("verify", argp) == 0 ) // If verify switch
          verify= TRUE;              // Get switch value
 
-       else if( parmLdec(argp, "parmd:", &master->parmd) )
+       else if( parmLdec(argp, "parmd:", &sample->parmd) )
          ;
 
-       else if( parmReal(argp, "parmr:", &master->parmr) )
+       else if( parmReal(argp, "parmr:", &sample->parmr) )
          ;
 
-       else if( parmLhex(argp, "parmx:", &master->parmx) )
+       else if( parmLhex(argp, "parmx:", &sample->parmx) )
          ;
 
        else if( strcmp(argp, "help") == 0 )
@@ -503,7 +503,7 @@ static void
 
        else if( strcmp(argp, "") == 0 ) // If standalone '-' parameter
        {
-         master->firstFile= argi + 1;
+         sample->firstFile= argi + 1;
          break;
        }
        else
@@ -517,7 +517,7 @@ static void
      }
      else                           // If not a switch
      {
-       master->firstFile= argi;
+       sample->firstFile= argi;
        break;
      }
    }
@@ -548,13 +548,13 @@ extern int                          // Return code
 {
    int                 i;
 
-   memset(master, 0, sizeof(*master));
+   memset(sample, 0, sizeof(*sample));
    parm(argc, argv);
 
-   printf("parmd: %10ld 0x%.8lx\n", master->parmd, master->parmd);
-   printf("parmr: %10f %10g\n",   master->parmr, master->parmr);
-   printf("parmx: %10ld 0x%.8lx\n", master->parmx, master->parmx);
-   for(i= master->firstFile; i<argc; i++)
+   printf("parmd: %10ld 0x%.8lx\n", sample->parmd, sample->parmd);
+   printf("parmr: %10f %10g\n",   sample->parmr, sample->parmr);
+   printf("parmx: %10ld 0x%.8lx\n", sample->parmx, sample->parmx);
+   for(i= sample->firstFile; i<argc; i++)
      printf("File: '%s'\n", argv[i]);
 
    return 0;

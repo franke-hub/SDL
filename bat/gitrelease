@@ -16,7 +16,7 @@
 ##       Create a release, synchonizing with a branch.
 ##
 ## Last change date-
-##       2020/03/26
+##       2020/10/12
 ##
 ## Usage-
 ##       gitrelease branch version
@@ -45,8 +45,8 @@ fi
 if [[ -z "$1" ]] ; then
     echo "Missing branch name, maint perhaps?"
     exit 1
-elif [[ "$1" == "master" ]] ; then
-    echo "Cannot synch master with master"
+elif [[ "$1" == "trunk" ]] ; then
+    echo "Cannot synch trunk with trunk"
     exit 1
 elif [[ -z "$2" ]] ; then
     echo "Missing version id, format n.n.n"
@@ -102,27 +102,27 @@ if [[ -n $(git status --porcelain) ]] ; then
 fi
 
 ##############################################################################
-## Synch the branch with the master branch
-git checkout master
+## Synch the branch with the trunk
+git checkout trunk
 if [[ $? != 0 ]] ; then
-    echo "Cannot checkout master, quitting"
+    echo "Cannot checkout trunk, quitting"
     exit 1
 fi
 
 git merge $1
 if [[ $? != 0 ]] ; then
-    echo "Failed to merge branch $1. You are now in branch master"
+    echo "Failed to merge branch $1. You are now in branch trunk"
     exit 1
 fi
 
 git checkout $1
 if [[ $? != 0 ]] ; then
-    echo "Failed to checkout branch $1. You are now in branch master"
+    echo "Failed to checkout branch $1. You are now in branch trunk"
     exit 1
 fi
 
 ##############################################################################
-## Create and synchronize release branch (from branch == master)
+## Create and synchronize release branch (from branch == trunk)
 git branch release/$2
 if [[ $? != 0 ]] ; then
     echo "Failed to create branch release/$2. You are now in branch $1"

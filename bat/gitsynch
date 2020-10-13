@@ -13,10 +13,10 @@
 ##       gitsynch
 ##
 ## Purpose-
-##       Synch the master branch with another branch.
+##       Synch the trunk with another branch.
 ##
 ## Last change date-
-##       2020/03/26
+##       2020/10/12
 ##
 ## Usage-
 ##       gitsynch branch
@@ -28,8 +28,8 @@
 if [[ -z "$1" ]] ; then
     echo "Missing branch name, maint perhaps?"
     exit 1
-elif [[ "$1" == "master" ]] ; then
-    echo "Cannot synch master with master"
+elif [[ "$1" == "trunk" ]] ; then
+    echo "Cannot synch trunk with trunk"
     exit 1
 elif [[ ! -z "$2" ]] ; then
     echo "Extra parameter '$2', quitting"
@@ -37,22 +37,22 @@ elif [[ ! -z "$2" ]] ; then
 fi
 
 ##############################################################################
-## Synch a branch with the master branch, then resume that alternate branch
-git checkout master
+## Synch a branch with the trunk, then resume that alternate branch
+git checkout trunk
 if [[ $? != 0 ]] ; then
-    echo "Cannot checkout master, quitting"
+    echo "Cannot checkout trunk, quitting"
     exit 1
 fi
 
 git merge $1
 if [[ $? != 0 ]] ; then
-    echo "Failed to merge branch $1. You are now in branch master"
+    echo "Failed to merge branch $1. You are now in branch trunk"
     exit 1
 fi
 
 git checkout $1
 if [[ $? != 0 ]] ; then
-    echo "Failed to checkout branch $1. You are now in branch master"
+    echo "Failed to checkout branch $1. You are now in branch trunk"
     exit 1
 fi
 

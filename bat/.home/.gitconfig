@@ -16,7 +16,7 @@
 ##       GIT user configuration file.
 ##
 ## Last change date-
-##       2020/01/19
+##       2020/10/12
 ##
 ## Implementation notes-
 ##       You really should modify the name and email address.
@@ -29,7 +29,6 @@
 	erase = rm
 	hist = log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short
 	history = log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short
-	load = checkout -f master
 	move = mv
 	print = cat-file -p
 	remove = rm
