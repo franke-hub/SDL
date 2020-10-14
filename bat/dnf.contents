@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2018-2020 Frank Eskesen.
+##       Copyright (C) 2020 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -10,19 +10,17 @@
 ##----------------------------------------------------------------------------
 ##
 ## Title-
-##       dnf.status
+##       dnf.contents
 ##
 ## Purpose-
-##       Update dnf.available and dnf.installed files
+##       Display package content
 ##
 ## Last change date-
 ##       2020/10/13
 ##
 ## Usage-
-##       dnf.status
+##       dnf.contents <package-name>
 ##
 ##############################################################################
-dnf list available >dnf.available
-dnf list installed >dnf.installed
-dnf history        >dnf.history
+dnf repoquery -l $*
 
