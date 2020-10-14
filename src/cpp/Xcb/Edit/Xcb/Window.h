@@ -16,7 +16,7 @@
 //       XCB based Window
 //
 // Last change date-
-//       2020/10/08
+//       2020/10/13
 //
 // Implementation notes-
 //       The window field addresses the PARENT window. (Widget already has a
@@ -99,6 +99,10 @@ virtual
 //
 // Purpose-
 //       Configure the Window
+//
+// Implementation note-
+//       Invoke Pixmap::configure when overriding this method to properly
+//       prepare for window creation. (Pixmap::configure sets parent_id.)
 //
 //----------------------------------------------------------------------------
 public:

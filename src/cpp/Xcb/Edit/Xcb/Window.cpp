@@ -16,7 +16,7 @@
 //       Implement Xcb/Window.h
 //
 // Last change date-
-//       2020/10/12
+//       2020/10/13
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -61,8 +61,8 @@ namespace xcb {
 :  Layout(parent, name ? name : "Pixmap"), device(nullptr)
 {
    if( opt_hcdm )
-     debugh("Pixmap(%p)::Pixmap(%p,%s) Named(%s)\n", this, parent
-           , parent ? parent->get_name().c_str() : "?", get_name().c_str());
+     debugh("Pixmap(%p)::Pixmap(%p,%s)\n", this, parent
+           , parent ? parent->get_name().c_str() : "?");
 }
 
 //----------------------------------------------------------------------------
@@ -110,7 +110,7 @@ void
    c= device->c;                   // Set Device connection
    s= device->s;                   // Set Device screen
 
-   // Set parent id
+   // Set parent id (It is set again in Pixmap::configure().)
    parent_id= window->widget_id;   // (This also works for Device)
 }
 
@@ -120,7 +120,7 @@ void
    if( opt_hcdm )
      debugh("Pixmap(%p)::configure [%u,%u]\n", this, rect.width, rect.height);
 
-// set_size(rect.width, rect.height, __LINE__); // Configure does nothing
+   parent_id= window->widget_id;
 }
 
 //----------------------------------------------------------------------------
@@ -320,8 +320,8 @@ void
 :  Pixmap(parent, name ? name : "Window")
 {
    if( opt_hcdm )
-     debugh("Window(%p)::Window(%p,%s) Named(%s)\n", this, parent
-           , parent ? parent->get_name().c_str() : "?", get_name().c_str());
+     debugh("Window(%p)::Window(%p,%s)\n", this, parent
+           , parent ? parent->get_name().c_str() : "?");
 }
 
 //----------------------------------------------------------------------------
@@ -411,6 +411,9 @@ void
    if( opt_hcdm )
      debugh("Window(%p)::configure [%d,%d,%u,%u]\n", this
            , rect.x, rect.y, rect.width, rect.height);
+
+   // Configure the Pixmap
+   Pixmap::configure();             // (Set parent_id)
 
    // Create the Window
    if( widget_id != 0 ) {           // If already created

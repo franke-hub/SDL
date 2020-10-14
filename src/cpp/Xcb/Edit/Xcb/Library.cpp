@@ -16,7 +16,7 @@
 //       Temporary implementations until appropriate .cpp files created
 //
 // Last change date-
-//       2020/10/02
+//       2020/10/13
 //
 // Implementation notes-
 //       TODO: REMOVE (This is just to have one .cpp file during bringup)
@@ -106,7 +106,8 @@ static struct Init_term {
 :  Window(parent, name ? name : "TextWindow"), font(this), font_name("7x13")
 {
    if( opt_hcdm )
-     debugh("TextWindow(%p)::TextWindow()\n", this);
+     debugh("TextWindow(%p)::TextWindow(%p,%s)\n", this, parent
+           , parent ? parent->get_name().c_str() : "?");
 
    bg= 0x00FFFFF0;                  // (Pale Yellow Background)
 }
@@ -199,6 +200,8 @@ void
 {
    debugf("TextWindow(%p)::debug(%s) Named(%s)\n", this, text ? text : ""
          , get_name().c_str());
+   Window::debug(text);
+
    debugf("..font_name(%s) flipGC(%u) fontGC(%u)\n"
          , font_name.c_str(), flipGC, fontGC);
    debugf("..col_zero(%zd), row_zero(%zd)\n", col_zero, row_zero);
@@ -207,8 +210,6 @@ void
    if( opt_hcdm || opt_verbose > 0 ) {
      font.debug(text);
    }
-
-   Window::debug(text);
 }
 
 //----------------------------------------------------------------------------
@@ -367,8 +368,12 @@ int                                 // Return code, 0 OK
    if( rc == 0 ) {                  // Update the Layout
      if( col_size == 0 ) col_size= COLS_H;
      if( row_size == 0 ) row_size= ROWS_W;
-     min_size= { WH_t(MINI_W   * font.length.width  + 2)
-               , WH_t(MINI_H   * font.length.height + 2) };
+     unsigned mini_w= MINI_W;
+     unsigned mini_h= MINI_H;
+     if( mini_w > col_size ) mini_w= col_size;
+     if( mini_h > row_size ) mini_h= row_size;
+     min_size= { WH_t(mini_w   * font.length.width  + 2)
+               , WH_t(mini_h   * font.length.height + 2) };
      use_size= { WH_t(col_size * font.length.width  + 2)
                , WH_t(row_size * font.length.height + 2) };
      use_unit= { WH_t(font.length.width), WH_t(font.length.height) };

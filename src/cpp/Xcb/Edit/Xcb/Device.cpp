@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/10/08
+//       2020/10/13
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -211,8 +211,8 @@ static void
      Pixmap* pixmap= dynamic_cast<Pixmap*>(child);
      if( pixmap ) {
        if( opt_hcdm && opt_verbose > 1 )
-         debugf("%4d Device %s->configure(%s,%s)\n", __LINE__
-               , get_name(pixmap), get_name(device), get_name(parent) );
+         debugh("%4d Device: %s(%p)->configure(%s,%s)\n", __LINE__
+               , get_name(pixmap), pixmap, get_name(device), get_name(parent));
 
        pixmap->configure(device, parent);
        Window* window= dynamic_cast<Window*>(child);
@@ -230,7 +230,8 @@ static void
 {
    for(Widget* child= widget->get_first(); child; child= child->get_next()) {
      if( opt_hcdm && opt_verbose > 1 )
-       debugf("%4d Device %s->configure()\n", __LINE__, get_name(child) );
+       debugf("%4d Device %s(%p)->configure()\n", __LINE__
+             , get_name(child), child );
      child->configure();
 
      configure_widget(child);

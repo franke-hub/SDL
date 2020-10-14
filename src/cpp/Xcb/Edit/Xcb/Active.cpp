@@ -182,10 +182,10 @@ void
      memcpy(buffer, source, buffer_used);
    }
 
-   if( buffer_used < column ) {     // If expansion required
+   if( buffer_used <= column ) {    // If expansion required
 //   fsm= FSM_CHANGED;              // (Blank fill DOES NOT imply change)
-     memset(buffer + buffer_used, ' ', column - buffer_used);
-     buffer_used= column;
+     memset(buffer + buffer_used, ' ', column + 1 - buffer_used);
+     buffer_used= column + 1;
    }
 
    if( opt_hcdm )

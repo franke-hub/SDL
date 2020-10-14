@@ -16,20 +16,19 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2020/10/08
+//       2020/10/14
 //
 // Implementation note-
-//       TODO: Debug mode *ALWAYS* intensive move
+//       TODO: Debug mode currently *ALWAYS* intensive move
 //
 //----------------------------------------------------------------------------
-#define BRINGUP_H_INCLUDED          // TODO: REMOVE
 #include <exception>                // For std::exception
 #include <string>                   // For std::string
 
-#include <ctype.h>                  // For isprint()
+#include <ctype.h>                  // For isprint, toupper
 #include <errno.h>                  // For errno
 #include <fcntl.h>                  // For O_* constants
-#include <getopt.h>                 // For getopt_long()
+#include <getopt.h>                 // For getopt_long
 #include <limits.h>                 // For INT_MAX, INT_MIN
 #include <stdarg.h>                 // For va_list
 #include <stdio.h>                  // For printf
@@ -46,7 +45,6 @@
 #include <pub/Debug.h>              // For Debug object
 #include <pub/Exception.h>          // For Exception object
 #include <pub/Trace.h>              // For Trace object
-#include <pub/macro/try_catch.h>    // For TRY_CATCH(stmt)
 
 #include <Xcb/Global.h>             // For xcb::user_debug
 
@@ -73,7 +71,7 @@ static int             opt_hcdm= false; // Hard Core Debug Mode
 static int             opt_index;   // Option index
 
 static const char*     opt_font= nullptr; // The Font, if specified
-static int             opt_ro= true; // Read-only mode? TODO: PARAMETERIZE
+static int             opt_ro= true; // Read-only mode? TODO: DEFAULT FALSE
 static const char*     opt_test= nullptr; // The test, if specified
 static int             opt_trace= false; // Use internal trace?
 static int             opt_verbose= -1; // Verbosity
@@ -115,8 +113,6 @@ static const char*     TRACE_FILE= "./trace.out"; // Trace file name
 // Deferred includes (use local variables)
 //----------------------------------------------------------------------------
 #include "Editor.h"                 // The Editor application
-#undef opt_hcdm                     // TODO: REMOVE
-#undef opt_verbose                  // TODO: REMOVE
 
 //----------------------------------------------------------------------------
 //
@@ -124,7 +120,7 @@ static const char*     TRACE_FILE= "./trace.out"; // Trace file name
 //       oops
 //
 // Purpose-
-//       Return strerror(errno)
+//       Shortcut for strerror(errno)
 //
 //----------------------------------------------------------------------------
 static inline const char* oops( void ) { return strerror(errno); }
@@ -224,11 +220,10 @@ static int                          // Return code (0 OK)
    //-------------------------------------------------------------------------
    // Initialize/activate debugging trace (with options)
    Debug* debug= Debug::get();      // Activate debug tracing
-// debug->set_head(Debug::HEAD_TIME | Debug::HEAD_THREAD);
    debug->set_head(Debug::HEAD_TIME);
 
    if( HCDM ) opt_hcdm= true;       // If HCDM compile-time, force opt_hcdm
-// if( opt_hcdm ) {                 // If --hcdm option specified
+// if( opt_hcdm ) {                 // If --hcdm option specified // TODO: REVERT
      debug->set_mode(Debug::MODE_INTENSIVE); // Hard Core Debug Mode
 // }
 
@@ -291,6 +286,7 @@ static int                          // Return code (Always 1)
    info( void)                      // Parameter description
 {
    fprintf(stderr, "%s <options> filename ...\n"
+                   "File editor\n\n"
                    "Options:\n"
                    "  --help\tThis help message\n"
                    "  --hcdm\tHard Core Debug Mode\n"
@@ -444,7 +440,9 @@ static int                          // Return code (0 if OK)
    }
 
    // Handle read-only control
-   if( opt_ro == false )
+   if( toupper(*argv[0]) == 'V' )   // If View command alias
+     opt_ro= true;                  // Read/only mode
+   if( opt_ro == false )            // TODO: REMOVE (bringup warning)
      fprintf(stderr, "RW mode selected\n");
 
    // Verify parameter presence

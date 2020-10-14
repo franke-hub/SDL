@@ -13,10 +13,10 @@
 //       Xcb/Font.h
 //
 // Purpose-
-//       XCB Font descriptor (X11 compatibile version)
+//       XCB Font descriptor
 //
 // Last change date-
-//       2020/10/08
+//       2020/10/13
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_FONT_H_INCLUDED
@@ -82,9 +82,6 @@ WH_size_t              length= {0, 0}; // Font length
 xcb_query_font_reply_t*
                        font_info= nullptr; // The Font information
 
-public: // == STATICS ========================================================
-// tic FT_Library      library;     // The FreeType library (!UNUSED!)
-
 //----------------------------------------------------------------------------
 // xcb::Font::Constructor
 //----------------------------------------------------------------------------
@@ -94,7 +91,7 @@ public:
 :  window(window)
 {
    if( opt_hcdm )
-     debugh("Font(%p)::Font(%p) (Bitmapped)\n", this, window);
+     debugh("Font(%p)::Font(%p)\n", this, window);
 }
 
 //----------------------------------------------------------------------------

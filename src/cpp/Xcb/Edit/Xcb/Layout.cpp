@@ -16,7 +16,7 @@
 //       Implement Xcb/Layout.h
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/13
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -47,7 +47,7 @@ void
    debugf(": rect(%d,%d,%u,%u)", rect.x, rect.y, rect.width, rect.height);
    debugf(", cur_disp(%u,%u)",   cur_disp.x,     cur_disp.y);
    debugf(", max_size(%u,%u)",   max_size.width, max_size.height);
-   debugf(", min_size(%u,%u)",   min_size.width, min_size.height);
+   debugf(", min_size(%u,%u)\n", min_size.width, min_size.height);
    debugf(", use_size(%u,%u)",   use_size.width, use_size.height);
    debugf(", use_unit(%u,%u)\n", use_unit.width, use_unit.height);
 }

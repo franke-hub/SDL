@@ -16,7 +16,7 @@
 //       Test window: For experimentation
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/13
 //
 //----------------------------------------------------------------------------
 #ifndef TESTWINDOW_H_INCLUDED
@@ -54,7 +54,7 @@ class TestWindow : public TextWindow { // Test Window
 //----------------------------------------------------------------------------
 public:
 enum // Compilation controls
-{  HCDM= true                       // Hard Core Debug Mode?
+{  HCDM= false                      // Hard Core Debug Mode?
 ,  USE_BRINGUP= false               // Extra brinbup diagnostics?
 }; // Compilation controls
 
@@ -63,6 +63,7 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 public:
 ::pub::List<Line>       list;       // The Line list
+Line*                   data= nullptr; // The (only) line
 
 //----------------------------------------------------------------------------
 // use_debug: Test for debugging active
@@ -77,23 +78,19 @@ public:
      Widget*           parent= nullptr, // Our parent Widget
      const char*       name= nullptr) // This Window's name
 :  TextWindow(parent, name ? name : "TestWindow")
+,  list(), data(new Line("This is the test line"))
 {
    if( use_debug() )
-     debugh("TestWindow(%p)::TestWindow\n", this);
+     debugh("TestWindow(%p)::TestWindow(%p,%s)\n", this, parent
+           , parent ? parent->get_name().c_str() : "?");
 
    // Set dimensionality
-   col_size= 16;
-   row_size=  8;
+   col_size= 80;
+   row_size=  1;
 
-   // Create the data
-   char buffer[128];                // Line buffer
-   for(int i= 0; i<16; i++) {
-     sprintf(buffer, "%.4d Line abcdefghijklmnopqrstuv", i);
-     Line* line= new Line(strdup(buffer));
-     list.fifo(line);
-   }
-
-   this->line= list.get_head();
+   // Initialize the List
+   line= data;
+   list.fifo(data);
 }
 
 //----------------------------------------------------------------------------
@@ -106,20 +103,7 @@ virtual
    if( use_debug() )
      debugh("TestWindow(%p)::~TestWindow()...\n", this);
 
-   // Delete the lines
-   for(;;) {
-     Line* line= list.remq();
-     if( line == nullptr )
-       break;
-
-     free(line);
-   }
-
-   // Wait for deletion operations to complete
-   flush();
-
-   if( use_debug() )
-     debugh("TestWindow(%p)::...~TestWindow()\n", this);
+   delete data;
 }
 
 //----------------------------------------------------------------------------
