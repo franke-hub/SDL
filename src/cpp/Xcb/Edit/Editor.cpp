@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2020/10/12
+//       2020/10/16
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -361,7 +361,7 @@ void
        device->operational= false;  // No need to stay around
    }
 
-   text->set_file(next);
+   text->activate(next);
    ring.remove(file, file);         // Remove the File from the Ring
    delete file;                     // And delete it
 }
@@ -380,7 +380,7 @@ void
 {
    if( window && window->get_parent() ) { // If TestWindow active
      fprintf(stderr, "Editor(%p)::do_test\n", this);
-     if( window->state.visible )
+     if( window->state & xcb::Window::WS_VISIBLE )
        window->hide();
      else
        window->show();
@@ -537,7 +537,7 @@ void
    device->configure();
 
    // Set initial file
-   text->set_file(ring.get_head());
+   text->activate(ring.get_head());
 
    if( false ) {
      debugf("%4d HCDM Editor: Reply loop not started\n", __LINE__);

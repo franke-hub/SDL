@@ -16,7 +16,7 @@
 //       XCB based text Window
 //
 // Last change date-
-//       2020/10/08
+//       2020/10/16
 //
 // Implementation note-
 //                    ******** DO NOT SIMULTANEOUSLY USE ********
@@ -75,7 +75,6 @@ enum // Compile-time constants
 // xcb::TextWindow: Attributes
 //----------------------------------------------------------------------------
 public:
-// Data control
 Font                   font;        // Current Font
 
 std::string            font_name;   // The font name
@@ -92,6 +91,14 @@ unsigned               row_size= 0; // The current screen row count
 unsigned               row_used= 0; // The number of used rows
 unsigned               col= 0;      // Cursor column (X) (offset from col_zero)
 unsigned               row= 0;      // Cursor row (Y) (offset from row_zero)
+
+// Configuration controls
+unsigned               COLS_H=80;   // Nominal columns
+unsigned               ROWS_W=50;   // Nominal rows
+unsigned               MINI_H=10;   // Minimum columns (Height)
+unsigned               MINI_W=10;   // Minimum rows    (Width)
+unsigned               USER_TOP= 0; // Number of reserved TOP lines
+unsigned               USER_BOT= 0; // Number of reserved BOTTOM lines
 
 //----------------------------------------------------------------------------
 // xcb::TextWindow: Constructor
@@ -170,14 +177,66 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       xcb::TextWindow::getxy
+//       xcb::TextWindow::get_col
+//
+// Purpose-
+//       Convert pixel x position to (screen) column
+//
+//----------------------------------------------------------------------------
+unsigned                            // The column
+   get_col(                         // Get column
+     int               x);          // For this x pixel position
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::TextWindow::get_row
+//
+// Purpose-
+//       Convert pixel y position to (screen) row
+//
+//----------------------------------------------------------------------------
+unsigned                            // The row
+   get_row(                         // Get row
+     int               y);          // For this y pixel position
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::TextWindow::get_x
+//
+// Purpose-
+//       Get pixel position for column.
+//
+//----------------------------------------------------------------------------
+unsigned                            // The offset in Pixels
+   get_x(                           // Get offset in Pixels
+     unsigned          col);        // For this column
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::TextWindow::get_y
+//
+// Purpose-
+//       Get pixel position for row.
+//
+//----------------------------------------------------------------------------
+unsigned                            // The offset in Pixels
+   get_y(                           // Get offset in Pixels
+     unsigned          row);        // For this row
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::TextWindow::get_xy
 //
 // Purpose-
 //       Get [col,row] pixel position.
 //
 //----------------------------------------------------------------------------
 xcb_point_t                         // The offset in Pixels
-   getxy(                           // Get offset in Pixels
+   get_xy(                          // Get offset in Pixels
      unsigned          col,         // And this column
      unsigned          row);        // For this row
 
@@ -206,17 +265,17 @@ void
 void
    putxy(                           // Draw text
      xcb_gcontext_t    fontGC,      // Using this graphic context
-     xcb_point_t       xy,          // At this offset
-     const char*       text)        // Using this text
-{  font.putxy(fontGC, unsigned(xy.x), unsigned(xy.y), text); }
-
-void
-   putxy(                           // Draw text
-     xcb_gcontext_t    fontGC,      // Using this graphic context
      unsigned          left,        // At this left (X) offset
      unsigned          top,         // At this top  (Y) offset
      const char*       text)        // Using this text
 {  font.putxy(fontGC, left, top, text); }
+
+void
+   putxy(                           // Draw text
+     xcb_gcontext_t    fontGC,      // Using this graphic context
+     xcb_point_t       xy,          // At this offset
+     const char*       text)        // Using this text
+{  font.putxy(fontGC, unsigned(xy.x), unsigned(xy.y), text); }
 
 //----------------------------------------------------------------------------
 //

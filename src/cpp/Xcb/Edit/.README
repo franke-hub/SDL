@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2020/10/12
+##       2020/10/16
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in BRINGUP mode.
@@ -25,6 +25,11 @@
 
 ##############################################################################
 ## STATUS:
+2020/10/15 Debugged xcb_xfixes_hide_cursor not working
+         (It's a Cygwin problem. It works properly on native Fedora Linux.)
+         Button handlers implemented. (But not command handling.)
+         Line and column numbers handled more accurately.
+
 2020/10/12 Editor singleton object available using Editor::editor
          Fixed Active::replace_text (insert_char wasn't working properly)
 

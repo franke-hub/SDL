@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (C) 2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Some Quick and Dirty tests.
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/16
 //
 //----------------------------------------------------------------------------
 #include <chrono>                   // We include everything and then some

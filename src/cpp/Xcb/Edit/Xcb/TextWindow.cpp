@@ -10,16 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       Library.cpp
+//       TextWindow.cpp
 //
 // Purpose-
-//       Temporary implementations until appropriate .cpp files created
+//       Implement TextWindow.h
 //
 // Last change date-
-//       2020/10/13
-//
-// Implementation notes-
-//       TODO: REMOVE (This is just to have one .cpp file during bringup)
+//       2020/10/16
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -52,45 +49,6 @@ enum // Compilation controls
 }; // Compilation controls
 
 namespace xcb {
-//----------------------------------------------------------------------------
-// xcb::Font::Attributes
-//----------------------------------------------------------------------------
-// Library             Font::library; // The FreeType library
-
-//----------------------------------------------------------------------------
-// TextWindow.cpp: Default geometry
-//----------------------------------------------------------------------------
-enum                                // Default geometry [rows, columns]
-{  ROWS_W=50                        // Rows (Width)
-,  COLS_H=80                        // Cols (Height)
-,  MINI_W=10                        // Minimum columns
-,  MINI_H=10                        // Minimum rows
-}; // enum Geometry
-
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       Init_term
-//
-// Purpose-
-//       Initialization/Termination (Currently a placeholder)
-//
-//----------------------------------------------------------------------------
-static struct Init_term {
-   Init_term( void )                // Constructor (initialize)
-{
-// // Initialize the Freetype library
-// FT_Error error= FT_Init_FreeType(&Font::library);
-// if( error ) {
-//   fprintf(stderr, "%d= FT_Init_Freetype\n", error);
-//   exit(EXIT_FAILURE);
-// }
-}
-
-   ~Init_term( void )               // Destructor (termination cleanup)
-{  /* Nothing to clean up */ }
-}  init_term;                       // Static constructor/destructor
-
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -126,7 +84,6 @@ static struct Init_term {
    if( opt_hcdm )
      debugh("TextWindow(%p)::~TextWindow()...\n", this);
 
-   // Free the graphic contexts
    if( flipGC ) {
      ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, flipGC) );
      flipGC= 0;
@@ -137,7 +94,6 @@ static struct Init_term {
      fontGC= 0;
    }
 
-   // Flush any pending operations
    flush();
 
    if( opt_hcdm )
@@ -177,7 +133,6 @@ void
    Window::configure();             // Create the Window
 
    // Create the graphic contexts
-// xcb_screen_t* const S= screen;   // (UNUSED)
    fontGC= font.makeGC(fg, bg);     // (The default)
    flipGC= font.makeGC(bg, fg);     // (Inverted)
 
@@ -227,7 +182,7 @@ void
    if( opt_hcdm )
      debugh("TextWindow(%p)::draw()\n", this);
 
-   // Clear the window
+   // Clear the drawable window
    WH_size_t size= get_size(__LINE__); // TODO: ??? Why is this needed ???
    rect.width=  size.width;
    rect.height= size.height;
@@ -240,9 +195,10 @@ void
      last= line;
 
      row_used= 0;
-     unsigned y= 1;
+     unsigned y= get_y(row_used);
      unsigned font_height= font.length.height;
-     while( (y + font_height) <= rect.height ) {
+     unsigned last_height= rect.height - USER_BOT * font_height;
+     while( (y + font_height) <= last_height ) {
        if( line == nullptr )
          break;
        row_used++;                  // Update used row count
@@ -280,22 +236,74 @@ void
 
 //----------------------------------------------------------------------------
 //
+// Protected method-
+//       xcb::TextWindow::get_col
+//
+// Purpose-
+//       Convert pixel x position to (screen) column
+//
+//----------------------------------------------------------------------------
+unsigned                            // The column
+   xcb::TextWindow::get_col(        // Get column
+     int               x)           // For this x pixel position
+{  return unsigned(x+1)/font.length.width; }
+
+//----------------------------------------------------------------------------
+//
+// Protected method-
+//       xcb::TextWindow::get_row
+//
+// Purpose-
+//       Convert pixel y position to (screen) row
+//
+//----------------------------------------------------------------------------
+unsigned                            // The row
+   xcb::TextWindow::get_row(        // Get row
+     int               y)           // For this y pixel position
+{  return (y+1)/int(font.length.height); }
+
+//----------------------------------------------------------------------------
+//
 // Method-
-//       xcb::TextWindow::getxy
+//       xcb::TextWindow::get_x
+//
+// Purpose-
+//       Get pixel position for column.
+//
+//----------------------------------------------------------------------------
+unsigned                            // The offset in Pixels
+   xcb::TextWindow::get_x(          // Get offset in Pixels
+     unsigned          col)         // For this column
+{  return col * font.length.width + 1; }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::TextWindow::get_y
+//
+// Purpose-
+//       Get pixel position for row.
+//
+//----------------------------------------------------------------------------
+unsigned                            // The offset in Pixels
+   xcb::TextWindow::get_y(          // Get offset in Pixels
+     unsigned          row)         // For this row
+{  return (row + USER_TOP) * font.length.height + 1; }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::TextWindow::get_xy
 //
 // Purpose-
 //       Get [col,row] pixel position.
 //
 //----------------------------------------------------------------------------
 xcb_point_t                         // The offset in Pixels
-   TextWindow::getxy(               // Get offset in Pixels
+   TextWindow::get_xy(              // Get offset in Pixels
      unsigned          col,         // And this column
      unsigned          row)         // For this row
-{  xcb_point_t xy= {PT_t(col*font.length.width+1), PT_t(row*font.length.height+1)};
-// debugf("[%d,%d]= getxy(%u,%u)\n", xy.x, xy.y, col, row);
-   return xy;
-// return {PT_t(col*font.length.width+1), PT_t(row*font.length.height+1)}; }
-}
+{  return {PT_t(get_x(col)), PT_t(get_y(row))}; }
 
 //----------------------------------------------------------------------------
 //

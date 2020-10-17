@@ -16,7 +16,7 @@
 //       Implement Xcb/Window.h
 //
 // Last change date-
-//       2020/10/13
+//       2020/10/15
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -421,12 +421,8 @@ void
      return;
    }
 
-   widget_id= xcb_generate_id(c);   // Our XCB Window
-   uint32_t mask= XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-   uint32_t parm[2];
-   parm[0]= bg;                     // Background Pixel
-   parm[1]= DEV_EVENT_MASK          // (For device support)
-          | XCB_EVENT_MASK_KEY_PRESS
+   if( emask == 0 )
+     emask= XCB_EVENT_MASK_KEY_PRESS
           | XCB_EVENT_MASK_KEY_RELEASE
           | XCB_EVENT_MASK_BUTTON_PRESS
 //        | XCB_EVENT_MASK_EXPOSURE        // (In DEV_EVENT_MASK)
@@ -434,6 +430,13 @@ void
 //        | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
 //        | XCB_EVENT_MASK_PROPERTY_CHANGE // (In DEV_EVENT_MASK)
           ;
+   emask |= DEV_EVENT_MASK;         // (For Device support)
+
+   widget_id= xcb_generate_id(c);   // Our XCB Window
+   uint32_t mask= XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+   uint32_t parm[2];
+   parm[0]= bg;                     // Background Pixel
+   parm[1]= emask;
 
    if( USE_BRINGUP ) {
      // For bringup, we enable all events to see what they do.
@@ -478,7 +481,10 @@ void
                           , XCB_XFIXES_MINOR_VERSION);
    xcb_xfixes_query_version_reply_t* reply=
    xcb_xfixes_query_version_reply(c, cookie, nullptr);
-   if( reply ) { // (Reply ignored)
+   if( reply ) {                    // Reply mostly ignored
+     if( opt_hcdm )
+       debugh("query_xfixes reply: major(%d) minor(%d)\n"
+             , reply->major_version, reply->minor_version);
      free(reply);
    }
 
@@ -554,9 +560,9 @@ void
    if( opt_hcdm )
      debugh("Window(%p)::hide Named(%s)\n", this, get_name().c_str());
 
-   if( state.visible ) {
+   if( state & WS_VISIBLE ) {
      ENQUEUE("xcb_unmap_window", xcb_unmap_window_checked(c, widget_id));
-     state.visible= false;
+     state &= ~(WS_VISIBLE);
    }
 }
 
@@ -566,9 +572,9 @@ void
    if( opt_hcdm )
      debugh("Window(%p)::show Named(%s)\n", this, get_name().c_str());
 
-   if( !state.visible ) {
+   if( (state & WS_VISIBLE) == 0 ) {
      ENQUEUE("xcb_map_window", xcb_map_window_checked(c, widget_id));
-     state.visible= true;
+     state |= WS_VISIBLE;
    }
 }
 

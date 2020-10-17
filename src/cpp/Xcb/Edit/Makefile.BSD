@@ -72,7 +72,7 @@ ignore += $(shell pkg-config --cflags fontconfig freetype2)
 ignore += $(shell pkg-config --libs   fontconfig freetype2)
 CLIBS  += $(shell pkg-config --libs   xcb xcb-xfixes)
 ignore += $(shell pkg-config --libs   xcb-render xcb-renderutil)
-CLIBS  += -lX11
+CLIBS  += -lX11 -lXfixes
 LLIBS  += -L. -l local
 include $(INCDIR)/pub/Makefile.BSD
 

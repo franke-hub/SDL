@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (C) 2020 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2020/10/12
+//       2020/10/16
 //
 //----------------------------------------------------------------------------
 #ifndef EDFILE_H_INCLUDED
@@ -217,11 +217,14 @@ class EdFile : public ::pub::List<EdFile>::Link { // Editor file descriptor
 //----------------------------------------------------------------------------
 // EdFile::Attributes
 public:
+enum MODE { M_NONE, M_BIN, M_DOS, M_MIX, M_UNIX }; // The file mode
+
 ::pub::List<EdMess>    messages;    // The List of warning messages
 ::pub::List<EdLine>    lines;       // The line list
 ::std::string          name;        // The file name
 size_t                 rows= 0;     // The number of file rows
 
+int                    mode= M_NONE; // The file mode
 bool                   changed= false; // File is changed
 bool                   damaged= false; // File is damaged
 
@@ -259,7 +262,7 @@ public:
    csr_line= top;
 
    if( name )
-      append(name, top);            // Insert the file
+     append(name, top);             // Insert the file
 }
 
 //----------------------------------------------------------------------------
@@ -302,7 +305,6 @@ char*
 //       Load file data
 //
 //----------------------------------------------------------------------------
-public:
 EdLine*                             // The last inserted line
    append(                          // Append file
      const char*       name,        // The file name to insert
@@ -327,15 +329,15 @@ EdLine*                             // The last inserted line
    {
      damaged= true;
      messages.fifo(new EdMess("Read failure"));
+     size= L;
    }
    fclose(f);
 
-   // Insure that the file does not contain a '\0' delimiter
-   char* last= strchr(text, '\0');  // Locate first '\0' delimiter
-   if( size_t(last-text) < size )   // If file contains '\0' delimiter
-   {
-     damaged= true;
-     messages.fifo(new EdMess("File contains '\\0' delimiter"));
+   // Check for binary file
+   char* last= strchr(text, '\0');
+   if( size_t(last - text) < size ) { // If file contains '\0' delimiter
+     messages.fifo(new EdMess("Binary file"));
+     mode= M_BIN;
    }
 
    // Parse the text into lines (Performance critical path)
@@ -343,27 +345,50 @@ EdLine*                             // The last inserted line
    while( used < last )
    {
      char* from= used;              // Starting character
-     char* next= strchr(used, '\n'); // Get next line delimiter
-     if( next )
-     {
-       *next= '\0';                 // Replace with string delimiter
-       used= next + 1;              // Next line origin
-       while( next > from )
-       {
-         next--;
-         if( *next != '\r' )
-           break;
+     line= insert(line, new EdLine(from));
 
-         changed= true;
-         *next= '\0';
+     char* nend= strchr(used, '\n'); // Get next line delimiter
+     if( nend == nullptr ) {        // Missing '\\n' delimiter
+       size_t L= strlen(from);      // String length
+       if( from + L >= last ) {
+         messages.fifo(new EdMess("Ending '\\n' missing"));
+         break;
        }
 
-       line= insert(new EdLine(from), line);
-     } else {                       // Last line missing '\n'
-       changed= true;               // Write will change file format
-       messages.fifo(new EdMess("Ending '\\n' missing"));
-       line= insert(new EdLine(from), line);
-       break;
+       nend= from + L;              // '\0' delimiter found
+       line->delim[1]= 1;
+       while( ++nend < last ) {
+         if( *nend ) break;         // If not a '\0' delimiter
+         if( ++line->delim[1] == 0 ) { // If repetition count overflow
+           line->delim[1]= 255;
+           line= insert(line, new EdLine(nend));
+           line->delim[1]= 1;
+         }
+       }
+       used= nend;
+       continue;
+     }
+
+     // '\n' delimiter found
+     *nend= '\0';                   // Replace with string delimiter
+     used= nend + 1;                // Next line origin
+     if( nend == from || *(nend-1) != '\r' ) { // If UNIX delimiter
+       line->delim[0]= '\n';
+       if( mode == M_UNIX || mode == M_MIX || mode == M_BIN ) continue;
+       if( mode == M_NONE ) {
+         mode= M_UNIX;
+       } else {                     // Mode M_DOS ==> M_MIX
+         mode= M_MIX;
+       }
+     } else {                       // IF DOS delimiter
+       line->delim[1]= '\r';
+       *(nend - 1)= '\0';
+       if( mode == M_DOS || mode == M_MIX || mode == M_BIN ) continue;
+       if( mode == M_NONE ) {
+         mode= M_DOS;
+       } else {                     // Mode M_UNIX ==> M_MIX
+         mode= M_MIX;
+       }
      }
    }
 
@@ -379,17 +404,40 @@ EdLine*                             // The last inserted line
 //       Insert one file line
 //
 //----------------------------------------------------------------------------
-public:
-EdLine*                             // The new line
-   insert(                          // Insert
-     EdLine*           line,        // This new line after
-     EdLine*           after)       // This old line
+EdLine*                             // The last insertedline
+   insert(                          // Insert after
+     EdLine*           after,       // This line
+     EdLine*           head,        // From this line
+     EdLine*           tail)        // Upto this line
 {
-   lines.insert(after, line, line);
-   return line;
+   lines.insert(after, head, tail);
+
+   for(EdLine* line= head; line != tail; line= line->get_next()) {
+     if( line == nullptr ) throw "Invalid insert chain";
+     rows++;
+   }
+   rows++;                          // (Count the tail line)
+
+   return tail;
 }
 
+EdLine*                             // The new line
+   insert(                          // Insert after
+     EdLine*           after,       // After this line
+     EdLine*           line)        // This line
+{  return insert(after, line, line); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::reset
+//
+// Purpose-
+//       Reset the undo/redo lists
+//
+//----------------------------------------------------------------------------
 void                                // (Action cannot be undone)
-   reset( void ) {}                 // Reset the undo/redo lists
+   reset( void )                    // Reset the undo/redo lists
+{  } // TODO: NOT CODED YET
 }; // class EdFile
 #endif // EDFILE_H_INCLUDED

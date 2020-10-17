@@ -16,7 +16,7 @@
 //       XCB based Window
 //
 // Last change date-
-//       2020/10/13
+//       2020/10/15
 //
 // Implementation notes-
 //       The window field addresses the PARENT window. (Widget already has a
@@ -63,22 +63,16 @@ class Window : public Pixmap {      // The Window object
 //
 //----------------------------------------------------------------------------
 public:
-struct State {                      // Window state
-unsigned               reserved: 31;// Reserved for expansion
-unsigned               visible:  1; // Window is visible
-
-   State( void )                    // Constructor
-{
-   uint32_t* word= (uint32_t*)this;
-   *word= 0;
-}
-}; // struct State
+enum                                // Window state mask
+{  WS_VISIBLE= 0x00000001           // Window is visible
+};
 
 //----------------------------------------------------------------------------
 // xcb::Window::Attributes
 //----------------------------------------------------------------------------
 public:
-State                  state;       // Window state
+uint32_t               emask= 0;    // Window event mask (XCB_EVENT_MASK_*)
+uint32_t               state= 0;    // Window state flags (WS_*)
 
 //----------------------------------------------------------------------------
 // xcb::Window::Constructors/Destructors/Operators
