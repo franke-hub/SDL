@@ -171,8 +171,8 @@ void
    if( opt_hcdm )
      debugh("EdMain(%p)::resize(%d,%d)\n", this, x, y);
 
-   if( x < 128 ) x= 128;
-   if( y < 128 ) y= 128;
+   if( x < min_size.width )  x= min_size.width;
+   if( y < min_size.height ) y= min_size.height;
    if( true  ) {                    // This is required. ??? WHY ???
      x += 7; x &= 0xfffffff8;
      y += 7; y &= 0xfffffff8;

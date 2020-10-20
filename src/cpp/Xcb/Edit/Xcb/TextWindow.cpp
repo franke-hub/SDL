@@ -322,8 +322,8 @@ void
    if( opt_hcdm )
      debugh("TextWindow(%p)::resize(%d,%d)\n", this, x, y);
 
-   if( x < 128 ) x= 128;
-   if( y < 128 ) y= 128;
+   if( x < min_size.width )  x= min_size.width;
+   if( y < min_size.height ) y= min_size.height;
    if( true  ) {                    // This is required. ??? WHY ???
      x += 7; x &= 0xfffffff8;
      y += 7; y &= 0xfffffff8;
@@ -374,14 +374,14 @@ int                                 // Return code, 0 OK
 
    int rc= font.open(name);         // Open the font
    if( rc == 0 ) {                  // Update the Layout
-     if( col_size == 0 ) col_size= COLS_H;
-     if( row_size == 0 ) row_size= ROWS_W;
-     unsigned mini_w= MINI_W;
-     unsigned mini_h= MINI_H;
-     if( mini_w > col_size ) mini_w= col_size;
-     if( mini_h > row_size ) mini_h= row_size;
-     min_size= { WH_t(mini_w   * font.length.width  + 2)
-               , WH_t(mini_h   * font.length.height + 2) };
+     if( col_size == 0 ) col_size= COLS_W;
+     if( row_size == 0 ) row_size= ROWS_H;
+     unsigned mini_c= MINI_C;
+     unsigned mini_r= MINI_R;
+     if( mini_c > col_size ) mini_c= col_size;
+     if( mini_r > row_size ) mini_r= row_size;
+     min_size= { WH_t(mini_c   * font.length.width  + 2)
+               , WH_t(mini_r   * font.length.height + 2) };
      use_size= { WH_t(col_size * font.length.width  + 2)
                , WH_t(row_size * font.length.height + 2) };
      use_unit= { WH_t(font.length.width), WH_t(font.length.height) };

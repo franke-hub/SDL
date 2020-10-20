@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2020/10/16
+//       2020/10/17
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -304,42 +304,6 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
 int                                 // Return code, 0OK
    Editor::do_done( void )          // Handle DONE
 {  device->operational= false; return 0; } // TODO: Safely exit
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Editor::do_exit
-//
-// Purpose-
-//       Handle EXIT function: Exit if file unchanged
-//
-//----------------------------------------------------------------------------
-int                                 // Return code, 0 OK
-   Editor::do_exit(                 // Handle (safe) exit
-     EdFile*           file)        // For this EdFile
-{  do_quit(file); return 0; } // TODO: NOT CODED YET, FILES CAN'T CHANGE
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Editor::do_help
-//
-// Purpose-
-//       Handle HELP function: Display active keys
-//
-//----------------------------------------------------------------------------
-int                                 // Return code, 0 OK
-   Editor::do_help( void )          // Display help information
-{
-   printf("F1:  This help message\n"
-          "F3:  Quit File\n"
-          "F7:  Previous File\n"
-          "F8:  Next File\n"
-          "F12: Bringup test\n"
-          "C-Q: Quit\n"
-   );
-   return 0;
-}
 
 //----------------------------------------------------------------------------
 //

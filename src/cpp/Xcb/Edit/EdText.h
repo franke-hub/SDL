@@ -16,11 +16,11 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2020/10/16
+//       2020/10/17
 //
 // Implementation notes-
 //       Cygwin X-server does not support xcb_xfixes_hide_cursor, even though
-//       it reports Xfixes 5.0 supported. Auto-hide of cursor not available.
+//       it reports Xfixes 5.0 supported. It works properly on Fedora.
 //
 // Implementation TODOs-
 //       Command line input NOT CODED YET.
@@ -43,6 +43,7 @@
 #include "Xcb/TextWindow.h"         // For xcb::TextWindow
 #include "Xcb/Types.h"              // For xcb::DEV_EVENT_MASK
 
+#include "Config.h"                 // For Configuration controls
 #include "EdFile.h"                 // For EdFile objects
 #include "Editor.h"                 // For Editor
 #include "EdTabs.h"                 // For EdTabs
@@ -98,6 +99,11 @@ public:
 {
    if( opt_hcdm )
      debugh("EdText(%p)::EdText\n", this);
+
+   // Configure text colors
+   using namespace config;          // For TXT_BG, TXT_FG
+   bg= TXT_BG;                      // (Values defined in Config.h)
+   fg= TXT_FG;
 
    // Reserve TOP line
    USER_TOP= 1;                     // Message/Status/Command line
@@ -189,7 +195,6 @@ void
           , cursor, col, row);
 
    if( buffer && cursor ) {         // If actually changed (and changeable)
-     if( ((EdLine*)cursor)->flags.rdonly ) return; // TODO: INSURE NEEDED
      file->changed= true;           // The file has changed
 
      size_t length= active.get_used();
@@ -201,6 +206,31 @@ void
        cursor->text= revise;
      }
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Protected method-
+//       EdText::do_exit
+//
+// Purpose-
+//       (Safely) remove a file from the ring.
+//
+//----------------------------------------------------------------------------
+void
+   do_exit( void )                  // Safely remove a file from the ring
+{
+   if( file->damaged ) {
+     put_message("File damaged");
+     return;
+   }
+
+   if( file->changed ) {
+     put_message("File changed");
+     return;
+   }
+
+   Editor::editor->do_quit(file);
 }
 
 //----------------------------------------------------------------------------
@@ -265,7 +295,7 @@ int                                 // Return code, 0 if draw performed
    if( rc == 0 )                    // If redraw needed
      draw();
    else
-     draw_status();
+     draw_info();
 
    // Set (invert) the current cursor character
    set_cursor();
@@ -287,12 +317,10 @@ int                                 // Return code, 0 if draw performed
      int             n= 1)          // The relative column (Down positive)
 {
    clr_cursor();
-
-   int rc= 1;                       // Default, no draw
-   EdLine* cursor= (EdLine*)this->cursor; // The cursor line
    if( cursor->get_next() && cursor->get_prev() ) // If not a static line
      commit();                      // Commit the active line
 
+   int rc= 1;                       // Default, no draw
    if( n > 0 ) {                    // Move down
      while( n-- ) {
        if( row_used > (row + 1) )
@@ -330,12 +358,12 @@ int                                 // Return code, 0 if draw performed
      }
    }
 
-   set_active();
+   synch_active();
    if( rc == 0 ) {
      draw();
      set_cursor();
    } else
-     draw_status();
+     draw_info();
 
    return rc;
 }
@@ -343,53 +371,19 @@ int                                 // Return code, 0 if draw performed
 //----------------------------------------------------------------------------
 //
 // Protected method-
-//       EdText::set_active
+//       EdText::put_message
 //
 // Purpose-
-//       After a vertical column move, set the Active (cursor) line
+//       Add a message to the message queue
 //
 //----------------------------------------------------------------------------
-virtual void
-   set_active( void )               // Set the Active (cursor) line
+void
+   put_message(                     // Write message
+     std::string       _mess,       // Message text
+     int               _type= EdMess::T_MESS) // Message mode
 {
-   cursor= nullptr;                 // Default, no cursor
-   EdLine* line= (EdLine*)this->line; // Get the first line
-   if( line == nullptr ) {          // If Empty
-     if( opt_hcdm || opt_verbose >= 0 ) // TODO: REMOVE
-       xcb::user_debug("%4d HCDM EdText\n", __LINE__);
-     return;
-   }
-
-   for(unsigned r= 0; ; r++) {      // Set the Active line
-     if( r == row ) {
-       cursor= line;
-       break;
-     }
-
-     EdLine* next= line->get_next();
-     if( next == nullptr ) {
-       if( opt_hcdm || opt_verbose >= 0 ) // TODO: REMOVE
-         xcb::user_debug("%4d HCDM EdText r(%3d) row(%3d) row_size(%3d)\n"
-                        , __LINE__, r, row, row_size );
-       row= r;
-       cursor= line;
-       break;
-     }
-
-     if( (r + 1) >= row_size ) {
-       if( opt_hcdm || opt_verbose >= 0 ) // TODO: REMOVE
-         xcb::user_debug("%4d HCDM EdText r(%3d) row(%3d) row_size(%3d)\n"
-                        , __LINE__, r, row, row_size );
-       row= r;
-       cursor= line;
-       break;
-     }
-
-     line= next;
-   }
-
-   active.reset(cursor->text);
-   set_cursor();                    // Set the cursor
+   file->put_message(_mess, _type);
+   draw_info();
 }
 
 //----------------------------------------------------------------------------
@@ -432,6 +426,51 @@ void
 
 //----------------------------------------------------------------------------
 //
+// Protected method-
+//       EdText::synch_active
+//
+// Purpose-
+//       Set the Active (cursor) line to the current row.
+//
+//----------------------------------------------------------------------------
+virtual void
+   synch_active( void )             // Set the Active (cursor) line
+{
+   cursor= nullptr;                 // Default, no cursor
+   EdLine* line= (EdLine*)this->line; // Get the first line
+   if( line == nullptr ) {          // If Empty      // TODO: SHOULD NOT OCCUR
+     xcb::user_debug("%4d HCDM EdText\n", __LINE__); // TODO: REMOVE
+     return;
+   }
+
+   for(unsigned r= 0; ; r++) {      // Set the Active line
+     if( r == row ) {
+       cursor= line;
+       break;
+     }
+
+     EdLine* next= line->get_next();
+     if( next == nullptr ) {        // (Can occur if window grows)
+       row= r;
+       cursor= line;
+       break;
+     }
+
+     if( (r + 1) >= row_size ) {    // (Can occur if window shrinks)
+       row= r;
+       cursor= line;
+       break;
+     }
+
+     line= next;
+   }
+
+   active.reset(cursor->text);
+   set_cursor();                    // Set the cursor
+}
+
+//----------------------------------------------------------------------------
+//
 // Public method-
 //       EdText::configure
 //
@@ -449,10 +488,17 @@ virtual void
    TextWindow::configure();         // Create the Window
 
    // Create the graphic contexts
-   gc_chg= font.makeGC(0x00B22222, 0x00C0C0C0); // FireBrick red over grey
-   gc_cmd= font.makeGC(0x00FFFFFF, 0x00FF00FF); // White over light purple
-   gc_msg= font.makeGC(0x00B22222, 0x00FFFF00); // FireBrick red over yellow
-   gc_sts= font.makeGC(0x00000000, 0x00C0C0C0); // Black over grey
+   using namespace config;          // For *_FG, *_BG
+   gc_chg= font.makeGC(CHG_FG, CHG_BG); // (Values defined in Config.h)
+   gc_cmd= font.makeGC(CMD_FG, CMD_BG);
+   gc_msg= font.makeGC(MSG_FG, MSG_BG);
+   gc_sts= font.makeGC(STS_FG, STS_BG);
+
+// (For historical purposes only.
+// gc_chg= font.makeGC(0x00B22222, 0x00B0E0FF); // FireBrick over light blue
+// gc_cmd= font.makeGC(0x00000000, 0x00FF80FF); // Black over magenta
+// gc_msg= font.makeGC(0x00B22222, 0x00FFFF00); // FireBrick over yellow
+// gc_sts= font.makeGC(0x00000000, 0x00B0E0FF); // Black over light blue
 }
 
 //----------------------------------------------------------------------------
@@ -512,6 +558,7 @@ virtual bool                        // Return code, TRUE if handled
      char buffer[256];              // Status line buffer
      memset(buffer, ' ', sizeof(buffer)); // (Blank fill)
      buffer[sizeof(buffer)-1]= '\0';
+     memcpy(buffer, "Sample Text", 11);
      putxy(gc_cmd, 0, 0, buffer);
      flush();
      return true;
@@ -523,8 +570,8 @@ virtual bool                        // Return code, TRUE if handled
 virtual void
    draw_info( void )                // Redraw the information line
 {
-   if( draw_command() ) return;
    if( draw_message() ) return;
+   if( draw_command() ) return;
    draw_status();
 }
 
@@ -614,7 +661,6 @@ void
    this->file= file;
    this->line= nullptr;
    if( file ) {
-     // Get the file attributes
      this->line= file->top_line;
      this->last= this->line;
      this->col_zero= file->col_zero;
@@ -638,7 +684,7 @@ void
      set_main_name(buffer);
 
      // Redraw
-     set_active();
+     synch_active();
      draw();
      set_cursor();
    }
@@ -654,47 +700,95 @@ void
 //
 //----------------------------------------------------------------------------
 protected: // (Only used by key_input)
-int                                 // Return code, 0 if handled
+void
    key_alt(                         // Handle this
      xcb_keysym_t      key)         // Alt_Key input event
 {
-   int rc= 0;                       // Return code, default handled
-   switch(key) {
-     default:
-       fprintf(stderr, "Alt(%c) ignored\n", key);
-       rc= 1;
-   }
+   switch(key) {                    // ALT-
+     case 'I': {                    // Insert
+       commit();
+       EdLine* line= (EdLine*)cursor; // The current cursor line
+       if( line->get_next() == nullptr ) { // If it's the last line
+         line= line->get_prev();    // Use the line before it instead
+       }
 
-   return rc;
-}
-
-int                                 // Return code, 0 if handled
-   key_ctl(                         // Handle this
-     xcb_keysym_t      key)         // Ctrl_Key input event
-{
-   int rc= 0;                       // Return code, default handled
-   switch(key) {
-     case 'Q':                       // ctrl-Q (Quit)
+       line= file->insert(line, new EdLine()); // Insert a new line
+       file->changed= true;         // The file has changed
+       synch_active();              // Synchronize the cursor line and row
+       draw();                      // And redraw
+       break;
+     }
+     case 'Q':                      // Quit
        Editor::editor->do_done();
        break;
 
      default:
-       fprintf(stderr, "Ctrl(%c) ignored\n", key);
-       rc= 1;
+       put_message("Dead key", EdMess::T_INFO);
+   }
+}
+
+void
+   key_ctl(                         // Handle this
+     xcb_keysym_t      key)         // Ctrl_Key input event
+{
+   switch(key) {                    // CTRL-
+     default:
+       put_message("Dead key", EdMess::T_INFO);
+   }
+}
+
+// Handle protected line. Disallow keys which modify text.
+int                                 // Return code, TRUE if error message
+   key_protected(                   // Handle this protected line
+     xcb_keysym_t      key,         // Input key
+     int               state)       // Alt/Ctl/Shift state mask
+{
+   if( key >= 0x0020 && key < 0x007f ) { // If text key
+     int mask= state & (xcb::KS_ALT | xcb::KS_CTRL);
+
+     if( mask ) {
+       if( mask == xcb::KS_ALT ) {
+         key= toupper(key);
+         switch(key) {
+           case 'I':                  // INSERT allowed
+           case 'Q':                  // QUIT allowed
+             return false;
+             break;
+
+           default:
+             break;
+         }
+
+         put_message("Dead key", EdMess::T_INFO);
+         return true;
+       }
+     }
+   } else {
+     switch( key ) {                // Check for disallowed key
+       case 0x007F:                 // (DEL KEY, should not occur)
+       case XK_BackSpace:
+       case XK_Delete:
+         break;
+
+       default:                     // All others allowed
+         return false;
+         break;
+     }
    }
 
-   return rc;
+   put_message("Protected line", EdMess::T_INFO);
+   return true;
 }
 
 public:
-virtual int                         // Return code, 0 if handled
+virtual void
    key_input(                       // Handle this
      xcb_keysym_t      key,         // Key input event
      int               state)       // Alt/Ctl/Shift state mask
 {
    if( opt_hcdm ) {
      char B[2]; B[0]= '\0'; B[1]= '\0'; const char* K= B;
-     if( key >= 0x0020 && key < 0x007f ) B[0]= char(key);
+     if( key >= 0x0020 && key < 0x007F ) B[0]= char(key);
      else K= Editor::editor->key_to_name(key);
      debugh("EdText(%p)::key_input(0x%.4x,%.4x) '%s'\n", this, key, state, K);
    }
@@ -702,32 +796,37 @@ virtual int                         // Return code, 0 if handled
    const char* name= Editor::editor->key_to_name(key);
    xcb::trace(".KEY", (state<<16) | (key & 0x0000ffff), name);
 
-   int rc= 0;                       // Return code, default handled
+   // Handle protected line
+   if( ((EdLine*)cursor)->flags & EdLine::F_PROT ) { // If protected line
+     if( key_protected(key, state) ) // Return if not allowed
+       return;
+   }
+
+   // Handle input key
+   if( file->rem_message_type() )   // Remove informational message
+     draw_info();
+   if( file->messages.get_head() )  // If message remains
+     return;
+
    size_t column= col_zero + col;   // The cursor column
-   if( key >= 0x0020 && key < 0x007f ) { // If text key
+   if( key >= 0x0020 && key < 0x007F ) { // If text key
      int mask= state & (xcb::KS_ALT | xcb::KS_CTRL);
      if( mask ) {
        key= toupper(key);
        switch(mask) {
          case xcb::KS_ALT:
-           rc= key_alt(key);
+           key_alt(key);
            break;
 
          case xcb::KS_CTRL:
-           rc= key_ctl(key);
+           key_ctl(key);
            break;
 
          default:                   // (KS_ALT *AND* KS_CTRL)
-           // BRINGUP TEST. TODO:REMOVE
-           debugf("Alt+Ctrl(0x%.4x,%c) ignored\n", key, key);
-           rc= 1;
+           put_message("Dead key", EdMess::T_INFO);
        }
-       return rc;
+       return;
      }
-
-     // If data key
-     if( ((EdLine*)cursor)->flags.rdonly ) // If read-only line
-       return 0;                    // TODO: Warning?
 
      if( xcb::keystate & xcb::KS_INS ) { // If Insert state
        active.insert_char(column, key);
@@ -747,7 +846,7 @@ virtual int                         // Return code, 0 if handled
      set_cursor();
      flush();
 
-     return 0;
+     return;
    }
 
    switch( key ) {                  // Handle data key
@@ -783,7 +882,7 @@ virtual int                         // Return code, 0 if handled
        }
        break;
      }
-     case 0x007f:                  // (Should not occur)
+     case 0x007F:                  // (Should not occur)
      case XK_Delete: {
        active.remove_char(column);
        active.append_text(" ");
@@ -797,13 +896,13 @@ virtual int                         // Return code, 0 if handled
        active.undo();
        active.index(col_zero+col_size); // Blank fill
        putxy(hide_cursor(0, row), active.get_buffer(col_zero));
-       draw_status();
+       draw_info();
        set_cursor();
        break;
 
      case XK_Insert: {              // Insert key
        xcb::keystate ^= xcb::KS_INS; // Invert the insert state
-       draw_status();
+       draw_info();
        break;
      }
      case XK_Return:
@@ -835,12 +934,19 @@ virtual int                         // Return code, 0 if handled
      //-----------------------------------------------------------------------
      // Function keys
      case XK_F1: {
-       Editor::editor->do_help();
+       printf(" F1: This help message\n"
+              " F3: Quit File\n"
+              " F7: Previous File\n"
+              " F8: Next File\n"
+              "F12: Bringup test\n"
+              "A-I: Insert\n"
+              "A-Q: Quit\n"
+       );
        break;
      }
      case XK_F3: {
        commit();
-       Editor::editor->do_exit(this->file);
+       do_exit();
        break;
      }
      case XK_F7: {                  // Prior file
@@ -875,7 +981,8 @@ virtual int                         // Return code, 0 if handled
          col_zero= 0;
          draw();
        } else
-         draw_status();
+         draw_info();
+
        set_cursor();
        break;
      }
@@ -909,7 +1016,7 @@ virtual int                         // Return code, 0 if handled
            row_zero--;
            line= up;
          }
-         set_active();
+         synch_active();
          draw();
        }
        set_cursor();
@@ -921,7 +1028,7 @@ virtual int                         // Return code, 0 if handled
        if( line != last ) {
          row_zero += (row_used - USER_TOP);
          line= last;
-         set_active();
+         synch_active();
          draw();
        }
        set_cursor();
@@ -933,11 +1040,8 @@ virtual int                         // Return code, 0 if handled
      }
 
      default:
-       if( opt_hcdm || opt_verbose >= 0 ) debugf("0x%.6x Key ignored\n", key);
-       rc= 1;
+       put_message("Dead key", EdMess::T_INFO);
    }
-
-   return rc;
 }
 
 //============================================================================
@@ -967,9 +1071,10 @@ virtual void
        break;
      }
      case xcb::BT_RIGHT: {          // Right button
+       // TODO: CODE INSPECTION
        unsigned abs_row= get_row(E.event_y+1);
        if( abs_row == 0 ) {
-         if( file->messages.remq() ) { // If message handled
+         if( file->rem_message() ) { // If message removed
            draw_info();
            break;
          }

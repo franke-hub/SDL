@@ -76,8 +76,8 @@ enum // Compile-time constants
 //----------------------------------------------------------------------------
 public:
 Font                   font;        // Current Font
-
 std::string            font_name;   // The font name
+
 Line*                  cursor= nullptr; // The current cursor line
 Line*                  line= nullptr; // Current first line
 Line*                  last= nullptr; // Current last line displayed
@@ -93,10 +93,10 @@ unsigned               col= 0;      // Cursor column (X) (offset from col_zero)
 unsigned               row= 0;      // Cursor row (Y) (offset from row_zero)
 
 // Configuration controls
-unsigned               COLS_H=80;   // Nominal columns
-unsigned               ROWS_W=50;   // Nominal rows
-unsigned               MINI_H=10;   // Minimum columns (Height)
-unsigned               MINI_W=10;   // Minimum rows    (Width)
+unsigned               COLS_W=80;   // Nominal columns
+unsigned               ROWS_H=50;   // Nominal rows
+unsigned               MINI_C=40;   // Minimum columns (Width)
+unsigned               MINI_R=10;   // Minimum rows    (Height)
 unsigned               USER_TOP= 0; // Number of reserved TOP lines
 unsigned               USER_BOT= 0; // Number of reserved BOTTOM lines
 

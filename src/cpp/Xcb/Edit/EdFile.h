@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2020/10/16
+//       2020/10/17
 //
 //----------------------------------------------------------------------------
 #ifndef EDFILE_H_INCLUDED
@@ -50,23 +50,15 @@ class EdFile;
 class EdLine : public ::xcb::Line { // Editor line descriptor
 public:
 //----------------------------------------------------------------------------
-// EdLine::Typedefs and enumerations
-//----------------------------------------------------------------------------
-enum FLAGS                          // Status flags
-{  F_NONE= 0x0000                   // No flags
-,  F_PROT= 0x0001                   // Content cannot be modified
-};
-
-//----------------------------------------------------------------------------
 // EdLine::Attributes
 //----------------------------------------------------------------------------
-struct {                            // Status/control flags
-  unsigned               _00    : 8; // Reserved for expansion
-  unsigned               _01    : 5; // Reserved for expansion
-  unsigned               rdonly : 1; // Line is read-only
-  unsigned               hidden : 1; // Line is hidden
-  unsigned               marked : 1; // Line is marked
-}                      flags;       // Control flags
+uint16_t               flags= 0;    // Control flags
+enum FLAGS                          // Control flags
+{  F_NONE= 0x0000                   // No flags
+,  F_HIDE= 0x0001                   // Line is hidden
+,  F_MARK= 0x0002                   // Line is marked
+,  F_PROT= 0x0004                   // Line is read/only
+};
 
 unsigned char          delim[2] = {0, 0}; // Delimiter
 //   For [0]= '\n', [1]= either '\r' or '\0' for DOS or Unix format.
@@ -79,7 +71,6 @@ public:
    EdLine(                          // Constructor
      const char*       text= nullptr) // Line text
 :  ::xcb::Line(text)
-,  flags {0, 0, 0, 0, 0}
 {
    if( opt_hcdm && opt_verbose > 2 )
      debugh("EdLine(%p)::EdLine\n", this);
@@ -109,6 +100,152 @@ inline EdLine*
 //----------------------------------------------------------------------------
 //
 // Class-
+//       EdHide
+//
+// Purpose-
+//       Editor hidden line group
+//
+// Implementation note-
+//       Caller *ALWAYS* verifies that head/tail not protected
+//
+//----------------------------------------------------------------------------
+class EdHide : public EdLine {      // Editor hidden line group
+//----------------------------------------------------------------------------
+// EdHide::Attributes
+//----------------------------------------------------------------------------
+public:
+std::string            info;        // The text line string
+size_t                 count= 0;    // The number of hidden lines
+EdLine*                head= nullptr; // First hidden line
+EdLine*                tail= nullptr; // Final hidden line
+
+//----------------------------------------------------------------------------
+// EdHide::Constructor/Destructor
+//----------------------------------------------------------------------------
+public:
+   EdHide(                          // Constructor
+     EdLine*           _head= nullptr, // First hidden line
+     EdLine*           _tail= nullptr) // Final hidden line
+:  EdLine()
+{
+   if( opt_hcdm )
+     debugh("EdHide(%p)::EdHide\n", this);
+
+   flags= F_HIDE;
+   if( _head ) {
+     append(_head);
+     if( _tail )
+       append(_tail);
+   }
+}
+
+//----------------------------------------------------------------------------
+virtual
+   ~EdHide( void )                  // Destructor
+{
+   if( opt_hcdm )
+     debugh("EdHide(%p)::~EdHide...\n", this);
+
+   EdLine* line= head;
+   if( line ) {                     // If files remain
+     // You should only get here from the EdFile destructor. Let's make sure.
+     if( get_prev() ) {             // If the prior line wasn't removed
+       fprintf(stderr, "~EdHide invalid state"); // (Not called from ~EdFile)
+       return;
+     }
+
+     while( true ) {
+       if( line == nullptr ) {
+         fprintf(stderr, "~EdHide invalid chain"); // (Too late to debug now)
+         return;
+       }
+       EdLine* next= line->get_next();
+       delete line;
+       if( line == tail ) break;
+       line= next;
+     }
+   }
+}
+
+//----------------------------------------------------------------------------
+// EdHide::Methods
+//----------------------------------------------------------------------------
+public:
+void
+   append(                          // Add to end of list
+     EdLine*           line)        // Making this the new tail line
+{
+   if( tail )
+     get_next()->set_prev(tail);
+   else {
+     line->get_prev()->set_next(this);
+     set_prev(line->get_prev());
+     head= line;
+   }
+   line->get_next()->set_prev(this);
+   tail= line;
+
+   update();
+}
+
+void
+   prepend(                         // Add to beginning of list
+     EdLine*           line)        // Making this the new head line
+{
+   if( head ) {
+     get_prev()->set_next(head);
+   } else {
+     line->get_next()->set_prev(this);
+     set_next(line->get_next());
+     tail= line;
+   }
+   line->get_prev()->set_next(this);
+   head= line;
+
+   update();
+}
+
+void
+   remove( void )                   // Remove (and delete) this hidden line
+{
+   if( head )                       // If not inserted
+     return;                        // Nothing to do
+
+   get_prev()->set_next(head);
+   get_next()->set_prev(tail);
+   head= nullptr;
+   tail= nullptr;
+
+   delete this;
+}
+
+void
+   update( void )                   // Update the count and the message
+{
+   count= 0;
+   if( head ) {
+     EdLine* line= head;
+     count= 1;
+     while( line != tail ) {
+       count++;
+       if( line == nullptr ) throw "Invalid EdHide chain";
+       line= line->get_next();
+     }
+   }
+
+   char buffer[128];                // Message work area
+   memset(buffer, '-', sizeof(buffer));
+   buffer[sizeof(buffer) - 1]= '\0';
+   int L= sprintf(buffer, ">--- %zd lines hidden", count);
+   buffer[L]= ' ';
+   info= buffer;
+   text= info.c_str();
+}
+}; // class EdHide
+
+//----------------------------------------------------------------------------
+//
+// Class-
 //       EdMess
 //
 // Purpose-
@@ -119,18 +256,26 @@ class EdMess : public pub::List<EdMess>::Link { // Editor message descriptor
 //----------------------------------------------------------------------------
 // EdMess::Attributes
 public:
+enum                                // Message types
+{  T_INFO                           // T_INFO: Informational, any key removes
+,  T_MESS                           // T_MESS: Action, button click required
+,  T_BUSY                           // T_BUSY: Limited function until complete
+};
+
 std::string            mess;        // The message
+int                    type= T_MESS; // The message type
 
 //----------------------------------------------------------------------------
 // EdMess::Constructor/Destructor
 //----------------------------------------------------------------------------
 public:
    EdMess(                          // Constructor
-     std::string       text)        // Message text
-:  ::pub::List<EdMess>::Link(), mess(text)
+     std::string       _mess,       // Message text
+     int               _type= T_MESS)
+:  ::pub::List<EdMess>::Link(), mess(_mess), type(_type)
 {
    if( opt_hcdm )
-     debugh("EdMess(%p)::EdMess(%s)\n", this, text.c_str());
+     debugh("EdMess(%p)::EdMess(%s,%d)\n", this, _mess.c_str(), _type);
 }
 
 //----------------------------------------------------------------------------
@@ -192,7 +337,7 @@ virtual
 //----------------------------------------------------------------------------
 // EdUndo::Methods
 //----------------------------------------------------------------------------
-public: // None defined
+public:
 void
    redo(                            // Redo this action
      EdFile*           file)        // For this File
@@ -228,8 +373,8 @@ int                    mode= M_NONE; // The file mode
 bool                   changed= false; // File is changed
 bool                   damaged= false; // File is damaged
 
-// ::pub::List<EdLine> redos;       // The redo list
-// ::pub::List<EdLine> undos;       // The undo list
+// ::pub::List<EdUndo> redos;       // The redo list
+// ::pub::List<EdUndo> undos;       // The undo list
 
 // Cursor position controls
 EdLine*                top_line= nullptr; // The current top Line
@@ -255,8 +400,8 @@ public:
    EdLine* bot= new EdLine("* * * * End of file * * * *");
    lines.fifo(top);
    lines.fifo(bot);
-   top->flags.rdonly= true;
-   bot->flags.rdonly= true;
+   top->flags= EdLine::F_PROT;
+   bot->flags= EdLine::F_PROT;
 
    top_line= top;
    csr_line= top;
@@ -286,7 +431,12 @@ virtual
 //----------------------------------------------------------------------------
 // EdFile::Accessor methods
 //----------------------------------------------------------------------------
+// TODO: REFACTOR message operations in conjunction with EdText
 public:
+EdMess*                             // The current EdMess
+   get_message( void ) const        // Get current EdMess
+{  return messages.get_head(); }
+
 std::string
    get_name( void ) const           // Get the file name (Named interface)
 {  return name; }
@@ -295,6 +445,40 @@ char*
    get_text(                        // Allocate file text
      size_t            size) const  // Of this length
 {  return Editor::editor->get_text(size); }
+
+void
+   put_message(                     // Write message
+     std::string       _mess,       // Message text
+     int               _type= EdMess::T_MESS) // Message mode
+{
+   EdMess* mess= messages.get_head();
+   if( mess && _type <= mess->type )
+     return;
+
+   messages.fifo(new EdMess(_mess, _type));
+}
+
+int                                 // TRUE if message removed or remain
+   rem_message( void )              // Remove current EdMess
+{
+   EdMess* mess= messages.remq();
+   delete mess;
+   return bool(mess) || bool(messages.get_head());
+}
+
+int                                 // TRUE if message removed or remain
+   rem_message_type(                // Remove current EdMess
+     int                _type= 0)   // If at this level or lower
+{
+   EdMess* mess= messages.get_head();
+   if( mess && _type >= mess->type ) {
+     messages.remove(mess, mess);
+     delete mess;
+     return true;
+   }
+
+   return bool(messages.get_head());
+}
 
 //----------------------------------------------------------------------------
 //
@@ -313,7 +497,7 @@ EdLine*                             // The last inserted line
    struct stat st;                  // File stats
    int rc= stat(name, &st);         // Get file information
    if( rc != 0 ) {                  // If failure
-     messages.fifo(new EdMess("File not found"));
+     put_message("File not found");
      return line;
    }
 
@@ -328,7 +512,7 @@ EdLine*                             // The last inserted line
    if( L != size )
    {
      damaged= true;
-     messages.fifo(new EdMess("Read failure"));
+     put_message("Read failure");
      size= L;
    }
    fclose(f);
@@ -336,7 +520,7 @@ EdLine*                             // The last inserted line
    // Check for binary file
    char* last= strchr(text, '\0');
    if( size_t(last - text) < size ) { // If file contains '\0' delimiter
-     messages.fifo(new EdMess("Binary file"));
+     put_message("Binary file");
      mode= M_BIN;
    }
 
@@ -351,7 +535,7 @@ EdLine*                             // The last inserted line
      if( nend == nullptr ) {        // Missing '\\n' delimiter
        size_t L= strlen(from);      // String length
        if( from + L >= last ) {
-         messages.fifo(new EdMess("Ending '\\n' missing"));
+         put_message("Ending '\\n' missing");
          break;
        }
 
@@ -401,12 +585,12 @@ EdLine*                             // The last inserted line
 //       EdFile::insert
 //
 // Purpose-
-//       Insert one file line
+//       Insert file lines (or line)
 //
 //----------------------------------------------------------------------------
-EdLine*                             // The last insertedline
-   insert(                          // Insert after
-     EdLine*           after,       // This line
+EdLine*                             // (Always tail)
+   insert(                          // Insert
+     EdLine*           after,       // After this line
      EdLine*           head,        // From this line
      EdLine*           tail)        // Upto this line
 {
@@ -421,11 +605,39 @@ EdLine*                             // The last insertedline
    return tail;
 }
 
-EdLine*                             // The new line
-   insert(                          // Insert after
+EdLine*                             // (Always line)
+   insert(                          // Insert
      EdLine*           after,       // After this line
      EdLine*           line)        // This line
 {  return insert(after, line, line); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::remove
+//
+// Purpose-
+//       Remove file lines (or line)
+//
+//----------------------------------------------------------------------------
+void
+   remove(                          // Remove
+     EdLine*           head,        // From this line
+     EdLine*           tail)        // Upto this line
+{
+   lines.remove(head, tail);
+
+   for(EdLine* line= head; line != tail; line= line->get_next()) {
+     if( line == nullptr ) throw "Invalid remove chain";
+     rows--;
+   }
+   rows--;                          // (Count the tail line)
+}
+
+void
+   remove(                          // Remove
+     EdLine*           line)        // This line
+{  return remove(line, line); }
 
 //----------------------------------------------------------------------------
 //

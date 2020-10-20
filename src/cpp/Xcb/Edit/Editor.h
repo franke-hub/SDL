@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2020/10/12
+//       2020/10/17
 //
 // Implementation notes-
 //       TODO: REMOVE: Debugging controls
@@ -112,31 +112,6 @@ virtual
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
    do_done( void );                 // (Safely) terminate, error if changed.
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Editor::do_exit
-//
-// Purpose-
-//       (Safely) remove a file from the ring. (Error if changed.)
-//
-//----------------------------------------------------------------------------
-int                                 // Return code, 0 OK
-   do_exit(                         // (Safely) remove
-     EdFile*           file);       // This file from the ring
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Editor::do_help
-//
-// Purpose-
-//       Console help message.
-//
-//----------------------------------------------------------------------------
-int                                 // Return code, 0 OK
-   do_help( void );                 // Display help message (to stdout)
 
 //----------------------------------------------------------------------------
 //

@@ -145,11 +145,11 @@ virtual void
      xcb_rectangle_t   rect)        // This (relative) Window range
 {  (void)rect; }
 
-virtual int                         // Return code, 0 if handled
+virtual void
    key_input(                       // Handle this
      xcb_keysym_t      key,         // Key input event
      int               state)       // Alt/Ctl/Shift state mask
-{  (void)key; (void)state; return 1; } // NOT HANDLED!
+{  (void)key; (void)state; }
 
 //----------------------------------------------------------------------------
 //
