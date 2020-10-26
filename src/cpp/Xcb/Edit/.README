@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2020/10/16
+##       2020/10/25
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in BRINGUP mode.
@@ -25,6 +25,12 @@
 
 ##############################################################################
 ## STATUS:
+2020/10/25 Mostly fixed Signals, moving it to pub library
+         Open issue: When compiling Editor.o, compiler can't seem to figure out
+         which debugf to use. Weirdness left in code for later debugging.
+         Need to figure out how to get TextWindow boundary blank column pixel.
+         See: TextWindow::set_font; TextWindow::resize changes.
+
 2020/10/15 Debugged xcb_xfixes_hide_cursor not working
          (It's a Cygwin problem. It works properly on native Fedora Linux.)
          Button handlers implemented. (But not command handling.)

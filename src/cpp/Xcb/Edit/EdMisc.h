@@ -16,13 +16,11 @@
 //       Editor: (Dummy window placeholder.)
 //
 // Last change date-
-//       2020/10/12
+//       2020/10/25
 //
 //----------------------------------------------------------------------------
 #ifndef EDMISC_H_INCLUDED
 #define EDMISC_H_INCLUDED
-
-#include "Editor.h"                 // TODO: REMOVE. For include file debugging
 
 #include "Xcb/Global.h"             // For xcb::opt_* controls, xcb::trace
 #include "Xcb/Window.h"             // For xcb::Window
@@ -55,8 +53,8 @@ public:
      unsigned          height= 0)   // (Y) size height
 :  Window(parent, name ? name : "EdMisc")
 {
-   if( opt_hcdm )
-     debugh("EdMisc(%p)::EdMisc(%u,%u)\n", this, width, height);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdMisc(%p)::EdMisc(%u,%u)\n", this, width, height);
 
    if( width  < 14 ) width=  14;    // Must be large enough for text
    if( height < 14 ) height= 14;    // Must be large enough for text
@@ -69,8 +67,8 @@ public:
 virtual
    ~EdMisc( void )                  // Destructor
 {
-   if( opt_hcdm )
-     debugh("EdMisc(%s)::~EdMisc\n", this->get_name().c_str());
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdMisc(%s)::~EdMisc\n", this->get_name().c_str());
 
    if( drawGC ) {
      ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, drawGC) );
@@ -92,8 +90,8 @@ virtual
 virtual void
    configure( void )                // Configure the Window
 {
-   if( opt_hcdm )
-     debugh("EdMisc(%p)::configure Named(%s)\n", this, get_name().c_str());
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdMisc(%p)::configure Named(%s)\n", this, get_name().c_str());
 
    // Create the Window
    Window::configure();
@@ -134,8 +132,8 @@ void
    expose(                          // Handle this
      xcb_expose_event_t* event)     // Expose event
 {
-   if( opt_hcdm )
-     debugh("EdMisc(%p)::expose(%d) %d [%d,%d,%d,%d]\n", this
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdMisc(%p)::expose(%d) %d [%d,%d,%d,%d]\n", this
              , event->window, event->count
              , event->x, event->y, event->width, event->height);
 

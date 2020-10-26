@@ -16,7 +16,7 @@
 //       XCB based Window
 //
 // Last change date-
-//       2020/10/15
+//       2020/10/20
 //
 // Implementation notes-
 //       The window field addresses the PARENT window. (Widget already has a
@@ -35,7 +35,6 @@
 #include "Xcb/Global.h"             // For ENQUEUE/NOQUEUE macros
 #include "Xcb/Types.h"              // For namespace xcb types
 #include "Xcb/Pixmap.h"             // For xcb::Pixmap (base class)
-#include "Xcb/Signal.h"             // For xcb::Signal
 
 namespace xcb {
 //----------------------------------------------------------------------------

@@ -16,7 +16,7 @@
 //       Global data areas and utilities
 //
 // Last change date-
-//       2020/10/07
+//       2020/10/25
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_GLOBAL_H_INCLUDED

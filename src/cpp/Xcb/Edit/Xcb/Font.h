@@ -16,13 +16,11 @@
 //       XCB Font descriptor
 //
 // Last change date-
-//       2020/10/13
+//       2020/10/25
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_FONT_H_INCLUDED
 #define XCB_FONT_H_INCLUDED
-
-#include "Bringup.h"                // TODO: REMOVE
 
 #include <exception>                // For std::runtime_error
 
@@ -147,7 +145,8 @@ void
 {
    debugf("Font(%p)::debug(%s)\n", this, info ? info : "");
 
-   debugf("..window(%p,%s) fontGC(%u) fontID(%u) offset[%d,%d] length[%u,%u]\n"
+   debugf("..window(%p,%s) fontGC(%u)\n"
+          "..fontID(%u) offset[%d,%d] length[%u,%u]\n"
          , window, window->get_name().c_str(), fontGC, fontID
          , offset.x, offset.y, length.width, length.height);
    debugf("..info(%p.0x%zx):\n", font_info, sizeof(*font_info));

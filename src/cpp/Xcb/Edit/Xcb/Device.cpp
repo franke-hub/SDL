@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/10/13
+//       2020/10/25
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -69,7 +69,7 @@ static const char*                  // name->get_name().c_str()  or "<nullptr>"
 //
 //----------------------------------------------------------------------------
    Device::Device( void )           // Constructor
-:  Window(nullptr, "Device"), signal(this, "DeviceSignal")
+:  Window(nullptr, "Device"), signal("DeviceSignal")
 {
    if( opt_hcdm )
      debugh("Device(%p)::Device()\n", this);

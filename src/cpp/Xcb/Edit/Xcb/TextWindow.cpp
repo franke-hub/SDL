@@ -162,7 +162,7 @@ void
    debugf("..col_zero(%zd), row_zero(%zd)\n", col_zero, row_zero);
    debugf("..col(%u) row(%u)\n", col, row);
 
-   if( opt_hcdm || opt_verbose > 0 ) {
+   if( opt_hcdm || opt_verbose >= 0 ) {
      font.debug(text);
    }
 }
@@ -324,7 +324,7 @@ void
 
    if( x < min_size.width )  x= min_size.width;
    if( y < min_size.height ) y= min_size.height;
-   if( true  ) {                    // This is required. ??? WHY ???
+   if( false ) {                    // This is required. ??? WHY ???
      x += 7; x &= 0xfffffff8;
      y += 7; y &= 0xfffffff8;
    }
@@ -380,9 +380,9 @@ int                                 // Return code, 0 OK
      unsigned mini_r= MINI_R;
      if( mini_c > col_size ) mini_c= col_size;
      if( mini_r > row_size ) mini_r= row_size;
-     min_size= { WH_t(mini_c   * font.length.width  + 2)
+     min_size= { WH_t(mini_c   * font.length.width  + 1)
                , WH_t(mini_r   * font.length.height + 2) };
-     use_size= { WH_t(col_size * font.length.width  + 2)
+     use_size= { WH_t(col_size * font.length.width  + 1)
                , WH_t(row_size * font.length.height + 2) };
      use_unit= { WH_t(font.length.width), WH_t(font.length.height) };
 

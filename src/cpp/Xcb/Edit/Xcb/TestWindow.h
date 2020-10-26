@@ -16,13 +16,11 @@
 //       Test window: For experimentation
 //
 // Last change date-
-//       2020/10/13
+//       2020/10/25
 //
 //----------------------------------------------------------------------------
 #ifndef TESTWINDOW_H_INCLUDED
 #define TESTWINDOW_H_INCLUDED
-
-#include "Bringup.h"                // TODO: REMOVE
 
 #include <string>                   // For std::string
 #include <pub/utility.h>            // TODO: REMOVE. for to_string

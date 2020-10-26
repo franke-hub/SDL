@@ -16,13 +16,11 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2020/10/17
+//       2020/10/25
 //
 //----------------------------------------------------------------------------
 #ifndef EDFILE_H_INCLUDED
 #define EDFILE_H_INCLUDED
-
-#include "Bringup.h"                // TODO: REMOVE
 
 #include <sys/stat.h>               // For struct stat
 #include <pub/List.h>               // For pub::List
@@ -72,16 +70,16 @@ public:
      const char*       text= nullptr) // Line text
 :  ::xcb::Line(text)
 {
-   if( opt_hcdm && opt_verbose > 2 )
-     debugh("EdLine(%p)::EdLine\n", this);
+   if( xcb::opt_hcdm && xcb::opt_verbose > 2 )
+     xcb::debugh("EdLine(%p)::EdLine\n", this);
 }
 
 //----------------------------------------------------------------------------
 virtual
    ~EdLine( void )                  // Destructor
 {
-   if( opt_hcdm && opt_verbose > 2 )
-     debugh("EdLine(%p)::~EdLine...\n", this);
+   if( xcb::opt_hcdm && xcb::opt_verbose > 2 )
+     xcb::debugh("EdLine(%p)::~EdLine...\n", this);
 }
 
 //----------------------------------------------------------------------------
@@ -128,8 +126,8 @@ public:
      EdLine*           _tail= nullptr) // Final hidden line
 :  EdLine()
 {
-   if( opt_hcdm )
-     debugh("EdHide(%p)::EdHide\n", this);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdHide(%p)::EdHide\n", this);
 
    flags= F_HIDE;
    if( _head ) {
@@ -143,8 +141,8 @@ public:
 virtual
    ~EdHide( void )                  // Destructor
 {
-   if( opt_hcdm )
-     debugh("EdHide(%p)::~EdHide...\n", this);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdHide(%p)::~EdHide...\n", this);
 
    EdLine* line= head;
    if( line ) {                     // If files remain
@@ -274,16 +272,16 @@ public:
      int               _type= T_MESS)
 :  ::pub::List<EdMess>::Link(), mess(_mess), type(_type)
 {
-   if( opt_hcdm )
-     debugh("EdMess(%p)::EdMess(%s,%d)\n", this, _mess.c_str(), _type);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdMess(%p)::EdMess(%s,%d)\n", this, _mess.c_str(), _type);
 }
 
 //----------------------------------------------------------------------------
 virtual
    ~EdMess( void )                  // Destructor
 {
-   if( opt_hcdm )
-     debugh("EdMess(%p)::~EdMess...\n", this);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdMess(%p)::~EdMess...\n", this);
 }
 }; // class EdMess
 
@@ -322,16 +320,16 @@ public:
    EdUndo( void )                   // Constructor
 :  ::pub::List<EdUndo>::Link()
 {
-   if( opt_hcdm )
-     debugh("EdUndo(%p)::EdUndo\n", this);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdUndo(%p)::EdUndo\n", this);
 }
 
 //----------------------------------------------------------------------------
 virtual
    ~EdUndo( void )                  // Destructor
 {
-   if( opt_hcdm )
-     debugh("EdUndo(%p)::~EdUndo...\n", this);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdUndo(%p)::~EdUndo...\n", this);
 }
 
 //----------------------------------------------------------------------------
@@ -393,8 +391,8 @@ public:
 :  ::pub::List<EdFile>::Link()
 ,  name(name ? name : "unnamed.txt")
 {
-   if( opt_hcdm )
-     debugh("EdFile(%p)::EdFile(%s)\n", this, get_name().c_str());
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdFile(%p)::EdFile(%s)\n", this, get_name().c_str());
 
    EdLine* top= new EdLine("* * * * Top of file * * * *");
    EdLine* bot= new EdLine("* * * * End of file * * * *");
@@ -414,8 +412,8 @@ public:
 virtual
    ~EdFile( void )                  // Destructor
 {
-   if( opt_hcdm )
-     debugh("EdFile(%p)::~EdFile...\n", this);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdFile(%p)::~EdFile...\n", this);
 
    for(;;) {                        // Delete all lines
      EdLine* line= lines.remq();

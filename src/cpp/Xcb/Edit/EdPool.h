@@ -16,14 +16,13 @@
 //       Editor: Storage Pool descriptor
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/25
 //
 //----------------------------------------------------------------------------
 #ifndef EDPOOL_H_INCLUDED
 #define EDPOOL_H_INCLUDED
 
-#include "Editor.h"                 // TODO: REMOVE. For include file debugging
-
+#include <Xcb/Global.h>             // For xcb::opt_*, xcb::debug*
 #include <pub/List.h>               // For pub::List
 
 //----------------------------------------------------------------------------
@@ -62,16 +61,16 @@ public:
 :  ::pub::List<EdPool>::Link()
 ,  used(0), size(size), data(new char[size])
 {
-   if( opt_hcdm )
-     debugh("EdPool(%p)::EdPool\n", this);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdPool(%p)::EdPool\n", this);
 }
 
 //----------------------------------------------------------------------------
 virtual
    ~EdPool( void )                  // Destructor
 {
-   if( opt_hcdm )
-     debugh("EdPool(%p)::~EdPool, used %5zd of %5zd\n", this, used, size);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdPool(%p)::~EdPool, used %5zd of %5zd\n", this, used, size);
 
    delete [] data;                  // Delete the data
 }
@@ -90,8 +89,8 @@ char*                               // The allocated storage, nullptr if none
      used += size;
    }
 
-   if( opt_hcdm )
-     debugh("%p= EdPool(%p)::malloc(%zd)\n", result, this, size);
+   if( xcb::opt_hcdm )
+     xcb::debugh("%p= EdPool(%p)::malloc(%zd)\n", result, this, size);
 
    return result;
 }

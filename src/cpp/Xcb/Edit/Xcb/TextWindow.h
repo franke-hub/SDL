@@ -16,7 +16,7 @@
 //       XCB based text Window
 //
 // Last change date-
-//       2020/10/16
+//       2020/10/25
 //
 // Implementation note-
 //                    ******** DO NOT SIMULTANEOUSLY USE ********
@@ -35,8 +35,6 @@
 //----------------------------------------------------------------------------
 #ifndef TEXTWINDOW_H_INCLUDED
 #define TEXTWINDOW_H_INCLUDED
-
-#include "Editor.h"                 // TODO: REMOVE. For include file debugging
 
 #include <string>                   // For std::string
 #include <pub/utility.h>            // TODO: REMOVE. for to_string

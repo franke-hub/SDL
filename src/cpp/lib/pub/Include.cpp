@@ -16,7 +16,7 @@
 //       Compile header files that have no execution component.
 //
 // Last change date-
-//       2020/06/23
+//       2020/10/20
 //
 //----------------------------------------------------------------------------
 #include "pub/Event.h"
@@ -25,5 +25,5 @@
 #include "pub/Latch.h"
 #include "pub/Mutex.h"
 #include "pub/Semaphore.h"
-#include "pub/Signals+Slots.h"
+#include "pub/Signals.h"
 #include "pub/UTF8.h"

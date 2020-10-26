@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2020/10/17
+//       2020/10/25
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -37,6 +37,7 @@
 #include "Xcb/Device.h"             // For xcb::Device
 #include <Xcb/Keysym.h>             // For xcb_keycode_t symbols
 #include "Xcb/Layout.h"             // For xcb::Layout
+#include "Xcb/Signals.h"            // For xcb::Event, pub::namespace::signals
 #include "Xcb/TestWindow.h"         // For xcb::TestWindow
 #include "Xcb/Widget.h"             // For xcb::Widget, our base class
 #include "Xcb/Window.h"             // For xcb::Window
@@ -51,9 +52,6 @@
 #include "EdTabs.h"                 // For EdTabs
 #include "EdText.h"                 // For EdText
 
-using pub::Trace;                   // For Trace object
-using namespace xcb;                // For xcb objects, debugging
-
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -65,7 +63,7 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 // use_debug: Test for debugging active
 //----------------------------------------------------------------------------
-static inline bool use_debug( void ) { return HCDM || USE_BRINGUP || opt_hcdm; }
+static inline bool use_debug( void ) { return HCDM || USE_BRINGUP || xcb::opt_hcdm; }
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -90,11 +88,11 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
      int               argi,        // Argument index
      int               argc,        // Argument count
      char*             argv[])      // Argument array
-:  Widget(nullptr, "Editor"), ring(), filePool(), textPool(), active()
+:  ring(), filePool(), textPool(), active(), devcon()
 ,  locate_string(), change_string()
 {
-   if( opt_hcdm )
-     debugh("Editor(%p)::Editor\n", this);
+   if( xcb::opt_hcdm )
+     xcb::debugh("Editor(%p)::Editor\n", this);
 
    // Initialize singleton
    {{ std::lock_guard<decltype(mutex)> lock(mutex);
@@ -106,7 +104,7 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
    textPool.fifo(new EdPool(EdPool::MIN_SIZE));
 
    // Allocate Device
-   device= new Device();
+   device= new xcb::Device();
 
    // Allocate sub-windows, mostly testing construction
    find= new EdFind();
@@ -117,22 +115,18 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
 
    //-------------------------------------------------------------------------
    // Create device_listener, our DeviceEvent handler
-   if( use_debug() ) debugf("\ndevice_listener:\n");
-   device_listener=
-   device->signal.connect([this](const DeviceEvent& event)->int {
+   if( use_debug() ) xcb::debugf("\ndevice_listener:\n");
+   devcon= device->signal.connect([this](xcb::DeviceEvent& event) {
      if( use_debug() ) {
-       debugf("\nE.Listener(%p)::operator()(<D.Event>%p) op(%d)\n"
+       xcb::debugf("\nE.Listener(%p)::operator()(<D.Event>%p) op(%d)\n"
              , this, &event, event.type);
-       this->device_listener.debug("E.Listener.operator()");
+       this->devcon.debug("E.Listener.operator()");
      }
 
      if( event.type == int(xcb::DeviceEvent::TYPE_CLOSE) ) {
-       xcb::Device* device= static_cast<Device*>(event.widget);
+       xcb::Device* device= static_cast<xcb::Device*>(event.widget);
        device->operational= false;
-       return true;
      }
-
-     return false;
    });
 
    //-------------------------------------------------------------------------
@@ -145,15 +139,9 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
    }
 
    // Select-a-Config ========================================================
-   if( opt_test ) {                 // If optional test selected
-     std::string test= opt_test;    // The test name (For string == function)
-     if( test == "insert" ) {       // Works OK
-       // Result: No detectable change
-       //   Device->Editor->EdText
-       device->insert(this);        // (This "Widget" does nothing Widgety)
-       device->insert(text);
-
-     } else if( test == "mainwindow" ) { // Only EdText visible
+   if( xcb::opt_test ) {            // If optional test selected
+     std::string test= xcb::opt_test; // The test name (For string == function)
+     if( test == "mainwindow" ) {   // Only EdText visible
        // Result: EdText takes entire screen. EdMain not visibie.
        //   Device->EdMain->EdText
        main->insert(text);
@@ -174,7 +162,7 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
      } else if( test == "testwindow" ) { // EdText overlayed with TestWindow
        // Result: TextWindow over EdText window, as expected
        //   Device->EdText->TestWindow
-       window= new TestWindow();
+       window= new xcb::TestWindow();
        text->insert(window);
        device->insert(text);
 
@@ -183,7 +171,7 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
        //   Device->Row->(EdText,EdMisc)
        // PROBLEM: CLOSE Window gets SIGABRT, unable to diagnose
        //          (only occurs after screen enlarged)
-       RowLayout* row= new xcb::RowLayout(device, "Row");
+       xcb::RowLayout* row= new xcb::RowLayout(device, "Row");
        window= new EdMisc(nullptr, "Bottom", 64, 64);
        row->insert( text );
        row->insert( window );
@@ -192,7 +180,7 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
        // Result: EdText only appears after screen enlarged
        //   Device->Row->(EdTabs,EdText)
        //   (No problem with CLOSE Window)
-       RowLayout* row= new xcb::RowLayout(device, "Row");
+       xcb::RowLayout* row= new xcb::RowLayout(device, "Row");
        row->insert( tabs );         // Apparently visible
        row->insert( text );         // Not visible
 
@@ -200,7 +188,7 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
        // Result: EdText only appears after screen enlarged
        //   Device->Col->(EdMisc,EdText)
        //   (CLOSE Window checkstop: Bad Window when closing window)
-       ColLayout* col= new xcb::ColLayout(device, "Col");
+       xcb::ColLayout* col= new xcb::ColLayout(device, "Col");
        window= new EdMisc(nullptr, "Left", 14, 64);
        col->insert(window);         // Apparently visible
        col->insert(text);           // Not visible
@@ -210,22 +198,22 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
        //   (No expose events. EdText parent "Left")
        //   Device->Row->(EdMenu,EdTabs,Col->(Left,EdText),Bottom)
        //   (CLOSE Window OK, No EdText so no Ctrl-Q)
-       RowLayout* row= new xcb::RowLayout(device, "Row");
+       xcb::RowLayout* row= new xcb::RowLayout(device, "Row");
        row->insert( menu );
        row->insert( tabs );
 
-       ColLayout* col= new xcb::ColLayout(row, "Col"); // (Row->insert(col))
+       xcb::ColLayout* col= new xcb::ColLayout(row, "Col"); // (Row->insert(col))
        if( false ) row->insert( col ); // (Tests duplicate insert)
        col->insert( new EdMisc(nullptr, "Left", 14, 64) );
        col->insert( text );
        row->insert( new EdMisc(nullptr, "Bottom", 64, 14));
 
      } else {
-       user_debug("Test(%s) not available\n", opt_test);
+       xcb::user_debug("Test(%s) not available\n", xcb::opt_test);
        exit(EXIT_FAILURE);
      }
 
-     user_debug("Test(%s) selected\n", opt_test);
+     xcb::user_debug("Test(%s) selected\n", xcb::opt_test);
    } else {                         // Default: No substructure =============
      device->insert(text);
    }
@@ -243,15 +231,6 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
 //----------------------------------------------------------------------------
    Editor::~Editor( void )          // Destructor
 {
-   // Remove all child Widgets
-   for(;;) {
-     Widget* widget= remove();
-     if( widget == nullptr )
-       break;
-
-//   delete widget;
-   }
-
    // Remove and delete Files
    for(;;) {
      EdFile* file= ring.remq();
@@ -387,8 +366,8 @@ char*                               // The (immutable) text
        }
 
        if( text == nullptr ) {      // If a new EdPool is required
-         if( opt_hcdm )
-           debugh("Editor.get_text(%zd) New pool\n", length);
+         if( xcb::opt_hcdm )
+           xcb::debugh("Editor.get_text(%zd) New pool\n", length);
          pool= new EdPool(EdPool::MIN_SIZE);
          text= pool->malloc(length);
          textPool.lifo(pool);
@@ -396,8 +375,8 @@ char*                               // The (immutable) text
      }
    }
 
-   if( opt_hcdm && opt_verbose > 1 )
-     debugf("%p= Editor::allocate(%zd)\n", text, length);
+   if( xcb::opt_hcdm && xcb::opt_verbose > 1 )
+     xcb::debugf("%p= Editor::allocate(%zd)\n", text, length);
    return text;
 }
 
@@ -504,7 +483,7 @@ void
    text->activate(ring.get_head());
 
    if( false ) {
-     debugf("%4d HCDM Editor: Reply loop not started\n", __LINE__);
+     xcb::debugf("%4d HCDM Editor: Reply loop not started\n", __LINE__);
      return;
    }
 
@@ -547,10 +526,10 @@ void
 
    ENQUEUE("xcb_poly_line", xcb_poly_line_checked(c
           , XCB_COORD_MODE_ORIGIN, widget_id, drawGC, 6, points));
-   if( opt_hcdm || false ) {        // ???WHY IS THIS NEEDED???
-     debugf("EdMisc::draw %u:[%d,%d]\n", drawGC, X, Y);
+   if( xcb::opt_hcdm || false ) {   // ???WHY IS THIS NEEDED???
+     xcb::debugf("EdMisc::draw %u:[%d,%d]\n", drawGC, X, Y);
      for(int i= 0; i<6; i++)
-       debugf("[%2d]: [%2d,%2d]\n", i, points[i].x, points[i].y);
+       xcb::debugf("[%2d]: [%2d,%2d]\n", i, points[i].x, points[i].y);
    }
 
 // (Attempts to fix problem without expose handler.)

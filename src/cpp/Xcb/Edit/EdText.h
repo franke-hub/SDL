@@ -16,7 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2020/10/17
+//       2020/10/25
 //
 // Implementation notes-
 //       Cygwin X-server does not support xcb_xfixes_hide_cursor, even though
@@ -28,8 +28,6 @@
 //----------------------------------------------------------------------------
 #ifndef EDTEXT_H_INCLUDED
 #define EDTEXT_H_INCLUDED
-
-#include "Bringup.h"                // TODO: REMOVE
 
 #include <string>                   // For std::string
 #include <sys/types.h>              // For
@@ -97,8 +95,8 @@ public:
      const char*       name= nullptr)
 :  TextWindow(parent, name ? name : "EdText"), active()
 {
-   if( opt_hcdm )
-     debugh("EdText(%p)::EdText\n", this);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdText(%p)::EdText\n", this);
 
    // Configure text colors
    using namespace config;          // For TXT_BG, TXT_FG
@@ -137,8 +135,8 @@ void                                // In .cpp, remove from .h file (window parm
 virtual
    ~EdText( void )                  // Destructor
 {
-   if( opt_hcdm )
-    debugh("EdText(%p)::~EdText\n", this);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdText(%p)::~EdText\n", this);
 
    free_gc(gc_chg);
    free_gc(gc_cmd);
@@ -161,14 +159,14 @@ virtual void
    debug(                           // Debugging display
      const char*       text= nullptr) const // Associated text
 {
-   debugf("EdText(%p)::debug(%s) Named(%s)\n", this, text ? text : ""
+   xcb::debugf("EdText(%p)::debug(%s) Named(%s)\n", this, text ? text : ""
          , get_name().c_str());
 
    TextWindow::debug(text);
 
-   debugf("..command(%d) gc_chg(%u) gc_cmd(%u) gc_msg(%u) gc_sts(%u)\n"
+   xcb::debugf("..command(%d) gc_chg(%u) gc_cmd(%u) gc_msg(%u) gc_sts(%u)\n"
          , command, gc_chg, gc_cmd, gc_msg, gc_sts);
-   debugf("..motion[%d,%u,%d,%d]\n"
+   xcb::debugf("..motion[%d,%u,%d,%d]\n"
          , motion.state, motion.time, motion.x, motion.y);
    active.debug(text);
 }
@@ -190,9 +188,9 @@ void
    commit( void )                   // Commit the Active line
 {
    const char* buffer= active.get_changed();
-   if( opt_hcdm )
-    debugh("EdText(%p)::commit buffer(%s) cursor(%p)[%u,%u]\n", this, buffer
-          , cursor, col, row);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdText(%p)::commit buffer(%s) cursor(%p)[%u,%u]\n", this, buffer
+           , cursor, col, row);
 
    if( buffer && cursor ) {         // If actually changed (and changeable)
      file->changed= true;           // The file has changed
@@ -399,8 +397,8 @@ void
 void
    set_cursor(bool set= true)       // Set cursor (with set == true)
 {
-   if( opt_hcdm && opt_verbose > 1 )
-     debugh("EdText(%p)::cursor_%s cursor[%u,%u]\n", this, set ? "S" : "C"
+   if( xcb::opt_hcdm && xcb::opt_verbose > 1 )
+     xcb::debugh("EdText(%p)::cursor_%s cursor[%u,%u]\n", this, set ? "S" : "C"
            , col, row);
 
    size_t column= col_zero + col;   // The current column
@@ -482,8 +480,8 @@ public:
 virtual void
    configure( void )                // Configure the Window
 {
-   if( opt_hcdm )
-     debugh("EdText(%p)::configure\n", this);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdText(%p)::configure\n", this);
 
    TextWindow::configure();         // Create the Window
 
@@ -786,11 +784,11 @@ virtual void
      xcb_keysym_t      key,         // Key input event
      int               state)       // Alt/Ctl/Shift state mask
 {
-   if( opt_hcdm ) {
+   if( xcb::opt_hcdm ) {
      char B[2]; B[0]= '\0'; B[1]= '\0'; const char* K= B;
      if( key >= 0x0020 && key < 0x007F ) B[0]= char(key);
      else K= Editor::editor->key_to_name(key);
-     debugh("EdText(%p)::key_input(0x%.4x,%.4x) '%s'\n", this, key, state, K);
+     xcb::debugh("EdText(%p)::key_input(0x%.4x,%.4x) '%s'\n", this, key, state, K);
    }
 
    const char* name= Editor::editor->key_to_name(key);
@@ -1055,8 +1053,8 @@ virtual void
    // Use E.detail and xcb::Types::BUTTON_TYPE to determine button
    // E.root_x/y is position on root window; E.event_x/y is position on window
    xcb_button_release_event_t& E= *event;
-   if( opt_hcdm && opt_verbose > 1 )
-     debugf("button_press:   %.2x root[%d,%d] event[%d,%d] state(0x%.4x)"
+   if( xcb::opt_hcdm && xcb::opt_verbose > 1 )
+     xcb::debugf("button_press:   %.2x root[%d,%d] event[%d,%d] state(0x%.4x)"
            " ss(%u) rec(%u,%u,%u)\n"
            , E.detail, E.root_x, E.root_y, E.event_x, E.event_y, E.state
            , E.same_screen, E.root, E.event, E.child);
@@ -1117,8 +1115,8 @@ virtual void
      xcb_motion_notify_event_t*     // Motion notify event
                        E)
 {
-   if( opt_hcdm )
-     debugh("motion_notify: time(%u) detail(%d) event(%d) xy(%d,%d)\n"
+   if( xcb::opt_hcdm )
+     xcb::debugh("motion_notify: time(%u) detail(%d) event(%d) xy(%d,%d)\n"
            , E->time, E->detail, E->event, E->event_x, E->event_y);
 
    // printf("."); fflush(stdout);  // See when called

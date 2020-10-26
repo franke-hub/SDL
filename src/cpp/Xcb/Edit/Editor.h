@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2020/10/17
+//       2020/10/25
 //
 // Implementation notes-
 //       TODO: REMOVE: Debugging controls
@@ -30,6 +30,7 @@
 
 #include "Xcb/Active.h"             // For xcb::Active
 #include "Xcb/Device.h"             // For xcb::Device
+#include "Xcb/Signals.h"            // For xcb::Event, namespace pub::signal
 #include "Xcb/Widget.h"             // For xcb::Widget, our base class
 #include "Xcb/Window.h"             // For xcb::Window
 
@@ -56,7 +57,7 @@ class EdText;                       // Editor text Window
 //       The Editor object is a singleton. Only one Editor exists per process.
 //
 //----------------------------------------------------------------------------
-class Editor : public xcb::Widget { // The Editor control object
+class Editor {                      // The Editor control object
 //----------------------------------------------------------------------------
 // Editor::Attributes
 //----------------------------------------------------------------------------
@@ -77,8 +78,8 @@ pub::List<EdPool>      filePool;    // File allocation EdPool
 pub::List<EdPool>      textPool;    // Text allocation EdPool
 
 xcb::Active            active;      // The current active text
-xcb::Connector<xcb::DeviceEvent>
-                       device_listener; // Our DeviceListener Connector
+pub::signals::Connector<xcb::DeviceEvent>
+                       devcon;      // Our DeviceListener Connector
 
 std::string            locate_string; // The locate string
 std::string            change_string; // The change string

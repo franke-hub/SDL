@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/09/30
+//       2020/10/25
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_DEVICE_H_INCLUDED
@@ -25,7 +25,7 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
-#include "Xcb/Signal.h"             // For Signal
+#include "Xcb/Signals.h"            // For Event, namespace pub::signals
 #include "Xcb/Widget.h"             // For Widget
 #include "Xcb/Window.h"             // Our base class
 
@@ -62,7 +62,8 @@ class Device : public Window {      // XCB device driver
 // xcb::Device::Attributes
 //----------------------------------------------------------------------------
 public:
-Signal<DeviceEvent>    signal;      // The DeviceEvent signal
+pub::signals::Signal<DeviceEvent>
+                       signal;      // The DeviceEvent signal
 Display*               display= nullptr; // X11 Display
 bool                   operational= true; // TRUE while operational
 

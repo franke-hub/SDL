@@ -16,7 +16,7 @@
 //       Editor: Main Window
 //
 // Last change date-
-//       2020/10/02
+//       2020/10/25
 //
 // Implementation note-
 //       Used to test utility of a built-in DeviceWindow.
@@ -24,8 +24,6 @@
 //----------------------------------------------------------------------------
 #ifndef EDMAIN_H_INCLUDED
 #define EDMAIN_H_INCLUDED
-
-#include "Bringup.h"                // TODO: REMOVE
 
 #include <pub/utility.h>            // For pub::to_string
 
@@ -41,8 +39,6 @@
 
 #include "Xcb/Global.h"             // For xcb::opt_* controls, xcb::trace
 #include "Xcb/Widget.h"             // For xcb::Widget
-
-using namespace xcb;                // For xcb objects
 
 //----------------------------------------------------------------------------
 //
@@ -67,10 +63,10 @@ enum // Compile-time constants
 //----------------------------------------------------------------------------
 public:
    EdMain( void )                   // Constructor
-:  TextWindow(nullptr, "EdMain")
+:  xcb::TextWindow(nullptr, "EdMain")
 {
-   if( opt_hcdm )
-     debugh("EdMain(%p)::EdMain\n", this);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdMain(%p)::EdMain\n", this);
 }
 
 //----------------------------------------------------------------------------
@@ -79,8 +75,8 @@ public:
 virtual
    ~EdMain( void )                  // Destructor
 {
-   if( opt_hcdm )
-     debugh("EdMain(%p)::~EdMain\n", this);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdMain(%p)::~EdMain\n", this);
 }
 
 //============================================================================
@@ -91,8 +87,8 @@ virtual void
    configure_notify(                // Handle this
      xcb_configure_notify_event_t* event) // Configure notify event
 {
-   if( opt_hcdm )
-     debugh("EdMain(%p)::configure_notify(%d,%d)\n", this
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdMain(%p)::configure_notify(%d,%d)\n", this
            , event->width, event->height);
 
    resize(event->width, event->height);
@@ -103,8 +99,8 @@ virtual void
      const
      xcb_rectangle_t&  rect)        // Expose event
 {
-   if( opt_hcdm )
-     debugh("EdMain(%p)::expose([%d,%d,%d,%d])\n", this
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdMain(%p)::expose([%d,%d,%d,%d])\n", this
              , rect.x, rect.y, rect.width, rect.height);
 
    draw();
@@ -123,12 +119,12 @@ virtual void
 virtual void
    draw( void )                     // Redraw the Window
 {
-   if( opt_hcdm )
-     debugh("EdMain(%p)::draw()\n", this);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdMain(%p)::draw()\n", this);
 
    // Clear the window. // TODO: optimize (if necessary)
    if( true ) {
-     WH_size_t size= get_size(__LINE__); // ** EXPERIMENTAL **
+     xcb::WH_size_t size= get_size(__LINE__); // ** EXPERIMENTAL **
      rect.width=  size.width;
      rect.height= size.height;
    }
@@ -138,15 +134,15 @@ virtual void
 
    if( USE_BRINGUP && false ) {
      // BRINGUP: Draw diagonal line (to see where boundaries are)
-     if( opt_hcdm && opt_verbose > 2 ) {
+     if( xcb::opt_hcdm && xcb::opt_verbose > 2 ) {
 //     debug(pub::utility::to_string("%4d EdMain diagonal", __LINE__).c_str());
        xcb_point_t points[2]= { {0,                0}
-                              , {PT_t(rect.width), PT_t(rect.height)}
+                              , {xcb::PT_t(rect.width), xcb::PT_t(rect.height)}
                               };
        NOQUEUE("xcb_poly_line", xcb_poly_line(c
               , XCB_COORD_MODE_ORIGIN, widget_id, font.fontGC, 2, points));
-       if( opt_verbose > 2 )
-         debugf("%4d POLY {0,{%d,%d}}\n", __LINE__, rect.width, rect.height);
+       if( xcb::opt_verbose > 2 )
+         xcb::debugf("%4d POLY {0,{%d,%d}}\n", __LINE__, rect.width, rect.height);
      }
    }
 
@@ -168,8 +164,8 @@ void
      int               x,           // New width
      int               y)           // New height
 {
-   if( opt_hcdm )
-     debugh("EdMain(%p)::resize(%d,%d)\n", this, x, y);
+   if( xcb::opt_hcdm )
+     xcb::debugh("EdMain(%p)::resize(%d,%d)\n", this, x, y);
 
    if( x < min_size.width )  x= min_size.width;
    if( y < min_size.height ) y= min_size.height;
@@ -179,7 +175,7 @@ void
    }
 
    // If size unchanged, do nothing
-   WH_size_t size= get_size(__LINE__);
+   xcb::WH_size_t size= get_size(__LINE__);
    if( size.width == x && size.height == y ) // If unchanged
      return;                        // Nothing to do
 
@@ -187,9 +183,9 @@ void
    set_size(x, y, __LINE__);
 
    // Diagnostics
-   if( opt_hcdm ) {
-     WH_size_t size= get_size();
-     debugf("%4d [%d x %d]= chg_size <= [%d x %d]\n",  __LINE__
+   if( xcb::opt_hcdm ) {
+     xcb::WH_size_t size= get_size();
+     xcb::debugf("%4d [%d x %d]= chg_size <= [%d x %d]\n",  __LINE__
            , size.width, size.height, rect.width, rect.height);
      rect.width=  size.width;
      rect.height= size.height;

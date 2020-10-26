@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2020/10/10
+//       2020/10/25
 //
 //----------------------------------------------------------------------------
 #include <chrono>
@@ -45,7 +45,7 @@
 #include "pub/Exception.h"
 #include "pub/Latch.h"              // See test_Latch
 #include "pub/memory.h"             // See test_atomic_shared_ptr, NOT CODED YET
-#include "pub/Signals+Slots.h"      // See test_Signals
+#include "pub/Signals.h"            // See test_Signals
 #include "pub/Trace.h"              // See test_Trace
 #include "pub/UTF8.h"               // See test_UTF8
 #include "pub/utility.h"            // For _PUB_NAMESPACE::utility
@@ -77,6 +77,7 @@ using namespace _PUB_NAMESPACE::debugging;
 static int             opt_case= false; // (Only set if --all)
 static int             opt_debug= 0; // --debug
 static int             opt_dump= false; // --dump
+static int             opt_hcdm= false; // --hcdm
 static int             opt_help= false; // --help or error
 static int             opt_index;   // Option index
 static int             opt_latch= false; // --latch
@@ -91,6 +92,7 @@ static const char*     utf8_decode= nullptr; // --utf8.decode
 
 static struct option   OPTS[]=      // Options
 {  {"help",    no_argument,       &opt_help,    true}
+,  {"hcdm",    no_argument,       &opt_hcdm,    true}
 ,  {"dump",    no_argument,       &opt_dump,    true}
 ,  {"latch",   no_argument,       &opt_latch,   true}
 ,  {"misc",    no_argument,       &opt_misc,    true}
@@ -109,6 +111,7 @@ static struct option   OPTS[]=      // Options
 
 enum OPT_INDEX
 {  OPT_HELP
+,  OPT_HCDM
 ,  OPT_DUMP
 ,  OPT_LATCH
 ,  OPT_MISC
@@ -632,64 +635,78 @@ static inline int
 //       test_Signals
 //
 // Purpose-
-//       Test signals/Signal.h
-//
-// Implementation note-
-//       signals/Signal.h debugging functions normally commented out.
-//       They must be enabled if needed.
+//       Test Signals.h
 //
 //----------------------------------------------------------------------------
 static inline int
-   test_Signals( void )             // Test signals::Signal.h
+   test_Signals( void )             // Test Signals.h
 {
    debugf("\ntest_Signals\n");
 
    int                 errorCount= 0; // Number of errors encountered
 
+   using namespace pub::signals;
+   struct Event {                   // Our event type
+     float             X;           // X value
+     float             Y;           // Y value
+
+     Event(float X_, float Y_) : X(X_), Y(Y_) {}
+   }; // struct Event
+
    static int          A_counter= 0; // Number of A clicks
    static int          B_counter= 0; // Number of B clicks
 
-   using click_conn=   pub::signals::Connection<float,float>;
-   using click_signal= pub::signals::Signal<float,float>;
-// using click_slot=   pub::signals::Slot<float,float>; // Not needed or used
+   using click_conn=   Connector<Event>;
+   using click_event=  Event;
+   using click_signal= Signal<Event>;
+
+   pub::debugging::options::pub_hcdm= opt_hcdm;
 
    struct gui_element{
      click_signal clicked;
-     void mouse_down(float X,float Y) { clicked.emit(X, Y); }
+     void mouse_down(float X,float Y) { Event E(X,Y); clicked.inform(E); }
+
+     gui_element(const char* name= nullptr) : clicked(name) {}
    };
 
+   hcdmf(__LINE__); gui_element A("A"); // The "A" gui_element
+   hcdmf(__LINE__); gui_element B("B"); // The "B" gui_element
+   hcdmf(__LINE__); click_conn connection_1;
+   hcdmf(__LINE__); click_conn connection_2;
+
    struct Slot_A {
-     void operator()(float X, float Y)
-     { IFDEBUG( debugf("SA : A was clicked at %.0f,%.0f\n", X, Y); )
+     void operator()(click_event& E) {
+       IFDEBUG( debugf("SA: A was counted for %.0f,%.0f\n", E.X, E.Y); )
        A_counter++;
-     };
+     }
    };
 
    struct Slot_B {
-     void operator()(float X, float Y)
-     { IFDEBUG( debugf("SB : B was clicked at %.0f,%.0f\n", X, Y); )
+     void operator()(click_event& E) {
+       IFDEBUG( debugf("SB: B was counted for %.0f,%.0f\n", E.X, E.Y); )
        B_counter++;
-     };
+     }
    };
 
-   hcdmf(__LINE__); gui_element A; // The "A" gui_element
-   hcdmf(__LINE__); gui_element B; // The "B" gui_element
-   hcdmf(__LINE__); click_conn connection_1, connection_2;
-
-   connection_1= A.clicked.connect([](float X,float Y) {
-           IFDEBUG(  debugf("l1 : A was clicked at %.0f,%.0f\n", X, Y); )
-           A_counter++;
-           });
-   connection_2= B.clicked.connect([](float X,float Y) {
-           IFDEBUG(  debugf("l2 : B was clicked at %.0f,%.0f\n", X, Y); )
-           B_counter++;
-           });
+   scdmf(__LINE__);
+   connection_1= A.clicked.connect([](click_event& E) {
+       IFDEBUG(  debugf("LA: A was counted for %.0f,%.0f\n", E.X, E.Y); )
+       A_counter++;
+   });
+   scdmf(__LINE__);
+   connection_2= B.clicked.connect([](click_event& E) {
+       IFDEBUG(  debugf("LB: B was counted for %.0f,%.0f\n", E.X, E.Y); )
+       B_counter++;
+   });
+// A.clicked.debug("A");
+// B.clicked.debug("B");
 
    // A has one connection, B has one connection
    IFHCDM( hcdmf(__LINE__); A.clicked.debug("A");      )
    IFHCDM( hcdmf(__LINE__); B.clicked.debug("B");      )
    IFHCDM( hcdmf(__LINE__); connection_1.debug("c_1"); )
    IFHCDM( hcdmf(__LINE__); connection_2.debug("c_2"); )
+
    scdmf(__LINE__); A.mouse_down(__LINE__, -1);
    scdmf(__LINE__); B.mouse_down(-1, __LINE__);
    errorCount += MUST_EQ(A_counter, 1);
@@ -698,10 +715,10 @@ static inline int
 
    {
      scdmf(__LINE__);
-     auto temporary= A.clicked.connect([](float X,float Y){
-                              IFDEBUG(  debugf("tmp: A was clicked at %.0f,%.0f\n", X, Y); )
-                                        A_counter++;
-                                        });
+     auto temporary= A.clicked.connect([](click_event& E){
+         IFDEBUG(  debugf("LT: A was counted for %.0f,%.0f\n", E.X, E.Y); )
+         A_counter++;
+     });
      IFHCDM( hcdmf(__LINE__); A.clicked.debug("A"); )
      // A has two connections, B has one connection
      scdmf(__LINE__); A.mouse_down(1, 0);
@@ -710,11 +727,11 @@ static inline int
      errorCount += MUST_EQ(B_counter, 2);
    }
 
-   // temporary out of scope: A has one connection, B has one connection
-   // This overwrites the B connection with the A connection,
+   // temporary is out of scope: A has one connection, B has one connection
+   // This overwrites the B connection_2 with the A connection_1,
    // leaving connection_1 empty and connection_2 with the A connection.
    scdmf(__LINE__);
-   connection_2 = std::move(connection_1);
+   connection_2= std::move(connection_1);
 
    // A has one connection, B has no connections
    IFHCDM( hcdmf(__LINE__); A.clicked.debug("A"); )
@@ -724,11 +741,12 @@ static inline int
    errorCount += MUST_EQ(A_counter, 4);
    errorCount += MUST_EQ(B_counter, 2);
 
-   // Add a Slot_B connection to Slot_A.
+   // Add a Slot_B connection to A.clicked.
    // A.mouse_down drives both l1 and SB connections
-   click_conn more= A.clicked.connect(Slot_B());
+   scdmf(__LINE__);
+   click_conn more= A.clicked.connect(Slot_B()); // Clicking A counts B!
    IFHCDM( hcdmf(__LINE__); A.clicked.debug("B"); )
-   scdmf(__LINE__); A.mouse_down(3, 0);
+   scdmf(__LINE__); A.mouse_down(3, 0); // Increments A_counter and B_counter
    errorCount += MUST_EQ(A_counter, 5);
    errorCount += MUST_EQ(B_counter, 3);
 
@@ -738,7 +756,7 @@ static inline int
    errorCount += MUST_EQ(B_counter, 3);
 
    // This is a usage error.
-   // The connection is created but not saved, so it's immediately deleted
+   // The connection is created but not saved, so it's immediately deleted.
    // Thus it has no effect.
    B.clicked.connect(Slot_B());
    IFHCDM( hcdmf(__LINE__); B.clicked.debug("T"); )
@@ -753,8 +771,8 @@ static inline int
 
    //-------------------------------------------------------------------------
    // Test Signal::reset()
-   A.clicked.reset();
-   B.clicked.reset();
+   scdmf(__LINE__); A.clicked.reset();
+   scdmf(__LINE__); B.clicked.reset();
 
    scdmf(__LINE__); A.mouse_down(-5, 0);
    scdmf(__LINE__); B.mouse_down(0, -5);
@@ -763,8 +781,9 @@ static inline int
 
    //-------------------------------------------------------------------------
    // Test Connection::reset()
-   connection_1= A.clicked.connect(Slot_A());
-   connection_1.reset();
+   scdmf(__LINE__);
+   connection_1= A.clicked.connect(Slot_A()); // Make connection
+   connection_1.reset();            // Break connection
 
    scdmf(__LINE__); A.mouse_down(-6, 0);
    scdmf(__LINE__); B.mouse_down(0, -6);
@@ -773,6 +792,7 @@ static inline int
 
    //-------------------------------------------------------------------------
    // Test multiple connections
+   scdmf(__LINE__);
    A_counter= B_counter= 0;
    click_conn l_array[32];
    for(int i= 0; i<32; i++)

@@ -16,7 +16,7 @@
 //       Some Quick and Dirty tests.
 //
 // Last change date-
-//       2020/10/16
+//       2020/10/25
 //
 //----------------------------------------------------------------------------
 #include <chrono>                   // We include everything and then some
@@ -51,8 +51,6 @@
 #include "pub/Trace.h"
 #include "pub/Worker.h"
 #include "pub/utility.h"
-
-#include "Xcb/Signal.h"
 
 using namespace pub;
 using namespace pub::utility;
