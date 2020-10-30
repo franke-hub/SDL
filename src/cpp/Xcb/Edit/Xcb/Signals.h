@@ -16,7 +16,7 @@
 //       Signal Event descriptor.
 //
 // Last change date-
-//       2020/10/25
+//       2020/10/27
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_SIGNALS_H_INCLUDED
@@ -26,9 +26,12 @@
 #include <xcb/xproto.h>             // For xcb_point_t
 #include "pub/Signals.h"            // For namespace pub::signals
 
-#include <Xcb/Widget.h>             // For xcb::Widget
-
 namespace xcb {
+//----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+class Widget;                       // The xcb::Widget class
+
 //----------------------------------------------------------------------------
 //
 // Struct-

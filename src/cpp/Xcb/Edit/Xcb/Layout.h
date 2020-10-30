@@ -16,7 +16,7 @@
 //       XCB Layout Widget descriptor
 //
 // Last change date-
-//       2020/09/06
+//       2020/10/27
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_LAYOUT_H_INCLUDED
@@ -125,10 +125,10 @@ virtual void
 //       ColLayout
 //
 // Purpose-
-//       Column (Horizontal) Layout
+//       Column Layout. Subcomponents are vertical columns.
 //
 //----------------------------------------------------------------------------
-class ColLayout : public Layout {   // Horizontal Layout
+class ColLayout : public Layout {   // Column Layout
 //----------------------------------------------------------------------------
 // ColLayout::Constructors/Destructors
 //----------------------------------------------------------------------------
@@ -154,10 +154,10 @@ virtual void
 //       RowLayout
 //
 // Purpose-
-//       Row (Vertical) Layout
+//       Row Layout. Subcomponents are horizontal rows.
 //
 //----------------------------------------------------------------------------
-class RowLayout : public Layout {   // Vertial Layout
+class RowLayout : public Layout {   // Row Layout
 //----------------------------------------------------------------------------
 // RowLayout::Constructors/Destructors
 //----------------------------------------------------------------------------
