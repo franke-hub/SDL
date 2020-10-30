@@ -16,7 +16,7 @@
 //       pub::signals::Signal and pub::signals::Connector descriptors.
 //
 // Last change date-
-//       2020/10/25
+//       2020/10/30
 //
 // Usage notes-
 //       The Signal interface consists of these objects:
@@ -113,6 +113,12 @@
 #include <pub/Latch.h>              // For pub::ExclusiveLatch, SharedLatch
 #include <pub/Named.h>              // For pub::Named (Base class)
 
+//----------------------------------------------------------------------------
+// Macros (temporary, undefined at end)
+//----------------------------------------------------------------------------
+#define debugf ::pub::debugging::debugf // Prevent ADL lookup
+#define pub_hcdm ::pub::debugging::options::pub_hcdm
+
 #include "detail/Signals.h"         // For internal classes
 
 namespace pub::signals {
@@ -149,9 +155,9 @@ class Connector {                   // Signal/Listener Connector
 // pub::signals::Connector::Attributes
 //----------------------------------------------------------------------------
 protected:
-typedef signals::detail::ListenerList<Event>
+typedef detail::ListenerList<Event>
                        List_t;      // ListenerList type
-typedef signals::detail::Listener<Event>
+typedef detail::Listener<Event>
                        Slot_t;      // Listener type
 typedef ::std::shared_ptr<List_t>
                        Strong_t;    // shared_ptr<ListenerList> type
@@ -167,10 +173,7 @@ Slot_t*                slot;        // The Listener (raw pointer)
 public:
    Connector( void )                // Default constructor
 :  list(), slot(nullptr)
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   using ::pub::debugging::debugf; using ::pub::debugging::options::pub_hcdm;
-// if( pub_hcdm )                   // This can fail for some unknown reason
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
+{  if( pub_hcdm )
      debugf("Connector(%p.%zd)::Connector\n", this, sizeof(*this));
 }
 
@@ -178,8 +181,7 @@ public:
      Strong_t&         _list,       // The ListenerList (shared_ptr reference)
      Slot_t*           _slot)       // The Listener (raw pointer)
 :  list(_list), slot(_slot)
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
+{  if( pub_hcdm )
      debugf("Connector(%p)::Connector(%p.%zd,%p.%zd)\n", this
            , _list.get(), sizeof(List_t), _slot, sizeof(*_slot));
 }
@@ -187,9 +189,7 @@ public:
    Connector(                       // MOVE constructor (resets source)
      Connector&&       that)
 :  list(), slot(nullptr)
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
-     debugf("Connector(%p)::Connector(&&%p)\n", this, &that);
+{  if( pub_hcdm ) debugf("Connector(%p)::Connector(&&%p)\n", this, &that);
 
    list= ::std::move(that.list);
    slot= ::std::move(that.slot);
@@ -203,9 +203,7 @@ public:
 // pub::signals::Connector::Destructor
 //----------------------------------------------------------------------------
    ~Connector( void )               // Destructor
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
-     debugf("Connector(%p)::~Connector\n", this);
+{  if( pub_hcdm ) debugf("Connector(%p)::~Connector\n", this);
 
    reset();
 }
@@ -215,9 +213,7 @@ public:
 //----------------------------------------------------------------------------
 Connector&
    operator=(Connector&& that)      // MOVE assignment (resets source)
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
-     debugf("Connector(%p)::operator=(&&%p)\n", this, &that);
+{  if( pub_hcdm ) debugf("Connector(%p)::operator=(&&%p)\n", this, &that);
 
    reset();
    list= ::std::move(that.list);
@@ -235,9 +231,8 @@ Connector& operator=(const Connector&) = delete;
 //----------------------------------------------------------------------------
 void
    debug(const char* info= nullptr)
-{  using namespace ::pub::debugging;
+{
    if( info == nullptr ) info= "";
-   ::pub::debugging::
    debugf("Connector(%p.%zd)::debug(%s) lock_state<%s> slot(%p)\n", this
          , sizeof(*this), info, list.lock() ? "valid" : "gone", slot);
 }
@@ -253,8 +248,7 @@ void
 //----------------------------------------------------------------------------
 void
    reset( void )                    // Reset Connector
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
+{  if( pub_hcdm )
      debugf("Connector(%p)::reset lock_state<%s>\n", this
            , list.lock() ? "valid" : "gone");
 
@@ -285,10 +279,10 @@ class Signal : public Named {       // Signal descriptor
 protected:
 typedef std::function<void(Event&)>
                        Function;   // Function<Event> class
-typedef signals::detail::Listener<Event>
-                       Listener;    // Using signals::detail::Listener
-typedef signals::detail::ListenerList<Event>
-                       ListenerList; // Using signals::detail::ListenerList
+typedef detail::Listener<Event>
+                       Listener;    // Using detail::Listener
+typedef detail::ListenerList<Event>
+                       ListenerList; // Using detail::ListenerList
 
 ::std::shared_ptr<ListenerList>
                        list;        // The ListenerList List accessor
@@ -301,9 +295,7 @@ public:
      const char*       name= nullptr) // Signal name
 :  Named(name ? name : "Signal")
 ,  list(std::make_shared<ListenerList>())
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
-     debugf("Signal(%p)::Signal(%s)\n", this, get_name().c_str());
+{  if( pub_hcdm ) debugf("Signal(%p)::Signal(%s)\n", this, get_name().c_str());
 }
 
    Signal(const Signal&) = delete;  // *NO* copy constructor
@@ -313,10 +305,7 @@ public:
 //----------------------------------------------------------------------------
 virtual
    ~Signal( void )                  // Destructor
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
-     debugf("Signal(%p)::~Signal\n", this);
-}
+{  if( pub_hcdm ) debugf("Signal(%p)::~Signal\n", this); }
 
 //----------------------------------------------------------------------------
 // pub::signals::Signal::Operators
@@ -329,9 +318,7 @@ Signal& operator=(const Signal&) = delete; // *NO* Assignment operator
 void
    debug(                           // Debugging display
      const char*       info= "")    // Associated text
-{  using namespace debugging;
-   ::pub::debugging::
-   debugf("Signal(%p)::debug(%s) Named(%s)\n", this, info, get_name().c_str());
+{  debugf("Signal(%p)::debug(%s) Named(%s)\n", this, info, get_name().c_str());
    list->debug();
 }
 
@@ -350,11 +337,8 @@ void
 //----------------------------------------------------------------------------
 Connector<Event>                    // The Signal/Function connector
    connect(                         // Connect a Signal Event handler
-//   const Function<Event>&
-     const Function&
-                       function)    // The Signal Event handler function
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
+     const Function&   function)    // The Signal Event handler function
+{  if( pub_hcdm )
      debugf("Signal(%p)::connect(%p.%zd)\n", this, &function, sizeof(function));
 
    Listener* slot= new Listener(function);
@@ -376,9 +360,8 @@ Connector<Event>                    // The Signal/Function connector
 void
    inform(                          // Inform all Listeners about
      Event&            event) const // This Event
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
-     debugf("Signal(%p)::raise(%p)\n", this, &event);
+{  if( pub_hcdm ) debugf("Signal(%p)::raise(%p)\n", this, &event);
+
    list->inform(event);
 }
 
@@ -393,9 +376,7 @@ void
 //----------------------------------------------------------------------------
 void
    reset( void )                    // Remove all Listeners
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
-     debugf("Signal(%p)::reset\n", this);
+{  if( pub_hcdm ) debugf("Signal(%p)::reset\n", this);
 
    // Note: Replacing the ListenerList prevents Connectors from finding it.
    // This is required in order to prevent dangling Listener references.
@@ -403,4 +384,9 @@ void
 }
 }; // class pub::signals::Signal
 }  // namespace pub::signals
+//----------------------------------------------------------------------------
+// Remove temporary macros
+//----------------------------------------------------------------------------
+#undef debugf
+#undef pub_hcdm
 #endif // _PUB_SIGNALS_H_INCLUDED

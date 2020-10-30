@@ -16,7 +16,10 @@
 //       Signals detail, not part of external interface
 //
 // Last change date-
-//       2020/10/25
+//       2020/10/30
+//
+// Implementation note-
+//       This include is private. It requires macros defined in ../Signals.h.
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_DETAIL_SIGNALS_H_INCLUDED
@@ -54,8 +57,7 @@ public:
    Listener(                        // Constructor
      const Function&   _function)   // The Event handler function
 :  function(_function)
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
+{  if( pub_hcdm )
      debugf("Listener(%p.%zd)::Listener(%p.%zd)\n"
            , this, sizeof(*this), &_function, sizeof(_function));
 }
@@ -64,10 +66,7 @@ public:
 // pub::signals::detail::Listener::Destructor
 //----------------------------------------------------------------------------
    ~Listener( void )                // Destructor
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
-     debugf("Listener(%p)::~Listener\n", this);
-}
+{  if( pub_hcdm ) debugf("Listener(%p)::~Listener\n", this); }
 
 //----------------------------------------------------------------------------
 // pub::signals::detail::Listener::inform
@@ -75,9 +74,8 @@ public:
 void
    inform(                          // Inform this Listener about
      Event&            event) const // This (application defined) Event
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
-     debugf("Listener(%p)::handle(%p)\n", this, &event);
+{  if( pub_hcdm ) debugf("Listener(%p)::inform(%p)\n", this, &event);
+
    function(event);
 }
 }; // class Listener
@@ -109,18 +107,13 @@ mutable
 public:
    ListenerList( void )             // Default constructor
 :  SHR(), list()
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
-     debugf("ListenerList(%p)::ListenerList\n", this);
-}
+{  if( pub_hcdm ) debugf("ListenerList(%p)::ListenerList\n", this); }
 
 //----------------------------------------------------------------------------
 // pub::signals::detail::ListenerList::Destructor
 //----------------------------------------------------------------------------
    ~ListenerList( void )            // Destructor
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
-     debugf("ListenerList(%p)::~ListenerList\n", this);
+{  if( pub_hcdm ) debugf("ListenerList(%p)::~ListenerList\n", this);
 
    // Implementation note: The ListenerList may contain Listeners. Only the
    // Connector may delete these objects and it can't find the ListenerList.
@@ -133,12 +126,10 @@ public:
 //----------------------------------------------------------------------------
 void
    debug( void )                    // Debugging display
-{  using namespace ::pub::debugging;
-
+{
    size_t X= 0;
    std::lock_guard<decltype(SHR)> lock(SHR); // While holding the shared Latch
    for(Slot_t* slot= list.get_head(); slot; slot= slot->get_next() ) {
-     ::pub::debugging::
      debugf("[%2zd] %p\n", X++, slot); // (Note that X is incremented here)
    }
 }
@@ -155,9 +146,7 @@ void
 void                                // (All Listeners are informed)
    inform(                          // Inform all Listeners about
      Event&            event) const // This Event
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
-     debugf("ListenerList(%p)::inform(%p)\n", this, &event);
+{  if( pub_hcdm ) debugf("ListenerList(%p)::inform(%p)\n", this, &event);
 
    std::lock_guard<decltype(SHR)> lock(SHR); // While holding the shared Latch
    for(Slot_t* slot= list.get_head(); slot; slot= slot->get_next())
@@ -170,9 +159,7 @@ void                                // (All Listeners are informed)
 void
    insert(                          // Insert
      Slot_t*           slot)        // This Listener (FIFO ordering)
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
-     debugf("ListenerList(%p)::insert(%p)\n", this, slot);
+{  if( pub_hcdm ) debugf("ListenerList(%p)::insert(%p)\n", this, slot);
 
    ::pub::ExclusiveLatch XCL(SHR);  // While holding the exclusive Latch
    std::lock_guard<decltype(XCL)> lock(XCL);
@@ -186,9 +173,7 @@ void
 void
    remove(                          // Remove
      Slot_t*           slot)        // This Listener
-{  using namespace ::pub::debugging; using namespace ::pub::debugging::options;
-   if( ::pub::debugging::options::pub_hcdm ) ::pub::debugging::
-     debugf("ListenerList(%p)::remove(%p)\n", this, slot);
+{  if( pub_hcdm ) debugf("ListenerList(%p)::remove(%p)\n", this, slot);
 
    ::pub::ExclusiveLatch XCL(SHR);  // While holding the exclusive Latch
    std::lock_guard<decltype(XCL)> lock(XCL);
