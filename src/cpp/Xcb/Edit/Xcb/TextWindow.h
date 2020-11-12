@@ -16,7 +16,7 @@
 //       XCB based text Window
 //
 // Last change date-
-//       2020/10/25
+//       2020/11/12
 //
 // Implementation note-
 //                    ******** DO NOT SIMULTANEOUSLY USE ********
@@ -28,9 +28,7 @@
 //       [bottom, right] margin.
 //
 // Implementation TODO-
-//       TODO: Test screen motion without any optimization.
-//       TODO: Understand draw() "resize ??? WHY ???"
-//       TODO: Separate code from header.
+//       TODO: ??Optimize?? So far not needed.
 //
 //----------------------------------------------------------------------------
 #ifndef TEXTWINDOW_H_INCLUDED
@@ -183,7 +181,7 @@ virtual void
 //----------------------------------------------------------------------------
 unsigned                            // The column
    get_col(                         // Get column
-     int               x);          // For this x pixel position
+     unsigned          x);          // For this x pixel position
 
 //----------------------------------------------------------------------------
 //
@@ -196,7 +194,7 @@ unsigned                            // The column
 //----------------------------------------------------------------------------
 unsigned                            // The row
    get_row(                         // Get row
-     int               y);          // For this y pixel position
+     unsigned          y);          // For this y pixel position
 
 //----------------------------------------------------------------------------
 //
@@ -286,8 +284,8 @@ void
 //----------------------------------------------------------------------------
 void
    resize(                          // Resize the Window
-     int               x,           // New width
-     int               y);          // New height
+     unsigned          x,           // New width
+     unsigned          y);          // New height
 
 //----------------------------------------------------------------------------
 //

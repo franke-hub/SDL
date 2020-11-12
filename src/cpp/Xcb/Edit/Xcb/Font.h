@@ -16,7 +16,7 @@
 //       XCB Font descriptor
 //
 // Last change date-
-//       2020/10/25
+//       2020/11/12
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_FONT_H_INCLUDED
@@ -297,6 +297,9 @@ int                                 // Return code, 0 OK
 // Purpose-
 //       Draw text at [left,top] point
 //
+// Implementation note-
+//       TODO: Handle text length > 255
+//
 //----------------------------------------------------------------------------
 void
    putxy(                           // Draw text
@@ -311,29 +314,34 @@ void
 
    pub::UTF8::Decoder decoder(text); // UTF8 input buffer
    xcb_char2b_t out[256];           // UTF16 output buffer
-   int length;                      // Output buffer length
-   for(length= 0; length<256; length++) {
+   unsigned outlen;                 // UTF16 output buffer length
+   unsigned outpix= left;           // Current output pixel
+   for(outlen= 0; outlen<256; outlen++) {
+     outpix += length.width;         // Ending pixel (+1)
+     if( outpix > window->rect.width ) // If past end of screen
+       break;
+
      int code= decoder.decode();    // Next input character
      if( code < 0 )                 // If none left
        break;
 
      if( code >= 0x00010000 ) {     // If two characters required
-       if( length >= 255 )          // If there's only room for one character
+       if( outlen >= 255 )          // If there's only room for one character
          break;
        code -= 0x00010000;          // Subtract extended origin
 //     code &= 0x000fffff;          // 20 bit remainder (operation not needed)
-       out[length++]= int2char2b(0x0000d800 | (code >> 10)); // High order code
+       out[outlen++]= int2char2b(0x0000d800 | (code >> 10)); // High order code
        code &= 0x000003ff;          // Low order 10 bits
        code |= 0x0000dc00;          // Low order code word
      }
 
-     out[length]= int2char2b(code); // Set (possibly low order) code
+     out[outlen]= int2char2b(code); // Set (possibly low order) code
    }
-   if( length == 0 ) return;        // Zero length easy to render
-   if( length >= 256 ) length= 255; // Only 8-bit length allowed
+   if( outlen == 0 ) return;        // Zero length easy to render
+   if( outlen >= 256 ) outlen= 255; // Only 8-bit length allowed
 
    window->NOQUEUE("xcb_image_text_16", xcb_image_text_16
-                  ( window->c, uint8_t(length), window->widget_id, fontGC
+                  ( window->c, uint8_t(outlen), window->widget_id, fontGC
                   , uint16_t(left), uint16_t(top + offset.y), out) );
 }
 

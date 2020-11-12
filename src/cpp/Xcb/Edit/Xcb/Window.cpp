@@ -16,7 +16,7 @@
 //       Implement Xcb/Window.h
 //
 // Last change date-
-//       2020/10/15
+//       2020/11/12
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -533,14 +533,14 @@ void
      int               x,           // New width
      int               y,           // New height
      int               line)        // Caller's line number
-{
+{  if( opt_hcdm )
+     debugf("%4d set_size(%d,%d)\n", line, x, y);
+
    int16_t mask= XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
    int32_t parm[2]= { x, y };
    synchronously(__LINE__
                 , "xcb_configure_window", xcb_configure_window_checked
                 ( c, widget_id, mask, parm ) );
-   if( opt_hcdm )
-     debugf("%4d set_size(%d,%d)\n", line, x, y);
 }
 
 //----------------------------------------------------------------------------

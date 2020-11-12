@@ -16,7 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2020/10/25
+//       2020/11/12
 //
 // Implementation notes-
 //       Cygwin X-server does not support xcb_xfixes_hide_cursor, even though
@@ -617,7 +617,7 @@ virtual void
    xcb_gcontext_t gc= gc_sts;       // Set background/foreground GC
    if( file->changed || file->damaged || active.get_changed() )
      gc= gc_chg;
-   putxy(gc, 0, 0, buffer);
+   putxy(gc, 1, 1, buffer);
    flush();
 }
 
@@ -1062,9 +1062,11 @@ virtual void
    size_t column= col_zero + col;   // The current column number
    switch( E.detail ) {
      case xcb::BT_LEFT: {           // Left button
-       int chg_row= int(get_row(E.event_y)) - int(row); // Row change
-       if( chg_row != 0 )         // If row changed
-         move_cursor_V(chg_row - USER_TOP); // Set new row
+       unsigned new_row= get_row(E.event_y); // Cursor row (absolute)
+       if( new_row < USER_TOP ) new_row= USER_TOP;
+       new_row -= USER_TOP;         // (Relative to USER_TOP)
+       if( new_row != row )         // If row changed
+         move_cursor_V(new_row - row); // Set new row
        move_cursor_H(col_zero + get_col(E.event_x)); // Set new column
        break;
      }

@@ -16,7 +16,7 @@
 //       Implement TextWindow.h
 //
 // Last change date-
-//       2020/10/16
+//       2020/11/12
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -49,6 +49,25 @@ enum // Compilation controls
 }; // Compilation controls
 
 namespace xcb {
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       trunc
+//
+// Purpose-
+//       Truncate down.
+//
+//----------------------------------------------------------------------------
+static inline unsigned              // The truncated value
+   trunc(                           // Get truncated value
+     unsigned          v,           // The value to truncate
+     unsigned          unit)        // The unit length
+{
+   v /= unit;                       // Number of units (truncated)
+   v *= unit;                       // Number of units * unit length
+   return v;
+}
+
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -245,8 +264,8 @@ void
 //----------------------------------------------------------------------------
 unsigned                            // The column
    xcb::TextWindow::get_col(        // Get column
-     int               x)           // For this x pixel position
-{  return unsigned(x+1)/font.length.width; }
+     unsigned          x)           // For this x pixel position
+{  return x/font.length.width; }
 
 //----------------------------------------------------------------------------
 //
@@ -259,8 +278,8 @@ unsigned                            // The column
 //----------------------------------------------------------------------------
 unsigned                            // The row
    xcb::TextWindow::get_row(        // Get row
-     int               y)           // For this y pixel position
-{  return (y+1)/int(font.length.height); }
+     unsigned          y)           // For this y pixel position
+{  return y/font.length.height; }
 
 //----------------------------------------------------------------------------
 //
@@ -316,17 +335,17 @@ xcb_point_t                         // The offset in Pixels
 //----------------------------------------------------------------------------
 void
    TextWindow::resize(              // Resize the Window
-     int               x,           // New width
-     int               y)           // New height
+     unsigned          x,           // New width
+     unsigned          y)           // New height
 {
    if( opt_hcdm )
      debugh("TextWindow(%p)::resize(%d,%d)\n", this, x, y);
 
    if( x < min_size.width )  x= min_size.width;
    if( y < min_size.height ) y= min_size.height;
-   if( false ) {                    // This is required. ??? WHY ???
-     x += 7; x &= 0xfffffff8;
-     y += 7; y &= 0xfffffff8;
+   if( true  ) {                    // Truncate  size (+ 1 pixel border)
+     x= trunc(x, font.length.width) + 2;
+     y= trunc(y, font.length.height) + 2;
    }
 
    // If size unchanged, do nothing

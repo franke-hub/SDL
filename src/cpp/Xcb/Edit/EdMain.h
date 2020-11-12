@@ -16,7 +16,7 @@
 //       Editor: Main Window
 //
 // Last change date-
-//       2020/10/25
+//       2020/11/12
 //
 // Implementation note-
 //       Used to test utility of a built-in DeviceWindow.
@@ -148,50 +148,6 @@ virtual void
 
    // Redraw complete
    flush();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdMain::resize
-//
-// Purpose-
-//       Resize the window
-//
-//----------------------------------------------------------------------------
-void
-   resize(                          // Resize the Window
-     int               x,           // New width
-     int               y)           // New height
-{
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdMain(%p)::resize(%d,%d)\n", this, x, y);
-
-   if( x < min_size.width )  x= min_size.width;
-   if( y < min_size.height ) y= min_size.height;
-   if( true  ) {                    // This is required. ??? WHY ???
-     x += 7; x &= 0xfffffff8;
-     y += 7; y &= 0xfffffff8;
-   }
-
-   // If size unchanged, do nothing
-   xcb::WH_size_t size= get_size(__LINE__);
-   if( size.width == x && size.height == y ) // If unchanged
-     return;                        // Nothing to do
-
-   // Reconfigure the window
-   set_size(x, y, __LINE__);
-
-   // Diagnostics
-   if( xcb::opt_hcdm ) {
-     xcb::WH_size_t size= get_size();
-     xcb::debugf("%4d [%d x %d]= chg_size <= [%d x %d]\n",  __LINE__
-           , size.width, size.height, rect.width, rect.height);
-     rect.width=  size.width;
-     rect.height= size.height;
-   }
-
-// draw(); // Not required: Expose events generated
 }
 }; // class EdMain
 #endif // EDMAIN_H_INCLUDED
