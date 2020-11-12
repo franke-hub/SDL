@@ -28,7 +28,7 @@
 ##       Command usage reminders
 ##
 ## Last change date-
-##       2020/05/14
+##       2020/11/02
 ##
 ## Usage-
 ##       .README (or edit .README)
@@ -101,6 +101,29 @@ cat $0
 ##
 ## Example-
 ##       nmon -s 10
+##
+##############################################################################
+
+##############################################################################
+##
+## Command-
+##       soffice {-program}
+##
+## Purpose-
+##       Invoke open office from the command line
+##
+## Options-
+##       -help   Get a complete list of options
+##       -nologo Do not show the start-up screen
+##       -view   Start in read-only mode
+##
+## Examples-
+##       soffice -calc     Spreadsheet
+##       soffice -draw     Drawing
+##       soffice -impress  Presentation
+##       soffice -math     Formula
+##       soffice -web      Web page
+##       soffice -writer   Text
 ##
 ##############################################################################
 
