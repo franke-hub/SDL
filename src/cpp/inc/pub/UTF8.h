@@ -16,7 +16,7 @@
 //       UTF-8 utilities
 //
 // Last change date-
-//       2020/10/10
+//       2020/12/03
 //
 // Usage notes-
 //       The Encoder/Decoder implement RFC 3629, UTF-8 translation format.
@@ -123,16 +123,16 @@ static inline const utf8_t*         // The next valid start code
    inc(                             // Get next valid start code
      const utf8_t*     addr)        // The current start code
 {
-     if( *addr < 0xC0 )             // (Skips invalid starts 0x80..0xBF)
-       return addr + 1;
+   if( *addr < 0xC0 )               // (Skips invalid starts 0x80..0xBF)
+     return addr + 1;
 
-     if( *addr < 0xE0 )
-       return addr + 2;
+   if( *addr < 0xE0 )
+     return addr + 2;
 
-     if( *addr < 0xF0 )
-       return addr + 3;
+   if( *addr < 0xF0 )
+     return addr + 3;
 
-     return addr + 4;
+   return addr + 4;
 }
 static inline utf8_t* inc(utf8_t* addr)
 { return const_cast<utf8_t*>(inc(const_cast<const utf8_t*>(addr))); }
@@ -143,38 +143,38 @@ static inline utf8_t* inc(utf8_t* addr)
 //       pub::UTF8::index
 //
 // Purpose-
-//       Get utf_t* offset for logical index
+//       Convert utf8_t* logical index to char* offset
 //
 //----------------------------------------------------------------------------
-static inline size_t                // The utf8_t* offset
-   index(                           // Get utf8_t* offset of
+static inline size_t                // The char* offset
+   index(                           // Get char* offset for
      const utf8_t*     addr,        // This ('\0' terminated) utf8_t* string
-     size_t            X)           // For this logical index of
+     size_t            X)           // And this logical index
 {
-     size_t O= 0;                   // Current offset
-     while( X > 0 ) {
-       uint8_t SC= addr[O];         // The current start character
-       if( SC == '\0' ) break;
-       if( SC < 0xC0 ) {            // If one character (or error) encoding
-         ++O;
-       } else if( SC < 0xE0 ) {     // If two character encoding
-         if( addr[++O] == '\0' ) break;
-         ++O;
-       } else if( SC < 0xF0 ) {     // If three character encoding
-         if( addr[++O] == '\0' ) break;
-         if( addr[++O] == '\0' ) break;
-         ++O;
-       } else {                     // If four character encoding
-         if( addr[++O] == '\0' ) break;
-         if( addr[++O] == '\0' ) break;
-         if( addr[++O] == '\0' ) break;
-         ++O;
-       }
-
-       --X;
+   size_t O= 0;                     // Current offset
+   while( X > 0 ) {
+     uint8_t SC= addr[O];           // The current start character
+     if( SC == '\0' ) break;
+     if( SC < 0xC0 ) {              // If one character (or error) encoding
+       ++O;
+     } else if( SC < 0xE0 ) {       // If two character encoding
+       if( addr[++O] == '\0' ) break;
+       ++O;
+     } else if( SC < 0xF0 ) {       // If three character encoding
+       if( addr[++O] == '\0' ) break;
+       if( addr[++O] == '\0' ) break;
+       ++O;
+     } else {                       // If four character encoding
+       if( addr[++O] == '\0' ) break;
+       if( addr[++O] == '\0' ) break;
+       if( addr[++O] == '\0' ) break;
+       ++O;
      }
 
-     return O;
+     --X;
+   }
+
+   return O;
 }
 
 //----------------------------------------------------------------------------
@@ -190,10 +190,10 @@ static inline bool                  // TRUE iff code is a valid start code
    is_start_encoding(               // Is the UTF-8 character a valid start?
      int               code)        // The UTF-8 start character
 {
-     if( code < 0x00000080 || (code >= 0x000000C0 && code < 0x000000F7) )
-       return true;
+   if( code < 0x00000080 || (code >= 0x000000C0 && code < 0x000000F7) )
+     return true;
 
-     return false;
+   return false;
 }
 
 class Decoder {                     // UTF-8 decoder
