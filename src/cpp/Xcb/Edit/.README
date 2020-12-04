@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2020/11/12
+##       2020/12/04
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in BRINGUP mode.
@@ -25,6 +25,9 @@
 
 ##############################################################################
 ## STATUS:
+2020/12/04 Command line handling.
+         Minimal command subset. Debugging statements remain.
+
 2020/11/12 Fixed Signals, moving it to pub library (ADL issue)
 
 2020/10/15 Debugged xcb_xfixes_hide_cursor not working

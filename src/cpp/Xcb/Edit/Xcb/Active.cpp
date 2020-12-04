@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2020/10/12
+//       2020/12/02
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -222,11 +222,12 @@ const char*                         // The current buffer
 //
 //----------------------------------------------------------------------------
 const char*                         // The changed text, nullptr if unchanged
-   Active::get_changed( void ) const // Get changed text string
+   Active::get_changed( void )      // Get changed text string
 {
    if( fsm != FSM_CHANGED )         // If unchanged
      return nullptr;
 
+   return truncate();               // Return truncated buffer
    Length used_buffer= this->buffer_used; // (For const)
    while( used_buffer > 0 ) {       // Remove trailing blanks
      if( buffer[used_buffer - 1] != ' ' )
@@ -432,6 +433,29 @@ void
 {
    source= (const unsigned char*)text;
    fsm= FSM_RESET;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::Active::truncate
+//
+// Purpose-
+//       Remove trailing blanks
+//
+//----------------------------------------------------------------------------
+const char*                         // The truncated buffer
+   Active::truncate( void )         // Remove trailing blanks
+{
+   while( buffer_used > 0 ) {       // Remove trailing blanks
+     if( buffer[buffer_used - 1] != ' ' )
+       break;
+
+     buffer_used--;
+   }
+
+   buffer[buffer_used]= '\0';       // Set string delimiter
+   return (const char*)buffer;
 }
 
 //----------------------------------------------------------------------------

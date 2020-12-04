@@ -16,7 +16,7 @@
 //       Editor: Storage Pool descriptor
 //
 // Last change date-
-//       2020/10/25
+//       2020/11/28
 //
 //----------------------------------------------------------------------------
 #ifndef EDPOOL_H_INCLUDED
@@ -37,7 +37,7 @@
 //       Lines are allocated and deleted, but text is never deleted
 //
 //----------------------------------------------------------------------------
-class EdPool : public pub::List<EdPool>::Link { // Editor line descriptor
+class EdPool : public pub::List<EdPool>::Link { // Editor text pool descriptor
 //----------------------------------------------------------------------------
 // EdPool::Enumerations and typedefs
 public:
@@ -57,12 +57,13 @@ char*                  data;        // The Pool data area
 //----------------------------------------------------------------------------
 public:
    EdPool(                          // Constructor
-     size_t            size)        // The allocation size
+     size_t            _size= 0)    // The pool allocation block size
 :  ::pub::List<EdPool>::Link()
-,  used(0), size(size), data(new char[size])
+,  used(0), size(_size < MIN_SIZE ? size_t(MIN_SIZE) : _size)
+,  data(new char[size])
 {
    if( xcb::opt_hcdm )
-     xcb::debugh("EdPool(%p)::EdPool\n", this);
+     xcb::debugh("EdPool(%p)::EdPool(%zd)\n", this, _size);
 }
 
 //----------------------------------------------------------------------------
@@ -70,7 +71,7 @@ virtual
    ~EdPool( void )                  // Destructor
 {
    if( xcb::opt_hcdm )
-     xcb::debugh("EdPool(%p)::~EdPool, used %5zd of %5zd\n", this, used, size);
+     xcb::debugh("EdPool(%p)::~EdPool, used %6zd of %6zd\n", this, used, size);
 
    delete [] data;                  // Delete the data
 }

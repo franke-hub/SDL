@@ -16,7 +16,7 @@
 //       Test window: For experimentation
 //
 // Last change date-
-//       2020/10/25
+//       2020/12/02
 //
 //----------------------------------------------------------------------------
 #ifndef TESTWINDOW_H_INCLUDED
@@ -131,7 +131,7 @@ void
 
    TextWindow::configure();
 
-   draw();
+   draw(0);
    show();
 }
 }; // class xcb::TestWindow

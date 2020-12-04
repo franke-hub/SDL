@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2020/10/25
+//       2020/12/04
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -30,6 +30,7 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
+#include <pub/Signals.h>            // For pub::signals
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Trace.h>              // For pub::Trace
 
@@ -37,7 +38,6 @@
 #include "Xcb/Device.h"             // For xcb::Device
 #include <Xcb/Keysym.h>             // For xcb_keycode_t symbols
 #include "Xcb/Layout.h"             // For xcb::Layout
-#include "Xcb/Signals.h"            // For xcb::Event, pub::namespace::signals
 #include "Xcb/TestWindow.h"         // For xcb::TestWindow
 #include "Xcb/Widget.h"             // For xcb::Widget, our base class
 #include "Xcb/Window.h"             // For xcb::Window
@@ -45,7 +45,7 @@
 #include "Editor.h"                 // Editor Globals
 #include "EdFile.h"                 // For EdFile, EdLine, EdPool
 #include "EdFind.h"                 // For EdFind
-#include "EdMain.h"                 // For EdMain
+#include "EdFull.h"                 // For EdFull
 #include "EdMenu.h"                 // For EdMenu
 #include "EdMisc.h"                 // For EdMisc TODO: REMOVE
 #include "EdPool.h"                 // For EdPool
@@ -61,9 +61,9 @@ enum // Compilation controls
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
-// use_debug: Test for debugging active
+// External data areas
 //----------------------------------------------------------------------------
-static inline bool use_debug( void ) { return HCDM || USE_BRINGUP || xcb::opt_hcdm; }
+Editor*                Editor::editor= nullptr; // The Editor singleton
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -71,9 +71,16 @@ static inline bool use_debug( void ) { return HCDM || USE_BRINGUP || xcb::opt_hc
 static std::mutex      mutex;       // Singleton mutex
 
 //----------------------------------------------------------------------------
-// External data areas
+//
+// Subroutine-
+//       use_debug
+//
+// Purpose-
+//       Test whether or not debugging is active
+//
 //----------------------------------------------------------------------------
-Editor*                Editor::editor= nullptr; // The Editor singleton
+static inline bool use_debug( void ) // Is debugging active?
+{ return HCDM || USE_BRINGUP || xcb::opt_hcdm; }
 
 //----------------------------------------------------------------------------
 //
@@ -88,8 +95,7 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
      int               argi,        // Argument index
      int               argc,        // Argument count
      char*             argv[])      // Argument array
-:  ring(), filePool(), textPool(), active(), devcon()
-,  locate_string(), change_string()
+:  ring(), filePool(), textPool(), locate_string(), change_string()
 {
    if( xcb::opt_hcdm )
      xcb::debugh("Editor(%p)::Editor\n", this);
@@ -106,28 +112,12 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
    // Allocate Device
    device= new xcb::Device();
 
-   // Allocate sub-windows, mostly testing construction
-   find= new EdFind();
-   main= new EdMain();
-   menu= new EdMenu();
-   tabs= new EdTabs();
-   text= new EdText();
-
-   //-------------------------------------------------------------------------
-   // Create device_listener, our DeviceEvent handler
-   if( use_debug() ) xcb::debugf("\ndevice_listener:\n");
-   devcon= device->signal.connect([this](xcb::DeviceEvent& event) {
-     if( use_debug() ) {
-       xcb::debugf("\nE.Listener(%p)::operator()(<D.Event>%p) op(%d)\n"
-             , this, &event, event.type);
-       this->devcon.debug("E.Listener.operator()");
-     }
-
-     if( event.type == int(xcb::DeviceEvent::TYPE_CLOSE) ) {
-       xcb::Device* device= static_cast<xcb::Device*>(event.widget);
-       device->operational= false;
-     }
-   });
+   // Allocate sub-objects
+   find= new EdFind();              // In progress
+   full= new EdFull();              // In progress
+   menu= new EdMenu();              // In progress
+   tabs= new EdTabs();              // In progress
+   text= new EdText();              // Operational
 
    //-------------------------------------------------------------------------
    // Load the text files
@@ -141,17 +131,24 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
    // Select-a-Config ========================================================
    if( xcb::opt_test ) {            // If optional test selected
      std::string test= xcb::opt_test; // The test name (For string == function)
-     if( test == "mainwindow" ) {   // Only EdText visible
-       // Result: EdText takes entire screen. EdMain not visibie.
-       //   Device->EdMain->EdText
-       main->insert(text);
-       device->insert(main);
+     if( test == "fullwindow" ) {   // Only EdText visible
+       // Result: EdText takes entire screen. EdFull not visibie.
+       //   Device->EdFull->EdText
+       full->insert(text);
+       device->insert(full);
 
-     } else if( test == "windowmain" ) { // Large blank screen
-       // Result: EdMain takes entire screen. EdText not visibie.
-       //   Device->EdText->EdMain
-       text->insert(main);
+     } else if( test == "windowfull" ) { // Large blank screen
+       // Result: EdFull takes entire screen. EdText not visibie.
+       //   Device->EdText->EdFull
+       text->insert(full);
        device->insert(text);
+
+     } else if( test == "findwindow" ) { // EdFind overlayed with EdText
+       // Result: EdFind over EdText window, as expected (F12 controlled)
+       //   Device->EdText->EdFind
+       window= new EdFind();        // (Cannot use find: duplicate delete)
+       device->insert(text);
+       device->insert(window);
 
      } else if( test == "miscwindow" ) { // EdText overlayed with EdMisc
        // Result: EdMisc over EdText window, as expected
@@ -164,6 +161,9 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
        //   Device->EdText->TestWindow
        window= new xcb::TestWindow();
        text->insert(window);
+       device->insert(text);
+
+     } else if( test == "textwindow" ) { // EdText (only)
        device->insert(text);
 
      } else if( test == "bot-only" ) { // EdText visible
@@ -214,7 +214,7 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
      }
 
      xcb::user_debug("Test(%s) selected\n", xcb::opt_test);
-   } else {                         // Default: No substructure =============
+   } else {                         // Default: textwindow ==================
      device->insert(text);
    }
    // Select-a-Config ========================================================
@@ -262,7 +262,7 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
    delete text;
    delete tabs;
    delete menu;
-   delete main;
+   delete full;
    delete find;
 
    // Remove the Editor singleton
@@ -278,6 +278,9 @@ Editor*                Editor::editor= nullptr; // The Editor singleton
 //
 // Purpose-
 //       Handle DONE function: Safely exit all EdFiles
+//
+// Implementation note-
+//       TODO: NOT (PROPERLY) CODED YET
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0OK
@@ -304,9 +307,13 @@ void
        device->operational= false;  // No need to stay around
    }
 
-   text->activate(next);
-   ring.remove(file, file);         // Remove the File from the Ring
-   delete file;                     // And delete it
+   if( next ) {
+     ring.remove(file, file);       // Remove the File from the Ring
+     delete file;                   // And delete it
+
+     text->activate(next);
+       text->draw();
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -476,66 +483,13 @@ void
 void
    Editor::start( void )
 {
-   // Configuration
+   // Initialize the configuration
    device->configure();
 
    // Set initial file
    text->activate(ring.get_head());
 
-   if( false ) {
-     xcb::debugf("%4d HCDM Editor: Reply loop not started\n", __LINE__);
-     return;
-   }
-
-   // Debugging information
-   if( false )
-     text->font.debug("BRINGUP: Font information");
-
    // Start the Device
    device->draw();
    device->run();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdMisc::draw
-//
-// Purpose-
-//       Draw the Window
-//
-// Implementation note-
-//       ANOMOLY: The draw ONLY visible when the debugging display occurs.
-//                (Looks like a timing problem.)
-//       PROBLEM: USER ERROR: Expose events ignored. (Now fixed.)
-//
-//----------------------------------------------------------------------------
-void
-   EdMisc::draw( void )             // Draw the Window
-{
-   xcb::PT_t X= xcb::PT_t(rect.width)  - 1;
-   xcb::PT_t Y= xcb::PT_t(rect.height) - 1;
-   xcb_point_t points[]=
-       { {0, 0}
-       , {0, Y}
-       , {X, Y}
-       , {X, 0}
-       , {0, 0}
-       , {X, Y}
-       };
-
-   ENQUEUE("xcb_poly_line", xcb_poly_line_checked(c
-          , XCB_COORD_MODE_ORIGIN, widget_id, drawGC, 6, points));
-   if( xcb::opt_hcdm || false ) {   // ???WHY IS THIS NEEDED???
-     xcb::debugf("EdMisc::draw %u:[%d,%d]\n", drawGC, X, Y);
-     for(int i= 0; i<6; i++)
-       xcb::debugf("[%2d]: [%2d,%2d]\n", i, points[i].x, points[i].y);
-   }
-
-// (Attempts to fix problem without expose handler.)
-// ::pub::Thread::sleep(0.001);     // Does this fix the problem?  NO!
-// ::pub::Thread::sleep(0.010);     // Does this fix the problem? (sometimes)
-// ::pub::Thread::sleep(0.020);     // Does this fix the problem? YES!
-
-   flush();
 }

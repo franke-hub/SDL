@@ -10,20 +10,20 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       EdMain.h
+//       EdFull.h
 //
 // Purpose-
-//       Editor: Main Window
+//       Editor: Full Window
 //
 // Last change date-
-//       2020/11/12
+//       2020/11/27
 //
 // Implementation note-
 //       Used to test utility of a built-in DeviceWindow.
 //
 //----------------------------------------------------------------------------
-#ifndef EDMAIN_H_INCLUDED
-#define EDMAIN_H_INCLUDED
+#ifndef EDFULL_H_INCLUDED
+#define EDFULL_H_INCLUDED
 
 #include <pub/utility.h>            // For pub::to_string
 
@@ -43,15 +43,15 @@
 //----------------------------------------------------------------------------
 //
 // Class-
-//       EdMain
+//       EdFull
 //
 // Purpose-
-//       Editor Main Window (PLACEHOLDER)
+//       Editor Full Window (PLACEHOLDER)
 //
 //----------------------------------------------------------------------------
-class EdMain : public xcb::TextWindow { // Editor Main Window
+class EdFull : public xcb::TextWindow { // Editor Full Window
 //----------------------------------------------------------------------------
-// EdMain::Attributes
+// EdFull::Attributes
 public: // NONE DEFINED
 enum // Compile-time constants
 {  HCDM= false                      // Hard Core Debug Mode?
@@ -59,28 +59,28 @@ enum // Compile-time constants
 }; // Compile-time constants
 
 //----------------------------------------------------------------------------
-// EdMain::Constructor
+// EdFull::Constructor
 //----------------------------------------------------------------------------
 public:
-   EdMain( void )                   // Constructor
-:  xcb::TextWindow(nullptr, "EdMain")
+   EdFull( void )                   // Constructor
+:  xcb::TextWindow(nullptr, "EdFull")
 {
    if( xcb::opt_hcdm )
-     xcb::debugh("EdMain(%p)::EdMain\n", this);
+     xcb::debugh("EdFull(%p)::EdFull\n", this);
 }
 
 //----------------------------------------------------------------------------
-// EdMain::Destructor
+// EdFull::Destructor
 //----------------------------------------------------------------------------
 virtual
-   ~EdMain( void )                  // Destructor
+   ~EdFull( void )                  // Destructor
 {
    if( xcb::opt_hcdm )
-     xcb::debugh("EdMain(%p)::~EdMain\n", this);
+     xcb::debugh("EdFull(%p)::~EdFull\n", this);
 }
 
 //============================================================================
-// xcb::EdMain: Overridden Window classes
+// xcb::EdFull: Overridden Window classes
 //----------------------------------------------------------------------------
 public:
 virtual void
@@ -88,7 +88,7 @@ virtual void
      xcb_configure_notify_event_t* event) // Configure notify event
 {
    if( xcb::opt_hcdm )
-     xcb::debugh("EdMain(%p)::configure_notify(%d,%d)\n", this
+     xcb::debugh("EdFull(%p)::configure_notify(%d,%d)\n", this
            , event->width, event->height);
 
    resize(event->width, event->height);
@@ -100,7 +100,7 @@ virtual void
      xcb_rectangle_t&  rect)        // Expose event
 {
    if( xcb::opt_hcdm )
-     xcb::debugh("EdMain(%p)::expose([%d,%d,%d,%d])\n", this
+     xcb::debugh("EdFull(%p)::expose([%d,%d,%d,%d])\n", this
              , rect.x, rect.y, rect.width, rect.height);
 
    draw();
@@ -110,7 +110,7 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdMain::draw
+//       EdFull::draw
 //
 // Purpose-
 //       Redraw the window
@@ -120,7 +120,7 @@ virtual void
    draw( void )                     // Redraw the Window
 {
    if( xcb::opt_hcdm )
-     xcb::debugh("EdMain(%p)::draw()\n", this);
+     xcb::debugh("EdFull(%p)::draw()\n", this);
 
    // Clear the window. // TODO: optimize (if necessary)
    if( true ) {
@@ -132,10 +132,10 @@ virtual void
    NOQUEUE("xcb_clear_area", xcb_clear_area
           ( c, 0, widget_id, 0, 0, rect.width, rect.height) );
 
-   if( USE_BRINGUP && false ) {
+   if( USE_BRINGUP ) {
      // BRINGUP: Draw diagonal line (to see where boundaries are)
      if( xcb::opt_hcdm && xcb::opt_verbose > 2 ) {
-//     debug(pub::utility::to_string("%4d EdMain diagonal", __LINE__).c_str());
+//     debug(pub::utility::to_string("%4d EdFull diagonal", __LINE__).c_str());
        xcb_point_t points[2]= { {0,                0}
                               , {xcb::PT_t(rect.width), xcb::PT_t(rect.height)}
                               };
@@ -149,5 +149,5 @@ virtual void
    // Redraw complete
    flush();
 }
-}; // class EdMain
-#endif // EDMAIN_H_INCLUDED
+}; // class EdFull
+#endif // EDFULL_H_INCLUDED

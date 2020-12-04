@@ -16,7 +16,7 @@
 //       XCB based Window
 //
 // Last change date-
-//       2020/10/20
+//       2020/11/28
 //
 // Implementation notes-
 //       The window field addresses the PARENT window. (Widget already has a
@@ -319,7 +319,6 @@ virtual void
 virtual void
    focus_in(                        // Handle this
      xcb_focus_in_event_t*) {}      // Focus in event
-
 
 virtual void
    focus_out(                       // Handle this

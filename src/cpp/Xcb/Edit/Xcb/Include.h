@@ -21,6 +21,9 @@
 #if false                           // Always false
 static_assert(false, "Always False");
 #elif true
+   #include <Xcb/EdView.h>
+static_assert(false, "EdView");
+#elif true
    #include <Xcb/Active.h>
 static_assert(false, "Active");
 #elif true

@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2020/10/25
+//       2020/12/04
 //
 //----------------------------------------------------------------------------
 #ifndef EDFILE_H_INCLUDED
@@ -413,7 +413,7 @@ virtual
    ~EdFile( void )                  // Destructor
 {
    if( xcb::opt_hcdm )
-     xcb::debugh("EdFile(%p)::~EdFile...\n", this);
+     xcb::debugh("EdFile(%p)::~EdFile\n", this);
 
    for(;;) {                        // Delete all lines
      EdLine* line= lines.remq();
@@ -435,9 +435,42 @@ EdMess*                             // The current EdMess
    get_message( void ) const        // Get current EdMess
 {  return messages.get_head(); }
 
+// TODO: VERIFY USAGE
+EdLine*                             // The EdLine*
+   get_line(                        // Get EdLine*
+     size_t            row) const   // For this row number
+{
+   EdLine* line= lines.get_head();  // Get top line
+   while( row > 0 ) {               // Locate row
+     line= (EdLine*)line->get_next();
+     if( line == nullptr )          // SHOULD NOT OCCUR
+       break;
+
+     row--;
+   }
+
+   return line;
+}
+
 std::string
    get_name( void ) const           // Get the file name (Named interface)
 {  return name; }
+
+// TODO: VERIFY USAGE
+size_t                              // The row number
+   get_row(                         // Get row number
+     xcb::Line*        cursor) const // For this line
+{
+   size_t row= 0;
+   for(EdLine* line= lines.get_head(); line; line= (EdLine*)line->get_next() ) {
+     if( line == cursor )
+       return row;
+
+     row++;
+   }
+
+   return row;                      // SHOULD NOT OCCUR
+}
 
 char*
    get_text(                        // Allocate file text
@@ -447,7 +480,7 @@ char*
 void
    put_message(                     // Write message
      std::string       _mess,       // Message text
-     int               _type= EdMess::T_MESS) // Message mode
+     int               _type= EdMess::T_INFO) // Message mode
 {
    EdMess* mess= messages.get_head();
    if( mess && _type <= mess->type )

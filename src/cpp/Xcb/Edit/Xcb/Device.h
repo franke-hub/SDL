@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/10/25
+//       2020/12/02
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_DEVICE_H_INCLUDED
@@ -24,8 +24,8 @@
 
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
+#include <pub/Signals.h>            // For pub::signals
 
-#include "Xcb/Signals.h"            // For Event, namespace pub::signals
 #include "Xcb/Widget.h"             // For Widget
 #include "Xcb/Window.h"             // Our base class
 
@@ -38,14 +38,23 @@ namespace xcb {
 // Purpose-
 //       Generic Device Event
 //
+// Implementation note-
+//       For events not associated with a Pixmap or Window:
+//         xcb_ge_generic_event_t      // GE generic event
+//         xcb_keymap_notify_event_t   // Keymap notify event
+//         xcb_mapping_notify_event_t  // Mapping notify event
+//
 //----------------------------------------------------------------------------
-struct DeviceEvent : public Event { // Device Event descriptor
-using Event::Event;                 // Use Event constructors
+struct DeviceEvent {                // Device Event descriptor
+xcb_generic_event_t*   event;       // (Generic) event
 
-enum TYPE                           // Event Subtype
-{  TYPE_ERROR                       // (Invalid type)
-,  TYPE_CLOSE                       // Close Device event
-}; // enum TYPE
+// Constructors ==============================================================
+   DeviceEvent(                     // Default/event constructor
+     xcb_generic_event_t* _event= nullptr)
+:  event(_event) {}
+
+// Destructor ================================================================
+   ~DeviceEvent( void ) = default;
 }; // struct DeviceEvent
 
 //----------------------------------------------------------------------------
@@ -70,10 +79,6 @@ bool                   operational= true; // TRUE while operational
 // Defaults
 xcb_rectangle_t        geom= {0,0,0,0}; // Device geometry
 
-// XCB atoms
-xcb_atom_t             protocol= 0; // WM_PROTOCOLS atom
-xcb_atom_t             wm_close= 0; // WM_CLOSE atom
-
 //----------------------------------------------------------------------------
 // xcb::Device::Constructors/Destructors/Operators
 //----------------------------------------------------------------------------
@@ -82,26 +87,6 @@ public:
 
 virtual
    ~Device( void );                 // Destructor
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       xcb::Device::atom_to_name
-//       xcb::Device::name_to_atom
-//
-// Purpose-
-//       Extract name from xcb_atom_t
-//       Extract xcb_atom_t from name
-//
-//----------------------------------------------------------------------------
-std::string                         // The associated name
-   atom_to_name(                    // Get associated name
-     xcb_atom_t        atom);       // For this atom
-
-xcb_atom_t                          // The associated xcb_atom_t
-   name_to_atom(                    // Get xcb_atom_t
-     const char*       name,        // For this name
-     int               only= false); // (Do not create atom indicator)
 
 //----------------------------------------------------------------------------
 // xcb::Device::Methods
@@ -121,10 +106,9 @@ virtual void
 virtual void
    draw( void );                    // Draw everything
 
-static Window*                      // The Window, if located
+virtual Pixmap*                     // The Pixmap, if located
    locate(                          // Recursively locate
-     xcb_window_t      target,      // This XCB window
-     Widget*           widget);     // Starting here (not checked)
+     xcb_drawable_t    target);     // This XCB Window/Pixmap
 
 xcb_keysym_t                        // The associated symbol
    to_keysym(                       // Convert to Keysym
@@ -143,21 +127,6 @@ virtual void
 
 void
    start( void );                   // Start the Thread
-
-//----------------------------------------------------------------------------
-// xcb::Device::Event handlers (Not associated with a Window or Drawable)
-//----------------------------------------------------------------------------
-virtual void
-   ge_generic(                      // Handle this
-     xcb_ge_generic_event_t*) {}    // GE generic event
-
-virtual void
-   keymap_notify(                   // Handle this
-     xcb_keymap_notify_event_t*) {} // Keymap notify event
-
-virtual void
-   mapping_notify(                  // Handle this
-     xcb_mapping_notify_event_t*) {} // Mapping notify event
 }; // class xcb::Device
 }  // namespace xcb
 #endif // XCB_DEVICE_H_INCLUDED

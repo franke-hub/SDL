@@ -16,7 +16,7 @@
 //       Implement Xcb/Window.h
 //
 // Last change date-
-//       2020/11/12
+//       2020/11/30
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -272,7 +272,7 @@ void
    Pixmap::flush( void )            // Flush outstanding operations
 {
    if( opt_hcdm )
-     debugh("Pixmap(%p)::flush()\n", this);
+     debugh("Pixmap(%p)::flush(%u)\n", this, penduse);
 
    for(unsigned i= 0; i<penduse; i++) {  // Complete pending operations
      Pending& pending= this->pending[i];
@@ -356,9 +356,6 @@ void
 //       Extract name from xcb_atom_t
 //       Extract xcb_atom_t from name
 //
-// Implementation notes-
-//       Duplicates Device::atom_to_name, name_to_atom
-//
 //----------------------------------------------------------------------------
 std::string                         // The associated name
    Window::atom_to_name(            // Get associated name
@@ -423,7 +420,7 @@ void
 
    if( emask == 0 )
      emask= XCB_EVENT_MASK_KEY_PRESS
-          | XCB_EVENT_MASK_KEY_RELEASE
+//        | XCB_EVENT_MASK_KEY_RELEASE
           | XCB_EVENT_MASK_BUTTON_PRESS
 //        | XCB_EVENT_MASK_EXPOSURE        // (In DEV_EVENT_MASK)
           | XCB_EVENT_MASK_STRUCTURE_NOTIFY // (Drives configure_notify)
@@ -488,7 +485,7 @@ void
      free(reply);
    }
 
-   flush();
+// flush();
 }
 
 //----------------------------------------------------------------------------

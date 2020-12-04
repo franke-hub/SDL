@@ -16,7 +16,7 @@
 //       XCB Active Line descriptor.
 //
 // Last change date-
-//       2020/10/11
+//       2020/12/02
 //
 // Implementation note-
 //       Changed Lines also automatically remove any trailing blanks.
@@ -147,7 +147,7 @@ const char*                         // The current buffer
 //
 //----------------------------------------------------------------------------
 const char*                         // The changed text, nullptr if unchanged
-   get_changed( void ) const;       // Get ('\0' delimited) changed buffer
+   get_changed( void );             // Get ('\0' delimited) changed buffer
 
 //----------------------------------------------------------------------------
 //
@@ -268,6 +268,18 @@ void
 void
    reset(                           // Set source text
      const char*       text);       // To this (immutable) text
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::Active::truncate
+//
+// Purpose-
+//       Remove trailing blanks
+//
+//----------------------------------------------------------------------------
+const char*                         // The truncated buffer
+   truncate( void );                // Remove trailing blanks
 
 //----------------------------------------------------------------------------
 //

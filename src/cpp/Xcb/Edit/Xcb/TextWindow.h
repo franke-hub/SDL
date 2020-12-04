@@ -16,7 +16,7 @@
 //       XCB based text Window
 //
 // Last change date-
-//       2020/11/12
+//       2020/12/02
 //
 // Implementation note-
 //                    ******** DO NOT SIMULTANEOUSLY USE ********
@@ -77,16 +77,12 @@ std::string            font_name;   // The font name
 Line*                  cursor= nullptr; // The current cursor line
 Line*                  line= nullptr; // Current first line
 Line*                  last= nullptr; // Current last line displayed
-size_t                 col_zero= 0; // The current column[0]
-size_t                 row_zero= 0; // The current row[0]
 
 xcb_gcontext_t         fontGC= 0;   // The standard graphic context
 xcb_gcontext_t         flipGC= 0;   // The inverted graphic context
 unsigned               col_size= 0; // The current screen column count
 unsigned               row_size= 0; // The current screen row count
-unsigned               row_used= 0; // The number of used rows
-unsigned               col= 0;      // Cursor column (X) (offset from col_zero)
-unsigned               row= 0;      // Cursor row (Y) (offset from row_zero)
+unsigned               row_used= 0; // The last used screen row
 
 // Configuration controls
 unsigned               COLS_W=80;   // Nominal columns
@@ -144,23 +140,6 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       xcb::TextWindow::cursor_text
-//
-// Purpose-
-//       Handle the cursor line, which may be in flux.
-//
-// Implementation note-
-//       This method can be used when subclass uses Active lines.
-//
-//----------------------------------------------------------------------------
-virtual const char*                 // The cursor line text
-   cursor_text(                     // Get cursor line text
-     const Line*       line) const  // For this (cursor) line
-{  return line->text; }             // This does nothing extra
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       xcb::TextWindow::draw
 //
 // Purpose-
@@ -168,7 +147,21 @@ virtual const char*                 // The cursor line text
 //
 //----------------------------------------------------------------------------
 virtual void
-   draw( void );                    // Redraw the Window
+   draw(                            // Redraw the Window
+     size_t            col_zero);   // Starting from this column
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::TextWindow::get_cursor
+//
+// Purpose-
+//       Handle the cursor line, which may be in flux.
+//
+//----------------------------------------------------------------------------
+virtual const char*                 // The cursor line text
+   get_cursor( void )               // Get cursor line text
+{  return cursor->text; }           // This does nothing extra
 
 //----------------------------------------------------------------------------
 //
@@ -299,22 +292,6 @@ void
 int                                 // Return code, 0 OK
    set_font(                        // Set the Font
      const char*       name= nullptr); // To this name
-
-//----------------------------------------------------------------------------
-// xcb::TextWindow: Overridden Window event handlers
-//----------------------------------------------------------------------------
-public:
-virtual void
-   configure_notify(                // Handle this
-     xcb_configure_notify_event_t* event); // Configure notify event
-
-virtual void
-   expose(                          // Handle this
-     xcb_expose_event_t* event);    // Expose event
-
-virtual void
-   resize_request(                  // Handle this
-     xcb_resize_request_event_t*);  // Resize request event
 }; // class xcb::TextWindow
 }  // namespace xcb
 #undef  USE_BRINGUP                 // Macro cleanup

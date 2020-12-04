@@ -15,18 +15,19 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2020/10/08
+##       2020/12/04
 ##
 ##############################################################################
 
 ##############################################################################
 ## Local module list
 MAKOBJ := $(patsubst $(OBJDIR)/Edit.o,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Editor.o,,$(MAKOBJ))
 MAKOBJ := $(patsubst $(OBJDIR)/Include.o,,$(MAKOBJ))
 MAKOBJ := $(patsubst $(OBJDIR)/Dirty.o,,$(MAKOBJ))
+MAKOBJ := Editor.o $(MAKOBJ)
 
 MAKEXE := Edit
-ignore += Dirty                     ## (Dirty only made on demand)
 
 ##############################################################################
 ## Set default target
@@ -43,13 +44,6 @@ liblocal.a: $(MAKOBJ)
 	ar -r $@ $(MAKOBJ)
 
 ##############################################################################
-## TARGET: dirty
-Dirty: liblocal.a
-.PHONY: dirty
-dirty: Dirty
-	Dirty
-
-##############################################################################
 ## TARGET: do
 .PHONY: do
 do: Edit
@@ -59,7 +53,7 @@ do: Edit
 ## TARGET: include
 .PHONY: include
 include: Include.o
-	echo "include.o should fail to compile"
+	echo "Include.o should fail to compile"
 
 ##############################################################################
 ## Dependencies

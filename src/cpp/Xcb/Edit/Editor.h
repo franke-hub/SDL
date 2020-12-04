@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2020/10/25
+//       2020/12/02
 //
 // Implementation notes-
 //       TODO: REMOVE: Debugging controls
@@ -30,7 +30,6 @@
 
 #include "Xcb/Active.h"             // For xcb::Active
 #include "Xcb/Device.h"             // For xcb::Device
-#include "Xcb/Signals.h"            // For xcb::Event, namespace pub::signal
 #include "Xcb/Widget.h"             // For xcb::Widget, our base class
 #include "Xcb/Window.h"             // For xcb::Window
 
@@ -39,7 +38,7 @@
 //----------------------------------------------------------------------------
 class EdFile;                       // Editor file descriptor
 class EdFind;                       // Editor find Popup
-class EdMain;                       // Editor main Window
+class EdFull;                       // Editor full Window (experimental)
 class EdMenu;                       // Editor menu Layout
 class EdPool;                       // Editor pool allocators
 class EdTabs;                       // Editor tabs Layout
@@ -69,17 +68,13 @@ xcb::Window*           window= nullptr; // The test Window
 
 pub::List<EdFile>      ring;        // The list of EdFiles
 EdFind*                find= nullptr; // The Find Popup
-EdMain*                main= nullptr; // The Main Window
+EdFull*                full= nullptr; // The Full Window
 EdMenu*                menu= nullptr; // The Menu Layout
 EdTabs*                tabs= nullptr; // The Tabs Layout
 EdText*                text= nullptr; // The Text Window
 
 pub::List<EdPool>      filePool;    // File allocation EdPool
 pub::List<EdPool>      textPool;    // Text allocation EdPool
-
-xcb::Active            active;      // The current active text
-pub::signals::Connector<xcb::DeviceEvent>
-                       devcon;      // Our DeviceListener Connector
 
 std::string            locate_string; // The locate string
 std::string            change_string; // The change string
@@ -94,13 +89,28 @@ static constexpr const char* const NO_STRING= ""; // The empty string
 // Editor::Constructor/Destructor
 //----------------------------------------------------------------------------
 public:
-virtual
    ~Editor( void );                 // Destructor
 
    Editor(                          // Constructor
      int               argi,        // Argument index
      int               argc,        // Argument count
      char*             argv[]);     // Argument array
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Editor::command
+//
+// Purpose-
+//       Process a command.
+//
+// Implementation notes-
+//       Implemented in EdBifs.cpp
+//
+//----------------------------------------------------------------------------
+void
+   command(                         // Process a command
+     char*             buffer);     // (MODIFIABLE) command buffer
 
 //----------------------------------------------------------------------------
 //
@@ -188,10 +198,10 @@ int                                 // Return code, 0 OK
 //       Virtual thread implementation
 //
 //----------------------------------------------------------------------------
-virtual void
+void
    join( void );                    // Wait for "Thread"
 
-virtual void
+void
    start( void );                   // Start "Thread"
 }; // class Editor
 #endif // EDITOR_H_INCLUDED

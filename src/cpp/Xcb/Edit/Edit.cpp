@@ -59,7 +59,6 @@ using xcb::user_debug;              // For user messages
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  USE_BRINGUP= true                // Extra brinbup diagnostics?
-
 ,  TRACE_SIZE= 0x01000000           // Default trace table size
 }; // Compilation controls
 

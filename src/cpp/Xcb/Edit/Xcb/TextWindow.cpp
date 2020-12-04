@@ -16,7 +16,7 @@
 //       Implement TextWindow.h
 //
 // Last change date-
-//       2020/11/12
+//       2020/12/04
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -154,9 +154,6 @@ void
    // Create the graphic contexts
    fontGC= font.makeGC(fg, bg);     // (The default)
    flipGC= font.makeGC(bg, fg);     // (Inverted)
-
-   // Default: show the window
-   show();
 }
 
 //----------------------------------------------------------------------------
@@ -174,12 +171,13 @@ void
 {
    debugf("TextWindow(%p)::debug(%s) Named(%s)\n", this, text ? text : ""
          , get_name().c_str());
+   debugf("..col_size(%u) row_size(%u) row_used(%u)\n"
+         , col_size, row_size, row_used);
    Window::debug(text);
 
    debugf("..font_name(%s) flipGC(%u) fontGC(%u)\n"
          , font_name.c_str(), flipGC, fontGC);
-   debugf("..col_zero(%zd), row_zero(%zd)\n", col_zero, row_zero);
-   debugf("..col(%u) row(%u)\n", col, row);
+   // (Fields omitted)
 
    if( opt_hcdm || opt_verbose >= 0 ) {
      font.debug(text);
@@ -196,7 +194,8 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   TextWindow::draw( void )         // Redraw the Window
+   TextWindow::draw(                // Redraw the Window
+     size_t            col_zero)    // Starting at this column
 {
    if( opt_hcdm )
      debugh("TextWindow(%p)::draw()\n", this);
@@ -209,27 +208,28 @@ void
           ( c, 0, widget_id, 0, 0, rect.width, rect.height) );
 
    // Display the text (if any)
+   last= nullptr;
    if( this->line ) {
      Line* line= this->line;
      last= line;
 
      row_used= 0;
-     unsigned y= get_y(row_used);
+     unsigned y= get_y(USER_TOP);
      unsigned font_height= font.length.height;
      unsigned last_height= rect.height - USER_BOT * font_height;
      while( (y + font_height) <= last_height ) {
        if( line == nullptr )
          break;
-       row_used++;                  // Update used row count
-       last= line;                  // Update last line displayed
        const char* text= line->text; // Default, column[0]
        if( line == cursor )         // If cursor line
-         text= cursor_text(cursor); // Get cursor line text
+         text= get_cursor();        // Get cursor line text
 
        if( col_zero )               // If offset
          text= text + pub::UTF8::index((const unsigned char*)text, col_zero);
        putxy(1, y, text);
        y += font_height;
+       last= line;
+       row_used++;
        line= line->get_next();
      }
      if( opt_hcdm ) debugf("%4d LAST xy(%d,%d)\n", __LINE__, 0, y);
@@ -250,7 +250,7 @@ void
    }
 
    // Redraw complete
-   flush();
+// flush();
 }
 
 //----------------------------------------------------------------------------
@@ -307,7 +307,7 @@ unsigned                            // The offset in Pixels
 unsigned                            // The offset in Pixels
    xcb::TextWindow::get_y(          // Get offset in Pixels
      unsigned          row)         // For this row
-{  return (row + USER_TOP) * font.length.height + 1; }
+{  return row * font.length.height + 1; }
 
 //----------------------------------------------------------------------------
 //
@@ -405,51 +405,9 @@ int                                 // Return code, 0 OK
                , WH_t(row_size * font.length.height + 2) };
      use_unit= { WH_t(font.length.width), WH_t(font.length.height) };
 
-     if( widget_id ) {              // TODO: NEEDS WORK, Layout::configure
-       draw();                      // Maybe resize?
-     }
+     // TODO: NEEDS WORK, Layout::configure?
    }
 
    return rc;
-}
-
-//----------------------------------------------------------------------------
-// xcb::TextWindow: Event handlers
-//----------------------------------------------------------------------------
-void
-   TextWindow::configure_notify(    // Handle this
-     xcb_configure_notify_event_t* event) // Configure notify event
-{
-   if( opt_hcdm )
-     debugh("TextWindow(%p)::configure_notify(%d,%d)\n", this
-           , event->width, event->height);
-
-   resize(event->width, event->height);
-}
-
-void
-   TextWindow::expose(              // Handle this
-     xcb_expose_event_t* event)     // Expose event
-{
-   if( opt_hcdm )
-     debugh("TextWindow(%p)::expose(%d) %d [%d,%d,%d,%d]\n", this
-             , event->window, event->count
-             , event->x, event->y, event->width, event->height);
-
-   draw();
-}
-
-//----------------------------------------------------------------------------
-// See the (UNUSED) resize_request in Window.cpp for a discussion of why
-// configure_notify is used instead of this method.
-void
-   TextWindow::resize_request(      // Handle this
-     xcb_resize_request_event_t* event) // Resize request event
-{
-// if( opt_hcdm )
-     debugh("TextWindow(%p)::resize_request(%d,%d)\n", this
-           , event->width, event->height);
-
-   resize(event->width, event->height);
 }
 }  // namespace xcb
