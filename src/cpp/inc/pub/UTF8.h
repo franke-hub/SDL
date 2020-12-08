@@ -16,7 +16,7 @@
 //       UTF-8 utilities
 //
 // Last change date-
-//       2020/12/03
+//       2020/12/06
 //
 // Usage notes-
 //       The Encoder/Decoder implement RFC 3629, UTF-8 translation format.
@@ -28,8 +28,11 @@
 
 #include <stdio.h>                  // For fprintf, ...
 #include <string.h>                 // For memcpy
+#include "Debug.h"                  // For pub::debugging::options
 
 namespace pub::UTF8 {
+#define pub_verb (pub::debugging::options::pub_hcdm || pub::debugging::options::pub_verbose > 0)
+
 //----------------------------------------------------------------------------
 //
 // Namespace-
@@ -270,8 +273,9 @@ inline int                          // Return code, 0 OK
      unsigned          L)           // For this length
 {
    if( (used + L) > size ) {        // If length outsize of buffer
-     fprintf(stderr, "UTF8.decode [0x%.4zx]+%d >= size(%.4zx)\n"
-                   , used - 1, L, size);
+     if( pub_verb )
+       fprintf(stderr, "UTF8.decode [0x%.4zx]+%d >= size(%.4zx)\n"
+                     , used - 1, L, size);
      used= size;
      return REPLACE_CHAR;
    }
@@ -279,8 +283,9 @@ inline int                          // Return code, 0 OK
    for(unsigned i= 0; i<L; i++) {
      int C= utf8[used+i];
      if( C < 0x0080 || C > 0x00BF ) {
-       fprintf(stderr, "UTF8.decode [0x%.4zx]+%d Data char(0x%.2x)\n"
-                     , used - 1, i + 1, C);
+       if( pub_verb )
+         fprintf(stderr, "UTF8.decode [0x%.4zx]+%d Data char(0x%.2x)\n"
+                       , used - 1, i + 1, C);
        used += i;
        return REPLACE_CHAR;
      }
@@ -309,8 +314,9 @@ inline utf32_t                      // Always REPLACE_CHAR
      unsigned          code,        // This invalid Unicode code point and
      unsigned          L) const     // This encoding length
 {
-   fprintf(stderr, "UTF8.decode [0x%.4zx] Overlong(0x%.6x)\n"
-                 , used - L, code);
+   if( pub_verb )
+     fprintf(stderr, "UTF8.decode [0x%.4zx] Overlong(0x%.6x)\n"
+                   , used - L, code);
    return REPLACE_CHAR;
 }
 
@@ -318,8 +324,9 @@ inline utf32_t                      // Always REPLACE_CHAR
    bad_start(                       // ERROR: Invalid UTF-8 start char
      unsigned          code)        // (The invalid char)
 {
-   fprintf(stderr, "UTF8.decode [0x%.4zx] Start char(0x%.2x)\n"
-                 , used - 1, code);
+   if( pub_verb )
+     fprintf(stderr, "UTF8.decode [0x%.4zx] Start char(0x%.2x)\n"
+                   , used - 1, code);
    return REPLACE_CHAR;
 }
 
@@ -328,8 +335,9 @@ inline utf32_t                      // Always REPLACE_CHAR
      unsigned          code,        // This invalid Unicode code point and
      unsigned          L) const     // This encoding length
 {
-   fprintf(stderr, "UTF8.decode [0x%.4zx] Not unicode(0x%.6x)\n"
-                 , used - L, code);
+   if( pub_verb )
+     fprintf(stderr, "UTF8.decode [0x%.4zx] Not unicode(0x%.6x)\n"
+                   , used - L, code);
    return REPLACE_CHAR;
 }
 
@@ -527,7 +535,8 @@ inline ssize_t                      // Always -1
    not_unicode(                     // ERROR: Attempt to encode
      unsigned          code) const  // This invalid Unicode code point
 {
-   fprintf(stderr, "UTF8.encode(0x%.4x) Not unicode\n", code);
+   if( pub_verb )
+     fprintf(stderr, "UTF8.encode(0x%.4x) Not unicode\n", code);
    return -1;
 }
 
@@ -562,8 +571,9 @@ ssize_t                             // Offset after encoding, -1 if error
    // If the buffer does not have enough space to encode the code point, an
    // error message is displayed and the encoder state remains unchanged.
    if( (used + L) > size ) {
-     fprintf(stderr, "UTF8.encode(0x%.6x) Used(0x%zx)+%d > size(0x%zx)\n"
-                   , code, used, L, size);
+     if( pub_verb )
+       fprintf(stderr, "UTF8.encode(0x%.6x) Used(0x%zx)+%d > size(0x%zx)\n"
+                     , code, used, L, size);
      return -1;
    }
 
@@ -598,5 +608,6 @@ ssize_t                             // Offset after encoding, -1 if error
    return used;
 }
 }; // class Encoder
+#undef pub_verb
 }  // namespace _PUB_NAMESPACE
 #endif // _PUB_UTF8_H_INCLUDED
