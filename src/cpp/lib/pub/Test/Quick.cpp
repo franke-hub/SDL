@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2020/10/25
+//       2020/12/08
 //
 //----------------------------------------------------------------------------
 #include <chrono>
@@ -664,7 +664,7 @@ static inline int
 
    struct gui_element{
      click_signal clicked;
-     void mouse_down(float X,float Y) { Event E(X,Y); clicked.inform(E); }
+     void mouse_down(float X,float Y) { Event E(X,Y); clicked.signal(E); }
 
      gui_element(const char* name= nullptr) : clicked(name) {}
    };
