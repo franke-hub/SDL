@@ -16,7 +16,7 @@
 //       Signals detail, not part of external interface
 //
 // Last change date-
-//       2020/10/30
+//       2020/12/08
 //
 // Implementation note-
 //       This include is private. It requires macros defined in ../Signals.h.
@@ -69,12 +69,12 @@ public:
 {  if( pub_hcdm ) debugf("Listener(%p)::~Listener\n", this); }
 
 //----------------------------------------------------------------------------
-// pub::signals::detail::Listener::inform
+// pub::signals::detail::Listener::signal
 //----------------------------------------------------------------------------
 void
-   inform(                          // Inform this Listener about
+   signal(                          // Signal this Listener about
      Event&            event) const // This (application defined) Event
-{  if( pub_hcdm ) debugf("Listener(%p)::inform(%p)\n", this, &event);
+{  if( pub_hcdm ) debugf("Listener(%p)::signal(%p)\n", this, &event);
 
    function(event);
 }
@@ -137,20 +137,20 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::detail::ListenerList::inform
+//       pub::signals::detail::ListenerList::signal
 //
 // Purpose-
 //       Signal Event occurance
 //
 //----------------------------------------------------------------------------
-void                                // (All Listeners are informed)
-   inform(                          // Inform all Listeners about
+void                                // (All Listeners are signaled)
+   signal(                          // Signal all Listeners about
      Event&            event) const // This Event
-{  if( pub_hcdm ) debugf("ListenerList(%p)::inform(%p)\n", this, &event);
+{  if( pub_hcdm ) debugf("ListenerList(%p)::signal(%p)\n", this, &event);
 
    std::lock_guard<decltype(SHR)> lock(SHR); // While holding the shared Latch
    for(Slot_t* slot= list.get_head(); slot; slot= slot->get_next())
-     slot->inform(event);           // Inform the Listener
+     slot->signal(event);           // signal the Listener
 }
 
 //----------------------------------------------------------------------------

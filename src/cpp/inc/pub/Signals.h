@@ -16,7 +16,7 @@
 //       pub::signals::Signal and pub::signals::Connector descriptors.
 //
 // Last change date-
-//       2020/10/30
+//       2020/12/08
 //
 // Usage notes-
 //       The Signal interface consists of these objects:
@@ -30,9 +30,9 @@
 //       Signal::reset or Signal::~Signal disconnects all of that Signal's
 //       associations.
 //
-//       When an application invokes Signal::inform, it then serially invokes
+//       When an application invokes Signal::signal, it then serially invokes
 //       each connected Event handler. All connected Event handlers will have
-//       been called before inform returns. No thread switching occurs.
+//       been called before signal returns. No thread switching occurs.
 //
 // Thread safety-
 //       Signal objects are NOT thread-safe.
@@ -70,9 +70,9 @@
 //          MouseSignal  moved;     // Movement Signal
 //          ButtonSignal clicked;   // Button Signal
 //          void mouse_move(int x, int y)
-//              { MouseEvent E(x,y); moved.inform(E); }
+//              { MouseEvent E(x,y); moved.signal(E); }
 //          void butt_click(int id, int x, int y)
-//              { ButtonEvent E(id, x, y); clicked.inform(E); }
+//              { ButtonEvent E(id, x, y); clicked.signal(E); }
 //       } S;
 //
 //       ButtonConnector b1= S.clicked.connect(ButtonHandler());
@@ -351,18 +351,18 @@ Connector<Event>                    // The Signal/Function connector
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::Signal::inform
+//       pub::signals::Signal::signal
 //
 // Purpose-
-//       Inform all Listeners about an Event
+//       Signal all Listeners about an Event
 //
 //----------------------------------------------------------------------------
 void
-   inform(                          // Inform all Listeners about
+   signal(                          // Signal all Listeners about
      Event&            event) const // This Event
 {  if( pub_hcdm ) debugf("Signal(%p)::raise(%p)\n", this, &event);
 
-   list->inform(event);
+   list->signal(event);
 }
 
 //----------------------------------------------------------------------------
