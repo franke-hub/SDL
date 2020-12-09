@@ -16,14 +16,14 @@
 //       Editor: Menu (placeholder)
 //
 // Last change date-
-//       2020/10/25
+//       2020/12/08
 //
 //----------------------------------------------------------------------------
 #ifndef EDMENU_H_INCLUDED
 #define EDMENU_H_INCLUDED
 
-#include "Xcb/Global.h"             // For xcb::opt_* controls, xcb::trace
-#include "Xcb/Layout.h"             // For xcb::Layout
+#include "Xcb/Layout.h"             // For xcb::Layout (Base class)
+#include <Editor.h>                 // For namespace editor::debug
 
 //----------------------------------------------------------------------------
 //
@@ -47,8 +47,8 @@ public:
      Widget*           parent= nullptr) // Parent Widget
 :  Layout(parent, "EdMenu")
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdMenu(%p)::EdMenu Named(%s)\n", this, get_name().c_str());
+   if( editor::debug::opt_hcdm )
+     editor::debug::debugh("EdMenu(%p)::EdMenu Named(%s)\n", this, get_name().c_str());
 
    use_size= {128, 14};
    min_size= use_size;
@@ -58,8 +58,8 @@ public:
 virtual
    ~EdMenu( void )                  // Destructor
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdMenu(%p)::~EdMenu\n", this);
+   if( editor::debug::opt_hcdm )
+     editor::debug::debugh("EdMenu(%p)::~EdMenu\n", this);
 }
 
 //----------------------------------------------------------------------------

@@ -16,14 +16,13 @@
 //       Editor: Tabs (placeholder)
 //
 // Last change date-
-//       2020/10/25
+//       2020/12/08
 //
 //----------------------------------------------------------------------------
 #ifndef EDTABS_H_INCLUDED
 #define EDTABS_H_INCLUDED
 
-#include "Xcb/Global.h"             // For xcb::opt_*, xcb::debug*
-#include "Xcb/Window.h"             // For xcb::Window
+#include "Editor.h"                 // For namespace editor::debug
 #include "EdMisc.h"                 // For EdMisc
 
 //----------------------------------------------------------------------------
@@ -52,16 +51,16 @@ public:
 :  EdMisc(parent, name, 128, 14)
 {
    (void)parent;                    // TODO: Parent always first (possible?)
-   if( xcb::opt_hcdm )
-    xcb::debugh("EdTabs(%p)::EdTabs\n", this);
+   if( editor::debug::opt_hcdm )
+    editor::debug::debugh("EdTabs(%p)::EdTabs\n", this);
 }
 
 //----------------------------------------------------------------------------
 virtual
    ~EdTabs( void )                  // Destructor
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdTabs(%p)::~EdTabs\n", this);
+   if( editor::debug::opt_hcdm )
+     editor::debug::debugh("EdTabs(%p)::~EdTabs\n", this);
 }
 
 //----------------------------------------------------------------------------

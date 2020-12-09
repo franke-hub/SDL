@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2020/12/02
+//       2020/12/08
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -467,15 +467,14 @@ const char*                         // The truncated buffer
 //       Undo any changes.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code: 0 if state changed
+bool                                // Return code: TRUE if state changed
    Active::undo( void )             // Undo any changes
 {
-   int rc= 1;                       // Default, no change
-   if( fsm != FSM_RESET ) {         // If something to undo
+   if( fsm == FSM_CHANGED ) {       // If something to undo
      fsm= FSM_RESET;
-     rc= 0;
+     return true;
    }
 
-   return rc;
+   return false;
 }
 }  // namespace xcb

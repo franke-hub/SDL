@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2020/10/14
+//       2020/12/08
 //
 // Implementation note-
 //       TODO: Debug mode currently *ALWAYS* intensive move
@@ -46,12 +46,13 @@
 #include <pub/Exception.h>          // For Exception object
 #include <pub/Trace.h>              // For Trace object
 
-#include <Xcb/Global.h>             // For xcb::user_debug
+#include <Xcb/Global.h>             // For namespace xcb
+#include <Editor.h>                 // For namespace editor::debug
 
 using pub::Debug;                   // For Debug object
 using pub::Trace;                   // For Trace object
-using namespace pub::debugging;     // For debugging subroutines
-using xcb::user_debug;              // For user messages
+
+using namespace pub::debugging;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -107,11 +108,6 @@ static void*           trace_table= nullptr; // The allocated trace table
 //----------------------------------------------------------------------------
 static const int       PROT_RW= (PROT_READ | PROT_WRITE);
 static const char*     TRACE_FILE= "./trace.out"; // Trace file name
-
-//----------------------------------------------------------------------------
-// Deferred includes (use local variables)
-//----------------------------------------------------------------------------
-#include "Editor.h"                 // The Editor application
 
 //----------------------------------------------------------------------------
 //
@@ -233,6 +229,10 @@ static int                          // Return code (0 OK)
    xcb::opt_hcdm= opt_hcdm;         // Expose options
    xcb::opt_test= opt_test;
    xcb::opt_verbose= opt_verbose;
+
+   editor::debug::opt_hcdm= opt_hcdm;
+   editor::debug::opt_test= opt_test;
+   editor::debug::opt_verbose= opt_verbose;
 
    return 0;                        // Placeholder
 }
@@ -481,24 +481,24 @@ extern int                          // Return code
    if( rc ) return rc;              // Return if invalid
 
    if( opt_hcdm || opt_verbose >= 0 ) {
-     user_debug("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
-     user_debug("--hcdm(%d) --verbose(%d) --trace(%d)\n"
-               , opt_hcdm, opt_verbose, opt_trace);
+     editor::debug::errorf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
+     editor::debug::errorf("--hcdm(%d) --verbose(%d) --trace(%d)\n"
+                          , opt_hcdm, opt_verbose, opt_trace);
    }
 
    //-------------------------------------------------------------------------
    // Mainline code: Load files
    //-------------------------------------------------------------------------
    try {
-     Editor edit(optind, argc, argv);
+     Editor editor(optind, argc, argv);
      if( opt_font ) {
-       if( edit.set_font(opt_font) ) {
+       if( editor::set_font(opt_font) ) {
          fprintf(stderr, "Unable to open font(%s)\n", opt_font);
-         edit.set_font();
+         editor::set_font();
        }
      }
-     edit.start();
-     edit.join();
+     editor::start();
+     editor::join();
    } catch(pub::Exception& X) {
      debugf("%s\n", std::string(X).c_str());
    } catch(std::exception& X) {

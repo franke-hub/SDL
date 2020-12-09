@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2020/12/04
+//       2020/12/08
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -30,9 +30,12 @@
 #include "Xcb/Global.h"             // For Xcb globals
 #include "Xcb/Types.h"              // For Xcb::Line
 
-#include "Editor.h"                 // Editor Globals
+#include "Editor.h"                 // For namespace editor::debug
 #include "EdHist.h"                 // For EdHist
 #include "EdText.h"                 // For EdText
+
+using namespace editor::debug;
+#define debugf editor::debug::debugf // Avoid ADL lookup
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -53,8 +56,8 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
    EdHist::EdHist( void )           // Constructor
 :  EdView(), hist_list()
-{  if( xcb::opt_hcdm )
-     xcb::debugh("EdHist(%p)::EdHist\n", this);
+{  if( opt_hcdm )
+     debugh("EdHist(%p)::EdHist\n", this);
 
    hist_list.fifo(new HistLine());  // Add empty text line (uncounted)
 }
@@ -69,7 +72,7 @@ enum // Compilation controls
 //
 //----------------------------------------------------------------------------
    EdHist::~EdHist( void )          // Destructor
-{  if( xcb::opt_hcdm ) xcb::debugh("EdHist(%p)::~EdHist\n", this);
+{  if( opt_hcdm ) debugh("EdHist(%p)::~EdHist\n", this);
 
    HistLine* line= hist_list.remq();
    while ( line ) {
@@ -91,13 +94,13 @@ void
    EdHist::debug(                   // Debugging display
      const char*       text) const  // Associated text
 {
-   xcb::debugf("EdHist(%p)::debug(%s)\n", this, text ? text : "");
+   debugf("EdHist(%p)::debug(%s)\n", this, text ? text : "");
 
-   xcb::debugf("..hist_line(%p) '%s'\n"
-              , hist_line, hist_line ? hist_line->text : "");
+   debugf("..hist_line(%p) '%s'\n", hist_line
+         , hist_line ? hist_line->text : "");
    unsigned n= 0;
    for(HistLine* line= hist_list.get_tail(); line; line= (HistLine*)line->get_prev() ) {
-     xcb::debugf("[%2d] %p '%s'\n", n++, line, line->text);
+     debugf("[%2d] %p '%s'\n", n++, line, line->text);
    }
 
 // EdView::debug(text);
@@ -138,8 +141,8 @@ void
    EdHist::commit( void )           // Commit the Active line
 {
    char* buffer= const_cast<char*>(active.truncate());
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdHist(%p)::commit buffer(%s)\n", this, buffer);
+   if( opt_hcdm )
+     debugh("EdHist(%p)::commit buffer(%s)\n", this, buffer);
 
    while( *buffer == ' ' )          // Ignore leading blanks
      buffer++;
@@ -150,9 +153,8 @@ void
    int C= *((const unsigned char*)buffer);
    if( C == '\0' || C == '#' ) {    // Ignore comment
      hist_line= nullptr;
-     EdText* text= Editor::editor->text;
-     text->view= text->data;
-     text->draw_info();
+     editor::text->view= editor::text->data;
+     editor::text->draw_info();
      return;
    }
 
@@ -179,7 +181,7 @@ void
    }
 
    // Process the command
-   Editor::editor->command(buffer);
+   editor::command(buffer);
 }
 
 //----------------------------------------------------------------------------
@@ -229,5 +231,5 @@ void
 
    col_zero= col= 0;
    active.reset(hist_line->text);
-   Editor::editor->text->draw_info();
+   editor::text->draw_info();
 }

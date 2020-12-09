@@ -16,7 +16,7 @@
 //       Editor: Find/replace Popup
 //
 // Last change date-
-//       2020/10/25
+//       2020/12/08
 //
 // Implementation notes-
 //       PLACEHOLDEER ONLY: NO (substantial) IMPLEMENTAITON
@@ -26,6 +26,7 @@
 #define EDFIND_H_INCLUDED
 
 #include <string>                   // For std::string
+#include <Editor.h>                 // For namespace editor::debug
 #include "EdMisc.h"                 // For EdMisc
 
 //----------------------------------------------------------------------------
@@ -52,16 +53,16 @@ public:
      const char*       name= "EdFind") // Widget name
 :  EdMisc(parent, name, 128, 14)
 {
-   if( xcb::opt_hcdm )
-    xcb::debugh("EdFind(%p)::EdFind\n", this);
+   if( editor::debug::opt_hcdm )
+    editor::debug::debugh("EdFind(%p)::EdFind\n", this);
 }
 
 //----------------------------------------------------------------------------
 virtual
    ~EdFind( void )                  // Destructor
 {
-   if( xcb::opt_hcdm )
-    xcb::debugh("EdFind(%p)::~EdFind\n", this);
+   if( editor::debug::opt_hcdm )
+    editor::debug::debugh("EdFind(%p)::~EdFind\n", this);
 }
 }; // class EdFind
 #endif // EDFIND_H_INCLUDED

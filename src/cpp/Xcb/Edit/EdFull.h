@@ -16,7 +16,7 @@
 //       Editor: Full Window
 //
 // Last change date-
-//       2020/11/27
+//       2020/12/08
 //
 // Implementation note-
 //       Used to test utility of a built-in DeviceWindow.
@@ -39,6 +39,8 @@
 
 #include "Xcb/Global.h"             // For xcb::opt_* controls, xcb::trace
 #include "Xcb/Widget.h"             // For xcb::Widget
+
+#include <Editor.h>                 // For namespace editor::debug
 
 //----------------------------------------------------------------------------
 //
@@ -65,8 +67,8 @@ public:
    EdFull( void )                   // Constructor
 :  xcb::TextWindow(nullptr, "EdFull")
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdFull(%p)::EdFull\n", this);
+   if( editor::debug::opt_hcdm )
+     editor::debug::debugh("EdFull(%p)::EdFull\n", this);
 }
 
 //----------------------------------------------------------------------------
@@ -75,20 +77,20 @@ public:
 virtual
    ~EdFull( void )                  // Destructor
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdFull(%p)::~EdFull\n", this);
+   if( editor::debug::opt_hcdm )
+     editor::debug::debugh("EdFull(%p)::~EdFull\n", this);
 }
 
 //============================================================================
-// xcb::EdFull: Overridden Window classes
+// EdFull: Overridden Window classes
 //----------------------------------------------------------------------------
 public:
 virtual void
    configure_notify(                // Handle this
      xcb_configure_notify_event_t* event) // Configure notify event
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdFull(%p)::configure_notify(%d,%d)\n", this
+   if( editor::debug::opt_hcdm )
+     editor::debug::debugh("EdFull(%p)::configure_notify(%d,%d)\n", this
            , event->width, event->height);
 
    resize(event->width, event->height);
@@ -99,8 +101,8 @@ virtual void
      const
      xcb_rectangle_t&  rect)        // Expose event
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdFull(%p)::expose([%d,%d,%d,%d])\n", this
+   if( editor::debug::opt_hcdm )
+     editor::debug::debugh("EdFull(%p)::expose([%d,%d,%d,%d])\n", this
              , rect.x, rect.y, rect.width, rect.height);
 
    draw();
@@ -119,8 +121,8 @@ virtual void
 virtual void
    draw( void )                     // Redraw the Window
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdFull(%p)::draw()\n", this);
+   if( editor::debug::opt_hcdm )
+     editor::debug::debugh("EdFull(%p)::draw()\n", this);
 
    // Clear the window. // TODO: optimize (if necessary)
    if( true ) {
@@ -134,15 +136,15 @@ virtual void
 
    if( USE_BRINGUP ) {
      // BRINGUP: Draw diagonal line (to see where boundaries are)
-     if( xcb::opt_hcdm && xcb::opt_verbose > 2 ) {
+     if( editor::debug::opt_hcdm && editor::debug::opt_verbose > 2 ) {
 //     debug(pub::utility::to_string("%4d EdFull diagonal", __LINE__).c_str());
        xcb_point_t points[2]= { {0,                0}
                               , {xcb::PT_t(rect.width), xcb::PT_t(rect.height)}
                               };
        NOQUEUE("xcb_poly_line", xcb_poly_line(c
               , XCB_COORD_MODE_ORIGIN, widget_id, font.fontGC, 2, points));
-       if( xcb::opt_verbose > 2 )
-         xcb::debugf("%4d POLY {0,{%d,%d}}\n", __LINE__, rect.width, rect.height);
+       if( editor::debug::opt_verbose > 2 )
+         editor::debug::debugf("%4d POLY {0,{%d,%d}}\n", __LINE__, rect.width, rect.height);
      }
    }
 

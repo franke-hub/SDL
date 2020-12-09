@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/11/30
+//       2020/12/08
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -507,7 +507,7 @@ void
            xcb_ge_generic_event_t* et= (xcb_ge_generic_event_t*)e;
            if( run_hcdm ) debugf("DEV.GE_GENERIC %d\n", et->event_type);
            DeviceEvent event(e);
-           signal.inform(event);
+           signal.signal(event);
            break;
          }
          case XCB_GRAPHICS_EXPOSURE: {
@@ -544,7 +544,7 @@ void
                dump(et, sizeof(xcb_keymap_notify_event_t));
            }
            DeviceEvent event(e);
-           signal.inform(event);
+           signal.signal(event);
            break;
          }
          case XCB_LEAVE_NOTIFY: {
@@ -570,12 +570,12 @@ void
 ////       xcb_mapping_notify_event_t* et= (xcb_mapping_notify_event_t*)e;
            if( run_hcdm ) debugf("DEV.MAPPING_NOTIFY\n");
            DeviceEvent event(e);
-           signal.inform(event);
+           signal.signal(event);
            break;
          }
          case XCB_MOTION_NOTIFY: {
            xcb_motion_notify_event_t* et= (xcb_motion_notify_event_t*)e;
-           if( run_hcdm ) debugf("DEV.MOTION_NOTIFY\n");
+           if( run_hcdm && opt_verbose >= 0) debugf("DEV.MOTION_NOTIFY\n");
            locate_window(et->event, this)->motion_notify(et);
            break;
          }

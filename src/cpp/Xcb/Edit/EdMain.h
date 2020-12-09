@@ -16,7 +16,7 @@
 //       Editor: Main Window
 //
 // Last change date-
-//       2020/11/27
+//       2020/12/08
 //
 // Implementation note-
 //       PLACEHOLDER.
@@ -25,18 +25,7 @@
 #ifndef EDMAIN_H_INCLUDED
 #define EDMAIN_H_INCLUDED
 
-#include <xcb/xcb.h>                // For XCB interfaces
-#include <xcb/xproto.h>             // For XCB types
-
-#include "Xcb/Font.h"               // For Font
-#include "Xcb/Device.h"             // For Device
-#include "Xcb/Global.h"             // For ENQUEUE macro
-#include "Xcb/Keysym.h"             // For X11/keysymdef.h
-#include "Xcb/Types.h"              // For Types
-#include "Xcb/TextWindow.h"         // For TextWindow base class
-
-#include "Xcb/Global.h"             // For xcb::opt_* controls, xcb::trace
-#include "Xcb/Widget.h"             // For xcb::Widget
+#include <Editor.h>                 // For namespace editor::debug
 
 //----------------------------------------------------------------------------
 //
@@ -58,8 +47,8 @@ public: // NONE DEFINED
 public:
    EdMain( void )                   // Constructor
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdMain(%p)::EdMain\n", this);
+   if( editor::debug::opt_hcdm )
+     editor::debug::debugh("EdMain(%p)::EdMain\n", this);
 }
 
 //----------------------------------------------------------------------------
@@ -68,7 +57,7 @@ public:
 virtual
    ~EdMain( void )                  // Destructor
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdMain(%p)::~EdMain\n", this);
+   if( editor::debug::opt_hcdm )
+     editor::debug::debugh("EdMain(%p)::~EdMain\n", this);
 }; // class EdMain
 #endif // EDMAIN_H_INCLUDED

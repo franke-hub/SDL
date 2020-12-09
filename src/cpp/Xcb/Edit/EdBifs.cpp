@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2020/12/04
+//       2020/12/09
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -27,14 +27,10 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
-#include <pub/Debug.h>              // For pub::debugging
-
-#include "Editor.h"                 // Editor Globals
-#include "EdFile.h"                 // For EdFile, EdLine, EdPool
+#include "Editor.h"                 // For Editor Globals
+#include "EdFile.h"                 // For EdFile, EdLine
 #include "EdHist.h"                 // For EdHist
 #include "EdText.h"                 // For EdText
-
-using namespace pub::debugging;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -45,58 +41,64 @@ enum // Compilation controls
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+static const char*                  // Error message, nullptr expected
+   command_save(char*);             // Save command
+
+static const char*                  // Error message, nullptr expected
+   command_quit(char*);             // (Unconditional) quit command
+
+//----------------------------------------------------------------------------
 //
 // Method-
 //       Editor::commands
 //
 // Purpose-
-//       scaffolding
+//       Editor built-in commands
 //
 //----------------------------------------------------------------------------
 static const char*                  // Error message, nullptr expected
    command_bot(char*)               // Bottom command
 {
-   EdText* text= Editor::editor->text; // Address the Text window
+   using namespace editor;          // For editor::text
    text->data->col_zero= text->data->col= 0;
-   text->activate(text->file->lines.get_tail());
+   text->activate(text->file->line_list.get_tail());
    return nullptr;
 }
 
 static const char*                  // Error message, nullptr expected
    command_change(                  // Change command
-     char*             parm)        // (Mutable) command string
+     char*             parm)        // (Mutable) parameter string
 {
 printf("command_change(%s)\n", parm); // JUST TO USE PARM
-printf("locate '%s'\n", Editor::editor->locate_string.c_str());
-printf("change '%s'\n", Editor::editor->change_string.c_str());
+printf("locate '%s'\n", editor::locate_string.c_str());
+printf("change '%s'\n", editor::change_string.c_str());
 
    return nullptr;
 }
 
 static const char*                  // Error message, nullptr expected
    command_debug(                   // Change command
-     char*             parm)        // (Mutable) command string
-{
-   Editor* edit= Editor::editor;
-   EdText* text= edit->text;
-   char buffer[16];                 // Working buffer
-   buffer[15]= '\0';                // (Always has '\0' delimiter)
-
-   debugf("\ncommand_debug(%s)\n", parm);
-   strncpy(buffer, text->line->text, 15);
-   debugf("line_zero.text(%s)\n", buffer);
-   strncpy(buffer, text->cursor->text, 15);
-   debugf("cursor.text(%s)\n", buffer);
-
-   text->debug(parm);
-   text->data->debug("data");
-   text->hist->debug("hist");
+     char*             parm)        // (Mutable) parameter string
+{  (void)parm;
    return nullptr;
 }
 
 static const char*                  // Error message, nullptr expected
+   command_file(                    // File command
+     char*             parm)        // (Mutable) parameter string
+{
+   const char* mess= command_save(parm); // Save the file
+   if( mess == nullptr )            // If saved
+     mess= command_quit(parm);      // Quit the file
+
+   return mess;
+}
+
+static const char*                  // Error message, nullptr expected
    command_locate(                  // Locate command
-     char*             parm)        // (Mutable) command string
+     char*             parm)        // (Mutable) parameter string
 {
    // TODO: HANDLE UTF8
    if( parm == nullptr )
@@ -113,23 +115,21 @@ static const char*                  // Error message, nullptr expected
    if( *C != '\0' && *(C+1) != '\0' ) // If delimiter is not final character
        return "Invalid parameter";
 
-   Editor* edit= Editor::editor;
-   edit->locate_string= std::string(parm, C - parm);
-   edit->change_string= edit->locate_string;
-
-   return edit->text->do_locate();
+   editor::locate_string= std::string(parm, C - parm);
+   editor::change_string= editor::locate_string;
+   return editor::text->do_locate();
 }
 
 static const char*                  // Error message, nullptr expected
    command_nop(                     // NOP (test) command
-     char*             parm)        // (Mutable) command string
+     char*             parm)        // (Mutable) parameter string
 {  printf("command_nop(%p) '%s'\n", parm, parm ? parm : "");
    return nullptr;
 }
 
 static const char*                  // Error message, nullptr expected
    command_number(                  // (Line) number command
-     char*             parm)        // (Mutable) command string
+     char*             parm)        // (Mutable) parameter string
 {
    ssize_t number= 0;
 
@@ -145,8 +145,8 @@ static const char*                  // Error message, nullptr expected
      parm++;
    }
 
-   EdText* text= Editor::editor->text;
-   EdLine* line= text->file->lines.get_head();
+   using namespace editor;          // For editor::text
+   EdLine* line= text->file->line_list.get_head();
    while( number > 0 ) {
      EdLine* next= line->get_next();
      if( next == nullptr )
@@ -166,17 +166,39 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_quit(char*)              // (Unconditional) quit command
 {
-   Editor* edit= Editor::editor;
-   edit->do_quit(edit->text->file);
+   editor::do_quit(editor::text->file);
+   return nullptr;
+}
+
+static const char*                  // Error message, nullptr expected
+   command_save(                    // Save command
+     char*             parm)        // (Mutable) parameter string
+{
+   EdFile* file= editor::text->file;
+
+   if( file->protect )
+     return "Read-only file";
+   if( file->damaged )
+     return "Damaged file";
+
+   if( parm )                       // If filename specified
+     return "Not coded yet";        // Need to check existence
+
+   int rc= file->write();
+   if( rc )
+     return "Write failure";
+
+   file->reset();
+
    return nullptr;
 }
 
 static const char*                  // Error message, nullptr expected
    command_top(char*)               // Top command
 {
-   EdText* text= Editor::editor->text; // Address the Text window
+   using namespace editor;          // For editor::text
    text->data->col_zero= text->data->col= 0;
-   text->activate(text->file->lines.get_head());
+   text->activate(text->file->line_list.get_head());
    return nullptr;
 }
 
@@ -201,24 +223,37 @@ static const Command_desc
 {  {"BOT",      command_bot}        // Bottom
 ,  {"C",        command_change}     // Change
 ,  {"D",        command_debug}      // Debug
-,  {"L",        command_locate}     // Locate
+// {"DETAB",    command_detab}      // Detab
+// {"E",        command_edit}       // Edit
+// {"EDIT",     command_edit}       // Edit
+// {"EXIT",     command_exit}       // Exit
+,  {"FILE",     command_file}       // File
+// {"GET",      command_get}        // Get
+,  {"L",        command_locate}     // Locate (forward)
+// {"MARGINS",  command_margins}    // Set margins
+// {"MODE",     command_mode}       // Set mode
 ,  {"NOP",      command_nop}        // (Test function)
 ,  {"QUIT",     command_quit}       // Quit
+,  {"SAVE",     command_save}       // Save
+// {"SET",      command_set}        // Set (separate list) Include margins? ... autowrap
+// {"TABS",     command_tabs}       // Tabs
 ,  {"TOP",      command_top}        // Top
+// {">",        command_forward}    // Locate forward
+// {"<",        command_reverse}    // Locate reverse
 ,  {nullptr,    nullptr}            // End of list delimiter
 };
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Editor::command
+//       editor::command
 //
 // Purpose-
 //       Process a command.
 //
 //----------------------------------------------------------------------------
 void
-   Editor::command(                 // Process a command
+   editor::command(                 // Process a command
      char*             buffer)      // (MODIFIABLE) command line buffer
 {
    const char* error= "Invalid command";

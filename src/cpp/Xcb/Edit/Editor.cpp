@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2020/12/04
+//       2020/12/08
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -30,11 +30,11 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
+#include <pub/Fileman.h>            // For namespace pub::Fileman
 #include <pub/Signals.h>            // For pub::signals
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Trace.h>              // For pub::Trace
 
-#include "Xcb/Global.h"             // For xcb::opt_hcdm,opt_verbose; debugging
 #include "Xcb/Device.h"             // For xcb::Device
 #include <Xcb/Keysym.h>             // For xcb_keycode_t symbols
 #include "Xcb/Layout.h"             // For xcb::Layout
@@ -42,15 +42,18 @@
 #include "Xcb/Widget.h"             // For xcb::Widget, our base class
 #include "Xcb/Window.h"             // For xcb::Window
 
-#include "Editor.h"                 // Editor Globals
+#include "Editor.h"                 // For Editor (Implementation class)
 #include "EdFile.h"                 // For EdFile, EdLine, EdPool
 #include "EdFind.h"                 // For EdFind
 #include "EdFull.h"                 // For EdFull
+#include "EdMark.h"                 // For EdMark
 #include "EdMenu.h"                 // For EdMenu
 #include "EdMisc.h"                 // For EdMisc TODO: REMOVE
 #include "EdPool.h"                 // For EdPool
 #include "EdTabs.h"                 // For EdTabs
 #include "EdText.h"                 // For EdText
+
+using namespace editor::debug;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -61,14 +64,64 @@ enum // Compilation controls
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
+// Internal data areas
+//----------------------------------------------------------------------------
+static std::string     HOME;        // Home directory
+static const mode_t    DIR_MODE= S_IRWXU | S_IRGRP|S_IXGRP | S_IROTH|S_IXOTH;
+
+//----------------------------------------------------------------------------
+// Default .README.txt
+//----------------------------------------------------------------------------
+static const char*     README_text=
+   "[Program]\n"
+   "Http=http://eske-systems.com\n"
+   "Exec=view\n"
+   "Exec=edit\n"
+   "Purpose=Graphic text editor\n"
+   "Version=0.0\n"
+   "\n"
+   "[Options]\n"
+   "## autosave_dir=~/.cache/uuid/e743e3ac-6816-4878-81a2-b47c9bbc2d37\n"
+   "## ignore_case=true\n"
+   ;
+
+//----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-Editor*                Editor::editor= nullptr; // The Editor singleton
+xcb::Device*           editor::device= nullptr; // The root Device
+xcb::Window*           editor::window= nullptr; // The test Window
+
+pub::List<EdFile>      editor::ring; // The list of EdFiles
+EdFind*                editor::find= nullptr; // The Find Popup
+EdFull*                editor::full= nullptr; // The Full Window
+EdMark*                editor::mark= nullptr; // The Mark Handler
+EdMenu*                editor::menu= nullptr; // The Menu Layout
+EdTabs*                editor::tabs= nullptr; // The Tabs Layout
+EdText*                editor::text= nullptr; // The Text Window
+
+pub::List<EdPool>      editor::filePool; // File allocation EdPool
+pub::List<EdPool>      editor::textPool; // Text allocation EdPool
+
+std::string            editor::locate_string; // The locate string
+std::string            editor::change_string; // The change string
+
+// Debugging options
+const char*            editor::debug::opt_test= nullptr;  // Bringup test?
+int                    editor::debug::opt_hcdm= false; // Hard Core Debug Mode?
+int                    editor::debug::opt_verbose= false; // Debug verbosity
+
+// Operational controls
+std::string            editor::autosave_dir;
+int                    editor::autowrap= false;
+int                    editor::ignore_case= true;
+int                    editor::search_mode= 0;
+//                     _unused=0;   // (Alignment)
 
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
 static std::mutex      mutex;       // Singleton mutex
+static int             singleton= 0; // Singleton control
 
 //----------------------------------------------------------------------------
 //
@@ -80,7 +133,150 @@ static std::mutex      mutex;       // Singleton mutex
 //
 //----------------------------------------------------------------------------
 static inline bool use_debug( void ) // Is debugging active?
-{ return HCDM || USE_BRINGUP || xcb::opt_hcdm; }
+{ return HCDM || USE_BRINGUP || opt_hcdm; }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       editor::debug::debugf
+//       editor::debug::debugh
+//       editor::debug::errorf
+//
+// Purpose-
+//       Debugging interfaces, similar or identical to ::pub::debugging
+//
+//----------------------------------------------------------------------------
+void
+   editor::debug::debugf(           // Debug debug printf facility
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // The remaining arguments
+{
+   va_list             argptr;      // Argument list pointer
+
+   va_start(argptr, fmt);           // Initialize va_ functions
+   ::pub::debugging::vdebugf(fmt, argptr);
+   va_end(argptr);                  // Close va_ functions
+}
+
+void
+   editor::debug::debugh(           // Debug debug printf facility with heading
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // The remaining arguments
+{
+   va_list             argptr;      // Argument list pointer
+
+   va_start(argptr, fmt);           // Initialize va_ functions
+   ::pub::debugging::vdebugh(fmt, argptr);
+   va_end(argptr);                  // Close va_ functions
+}
+
+void
+   editor::debug::errorf(           // Debug debug to stderr
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // The remaining arguments
+{
+   va_list             argptr;      // Argument list pointer
+
+   va_start(argptr, fmt);           // Initialize va_ functions
+   vfprintf(stderr, fmt, argptr);   // Write to stderr
+   va_end(argptr);                  // Close va_ functions
+
+   if( opt_hcdm ) {                 // If Hard Core Debug Mode
+     va_start(argptr, fmt);
+     ::pub::debugging::vtraceh(fmt, argptr);
+     va_end(argptr);
+   }
+}
+
+//----------------------------------------------------------------------------
+// Subroutine: make_dir, insure directory exists
+//----------------------------------------------------------------------------
+static void make_dir(std::string path) // Insure directory exists
+{
+   struct stat info;
+   int rc= stat(path.c_str(), &info);
+   if( rc != 0 ) {
+     rc= mkdir(path.c_str(), DIR_MODE);
+     if( rc )
+       Editor::failure(std::string("Cannot create ") + path);
+   }
+}
+
+//----------------------------------------------------------------------------
+// Subroutine: make_file, insure file exists
+//----------------------------------------------------------------------------
+static void make_file(std::string name, const char* data) // Insure file exists
+{
+   struct stat info;
+   int rc= stat(name.c_str(), &info);
+   if( rc != 0 ) {
+     FILE* f= fopen(name.c_str(), "wb"); // Open the file
+     if( f == nullptr )             // If open failure
+       Editor::failure(std::string("Cannot create ") + name);
+
+     size_t L0= strlen(data);
+     size_t L1= fwrite(data, 1, L0, f);
+     rc= fclose(f);
+     if( L0 != L1 || rc )
+       Editor::failure(std::string("Write failure: ") + name);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       configure
+//
+// Purpose-
+//       Load the configuration.
+//
+//----------------------------------------------------------------------------
+static void
+   configure( void )                // Load configuaration
+{  // TODO: Load from control file
+   using namespace editor;
+
+   const char* env= getenv("HOME"); // Get HOME directory
+   if( env == nullptr )
+     Editor::failure("No HOME directory");
+   HOME= env;
+
+   // If required, create "$HOME/.config/uuid/" + UUID + "/.README.txt"
+   std::string S= HOME + "/.config";
+   make_dir(S);
+   S += "/uuid";
+   make_dir(S);
+   S += std::string("/") + UUID;
+   make_dir(S);
+   autosave_dir= S;
+
+   S += std::string("/.README.txt");
+   make_file(S, README_text);
+
+   // Parse the configuration file
+   // TODO: NOT CODED YET
+
+   // Set AUTOSAVE subdirectory
+   env= getenv("AUTOSAVE");         // Get AUTOSAVE directory
+   if( env )
+     autosave_dir= env;
+
+   // Look for *AUTOSAVE* files in AUTOSAVE subdirectory
+   pub::Fileman::Path path(autosave_dir);
+   pub::Fileman::File* file= path.list.get_head();
+   if( file == nullptr )
+     Editor::failure(std::string("AUTOSAVE directory(") + autosave_dir
+                    + ") empty");
+
+   size_t L= strlen(AUTOSAVE);
+   while( file ) {
+     if( strcmp(AUTOSAVE, file->name.substr(0, L).c_str()) == 0 )
+       Editor::failure(std::string("File exists: ") + autosave_dir
+                      + "/" + file->name);
+
+     file= file->get_next();
+   }
+}
 
 //----------------------------------------------------------------------------
 //
@@ -95,16 +291,21 @@ static inline bool use_debug( void ) // Is debugging active?
      int               argi,        // Argument index
      int               argc,        // Argument count
      char*             argv[])      // Argument array
-:  ring(), filePool(), textPool(), locate_string(), change_string()
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("Editor(%p)::Editor\n", this);
+   using namespace editor;
+
+   if( opt_hcdm )
+     debugh("Editor::Editor\n");
 
    // Initialize singleton
    {{ std::lock_guard<decltype(mutex)> lock(mutex);
-      if( editor ) throw "Multiple Editors"; // Enforce singleton
-      editor= this;
+      if( singleton ) throw "Multiple Editors"; // Enforce singleton
+      singleton= true;
    }}
+
+   //-------------------------------------------------------------------------
+   // Initialize configuration options
+   configure();
 
    // Allocate initial textPool
    textPool.fifo(new EdPool(EdPool::MIN_SIZE));
@@ -115,6 +316,7 @@ static inline bool use_debug( void ) // Is debugging active?
    // Allocate sub-objects
    find= new EdFind();              // In progress
    full= new EdFull();              // In progress
+   mark= new EdMark();              // In progress
    menu= new EdMenu();              // In progress
    tabs= new EdTabs();              // In progress
    text= new EdText();              // Operational
@@ -129,8 +331,8 @@ static inline bool use_debug( void ) // Is debugging active?
    }
 
    // Select-a-Config ========================================================
-   if( xcb::opt_test ) {            // If optional test selected
-     std::string test= xcb::opt_test; // The test name (For string == function)
+   if( opt_test ) {                 // If optional test selected
+     std::string test= opt_test;    // The test name (For string == function)
      if( test == "fullwindow" ) {   // Only EdText visible
        // Result: EdText takes entire screen. EdFull not visibie.
        //   Device->EdFull->EdText
@@ -209,11 +411,11 @@ static inline bool use_debug( void ) // Is debugging active?
        row->insert( new EdMisc(nullptr, "Bottom", 64, 14));
 
      } else {
-       xcb::user_debug("Test(%s) not available\n", xcb::opt_test);
+       errorf("Test(%s) not available\n", opt_test);
        exit(EXIT_FAILURE);
      }
 
-     xcb::user_debug("Test(%s) selected\n", xcb::opt_test);
+     errorf("Test(%s) selected\n", opt_test);
    } else {                         // Default: textwindow ==================
      device->insert(text);
    }
@@ -231,6 +433,8 @@ static inline bool use_debug( void ) // Is debugging active?
 //----------------------------------------------------------------------------
    Editor::~Editor( void )          // Destructor
 {
+   using namespace editor;
+
    // Remove and delete Files
    for(;;) {
      EdFile* file= ring.remq();
@@ -264,17 +468,26 @@ static inline bool use_debug( void ) // Is debugging active?
    delete menu;
    delete full;
    delete find;
-
-   // Remove the Editor singleton
-   std::lock_guard<decltype(mutex)> lock(mutex);
-   if( editor == this )
-     editor= nullptr;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Editor::do_done
+//       Editor::failure
+//
+// Purpose-
+//       Write error message and exit
+//
+//----------------------------------------------------------------------------
+void
+   Editor::failure(                 // Write error message and exit
+     std::string       mess)        // (The error message)
+{  fprintf(stderr, "%s\n", mess.c_str()); exit(EXIT_FAILURE); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_done
 //
 // Purpose-
 //       Handle DONE function: Safely exit all EdFiles
@@ -284,20 +497,20 @@ static inline bool use_debug( void ) // Is debugging active?
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0OK
-   Editor::do_done( void )          // Handle DONE
+   editor::do_done( void )          // Handle DONE
 {  device->operational= false; return 0; } // TODO: Safely exit
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Editor::do_quit
+//       editor::do_quit
 //
 // Purpose-
 //       Handle QUIT function: Unconditionally remove EdFile from ring
 //
 //----------------------------------------------------------------------------
 void
-   Editor::do_quit(                 // Handle QUIT (Unconditional)
+   editor::do_quit(                 // Handle QUIT (Unconditional)
      EdFile*           file)        // For this EdFile
 {
    EdFile* next= file->get_prev();
@@ -319,37 +532,37 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Editor::do_test
+//       editor::do_test
 //
 // Purpose-
 //       Bringup test. Currently flips window visibility.
 //
 //----------------------------------------------------------------------------
 void
-   Editor::do_test( void )          // Bringup test
+   editor::do_test( void )          // Bringup test
 {
    if( window && window->get_parent() ) { // If TestWindow active
-     fprintf(stderr, "Editor(%p)::do_test\n", this);
+     fprintf(stderr, "editor::do_test\n");
      if( window->state & xcb::Window::WS_VISIBLE )
        window->hide();
      else
        window->show();
      device->draw();
    } else
-     fprintf(stderr, "Editor(%p)::do_test NOT CONFIGURED\n", this);
+     fprintf(stderr, "editor::do_test NOT CONFIGURED\n");
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Editor::get_text
+//       editor::get_text
 //
 // Purpose-
 //       Allocate file/line text
 //
 //----------------------------------------------------------------------------
 char*                               // The (immutable) text
-   Editor::get_text(                // Get (immutable) text
+   editor::get_text(                // Get (immutable) text
      size_t            length)      // Of this length (includes '\0' delimit)
 {
    char* text= nullptr;             // Not allocated (yet)
@@ -373,8 +586,8 @@ char*                               // The (immutable) text
        }
 
        if( text == nullptr ) {      // If a new EdPool is required
-         if( xcb::opt_hcdm )
-           xcb::debugh("Editor.get_text(%zd) New pool\n", length);
+         if( opt_hcdm )
+           debugh("Editor.get_text(%zd) New pool\n", length);
          pool= new EdPool(EdPool::MIN_SIZE);
          text= pool->malloc(length);
          textPool.lifo(pool);
@@ -382,22 +595,22 @@ char*                               // The (immutable) text
      }
    }
 
-   if( xcb::opt_hcdm && xcb::opt_verbose > 1 )
-     xcb::debugf("%p= Editor::allocate(%zd)\n", text, length);
+   if( opt_hcdm && opt_verbose > 1 )
+     debugf("%p= editor::get_text(%zd)\n", text, length);
    return text;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Editor::key_to_name
+//       editor::key_to_name
 //
 // Purpose-
 //       BRINGUP: Convert xcb_keysym_t to its name. (TODO: REMOVE)
 //
 //----------------------------------------------------------------------------
 const char*
-   Editor::key_to_name(xcb_keysym_t key) // Convert xcb_keysym_t to name
+   editor::key_to_name(xcb_keysym_t key) // Convert xcb_keysym_t to name
 {
    if( key >= 0x0020 && key <= 0x007f ) { // If text key
      static char buffer[2];
@@ -462,26 +675,26 @@ const char*
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Editor::set_font
+//       editor::set_font
 //
 // Purpose-
 //       Set the font
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
-   Editor::set_font(                // Set the font
+   editor::set_font(                // Set the font
      const char*       font)        // To this font name
 {  return text->set_font(font); }   // (Defer to EdText)
 
 //----------------------------------------------------------------------------
-// Editor::Virtual Thread simulation methods
+// editor::Virtual Thread simulation methods
 //----------------------------------------------------------------------------
 void
-   Editor::join( void )
+   editor::join( void )
 {  }
 
 void
-   Editor::start( void )
+   editor::start( void )
 {
    // Initialize the configuration
    device->configure();

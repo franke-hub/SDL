@@ -16,7 +16,7 @@
 //       XCB Active Line descriptor.
 //
 // Last change date-
-//       2020/12/02
+//       2020/12/07
 //
 // Implementation note-
 //       Changed Lines also automatically remove any trailing blanks.
@@ -290,7 +290,7 @@ const char*                         // The truncated buffer
 //       Undo any changes.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code: 0 if state changed
+bool                                // Return code: TRUE if state changed
    undo( void );                    // Undo any changes
 }; // class Active
 }  // namespace xcb

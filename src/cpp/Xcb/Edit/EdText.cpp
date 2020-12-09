@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2020/12/04
+//       2020/12/09
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -28,15 +28,18 @@
 #include <xcb/xfixes.h>             // For XCB xfixes extension
 
 #include "Xcb/Active.h"             // For xcb::Active
-#include "Xcb/Global.h"             // For xcb::opt_* controls, xcb::trace
+#include "Xcb/Global.h"             // For xcb::trace
 #include "Xcb/TextWindow.h"         // For xcb::TextWindow
 #include "Xcb/Types.h"              // For xcb::DEV_EVENT_MASK
 
-#include "Config.h"                 // For Configuration controls
+#include "Editor.h"                 // For namespace editor::debug
 #include "EdFile.h"                 // For EdFile
 #include "EdHist.h"                 // For EdHist
-#include "Editor.h"                 // For Editor
 #include "EdTabs.h"                 // For EdTabs
+
+using namespace editor::debug;
+#define debugf editor::debug::debugf // Avoid ADL lookup
+#define debugh editor::debug::debugh // Avoid ADL lookup
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -56,13 +59,12 @@ enum // Compilation controls
 :  TextWindow(parent, name ? name : "EdText")
 ,  data(new EdView()), hist(new EdHist()), view(data)
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdText(%p)::EdText\n", this);
+   if( opt_hcdm )
+     debugh("EdText(%p)::EdText\n", this);
 
    // Configure text colors
-   using namespace config;          // For TXT_BG, TXT_FG
-   bg= TXT_BG;                      // (Values defined in Config.h)
-   fg= TXT_FG;
+   bg= editor::TXT_BG;              // (See Editor.h)
+   fg= editor::TXT_FG;
 
    // Reserve TOP line              // Message/Status/History line
    USER_TOP= 1;
@@ -85,8 +87,8 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
    EdText::~EdText( void )          // Destructor
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdText(%p)::~EdText\n", this);
+   if( opt_hcdm )
+     debugh("EdText(%p)::~EdText\n", this);
 
    if( gc_chg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_chg) );
    if( gc_cmd ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_cmd) );
@@ -112,16 +114,16 @@ void
    EdText::debug(                   // Debugging display
      const char*       text) const  // Associated text
 {
-   xcb::debugf("EdText(%p)::debug(%s) Named(%s)\n", this, text ? text : ""
+   debugf("EdText(%p)::debug(%s) Named(%s)\n", this, text ? text : ""
          , get_name().c_str());
 
-   xcb::debugf("..view(%p) data(%p) hist(%p) file(%p) '%s'\n"
-              , view, data, hist, file, file ? file->name.c_str() : "<null>");
-   xcb::debugf("..gc_chg(%u) gc_cmd(%u) gc_msg(%u) gc_sts(%u)\n"
-              , gc_chg, gc_cmd, gc_msg, gc_sts);
-   xcb::debugf("..motion[%d,%u,%d,%d]\n"
-              , motion.state, motion.time, motion.x, motion.y);
-   xcb::debugf("..view(%p) data(%p) hist(%p)\n", view, data, hist);
+   debugf("..view(%p) data(%p) hist(%p) file(%p) '%s'\n"
+         , view, data, hist, file, file ? file->name.c_str() : "<null>");
+   debugf("..gc_chg(%u) gc_cmd(%u) gc_msg(%u) gc_sts(%u)\n"
+         , gc_chg, gc_cmd, gc_msg, gc_sts);
+   debugf("..motion[%d,%u,%d,%d]\n"
+         , motion.state, motion.time, motion.x, motion.y);
+   debugf("..view(%p) data(%p) hist(%p)\n", view, data, hist);
 
    TextWindow::debug(text);
 }
@@ -140,8 +142,8 @@ void
    EdText::activate(                // Activate
      EdFile*           file)        // This file
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdText(%p)::activate\n", this);
+   if( opt_hcdm )
+     debugh("EdText(%p)::activate\n", this);
 
    // Out with the old
    if( this->file ) {
@@ -217,7 +219,7 @@ void
 
    // Line off-screen. Locate line in file
    data->row_zero= 0;
-   for( line= file->lines.get_head(); line; line= line->get_next() ) {
+   for( line= file->line_list.get_head(); line; line= line->get_next() ) {
      if( _line == line ) {          // If line found
 //     printf(" %4drow_zero(%zd) rows(%zd) row_size(%u) USER_TOP(%u)\n", __LINE__
 //           , data->row_zero, file->rows, row_size, USER_TOP);
@@ -225,7 +227,7 @@ void
        // If near top of file
        if( data->row_zero < (row_size - USER_TOP) ) {
 //       printf("%4d HCDM\n", __LINE__); // TODO: REMOVE
-         this->line= file->lines.get_head();
+         this->line= file->line_list.get_head();
          data->row= (unsigned)data->row_zero + USER_TOP;
          data->row_zero= 0;
          draw();
@@ -238,7 +240,7 @@ void
          data->row_zero= file->rows + 2 + USER_TOP - row_size;
          data->row= USER_TOP;
          unsigned r= row_size - 1;
-         line= file->lines.get_tail(); // "** END OF FILE **", rows + 1
+         line= file->line_list.get_tail(); // "** END OF FILE **", rows + 1
          while( r > USER_TOP ) {
            if( line == _line )
              data->row= r;
@@ -268,8 +270,8 @@ void
    }
 
    // Line is not in file (SHOULD NOT OCCUR)
-   xcb::user_debug("%4d HCDM EdText\n", __LINE__); // TODO: REMOVE
-   cursor= line= file->lines.get_head();
+   errorf("%4d HCDM EdText\n", __LINE__); // TODO: REMOVE
+   cursor= line= file->line_list.get_head();
    data->col_zero= data->col= 0;
    data->row_zero= 0;
    data->row= USER_TOP;
@@ -288,14 +290,14 @@ void
 void
    EdText::configure( void )        // Configure the Window
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdText(%p)::configure\n", this);
+   if( opt_hcdm )
+     debugh("EdText(%p)::configure\n", this);
 
    TextWindow::configure();         // Create the Window
 
    // Create the graphic contexts
-   using namespace config;          // For *_FG, *_BG
-   gc_chg= font.makeGC(CHG_FG, CHG_BG); // (Values defined in Config.h)
+   using namespace editor;          // For *_FG, *_BG
+   gc_chg= font.makeGC(CHG_FG, CHG_BG); // (Values defined in Editor.h)
    gc_cmd= font.makeGC(CMD_FG, CMD_BG);
    gc_msg= font.makeGC(MSG_FG, MSG_BG);
    gc_sts= font.makeGC(STS_FG, STS_BG);
@@ -319,8 +321,8 @@ void
           , xcb_change_property_checked
           ( c, XCB_PROP_MODE_REPLACE, widget_id
           , protocol, 4, 32, 1, &wm_close) );
-   if( xcb::opt_hcdm || xcb::opt_verbose >= 0 )
-     xcb::debugf("atom PROTOCOL(%d)\natom WM_CLOSE(%d)\n", protocol, wm_close);
+   if( opt_hcdm || opt_verbose >= 0 )
+     debugf("atom PROTOCOL(%d)\natom WM_CLOSE(%d)\n", protocol, wm_close);
 
 // flush();                         // Not needed: draw scheduled
 }
@@ -347,7 +349,7 @@ void
      return;
    }
 
-   Editor::editor->do_quit(file);
+   editor::do_quit(file);
 }
 
 //----------------------------------------------------------------------------
@@ -403,8 +405,7 @@ const char*                         // Return message, nullptr if OK
 {
    data->commit();                  // Commit the active line
 
-   Editor* edit= Editor::editor;
-   const char* S= edit->locate_string.c_str();
+   const char* S= editor::locate_string.c_str();
 
    //-------------------------------------------------------------------------
    // Locate in the active line
@@ -453,9 +454,9 @@ const char*                         // Return message, nullptr if OK
 void
    EdText::draw_cursor(bool set)    // Set the character cursor
 {
-   if( xcb::opt_hcdm && xcb::opt_verbose > 1 )
-     xcb::debugh("EdText(%p)::cursor_%s cursor[%u,%u]\n", this
-                , set ? "S" : "C", view->col, view->row);
+   if( opt_hcdm && opt_verbose > 1 )
+     debugh("EdText(%p)::cursor_%s cursor[%u,%u]\n", this
+           , set ? "S" : "C", view->col, view->row);
 
    size_t column= view->col_zero + view->col; // The current column
    char buffer[8];                  // Encoder buffer
@@ -536,7 +537,7 @@ void
 bool                                // Return code, TRUE if handled
    EdText::draw_message( void )     // Message line
 {
-   EdMess* mess= file->messages.get_head();
+   EdMess* mess= file->mess_list.get_head();
    if( mess == nullptr ) return false;
 
    char buffer[256];                // Status line buffer
@@ -587,8 +588,8 @@ void
 void
    EdText::draw( void )             // Redraw the Window
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdText(%p)::draw\n", this);
+   if( opt_hcdm )
+     debugh("EdText(%p)::draw\n", this);
 
    TextWindow::draw(data->col_zero); // Draw the text screen
    draw_info();                     // Draw the information line
@@ -611,8 +612,8 @@ const char*                         // *ALWAYS* nullptr
    EdText::focus(                   // Set the current view
      EdView*           _view)       // To this view
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdText(%p)::focus(%p)\n", this, _view);
+   if( opt_hcdm )
+     debugh("EdText(%p)::focus(%p)\n", this, _view);
 
    if( _view == hist || view == hist ) { // If setting or leaving history view
      ;; // TODO
@@ -703,9 +704,10 @@ int                                 // Return code, 0 if draw performed
    }
    view->col= unsigned(column - view->col_zero);
 
-   if( rc )                         // If full redraw not needed
+   if( rc ) {                       // If full redraw not needed
      draw_cursor();                 // Just set cursor
-   else {                           // If full redraw needed
+     draw_info();                   // Update status line
+   } else {                         // If full redraw needed
      if( view == data )             // If data view (draw_info included)
        draw();
      else
@@ -729,11 +731,7 @@ void
      const char*       _mess,       // Message text
      int               _type)       // Message mode
 {
-   if( _mess == nullptr )           // Ignore if no message
-     return;
-
    file->put_message(_mess, _type);
-   draw_info();
 }
 
 //----------------------------------------------------------------------------
@@ -755,7 +753,7 @@ void
    cursor= nullptr;                 // Default, no cursor
    EdLine* line= (EdLine*)this->line; // Get the first line
    if( line == nullptr ) {          // If Empty      // TODO: SHOULD NOT OCCUR
-     xcb::user_debug("%4d HCDM EdText\n", __LINE__); // TODO: REMOVE
+     errorf("%4d HCDM EdText\n", __LINE__); // TODO: REMOVE
      return;
    }
 
@@ -810,17 +808,21 @@ void
        }
 
        line= file->insert(line, new EdLine()); // Insert a new line
-       file->changed= true;         // The file has changed
+       EdRedo* redo= new EdRedo();
+       redo->head_insert= redo->tail_insert= line;
+       file->insert_undo(redo);
+
        synch_active();              // Synchronize the cursor line and row
        draw();                      // And redraw
        break;
      }
      case 'Q':                      // Quit
-       Editor::editor->do_done();   // TODO: NOT (properly) CODED YET
+       editor::do_done();           // TODO: NOT (properly) CODED YET
        break;
 
      default:
        put_message("Invalid key");
+       draw_info();
    }
 }
 
@@ -831,6 +833,7 @@ void
    switch(key) {                    // CTRL-
      default:
        put_message("Invalid key");
+       draw_info();
    }
 }
 
@@ -882,15 +885,15 @@ void
      xcb_keysym_t      key,         // Key input event
      int               state)       // Alt/Ctl/Shift state mask
 {
-   if( xcb::opt_hcdm ) {
+   if( opt_hcdm ) {
      char B[2]; B[0]= '\0'; B[1]= '\0'; const char* K= B;
      if( key >= 0x0020 && key < 0x007F ) B[0]= char(key);
-     else K= Editor::editor->key_to_name(key);
-     xcb::debugh("EdText(%p)::key_input(0x%.4x,%.4x) '%s'\n", this
-                , key, state, K);
+     else K= editor::key_to_name(key);
+     debugh("EdText(%p)::key_input(0x%.4x,%.4x) '%s'\n", this
+           , key, state, K);
    }
 
-   const char* name= Editor::editor->key_to_name(key);
+   const char* name= editor::key_to_name(key);
    xcb::trace(".KEY", (state<<16) | (key & 0x0000ffff), name);
 
    // Handle protected line
@@ -901,10 +904,11 @@ void
    }
 
    // Handle input key
-   if( file->rem_message_type() )   // Remove informational message
+   file->rem_message_type();        // Remove informational message
+   if( file->mess_list.get_head() ) { // If any message remains
      draw_info();
-   if( file->messages.get_head() )  // If any message remains
      return;
+   }
 
    size_t column= view->col_zero + view->col; // The cursor column
    if( key >= 0x0020 && key < 0x007F ) { // If text key
@@ -936,6 +940,7 @@ void
        view->active.replace_char(column, key);
        move_cursor_H(column + 1);
      }
+     draw_info();
      draw_cursor();
      flush();
 
@@ -1041,7 +1046,7 @@ void
        break;
      }
      case XK_F2: {                  // Bringup test
-       Editor::editor->do_test();
+       editor::do_test();
        break;
      }
      case XK_F3: {
@@ -1061,7 +1066,7 @@ void
        data->commit();
        EdFile* file= this->file->get_prev();
        if( file == nullptr )
-         file= Editor::editor->ring.get_tail();
+         file= editor::ring.get_tail();
        if( file != this->file ) {
          activate(file);
          draw();
@@ -1072,7 +1077,7 @@ void
        data->commit();
        EdFile* file= this->file->get_next();
        if( file == nullptr )
-         file= Editor::editor->ring.get_head();
+         file= editor::ring.get_head();
        if( file != this->file ) {
          activate(file);
          draw();
@@ -1080,15 +1085,17 @@ void
        break;
      }
      case XK_F11: {                 // Undo
-       view->active.undo();
-       view->active.index(view->col_zero+col_size); // Blank fill
-       putxy(view->gc_font, get_xy(0, view->row), view->active.get_buffer(view->col_zero));
-       draw_info();
-       draw_cursor();
+       if( view->active.undo() ) {
+         view->active.index(view->col_zero+col_size); // Blank fill
+         putxy(view->gc_font, get_xy(0, view->row), view->active.get_buffer(view->col_zero));
+         draw_info();
+         draw_cursor();
+       } else
+         file->undo();
        break;
      }
      case XK_F12: {                 // Redo
-       printf("REDO: NOT CODED YET\n");
+       file->redo();
        break;
      }
 
@@ -1187,8 +1194,8 @@ void
    // Use E.detail and xcb::Types::BUTTON_TYPE to determine button
    // E.root_x/y is position on root window; E.event_x/y is position on window
    xcb_button_release_event_t& E= *event;
-   if( xcb::opt_hcdm )
-     xcb::debugh("button:   %.2x root[%d,%d] event[%d,%d] state(0x%.4x)"
+   if( opt_hcdm )
+     debugh("button:   %.2x root[%d,%d] event[%d,%d] state(0x%.4x)"
            " ss(%u) rec(%u,%u,%u)\n"
            , E.detail, E.root_x, E.root_y, E.event_x, E.event_y, E.state
            , E.same_screen, E.root, E.event, E.child);
@@ -1261,8 +1268,8 @@ void
    EdText::client_message(          // Handle this
      xcb_client_message_event_t* E) // Client message event
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("message: type(%u) data(%u)\n", E->type, E->data.data32[0]);
+   if( opt_hcdm )
+     debugh("message: type(%u) data(%u)\n", E->type, E->data.data32[0]);
 
    if( E->type == protocol && E->data.data32[0] == wm_close )
      device->operational= false;
@@ -1272,9 +1279,9 @@ void
    EdText::configure_notify(        // Handle this
      xcb_configure_notify_event_t* E) // Configure notify event
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdText(%p)::configure_notify(%d,%d)\n", this
-                , E->width, E->height);
+   if( opt_hcdm )
+     debugh("EdText(%p)::configure_notify(%d,%d)\n", this
+           , E->width, E->height);
 
    resize(E->width, E->height);
 }
@@ -1283,9 +1290,9 @@ void
    EdText::expose(                  // Handle this
      xcb_expose_event_t* E)         // Expose event
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdText(%p)::expose(%d) %d [%d,%d,%d,%d]\n", this
-                , E->window, E->count, E->x, E->y, E->width, E->height);
+   if( opt_hcdm )
+     debugh("EdText(%p)::expose(%d) %d [%d,%d,%d,%d]\n", this
+           , E->window, E->count, E->x, E->y, E->width, E->height);
 
    draw();
 }
@@ -1294,9 +1301,9 @@ void
    EdText::motion_notify(           // Handle this
      xcb_motion_notify_event_t* E)  // Motion notify event
 {
-   if( xcb::opt_hcdm && xcb::opt_verbose >= 0 )
-     xcb::debugh("motion: time(%u) detail(%d) event(%d) xy(%d,%d)\n"
-                , E->time, E->detail, E->event, E->event_x, E->event_y);
+   if( opt_hcdm && opt_verbose >= 0 )
+     debugh("motion: time(%u) detail(%d) event(%d) xy(%d,%d)\n"
+           , E->time, E->detail, E->event, E->event_x, E->event_y);
 
    // printf("."); fflush(stdout);  // See when called
    if( E->event_x != motion.x || E->event_y != motion.y )
