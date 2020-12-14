@@ -16,7 +16,7 @@
 ##       Default GCC compiler controls
 ##
 ## Last change date-
-##       2020/10/02
+##       2020/12/10
 ##
 ##############################################################################
 
@@ -53,12 +53,14 @@ COPTS  += -std=gnu++17############# Use C++17 standard (gnu version)
 ################################### (Conflicts with -O3)
 
 ################################### Warnings (-Wall/extras commented out)
-COPTS  += -Wall ################### Activate the following warnings
-COPTS  += -Wextra ################# Extra warnings for some events
+COPTS  += -Wall ################### Activate all standard warnings
+COPTS  += -Wextra ################# Activate extra warnings
+COPTS  += -Werror ################# Treat warnings as errors
 ###### += -Wchar-subscripts ####### Array subscript of type char
 ###### += -Wcomment ############### Comment within a comment
 ignore += -Wconversion ############ Implicit conversion can change value
 ###### += -Wdangling-else ######### Possible if-else confusion
+###### += -Wfatal-errors ########## Abort on first error
 ###### += -Wformat ################ Extensive printf, etc. checking
 ###### += -Wimplicit ############## Implicit function or parameter
 COPTS  += -Wmissing-declarations ## Global function has no prototype
@@ -71,9 +73,6 @@ COPTS  += -Wswitch-default ######## Switch, missing default case
 ###### += -Wtrigraphs ############# Trigraphs encountered
 ###### += -Wuninitialized########## Variable used before being set
 ###### += -Wunused################# Unused variable or function
-
-COPTS  += -Werror ################# Treat warnings as errors
-###### += -Wfatal-errors ########## Abort on first error
 
 ################################### Listing control
 ifneq "" "$(LISTING)"

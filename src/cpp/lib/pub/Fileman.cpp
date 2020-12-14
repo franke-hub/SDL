@@ -16,18 +16,18 @@
 //       Fileman.h object methods
 //
 // Last change date-
-//       2020/10/03
+//       2020/12/13
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <dirent.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/types.h>
+#include <assert.h>                 // For assert
+#include <dirent.h>                 // For struct dirent
+#include <limits.h>                 // For PATH_MAX
+#include <stdarg.h>                 // For va_list
+#include <stdio.h>                  // For fprintf
+#include <string.h>                 // For strcpy, ...
+#include <unistd.h>                 // For getcwd, ...
+#include <sys/stat.h>               // For struct stat, lstat
+#include <sys/types.h>              // For system types
 
 #include <pub/Debug.h>              // For pub::debugging::errorp
 #include "pub/Fileman.h"            // The class objects
@@ -45,6 +45,7 @@ namespace _PUB_NAMESPACE::Fileman { // The Fileman namespace
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
+,  MAX_SYMLINK= 128                 // Maximum symbolic link count
 ,  MIN_POOL_SIZE= 65536             // Minimum pool size
 };
 
@@ -266,6 +267,41 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Data::write
+//
+// Purpose-
+//       Write data.
+//
+//----------------------------------------------------------------------------
+int                                 // Return code, 0 OK
+   Data::write(                     // Write data
+     const std::string&path,        // The (locally qualified) path name
+     const std::string&file) const  // The file name
+{
+   int                 rc= -1;      // Return code, default ERROR
+
+   std::string _full= path + "/" + file; // Locally qualified name
+   if( _damaged )                   // If damaged file
+     fprintf(stderr, "*WARNING* writing damaged file(%s)\n", _full.c_str());
+
+   FILE* f= fopen(_full.c_str(), "wb"); // Open the file
+   if( f ) {                        // If open succeeded
+     for(Line* line= _line.get_head(); line; line= line->get_next())
+       fprintf(f, "%s\n", line->text);
+
+     rc= fclose(f);
+     if( rc )
+       errorp("%4d: Data: close('%s') failure", __LINE__, _full.c_str());
+   } else {                         // If open failure
+     errorp("%4d: Data: open('%s') failure", __LINE__, _full.c_str());
+   }
+
+   return rc;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       File::compare
 //
 // Purpose-
@@ -279,6 +315,188 @@ int                                 // Resultant
 {
    const File* that= dynamic_cast<const File*>(_that);
    return name.compare(that->name);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Name::Name
+//
+// Purpose-
+//       Constructor.
+//
+//----------------------------------------------------------------------------
+   Name::Name(                      // Constructor
+     std::string       full_name)   // The file name
+{
+   path_name= get_path_name(full_name);
+   file_name= get_file_name(full_name);
+
+   name= path_name + "/" + file_name;
+
+   // Get file/link status
+   memset(&st, 0, sizeof(st));      // In case of failure
+   lstat(name.c_str(), &st);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Name::get_file_name
+//
+// Purpose-
+//       Get file name part of (relative) full_name
+//
+//----------------------------------------------------------------------------
+std::string                         // The file name of (relative) full_name
+   Name::get_file_name(             // Get file part of
+     std::string       full_name)   // This relative full name
+{
+   ssize_t X= full_name.length() - 1; // Last character in _name
+   while( X >= 0 && full_name[X] != '/' ) // Find last '/' in name
+     X--;
+
+   return full_name.substr(X + 1);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Name::get_path_name
+//
+// Purpose-
+//       Get path part of (relative) full_name
+//
+//----------------------------------------------------------------------------
+std::string                         // The path name of (relative) full_name
+   Name::get_path_name(             // Get path part of
+     std::string       full_name)   // This relative full name
+{
+   ssize_t X= full_name.length() - 1; // Last character in _name
+   while( X >= 0 && full_name[X] != '/' ) // Find last '/' in name
+     X--;
+
+   if( X > 0 )
+     return full_name.substr(0, X);
+   if( X == 0 )
+     return "";
+   return ".";
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Name::resolve
+//
+// Purpose-
+//       Resolve (remove) links in file_name, link_name, and name
+//
+//----------------------------------------------------------------------------
+std::string                         // The invalid path ("" if none)
+   Name::resolve( void )            // Resolve links in name
+{
+   // Resolve current working directory
+   std::string full_name= path_name + "/" + file_name;
+   if( full_name[0] != '/' ) {
+     char buffer[PATH_MAX + 8];
+     buffer[0]= '\0';
+     getcwd(buffer, sizeof(buffer));
+     std::string cwd= buffer;
+     full_name= cwd + "/" + path_name + "/" + file_name;
+   }
+
+   // TODO: Handle UTF8 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   size_t X= 0;                     // Full name character offset
+   unsigned sym_count= 0;           // Symbolic link count
+
+   for(;;) {                        // Resolve symbolic links
+//   debugf("\nVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n");
+//   debugf("     '          1         2         3         4         5         6         7'\n");
+//   debugf("%4zd '01234567890123456789012345678901234567890123456789012345678901234567890'\n", X);
+//   debugf("%4d '%s'\n", __LINE__, full_name.c_str());
+//   if( X < full_name.length() && full_name[X] != '/' ) return "INTERNAL ERROR";
+
+     X++;                           // (Skip '/' character)
+     size_t L= full_name.length();
+     if( X > L )
+       break;
+
+     std::string init_part= full_name;
+     std::string last_part= "";
+     const char* O= full_name.c_str();
+     const char* C= strchr(O + X, '/');
+     if( C == nullptr )
+       X= L;
+     else
+       X= C - O;
+     init_part= full_name.substr(0, X); // DOES NOT include trailing '/'
+     last_part= full_name.substr(X);    // INCLUDES leading '/' (or "")
+
+//   debugf("%4d '%s'[%zd]'%s'\n", __LINE__, init_part.c_str(), X, last_part.c_str());
+     std::string file_part= get_file_name(init_part);
+
+     // Handle special case file_part names: "", "." and ".."
+     if( file_part == "" )
+       return init_part + " (Empty file name)";
+
+     if( file_part == "." ) {
+       init_part= get_path_name(init_part);
+       full_name= init_part + last_part;
+       X= init_part.length();
+       continue;
+     }
+
+     if( file_part == ".." ) {
+       if( full_name.substr(0, 3) == "/.." )
+         return full_name + " (Name /..)";
+
+       init_part= get_path_name(init_part);
+       init_part= get_path_name(init_part);
+       X= init_part.length();
+       full_name= init_part + last_part;
+       continue;
+     }
+
+     // Handle path component
+     struct stat info;
+     int rc= lstat(init_part.c_str(), &info);
+     if( rc ) {
+       if( last_part == "" )
+         break;
+       return init_part;
+     }
+
+     if( S_ISLNK(info.st_mode) ) {
+       if( sym_count++ > MAX_SYMLINK )
+         return init_part + " (SYMLINK_MAX)";
+
+       char buffer[SYMLINK_MAX + 8];
+       buffer[0]= '\0';
+       rc= readlink(init_part.c_str(), buffer, SYMLINK_MAX);
+       if( rc < 0 || size_t(rc) >= SYMLINK_MAX )
+         return init_part + " (readlink failure)";
+       buffer[rc]= '\0';
+       if( buffer[0] == '/' ) {
+         init_part= buffer;
+         X= 0;
+       } else {
+         init_part= get_path_name(init_part);
+         X= init_part.length();
+         init_part= init_part + "/" + buffer;
+       }
+       full_name= init_part + last_part;
+       continue;
+     }
+   }
+
+   name= full_name;
+   file_name= get_file_name(name);
+   path_name= get_path_name(name);
+
+   // Get file status
+   memset(&st, 0, sizeof(st));      // In case of failure (nonexistent file)
+   lstat(name.c_str(), &st);
+   return "";
 }
 
 //----------------------------------------------------------------------------
@@ -397,40 +615,5 @@ char*                               // The allocated storage, nullptr if none
    char* result= data + used;       // The allocated storage
    used += size;                    // Indicate allocated
    return result;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Data::write
-//
-// Purpose-
-//       Write data.
-//
-//----------------------------------------------------------------------------
-int                                 // Return code, 0 OK
-   Data::write(                     // Write data
-     const std::string&path,        // The (locally qualified) path name
-     const std::string&file) const  // The file name
-{
-   int                 rc= -1;      // Return code, default ERROR
-
-   std::string _full= path + "/" + file; // Locally qualified name
-   if( _damaged )                   // If damaged file
-     fprintf(stderr, "*WARNING* writing damaged file(%s)\n", _full.c_str());
-
-   FILE* f= fopen(_full.c_str(), "wb"); // Open the file
-   if( f ) {                        // If open succeeded
-     for(Line* line= _line.get_head(); line; line= line->get_next())
-       fprintf(f, "%s\n", line->text);
-
-     rc= fclose(f);
-     if( rc )
-       errorp("%4d: Data: close('%s') failure", __LINE__, _full.c_str());
-   } else {                         // If open failure
-     errorp("%4d: Data: open('%s') failure", __LINE__, _full.c_str());
-   }
-
-   return rc;
 }
 }  // namespace _PUB_NAMESPACE::Fileman

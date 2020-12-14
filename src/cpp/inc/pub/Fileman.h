@@ -16,7 +16,7 @@
 //       All the file management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2020/10/03
+//       2020/12/13
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_FILEMAN_H_INCLUDED
@@ -29,156 +29,10 @@
 
 namespace _PUB_NAMESPACE::Fileman { // The pub::Fileman namespace
 //----------------------------------------------------------------------------
-//
-// Class-
-//       File
-//
-// Purpose-
-//       File name information
-//
+// Forward references
 //----------------------------------------------------------------------------
-class File : public SORT_List<File>::Link { // File name information
-//----------------------------------------------------------------------------
-// File::Attributes
-//----------------------------------------------------------------------------
-public:
-typedef struct stat    stat_t;      // struct stat type
-
-const std::string      name;        // The file name (Does not include Path)
-const stat_t           st;          // The stat info
-
-//----------------------------------------------------------------------------
-// File::Constructors
-//----------------------------------------------------------------------------
-public:
-   File(                            // Constructor
-     const stat_t&     _st,         // Stat descriptor
-     const std::string&_name)       // File name
-:  name(_name), st(_st) {}
-
-//----------------------------------------------------------------------------
-// File::Destructor
-//----------------------------------------------------------------------------
-virtual ~File( void ) {}            // Destructor
-
-//----------------------------------------------------------------------------
-// File::Methods
-//----------------------------------------------------------------------------
-public:
-virtual int                         // Result (<0, =0, >0)
-   compare(                         // Compare this (using file name) to
-     const SORT_List<void>::Link*
-                       _that) const; // That (File*) Link
-}; // class File
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       Path
-//
-// Purpose-
-//       Path name information
-//
-//----------------------------------------------------------------------------
-class Path {                        // Path name information
-//----------------------------------------------------------------------------
-// Path::Attributes
-//----------------------------------------------------------------------------
-public:
-const std::string      name;        // The path name (Locally qualified)
-SORT_List<File>        list;        // The (sorted) list of Files
-
-//----------------------------------------------------------------------------
-// Path::Constructors
-//----------------------------------------------------------------------------
-public:
-virtual
-   ~Path( void );                   // Destructor
-
-   Path(                            // Constructor
-     const std::string&_name);      // Path name (Locally qualified)
-}; // class Path
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       Line
-//
-// Purpose-
-//       An immutable file line.
-//
-// Implementation notes-
-//       The text is allocated from a Pool.
-//       It is not allocated or released by the Line object.
-//
-//----------------------------------------------------------------------------
-class Line : public DHDL_List<Line>::Link { // File line
-//----------------------------------------------------------------------------
-// Line::Attributes
-//----------------------------------------------------------------------------
-public:
-const char*            text;        // The associated text
-
-//----------------------------------------------------------------------------
-// Line::Constructors
-//----------------------------------------------------------------------------
-public:
-   Line(                            // Constructor
-     const char*       _text)       // The associated text
-:  text(_text) {}
-
-//----------------------------------------------------------------------------
-// Line::Methods
-//----------------------------------------------------------------------------
-public:
-void
-   debug( void ) const {}           // Debugging display (NOT IMPLEMENTED)
-}; // class Line
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       Pool
-//
-// Purpose-
-//       A storage Pool fragment
-//
-// Implementation notes-
-//       Storage is allocated from a Pool.
-//
-//----------------------------------------------------------------------------
-class Pool : public DHDL_List<Pool>::Link { // Storage Pool fragment
-//----------------------------------------------------------------------------
-// Pool::Attributes
-//----------------------------------------------------------------------------
-protected:
-size_t                 used;        // Number of bytes used
-size_t                 size;        // The total Pool size
-char*                  data;        // The Pool data area
-
-//----------------------------------------------------------------------------
-// Pool::Constructors
-//----------------------------------------------------------------------------
-public:
-virtual
-   ~Pool( void )                    // Destructor
-{  delete [] data; }                // Delete the data
-
-   Pool(                            // Constructor
-     size_t            _size)       // The allocation size
-:  used(0), size(_size), data(new char[size]) {}
-
-//----------------------------------------------------------------------------
-// Pool::Methods
-//----------------------------------------------------------------------------
-public:
-virtual void
-   debug( void ) const;             // Debugging display
-
-virtual char*                       // Allocated storage, nullptr on failure
-   malloc(                          // Allocate storage
-     size_t            _size);      // The required length
-}; // class Pool
+class Line;
+class Pool;
 
 //----------------------------------------------------------------------------
 //
@@ -272,5 +126,224 @@ int                                 // Return code, 0 OK
    write( void )                    // Replace file
 {  return write(_path, _file); }
 }; // class Data
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       File
+//
+// Purpose-
+//       File information
+//
+//----------------------------------------------------------------------------
+class File : public SORT_List<File>::Link { // File information
+//----------------------------------------------------------------------------
+// File::Attributes
+//----------------------------------------------------------------------------
+public:
+typedef struct stat    stat_t;      // struct stat type
+
+const std::string      name;        // The file name (Does not include Path)
+const stat_t           st;          // The lstat info
+
+//----------------------------------------------------------------------------
+// File::Constructors
+//----------------------------------------------------------------------------
+public:
+   File(                            // Constructor
+     const stat_t&     _st,         // Stat descriptor
+     const std::string&_name)       // File name
+:  name(_name), st(_st) {}
+
+//----------------------------------------------------------------------------
+// File::Destructor
+//----------------------------------------------------------------------------
+virtual ~File( void ) {}            // Destructor
+
+//----------------------------------------------------------------------------
+// File::Methods
+//----------------------------------------------------------------------------
+public:
+virtual int                         // Result (<0, =0, >0)
+   compare(                         // Compare this (using file name) to
+     const SORT_List<void>::Link*
+                       _that) const; // That (File*) Link
+}; // class File
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       Line
+//
+// Purpose-
+//       An immutable file line.
+//
+// Implementation notes-
+//       The text is allocated from a Pool.
+//       It is not allocated or released by the Line object.
+//
+//----------------------------------------------------------------------------
+class Line : public DHDL_List<Line>::Link { // File line
+//----------------------------------------------------------------------------
+// Line::Attributes
+//----------------------------------------------------------------------------
+public:
+const char*            text;        // The associated text
+
+//----------------------------------------------------------------------------
+// Line::Constructors
+//----------------------------------------------------------------------------
+public:
+   Line(                            // Constructor
+     const char*       _text)       // The associated text
+:  text(_text) {}
+
+//----------------------------------------------------------------------------
+// Line::Methods
+//----------------------------------------------------------------------------
+public:
+void
+   debug( void ) const {}           // Debugging display (NOT IMPLEMENTED)
+}; // class Line
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       Name
+//
+// Purpose-
+//       File name information
+//
+//----------------------------------------------------------------------------
+class Name {                        // File name information
+//----------------------------------------------------------------------------
+// Name::Attributes
+//----------------------------------------------------------------------------
+public:
+typedef struct stat    stat_t;      // struct stat type
+
+stat_t                 st;          // The lstat info
+std::string            name;        // The (locally qualified) file name
+std::string            file_name;   // The file name (without path_name)
+std::string            path_name;   // The path name (without file_name)
+
+//----------------------------------------------------------------------------
+// Name::Constructors
+//----------------------------------------------------------------------------
+public:
+virtual
+   ~Name( void ) = default;         // Destructor
+
+   Name(                            // Constructor
+     std::string       full_name);  // The file name
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Name::get_file_name
+//       Name::get_path_name
+//
+// Purpose-
+//       Get file name part of (locally qualified) file name.
+//       Get path name part of (locally qualified) file name.
+//
+//----------------------------------------------------------------------------
+static std::string                  // The file part of (relative) full_name
+   get_file_name(                   // Get file part of
+     std::string       full_name);  // This relative full name
+
+static std::string                  // The path part of (relative) full_name
+   get_path_name(                   // Get path part of
+     std::string       full_name);  // This relative full name
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Name::resolve
+//
+// Purpose-
+//       Resolve links, converting file_part, path_part, and name.
+//
+// Implementation note-
+//       File path components of "/../" are explicitly allowed, but
+//       a beginning path component of "/.." is not allowed.
+//
+//----------------------------------------------------------------------------
+std::string                         // The invalid path ("" if succesful)
+   resolve( void );                 // Resolve links
+}; // class Name
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       Path
+//
+// Purpose-
+//       Path name information
+//
+//----------------------------------------------------------------------------
+class Path {                        // Path name information
+//----------------------------------------------------------------------------
+// Path::Attributes
+//----------------------------------------------------------------------------
+public:
+const std::string      name;        // The path name (Locally qualified)
+SORT_List<File>        list;        // The (sorted) list of Files
+
+//----------------------------------------------------------------------------
+// Path::Constructors
+//----------------------------------------------------------------------------
+public:
+virtual
+   ~Path( void );                   // Destructor
+
+   Path(                            // Constructor
+     const std::string&_name);      // Path name (Locally qualified)
+}; // class Path
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       Pool
+//
+// Purpose-
+//       A storage Pool fragment
+//
+// Implementation notes-
+//       Storage is allocated from a Pool.
+//
+//----------------------------------------------------------------------------
+class Pool : public DHDL_List<Pool>::Link { // Storage Pool fragment
+//----------------------------------------------------------------------------
+// Pool::Attributes
+//----------------------------------------------------------------------------
+protected:
+size_t                 used;        // Number of bytes used
+size_t                 size;        // The total Pool size
+char*                  data;        // The Pool data area
+
+//----------------------------------------------------------------------------
+// Pool::Constructors
+//----------------------------------------------------------------------------
+public:
+virtual
+   ~Pool( void )                    // Destructor
+{  delete [] data; }                // Delete the data
+
+   Pool(                            // Constructor
+     size_t            _size)       // The allocation size
+:  used(0), size(_size), data(new char[size]) {}
+
+//----------------------------------------------------------------------------
+// Pool::Methods
+//----------------------------------------------------------------------------
+public:
+virtual void
+   debug( void ) const;             // Debugging display
+
+virtual char*                       // Allocated storage, nullptr on failure
+   malloc(                          // Allocate storage
+     size_t            _size);      // The required length
+}; // class Pool
 }  // namespace _PUB_NAMESPACE::Fileman
 #endif // _PUB_FILEMAN_H_INCLUDED
