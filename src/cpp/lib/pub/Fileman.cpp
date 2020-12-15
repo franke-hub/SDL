@@ -16,12 +16,12 @@
 //       Fileman.h object methods
 //
 // Last change date-
-//       2020/12/13
+//       2020/12/15
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
 #include <dirent.h>                 // For struct dirent
-#include <limits.h>                 // For PATH_MAX
+#include <limits.h>                 // For PATH_MAX, SYMLINK_MAX, SYMLOOP_MAX
 #include <stdarg.h>                 // For va_list
 #include <stdio.h>                  // For fprintf
 #include <string.h>                 // For strcpy, ...
@@ -45,9 +45,9 @@ namespace _PUB_NAMESPACE::Fileman { // The Fileman namespace
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
-,  MAX_SYMLINK= 128                 // Maximum symbolic link count
 ,  MIN_POOL_SIZE= 65536             // Minimum pool size
 };
+#define MIN_SYMLOOP 256             // Minimum maximum symlink loop count
 
 //----------------------------------------------------------------------------
 //
@@ -405,6 +405,20 @@ std::string                         // The invalid path ("" if none)
      full_name= cwd + "/" + path_name + "/" + file_name;
    }
 
+   // Resolve MAX_SYMLOOP (ugly)
+   unsigned MAX_SYMLOOP= MIN_SYMLOOP; // Minimum maximum symbolic link count
+   #if defined( SYMLOOP_MAX ) && SYMLOOP_MAX > MIN_SYMLOOP
+     MAX_SYMLOOP= SYMLOOP_MAX;
+   #elif defined( _SC_SYMLOOP_MAX )
+     long symloop_max= sysconf(_SC_SYMLOOP_MAX);
+     if( symloop_max > MAX_SYMLOOP )
+       MAX_SYMLOOP= symloop_max;
+   #endif
+   #if defined( _POSIX_SYMLOOP_MAX ) && _POSIX_SYMLOOP_MAX > MIN_SYMLOOP
+     if( _POSIX_SYMLOOP_MAX > MAX_SYMLOOP )
+       MAX_SYMLOOP= _POSIX_SYMLOOP_MAX;
+   #endif
+
    // TODO: Handle UTF8 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
    size_t X= 0;                     // Full name character offset
    unsigned sym_count= 0;           // Symbolic link count
@@ -467,13 +481,13 @@ std::string                         // The invalid path ("" if none)
      }
 
      if( S_ISLNK(info.st_mode) ) {
-       if( sym_count++ > MAX_SYMLINK )
-         return init_part + " (SYMLINK_MAX)";
+       if( sym_count++ > MAX_SYMLOOP )
+         return init_part + " (MAX_SYMLOOP)";
 
-       char buffer[SYMLINK_MAX + 8];
+       char buffer[PATH_MAX + 8];
        buffer[0]= '\0';
-       rc= readlink(init_part.c_str(), buffer, SYMLINK_MAX);
-       if( rc < 0 || size_t(rc) >= SYMLINK_MAX )
+       rc= readlink(init_part.c_str(), buffer, PATH_MAX);
+       if( rc < 0 || size_t(rc) >= PATH_MAX )
          return init_part + " (readlink failure)";
        buffer[rc]= '\0';
        if( buffer[0] == '/' ) {
