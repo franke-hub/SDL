@@ -16,7 +16,7 @@
 //       Utility functions.
 //
 // Last change date-
-//       2020/07/25
+//       2020/12/14
 //
 // Comparison operators-
 //       op_lt_istr    Case insensitive s LT operator
@@ -194,9 +194,9 @@ char*                               // Resultant
 //       String compare, ignoring case.
 //
 // Implementation note-
-//       ASCII strings disallow characters > 0x7f, so they're always positive.
+//       Unsigned string comparison is used, allowing UTF8 comparison.
 //
-//       ::strcasecmp and ::strncasecmp are not standard library functions,
+//       ::strcasecmp and ::strncasecmp might not be included in string.h,
 //       so they are included here.
 //
 //----------------------------------------------------------------------------
@@ -210,6 +210,34 @@ int                                 // Resultant <0,=0,>0
      const char*       L,           // Left hand side
      const char*       R,           // Right hand side
      size_t            size);       // Maximum comparison length
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       utility::wildchar::strcmp
+//       utility::wildchar::strcasecmp
+//
+// Purpose-
+//       String comparison with wild character substitution.
+//
+// Implementation note-
+//       Character '*' matches any number of (including zero) characters.
+//       Character '?' matches any single character.
+//
+//       Only the left hand string may contain wild charaacters.
+//
+//----------------------------------------------------------------------------
+namespace wildchar {                // Wild character string comparison
+int                                 // Resultant 0, !0
+   strcmp(                          // String compare
+     const char*       L,           // Left hand side (May contain wildchars)
+     const char*       R);          // Right hand side
+
+int                                 // Resultant 0, !0
+   strcasecmp(                      // String insensitive compare
+     const char*       L,           // Left hand side (May contain wildchars)
+     const char*       R);          // Right hand side
+}  // namespace wildchar
 
 //----------------------------------------------------------------------------
 //

@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2020/12/08
+//       2020/12/14
 //
 //----------------------------------------------------------------------------
 #include <chrono>
@@ -590,6 +590,44 @@ static inline int
    errno= 0; atol(" 0X10000000000000000");
    errorCount += MUST_EQ(errno, ERANGE);
    IFDEBUG( printf("%4d %d\n", __LINE__, errno); )
+
+static constexpr const char* const lazy=
+       "The quick Brown fox jumps over the lazy dog.";
+static constexpr const char* const good=
+       "Now is the time for all GOOD men to come to the aid of their party.";
+   errorCount += VERIFY( wildchar::strcmp("*", "anything") == 0);
+   errorCount += VERIFY( wildchar::strcmp("*", "") == 0);
+   errorCount += VERIFY( wildchar::strcmp("this", "this") == 0);
+   errorCount += VERIFY( wildchar::strcmp("this", "that") != 0);
+   errorCount += VERIFY( wildchar::strcmp("some*ing", "something") == 0);
+   errorCount += VERIFY( wildchar::strcmp("s?me*ing", "someDing") == 0);
+   errorCount += VERIFY( wildchar::strcmp("s?me*ing", "soMEDing") != 0);
+
+   errorCount += VERIFY( wildchar::strcasecmp("*", "ANYTHING") == 0);
+   errorCount += VERIFY( wildchar::strcasecmp("*", "") == 0);
+   errorCount += VERIFY( wildchar::strcasecmp("ThIs", "tHiS") == 0);
+   errorCount += VERIFY( wildchar::strcasecmp("this", "that") != 0);
+   errorCount += VERIFY( wildchar::strcasecmp("some*ing", "something") == 0);
+   errorCount += VERIFY( wildchar::strcasecmp("s?me*ing", "something") == 0);
+   errorCount += VERIFY( wildchar::strcasecmp("s?me*ing", "soMEthing") == 0);
+
+   errorCount += VERIFY( wildchar::strcmp("*Brown*dog?", lazy) == 0);
+   errorCount += VERIFY( wildchar::strcmp("The*brown*LAZY*", lazy) != 0);
+   errorCount += VERIFY( wildchar::strcmp("*dog.", lazy) == 0);
+   errorCount += VERIFY( wildchar::strcmp("*DOG*", lazy) != 0);
+   errorCount += VERIFY( wildchar::strcmp("The*", lazy) == 0);
+   errorCount += VERIFY( wildchar::strcmp("Now*", lazy) != 0);
+   errorCount += VERIFY( wildchar::strcmp("Now*", good) == 0);
+   errorCount += VERIFY( wildchar::strcmp("Now is the time*to*party?", good) == 0);
+
+   errorCount += VERIFY( wildchar::strcasecmp("*brOWN*dog?", lazy) == 0);
+   errorCount += VERIFY( wildchar::strcasecmp("The*brown*LAZY*", lazy) == 0);
+   errorCount += VERIFY( wildchar::strcasecmp("*dog.", lazy) == 0);
+   errorCount += VERIFY( wildchar::strcasecmp("*DOG*", lazy) == 0);
+   errorCount += VERIFY( wildchar::strcasecmp("THE*", lazy) == 0);
+   errorCount += VERIFY( wildchar::strcasecmp("NOW*", lazy) != 0);
+   errorCount += VERIFY( wildchar::strcasecmp("NOW*", good) == 0);
+   errorCount += VERIFY( wildchar::strcasecmp("**NOW* is THE time*to **PARTY**", good) == 0);
 
    return errorCount;
 }

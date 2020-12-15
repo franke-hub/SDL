@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2020/10/03
+//       2020/12/14
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -482,10 +482,12 @@ char*                               // Next non-whitespace character
 //
 //----------------------------------------------------------------------------
 int                                 // Resultant <0,=0,>0
-   strcasecmp(                      // ASCII string insensitive compare
-     const char*       L,           // Left hand side
-     const char*       R)           // Right hand side
+   strcasecmp(                      // String insensitive compare
+     const char*       L_,          // Left hand side
+     const char*       R_)          // Right hand side
 {
+   const unsigned char* L= (const unsigned char*)L_;
+   const unsigned char* R= (const unsigned char*)R_;
    while( true ) {
      int diff= toupper(*L) - toupper(*R);
      if( diff != 0 )
@@ -501,11 +503,13 @@ int                                 // Resultant <0,=0,>0
 }
 
 int                                 // Resultant <0,=0,>0
-   strncasecmp(                     // ASCII string insensitive compare
-     const char*       L,           // Left hand side
-     const char*       R,           // Right hand side
+   strncasecmp(                     // String insensitive compare
+     const char*       L_,          // Left hand side
+     const char*       R_,          // Right hand side
      size_t            size)        // Maximum comparison length
 {
+   const unsigned char* L= (const unsigned char*)L_;
+   const unsigned char* R= (const unsigned char*)R_;
    while( size != 0 ) {
      int diff= toupper(*L) - toupper(*R);
      if( diff != 0 )
@@ -520,6 +524,92 @@ int                                 // Resultant <0,=0,>0
 
    return 0;
 }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       utility::wildchar::strcmp
+//       utility::wildchar::strcasecmp
+//
+// Purpose-
+//       Wildcard string compare.
+//
+//----------------------------------------------------------------------------
+namespace wildchar {
+int                                 // Resultant 0, !0
+   strcmp(                          // Wildchar string compare
+     const char*       L_,          // Left hand side (May contain wildchars)
+     const char*       R_)          // Right hand side
+{
+   const unsigned char* W= (const unsigned char*)L_;
+   const unsigned char* R= (const unsigned char*)R_;
+   while( true ) {
+     int diff= *W - *R;
+     if( diff != 0 ) {
+       if( *W == '*' ) {
+         while( *W == '*' )
+           W++;
+         if( *W == '\0' )
+           return 0;
+         while( *R != '\0' ) {
+           diff= strcmp((char*)W, (char*)R);
+           if( diff == 0 )
+             break;
+           R++;
+         }
+         return diff;
+       } else if( *W == '?' ) {
+         if( *R == '\0' )
+           return diff;
+       } else
+         return diff;
+     } else if( *W == '\0' )
+       break;
+
+     W++;
+     R++;
+   }
+
+   return 0;
+}
+
+int                                 // Resultant 0, !0
+   strcasecmp(                      // String insensitive compare
+     const char*       L_,          // Left hand side (May contain wildchars)
+     const char*       R_)          // Right hand side
+{
+   const unsigned char* W= (const unsigned char*)L_;
+   const unsigned char* R= (const unsigned char*)R_;
+   while( true ) {
+     int diff= toupper(*W) - toupper(*R);
+     if( diff != 0 ) {
+       if( *W == '*' ) {
+         while( *W == '*' )
+           W++;
+         if( *W == '\0' )
+           return 0;
+         while( *R != '\0' ) {
+           diff= strcasecmp((char*)W, (char*)R);
+           if( diff == 0 )
+             break;
+           R++;
+         }
+         return diff;
+       } else if( *W == '?' ) {
+         if( *R == '\0' )
+           return diff;
+       } else
+         return diff;
+     } else if( *W == '\0' )
+       break;
+
+     W++;
+     R++;
+   }
+
+   return 0;
+}
+}  // namespace wildchar
 
 //----------------------------------------------------------------------------
 //
