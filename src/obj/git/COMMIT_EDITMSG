@@ -1,20 +1,9 @@
-Combined Dataman/Fileman. Added preliminary Xcb/Edit.
+More generic ignores.
 
 # Please enter the commit message for your changes. Lines starting
 # with '#' will be ignored, and an empty message aborts the commit.
 #
 # On branch maint
 # Changes to be committed:
-#	deleted:    Dataman/.ignore
-#	deleted:    Dataman/H
-#	deleted:    Dataman/L
-#	deleted:    Dataman/M
-#	deleted:    Dataman/S
-#	renamed:    Dataman/.home -> Fileman/.home
-#	new file:   Xcb/Edit/H
-#	new file:   Xcb/Edit/L
-#	new file:   Xcb/Edit/M
-#	renamed:    Dataman/Makefile -> Xcb/Edit/Makefile
-#	new file:   Xcb/Edit/S
-#	new file:   Xcb/Edit/View
+#	modified:   .gitignore
 #

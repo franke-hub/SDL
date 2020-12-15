@@ -16,18 +16,11 @@
 //       XCB based text Window
 //
 // Last change date-
-//       2020/12/02
-//
-// Implementation note-
-//                    ******** DO NOT SIMULTANEOUSLY USE ********
-//       XCB_EVENT_MASK_RESIZE_REDIRECT and XCB_EVENT_MASK_STRUCTURE_NOTIFY
-//       When used together, actually changing the window size is problematic.
-//       TODO: Understand why this happens.
-//
-//       The TextWindow uses a one pixel [left,top] draw margin. There is no
-//       [bottom, right] margin.
+//       2020/12/11
 //
 // Implementation TODO-
+//       The TextWindow uses a one pixel [left,top,bottom,right] draw margin.
+//
 //       TODO: ??Optimize?? So far not needed.
 //
 //----------------------------------------------------------------------------
@@ -41,6 +34,7 @@
 #include <xcb/xfixes.h>             // For XCB xfixes
 #include <xcb/xproto.h>             // For XCB interfaces
 
+#include "Xcb/Active.h"             // For Active
 #include "Xcb/Font.h"               // For Font
 #include "Xcb/Device.h"             // For Device
 #include "Xcb/Global.h"             // For ENQUEUE macro
@@ -71,15 +65,16 @@ enum // Compile-time constants
 // xcb::TextWindow: Attributes
 //----------------------------------------------------------------------------
 public:
+Active                 active;      // Active line
 Font                   font;        // Current Font
 std::string            font_name;   // The font name
 
-Line*                  cursor= nullptr; // The current cursor line
 Line*                  line= nullptr; // Current first line
 Line*                  last= nullptr; // Current last line displayed
 
 xcb_gcontext_t         fontGC= 0;   // The standard graphic context
 xcb_gcontext_t         flipGC= 0;   // The inverted graphic context
+xcb_gcontext_t         markGC= 0;   // The selected graphic context
 unsigned               col_size= 0; // The current screen column count
 unsigned               row_size= 0; // The current screen row count
 unsigned               row_used= 0; // The last used screen row
@@ -153,19 +148,6 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       xcb::TextWindow::get_cursor
-//
-// Purpose-
-//       Handle the cursor line, which may be in flux.
-//
-//----------------------------------------------------------------------------
-virtual const char*                 // The cursor line text
-   get_cursor( void )               // Get cursor line text
-{  return cursor->text; }           // This does nothing extra
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       xcb::TextWindow::get_col
 //
 // Purpose-
@@ -188,6 +170,20 @@ unsigned                            // The column
 unsigned                            // The row
    get_row(                         // Get row
      unsigned          y);          // For this y pixel position
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::TextWindow::get_text
+//
+// Purpose-
+//       Get the text (which may be in flux.)
+//
+//----------------------------------------------------------------------------
+virtual const char*                 // The associated text
+   get_text(                        // Get text
+     Line*             line)        // For this Line
+{  return line->text; }             // This does nothing extra
 
 //----------------------------------------------------------------------------
 //

@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2020/12/08
+//       2020/12/11
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -35,7 +35,7 @@
 #include "EdText.h"                 // For EdText
 
 using namespace editor::debug;
-#define debugf editor::debug::debugf // Avoid ADL lookup
+#define debugf editor::debug::debugf // Avoid ADL
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -99,7 +99,7 @@ void
    debugf("..hist_line(%p) '%s'\n", hist_line
          , hist_line ? hist_line->text : "");
    unsigned n= 0;
-   for(HistLine* line= hist_list.get_tail(); line; line= (HistLine*)line->get_prev() ) {
+   for(HistLine* line= hist_list.get_tail(); line; line= line->get_prev() ) {
      debugf("[%2d] %p '%s'\n", n++, line, line->text);
    }
 
@@ -159,7 +159,7 @@ void
    }
 
    // Search for duplicate history line
-   for(HistLine* line= hist_list.get_head(); line; line= (HistLine*)line->get_next()) {
+   for(HistLine* line= hist_list.get_head(); line; line= line->get_next()) {
      if( strcmp(buffer, line->text) == 0 ) { // If duplicate line
        hist_line= line;
        break;
@@ -172,7 +172,7 @@ void
        hist_line= new HistLine(buffer);
        hist_rows++;
      } else {
-       hist_line= (HistLine*)hist_list.remq();
+       hist_line= hist_list.remq();
        hist_line->reset(buffer);
      }
      hist_list.insert(hist_list.get_tail()->get_prev(), hist_line, hist_line);
@@ -219,13 +219,13 @@ void
      while( n-- ) {
        if( hist_line->get_next() == nullptr )
          break;
-       hist_line= (HistLine*)hist_line->get_next();
+       hist_line= hist_line->get_next();
      }
    } else if( n < 0 ) {             // Move up
      while( n++ ) {
        if( hist_line->get_prev() == nullptr )
          break;
-       hist_line= (HistLine*)hist_line->get_prev();
+       hist_line= hist_line->get_prev();
      }
    }
 

@@ -16,7 +16,7 @@
 //       Implement TextWindow.h
 //
 // Last change date-
-//       2020/12/04
+//       2020/12/11
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -32,6 +32,7 @@
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/UTF8.h>               // For pub::UTF8
 
+#include "Xcb/Active.h"             // For xcb::Active
 #include "Xcb/Global.h"             // For xcb globals
 #include "Xcb/Types.h"              // For xcb types
 #include "Xcb/TextWindow.h"         // For xcb::TextWindow
@@ -107,10 +108,13 @@ static inline unsigned              // The truncated value
      ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, flipGC) );
      flipGC= 0;
    }
-
    if( fontGC ) {
      ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, fontGC) );
      fontGC= 0;
+   }
+   if( markGC ) {
+     ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, markGC) );
+     markGC= 0;
    }
 
    flush();
@@ -220,13 +224,17 @@ void
      while( (y + font_height) <= last_height ) {
        if( line == nullptr )
          break;
-       const char* text= line->text; // Default, column[0]
-       if( line == cursor )         // If cursor line
-         text= get_cursor();        // Get cursor line text
-
+       const char* text= get_text(line); // Get associated text
        if( col_zero )               // If offset
-         text= text + pub::UTF8::index((const unsigned char*)text, col_zero);
-       putxy(1, y, text);
+         text += pub::UTF8::index((const unsigned char*)text, col_zero);
+       xcb_gcontext_t gc= fontGC;
+       if( line->flags & Line::F_MARK ) {
+         gc= markGC;
+         active.reset(text);        // Fill line
+         active.fetch(strlen(text) + 256);
+         text= active.get_buffer();
+       }
+       putxy(gc, 1, y, text);
        y += font_height;
        last= line;
        row_used++;

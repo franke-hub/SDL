@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2020/12/09
+//       2020/12/14
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -38,12 +38,13 @@
 #include "Xcb/Types.h"              // For xcb::Line
 
 #include "Editor.h"                 // For editor::debug
-#include "EdFile.h"                 // For EdHist
+#include "EdFile.h"                 // For EdFile, EdLine, EdRedo
+#include "EdMark.h"                 // For EdMark
 #include "EdText.h"                 // For EdText
 
 using namespace editor::debug;      // For opt_* controls
-#define debugf editor::debug::debugf // Prevent ADL lookup
-#define debugh editor::debug::debugh // Prevent ADL lookup
+#define debugf editor::debug::debugf // Prevent ADL
+#define debugh editor::debug::debugh // Prevent ADL
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -94,9 +95,9 @@ static const char*                  // The file name (only)
 //
 //----------------------------------------------------------------------------
    EdFile::EdFile(                  // Constructor
-     const char*       _name)       // File name
+     const char*       _name)       // Fully qualified file name
 :  ::pub::List<EdFile>::Link()
-,  name(_name ? _name : "unnamed.txt")
+,  name(_name)
 {
    if( opt_hcdm )
      debugh("EdFile(%p)::EdFile(%s)\n", this, get_name().c_str());
@@ -139,6 +140,11 @@ static const char*                  // The file name (only)
 //----------------------------------------------------------------------------
 // EdFile::Accessor methods
 //----------------------------------------------------------------------------
+char*
+   EdFile::allocate(                // Allocate file text
+     size_t            size) const  // Of this length
+{  return editor::allocate(size); }
+
 EdLine*                             // The EdLine*
    EdFile::get_line(                // Get EdLine*
      size_t            row) const   // For this row number
@@ -187,11 +193,6 @@ size_t                              // The row count
   return rows;
 }
 
-char*
-   EdFile::get_text(                // Allocate file text
-     size_t            size) const  // Of this length
-{  return editor::get_text(size); }
-
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -232,12 +233,37 @@ void
      redo->debug("undo");
    }
 
-   debugf("..line_list:\n");
-   size_t N= 0;
-   for(EdLine* line= line_list.get_head(); line; line= line->get_next()) {
-     debugf("[%4zd] ", N++);
-     line->debug();
+   if( strcasecmp(text, "lines") == 0 ) {
+     debugf("..line_list:\n");
+     size_t N= 0;
+     for(EdLine* line= line_list.get_head(); line; line= line->get_next()) {
+       debugf("[%4zd] ", N++);
+       line->debug();
+     }
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::activate
+//
+// Purpose-
+//       Activate file line
+//
+//----------------------------------------------------------------------------
+void
+   EdFile::activate(                // Activate
+     EdLine*           line)        // This line
+{
+   EdText* text= editor::text;
+   if( this == text->file ) {       // If the file is active
+     text->activate(line);
+   } else {                         // If the file is off-screen
+     top_line= csr_line= line;
+     col_zero= col= row= 0;
+     row_zero= get_row(line);
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -266,15 +292,14 @@ EdLine*                             // The last inserted line
 
    // Allocate the input data area Pool
    size_t size= st.st_size;         // The size of the file
-   char* text= get_text(size + 1);  // Allocate space for entire file (+ '\0')
+   char* text= allocate(size + 1);  // Allocate space for entire file (+ '\0')
    memset(text, 0, size + 1);       // (In case read fails)
 
    // Load the file
    FILE* f= fopen(name, "rb");
    size_t L= fread(text, 1, size, f);
    fclose(f);
-   if( L != size )
-   {
+   if( L != size ) {
      damaged= true;
      put_message("Read failure");
      size= L;
@@ -381,7 +406,7 @@ EdLine*                             // (Always tail)
 //----------------------------------------------------------------------------
 void
    EdFile::insert_undo(             // Insert
-     EdRedo*           undo)        // This REDO onto the UNDO list
+     EdRedo*           edRedo)      // This REDO onto the UNDO list
 {
    for(;;) {                        // Delete all REDO operations
      EdRedo* redo= redo_list.remq();
@@ -401,7 +426,8 @@ void
      delete redo;
    }
 
-   undo_list.lifo(undo);
+   editor::mark->handle_redo(this, edRedo);
+   undo_list.lifo(edRedo);
    changed= true;
 }
 
@@ -429,7 +455,8 @@ void
      return;
 
    mess_list.fifo(new EdMess(_mess, _type));
-   editor::text->draw_info();
+   if( editor::text->file == this ) // (Only if this file is active)
+     editor::text->draw_info();     // (Otherwise, message is deferred)
 }
 
 int                                 // TRUE if message removed or remain
@@ -628,6 +655,7 @@ void
    size_t new_rows= get_rows(redo->head_insert, redo->tail_insert);
    rows += ssize_t(new_rows - old_rows);
 
+   editor::mark->handle_redo(this, redo);
    editor::text->activate(line);
    editor::text->draw();
    undo_list.lifo(redo);            // REDO => UNDO
@@ -711,6 +739,7 @@ void
    size_t new_rows= get_rows(undo->head_remove, undo->tail_remove);
    rows += ssize_t(new_rows - old_rows);
 
+   editor::mark->handle_undo(this, undo);
    editor::text->activate(line);
    editor::text->draw();
    redo_list.lifo(undo);            // UNDO => REDO

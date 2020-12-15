@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2020/12/09
+//       2020/12/15
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -27,9 +27,12 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
+#include <pub/Tokenizer.h>          // For pub::Tokenizer
+
 #include "Editor.h"                 // For Editor Globals
 #include "EdFile.h"                 // For EdFile, EdLine
 #include "EdHist.h"                 // For EdHist
+#include "EdMark.h"                 // For EdMark (debugging only)
 #include "EdText.h"                 // For EdText
 
 //----------------------------------------------------------------------------
@@ -41,13 +44,26 @@ enum // Compilation controls
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
+// Internal data areas
+//----------------------------------------------------------------------------
+static char            error_buffer[512]; // Error message buffer
+
+static struct EdBifs_initializer {  // Static initializer
+   EdBifs_initializer( void )
+{  error_buffer[sizeof(error_buffer-1)]= '\0'; }
+}  static_initializer;
+
+//----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
 static const char*                  // Error message, nullptr expected
-   command_save(char*);             // Save command
+   command_locate(char*);           // Locate command
 
 static const char*                  // Error message, nullptr expected
    command_quit(char*);             // (Unconditional) quit command
+
+static const char*                  // Error message, nullptr expected
+   command_save(char*);             // Save command
 
 //----------------------------------------------------------------------------
 //
@@ -71,17 +87,86 @@ static const char*                  // Error message, nullptr expected
    command_change(                  // Change command
      char*             parm)        // (Mutable) parameter string
 {
-printf("command_change(%s)\n", parm); // JUST TO USE PARM
-printf("locate '%s'\n", editor::locate_string.c_str());
-printf("change '%s'\n", editor::change_string.c_str());
+   // TODO: HANDLE UTF8
+   if( parm == nullptr )
+     return "Missing parameter";
 
-   return nullptr;
+   int D= (unsigned char)parm[0];   // The string delimiter
+   parm++;
+   char* locate= parm;              // The locate string origin
+   char* C= strchr(parm, D);
+   if( C == nullptr || C == parm )
+     return "Invalid parameter";
+
+   *C= '\0';
+   parm= C + 1;
+   char* change= parm;              // The change string origin
+   C= strchr(parm, D);
+   if( C == nullptr )
+     C= strchr(parm, '\0');
+
+   if( *C != '\0' && *(C+1) != '\0' ) // If delimiter is not final character
+       return "Invalid parameter";
+   *C= '\0';
+
+   editor::locate_string= locate;
+   editor::change_string= change;
+   return editor::text->do_change();
 }
 
 static const char*                  // Error message, nullptr expected
    command_debug(                   // Change command
      char*             parm)        // (Mutable) parameter string
-{  (void)parm;
+{
+   // NOTE: Parameter errors are ignored
+   if( parm ) {                     // If debug specific
+     if( strcasecmp(parm, "edit") == 0 )
+       Editor::debug("command");
+     else if( strcasecmp(parm, "file") == 0 )
+       editor::text->file->debug("command");
+     else if( strcasecmp(parm, "lines") == 0 )
+       editor::text->file->debug("lines");
+     else if( strcasecmp(parm, "mark") == 0 )
+       editor::mark->debug("command");
+     else if( strcasecmp(parm, "text") == 0 )
+       editor::text->debug("command");
+     else if( strcasecmp(parm, "view") == 0 )
+       editor::text->view->debug("command");
+   }
+
+   return nullptr;
+}
+
+static const char*                  // Error message, nullptr expected
+   command_edit(                    // Edit command
+     char*             parm)        // (Mutable) parameter string
+{
+   typedef pub::Tokenizer Tokenizer;
+   typedef Tokenizer::Iterator Iterator;
+
+   if( parm == nullptr )
+     return "Missing parameter";
+
+   EdFile* last= nullptr;           // The last EdFile inserted
+   Tokenizer t(parm);
+   for(Iterator i= t.begin(); i != t.end(); i.next() ) {
+     EdFile* file= editor::insert_file( i().c_str() );
+     if( file )
+       last= file;
+   }
+
+   if( last ) {
+     editor::text->activate(last);
+     editor::text->draw();
+   }
+
+   return nullptr;
+}
+
+static const char*                  // Error message, nullptr expected
+   command_exit(char*)              // Exit command
+{
+   editor::do_done();               // TODO: NOT (properly) CODED YET
    return nullptr;
 }
 
@@ -94,6 +179,25 @@ static const char*                  // Error message, nullptr expected
      mess= command_quit(parm);      // Quit the file
 
    return mess;
+}
+
+static const char*                  // Error message, nullptr expected
+   command_forward(                 // Forward locate command
+     char*             parm)        // (Mutable) parameter string
+{
+   editor::search_mode= +1;         // Forward locate
+
+   parm++;
+   while( *parm == ' ' )
+     parm++;
+
+   return command_locate(parm);
+}
+
+static const char*                  // Error message, nullptr expected
+   command_get(char*)               // Get command
+{
+   return nullptr;                  // NOT CODED YET
 }
 
 static const char*                  // Error message, nullptr expected
@@ -166,8 +270,21 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_quit(char*)              // (Unconditional) quit command
 {
-   editor::do_quit(editor::text->file);
+   editor::remove_file(editor::text->file);
    return nullptr;
+}
+
+static const char*                  // Error message, nullptr expected
+   command_reverse(                 // Reverse locate command
+     char*             parm)        // (Mutable) parameter string
+{
+   editor::search_mode= -1;         // Reverse locate
+
+   parm++;
+   while( *parm == ' ' )
+     parm++;
+
+   return command_locate(parm);
 }
 
 static const char*                  // Error message, nullptr expected
@@ -223,12 +340,13 @@ static const Command_desc
 {  {"BOT",      command_bot}        // Bottom
 ,  {"C",        command_change}     // Change
 ,  {"D",        command_debug}      // Debug
+,  {"DEBUG",    command_debug}      // Debug
 // {"DETAB",    command_detab}      // Detab
-// {"E",        command_edit}       // Edit
-// {"EDIT",     command_edit}       // Edit
-// {"EXIT",     command_exit}       // Exit
+,  {"E",        command_edit}       // Edit
+,  {"EDIT",     command_edit}       // Edit
+,  {"EXIT",     command_exit}       // Exit
 ,  {"FILE",     command_file}       // File
-// {"GET",      command_get}        // Get
+,  {"GET",      command_get}        // Get
 ,  {"L",        command_locate}     // Locate (forward)
 // {"MARGINS",  command_margins}    // Set margins
 // {"MODE",     command_mode}       // Set mode
@@ -238,8 +356,8 @@ static const Command_desc
 // {"SET",      command_set}        // Set (separate list) Include margins? ... autowrap
 // {"TABS",     command_tabs}       // Tabs
 ,  {"TOP",      command_top}        // Top
-// {">",        command_forward}    // Locate forward
-// {"<",        command_reverse}    // Locate reverse
+,  {">",        command_forward}    // Locate forward
+,  {"<",        command_reverse}    // Locate reverse
 ,  {nullptr,    nullptr}            // End of list delimiter
 };
 

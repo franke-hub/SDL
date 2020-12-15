@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2020/12/09
+//       2020/12/14
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -63,6 +63,19 @@ public:
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Editor::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+static void
+   debug(                           // Debugging display
+     const char*       info= nullptr); // Informational text
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Editor::failure
 //
 // Purpose-
@@ -90,7 +103,7 @@ namespace editor {                  // The Editor namespace
 extern xcb::Device*    device;      // The root Device
 extern xcb::Window*    window;      // The test Window
 
-extern pub::List<EdFile> ring;      // The list of EdFiles
+extern pub::List<EdFile> file_list; // The list of EdFiles
 extern EdFind*         find;        // The Find Popup
 extern EdFull*         full;        // The Full Window
 extern EdMark*         mark;        // The Mark Handler
@@ -128,6 +141,7 @@ enum
 ,  CLR_FireBrick=      0x00B22222
 ,  CLR_LightBlue=      0x00C0F0FF
 ,  CLR_LightSkyBlue=   0x00B0E0FF
+,  CLR_PaleBlue=       0x00F8F8FF
 ,  CLR_PaleMagenta=    0x00FFC0FF   // A.K.A plum1
 ,  CLR_PaleYellow=     0x00FFFFF0   // A.K.A ivory
 ,  CLR_PowderBlue=     0x00B0E0E0
@@ -143,6 +157,9 @@ enum
 
 ,  MSG_FG= CLR_DarkRed              // FG: Message line
 ,  MSG_BG= CLR_Yellow               // BG: Message line
+
+,  SEL_FG= CLR_Black                // FG: Selected line
+,  SEL_BG= CLR_LightBlue            // BG: Selected line
 
 ,  STS_FG= CLR_Black                // FG: Status line, file unchanged
 ,  STS_BG= CLR_LightBlue            // BG: Status line, file unchanged
@@ -208,27 +225,27 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::do_done
+//       editor::allocate
 //
 // Purpose-
-//       (Safely) remove all files from the ring. (Error if any changed.)
+//       Allocate file/line text
 //
 //----------------------------------------------------------------------------
-int                                 // Return code, 0 OK
-   do_done( void );                 // (Safely) terminate, error if changed.
+char*                               // The (immutable) text
+   allocate(                        // Get (immutable) text
+     size_t            length);     // Of this length (includes '\0' delimit)
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::do_quit
+//       editor::do_done
 //
 // Purpose-
-//       Remove a file from the ring, discarding changes.
+//       (Safely) remove all files from the file list. (Error if any changed.)
 //
 //----------------------------------------------------------------------------
-void
-   do_quit(                         // (Unconditionally) remove
-     EdFile*           file);       // This file from the ring
+int                                 // Return code, 0 OK
+   do_done( void );                 // (Safely) terminate, error if changed.
 
 //----------------------------------------------------------------------------
 //
@@ -245,15 +262,15 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::get_text
+//       editor::insert_file
 //
 // Purpose-
-//       Allocate file/line text
+//       Insert file onto the file list
 //
 //----------------------------------------------------------------------------
-char*                               // The (immutable) text
-   get_text(                        // Get (immutable) text
-     size_t            length);     // Of this length (includes '\0' delimit)
+EdFile*                             // The last file inserted
+   insert_file(                     // Insert file(s) onto the file list
+     const char*       name= nullptr); // The file name (wildards allowed)
 
 //----------------------------------------------------------------------------
 //
@@ -266,6 +283,19 @@ char*                               // The (immutable) text
 //----------------------------------------------------------------------------
 const char*                         // The symbol name, "???" if unknown
    key_to_name(xcb_keysym_t key);   // Convert xcb_keysym_t to name
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::remove_file
+//
+// Purpose-
+//       Remove file from the file list
+//
+//----------------------------------------------------------------------------
+void
+   remove_file(                     // Remove file from the file list
+     EdFile*           file);       // The file to remove (and delete)
 
 //----------------------------------------------------------------------------
 //

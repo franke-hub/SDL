@@ -16,10 +16,11 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2020/12/09
+//       2020/12/14
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
+#include <stdio.h>                  // For fprintf TODO: REMOVE
 #include <sys/types.h>              // For
 #include <com/istring.h>            // For stristr
 #include <pub/List.h>               // For pub::List
@@ -35,11 +36,11 @@
 #include "Editor.h"                 // For namespace editor::debug
 #include "EdFile.h"                 // For EdFile
 #include "EdHist.h"                 // For EdHist
-#include "EdTabs.h"                 // For EdTabs
+#include "EdMark.h"                 // For EdMark
 
 using namespace editor::debug;
-#define debugf editor::debug::debugf // Avoid ADL lookup
-#define debugh editor::debug::debugh // Avoid ADL lookup
+#define debugf editor::debug::debugf // Avoid ADL
+#define debugh editor::debug::debugh // Avoid ADL
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -47,8 +48,13 @@ using namespace editor::debug;
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  USE_BRINGUP= false               // Extra brinbup diagnostics?
-,  USE_HIDDEN= true                 // Use mouse hide/show? TODO: REMOVE
+,  USE_HIDDEN= false                // Use mouse hide/show? TODO: REMOVE
 }; // Compilation controls
+
+static struct EdText_initializer {  // TODO: REMOVE
+   EdText_initializer( void )
+{  if( !USE_HIDDEN ) fprintf(stderr, "Cursor hiding disabled\n"); }
+}  static_initializer;
 
 //----------------------------------------------------------------------------
 // EdText::Constructor
@@ -94,6 +100,10 @@ enum // Compilation controls
    if( gc_cmd ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_cmd) );
    if( gc_msg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_msg) );
    if( gc_sts ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_sts) );
+   if( markGC ) {
+     ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, markGC) );
+     markGC= 0;
+   }
 
    if( data ) delete data;
    if( hist ) delete hist;
@@ -119,8 +129,8 @@ void
 
    debugf("..view(%p) data(%p) hist(%p) file(%p) '%s'\n"
          , view, data, hist, file, file ? file->name.c_str() : "<null>");
-   debugf("..gc_chg(%u) gc_cmd(%u) gc_msg(%u) gc_sts(%u)\n"
-         , gc_chg, gc_cmd, gc_msg, gc_sts);
+   debugf("..gc_chg(%u) gc_cmd(%u) gc_msg(%u) gc_sts(%u) markGC(%u)\n"
+         , gc_chg, gc_cmd, gc_msg, gc_sts, markGC);
    debugf("..motion[%d,%u,%d,%d]\n"
          , motion.state, motion.time, motion.x, motion.y);
    debugf("..view(%p) data(%p) hist(%p)\n", view, data, hist);
@@ -295,9 +305,10 @@ void
 
    TextWindow::configure();         // Create the Window
 
-   // Create the graphic contexts
+   // Create the graphic contexts   // (Values defined in Editor.h)
    using namespace editor;          // For *_FG, *_BG
-   gc_chg= font.makeGC(CHG_FG, CHG_BG); // (Values defined in Editor.h)
+   markGC= font.makeGC(SEL_FG, SEL_BG);
+   gc_chg= font.makeGC(CHG_FG, CHG_BG);
    gc_cmd= font.makeGC(CMD_FG, CMD_BG);
    gc_msg= font.makeGC(MSG_FG, MSG_BG);
    gc_sts= font.makeGC(STS_FG, STS_BG);
@@ -330,14 +341,40 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdText::do_change
+//
+// Purpose-
+//       Change next occurance of string.
+//
+// Implementation note-
+//       REDO not required. The line is changed, but not committed.
+//
+//----------------------------------------------------------------------------
+const char*                         // Return message, nullptr if OK
+   EdText::do_change( void )        // Change next occurance of string
+{
+   const char* error= do_locate(0); // First, locate the string
+   if( error ) return error;        // (If cannot locate)
+
+   // The string has been found and the line activated
+   size_t column= data->col_zero + data->col; // The current column
+   size_t length= editor::locate_string.length();
+   data->active.replace_text(column, length, editor::change_string.c_str());
+   draw();                          // (Only active line redraw required)
+   return nullptr;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdText::do_exit
 //
 // Purpose-
-//       (Safely) remove a file from the ring.
+//       (Safely) remove a file from the file list.
 //
 //----------------------------------------------------------------------------
 void
-   EdText::do_exit( void )          // Safely remove a file from the ring
+   EdText::do_exit( void )          // Safely remove a file from the file list
 {
    if( file->damaged ) {
      put_message("File damaged");
@@ -349,24 +386,7 @@ void
      return;
    }
 
-   editor::do_quit(file);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::do_change
-//
-// Purpose-
-//       Change next occurance of string.
-//
-//----------------------------------------------------------------------------
-const char*                         // Return message, nullptr if OK
-   EdText::do_change( void )        // Change next occurance of string
-{
-   data->commit();                  // Commit the active line
-
-   return do_locate(0);             // TODO: NOT CODED YET
+   editor::remove_file(file);
 }
 
 //----------------------------------------------------------------------------
@@ -409,7 +429,7 @@ const char*                         // Return message, nullptr if OK
 
    //-------------------------------------------------------------------------
    // Locate in the active line
-   EdLine* line= (EdLine*)cursor;
+   EdLine* line= cursor;
    size_t column= data->col_zero + data->col + offset;
    if( (line->flags & EdLine::F_PROT) == 0 ) { // If line is not protected
      const char* C= data->active.get_buffer(column); // Remaining characters
@@ -468,7 +488,13 @@ void
    encoder.encode(code);
    buffer[encoder.get_used()]= '\0';
 
-   xcb_gcontext_t gc= set ? view->gc_flip : view->gc_font;
+// xcb_gcontext_t gc= set ? view->gc_flip : view->gc_font;
+   xcb_gcontext_t gc= view->gc_flip;
+   if( set == false ) {
+     gc= view->gc_font;
+     if( (cursor->flags & EdLine::F_MARK) && view == data )
+       gc= markGC;
+   }
    putxy(gc, get_xy(view->col, view->row), buffer);
 
    flush();
@@ -627,15 +653,21 @@ const char*                         // *ALWAYS* nullptr
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::get_cursor
+//       EdText::get_text
 //
 // Purpose-
-//       Return the current cursor line text (may differ from commit version)
+//       Return the line text, which differs for the cursor line
 //
 //----------------------------------------------------------------------------
-const char*                         // The cursor line text
-   EdText::get_cursor( void )       // Get cursor line text
-{ return data->active.get_buffer(); } // Return the active buffer
+const char*                         // The text
+   EdText::get_text(                // Get text
+     xcb::Line*        line)        // For this Line
+{
+   const char* text= line->text;    // Default, use line text
+   if( line == cursor )             // If this is the cursor line
+     text= data->active.get_buffer(); // Return the active buffer
+   return text;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -800,9 +832,26 @@ void
      xcb_keysym_t      key)         // Alt_Key input event
 {
    switch(key) {                    // ALT-
+     case 'C': {                    // Copy
+       EdMark* mark= editor::mark;
+       const char* error= mark->copy();
+       if( error ) {
+         put_message(error);
+         break;
+       }
+
+       mark->paste(file, cursor);
+       draw();
+       break;
+     }
+     case 'D': {                    // Delete the mark
+       put_message( editor::mark->cut() );
+       draw();
+       break;
+     }
      case 'I': {                    // Insert
        data->commit();
-       EdLine* line= (EdLine*)cursor; // The current cursor line
+       EdLine* line= cursor;        // The current cursor line
        if( line->get_next() == nullptr ) { // If it's the last line
          line= line->get_prev();    // Use the line before it instead
        }
@@ -816,10 +865,35 @@ void
        draw();                      // And redraw
        break;
      }
+     case 'L':                      // Mark line
+       put_message( editor::mark->mark(file, cursor) );
+       draw();
+       break;
+
+     case 'M': {                    // Move
+       EdLine* line= cursor;
+       EdMark* mark= editor::mark;
+       const char* error= mark->cut();
+       if( error ) {
+         put_message(error);
+         break;
+       }
+
+       mark->paste(file, line);
+       draw();
+       break;
+     }
      case 'Q':                      // Quit
        editor::do_done();           // TODO: NOT (properly) CODED YET
        break;
 
+     case 'U': {                    // Undo mark
+       EdFile* edFile= editor::mark->file;
+       editor::mark->undo();
+       if( file == edFile )
+         draw();
+       break;
+     }
      default:
        put_message("Invalid key");
        draw_info();
@@ -831,6 +905,23 @@ void
      xcb_keysym_t      key)         // Ctrl_Key input event
 {
    switch(key) {                    // CTRL-
+     case 'C': {                    // Copy
+       put_message( editor::mark->copy() );
+       break;
+     }
+     case 'V': {                    // Paste
+       const char* error= editor::mark->paste(file, cursor);
+       if( error )
+         put_message(error);
+       else
+         draw();
+       break;
+     }
+     case 'X': {                    // Cut the mark
+       put_message( editor::mark->cut() );
+       draw();
+       break;
+     }
      default:
        put_message("Invalid key");
        draw_info();
@@ -852,6 +943,7 @@ int                                 // Return code, TRUE if error message
          switch(key) {
            case 'I':                  // INSERT allowed
            case 'Q':                  // QUIT allowed
+           case 'U':                  // EdMark::reset allowed
              return false;
              break;
 
@@ -898,7 +990,7 @@ void
 
    // Handle protected line
    if( view == data ) {             // Only applies to data view
-     if( ((EdLine*)cursor)->flags & EdLine::F_PROT // If protected line
+     if( cursor->flags & EdLine::F_PROT // If protected line
          && key_protected(key, state) ) // And modification key
        return;                      // (Disallowed)
    }
@@ -1066,7 +1158,7 @@ void
        data->commit();
        EdFile* file= this->file->get_prev();
        if( file == nullptr )
-         file= editor::ring.get_tail();
+         file= editor::file_list.get_tail();
        if( file != this->file ) {
          activate(file);
          draw();
@@ -1077,7 +1169,7 @@ void
        data->commit();
        EdFile* file= this->file->get_next();
        if( file == nullptr )
-         file= editor::ring.get_head();
+         file= editor::file_list.get_head();
        if( file != this->file ) {
          activate(file);
          draw();

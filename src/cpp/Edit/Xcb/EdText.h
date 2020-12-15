@@ -16,11 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2020/12/04
-//
-// Implementation notes-
-//       Last change: Command/history line logic
-//       TODO: REDO/UNDO logic
+//       2020/12/12
 //
 //----------------------------------------------------------------------------
 #ifndef EDTEXT_H_INCLUDED
@@ -32,6 +28,7 @@
 
 #include <xcb/xproto.h>             // For XCB types
 #include <xcb/xfixes.h>             // For XCB xfixes extension
+#include "Xcb/Types.h"              // For xcb::Line
 
 #include "Xcb/TextWindow.h"         // For xcb::TextWindow (Base class)
 
@@ -74,6 +71,7 @@ int                    y;           // Last Y position
 // EdText::Attributes
 //----------------------------------------------------------------------------
 EdFile*                file= nullptr; // The current File object
+EdLine*                cursor= nullptr; // The current active line
 
 EdView*                data= nullptr; // The data view
 EdHist*                hist= nullptr; // The history view
@@ -259,15 +257,16 @@ virtual const char*                 // *ALWAYS* nullptr
 
 //----------------------------------------------------------------------------
 //
-// Public method-
-//       EdText::get_cursor
+// Method-
+//       xcb::EdText::get_text
 //
 // Purpose-
-//       Return the current cursor line text (may differ from commit version)
+//       Get the text (which may be in flux.)
 //
 //----------------------------------------------------------------------------
-virtual const char*                 // The cursor line text
-   get_cursor( void );              // Get cursor line text
+virtual const char*                 // The associated text
+   get_text(                        // Get text
+     xcb::Line*        line);       // For this Line
 
 //----------------------------------------------------------------------------
 //

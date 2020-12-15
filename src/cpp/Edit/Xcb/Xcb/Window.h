@@ -16,11 +16,17 @@
 //       XCB based Window
 //
 // Last change date-
-//       2020/11/28
+//       2020/12/11
 //
 // Implementation notes-
 //       The window field addresses the PARENT window. (Widget already has a
 //       parent field. The parent Widget is not necessarily the parent Window.)
+//
+// Implementation note-
+//       WARNING: ******** DO NOT SIMULTANEOUSLY USE ********
+//       XCB_EVENT_MASK_RESIZE_REDIRECT and XCB_EVENT_MASK_STRUCTURE_NOTIFY
+//       When used together, actually changing the window size is problematic.
+//       TODO: Understand why this happens.
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_WINDOW_H_INCLUDED

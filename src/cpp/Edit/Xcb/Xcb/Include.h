@@ -15,14 +15,11 @@
 //       Test include prerequisites. Include one and only one file.
 //
 // Last change date-
-//       2020/09/06
+//       2020/12/12
 //
 //----------------------------------------------------------------------------
 #if false                           // Always false
 static_assert(false, "Always False");
-#elif true
-   #include <Xcb/EdView.h>
-static_assert(false, "EdView");
 #elif true
    #include <Xcb/Active.h>
 static_assert(false, "Active");
@@ -33,17 +30,11 @@ static_assert(false, "Device");
    #include <Xcb/EdFile.h>
 static_assert(false, "EdFile");
 #elif true
-   #include <Xcb/EdFind.h>
-static_assert(false, "EdFind");
+   #include <Xcb/EdHist.h>
+static_assert(false, "EdHist");
 #elif true
-   #include <Xcb/Editor.h>
-static_assert(false, "Editor");
-#elif true
-   #include <Xcb/EdMain.h>
-static_assert(false, "EdMain");
-#elif true
-   #include <Xcb/EdMenu.h>
-static_assert(false, "EdMeun");
+   #include <Xcb/EdMark.h>
+static_assert(false, "EdMark");
 #elif true
    #include <Xcb/EdMisc.h>
 static_assert(false, "EdMisc");
@@ -51,11 +42,14 @@ static_assert(false, "EdMisc");
    #include <Xcb/EdPool.h>
 static_assert(false, "EdPool");
 #elif true
-   #include <Xcb/EdTabs.h>
-static_assert(false, "EdTabs");
-#elif true
    #include <Xcb/EdText.h>
 static_assert(false, "EdText");
+#elif true
+   #include <Xcb/EdView.h>
+static_assert(false, "EdView");
+#elif true
+   #include <Xcb/Editor.h>
+static_assert(false, "Editor");
 #elif true
    #include <Xcb/Font.h>
 static_assert(false, "Font");
@@ -68,9 +62,6 @@ static_assert(false, "Keysym");
 #elif true
    #include <Xcb/Layout.h>
 static_assert(false, "Layout");
-#elif true
-   #include <Xcb/TestWindow.h>
-static_assert(false, "TestWindow");
 #elif true
    #include <Xcb/TextWindow.h>
 static_assert(false, "TextWindow");

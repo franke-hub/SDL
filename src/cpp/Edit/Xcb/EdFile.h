@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2020/12/08
+//       2020/12/14
 //
 // Implementation objects-
 //       EdLine: Editor EdFile line descriptor
@@ -48,22 +48,6 @@
 //
 //----------------------------------------------------------------------------
 class EdLine : public ::xcb::Line { // Editor line descriptor
-public:
-//----------------------------------------------------------------------------
-// EdLine::Attributes
-//----------------------------------------------------------------------------
-uint16_t               flags= 0;    // Control flags
-enum FLAGS                          // Control flags
-{  F_NONE= 0x0000                   // No flags
-,  F_HIDE= 0x0001                   // Line is hidden
-,  F_MARK= 0x0002                   // Line is marked
-,  F_PROT= 0x0004                   // Line is read/only
-};
-
-unsigned char          delim[2]= {0, 0}; // Delimiter
-//   For [0]= '\n', [1]= either '\r' or '\0' for DOS or Unix format.
-//   For [0]= '\0', [1]= repetition count. {'\0',0}= NO delimiter
-
 //----------------------------------------------------------------------------
 // EdLine::Constructor/Destructor
 //----------------------------------------------------------------------------
@@ -246,7 +230,7 @@ pub::List<EdLine>      line_list;   // The line list
 pub::List<EdRedo>      redo_list;   // The redo list
 pub::List<EdRedo>      undo_list;   // The undo list
 
-std::string            name;        // The file name
+std::string            name;        // The fully qualified file name
 size_t                 rows= 0;     // The number of file rows
 
 int                    mode= M_NONE; // The file mode
@@ -275,7 +259,7 @@ static pub::signals::Signal<CloseEvent>
 //----------------------------------------------------------------------------
 public:
    EdFile(                          // Constructor
-     const char*       name= nullptr); // File name
+     const char*       name);       // Fully qualified file name
 
 virtual
    ~EdFile( void );                 // Destructor
@@ -285,6 +269,10 @@ virtual
 //----------------------------------------------------------------------------
 // TODO: REFACTOR message operations in conjunction with EdText
 public:
+char*
+   allocate(                        // Allocate file text
+     size_t            size) const;  // Of this length
+
 EdMess*                             // The current EdMess
    get_message( void ) const        // Get current EdMess
 {  return mess_list.get_head(); }
@@ -298,7 +286,6 @@ std::string
    get_name( void ) const           // Get the file name (Named interface)
 {  return name; }
 
-// TODO: VERIFY USAGE
 size_t                              // The row number
    get_row(                         // Get row number
      const EdLine*     cursor) const; // For this line
@@ -307,10 +294,6 @@ static size_t                       // The row count
    get_rows(                        // Get row count
      const EdLine*     head,        // From this line
      const EdLine*     tail);       // *To* this line
-
-char*
-   get_text(                        // Allocate file text
-     size_t            size) const;  // Of this length
 
 //----------------------------------------------------------------------------
 //
@@ -324,6 +307,19 @@ char*
 virtual void
    debug(                           // Debugging display
      const char*       text= nullptr) const; // Associated text
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::activate
+//
+// Purpose-
+//       Activate file line
+//
+//----------------------------------------------------------------------------
+void
+   activate(                        // Activate
+     EdLine*           line);       // This line
 
 //----------------------------------------------------------------------------
 //

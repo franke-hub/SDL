@@ -16,7 +16,7 @@
 //       Editor: History EdView
 //
 // Last change date-
-//       2020/12/04
+//       2020/12/11
 //
 //----------------------------------------------------------------------------
 #ifndef EDHIST_H_INCLUDED
@@ -45,17 +45,27 @@ class HistLine : public xcb::Line { // Editor history line
 public:
 std::string            line;        // Saved line text
 
-// Constructors ==============================================================
+// HistLine::Constructors ====================================================
    HistLine(                        // Default/text constructor
      const char*       _text= nullptr) // Associated text
 :  Line()
 {  reset(_text); }
 
-// Destructor ================================================================
+// HistLine::Destructor ======================================================
 virtual
    ~HistLine( void ) = default;     // Default destructor
 
-// Methods ===================================================================
+// HistLine::Accessor methods ================================================
+public:
+inline HistLine*
+   get_next( void ) const
+{  return (HistLine*)xcb::Line::get_next(); }
+
+inline HistLine*
+   get_prev( void ) const
+{  return (HistLine*)xcb::Line::get_prev(); }
+
+// HistLine::Methods =========================================================
 void
    reset(                           // Reset the text
      const char*       _text= nullptr) // To this string

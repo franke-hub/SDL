@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2020/12/08
+//       2020/12/14
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -38,19 +38,14 @@
 #include "Xcb/Device.h"             // For xcb::Device
 #include <Xcb/Keysym.h>             // For xcb_keycode_t symbols
 #include "Xcb/Layout.h"             // For xcb::Layout
-#include "Xcb/TestWindow.h"         // For xcb::TestWindow
 #include "Xcb/Widget.h"             // For xcb::Widget, our base class
 #include "Xcb/Window.h"             // For xcb::Window
 
 #include "Editor.h"                 // For Editor (Implementation class)
 #include "EdFile.h"                 // For EdFile, EdLine, EdPool
-#include "EdFind.h"                 // For EdFind
-#include "EdFull.h"                 // For EdFull
 #include "EdMark.h"                 // For EdMark
-#include "EdMenu.h"                 // For EdMenu
 #include "EdMisc.h"                 // For EdMisc TODO: REMOVE
 #include "EdPool.h"                 // For EdPool
-#include "EdTabs.h"                 // For EdTabs
 #include "EdText.h"                 // For EdText
 
 using namespace editor::debug;
@@ -91,12 +86,8 @@ static const char*     README_text=
 xcb::Device*           editor::device= nullptr; // The root Device
 xcb::Window*           editor::window= nullptr; // The test Window
 
-pub::List<EdFile>      editor::ring; // The list of EdFiles
-EdFind*                editor::find= nullptr; // The Find Popup
-EdFull*                editor::full= nullptr; // The Full Window
+pub::List<EdFile>      editor::file_list; // The list of EdFiles
 EdMark*                editor::mark= nullptr; // The Mark Handler
-EdMenu*                editor::menu= nullptr; // The Menu Layout
-EdTabs*                editor::tabs= nullptr; // The Tabs Layout
 EdText*                editor::text= nullptr; // The Text Window
 
 pub::List<EdPool>      editor::filePool; // File allocation EdPool
@@ -314,55 +305,24 @@ static void
    device= new xcb::Device();
 
    // Allocate sub-objects
-   find= new EdFind();              // In progress
-   full= new EdFull();              // In progress
-   mark= new EdMark();              // In progress
-   menu= new EdMenu();              // In progress
-   tabs= new EdTabs();              // In progress
-   text= new EdText();              // Operational
+   mark= new EdMark();              // Mark handler
+   text= new EdText();              // Text (window) handler
 
    //-------------------------------------------------------------------------
    // Load the text files
    for(int i= argi; i<argc; i++) {
-     ring.fifo(new EdFile(argv[i]));
+     insert_file(argv[i]);
    }
-   if( argi >= argc ) {             // Always have something
-     ring.fifo(new EdFile(nullptr)); // Even if it's an empty file
-   }
+   if( file_list.get_head() == nullptr ) // Always have something
+     insert_file(nullptr);          // Even if it's an empty file
 
    // Select-a-Config ========================================================
    if( opt_test ) {                 // If optional test selected
      std::string test= opt_test;    // The test name (For string == function)
-     if( test == "fullwindow" ) {   // Only EdText visible
-       // Result: EdText takes entire screen. EdFull not visibie.
-       //   Device->EdFull->EdText
-       full->insert(text);
-       device->insert(full);
-
-     } else if( test == "windowfull" ) { // Large blank screen
-       // Result: EdFull takes entire screen. EdText not visibie.
-       //   Device->EdText->EdFull
-       text->insert(full);
-       device->insert(text);
-
-     } else if( test == "findwindow" ) { // EdFind overlayed with EdText
-       // Result: EdFind over EdText window, as expected (F12 controlled)
-       //   Device->EdText->EdFind
-       window= new EdFind();        // (Cannot use find: duplicate delete)
-       device->insert(text);
-       device->insert(window);
-
-     } else if( test == "miscwindow" ) { // EdText overlayed with EdMisc
+     if( test == "miscwindow" ) { // EdText overlayed with EdMisc
        // Result: EdMisc over EdText window, as expected
        //   Device->EdText->EdMisc
        window= new EdMisc(text, "Misc00", 64, 64);
-       device->insert(text);
-
-     } else if( test == "testwindow" ) { // EdText overlayed with TestWindow
-       // Result: TextWindow over EdText window, as expected
-       //   Device->EdText->TestWindow
-       window= new xcb::TestWindow();
-       text->insert(window);
        device->insert(text);
 
      } else if( test == "textwindow" ) { // EdText (only)
@@ -380,10 +340,11 @@ static void
 
      } else if( test == "top-only" ) { // (small horizontal window)
        // Result: EdText only appears after screen enlarged
-       //   Device->Row->(EdTabs,EdText)
+       //   Device->Row->(Top,EdText)
        //   (No problem with CLOSE Window)
        xcb::RowLayout* row= new xcb::RowLayout(device, "Row");
-       row->insert( tabs );         // Apparently visible
+       window= new EdMisc(nullptr, "Top", 64, 14);
+       row->insert( window );
        row->insert( text );         // Not visible
 
      } else if( test == "left-only" ) { // (small vertial window)
@@ -398,16 +359,17 @@ static void
      } else if( test == "layout" ) { // (small horizontal window)
        // Result: EdText does not appear even after screen enlarged
        //   (No expose events. EdText parent "Left")
-       //   Device->Row->(EdMenu,EdTabs,Col->(Left,EdText),Bottom)
+       //   Device->Row->(Top,Col->(Left,EdText),Bottom)
        //   (CLOSE Window OK, No EdText so no Ctrl-Q)
        xcb::RowLayout* row= new xcb::RowLayout(device, "Row");
-       row->insert( menu );
-       row->insert( tabs );
+       window= new EdMisc(nullptr, "Top", 64, 14);
+       row->insert( window );
 
        xcb::ColLayout* col= new xcb::ColLayout(row, "Col"); // (Row->insert(col))
        if( false ) row->insert( col ); // (Tests duplicate insert)
        col->insert( new EdMisc(nullptr, "Left", 14, 64) );
        col->insert( text );
+
        row->insert( new EdMisc(nullptr, "Bottom", 64, 14));
 
      } else {
@@ -437,7 +399,7 @@ static void
 
    // Remove and delete Files
    for(;;) {
-     EdFile* file= ring.remq();
+     EdFile* file= file_list.remq();
      if( file == nullptr )
        break;
 
@@ -463,11 +425,32 @@ static void
 
    // Delete allocated objects
    delete window;
+   delete mark;
    delete text;
-   delete tabs;
-   delete menu;
-   delete full;
-   delete find;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Editor::debug
+//
+// Purpose-
+//       Debugging display (modified as needed)
+//
+//----------------------------------------------------------------------------
+void
+   Editor::debug(                   // Debugging display
+     const char*       info)        // Informational text
+{
+   debugf("Editor::debug(%s)\n", info ? info : "");
+
+   // Debugging duplicate entries in file list
+   debugf("..file_list(%p,%p)\n", editor::file_list.get_head()
+         , editor::file_list.get_tail());
+   unsigned count= 0;
+   for(EdFile* file= editor::file_list.get_head(); file; file= file->get_next()) {
+     debugf("[%2d] '%s'\n", count++, file->name.c_str());
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -503,35 +486,6 @@ int                                 // Return code, 0OK
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::do_quit
-//
-// Purpose-
-//       Handle QUIT function: Unconditionally remove EdFile from ring
-//
-//----------------------------------------------------------------------------
-void
-   editor::do_quit(                 // Handle QUIT (Unconditional)
-     EdFile*           file)        // For this EdFile
-{
-   EdFile* next= file->get_prev();
-   if( next == nullptr ) {
-     next= file->get_next();
-     if( next == nullptr )          // If no more files
-       device->operational= false;  // No need to stay around
-   }
-
-   if( next ) {
-     ring.remove(file, file);       // Remove the File from the Ring
-     delete file;                   // And delete it
-
-     text->activate(next);
-       text->draw();
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       editor::do_test
 //
 // Purpose-
@@ -541,7 +495,7 @@ void
 void
    editor::do_test( void )          // Bringup test
 {
-   if( window && window->get_parent() ) { // If TestWindow active
+   if( window && window->get_parent() ) { // If test window active
      fprintf(stderr, "editor::do_test\n");
      if( window->state & xcb::Window::WS_VISIBLE )
        window->hide();
@@ -555,14 +509,14 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::get_text
+//       editor::allocate
 //
 // Purpose-
 //       Allocate file/line text
 //
 //----------------------------------------------------------------------------
 char*                               // The (immutable) text
-   editor::get_text(                // Get (immutable) text
+   editor::allocate(                // Get (immutable) text
      size_t            length)      // Of this length (includes '\0' delimit)
 {
    char* text= nullptr;             // Not allocated (yet)
@@ -572,33 +526,110 @@ char*                               // The (immutable) text
      textPool.lifo(pool);           // And use it
    }
 
-   text= pool->malloc(length);
+   text= pool->allocate(length);
    if( text == nullptr ) {
      if( length > (EdPool::MIN_SIZE / 8) ) { // If large allocation
        pool= new EdPool(length);    // All filePools are 100% allocated
-       text= pool->malloc(length);
+       text= pool->allocate(length);
        filePool.lifo(pool);
      } else {                       // If small allocation
        for(pool= pool->get_next(); pool; pool= pool->get_next() ) {
-         text= pool->malloc(length); // Try all textPools
+         text= pool->allocate(length); // Try all textPools
          if( text )
            break;
        }
 
        if( text == nullptr ) {      // If a new EdPool is required
          if( opt_hcdm )
-           debugh("Editor.get_text(%zd) New pool\n", length);
+           debugh("Editor.allocate(%zd) New pool\n", length);
          pool= new EdPool(EdPool::MIN_SIZE);
-         text= pool->malloc(length);
+         text= pool->allocate(length);
          textPool.lifo(pool);
        }
      }
    }
 
    if( opt_hcdm && opt_verbose > 1 )
-     debugf("%p= editor::get_text(%zd)\n", text, length);
+     debugf("%p= editor::allocate(%zd)\n", text, length);
    return text;
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::insert_file
+//
+// Purpose-
+//       Insert file(s) onto the file list
+//
+//----------------------------------------------------------------------------
+#if defined(_OS_CYGWIN)
+  #define wildstrcmp pub::utility::wildchar::strcasecmp
+#else
+  #define wildstrcmp pub::utility::wildchar::strcmp
+#endif
+
+EdFile*                             // The last file inserted
+   editor::insert_file(             // Insert file(s) onto the file list
+     const char*       _name)       // The file name (file wildcards allowed)
+{  if( opt_hcdm )
+     debugf("editor::insert_file(%s)\n", _name);
+
+   using namespace pub::Fileman;    // Using Fileman objects
+
+   EdFile* last= nullptr;           // The last EdFile inserted
+   if( _name == nullptr )           // If missing parameter
+     _name= "unnamed.txt";          // Use default name
+
+   // Match existing file name(s)
+   Name name(_name);
+   std::string error= name.resolve(); // Remove link qualifiers
+   if( error != "" ) {
+     fprintf(stderr, "File(%s) %s\n", _name, error.c_str());
+     return nullptr;
+   }
+
+   {{{{ // Search directory, handling all wildcard file name matches
+     bool found= false;
+     Path path(name.path_name);     // (Temporary)
+     for(File* file= path.list.get_head(); file; file= file->get_next() ) {
+       if( wildstrcmp(name.file_name.c_str(), file->name.c_str()) == 0 ) {
+         std::string fqn= name.path_name + "/" + file->name;
+         Name wild(fqn);            // The wildcard match name
+         wild.resolve();            // (Resolve the name, which may be a link)
+
+         found= true;
+         bool is_dup= false;
+         for(EdFile* dup= file_list.get_head(); dup; dup= dup->get_next()) {
+           if( dup->name == wild.name ) { // If file already in file_list
+             last= dup;
+             is_dup= true;
+             break;
+           }
+         }
+
+         if( !is_dup ) {
+           if( S_ISREG(wild.st.st_mode) ) {
+             last= new EdFile(wild.name.c_str());
+             file_list.fifo(last);
+           } else if( S_ISDIR(wild.st.st_mode) ) { // TODO: NOT CODED YET
+             fprintf(stderr, "File(%s) Directory: %s\n", _name, fqn.c_str());
+           } else {
+             fprintf(stderr, "File(%s) Unusable: %s\n", _name, fqn.c_str());
+           }
+         }
+       }
+     }
+     if( found )
+       return last;
+   }}}}
+
+   // Non-existent file
+   last= new EdFile(name.name.c_str());
+   file_list.fifo(last);
+   return last;
+}
+#undef wildstrcmp
 
 //----------------------------------------------------------------------------
 //
@@ -675,6 +706,35 @@ const char*
 //----------------------------------------------------------------------------
 //
 // Method-
+//       editor::remove_file
+//
+// Purpose-
+//       Unconditionally remove file from the file list, discarding changes
+//
+//----------------------------------------------------------------------------
+void
+   editor::remove_file(             // Remove file from the file list
+     EdFile*           file)        // The file to remove
+{
+   EdFile* next= file->get_prev();
+   if( next == nullptr ) {
+     next= file->get_next();
+     if( next == nullptr )          // If no more files
+       device->operational= false;  // No need to stay around
+   }
+
+   if( next ) {                     // (If next == nullptr, leave file)
+     file_list.remove(file, file);  // Remove the file from the file list
+     delete file;                   // And delete it
+
+     text->activate(next);
+     text->draw();
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       editor::set_font
 //
 // Purpose-
@@ -700,7 +760,7 @@ void
    device->configure();
 
    // Set initial file
-   text->activate(ring.get_head());
+   text->activate(file_list.get_head());
 
    // Start the Device
    device->draw();

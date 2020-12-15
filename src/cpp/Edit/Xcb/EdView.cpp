@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2020/12/08
+//       2020/12/14
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -118,7 +118,7 @@ void
      if( length == 0 )
        line->text= editor::NO_STRING;
      else {
-       char* revise= editor::get_text(length + 1);
+       char* revise= editor::allocate(length + 1);
        strcpy(revise, buffer);
        line->text= revise;
      }

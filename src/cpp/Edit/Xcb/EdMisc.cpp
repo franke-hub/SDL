@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       EdTemp.cpp
+//       EdMisc.cpp
 //
 // Purpose-
-//       Editor: (TEMPORARY) implementation place holder
+//       Editor: Implement EdMisc.h
 //
 // Last change date-
-//       2020/12/01
+//       2020/12/12
 //
 // Implementation note-
 //       Used to avoid circular references.
@@ -30,7 +30,11 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
+#include "Editor.h"                 // For namespace editor::debug
 #include "EdMisc.h"                 // For EdHist
+
+using namespace editor::debug;
+#define debugh editor::debug::debugh // Prevent ADL
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -39,6 +43,81 @@ enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  USE_BRINGUP= false               // Extra brinbup diagnostics?
 }; // Compilation controls
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdMisc::EdMisc
+//       EdMisc::~EdMisc
+//
+// Purpose-
+//       Constructor/Destructor
+//
+//----------------------------------------------------------------------------
+   EdMisc::EdMisc(                  // Constructor
+     Widget*           parent,      // The parent Widget
+     const char*       name,        // The Widget name
+     unsigned          width,       // (X) size width
+     unsigned          height)      // (Y) size height
+:  Window(parent, name ? name : "EdMisc")
+{
+   if( opt_hcdm )
+     debugh("EdMisc(%p)::EdMisc(%u,%u)\n", this, width, height);
+
+   if( width  < 14 ) width=  14;    // Must be large enough for text
+   if( height < 14 ) height= 14;    // Must be large enough for text
+   use_size.width=  xcb::WH_t(width);
+   use_size.height= xcb::WH_t(height);
+   min_size= use_size;
+}
+
+   EdMisc::~EdMisc( void )                  // Destructor
+{
+   if( opt_hcdm )
+     debugh("EdMisc(%s)::~EdMisc\n", this->get_name().c_str());
+
+   if( drawGC ) {
+     ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, drawGC) );
+     drawGC= 0;
+   }
+
+   flush();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdMisc::configure
+//
+// Purpose-
+//       Configure the Window
+//
+//----------------------------------------------------------------------------
+void
+   EdMisc::configure( void )        // Configure the Window
+{
+   if( opt_hcdm )
+     debugh("EdMisc(%p)::configure Named(%s)\n", this, get_name().c_str());
+
+   // Create the Window
+   Window::configure();
+
+   // Create the Graphic Context
+   xcb_connection_t* const conn= window->c;
+   xcb_drawable_t    const draw= window->widget_id;
+   xcb::Pixel_t bg= 0x00FFFFFF;
+   xcb::Pixel_t fg= 0x00FF0000;
+
+   drawGC= xcb_generate_id(conn);
+   uint32_t mask= XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
+   uint32_t parm[2];
+   parm[0]= fg;
+   parm[1]= bg;
+   window->ENQUEUE("xcb_create_gc",
+                   xcb_create_gc(conn, drawGC, draw, mask, parm) );
+
+   flush();
+}
 
 //----------------------------------------------------------------------------
 //
@@ -57,6 +136,9 @@ enum // Compilation controls
 void
    EdMisc::draw( void )             // Draw the Window
 {
+   if( opt_hcdm )
+     debugh("EdMisc(%p)::draw Named(%s)\n", this, get_name().c_str());
+
    xcb::PT_t X= xcb::PT_t(rect.width)  - 1;
    xcb::PT_t Y= xcb::PT_t(rect.height) - 1;
    xcb_point_t points[]=
@@ -82,4 +164,18 @@ void
 // ::pub::Thread::sleep(0.020);     // Does this fix the problem? YES!
 
    flush();
+}
+
+//----------------------------------------------------------------------------
+// EdMisc::Event handlers
+//----------------------------------------------------------------------------
+void
+   EdMisc::expose(                  // Handle this
+     xcb_expose_event_t* event)     // Expose event
+{
+   if( opt_hcdm )
+     debugh("EdMisc(%p)::expose(%u) %d [%d,%d,%d,%d]\n", this, event->window
+           , event->count, event->x, event->y, event->width, event->height);
+
+   draw();
 }

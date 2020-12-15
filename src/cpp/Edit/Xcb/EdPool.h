@@ -16,7 +16,7 @@
 //       Editor: Storage Pool descriptor
 //
 // Last change date-
-//       2020/12/08
+//       2020/12/14
 //
 //----------------------------------------------------------------------------
 #ifndef EDPOOL_H_INCLUDED
@@ -82,7 +82,7 @@ virtual
 //----------------------------------------------------------------------------
 public:
 char*                               // The allocated storage, nullptr if none
-   malloc(                          // Get allocated storage
+   allocate(                        // Get allocated storage
      size_t            size)        // Of this length
 {
    char* result= nullptr;
@@ -92,7 +92,7 @@ char*                               // The allocated storage, nullptr if none
    }
 
    if( editor::debug::opt_hcdm )
-     editor::debug::debugh("%p= EdPool(%p)::malloc(%zd)\n", result, this, size);
+     editor::debug::debugh("%p= EdPool(%p)::allocate(%zd)\n", result, this, size);
 
    return result;
 }

@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2020/12/08
+##       2020/12/15
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in BRINGUP mode.
@@ -25,6 +25,18 @@
 
 ##############################################################################
 ## STATUS:
+2020/12/15 Added built-in edit function with wildcard name resolution.
+         Updated pub library (wildcard file name compare)
+         EdMark greatly improved.
+         Updated ~/src/obj/git from ~/obj/.git
+         Other built in functions added or scaffolded.
+         Some objects and functions renamed and/or refactored.
+         Removed unused test objects. Only EdMisc remains.
+
+2020/12/11 EdMark implemented (Working, needs usage test)
+
+2020/12/09 Moved Xcb/Edit => Edit/Xcb
+
 2020/12/08 Refactored Editor/Config into a single namespace
 
 2020/12/04 Command line handling.

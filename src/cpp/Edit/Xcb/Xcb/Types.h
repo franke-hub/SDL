@@ -16,7 +16,7 @@
 //       XCB Type descriptors
 //
 // Last change date-
-//       2020/09/06
+//       2020/12/11
 //
 // Implementation notes-
 //       Use: xcb_point_t     <x,y> for screen point
@@ -121,6 +121,18 @@ class Line : public pub::List<Line>::Link { // XCB Line interface
 public:
 const char*            text;        // Text, never nullptr
 
+uint16_t               flags= 0;    // Control flags
+enum FLAGS                          // Control flags
+{  F_NONE= 0x0000                   // No flags
+,  F_MARK= 0x0001                   // Line is marked (selected)
+,  F_PROT= 0x0002                   // Line is read/only
+,  F_HIDE= 0x0004                   // Line is hidden
+};
+
+unsigned char          delim[2]= {'\n', 0}; // Delimiter (UNIX default)
+//   For [0]= '\n', [1]= either '\r' or '\0' for DOS or Unix format.
+//   For [0]= '\0', [1]= repetition count. {'\0',0}= NO delimiter
+
 //----------------------------------------------------------------------------
 // Line::Constructor/Destructor
 //----------------------------------------------------------------------------
@@ -129,7 +141,6 @@ public:
      const char*       text= nullptr) // Line text
 :  ::pub::List<Line>::Link(), text(text ? text : "") {}
 
-//----------------------------------------------------------------------------
 virtual
    ~Line( void ) {}                 // Destructor
 }; // class Line

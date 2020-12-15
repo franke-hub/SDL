@@ -7,10 +7,7 @@
 ##       within https://opensource.org/licenses/MIT)
 ##
 ##############################################################################
-## .gitignore
+## .gitattributes
 ##############################################################################
-/*
-!/.gitattributes
-!/.gitignore
-!/.README
-!/git
+/index binary
+/objects/** binary
