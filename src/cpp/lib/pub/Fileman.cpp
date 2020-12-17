@@ -16,7 +16,7 @@
 //       Fileman.h object methods
 //
 // Last change date-
-//       2020/12/15
+//       2020/12/17
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -398,11 +398,17 @@ std::string                         // The invalid path ("" if none)
    // Resolve current working directory
    std::string full_name= path_name + "/" + file_name;
    if( full_name[0] != '/' ) {
-     char buffer[PATH_MAX + 8];
-     buffer[0]= '\0';
-     getcwd(buffer, sizeof(buffer));
-     std::string cwd= buffer;
-     full_name= cwd + "/" + path_name + "/" + file_name;
+     if( full_name[0] == '~' && full_name[1] == '/' ) {
+       const char* HOME= getenv("HOME"); // Get $HOME
+       if( HOME == nullptr ) return "Missing $HOME";
+       full_name= HOME + full_name.substr(1);
+     } else {
+       char buffer[PATH_MAX + 8];
+       buffer[0]= '\0';
+       getcwd(buffer, sizeof(buffer));
+       std::string cwd= buffer;
+       full_name= cwd + "/" + path_name + "/" + file_name;
+     }
    }
 
    // Resolve MAX_SYMLOOP (ugly)
