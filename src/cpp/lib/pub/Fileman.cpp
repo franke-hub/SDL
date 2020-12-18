@@ -558,7 +558,9 @@ std::string                         // The invalid path ("" if none)
    //-------------------------------------------------------------------------
    // Read the directory
    //-------------------------------------------------------------------------
-   DIR* dir= opendir(name.c_str()); // Open the directory stream
+   std::string S= name.c_str();
+   if( S == "" ) S= "/";            // (Empty path name for "/")
+   DIR* dir= opendir(S.c_str());    // Open the directory stream
    if( dir == NULL )                // Stream not opened
    {
      errorp("%4d: Path: opendir('%s') failure", __LINE__, _path.c_str());
