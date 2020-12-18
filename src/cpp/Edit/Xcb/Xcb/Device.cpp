@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/12/08
+//       2020/12/17
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -40,7 +40,7 @@
 
 using pub::Debug;                   // For Debug object
 using pub::Trace;                   // For Trace object
-using namespace pub::debugging;     // For debugging subroutines
+using namespace pub::debugging;     // For debugging
 using namespace pub::utility;       // For utility subroutines
 
 //----------------------------------------------------------------------------
@@ -388,6 +388,23 @@ xcb_keysym_t                        // The associated keyboard symbol
 //       Handle events
 //
 //----------------------------------------------------------------------------
+static inline pub::Trace::Record*   // Resultant
+   get_event_record(xcb_generic_event_t* e) // Get trace record, if allowed
+{
+   static int last_type= 0;         // Last e->response_type
+
+   if( opt_verbose < -1 ) return nullptr; // If disallowed via verbosity
+
+   // Disallow sequential noisy response_type events
+   if( e->response_type == XCB_MOTION_NOTIFY ) { // If noisy response_type
+     if( e->response_type == last_type ) return nullptr; // If another one
+   }
+   last_type= e->response_type;     // Last type received, noisy or not
+
+   typedef ::pub::Trace::Record Record;
+   return (Record*)pub::Trace::storage_if(sizeof(Record));
+}
+
 void
    Device::run( void )              // Handle window events
 {
@@ -399,13 +416,11 @@ void
      xcb_generic_event_t* e= xcb_wait_for_event(c);
      if( e ) {
        // Trace XCB event
-       if( opt_verbose > -2 ) {     // (If not forbidden)
-         Record* record= (Record*)Trace::storage_if(sizeof(Record));
-         if( record ) {
-           record->unit= *((uint32_t*)e); // type(8), extension(8), sequence(16)
-           memcpy(record->value, (char*)e + 4, sizeof(record->value));
-           record->trace(".XCB");
-         }
+       Record* record= get_event_record(e);
+       if( record ) {
+         record->unit= *((uint32_t*)e); // type(8), extension(8), sequence(16)
+         memcpy(record->value, (char*)e + 4, sizeof(record->value));
+         record->trace(".XCB");
        }
 
        switch(e->response_type & 0x7f)

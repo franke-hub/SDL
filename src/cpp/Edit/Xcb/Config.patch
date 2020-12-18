@@ -1,0 +1,176 @@
+//----------------------------------------------------------------------------
+//
+//       Copyright (C) 2020 Frank Eskesen.
+//
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+//
+//----------------------------------------------------------------------------
+//
+// Title-
+//       Config.patch
+//
+// Purpose-
+//       Editor: Config.cpp extension: debugging listeners
+//
+// Last change date-
+//       2020/12/17
+//
+// Implementation note-
+//       Only included from Config.cpp
+//
+//----------------------------------------------------------------------------
+#include "EdFile.h"                 // For EdRedo, EdLine
+#include "EdHist.h"                 // For EdHist
+#include "EdMark.h"                 // For EdMark
+#include "EdText.h"                 // For EdText
+#include "EdView.h"                 // For EdView
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       checkstop
+//       invalid_list
+//       invalid_redo
+//
+// Purpose-
+//       config_check (lambda) error handlers
+//
+//----------------------------------------------------------------------------
+static bool                         // *ALWAYS* true
+   checkstop(                       // Consistency check failure
+     std::string       message)     // Error message
+{
+   if( editor::text->file )
+     editor::text->file->put_message(message.c_str(), EdMess::T_MESS);
+   debugf("Config::check checkstop(%s)\n", message.c_str());
+
+   if( pub::Trace::trace )          // Turn off tracing
+     pub::Trace::trace->flag[pub::Trace::X_HALT]= true;
+
+   return true;
+}
+
+static bool                         // TRUE if invalid head/tail pair
+   invalid_list(                    // Check list consistency
+     const EdRedo*     redo,        // For this redo item
+     const EdLine*     head,        // And this head/tail pair
+     const EdLine*     tail)
+{
+   if( bool(head) != bool(tail) ) {
+     debugf("%4d Ed::check redo(%p) head(%p) tail(%p)\n", __LINE__, redo, head, tail);
+     return checkstop("invalid_list");
+   } else if( head == nullptr ) return false;
+
+   for(const EdLine* line= head; line; line= line->get_next() ) {
+     if( line == tail ) return false;
+   }
+
+   debugf("%4d Ed::check redo(%p) head(%p) tail(%p)\n", __LINE__, redo, head, tail);
+   return checkstop("missing tail");
+}
+
+static bool                         // TRUE if invalid redo
+   invalid_redo(                    // Check redo consistency
+     const EdRedo*     redo)        // For this redo
+{
+   return invalid_list(redo, redo->head_insert, redo->tail_insert);
+}
+
+static bool                         // TRUE if invalid undo
+   invalid_undo(                    // Check undo consistency
+     const EdRedo*     undo)        // For this undo
+{
+   return invalid_list(undo, undo->head_remove, undo->tail_remove);
+}
+
+//----------------------------------------------------------------------------
+//
+// (Lambda) subroutine-
+//       config_check (config::checkSignal listener)
+//
+// Purpose-
+//       Bringup error checking (Verify undo/redo list consistency)
+//
+//----------------------------------------------------------------------------
+static pub::signals::Connector<const char*> config_check=
+                       checkSignal.connect([](const char*& info)
+{
+   // Verify undo/redo lists
+   EdRedo* undo= editor::text->file->undo_list.get_tail();
+   while( undo ) {
+     if( invalid_undo(undo) ) { Config::debug(info); return; }
+     undo= undo->get_prev();
+   }
+
+   EdRedo* redo= editor::text->file->redo_list.get_tail();
+   while( redo ) {
+     if( invalid_redo(redo) ) { Config::debug(info); return; }
+     redo= redo->get_next();
+   }
+}); // config_check (Connector)
+
+//----------------------------------------------------------------------------
+//
+// (Lambda) subroutine-
+//       config_debug (config::debugSignal listener)
+//
+// Purpose-
+//       Bringup debugging (Write diagnostic data to console and debug.out)
+//
+//----------------------------------------------------------------------------
+static pub::signals::Connector<const char*> config_debug=
+                       debugSignal.connect([](const char*& info)
+{
+   debugf("Config::debug(%s)\n", info ? info : "");
+   debugf("\n============================================================\n");
+   editor::mark->debug(info);
+   debugf("\n");
+   editor::text->file->debug("lines");
+   debugf("\n");
+   editor::text->debug(info);
+   debugf("\n");
+   editor::text->data->debug(info);
+   debugf("\n");
+   editor::text->hist->debug(info);
+   debugf("============================================================\n\n");
+}); // config_debug (Connector)
+
+//----------------------------------------------------------------------------
+//
+// (Lambda) subroutine-
+//       config_signal (config::signalSignal listener)
+//
+// Purpose-
+//       Bringup debugging (Raise config debugSignal, then code hacking)
+//
+//----------------------------------------------------------------------------
+static pub::signals::Connector<const int> config_signal=
+                       signalSignal.connect([](const int& id)
+{
+   switch(id) {                     // Handle the signal
+     case SIGUSR1:
+       Config::debug("SIGUSR1");
+       if( editor::window ) {       // Code hack: not useful
+         editor::window->show();
+         editor::window->hide();
+         editor::window->flush();
+       }
+       editor::text->hide();
+       editor::text->show();
+       editor::text->draw();
+       editor::text->flush();
+       break;
+
+     case SIGUSR2:
+       Config::debug("SIGUSR2");
+       Config::failure("SIGUSR2");
+       break;
+
+     default:
+       Config::errorf("Signal(%d) ignored\n", id);
+       break;
+   }
+}); // config_signal (Connector)

@@ -16,14 +16,16 @@
 //       Editor: Storage Pool descriptor
 //
 // Last change date-
-//       2020/12/14
+//       2020/12/16
 //
 //----------------------------------------------------------------------------
 #ifndef EDPOOL_H_INCLUDED
 #define EDPOOL_H_INCLUDED
 
-#include <Editor.h>                 // For namespace editor::debug
+#include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/List.h>               // For pub::List
+
+#include "Config.h"                 // For namespace config
 
 //----------------------------------------------------------------------------
 //
@@ -61,18 +63,19 @@ public:
 :  ::pub::List<EdPool>::Link()
 ,  used(0), size(_size < MIN_SIZE ? size_t(MIN_SIZE) : _size)
 ,  data(new char[size])
-{
-   if( editor::debug::opt_hcdm )
-     editor::debug::debugh("EdPool(%p)::EdPool(%zd)\n", this, _size);
+{  using namespace config; using namespace pub::debugging;
+
+   if( opt_hcdm )
+     debugh("EdPool(%p)::EdPool(%zd)\n", this, _size);
 }
 
 //----------------------------------------------------------------------------
 virtual
    ~EdPool( void )                  // Destructor
-{
-   if( editor::debug::opt_hcdm )
-     editor::debug::debugh("EdPool(%p)::~EdPool, used %6zd of %6zd\n", this
-                          , used, size);
+{  using namespace config; using namespace pub::debugging;
+
+   if( opt_hcdm )
+     debugh("EdPool(%p)::~EdPool, used %6zd of %6zd\n", this, used, size);
 
    delete [] data;                  // Delete the data
 }
@@ -84,15 +87,16 @@ public:
 char*                               // The allocated storage, nullptr if none
    allocate(                        // Get allocated storage
      size_t            size)        // Of this length
-{
+{  using namespace config; using namespace pub::debugging;
+
    char* result= nullptr;
    if( used + size <= this->size ) { // If storage is available
      result= data + used;
      used += size;
    }
 
-   if( editor::debug::opt_hcdm )
-     editor::debug::debugh("%p= EdPool(%p)::allocate(%zd)\n", result, this, size);
+   if( opt_hcdm )
+     debugh("%p= EdPool(%p)::allocate(%zd)\n", result, this, size);
 
    return result;
 }

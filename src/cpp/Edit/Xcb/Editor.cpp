@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2020/12/14
+//       2020/12/16
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -30,6 +30,7 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
+#include <pub/Debug.h>              // For Debug, namespace pub::debugging
 #include <pub/Fileman.h>            // For namespace pub::Fileman
 #include <pub/Signals.h>            // For pub::signals
 #include <pub/Thread.h>             // For pub::Thread::sleep
@@ -41,44 +42,24 @@
 #include "Xcb/Widget.h"             // For xcb::Widget, our base class
 #include "Xcb/Window.h"             // For xcb::Window
 
+#include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For Editor (Implementation class)
-#include "EdFile.h"                 // For EdFile, EdLine, EdPool
+#include "EdFile.h"                 // For EdFile, EdLine, EdPool, ...
 #include "EdMark.h"                 // For EdMark
 #include "EdMisc.h"                 // For EdMisc TODO: REMOVE
 #include "EdPool.h"                 // For EdPool
 #include "EdText.h"                 // For EdText
 
-using namespace editor::debug;
+using namespace config;             // For config::opt_*
+using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= false               // Extra brinbup diagnostics?
+,  USE_BRINGUP= true                // Extra brinbup diagnostics?
 }; // Compilation controls
-
-//----------------------------------------------------------------------------
-// Internal data areas
-//----------------------------------------------------------------------------
-static std::string     HOME;        // Home directory
-static const mode_t    DIR_MODE= S_IRWXU | S_IRGRP|S_IXGRP | S_IROTH|S_IXOTH;
-
-//----------------------------------------------------------------------------
-// Default .README.txt
-//----------------------------------------------------------------------------
-static const char*     README_text=
-   "[Program]\n"
-   "Http=http://eske-systems.com\n"
-   "Exec=view\n"
-   "Exec=edit\n"
-   "Purpose=Graphic text editor\n"
-   "Version=0.0\n"
-   "\n"
-   "[Options]\n"
-   "## autosave_dir=~/.cache/uuid/e743e3ac-6816-4878-81a2-b47c9bbc2d37\n"
-   "## ignore_case=true\n"
-   ;
 
 //----------------------------------------------------------------------------
 // External data areas
@@ -96,178 +77,11 @@ pub::List<EdPool>      editor::textPool; // Text allocation EdPool
 std::string            editor::locate_string; // The locate string
 std::string            editor::change_string; // The change string
 
-// Debugging options
-const char*            editor::debug::opt_test= nullptr;  // Bringup test?
-int                    editor::debug::opt_hcdm= false; // Hard Core Debug Mode?
-int                    editor::debug::opt_verbose= false; // Debug verbosity
-
-// Operational controls
-std::string            editor::autosave_dir;
-int                    editor::autowrap= false;
-int                    editor::ignore_case= true;
-int                    editor::search_mode= 0;
-//                     _unused=0;   // (Alignment)
-
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
 static std::mutex      mutex;       // Singleton mutex
 static int             singleton= 0; // Singleton control
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       use_debug
-//
-// Purpose-
-//       Test whether or not debugging is active
-//
-//----------------------------------------------------------------------------
-static inline bool use_debug( void ) // Is debugging active?
-{ return HCDM || USE_BRINGUP || opt_hcdm; }
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       editor::debug::debugf
-//       editor::debug::debugh
-//       editor::debug::errorf
-//
-// Purpose-
-//       Debugging interfaces, similar or identical to ::pub::debugging
-//
-//----------------------------------------------------------------------------
-void
-   editor::debug::debugf(           // Debug debug printf facility
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // The remaining arguments
-{
-   va_list             argptr;      // Argument list pointer
-
-   va_start(argptr, fmt);           // Initialize va_ functions
-   ::pub::debugging::vdebugf(fmt, argptr);
-   va_end(argptr);                  // Close va_ functions
-}
-
-void
-   editor::debug::debugh(           // Debug debug printf facility with heading
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // The remaining arguments
-{
-   va_list             argptr;      // Argument list pointer
-
-   va_start(argptr, fmt);           // Initialize va_ functions
-   ::pub::debugging::vdebugh(fmt, argptr);
-   va_end(argptr);                  // Close va_ functions
-}
-
-void
-   editor::debug::errorf(           // Debug debug to stderr
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // The remaining arguments
-{
-   va_list             argptr;      // Argument list pointer
-
-   va_start(argptr, fmt);           // Initialize va_ functions
-   vfprintf(stderr, fmt, argptr);   // Write to stderr
-   va_end(argptr);                  // Close va_ functions
-
-   if( opt_hcdm ) {                 // If Hard Core Debug Mode
-     va_start(argptr, fmt);
-     ::pub::debugging::vtraceh(fmt, argptr);
-     va_end(argptr);
-   }
-}
-
-//----------------------------------------------------------------------------
-// Subroutine: make_dir, insure directory exists
-//----------------------------------------------------------------------------
-static void make_dir(std::string path) // Insure directory exists
-{
-   struct stat info;
-   int rc= stat(path.c_str(), &info);
-   if( rc != 0 ) {
-     rc= mkdir(path.c_str(), DIR_MODE);
-     if( rc )
-       Editor::failure(std::string("Cannot create ") + path);
-   }
-}
-
-//----------------------------------------------------------------------------
-// Subroutine: make_file, insure file exists
-//----------------------------------------------------------------------------
-static void make_file(std::string name, const char* data) // Insure file exists
-{
-   struct stat info;
-   int rc= stat(name.c_str(), &info);
-   if( rc != 0 ) {
-     FILE* f= fopen(name.c_str(), "wb"); // Open the file
-     if( f == nullptr )             // If open failure
-       Editor::failure(std::string("Cannot create ") + name);
-
-     size_t L0= strlen(data);
-     size_t L1= fwrite(data, 1, L0, f);
-     rc= fclose(f);
-     if( L0 != L1 || rc )
-       Editor::failure(std::string("Write failure: ") + name);
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       configure
-//
-// Purpose-
-//       Load the configuration.
-//
-//----------------------------------------------------------------------------
-static void
-   configure( void )                // Load configuaration
-{  // TODO: Load from control file
-   using namespace editor;
-
-   const char* env= getenv("HOME"); // Get HOME directory
-   if( env == nullptr )
-     Editor::failure("No HOME directory");
-   HOME= env;
-
-   // If required, create "$HOME/.config/uuid/" + UUID + "/.README.txt"
-   std::string S= HOME + "/.config";
-   make_dir(S);
-   S += "/uuid";
-   make_dir(S);
-   S += std::string("/") + UUID;
-   make_dir(S);
-   autosave_dir= S;
-
-   S += std::string("/.README.txt");
-   make_file(S, README_text);
-
-   // Parse the configuration file
-   // TODO: NOT CODED YET
-
-   // Set AUTOSAVE subdirectory
-   env= getenv("AUTOSAVE");         // Get AUTOSAVE directory
-   if( env )
-     autosave_dir= env;
-
-   // Look for *AUTOSAVE* files in AUTOSAVE subdirectory
-   pub::Fileman::Path path(autosave_dir);
-   pub::Fileman::File* file= path.list.get_head();
-   if( file == nullptr )
-     Editor::failure(std::string("AUTOSAVE directory(") + autosave_dir
-                    + ") empty");
-
-   size_t L= strlen(AUTOSAVE);
-   while( file ) {
-     if( strcmp(AUTOSAVE, file->name.substr(0, L).c_str()) == 0 )
-       Editor::failure(std::string("File exists: ") + autosave_dir
-                      + "/" + file->name);
-
-     file= file->get_next();
-   }
-}
 
 //----------------------------------------------------------------------------
 //
@@ -293,10 +107,6 @@ static void
       if( singleton ) throw "Multiple Editors"; // Enforce singleton
       singleton= true;
    }}
-
-   //-------------------------------------------------------------------------
-   // Initialize configuration options
-   configure();
 
    // Allocate initial textPool
    textPool.fifo(new EdPool(EdPool::MIN_SIZE));
@@ -331,24 +141,21 @@ static void
      } else if( test == "bot-only" ) { // EdText visible
        // Result: EdMisc only appears after screen enlarged
        //   Device->Row->(EdText,EdMisc)
-       // PROBLEM: CLOSE Window gets SIGABRT, unable to diagnose
-       //          (only occurs after screen enlarged)
        xcb::RowLayout* row= new xcb::RowLayout(device, "Row");
        window= new EdMisc(nullptr, "Bottom", 64, 64);
        row->insert( text );
        row->insert( window );
 
      } else if( test == "top-only" ) { // (small horizontal window)
-       // Result: EdText only appears after screen enlarged
+       // Result: No window visible
        //   Device->Row->(Top,EdText)
-       //   (No problem with CLOSE Window)
        xcb::RowLayout* row= new xcb::RowLayout(device, "Row");
        window= new EdMisc(nullptr, "Top", 64, 14);
        row->insert( window );
        row->insert( text );         // Not visible
 
      } else if( test == "left-only" ) { // (small vertial window)
-       // Result: EdText only appears after screen enlarged
+       // Result: No window visible
        //   Device->Col->(EdMisc,EdText)
        //   (CLOSE Window checkstop: Bad Window when closing window)
        xcb::ColLayout* col= new xcb::ColLayout(device, "Col");
@@ -428,44 +235,6 @@ static void
    delete mark;
    delete text;
 }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Editor::debug
-//
-// Purpose-
-//       Debugging display (modified as needed)
-//
-//----------------------------------------------------------------------------
-void
-   Editor::debug(                   // Debugging display
-     const char*       info)        // Informational text
-{
-   debugf("Editor::debug(%s)\n", info ? info : "");
-
-   // Debugging duplicate entries in file list
-   debugf("..file_list(%p,%p)\n", editor::file_list.get_head()
-         , editor::file_list.get_tail());
-   unsigned count= 0;
-   for(EdFile* file= editor::file_list.get_head(); file; file= file->get_next()) {
-     debugf("[%2d] '%s'\n", count++, file->name.c_str());
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Editor::failure
-//
-// Purpose-
-//       Write error message and exit
-//
-//----------------------------------------------------------------------------
-void
-   Editor::failure(                 // Write error message and exit
-     std::string       mess)        // (The error message)
-{  fprintf(stderr, "%s\n", mess.c_str()); exit(EXIT_FAILURE); }
 
 //----------------------------------------------------------------------------
 //
@@ -643,10 +412,18 @@ EdFile*                             // The last file inserted
 const char*
    editor::key_to_name(xcb_keysym_t key) // Convert xcb_keysym_t to name
 {
+static char buffer[8];
+static const char* F_KEY= "123456789ABCDEF";
    if( key >= 0x0020 && key <= 0x007f ) { // If text key
-     static char buffer[2];
      buffer[0]= char(key);
      buffer[1]= '\0';
+     return buffer;
+   }
+
+   if( key >= XK_F1 && key <= XK_F12 ) { // If function key
+     buffer[0]= 'F';
+     buffer[1]= F_KEY[key - XK_F1];
+     buffer[2]= '\0';
      return buffer;
    }
 

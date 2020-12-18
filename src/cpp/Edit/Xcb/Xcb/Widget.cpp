@@ -16,7 +16,7 @@
 //       Implement Widget.h
 //
 // Last change date-
-//       2020/09/06
+//       2020/12/16
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::invalid_argument
@@ -27,7 +27,7 @@
 #include "Xcb/Global.h"             // For xcb::opt_hcdm, xcb::opt_verbose
 #include "Xcb/Widget.h"             // Implementation class
 
-using namespace pub::debugging;     // For debugging subroutines
+using namespace pub::debugging;     // For debugging
 
 namespace xcb {
 //----------------------------------------------------------------------------

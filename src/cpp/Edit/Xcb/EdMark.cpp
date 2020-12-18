@@ -16,17 +16,18 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2020/12/15
+//       2020/12/17
 //
 //----------------------------------------------------------------------------
+#include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Signals.h>            // For pub::signals::Connector
+#include <pub/Trace.h>              // For pub::Trace
 
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile, EdLine, EdRedo
 #include "EdMark.h"                 // For EdMark (Implementation class)
 
-using namespace editor::debug;
-#define debugf editor::debug::debugf // Prevent ADL
+using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -157,6 +158,53 @@ static void
 
 //----------------------------------------------------------------------------
 //
+// Subroutine-
+//       trace
+//
+// Purpose-
+//       Trace EdMark operation
+//
+//----------------------------------------------------------------------------
+static void
+   trace(                           // Trace operation
+     const char*       op,          // The operation name
+     EdLine*           head,        // First line
+     EdLine*           tail)        // Last  line
+{
+   typedef pub::Trace::Record Record;
+   Record* record= (Record*)pub::Trace::storage_if(sizeof(Record));
+   if( record ) {
+     memset(record->value, 0, sizeof(record->value));
+     memcpy(&record->unit, op, 4);
+     *((EdLine**)(record->value + 0))= head;
+     *((EdLine**)(record->value + 8))= tail;
+     record->trace(".MRK");
+   }
+static_assert(sizeof(head) <= 8, "Overlength pointers");
+}
+
+static void
+   trace(                           // Trace operation (undo/redo)
+     const char*       op,          // The operation name
+     EdFile*           file,        // The UNDO/REDO file
+     EdRedo*           redo)        // The UNDO/REDO
+{
+   typedef pub::Trace::Record Record;
+   Record* record= (Record*)pub::Trace::storage_if(sizeof(Record) + 32);
+   if( record ) {
+     memset(record->value, 0, sizeof(record->value) + 32);
+     memcpy(&record->unit, op, 4);
+     *((EdFile**)(record->value))= file;
+     *((EdLine**)((char*)record + sizeof(Record) +  0))= redo->head_insert;
+     *((EdLine**)((char*)record + sizeof(Record) +  8))= redo->tail_insert;
+     *((EdLine**)((char*)record + sizeof(Record) + 16))= redo->head_remove;
+     *((EdLine**)((char*)record + sizeof(Record) + 24))= redo->tail_remove;
+     record->trace(".MRK");
+   }
+}
+
+//----------------------------------------------------------------------------
+//
 // Method-
 //       EdMark::EdMark
 //
@@ -246,6 +294,9 @@ const char*                         // Error message, nullptr expected
    if( file == nullptr )
      return "No mark";
 
+   // Trace the copy
+   trace(" C^C", head, tail);
+
    Copy copy= create_copy(head, tail);
    mark_list.insert(nullptr, copy.head, copy.tail);
    mark_rows= copy.rows;
@@ -266,6 +317,9 @@ const char*                         // Error message, nullptr expected
 {
    const char* error= copy();       // Copy the marked area
    if( error ) return error;        // Only "No mark" possible
+
+   // Trace the cut
+   trace(" C^X", head, tail);
 
    // Perform the cut
    file->line_list.remove(head, tail);
@@ -308,6 +362,8 @@ void
      EdFile*           edFile,      // For this file
      EdRedo*           edRedo)      // And this REDO
 {
+   trace(" RDO", edFile, edRedo);   // Trace REDO operation
+
    if( edRedo->head_remove ) {      // If redo remove
      Mark mark= get_mark_state(edRedo->head_remove, edRedo->tail_remove);
      if( mark.mark_all ) {
@@ -366,6 +422,8 @@ void
      EdFile*           edFile,      // For this file
      EdRedo*           edUndo)      // And this UNDO
 {
+   trace(" UDO", edFile, edUndo);   // Trace UNDO operation
+
    if( edUndo->head_insert ) {      // If undo insert
      Mark mark= get_mark_state(edUndo->head_insert, edUndo->tail_insert);
      if( mark.mark_all ) {
@@ -423,7 +481,7 @@ const char*                         // Error message, nullptr expected
    EdMark::mark(                    // Create/expand/contract the mark
      EdFile*           edFile,      // For this EdFile
      EdLine*           edLine,      // And this EdLine
-     ssize_t           _column)     // Start at this column (block copy)
+     ssize_t           _column)     // And this column (block copy)
 {
    if( _column >= 0 )               // Only line marks are supported
      return "Not coded yet";
@@ -527,6 +585,9 @@ const char*                         // Error message, nullptr expected
      line->delim[1]= delim[1];
      line->flags |= EdLine::F_MARK;
    }
+
+   // Trace the paste
+   trace(" C^V", copy.head, copy.tail);
 
    // Insert the lines
    edFile->line_list.insert(edLine, copy.head, copy.tail);

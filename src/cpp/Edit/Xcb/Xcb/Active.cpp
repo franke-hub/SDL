@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2020/12/08
+//       2020/12/16
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -28,7 +28,7 @@
 #include "Xcb/Global.h"             // For opt_hcdm, opt_verbose
 #include "Xcb/Active.h"             // Implementation class
 
-using namespace pub::debugging;     // For debugging subroutines
+using namespace pub::debugging;     // For debugging
 using namespace pub;                // For Must::
 
 //----------------------------------------------------------------------------

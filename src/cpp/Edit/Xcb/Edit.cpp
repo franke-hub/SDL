@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2020/12/08
+//       2020/12/16
 //
 // Implementation note-
 //       TODO: Debug mode currently *ALWAYS* intensive move
@@ -47,12 +47,14 @@
 #include <pub/Trace.h>              // For Trace object
 
 #include <Xcb/Global.h>             // For namespace xcb
-#include <Editor.h>                 // For namespace editor::debug
+#include <Config.h>                 // For namespace config
+#include <Editor.h>                 // For namespace editor
+#include <EdText.h>                 // For EdText // TODO: ONLY IN sighandler
 
 using pub::Debug;                   // For Debug object
 using pub::Trace;                   // For Trace object
 
-using namespace pub::debugging;
+using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -99,67 +101,6 @@ enum OPT_INDEX                      // Must match OPTS[]
 };
 
 //----------------------------------------------------------------------------
-// Internal data areas
-//----------------------------------------------------------------------------
-static void*           trace_table= nullptr; // The allocated trace table
-
-//----------------------------------------------------------------------------
-// Constants
-//----------------------------------------------------------------------------
-static const int       PROT_RW= (PROT_READ | PROT_WRITE);
-static const char*     TRACE_FILE= "./trace.out"; // Trace file name
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       oops
-//
-// Purpose-
-//       Shortcut for strerror(errno)
-//
-//----------------------------------------------------------------------------
-static inline const char* oops( void ) { return strerror(errno); }
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       sig_handler
-//
-// Purpose-
-//       Handle signals.
-//
-//----------------------------------------------------------------------------
-static void
-   sig_handler(                     // Handle signals
-     int               id)          // The signal identifier
-{
-   const char* text= "<<Unexpected>>";
-   if( id == SIGINT ) text= "SIGINT";
-   else if( id == SIGSEGV ) text= "SIGSEGV";
-
-   fprintf(stderr, "\n\nsig_handler(%d) %s pid(%d)\n", id, text, getpid());
-
-   switch(id) {                     // Handle the signal
-     case SIGINT:
-     case SIGSEGV:
-       exit(EXIT_FAILURE);          // Exit, no dump
-       break;
-
-     default:
-       break;
-   }
-
-   fprintf(stderr, "Signal(%d) ignored\n", id);
-}
-
-//----------------------------------------------------------------------------
-// Internal data areas
-//----------------------------------------------------------------------------
-typedef void (*sig_handler_t)(int);
-static sig_handler_t   sys1_handler= nullptr; // System SIGINT  signal handler
-static sig_handler_t   sys2_handler= nullptr; // System SIGSEGV signal handler
-
-//----------------------------------------------------------------------------
 //
 // Subroutine-
 //       init
@@ -174,55 +115,6 @@ static int                          // Return code (0 OK)
 //   char*             argv[])      // Argument array (Unused)
 {
    //-------------------------------------------------------------------------
-   // Initialize signal handling
-   //-------------------------------------------------------------------------
-   sys1_handler= signal(SIGINT,  sig_handler);
-   sys2_handler= signal(SIGSEGV, sig_handler);
-
-   //-------------------------------------------------------------------------
-   // (Conditionally) create memory-mapped trace file
-   if( opt_hcdm && opt_verbose > 3)
-     opt_trace= true;
-
-   if( opt_trace ) {
-     int fd= open(TRACE_FILE, O_RDWR | O_CREAT, S_IRWXU);
-     if( fd < 0 ) {
-       fprintf(stderr, "%4d open(%s) %s\n", __LINE__, TRACE_FILE, oops());
-       return 1;
-     }
-
-     int rc= ftruncate(fd, TRACE_SIZE); // (Expand to TRACE_SIZE)
-     if( rc ) {
-       fprintf(stderr, "%4d ftruncate(%s,%.8x) %s\n", __LINE__
-               , TRACE_FILE, TRACE_SIZE, oops());
-       return 1;
-     }
-
-     trace_table= mmap(nullptr, TRACE_SIZE, PROT_RW, MAP_SHARED, fd, 0);
-     if( trace_table == MAP_FAILED ) { // If no can do
-       fprintf(stderr, "%4d mmap(%s,%.8x) %s\n", __LINE__
-               , TRACE_FILE, TRACE_SIZE, oops());
-       trace_table= nullptr;
-       return 1;
-     }
-
-     close(fd);                     // Descriptor not needed once mapped
-     Trace::trace= Trace::make(trace_table, TRACE_SIZE); // Activate trace
-   } else {                         // Remove TRACE_FILE if not tracing
-     unlink(TRACE_FILE);
-   }
-
-   //-------------------------------------------------------------------------
-   // Initialize/activate debugging trace (with options)
-   Debug* debug= Debug::get();      // Activate debug tracing
-   debug->set_head(Debug::HEAD_TIME);
-
-   if( HCDM ) opt_hcdm= true;       // If HCDM compile-time, force opt_hcdm
-// if( opt_hcdm ) {                 // If --hcdm option specified // TODO: REVERT
-     debug->set_mode(Debug::MODE_INTENSIVE); // Hard Core Debug Mode
-// }
-
-   //-------------------------------------------------------------------------
    // Initialize globals
    setlocale(LC_NUMERIC, "");       // Allows printf("%'d\n", 123456789);
 
@@ -230,9 +122,9 @@ static int                          // Return code (0 OK)
    xcb::opt_test= opt_test;
    xcb::opt_verbose= opt_verbose;
 
-   editor::debug::opt_hcdm= opt_hcdm;
-   editor::debug::opt_test= opt_test;
-   editor::debug::opt_verbose= opt_verbose;
+   config::opt_hcdm= opt_hcdm;
+   config::opt_test= opt_test;
+   config::opt_verbose= opt_verbose;
 
    return 0;                        // Placeholder
 }
@@ -248,29 +140,7 @@ static int                          // Return code (0 OK)
 //----------------------------------------------------------------------------
 static void
    term( void )                     // Terminate
-{
-   //-------------------------------------------------------------------------
-   // Diagnostics
-   if( Trace::trace && (opt_hcdm || opt_verbose > 2)) {
-     debugf("\n");
-     debugf("Trace::trace(%p)->dump() (See debug.out)\n", Trace::trace);
-     Trace::trace->dump();
-     if( opt_hcdm ) Debug::get()->flush(); // (Force log completion)
-   }
-
-   //-------------------------------------------------------------------------
-   // Free the trace table
-   if( trace_table ) {
-     Trace::trace= nullptr;         // Disable tracing
-     munmap(trace_table, TRACE_SIZE);
-     trace_table= nullptr;
-   }
-
-   //-------------------------------------------------------------------------
-   // Restore system signal handlers
-   signal(SIGINT,  sys1_handler);
-   signal(SIGSEGV, sys2_handler);
-}
+{  /* Nothing to do. Function moved to Config.cpp */ }
 
 //----------------------------------------------------------------------------
 //
@@ -480,10 +350,11 @@ extern int                          // Return code
    rc= init(argc, argv);            // Initialize
    if( rc ) return rc;              // Return if invalid
 
+   Config config(argc, argv);       // Configure
    if( opt_hcdm || opt_verbose >= 0 ) {
-     editor::debug::errorf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
-     editor::debug::errorf("--hcdm(%d) --verbose(%d) --trace(%d)\n"
-                          , opt_hcdm, opt_verbose, opt_trace);
+     Config::errorf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
+     Config::errorf("--hcdm(%d) --verbose(%d) --trace(%d)\n"
+                   , opt_hcdm, opt_verbose, opt_trace);
    }
 
    //-------------------------------------------------------------------------

@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2020/12/14
+//       2020/12/16
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -59,33 +59,7 @@ public:
      char*             argv[]);     // Argument array
 
    ~Editor( void );                 // Destructor
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Editor::debug
-//
-// Purpose-
-//       Debugging display
-//
-//----------------------------------------------------------------------------
-static void
-   debug(                           // Debugging display
-     const char*       info= nullptr); // Informational text
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Editor::failure
-//
-// Purpose-
-//       Write error message and exit
-//
-//----------------------------------------------------------------------------
-static void
-   failure(                         // Write error message and exit
-     std::string       mess);       // (The error message)
-}; // c;ass Editor
+}; // class Editor
 
 //----------------------------------------------------------------------------
 //
@@ -104,11 +78,7 @@ extern xcb::Device*    device;      // The root Device
 extern xcb::Window*    window;      // The test Window
 
 extern pub::List<EdFile> file_list; // The list of EdFiles
-extern EdFind*         find;        // The Find Popup
-extern EdFull*         full;        // The Full Window
 extern EdMark*         mark;        // The Mark Handler
-extern EdMenu*         menu;        // The Menu Layout
-extern EdTabs*         tabs;        // The Tabs Layout
 extern EdText*         text;        // The Text Window
 
 extern pub::List<EdPool> filePool;  // File allocation EdPool
@@ -116,95 +86,6 @@ extern pub::List<EdPool> textPool;  // Text allocation EdPool
 
 extern std::string     locate_string; // The locate string
 extern std::string     change_string; // The change string
-
-// Operational controls
-extern std::string     autosave_dir; // "~/.cache/uuid/" + UUID
-extern int             autowrap;   // Autowrap locate (= false)
-extern int             ignore_case; // Ignore case when searching (= true)
-extern int             search_mode; // (Positive= forward, else reverse) (= 0)
-
-//----------------------------------------------------------------------------
-// Constants
-//----------------------------------------------------------------------------
-static constexpr const char* const AUTOSAVE= "*AUTOSAVE*.";
-static constexpr const char* const NO_STRING= ""; // The empty string
-static constexpr const char* const UUID= "e743e3ac-6816-4878-81a2-b47c9bbc2d37";
-
-//----------------------------------------------------------------------------
-// Immutable constants
-//----------------------------------------------------------------------------
-enum
-{  CLR_UNUSED                       // (All other entries are comma delimited)
-// Color definitions
-,  CLR_Black=          0x00000000
-,  CLR_DarkRed=        0x00900000   // A.K.A red4
-,  CLR_FireBrick=      0x00B22222
-,  CLR_LightBlue=      0x00C0F0FF
-,  CLR_LightSkyBlue=   0x00B0E0FF
-,  CLR_PaleBlue=       0x00F8F8FF
-,  CLR_PaleMagenta=    0x00FFC0FF   // A.K.A plum1
-,  CLR_PaleYellow=     0x00FFFFF0   // A.K.A ivory
-,  CLR_PowderBlue=     0x00B0E0E0
-,  CLR_White=          0x00FFFFFF
-,  CLR_Yellow=         0x00FFFF00
-
-// Color selectors
-,  CHG_FG= CLR_DarkRed              // FG: Status line, file changed
-,  CHG_BG= CLR_LightBlue            // BG: Status line, file changed
-
-,  CMD_FG= CLR_Black                // FG: Command line
-,  CMD_BG= CLR_PaleMagenta          // BG: Command line
-
-,  MSG_FG= CLR_DarkRed              // FG: Message line
-,  MSG_BG= CLR_Yellow               // BG: Message line
-
-,  SEL_FG= CLR_Black                // FG: Selected line
-,  SEL_BG= CLR_LightBlue            // BG: Selected line
-
-,  STS_FG= CLR_Black                // FG: Status line, file unchanged
-,  STS_BG= CLR_LightBlue            // BG: Status line, file unchanged
-
-,  TXT_FG= CLR_Black                // FG: Text
-,  TXT_BG= CLR_PaleYellow           // BG: Text
-}; // generic enum
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       editor::debug::debugf
-//       editor::debug::debugh
-//       editor::debug::errorf
-//
-// Purpose-
-//       Debugging utilities, mostly identical to pub::debugging
-//         (errorf writes to stderr and only writes to trace if opt_hcdm true.
-//
-//----------------------------------------------------------------------------
-namespace debug {
-// Debugging controls
-extern int             opt_hcdm;    // Hard Core Debug Mode?
-extern const char*     opt_test;    // Bringup test?
-extern int             opt_verbose; // Debugging verbosity
-
-// Debugging methods
-void
-   debugf(                          // Write to trace and stdout
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
-
-void
-   debugh(                          // Write to trace and stdout with heading
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
-
-void
-   errorf(                          // Write to stderr, trace iff opt_hcdm
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
-}  // namespace (editor::)debug
 
 //----------------------------------------------------------------------------
 //

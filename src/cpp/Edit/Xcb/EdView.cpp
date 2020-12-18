@@ -16,18 +16,21 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2020/12/14
+//       2020/12/17
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
 #include <sys/types.h>              // For system types
+#include <pub/Debug.h>              // For namespace pub::debugging
 
-#include "Xcb/Global.h"             // For xcb::opt_hcdm, xcb::debugh
-
+#include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile, EdLine
 #include "EdText.h"                 // For EdText
 #include "EdView.h"                 // For EdView (Implementation class)
+
+using namespace config;             // For opt_* variables
+using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -51,14 +54,14 @@ enum // Compilation controls
    EdView::EdView( void )           // Constructor
 :  active()
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdView(%p)::EdView\n", this);
+   if( opt_hcdm )
+     debugh("EdView(%p)::EdView\n", this);
 }
 
    EdView::~EdView( void )          // Destructor
 {
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdView(%p)::~EdView\n", this);
+   if( opt_hcdm )
+     debugh("EdView(%p)::~EdView\n", this);
 }
 
 //----------------------------------------------------------------------------
@@ -74,11 +77,11 @@ void
    EdView::debug(                   // Debugging display
      const char*       text) const  // Associated text
 {
-   xcb::debugf("EdView(%p)::debug(%s)\n", this, text ? text : "");
-   xcb::debugf("..col_zero(%zd) col(%u) row_zero(%zd) row(%u)\n"
-              , col_zero, col, row_zero, row);
-   if( xcb::opt_verbose >= 0 )
-     xcb::debugf("..gc_font(%u) gc_flip(%u)\n", gc_font, gc_flip);
+   debugf("EdView(%p)::debug(%s)\n", this, text ? text : "");
+   debugf("..col_zero(%zd) col(%u) row_zero(%zd) row(%u)\n"
+         , col_zero, col, row_zero, row);
+   if( opt_verbose >= 0 )
+     debugf("..gc_font(%u) gc_flip(%u)\n", gc_font, gc_flip);
 }
 
 //----------------------------------------------------------------------------
@@ -99,30 +102,37 @@ void
    using namespace editor;
 
    const char* buffer= active.get_changed();
-   if( xcb::opt_hcdm )
-     xcb::debugh("EdView(%p)::commit buffer(%s)\n", this , buffer);
+   if( opt_hcdm )
+     debugh("EdView(%p)::commit buffer(%s)\n", this , buffer);
 
    if( buffer ) {                   // If actually changed
-     // Create and initialize a REDO object
-     EdRedo* redo= new EdRedo();
-     EdLine* line= new EdLine();
-     *line= *((EdLine*)text->cursor);
-     line->get_prev()->set_next(line);
-     line->get_next()->set_prev(line);
-     redo->head_remove= redo->tail_remove= (EdLine*)text->cursor;
-     redo->head_insert= redo->tail_insert= line;
-     text->file->insert_undo(redo); // (Sets text->file->changed)
+     EdLine* cursor= text->cursor;
 
-     // Change the newly created line
+     // Create a new REDO line, duplicating the current line chain
+     EdLine* line= new EdLine();
+     *line= *cursor;                // (Duplicates the links)
+
+     // Replace the text in the REDO line
      size_t length= active.get_used();
      if( length == 0 )
-       line->text= editor::NO_STRING;
+       line->text= "";
      else {
        char* revise= editor::allocate(length + 1);
        strcpy(revise, buffer);
        line->text= revise;
      }
-     active.reset(line->text);      // (Prevent duplicate commit)
+     active.reset(line->text);      // (Prevents duplicate commit)
+
+     // The new line replaces the cursor line in the file_list
+     file_list.remove(cursor, cursor); // (Does not change links)
+     file_list.insert(cursor->get_prev(), line, line);
+     text->cursor= line;
+
+     // Create and initialize a REDO object
+     EdRedo* redo= new EdRedo();
+     redo->head_remove= redo->tail_remove= cursor;
+     redo->head_insert= redo->tail_insert= line;
+     text->file->insert_undo(redo); // (Sets text->file->changed)
    }
 }
 
@@ -158,7 +168,6 @@ void
            row_zero++;
            rc= 0;
          } else {
-           xcb::trace(".BOT", 0);
            break;
          }
          if( text->last->get_next() == nullptr )
@@ -176,7 +185,6 @@ void
            row_zero--;
            rc= 0;
          } else {
-           xcb::trace(".TOP", 0);
            break;
          }
        }

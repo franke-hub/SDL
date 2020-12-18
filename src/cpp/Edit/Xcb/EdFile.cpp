@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2020/12/14
+//       2020/12/17
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -37,14 +37,14 @@
 #include <pub/List.h>               // For pub::List
 #include "Xcb/Types.h"              // For xcb::Line
 
-#include "Editor.h"                 // For editor::debug
+#include "Config.h"                 // For Config::check
+#include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile, EdLine, EdRedo
 #include "EdMark.h"                 // For EdMark
 #include "EdText.h"                 // For EdText
 
-using namespace editor::debug;      // For opt_* controls
-#define debugf editor::debug::debugf // Prevent ADL
-#define debugh editor::debug::debugh // Prevent ADL
+using namespace config;             // For config::opt_*
+using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -429,6 +429,8 @@ void
    editor::mark->handle_redo(this, edRedo);
    undo_list.lifo(edRedo);
    changed= true;
+
+   Config::check("insert_undo");    // TODO: HCDM: REMOVE
 }
 
 //----------------------------------------------------------------------------
@@ -520,7 +522,7 @@ static void
          , redo->head_remove, redo->tail_remove);
 
    redo->debug("Inconsistent");
-   Editor::failure("REDO/UNDO inconsistent");
+   Config::failure("REDO/UNDO inconsistent");
 }
 
 static void
@@ -660,6 +662,8 @@ void
    editor::text->draw();
    undo_list.lifo(redo);            // REDO => UNDO
 // debug("redo-done");
+
+   Config::check("redo");           // TODO: HCDM: REMOVE
 }
 
 
@@ -744,6 +748,8 @@ void
    editor::text->draw();
    redo_list.lifo(undo);            // UNDO => REDO
 // debug("undo-done");
+
+   Config::check("undo");           // TODO: HCDM: REMOVE
 }
 
 //----------------------------------------------------------------------------
@@ -890,9 +896,9 @@ int                                 // Return code, 0 OK
 int                                 // Return code, 0 OK
    EdFile::write( void )            // Write (replace) the file
 {
-   std::string S= editor::autosave_dir; // The AUTOSAVE directory
+   std::string S= config::AUTO;     // The AUTOSAVE directory
    S += "/";                        // Add directory delimiter
-   S += editor::AUTOSAVE;           // AUTOSAVE file name header
+   S += config::AUTOFILE;           // AUTOSAVE file name header
    S += name_of(name.c_str());      // Append file name
 
    int rc= write(S.c_str());        // Write AUTOSAVE file

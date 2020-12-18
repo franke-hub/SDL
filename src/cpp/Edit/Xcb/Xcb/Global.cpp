@@ -16,7 +16,7 @@
 //       Instantiate externals.
 //
 // Last change date-
-//       2020/10/08
+//       2020/12/16
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For Debug object
@@ -25,7 +25,7 @@
 #include "Xcb/Global.h"             // Implementation class
 
 using pub::Debug;                   // For Debug object
-using namespace pub::debugging;     // For debugging subroutines
+using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
 // Global data areas
@@ -37,71 +37,6 @@ int                    xcb::opt_verbose= -1; // Verbosity, default NONE
 uint32_t               xcb::keystate= 0; // Keyboard state
 
 namespace xcb {
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       xcb::debug_flush
-//       xcb::debugf
-//       xcb::debugh
-//       xcb::tracef
-//       xcb::traceh
-//
-// Purpose-
-//       Debugging interfaces, exactly the same as ::pub::debugging
-//
-//----------------------------------------------------------------------------
-void
-   debug_flush( void )              // Flush write the trace file
-{  ::pub::debugging::debug_flush(); }
-
-void
-   debugf(                          // Debug debug printf facility
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // The remaining arguments
-{
-   va_list             argptr;      // Argument list pointer
-
-   va_start(argptr, fmt);           // Initialize va_ functions
-   ::pub::debugging::vdebugf(fmt, argptr);
-   va_end(argptr);                  // Close va_ functions
-}
-
-void
-   debugh(                          // Debug debug printf facility with heading
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // The remaining arguments
-{
-   va_list             argptr;      // Argument list pointer
-
-   va_start(argptr, fmt);           // Initialize va_ functions
-   ::pub::debugging::vdebugh(fmt, argptr);
-   va_end(argptr);                  // Close va_ functions
-}
-
-void
-   tracef(                          // Debug trace printf facility
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // The remaining arguments
-{
-   va_list             argptr;      // Argument list pointer
-
-   va_start(argptr, fmt);           // Initialize va_ functions
-   ::pub::debugging::vtracef(fmt, argptr);
-   va_end(argptr);                  // Close va_ functions
-}
-
-void
-   traceh(                          // Debug trace printf facility, with heading
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // The remaining arguments
-{
-   va_list             argptr;      // Argument list pointer
-
-   va_start(argptr, fmt);           // Initialize va_ functions
-   ::pub::debugging::vtraceh(fmt, argptr);
-   va_end(argptr);                  // Close va_ functions
-}
-
 //----------------------------------------------------------------------------
 //
 // Subroutine-

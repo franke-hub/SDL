@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2020/12/15
+//       2020/12/16
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -29,6 +29,7 @@
 
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 
+#include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For Editor Globals
 #include "EdFile.h"                 // For EdFile, EdLine
 #include "EdHist.h"                 // For EdHist
@@ -48,10 +49,11 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 static char            error_buffer[512]; // Error message buffer
 
-static struct EdBifs_initializer {  // Static initializer
-   EdBifs_initializer( void )
-{  error_buffer[sizeof(error_buffer-1)]= '\0'; }
+namespace {                         // Anonymous namespace
+static struct INIT {                // Static initializer
+   INIT( void ) { error_buffer[sizeof(error_buffer-1)]= '\0'; }
 }  static_initializer;
+}  // Anonymous namespace
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -120,8 +122,8 @@ static const char*                  // Error message, nullptr expected
 {
    // NOTE: Parameter errors are ignored
    if( parm ) {                     // If debug specific
-     if( strcasecmp(parm, "edit") == 0 )
-       Editor::debug("command");
+     if( strcasecmp(parm, "all") == 0 )
+       Config::debug("command");
      else if( strcasecmp(parm, "file") == 0 )
        editor::text->file->debug("command");
      else if( strcasecmp(parm, "lines") == 0 )
@@ -185,7 +187,7 @@ static const char*                  // Error message, nullptr expected
    command_forward(                 // Forward locate command
      char*             parm)        // (Mutable) parameter string
 {
-   editor::search_mode= +1;         // Forward locate
+   config::search_mode= +1;         // Forward locate
 
    parm++;
    while( *parm == ' ' )
@@ -278,7 +280,7 @@ static const char*                  // Error message, nullptr expected
    command_reverse(                 // Reverse locate command
      char*             parm)        // (Mutable) parameter string
 {
-   editor::search_mode= -1;         // Reverse locate
+   config::search_mode= -1;         // Reverse locate
 
    parm++;
    while( *parm == ' ' )

@@ -16,7 +16,7 @@
 //       Editor: Implement EdMisc.h
 //
 // Last change date-
-//       2020/12/12
+//       2020/12/16
 //
 // Implementation note-
 //       Used to avoid circular references.
@@ -29,12 +29,14 @@
 #include <sys/stat.h>               // For stat
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
+#include <pub/Debug.h>              // For namespace pub::debugging
 
-#include "Editor.h"                 // For namespace editor::debug
+#include "Config.h"                 // For namespace config
+#include "Editor.h"                 // For namespace editor
 #include "EdMisc.h"                 // For EdHist
 
-using namespace editor::debug;
-#define debugh editor::debug::debugh // Prevent ADL
+using namespace config;             // For opt_* variables
+using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -152,10 +154,10 @@ void
 
    ENQUEUE("xcb_poly_line", xcb_poly_line_checked(c
           , XCB_COORD_MODE_ORIGIN, widget_id, drawGC, 6, points));
-   if( xcb::opt_hcdm || false ) {   // ???WHY IS THIS NEEDED???
-     xcb::debugf("EdMisc::draw %u:[%d,%d]\n", drawGC, X, Y);
+   if( opt_hcdm || false ) {        // ???WHY IS THIS NEEDED???
+     debugf("EdMisc::draw %u:[%d,%d]\n", drawGC, X, Y);
      for(int i= 0; i<6; i++)
-       xcb::debugf("[%2d]: [%2d,%2d]\n", i, points[i].x, points[i].y);
+       debugf("[%2d]: [%2d,%2d]\n", i, points[i].x, points[i].y);
    }
 
 // (Attempts to fix problem without expose handler.)

@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2020/12/11
+//       2020/12/16
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -27,15 +27,18 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
+#include <pub/Debug.h>              // For namespace pub::debugging
+
 #include "Xcb/Global.h"             // For Xcb globals
 #include "Xcb/Types.h"              // For Xcb::Line
 
-#include "Editor.h"                 // For namespace editor::debug
+#include "Config.h"                 // For namespace config
+#include "Editor.h"                 // For namespace editor
 #include "EdHist.h"                 // For EdHist
 #include "EdText.h"                 // For EdText
 
-using namespace editor::debug;
-#define debugf editor::debug::debugf // Avoid ADL
+using namespace config;             // For opt_* variables
+using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

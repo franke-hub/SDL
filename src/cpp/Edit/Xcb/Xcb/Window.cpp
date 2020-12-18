@@ -16,7 +16,7 @@
 //       Implement Xcb/Window.h
 //
 // Last change date-
-//       2020/11/30
+//       2020/12/16
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -35,7 +35,7 @@
 #include "Xcb/Window.h"             // Implementation class
 
 using pub::Debug;                   // For Debug object
-using namespace pub::debugging;     // For debugging subroutines
+using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

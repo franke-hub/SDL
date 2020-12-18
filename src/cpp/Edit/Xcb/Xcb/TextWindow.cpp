@@ -16,7 +16,7 @@
 //       Implement TextWindow.h
 //
 // Last change date-
-//       2020/12/11
+//       2020/12/16
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -39,7 +39,7 @@
 
 using pub::Debug;                   // For Debug object
 using pub::Trace;                   // For Trace object
-using namespace pub::debugging;     // For debugging subroutines
+using namespace pub::debugging;     // For debugging
 using namespace xcb;
 
 //----------------------------------------------------------------------------

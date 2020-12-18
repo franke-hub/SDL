@@ -16,7 +16,7 @@
 //       Global data areas and utilities
 //
 // Last change date-
-//       2020/10/25
+//       2020/12/16
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_GLOBAL_H_INCLUDED
@@ -67,43 +67,12 @@ extern uint32_t        keystate;    // THE Global keyboard state
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       xcb::debug_flush
-//       xcb::debugf
-//       xcb::debugh
-//       xcb::tracef
-//       xcb::traceh
+//       user_debug
 //
 // Purpose-
-//       Debugging interfaces, the same as ::pub::debugging
+//       Write to stderr, write to trace if opt_hcdm
 //
 //----------------------------------------------------------------------------
-void
-   debug_flush( void );             // Flush write the trace file
-
-void
-   debugf(                          // Write to trace and stdout
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
-
-void
-   debugh(                          // Write to trace and stdout with heading
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
-
-void
-   tracef(                          // Write to trace
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
-
-void
-   traceh(                          // Write to trace, with heading
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
-
 void                                // (If opt_hcdm, also writes to trace)
    user_debug(                      // Write message to stderr
      const char*       fmt,         // The PRINTF format string

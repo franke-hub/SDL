@@ -16,7 +16,7 @@
 //       XCB Font descriptor
 //
 // Last change date-
-//       2020/11/12
+//       2020/12/16
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_FONT_H_INCLUDED
@@ -24,6 +24,7 @@
 
 #include <exception>                // For std::runtime_error
 
+#include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/UTF8.h>               // For pub::UTF8
 
 #include "Xcb/Global.h"             // For opt_* definitions, ...
@@ -87,7 +88,8 @@ public:
    Font(                            // Constructor
      Window*           window)      // Window descriptor
 :  window(window)
-{
+{  using namespace pub::debugging;
+
    if( opt_hcdm )
      debugh("Font(%p)::Font(%p)\n", this, window);
 }
@@ -96,7 +98,8 @@ public:
 // xcb::Font::Destructor
 //----------------------------------------------------------------------------
    ~Font( void )                    // Destructor
-{
+{  using namespace pub::debugging;
+
    if( opt_hcdm )
      debugh("Font(%p)::~Font\n", this);
 
@@ -115,7 +118,8 @@ public:
 public:
 void
    close( void )                    // Clear the Font attributes
-{
+{  using namespace pub::debugging;
+
    if( opt_hcdm )
      debugh("Font(%p)::close\n", this);
 
@@ -142,7 +146,8 @@ void
 //----------------------------------------------------------------------------
 void
    debug(const char* info= nullptr) const // Debugging display
-{
+{  using namespace pub::debugging;
+
    debugf("Font(%p)::debug(%s)\n", this, info ? info : "");
 
    debugf("..window(%p,%s) fontGC(%u)\n"
@@ -200,7 +205,8 @@ xcb_gcontext_t                      // The created graphic context
    makeGC(                          // Create a Font Graphic Contexts
      Pixel_t           fg,          // Foreground pixel
      Pixel_t           bg)          // Background pixel
-{
+{  using namespace pub::debugging;
+
    if( opt_hcdm && opt_verbose > 1 )
      debugh("Font(%p)::makeGC(%.6x,%.6x)\n", this, uint32_t(fg), uint32_t(bg));
 
@@ -245,7 +251,8 @@ xcb_gcontext_t                      // The created graphic context
 int                                 // Return code, 0 OK
    open(                            // Open the Font
      const char*       name= nullptr) // The font name
-{
+{  using namespace pub::debugging;
+
    if( opt_hcdm )
      debugh("Font(%p)::open(%s)\n", this, name ? name : "<default>");
 
@@ -307,7 +314,8 @@ void
      unsigned          left,        // Left (X) offset
      unsigned          top,         // Top  (Y) offset
      const char*       text)        // Using this text
-{
+{  using namespace pub::debugging;
+
    if( opt_hcdm && opt_verbose > 1 )
      debugh("Font(%p)::putxy(%u,[%d,%d],'%s')\n", this
            , fontGC, left, top, text);

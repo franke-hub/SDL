@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2020/12/14
+//       2020/12/16
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -28,19 +28,21 @@
 #include <xcb/xproto.h>             // For XCB types
 #include <xcb/xfixes.h>             // For XCB xfixes extension
 
+#include <pub/Debug.h>              // For namespace pub::debugging
+
 #include "Xcb/Active.h"             // For xcb::Active
 #include "Xcb/Global.h"             // For xcb::trace
 #include "Xcb/TextWindow.h"         // For xcb::TextWindow
 #include "Xcb/Types.h"              // For xcb::DEV_EVENT_MASK
 
-#include "Editor.h"                 // For namespace editor::debug
+#include "Config.h"                 // For namespace config
+#include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile
 #include "EdHist.h"                 // For EdHist
 #include "EdMark.h"                 // For EdMark
 
-using namespace editor::debug;
-#define debugf editor::debug::debugf // Avoid ADL
-#define debugh editor::debug::debugh // Avoid ADL
+using namespace config;             // For config::opt_*
+using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -53,7 +55,7 @@ enum // Compilation controls
 
 static struct EdText_initializer {  // TODO: REMOVE
    EdText_initializer( void )
-{  if( !USE_HIDDEN ) fprintf(stderr, "Cursor hiding disabled\n"); }
+{  if( !USE_HIDDEN ) fprintf(stderr, "%4d EdText: Cursor hiding disabled\n", __LINE__); }
 }  static_initializer;
 
 //----------------------------------------------------------------------------
@@ -69,8 +71,8 @@ static struct EdText_initializer {  // TODO: REMOVE
      debugh("EdText(%p)::EdText\n", this);
 
    // Configure text colors
-   bg= editor::TXT_BG;              // (See Editor.h)
-   fg= editor::TXT_FG;
+   bg= config::TXT_BG;              // (See Config.h)
+   fg= config::TXT_FG;
 
    // Reserve TOP line              // Message/Status/History line
    USER_TOP= 1;
@@ -583,26 +585,26 @@ void
    memset(buffer, ' ', sizeof(buffer)); // (Blank fill)
    buffer[sizeof(buffer)-1]= '\0';
    // Offset:      012345678901234567890123456789012345678901234567890123456
-   strcpy(buffer, "[REP] [UNIX] L[*********,*********] C[*******] EDIT V3.0");
+   strcpy(buffer, "C[*******] L[*********,*********] [REP] [UNIX] EDIT V3.0");
    buffer[56]= ' ';                 // Full size (255) length buffer
+   char number[16];                 // Numeric buffer
+   format6(data->col_zero + data->col + 1, number);
+   memcpy(buffer+2, number, 7);
+   format8(data->row_zero + data->row - USER_TOP, number);
+   memcpy(buffer+13, number, 9);
+   format8(file->rows,     number);
+   memcpy(buffer+23, number, 9);
+
    if( xcb::keystate & xcb::KS_INS ) // Set insert mode (if not REP)
-     memcpy(buffer+1, "INS", 3);
+     memcpy(buffer+35, "INS", 3);
    if( file->mode != EdFile::M_UNIX ) {
      if( file->mode == EdFile::M_DOS )
-       memcpy(buffer+7, "!DOS", 4);
+       memcpy(buffer+41, "=DOS", 4);
      else if( file->mode == EdFile::M_MIX )
-       memcpy(buffer+7, "!MIX", 4);
+       memcpy(buffer+41, "=MIX", 4);
      else if( file->mode == EdFile::M_BIN ) // Set file mode (if not UNIX)
-       memcpy(buffer+7, "!BIN", 4);
+       memcpy(buffer+41, "=BIN", 4);
    }
-
-   char number[16];                 // Numeric buffer
-   format8(data->row_zero + data->row - USER_TOP, number);
-   memcpy(buffer+15, number, 9);
-   format8(file->rows,     number);
-   memcpy(buffer+25, number, 9);
-   format6(data->col_zero + data->col, number);
-   memcpy(buffer+38, number, 7);
 
    xcb_gcontext_t gc= gc_sts;       // Set background/foreground GC
    if( file->changed || file->damaged || data->active.get_changed() )
@@ -1126,10 +1128,13 @@ void
        printf(" F1: This help message\n"
               " F2: Bringup test\n"
               " F3: Quit File\n"
+              " F4: (undefined)\n"
               " F5: Locate\n"
               " F6: Change\n"
               " F7: Previous File\n"
               " F8: Next File\n"
+              " F9: (undefined)\n"
+              "F10: Line to top\n"
               "F11: Undo\n"
               "F12: Redo\n"
               "A-I: Insert\n"
@@ -1141,11 +1146,14 @@ void
        editor::do_test();
        break;
      }
-     case XK_F3: {
+     case XK_F3: {                  // (Safe) quit
        data->commit();
        do_exit();
        break;
      }
+//   case XK_F4: {                  // (Undefined)
+//     break;
+//   }
      case XK_F5: {
        put_message(do_locate());
        break;
@@ -1174,6 +1182,12 @@ void
          activate(file);
          draw();
        }
+       break;
+     }
+//   case XK_F9: {                  // (Undefined)
+//     break;
+//   }
+     case XK_F10: {                 // Line to top
        break;
      }
      case XK_F11: {                 // Undo
