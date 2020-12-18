@@ -407,6 +407,8 @@ std::string                         // The invalid path ("" if none)
        buffer[0]= '\0';
        getcwd(buffer, sizeof(buffer));
        std::string cwd= buffer;
+       if( cwd == "/" )
+         cwd= "";
        full_name= cwd + "/" + path_name + "/" + file_name;
      }
    }
