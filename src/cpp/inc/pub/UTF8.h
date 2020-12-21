@@ -16,7 +16,7 @@
 //       UTF-8 utilities
 //
 // Last change date-
-//       2020/12/06
+//       2020/12/20
 //
 // Usage notes-
 //       The Encoder/Decoder implement RFC 3629, UTF-8 translation format.
@@ -179,6 +179,12 @@ static inline size_t                // The char* offset
 
    return O;
 }
+
+static inline size_t                // The char* offset
+   index(                           // Get char* offset for
+     const char*       addr,        // This ('\0' terminated) utf8_t* string
+     size_t            X)           // And this logical index
+{  return index((const utf8_t*)addr, X); }
 
 //----------------------------------------------------------------------------
 //

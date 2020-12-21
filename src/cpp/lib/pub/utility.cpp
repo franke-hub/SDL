@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2020/12/14
+//       2020/12/20
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -50,7 +50,7 @@ namespace utility {
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       atoi
+//       utility::atoi
 //
 // Purpose-
 //       Convert ascii string to integer.
@@ -80,7 +80,7 @@ int                                 // Resultant value
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       atol
+//       utility::atol
 //
 // Purpose-
 //       Convert ascii string to long.
@@ -137,8 +137,8 @@ long                                // Resultant value
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       atoui
-//       atoul
+//       utility::atoui
+//       utility::atoul
 //
 // Purpose-
 //       Unsigned versions of atoi, atol.
@@ -198,7 +198,7 @@ unsigned long                       // Resultant value
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       atox
+//       utility::atox
 //
 // Purpose-
 //       Convert hexidecimal string to long.
