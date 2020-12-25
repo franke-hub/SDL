@@ -16,7 +16,7 @@
 //       Editor: Config.cpp extension: debugging listeners
 //
 // Last change date-
-//       2020/12/17
+//       2020/12/25
 //
 // Implementation note-
 //       Only included from Config.cpp
@@ -43,8 +43,7 @@ static bool                         // *ALWAYS* true
    checkstop(                       // Consistency check failure
      std::string       message)     // Error message
 {
-   if( editor::text->file )
-     editor::text->file->put_message(message.c_str(), EdMess::T_MESS);
+   editor::put_message(message.c_str(), EdMess::T_MESS);
    debugf("Config::check checkstop(%s)\n", message.c_str());
 
    if( pub::Trace::trace )          // Turn off tracing
@@ -99,13 +98,13 @@ static pub::signals::Connector<const char*> config_check=
                        checkSignal.connect([](const char*& info)
 {
    // Verify undo/redo lists
-   EdRedo* undo= editor::text->file->undo_list.get_tail();
+   EdRedo* undo= editor::file->undo_list.get_tail();
    while( undo ) {
      if( invalid_undo(undo) ) { Config::debug(info); return; }
      undo= undo->get_prev();
    }
 
-   EdRedo* redo= editor::text->file->redo_list.get_tail();
+   EdRedo* redo= editor::file->redo_list.get_tail();
    while( redo ) {
      if( invalid_redo(redo) ) { Config::debug(info); return; }
      redo= redo->get_next();
@@ -125,16 +124,18 @@ static pub::signals::Connector<const char*> config_debug=
                        debugSignal.connect([](const char*& info)
 {
    debugf("Config::debug(%s)\n", info ? info : "");
+
+   Editor::debug(info);             // Debug namespace editor
    debugf("\n============================================================\n");
    editor::mark->debug(info);
    debugf("\n");
-   editor::text->file->debug("lines");
+   editor::file->debug("lines");
    debugf("\n");
    editor::text->debug(info);
    debugf("\n");
-   editor::text->data->debug(info);
+   editor::data->debug(info);
    debugf("\n");
-   editor::text->hist->debug(info);
+   editor::hist->debug(info);
    debugf("============================================================\n\n");
 }); // config_debug (Connector)
 

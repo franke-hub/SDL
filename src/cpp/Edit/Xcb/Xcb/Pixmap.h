@@ -16,7 +16,7 @@
 //       XCB based Pixmap
 //
 // Last change date-
-//       2020/09/30
+//       2020/12/23
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_PIXMAP_H_INCLUDED
@@ -123,7 +123,7 @@ virtual void                        // (Optionally) override to
 //----------------------------------------------------------------------------
 virtual void
    debug(                           // Debugging display
-     const char*       text= nullptr) const; // Associated text
+     const char*       info= nullptr) const; // Associated info
 
 //----------------------------------------------------------------------------
 //

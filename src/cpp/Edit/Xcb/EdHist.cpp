@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2020/12/16
+//       2020/12/25
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -45,8 +45,94 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= false               // Extra brinbup diagnostics?
+,  USE_BRINGUP= false               // Extra bringup diagnostics?
 }; // Compilation controls
+
+//----------------------------------------------------------------------------
+// Subroutine: consistency_check, HistLine consistency check
+//----------------------------------------------------------------------------
+static inline void consistency_check(int line, const HistLine* hist)
+{  if( hist->text != hist->line.c_str() )
+     Config::alertf("%4d EdHist line: [%p!=%p] [%s','%s']\n", line, hist->text
+                   , hist->line.c_str(), hist->text, hist->line.c_str());
+}
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       HistLine::HistLine
+//
+// Purpose-
+//       Constructor
+//
+//----------------------------------------------------------------------------
+   HistLine::HistLine(              // Default/text constructor
+     const char*       _text)       // Associated text
+:  EdLine()
+{  if( HCDM || opt_hcdm )
+     traceh("HistLine(%p)::HistLine(%p)\n", this, _text);
+
+   reset(_text);
+}
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       HistLine::~HistLine
+//
+// Purpose-
+//       Constructor
+//
+//----------------------------------------------------------------------------
+   HistLine::~HistLine( void )      // Default destructor
+{  if( HCDM || opt_hcdm )
+     traceh("HistLine(%p)::~HistLine\n", this);
+
+   if( HCDM ) consistency_check(__LINE__, this);
+}
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       HistLine::get_text
+//
+// Purpose-
+//       (Checked) access the text
+//
+//----------------------------------------------------------------------------
+const char*                         // The text
+   HistLine::get_text( void ) const // Get text
+{  if( HCDM ||  opt_hcdm )
+     traceh("HistLine(%p)::get_text %p '%s'\n", this, text, text);
+
+   if( HCDM ) consistency_check(__LINE__, this);
+   return text;
+}
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       HistLine::reset
+//
+// Purpose-
+//       Reset the text
+//
+//----------------------------------------------------------------------------
+void
+   HistLine::reset(                 // Reset the text
+     const char*       _text)       // To this string
+{  if( HCDM || opt_hcdm )
+     traceh("HistLine(%p)::reset(%p) '%s'\n", this, text, text);
+
+   const char* from= line.c_str();
+   if( _text == nullptr )           // If text omitted
+     _text= "";                     // Use empty string
+   line= _text;                     // Set dynamic string
+   text= line.c_str();              // Use dynamic string's text
+   if( HCDM )
+     traceh("%4d EdHist text(%p<=%p) '%s'<='%s'\n", __LINE__
+           , from, text, from, text);
+}
 
 //----------------------------------------------------------------------------
 //
@@ -59,10 +145,10 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
    EdHist::EdHist( void )           // Constructor
 :  EdView(), hist_list()
-{  if( opt_hcdm )
-     debugh("EdHist(%p)::EdHist\n", this);
+{  if( HCDM || opt_hcdm ) traceh("EdHist(%p)::EdHist\n", this);
 
-   hist_list.fifo(new HistLine());  // Add empty text line (uncounted)
+   hist_list.fifo(new HistLine());  // Initial line
+   hist_rows++;                     // (Counted)
 }
 
 //----------------------------------------------------------------------------
@@ -75,12 +161,10 @@ enum // Compilation controls
 //
 //----------------------------------------------------------------------------
    EdHist::~EdHist( void )          // Destructor
-{  if( opt_hcdm ) debugh("EdHist(%p)::~EdHist\n", this);
+{  if( HCDM || opt_hcdm ) traceh("EdHist(%p)::~EdHist\n", this);
 
-   HistLine* line= hist_list.remq();
-   while ( line ) {
+   for(HistLine* line= hist_list.remq(); line; line= hist_list.remq()) {
      delete line;
-     line= hist_list.remq();
    }
 }
 
@@ -95,18 +179,18 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 void
    EdHist::debug(                   // Debugging display
-     const char*       text) const  // Associated text
-{
-   debugf("EdHist(%p)::debug(%s)\n", this, text ? text : "");
+     const char*       info) const  // Associated info
+{  debugf("EdHist(%p)::debug(%s)\n", this, info ? info : "");
 
-   debugf("..hist_line(%p) '%s'\n", hist_line
-         , hist_line ? hist_line->text : "");
+   debugf("..[%p,%p] %p '%s'\n", hist_list.get_head(), hist_list.get_tail()
+         , hist_line, hist_line ? hist_line->get_text() : "");
    unsigned n= 0;
-   for(HistLine* line= hist_list.get_tail(); line; line= line->get_prev() ) {
-     debugf("[%2d] %p '%s'\n", n++, line, line->text);
+   for(HistLine* line= hist_list.get_head(); line; line= line->get_next() ) {
+     debugf("[%2d] %p '%s'\n", n++, line, line->get_text());
    }
+   debugf("[%2d] hist_rows\n", hist_rows);
 
-// EdView::debug(text);
+   EdView::debug();
 }
 
 //----------------------------------------------------------------------------
@@ -115,17 +199,17 @@ void
 //       EdHist::activate
 //
 // Purpose-
-//       Activate the history line
+//       Activate the history view
 //
 //----------------------------------------------------------------------------
 void
-   EdHist::activate( void )         // Activate the history line
-{
-   if( hist_line == nullptr ) {     // If no history line active
-     col_zero= col= 0;              // Start in column 0
-     hist_line= hist_list.get_tail(); // Use TOP empty line
-     active.reset(hist_line->text);
-   }
+   EdHist::activate( void )         // Activate the history view
+{  if( HCDM || opt_hcdm ) traceh("EdHist(%p)::actiate\n", this);
+
+   col_zero= col= 0;                // Start in column 0
+   hist_line= nullptr;
+   active.reset("");
+   EdView::activate();
 }
 
 //----------------------------------------------------------------------------
@@ -144,8 +228,8 @@ void
    EdHist::commit( void )           // Commit the Active line
 {
    char* buffer= const_cast<char*>(active.truncate());
-   if( opt_hcdm )
-     debugh("EdHist(%p)::commit buffer(%s)\n", this, buffer);
+   if( HCDM || opt_hcdm )
+     traceh("EdHist(%p)::commit buffer(%s)\n", this, buffer);
 
    while( *buffer == ' ' )          // Ignore leading blanks
      buffer++;
@@ -154,16 +238,15 @@ void
    col_zero= col= 0;                // Starting in column 0
 
    int C= *((const unsigned char*)buffer);
-   if( C == '\0' || C == '#' ) {    // Ignore comment
-     hist_line= nullptr;
-     editor::text->view= editor::text->data;
-     editor::text->draw_info();
+   if( C == '\0' ) {                // Empty line: ignore
+//   editor::data->activate();
+//   editor::text->draw_info();
      return;
    }
 
    // Search for duplicate history line
-   for(HistLine* line= hist_list.get_head(); line; line= line->get_next()) {
-     if( strcmp(buffer, line->text) == 0 ) { // If duplicate line
+   for(HistLine* line= hist_list.get_tail(); line; line= line->get_prev()) {
+     if( strcmp(buffer, line->get_text()) == 0 ) { // If duplicate line
        hist_line= line;
        break;
      }
@@ -178,13 +261,17 @@ void
        hist_line= hist_list.remq();
        hist_line->reset(buffer);
      }
-     hist_list.insert(hist_list.get_tail()->get_prev(), hist_line, hist_line);
-     active.reset(hist_line->text);
-     active.get_buffer();           // (Used as a work area)
+     hist_list.fifo(hist_line);
    }
 
    // Process the command
-   editor::command(buffer);
+   const char* error= editor::command(buffer);
+   if( error ) {                    // If error encountered
+     col_zero= col= 0;              // Start in column 0
+     active.reset(hist_line->get_text());
+     editor::put_message(error);
+   }
+   editor::text->draw_info();
 }
 
 //----------------------------------------------------------------------------
@@ -201,7 +288,7 @@ const char*                         // Get the active history line
 {
    active.fetch(col_zero + 256);    // Blank fill
    const char* text= active.get_buffer();
-   text += pub::UTF8::index((const unsigned char*)text, col_zero);
+   text += pub::UTF8::index(text, col_zero);
    return text;
 }
 
@@ -219,12 +306,20 @@ void
      int             n)             // The relative row (Down positive)
 {
    if( n > 0 ) {                    // Move down
+     if( hist_line == nullptr ) {
+       hist_line= hist_list.get_head();
+       n--;
+     }
      while( n-- ) {
        if( hist_line->get_next() == nullptr )
          break;
        hist_line= hist_line->get_next();
      }
    } else if( n < 0 ) {             // Move up
+     if( hist_line == nullptr ) {
+       hist_line= hist_list.get_tail();
+       n++;
+     }
      while( n++ ) {
        if( hist_line->get_prev() == nullptr )
          break;
@@ -233,6 +328,6 @@ void
    }
 
    col_zero= col= 0;
-   active.reset(hist_line->text);
+   active.reset(hist_line->get_text());
    editor::text->draw_info();
 }

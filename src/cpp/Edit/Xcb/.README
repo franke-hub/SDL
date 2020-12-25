@@ -15,16 +15,32 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2020/12/15
+##       2020/12/25
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in BRINGUP mode.
 ##       ALL interfaces are preliminary and subject to major change.
 ##
+##       For internal trace type information use: "rgrep trace\("
+##
 ##############################################################################
 
 ##############################################################################
+## INFO: Features working on Linux, not available or not working on CYGWIN
+         Config::backtrace()        // CYGWIN: no output
+         setlocale(LC_NUMERIC, ""); printf("%'d\n", 123456789); // No commas
+
+##############################################################################
 ## STATUS:
+2020/12/25 DONE:
+         Incremental improvements and bug fixes.
+
+2020/12/25 TODO:
+         Remove cursor from data view when switching to hist view
+         Draw full background on line 0 (status, message, history)
+         DEBUG: Warp sets cursor relative to SCREEN, not our window.
+
+##############################################################################
 2020/12/15 Added built-in edit function with wildcard name resolution.
          Updated pub library (wildcard file name compare)
          EdMark greatly improved.

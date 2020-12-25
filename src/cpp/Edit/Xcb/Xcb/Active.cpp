@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2020/12/16
+//       2020/12/20
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -68,10 +68,10 @@ namespace xcb {
    if( opt_hcdm )
      debugh("Active(%p)::Active\n", this);
 
-   source= (const unsigned char*)""; // Initial text
+   source= "";                      // Initial text
    buffer_size= BUFFER_SIZE;        // Default buffer size
    buffer_used= 0;
-   buffer= (unsigned char*)Must::malloc(buffer_size);
+   buffer= (char*)Must::malloc(buffer_size);
    fsm= FSM_RESET;
 }
 
@@ -86,15 +86,13 @@ namespace xcb {
 //----------------------------------------------------------------------------
 void
    Active::debug(                   // Debugging display
-     const char*       info) const  // Associated text
+     const char*       info) const  // Associated info
 {
-   debugf("Active(%p)::debug(%s) fsm(%d)\n", this, info ? info : "", fsm);
-   debugf("..source(%s)\n", source);
+   if( info ) debugf("Active(%p)::debug(%s) fsm(%d)\n", this, info, fsm);
+   debugf("..%2zd source(%s)\n", strlen(source), source);
    if( fsm != FSM_RESET ) {
-     debugf("..buffer_size(%zd)\n", buffer_size);
-     debugf("..buffer_used(%zd)\n", buffer_used);
      buffer[buffer_used]= '\0';     // (Buffer is mutable)
-     debugf("..buffer(%s)\n", buffer);
+     debugf("..%2zd buffer(%s)\n", buffer_used, buffer);
    }
 }
 
@@ -117,7 +115,7 @@ void
    if( length >= buffer_size ) {    // If expansion required
      size_t replace_size= length + BUFFER_SIZE + BUFFER_SIZE;
      replace_size &= ~(BUFFER_SIZE - 1);
-     unsigned char* replace= (unsigned char*)Must::malloc(replace_size);
+     char* replace= (char*)Must::malloc(replace_size);
      if( fsm != FSM_RESET )
        memcpy(replace, buffer, buffer_used);
      Must::free(buffer);
@@ -169,7 +167,7 @@ void
      Length            column)      // With blank fill to this length
 {
    if( fsm == FSM_RESET )
-     buffer_used= strlen((const char*)source);
+     buffer_used= strlen(source);
 
    size_t buffer_need= buffer_used + 1;
    if( column >= buffer_need )
@@ -209,7 +207,7 @@ const char*                         // The current buffer
      return (const char*)source + pub::UTF8::index(source, column);
 
    buffer[buffer_used]= '\0';       // Set string delimiter (buffer mutable)
-   return (const char*)buffer + pub::UTF8::index(buffer, column);
+   return buffer + pub::UTF8::index(buffer, column);
 }
 
 //----------------------------------------------------------------------------
@@ -237,7 +235,7 @@ const char*                         // The changed text, nullptr if unchanged
    }
 
    buffer[used_buffer]= '\0';       // Set string delimiter (buffer mutable)
-   return (const char*)buffer;
+   return buffer;
 }
 
 //----------------------------------------------------------------------------
@@ -431,7 +429,7 @@ void
    Active::reset(                   // Set source
      const char*       text)        // To this (immutable) text
 {
-   source= (const unsigned char*)text;
+   source= text;
    fsm= FSM_RESET;
 }
 
@@ -455,7 +453,7 @@ const char*                         // The truncated buffer
    }
 
    buffer[buffer_used]= '\0';       // Set string delimiter
-   return (const char*)buffer;
+   return buffer;
 }
 
 //----------------------------------------------------------------------------

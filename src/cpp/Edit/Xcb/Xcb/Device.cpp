@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/12/17
+//       2020/12/24
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -56,7 +56,7 @@ namespace xcb {
 //----------------------------------------------------------------------------
 static const char*                  // The widget name or "<nullptr>"
    get_name(                        // Get widget name or "<nullptr>"
-     Widget*           widget)      // For this (possible) Widget
+     const Widget*     widget)      // For this (possible) Widget
 {  return widget ? widget->get_name().c_str() : "<nullptr>"; }
 
 //----------------------------------------------------------------------------
@@ -223,12 +223,12 @@ void
 //----------------------------------------------------------------------------
 static void
    debug_widget_tree(               // Recursively debug Widget tree
-     Widget*           widget)      // Starting with and including this Widget
+     const Widget*     widget)      // Starting with and including this Widget
 {
    Widget* parent= widget->get_parent();
-   Layout* layout= dynamic_cast<Layout*>(widget);
+   const Layout* layout= dynamic_cast<const Layout*>(widget);
    if( layout ) {
-     xcb_rectangle_t& rect= layout->rect;
+     const xcb_rectangle_t& rect= layout->rect;
      debugf("[%4d,%4d,%4u,%4u] ", rect.x, rect.y, rect.width, rect.height);
    } else
      debugf("[----,----,----,----] ");
@@ -244,7 +244,7 @@ static void
 
 void
    Device::debug_tree(              // Display the Device tree
-     const char*       info)        // Caller information
+     const char*       info) const  // Caller information
 {
    debugf("Device(%p)::debug_tree(%s)\n", this, info ? info : "");
 
@@ -381,6 +381,44 @@ xcb_keysym_t                        // The associated keyboard symbol
 
 //----------------------------------------------------------------------------
 //
+// Subroutine-
+//       event_diagnostic (OVERLOADED)
+//
+// Purpose-
+//       BRINGUP: Look at events in more detail
+//
+//----------------------------------------------------------------------------
+static inline void
+   event_diagnostic(Window* window, xcb_property_notify_event_t* E)
+{
+   std::string name= window->atom_to_name(E->atom);
+   debugh("DEV.PROPERTY_NOTIFY(%.2X) atom(%3d) time(%d) state(0x%.2x) '%s'\n"
+         , E->response_type, E->atom, E->time, E->state, name.c_str());
+
+#if 0 // Experimental, but working as far as it goes
+   xcb_get_property_cookie_t cookie =
+       xcb_get_property(window->c, 0, window->widget_id, E->atom, 0, 0, 64);
+   xcb_get_property_reply_t* reply=
+       xcb_get_property_reply(window->c, cookie, nullptr);
+   if( reply ) {
+     if( reply->type == XCB_ATOM_STRING ) {
+       int len= xcb_get_property_value_length(reply);
+       if( len ) {
+         const char* value= (char*)xcb_get_property_value(reply);
+         debugf("%s: '%.*s'\n", name.c_str(), len, value);
+       }
+     } else {
+       std::string type= window->atom_to_name(reply->type);
+       debugf("%s: type(%s)\n", name.c_str(), type.c_str());
+     }
+
+     free(reply);
+   }
+#endif
+}
+
+//----------------------------------------------------------------------------
+//
 // Method-
 //       Device::run
 //
@@ -434,93 +472,93 @@ void
          // case 1:                 // X11 reply (handled by default:)
          case XCB_BUTTON_PRESS: {
            xcb_button_press_event_t* et= (xcb_button_press_event_t*)e;
-           if( run_hcdm ) debugf("DEV.BUTTON_PRESS\n");
+           if( run_hcdm ) debugh("DEV.BUTTON_PRESS\n");
            locate_window(et->event, this)->button_press(et);
            break;
          }
          case XCB_BUTTON_RELEASE: {
            xcb_button_release_event_t* et= (xcb_button_release_event_t*)e;
-           if( run_hcdm ) debugf("DEV.BUTTON_RELEASE\n");
+           if( run_hcdm ) debugh("DEV.BUTTON_RELEASE\n");
            locate_window(et->event, this)->button_release(et);
            break;
          }
          case XCB_CIRCULATE_NOTIFY: {
            xcb_circulate_notify_event_t* et= (xcb_circulate_notify_event_t*)e;
-           if( run_hcdm ) debugf("DEV.CIRCULATE_NOTIFY\n");
+           if( run_hcdm ) debugh("DEV.CIRCULATE_NOTIFY\n");
            locate_window(et->event, this)->circulate_notify(et);
            break;
          }
          case XCB_CIRCULATE_REQUEST: {
            xcb_circulate_request_event_t* et= (xcb_circulate_request_event_t*)e;
-           if( run_hcdm ) debugf("DEV.CIRCULATE_REQUEST\n");
+           if( run_hcdm ) debugh("DEV.CIRCULATE_REQUEST\n");
            locate_window(et->event, this)->circulate_request(et);
            break;
          }
          case XCB_CLIENT_MESSAGE: {
            xcb_client_message_event_t* et= (xcb_client_message_event_t*)e;
-           if( run_hcdm ) debugf("DEV.CLIENT_MESSAGE type(%d) data(%d)\n"
+           if( run_hcdm ) debugh("DEV.CLIENT_MESSAGE type(%d) data(%d)\n"
                                 , et->type, et->data.data32[0]);
            locate_window(et->window, this)->client_message(et);
            break;
          }
          case XCB_COLORMAP_NOTIFY: {
            xcb_colormap_notify_event_t* et= (xcb_colormap_notify_event_t*)e;
-           if( run_hcdm ) debugf("DEV.COLORMAP_NOTIFY\n");
+           if( run_hcdm ) debugh("DEV.COLORMAP_NOTIFY\n");
            locate_window(et->window, this)->colormap_notify(et);
            break;
          }
          case XCB_CONFIGURE_NOTIFY: {
            xcb_configure_notify_event_t* et= (xcb_configure_notify_event_t*)e;
-           if( run_hcdm ) debugf("DEV.CONFIGURE_NOTIFY\n");
+           if( run_hcdm ) debugh("DEV.CONFIGURE_NOTIFY\n");
            locate_window(et->event, this)->configure_notify(et);
            break;
          }
          case XCB_CONFIGURE_REQUEST: {
            xcb_configure_request_event_t* et= (xcb_configure_request_event_t*)e;
-           if( run_hcdm ) debugf("DEV.CONFIGURE_REQUEST\n");
+           if( run_hcdm ) debugh("DEV.CONFIGURE_REQUEST\n");
            locate_window(et->window, this)->configure_request(et);
            break;
          }
          case XCB_CREATE_NOTIFY: {
            xcb_create_notify_event_t* et= (xcb_create_notify_event_t*)e;
-           if( run_hcdm ) debugf("DEV.CREATE_NOTIFY\n");
+           if( run_hcdm ) debugh("DEV.CREATE_NOTIFY\n");
            locate_window(et->window, this)->create_notify(et);
            break;
          }
          case XCB_DESTROY_NOTIFY: {
            xcb_destroy_notify_event_t* et= (xcb_destroy_notify_event_t*)e;
-           if( run_hcdm ) debugf("DEV.DESTROY_NOTIFY\n");
+           if( run_hcdm ) debugh("DEV.DESTROY_NOTIFY\n");
            locate_window(et->window, this)->destroy_notify(et);
            break;
          }
          case XCB_ENTER_NOTIFY: {
            xcb_enter_notify_event_t* et= (xcb_enter_notify_event_t*)e;
-           if( run_hcdm ) debugf("DEV.ENTER_NOTIFY\n");
+           if( run_hcdm ) debugh("DEV.ENTER_NOTIFY\n");
            locate_window(et->event, this)->enter_notify(et);
            break;
          }
          case XCB_EXPOSE: {
            xcb_expose_event_t* et= (xcb_expose_event_t*)e;
-           if( run_hcdm ) debugf("DEV.EXPOSE %d [%d,%d,%u,%u]\n", et->window
+           if( run_hcdm ) debugh("DEV.EXPOSE %d [%d,%d,%u,%u]\n", et->window
                                 , et->x, et->y, et->width, et->height);
            locate_window(et->window, this)->expose(et);
            break;
          }
          case XCB_FOCUS_IN: {
            xcb_focus_in_event_t* et= (xcb_focus_in_event_t*)e;
-           if( run_hcdm ) debugf("DEV.FOCUS_IN\n");
+           if( run_hcdm ) debugh("DEV.FOCUS_IN\n");
            locate_window(et->event, this)->focus_in(et);
            break;
          }
          case XCB_FOCUS_OUT: {
            xcb_focus_out_event_t* et= (xcb_focus_out_event_t*)e;
-           if( run_hcdm ) debugf("DEV.FOCUS_OUT\n");
+           if( run_hcdm ) debugh("DEV.FOCUS_OUT\n");
            locate_window(et->event, this)->focus_out(et);
            break;
          }
          case XCB_GE_GENERIC: {
            xcb_ge_generic_event_t* et= (xcb_ge_generic_event_t*)e;
-           if( run_hcdm ) debugf("DEV.GE_GENERIC %d\n", et->event_type);
+           if( run_hcdm ) debugh("DEV.GE_GENERIC %d\n", et->event_type);
            DeviceEvent event(e);
            signal.signal(event);
            break;
@@ -528,33 +566,33 @@ void
          case XCB_GRAPHICS_EXPOSURE: {
            xcb_graphics_exposure_event_t* et= (xcb_graphics_exposure_event_t*)e;
            if( run_hcdm )
-             debugf("DEV.GRAPHICS_EXPOSURE %d [%d,%d,%u,%u]\n", et->drawable
+             debugh("DEV.GRAPHICS_EXPOSURE %d [%d,%d,%u,%u]\n", et->drawable
                    , et->x, et->y, et->width, et->height);
            locate_pixmap(et->drawable, this)->graphics_exposure(et);
            break;
          }
          case XCB_GRAVITY_NOTIFY: {
            xcb_gravity_notify_event_t* et= (xcb_gravity_notify_event_t*)e;
-           if( run_hcdm ) debugf("DEV.GRAVITY_NOTIFY\n");
+           if( run_hcdm ) debugh("DEV.GRAVITY_NOTIFY\n");
            locate_window(et->event, this)->gravity_notify(et);
            break;
          }
          case XCB_KEY_PRESS: {
            xcb_key_press_event_t* et= (xcb_key_press_event_t*)e;
-           if( run_hcdm ) debugf("DEV.KEY_PRESS\n");
+           if( run_hcdm ) debugh("DEV.KEY_PRESS\n");
            locate_window(et->event, this)->key_press(et);
            break;
          }
          case XCB_KEY_RELEASE: {
            xcb_key_release_event_t* et= (xcb_key_release_event_t*)e;
-           if( run_hcdm ) debugf("DEV.KEY_RELEASE\n");
+           if( run_hcdm ) debugh("DEV.KEY_RELEASE\n");
            locate_window(et->event, this)->key_release(et);
            break;
          }
          case XCB_KEYMAP_NOTIFY: {
            xcb_keymap_notify_event_t* et= (xcb_keymap_notify_event_t*)e;
            if( run_hcdm ) {
-             debugf("DEV.KEYMAP_NOTIFY\n");
+             debugh("DEV.KEYMAP_NOTIFY\n");
              if( opt_verbose > 4 )
                dump(et, sizeof(xcb_keymap_notify_event_t));
            }
@@ -564,39 +602,39 @@ void
          }
          case XCB_LEAVE_NOTIFY: {
            xcb_leave_notify_event_t* et= (xcb_leave_notify_event_t*)e;
-           if( run_hcdm ) debugf("DEV.LEAVE_NOTIFY\n");
+           if( run_hcdm ) debugh("DEV.LEAVE_NOTIFY\n");
            locate_window(et->event, this)->leave_notify(et);
            break;
          }
          case XCB_MAP_NOTIFY: {
            xcb_map_notify_event_t* et= (xcb_map_notify_event_t*)e;
-           if( run_hcdm ) debugf("DEV.MAP_NOTIFY event(%u) window(%u) %d\n"
+           if( run_hcdm ) debugh("DEV.MAP_NOTIFY event(%u) window(%u) %d\n"
                                 , et->event, et->window, et->override_redirect );
            locate_window(et->event, this)->map_notify(et);
            break;
          }
          case XCB_MAP_REQUEST: {
            xcb_map_request_event_t* et= (xcb_map_request_event_t*)e;
-           if( run_hcdm ) debugf("DEV.MAP_REQUEST\n");
+           if( run_hcdm ) debugh("DEV.MAP_REQUEST\n");
            locate_window(et->window, this)->map_request(et);
            break;
          }
          case XCB_MAPPING_NOTIFY: {
 ////       xcb_mapping_notify_event_t* et= (xcb_mapping_notify_event_t*)e;
-           if( run_hcdm ) debugf("DEV.MAPPING_NOTIFY\n");
+           if( run_hcdm ) debugh("DEV.MAPPING_NOTIFY\n");
            DeviceEvent event(e);
            signal.signal(event);
            break;
          }
          case XCB_MOTION_NOTIFY: {
            xcb_motion_notify_event_t* et= (xcb_motion_notify_event_t*)e;
-           if( run_hcdm && opt_verbose >= 0) debugf("DEV.MOTION_NOTIFY\n");
+           if( run_hcdm && opt_verbose >= 0) debugh("DEV.MOTION_NOTIFY\n");
            locate_window(et->event, this)->motion_notify(et);
            break;
          }
          case XCB_NO_EXPOSURE: {
            xcb_no_exposure_event_t* et= (xcb_no_exposure_event_t*)e;
-           if( run_hcdm ) debugf("DEV.NO_EXPOSURE(%d,%d) DEV\n"
+           if( run_hcdm ) debugh("DEV.NO_EXPOSURE(%d,%d) DEV\n"
                                 , et->major_opcode, et->minor_opcode);
            locate_pixmap(et->drawable, this)->no_exposure(et);
            break;
@@ -604,58 +642,52 @@ void
          case XCB_PROPERTY_NOTIFY: {
            xcb_property_notify_event_t* et= (xcb_property_notify_event_t*)e;
            Window* window= locate_window(et->window, this);
-           if( run_hcdm ) {
-             debugf("DEV.PROPERTY_NOTIFY atom(%3d) time(%d) state(0x%.2x) '%s'\n"
-                   , et->atom, et->time, et->state
-                   , window->atom_to_name(et->atom).c_str());
-             if( opt_verbose > 4 )
-               pub::utility::dump(et, sizeof(*et));
-           }
+           if( run_hcdm ) event_diagnostic(window, et);
            window->property_notify(et);
            break;
          }
          case XCB_REPARENT_NOTIFY: {
            xcb_reparent_notify_event_t* et= (xcb_reparent_notify_event_t*)e;
            if( run_hcdm )
-             debugf("DEV.REPARENT_NOTIFY event(%u) window(%u) parent(%u) %d\n"
+             debugh("DEV.REPARENT_NOTIFY event(%u) window(%u) parent(%u) %d\n"
                    , et->event, et->window, et->parent, et->override_redirect);
            locate_window(et->event, this)->reparent_notify(et);
            break;
          }
          case XCB_RESIZE_REQUEST: {
            xcb_resize_request_event_t* et= (xcb_resize_request_event_t*)e;
-           if( run_hcdm ) debugf("DEV.RESIZE_REQUEST\n");
+           if( run_hcdm ) debugh("DEV.RESIZE_REQUEST\n");
            locate_window(et->window, this)->resize_request(et);
            break;
          }
          case XCB_SELECTION_CLEAR: {
            xcb_selection_clear_event_t* et= (xcb_selection_clear_event_t*)e;
-           if( run_hcdm ) debugf("DEV.SELECTION_CLEAR\n");
+           if( run_hcdm ) debugh("DEV.SELECTION_CLEAR\n");
            locate_window(et->owner, this)->selection_clear(et);
            break;
          }
          case XCB_SELECTION_NOTIFY: {
            xcb_selection_notify_event_t* et= (xcb_selection_notify_event_t*)e;
-           if( run_hcdm ) debugf("DEV.SELECTION_NOTIFY\n");
+           if( run_hcdm ) debugh("DEV.SELECTION_NOTIFY\n");
            locate_window(et->requestor, this)->selection_notify(et);
            break;
          }
          case XCB_SELECTION_REQUEST: {
            xcb_selection_request_event_t* et= (xcb_selection_request_event_t*)e;
-           if( run_hcdm ) debugf("DEV.SELECTION_REQUEST\n");
+           if( run_hcdm ) debugh("DEV.SELECTION_REQUEST\n");
            locate_window(et->owner, this)->selection_request(et);
            break;
          }
          case XCB_UNMAP_NOTIFY: {
            xcb_unmap_notify_event_t* et= (xcb_unmap_notify_event_t*)e;
-           if( run_hcdm ) debugf("DEV.UNMAP_NOTIFY event(%u) window(%u) %d\n"
+           if( run_hcdm ) debugh("DEV.UNMAP_NOTIFY event(%u) window(%u) %d\n"
                                 , et->event, et->window, et->from_configure);
            locate_window(et->event, this)->unmap_notify(et);
            break;
          }
          case XCB_VISIBILITY_NOTIFY: {
            xcb_visibility_notify_event_t* et= (xcb_visibility_notify_event_t*)e;
-           if( run_hcdm ) debugf("DEV.VISIBILITY_NOTIFY 0x%.2x\n", et->state);
+           if( run_hcdm ) debugh("DEV.VISIBILITY_NOTIFY 0x%.2x\n", et->state);
            locate_window(et->window, this)->visibility_notify(et);
            break;
          }

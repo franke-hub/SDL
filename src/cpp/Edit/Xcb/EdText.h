@@ -16,7 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2020/12/12
+//       2020/12/23
 //
 //----------------------------------------------------------------------------
 #ifndef EDTEXT_H_INCLUDED
@@ -70,13 +70,6 @@ int                    y;           // Last Y position
 //----------------------------------------------------------------------------
 // EdText::Attributes
 //----------------------------------------------------------------------------
-EdFile*                file= nullptr; // The current File object
-EdLine*                cursor= nullptr; // The current active line
-
-EdView*                data= nullptr; // The data view
-EdHist*                hist= nullptr; // The history view
-EdView*                view= nullptr; // The active view
-
 xcb_gcontext_t         gc_chg= 0;   // Graphic context: status, changed file
 xcb_gcontext_t         gc_cmd= 0;   // Graphic context: history line
 xcb_gcontext_t         gc_msg= 0;   // Graphic context: message line
@@ -112,7 +105,7 @@ virtual
 //----------------------------------------------------------------------------
 virtual void
    debug(                           // Debugging display
-     const char*       text= nullptr) const; // Associated text
+     const char*       info= nullptr) const; // Associated info
 
 //----------------------------------------------------------------------------
 //
@@ -143,55 +136,6 @@ void
 //----------------------------------------------------------------------------
 virtual void
    configure( void );               // Configure the Window
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::do_exit
-//
-// Purpose-
-//       (Safely) remove a file from the ring.
-//
-//----------------------------------------------------------------------------
-void
-   do_exit( void );                 // Safely remove a file from the ring
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::do_change
-//
-// Purpose-
-//       Change next occurance of string.
-//
-//----------------------------------------------------------------------------
-const char*                         // Return message, nullptr if OK
-   do_change( void );               // Change next occurance of string
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::do_history
-//
-// Purpose-
-//       Invert history view.
-//
-//----------------------------------------------------------------------------
-void
-   do_history( void );              // Invert history view
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::do_locate
-//
-// Purpose-
-//       Locate next occurance of string.
-//
-//----------------------------------------------------------------------------
-const char*                         // Return message, nullptr if OK
-   do_locate(                       // Locate next
-     int               offset= 1);  // Use offset 0 for locate_change
 
 //----------------------------------------------------------------------------
 //
@@ -244,19 +188,6 @@ void
 
 //----------------------------------------------------------------------------
 //
-// Public method-
-//       EdText::focus
-//
-// Purpose-
-//       Set the current view
-//
-//----------------------------------------------------------------------------
-virtual const char*                 // *ALWAYS* nullptr
-   focus(                           // Set the current view
-     EdView*           _view);      // To this view
-
-//----------------------------------------------------------------------------
-//
 // Method-
 //       xcb::EdText::get_text
 //
@@ -271,14 +202,19 @@ virtual const char*                 // The associated text
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdText::grab_mouse
 //       EdText::hide_mouse
 //       EdText::show_mouse
 //
 // Purpose-
+//       Grab the mouse cursor
 //       Hide the mouse cursor
 //       Show the mouse cursor
 //
 //----------------------------------------------------------------------------
+void
+   grab_mouse( void );              // Grab the mouse cursor
+
 void
    hide_mouse( void );              // Hide the mouse cursor
 
@@ -297,20 +233,6 @@ void
 int                                 // Return code, 0 if draw performed
    move_cursor_H(                   // Move cursor horizontally
      size_t            column);     // The (absolute) column number
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::put_message
-//
-// Purpose-
-//       Add a message to the message queue
-//
-//----------------------------------------------------------------------------
-void
-   put_message(                     // Write message
-     const char*       _mess,       // Message text
-     int               _type= 0);   // Message mode (EdMess::T_INFO)
 
 //----------------------------------------------------------------------------
 //

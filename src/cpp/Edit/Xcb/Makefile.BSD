@@ -70,6 +70,12 @@ CLIBS  += -lX11 -lXfixes
 LLIBS  += -L. -l local
 include $(INCDIR)/pub/Makefile.BSD
 
+## ifeq "Linux" "$(findstring Linux, $(shell uname))"
+CLIBS  += -lboost_stacktrace_addr2line
+CLIBS  += -lboost_stacktrace_basic
+CLIBS  += -ldl
+## endif
+
 ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
 CLOAD  += -Wl,--enable-auto-import
 endif

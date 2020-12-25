@@ -16,7 +16,7 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2020/12/17
+//       2020/12/23
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
@@ -46,6 +46,18 @@ public:
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Config::backtrace
+//
+// Purpose-
+//       Debugging backtrace
+//
+//----------------------------------------------------------------------------
+static void
+   backtrace( void );               // Debugging backtrace
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Config::check
 //
 // Purpose-
@@ -54,7 +66,7 @@ public:
 //----------------------------------------------------------------------------
 static void
    check(                           // Debugging consistency check
-     const char*       info= nullptr); // Informational text
+     const char*       info= nullptr); // Associated info
 
 //----------------------------------------------------------------------------
 //
@@ -67,7 +79,25 @@ static void
 //----------------------------------------------------------------------------
 static void
    debug(                           // Debugging display
-     const char*       info= nullptr); // Informational text
+     const char*       info= nullptr); // Associated info
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Config::alertf
+//
+// Purpose-
+//       Extend errorf to write screen alert.
+//
+// Implementation note-
+//       Do not include trailing '\n' in string.
+//
+//----------------------------------------------------------------------------
+static void
+   alertf(                          // Write to stderr, trace iff opt_hcdm
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // PRINTF argruments
+   _ATTRIBUTE_PRINTF(1, 2);
 
 //----------------------------------------------------------------------------
 //
@@ -96,6 +126,32 @@ static void
 static void
    failure(                         // Write error message and exit
      std::string       mess);       // (The error message)
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       Config::trace
+//
+// Purpose-
+//       Simple trace event
+//
+//----------------------------------------------------------------------------
+static void*                        // The trace record (uninitialized)
+   trace(                           // Get trace record
+     unsigned          size= 0);    // Of this extra size
+
+static void
+   trace(                           // Simple trace event
+     const char*       ident,       // Trace identifier
+     uint32_t          code= 0,     // Trace code
+     const char*       info= nullptr); // Trace info (15 characters max)
+
+static void
+   trace(                           // Simple trace event
+     const char*       ident,       // Trace identifier
+     const char*       code,        // Trace sub-identifier
+     void*             _one= nullptr,  // Word one
+     void*             _two= nullptr); // Word two
 }; // class Config
 
 //----------------------------------------------------------------------------
@@ -149,6 +205,7 @@ enum Colors
 ,  CLR_DarkRed=        0x00900000   // A.K.A red4
 ,  CLR_FireBrick=      0x00B22222
 ,  CLR_LightBlue=      0x00C0F0FF
+,  CLR_LightRed=       0x00FFC0F0
 ,  CLR_LightSkyBlue=   0x00B0E0FF
 ,  CLR_PaleBlue=       0x00F8F8FF
 ,  CLR_PaleMagenta=    0x00FFC0FF   // A.K.A plum1
@@ -158,8 +215,8 @@ enum Colors
 ,  CLR_Yellow=         0x00FFFF00
 
 // Color selectors
-,  CHG_FG= CLR_DarkRed              // FG: Status line, file changed
-,  CHG_BG= CLR_LightBlue            // BG: Status line, file changed
+,  CHG_FG= CLR_Black                // FG: Status line, file changed
+,  CHG_BG= CLR_LightRed             // BG: Status line, file changed
 
 ,  CMD_FG= CLR_Black                // FG: Command line
 ,  CMD_BG= CLR_PaleMagenta          // BG: Command line

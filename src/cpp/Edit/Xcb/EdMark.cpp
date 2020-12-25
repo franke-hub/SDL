@@ -16,16 +16,19 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2020/12/17
+//       2020/12/25
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Signals.h>            // For pub::signals::Connector
 #include <pub/Trace.h>              // For pub::Trace
 
+#include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile, EdLine, EdRedo
 #include "EdMark.h"                 // For EdMark (Implementation class)
+#include "EdText.h"                 // For EdText
+#include "EdView.h"                 // For EdView
 
 using namespace pub::debugging;     // For debugging
 
@@ -34,7 +37,7 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= false               // Extra brinbup diagnostics?
+,  USE_BRINGUP= false               // Extra bringup diagnostics?
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
@@ -162,43 +165,43 @@ static void
 //       trace
 //
 // Purpose-
-//       Trace EdMark operation
+//       Trace undo/redo operation
 //
 //----------------------------------------------------------------------------
 static void
-   trace(                           // Trace operation
-     const char*       op,          // The operation name
-     EdLine*           head,        // First line
-     EdLine*           tail)        // Last  line
-{
-   typedef pub::Trace::Record Record;
-   Record* record= (Record*)pub::Trace::storage_if(sizeof(Record));
-   if( record ) {
-     memset(record->value, 0, sizeof(record->value));
-     memcpy(&record->unit, op, 4);
-     *((EdLine**)(record->value + 0))= head;
-     *((EdLine**)(record->value + 8))= tail;
-     record->trace(".MRK");
-   }
-static_assert(sizeof(head) <= 8, "Overlength pointers");
-}
-
-static void
-   trace(                           // Trace operation (undo/redo)
+   trace(                           // Trace undo/redo operation
      const char*       op,          // The operation name
      EdFile*           file,        // The UNDO/REDO file
      EdRedo*           redo)        // The UNDO/REDO
 {
    typedef pub::Trace::Record Record;
-   Record* record= (Record*)pub::Trace::storage_if(sizeof(Record) + 32);
+   Record* record= (Record*)Config::trace(32);
    if( record ) {
      memset(record->value, 0, sizeof(record->value) + 32);
      memcpy(&record->unit, op, 4);
-     *((EdFile**)(record->value))= file;
-     *((EdLine**)((char*)record + sizeof(Record) +  0))= redo->head_insert;
-     *((EdLine**)((char*)record + sizeof(Record) +  8))= redo->tail_insert;
-     *((EdLine**)((char*)record + sizeof(Record) + 16))= redo->head_remove;
-     *((EdLine**)((char*)record + sizeof(Record) + 24))= redo->tail_remove;
+
+     uintptr_t V0= uintptr_t(file);
+//   uintptr_t V1= 0;
+     uintptr_t R0= uintptr_t(redo->head_insert);
+     uintptr_t R1= uintptr_t(redo->tail_insert);
+     uintptr_t R2= uintptr_t(redo->head_remove);
+     uintptr_t R3= uintptr_t(redo->tail_remove);
+
+     for(unsigned i= 8; i>0; i--) {
+       record->value[ 0 + i - 1]= char(V0);
+       record->value[ 8 + i - 1]= 0;
+       ((char*)(record->value))[16 + i - 1]= char(R0);
+       ((char*)(record->value))[24 + i - 1]= char(R1);
+       ((char*)(record->value))[32 + i - 1]= char(R2);
+       ((char*)(record->value))[40 + i - 1]= char(R3);
+
+       V0 >>= 8;
+//     V1 >>= 8;
+       R0 >>= 8;
+       R1 >>= 8;
+       R2 >>= 8;
+       R3 >>= 8;
+     }
      record->trace(".MRK");
    }
 }
@@ -222,13 +225,16 @@ static void
        head= tail= touch_line= nullptr;
        touch_col= 0;
      }
+     if( event.file == copy_file ) {
+       copy_file= nullptr;
+     }
    });
 }
 
    EdMark::~EdMark( void )          // Destructor (Editor shutdown)
 {
    for(;;) {
-     EdLine* line= mark_list.remq();
+     EdLine* line= copy_list.remq();
      if( line == nullptr )
        break;
 
@@ -247,23 +253,25 @@ static void
 //----------------------------------------------------------------------------
 void
    EdMark::debug(                   // Debugging display
-     const char*       info)        // Associated text
+     const char*       info) const  // Associated info
 {
    debugf("EdMark::debug(%s)\n", info ? info : "");
 
-   debugf("..touch(%p) %zd [%zd,%zd]\n", touch_line, touch_col
-         , lh_column, rh_column);
-   debugf("..file(%p) head(%p) tail(%p)\n", file, head, tail);
+   debugf("..file.name(%s)\n", file ? file->name.c_str() : "");
+   debugf("..file(%p) [%p,%p] %p %zd [%zd,%zd]\n", file, head, tail
+         , touch_line, touch_col, touch_lh, touch_rh);
    size_t row= 0;
    for(EdLine* line= head; line; line= line->get_next() ) {
      debugf("..[%2zd] ", row++); line->debug();
      if( line == tail )
        break;
    }
-   debugf("..mark_list(%p,%p) %zd\n"
-         , mark_list.get_head() , mark_list.get_tail(), mark_rows);
+   debugf("..copy.name(%s)\n", copy_file ? copy_file->name.c_str() : "");
+   debugf("..copy(%p) [%p,%p] %zd [%zd,%zd]\n", copy_file
+         , copy_list.get_head(), copy_list.get_tail()
+         , copy_rows, copy_lh, copy_rh);
    row= 0;
-   for(EdLine* line= mark_list.get_head(); line; line= line->get_next() ) {
+   for(EdLine* line= copy_list.get_head(); line; line= line->get_next() ) {
      debugf("..[%2zd] ", row++); line->debug(); // (Multi-statement)
    }
 }
@@ -280,26 +288,33 @@ void
 const char*                         // Error message, nullptr expected
    EdMark::copy( void )             // Copy the marked area
 {
+   // Commit the current line
+   editor::data->commit();
+
    // Remove any current copy/cut
    for(;;) {
-     EdLine* line= mark_list.remq();
+     EdLine* line= copy_list.remq();
      if( line == nullptr )
        break;
 
      delete line;
    }
-   mark_rows= 0;
+   copy_rows= 0;
 
    // Create a new copy list
    if( file == nullptr )
      return "No mark";
 
    // Trace the copy
-   trace(" C^C", head, tail);
+   Config::trace(".MRK", " C^C", head, tail);
 
    Copy copy= create_copy(head, tail);
-   mark_list.insert(nullptr, copy.head, copy.tail);
-   mark_rows= copy.rows;
+   copy_list.insert(nullptr, copy.head, copy.tail);
+   copy_file= file;
+   copy_rows= copy.rows;
+   copy_lh= touch_lh;
+   copy_rh= touch_rh;
+
    return nullptr;
 }
 
@@ -319,12 +334,24 @@ const char*                         // Error message, nullptr expected
    if( error ) return error;        // Only "No mark" possible
 
    // Trace the cut
-   trace(" C^X", head, tail);
+   Config::trace(".MRK", " C^X", head, tail);
+
+   // If the file cursor is inside the cut, reset it
+   if( copy_file ) {                // If the copy_file is still active
+     editor::file->csr_line= editor::data->cursor; // (Avoids special case)
+     for(EdLine* line= head; line; line= line->get_next()) {
+       if( line == copy_file->csr_line ) {
+         copy_file->activate(head->get_prev());
+         break;
+       }
+       if( line == tail )
+         break;
+     }
+   }
 
    // Perform the cut
    file->line_list.remove(head, tail);
-   file->rows -= mark_rows;
-   file->activate(head->get_prev());
+   file->rows -= copy_rows;
 
    // Create redo
    EdRedo* redo= new EdRedo();
@@ -403,7 +430,7 @@ void
      if( mark.mark_all /* || file == nullptr */ ) {
        redo(edFile, edRedo->head_insert, edRedo->tail_insert);
      } else if( mark.mark_any ) {   // Insert expected to be all or none
-       errorf("%4d EdMark Unexpected\n", __LINE__); // TODO: REMOVE
+       Config::alertf("%4d EdMark Unexpected\n", __LINE__); // TODO: REMOVE
      }
    }
 }
@@ -463,7 +490,7 @@ void
      if( mark.mark_all /* || file == nullptr */ ) {
        redo(edFile, edUndo->head_remove, edUndo->tail_remove);
      } else if( mark.mark_any ) {   // Insert expected to be all or none
-       errorf("%4d EdMark Unexpected\n", __LINE__); // TODO: REMOVE
+       Config::alertf("%4d EdMark Unexpected\n", __LINE__); // TODO: REMOVE
      }
    }
 }
@@ -567,7 +594,7 @@ const char*                         // Error message, nullptr expected
      EdLine*           edLine,      // After this line
      ssize_t           column)      // Start at this column (block copy)
 {
-   if( mark_list.get_head() == nullptr )
+   if( copy_list.get_head() == nullptr )
      return "No copy/cut";
 
    if( column >= 0 )
@@ -576,7 +603,7 @@ const char*                         // Error message, nullptr expected
    undo();                          // Undo current mark
 
    // Copy and mark the pasted line's
-   Copy copy= create_copy(mark_list.get_head(), mark_list.get_tail());
+   Copy copy= create_copy(copy_list.get_head(), copy_list.get_tail());
    unsigned char delim[2]= {'\n', 0}; // Default UNIX mode
    if( edFile->mode == EdFile::M_DOS )
      delim[1]= '\r';
@@ -587,7 +614,7 @@ const char*                         // Error message, nullptr expected
    }
 
    // Trace the paste
-   trace(" C^V", copy.head, copy.tail);
+   Config::trace(".MRK", " C^V", copy.head, copy.tail);
 
    // Insert the lines
    edFile->line_list.insert(edLine, copy.head, copy.tail);

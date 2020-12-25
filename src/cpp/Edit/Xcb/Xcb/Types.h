@@ -16,7 +16,7 @@
 //       XCB Type descriptors
 //
 // Last change date-
-//       2020/12/11
+//       2020/12/22
 //
 // Implementation notes-
 //       Use: xcb_point_t     <x,y> for screen point
@@ -129,7 +129,7 @@ enum FLAGS                          // Control flags
 ,  F_HIDE= 0x0004                   // Line is hidden
 };
 
-unsigned char          delim[2]= {'\n', 0}; // Delimiter (UNIX default)
+unsigned char          delim[2]= {'\0', 0}; // Delimiter (NONE default)
 //   For [0]= '\n', [1]= either '\r' or '\0' for DOS or Unix format.
 //   For [0]= '\0', [1]= repetition count. {'\0',0}= NO delimiter
 
@@ -141,7 +141,6 @@ public:
      const char*       text= nullptr) // Line text
 :  ::pub::List<Line>::Link(), text(text ? text : "") {}
 
-virtual
    ~Line( void ) {}                 // Destructor
 }; // class Line
 }  // namespace xcb

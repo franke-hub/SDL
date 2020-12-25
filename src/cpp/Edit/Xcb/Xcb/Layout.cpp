@@ -78,8 +78,10 @@ static inline WH_size_t
      WH_size_t         lhs,
      const WH_size_t&  rhs)
 {
-   lhs.width  += rhs.width;
-   lhs.height += rhs.height;
+// lhs.width  += rhs.width;         // (Ok in GCC version 10.2.0
+// lhs.height += rhs.height;
+   lhs.width=  WH_t(lhs.width + rhs.width); // (Ok in GCC version 9.3.0 also)
+   lhs.height= WH_t(lhs.height + rhs.height);
    return lhs;
 }
 
@@ -88,8 +90,10 @@ static inline WH_size_t
      WH_size_t         lhs,
      const XY_size_t&  rhs)
 {
-   lhs.width  += rhs.x;
-   lhs.height += rhs.y;
+// lhs.width  += rhs.x;             // (Ok in GCC version 10.2.0
+// lhs.height += rhs.y;
+   lhs.width=  WH_t(lhs.width + rhs.x); // (Ok in GCC version 9.3.0 also)
+   lhs.height= WH_t(lhs.height + rhs.y);
    return lhs;
 }
 

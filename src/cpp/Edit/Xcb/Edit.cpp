@@ -16,10 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2020/12/16
-//
-// Implementation note-
-//       TODO: Debug mode currently *ALWAYS* intensive move
+//       2020/12/19
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -33,7 +30,6 @@
 #include <stdarg.h>                 // For va_list
 #include <stdio.h>                  // For printf
 #include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/mman.h>               // For mmap, shm_open, ...
 #include <sys/stat.h>               // For S_* constants
@@ -61,7 +57,7 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= true                // Extra brinbup diagnostics?
+,  USE_BRINGUP= true                // Extra bringup diagnostics?
 ,  TRACE_SIZE= 0x01000000           // Default trace table size
 }; // Compilation controls
 

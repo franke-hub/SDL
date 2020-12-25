@@ -16,7 +16,7 @@
 //       Editor: Line/block mark descriptor
 //
 // Last change date-
-//       2020/12/11
+//       2020/12/21
 //
 //----------------------------------------------------------------------------
 #ifndef EDMARK_H_INCLUDED
@@ -52,12 +52,15 @@ EdLine*                tail= nullptr; // The last  marked line
 
 EdLine*                touch_line= nullptr; // The last touched line
 ssize_t                touch_col= -1; // The last column marked (-1 for line)
+size_t                 touch_lh= -1; // Touch left-hand column
+size_t                 touch_rh= -1; // Touch right-hand column (+1)
 
-// Copy/Cut information
-pub::List<EdLine>      mark_list;   // The current copy/cut
-size_t                 mark_rows= 0; // The number of copy/cut rows
-size_t                 lh_column= -1; // Left-hand column
-size_t                 rh_column= -1; // Right-hand column (+1)
+// Copy information
+EdFile*                copy_file= nullptr; // The copied file
+pub::List<EdLine>      copy_list;   // The current copy/cut list
+size_t                 copy_rows= 0; // The number of copy/cut rows
+size_t                 copy_lh= -1; // Copy left-hand column
+size_t                 copy_rh= -1; // Copy right-hand column (+1)
 
 //----------------------------------------------------------------------------
 // EdMark::Constructor/Destructor
@@ -72,7 +75,7 @@ public:
 public:
 void
    debug(                           // Debugging display
-     const char*       info= nullptr); // Associated text
+     const char*       info= nullptr) const; // Associated info
 
 const char*                         // Error message, nullptr expected
    copy( void );                    // Copy the marked area

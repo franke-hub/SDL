@@ -16,7 +16,7 @@
 //       Editor: TextWindow view
 //
 // Last change date-
-//       2020/12/08
+//       2020/12/19
 //
 //----------------------------------------------------------------------------
 #ifndef EDVIEW_H_INCLUDED
@@ -24,6 +24,9 @@
 
 #include <string>                   // For std::string
 #include <sys/types.h>              // For system types
+#include <xcb/xproto.h>             // For xcb_gcontext_t, ...
+
+#include <Xcb/Active.h>             // For xcb::Active
 
 #include "Editor.h"                 // For Editor
 #include "EdFile.h"                 // For EdFile, EdLine
@@ -44,6 +47,7 @@ class EdView {                      // Editor TextWindow view
 //----------------------------------------------------------------------------
 public:
 xcb::Active            active;      // The Active text buffer
+EdLine*                cursor= nullptr; // The Active cursor line
 
 size_t                 col_zero= 0; // Current column[0]
 size_t                 row_zero= 0; // Current row[0]
@@ -53,6 +57,7 @@ unsigned               row= 0;      // Current screen row
 // Graphic context object identifiers are copies, neither allocated nor deleted
 xcb_gcontext_t         gc_flip= 0;  // Graphic context: cursor character
 xcb_gcontext_t         gc_font= 0;  // Graphic context: normal line
+xcb_gcontext_t         gc_mark= 0;  // Graphic context: marked character
 
 //----------------------------------------------------------------------------
 // EdView::Constructor/Destructor
@@ -74,7 +79,31 @@ virtual
 //----------------------------------------------------------------------------
 virtual void
    debug(                           // Debugging display
-     const char*       text= nullptr) const; // Associated text
+     const char*       info= nullptr) const; // Associated info
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdView::get_gc
+//
+// Purpose-
+//       Get the current graphic context
+//
+//----------------------------------------------------------------------------
+virtual xcb_gcontext_t               // The current graphic context
+   get_gc( void );                   // Get current graphic context
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdView::activate
+//
+// Purpose-
+//       Activate the history line
+//
+//----------------------------------------------------------------------------
+virtual void
+   activate( void );                // Activate the history line
 
 //----------------------------------------------------------------------------
 //

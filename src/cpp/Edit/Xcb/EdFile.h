@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2020/12/14
+//       2020/12/24
 //
 // Implementation objects-
 //       EdLine: Editor EdFile line descriptor
@@ -55,8 +55,7 @@ public:
    EdLine(                          // Constructor
      const char*       text= nullptr); // Line text
 
-virtual
-   ~EdLine( void );                  // Destructor
+   ~EdLine( void );                 // Destructor
 
 //----------------------------------------------------------------------------
 //
@@ -67,7 +66,7 @@ virtual
 //       (Minimal) debugging display
 //
 //----------------------------------------------------------------------------
-virtual void
+void
    debug( void ) const;             // Debugging display
 
 //----------------------------------------------------------------------------
@@ -113,7 +112,6 @@ public:
      std::string       _mess,       // Message text
      int               _type= T_INFO);
 
-virtual
    ~EdMess( void );                 // Destructor
 }; // class EdMess
 
@@ -147,7 +145,6 @@ public:
      EdLine*           _head= nullptr, // First hidden line
      EdLine*           _tail= nullptr); // Final hidden line
 
-virtual
    ~EdHide( void );                 // Destructor
 
 //----------------------------------------------------------------------------
@@ -193,7 +190,6 @@ EdLine*                tail_remove= nullptr; // Last line  removed
 public:
    EdRedo( void );                  // Constructor
 
-virtual
    ~EdRedo( void );                 // Destructor
 
 //----------------------------------------------------------------------------
@@ -205,9 +201,9 @@ virtual
 //       Debugging display.
 //
 //----------------------------------------------------------------------------
-virtual void
+void
    debug(                           // Debugging display
-     const char*       text= nullptr) const; // Associated text
+     const char*       info= nullptr) const; // Associated info
 }; // class EdRedo
 
 //----------------------------------------------------------------------------
@@ -261,23 +257,20 @@ public:
    EdFile(                          // Constructor
      const char*       name);       // Fully qualified file name
 
-virtual
    ~EdFile( void );                 // Destructor
 
 //----------------------------------------------------------------------------
 // EdFile::Accessor methods
 //----------------------------------------------------------------------------
-// TODO: REFACTOR message operations in conjunction with EdText
 public:
 char*
    allocate(                        // Allocate file text
-     size_t            size) const;  // Of this length
+     size_t            size) const; // Of this length
 
 EdMess*                             // The current EdMess
    get_message( void ) const        // Get current EdMess
 {  return mess_list.get_head(); }
 
-// TODO: VERIFY USAGE
 EdLine*                             // The EdLine*
    get_line(                        // Get EdLine*
      size_t            row) const;  // For this row number
@@ -304,9 +297,9 @@ static size_t                       // The row count
 //       Debugging display.
 //
 //----------------------------------------------------------------------------
-virtual void
+void
    debug(                           // Debugging display
-     const char*       text= nullptr) const; // Associated text
+     const char*       info= nullptr) const; // Associated info
 
 //----------------------------------------------------------------------------
 //
@@ -368,6 +361,22 @@ EdLine*                             // (Always line)
 void
    insert_undo(                     // Insert
      EdRedo*           undo);       // This REDO onto the UNDO list
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::new_line
+//
+// Purpose-
+//       Allocate a new line, also setting the delimiter
+//
+// Implementation note-
+//       DOS files get DOS delimiters. All others get UNIX delimiters.
+//
+//----------------------------------------------------------------------------
+EdLine*                             // The allocated line
+   new_line(                        // Allocate a new line
+     const char*       text= nullptr) const; // Line text
 
 //----------------------------------------------------------------------------
 //

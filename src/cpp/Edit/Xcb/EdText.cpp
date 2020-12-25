@@ -16,32 +16,32 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2020/12/16
+//       2020/12/25
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
 #include <stdio.h>                  // For fprintf TODO: REMOVE
 #include <sys/types.h>              // For
-#include <com/istring.h>            // For stristr
 #include <pub/List.h>               // For pub::List
 
 #include <xcb/xproto.h>             // For XCB types
 #include <xcb/xfixes.h>             // For XCB xfixes extension
 
 #include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Trace.h>              // For pub::Trace
 
 #include "Xcb/Active.h"             // For xcb::Active
 #include "Xcb/Global.h"             // For xcb::trace
 #include "Xcb/TextWindow.h"         // For xcb::TextWindow
 #include "Xcb/Types.h"              // For xcb::DEV_EVENT_MASK
 
-#include "Config.h"                 // For namespace config
+#include "Config.h"                 // For Config, namespace config
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile
 #include "EdHist.h"                 // For EdHist
 #include "EdMark.h"                 // For EdMark
 
-using namespace config;             // For config::opt_*
+using namespace config;             // For config::opt_*, ...
 using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
@@ -49,14 +49,22 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= false               // Extra brinbup diagnostics?
-,  USE_HIDDEN= false                // Use mouse hide/show? TODO: REMOVE
+,  USE_BRINGUP= false               // Extra bringup diagnostics?
+,  USE_HIDDEN= true                 // Use mouse hide/show? TODO: REMOVE
+// USE_HIDDEN= false                // Use mouse hide/show? TODO: REMOVE
 }; // Compilation controls
 
 static struct EdText_initializer {  // TODO: REMOVE
-   EdText_initializer( void )
-{  if( !USE_HIDDEN ) fprintf(stderr, "%4d EdText: Cursor hiding disabled\n", __LINE__); }
+   EdText_initializer( void )       // (DO NOT USE DEBUGF)
+{  fprintf(stderr, "%4d EdText: Cursor hiding(%s)\n", __LINE__
+                 , USE_HIDDEN ? "ENABLED" : "DISABLED");
+}
 }  static_initializer;
+
+//----------------------------------------------------------------------------
+// Internal constants
+//----------------------------------------------------------------------------
+static const char      zero8[8]= {'\0','\0','\0','\0', '\0','\0','\0','\0'};
 
 //----------------------------------------------------------------------------
 // EdText::Constructor
@@ -65,7 +73,6 @@ static struct EdText_initializer {  // TODO: REMOVE
      Widget*           parent,      // Parent Widget
      const char*       name)        // Widget name
 :  TextWindow(parent, name ? name : "EdText")
-,  data(new EdView()), hist(new EdHist()), view(data)
 {
    if( opt_hcdm )
      debugh("EdText(%p)::EdText\n", this);
@@ -102,13 +109,8 @@ static struct EdText_initializer {  // TODO: REMOVE
    if( gc_cmd ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_cmd) );
    if( gc_msg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_msg) );
    if( gc_sts ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_sts) );
-   if( markGC ) {
-     ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, markGC) );
-     markGC= 0;
-   }
-
-   if( data ) delete data;
-   if( hist ) delete hist;
+   if( markGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, markGC) );
+   markGC= 0;                       // (Prevents dupicate xcb_free_gc)
 
    flush();
 }
@@ -124,20 +126,17 @@ static struct EdText_initializer {  // TODO: REMOVE
 //----------------------------------------------------------------------------
 void
    EdText::debug(                   // Debugging display
-     const char*       text) const  // Associated text
+     const char*       info) const  // Associated info
 {
-   debugf("EdText(%p)::debug(%s) Named(%s)\n", this, text ? text : ""
+   debugf("EdText(%p)::debug(%s) Named(%s)\n", this, info ? info : ""
          , get_name().c_str());
 
-   debugf("..view(%p) data(%p) hist(%p) file(%p) '%s'\n"
-         , view, data, hist, file, file ? file->name.c_str() : "<null>");
    debugf("..gc_chg(%u) gc_cmd(%u) gc_msg(%u) gc_sts(%u) markGC(%u)\n"
          , gc_chg, gc_cmd, gc_msg, gc_sts, markGC);
    debugf("..motion[%d,%u,%d,%d]\n"
          , motion.state, motion.time, motion.x, motion.y);
-   debugf("..view(%p) data(%p) hist(%p)\n", view, data, hist);
 
-   TextWindow::debug(text);
+   TextWindow::debug(info);
 }
 
 //----------------------------------------------------------------------------
@@ -152,38 +151,43 @@ void
 //----------------------------------------------------------------------------
 void
    EdText::activate(                // Activate
-     EdFile*           file)        // This file
+     EdFile*           act_file)    // This file
 {
+   EdView* const data= editor::data;
+   EdFile* const file= editor::file;
+
    if( opt_hcdm )
-     debugh("EdText(%p)::activate\n", this);
+     debugh("EdText(%p)::activate(%s)\n", this, act_file->get_name().c_str());
+
+   // Trace activation
+   Config::trace(".ACT", "file", act_file, file);
 
    // Out with the old
-   if( this->file ) {
+   if( file ) {
      data->commit();
 
-     this->file->top_line= (EdLine*)this->line;
-     this->file->col_zero= data->col_zero;
-     this->file->row_zero= data->row_zero;
-     this->file->col= data->col;
-     this->file->row= data->row;
+     file->top_line= (EdLine*)this->line;
+     file->col_zero= data->col_zero;
+     file->row_zero= data->row_zero;
+     file->col= data->col;
+     file->row= data->row;
    }
 
    // In with the new
-   this->file= file;
+   editor::file= act_file;
    this->line= nullptr;
-   if( file ) {
-     this->line= file->top_line;
-     this->last= this->line;
-     data->col_zero= file->col_zero;
-     data->row_zero= file->row_zero;
-     data->col=  file->col;
-     data->row=  file->row;
+   if( act_file ) {
+     this->last= this->line= act_file->top_line;
+     data->col_zero= act_file->col_zero;
+     data->row_zero= act_file->row_zero;
+     data->col=  act_file->col;
+     data->row=  act_file->row;
      if( data->row < USER_TOP )
        data->row= USER_TOP;
 
      // Update window title, omitting middle of file name if necessary
      char buffer[64];
-     const char* C= file->name.c_str();
+     const char* C= act_file->name.c_str();
      size_t      L= strlen(C);
 
      strcpy(buffer, "Edit: ");
@@ -203,18 +207,25 @@ void
 
 void
    EdText::activate(                // Activate
-     EdLine*           _line)       // This line
+     EdLine*           act_line)    // This line
 {
-   view= data;                      // Insure data view
+   EdView* const data= editor::data;
+   EdFile* const file= editor::file;
+
+   // Trace activation
+   Config::trace(".ACT", "line", data->cursor, act_line);
+
+   // Activate
    undo_cursor();                   // Clear the character cursor
    data->commit();                  // Commit any active line
-   data->active.reset(_line->text); // Activate the new line
-   cursor= _line;
+   data->active.reset(act_line->text); // Activate the new line
+   data->cursor= act_line;          // "
+   data->activate();                // Insure data view
 
    // Locate line on-screen
    EdLine* line= (EdLine*)this->line;
    for(unsigned r= USER_TOP; (r+1) < row_size; r++) { // Set the Active line
-     if( _line == line ) {
+     if( line == act_line ) {
 //     printf("%4d HCDM\n", __LINE__); // TODO: REMOVE
        data->row= r;
        draw_cursor();
@@ -232,7 +243,7 @@ void
    // Line off-screen. Locate line in file
    data->row_zero= 0;
    for( line= file->line_list.get_head(); line; line= line->get_next() ) {
-     if( _line == line ) {          // If line found
+     if( line == act_line ) {       // If line found
 //     printf(" %4drow_zero(%zd) rows(%zd) row_size(%u) USER_TOP(%u)\n", __LINE__
 //           , data->row_zero, file->rows, row_size, USER_TOP);
 
@@ -254,7 +265,7 @@ void
          unsigned r= row_size - 1;
          line= file->line_list.get_tail(); // "** END OF FILE **", rows + 1
          while( r > USER_TOP ) {
-           if( line == _line )
+           if( line == act_line )
              data->row= r;
            line= line->get_prev();
            r--;
@@ -282,8 +293,9 @@ void
    }
 
    // Line is not in file (SHOULD NOT OCCUR)
-   errorf("%4d HCDM EdText\n", __LINE__); // TODO: REMOVE
-   cursor= line= file->line_list.get_head();
+   Config::alertf("%4d HCDM EdText file(%p) line(%p)", __LINE__
+                 , file, act_line); // TODO: REMOVE
+   data->cursor= line= file->line_list.get_head();
    data->col_zero= data->col= 0;
    data->row_zero= 0;
    data->row= USER_TOP;
@@ -307,8 +319,8 @@ void
 
    TextWindow::configure();         // Create the Window
 
-   // Create the graphic contexts   // (Values defined in Editor.h)
-   using namespace editor;          // For *_FG, *_BG
+   // Create the graphic contexts   // (Values defined in Config.h)
+   using namespace config;          // For *_FG, *_BG
    markGC= font.makeGC(SEL_FG, SEL_BG);
    gc_chg= font.makeGC(CHG_FG, CHG_BG);
    gc_cmd= font.makeGC(CMD_FG, CMD_BG);
@@ -322,10 +334,14 @@ void
 // gc_sts= font.makeGC(0x00000000, 0x00B0E0FF); // Black over light blue
 
    // Configure views
+   EdView* const data= editor::data;
    data->gc_flip= flipGC;
    data->gc_font= fontGC;
+   data->gc_mark= markGC;
+   EdHist* const hist= editor::hist;
    hist->gc_flip= flipGC;
    hist->gc_font= gc_cmd;
+   hist->gc_mark= gc_cmd;
 
    // Set up WM_DELETE_WINDOW protocol handler
    protocol= name_to_atom("WM_PROTOCOLS", true);
@@ -334,134 +350,10 @@ void
           , xcb_change_property_checked
           ( c, XCB_PROP_MODE_REPLACE, widget_id
           , protocol, 4, 32, 1, &wm_close) );
-   if( opt_hcdm || opt_verbose >= 0 )
+   if( opt_hcdm )
      debugf("atom PROTOCOL(%d)\natom WM_CLOSE(%d)\n", protocol, wm_close);
 
 // flush();                         // Not needed: draw scheduled
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::do_change
-//
-// Purpose-
-//       Change next occurance of string.
-//
-// Implementation note-
-//       REDO not required. The line is changed, but not committed.
-//
-//----------------------------------------------------------------------------
-const char*                         // Return message, nullptr if OK
-   EdText::do_change( void )        // Change next occurance of string
-{
-   const char* error= do_locate(0); // First, locate the string
-   if( error ) return error;        // (If cannot locate)
-
-   // The string has been found and the line activated
-   size_t column= data->col_zero + data->col; // The current column
-   size_t length= editor::locate_string.length();
-   data->active.replace_text(column, length, editor::change_string.c_str());
-   draw();                          // (Only active line redraw required)
-   return nullptr;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::do_exit
-//
-// Purpose-
-//       (Safely) remove a file from the file list.
-//
-//----------------------------------------------------------------------------
-void
-   EdText::do_exit( void )          // Safely remove a file from the file list
-{
-   if( file->damaged ) {
-     put_message("File damaged");
-     return;
-   }
-
-   if( file->changed ) {
-     put_message("File changed");
-     return;
-   }
-
-   editor::remove_file(file);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::do_history
-//
-// Purpose-
-//       Invert history view.
-//
-//----------------------------------------------------------------------------
-void
-   EdText::do_history( void )       // Invert history view
-{
-   if( view == hist ) {
-     view= data;
-   } else {
-     view= hist;
-     hist->activate();
-   }
-   draw_info();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::do_locate
-//
-// Purpose-
-//       Locate next occurance of string.
-//
-//----------------------------------------------------------------------------
-const char*                         // Return message, nullptr if OK
-   EdText::do_locate(               // Locate next
-     int               offset)      // Use offset 0 for locate_change
-{
-   data->commit();                  // Commit the active line
-
-   const char* S= editor::locate_string.c_str();
-
-   //-------------------------------------------------------------------------
-   // Locate in the active line
-   EdLine* line= cursor;
-   size_t column= data->col_zero + data->col + offset;
-   if( (line->flags & EdLine::F_PROT) == 0 ) { // If line is not protected
-     const char* C= data->active.get_buffer(column); // Remaining characters
-     const char* M= stristr(C, S);
-     if( M != nullptr ) {
-       view= data;
-       column += M - C;
-       move_cursor_H(column);
-       draw_info();
-       return nullptr;
-     }
-   }
-
-   //-------------------------------------------------------------------------
-   // Search remainder of file
-   for(;;) {
-     line= line->get_next();
-     if( line == nullptr )
-       return "Not found";
-
-     if( (line->flags & EdLine::F_PROT) == 0 ) {
-       const char* M= stristr(line->text, S);
-       if( M != nullptr ) {
-         view= data;
-         move_cursor_H(M - line->text);
-         activate(line);
-         return nullptr;
-       }
-     }
-   }
 }
 
 //----------------------------------------------------------------------------
@@ -476,6 +368,8 @@ const char*                         // Return message, nullptr if OK
 void
    EdText::draw_cursor(bool set)    // Set the character cursor
 {
+   EdView* const view= editor::view;
+
    if( opt_hcdm && opt_verbose > 1 )
      debugh("EdText(%p)::cursor_%s cursor[%u,%u]\n", this
            , set ? "S" : "C", view->col, view->row);
@@ -490,13 +384,7 @@ void
    encoder.encode(code);
    buffer[encoder.get_used()]= '\0';
 
-// xcb_gcontext_t gc= set ? view->gc_flip : view->gc_font;
-   xcb_gcontext_t gc= view->gc_flip;
-   if( set == false ) {
-     gc= view->gc_font;
-     if( (cursor->flags & EdLine::F_MARK) && view == data )
-       gc= markGC;
-   }
+   xcb_gcontext_t gc= set ? view->gc_flip : view->get_gc();
    putxy(gc, get_xy(view->col, view->row), buffer);
 
    flush();
@@ -544,6 +432,9 @@ static void
 bool                                // Return code, TRUE if handled
    EdText::draw_history( void )     // Redraw the history line
 {
+   EdHist* const hist= editor::hist;
+   EdView* const view= editor::view;
+
    if( view != hist )               // If history not active
      return false;
 
@@ -565,7 +456,7 @@ void
 bool                                // Return code, TRUE if handled
    EdText::draw_message( void )     // Message line
 {
-   EdMess* mess= file->mess_list.get_head();
+   EdMess* mess= editor::file->mess_list.get_head();
    if( mess == nullptr ) return false;
 
    char buffer[256];                // Status line buffer
@@ -581,6 +472,9 @@ bool                                // Return code, TRUE if handled
 void
    EdText::draw_status( void )      // Redraw the status line
 {
+   EdView* const data= editor::data;
+   EdFile* const file= editor::file;
+
    char buffer[256];                // Status line buffer
    memset(buffer, ' ', sizeof(buffer)); // (Blank fill)
    buffer[sizeof(buffer)-1]= '\0';
@@ -619,37 +513,12 @@ void
    if( opt_hcdm )
      debugh("EdText(%p)::draw\n", this);
 
-   TextWindow::draw(data->col_zero); // Draw the text screen
+   TextWindow::draw(editor::data->col_zero); // Draw the text screen
    draw_info();                     // Draw the information line
 
    draw_cursor();
    show();
    flush();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::focus
-//
-// Purpose-
-//       Set the current view
-//
-//----------------------------------------------------------------------------
-const char*                         // *ALWAYS* nullptr
-   EdText::focus(                   // Set the current view
-     EdView*           _view)       // To this view
-{
-   if( opt_hcdm )
-     debugh("EdText(%p)::focus(%p)\n", this, _view);
-
-   if( _view == hist || view == hist ) { // If setting or leaving history view
-     ;; // TODO
-   }
-
-   view= _view;
-   if( true ) return "EdText::focus NOT CODED YET";
-   return nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -666,22 +535,39 @@ const char*                         // The text
      xcb::Line*        line)        // For this Line
 {
    const char* text= line->text;    // Default, use line text
-   if( line == cursor )             // If this is the cursor line
-     text= data->active.get_buffer(); // Return the active buffer
+   if( line == editor::data->cursor ) // If this is the cursor line
+     text= editor::data->active.get_buffer(); // Return the active buffer
    return text;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdText::grab_mouse
 //       EdText::hide_mouse
 //       EdText::show_mouse
 //
 // Purpose-
+//       Grab the mouse cursor
 //       Hide the mouse cursor
 //       Show the mouse cursor
 //
 //----------------------------------------------------------------------------
+void
+   EdText::grab_mouse( void )       // Grab the mouse cursor
+{
+// uint16_t mask= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
+// uint32_t parm[2];
+// parm[0]= 0;
+// parm[1]= 0;
+// NOQUEUE("xcb_configure_windowr", xcb_configure_window
+//        (c, widget_id, mask, parm) );
+
+   NOQUEUE("xcb_warp_pointer", xcb_warp_pointer
+          (c, XCB_NONE, widget_id, 0,0,0,0, rect.width/2, rect.height/2) );
+   flush();
+}
+
 void
    EdText::hide_mouse( void )       // Hide the mouse cursor
 {
@@ -719,6 +605,7 @@ int                                 // Return code, 0 if draw performed
 
    undo_cursor();                   // Clear the current cursor
 
+   EdView* const view= editor::view;
    size_t current= view->col_zero + view->col; // Set current column
    unsigned col_move= col_size / 8; // MINIMUM shift size
    if( col_move == 0 ) col_move= 1;
@@ -742,30 +629,13 @@ int                                 // Return code, 0 if draw performed
      draw_cursor();                 // Just set cursor
      draw_info();                   // Update status line
    } else {                         // If full redraw needed
-     if( view == data )             // If data view (draw_info included)
+     if( view == editor::data )     // If data view (draw_info included)
        draw();
      else
        draw_info();
    }
 
    return rc;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::put_message
-//
-// Purpose-
-//       Add a message to the message queue
-//
-//----------------------------------------------------------------------------
-void
-   EdText::put_message(             // Write message
-     const char*       _mess,       // Message text
-     int               _type)       // Message mode
-{
-   file->put_message(_mess, _type);
 }
 
 //----------------------------------------------------------------------------
@@ -784,10 +654,12 @@ void
 void
    EdText::synch_active( void )     // Set the Active (cursor) line
 {
-   cursor= nullptr;                 // Default, no cursor
+   EdView* const data= editor::data;
+
+   data->cursor= nullptr;           // Default, no cursor
    EdLine* line= (EdLine*)this->line; // Get the first line
    if( line == nullptr ) {          // If Empty      // TODO: SHOULD NOT OCCUR
-     errorf("%4d HCDM EdText\n", __LINE__); // TODO: REMOVE
+     Config::alertf("%4d HCDM EdText\n", __LINE__); // TODO: REMOVE
      return;
    }
 
@@ -796,27 +668,27 @@ void
 
    for(unsigned r= USER_TOP; ; r++) { // Set the Active line
      if( r == data->row ) {
-       cursor= line;
+       data->cursor= line;
        break;
      }
 
      EdLine* next= line->get_next();
      if( next == nullptr ) {        // (Can occur if window grows)
        data->row= r;
-       cursor= line;
+       data->cursor= line;
        break;
      }
 
      if( (r + 1) >= row_size ) {    // (Can occur if window shrinks)
        data->row= r;
-       cursor= line;
+       data->cursor= line;
        break;
      }
 
      line= next;
    }
 
-   data->active.reset(cursor->text);
+   data->active.reset(data->cursor->text);
    draw_cursor();                   // Set the cursor
 }
 
@@ -833,71 +705,87 @@ void
    EdText::key_alt(                 // Handle this
      xcb_keysym_t      key)         // Alt_Key input event
 {
+   EdView* const data= editor::data;
+   EdFile* const file= editor::file;
+   EdMark* const mark= editor::mark;
+
    switch(key) {                    // ALT-
      case 'C': {                    // Copy
-       EdMark* mark= editor::mark;
        const char* error= mark->copy();
        if( error ) {
-         put_message(error);
+         editor::put_message(error);
          break;
        }
 
-       mark->paste(file, cursor);
+       mark->paste(file, data->cursor);
        draw();
        break;
      }
      case 'D': {                    // Delete the mark
-       put_message( editor::mark->cut() );
+       editor::put_message( mark->cut() );
        draw();
        break;
      }
      case 'I': {                    // Insert
        data->commit();
-       EdLine* line= cursor;        // The current cursor line
-       if( line->get_next() == nullptr ) { // If it's the last line
-         line= line->get_prev();    // Use the line before it instead
+       EdLine* cursor= data->cursor; // The current cursor line
+       if( cursor->get_next() == nullptr ) // If it's the last line
+         cursor= cursor->get_prev(); // Use the prior line instead
+
+       EdRedo* redo= new EdRedo();
+       EdLine* tail;
+       EdLine* head= tail= file->new_line(); // Get new, empty insert line
+       if( memcmp(cursor->delim, zero8, 2) == 0 ) { // If after no delimiter
+         // The no delimiter line can only be the last data line of a file.
+         head= file->new_line(cursor->text); // Get cursor line replacement
+         head->set_prev(cursor->get_prev());
+         head->set_next(tail);
+         tail->set_prev(head);
+
+         // Remove the cursor from the file, updating the REDO
+         file->remove(cursor);
+         redo->head_remove= redo->tail_remove= cursor;
+         cursor= cursor->get_prev(); // (cursor->get_prev() valid after remove)
        }
 
-       line= file->insert(line, new EdLine()); // Insert a new line
-       EdRedo* redo= new EdRedo();
-       redo->head_insert= redo->tail_insert= line;
+       file->insert(cursor, head, tail);
+       redo->head_insert= head;
+       redo->tail_insert= tail;
        file->insert_undo(redo);
-
-       synch_active();              // Synchronize the cursor line and row
+       file->activate(tail);        // (Activate the newly inserted line)
        draw();                      // And redraw
        break;
      }
      case 'L':                      // Mark line
-       put_message( editor::mark->mark(file, cursor) );
+       editor::put_message( mark->mark(file, data->cursor) );
        draw();
        break;
 
-     case 'M': {                    // Move
-       EdLine* line= cursor;
-       EdMark* mark= editor::mark;
+     case 'M': {                    // Move (Uses cut/paste)
        const char* error= mark->cut();
        if( error ) {
-         put_message(error);
+         editor::put_message(error);
          break;
        }
 
-       mark->paste(file, line);
+       mark->paste(file, data->cursor);
        draw();
        break;
      }
-     case 'Q':                      // Quit
-       editor::do_done();           // TODO: NOT (properly) CODED YET
+     case 'Q':                      // (Safe) quit
+       if( editor::un_changed() )
+         editor::exit();
        break;
 
      case 'U': {                    // Undo mark
-       EdFile* edFile= editor::mark->file;
-       editor::mark->undo();
-       if( file == edFile )
+       EdFile* mark_file= mark->file;
+       mark->undo();
+       if( file == mark_file )
          draw();
        break;
      }
      default:
-       put_message("Invalid key");
+       editor::put_message("Invalid key");
        draw_info();
    }
 }
@@ -906,26 +794,30 @@ void
    EdText::key_ctl(                 // Handle this
      xcb_keysym_t      key)         // Ctrl_Key input event
 {
+   EdView* const data= editor::data;
+   EdFile* const file= editor::file;
+   EdMark* const mark= editor::mark;
+
    switch(key) {                    // CTRL-
      case 'C': {                    // Copy
-       put_message( editor::mark->copy() );
+       editor::put_message( mark->copy() );
        break;
      }
      case 'V': {                    // Paste
-       const char* error= editor::mark->paste(file, cursor);
+       const char* error= mark->paste(file, data->cursor);
        if( error )
-         put_message(error);
+         editor::put_message(error);
        else
          draw();
        break;
      }
      case 'X': {                    // Cut the mark
-       put_message( editor::mark->cut() );
+       editor::put_message( mark->cut() );
        draw();
        break;
      }
      default:
-       put_message("Invalid key");
+       editor::put_message("Invalid key");
        draw_info();
    }
 }
@@ -936,7 +828,7 @@ int                                 // Return code, TRUE if error message
      xcb_keysym_t      key,         // Input key
      int               state)       // Alt/Ctl/Shift state mask
 {
-   if( key >= 0x0020 && key < 0x007f ) { // If text key
+   if( key >= 0x0020 && key < 0x007F ) { // If text key
      int mask= state & (xcb::KS_ALT | xcb::KS_CTRL);
 
      if( mask ) {
@@ -952,9 +844,6 @@ int                                 // Return code, TRUE if error message
            default:
              break;
          }
-
-         put_message("Invalid key");
-         return true;
        }
      }
    } else {
@@ -970,7 +859,7 @@ int                                 // Return code, TRUE if error message
      }
    }
 
-   put_message("Protected line");
+   editor::put_message("Protected line");
    return true;
 }
 
@@ -979,6 +868,11 @@ void
      xcb_keysym_t      key,         // Key input event
      int               state)       // Alt/Ctl/Shift state mask
 {
+   EdView* const data= editor::data;
+   EdFile* const file= editor::file;
+   EdHist* const hist= editor::hist;
+   EdView* const view= editor::view;
+
    if( opt_hcdm ) {
      char B[2]; B[0]= '\0'; B[1]= '\0'; const char* K= B;
      if( key >= 0x0020 && key < 0x007F ) B[0]= char(key);
@@ -988,11 +882,11 @@ void
    }
 
    const char* name= editor::key_to_name(key);
-   xcb::trace(".KEY", (state<<16) | (key & 0x0000ffff), name);
+   Config::trace(".KEY", (state<<16) | (key & 0x0000ffff), name);
 
    // Handle protected line
    if( view == data ) {             // Only applies to data view
-     if( cursor->flags & EdLine::F_PROT // If protected line
+     if( data->cursor->flags & EdLine::F_PROT // If protected line
          && key_protected(key, state) ) // And modification key
        return;                      // (Disallowed)
    }
@@ -1019,7 +913,7 @@ void
            break;
 
          default:                   // (KS_ALT *AND* KS_CTRL)
-           put_message("Invalid key");
+           editor::put_message("Invalid key");
        }
        return;
      }
@@ -1028,7 +922,7 @@ void
        view->active.insert_char(column, key);
        if( move_cursor_H(column + 1) ) {
          const char* buffer= view->active.get_buffer();
-         putxy(view->gc_font, get_xy(view->col - 1, view->row), buffer + view->active.index(column));
+         putxy(view->get_gc(), get_xy(view->col - 1, view->row), buffer + view->active.index(column));
        }
      } else {
        view->active.replace_char(column, key);
@@ -1068,7 +962,7 @@ void
        if( rc ) {
          view->active.append_text(" "); // (Clear removed character)
          const char* buffer= view->active.get_buffer(column - view->col_zero);
-         putxy(view->gc_font, get_xy(view->col, view->row), buffer);
+         putxy(view->get_gc(), get_xy(view->col, view->row), buffer);
          draw_cursor();
          flush();
        }
@@ -1079,13 +973,13 @@ void
        view->active.remove_char(column);
        view->active.append_text(" ");
        const char* buffer= view->active.get_buffer(column);
-       putxy(view->gc_font, get_xy(view->col, view->row), buffer);
+       putxy(view->get_gc(), get_xy(view->col, view->row), buffer);
        draw_cursor();
        flush();
        break;
      }
      case XK_Escape:                // Escape: Invert history view
-       do_history();
+       editor::do_history();
        break;
 
      case XK_Insert: {              // Insert key
@@ -1128,12 +1022,12 @@ void
        printf(" F1: This help message\n"
               " F2: Bringup test\n"
               " F3: Quit File\n"
-              " F4: (undefined)\n"
+              " F4: Test changed\n"
               " F5: Locate\n"
               " F6: Change\n"
               " F7: Previous File\n"
               " F8: Next File\n"
-              " F9: (undefined)\n"
+              " F9: Quick debug\n"
               "F10: Line to top\n"
               "F11: Undo\n"
               "F12: Redo\n"
@@ -1148,26 +1042,28 @@ void
      }
      case XK_F3: {                  // (Safe) quit
        data->commit();
-       do_exit();
+       editor::do_exit();
        break;
      }
-//   case XK_F4: {                  // (Undefined)
-//     break;
-//   }
+     case XK_F4: {                  // Test changed
+       if( editor::un_changed() )
+         editor::put_message("No files changed");
+       break;
+     }
      case XK_F5: {
-       put_message(do_locate());
+       editor::put_message(editor::do_locate());
        break;
      }
      case XK_F6: {
-       put_message(do_change());
+       editor::put_message(editor::do_change());
        break;
      }
      case XK_F7: {                  // Prior file
        data->commit();
-       EdFile* file= this->file->get_prev();
+       EdFile* file= editor::file->get_prev();
        if( file == nullptr )
          file= editor::file_list.get_tail();
-       if( file != this->file ) {
+       if( file != editor::file ) {
          activate(file);
          draw();
        }
@@ -1175,25 +1071,41 @@ void
      }
      case XK_F8: {                  // Next file
        data->commit();
-       EdFile* file= this->file->get_next();
+       EdFile* file= editor::file->get_next();
        if( file == nullptr )
          file= editor::file_list.get_head();
-       if( file != this->file ) {
+       if( file != editor::file ) {
          activate(file);
          draw();
        }
        break;
      }
-//   case XK_F9: {                  // (Undefined)
-//     break;
-//   }
+     case XK_F9: {                  // Quick debug. TODO: REMOVE/REPLACE
+       pub::Trace* trace= pub::Trace::trace;
+       if( trace ) {
+         if( trace->flag[pub::Trace::X_HALT] ) {
+           Config::errorf("Tracing resumed\n");
+           trace->flag[pub::Trace::X_HALT]= false;
+           return;
+         }
+
+         trace->flag[pub::Trace::X_HALT]= true;
+       } // else Config::errorf("Tracing inactive\n");
+
+       Config::alertf("F9");
+       break;
+     }
      case XK_F10: {                 // Line to top
+       line= data->cursor;
+       data->row_zero += (data->row - USER_TOP);
+       data->row= USER_TOP;
+       draw();
        break;
      }
      case XK_F11: {                 // Undo
        if( view->active.undo() ) {
          view->active.index(view->col_zero+col_size); // Blank fill
-         putxy(view->gc_font, get_xy(0, view->row), view->active.get_buffer(view->col_zero));
+         putxy(view->get_gc(), get_xy(0, view->row), view->active.get_buffer(view->col_zero));
          draw_info();
          draw_cursor();
        } else
@@ -1286,7 +1198,7 @@ void
      }
 
      default:
-       put_message("Invalid key");
+       editor::put_message("Invalid key");
    }
 }
 
@@ -1297,6 +1209,11 @@ void
    EdText::button_press(            // Handle this
      xcb_button_press_event_t* event) // Button press event
 {
+   EdView* const data= editor::data;
+   EdFile* const file= editor::file;
+   EdHist* const hist= editor::hist;
+   EdView* const view= editor::view;
+
    // Use E.detail and xcb::Types::BUTTON_TYPE to determine button
    // E.root_x/y is position on root window; E.event_x/y is position on window
    xcb_button_release_event_t& E= *event;
@@ -1318,16 +1235,14 @@ void
 
          if( view == hist )         // If history active
            move_cursor_H(hist->col_zero + get_col(E.event_x)); // Update column
-         else {
-           view= hist;
+         else
            hist->activate();
-         }
          draw_info();
          break;
        }
 
        if( view == hist ) {         // If history active
-         view= data;
+         data->activate();
          draw_info();
        }
 
@@ -1344,7 +1259,7 @@ void
          }
 
          // Invert history command line mode
-         do_history();
+         editor::do_history();
        }
        break;
      }

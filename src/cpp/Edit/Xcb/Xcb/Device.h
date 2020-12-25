@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/12/02
+//       2020/12/23
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_DEVICE_H_INCLUDED
@@ -101,7 +101,7 @@ virtual void
 
 virtual void
    debug_tree(                      // Debug the Widget tree
-     const char*       info= nullptr); // Caller's information
+     const char*       info= nullptr) const; // Caller's information
 
 virtual void
    draw( void );                    // Draw everything

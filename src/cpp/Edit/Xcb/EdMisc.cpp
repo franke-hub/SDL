@@ -16,7 +16,7 @@
 //       Editor: Implement EdMisc.h
 //
 // Last change date-
-//       2020/12/16
+//       2020/12/23
 //
 // Implementation note-
 //       Used to avoid circular references.
@@ -24,7 +24,6 @@
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
 #include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/stat.h>               // For stat
 #include <xcb/xcb.h>                // For XCB interfaces
@@ -43,7 +42,7 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= false               // Extra brinbup diagnostics?
+,  USE_BRINGUP= false               // Extra bringup diagnostics?
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
@@ -141,8 +140,8 @@ void
    if( opt_hcdm )
      debugh("EdMisc(%p)::draw Named(%s)\n", this, get_name().c_str());
 
-   xcb::PT_t X= xcb::PT_t(rect.width)  - 1;
-   xcb::PT_t Y= xcb::PT_t(rect.height) - 1;
+   xcb::PT_t X= xcb::PT_t(rect.width - 1);
+   xcb::PT_t Y= xcb::PT_t(rect.height - 1);
    xcb_point_t points[]=
        { {0, 0}
        , {0, Y}

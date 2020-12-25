@@ -16,13 +16,12 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2020/12/17
+//       2020/12/25
 //
 //----------------------------------------------------------------------------
 #include <fcntl.h>                  // For open, ...
 #include <stdio.h>                  // For fprintf
 #include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
 #include <unistd.h>                 // For close, ...
 #include <sys/mman.h>               // For mmap, ...
 #include <sys/signal.h>             // For signal, ...
@@ -33,9 +32,13 @@
 #include <pub/Signals.h>            // For pub::signals
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
+#include <pub/utility.h>            // For pub::utility::to_stringv, ...
 
 #include "Config.h"                 // For Config (Implementation class)
-#include "Editor.h"                 // TODO: REMOVE (CONFIG BRINGUP)
+#include "Editor.h"                 // For namespace editor
+#include "EdFile.h"                 // For EdFile
+#include "EdHist.h"                 // For EdFile TODO: REMOVE
+#include "EdText.h"                 // For EdText
 
 using namespace config;             // For implementation
 using namespace pub::debugging;     // For debugging
@@ -48,7 +51,7 @@ enum // Compilation controls
 ,  PROT_RW= (PROT_READ | PROT_WRITE)
 ,  DIR_MODE= (S_IRWXU | S_IRGRP|S_IXGRP | S_IROTH|S_IXOTH)
 ,  TRACE_SIZE= pub::Trace::TABLE_SIZE_MIN
-,  USE_BRINGUP= true                // Extra brinbup diagnostics?
+,  USE_BRINGUP= false               // Extra bringup diagnostics?
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
@@ -185,6 +188,51 @@ static const char*     README_text=
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Config::alertf
+//
+// Purpose-
+//       Debugging alert
+//
+//----------------------------------------------------------------------------
+void
+   Config::alertf(                  // Debugging alert
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // The remaining arguments
+{
+   va_list             argptr;      // Argument list pointer
+
+   va_start(argptr, fmt);           // Initialize va_ functions
+   std::string S= pub::utility::to_stringv(fmt, argptr);
+   va_end(argptr);                  // Close va_ functions
+
+   debugf("%s\n", S.c_str());
+   debug(S.c_str());
+   Config::trace(".BUG", __LINE__, "Config.cpp");
+   backtrace();
+
+   editor::put_message(S.c_str(), EdMess::T_MESS);
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       Config::backtrace
+//
+// Purpose-
+//       Display backtrace information. (CYGWIN version does nothing.)
+//
+//----------------------------------------------------------------------------
+#define BOOST_STACKTRACE_LINK       // (Use static library)
+#define BOOST_STACKTRACE_USE_BACKTRACE
+#include <iostream>                 // For std::cerr
+#include <boost/stacktrace.hpp>     // For boost::stacktrace::stacktrace()
+void
+   Config::backtrace( void )        // Display backtrace information
+{  std::cerr << boost::stacktrace::stacktrace(); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Config::check
 //
 // Purpose-
@@ -252,6 +300,72 @@ void
 {  errorf("%s\n", mess.c_str()); exit(EXIT_FAILURE); }
 
 //----------------------------------------------------------------------------
+//
+// Subroutine-
+//       Config::trace
+//
+// Purpose-
+//       Trace utilities
+//
+//----------------------------------------------------------------------------
+void*                               // The trace record (uninitialized)
+   Config::trace(                   // Get trace record
+     unsigned          size)        // Of this extra size
+{
+  typedef ::pub::Trace::Record Record;
+  size += unsigned(sizeof(Record));
+  Record* record= (Record*)::pub::Trace::storage_if(size);
+  return record;
+}
+
+void
+   Config::trace(                   // Simple trace event
+     const char*       ident,       // Trace identifier
+     uint32_t          code,        // Trace code
+     const char*       info)        // Trace info (15 characters max)
+{
+   typedef ::pub::Trace::Record Record;
+   Record* record= (Record*)trace();
+   if( record ) {
+     char* unit= (char*)&record->unit;
+     unit[3]= char(code >>  0);
+     unit[2]= char(code >>  8);
+     unit[1]= char(code >> 16);
+     unit[0]= char(code >> 24);
+
+     memset(record->value, 0, sizeof(record->value));
+     if( info )
+       strcpy(record->value, info);
+     record->trace(ident);
+   }
+}
+
+void
+   Config::trace(                   // Simple trace event
+     const char*       ident,       // Trace identifier
+     const char*       code,        // Trace sub-identifier
+     void*             _one,        // Word one
+     void*             _two)        // Word two
+{
+   uintptr_t one= uintptr_t(_one);
+   uintptr_t two= uintptr_t(_two);
+
+   typedef ::pub::Trace::Record Record;
+   Record* record= (Record*)trace();
+   if( record ) {
+     memcpy(&record->unit, code, 4);
+
+     for(unsigned i= 8; i>0; i--) {
+       record->value[0 + i - 1]= char(one);
+       record->value[8 + i - 1]= char(two);
+       one >>= 8;
+       two >>= 8;
+     }
+     record->trace(ident);
+   }
+}
+
+//----------------------------------------------------------------------------
 // Subroutine: make_dir, insure directory exists
 //----------------------------------------------------------------------------
 static void make_dir(std::string path) // Insure directory exists
@@ -298,23 +412,39 @@ static void
    sig_handler(                     // Handle signals
      int               id)          // The signal identifier
 {
+   static int recursion= 0;         // Signal recursion depth
+   if( recursion ) {                // If signal recursion
+     fprintf(stderr, "sig_handler(%d) recursion(%d)\n", id, recursion);
+     abort();
+   }
+
+   // Handle signal
+   recursion++;                     // Disallow recursion
    const char* text= "<<Unexpected>>";
    if( id == SIGINT ) text= "SIGINT";
    else if( id == SIGSEGV ) text= "SIGSEGV";
    else if( id == SIGUSR1 ) text= "SIGUSR1";
    else if( id == SIGUSR2 ) text= "SIGUSR2";
-   Config::errorf("\n\nsig_handler(%d) %s pid(%d)\n", id, text, getpid());
+   Config::errorf("\n\nsig_handler(%d) %s\n", id, text);
 
    switch(id) {                     // Handle the signal
-     case SIGINT:
+     case SIGINT:                   // (Console CTRL-C)
+       exit(EXIT_FAILURE);          // Unconditional immediate exit
+       break;
+
      case SIGSEGV:
-       exit(EXIT_FAILURE);          // Exit, no dump
+       Config::backtrace();         // Attempt diagnosis (recursion aborts)
+       Config::debug("SIGSEGV");
+       Config::errorf("..terminating..\n");
+       exit(EXIT_FAILURE);          // Exit, no stacktrace
        break;
 
      default:
        signalSignal.signal(id);
        break;
    }
+
+   recursion--;
 }
 
 //----------------------------------------------------------------------------
@@ -343,7 +473,6 @@ static int                          // Return code (0 OK)
 
 // if( opt_hcdm )                   // If Hard Core Debug Mode TODO: REPAIR
      debug->set_mode(pub::Debug::MODE_INTENSIVE);
-   debugf("%4d Config::init\n", __LINE__); // TODO: REMOVE (Clears debug.out)
 
    //-------------------------------------------------------------------------
    // Create memory-mapped trace file
@@ -372,18 +501,23 @@ static int                          // Return code (0 OK)
 
    pub::Trace::trace= pub::Trace::make(trace_table, TRACE_SIZE);
    close(fd);                       // Descriptor not needed once mapped
-// debugf("%4d Config::init trace(%s)\n", __LINE__, S.c_str()); // TODO: REMOVE
+   // TODO: REMOVE (BRINGUP)
+   debugf("%4d Config::init backtrace test\n", __LINE__);
+   Config::backtrace();
+   debugf("%4d Config::init(%d) %s %s\n", __LINE__, getpid(), __DATE__, __TIME__);
 
    //-------------------------------------------------------------------------
    // Initialize signal handling
    sys1_handler= signal(SIGINT,  sig_handler);
-   sys2_handler= signal(SIGSEGV, sig_handler);
-   usr1_handler= signal(SIGUSR1, sig_handler); // TODO: REMOVE
-   usr2_handler= signal(SIGUSR2, sig_handler); // TODO: REMOVE
+   sys2_handler= signal(SIGSEGV, sig_handler);                // TODO: REPAIR
+   debugf("%4d Config SIGSEGV handler enabled\n", __LINE__);  // TODO: REMOVE
+   usr1_handler= signal(SIGUSR1, sig_handler);
+   usr2_handler= signal(SIGUSR2, sig_handler);
 
    //-------------------------------------------------------------------------
    // Initialize locale
    setlocale(LC_NUMERIC, "");       // Allows printf("%'d\n", 123456789);
+   printf("%4d Config::init(%'d) ?commas?\n", __LINE__, 123456789);
 
    return 0;                        // Placeholder
 }

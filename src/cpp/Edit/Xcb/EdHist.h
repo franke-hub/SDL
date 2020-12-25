@@ -16,7 +16,7 @@
 //       Editor: History EdView
 //
 // Last change date-
-//       2020/12/11
+//       2020/12/23
 //
 //----------------------------------------------------------------------------
 #ifndef EDHIST_H_INCLUDED
@@ -26,10 +26,7 @@
 #include <sys/types.h>              // For system types
 #include <pub/List.h>               // For pub::List
 
-#include "Xcb/Active.h"             // For xcb::Active
-#include "Xcb/Global.h"             // For xcb::opt_* controls
-#include "Xcb/Types.h"              // For xcb::Line
-
+#include "EdFile.h"                 // For EdLine (base class)
 #include "EdView.h"                 // For EdView (base class)
 
 //----------------------------------------------------------------------------
@@ -41,40 +38,33 @@
 //       History line.
 //
 //----------------------------------------------------------------------------
-class HistLine : public xcb::Line { // Editor history line
+class HistLine : public EdLine {    // Editor history line
 public:
 std::string            line;        // Saved line text
 
-// HistLine::Constructors ====================================================
+// HistLine::Constructor/Destructor ==========================================
    HistLine(                        // Default/text constructor
-     const char*       _text= nullptr) // Associated text
-:  Line()
-{  reset(_text); }
+     const char*       _text= nullptr); // Associated text
 
-// HistLine::Destructor ======================================================
-virtual
-   ~HistLine( void ) = default;     // Default destructor
+   ~HistLine( void );               // Default destructor
 
 // HistLine::Accessor methods ================================================
 public:
 inline HistLine*
    get_next( void ) const
-{  return (HistLine*)xcb::Line::get_next(); }
+{  return (HistLine*)EdLine::get_next(); }
 
 inline HistLine*
    get_prev( void ) const
-{  return (HistLine*)xcb::Line::get_prev(); }
+{  return (HistLine*)EdLine::get_prev(); }
+
+const char*
+   get_text( void ) const;          // Get the text
 
 // HistLine::Methods =========================================================
 void
    reset(                           // Reset the text
-     const char*       _text= nullptr) // To this string
-{
-   if( _text == nullptr )           // If text omitted
-     _text= "";                     // Use empty string
-   line= _text;                     // Set dynamic string
-   text= line.c_str();              // Use dynamic string's text
-}
+     const char*       _text= nullptr); // To this string
 }; // class HistLine
 
 //----------------------------------------------------------------------------
@@ -103,15 +93,11 @@ HistLine*              hist_line= nullptr; // The current history line, if any
 unsigned               hist_rows= 0; // Number of History rows
 
 //----------------------------------------------------------------------------
-// EdHist::Constructor
-//----------------------------------------------------------------------------
-   EdHist( void );                  // Default constructor
-
-//----------------------------------------------------------------------------
-// EdHist::Destructor
+// EdHist::Destructor/Constructor
 //----------------------------------------------------------------------------
 virtual
    ~EdHist( void );                 // Destructor
+   EdHist( void );                  // Default constructor
 
 //----------------------------------------------------------------------------
 //
@@ -124,7 +110,20 @@ virtual
 //----------------------------------------------------------------------------
 virtual void
    debug(                           // Debugging display
-     const char*       text= nullptr) const; // Associated text
+     const char*       info= nullptr) const; // Associated info
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdHist::get_gc
+//
+// Purpose-
+//       Get the current graphic context
+//
+//----------------------------------------------------------------------------
+virtual xcb_gcontext_t               // The current graphic context
+   get_gc( void )                    // Get current graphic context
+{  return gc_font; }
 
 //----------------------------------------------------------------------------
 //

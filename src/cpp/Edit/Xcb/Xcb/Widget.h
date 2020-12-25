@@ -127,7 +127,7 @@ virtual void                        // (Configure phase III)
 
 virtual void
    debug(                           // Debugging display
-     const char*       info= nullptr) const // Caller information
+     const char*       info= nullptr) const // Associated info
 {  (void)info; }                    // (Ignored unless overridden)
 
 virtual void

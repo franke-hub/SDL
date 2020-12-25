@@ -16,7 +16,7 @@
 //       Instantiate externals.
 //
 // Last change date-
-//       2020/12/16
+//       2020/12/24
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For Debug object
@@ -34,7 +34,7 @@ int                    xcb::opt_hcdm= false; // Hard Core Debug Mode?
 const char*            xcb::opt_test= nullptr; // Run bringup test?
 int                    xcb::opt_verbose= -1; // Verbosity, default NONE
 
-uint32_t               xcb::keystate= 0; // Keyboard state
+uint32_t               xcb::keystate= KS_INS; // Keyboard state (insert)
 
 namespace xcb {
 //----------------------------------------------------------------------------
@@ -81,37 +81,6 @@ void
    debugh("%4d CHECKSTOP(%s)\n", line, name);
    debug_flush();
    exit(2);
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       xcb::trace
-//
-// Purpose-
-//       Simple trace
-//
-//----------------------------------------------------------------------------
-void
-   trace(                           // Simple trace event
-     const char*       ident,       // Trace identifier
-     uint32_t          code,        // Trace code
-     const char*       text)        // Trace text (15 characters max)
-{
-  typedef ::pub::Trace::Record Record;
-  Record* record= (Record*)::pub::Trace::storage_if(sizeof(Record));
-  if( record ) {                    // Trace event
-    char* unit= (char*)&record->unit;
-    unit[3]= char(code >>  0);
-    unit[2]= char(code >>  8);
-    unit[1]= char(code >> 16);
-    unit[0]= char(code >> 24);
-
-    memset(record->value, 0, sizeof(record->value));
-    if( text )
-      strcpy(record->value, text);
-    record->trace(ident);
-  }
 }
 
 //----------------------------------------------------------------------------
@@ -184,14 +153,14 @@ void
      int               line,        // Line number
      const char*       name,        // Function name
      int               xc)          // Return code
-{  debugf("%4d 0x%x= %s()\n", line, xc, name); }
+{  debugh("%4d 0x%x= %s()\n", line, xc, name); }
 
 void
    xcbdebug(                        // Log XCB function result
      int               line,        // Line number
      const char*       name,        // Function name
      void*             xc)          // Pointer
-{  debugf("%4d %p= %s()\n", line, xc, name); }
+{  debugh("%4d %p= %s()\n", line, xc, name); }
 
 //----------------------------------------------------------------------------
 //

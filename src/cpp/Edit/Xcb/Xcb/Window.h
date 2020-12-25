@@ -16,7 +16,7 @@
 //       XCB based Window
 //
 // Last change date-
-//       2020/12/11
+//       2020/12/23
 //
 // Implementation notes-
 //       The window field addresses the PARENT window. (Widget already has a
@@ -119,7 +119,7 @@ virtual void                        // (Optionally) override to
 //----------------------------------------------------------------------------
 virtual void
    debug(                           // Debugging display
-     const char*       text= nullptr) const; // Associated text
+     const char*       info= nullptr) const; // Associated info
 
 //----------------------------------------------------------------------------
 //

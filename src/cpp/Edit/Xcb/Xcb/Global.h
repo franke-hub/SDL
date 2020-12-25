@@ -16,7 +16,7 @@
 //       Global data areas and utilities
 //
 // Last change date-
-//       2020/12/16
+//       2020/12/19
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_GLOBAL_H_INCLUDED
@@ -103,21 +103,6 @@ extern void
    checkstop(                       // Check stop
      int               line,        // Line number
      const char*       name);       // Function name
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       xcb::trace
-//
-// Purpose-
-//       Simple trace event
-//
-//----------------------------------------------------------------------------
-extern void
-   trace(                           // Simple trace event
-     const char*       ident,       // Trace identifier
-     uint32_t          code= 0,     // Trace code
-     const char*       text= nullptr); // Trace text (15 characters max)
 
 //----------------------------------------------------------------------------
 //

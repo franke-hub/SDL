@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2020/12/16
+//       2020/12/25
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -36,11 +36,13 @@
 class EdFile;                       // Editor file descriptor
 class EdFind;                       // Editor find Popup
 class EdFull;                       // Editor full Window (experimental)
+class EdHist;                       // Editor history view
 class EdMark;                       // Editor mark controller
 class EdMenu;                       // Editor menu Layout
 class EdPool;                       // Editor pool allocators
 class EdTabs;                       // Editor tabs Layout
 class EdText;                       // Editor text Window
+class EdView;                       // Editor view
 
 //----------------------------------------------------------------------------
 //
@@ -52,6 +54,9 @@ class EdText;                       // Editor text Window
 //
 //----------------------------------------------------------------------------
 class Editor {                      // Editor constuctor/destructor
+//----------------------------------------------------------------------------
+// Editor::Constructor/Destructor
+//----------------------------------------------------------------------------
 public:
    Editor(                          // Constructor
      int               argi,        // Argument index
@@ -59,6 +64,13 @@ public:
      char*             argv[]);     // Argument array
 
    ~Editor( void );                 // Destructor
+
+//----------------------------------------------------------------------------
+// Editor::debug (Debugging display)
+//----------------------------------------------------------------------------
+static void
+   debug(                           // Debugging display
+     const char*       info= nullptr); // Associated info
 }; // class Editor
 
 //----------------------------------------------------------------------------
@@ -76,16 +88,21 @@ namespace editor {                  // The Editor namespace
 //----------------------------------------------------------------------------
 extern xcb::Device*    device;      // The root Device
 extern xcb::Window*    window;      // The test Window
-
-extern pub::List<EdFile> file_list; // The list of EdFiles
-extern EdMark*         mark;        // The Mark Handler
 extern EdText*         text;        // The Text Window
 
-extern pub::List<EdPool> filePool;  // File allocation EdPool
-extern pub::List<EdPool> textPool;  // Text allocation EdPool
+extern pub::List<EdFile> file_list; // The list of EdFiles
+extern EdFile*         file;        // The current File object
+
+extern EdMark*         mark;        // The Mark Handler
+extern EdView*         data;        // The data view
+extern EdHist*         hist;        // The history view
+extern EdView*         view;        // The active view
 
 extern std::string     locate_string; // The locate string
 extern std::string     change_string; // The change string
+
+extern pub::List<EdPool> filePool;  // File allocation EdPool
+extern pub::List<EdPool> textPool;  // Text allocation EdPool
 
 //----------------------------------------------------------------------------
 //
@@ -99,7 +116,7 @@ extern std::string     change_string; // The change string
 //       Implemented in EdBifs.cpp
 //
 //----------------------------------------------------------------------------
-void
+const char*                         // Error message, nullptr if none
    command(                         // Process a command
      char*             buffer);     // (MODIFIABLE) command buffer
 
@@ -119,14 +136,51 @@ char*                               // The (immutable) text
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::do_done
+//       editor::do_change
 //
 // Purpose-
-//       (Safely) remove all files from the file list. (Error if any changed.)
+//       Change next occurance of string.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code, 0 OK
-   do_done( void );                 // (Safely) terminate, error if changed.
+const char*                         // Return message, nullptr if OK
+   do_change( void );               // Change next occurance of string
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_exit
+//
+// Purpose-
+//       (Safely) remove a file from the ring.
+//
+//----------------------------------------------------------------------------
+void
+   do_exit( void );                 // Safely remove a file from the ring
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_history
+//
+// Purpose-
+//       Invert history view.
+//
+//----------------------------------------------------------------------------
+void
+   do_history( void );              // Invert history view
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_locate
+//
+// Purpose-
+//       Locate next occurance of string.
+//
+//----------------------------------------------------------------------------
+const char*                         // Return message, nullptr if OK
+   do_locate(                       // Locate next
+     int               offset= 1);  // Use offset 0 for locate_change
 
 //----------------------------------------------------------------------------
 //
@@ -139,6 +193,18 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 void
    do_test( void );                 // Bringup test
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::exit
+//
+// Purpose-
+//       Unconditional editor (normal) exit.
+//
+//----------------------------------------------------------------------------
+void
+   exit( void );                    // Unconditional editor (normal) exit
 
 //----------------------------------------------------------------------------
 //
@@ -168,15 +234,28 @@ const char*                         // The symbol name, "???" if unknown
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::remove_file
+//       editor::put_message
 //
 // Purpose-
-//       Remove file from the file list
+//       Add message to file's message list
 //
 //----------------------------------------------------------------------------
 void
-   remove_file(                     // Remove file from the file list
-     EdFile*           file);       // The file to remove (and delete)
+   put_message(                     // Write message
+     const char*       _mess,       // Message text
+     int               _type= 0);   // Message mode (default EdMess::T_INFO)
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::remove_file
+//
+// Purpose-
+//       Remove active file from the file list
+//
+//----------------------------------------------------------------------------
+void
+   remove_file( void );             // Remove active file from the file list
 
 //----------------------------------------------------------------------------
 //
@@ -190,6 +269,18 @@ void
 int                                 // Return code, 0 OK
    set_font(                        // Set the font
      const char*       font= nullptr); // To this font name
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::un_changed
+//
+// Purpose-
+//       If any file has changed, activate it.
+//
+//----------------------------------------------------------------------------
+bool                                // TRUE iff editor is in unchanged state
+   un_changed( void );              // Activate a changed file
 
 //----------------------------------------------------------------------------
 //

@@ -16,7 +16,7 @@
 //       XCB based text Window
 //
 // Last change date-
-//       2020/12/11
+//       2020/12/23
 //
 // Implementation TODO-
 //       The TextWindow uses a one pixel [left,top,bottom,right] draw margin.
@@ -43,6 +43,102 @@
 #include "Xcb/Window.h"             // For Window base class
 
 namespace xcb {
+//----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+class TextWindow;
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       xcb::TextView
+//
+// Purpose-
+//       TextWindow view.
+//
+//----------------------------------------------------------------------------
+class TextView {                    // TextWindow view
+//----------------------------------------------------------------------------
+// xcb::TextView::Attributes
+//----------------------------------------------------------------------------
+public:
+TextWindow*            text= nullptr; // Associated TextWindow
+
+// TextWindow offsets. (Negative values are from bottom row)
+int                    USER_TOP= 0; // Physical top row
+int                    USER_BOT= 0; // Physical bottom row
+
+// Dynamic screen position
+size_t                 col_zero= 0; // Current column[0]
+size_t                 row_zero= 0; // Current row[0]
+unsigned               col= 0;      // Current physical cursor column
+unsigned               row= 0;      // Current physical cursor row
+
+Line*                  line= nullptr; // Current cursor line
+Line*                  head= nullptr; // Head display line
+Line*                  tail= nullptr; // Tail display line
+
+size_t                 mark_lh= 0;  // Left mark column
+size_t                 mark_rh= 0;  // Right mark column
+
+// Graphic context object identifiers are copies, neither allocated nor deleted
+xcb_gcontext_t         gc_flip= 0;  // Graphic context: cursor character
+xcb_gcontext_t         gc_font= 0;  // Graphic context: normal line
+xcb_gcontext_t         gc_mark= 0;  // Graphic context: marked character
+
+//----------------------------------------------------------------------------
+// xcb::TextView::Constructor/Destructor
+//----------------------------------------------------------------------------
+public:
+   TextView(                        // Constructor
+     TextWindow*       _text)       // Associated TextWindow
+:  text(_text) {}
+
+virtual
+   ~TextView( void ) = default;     // Destructor
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::TextView::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+virtual void
+   debug(                           // Debugging display
+     const char*       info= nullptr) const; // Associated info
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::TextView::get_text
+//
+// Purpose-
+//       Get the text (which may be in flux.)
+//
+//----------------------------------------------------------------------------
+virtual const char*                 // The associated text
+   get_text(                        // Get text
+     Line*             line)        // For this Line
+{  return line->text; }             // (OVERRIDE this method, if needed)
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::TextView::draw
+//
+// Purpose-
+//       Draw the TextView
+//
+//----------------------------------------------------------------------------
+virtual void
+   draw(                            // Draw the TextView
+     size_t            col_zero= 0) // Starting from this column
+{  (void)col_zero; }                // (OVERRIDE this method)
+}; // class TextView
+
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -130,7 +226,7 @@ virtual void
 //----------------------------------------------------------------------------
 virtual void
    debug(                           // Debugging display
-     const char*       text= nullptr) const; // Associated text
+     const char*       info= nullptr) const; // Associated info
 
 //----------------------------------------------------------------------------
 //

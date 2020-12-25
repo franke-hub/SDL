@@ -69,7 +69,6 @@ public:
      debugh("EdPool(%p)::EdPool(%zd)\n", this, _size);
 }
 
-//----------------------------------------------------------------------------
 virtual
    ~EdPool( void )                  // Destructor
 {  using namespace config; using namespace pub::debugging;
@@ -81,9 +80,15 @@ virtual
 }
 
 //----------------------------------------------------------------------------
-// EdPool::Methods
+// EdPool::Accessor methods
 //----------------------------------------------------------------------------
 public:
+size_t get_size( void ) const { return size; }
+size_t get_used( void ) const { return used; }
+
+//----------------------------------------------------------------------------
+// EdPool::Methods
+//----------------------------------------------------------------------------
 char*                               // The allocated storage, nullptr if none
    allocate(                        // Get allocated storage
      size_t            size)        // Of this length

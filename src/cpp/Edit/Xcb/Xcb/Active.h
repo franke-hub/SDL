@@ -60,8 +60,8 @@ enum FSM                            // Finite State Machine states
 // xcb::Active::Attributes
 //----------------------------------------------------------------------------
 protected:
-const unsigned char*   source;      // The source text
-mutable unsigned char* buffer= nullptr; // The working buffer (Never shrinks)
+const char*            source;      // The source text
+mutable char*          buffer= nullptr; // The working buffer (Never shrinks)
 Length                 buffer_size; // The buffer size, always > buffer_used
 Length                 buffer_used; // The number of bytes used
 
@@ -79,7 +79,7 @@ public:
 //----------------------------------------------------------------------------
 virtual void
    debug(                           // Debugging display
-     const char*       info= nullptr) const; // Associated text
+     const char*       info= nullptr) const; // Associated info
 
 //----------------------------------------------------------------------------
 // xcb::Active::Protected methods

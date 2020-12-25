@@ -16,13 +16,12 @@
 //       Implement TextWindow.h
 //
 // Last change date-
-//       2020/12/16
+//       2020/12/23
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
 #include <stdio.h>                  // For printf
 #include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/stat.h>               // For stat
 #include <xcb/xcb.h>                // For XCB interfaces
@@ -67,6 +66,28 @@ static inline unsigned              // The truncated value
    v /= unit;                       // Number of units (truncated)
    v *= unit;                       // Number of units * unit length
    return v;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::TextView::debug
+//
+// Purpose-
+//       Debugging display.
+//
+//----------------------------------------------------------------------------
+void
+   TextView::debug(                 // Debugging display
+     const char*       info) const  // Associated info
+{
+   if( info )
+     debugf("TextView(%p)::debug(%s)\n", this, info);
+
+   debugf("..col_zero(%zu) col(%u) row_zero(%zu) row(%u)\n"
+         , col_zero, col, row_zero, row);
+   debugf("..mark[%zu,%zu]", mark_lh, mark_rh);
+   debugf("..line(%p) head(%p) tail(%p)\n", line, head, tail);
 }
 
 //----------------------------------------------------------------------------
@@ -171,20 +192,20 @@ void
 //----------------------------------------------------------------------------
 void
    TextWindow::debug(               // Debugging display
-     const char*       text) const  // Associated text
+     const char*       info) const  // Associated info
 {
-   debugf("TextWindow(%p)::debug(%s) Named(%s)\n", this, text ? text : ""
+   debugf("TextWindow(%p)::debug(%s) Named(%s)\n", this, info ? info : ""
          , get_name().c_str());
    debugf("..col_size(%u) row_size(%u) row_used(%u)\n"
          , col_size, row_size, row_used);
-   Window::debug(text);
+   Window::debug(info);
 
    debugf("..font_name(%s) flipGC(%u) fontGC(%u)\n"
          , font_name.c_str(), flipGC, fontGC);
    // (Fields omitted)
 
    if( opt_hcdm || opt_verbose >= 0 ) {
-     font.debug(text);
+     font.debug(info);
    }
 }
 

@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2020/12/16
+//       2020/12/25
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -24,7 +24,7 @@
 #include <assert.h>                 // For assert
 #include <stdio.h>                  // For printf
 #include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
+#include <com/istring.h>            // For stristr
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/stat.h>               // For stat
 #include <xcb/xcb.h>                // For XCB interfaces
@@ -45,12 +45,15 @@
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For Editor (Implementation class)
 #include "EdFile.h"                 // For EdFile, EdLine, EdPool, ...
+#include "EdHist.h"                 // For EdHist
 #include "EdMark.h"                 // For EdMark
 #include "EdMisc.h"                 // For EdMisc TODO: REMOVE
 #include "EdPool.h"                 // For EdPool
 #include "EdText.h"                 // For EdText
+#include "EdView.h"                 // For EdView
 
-using namespace config;             // For config::opt_*
+using namespace config;             // For namespace config (opt_*)
+using namespace editor;             // For namespace editor
 using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
@@ -58,7 +61,8 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= true                // Extra brinbup diagnostics?
+,  USE_BRINGUP= true                // Extra bringup diagnostics?
+,  USE_HCDM_FILE_DEBUG= true        // (As opposed to name-only file info)
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
@@ -66,16 +70,21 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 xcb::Device*           editor::device= nullptr; // The root Device
 xcb::Window*           editor::window= nullptr; // The test Window
-
-pub::List<EdFile>      editor::file_list; // The list of EdFiles
-EdMark*                editor::mark= nullptr; // The Mark Handler
 EdText*                editor::text= nullptr; // The Text Window
 
-pub::List<EdPool>      editor::filePool; // File allocation EdPool
-pub::List<EdPool>      editor::textPool; // Text allocation EdPool
+pub::List<EdFile>      editor::file_list; // The list of EdFiles
+EdFile*                editor::file= nullptr; // The current File object
+
+EdMark*                editor::mark= nullptr; // The Mark Handler
+EdView*                editor::data= nullptr; // The data view
+EdHist*                editor::hist= nullptr; // The history view
+EdView*                editor::view= nullptr; // The active view
 
 std::string            editor::locate_string; // The locate string
 std::string            editor::change_string; // The change string
+
+pub::List<EdPool>      editor::filePool; // File allocation EdPool
+pub::List<EdPool>      editor::textPool; // Text allocation EdPool
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -111,12 +120,13 @@ static int             singleton= 0; // Singleton control
    // Allocate initial textPool
    textPool.fifo(new EdPool(EdPool::MIN_SIZE));
 
-   // Allocate Device
-   device= new xcb::Device();
-
-   // Allocate sub-objects
-   mark= new EdMark();              // Mark handler
+   // Allocate editor namespace objects
+   device= new xcb::Device();       // The screen/connection device
    text= new EdText();              // Text (window) handler
+   mark= new EdMark();              // Mark handler
+   data= new EdView();              // Data view
+   hist= new EdHist();              // History view
+   view= data;                      // (Initial view)
 
    //-------------------------------------------------------------------------
    // Load the text files
@@ -231,26 +241,179 @@ static int             singleton= 0; // Singleton control
    }
 
    // Delete allocated objects
-   delete window;
    delete mark;
+   delete data;
+   delete hist;
    delete text;
+   delete window;
+// delete device;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::do_done
+//       Editor::debug
 //
 // Purpose-
-//       Handle DONE function: Safely exit all EdFiles
-//
-// Implementation note-
-//       TODO: NOT (PROPERLY) CODED YET
+//       Debugging display
 //
 //----------------------------------------------------------------------------
-int                                 // Return code, 0OK
-   editor::do_done( void )          // Handle DONE
-{  device->operational= false; return 0; } // TODO: Safely exit
+void
+   Editor::debug(                   // Debugging display
+     const char*       info)        // Associated info
+{
+   debugf("Editor::debug(%s)\n", info ? info : "");
+   debugf("..device(%p) window(%p) text(%p)\n", device, window, text);
+   debugf("..file_list(%p,%p) file(%p)\n"
+         , file_list.get_head(), file_list.get_tail(), file);
+   for(EdFile* file= file_list.get_head(); file; file= file->get_next()) {
+     if( USE_HCDM_FILE_DEBUG )      // If hard core file debugging
+       file->debug(info);
+     else                           // If name only file debugging
+       debugf("..[%p] '%s'\n", file, file->name.c_str());
+   }
+   debugf("..mark(%p) data(%p) hist(%p) view(%p)\n", mark, data, hist, view);
+   debugf("..locate[%s] change[%s]\n"
+         , locate_string.c_str(), change_string.c_str());
+
+   size_t size; size_t used;        // Total size, Total used
+   size= used= 0;
+   debugf("..filePool[%p,%p]\n", filePool.get_head(), filePool.get_tail());
+   for(EdPool* pool= filePool.get_head(); pool; pool= pool->get_next()) {
+     debugf("..[%p] used(%'8zu) size(%'8zu)\n", pool
+          , pool->get_used(), pool->get_size());
+     size += pool->get_size();
+     used += pool->get_used();
+   }
+   debugf("..****TOTAL**** used(%'8zu) size(%'8zu)\n", used, size);
+
+   size= used= 0;
+   debugf("..textPool[%p,%p]\n", textPool.get_head(), textPool.get_tail());
+   for(EdPool* pool= textPool.get_head(); pool; pool= pool->get_next()) {
+     debugf("..[%p] used(%'8zu) size(%'8zu)\n", pool
+           , pool->get_used(), pool->get_size());
+     size += pool->get_size();
+     used += pool->get_used();
+   }
+   debugf("..****TOTAL**** used(%'8zu) size(%'8zu)\n", used, size);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_change
+//
+// Purpose-
+//       Change next occurance of string.
+//
+// Implementation note-
+//       REDO not required. The line is changed, but not committed.
+//
+//----------------------------------------------------------------------------
+const char*                         // Return message, nullptr if OK
+   editor::do_change( void )        // Change next occurance of string
+{
+   const char* error= do_locate(0); // First, locate the string
+   if( error ) return error;        // (If cannot locate)
+
+   // The string has been found and the line activated
+   size_t column= data->col_zero + data->col; // The current column
+   size_t length= locate_string.length();
+   data->active.replace_text(column, length, change_string.c_str());
+   text->draw();                    // (Only active line redraw required)
+   return nullptr;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_exit
+//
+// Purpose-
+//       (Safely) remove a file from the file list.
+//
+//----------------------------------------------------------------------------
+void
+   editor::do_exit( void )          // Safely remove a file from the file list
+{
+   if( file->damaged )
+     put_message("File damaged");
+   else if( file->changed )
+     put_message("File changed");
+   else
+     remove_file();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_history
+//
+// Purpose-
+//       Invert history view.
+//
+//----------------------------------------------------------------------------
+void
+   editor::do_history( void )       // Invert history view
+{
+   if( view == hist )
+     data->activate();
+   else
+     hist->activate();
+   text->draw_info();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_locate
+//
+// Purpose-
+//       Locate next occurance of string.
+//
+//----------------------------------------------------------------------------
+const char*                         // Return message, nullptr if OK
+   editor::do_locate(               // Locate next
+     int               offset)      // Use offset 0 for locate_change
+{
+   data->commit();                  // Commit the active line
+
+   const char* S= locate_string.c_str();
+
+   //-------------------------------------------------------------------------
+   // Locate in the active line
+   EdLine* line= data->cursor;
+   size_t column= data->col_zero + data->col + offset;
+   if( (line->flags & EdLine::F_PROT) == 0 ) { // If line is not protected
+     const char* C= data->active.get_buffer(column); // Remaining characters
+     const char* M= stristr(C, S);
+     if( M != nullptr ) {
+       data->activate();
+       column += M - C;
+       text->move_cursor_H(column);
+       text->draw_info();
+       return nullptr;
+     }
+   }
+
+   //-------------------------------------------------------------------------
+   // Search remainder of file
+   for(;;) {
+     line= line->get_next();
+     if( line == nullptr )
+       return "Not found";
+
+     if( (line->flags & EdLine::F_PROT) == 0 ) {
+       const char* M= stristr(line->text, S);
+       if( M != nullptr ) {
+         data->activate();
+         text->move_cursor_H(M - line->text);
+         text->activate(line);
+         return nullptr;
+       }
+     }
+   }
+}
 
 //----------------------------------------------------------------------------
 //
@@ -265,14 +428,19 @@ void
    editor::do_test( void )          // Bringup test
 {
    if( window && window->get_parent() ) { // If test window active
-     fprintf(stderr, "editor::do_test\n");
+     Config::errorf("editor::do_test\n");
      if( window->state & xcb::Window::WS_VISIBLE )
        window->hide();
      else
        window->show();
      device->draw();
-   } else
-     fprintf(stderr, "editor::do_test NOT CONFIGURED\n");
+   } else {
+     if( false ) {
+       debugf("SEGFAULT TEST!!\n");
+       printf("%p\n", window->get_parent()->get_parent()); // (SEGFAULT TEST)
+     }
+     Config::errorf("editor::do_test NOT CONFIGURED\n");
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -297,7 +465,7 @@ char*                               // The (immutable) text
 
    text= pool->allocate(length);
    if( text == nullptr ) {
-     if( length > (EdPool::MIN_SIZE / 8) ) { // If large allocation
+     if( length > EdPool::MIN_SIZE ) { // If large allocation
        pool= new EdPool(length);    // All filePools are 100% allocated
        text= pool->allocate(length);
        filePool.lifo(pool);
@@ -319,9 +487,22 @@ char*                               // The (immutable) text
    }
 
    if( opt_hcdm && opt_verbose > 1 )
-     debugf("%p= editor::allocate(%zd)\n", text, length);
+     traceh("%p= editor::allocate(%zd)\n", text, length);
    return text;
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::exit
+//
+// Purpose-
+//       Unconditional editor (normal) exit.
+//
+//----------------------------------------------------------------------------
+void
+   editor::exit( void )             // Unconditional editor (normal) exit
+{  device->operational= false; }
 
 //----------------------------------------------------------------------------
 //
@@ -342,7 +523,7 @@ EdFile*                             // The last file inserted
    editor::insert_file(             // Insert file(s) onto the file list
      const char*       _name)       // The file name (file wildcards allowed)
 {  if( opt_hcdm )
-     debugf("editor::insert_file(%s)\n", _name);
+     traceh("editor::insert_file(%s)\n", _name);
 
    using namespace pub::Fileman;    // Using Fileman objects
 
@@ -483,6 +664,25 @@ static const char* F_KEY= "123456789ABCDEF";
 //----------------------------------------------------------------------------
 //
 // Method-
+//       editor::put_message
+//
+// Purpose-
+//       Add message to file's message list
+//
+//----------------------------------------------------------------------------
+void
+   editor::put_message(             // Write message
+     const char*       _mess,       // Message text
+     int               _type)       // Message mode
+{  if( file )
+     file->put_message(_mess, _type);
+   else
+     debugh("Editor::put_message(%s)\n", _mess);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       editor::remove_file
 //
 // Purpose-
@@ -490,8 +690,7 @@ static const char* F_KEY= "123456789ABCDEF";
 //
 //----------------------------------------------------------------------------
 void
-   editor::remove_file(             // Remove file from the file list
-     EdFile*           file)        // The file to remove
+   editor::remove_file( void )      // Remove active file from the file list
 {
    EdFile* next= file->get_prev();
    if( next == nullptr ) {
@@ -503,6 +702,7 @@ void
    if( next ) {                     // (If next == nullptr, leave file)
      file_list.remove(file, file);  // Remove the file from the file list
      delete file;                   // And delete it
+     editor::file= nullptr;         // (Don't reference it any more)
 
      text->activate(next);
      text->draw();
@@ -524,6 +724,37 @@ int                                 // Return code, 0 OK
 {  return text->set_font(font); }   // (Defer to EdText)
 
 //----------------------------------------------------------------------------
+//
+// Method-
+//       editor::un_changed
+//
+// Purpose-
+//       If any file has changed, activate it
+//
+//----------------------------------------------------------------------------
+bool                                // TRUE if editor in unchanged state
+   editor::un_changed( void )       // If any file changed, activate it
+{
+   data->commit();                  // Commit the active line
+
+   if( file->changed ) {            // If this file has changed
+     put_message("File changed");
+     return false;                  // (It's already active)
+   }
+
+   for(EdFile* file= file_list.get_head(); file; file= file->get_next()) {
+     if( file->changed && !file->damaged ) { // If changed and changeable
+       put_message("File changed");
+       text->activate(file);
+       text->draw();
+       return false;
+     }
+   }
+
+   return true;
+}
+
+//----------------------------------------------------------------------------
 // editor::Virtual Thread simulation methods
 //----------------------------------------------------------------------------
 void
@@ -538,6 +769,7 @@ void
 
    // Set initial file
    text->activate(file_list.get_head());
+   text->grab_mouse();
 
    // Start the Device
    device->draw();

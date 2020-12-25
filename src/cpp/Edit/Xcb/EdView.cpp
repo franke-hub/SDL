@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2020/12/17
+//       2020/12/24
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -37,7 +37,7 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= false               // Extra brinbup diagnostics?
+,  USE_BRINGUP= false               // Extra bringup diagnostics?
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
@@ -75,13 +75,50 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 void
    EdView::debug(                   // Debugging display
-     const char*       text) const  // Associated text
+     const char*       info) const  // Associated info
 {
-   debugf("EdView(%p)::debug(%s)\n", this, text ? text : "");
+   if( info ) debugf("EdView(%p)::debug(%s)\n", this, info);
    debugf("..col_zero(%zd) col(%u) row_zero(%zd) row(%u)\n"
          , col_zero, col, row_zero, row);
-   if( opt_verbose >= 0 )
-     debugf("..gc_font(%u) gc_flip(%u)\n", gc_font, gc_flip);
+   debugf("..gc_font(%u) gc_flip(%u) gc_mark(%u)\n"
+         , gc_font, gc_flip, gc_mark);
+   if( cursor ) {
+     debugf("..cursor: "); cursor->debug(); // (Multi-statement line)
+   } else
+     debugf("..cursor(%p)\n", cursor);
+   active.debug();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdView::activate
+//
+// Purpose-
+//       Activate thie EdView
+//
+//----------------------------------------------------------------------------
+void
+   EdView::activate( void )         // Activate this EdView
+{  editor::view= this; }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdView::get_gc
+//
+// Purpose-
+//       Get the current graphic context
+//
+//----------------------------------------------------------------------------
+xcb_gcontext_t                       // The current graphic context
+   EdView::get_gc( void )            // Get current graphic context
+{
+   xcb_gcontext_t gc= gc_font;
+   if( cursor->flags & EdLine::F_MARK )
+     gc= gc_mark;
+
+   return gc;
 }
 
 //----------------------------------------------------------------------------
@@ -106,11 +143,9 @@ void
      debugh("EdView(%p)::commit buffer(%s)\n", this , buffer);
 
    if( buffer ) {                   // If actually changed
-     EdLine* cursor= text->cursor;
-
      // Create a new REDO line, duplicating the current line chain
      EdLine* line= new EdLine();
-     *line= *cursor;                // (Duplicates the links)
+     *line= *cursor;                // (Duplicates links and delimiters)
 
      // Replace the text in the REDO line
      size_t length= active.get_used();
@@ -126,13 +161,14 @@ void
      // The new line replaces the cursor line in the file_list
      file_list.remove(cursor, cursor); // (Does not change links)
      file_list.insert(cursor->get_prev(), line, line);
-     text->cursor= line;
 
      // Create and initialize a REDO object
      EdRedo* redo= new EdRedo();
      redo->head_remove= redo->tail_remove= cursor;
      redo->head_insert= redo->tail_insert= line;
-     text->file->insert_undo(redo); // (Sets text->file->changed)
+     editor::file->insert_undo(redo); // (Sets file->changed)
+
+     cursor= line;                  // Replace the cursor
    }
 }
 
@@ -152,7 +188,7 @@ void
    EdText* text= editor::text;
 
    text->undo_cursor();
-   if( (((EdLine*)text->cursor)->flags & EdLine::F_PROT) == 0 ) // If not protected
+   if( (cursor->flags & EdLine::F_PROT) == 0 ) // If not protected
      commit();                      // Commit the active line
 
    int rc= 1;                       // Default, no draw

@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2020/12/17
+//       2020/12/25
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -27,10 +27,9 @@
 //       EdRedo: EdFile redo/undo descriptor
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>                  // For printf, ...
+#include <stdio.h>                  // For printf, fopen, fclose, ...
 #include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp, ...
-#include <unistd.h>                 // For close, ftruncate
+//nclude <unistd.h>                 // For close
 #include <sys/stat.h>               // For stat
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Signals.h>            // For pub::signals::Signal
@@ -98,16 +97,14 @@ static const char*                  // The file name (only)
      const char*       _name)       // Fully qualified file name
 :  ::pub::List<EdFile>::Link()
 ,  name(_name)
-{
-   if( opt_hcdm )
-     debugh("EdFile(%p)::EdFile(%s)\n", this, get_name().c_str());
+{  if( HCDM || opt_hcdm )
+     traceh("EdFile(%p)::EdFile(%s)\n", this, get_name().c_str());
 
-   EdLine* top= new EdLine("* * * * Top of file * * * *");
-   EdLine* bot= new EdLine("* * * * End of file * * * *");
+   EdLine* top= new_line("* * * * Top of file * * * *");
+   EdLine* bot= new_line("* * * * End of file * * * *");
+   top->flags= bot->flags= EdLine::F_PROT; // (Protect these lines)
    line_list.fifo(top);
    line_list.fifo(bot);
-   top->flags= EdLine::F_PROT;
-   bot->flags= EdLine::F_PROT;
 
    top_line= top;
    csr_line= top;
@@ -118,11 +115,16 @@ static const char*                  // The file name (only)
 
    EdFile::~EdFile( void )          // Destructor
 {
-   if( opt_hcdm )
-     debugh("EdFile(%p)::~EdFile\n", this);
-// debug("Destructor");
+   if( HCDM || opt_hcdm )
+     traceh("EdFile(%p)::~EdFile(%s)\n", this, get_name().c_str());
+
+   if( HCDM && !line_list.is_coherent() )
+     Config::alertf("%4d incoherent\n", __LINE__);
 
    reset();                         // Delete REDO/UNDO lists
+
+   if( HCDM && !line_list.is_coherent() )
+     Config::alertf("%4d incoherent\n", __LINE__);
 
    for(;;) {                        // Delete all lines
      EdLine* line= line_list.remq();
@@ -148,17 +150,17 @@ char*
 EdLine*                             // The EdLine*
    EdFile::get_line(                // Get EdLine*
      size_t            row) const   // For this row number
-{  // TODO: VERIFY USAGE
+{
    EdLine* line= line_list.get_head(); // Get top line
    while( row > 0 ) {               // Locate row
      line= (EdLine*)line->get_next();
-     if( line == nullptr )          // SHOULD NOT OCCUR
+     if( line == nullptr )
        break;
 
      row--;
    }
 
-   return line;
+   return line ? line : line_list.get_tail(); // (Never return nullptr)
 }
 
 size_t                              // The row number
@@ -208,10 +210,10 @@ static inline const char*           // "true" or "false"
 
 void
    EdFile::debug(                   // Debugging display
-     const char*       text) const  // Associated text
+     const char*       info) const  // Associated info
 {
    debugf("EdFile(%p)::debug(%s) '%s'\n", this
-         , text ? text : "", get_name().c_str());
+         , info ? info : "", get_name().c_str());
 
    debugf("..mode(%d) changed(%s) damaged(%s) protect(%s)\n"
          , mode, TF(changed), TF(damaged), TF(protect));
@@ -233,7 +235,7 @@ void
      redo->debug("undo");
    }
 
-   if( strcasecmp(text, "lines") == 0 ) {
+   if( strcasecmp(info, "lines") == 0 ) {
      debugf("..line_list:\n");
      size_t N= 0;
      for(EdLine* line= line_list.get_head(); line; line= line->get_next()) {
@@ -256,9 +258,8 @@ void
    EdFile::activate(                // Activate
      EdLine*           line)        // This line
 {
-   EdText* text= editor::text;
-   if( this == text->file ) {       // If the file is active
-     text->activate(line);
+   if( this == editor::file ) {     // If the file is active
+     editor::text->activate(line);
    } else {                         // If the file is off-screen
      top_line= csr_line= line;
      col_zero= col= row= 0;
@@ -321,20 +322,23 @@ EdLine*                             // The last inserted line
      line= insert(line, new EdLine(from));
 
      char* nend= strchr(used, '\n'); // Get next line delimiter
-     if( nend == nullptr ) {        // Missing '\\n' delimiter
+     if( nend == nullptr ) {        // Missing '\n' delimiter
        size_t L= strlen(from);      // String length
        if( (from + L) >= last ) {
+         line->delim[0]= line->delim[1]= '\0';
          put_message("Ending '\\n' missing");
          break;
        }
 
        nend= from + L;              // '\0' delimiter found
+       line->delim[0]= 0;
        line->delim[1]= 1;
        while( ++nend < last ) {
          if( *nend ) break;         // If not a '\0' delimiter
          if( ++line->delim[1] == 0 ) { // If repetition count overflow
            line->delim[1]= 255;
            line= insert(line, new EdLine(nend));
+           line->delim[0]= 0;
            line->delim[1]= 1;
          }
        }
@@ -430,7 +434,32 @@ void
    undo_list.lifo(edRedo);
    changed= true;
 
-   Config::check("insert_undo");    // TODO: HCDM: REMOVE
+   if( HCDM )
+     Config::check("insert_undo");
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::new_line
+//
+// Purpose-
+//       Allocate a new line, also setting the delimiter
+//
+// Implementation note-
+//       DOS files get DOS delimiters. All others get UNIX delimiters.
+//
+//----------------------------------------------------------------------------
+EdLine*                             // The allocated line
+   EdFile::new_line(                // Allocate a new line
+     const char*       text) const  // Line text
+{
+   EdLine* line= new EdLine(text);
+   line->delim[0]= '\n';            // Default, UNIX delimiter
+   if( mode == M_DOS )              // For DOS mode files
+     line->delim[1]= '\r';          // Use DOS delimiter
+
+   return line;
 }
 
 //----------------------------------------------------------------------------
@@ -457,7 +486,7 @@ void
      return;
 
    mess_list.fifo(new EdMess(_mess, _type));
-   if( editor::text->file == this ) // (Only if this file is active)
+   if( editor::file == this )       // (Only if this file is active)
      editor::text->draw_info();     // (Otherwise, message is deferred)
 }
 
@@ -522,6 +551,7 @@ static void
          , redo->head_remove, redo->tail_remove);
 
    redo->debug("Inconsistent");
+   Config::debug("REDO/UNDO inconsistent");
    Config::failure("REDO/UNDO inconsistent");
 }
 
@@ -587,12 +617,13 @@ static void
 //============================================================================
 void
    EdFile::redo( void )             // Perform redo action
-{
-// debugf("\n\n--------------------------------\n");
-   if( opt_hcdm )
-     debugh("EdFile(%p)::redo\n", this);
+{  if( HCDM || opt_hcdm )
+     traceh("EdFile(%p)::redo\n", this);
 
-// debug("redo");
+   if( HCDM ) {
+     debugf("\n\n--------------------------------\n");
+     debug("redo");
+   }
 
    EdRedo* redo= redo_list.remq();
    if( redo == nullptr ) {
@@ -672,12 +703,13 @@ void
 //============================================================================
 void
    EdFile::undo( void )             // Perform undo action
-{
-// debugf("\n\n--------------------------------\n");
-   if( opt_hcdm )
-     debugh("EdFile(%p)::undo\n", this);
+{  if( HCDM || opt_hcdm )
+     traceh("EdFile(%p)::undo\n", this);
 
-// debug("undo");
+   if( HCDM ) {
+     debugf("\n\n--------------------------------\n");
+     debug("undo");
+   }
 
    EdRedo* undo= undo_list.remq();
    if( undo == nullptr ) {
@@ -749,7 +781,8 @@ void
    redo_list.lifo(undo);            // UNDO => REDO
 // debug("undo-done");
 
-   Config::check("undo");           // TODO: HCDM: REMOVE
+   if( HCDM )
+     Config::check("undo");
 }
 
 //----------------------------------------------------------------------------
@@ -848,46 +881,62 @@ int                                 // Return code, 0 OK
 {
    int                 rc= -2;      // Default, open failure
 
-   FILE* f= fopen(name, "wb");      // Open the file
-   if( f ) {                        // If open succeeded
-     for(EdLine* line= line_list.get_head(); line; line= line->get_next()) {
+   FILE* F= fopen(name, "wb");      // Open the file
+   if( F ) {                        // If open successful
+     rc= -1;                        // Default, write failure
+     for(EdLine* line= line_list.get_head(); ; line= line->get_next()) {
+       if( line == nullptr ) {      // If all lines written
+         rc= 0;                     // No error
+         break;
+       }
        if( (line->flags & EdLine::F_PROT) == 0 ) {
-         rc= fprintf(f, "%s", line->text);
-         if( rc >= 0 ) {
-           if( line->delim[0] == '\n' ) { // If UNIX/DOS format
-             if( line->delim[1] != '\0' ) { // If DOS format
-               rc= fputc('\r', f);
-               if( rc >= 0 )
-                 rc= fputc('\n', f);
-             } else                // If UNIX format
-               rc= fputc('\n', f);
-           } else if( line->delim[0] == '\0' ) { // If '\0' delimiter
-             for(int i= 0; i<line->delim[1]; i++) {
-               rc= fputc('\0', f);
-               if( rc < 0 ) break;
-             }
-           } else if( line->delim[0] == '\r' ) { // If '\r' delimiter
-             // TODO: REMOVE: NOT IMPLEMENTED IN READER
-             for(int i= 0; i<line->delim[1]; i++) {
-               rc= fputc('\r', f);
-               if( rc < 0 ) break;
-             }
-           } else {                   // If INVALID format (should not occur)
-             fprintf(stderr, "%4d EdFile INTERNAL ERROR\n", __LINE__);
-             fprintf(stderr, "EdLine(%p) text(%p)[%2x,%2x] '%s'\n", line
-                    , line->text, line->delim[0], line->delim[1], line->text);
-             rc= -3;
-           }
+         // Write line data
+         if( line->text[0] != '\0' ) {
+           int wc= fprintf(F, "%s", line->text);
+           if( wc < 0 ) break;      // If write failure
          }
-         if( rc < 0 )
+
+         // Write line delimiter
+         if( line->delim[0] == '\n' ) { // If UNIX or DOS format
+           if( line->delim[1] != '\0' ) { // If DOS format
+             int cc= fputc('\r', F);
+             if( cc < 0 ) break;    // If write failure
+           }
+           int cc= fputc('\n', F);
+           if( cc < 0 ) break;      // If write failure
+
+         } else if( line->delim[0] == '\0' ) { // If '\0' delimiter
+           size_t L= 1;             // Default, OK
+           for(int i= 0; i<line->delim[1]; i++) {
+             int cc= fputc('\0', F);
+             if( cc < 0 ) break;    // If write failure
+           }
+           if( L != 1 ) break;      // If write failure
+
+#if 0    // REMOVED: '\r' not implemented in reader
+         } else if( line->delim[0] == '\r' ) { // If '\r' delimiter
+           int cc= 1;               // Default, OK
+           for(int i= 0; i<line->delim[1]; i++) {
+             cc= fputc('\r', F);
+             if( cc < 0 ) break;    // If write failure
+           }
+           if( cc < 0 ) break;      // If write failure
+#endif   // REMOVED: '\r' not implemented in reader
+
+         } else {                   // If INVALID delimiter (should not occur)
+           rc= -3;
+           Config::errorf("%4d EdFile INTERNAL ERROR\n", __LINE__);
+           Config::errorf("EdLine(%p) text(%p)[%2x,%2x] '%s'\n", line
+                  , line->text, line->delim[0], line->delim[1], line->text);
            break;
+         }
        }
      }
 
-     if( rc < 0 )
-       fclose(f);
+     if( rc )
+       fclose(F);
      else
-       rc= fclose(f);
+       rc= fclose(F);
    }
 
    return rc;
@@ -896,14 +945,22 @@ int                                 // Return code, 0 OK
 int                                 // Return code, 0 OK
    EdFile::write( void )            // Write (replace) the file
 {
+   const char* const file_name= name.c_str();
    std::string S= config::AUTO;     // The AUTOSAVE directory
    S += "/";                        // Add directory delimiter
    S += config::AUTOFILE;           // AUTOSAVE file name header
-   S += name_of(name.c_str());      // Append file name
+   S += name_of(file_name);         // Append file name
 
    int rc= write(S.c_str());        // Write AUTOSAVE file
-   if( rc == 0 )
-     rc= rename(S.c_str(), name.c_str()); // Rename the file
+   if( rc == 0 ) {
+     struct stat st;                // File stats
+     int rc= stat(file_name, &st);  // Get file information
+     if( rc != 0 )                  // If failure
+       st.st_mode= (S_IRUSR | S_IWUSR); // Default, user read/write
+     rc= rename(S.c_str(), file_name); // Rename the file
+     if( rc == 0 )                  // If renamed
+       chmod(file_name, st.st_mode); // Restore the file mode
+   }
 
    return rc;
 }
@@ -920,15 +977,13 @@ int                                 // Return code, 0 OK
    EdLine::EdLine(                  // Constructor
      const char*       text)        // Line text
 :  ::xcb::Line(text)
-{
-   if( opt_hcdm && opt_verbose > 2 )
-     debugh("EdLine(%p)::EdLine\n", this);
+{  if( HCDM || (opt_hcdm && opt_verbose > 2) )
+     traceh("EdLine(%p)::EdLine\n", this);
 }
 
    EdLine::~EdLine( void )          // Destructor
-{
-   if( opt_hcdm && opt_verbose > 2 )
-     debugh("EdLine(%p)::~EdLine\n", this);
+{  if( HCDM || (opt_hcdm && opt_verbose > 2) )
+     traceh("EdLine(%p)::~EdLine\n", this);
 }
 
 //----------------------------------------------------------------------------
@@ -962,15 +1017,13 @@ void
      std::string       _mess,       // Message text
      int               _type)       // Message type
 :  ::pub::List<EdMess>::Link(), mess(_mess), type(_type)
-{
-   if( opt_hcdm )
-     debugh("EdMess(%p)::EdMess(%s,%d)\n", this, _mess.c_str(), _type);
+{  if( HCDM || opt_hcdm )
+     traceh("EdMess(%p)::EdMess(%s,%d)\n", this, _mess.c_str(), _type);
 }
 
    EdMess::~EdMess( void )          // Destructor
-{
-   if( opt_hcdm )
-     debugh("EdMess(%p)::~EdMess\n", this);
+{  if( HCDM || opt_hcdm )
+     traceh("EdMess(%p)::~EdMess\n", this);
 }
 
 //============================================================================
@@ -986,9 +1039,8 @@ void
      EdLine*           _head,       // First hidden line
      EdLine*           _tail)       // Final hidden line
 :  EdLine()
-{
-   if( opt_hcdm )
-     debugh("EdHide(%p)::EdHide\n", this);
+{  if( HCDM || opt_hcdm )
+     traceh("EdHide(%p)::EdHide\n", this);
 
    flags= F_HIDE;
    if( _head ) {
@@ -999,8 +1051,7 @@ void
 }
 
    EdHide::~EdHide( void )          // Destructor
-{
-   if( opt_hcdm )
+{  if( HCDM || opt_hcdm )
      debugh("EdHide(%p)::~EdHide\n", this);
 
    EdLine* line= head;
@@ -1109,14 +1160,12 @@ void
 //----------------------------------------------------------------------------
    EdRedo::EdRedo( void )           // Constructor
 :  ::pub::List<EdRedo>::Link()
-{
-   if( opt_hcdm )
+{  if( HCDM || opt_hcdm )
      debugh("EdRedo(%p)::EdRedo\n", this);
 }
 
    EdRedo::~EdRedo( void )          // Destructor
-{
-   if( opt_hcdm )
+{  if( HCDM || opt_hcdm )
      debugh("EdRedo(%p)::~EdRedo\n", this);
 }
 
@@ -1131,9 +1180,8 @@ void
 //----------------------------------------------------------------------------
 void
    EdRedo::debug(                   // Debugging display
-     const char*       text) const  // Associated text
-{
-   debugf("EdRedo(%p)::debug(%s)\n", this, text ? text : "");
+     const char*       info) const  // Associated info
+{  debugf("EdRedo(%p)::debug(%s)\n", this, info ? info : "");
 
    debugf("  [");
    if( head_insert ) debugf("%p<-", head_insert->get_prev());

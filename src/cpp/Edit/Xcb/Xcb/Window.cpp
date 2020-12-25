@@ -16,7 +16,7 @@
 //       Implement Xcb/Window.h
 //
 // Last change date-
-//       2020/12/16
+//       2020/12/24
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -134,10 +134,10 @@ void
 //----------------------------------------------------------------------------
 void
    Pixmap::debug(                   // Debugging display
-     const char*       text) const  // Associated text
+     const char*       info) const  // Associated info
 {
-   if( text == nullptr ) text= "";
-   debugf("Pixmap(%p)::debug(%s)\n", this, text);
+   if( info == nullptr ) info= "";
+   debugf("Pixmap(%p)::debug(%s)\n", this, info);
    debugf("..device(%p), window(%p)\n", device, window);
    debugf("..c(%p)\n",   c);
    debugf("..s(%p)\n",   s);
@@ -150,7 +150,7 @@ void
      debugf("..[%2d] %4d: (%6u) %s\n", i, p.opline, p.op.sequence, p.opname);
    }
 
-   Layout::debug(text);
+   Layout::debug();
 }
 
 //----------------------------------------------------------------------------
@@ -177,9 +177,9 @@ WH_size_t                           // The current Pixmap size
 
    if( opt_hcdm ) {
      if( line > 0 )
-       debugf("%4d [%d x %d]= get_size\n", line, size.width, size.height);
+       debugh("%4d [%d x %d]= get_size\n", line, size.width, size.height);
      else
-       debugf("[%u x %u]= get_size\n", size.width, size.height);
+       debugh("[%u x %u]= get_size\n", size.width, size.height);
    }
 
    return size;
@@ -201,7 +201,7 @@ void
      int               line)        // Caller's line number
 {
    if( opt_hcdm )
-     debugf("%4d set_size(%d,%d)\n", line, x, y);
+     traceh("%4d set_size(%d,%d)\n", line, x, y);
 
    rect.width=  uint16_t(x);
    rect.height= uint16_t(y);
@@ -499,8 +499,8 @@ void
 //----------------------------------------------------------------------------
 void
    Window::debug(                   // Debugging display
-     const char*       text) const  // Associated text
-{  Pixmap::debug(text); }
+     const char*       info) const  // Associated info
+{  Pixmap::debug(info); }
 
 //----------------------------------------------------------------------------
 //
@@ -531,7 +531,7 @@ void
      int               y,           // New height
      int               line)        // Caller's line number
 {  if( opt_hcdm )
-     debugf("%4d set_size(%d,%d)\n", line, x, y);
+     debugh("%4d set_size(%d,%d)\n", line, x, y);
 
    int16_t mask= XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
    int32_t parm[2]= { x, y };
