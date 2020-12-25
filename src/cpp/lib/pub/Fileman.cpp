@@ -16,7 +16,7 @@
 //       Fileman.h object methods
 //
 // Last change date-
-//       2020/12/17
+//       2020/12/22
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -405,8 +405,9 @@ std::string                         // The invalid path ("" if none)
      } else {
        char buffer[PATH_MAX + 8];
        buffer[0]= '\0';
-       getcwd(buffer, sizeof(buffer));
-       std::string cwd= buffer;
+       const char* CWD= getcwd(buffer, PATH_MAX);
+       if( CWD == nullptr ) return "CWD too large";
+       std::string cwd= CWD;
        if( cwd == "/" )
          cwd= "";
        full_name= cwd + "/" + path_name + "/" + file_name;
