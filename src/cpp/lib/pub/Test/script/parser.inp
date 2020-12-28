@@ -1,0 +1,56 @@
+; This is a comment line
+Malformed name = GoodValue        ; Line(2) has a malformed name
+goodie1 = Malformed Value         ; Line(3) has a malformed value
+goodie2 = "Malformed value        ; Line(4) has no closing quote
+" Doesn't matter.                 ; Line(5) has no closing quote
+[ Doesn't matter.                 ; Line(6) has no closing bracket
+                                  ; Line(7) is a valid comment line
+;;----------------------------------------------------------------------------
+;; Duplicated lines
+;;----------------------------------------------------------------------------
+this = thisisthethis=value        ; This line is duplicated
+this = thisisanother=value        ; Line(12) is a duplicated line
+this = thisisthelast=value        ; Line(13) is a duplicated line
+
+;;----------------------------------------------------------------------------
+;; Empty lines
+;;----------------------------------------------------------------------------
+StandardEmpty=                    ; Standard empty symbol
+AlternateEmpty                    ; Alternate empty symbol
+
+;;----------------------------------------------------------------------------
+;; More [] section lines
+;;----------------------------------------------------------------------------
+This = "is not a duplicate"       ; This line is a capital This
+that = "that is not a duplicate"
+other = "other is a most excellent line"
+
+;;----------------------------------------------------------------------------
+;; Names and values with embedded blanks
+;;----------------------------------------------------------------------------
+[blank]   this noise skipped      ; Section with blanks
+other             =   " Value contains leading and trailing blanks. "
+" this name "     =   "name contains leading/trailing blanks"
+"this name"       =   "this is the this  value"
+"this name"       =   duplicatedvalue
+"that name"       =   "this is the that  value"
+"other name"      =   "this is the other value"
+
+;;----------------------------------------------------------------------------
+;; Alternate sections
+;;----------------------------------------------------------------------------
+[oldsect]
+this = "[oldsect]::this value"
+
+[section]
+this = "[section]::this value"
+
+[newsect]
+this = "[newsect]::this value"
+
+;;----------------------------------------------------------------------------
+;; Duplicated section, duplicated value
+;;----------------------------------------------------------------------------
+[section]
+this = "[section]::duplicated value"
+

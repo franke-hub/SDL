@@ -16,7 +16,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2020/10/04
+//       2020/12/28
 //
 // Verifications-
 //       File permissions. (Auto-correctable)
@@ -334,10 +334,10 @@ static void
    Line fake(nullptr);              // Replacement for comment line
    for(Line* line= IGNORE.line().get_head(); line; line= line->get_next()) {
      if( line->text[0] == '\0' || line->text[0] == '#' ) {
-       fake.set_next(line->get_next());
+       fake= *line;                 // Save links for line->get_next()
        IGNORE.line().remove(line, line);
        delete line;
-       line= &fake;
+       line= &fake;                 // Use the fake line with saved links
      }
    }
 
