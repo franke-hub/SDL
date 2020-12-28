@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2020/12/24
+//       2020/12/27
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -136,8 +136,6 @@ xcb_gcontext_t                       // The current graphic context
 void
    EdView::commit( void )           // Commit the Active line
 {
-   using namespace editor;
-
    const char* buffer= active.get_changed();
    if( opt_hcdm )
      debugh("EdView(%p)::commit buffer(%s)\n", this , buffer);
@@ -159,8 +157,8 @@ void
      active.reset(line->text);      // (Prevents duplicate commit)
 
      // The new line replaces the cursor line in the file_list
-     file_list.remove(cursor, cursor); // (Does not change links)
-     file_list.insert(cursor->get_prev(), line, line);
+     editor::file->remove(cursor, cursor); // (Does not change links)
+     editor::file->insert(cursor->get_prev(), line);
 
      // Create and initialize a REDO object
      EdRedo* redo= new EdRedo();

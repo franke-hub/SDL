@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2020/12/25
+//       2020/12/26
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -67,12 +67,42 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_quit(char*);             // (Unconditional) quit command
 
+//----------------------------------------------------------------------------
+//
+// Subroutines-
+//       Editor::file_writer
+//
+// Purpose-
+//       File writer, with error checking
+//
+//----------------------------------------------------------------------------
 static const char*                  // Error message, nullptr expected
-   command_save(char*);             // Save command
+   file_writer(                     // File writer
+     char*             parm)        // (Mutable) parameter string
+{
+   EdFile* file= editor::file;
+
+   if( file->protect )
+     return "Read-only file";
+   if( file->damaged )
+     return "Damaged file";
+
+   if( parm )                       // If filename specified
+     return "Not coded yet";        // Need to check existence
+
+   editor::data->commit();
+   int rc= file->write();
+   if( rc )
+     return "Write failure";
+
+   file->reset();
+   return nullptr;
+}
+
 
 //----------------------------------------------------------------------------
 //
-// Method-
+// Subroutines-
 //       Editor::commands
 //
 // Purpose-
@@ -191,7 +221,7 @@ static const char*                  // Error message, nullptr expected
    command_file(                    // File command
      char*             parm)        // (Mutable) parameter string
 {
-   const char* mess= command_save(parm); // Save the file
+   const char* mess= file_writer(parm); // Save the file
    if( mess == nullptr )            // If saved
      mess= command_quit(parm);      // Quit the file
 
@@ -290,23 +320,10 @@ static const char*                  // Error message, nullptr expected
    command_save(                    // Save command
      char*             parm)        // (Mutable) parameter string
 {
-   EdFile* file= editor::file;
+   const char* error= file_writer(parm); // Write the file
+   if( error ) return error;        // If failure, return error message
 
-   if( file->protect )
-     return "Read-only file";
-   if( file->damaged )
-     return "Damaged file";
-
-   if( parm )                       // If filename specified
-     return "Not coded yet";        // Need to check existence
-
-   editor::data->commit();
-   int rc= file->write();
-   if( rc )
-     return "Write failure";
-
-   file->reset();
-
+   editor::data->activate();        // Activate data view
    return nullptr;
 }
 

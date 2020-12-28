@@ -134,8 +134,7 @@ class EdHide : public EdLine {      // Editor hidden line group
 public:
 std::string            info;        // The text line string
 size_t                 count= 0;    // The number of hidden lines
-EdLine*                head= nullptr; // First hidden line
-EdLine*                tail= nullptr; // Final hidden line
+pub::List<EdLine>      list;        // The hidden line list
 
 //----------------------------------------------------------------------------
 // EdHide::Constructor/Destructor

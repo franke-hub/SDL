@@ -107,6 +107,18 @@ static pub::signals::Connector<const char*> config_check=
    EdRedo* redo= editor::file->redo_list.get_tail();
    while( redo ) {
      if( invalid_redo(redo) ) { Config::debug(info); return; }
+
+     if( redo->head_insert && redo->tail_insert ) {
+       if( redo->head_insert->get_prev() != redo->tail_insert->get_prev() ) {
+         checkstop("redo head/tail->get_prev inconsistent");
+         Config::debug(info); return;
+       }
+       if( redo->head_remove->get_next() != redo->tail_remove->get_next() ) {
+         checkstop("redo head/tail->get_mext inconsistent");
+         Config::debug(info); return;
+       }
+     }
+
      redo= redo->get_next();
    }
 }); // config_check (Connector)

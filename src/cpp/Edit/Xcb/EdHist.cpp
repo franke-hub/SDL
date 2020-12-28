@@ -266,11 +266,10 @@ void
 
    // Process the command
    const char* error= editor::command(buffer);
-   if( error ) {                    // If error encountered
-     col_zero= col= 0;              // Start in column 0
-     active.reset(hist_line->get_text());
+   active.reset(hist_line->get_text());
+   if( error )                      // If error encountered
      editor::put_message(error);
-   }
+
    editor::text->draw_info();
 }
 

@@ -52,7 +52,7 @@ enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
 }; // Compilation controls
 
-#define USE_BRINGUP true            // Use bringup diagnostics?
+#define USE_BRINGUP true            // Use bringup diagnostics? TODO: false
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -434,8 +434,9 @@ void
    undo_list.lifo(edRedo);
    changed= true;
 
-   if( HCDM )
-     Config::check("insert_undo");
+#if USE_BRINGUP
+   Config::check("insert_undo");
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -672,14 +673,17 @@ void
 
    EdLine* line= nullptr;           // Activation line
    if( redo->head_remove ) {        // If redo remove
-     redo->head_remove->get_prev()->set_next(redo->tail_remove->get_next());
-     redo->tail_remove->get_next()->set_prev(redo->head_remove->get_prev());
+     line_list.remove(redo->head_remove, redo->tail_remove);
+//   redo->head_remove->get_prev()->set_next(redo->tail_remove->get_next());
+//   redo->tail_remove->get_next()->set_prev(redo->head_remove->get_prev());
 
      line= redo->head_remove->get_prev();
    }
    if( redo->head_insert ) {        // If redo insert
-     redo->head_insert->get_prev()->set_next(redo->head_insert);
-     redo->tail_insert->get_next()->set_prev(redo->tail_insert);
+     EdLine* after= redo->head_insert->get_prev();
+     line_list.insert(after, redo->head_insert, redo->tail_insert);
+//   redo->head_insert->get_prev()->set_next(redo->head_insert);
+//   redo->tail_insert->get_next()->set_prev(redo->tail_insert);
 
      line= redo->head_insert->get_prev();
    }
@@ -694,7 +698,9 @@ void
    undo_list.lifo(redo);            // REDO => UNDO
 // debug("redo-done");
 
-   Config::check("redo");           // TODO: HCDM: REMOVE
+#if USE_BRINGUP
+   Config::check("insert_undo");
+#endif
 }
 
 
@@ -759,14 +765,17 @@ void
 
    EdLine* line= nullptr;           // Activation line
    if( undo->head_insert ) {        // If undo insert
-     undo->head_insert->get_prev()->set_next(undo->tail_insert->get_next());
-     undo->tail_insert->get_next()->set_prev(undo->head_insert->get_prev());
+     line_list.remove(undo->head_insert, undo->tail_insert);
+//   undo->head_insert->get_prev()->set_next(undo->tail_insert->get_next());
+//   undo->tail_insert->get_next()->set_prev(undo->head_insert->get_prev());
 
      line= undo->head_insert->get_prev();
    }
    if( undo->head_remove ) {        // If undo remove
-     undo->head_remove->get_prev()->set_next(undo->head_remove);
-     undo->tail_remove->get_next()->set_prev(undo->tail_remove);
+     EdLine* after= undo->head_remove->get_prev();
+     line_list.insert(after, undo->head_remove, undo->tail_remove);
+//   undo->head_remove->get_prev()->set_next(undo->head_remove);
+//   undo->tail_remove->get_next()->set_prev(undo->tail_remove);
 
      line= undo->head_remove->get_prev();
    }
@@ -781,8 +790,9 @@ void
    redo_list.lifo(undo);            // UNDO => REDO
 // debug("undo-done");
 
-   if( HCDM )
-     Config::check("undo");
+#if USE_BRINGUP
+   Config::check("insert_undo");
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -1043,35 +1053,19 @@ void
      traceh("EdHide(%p)::EdHide\n", this);
 
    flags= F_HIDE;
-   if( _head ) {
-     append(_head);
-     if( _tail )
-       append(_tail);
-   }
+   list.insert(nullptr, _head, _tail);
 }
 
    EdHide::~EdHide( void )          // Destructor
 {  if( HCDM || opt_hcdm )
      debugh("EdHide(%p)::~EdHide\n", this);
 
-   EdLine* line= head;
-   if( line ) {                     // If files remain
-     // You should only get here from the EdFile destructor. Let's make sure.
-     if( get_prev() ) {             // If the prior line wasn't removed
-       fprintf(stderr, "~EdHide invalid state"); // (Not called from ~EdFile)
-       return;
-     }
+   for(;;) {
+     EdLine* line= list.remq();
+     if( line == nullptr )
+       break;
 
-     while( true ) {
-       if( line == nullptr ) {
-         fprintf(stderr, "~EdHide invalid chain"); // (Too late to debug now)
-         return;
-       }
-       EdLine* next= line->get_next();
-       delete line;
-       if( line == tail ) break;
-       line= next;
-     }
+     delete line;
    }
 }
 
@@ -1082,16 +1076,7 @@ void
    EdHide::append(                  // Add to end of list
      EdLine*           line)        // Making this the new tail line
 {
-   if( tail )
-     get_next()->set_prev(tail);
-   else {
-     line->get_prev()->set_next(this);
-     set_prev(line->get_prev());
-     head= line;
-   }
-   line->get_next()->set_prev(this);
-   tail= line;
-
+   list.fifo(line);
    update();
 }
 
@@ -1099,54 +1084,18 @@ void
    EdHide::prepend(                 // Add to beginning of list
      EdLine*           line)        // Making this the new head line
 {
-   if( head ) {
-     get_prev()->set_next(head);
-   } else {
-     line->get_next()->set_prev(this);
-     set_next(line->get_next());
-     tail= line;
-   }
-   line->get_prev()->set_next(this);
-   head= line;
-
+   list.lifo(line);
    update();
 }
 
 void
    EdHide::remove( void )           // Remove (and delete) this hidden line
 {
-   if( head )                       // If not inserted
-     return;                        // Nothing to do
-
-   get_prev()->set_next(head);
-   get_next()->set_prev(tail);
-   head= nullptr;
-   tail= nullptr;
-
-   delete this;
 }
 
 void
    EdHide::update( void )           // Update the count and the message
 {
-   count= 0;
-   if( head ) {
-     EdLine* line= head;
-     count= 1;
-     while( line != tail ) {
-       count++;
-       if( line == nullptr ) throw "Invalid EdHide chain";
-       line= line->get_next();
-     }
-   }
-
-   char buffer[128];                // Message work area
-   memset(buffer, '-', sizeof(buffer));
-   buffer[sizeof(buffer) - 1]= '\0';
-   int L= sprintf(buffer, ">--- %zd lines hidden", count);
-   buffer[L]= ' ';
-   info= buffer;
-   text= info.c_str();
 }
 
 //============================================================================

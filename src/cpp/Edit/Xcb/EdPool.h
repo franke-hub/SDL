@@ -16,7 +16,7 @@
 //       Editor: Storage Pool descriptor
 //
 // Last change date-
-//       2020/12/16
+//       2020/12/26
 //
 //----------------------------------------------------------------------------
 #ifndef EDPOOL_H_INCLUDED
@@ -36,7 +36,8 @@
 //       Editor Pool
 //
 // Implementation note-
-//       Lines are allocated and deleted, but text is never deleted
+//       Lines are allocated and deleted, but pool text is only allocated.
+//       Text is immutable. EdPools remain allocated until Editor completion.
 //
 //----------------------------------------------------------------------------
 class EdPool : public pub::List<EdPool>::Link { // Editor text pool descriptor

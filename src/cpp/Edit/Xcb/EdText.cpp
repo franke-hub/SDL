@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2020/12/25
+//       2020/12/26
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -78,8 +78,8 @@ static const char      zero8[8]= {'\0','\0','\0','\0', '\0','\0','\0','\0'};
      debugh("EdText(%p)::EdText\n", this);
 
    // Configure text colors
-   bg= config::TXT_BG;              // (See Config.h)
-   fg= config::TXT_FG;
+   bg= 0x00FFFFF0;                  // Ivory, pale yellow
+   fg= 0x00000000;                  // Black
 
    // Reserve TOP line              // Message/Status/History line
    USER_TOP= 1;
@@ -319,19 +319,13 @@ void
 
    TextWindow::configure();         // Create the Window
 
-   // Create the graphic contexts   // (Values defined in Config.h)
-   using namespace config;          // For *_FG, *_BG
-   markGC= font.makeGC(SEL_FG, SEL_BG);
-   gc_chg= font.makeGC(CHG_FG, CHG_BG);
-   gc_cmd= font.makeGC(CMD_FG, CMD_BG);
-   gc_msg= font.makeGC(MSG_FG, MSG_BG);
-   gc_sts= font.makeGC(STS_FG, STS_BG);
-
-// (For historical purposes only.
-// gc_chg= font.makeGC(0x00B22222, 0x00B0E0FF); // FireBrick over light blue
-// gc_cmd= font.makeGC(0x00000000, 0x00FF80FF); // Black over magenta
-// gc_msg= font.makeGC(0x00B22222, 0x00FFFF00); // FireBrick over yellow
-// gc_sts= font.makeGC(0x00000000, 0x00B0E0FF); // Black over light blue
+   // Create the graphic contexts               // FG,       BG
+   gc_chg= font.makeGC(0x00000000, 0x00F08080); // Black,    Light Pink
+// gc_cmd= font.makeGC(0x00000000, 0x00FFC020); // Black,    Orange
+   gc_cmd= font.makeGC(0x00000000, 0x0000FFFF); // Black,    Cyan
+   gc_msg= font.makeGC(0x00900000, 0x00FFFF00); // Dark Red, Yellow
+   gc_sts= font.makeGC(0x00000000, 0x0080F080); // Black,    Light Green
+   markGC= font.makeGC(0x00000000, 0x00C0F0FF); // Black,    Light Blue
 
    // Configure views
    EdView* const data= editor::data;
@@ -737,10 +731,10 @@ void
        EdLine* head= tail= file->new_line(); // Get new, empty insert line
        if( memcmp(cursor->delim, zero8, 2) == 0 ) { // If after no delimiter
          // The no delimiter line can only be the last data line of a file.
+         pub::List<EdLine> list;    // (Used to connect head and tail)
          head= file->new_line(cursor->text); // Get cursor line replacement
-         head->set_prev(cursor->get_prev());
-         head->set_next(tail);
-         tail->set_prev(head);
+         list.fifo(head);
+         list.fifo(tail);
 
          // Remove the cursor from the file, updating the REDO
          file->remove(cursor);
@@ -748,6 +742,7 @@ void
          cursor= cursor->get_prev(); // (cursor->get_prev() valid after remove)
        }
 
+       data->col_zero= data->col= 0;
        file->insert(cursor, head, tail);
        redo->head_insert= head;
        redo->tail_insert= tail;
