@@ -16,7 +16,7 @@
 //       Implement pub/Parser.h
 //
 // Last change date-
-//       2020/12/26
+//       2021/01/02
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -26,22 +26,6 @@
 #include "pub/Parser.h"             // Implementation class
 
 namespace pub {
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       error
-//
-// Purpose-
-//       Write error message.
-//
-//----------------------------------------------------------------------------
-static void
-   error(                           // Handle error
-     const char*       file,        // The parameter file name
-     size_t            line,        // The line number
-     const char*       mess)        // The error message
-{  fprintf(stderr, "Parser: File(%s) Line(%zd) %s\n", file, line, mess); }
-
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -104,7 +88,7 @@ static int                          // The delimiting character
 
 //----------------------------------------------------------------------------
 //
-// Subroutine-
+// Method-
 //       Parser::debug
 //
 // Purpose-
@@ -128,24 +112,50 @@ void
 
 //----------------------------------------------------------------------------
 //
-// Subroutine-
+// Method-
+//       Parser::error
+//
+// Purpose-
+//       Write error message.
+//
+//----------------------------------------------------------------------------
+void
+   Parser::error(                   // Handle error
+     size_t            line,        // The line number
+     const char*       mess)        // The error message
+{
+   if( error_count++ == 0 )
+     fprintf(stderr, "Parser: File(%s)\n", file_name.c_str());
+
+   fprintf(stderr, "Line(%3zd) %s\n", line, mess);
+}
+
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Parser::open
 //
 // Purpose-
 //       Load the parameter file.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code, error counter
+long                                // Return code, error counter
    Parser::open(                    // Load the parameter file
-     const char*       file_name)   // The parameter file name
+     const char*       name)        // The Parser file name
 {
    close();                         // First, reset the Parser
 
-   int error_count= 0;              // Number of errors encountered
+   error_count= 0;                  // Number of errors encountered
+   file_name= name ? name : "";     // Save file name
+   if( name == nullptr )
+     return 0;
 
-   FILE* F= fopen(file_name, "rb"); // Open the parameter file
-   if( F == nullptr )               // If open failure
-     return -1;
+   FILE* F= fopen(name, "rb");      // Open the parameter file
+   if( F == nullptr ) {             // If open failure
+     error(-1, "Open failure");
+     return error_count;
+   }
 
    errno= 0;                        // (No read errors encountered)
    Section* sect= new Section();    // Create a new (NULL) Section
@@ -158,12 +168,21 @@ int                                 // Return code, error counter
    for(;;) {
      if( C == EOF )
        break;
+     if( false ) {                  // Debugging (optimizer omits code)
+       char buff[4];
+       buff[0]= buff[1]= buff[2]= buff[3]= '\0';
+       buff[0]= C;
+       if( C == '\n' ) { buff[0]= '\\'; buff[1]= 'n'; }
+       if( C == '\t' ) { buff[0]= '\\'; buff[1]= 't'; }
+       printf("%4zd C(%s)\n", file_line, buff);
+     }
+
+     if( C == ';' )
+       C= skip_line(F);
      if( C == '\n' )
        file_line++;
      C= skip_blanks(F);
-     if( C == ';' )
-       C= skip_line(F);
-     if( C == '\n' || C == EOF )
+     if( C == ';' || C == '\n' || C == EOF )
        continue;
 
      // Handle section definition
@@ -174,8 +193,7 @@ int                                 // Return code, error counter
          if( C == ']' )
            break;
          if( C == '\n' || C == EOF ) {
-           error_count++;
-           error(file_name, file_line, "Malformed section");
+           error(file_line, "Malformed section");
            break;
          }
 
@@ -196,14 +214,6 @@ int                                 // Return code, error counter
          sect_list.fifo(sect);
        }
 
-       C= skip_blanks(F);
-       if( C == ';' )
-         C= skip_line(F);
-       if( C != '\n' && C != EOF ) {
-         error_count++;
-         error(file_name, file_line, "Characters after [] ignored");
-         C= skip_line(F);
-       }
        continue;
      }
 
@@ -213,41 +223,39 @@ int                                 // Return code, error counter
        int D= C;                    // Set delimiter
        for(;;) {
          C= nextc(F);
-         if( C == D ||  C == '\n' || C == EOF )
+         if( C == D || C == '\n' || C == EOF )
            break;
          parm_name += C;
        }
        if( C != D ) {
-         error_count++;
-         error(file_name, file_line, "Malformed name string");
+         error(file_line, "Malformed name string");
          continue;
        }
-       C= nextc(F);
+       C= skip_blanks(F);
      } else {                       // If non-quoted string
        for(;;) {
-         if( C == ' ' ||  C == '=' || C == '\n' || C == EOF )
+         if( C == '=' || C == ';' || C == '\n' || C == EOF )
            break;
          parm_name += C;
 
          C= nextc(F);
        }
+
+       while( parm_name.back() == ' ' ) // Remove trailing blanks
+         parm_name= parm_name.substr(0, parm_name.length() - 1);
      }
 
-     if( C == ' ' )
-       C= skip_blanks(F);
      if( C == ';' )
        C= skip_line(F);
      if( C != '=' && C != '\n' && C != EOF ) {
-       error_count++;
-       error(file_name, file_line, "Malformed name");
+       error(file_line, "Malformed name");
        C= skip_line(F);
        continue;
      }
 
      // NOTE: At this point C == '=' || C == '\n' || C == EOF
      if( parm_name == "" ) {
-       error_count++;
-       error(file_name, file_line, "Missing name");
+       error(file_line, "Missing name");
        if( C != '\n' &&  C != EOF )
          C=  skip_line(F);
        continue;
@@ -261,25 +269,23 @@ int                                 // Return code, error counter
      }
 
      if( parm ) {
-       parm_name= "Duplicate parameter(" + parm_name + ") ignored";
-       error_count++;
-       error(file_name, file_line, parm_name.c_str());
-       if( C == '=' )
-         C=  skip_line(F);
-       continue;
+       if( C != '=' ) {
+         error(file_line, "Use 'parameter=' to remove value");
+         continue;
+       }
+     } else {
+       parm= new Parameter();
+       parm->parm_name= parm_name;
+       sect->parm_list.fifo(parm);
      }
-
-     parm= new Parameter();
-     parm->parm_name= parm_name;
-     sect->parm_list.fifo(parm);
-     if( C != '=' )
-       continue;
 
      C= skip_blanks(F);
      if( C == ';' )
        C= skip_line(F);
-     if( C == '\n' ||  C == EOF )
+     if( C == '\n' || C == EOF ) {
+       parm->parm_value= "";
        continue;
+     }
 
      // Handle parameter value
      std::string parm_value;
@@ -287,50 +293,43 @@ int                                 // Return code, error counter
        int D= C;                    // Set delimiter
        for(;;) {
          C= nextc(F);
-         if( C == D ||  C == '\n' || C == EOF )
+         if( C == D || C == '\n' || C == EOF )
            break;
          parm_value += C;
        }
        if( C != D ) {
-         error_count++;
-         error(file_name, file_line, "Malformed value string");
+         error(file_line, "Malformed value string");
          continue;
        }
        C= nextc(F);
      } else {                       // If non-quoted string
        for(;;) {
-         if( C == ' ' || C == '\n' || C == EOF )
+         if( C == ';' || C == '\n' || C == EOF )
            break;
          parm_value += C;
 
          C= nextc(F);
        }
+
+       while( parm_value.back() == ' ' ) // Remove trailing blanks
+         parm_value= parm_value.substr(0, parm_value.length() - 1);
      }
      parm->parm_value= parm_value;
-
-     // Skip to end of line (with checking)
-     if( C == ' ' )
-       C= skip_blanks(F);
-     if( C == ';' )
-       C= skip_line(F);
-     if( C == '\n' || C == EOF )
-       continue;
-
-     error_count++;
-     error(file_name, file_line, "Malformed value");
-     C= skip_line(F);
    }
 
    int rc= fclose(F);
    if( rc < 0 )
-     error_count= rc;
+     error(file_line, "Close failure");
+   if( error_count )
+     fprintf(stderr, "%ld Parse error%s encountered\n", error_count
+                   , error_count == 1 ? "" : "s");
 
    return error_count;
 }
 
 //----------------------------------------------------------------------------
 //
-// Subroutine-
+// Method-
 //       Parser::close
 //
 // Purpose-
@@ -357,38 +356,106 @@ void
 
 //----------------------------------------------------------------------------
 //
-// Subroutine-
-//       Parser::getValue
+// Method-
+//       Parser::get_next
+//
+// Purpose-
+//       Get next section or parameter name (for iteration.)
+//
+// Implementation notes-
+//       Users MUST NOT modify (or free) the returned parameter value.
+//
+//----------------------------------------------------------------------------
+const char*                         // The next parameter name
+   Parser::get_next(                // Get next parameter name
+     const char*       sect_name,   // The current section name
+     const char*       parm_name) const // The current parameter name
+{
+   Section* sect= nullptr;
+   if( sect_name ) {
+     for(sect= sect_list.get_head(); sect; sect= sect->get_next()) {
+       if( sect->sect_name == sect_name )
+         break;
+     }
+   } else
+     sect= sect_list.get_head();
+
+   if( sect ) {
+     Parameter* parm= nullptr;
+     if( parm_name ) {
+       for(parm= sect->parm_list.get_head(); parm; parm= parm->get_next()) {
+         if( parm->parm_name == parm_name )
+           break;
+       }
+       if( parm )
+         parm= parm->get_next();
+     } else
+       parm= sect->parm_list.get_head();
+
+     if( parm )
+       return parm->parm_name.c_str();
+   }
+
+   return nullptr;
+}
+
+const char*                         // The next section name
+   Parser::get_next(                // Get next section name
+     const char*       sect_name) const // The current section name
+{
+   Section* sect= nullptr;
+   if( sect_name ) {
+     for(sect= sect_list.get_head(); sect; sect= sect->get_next()) {
+       if( sect->sect_name == sect_name )
+         break;
+     }
+     if( sect )
+       sect= sect->get_next();
+   } else
+     sect= sect_list.get_head();
+
+   if( sect )
+     return sect->sect_name.c_str();
+
+   return nullptr;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Parser::get_value
 //
 // Purpose-
 //       Extract a parameter value.
 //
 //----------------------------------------------------------------------------
 const char*                         // The parameter value
-   Parser::get_value(               // Extract parameter value
+   Parser::get_value(               // Get parameter value
      const char*       sect_name,   // The section name
-     const char*       parm_name)   // The parameter name
+     const char*       parm_name) const // The parameter name
 {
-   if( sect_name == nullptr )
-     sect_name= "";
-
    Section* sect= nullptr;
-   for(sect= sect_list.get_head(); sect; sect= sect->get_next()) {
-     if( sect->sect_name == sect_name )
-       break;
-   }
-   if( sect == nullptr )
-     return nullptr;
-   if( parm_name == nullptr )       // If section test
-     return "";
+   if( sect_name ) {
+     for(sect= sect_list.get_head(); sect; sect= sect->get_next()) {
+       if( sect->sect_name == sect_name )
+         break;
+     }
+   } else
+     sect= sect_list.get_head();
 
-   Parameter* parm= nullptr;
-   for(parm= sect->parm_list.get_head(); parm; parm= parm->get_next()) {
-     if( parm->parm_name == parm_name )
-       break;
+   if( sect ) {
+     Parameter* parm= nullptr;
+     if( parm_name ) {
+       for(parm= sect->parm_list.get_head(); parm; parm= parm->get_next()) {
+         if( parm->parm_name == parm_name )
+           break;
+       }
+     } else
+       parm= sect->parm_list.get_head();
+
+     if( parm )
+       return parm->parm_value.c_str();
    }
-   if( parm )
-     return parm->parm_value.c_str();
 
    return nullptr;
 }

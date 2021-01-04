@@ -1,16 +1,19 @@
 ; This is a comment line
-Malformed name = GoodValue        ; Line(2) has a malformed name
-goodie1 = Malformed Value         ; Line(3) has a malformed value
+name with blanks = nwbValue       ; Line(2) has a name containing blanks
+vwbName = value with blanks       ; Line(3) has a value containing blanks
 goodie2 = "Malformed value        ; Line(4) has no closing quote
 " Doesn't matter.                 ; Line(5) has no closing quote
 [ Doesn't matter.                 ; Line(6) has no closing bracket
-                                  ; Line(7) is a valid comment line
+         = Missing Name           ; Line(7) has no parameter name
+                                  ; Line(8) is a valid comment line
 ;;----------------------------------------------------------------------------
 ;; Duplicated lines
 ;;----------------------------------------------------------------------------
 this = thisisthethis=value        ; This line is duplicated
-this = thisisanother=value        ; Line(12) is a duplicated line
-this = thisisthelast=value        ; Line(13) is a duplicated line
+this                              ; Line(13) error: should be this=
+this =                            ; Line(14) (Correct way to set value "")
+this = thisisanother=value        ; Line(15) is a duplicated line (OK)
+this = thisisthelast=value        ; Line(16) is a duplicated line (OK)
 
 ;;----------------------------------------------------------------------------
 ;; Empty lines
@@ -21,20 +24,20 @@ AlternateEmpty                    ; Alternate empty symbol
 ;;----------------------------------------------------------------------------
 ;; More [] section lines
 ;;----------------------------------------------------------------------------
-This = "is not a duplicate"       ; This line is a capital This
+This = "This is not a duplicate"  ; This line is a capital This
 that = "that is not a duplicate"
 other = "other is a most excellent line"
 
 ;;----------------------------------------------------------------------------
 ;; Names and values with embedded blanks
 ;;----------------------------------------------------------------------------
-[blank]   this noise skipped      ; Section with blanks
+[blank]   follow name = follow value ; Section with blanks
 other             =   " Value contains leading and trailing blanks. "
 " this name "     =   "name contains leading/trailing blanks"
-"this name"       =   "this is the this  value"
-"this name"       =   duplicatedvalue
-"that name"       =   "this is the that  value"
-"other name"      =   "this is the other value"
+ this name        =    this is the this  value
+"this name"       =   duplicatedvalue           ; Comment
+"that name"       =   "this is the that  value" ; Comment
+ other name       =   this is the other value   ; Comment
 
 ;;----------------------------------------------------------------------------
 ;; Alternate sections

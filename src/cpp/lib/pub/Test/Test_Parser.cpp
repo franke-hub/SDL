@@ -16,7 +16,7 @@
 //       Test pub/Parser.h
 //
 // Last change date-
-//       2020/12/26
+//       2020/12/30
 //
 //----------------------------------------------------------------------------
 #include <stddef.h>
@@ -57,8 +57,8 @@ extern int                          // Return code
    main(void)                       // Mainline entry
 {
    pub::Parser parser;
-   int rc= parser.open("S/script/parser.inp");
-   printf("%d= open(S/script/parser.inp\n", rc);
+   long rc= parser.open("S/script/parser.inp");
+   printf("%ld= open(S/script/parser.inp)\n", rc);
    parser.debug(); printf("\n\n");
 
    resultant(parser, nullptr, "This");
@@ -69,6 +69,7 @@ extern int                          // Return code
    resultant(parser, nullptr, "AlternateEmpty");
    resultant(parser, nullptr, "unknown");
 
+   resultant(parser, "blank", "follow name");
    resultant(parser, "blank", " this name ");
    resultant(parser, "blank", "this name");
    resultant(parser, "blank", "that name");

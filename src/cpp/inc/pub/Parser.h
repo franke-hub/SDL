@@ -16,19 +16,19 @@
 //       Simple parameter file parser.
 //
 // Last change date-
-//       2020/12/26
+//       2020/12/30
 //
 // Notes-
-//       An parameter file consists of sections,
-//         [section-name]                       {; comment to end of line}
+//       An parameter file consists of section name declarations:
+//         [section name]                       {; comment to end of line}
 //
-//       and parameter value declarations,
-//         parameter-name {= {parameter-value}} {; comment to end of line}
+//       and parameter name/value declarations:
+//         parameter name {= {parameter value}} {; comment to end of line}
 //
 //       (The default parameter value is "")
 //       Leading and trailing blanks are removed from both the parameter
-//       name and the parameter value, but quotations allow special characters
-//       in a parameter name or value.
+//       name and value. Quotations allow special characters (including
+//       leading and trailing blanks) in the name or value.
 //
 //       Spaces are significant in section names.
 //
@@ -70,6 +70,8 @@ pub::List<Parameter>   parm_list;   // The Parameter list
 // Parser::Attributes
 //----------------------------------------------------------------------------
 protected:
+long                   error_count; // Parse error count
+std::string            file_name;   // The file name
 List<Section>          sect_list;   // The Section List
 
 //----------------------------------------------------------------------------
@@ -91,6 +93,12 @@ void
    debug( void ) const;             // Debugging display
 
 //----------------------------------------------------------------------------
+// Internal methods
+//----------------------------------------------------------------------------
+protected:
+void error(size_t, const char*);    // Handle error
+
+//----------------------------------------------------------------------------
 //
 // Method-
 //       pub::Parser::open
@@ -108,11 +116,11 @@ void
 //
 //----------------------------------------------------------------------------
 public:
-int                                 // Return code, 0 if successful
+long                                // Return code, error_count
    open(                            // Open the parameter file
      const char*       file_name= nullptr); // The parameter file name
 
-int                                 // Return code, 0 if successful
+long                                // Return code, error_count
    open(                            // Open the parameter file
      std::string       file_name)   // The parameter file name
 {  return open(file_name.c_str()); }
@@ -132,6 +140,27 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       pub::Parser::get_next
+//
+// Purpose-
+//       Get next section or parameter name (for iteration.)
+//
+// Implementation notes-
+//       Users MUST NOT modify (or free) the returned value.
+//
+//----------------------------------------------------------------------------
+const char*                         // The next section name
+   get_next(                        // Get the next section name
+     const char*       sect) const; // The current section name
+
+const char*                         // The next parameter name
+   get_next(                        // Get the next parameter name
+     const char*       sect,        // The current section name
+     const char*       parm) const; // The current parameter name
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       pub::Parser::get_value
 //
 // Purpose-
@@ -141,15 +170,15 @@ void
 //       Users MUST NOT modify (or free) the returned parameter value.
 //
 //----------------------------------------------------------------------------
-const char*                         // The parameter's value
-   get_value(                       // Extract parameter value
-     const char*       sect,        // The section name (NULL allowed)
-     const char*       parm);       // The parameter's name
+const char*                         // The parameter value
+   get_value(                       // Get parameter value
+     const char*       sect,        // The section name (nullptr allowed)
+     const char*       parm) const; // The parameter name
 
-const char*                         // The parameter's value
-   get_value(                       // Extract parameter value
+const char*                         // The parameter value
+   get_value(                       // Get parameter value
      std::string       sect,        // The section name
-     std::string       parm)        // The parameter's name
+     std::string       parm) const  // The parameter name
 {  return get_value(sect.c_str(), parm.c_str()); }
 }; // class Parser
 }  // namespace PUB
