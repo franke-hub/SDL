@@ -16,7 +16,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2020/12/28
+//       2021/01/04
 //
 // Verifications-
 //       File permissions. (Auto-correctable)
@@ -78,10 +78,10 @@
 #include <pub/Properties.h>         // For pub::Properties
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 #include <pub/utility.h>            // For pub::utility::to_string
-#include "pub/Fileman.h"            // For pub::Fileman classes
+#include "pub/Fileman.h"            // For pub::fileman classes
 
 using namespace pub::debugging;
-using namespace pub::Fileman;
+using namespace pub::fileman;
 using std::string;
 using pub::Tokenizer;
 typedef Tokenizer::Iterator Iterator;

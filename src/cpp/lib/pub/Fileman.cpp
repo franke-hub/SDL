@@ -16,7 +16,7 @@
 //       Fileman.h object methods
 //
 // Last change date-
-//       2020/12/22
+//       2021/01/04
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -39,7 +39,7 @@
 using namespace _PUB_NAMESPACE::debugging;
 using _PUB_NAMESPACE::debugging::errorp;
 
-namespace _PUB_NAMESPACE::Fileman { // The Fileman namespace
+namespace _PUB_NAMESPACE::fileman { // The fileman namespace
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -328,16 +328,7 @@ int                                 // Resultant
 //----------------------------------------------------------------------------
    Name::Name(                      // Constructor
      std::string       full_name)   // The file name
-{
-   path_name= get_path_name(full_name);
-   file_name= get_file_name(full_name);
-
-   name= path_name + "/" + file_name;
-
-   // Get file/link status
-   memset(&st, 0, sizeof(st));      // In case of failure
-   lstat(name.c_str(), &st);
-}
+{  reset(full_name); }
 
 //----------------------------------------------------------------------------
 //
@@ -381,6 +372,29 @@ std::string                         // The path name of (relative) full_name
    if( X == 0 )
      return "";
    return ".";
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Name::reset
+//
+// Purpose-
+//       Reset the file name
+//
+//----------------------------------------------------------------------------
+void
+   Name::reset(                     // Reset the file name
+     std::string       full_name)   // The file name
+{
+   path_name= get_path_name(full_name);
+   file_name= get_file_name(full_name);
+
+   name= path_name + "/" + file_name;
+
+   // Get file/link status
+   memset(&st, 0, sizeof(st));      // In case of failure
+   lstat(name.c_str(), &st);
 }
 
 //----------------------------------------------------------------------------
@@ -641,4 +655,4 @@ char*                               // The allocated storage, nullptr if none
    used += size;                    // Indicate allocated
    return result;
 }
-}  // namespace _PUB_NAMESPACE::Fileman
+}  // namespace _PUB_NAMESPACE::fileman

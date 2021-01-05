@@ -16,7 +16,7 @@
 //       All the file management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2020/12/13
+//       2021/01/04
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_FILEMAN_H_INCLUDED
@@ -27,7 +27,7 @@
 
 #include <pub/List.h>               // For pub::DHDL_List, ...
 
-namespace _PUB_NAMESPACE::Fileman { // The pub::Fileman namespace
+namespace _PUB_NAMESPACE::fileman { // The pub::fileman namespace
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
@@ -228,7 +228,7 @@ std::string            file_name;   // The file name (without path_name)
 std::string            path_name;   // The path name (without file_name)
 
 //----------------------------------------------------------------------------
-// Name::Constructors
+// Name::Destructor/Constructor
 //----------------------------------------------------------------------------
 public:
 virtual
@@ -255,6 +255,19 @@ static std::string                  // The file part of (relative) full_name
 static std::string                  // The path part of (relative) full_name
    get_path_name(                   // Get path part of
      std::string       full_name);  // This relative full name
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Name::reset
+//
+// Purpose-
+//       Reset the file name
+//
+//----------------------------------------------------------------------------
+void
+   reset(                           // Reset the file name
+     std::string       full_name);  // The file name
 
 //----------------------------------------------------------------------------
 //
@@ -345,5 +358,5 @@ virtual char*                       // Allocated storage, nullptr on failure
    malloc(                          // Allocate storage
      size_t            _size);      // The required length
 }; // class Pool
-}  // namespace _PUB_NAMESPACE::Fileman
+}  // namespace _PUB_NAMESPACE::fileman
 #endif // _PUB_FILEMAN_H_INCLUDED

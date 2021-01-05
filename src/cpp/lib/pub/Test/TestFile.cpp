@@ -16,7 +16,7 @@
 //       Test Fileman.h (parts untested by ~/src/cpp/Fileman)
 //
 // Last change date-
-//       2020/12/13
+//       2021/01/04
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -37,24 +37,29 @@ using namespace _PUB_NAMESPACE::debugging;
 //       test_name
 //
 // Purpose-
-//       Test pub::Fileman::Name
+//       Test pub::fileman::Name
 //
 //----------------------------------------------------------------------------
 static int                          // Error count
-   test_name(                       // Test pub::Fileman::Name
+   test_name(                       // Test pub::fileman::Name
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
    int                 error_count= 0; // Number of errors encountered
 
 // printf("%4d test_name\n", __LINE__);
+   using namespace pub::fileman;
+
+   // For argv[0], extract file name
+   printf("'%s'= Name::get_file_name(%s)\n"
+         , Name::get_file_name(argv[0]).c_str(), argv[0]);
 
    // Resolve each argument
    for(int argx= 1; argx < argc; argx++) {
      char* C= argv[argx];
-     pub::Fileman::Name name(C);
+     pub::fileman::Name name(C);
      std::string error= name.resolve();
-     if( error == "" )              // If no error error
+     if( error == "" )              // If no error
        printf("OK: '%s'= resolve(%s)\n", name.name.c_str(), C);
      else {
        error_count++;

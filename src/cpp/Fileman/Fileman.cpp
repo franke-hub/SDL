@@ -16,7 +16,7 @@
 //       Display directory and subdirectory.
 //
 // Last change date-
-//       2020/08/24
+//       2021/01/04
 //
 // Flags-
 //       -d (directory)
@@ -49,7 +49,7 @@
 
 #include "pub/Fileman.h"
 
-using pub::Fileman::Path;
+using pub::fileman::Path;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -276,9 +276,9 @@ static void
 //       File name information, adding print methods
 //
 //----------------------------------------------------------------------------
-class File : public pub::Fileman::File { // File name information
+class File : public pub::fileman::File { // File name information
 public:
-using pub::Fileman::File::File;   // Use ::pub::Fileman::File constructor
+using pub::fileman::File::File;     // Use ::pub::fileman::File constructor
 
 //----------------------------------------------------------------------------
 // File::Methods
