@@ -16,7 +16,7 @@
 //       Implement Xcb/Layout.h
 //
 // Last change date-
-//       2020/12/16
+//       2021/01/10
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -44,10 +44,10 @@ void
    Layout::config_t::debug(const char* name, const char* info) const
 {
    debugf("Config(%s)::debug(%s)", name ? name : "", info ? info : "" );
-   debugf(": rect(%d,%d,%u,%u)", rect.x, rect.y, rect.width, rect.height);
-   debugf(", cur_disp(%u,%u)",   cur_disp.x,     cur_disp.y);
-   debugf(", max_size(%u,%u)",   max_size.width, max_size.height);
-   debugf(", min_size(%u,%u)\n", min_size.width, min_size.height);
+   debugf(", rect(%d,%d,%u,%u)", rect.x, rect.y, rect.width, rect.height);
+   debugf(", cur_disp(%u,%u)\n", cur_disp.x,     cur_disp.y);
+   debugf(": max_size(%u,%u)",   max_size.width, max_size.height);
+   debugf(", min_size(%u,%u)",   min_size.width, min_size.height);
    debugf(", use_size(%u,%u)",   use_size.width, use_size.height);
    debugf(", use_unit(%u,%u)\n", use_unit.width, use_unit.height);
 }
@@ -146,11 +146,11 @@ static inline WH_size_t
 void
    Layout::debug(const char* info) const
 {
-   debugf("Layout(%p)::debug(%s) Named(%s)\n", this, info ? info : ""
+   debugf("Layout(%p)::debug(%s) Named(%s)", this, info ? info : ""
          , get_name().c_str());
-   debugf(": rect(%d,%d,%u,%u)", rect.x, rect.y, rect.width, rect.height);
-   debugf(", cur_disp(%u,%u)",   cur_disp.x,     cur_disp.y);
-   debugf(", max_size(%u,%u)",   max_size.width, max_size.height);
+   debugf(", rect(%d,%d,%u,%u)", rect.x, rect.y, rect.width, rect.height);
+   debugf(", cur_disp(%u,%u)\n", cur_disp.x,     cur_disp.y);
+   debugf(": max_size(%u,%u)",   max_size.width, max_size.height);
    debugf(", min_size(%u,%u)",   min_size.width, min_size.height);
    debugf(", use_size(%u,%u)",   use_size.width, use_size.height);
    debugf(", use_unit(%u,%u)\n", use_unit.width, use_unit.height);

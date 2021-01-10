@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2020/12/19
+//       2021/01/05
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -27,6 +27,7 @@
 #include <fcntl.h>                  // For O_* constants
 #include <getopt.h>                 // For getopt_long
 #include <limits.h>                 // For INT_MAX, INT_MIN
+#include <semaphore.h>              // For sem_open, sem_close
 #include <stdarg.h>                 // For va_list
 #include <stdio.h>                  // For printf
 #include <stdlib.h>                 // For various
@@ -62,13 +63,21 @@ enum // Compilation controls
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
+// Internal data areas and constants
+//----------------------------------------------------------------------------
+static sem_t*          edit_lock= nullptr; // Global semaphore
+
+// Constants
+static const char*     const SEM_ID= "/e743e3ac-6816-4878-81a2-b47c9bbc2d37";
+
+//----------------------------------------------------------------------------
 // Options
 //----------------------------------------------------------------------------
 static int             opt_help= false; // --help (or error)
 static int             opt_hcdm= false; // Hard Core Debug Mode
 static int             opt_index;   // Option index
 
-static const char*     opt_font= nullptr; // The Font, if specified
+static int             opt_force= false; // Force editor start?
 static int             opt_ro= true; // Read-only mode? TODO: DEFAULT FALSE
 static const char*     opt_test= nullptr; // The test, if specified
 static int             opt_trace= false; // Use internal trace?
@@ -79,7 +88,7 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 {  {"help",    no_argument,       &opt_help,    true} // --help
 ,  {"hcdm",    no_argument,       &opt_hcdm,    true} // --hcdm
 
-,  {"font",    required_argument, nullptr,      0} // --font {required}
+,  {"force",   no_argument,       &opt_force,   true} // --force
 ,  {"test",    required_argument, nullptr,      0} // --test {required}
 ,  {"trace",   no_argument,       &opt_trace,   true} // --trace
 ,  {"verbose", optional_argument, &opt_verbose, 0} // --verbose {optional}
@@ -90,7 +99,7 @@ enum OPT_INDEX                      // Must match OPTS[]
 {  OPT_HELP
 ,  OPT_HCDM
 
-,  OPT_FONT
+,  OPT_FORCE
 ,  OPT_TEST
 ,  OPT_TRACE
 ,  OPT_VERBOSE
@@ -111,8 +120,20 @@ static int                          // Return code (0 OK)
 //   char*             argv[])      // Argument array (Unused)
 {
    //-------------------------------------------------------------------------
+   // Insure that no other Editor instance is running
+   if( opt_force )                  // (Error recovery)
+     sem_unlink(SEM_ID);            // (Allow exclusive create)
+
+   edit_lock= sem_open(SEM_ID, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0);
+   if( edit_lock == SEM_FAILED ) {
+     fprintf(stderr, "Editor already running, or use --force\n");
+     exit(EXIT_FAILURE);
+   }
+
+   //-------------------------------------------------------------------------
    // Initialize globals
    setlocale(LC_NUMERIC, "");       // Allows printf("%'d\n", 123456789);
+// fprintf(stderr, "%4d Edit::init(%'d) ?commas?\n", __LINE__, 123456789);
 
    xcb::opt_hcdm= opt_hcdm;         // Expose options
    xcb::opt_test= opt_test;
@@ -136,7 +157,12 @@ static int                          // Return code (0 OK)
 //----------------------------------------------------------------------------
 static void
    term( void )                     // Terminate
-{  /* Nothing to do. Function moved to Config.cpp */ }
+{
+   if( edit_lock != SEM_FAILED ) {
+     sem_close(edit_lock);
+     sem_unlink(SEM_ID);
+   }
+}
 
 //----------------------------------------------------------------------------
 //
@@ -251,11 +277,8 @@ static int                          // Return code (0 if OK)
          {
            case OPT_HELP:           // These options handled by getopt
            case OPT_HCDM:
+           case OPT_FORCE:
            case OPT_TRACE:
-             break;
-
-           case OPT_FONT:
-             opt_font= optarg;
              break;
 
            case OPT_TEST:
@@ -349,8 +372,8 @@ extern int                          // Return code
    Config config(argc, argv);       // Configure
    if( opt_hcdm || opt_verbose >= 0 ) {
      Config::errorf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
-     Config::errorf("--hcdm(%d) --verbose(%d) --trace(%d)\n"
-                   , opt_hcdm, opt_verbose, opt_trace);
+     Config::errorf("--hcdm(%d) --verbose(%d) --force(%d) --trace(%d)\n"
+                   , opt_hcdm, opt_verbose, opt_force, opt_trace);
    }
 
    //-------------------------------------------------------------------------
@@ -358,12 +381,6 @@ extern int                          // Return code
    //-------------------------------------------------------------------------
    try {
      Editor editor(optind, argc, argv);
-     if( opt_font ) {
-       if( editor::set_font(opt_font) ) {
-         fprintf(stderr, "Unable to open font(%s)\n", opt_font);
-         editor::set_font();
-       }
-     }
      editor::start();
      editor::join();
    } catch(pub::Exception& X) {

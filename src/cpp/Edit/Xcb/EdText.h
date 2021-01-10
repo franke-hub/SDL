@@ -16,7 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2020/12/23
+//       2021/01/10
 //
 //----------------------------------------------------------------------------
 #ifndef EDTEXT_H_INCLUDED
@@ -28,9 +28,9 @@
 
 #include <xcb/xproto.h>             // For XCB types
 #include <xcb/xfixes.h>             // For XCB xfixes extension
-#include "Xcb/Types.h"              // For xcb::Line
-
-#include "Xcb/TextWindow.h"         // For xcb::TextWindow (Base class)
+#include "Xcb/Active.h"             // For xcb::Active
+#include "Xcb/Font.h"               // For xcb::Font
+#include "Xcb/Window.h"             // For xcb::Window (Base class)
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -49,7 +49,7 @@ class EdView;
 //       TextWindow keyboard, mouse, and screen controller.
 //
 //----------------------------------------------------------------------------
-class EdText : public xcb::TextWindow { // Editor TextWindow viewport
+class EdText : public xcb::Window { // Editor text Window viewport
 //----------------------------------------------------------------------------
 // EdText::Typedefs and enumerations
 //----------------------------------------------------------------------------
@@ -70,15 +70,38 @@ int                    y;           // Last Y position
 //----------------------------------------------------------------------------
 // EdText::Attributes
 //----------------------------------------------------------------------------
+xcb::Active            active;      // (High overhead, only used in draw.)
+xcb::Font&             font;        // Font reference (*config::font)
+EdLine*                head= nullptr; // Current first data screen line
+EdLine*                tail= nullptr; // Current last  data screen line
+
+unsigned               col_size= 0; // The current screen column count
+unsigned               row_size= 0; // The current screen row count
+unsigned               row_used= 0; // The last used screen row
+
+
+Motion                 motion= {CS_VISIBLE, 0, 0, 0}; // System motion controls
+
+// Graphic contexts
+xcb_gcontext_t         fontGC= 0;   // The standard graphic context
+xcb_gcontext_t         flipGC= 0;   // The inverted graphic context
+xcb_gcontext_t         markGC= 0;   // The selected graphic context
 xcb_gcontext_t         gc_chg= 0;   // Graphic context: status, changed file
 xcb_gcontext_t         gc_cmd= 0;   // Graphic context: history line
 xcb_gcontext_t         gc_msg= 0;   // Graphic context: message line
 xcb_gcontext_t         gc_sts= 0;   // Graphic context: status, default
-Motion                 motion= {CS_VISIBLE, 0, 0, 0}; // System motion controls
 
 // XCB atoms
 xcb_atom_t             protocol= 0; // WM_PROTOCOLS atom
 xcb_atom_t             wm_close= 0; // WM_CLOSE atom
+
+// Configuration controls
+unsigned               COLS_W=80;   // Nominal columns
+unsigned               ROWS_H=50;   // Nominal rows
+unsigned               MINI_C=40;   // Minimum columns (Width)
+unsigned               MINI_R=10;   // Minimum rows    (Height)
+unsigned               USER_TOP= 1; // Number of reserved TOP lines
+unsigned               USER_BOT= 0; // Number of reserved BOTTOM lines
 
 //----------------------------------------------------------------------------
 // EdText::Constructor
@@ -135,7 +158,7 @@ void
 //
 //----------------------------------------------------------------------------
 virtual void
-   configure( void );               // Configure the Window
+   configure( void );               // Create the Window (Layout complete)
 
 //----------------------------------------------------------------------------
 //
@@ -189,7 +212,33 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       xcb::EdText::get_text
+//       EdText::get_col
+//
+// Purpose-
+//       Convert pixel x position to (screen) column
+//
+//----------------------------------------------------------------------------
+unsigned                            // The column
+   get_col(                         // Get column
+     unsigned          x);          // For this x pixel position
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdText::get_row
+//
+// Purpose-
+//       Convert pixel y position to (screen) row
+//
+//----------------------------------------------------------------------------
+unsigned                            // The row
+   get_row(                         // Get row
+     unsigned          y);          // For this y pixel position
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdText::get_text
 //
 // Purpose-
 //       Get the text (which may be in flux.)
@@ -198,6 +247,46 @@ void
 virtual const char*                 // The associated text
    get_text(                        // Get text
      xcb::Line*        line);       // For this Line
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdText::get_x
+//
+// Purpose-
+//       Get pixel position for column.
+//
+//----------------------------------------------------------------------------
+unsigned                            // The offset in Pixels
+   get_x(                           // Get offset in Pixels
+     unsigned          col);        // For this column
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdText::get_y
+//
+// Purpose-
+//       Get pixel position for row.
+//
+//----------------------------------------------------------------------------
+unsigned                            // The offset in Pixels
+   get_y(                           // Get offset in Pixels
+     unsigned          row);        // For this row
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdText::get_xy
+//
+// Purpose-
+//       Get [col,row] pixel position.
+//
+//----------------------------------------------------------------------------
+xcb_point_t                         // The offset in Pixels
+   get_xy(                          // Get offset in Pixels
+     unsigned          col,         // And this column
+     unsigned          row);        // For this row
 
 //----------------------------------------------------------------------------
 //
@@ -233,6 +322,56 @@ void
 int                                 // Return code, 0 if draw performed
    move_cursor_H(                   // Move cursor horizontally
      size_t            column);     // The (absolute) column number
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdText::putxy
+//
+// Purpose-
+//       Draw text at position
+//
+//----------------------------------------------------------------------------
+void
+   putxy(                           // Draw text
+     xcb_gcontext_t    fontGC,      // Using this graphic context
+     unsigned          left,        // At this left (X) offset
+     unsigned          top,         // At this top  (Y) offset
+     const char*       text);       // Using this text
+
+void
+   putxy(                           // Draw text (using default draw and GC)
+     unsigned          left,        // Left (X) offset
+     unsigned          top,         // Top  (Y) offset
+     const char*       text)        // Using this text
+{  putxy(fontGC, left, top, text); }
+
+void
+   putxy(                           // Draw text
+     xcb_point_t       xy,          // At this offset
+     const char*       text)        // Using this text
+{  putxy(unsigned(xy.x), unsigned(xy.y), text); }
+
+void
+   putxy(                           // Draw text
+     xcb_gcontext_t    fontGC,      // Using this graphic context
+     xcb_point_t       xy,          // At this offset
+     const char*       text)        // Using this text
+{  putxy(fontGC, unsigned(xy.x), unsigned(xy.y), text); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdText::resize
+//
+// Purpose-
+//       Resize the window
+//
+//----------------------------------------------------------------------------
+void
+   resize(                          // Resize the Window
+     unsigned          x,           // New width
+     unsigned          y);          // New height
 
 //----------------------------------------------------------------------------
 //

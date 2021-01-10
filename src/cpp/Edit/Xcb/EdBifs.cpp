@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2020/12/26
+//       2021/01/03
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -90,7 +90,8 @@ static const char*                  // Error message, nullptr expected
    if( parm )                       // If filename specified
      return "Not coded yet";        // Need to check existence
 
-   editor::data->commit();
+   // TODO: Only called from command_file/save, where this is already done.
+   editor::data->commit();          // TODO: VERIFY NOT NEEDED
    int rc= file->write();
    if( rc )
      return "Write failure";
@@ -178,6 +179,7 @@ static const char*                  // Error message, nullptr expected
    } else
      return "Invalid command";
 
+   editor::data->activate();
    return nullptr;
 }
 
@@ -232,7 +234,7 @@ static const char*                  // Error message, nullptr expected
    command_forward(                 // Forward locate command
      char*             parm)        // (Mutable) parameter string
 {
-   config::search_mode= +1;         // Forward locate
+   editor::direction= +1;           // Forward search
 
    while( *parm == ' ' )
      parm++;
@@ -308,7 +310,7 @@ static const char*                  // Error message, nullptr expected
    command_reverse(                 // Reverse locate command
      char*             parm)        // (Mutable) parameter string
 {
-   config::search_mode= -1;         // Reverse locate
+   editor::direction= -1;           // Reverse search
 
    while( *parm == ' ' )
      parm++;
@@ -390,8 +392,9 @@ const char*                         // Error message, nullptr if none
 {  if( HCDM || opt_hcdm )
      debugf("editor::command(%s)\n", buffer);
 
-   const char* error= "Invalid command";
+   data->commit();                  // All commands commit the active line
 
+   const char* error= "Invalid command"; // Default, invalid command
    int C= *((const unsigned char*)buffer);
    if( C == '/' || C == '\'' || C == '\"' ) // If locate command
      error= command_locate(buffer); // Handle it

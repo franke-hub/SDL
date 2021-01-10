@@ -16,7 +16,7 @@
 //       Editor: TextWindow view
 //
 // Last change date-
-//       2020/12/19
+//       2021/01/04
 //
 //----------------------------------------------------------------------------
 #ifndef EDVIEW_H_INCLUDED
@@ -60,13 +60,13 @@ xcb_gcontext_t         gc_font= 0;  // Graphic context: normal line
 xcb_gcontext_t         gc_mark= 0;  // Graphic context: marked character
 
 //----------------------------------------------------------------------------
-// EdView::Constructor/Destructor
+// EdView::Destructor/Constructor
 //----------------------------------------------------------------------------
 public:
-   EdView( void );                  // Constructor
-
 virtual
    ~EdView( void );                 // Destructor
+
+   EdView( void );                  // Constructor
 
 //----------------------------------------------------------------------------
 //
@@ -84,6 +84,19 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdView::get_column
+//
+// Purpose-
+//       Get the current column
+//
+//----------------------------------------------------------------------------
+virtual size_t                       // The current column number
+   get_column( void )                // Get current column number
+{  return col_zero + col; }          // The current column number
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdView::get_gc
 //
 // Purpose-
@@ -96,14 +109,27 @@ virtual xcb_gcontext_t               // The current graphic context
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdView::get_row
+//
+// Purpose-
+//       Get the current row
+//
+//----------------------------------------------------------------------------
+virtual size_t                       // The current row number
+   get_row( void )                   // Get current row number
+{  return row_zero + row; }          // The current row number
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdView::activate
 //
 // Purpose-
-//       Activate the history line
+//       Activate the view
 //
 //----------------------------------------------------------------------------
 virtual void
-   activate( void );                // Activate the history line
+   activate( void );                // Activate the view
 
 //----------------------------------------------------------------------------
 //
@@ -118,7 +144,19 @@ virtual void
 //
 //----------------------------------------------------------------------------
 virtual void
-   commit( void );                   // Commit the Active line
+   commit( void );                  // Commit the Active line
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdView::enter_key
+//
+// Purpose-
+//       Handle enter keypress.
+//
+//----------------------------------------------------------------------------
+virtual void
+   enter_key( void );               // Handle enter keypress
 
 //----------------------------------------------------------------------------
 //

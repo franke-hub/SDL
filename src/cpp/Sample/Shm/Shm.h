@@ -62,7 +62,7 @@ enum FSM                            // Finite State Machine
 //----------------------------------------------------------------------------
    char                ident[8];    // Control block identifier
    unsigned            versionid;   // Version identifier
-   unsigned            tokenid;     // FTOK token identifier
+   key_t               tokenid;     // FTOK token identifier
    pid_t               waitforPid;  // WaitforThread sub-process identifier
    unsigned            fsm;         // Current state
    unsigned            size;        // Total size of area, in bytes

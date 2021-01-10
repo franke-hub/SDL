@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2020/12/20
+//       2021/01/04
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -404,10 +404,10 @@ void
    if( buffer_used - offset > remove ) // If text will remain
      remain= buffer_used - offset - remove;
    expand(offset + insert + remain); // If necessary, expand the buffer
-   if( insert || remove ) {        // If inserting or removing text
-     if( remain )                  // If text remains after removal
+   if( insert || remove ) {         // If inserting or removing text
+     if( remain )                   // If text remains after removal
        memmove( buffer + offset + insert, buffer + offset + remove, remain);
-     if( insert )                  // If inserting text
+     if( insert )                   // If inserting text
        memmove(buffer + offset, text, insert);
 
      fsm= FSM_CHANGED;

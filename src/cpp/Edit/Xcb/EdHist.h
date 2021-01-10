@@ -16,7 +16,7 @@
 //       Editor: History EdView
 //
 // Last change date-
-//       2020/12/23
+//       2021/01/03
 //
 //----------------------------------------------------------------------------
 #ifndef EDHIST_H_INCLUDED
@@ -32,44 +32,6 @@
 //----------------------------------------------------------------------------
 //
 // Class-
-//       HistLine
-//
-// Purpose-
-//       History line.
-//
-//----------------------------------------------------------------------------
-class HistLine : public EdLine {    // Editor history line
-public:
-std::string            line;        // Saved line text
-
-// HistLine::Constructor/Destructor ==========================================
-   HistLine(                        // Default/text constructor
-     const char*       _text= nullptr); // Associated text
-
-   ~HistLine( void );               // Default destructor
-
-// HistLine::Accessor methods ================================================
-public:
-inline HistLine*
-   get_next( void ) const
-{  return (HistLine*)EdLine::get_next(); }
-
-inline HistLine*
-   get_prev( void ) const
-{  return (HistLine*)EdLine::get_prev(); }
-
-const char*
-   get_text( void ) const;          // Get the text
-
-// HistLine::Methods =========================================================
-void
-   reset(                           // Reset the text
-     const char*       _text= nullptr); // To this string
-}; // class HistLine
-
-//----------------------------------------------------------------------------
-//
-// Class-
 //       EdHist
 //
 // Purpose-
@@ -78,19 +40,10 @@ void
 //----------------------------------------------------------------------------
 class EdHist : public EdView {      // Editor command controller
 //----------------------------------------------------------------------------
-// EdHist::Typedefs and enumerations
-//----------------------------------------------------------------------------
-public:
-enum { MAX_ROWS= 16 };              // Maximum history list size
-typedef pub::List<HistLine>
-                       HistList;    // History line list
-
-//----------------------------------------------------------------------------
 // EdHist::Attributes
 //----------------------------------------------------------------------------
-HistList               hist_list;   // History line list
-HistLine*              hist_line= nullptr; // The current history line, if any
-unsigned               hist_rows= 0; // Number of History rows
+public:
+pub::List<EdLine>      hist_list;   // History line list
 
 //----------------------------------------------------------------------------
 // EdHist::Destructor/Constructor
@@ -131,11 +84,11 @@ virtual xcb_gcontext_t               // The current graphic context
 //       EdHist::activate
 //
 // Purpose-
-//       Activate the history line
+//       Activate the history view
 //
 //----------------------------------------------------------------------------
 virtual void
-   activate( void );                // Activate the history line
+   activate( void );                // Activate the history view
 
 //----------------------------------------------------------------------------
 //
@@ -143,26 +96,35 @@ virtual void
 //       EdHist::commit
 //
 // Purpose-
-//       Commit the Active line
-//
-// Implementation note-
-//       The active buffer is used as a work area.
+//       Commit the Active line     (Does nothing)
 //
 //----------------------------------------------------------------------------
 virtual void
-   commit( void );                  // Commit the Active line
+   commit( void ) {}                // Commit the Active line
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdHist::get_active
+//       EdHist::enter_key
 //
 // Purpose-
-//       Get the active  history line
+//       Handle enter keypress
 //
 //----------------------------------------------------------------------------
-virtual const char*                 // Get the active history line
-   get_active( void );              // Get the active history line
+virtual void
+   enter_key( void );               // Handle enter keypress
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdHist::get_buffer
+//
+// Purpose-
+//       Get the active buffer (With blank fill for draw)
+//
+//----------------------------------------------------------------------------
+virtual const char*                 // Get the active buffer
+   get_buffer( void );              // Get the active buffer
 
 //----------------------------------------------------------------------------
 //

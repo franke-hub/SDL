@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2020/12/25
+//       2021/01/10
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -41,6 +41,7 @@
 #include "EdFile.h"                 // For EdFile, EdLine, EdRedo
 #include "EdMark.h"                 // For EdMark
 #include "EdText.h"                 // For EdText
+#include "EdView.h"                 // For EdView
 
 using namespace config;             // For config::opt_*
 using namespace pub::debugging;     // For debugging
@@ -59,6 +60,177 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 pub::signals::Signal<EdFile::CloseEvent>
                        EdFile::close_signal; // CloseEvent signal
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       debug_redo
+//       assert_line
+//       assert_miss
+//       assert_xxdo
+//       assert_redo
+//       assert_undo
+//
+// Purpose-
+//       Bringup debugging
+//
+// Implementation notes-
+//       For BRINGUP checking. NOT optimized.
+//
+//----------------------------------------------------------------------------
+#if USE_BRINGUP
+static void
+   debug_redo(                      // Inconsistent REDO
+     int               line,        // Line number
+     EdRedo*           redo)        // For this REDO
+{
+   debugf("%4d EdFile redo(%p,%p,%p,%p)\n", line
+         , redo->head_insert, redo->tail_insert
+         , redo->head_remove, redo->tail_remove);
+
+   redo->debug("Inconsistent");
+   Config::debug("REDO/UNDO inconsistent");
+   Config::failure("REDO/UNDO inconsistent");
+}
+
+static void
+   assert_line(                     // Assert
+     EdLine*           test,        // This line is active in
+     EdFile*           file,        // This file for
+     EdRedo*           redo)        // This redo
+{
+   for(EdLine* L= file->line_list.get_head(); L; L= L->get_next() ) {
+     if( L == test )
+       return;
+   }
+
+   debugf("%4d EdFile(%p)->assert_line(%p) FAILED\n", __LINE__, file, test);
+   debug_redo(__LINE__, redo);
+}
+
+static void
+   assert_miss(                     // Assert
+     EdLine*           test,        // This line is not active in
+     EdFile*           file,        // This file for
+     EdRedo*           redo)        // This redo
+{
+   for(EdLine* line= file->line_list.get_head(); line; line= line->get_next() ) {
+     if( line == test ) {
+       debugf("%4d EdFile(%p)->assert_miss(%p) FAILED\n", __LINE__, file, test);
+       debug_redo(__LINE__, redo);
+     }
+   }
+}
+
+static void
+   assert_base(                     // Assert
+     EdRedo*           redo)        // This REDO/UNDO is self-consistent
+{
+   if( redo->head_insert ) {
+     if( redo->tail_insert == nullptr )
+       debug_redo(__LINE__, redo);
+   } else if( redo->tail_insert )
+     debug_redo(__LINE__, redo);
+
+   if( redo->head_remove ) {
+     if( redo->tail_remove == nullptr )
+       debug_redo(__LINE__, redo);
+   } else if( redo->tail_remove )
+     debug_redo(__LINE__, redo);
+
+   if( redo->head_insert && redo->head_remove ) {
+     if( redo->tail_insert == nullptr || redo->tail_insert == nullptr )
+       debug_redo(__LINE__, redo);
+     if( redo->head_insert->get_prev() != redo->head_remove->get_prev() )
+       debug_redo(__LINE__, redo);
+     if( redo->tail_insert->get_next() != redo->tail_remove->get_next() )
+       debug_redo(__LINE__, redo);
+   } else if( !(redo->head_insert || redo->head_remove) )
+     debug_redo(__LINE__, redo);
+}
+
+static void
+   assert_redo(                     // Assert
+     EdRedo*           redo,        // This REDO is self-consistent
+     EdFile*           file)        // For this file
+{
+   assert_base(redo);
+
+   if( redo->head_remove ) {        // If redo remove
+     assert_line(redo->head_remove->get_prev(), file, redo);
+     assert_line(redo->tail_remove->get_next(), file, redo);
+
+     for(EdLine* line= redo->head_remove; ; line= line->get_next() ) {
+       if( line == nullptr ) {
+         debugf("%4d EdFile nullptr redo(,,%p,%p)\n", __LINE__
+               , redo->head_remove, redo->tail_remove);
+         debug_redo(__LINE__, redo);
+       }
+       assert_line(line, file, redo);
+       if( line == redo->tail_remove )
+         break;
+     }
+   }
+   if( redo->head_insert ) {        // If redo insert
+     assert_line(redo->head_insert->get_prev(), file, redo);
+     assert_line(redo->tail_insert->get_next(), file, redo);
+
+     for(EdLine* line= redo->head_insert; ; line= line->get_next() ) {
+       if( line == nullptr ) {
+         debugf("%4d EdFile nullptr redo(%p,%p,,)\n", __LINE__
+               , redo->head_insert, redo->tail_insert);
+         debug_redo(__LINE__, redo);
+       }
+       assert_miss(line, file, redo);
+       if( line == redo->tail_insert )
+         break;
+     }
+   }
+}
+
+static void
+   assert_undo(                     // Assert
+     EdRedo*           undo,        // This UNDO is self-consistent
+     EdFile*           file)        // For this file
+{
+   assert_base(undo);
+
+   if( undo->head_insert ) {        // If undo insert
+     assert_line(undo->head_insert->get_prev(), file, undo);
+     assert_line(undo->tail_insert->get_next(), file, undo);
+
+     for(EdLine* line= undo->head_insert; ; line= line->get_next() ) {
+       if( line == nullptr ) {
+         debugf("%4d EdFile nullptr undo(%p,%p,,)\n", __LINE__
+               , undo->head_insert, undo->tail_insert);
+         debug_redo(__LINE__, undo);
+       }
+       assert_line(line, file, undo);
+       if( line == undo->tail_insert )
+         break;
+     }
+   }
+   if( undo->head_remove ) {        // If undo remove
+     assert_line(undo->head_remove->get_prev(), file, undo);
+     assert_line(undo->tail_remove->get_next(), file, undo);
+
+     for(EdLine* line= undo->head_remove; ; line= line->get_next() ) {
+       if( line == nullptr ) {
+         debugf("%4d EdFile nullptr undo(,,%p,%p)\n", __LINE__
+               , undo->head_remove, undo->tail_remove);
+         return;
+       }
+       assert_miss(line, file, undo);
+       if( line == undo->tail_remove )
+         break;
+     }
+   }
+}
+#else // If USE_BRINGUP == false
+static void assert_base(EdRedo*) {} // Assert self-consistent REDO insert
+static void assert_redo(EdRedo*, EdFile*) {} // Assert self-consistent REDO
+static void assert_undo(EdRedo*, EdFile*) {} // Assert self-consistent UNDO
+#endif
 
 //----------------------------------------------------------------------------
 //
@@ -100,6 +272,8 @@ static const char*                  // The file name (only)
 {  if( HCDM || opt_hcdm )
      traceh("EdFile(%p)::EdFile(%s)\n", this, get_name().c_str());
 
+   Config::trace(".NEW", "file", this);
+
    EdLine* top= new_line("* * * * Top of file * * * *");
    EdLine* bot= new_line("* * * * End of file * * * *");
    top->flags= bot->flags= EdLine::F_PROT; // (Protect these lines)
@@ -118,13 +292,15 @@ static const char*                  // The file name (only)
    if( HCDM || opt_hcdm )
      traceh("EdFile(%p)::~EdFile(%s)\n", this, get_name().c_str());
 
+   Config::trace(".DEL", "file", this);
+
    if( HCDM && !line_list.is_coherent() )
-     Config::alertf("%4d incoherent\n", __LINE__);
+     Editor::alertf("%4d incoherent\n", __LINE__);
 
    reset();                         // Delete REDO/UNDO lists
 
    if( HCDM && !line_list.is_coherent() )
-     Config::alertf("%4d incoherent\n", __LINE__);
+     Editor::alertf("%4d incoherent\n", __LINE__);
 
    for(;;) {                        // Delete all lines
      EdLine* line= line_list.remq();
@@ -166,7 +342,7 @@ EdLine*                             // The EdLine*
 size_t                              // The row number
    EdFile::get_row(                 // Get row number
      const EdLine*    cursor) const // For this line
-{  // TODO: VERIFY USAGE
+{
    size_t row= 0;
    for(EdLine* line= line_list.get_head(); line; line= line->get_next() ) {
      if( line == cursor )
@@ -402,46 +578,6 @@ EdLine*                             // (Always tail)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdFile::insert_undo
-//
-// Purpose-
-//       Add REDO to the UNDO list
-//
-//----------------------------------------------------------------------------
-void
-   EdFile::insert_undo(             // Insert
-     EdRedo*           edRedo)      // This REDO onto the UNDO list
-{
-   for(;;) {                        // Delete all REDO operations
-     EdRedo* redo= redo_list.remq();
-     if( redo == nullptr )
-       break;
-
-     EdLine* line= redo->head_insert;
-     while( line ) {
-       EdLine* next= line->get_next();
-       delete line;
-
-       if( line == redo->tail_insert )
-         break;
-       line= next;
-     }
-
-     delete redo;
-   }
-
-   editor::mark->handle_redo(this, edRedo);
-   undo_list.lifo(edRedo);
-   changed= true;
-
-#if USE_BRINGUP
-   Config::check("insert_undo");
-#endif
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       EdFile::new_line
 //
 // Purpose-
@@ -541,78 +677,6 @@ int                                 // TRUE if message removed or remain
 //       UNDO: hi(0) ti(0) hr(A<-G) tr(I->D)
 //
 //----------------------------------------------------------------------------
-#if USE_BRINGUP
-static void
-   debug_redo(                      // Inconsistent REDO
-     int               line,        // Line number
-     EdRedo*           redo)        // For this REDO
-{
-   debugf("%4d EdFile redo(%p,%p,%p,%p)\n", line
-         , redo->head_insert, redo->tail_insert
-         , redo->head_remove, redo->tail_remove);
-
-   redo->debug("Inconsistent");
-   Config::debug("REDO/UNDO inconsistent");
-   Config::failure("REDO/UNDO inconsistent");
-}
-
-static void
-   assert_line(                     // Assert
-     EdLine*           test,        // This line is active in
-     EdFile*           file,        // This file for
-     EdRedo*           redo)        // This redo
-{
-   for(EdLine* L= file->line_list.get_head(); L; L= L->get_next() ) {
-     if( L == test )
-       return;
-   }
-
-   debugf("%4d EdFile(%p)->assert_line(%p) FAILED\n", __LINE__, file, test);
-   debug_redo(__LINE__, redo);
-}
-
-static void
-   assert_miss(                     // Assert
-     EdLine*           test,        // This line is not active in
-     EdFile*           file,        // This file for
-     EdRedo*           redo)        // This redo
-{
-   for(EdLine* line= file->line_list.get_head(); line; line= line->get_next() ) {
-     if( line == test ) {
-       debugf("%4d EdFile(%p)->assert_miss(%p) FAILED\n", __LINE__, file, test);
-       debug_redo(__LINE__, redo);
-     }
-   }
-}
-
-static void
-   assert_redo(                     // Assert
-     EdRedo*           redo)        // This REDO/UNDO is self-consistent
-{
-   if( redo->head_insert ) {
-     if( redo->tail_insert == nullptr )
-       debug_redo(__LINE__, redo);
-   } else if( redo->tail_insert )
-     debug_redo(__LINE__, redo);
-
-   if( redo->head_remove ) {
-     if( redo->tail_remove == nullptr )
-       debug_redo(__LINE__, redo);
-   } else if( redo->tail_remove )
-     debug_redo(__LINE__, redo);
-
-   if( redo->head_insert && redo->head_remove ) {
-     if( redo->tail_insert == nullptr || redo->tail_insert == nullptr )
-       debug_redo(__LINE__, redo);
-     if( redo->head_insert->get_prev() != redo->head_remove->get_prev() )
-       debug_redo(__LINE__, redo);
-     if( redo->tail_insert->get_next() != redo->tail_remove->get_next() )
-       debug_redo(__LINE__, redo);
-   } else if( !(redo->head_insert || redo->head_remove) )
-     debug_redo(__LINE__, redo);
-}
-#endif
-
 //============================================================================
 // REDO ======================================================================
 //============================================================================
@@ -632,77 +696,39 @@ void
      return;
    }
 
-#if USE_BRINGUP
-   // TODO: REMOVE (BRINGUP CHECKING ** NOT OPTIMIZED **)
-   assert_redo(redo);
-
-   if( redo->head_remove ) {        // If redo remove
-     assert_line(redo->head_remove->get_prev(), this, redo);
-     assert_line(redo->tail_remove->get_next(), this, redo);
-
-     for(EdLine* line= redo->head_remove; ; line= line->get_next() ) {
-       if( line == nullptr ) {
-         debugf("%4d EdFile nullptr redo(,,%p,%p)\n", __LINE__
-               , redo->head_remove, redo->tail_remove);
-         debug_redo(__LINE__, redo);
-       }
-       assert_line(line, this, redo);
-       if( line == redo->tail_remove )
-         break;
-     }
-   }
-   if( redo->head_insert ) {        // If redo insert
-     assert_line(redo->head_insert->get_prev(), this, redo);
-     assert_line(redo->tail_insert->get_next(), this, redo);
-
-     for(EdLine* line= redo->head_insert; ; line= line->get_next() ) {
-       if( line == nullptr ) {
-         debugf("%4d EdFile nullptr redo(%p,%p,,)\n", __LINE__
-               , redo->head_insert, redo->tail_insert);
-         debug_redo(__LINE__, redo);
-       }
-       assert_miss(line, this, redo);
-       if( line == redo->tail_insert )
-         break;
-     }
-   }
-#endif
-
    // Perform redo action
-   changed= true;                   // File changed
+   Config::trace(".RDO", "file", redo, this, editor::data->cursor);
+   assert_redo(redo, this);         // (Only active when USE_BRINGUP == true)
 
    EdLine* line= nullptr;           // Activation line
    if( redo->head_remove ) {        // If redo remove
      line_list.remove(redo->head_remove, redo->tail_remove);
-//   redo->head_remove->get_prev()->set_next(redo->tail_remove->get_next());
-//   redo->tail_remove->get_next()->set_prev(redo->head_remove->get_prev());
 
      line= redo->head_remove->get_prev();
    }
    if( redo->head_insert ) {        // If redo insert
      EdLine* after= redo->head_insert->get_prev();
      line_list.insert(after, redo->head_insert, redo->tail_insert);
-//   redo->head_insert->get_prev()->set_next(redo->head_insert);
-//   redo->tail_insert->get_next()->set_prev(redo->tail_insert);
 
      line= redo->head_insert->get_prev();
    }
 
-   size_t old_rows= get_rows(redo->head_remove, redo->tail_remove);
-   size_t new_rows= get_rows(redo->head_insert, redo->tail_insert);
-   rows += ssize_t(new_rows - old_rows);
+// if( line == nullptr ) return;    // (TODO: Only needed for empty redo)
+   changed= true;                   // File changed
+
+   size_t rem_rows= get_rows(redo->head_remove, redo->tail_remove);
+   size_t ins_rows= get_rows(redo->head_insert, redo->tail_insert);
+   rows += ssize_t(ins_rows - rem_rows);
 
    editor::mark->handle_redo(this, redo);
    editor::text->activate(line);
    editor::text->draw();
-   undo_list.lifo(redo);            // REDO => UNDO
+   undo_list.lifo(redo);            // Move REDO to UNDO list
 // debug("redo-done");
 
-#if USE_BRINGUP
-   Config::check("insert_undo");
-#endif
+   if( USE_BRINGUP )
+     Config::check("redo");
 }
-
 
 //============================================================================
 // UNDO ======================================================================
@@ -723,62 +749,27 @@ void
      return;
    }
 
-#if USE_BRINGUP
-   // TODO: REMOVE (BRINGUP CHECKING ** NOT OPTIMIZED **)
-   assert_redo(undo);
-
-   if( undo->head_insert ) {        // If undo insert
-     assert_line(undo->head_insert->get_prev(), this, undo);
-     assert_line(undo->tail_insert->get_next(), this, undo);
-
-     for(EdLine* line= undo->head_insert; ; line= line->get_next() ) {
-       if( line == nullptr ) {
-         debugf("%4d EdFile nullptr undo(%p,%p,,)\n", __LINE__
-               , undo->head_insert, undo->tail_insert);
-         debug_redo(__LINE__, undo);
-       }
-       assert_line(line, this, undo);
-       if( line == undo->tail_insert )
-         break;
-     }
-   }
-   if( undo->head_remove ) {        // If undo remove
-     assert_line(undo->head_remove->get_prev(), this, undo);
-     assert_line(undo->tail_remove->get_next(), this, undo);
-
-     for(EdLine* line= undo->head_remove; ; line= line->get_next() ) {
-       if( line == nullptr ) {
-         debugf("%4d EdFile nullptr undo(,,%p,%p)\n", __LINE__
-               , undo->head_remove, undo->tail_remove);
-         return;
-       }
-       assert_miss(line, this, undo);
-       if( line == undo->tail_remove )
-         break;
-     }
-   }
-#endif
-
    // Perform undo action
+   Config::trace(".UDO", "file", undo, this, editor::data->cursor);
+   assert_undo(undo, this);         // (Only active when USE_BRINGUP == true)
+
    if( undo_list.get_head() == nullptr ) // If nothing left to undo
      changed= false;                // File reverts to unchanged
 
    EdLine* line= nullptr;           // Activation line
    if( undo->head_insert ) {        // If undo insert
      line_list.remove(undo->head_insert, undo->tail_insert);
-//   undo->head_insert->get_prev()->set_next(undo->tail_insert->get_next());
-//   undo->tail_insert->get_next()->set_prev(undo->head_insert->get_prev());
 
      line= undo->head_insert->get_prev();
    }
    if( undo->head_remove ) {        // If undo remove
      EdLine* after= undo->head_remove->get_prev();
      line_list.insert(after, undo->head_remove, undo->tail_remove);
-//   undo->head_remove->get_prev()->set_next(undo->head_remove);
-//   undo->tail_remove->get_next()->set_prev(undo->tail_remove);
 
      line= undo->head_remove->get_prev();
    }
+
+// if( line == nullptr ) return;    // (TODO: Only needed for empty undo)
 
    size_t old_rows= get_rows(undo->head_insert, undo->tail_insert);
    size_t new_rows= get_rows(undo->head_remove, undo->tail_remove);
@@ -787,12 +778,66 @@ void
    editor::mark->handle_undo(this, undo);
    editor::text->activate(line);
    editor::text->draw();
-   redo_list.lifo(undo);            // UNDO => REDO
-// debug("undo-done");
+   redo_list.lifo(undo);            // Move UNDO to REDO list
 
-#if USE_BRINGUP
-   Config::check("insert_undo");
-#endif
+   if( USE_BRINGUP )
+     Config::check("undo");
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::redo_delete        // (Only used by EdFile.cpp)
+//
+// Purpose-
+//       Delete the REDO list
+//
+//----------------------------------------------------------------------------
+void
+   EdFile::redo_delete( void )      // Delete the REDO list
+{
+   // Delete the entire REDO list, also deleting all insert lines
+   for(EdRedo* redo= redo_list.remq(); redo; redo= redo_list.remq() ) {
+     EdLine* line= redo->head_insert;
+     while( line ) {
+       EdLine* next= line->get_next();
+       delete line;
+
+       if( line == redo->tail_insert )
+         break;
+       line= next;
+     }
+
+     delete redo;
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::redo_insert
+//
+// Purpose-
+//       Add REDO to the UNDO list
+//
+// Implementation notes-
+//       DOES NOT update the cursor. TODO: Should it? Caller's do now.
+//
+//----------------------------------------------------------------------------
+void
+   EdFile::redo_insert(             // Insert
+     EdRedo*           redo)        // This REDO onto the UNDO list
+{
+   Config::trace(".RDO", "inst", redo, this, editor::data->cursor);
+   assert_base(redo);               // (Only active when USE_BRINGUP == true)
+   redo_delete();                   // Delete the current REDO list
+
+   editor::mark->handle_redo(this, redo);
+   undo_list.lifo(redo);            // Insert the REDO onto the UNDO list
+   changed= true;
+
+   if( USE_BRINGUP )
+     Config::check("redo_insert");
 }
 
 //----------------------------------------------------------------------------
@@ -826,36 +871,15 @@ void
 // Purpose-
 //       Reset the undo/redo lists
 //
-// Implementation notes-
-//       This action cannot be undone.
-//
 //----------------------------------------------------------------------------
 void
    EdFile::reset( void )            // Reset the undo/redo lists
 {
-   for(;;) {                        // Delete all REDO operations
-     EdRedo* redo= redo_list.remq();
-     if( redo == nullptr )
-       break;
+   // Delete the entire REDO list, also deleting all insert lines
+   redo_delete();
 
-     EdLine* line= redo->head_insert;
-     while( line ) {
-       EdLine* next= line->get_next();
-       delete line;
-
-       if( line == redo->tail_insert )
-         break;
-       line= next;
-     }
-
-     delete redo;
-   }
-
-   for(;;) {                        // Delete all UNDO operations
-     EdRedo* undo= undo_list.remq();
-     if( undo == nullptr )
-       break;
-
+   // Delete the entire UNDO list, also deleting all remove lines
+   for(EdRedo* undo= undo_list.remq(); undo; undo= undo_list.remq() ) {
      EdLine* line= undo->head_remove;
      while( line ) {
        EdLine* next= line->get_next();
@@ -989,11 +1013,15 @@ int                                 // Return code, 0 OK
 :  ::xcb::Line(text)
 {  if( HCDM || (opt_hcdm && opt_verbose > 2) )
      traceh("EdLine(%p)::EdLine\n", this);
+
+   Config::trace(".NEW", "line", this);
 }
 
    EdLine::~EdLine( void )          // Destructor
 {  if( HCDM || (opt_hcdm && opt_verbose > 2) )
      traceh("EdLine(%p)::~EdLine\n", this);
+
+   Config::trace(".DEL", "line", this);
 }
 
 //----------------------------------------------------------------------------
@@ -1008,8 +1036,8 @@ int                                 // Return code, 0 OK
 void
    EdLine::debug( void ) const      // Minimal debugging display
 {
-   char buffer[16]; buffer[15]= '\0';
-   strncpy(buffer, text, 15);
+   char buffer[42]; buffer[41]= '\0';
+   strncpy(buffer, text, 41);
    debugf("%p F(%.4x) D(%.2x,%.2x) '%s'\n", this, flags
          , delim[0], delim[1], buffer);
 }
@@ -1111,11 +1139,15 @@ void
 :  ::pub::List<EdRedo>::Link()
 {  if( HCDM || opt_hcdm )
      debugh("EdRedo(%p)::EdRedo\n", this);
+
+   Config::trace(".NEW", "redo", this);
 }
 
    EdRedo::~EdRedo( void )          // Destructor
 {  if( HCDM || opt_hcdm )
      debugh("EdRedo(%p)::~EdRedo\n", this);
+
+   Config::trace(".DEL", "redo", this);
 }
 
 //----------------------------------------------------------------------------
@@ -1132,7 +1164,7 @@ void
      const char*       info) const  // Associated info
 {  debugf("EdRedo(%p)::debug(%s)\n", this, info ? info : "");
 
-   debugf("  [");
+   debugf("  INS [");
    if( head_insert ) debugf("%p<-", head_insert->get_prev());
    debugf("%p,%p", head_insert, tail_insert);
    if( tail_insert ) debugf("->%p", tail_insert->get_next());
@@ -1144,7 +1176,7 @@ void
        break;
    }
 
-   debugf("  [");
+   debugf("  REM [");
    if( head_remove ) debugf("%p<-", head_remove->get_prev());
    debugf("%p,%p", head_remove, tail_remove);
    if( tail_remove ) debugf("->%p", tail_remove->get_next());

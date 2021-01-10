@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       EdNark.h
+//       EdMark.h
 //
 // Purpose-
 //       Editor: Line/block mark descriptor
 //
 // Last change date-
-//       2020/12/21
+//       2021/01/04
 //
 //----------------------------------------------------------------------------
 #ifndef EDMARK_H_INCLUDED
@@ -45,17 +45,17 @@ class EdMark {                      // Editor mark descriptor
 // EdMark::Attributes
 //----------------------------------------------------------------------------
 public:
-// File touch information
-EdFile*                file= nullptr; // The marked file
-EdLine*                head= nullptr; // The first marked line
-EdLine*                tail= nullptr; // The last  marked line
+// Current mark information
+EdFile*                mark_file= nullptr; // The marked file
+EdLine*                mark_head= nullptr; // The first marked file line
+EdLine*                mark_tail= nullptr; // The last  marked file line
 
-EdLine*                touch_line= nullptr; // The last touched line
-ssize_t                touch_col= -1; // The last column marked (-1 for line)
-size_t                 touch_lh= -1; // Touch left-hand column
-size_t                 touch_rh= -1; // Touch right-hand column (+1)
+EdLine*                mark_line= nullptr; // The last  marked line
+ssize_t                mark_col= -1; // The last column marked (-1 for line)
+size_t                 mark_lh= -1; // Mark left-hand column
+size_t                 mark_rh= -1; // Mark right-hand column (+1)
 
-// Copy information
+// Current copy information (Last copy/cut) Note: move= cut + paste
 EdFile*                copy_file= nullptr; // The copied file
 pub::List<EdLine>      copy_list;   // The current copy/cut list
 size_t                 copy_rows= 0; // The number of copy/cut rows

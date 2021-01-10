@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2020/12/27
+//       2021/01/09
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -37,7 +37,7 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= false               // Extra bringup diagnostics?
+,  USE_BRINGUP= true                // Extra bringup diagnostics?
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
@@ -130,7 +130,7 @@ xcb_gcontext_t                       // The current graphic context
 //       Commit the Active data line
 //
 // Implementation notes-
-//       This is the EdText commit, overridden in EdHist
+//       This is the EdText commit, overridden in EdHist (to do nothing)
 //
 //----------------------------------------------------------------------------
 void
@@ -146,14 +146,7 @@ void
      *line= *cursor;                // (Duplicates links and delimiters)
 
      // Replace the text in the REDO line
-     size_t length= active.get_used();
-     if( length == 0 )
-       line->text= "";
-     else {
-       char* revise= editor::allocate(length + 1);
-       strcpy(revise, buffer);
-       line->text= revise;
-     }
+     line->text= editor::allocate(buffer);
      active.reset(line->text);      // (Prevents duplicate commit)
 
      // The new line replaces the cursor line in the file_list
@@ -164,11 +157,26 @@ void
      EdRedo* redo= new EdRedo();
      redo->head_remove= redo->tail_remove= cursor;
      redo->head_insert= redo->tail_insert= line;
-     editor::file->insert_undo(redo); // (Sets file->changed)
+     editor::file->redo_insert(redo); // (Sets file->changed)
 
+     Config::trace(".CSR", "Vcmt", line, cursor); // (New, old)
      cursor= line;                  // Replace the cursor
-   }
+   } else if( USE_BRINGUP )         // TODO: REMOVE or change to if( HCDM )
+     Config::trace(".CSR", "Vnop", cursor, cursor);
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdView::enter_key
+//
+// Purpose-
+//       Handle enter keypress
+//
+//----------------------------------------------------------------------------
+void
+   EdView::enter_key( void )        // Handle enter keypress
+{  move_cursor_V(+1); }
 
 //----------------------------------------------------------------------------
 //
@@ -195,16 +203,16 @@ void
        if( text->row_used > row )
          row++;
        else {
-         EdLine* line= (EdLine*)text->line->get_next();
+         EdLine* line= (EdLine*)text->head->get_next();
          if( line ) {
-           text->line= line;
+           text->head= line;
            text->row_used--;
            row_zero++;
            rc= 0;
          } else {
            break;
          }
-         if( text->last->get_next() == nullptr )
+         if( text->tail->get_next() == nullptr )
            row--;
        }
      }
@@ -213,9 +221,9 @@ void
        if( row > text->USER_TOP )
          row--;
        else {
-         EdLine* line= (EdLine*)text->line->get_prev();
+         EdLine* line= (EdLine*)text->head->get_prev();
          if( line ) {
-           text->line= line;
+           text->head= line;
            row_zero--;
            rc= 0;
          } else {

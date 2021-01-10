@@ -16,7 +16,7 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2020/12/25
+//       2021/01/10
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
@@ -25,6 +25,17 @@
 #include <string>                   // For std::string
 #include <pub/config.h>             // For _ATTRIBUTE_PRINTF macros
 #include <pub/Signals.h>            // For pub::signals
+
+#include "Xcb/Device.h"             // For xcb::Device
+#include "Xcb/Font.h"               // For xcb::Font
+#include "Xcb/Window.h"             // For xcb::Window
+
+//----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+class EdFile;
+class EdLine;
+class EdRedo;
 
 //----------------------------------------------------------------------------
 //
@@ -84,24 +95,6 @@ static void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Config::alertf
-//
-// Purpose-
-//       Extend errorf to write screen alert.
-//
-// Implementation note-
-//       Do not include trailing '\n' in string.
-//
-//----------------------------------------------------------------------------
-static void
-   alertf(                          // Write to stderr, trace iff opt_hcdm
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       Config::errorf
 //
 // Purpose-
@@ -125,7 +118,9 @@ static void
 //----------------------------------------------------------------------------
 static void
    failure(                         // Write error message and exit
-     std::string       mess);       // (The error message)
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // PRINTF argruments
+   _ATTRIBUTE_PRINTF(1, 2);
 
 //----------------------------------------------------------------------------
 //
@@ -152,6 +147,14 @@ static void
      const char*       code,        // Trace sub-identifier
      void*             _one= nullptr,  // Word one
      void*             _two= nullptr); // Word two
+
+static void
+   trace(                           // Trace undo/redo operation
+     const char*       ident,       // Trace identifier (.UDO, .RDO)
+     const char*       code,        // Trace sub-identifer (file,init,mark)
+     EdRedo*           redo,        // The UNDO/REDO
+     EdFile*           file,        // The UNDO/REDO file
+     EdLine*           line= nullptr); // The UNDO/REDO cursor line
 }; // class Config
 
 //----------------------------------------------------------------------------
@@ -172,10 +175,29 @@ extern int             opt_hcdm;    // Hard Core Debug Mode?
 extern const char*     opt_test;    // Bringup test?
 extern int             opt_verbose; // Debugging verbosity
 
-// Editor controls
-extern int             autowrap;    // Autowrap locate (= false)
-extern int             ignore_case; // Ignore case when searching (= true)
-extern int             search_mode; // (Positive= forward, else reverse) (= 0)
+// XCB objects --------------------------------------------------------------
+extern xcb::Device*    device;      // The root Device
+extern xcb::Window*    window;      // The test Window
+extern xcb::Font*      font;        // The Font object
+
+// Color controls ------------------------------------------------------------
+extern uint32_t        mark_bg;     // mark.bg: Marked text BG (background)
+extern uint32_t        mark_fg;     // mark.bg: Marked text FG (foreground)
+
+extern uint32_t        text_bg;     // text.bg: Normal Text BG
+extern uint32_t        text_fg;     // text.bg: Normal Text FG
+
+extern uint32_t        change_bg;   // change.bg: Status BG, modified file
+extern uint32_t        change_fg;   // change.fg: Status FG, modified file
+
+extern uint32_t        status_bg;   // status.bg: Status BG, pristine file
+extern uint32_t        status_fg;   // status.fg: Status FG, pristine file
+
+extern uint32_t        command_bg;  // command.bg: Command line BG
+extern uint32_t        command_fg;  // command.fg: Command line FG
+
+extern uint32_t        message_bg;  // message.bg: Message line BG
+extern uint32_t        message_fg;  // message.fg: Message line FG
 
 // Initialized controls
 extern std::string     AUTO;        // The AUTOSAVE directory

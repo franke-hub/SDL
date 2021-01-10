@@ -16,7 +16,7 @@
 //       Editor: Config.cpp extension: debugging listeners
 //
 // Last change date-
-//       2020/12/25
+//       2021/01/09
 //
 // Implementation note-
 //       Only included from Config.cpp
@@ -108,17 +108,6 @@ static pub::signals::Connector<const char*> config_check=
    while( redo ) {
      if( invalid_redo(redo) ) { Config::debug(info); return; }
 
-     if( redo->head_insert && redo->tail_insert ) {
-       if( redo->head_insert->get_prev() != redo->tail_insert->get_prev() ) {
-         checkstop("redo head/tail->get_prev inconsistent");
-         Config::debug(info); return;
-       }
-       if( redo->head_remove->get_next() != redo->tail_remove->get_next() ) {
-         checkstop("redo head/tail->get_mext inconsistent");
-         Config::debug(info); return;
-       }
-     }
-
      redo= redo->get_next();
    }
 }); // config_check (Connector)
@@ -135,15 +124,18 @@ static pub::signals::Connector<const char*> config_check=
 static pub::signals::Connector<const char*> config_debug=
                        debugSignal.connect([](const char*& info)
 {
+   debugf("\n============================================================\n");
    debugf("Config::debug(%s)\n", info ? info : "");
 
-   Editor::debug(info);             // Debug namespace editor
-   debugf("\n============================================================\n");
+   Editor::debug(info);
+   debugf("\n");
    editor::mark->debug(info);
    debugf("\n");
    editor::file->debug("lines");
    debugf("\n");
    editor::text->debug(info);
+   debugf("\n");
+   config::font->debug(info);
    debugf("\n");
    editor::data->debug(info);
    debugf("\n");
@@ -166,10 +158,10 @@ static pub::signals::Connector<const int> config_signal=
    switch(id) {                     // Handle the signal
      case SIGUSR1:
        Config::debug("SIGUSR1");
-       if( editor::window ) {       // Code hack: not useful
-         editor::window->show();
-         editor::window->hide();
-         editor::window->flush();
+       if( config::window ) {       // Code hack: not useful
+         config::window->show();
+         config::window->hide();
+         config::window->flush();
        }
        editor::text->hide();
        editor::text->show();

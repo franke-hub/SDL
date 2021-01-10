@@ -16,31 +16,26 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2020/12/25
+//       2021/01/10
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
 #define EDITOR_H_INCLUDED
 
-#include <xcb/xproto.h>             // For xcb_keysym_t
+#include <xcb/xproto.h>             // For xcb_keysym_t, xcb_rectangle_t, ...
 #include <pub/List.h>               // For pub::List
 
-#include "Xcb/Active.h"             // For xcb::Active
 #include "Xcb/Device.h"             // For xcb::Device
-#include "Xcb/Widget.h"             // For xcb::Widget, our base class
+#include "Xcb/Font.h"               // For xcb::Font
 #include "Xcb/Window.h"             // For xcb::Window
 
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
 class EdFile;                       // Editor file descriptor
-class EdFind;                       // Editor find Popup
-class EdFull;                       // Editor full Window (experimental)
 class EdHist;                       // Editor history view
 class EdMark;                       // Editor mark controller
-class EdMenu;                       // Editor menu Layout
 class EdPool;                       // Editor pool allocators
-class EdTabs;                       // Editor tabs Layout
 class EdText;                       // Editor text Window
 class EdView;                       // Editor view
 
@@ -71,6 +66,24 @@ public:
 static void
    debug(                           // Debugging display
      const char*       info= nullptr); // Associated info
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Editor::alertf
+//
+// Purpose-
+//       Extend errorf to write screen alert.
+//
+// Implementation note-
+//       Do not include trailing '\n' in string.
+//
+//----------------------------------------------------------------------------
+static void
+   alertf(                          // Write to stderr, trace iff opt_hcdm
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // PRINTF argruments
+   _ATTRIBUTE_PRINTF(1, 2);
 }; // class Editor
 
 //----------------------------------------------------------------------------
@@ -86,16 +99,14 @@ namespace editor {                  // The Editor namespace
 //----------------------------------------------------------------------------
 // editor::Global attributes
 //----------------------------------------------------------------------------
-extern xcb::Device*    device;      // The root Device
-extern xcb::Window*    window;      // The test Window
 extern EdText*         text;        // The Text Window
 
 extern pub::List<EdFile> file_list; // The list of EdFiles
 extern EdFile*         file;        // The current File object
 
-extern EdMark*         mark;        // The Mark Handler
 extern EdView*         data;        // The data view
 extern EdHist*         hist;        // The history view
+extern EdMark*         mark;        // The Mark Handler
 extern EdView*         view;        // The active view
 
 extern std::string     locate_string; // The locate string
@@ -103,6 +114,14 @@ extern std::string     change_string; // The change string
 
 extern pub::List<EdPool> filePool;  // File allocation EdPool
 extern pub::List<EdPool> textPool;  // Text allocation EdPool
+
+// Screen controls -----------------------------------------------------------
+extern xcb_rectangle_t geom;        // The screen geometry
+
+// Search controls -----------------------------------------------------------
+extern int             autowrap;    // Autowrap (false)
+extern int             case_sensitive; // Case sensitive search (false)
+extern int             direction;   // (Positive= forward, else reverse) (0)
 
 //----------------------------------------------------------------------------
 //
@@ -132,6 +151,10 @@ const char*                         // Error message, nullptr if none
 char*                               // The (immutable) text
    allocate(                        // Get (immutable) text
      size_t            length);     // Of this length (includes '\0' delimit)
+
+const char*                         // The (immutable) text
+   allocate(                        // Get (immutable) text
+     const char*       source);     // Source (mutable) text
 
 //----------------------------------------------------------------------------
 //
@@ -260,15 +283,16 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::set_font
+//       editor::set_option
 //
 // Purpose-
-//       Set the font
+//       Set a configurable option.
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
-   set_font(                        // Set the font
-     const char*       font= nullptr); // To this font name
+   set_option(                      // Set a configurable option
+     const char*       name,        // The option name
+     const char*       value);      // The option value
 
 //----------------------------------------------------------------------------
 //

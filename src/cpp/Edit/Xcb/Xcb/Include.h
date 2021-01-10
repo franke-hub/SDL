@@ -15,65 +15,47 @@
 //       Test include prerequisites. Include one and only one file.
 //
 // Last change date-
-//       2020/12/12
+//       2021/01/05
 //
 //----------------------------------------------------------------------------
 #if false                           // Always false
 static_assert(false, "Always False");
-#elif true
+#elif false
    #include <Xcb/Active.h>
-static_assert(false, "Active");
-#elif true
+#elif false
    #include <Xcb/Device.h>
-static_assert(false, "Device");
-#elif true
+#elif false
    #include <Xcb/EdFile.h>
-static_assert(false, "EdFile");
-#elif true
+#elif false
    #include <Xcb/EdHist.h>
-static_assert(false, "EdHist");
-#elif true
+#elif false
    #include <Xcb/EdMark.h>
-static_assert(false, "EdMark");
-#elif true
+#elif false
    #include <Xcb/EdMisc.h>
-static_assert(false, "EdMisc");
-#elif true
+#elif false
    #include <Xcb/EdPool.h>
-static_assert(false, "EdPool");
-#elif true
+#elif false
    #include <Xcb/EdText.h>
-static_assert(false, "EdText");
-#elif true
+#elif false
    #include <Xcb/EdView.h>
-static_assert(false, "EdView");
-#elif true
+#elif false
    #include <Xcb/Editor.h>
-static_assert(false, "Editor");
-#elif true
+#elif false
    #include <Xcb/Font.h>
-static_assert(false, "Font");
-#elif true
+#elif false
    #include <Xcb/Global.h>
-static_assert(false, "Global");
-#elif true
+#elif false
    #include <Xcb/Keysym.h>
-static_assert(false, "Keysym");
-#elif true
+#elif false
    #include <Xcb/Layout.h>
-static_assert(false, "Layout");
-#elif true
+#elif false
    #include <Xcb/TextWindow.h>
-static_assert(false, "TextWindow");
-#elif true
+#elif false
    #include <Xcb/Types.h>
-static_assert(false, "Types");
-#elif true
+#elif false
    #include <Xcb/Widget.h>
-static_assert(false, "Widget");
-#elif true
+#elif false
    #include <Xcb/Window.h>
-static_assert(false, "Window");
 #else
 static_assert(false, "NOTHING INCLUDED");
 #endif

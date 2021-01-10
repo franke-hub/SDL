@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2020/12/25
+//       2021/01/10
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -31,12 +31,13 @@
 #include <xcb/xproto.h>             // For XCB types
 
 #include <pub/Debug.h>              // For Debug, namespace pub::debugging
-#include <pub/Fileman.h>            // For namespace pub::Fileman
+#include <pub/Fileman.h>            // For namespace pub::fileman
 #include <pub/Signals.h>            // For pub::signals
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Trace.h>              // For pub::Trace
 
 #include "Xcb/Device.h"             // For xcb::Device
+#include "Xcb/Font.h"               // For xcb::Font
 #include <Xcb/Keysym.h>             // For xcb_keycode_t symbols
 #include "Xcb/Layout.h"             // For xcb::Layout
 #include "Xcb/Widget.h"             // For xcb::Widget, our base class
@@ -68,8 +69,6 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-xcb::Device*           editor::device= nullptr; // The root Device
-xcb::Window*           editor::window= nullptr; // The test Window
 EdText*                editor::text= nullptr; // The Text Window
 
 pub::List<EdFile>      editor::file_list; // The list of EdFiles
@@ -85,6 +84,14 @@ std::string            editor::change_string; // The change string
 
 pub::List<EdPool>      editor::filePool; // File allocation EdPool
 pub::List<EdPool>      editor::textPool; // Text allocation EdPool
+
+// Screen controls -----------------------------------------------------------
+xcb_rectangle_t        editor::geom= {1030, 0, 80, 50}; // The screen geometry
+
+// Search controls -----------------------------------------------------------
+int                    editor::autowrap= false;
+int                    editor::case_sensitive= false;
+int                    editor::direction= 0;
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -121,12 +128,11 @@ static int             singleton= 0; // Singleton control
    textPool.fifo(new EdPool(EdPool::MIN_SIZE));
 
    // Allocate editor namespace objects
-   device= new xcb::Device();       // The screen/connection device
    text= new EdText();              // Text (window) handler
-   mark= new EdMark();              // Mark handler
    data= new EdView();              // Data view
    hist= new EdHist();              // History view
-   view= data;                      // (Initial view)
+   mark= new EdMark();              // Mark handler
+   view= hist;                      // (Initial view)
 
    //-------------------------------------------------------------------------
    // Load the text files
@@ -241,12 +247,11 @@ static int             singleton= 0; // Singleton control
    }
 
    // Delete allocated objects
-   delete mark;
+   delete text;
    delete data;
    delete hist;
-   delete text;
+   delete mark;
    delete window;
-// delete device;
 }
 
 //----------------------------------------------------------------------------
@@ -296,6 +301,34 @@ void
      used += pool->get_used();
    }
    debugf("..****TOTAL**** used(%'8zu) size(%'8zu)\n", used, size);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Editor::alertf
+//
+// Purpose-
+//       Debugging alert
+//
+//----------------------------------------------------------------------------
+void
+   Editor::alertf(                  // Debugging alert
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // The remaining arguments
+{
+   va_list             argptr;      // Argument list pointer
+
+   va_start(argptr, fmt);           // Initialize va_ functions
+   std::string S= pub::utility::to_stringv(fmt, argptr);
+   va_end(argptr);                  // Close va_ functions
+
+   debugf("%s\n", S.c_str());
+   Config::debug(S.c_str());
+   Config::trace(".BUG", __LINE__, "Config.cpp");
+   Config::backtrace();
+
+   editor::put_message(S.c_str(), EdMess::T_MESS);
 }
 
 //----------------------------------------------------------------------------
@@ -491,6 +524,21 @@ char*                               // The (immutable) text
    return text;
 }
 
+const char*                         // The (immutable) text
+   editor::allocate(                // Get (immutable) text
+     const char*       source)      // Source (mutable) text
+{
+   if( *source == '\0' )            // If empty source
+     return "";                     // (Immutable) empty copy
+
+   size_t L= strlen(source);        // Source length
+   if( source[L-1] == ' ' )         // (If UNEXPECTED trailing blanks)
+     fprintf(stderr, "%4d Editor UNEXPECTED\n", __LINE__); // TODO: REMOVE
+   char* copy= allocate(L+1);       // Include trailing '\0' in string
+   strcpy(copy, source);            // Duplicate the string
+   return copy;
+}
+
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -525,7 +573,7 @@ EdFile*                             // The last file inserted
 {  if( opt_hcdm )
      traceh("editor::insert_file(%s)\n", _name);
 
-   using namespace pub::Fileman;    // Using Fileman objects
+   using namespace pub::fileman;    // Using fileman objects
 
    EdFile* last= nullptr;           // The last EdFile inserted
    if( _name == nullptr )           // If missing parameter
@@ -712,16 +760,23 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::set_font
+//       editor::set_option
 //
 // Purpose-
-//       Set the font
+//       Set an option
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
-   editor::set_font(                // Set the font
-     const char*       font)        // To this font name
-{  return text->set_font(font); }   // (Defer to EdText)
+   editor::set_option(              // Set
+     const char*       name,        // This option name to
+     const char*       value)       // This option value
+{
+   if( strcmp(name, "font") == 0 ) {
+     return 0;
+   }
+
+   (void)name; (void)value; return -1; // NOT CODED YET
+}
 
 //----------------------------------------------------------------------------
 //
@@ -769,9 +824,9 @@ void
 
    // Set initial file
    text->activate(file_list.get_head());
-   text->grab_mouse();
 
    // Start the Device
    device->draw();
+   text->grab_mouse();
    device->run();
 }

@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2020/12/25
+//       2021/01/10
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -161,53 +161,6 @@ static void
 
 //----------------------------------------------------------------------------
 //
-// Subroutine-
-//       trace
-//
-// Purpose-
-//       Trace undo/redo operation
-//
-//----------------------------------------------------------------------------
-static void
-   trace(                           // Trace undo/redo operation
-     const char*       op,          // The operation name
-     EdFile*           file,        // The UNDO/REDO file
-     EdRedo*           redo)        // The UNDO/REDO
-{
-   typedef pub::Trace::Record Record;
-   Record* record= (Record*)Config::trace(32);
-   if( record ) {
-     memset(record->value, 0, sizeof(record->value) + 32);
-     memcpy(&record->unit, op, 4);
-
-     uintptr_t V0= uintptr_t(file);
-//   uintptr_t V1= 0;
-     uintptr_t R0= uintptr_t(redo->head_insert);
-     uintptr_t R1= uintptr_t(redo->tail_insert);
-     uintptr_t R2= uintptr_t(redo->head_remove);
-     uintptr_t R3= uintptr_t(redo->tail_remove);
-
-     for(unsigned i= 8; i>0; i--) {
-       record->value[ 0 + i - 1]= char(V0);
-       record->value[ 8 + i - 1]= 0;
-       ((char*)(record->value))[16 + i - 1]= char(R0);
-       ((char*)(record->value))[24 + i - 1]= char(R1);
-       ((char*)(record->value))[32 + i - 1]= char(R2);
-       ((char*)(record->value))[40 + i - 1]= char(R3);
-
-       V0 >>= 8;
-//     V1 >>= 8;
-       R0 >>= 8;
-       R1 >>= 8;
-       R2 >>= 8;
-       R3 >>= 8;
-     }
-     record->trace(".MRK");
-   }
-}
-
-//----------------------------------------------------------------------------
-//
 // Method-
 //       EdMark::EdMark
 //
@@ -220,10 +173,10 @@ static void
    // Initialize EdFile::CloseEvent handler
    using Event= EdFile::CloseEvent;
    closeEvent_connector= EdFile::close_signal.connect([this](Event& event) {
-     if( event.file == file ) {
-       file= nullptr;
-       head= tail= touch_line= nullptr;
-       touch_col= 0;
+     if( event.file == mark_file ) {
+       mark_file= nullptr;
+       mark_head= mark_tail= mark_line= nullptr;
+       mark_col= 0;
      }
      if( event.file == copy_file ) {
        copy_file= nullptr;
@@ -257,13 +210,14 @@ void
 {
    debugf("EdMark::debug(%s)\n", info ? info : "");
 
-   debugf("..file.name(%s)\n", file ? file->name.c_str() : "");
-   debugf("..file(%p) [%p,%p] %p %zd [%zd,%zd]\n", file, head, tail
-         , touch_line, touch_col, touch_lh, touch_rh);
+   debugf("..mark_file.name(%s)\n", mark_file ? mark_file->name.c_str() : "");
+   debugf("..mark_file(%p) [%p,%p] %p %zd [%zd,%zd]\n"
+         , mark_file, mark_head, mark_tail, mark_line
+         , mark_col, mark_lh, mark_rh);
    size_t row= 0;
-   for(EdLine* line= head; line; line= line->get_next() ) {
+   for(EdLine* line= mark_head; line; line= line->get_next() ) {
      debugf("..[%2zd] ", row++); line->debug();
-     if( line == tail )
+     if( line == mark_tail )
        break;
    }
    debugf("..copy.name(%s)\n", copy_file ? copy_file->name.c_str() : "");
@@ -302,18 +256,18 @@ const char*                         // Error message, nullptr expected
    copy_rows= 0;
 
    // Create a new copy list
-   if( file == nullptr )
+   if( mark_file == nullptr )
      return "No mark";
 
    // Trace the copy
-   Config::trace(".MRK", " C^C", head, tail);
+   Config::trace(".MRK", " C^C", mark_head, mark_tail);
 
-   Copy copy= create_copy(head, tail);
+   Copy copy= create_copy(mark_head, mark_tail);
    copy_list.insert(nullptr, copy.head, copy.tail);
-   copy_file= file;
+   copy_file= mark_file;
    copy_rows= copy.rows;
-   copy_lh= touch_lh;
-   copy_rh= touch_rh;
+   copy_lh= mark_lh;
+   copy_rh= mark_rh;
 
    return nullptr;
 }
@@ -326,6 +280,9 @@ const char*                         // Error message, nullptr expected
 // Purpose-
 //       Cut the marked area
 //
+// Implementation note-
+//       Updates cursor if it's inside the cut. (TODO: Just check flag?)
+//
 //----------------------------------------------------------------------------
 const char*                         // Error message, nullptr expected
    EdMark::cut( void )              // Cut the marked area
@@ -334,30 +291,30 @@ const char*                         // Error message, nullptr expected
    if( error ) return error;        // Only "No mark" possible
 
    // Trace the cut
-   Config::trace(".MRK", " C^X", head, tail);
+   Config::trace(".MRK", " C^X", mark_head, mark_tail);
 
    // If the file cursor is inside the cut, reset it
    if( copy_file ) {                // If the copy_file is still active
      editor::file->csr_line= editor::data->cursor; // (Avoids special case)
-     for(EdLine* line= head; line; line= line->get_next()) {
+     for(EdLine* line= mark_head; line; line= line->get_next()) {
        if( line == copy_file->csr_line ) {
-         copy_file->activate(head->get_prev());
+         copy_file->activate(mark_head->get_prev());
          break;
        }
-       if( line == tail )
+       if( line == mark_tail )
          break;
      }
    }
 
    // Perform the cut
-   file->line_list.remove(head, tail);
-   file->rows -= copy_rows;
+   mark_file->line_list.remove(mark_head, mark_tail);
+   mark_file->rows -= copy_rows;
 
    // Create redo
    EdRedo* redo= new EdRedo();
-   redo->head_remove= head;
-   redo->tail_remove= tail;
-   file->insert_undo(redo);
+   redo->head_remove= mark_head;
+   redo->tail_remove= mark_tail;
+   mark_file->redo_insert(redo);
 
    return nullptr;
 }
@@ -389,48 +346,48 @@ void
      EdFile*           edFile,      // For this file
      EdRedo*           edRedo)      // And this REDO
 {
-   trace(" RDO", edFile, edRedo);   // Trace REDO operation
+   Config::trace(".RDO", "mark", (void*)edRedo, edFile); // Trace REDO
 
    if( edRedo->head_remove ) {      // If redo remove
      Mark mark= get_mark_state(edRedo->head_remove, edRedo->tail_remove);
      if( mark.mark_all ) {
-       if( edRedo->head_remove == head && edRedo->tail_remove == tail ) {
-         file= nullptr;
-         head= tail= touch_line= nullptr;
+       if( edRedo->head_remove==mark_head && edRedo->tail_remove==mark_tail ) {
+         mark_file= nullptr;
+         mark_head= mark_tail= mark_line= nullptr;
        } else {
          clr_mark(edRedo->head_remove, edRedo->tail_remove);
-         if( edRedo->head_remove == head ) {
-           head= edRedo->tail_remove->get_next();
-           if( touch_line != tail )
-             touch_line= head;
-         } else if( edRedo->tail_remove == tail ) {
-           tail= edRedo->head_remove->get_prev();
-           if( touch_line != head )
-             touch_line= tail;
+         if( edRedo->head_remove == mark_head ) {
+           mark_head= edRedo->tail_remove->get_next();
+           if( mark_line != mark_tail )
+             mark_line= mark_head;
+         } else if( edRedo->tail_remove == mark_tail ) {
+           mark_tail= edRedo->head_remove->get_prev();
+           if( mark_line != mark_head )
+             mark_line= mark_tail;
          }
        }
      } else if( mark.mark_any ) {
        clr_mark(edRedo->head_remove, edRedo->tail_remove);
        if( edRedo->head_remove->get_prev()->flags & EdLine::F_MARK ) {
-         tail= edRedo->head_remove->get_prev();
-         if( touch_line != head )
-           touch_line= tail;
+         mark_tail= edRedo->head_remove->get_prev();
+         if( mark_line != mark_head )
+           mark_line= mark_tail;
        } else if( edRedo->tail_remove->get_next()->flags & EdLine::F_MARK ) {
-         head= edRedo->tail_remove->get_next();
-         if( touch_line != tail )
-           touch_line= head;
+         mark_head= edRedo->tail_remove->get_next();
+         if( mark_line != mark_tail )
+           mark_line= mark_head;
        } else {                     // If mark entirely within remove
-         file= nullptr;
-         head= tail= touch_line= nullptr;
+         mark_file= nullptr;
+         mark_head= mark_tail= mark_line= nullptr;
        }
      }
    }
    if( edRedo->head_insert ) {      // If redo insert
      Mark mark= get_mark_state(edRedo->head_insert, edRedo->tail_insert);
-     if( mark.mark_all /* || file == nullptr */ ) {
+     if( mark.mark_all /* || mark_file == nullptr */ ) {
        redo(edFile, edRedo->head_insert, edRedo->tail_insert);
      } else if( mark.mark_any ) {   // Insert expected to be all or none
-       Config::alertf("%4d EdMark Unexpected\n", __LINE__); // TODO: REMOVE
+       Editor::alertf("%4d EdMark Unexpected\n", __LINE__); // TODO: REMOVE
      }
    }
 }
@@ -449,48 +406,48 @@ void
      EdFile*           edFile,      // For this file
      EdRedo*           edUndo)      // And this UNDO
 {
-   trace(" UDO", edFile, edUndo);   // Trace UNDO operation
+   Config::trace(".UDO", "mark", (void*)edUndo, edFile); // Trace UNDO
 
    if( edUndo->head_insert ) {      // If undo insert
      Mark mark= get_mark_state(edUndo->head_insert, edUndo->tail_insert);
      if( mark.mark_all ) {
-       if( edUndo->head_insert == head && edUndo->tail_insert == tail ) {
-         file= nullptr;
-         head= tail= touch_line= nullptr;
+       if( edUndo->head_insert==mark_head && edUndo->tail_insert==mark_tail ) {
+         mark_file= nullptr;
+         mark_head= mark_tail= mark_line= nullptr;
        } else {
          clr_mark(edUndo->head_insert, edUndo->tail_insert);
-         if( edUndo->head_insert == head ) {
-           head= edUndo->tail_insert->get_next();
-           if( touch_line != tail )
-             touch_line= head;
-         } else if( edUndo->tail_insert == tail ) {
-           tail= edUndo->head_insert->get_prev();
-           if( touch_line != head )
-             touch_line= tail;
+         if( edUndo->head_insert == mark_head ) {
+           mark_head= edUndo->tail_insert->get_next();
+           if( mark_line != mark_tail )
+             mark_line= mark_head;
+         } else if( edUndo->tail_insert == mark_tail ) {
+           mark_tail= edUndo->head_insert->get_prev();
+           if( mark_line != mark_head )
+             mark_line= mark_tail;
          }
        }
      } else if( mark.mark_any ) {
        clr_mark(edUndo->head_insert, edUndo->tail_insert);
        if( edUndo->head_insert->get_prev()->flags & EdLine::F_MARK ) {
-         tail= edUndo->head_insert->get_prev();
-         if( touch_line != head )
-           touch_line= tail;
+         mark_tail= edUndo->head_insert->get_prev();
+         if( mark_line != mark_head )
+           mark_line= mark_tail;
        } else if( edUndo->tail_insert->get_next()->flags & EdLine::F_MARK ) {
-         head= edUndo->tail_insert->get_next();
-         if( touch_line != tail )
-           touch_line= head;
+         mark_head= edUndo->tail_insert->get_next();
+         if( mark_line != mark_tail )
+           mark_line= mark_head;
        } else {                     // If mark entirely within insert
-         file= nullptr;
-         head= tail= touch_line= nullptr;
+         mark_file= nullptr;
+         mark_head= mark_tail= mark_line= nullptr;
        }
      }
    }
    if( edUndo->head_remove ) {      // If undo remove
      Mark mark= get_mark_state(edUndo->head_remove, edUndo->tail_remove);
-     if( mark.mark_all /* || file == nullptr */ ) {
+     if( mark.mark_all /* || mark_file == nullptr */ ) {
        redo(edFile, edUndo->head_remove, edUndo->tail_remove);
      } else if( mark.mark_any ) {   // Insert expected to be all or none
-       Config::alertf("%4d EdMark Unexpected\n", __LINE__); // TODO: REMOVE
+       Editor::alertf("%4d EdMark Unexpected\n", __LINE__); // TODO: REMOVE
      }
    }
 }
@@ -508,34 +465,47 @@ const char*                         // Error message, nullptr expected
    EdMark::mark(                    // Create/expand/contract the mark
      EdFile*           edFile,      // For this EdFile
      EdLine*           edLine,      // And this EdLine
-     ssize_t           _column)     // And this column (block copy)
+     ssize_t           column)      // And this column (block copy)
 {
-   if( _column >= 0 )               // Only line marks are supported
-     return "Not coded yet";
-
    if( edLine->flags & EdLine::F_PROT )
      return "Protected";
 
-   if( file == nullptr ) {          // If no mark active
-     file= edFile;
-     head= tail= touch_line= edLine;
+   if( column >= 0 ) {               // If block mark
+debugf("%4d mark(%zd) [%zd..%zd] %zd\n", __LINE__, column, mark_lh, mark_rh, mark_col);
+     if( mark_col < 0 ) {            // If no block mark yet
+       mark_col= mark_lh= mark_rh= column;
+     } else if( column > mark_col ) {
+       mark_lh= mark_col;
+       mark_rh= mark_col= column;
+     } else if( column < mark_col ) {
+       mark_rh= mark_col;
+       mark_lh= mark_col= column;
+     } else {
+       mark_col= mark_lh= mark_rh= column;
+     }
+debugf("%4d mark(%zd) [%zd..%zd] %zd\n", __LINE__, column, mark_lh, mark_rh, mark_col);
+   }
+
+   if( mark_file == nullptr ) {     // If no mark active
+     mark_file= edFile;
+     mark_head= mark_tail= mark_line= edLine;
      edLine->flags |= EdLine::F_MARK;
      return nullptr;
    }
 
-   if( file != edFile )
+   if( mark_file != edFile )
      return "Mark offscreen";
 
    if( edLine->flags & EdLine::F_MARK ) { // If mark contraction
-     if( touch_line == head ) {     // Contract downward
-       tail= edLine;
+     if( mark_line == mark_head ) { // Contract downward
+       mark_tail= edLine;
        EdLine* line= edLine->get_next();
        while( line && line->flags & EdLine::F_MARK ) {
          line->flags &= decltype(line->flags)(~EdLine::F_MARK);
          line= line->get_next();
        }
      } else {                       // Contract upward
-       head= edLine;
+       mark_head= edLine;
        EdLine* line= edLine->get_prev();
        while( line && line->flags & EdLine::F_MARK) {
          line->flags &= decltype(line->flags)(~EdLine::F_MARK);
@@ -543,13 +513,13 @@ const char*                         // Error message, nullptr expected
        }
      }
 
-     touch_line= edLine;
+     mark_line= edLine;
      return nullptr;
    }
 
    // Expand the mark (Consistency check: do not mark protected lines)
    EdLine* line= edLine;
-   while( line && line != head ) {  // Locate downward
+   while( line && line != mark_head ) { // Locate downward TODO: marker <<<
      if( line->flags & EdLine::F_PROT )
        line= nullptr;
      else
@@ -557,25 +527,25 @@ const char*                         // Error message, nullptr expected
    }
    if( line ) {
      line= edLine;
-     while( line != head ) {
+     while( line != mark_head ) {
        line->flags |= EdLine::F_MARK;
        line= line->get_next();
      }
-     head= edLine;
+     mark_head= edLine;
    } else {                         // Not found downward, must be upward
      line= edLine;
-     while( line != tail ) {
+     while( line != mark_tail ) {
        if( line == nullptr || line->flags & EdLine::F_PROT ) {
-         file->damaged= true;       // SHOULD NOT OCCUR
+         mark_file->damaged= true;  // SHOULD NOT OCCUR
          return "EdMark internal error"; // ((Add repair code if occurs))
        }
        line->flags |= EdLine::F_MARK;
        line= line->get_prev();
      }
-     tail= edLine;
+     mark_tail= edLine;
    }
 
-   touch_line= edLine;
+   mark_line= edLine;
    return nullptr;
 }
 
@@ -586,6 +556,9 @@ const char*                         // Error message, nullptr expected
 //
 // Purpose-
 //       Paste the marked area
+//
+// Implementation note-
+//       If copy exists, unconditionally updates cursor.
 //
 //----------------------------------------------------------------------------
 const char*                         // Error message, nullptr expected
@@ -602,7 +575,7 @@ const char*                         // Error message, nullptr expected
 
    undo();                          // Undo current mark
 
-   // Copy and mark the pasted line's
+   // Copy and mark the copy list
    Copy copy= create_copy(copy_list.get_head(), copy_list.get_tail());
    unsigned char delim[2]= {'\n', 0}; // Default UNIX mode
    if( edFile->mode == EdFile::M_DOS )
@@ -616,16 +589,30 @@ const char*                         // Error message, nullptr expected
    // Trace the paste
    Config::trace(".MRK", " C^V", copy.head, copy.tail);
 
-   // Insert the lines
+   // Handle paste after no delimiter line
+   EdRedo* redo= new EdRedo();      // Create the REDO
+   if( edLine->delim[0] == '\0' &&  edLine->delim[1] == '\0' ) {
+     EdLine* line= edFile->new_line(edLine->text); // Get edLine replacement
+     line->flags |= EdLine::F_MARK; // (Join the mark)
+
+     pub::List<EdLine> list;        // Connect line to the copy list
+     list.fifo(line);
+     list.insert(line, copy.head, copy.tail);
+     copy.head= line;
+
+     // Remove the edLine from the file, updating the REDO
+     edFile->remove(edLine);        // (Does not modify edLine->get_prev())
+     redo->head_remove= redo->tail_remove= edLine;
+     edLine= edLine->get_prev();
+   }
+
+   // Insert the lines (with redo)
    edFile->line_list.insert(edLine, copy.head, copy.tail);
    edFile->rows += copy.rows;
-   edFile->activate(edLine);
-
-   // Create REDO
-   EdRedo* redo= new EdRedo();
    redo->head_insert= copy.head;
    redo->tail_insert= copy.tail;
-   edFile->insert_undo(redo);
+   edFile->redo_insert(redo);
+   edFile->activate(edLine);
 
    return nullptr;
 }
@@ -641,16 +628,16 @@ const char*                         // Error message, nullptr expected
 //----------------------------------------------------------------------------
 void
    EdMark::redo(                    // Redo the mark
-     EdFile*           _file,       // For this EdFile
-     EdLine*           _head,       // From this EdLine
-     EdLine*           _tail)       // *To* this EdLine
+     EdFile*           file,        // For this EdFile
+     EdLine*           head,        // From this EdLine
+     EdLine*           tail)        // *To* this EdLine
 {
    undo();                          // Undo the current mark
 
-   set_mark(_head, _tail);          // Redo the specified mark
-   file= _file;
-   head= touch_line= _head;
-   tail= _tail;
+   set_mark(head, tail);            // Redo the specified mark
+   mark_file= file;
+   mark_head= mark_line= head;
+   mark_tail= tail;
 }
 
 //----------------------------------------------------------------------------
@@ -665,9 +652,10 @@ void
 void
    EdMark::undo( void )             // Undo the mark
 {
-   if( file ) {                     // If marked
-     clr_mark(head, tail);          // Unmark the lines
-     file= nullptr;
-     head= tail= touch_line= nullptr;
+   if( mark_file ) {                // If marked
+     clr_mark(mark_head, mark_tail); // Unmark the lines
+     mark_file= nullptr;
+     mark_head= mark_tail= mark_line= nullptr;
+     mark_col= -1;
    }
 }

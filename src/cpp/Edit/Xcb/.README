@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2020/12/25
+##       2021/01/10
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in BRINGUP mode.
@@ -26,19 +26,43 @@
 ##############################################################################
 
 ##############################################################################
-## INFO: Features working on Linux, not available or not working on CYGWIN
+## INFO: CYGWIN features not available or not working. (OK on Linux)
          Config::backtrace()        // CYGWIN: no output
          setlocale(LC_NUMERIC, ""); printf("%'d\n", 123456789); // No commas
 
 ##############################################################################
 ## STATUS:
-2020/12/25 DONE:
-         Incremental improvements and bug fixes.
+2021/01/10 DONE:
+         Restructure. Removed TextWindow, function merged into EdText.
 
-2020/12/25 TODO:
+2021/01/03 DONE:
+         Bug fix: EdBifs editor::command, data->commit before any command
+         lib/pub/Parser.cpp: Data extraction iterator; Allow duplicate lines
+         Config.cpp: Configurable screen colors.
+
+2021/01/01 BUGS:
+         Blank lines intermittently duplicate prior line offset 2 columns
+         (Doesn't show up immediately. Moving cursor over line shows it.)
+         ** USE F9 DEBUGGING OPTION **
+         It looks like data->cursor got changed in an unexplained manner.
+         Added .CSR trace event whenever cursor changes.
+
+2021/01/01 TODO:
+         Implement column mark
+         Implement split/join line
+         Implement backward locate; locate with wrap.
+         Implement protected file.
+
+         Start geometry in options.
+         For directories, load the file names. (Protected file)
          Remove cursor from data view when switching to hist view
          Draw full background on line 0 (status, message, history)
-         DEBUG: Warp sets cursor relative to SCREEN, not our window.
+         Maybe: EdData derived from EdView. EdView all virtual, minimal.
+         Multiple editor windows. (Restructure required.)
+           (May not be too hard. Only one window open a time.)
+         Possibly don't need to call mark.handle_redo from file.redo_insert.
+           file.redo_insert is called on original insert.
+           Isn't mark already done then???
 
 ##############################################################################
 2020/12/15 Added built-in edit function with wildcard name resolution.

@@ -16,31 +16,23 @@
 //       Implement Xcb/Font.h
 //
 // Last change date-
-//       2020/12/26
+//       2021/01/10
 //
 //----------------------------------------------------------------------------
-#include <pub/Debug.h>              // For Debug object
+#include <exception>                // For std::runtime_error
 
+#include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/UTF8.h>               // For pub::UTF8
+
+#include "Xcb/Global.h"             // For opt_* definitions, ...
+#include "Xcb/Device.h"             // For xcb::Device
 #include "Xcb/Font.h"               // Implementation class
+#include "Xcb/Types.h"              // For type definitions
 
 using pub::Debug;                   // For Debug object
 using namespace pub::debugging;     // For debugging
 
 namespace xcb {
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       xcb::int2char2b
-//
-// Purpose-
-//       Convert a 16-bit integer to xcb_char2b_t
-//
-//----------------------------------------------------------------------------
-static inline xcb_char2b_t          // The output character
-   int2char2b(                      // Convert integer to xcb_char2b_t
-     int               inp)         // This (16 bit) integer
-{  return { (uint8_t)(inp>>8), (uint8_t)inp }; }
-
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -52,10 +44,10 @@ static inline xcb_char2b_t          // The output character
 //
 //----------------------------------------------------------------------------
    Font::Font(                      // Constructor
-     Window*           window)      // Window descriptor
-:  window(window)
+     Device*           device)      // Device descriptor
+:  device(device)
 {  if( opt_hcdm )
-     debugh("Font(%p)::Font(%p)\n", this, window);
+     debugh("Font(%p)::Font(%p)\n", this, device);
 }
 
    Font::~Font( void )              // Destructor
@@ -78,9 +70,8 @@ void
    Font::debug(const char* info) const // Debugging display
 {  debugf("Font(%p)::debug(%s)\n", this, info ? info : "");
 
-   debugf("..window(%p,%s) fontGC(%u)\n"
-          "..fontID(%u) offset[%d,%d] length[%u,%u]\n"
-         , window, window->get_name().c_str(), fontGC, fontID
+   debugf("..device(%p,%s) fontID(%u) offset[%d,%d] length[%u,%u]\n"
+         , device, device->get_name().c_str(), fontID
          , offset.x, offset.y, length.width, length.height);
    debugf("..info(%p.0x%zx):\n", font_info, sizeof(*font_info));
    if( font_info == nullptr )
@@ -117,9 +108,9 @@ void
 {  if( opt_hcdm )
      debugh("Font(%p)::close\n", this);
 
-   xcb_connection_t* const conn= window->c;
+   xcb_connection_t* const conn= device->c;
    if( fontID) {                    // If font exists
-     window->ENQUEUE("xcb_close_font", xcb_close_font_checked(conn, fontID) );
+     device->ENQUEUE("xcb_close_font", xcb_close_font_checked(conn, fontID) );
      fontID= 0;
    }
 
@@ -127,6 +118,8 @@ void
      free(font_info);
      font_info= nullptr;
    }
+
+   device->flush();
 }
 
 //----------------------------------------------------------------------------
@@ -142,20 +135,20 @@ void
 //
 //----------------------------------------------------------------------------
 xcb_gcontext_t                      // The created graphic context
-   Font::makeGC(                    // Create a Font Graphic Contexts
+   xcb::Font::makeGC(               // Create a Font Graphic Contexts
      Pixel_t           fg,          // Foreground pixel
      Pixel_t           bg)          // Background pixel
 {  if( opt_hcdm && opt_verbose > 1 )
      debugh("Font(%p)::makeGC(%.6x,%.6x)\n", this, uint32_t(fg), uint32_t(bg));
 
    if( fontID == 0 ) {
-     user_debug("Font(%p)::makeGC, Font not open\n", this);
+     user_debug("EdText(%p)::makeGC, Font not open\n", this);
      return 0;
    }
 
    // Create the Graphic Context
-   xcb_connection_t* const conn= window->c;
-   xcb_drawable_t    const draw= window->widget_id;
+   xcb_connection_t* const conn= device->c;
+   xcb_drawable_t    const draw= device->widget_id;
 
    xcb_gcontext_t fontGC= xcb_generate_id(conn);
    uint32_t mask= XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_FONT;
@@ -163,12 +156,9 @@ xcb_gcontext_t                      // The created graphic context
    parm[0]= fg;
    parm[1]= bg;
    parm[2]= fontID;
-   window->ENQUEUE("xcb_create_gc",
-                   xcb_create_gc(conn, fontGC, draw, mask, parm) );
-
-   // Initialize the default Graphic Context
-   if( this->fontGC == 0 )
-     this->fontGC= fontGC;
+   device->ENQUEUE("xcb_create_gc"
+                  , xcb_create_gc_checked(conn, fontGC, draw, mask, parm) );
+   device->flush();
 
    if( opt_hcdm )
      debugh("%u= Font(%p)::makeGC(%.6x,%.6x)\n", fontGC, this
@@ -198,7 +188,7 @@ int                                 // Return code, 0 OK
    if( name == nullptr )            // If using system-wide default font
      name= "7x13";
 
-   xcb_connection_t* const conn= window->c;
+   xcb_connection_t* const conn= device->c;
 
    fontID= xcb_generate_id(conn);
    xcb_void_cookie_t void_cookie=
@@ -230,60 +220,5 @@ int                                 // Return code, 0 OK
                           + font_info->max_bounds.descent);
 
    return 0;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       xcb::Font::putxy
-//
-// Purpose-
-//       Draw text at [left,top] point
-//
-// Implementation note-
-//       TODO: Handle text length > 255
-//
-//----------------------------------------------------------------------------
-void
-   Font::putxy(                     // Draw text
-     xcb_gcontext_t    fontGC,      // The target graphic context
-     unsigned          left,        // Left (X) offset
-     unsigned          top,         // Top  (Y) offset
-     const char*       text)        // Using this text
-{  if( opt_hcdm && opt_verbose > 1 )
-     debugh("Font(%p)::putxy(%u,[%d,%d],'%s')\n", this
-           , fontGC, left, top, text);
-
-   pub::UTF8::Decoder decoder(text); // UTF8 input buffer
-   xcb_char2b_t out[256];           // UTF16 output buffer
-   unsigned outlen;                 // UTF16 output buffer length
-   unsigned outpix= left;           // Current output pixel
-   for(outlen= 0; outlen<256; outlen++) {
-     outpix += length.width;        // Ending pixel (+1)
-     if( outpix > window->rect.width ) // If past end of screen
-       break;
-
-     int code= decoder.decode();    // Next input character
-     if( code < 0 )                 // If none left
-       break;
-
-     if( code >= 0x00010000 ) {     // If two characters required
-       if( outlen >= 255 )          // If there's only room for one character
-         break;
-       code -= 0x00010000;          // Subtract extended origin
-//     code &= 0x000fffff;          // 20 bit remainder (operation not needed)
-       out[outlen++]= int2char2b(0x0000d800 | (code >> 10)); // High order code
-       code &= 0x000003ff;          // Low order 10 bits
-       code |= 0x0000dc00;          // Low order code word
-     }
-
-     out[outlen]= int2char2b(code); // Set (possibly low order) code
-   }
-   if( outlen == 0 ) return;        // Zero length easy to render
-   if( outlen >= 256 ) outlen= 255; // Only 8-bit length allowed
-
-   window->NOQUEUE("xcb_image_text_16", xcb_image_text_16
-                  ( window->c, uint8_t(outlen), window->widget_id, fontGC
-                  , uint16_t(left), uint16_t(top + offset.y), out) );
 }
 }  // namespace xcb

@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2020/12/24
+//       2021/01/03
 //
 // Implementation objects-
 //       EdLine: Editor EdFile line descriptor
@@ -351,19 +351,6 @@ EdLine*                             // (Always line)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdFile::insert_undo
-//
-// Purpose-
-//       Add redo to the UNDO list
-//
-//----------------------------------------------------------------------------
-void
-   insert_undo(                     // Insert
-     EdRedo*           undo);       // This REDO onto the UNDO list
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       EdFile::new_line
 //
 // Purpose-
@@ -416,6 +403,31 @@ void
 
 void
    undo( void );                    // Perform undo action
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::redo_delete        // (Only used by EdFile.cpp)
+//
+// Purpose-
+//       Delete the REDO list
+//
+//----------------------------------------------------------------------------
+void
+   redo_delete( void );             // Delete the REDO list
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::redo_insert
+//
+// Purpose-
+//       Insert redo onto the UNDO list
+//
+//----------------------------------------------------------------------------
+void
+   redo_insert(                     // Insert
+     EdRedo*           undo);       // This REDO onto the UNDO list
 
 //----------------------------------------------------------------------------
 //
