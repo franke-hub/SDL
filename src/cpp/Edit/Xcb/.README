@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2020 Frank Eskesen.
+##       Copyright (c) 2020-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -32,6 +32,10 @@
 
 ##############################################################################
 ## STATUS:
+2021/01/11 BUGS:
+         No cursor on first switch away from history line.
+         Let's undo cursor on entry, redo cursor on exit.
+
 2021/01/10 DONE:
          Restructure. Removed TextWindow, function merged into EdText.
 
