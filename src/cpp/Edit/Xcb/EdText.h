@@ -79,7 +79,6 @@ unsigned               col_size= 0; // The current screen column count
 unsigned               row_size= 0; // The current screen row count
 unsigned               row_used= 0; // The last used screen row
 
-
 Motion                 motion= {CS_VISIBLE, 0, 0, 0}; // System motion controls
 
 // Graphic contexts
@@ -213,27 +212,39 @@ void
 //
 // Method-
 //       EdText::get_col
+//       EdText::get_row
+//       EdText::get_x
+//       EdText::get_y
+//       EdText::get_xy
 //
 // Purpose-
 //       Convert pixel x position to (screen) column
-//
-//----------------------------------------------------------------------------
-unsigned                            // The column
-   get_col(                         // Get column
-     unsigned          x);          // For this x pixel position
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::get_row
-//
-// Purpose-
 //       Convert pixel y position to (screen) row
+//       Get pixel position for column.
+//       Get pixel position for row.
+//       Get [col,row] pixel position.
 //
 //----------------------------------------------------------------------------
-unsigned                            // The row
+int                                 // The column
+   get_col(                         // Get column
+     int               x);          // For this x pixel position
+
+int                                 // The row
    get_row(                         // Get row
-     unsigned          y);          // For this y pixel position
+     int               y);          // For this y pixel position
+
+int                                 // The offset in Pixels
+   get_x(                           // Get offset in Pixels
+     int               col);        // For this column
+
+int                                 // The offset in Pixels
+   get_y(                           // Get offset in Pixels
+     int               row);        // For this row
+
+xcb_point_t                         // The offset in Pixels
+   get_xy(                          // Get offset in Pixels
+     int               col,         // And this column
+     int               row);        // For this row
 
 //----------------------------------------------------------------------------
 //
@@ -247,46 +258,6 @@ unsigned                            // The row
 virtual const char*                 // The associated text
    get_text(                        // Get text
      xcb::Line*        line);       // For this Line
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::get_x
-//
-// Purpose-
-//       Get pixel position for column.
-//
-//----------------------------------------------------------------------------
-unsigned                            // The offset in Pixels
-   get_x(                           // Get offset in Pixels
-     unsigned          col);        // For this column
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::get_y
-//
-// Purpose-
-//       Get pixel position for row.
-//
-//----------------------------------------------------------------------------
-unsigned                            // The offset in Pixels
-   get_y(                           // Get offset in Pixels
-     unsigned          row);        // For this row
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdText::get_xy
-//
-// Purpose-
-//       Get [col,row] pixel position.
-//
-//----------------------------------------------------------------------------
-xcb_point_t                         // The offset in Pixels
-   get_xy(                          // Get offset in Pixels
-     unsigned          col,         // And this column
-     unsigned          row);        // For this row
 
 //----------------------------------------------------------------------------
 //

@@ -16,7 +16,7 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2021/01/10
+//       2021/01/12
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
@@ -26,6 +26,7 @@
 #include <pub/config.h>             // For _ATTRIBUTE_PRINTF macros
 #include <pub/Signals.h>            // For pub::signals
 
+#include "Xcb/Active.h"             // For xcb::Active
 #include "Xcb/Device.h"             // For xcb::Device
 #include "Xcb/Font.h"               // For xcb::Font
 #include "Xcb/Window.h"             // For xcb::Window
@@ -176,6 +177,7 @@ extern const char*     opt_test;    // Bringup test?
 extern int             opt_verbose; // Debugging verbosity
 
 // XCB objects --------------------------------------------------------------
+extern xcb::Active*    active;      // Active, for temporary use
 extern xcb::Device*    device;      // The root Device
 extern xcb::Window*    window;      // The test Window
 extern xcb::Font*      font;        // The Font object

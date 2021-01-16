@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2021/01/03
+//       2021/01/12
 //
 // Implementation objects-
 //       EdLine: Editor EdFile line descriptor
@@ -183,13 +183,16 @@ EdLine*                tail_insert= nullptr; // Last line  inserted
 EdLine*                head_remove= nullptr; // First line removed
 EdLine*                tail_remove= nullptr; // Last line  removed
 
+// Block copy/move columns. If lh_col > rh_col, lh_col is touch_col
+ssize_t                lh_col= -1;  // Left hand column
+ssize_t                rh_col= -1;  // Right hand column
+
 //----------------------------------------------------------------------------
-// EdRedo::Constructor/Destructor
+// EdRedo::Destructor/Constructor
 //----------------------------------------------------------------------------
 public:
-   EdRedo( void );                  // Constructor
-
    ~EdRedo( void );                 // Destructor
+   EdRedo( void );                  // Constructor
 
 //----------------------------------------------------------------------------
 //

@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2021/01/04
+//       2021/01/14
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -201,10 +201,10 @@ void
 //----------------------------------------------------------------------------
 const char*                         // The current buffer
    Active::get_buffer(              // Get '\0' delimited buffer
-     Column            column) const // Starting at this Column
+     Column            column)      // Starting at this Column
 {
    if( fsm == FSM_RESET )
-     return (const char*)source + pub::UTF8::index(source, column);
+     fetch(column);
 
    buffer[buffer_used]= '\0';       // Set string delimiter (buffer mutable)
    return buffer + pub::UTF8::index(buffer, column);
@@ -394,27 +394,34 @@ void
    Active::replace_text(            // Replace (or insert) text
      Column            column,      // The replacement Column
      Ccount            ccount,      // The replacement (delete) Ccount
-     const char*       text)        // The replacement (insert) text
+     const char*       text,        // The replacement (insert) text
+     Length            length)      // The replacement (insert) text Length
 {
    Offset offset= index(column);    // Initialize with blank fill
-   Length insert= strlen(text);     // The inserted text length
    buffer[buffer_used]= '\0';       // (For pub::UTF8::index delimiter)
    Length remove= pub::UTF8::index(buffer + offset, ccount);
    Length remain= 0;                // Trailing text Length remaining in buffer
    if( buffer_used - offset > remove ) // If text will remain
      remain= buffer_used - offset - remove;
-   expand(offset + insert + remain); // If necessary, expand the buffer
-   if( insert || remove ) {         // If inserting or removing text
+   expand(offset + length + remain); // If necessary, expand the buffer
+   if( length || remove ) {         // If inserting or removing text
      if( remain )                   // If text remains after removal
-       memmove( buffer + offset + insert, buffer + offset + remove, remain);
-     if( insert )                   // If inserting text
-       memmove(buffer + offset, text, insert);
+       memmove( buffer + offset + length, buffer + offset + remove, remain);
+     if( length )                   // If inserting text
+       memmove(buffer + offset, text, length);
 
      fsm= FSM_CHANGED;
    }
 
-   buffer_used= offset + insert + remain;
+   buffer_used= offset + length + remain;
 }
+
+void
+   Active::replace_text(            // Replace (or insert) text
+     Column            column,      // The replacement Column
+     Ccount            ccount,      // The Column count of deleted columns
+     const char*       text)        // The replacement (insert) text
+{  replace_text(column, ccount, text, strlen(text)); }
 
 //----------------------------------------------------------------------------
 //

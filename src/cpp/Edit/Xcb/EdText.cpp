@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/01/10
+//       2021/01/14
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -201,30 +201,30 @@ void
 //       Get [col,row] pixel position.
 //
 //----------------------------------------------------------------------------
-unsigned                            // The column
+int                                 // The column
    EdText::get_col(                 // Get column
-     unsigned          x)           // For this x pixel position
+     int               x)           // For this x pixel position
 {  return x/font.length.width; }
 
-unsigned                            // The row
+int                                 // The row
    EdText::get_row(                 // Get row
-     unsigned          y)           // For this y pixel position
+     int               y)           // For this y pixel position
 {  return y/font.length.height; }
 
-unsigned                            // The offset in Pixels
+int                                 // The offset in Pixels
    EdText::get_x(                   // Get offset in Pixels
-     unsigned          col)         // For this column
+     int               col)         // For this column
 {  return col * font.length.width + 1; }
 
-unsigned                            // The offset in Pixels
+int                                 // The offset in Pixels
    EdText::get_y(                   // Get offset in Pixels
-     unsigned          row)         // For this row
+     int               row)         // For this row
 {  return row * font.length.height + 1; }
 
 xcb_point_t                         // The offset in Pixels
    EdText::get_xy(                  // Get offset in Pixels
-     unsigned          col,         // And this column
-     unsigned          row)         // For this row
+     int               col,         // And this column
+     int               row)         // For this row
 {  return {xcb::PT_t(get_x(col)), xcb::PT_t(get_y(row))}; }
 
 //----------------------------------------------------------------------------
@@ -518,6 +518,7 @@ void
 //
 // Methods-
 //       EdText::draw_cursor
+//       EdText::undo_cursor
 //
 // Purpose-
 //       Set or clear the screen cursor character
@@ -702,12 +703,24 @@ void
           ( c, 0, widget_id, 0, 0, rect.width, rect.height) );
 
    // Display the text (if any)
-   size_t col_zero= editor::data->col_zero;
-   tail= nullptr;
-   if( this->head ) {
-     EdLine* line= this->head;
-     tail= line;
+   ssize_t col_zero= editor::data->col_zero;
+   ssize_t col_last= col_zero + col_size; // Last file screen column
+   tail= this->head;
+   if( tail ) {
+     EdMark& mark= *editor::mark;
+     int is_mark= bool(mark.mark_file); // Is mark active?
+     int lh_mark= 0;                // Default, mark line
+     int rh_mark= col_size;
+     if( mark.mark_col >= 0 ) {     // If column mark active
+       if( mark.mark_lh > col_last || mark.mark_rh < col_zero ) {
+         is_mark= false;            // Inactive if out of range
+       } else {                     // Otherwise compute screen offsets
+         lh_mark= int( mark.mark_lh - col_zero );
+         rh_mark= lh_mark + int( mark.mark_rh - mark.mark_lh ) + 1;
+       }
+     }
 
+     EdLine* line= tail;
      row_used= 0;
      unsigned y= get_y(USER_TOP);
      unsigned font_height= font.length.height;
@@ -717,15 +730,33 @@ void
          break;
        const char* text= get_text(line); // Get associated text
        if( col_zero )               // If offset
-         text += pub::UTF8::index((const unsigned char*)text, col_zero);
-       xcb_gcontext_t gc= fontGC;
-       if( line->flags & EdLine::F_MARK ) {
-         gc= markGC;
-         active.reset(text);        // Fill line
-         active.fetch(strlen(text) + 256);
-         text= active.get_buffer();
+         text += pub::UTF8::index(text, col_zero);
+       if( is_mark && (line->flags & EdLine::F_MARK) ) {
+         // Marked lines are written in three sections:
+         //  R) The unmarked Right section at the end (may be null)
+         //  M) The marked Middle section (may be the entire line)
+         //  L) The unmarked Left section at the beginning (may be null)
+         active.reset(text);        // Load, then blank fill the line
+         active.fetch(strlen(text) + col_last + 1);
+         char* L= (char*)active.get_buffer(); // Text, length >= col_last + 1
+         if( unsigned(rh_mark) < col_size ) { // Right section
+           char* R= L + pub::UTF8::index(L, rh_mark);
+           unsigned x= get_x(rh_mark);
+           putxy(fontGC, x, y, R);
+           *R= '\0';                // (Terminate right section)
+         }
+         // Middle section
+         if( lh_mark < 0 ) lh_mark= 0;
+         char* M= L + pub::UTF8::index(L, lh_mark);
+         int x= get_x(lh_mark);
+         putxy(markGC, x, y, M);
+         *M= '\0';                  // (Terminate middle section)
+         // Left section
+         if( lh_mark > 0 )
+           putxy(fontGC, 1, y, L);
+       } else {
+         putxy(fontGC, 1, y, text);
        }
-       putxy(gc, 1, y, text);
        y += font_height;
        tail= line;
        row_used++;
@@ -735,11 +766,12 @@ void
 
      if( USE_BRINGUP ) {
        // BRINGUP: Draw diagonal line (to see where boundaries are)
-       if( opt_hcdm && opt_verbose > 2 ) { // (This is still optional)
-//       debug(pub::utility::to_string("%4d EdText diagonal", __LINE__).c_str());
-         xcb_point_t points[2]= { {0,                0}
-                                , {xcb::PT_t(rect.width), xcb::PT_t(rect.height)}
-                                };
+       if( opt_hcdm && opt_verbose > 2 ) { // (Optional, even with USE_BRINGUP)
+         Config::errorf("%4d EdText diagonal", __LINE__);
+         xcb_point_t points[2]=
+             { {0,                     0}
+             , {xcb::PT_t(rect.width), xcb::PT_t(rect.height)}
+             };
          NOQUEUE("xcb_poly_line", xcb_poly_line(c
                 , XCB_COORD_MODE_ORIGIN, widget_id, fontGC, 2, points));
          if( opt_verbose > 2 )
@@ -750,7 +782,6 @@ void
 
    draw_info();                     // Draw the information line
    draw_cursor();
-   show();
    flush();
 }
 
@@ -993,6 +1024,10 @@ void
        break;
 
      case 'C': {                    // Copy
+       if( mark->mark_col >= 0 ) {
+         editor::put_message("Use ctrl-C + ctrl-V for block copy");
+         break;
+       }
        const char* error= mark->copy();
        if( error ) {
          editor::put_message(error);
@@ -1048,6 +1083,10 @@ void
        break;
 
      case 'M': {                    // Move (Uses cut/paste)
+       if( mark->mark_col >= 0 ) {
+         editor::put_message("Use ctrl-X + ctrl-V for block move");
+         break;
+       }
        const char* error= mark->cut();
        if( error ) {
          editor::put_message(error);
@@ -1090,7 +1129,7 @@ void
        break;
      }
      case 'V': {                    // Paste
-       const char* error= mark->paste(file, data->cursor);
+       const char* error= mark->paste(file, data->cursor, data->get_column());
        if( error )
          editor::put_message(error);
        else

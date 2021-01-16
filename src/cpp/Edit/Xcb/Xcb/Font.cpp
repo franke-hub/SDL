@@ -196,6 +196,7 @@ int                                 // Return code, 0 OK
    xcb_generic_error_t* error=
    xcb_request_check(conn, void_cookie);
    if( error ) {
+     fprintf(stderr, "Font::open(%s) failure\n", name);
      fontID= 0;
      xcberror(error);
      int rc= error->error_code;

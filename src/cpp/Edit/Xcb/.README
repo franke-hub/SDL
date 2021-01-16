@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/01/10
+##       2021/01/16
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in BRINGUP mode.
@@ -32,19 +32,7 @@
 
 ##############################################################################
 ## STATUS:
-2021/01/11 BUGS:
-         No cursor on first switch away from history line.
-         Let's undo cursor on entry, redo cursor on exit.
-
-2021/01/10 DONE:
-         Restructure. Removed TextWindow, function merged into EdText.
-
-2021/01/03 DONE:
-         Bug fix: EdBifs editor::command, data->commit before any command
-         lib/pub/Parser.cpp: Data extraction iterator; Allow duplicate lines
-         Config.cpp: Configurable screen colors.
-
-2021/01/01 BUGS:
+2021/01/10 BUGS: (Not recently reproduced)
          Blank lines intermittently duplicate prior line offset 2 columns
          (Doesn't show up immediately. Moving cursor over line shows it.)
          ** USE F9 DEBUGGING OPTION **
@@ -52,7 +40,6 @@
          Added .CSR trace event whenever cursor changes.
 
 2021/01/01 TODO:
-         Implement column mark
          Implement split/join line
          Implement backward locate; locate with wrap.
          Implement protected file.
@@ -69,6 +56,14 @@
            Isn't mark already done then???
 
 ##############################################################################
+2021/01/16 Block copy/paste operational, but must be done using ctrl-C/ctrl-V
+
+2021/01/10 Restructure. Removed TextWindow, function merged into EdText.
+
+2021/01/03 Bug fix: EdBifs editor::command, data->commit before any command
+         lib/pub/Parser.cpp: Data extraction iterator; Allow duplicate lines
+         Config.cpp: Configurable screen colors.
+
 2020/12/15 Added built-in edit function with wildcard name resolution.
          Updated pub library (wildcard file name compare)
          EdMark greatly improved.

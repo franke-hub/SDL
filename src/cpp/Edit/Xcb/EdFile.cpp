@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2021/01/10
+//       2021/01/16
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -1175,6 +1175,8 @@ void
      if( line == tail_insert )
        break;
    }
+
+   debugf("  COL [%3zd:%3zd]\n", lh_col, rh_col);
 
    debugf("  REM [");
    if( head_remove ) debugf("%p<-", head_remove->get_prev());

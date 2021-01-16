@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/01/10
+//       2021/01/11
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -389,11 +389,13 @@ void
 void
    editor::do_history( void )       // Invert history view
 {
-   if( view == hist )
+   if( view == hist ) {
      data->activate();
-   else
+     text->draw_cursor();
+   } else {
+     text->undo_cursor();
      hist->activate();
-   text->draw_info();
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -439,9 +441,8 @@ const char*                         // Return message, nullptr if OK
      if( (line->flags & EdLine::F_PROT) == 0 ) {
        const char* M= stristr(line->text, S);
        if( M != nullptr ) {
-         data->activate();
-         text->move_cursor_H(M - line->text);
          text->activate(line);
+         text->move_cursor_H(M - line->text);
          return nullptr;
        }
      }
@@ -771,7 +772,19 @@ int                                 // Return code, 0 OK
      const char*       name,        // This option name to
      const char*       value)       // This option value
 {
-   if( strcmp(name, "font") == 0 ) {
+   if( strcmp(name, "geometry") == 0 ) {
+     return 0;
+   }
+
+   if( strcmp(name, "autowrap") == 0 ) {
+     return 0;
+   }
+
+   if( strcmp(name, "case") == 0 ) {
+     return 0;
+   }
+
+   if( strcmp(name, "direction") == 0 ) {
      return 0;
    }
 
@@ -827,6 +840,8 @@ void
 
    // Start the Device
    device->draw();
+   text->show();                    // (Set position fails unless visible)
    text->grab_mouse();
+   text->flush();
    device->run();
 }

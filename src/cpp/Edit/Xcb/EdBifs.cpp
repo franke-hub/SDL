@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2021/01/03
+//       2021/01/12
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -113,9 +113,10 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_bot(char*)               // Bottom command
 {
-   using namespace editor;          // For editor::text
-   editor::data->col_zero= editor::data->col= 0;
+   using namespace editor;          // For editor::data, hist, text
+   data->col_zero= data->col= 0;
    text->activate(file->line_list.get_tail());
+   hist->activate();                // (Remain in command mode)
    return nullptr;
 }
 
@@ -167,6 +168,8 @@ static const char*                  // Error message, nullptr expected
      Editor::debug("command");
    else if( strcasecmp(parm, "file") == 0 )
      editor::file->debug("command");
+   else if( strcasecmp(parm, "font") == 0 )
+     config::font->debug("command");
    else if( strcasecmp(parm, "lines") == 0 )
      editor::file->debug("lines");
    else if( strcasecmp(parm, "mark") == 0 )
@@ -179,7 +182,7 @@ static const char*                  // Error message, nullptr expected
    } else
      return "Invalid command";
 
-   editor::data->activate();
+   editor::hist->activate();
    return nullptr;
 }
 
@@ -203,9 +206,9 @@ static const char*                  // Error message, nullptr expected
 
    if( last ) {
      editor::text->activate(last);
-     editor::data->activate();
      editor::text->draw();
    }
+   editor::hist->activate();
 
    return nullptr;
 }
@@ -325,16 +328,16 @@ static const char*                  // Error message, nullptr expected
    const char* error= file_writer(parm); // Write the file
    if( error ) return error;        // If failure, return error message
 
-   editor::data->activate();        // Activate data view
    return nullptr;
 }
 
 static const char*                  // Error message, nullptr expected
    command_top(char*)               // Top command
 {
-   using namespace editor;          // For editor::text
-   editor::data->col_zero= editor::data->col= 0;
+   using namespace editor;          // For editor::data, hist, text
+   data->col_zero= data->col= 0;
    text->activate(file->line_list.get_head());
+   hist->activate();                // (Remain in command mode)
    return nullptr;
 }
 

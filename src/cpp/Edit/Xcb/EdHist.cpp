@@ -116,6 +116,7 @@ void
    EdHist::activate( void )         // Activate the history view
 {  if( HCDM || opt_hcdm ) traceh("EdHist(%p)::actiate\n", this);
 
+   editor::text->undo_cursor();
    col_zero= col= 0;                // Start in column 0
    cursor= nullptr;
    active.reset("");

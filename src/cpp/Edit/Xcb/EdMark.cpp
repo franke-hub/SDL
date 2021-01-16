@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2021/01/10
+//       2021/01/16
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -266,8 +266,9 @@ const char*                         // Error message, nullptr expected
    copy_list.insert(nullptr, copy.head, copy.tail);
    copy_file= mark_file;
    copy_rows= copy.rows;
-   copy_lh= mark_lh;
-   copy_rh= mark_rh;
+   copy_col= mark_col;
+   copy_lh=  mark_lh;
+   copy_rh=  mark_rh;
 
    return nullptr;
 }
@@ -307,11 +308,37 @@ const char*                         // Error message, nullptr expected
    }
 
    // Perform the cut
-   mark_file->line_list.remove(mark_head, mark_tail);
-   mark_file->rows -= copy_rows;
+   EdRedo* redo= new EdRedo();      // Create cut REDO
+   if( copy_col >= 0 ) {            // If block cut
+     if( copy_col == copy_rh ) {
+       redo->lh_col= copy_lh;
+       redo->rh_col= copy_rh;
+     } else {
+       redo->rh_col= copy_lh;
+       redo->lh_col= copy_rh;
+     }
+     xcb::Active::Ccount count= copy_rh - copy_lh + 1;
+     xcb::Active& A= *config::active; // (Working Active line)
+     Copy copy= create_copy(mark_head, mark_tail);
+     for(EdLine* line= copy.head; line; line= line->get_next()) {
+       A.reset(line->text);         // (Used to perform block cut)
+       A.replace_text(copy_lh, count, "");
+       const char* text= A.get_changed();
+       if( text )
+         line->text= editor::allocate(text);
+       if( line == copy.tail )
+         break;
+     }
+     redo->head_insert= copy.head;
+     redo->tail_insert= copy.tail;
+     mark_file->line_list.remove(mark_head, mark_tail);
+     EdLine* after= mark_head->get_prev();
+     mark_file->line_list.insert(after, copy.head, copy.tail);
+   } else {                         // If line cut
+     mark_file->line_list.remove(mark_head, mark_tail);
+     mark_file->rows -= copy_rows;
+   }
 
-   // Create redo
-   EdRedo* redo= new EdRedo();
    redo->head_remove= mark_head;
    redo->tail_remove= mark_tail;
    mark_file->redo_insert(redo);
@@ -471,7 +498,6 @@ const char*                         // Error message, nullptr expected
      return "Protected";
 
    if( column >= 0 ) {               // If block mark
-debugf("%4d mark(%zd) [%zd..%zd] %zd\n", __LINE__, column, mark_lh, mark_rh, mark_col);
      if( mark_col < 0 ) {            // If no block mark yet
        mark_col= mark_lh= mark_rh= column;
      } else if( column > mark_col ) {
@@ -483,7 +509,8 @@ debugf("%4d mark(%zd) [%zd..%zd] %zd\n", __LINE__, column, mark_lh, mark_rh, mar
      } else {
        mark_col= mark_lh= mark_rh= column;
      }
-debugf("%4d mark(%zd) [%zd..%zd] %zd\n", __LINE__, column, mark_lh, mark_rh, mark_col);
+   } else {
+     mark_lh= mark_rh= mark_col= -1;
    }
 
    if( mark_file == nullptr ) {     // If no mark active
@@ -564,16 +591,23 @@ debugf("%4d mark(%zd) [%zd..%zd] %zd\n", __LINE__, column, mark_lh, mark_rh, mar
 const char*                         // Error message, nullptr expected
    EdMark::paste(                   // Paste the marked area
      EdFile*           edFile,      // Into this EdFile
-     EdLine*           edLine,      // After this line
-     ssize_t           column)      // Start at this column (block copy)
+     EdLine*           edLine,      // After or into this line
+     ssize_t           column)      // Start at this column (if block copy)
 {
    if( copy_list.get_head() == nullptr )
      return "No copy/cut";
+   if( edLine->get_next() == nullptr )
+     return "Protected";
+   if( copy_col >= 0 ) {            // Validate block copy (Must fit in file)
+     EdLine* line= edLine;          // The first copy into line
+     for(size_t i= 0; i<copy_rows; i++) {
+       if( line == nullptr || line->flags & EdLine::F_PROT )
+         return "Protected";
+       line= line->get_next();
+     }
+   }
 
-   if( column >= 0 )
-     return "Not coded yet";
-
-   undo();                          // Undo current mark
+   undo();                          // Undo any current mark
 
    // Copy and mark the copy list
    Copy copy= create_copy(copy_list.get_head(), copy_list.get_tail());
@@ -588,9 +622,64 @@ const char*                         // Error message, nullptr expected
 
    // Trace the paste
    Config::trace(".MRK", " C^V", copy.head, copy.tail);
+   EdRedo* redo= new EdRedo();      // Create the REDO
+
+   if( copy_col >= 0 ) {            // If block copy
+     EdLine* head= edLine;          // The head copy into line
+     EdLine* tail= head;            // The tail copy into line
+     for(size_t i= 1; i<copy_rows; i++)
+       tail= tail->get_next();
+
+     edFile->line_list.remove(head, tail);
+     redo->head_remove= head;
+     redo->tail_remove= tail;
+
+     EdLine* after= edLine->get_prev();
+     edFile->line_list.insert(after, copy.head, copy.tail);
+     redo->head_insert= copy.head;
+     redo->tail_insert= copy.tail;
+
+     if( copy_col == copy_rh ) {
+       redo->lh_col= copy_lh;
+       redo->rh_col= copy_rh;
+     } else {
+       redo->rh_col= copy_lh;
+       redo->lh_col= copy_rh;
+     }
+     edFile->redo_insert(redo);
+
+     mark_file= edFile;
+     mark_head= copy.head;
+     mark_tail= copy.tail;
+     mark_line= mark_head;
+     mark_col= column;
+     mark_lh= mark_col;
+     mark_rh= mark_col + (copy_rh - copy_lh);
+
+     // Update the inserted text
+     size_t cols= (copy_rh - copy_lh) + 1; // Number of copy columns
+     xcb::Active  F;                // Copy from work area
+     xcb::Active& I= *config::active; // Copy into work area
+     EdLine* line= copy.head;       // The current copy from line
+     for(;;) {
+       F.reset(line->text);
+       F.fetch(copy_rh);
+       I.reset(head->text);
+       I.replace_text(column, 0, F.get_buffer(copy_lh), cols);
+       I.truncate();
+       line->text= editor::allocate(I.get_buffer());
+       if( head == tail )
+         break;
+
+       line= line->get_next();
+       head= head->get_next();
+     }
+     edFile->activate(copy.head);   // (The original line was removed)
+
+     return nullptr;
+   }
 
    // Handle paste after no delimiter line
-   EdRedo* redo= new EdRedo();      // Create the REDO
    if( edLine->delim[0] == '\0' &&  edLine->delim[1] == '\0' ) {
      EdLine* line= edFile->new_line(edLine->text); // Get edLine replacement
      line->flags |= EdLine::F_MARK; // (Join the mark)
@@ -656,6 +745,6 @@ void
      clr_mark(mark_head, mark_tail); // Unmark the lines
      mark_file= nullptr;
      mark_head= mark_tail= mark_line= nullptr;
-     mark_col= -1;
+     mark_lh= mark_rh= mark_col= -1;
    }
 }

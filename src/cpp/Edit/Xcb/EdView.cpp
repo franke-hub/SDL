@@ -26,6 +26,7 @@
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile, EdLine
+#include "EdMark.h"                 // For EdMark
 #include "EdText.h"                 // For EdText
 #include "EdView.h"                 // For EdView (Implementation class)
 
@@ -100,7 +101,10 @@ void
 //----------------------------------------------------------------------------
 void
    EdView::activate( void )         // Activate this EdView
-{  editor::view= this; }
+{
+   editor::view= this;
+   editor::text->draw_info();       // (History or Status line)
+}
 
 //----------------------------------------------------------------------------
 //
@@ -115,8 +119,13 @@ xcb_gcontext_t                       // The current graphic context
    EdView::get_gc( void )            // Get current graphic context
 {
    xcb_gcontext_t gc= gc_font;
-   if( cursor->flags & EdLine::F_MARK )
-     gc= gc_mark;
+   if( cursor->flags & EdLine::F_MARK ) {
+     ssize_t column= ssize_t(col_zero + col);
+     EdMark& mark= *editor::mark;
+     if( mark.mark_col < 0
+         || ( column >= mark.mark_lh && column <= mark.mark_rh ) )
+       gc= gc_mark;
+   }
 
    return gc;
 }

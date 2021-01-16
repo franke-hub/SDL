@@ -106,6 +106,7 @@ uint32_t               config::message_bg= 0x00FFFF00; // Message BG
 uint32_t               config::message_fg= 0x00900000; // Message FG
 
 // XCB objects ------- Initialized at startup (Font configured) --------------
+xcb::Active*           config::active= nullptr; // Active, for temporary use
 xcb::Device*           config::device= nullptr; // The root Device
 xcb::Window*           config::window= nullptr; // A TEST Window TODO: BRINGUP
 xcb::Font*             config::font= nullptr; // The Font object
@@ -205,6 +206,7 @@ static void
    make_file(S, Edit_conf);
 
    // Allocate XCB objects
+   active= new xcb::Active();       // The Active work area
    device= new xcb::Device();       // The screen/connection device
    font= new xcb::Font(device);     // The Font object
 
@@ -245,6 +247,7 @@ static void
 
    // Delete XCB objects
    delete font;
+   delete active;
 // delete device;
 
    term();

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       XCB Active Line descriptor.
 //
 // Last change date-
-//       2020/12/07
+//       2021/01/14
 //
 // Implementation note-
 //       Changed Lines also automatically remove any trailing blanks.
@@ -77,7 +77,7 @@ public:
 //----------------------------------------------------------------------------
 // xcb::Active::debug, Debugging display
 //----------------------------------------------------------------------------
-virtual void
+void
    debug(                           // Debugging display
      const char*       info= nullptr) const; // Associated info
 
@@ -132,7 +132,7 @@ void
 //----------------------------------------------------------------------------
 const char*                         // The current buffer
    get_buffer(                      // Get ('\0' delimited) buffer
-     Column            column= 0) const; // Starting at this column
+     Column            column= 0);  // Starting at this column
 
 //----------------------------------------------------------------------------
 //
@@ -250,6 +250,13 @@ void
 //       Replace (or insert) a ('\0' delimited) text string.
 //
 //----------------------------------------------------------------------------
+void
+   replace_text(                    // Replace (or insert) text
+     Column            column,      // The replacement Column
+     Ccount            ccount,      // The Column count of deleted columns
+     const char*       text,        // The replacement (insert) text
+     Length            size);       // The replacement (insert) text Length
+
 void
    replace_text(                    // Replace (or insert) text
      Column            column,      // The replacement Column
