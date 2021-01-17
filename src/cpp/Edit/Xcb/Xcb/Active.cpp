@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2021/01/14
+//       2021/01/17
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -94,100 +94,6 @@ void
      buffer[buffer_used]= '\0';     // (Buffer is mutable)
      debugf("..%2zd buffer(%s)\n", buffer_used, buffer);
    }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       xcb::Active::expand
-//
-// Purpose-
-//       Expand the buffer to the appropriate character size. (Does not fetch)
-//
-//----------------------------------------------------------------------------
-void
-   Active::expand(                  // Expand the buffer
-     Length            length)      // To this length (+1)
-{
-   if( opt_hcdm )
-     debugh("Active(%p)::expand(%zd) [%zd,%zd]\n", this, length, buffer_used, buffer_size);
-
-   if( length >= buffer_size ) {    // If expansion required
-     size_t replace_size= length + BUFFER_SIZE + BUFFER_SIZE;
-     replace_size &= ~(BUFFER_SIZE - 1);
-     char* replace= (char*)Must::malloc(replace_size);
-     if( fsm != FSM_RESET )
-       memcpy(replace, buffer, buffer_used);
-     Must::free(buffer);
-     buffer= replace;
-     buffer_size= replace_size;
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       xcb::Active::append_text
-//
-// Purpose-
-//       Concatenate text substring.
-//
-//----------------------------------------------------------------------------
-void
-   Active::append_text(             // Concatenate text
-     const char*       join,        // The join substring
-     Length            size)        // The substring Length
-{
-   if( size == 0 )                  // If nothing to insert
-     return;                        // (Line unchanged)
-
-   fetch();
-   fetch(buffer_used + size + 1);   // Insure room for concatenation
-   memcpy(buffer + buffer_used, join, size); // Concatenate
-   buffer_used += size;
-   fsm= FSM_CHANGED;
-}
-
-void
-   Active::append_text(             // Concatenate text
-     const char*       join)        // The join string
-{  append_text(join, strlen(join)); }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       xcb::Active::fetch
-//
-// Purpose-
-//       Fetch the line and/or expand the buffer to the appropriate size.
-//
-//----------------------------------------------------------------------------
-void
-   Active::fetch(                   // Fetch the text
-     Length            column)      // With blank fill to this length
-{
-   if( fsm == FSM_RESET )
-     buffer_used= strlen(source);
-
-   size_t buffer_need= buffer_used + 1;
-   if( column >= buffer_need )
-     buffer_need= column + 1;
-   if( buffer_need >= buffer_size ) // If expansion required
-     expand(buffer_need);
-
-   if( fsm == FSM_RESET ) {         // If not fetched yet
-     fsm= FSM_FETCHED;              // Fetch it now
-     memcpy(buffer, source, buffer_used);
-   }
-
-   if( buffer_used <= column ) {    // If expansion required
-//   fsm= FSM_CHANGED;              // (Blank fill DOES NOT imply change)
-     memset(buffer + buffer_used, ' ', column + 1 - buffer_used);
-     buffer_used= column + 1;
-   }
-
-   if( opt_hcdm )
-     debugh("Active(%p)::fetch(%zd) [%zd/%zd]\n", this, column, buffer_used, buffer_size);
 }
 
 //----------------------------------------------------------------------------
@@ -309,6 +215,100 @@ Active::Offset                      // The character Offset
 //----------------------------------------------------------------------------
 //
 // Method-
+//       xcb::Active::append_text
+//
+// Purpose-
+//       Concatenate text substring.
+//
+//----------------------------------------------------------------------------
+void
+   Active::append_text(             // Concatenate text
+     const char*       join,        // The join substring
+     Length            size)        // The substring Length
+{
+   if( size == 0 )                  // If nothing to insert
+     return;                        // (Line unchanged)
+
+   fetch();
+   expand(buffer_used + size + 1);  // Insure room for concatenation
+   memcpy(buffer + buffer_used, join, size); // Concatenate
+   buffer_used += size;
+   fsm= FSM_CHANGED;
+}
+
+void
+   Active::append_text(             // Concatenate text
+     const char*       join)        // The join string
+{  append_text(join, strlen(join)); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::Active::expand
+//
+// Purpose-
+//       Expand the buffer to the appropriate character size. (Does not fetch)
+//
+//----------------------------------------------------------------------------
+void
+   Active::expand(                  // Expand the buffer
+     Length            length)      // To this length (+1)
+{
+   if( opt_hcdm )
+     debugh("Active(%p)::expand(%zd) [%zd,%zd]\n", this, length, buffer_used, buffer_size);
+
+   if( length >= buffer_size ) {    // If expansion required
+     size_t replace_size= length + BUFFER_SIZE + BUFFER_SIZE;
+     replace_size &= ~(BUFFER_SIZE - 1);
+     char* replace= (char*)Must::malloc(replace_size);
+     if( fsm != FSM_RESET )
+       memcpy(replace, buffer, buffer_used);
+     Must::free(buffer);
+     buffer= replace;
+     buffer_size= replace_size;
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::Active::fetch
+//
+// Purpose-
+//       Fetch the line and/or expand the buffer to the appropriate size.
+//
+//----------------------------------------------------------------------------
+void
+   Active::fetch(                   // Fetch the text
+     Length            column)      // With blank fill to this length
+{
+   if( fsm == FSM_RESET )
+     buffer_used= strlen(source);
+
+   size_t buffer_need= buffer_used + 1;
+   if( column >= buffer_need )
+     buffer_need= column + 1;
+   if( buffer_need >= buffer_size ) // If expansion required
+     expand(buffer_need);
+
+   if( fsm == FSM_RESET ) {         // If not fetched yet
+     fsm= FSM_FETCHED;              // Fetch it now
+     memcpy(buffer, source, buffer_used);
+   }
+
+   if( buffer_used <= column ) {    // If expansion required
+//   fsm= FSM_CHANGED;              // (Blank fill DOES NOT imply change)
+     memset(buffer + buffer_used, ' ', column + 1 - buffer_used);
+     buffer_used= column + 1;
+   }
+
+   if( opt_hcdm )
+     debugh("Active(%p)::fetch(%zd) [%zd/%zd]\n", this, column, buffer_used, buffer_size);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       xcb::Active::insert_char
 //
 // Purpose-
@@ -397,6 +397,8 @@ void
      const char*       text,        // The replacement (insert) text
      Length            length)      // The replacement (insert) text Length
 {
+   fetch();
+
    Offset offset= index(column);    // Initialize with blank fill
    buffer[buffer_used]= '\0';       // (For pub::UTF8::index delimiter)
    Length remove= pub::UTF8::index(buffer + offset, ccount);
@@ -436,6 +438,9 @@ void
    Active::reset(                   // Set source
      const char*       text)        // To this (immutable) text
 {
+   if( text == nullptr )
+     text= "";
+
    source= text;
    fsm= FSM_RESET;
 }
@@ -452,6 +457,8 @@ void
 const char*                         // The truncated buffer
    Active::truncate( void )         // Remove trailing blanks
 {
+   fetch();
+
    while( buffer_used > 0 ) {       // Remove trailing blanks
      if( buffer[buffer_used - 1] != ' ' )
        break;

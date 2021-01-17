@@ -16,7 +16,7 @@
 //       XCB Active Line descriptor.
 //
 // Last change date-
-//       2021/01/14
+//       2021/01/17
 //
 // Implementation note-
 //       Changed Lines also automatically remove any trailing blanks.
@@ -92,60 +92,19 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       xcb::Active::append_text
+//       xcb::Active::get_buffer
+//       xcb::Active::get_changed
 //
 // Purpose-
-//       Concatenate text substring.
+//       (Unconditionally) access the buffer, leaving trailing blanks
+//       (Conditionally) access the buffer, removing trailing blanks
 //
 //----------------------------------------------------------------------------
 public:
-void
-   append_text(                     // Concatenate text
-     const char*       join,        // The join substring
-     Length            size);       // The substring size
-
-void
-   append_text(                     // Concatenate text
-     const char*       join);       // The join string
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       xcb::Active::fetch
-//
-// Purpose-
-//       Fetch the source line, optionally expanding it
-//
-//----------------------------------------------------------------------------
-void
-   fetch(                            // Fetch the source line
-     Length            length= 0);   // With blank fill to this length
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       xcb::Active::get_buffer
-//
-// Purpose-
-//       (Unconditionally) access the buffer
-//
-//----------------------------------------------------------------------------
 const char*                         // The current buffer
    get_buffer(                      // Get ('\0' delimited) buffer
      Column            column= 0);  // Starting at this column
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       xcb::Active::get_changed
-//
-// Purpose-
-//       (Conditionally) access the buffer, returning nullptr if unchanged.
-//
-// Implementation note-
-//       If changed, trailing blanks are removed.
-//
-//----------------------------------------------------------------------------
 const char*                         // The changed text, nullptr if unchanged
    get_changed( void );             // Get ('\0' delimited) changed buffer
 
@@ -155,7 +114,7 @@ const char*                         // The changed text, nullptr if unchanged
 //       xcb::Active::get_cols
 //
 // Purpose-
-//       Return the buffer Column count
+//       Return the buffer UTF8 Column count (trailing blanks removed)
 //
 //----------------------------------------------------------------------------
 Ccount                              // The current buffer used Ccount
@@ -185,6 +144,37 @@ Length                              // The current buffer used Length
 Offset                              // The character buffer Offset
    index(                           // Get character buffer Offset for
      Column            column);     // This Column
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::Active::append_text
+//
+// Purpose-
+//       Concatenate text substring.
+//
+//----------------------------------------------------------------------------
+void
+   append_text(                     // Concatenate text
+     const char*       join,        // The join substring
+     Length            size);       // The substring size
+
+void
+   append_text(                     // Concatenate text
+     const char*       join);       // The join string
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       xcb::Active::fetch
+//
+// Purpose-
+//       Fetch the source line, optionally expanding it
+//
+//----------------------------------------------------------------------------
+void
+   fetch(                            // Fetch the source line
+     Length            length= 0);   // With blank fill to this length
 
 //----------------------------------------------------------------------------
 //
@@ -274,7 +264,7 @@ void
 //----------------------------------------------------------------------------
 void
    reset(                           // Set source text
-     const char*       text);       // To this (immutable) text
+     const char*       text= nullptr); // To this (immutable) text
 
 //----------------------------------------------------------------------------
 //

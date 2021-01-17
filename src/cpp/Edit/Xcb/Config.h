@@ -16,7 +16,7 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2021/01/12
+//       2021/01/16
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
@@ -177,6 +177,7 @@ extern const char*     opt_test;    // Bringup test?
 extern int             opt_verbose; // Debugging verbosity
 
 // XCB objects --------------------------------------------------------------
+extern xcb::Active*    actalt;      // Active, for temporary use
 extern xcb::Active*    active;      // Active, for temporary use
 extern xcb::Device*    device;      // The root Device
 extern xcb::Window*    window;      // The test Window

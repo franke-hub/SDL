@@ -658,7 +658,7 @@ const char*                         // Error message, nullptr expected
 
      // Update the inserted text
      size_t cols= (copy_rh - copy_lh) + 1; // Number of copy columns
-     xcb::Active  F;                // Copy from work area
+     xcb::Active& F= *config::actalt; // Copy from work area
      xcb::Active& I= *config::active; // Copy into work area
      EdLine* line= copy.head;       // The current copy from line
      for(;;) {

@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/01/14
+//       2021/01/17
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -57,12 +57,14 @@ enum // Compilation controls
 // USE_HIDDEN= false                // Use mouse hide/show? TODO: REMOVE
 }; // Compilation controls
 
+#if false                           // Bringup diagnostic?
 static struct EdText_initializer {  // TODO: REMOVE
    EdText_initializer( void )       // (DO NOT USE DEBUGF)
 {  fprintf(stderr, "%4d EdText: Cursor hiding(%s)\n", __LINE__
                  , USE_HIDDEN ? "ENABLED" : "DISABLED");
 }
 }  static_initializer;
+#endif
 
 //----------------------------------------------------------------------------
 //
@@ -1043,6 +1045,10 @@ void
        draw();
        break;
      }
+     case 'J': {                    // Join lines
+       editor::join_lines();        // Join the current and next line
+       break;
+     }
      case 'I': {                    // Insert
        data->commit();
        EdLine* after= data->cursor; // Insert afer the current cursor line
@@ -1102,6 +1108,10 @@ void
          editor::exit();
        break;
 
+     case 'S': {                    // Split line
+       editor::split_line();        // Split the current line
+       break;
+     }
      case 'U': {                    // Undo mark
        EdFile* mark_file= mark->mark_file;
        mark->undo();

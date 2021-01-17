@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2021/01/10
+//       2021/01/16
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -245,6 +245,18 @@ EdFile*                             // The last file inserted
 //----------------------------------------------------------------------------
 //
 // Method-
+//       editor::join_lines
+//
+// Purpose-
+//       Join the current and next line.
+//
+//----------------------------------------------------------------------------
+void
+   join_lines( void );              // Join the current and next line
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       editor::key_to_name
 //
 // Purpose-
@@ -293,6 +305,17 @@ int                                 // Return code, 0 OK
    set_option(                      // Set a configurable option
      const char*       name,        // The option name
      const char*       value);      // The option value
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::split_line
+//
+// Purpose-
+//       Split the current line at the cursor.
+//
+//----------------------------------------------------------------------------
+void   split_line( void );              // Split the current line at the cursor
 
 //----------------------------------------------------------------------------
 //

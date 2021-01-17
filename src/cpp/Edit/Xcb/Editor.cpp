@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/01/11
+//       2021/01/17
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -35,6 +35,7 @@
 #include <pub/Signals.h>            // For pub::signals
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Trace.h>              // For pub::Trace
+#include <pub/UTF8.h>               // For pub::UTF8
 
 #include "Xcb/Device.h"             // For xcb::Device
 #include "Xcb/Font.h"               // For xcb::Font
@@ -633,6 +634,53 @@ EdFile*                             // The last file inserted
 //----------------------------------------------------------------------------
 //
 // Method-
+//       editor::join_lines
+//
+// Purpose-
+//       Join the current and next line.
+//
+//----------------------------------------------------------------------------
+void
+   editor::join_lines( void )       // Join the current and next line
+{
+   data->commit();                  // Commit the active line (removes blanks)
+
+   // (The cursor line itself has already been verified non-protected)
+   EdLine* head= data->cursor;      // Address the cursor line
+   EdLine* tail= head->get_next();  // The join line
+   if( tail->flags & EdLine::F_PROT ) {
+     put_message("Protected");
+     return;
+   }
+
+   // Join the lines
+   EdRedo* redo= new EdRedo();      // Create REDO
+   file->line_list.remove(head, tail); // Remove the lines
+   redo->head_remove= head;
+   redo->tail_remove= tail;
+   if( head->text[0] == '\0' )      // If the head line is empty
+     data->active.reset(tail->text); // The tail line becomes the join line
+   else {
+     data->active.reset(head->text); // The current line
+     data->active.append_text(" ");
+     const char* text= tail->text;
+     while( *text == ' ' )
+       text++;
+     data->active.append_text(text);
+   }
+   EdLine* line= new EdLine(allocate(data->active.truncate()));
+   file->line_list.insert(head->get_prev(), line, line);
+   redo->head_insert= redo->tail_insert= line;
+   file->rows--;
+   file->redo_insert(redo);
+   data->active.reset(line->text);
+   file->activate(line);
+   text->draw();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       editor::key_to_name
 //
 // Purpose-
@@ -789,6 +837,63 @@ int                                 // Return code, 0 OK
    }
 
    (void)name; (void)value; return -1; // NOT CODED YET
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::split_line
+//
+// Purpose-
+//       Split the current line at the cursor.
+//
+//----------------------------------------------------------------------------
+void
+   editor::split_line( void )       // Split the current line at the cursor
+{
+   data->commit();                  // Commit the active line
+
+   // Create and initialize REDO object, updating the file
+   EdLine* cursor= data->cursor;
+   EdRedo* redo= new EdRedo();
+   redo->head_remove= redo->tail_remove= cursor;
+   file->line_list.remove(cursor, cursor);
+
+   pub::List<EdLine> line_list;     // Replacement line list
+   line_list.fifo(new EdLine());
+   line_list.fifo(new EdLine());
+   EdLine* head= line_list.get_head();
+   EdLine* tail= line_list.get_tail();
+   file->insert(cursor->get_prev(), head, tail);
+   redo->head_insert= head;
+   redo->tail_insert= tail;
+   file->redo_insert(redo);
+   file->rows++;
+
+   // Initialize the split lines
+   xcb::Active& A= data->active;
+   char* both= (char*)A.truncate();
+   xcb::Active& H= *config::active;
+   H.reset(both);
+   xcb::Active& T= *config::actalt;
+   T.reset();
+   for(size_t lead= 0; ; lead++) {  // Insert leading blanks in tail
+     if( both[lead] != ' ' ) {
+       if( lead > 0 )
+         T.fetch(lead - 1);
+       break;
+     }
+   }
+
+   size_t X= pub::UTF8::index(both, data->get_column());
+   T.append_text(both + X);
+   tail->text= allocate(T.truncate());
+   both[X]= '\0';
+   H.reset(both);
+   head->text= allocate(H.truncate());
+   A.reset(head->text);
+   file->activate(head);
+   text->draw();
 }
 
 //----------------------------------------------------------------------------

@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2021/01/10
+//       2021/01/17
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -106,6 +106,7 @@ uint32_t               config::message_bg= 0x00FFFF00; // Message BG
 uint32_t               config::message_fg= 0x00900000; // Message FG
 
 // XCB objects ------- Initialized at startup (Font configured) --------------
+xcb::Active*           config::actalt= nullptr; // Active, for temporary use
 xcb::Active*           config::active= nullptr; // Active, for temporary use
 xcb::Device*           config::device= nullptr; // The root Device
 xcb::Window*           config::window= nullptr; // A TEST Window TODO: BRINGUP
@@ -206,7 +207,8 @@ static void
    make_file(S, Edit_conf);
 
    // Allocate XCB objects
-   active= new xcb::Active();       // The Active work area
+   actalt= new xcb::Active();       // An Active work area
+   active= new xcb::Active();       // An Active work area
    device= new xcb::Device();       // The screen/connection device
    font= new xcb::Font(device);     // The Font object
 
@@ -247,6 +249,7 @@ static void
 
    // Delete XCB objects
    delete font;
+   delete actalt;
    delete active;
 // delete device;
 
@@ -597,8 +600,8 @@ static int                          // Return code (0 OK)
    close(fd);                       // Descriptor not needed once mapped
 
    // TODO: REMOVE (BRINGUP)
-   debugf("%4d Config::init backtrace test\n", __LINE__);
-   Config::backtrace();
+// debugf("%4d Config::init backtrace test\n", __LINE__);
+// Config::backtrace();
 
    return 0;                        // Placeholder
 }
