@@ -16,7 +16,7 @@
 //       Fileman.h object methods
 //
 // Last change date-
-//       2021/01/04
+//       2021/01/17
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -500,7 +500,7 @@ std::string                         // The invalid path ("" if none)
      if( rc ) {
        if( last_part == "" )
          break;
-       return init_part;
+       return init_part + " (Invalid path)";
      }
 
      if( S_ISLNK(info.st_mode) ) {
