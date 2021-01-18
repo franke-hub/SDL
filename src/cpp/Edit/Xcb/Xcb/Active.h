@@ -117,8 +117,8 @@ const char*                         // The changed text, nullptr if unchanged
 //       Return the buffer UTF8 Column count (trailing blanks removed)
 //
 //----------------------------------------------------------------------------
-Ccount                              // The current buffer used Ccount
-   get_cols( void );                // Get current buffer used Ccount
+Ccount                              // The current UTF8 Column count
+   get_cols( void );                // Get current UTF8 Column count
 
 //----------------------------------------------------------------------------
 //

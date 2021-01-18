@@ -112,7 +112,7 @@ const char*                         // The current buffer
    if( fsm == FSM_RESET )
      fetch(column);
 
-   buffer[buffer_used]= '\0';       // Set string delimiter (buffer mutable)
+   buffer[buffer_used]= '\0';       // Set string delimiter
    return buffer + pub::UTF8::index(buffer, column);
 }
 
@@ -132,16 +132,6 @@ const char*                         // The changed text, nullptr if unchanged
      return nullptr;
 
    return truncate();               // Return truncated buffer
-   Length used_buffer= this->buffer_used; // (For const)
-   while( used_buffer > 0 ) {       // Remove trailing blanks
-     if( buffer[used_buffer - 1] != ' ' )
-       break;
-
-     used_buffer--;
-   }
-
-   buffer[used_buffer]= '\0';       // Set string delimiter (buffer mutable)
-   return buffer;
 }
 
 //----------------------------------------------------------------------------
