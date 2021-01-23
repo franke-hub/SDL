@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2021/01/16
+//       2021/01/21
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -176,7 +176,7 @@ static void
      if( event.file == mark_file ) {
        mark_file= nullptr;
        mark_head= mark_tail= mark_line= nullptr;
-       mark_col= 0;
+       mark_lh= mark_rh= mark_col= -1;
      }
      if( event.file == copy_file ) {
        copy_file= nullptr;
@@ -185,15 +185,7 @@ static void
 }
 
    EdMark::~EdMark( void )          // Destructor (Editor shutdown)
-{
-   for(;;) {
-     EdLine* line= copy_list.remq();
-     if( line == nullptr )
-       break;
-
-     delete line;
-   }
-}
+{  reset(); }
 
 //----------------------------------------------------------------------------
 //
@@ -242,24 +234,17 @@ void
 const char*                         // Error message, nullptr expected
    EdMark::copy( void )             // Copy the marked area
 {
+   // Verify mark existence
+   if( mark_file == nullptr )
+     return "No mark";
+
    // Commit the current line
    editor::data->commit();
 
    // Remove any current copy/cut
-   for(;;) {
-     EdLine* line= copy_list.remq();
-     if( line == nullptr )
-       break;
+   reset();
 
-     delete line;
-   }
-   copy_rows= 0;
-
-   // Create a new copy list
-   if( mark_file == nullptr )
-     return "No mark";
-
-   // Trace the copy
+   // Create (and trace) the copy
    Config::trace(".MRK", " C^C", mark_head, mark_tail);
 
    Copy copy= create_copy(mark_head, mark_tail);
@@ -497,6 +482,9 @@ const char*                         // Error message, nullptr expected
    if( edLine->flags & EdLine::F_PROT )
      return "Protected";
 
+   if( mark_file && mark_file != edFile )
+     return "Mark offscreen";
+
    if( column >= 0 ) {               // If block mark
      if( mark_col < 0 ) {            // If no block mark yet
        mark_col= mark_lh= mark_rh= column;
@@ -519,9 +507,6 @@ const char*                         // Error message, nullptr expected
      edLine->flags |= EdLine::F_MARK;
      return nullptr;
    }
-
-   if( mark_file != edFile )
-     return "Mark offscreen";
 
    if( edLine->flags & EdLine::F_MARK ) { // If mark contraction
      if( mark_line == mark_head ) { // Contract downward
@@ -546,7 +531,7 @@ const char*                         // Error message, nullptr expected
 
    // Expand the mark (Consistency check: do not mark protected lines)
    EdLine* line= edLine;
-   while( line && line != mark_head ) { // Locate downward TODO: marker <<<
+   while( line && line != mark_head ) { // Locate downward
      if( line->flags & EdLine::F_PROT )
        line= nullptr;
      else
@@ -564,7 +549,7 @@ const char*                         // Error message, nullptr expected
      while( line != mark_tail ) {
        if( line == nullptr || line->flags & EdLine::F_PROT ) {
          mark_file->damaged= true;  // SHOULD NOT OCCUR
-         return "EdMark internal error"; // ((Add repair code if occurs))
+         return "EdMark internal error"; // ((Repair code if occurs))
        }
        line->flags |= EdLine::F_MARK;
        line= line->get_prev();
@@ -727,6 +712,26 @@ void
    mark_file= file;
    mark_head= mark_line= head;
    mark_tail= tail;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdMark::reset
+//
+// Purpose-
+//       Reset the mark, removing the copy
+//
+//----------------------------------------------------------------------------
+void
+   EdMark::reset( void )            // Reset the mark, removing the copy
+{
+   for(EdLine* line= copy_list.remq(); line; line= copy_list.remq())
+     delete line;
+
+   copy_file= nullptr;
+   copy_rows= 0;
+   copy_lh= copy_rh= copy_col= -1;
 }
 
 //----------------------------------------------------------------------------

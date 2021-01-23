@@ -16,7 +16,7 @@
 //       Implement Xcb/Font.h
 //
 // Last change date-
-//       2021/01/10
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::runtime_error

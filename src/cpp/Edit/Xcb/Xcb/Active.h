@@ -16,7 +16,7 @@
 //       XCB Active Line descriptor.
 //
 // Last change date-
-//       2021/01/17
+//       2021/01/18
 //
 // Implementation note-
 //       Changed Lines also automatically remove any trailing blanks.
@@ -138,7 +138,7 @@ Length                              // The current buffer used Length
 //       xcb::Active::index
 //
 // Purpose-
-//       Convert column to offset.
+//       Address character at column index, fetching and filling if required.
 //
 //----------------------------------------------------------------------------
 Offset                              // The character buffer Offset
@@ -182,7 +182,7 @@ void
 //       xcb::Active::insert_char
 //
 // Purpose-
-//       Insert a character.
+//       Insert a UTF32 character using UTF8 encoding.
 //
 //----------------------------------------------------------------------------
 void

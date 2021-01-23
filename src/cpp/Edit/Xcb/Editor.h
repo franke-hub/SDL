@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2021/01/16
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -115,29 +115,10 @@ extern std::string     change_string; // The change string
 extern pub::List<EdPool> filePool;  // File allocation EdPool
 extern pub::List<EdPool> textPool;  // Text allocation EdPool
 
-// Screen controls -----------------------------------------------------------
-extern xcb_rectangle_t geom;        // The screen geometry
-
 // Search controls -----------------------------------------------------------
 extern int             autowrap;    // Autowrap (false)
 extern int             case_sensitive; // Case sensitive search (false)
 extern int             direction;   // (Positive= forward, else reverse) (0)
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       editor::command
-//
-// Purpose-
-//       Process a command.
-//
-// Implementation notes-
-//       Implemented in EdBifs.cpp
-//
-//----------------------------------------------------------------------------
-const char*                         // Error message, nullptr if none
-   command(                         // Process a command
-     char*             buffer);     // (MODIFIABLE) command buffer
 
 //----------------------------------------------------------------------------
 //
@@ -155,6 +136,22 @@ char*                               // The (immutable) text
 const char*                         // The (immutable) text
    allocate(                        // Get (immutable) text
      const char*       source);     // Source (mutable) text
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::command
+//
+// Purpose-
+//       Process a command.
+//
+// Implementation notes-
+//       Implemented in EdBifs.cpp
+//
+//----------------------------------------------------------------------------
+const char*                         // Error message, nullptr if none
+   command(                         // Process a command
+     char*             buffer);     // (MODIFIABLE) command buffer
 
 //----------------------------------------------------------------------------
 //
@@ -272,7 +269,7 @@ const char*                         // The symbol name, "???" if unknown
 //       editor::put_message
 //
 // Purpose-
-//       Add message to file's message list
+//       Add a message to file's message list
 //
 //----------------------------------------------------------------------------
 void
@@ -286,7 +283,7 @@ void
 //       editor::remove_file
 //
 // Purpose-
-//       Remove active file from the file list
+//       Remove the active file from the file list
 //
 //----------------------------------------------------------------------------
 void
@@ -301,7 +298,7 @@ void
 //       Set a configurable option.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code, 0 OK
+const char*                         // Error message, nullptr expected
    set_option(                      // Set a configurable option
      const char*       name,        // The option name
      const char*       value);      // The option value

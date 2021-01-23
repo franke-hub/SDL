@@ -16,7 +16,7 @@
 //       Implement Xcb/Window.h
 //
 // Last change date-
-//       2021/01/09
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -163,8 +163,7 @@ void
 //
 //----------------------------------------------------------------------------
 WH_size_t                           // The current Pixmap size
-   Pixmap::get_size(                // Get current Piamap size
-     int               line)        // Caller's line number
+   Pixmap::get_size( void )         // Get current Piamap size
 {
    xcb_get_geometry_cookie_t cookie= xcb_get_geometry(c, widget_id);
    xcb_get_geometry_reply_t* r= xcb_get_geometry_reply(c, cookie, nullptr);
@@ -175,12 +174,8 @@ WH_size_t                           // The current Pixmap size
    } else
      debugf("%4d Pixmap xcb_get_geometry error\n", __LINE__);
 
-   if( opt_hcdm ) {
-     if( line > 0 )
-       debugh("%4d [%d x %d]= get_size\n", line, size.width, size.height);
-     else
-       debugh("[%u x %u]= get_size\n", size.width, size.height);
-   }
+   if( opt_hcdm )
+     debugh("[%u x %u]= get_size\n", size.width, size.height);
 
    return size;
 }
@@ -197,11 +192,10 @@ WH_size_t                           // The current Pixmap size
 void
    Pixmap::set_size(                // Set Pixmap size
      int               x,           // New width
-     int               y,           // New height
-     int               line)        // Caller's line number
+     int               y)           // New height
 {
    if( opt_hcdm )
-     traceh("%4d set_size(%d,%d)\n", line, x, y);
+     traceh("Pixmap::set_size(%d,%d)\n", x, y);
 
    rect.width=  uint16_t(x);
    rect.height= uint16_t(y);
@@ -505,20 +499,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Window::get_size
-//
-// Purpose-
-//       Get current width and height
-//
-//----------------------------------------------------------------------------
-WH_size_t                           // The current Pixmap size
-   Window::get_size(                // Get current Piamap size
-     int               line)        // Caller's line number
-{  return Pixmap::get_size(line); }
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       Window::set_size
 //
 // Purpose-
@@ -528,10 +508,9 @@ WH_size_t                           // The current Pixmap size
 void
    Window::set_size(                // Set window size
      int               x,           // New width
-     int               y,           // New height
-     int               line)        // Caller's line number
+     int               y)           // New height
 {  if( opt_hcdm )
-     debugh("%4d set_size(%d,%d)\n", line, x, y);
+     debugh("Window::set_size(%d,%d)\n", x, y);
 
    int16_t mask= XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
    int32_t parm[2]= { x, y };

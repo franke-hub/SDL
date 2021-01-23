@@ -16,11 +16,9 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/01/17
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
-#include <mutex>                    // For std::mutex, std::lock_guard
-
 #include <assert.h>                 // For assert
 #include <stdio.h>                  // For printf
 #include <stdlib.h>                 // For various
@@ -86,19 +84,10 @@ std::string            editor::change_string; // The change string
 pub::List<EdPool>      editor::filePool; // File allocation EdPool
 pub::List<EdPool>      editor::textPool; // Text allocation EdPool
 
-// Screen controls -----------------------------------------------------------
-xcb_rectangle_t        editor::geom= {1030, 0, 80, 50}; // The screen geometry
-
 // Search controls -----------------------------------------------------------
 int                    editor::autowrap= false;
 int                    editor::case_sensitive= false;
 int                    editor::direction= 0;
-
-//----------------------------------------------------------------------------
-// Internal data areas
-//----------------------------------------------------------------------------
-static std::mutex      mutex;       // Singleton mutex
-static int             singleton= 0; // Singleton control
 
 //----------------------------------------------------------------------------
 //
@@ -119,12 +108,6 @@ static int             singleton= 0; // Singleton control
    if( opt_hcdm )
      debugh("Editor::Editor\n");
 
-   // Initialize singleton
-   {{ std::lock_guard<decltype(mutex)> lock(mutex);
-      if( singleton ) throw "Multiple Editors"; // Enforce singleton
-      singleton= true;
-   }}
-
    // Allocate initial textPool
    textPool.fifo(new EdPool(EdPool::MIN_SIZE));
 
@@ -136,7 +119,7 @@ static int             singleton= 0; // Singleton control
    view= hist;                      // (Initial view)
 
    //-------------------------------------------------------------------------
-   // Load the text files
+   // Load the edit files
    for(int i= argi; i<argc; i++) {
      insert_file(argv[i]);
    }
@@ -222,30 +205,15 @@ static int             singleton= 0; // Singleton control
    using namespace editor;
 
    // Remove and delete Files
-   for(;;) {
-     EdFile* file= file_list.remq();
-     if( file == nullptr )
-       break;
-
+   for(EdFile* file= file_list.remq(); file; file= file_list.remq())
      delete file;
-   }
 
    // Remove and delete storage pools
-   for(;;) {
-     EdPool* pool= textPool.remq();
-     if( pool == nullptr )
-       break;
-
+   for(EdPool* pool= textPool.remq(); pool; pool= textPool.remq())
      delete pool;
-   }
 
-   for(;;) {
-     EdPool* pool= filePool.remq();
-     if( pool == nullptr )
-       break;
-
+   for(EdPool* pool= filePool.remq(); pool; pool= filePool.remq())
      delete pool;
-   }
 
    // Delete allocated objects
    delete text;
@@ -330,6 +298,69 @@ void
    Config::backtrace();
 
    editor::put_message(S.c_str(), EdMess::T_MESS);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::allocate
+//
+// Purpose-
+//       Allocate file/line text
+//
+//----------------------------------------------------------------------------
+char*                               // The (immutable) text
+   editor::allocate(                // Get (immutable) text
+     size_t            length)      // Of this length (includes '\0' delimit)
+{
+   char* text= nullptr;             // Not allocated (yet)
+   EdPool* pool= textPool.get_head(); // Get text pool
+   if( pool == nullptr ) {          // If no pool yet
+     pool= new EdPool(EdPool::MIN_SIZE); // Create one now
+     textPool.lifo(pool);           // And use it
+   }
+
+   text= pool->allocate(length);
+   if( text == nullptr ) {
+     if( length > EdPool::MIN_SIZE ) { // If large allocation
+       pool= new EdPool(length);    // All filePools are 100% allocated
+       text= pool->allocate(length);
+       filePool.lifo(pool);
+     } else {                       // If small allocation
+       for(pool= pool->get_next(); pool; pool= pool->get_next() ) {
+         text= pool->allocate(length); // Try all textPools
+         if( text )
+           break;
+       }
+
+       if( text == nullptr ) {      // If a new EdPool is required
+         if( opt_hcdm )
+           debugh("Editor.allocate(%zd) New pool\n", length);
+         pool= new EdPool(EdPool::MIN_SIZE);
+         text= pool->allocate(length);
+         textPool.lifo(pool);
+       }
+     }
+   }
+
+   if( opt_hcdm && opt_verbose > 1 )
+     traceh("%p= editor::allocate(%zd)\n", text, length);
+   return text;
+}
+
+const char*                         // The (immutable) text
+   editor::allocate(                // Get (immutable) text
+     const char*       source)      // Source (mutable) text
+{
+   if( *source == '\0' )            // If empty source
+     return "";                     // (Immutable) empty copy
+
+   size_t L= strlen(source);        // Source length
+   if( source[L-1] == ' ' )         // (If UNEXPECTED trailing blanks)
+     fprintf(stderr, "%4d Editor UNEXPECTED\n", __LINE__); // TODO: REMOVE
+   char* copy= allocate(L+1);       // Include trailing '\0' in string
+   strcpy(copy, source);            // Duplicate the string
+   return copy;
 }
 
 //----------------------------------------------------------------------------
@@ -481,69 +512,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::allocate
-//
-// Purpose-
-//       Allocate file/line text
-//
-//----------------------------------------------------------------------------
-char*                               // The (immutable) text
-   editor::allocate(                // Get (immutable) text
-     size_t            length)      // Of this length (includes '\0' delimit)
-{
-   char* text= nullptr;             // Not allocated (yet)
-   EdPool* pool= textPool.get_head(); // Get text pool
-   if( pool == nullptr ) {          // If no pool yet
-     pool= new EdPool(EdPool::MIN_SIZE); // Create one now
-     textPool.lifo(pool);           // And use it
-   }
-
-   text= pool->allocate(length);
-   if( text == nullptr ) {
-     if( length > EdPool::MIN_SIZE ) { // If large allocation
-       pool= new EdPool(length);    // All filePools are 100% allocated
-       text= pool->allocate(length);
-       filePool.lifo(pool);
-     } else {                       // If small allocation
-       for(pool= pool->get_next(); pool; pool= pool->get_next() ) {
-         text= pool->allocate(length); // Try all textPools
-         if( text )
-           break;
-       }
-
-       if( text == nullptr ) {      // If a new EdPool is required
-         if( opt_hcdm )
-           debugh("Editor.allocate(%zd) New pool\n", length);
-         pool= new EdPool(EdPool::MIN_SIZE);
-         text= pool->allocate(length);
-         textPool.lifo(pool);
-       }
-     }
-   }
-
-   if( opt_hcdm && opt_verbose > 1 )
-     traceh("%p= editor::allocate(%zd)\n", text, length);
-   return text;
-}
-
-const char*                         // The (immutable) text
-   editor::allocate(                // Get (immutable) text
-     const char*       source)      // Source (mutable) text
-{
-   if( *source == '\0' )            // If empty source
-     return "";                     // (Immutable) empty copy
-
-   size_t L= strlen(source);        // Source length
-   if( source[L-1] == ' ' )         // (If UNEXPECTED trailing blanks)
-     fprintf(stderr, "%4d Editor UNEXPECTED\n", __LINE__); // TODO: REMOVE
-   char* copy= allocate(L+1);       // Include trailing '\0' in string
-   strcpy(copy, source);            // Duplicate the string
-   return copy;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       editor::exit
 //
 // Purpose-
@@ -655,7 +623,7 @@ void
 
    // Join the lines
    EdRedo* redo= new EdRedo();      // Create REDO
-   file->line_list.remove(head, tail); // Remove the lines
+   file->remove(head, tail);        // Remove the lines
    redo->head_remove= head;
    redo->tail_remove= tail;
    if( head->text[0] == '\0' )      // If the head line is empty
@@ -668,10 +636,9 @@ void
        text++;
      data->active.append_text(text);
    }
-   EdLine* line= new EdLine(allocate(data->active.truncate()));
-   file->line_list.insert(head->get_prev(), line, line);
+   EdLine* line= file->new_line( allocate(data->active.truncate()) );
+   file->insert(head->get_prev(), line, line);
    redo->head_insert= redo->tail_insert= line;
-   file->rows--;
    file->redo_insert(redo);
    data->active.reset(line->text);
    file->activate(line);
@@ -774,7 +741,7 @@ void
 {  if( file )
      file->put_message(_mess, _type);
    else
-     debugh("Editor::put_message(%s)\n", _mess);
+     debugh("editor::put_message(%s)\n", _mess);
 }
 
 //----------------------------------------------------------------------------
@@ -812,32 +779,14 @@ void
 //       editor::set_option
 //
 // Purpose-
-//       Set an option
+//       Set an editor option
 //
 //----------------------------------------------------------------------------
-int                                 // Return code, 0 OK
-   editor::set_option(              // Set
+const char*                         // Return code, nullptr expected
+   editor::set_option(              // Set an editor option
      const char*       name,        // This option name to
      const char*       value)       // This option value
-{
-   if( strcmp(name, "geometry") == 0 ) {
-     return 0;
-   }
-
-   if( strcmp(name, "autowrap") == 0 ) {
-     return 0;
-   }
-
-   if( strcmp(name, "case") == 0 ) {
-     return 0;
-   }
-
-   if( strcmp(name, "direction") == 0 ) {
-     return 0;
-   }
-
-   (void)name; (void)value; return -1; // NOT CODED YET
-}
+{  (void)name; (void)value; return "Not coded yet"; }
 
 //----------------------------------------------------------------------------
 //
@@ -851,28 +800,29 @@ int                                 // Return code, 0 OK
 void
    editor::split_line( void )       // Split the current line at the cursor
 {
-   data->commit();                  // Commit the active line
+   EdView& D= *data;                // Data view reference
+   D.commit();                      // Commit the active line
 
    // Create and initialize REDO object, updating the file
-   EdLine* cursor= data->cursor;
+   EdLine* cursor= D.cursor;
    EdRedo* redo= new EdRedo();
+   file->remove(cursor, cursor);
    redo->head_remove= redo->tail_remove= cursor;
-   file->line_list.remove(cursor, cursor);
 
    pub::List<EdLine> line_list;     // Replacement line list
-   line_list.fifo(new EdLine());
-   line_list.fifo(new EdLine());
+   line_list.fifo(file->new_line());
+   line_list.fifo(file->new_line());
    EdLine* head= line_list.get_head();
    EdLine* tail= line_list.get_tail();
    file->insert(cursor->get_prev(), head, tail);
    redo->head_insert= head;
    redo->tail_insert= tail;
    file->redo_insert(redo);
-   file->rows++;
 
    // Initialize the split lines
-   xcb::Active& A= data->active;
-   char* both= (char*)A.truncate();
+   xcb::Active& A= D.active;
+   A.index(D.get_column() + 1);     // (Insure blank fill to column)
+   char* both= (char*)A.get_buffer(); // (Sets trailing '\0' delimiter)
    xcb::Active& H= *config::active;
    H.reset(both);
    xcb::Active& T= *config::actalt;
@@ -885,7 +835,9 @@ void
      }
    }
 
-   size_t X= pub::UTF8::index(both, data->get_column());
+   size_t X= pub::UTF8::index(both, D.get_column());
+   while( both[X] == ' ' )
+     X++;
    T.append_text(both + X);
    tail->text= allocate(T.truncate());
    both[X]= '\0';
@@ -946,7 +898,7 @@ void
    // Start the Device
    device->draw();
    text->show();                    // (Set position fails unless visible)
-   text->grab_mouse();
+   text->grab_mouse();              // (Also sets position)
    text->flush();
    device->run();
 }

@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/01/17
+//       2021/01/21
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -105,7 +105,8 @@ static inline unsigned              // The truncated value
    EdText::EdText(                  // Constructor
      Widget*           parent,      // Parent Widget
      const char*       name)        // Widget name
-:  Window(parent, name ? name : "EdText"), font(*config::font)
+:  Window(parent, name ? name : "EdText")
+,  active(*config::active), font(*config::font)
 {
    if( opt_hcdm )
      debugh("EdText(%p)::EdText\n", this);
@@ -115,15 +116,13 @@ static inline unsigned              // The truncated value
    fg= config::text_fg;
 
    // Layout
-   if( col_size == 0 ) col_size= COLS_W;
-   if( row_size == 0 ) row_size= ROWS_H;
-   unsigned mini_c= MINI_C;
+   col_size= config::geom.width;   row_size= config::geom.height;   unsigned mini_c= MINI_C;
    unsigned mini_r= MINI_R;
    if( mini_c > col_size ) mini_c= col_size;
    if( mini_r > row_size ) mini_r= row_size;
-   min_size= { xcb::WH_t(mini_c   * font.length.width  + 1)
+   min_size= { xcb::WH_t(mini_c   * font.length.width  + 2)
              , xcb::WH_t(mini_r   * font.length.height + 2) };
-   use_size= { xcb::WH_t(col_size * font.length.width  + 1)
+   use_size= { xcb::WH_t(col_size * font.length.width  + 2)
              , xcb::WH_t(row_size * font.length.height + 2) };
    use_unit= { xcb::WH_t(font.length.width), xcb::WH_t(font.length.height) };
 
@@ -390,7 +389,6 @@ void
    EdLine* line= (EdLine*)this->head;
    for(unsigned r= USER_TOP; (r+1) < row_size; r++) { // Set the Active line
      if( line == act_line ) {
-//     printf("%4d HCDM\n", __LINE__); // TODO: REMOVE
        data->row= r;
        draw_cursor();
        draw_info();
@@ -408,12 +406,8 @@ void
    data->row_zero= 0;
    for( line= file->line_list.get_head(); line; line= line->get_next() ) {
      if( line == act_line ) {       // If line found
-//     printf(" %4drow_zero(%zd) rows(%zd) row_size(%u) USER_TOP(%u)\n", __LINE__
-//           , data->row_zero, file->rows, row_size, USER_TOP);
-
        // If near top of file
        if( data->row_zero < (row_size - USER_TOP) ) {
-//       printf("%4d HCDM\n", __LINE__); // TODO: REMOVE
          this->head= file->line_list.get_head();
          data->row= (unsigned)data->row_zero + USER_TOP;
          data->row_zero= 0;
@@ -423,7 +417,6 @@ void
 
        // If near end of file
        if( data->row_zero > (file->rows + 1 + USER_TOP - row_size ) ) {
-//       printf("%4d HCDM\n", __LINE__); // TODO: REMOVE
          data->row_zero= file->rows + 2 + USER_TOP - row_size;
          data->row= USER_TOP;
          unsigned r= row_size - 1;
@@ -439,8 +432,7 @@ void
          return;
        }
 
-       // Not near top nor end of file
-//     printf("%4d HCDM\n", __LINE__); // TODO: REMOVE
+       // Not near top or end of file
        unsigned r= row_size / 2;
        data->row= r;
        data->row_zero -= r - USER_TOP;
@@ -535,6 +527,9 @@ void
      debugh("EdText(%p)::cursor_%s cursor[%u,%u]\n", this
            , set ? "S" : "C", view->col, view->row);
 
+   if( editor::file->mess_list.get_head() ) // If message line present
+     return;                        // (Do nothing)
+
    size_t column= view->get_column(); // The current column
    char buffer[8];                  // Encoder buffer
    pub::UTF8::Encoder encoder(buffer, sizeof(buffer));
@@ -620,9 +615,9 @@ bool                                // Return code, TRUE if handled
    EdMess* mess= editor::file->mess_list.get_head();
    if( mess == nullptr ) return false;
 
-   char buffer[256];                // Status line buffer
-   memset(buffer, ' ', sizeof(buffer)); // (Blank fill)
-   buffer[sizeof(buffer)-1]= '\0';
+   char buffer[256];                // Message buffer
+   memset(buffer, ' ', sizeof(buffer));
+   buffer[sizeof(buffer) - 1]= '\0';
    strcpy(buffer, mess->mess.c_str());
    buffer[strlen(buffer)]= ' ';
 
@@ -698,7 +693,7 @@ void
    Config::trace(".DRW", " all", head, tail);
 
    // Clear the drawable window
-   xcb::WH_size_t size= get_size(__LINE__); // TODO: ??? Why is this needed ???
+   xcb::WH_size_t size= get_size(); // TODO: ??? Why is this needed ???
    rect.width=  size.width;
    rect.height= size.height;
    NOQUEUE("xcb_clear_area", xcb_clear_area
@@ -808,8 +803,8 @@ void
 {
    using xcb::WH_t;
 
-   uint32_t x_origin= 1030;
-   uint32_t y_origin= 0;
+   uint32_t x_origin= config::geom.x;
+   uint32_t y_origin= config::geom.y;
    uint16_t mask= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
    uint32_t parm[2];
    parm[0]= x_origin;
@@ -920,12 +915,12 @@ void
    }
 
    // If size unchanged, do nothing
-   xcb::WH_size_t size= get_size(__LINE__);
+   xcb::WH_size_t size= get_size();
    if( size.width == x && size.height == y ) // If unchanged
      return;                        // Nothing to do
 
    // Reconfigure the window
-   set_size(x, y, __LINE__);
+   set_size(x, y);
    col_size= x / font.length.width;
    row_size= y / font.length.height;
 
@@ -1194,7 +1189,7 @@ int                                 // Return code, TRUE if error message
      }
    }
 
-   editor::put_message("Protected line");
+   editor::put_message("Protected");
    return true;
 }
 
@@ -1306,10 +1301,7 @@ void
      case XK_Delete: {
        view->active.remove_char(column);
        view->active.append_text(" ");
-       const char* buffer= view->active.get_buffer(column);
-       putxy(view->get_gc(), get_xy(view->col, view->row), buffer);
-       draw_info();
-       draw_cursor();
+       draw();
        flush();
        break;
      }

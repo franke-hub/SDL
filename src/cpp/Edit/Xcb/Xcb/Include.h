@@ -15,13 +15,15 @@
 //       Test include prerequisites. Include one and only one file.
 //
 // Last change date-
-//       2021/01/10
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
 #if false                           // Always false
 static_assert(false, "Always False");
 #elif false
    #include <Xcb/Active.h>
+#elif false
+   #include <Xcb/Config.h>
 #elif false
    #include <Xcb/Device.h>
 #elif false
@@ -49,7 +51,7 @@ static_assert(false, "Always False");
 #elif false
    #include <Xcb/Layout.h>
 #elif false
-   #include <Xcb/TextWindow.h>
+   #include <Xcb/Pixmap.h>
 #elif false
    #include <Xcb/Types.h>
 #elif false
@@ -57,5 +59,5 @@ static_assert(false, "Always False");
 #elif false
    #include <Xcb/Window.h>
 #else
-static_assert(false, "NOTHING INCLUDED");
+static_assert(0 == 1, "NOTHING INCLUDED");
 #endif

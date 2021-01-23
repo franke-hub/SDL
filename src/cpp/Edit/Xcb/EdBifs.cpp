@@ -16,16 +16,10 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2021/01/12
+//       2021/01/21
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
-#include <unistd.h>                 // For close, ftruncate
 #include <sys/stat.h>               // For stat
-#include <xcb/xcb.h>                // For XCB interfaces
-#include <xcb/xproto.h>             // For XCB types
-
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 
@@ -69,8 +63,8 @@ static const char*                  // Error message, nullptr expected
 
 //----------------------------------------------------------------------------
 //
-// Subroutines-
-//       Editor::file_writer
+// Subroutine-
+//       file_writer
 //
 // Purpose-
 //       File writer, with error checking
@@ -87,11 +81,19 @@ static const char*                  // Error message, nullptr expected
    if( file->damaged )
      return "Damaged file";
 
-   if( parm )                       // If filename specified
-     return "Not coded yet";        // Need to check existence
+   if( parm ) {                     // If filename specified
+     struct stat info;
+     int rc= stat(parm, &info);     // Get file information
+     if( rc == 0 )                  // If file exists
+       return "File exists";
 
-   // TODO: Only called from command_file/save, where this is already done.
-   editor::data->commit();          // TODO: VERIFY NOT NEEDED
+     rc= file->write(parm);         // Write the file
+     if( rc )
+       return "Write failure";
+     return nullptr;                // (File remains changed)
+   }
+
+   // Replace the file (even if unchanged)
    int rc= file->write();
    if( rc )
      return "Write failure";
@@ -99,7 +101,6 @@ static const char*                  // Error message, nullptr expected
    file->reset();
    return nullptr;
 }
-
 
 //----------------------------------------------------------------------------
 //
@@ -190,11 +191,11 @@ static const char*                  // Error message, nullptr expected
    command_edit(                    // Edit command
      char*             parm)        // (Mutable) parameter string
 {
-   typedef pub::Tokenizer Tokenizer;
-   typedef Tokenizer::Iterator Iterator;
-
    if( parm == nullptr )
      return "Missing parameter";
+
+   typedef pub::Tokenizer Tokenizer;
+   typedef Tokenizer::Iterator Iterator;
 
    EdFile* last= nullptr;           // The last EdFile inserted
    Tokenizer t(parm);
@@ -332,6 +333,36 @@ static const char*                  // Error message, nullptr expected
 }
 
 static const char*                  // Error message, nullptr expected
+   command_set(                     // Set command
+     char*             parm)        // (Mutable) parameter string
+{
+   if( parm == nullptr )
+     return "Missing parameter";
+
+   typedef pub::Tokenizer Tokenizer;
+   typedef Tokenizer::Iterator Iterator;
+
+   Tokenizer t(parm);
+   Iterator i= t.begin();
+   const char* name= i().c_str();
+   const char* value= i.next().remainder();
+
+   // TODO: Move to editor::set_option ????
+   if( strcasecmp(name, "mode") == 0 ) {
+     if( strcasecmp(value, "dos") == 0 )
+       editor::file->set_mode(EdFile::M_DOS);
+     else if( strcasecmp(value, "unix") == 0 )
+       editor::file->set_mode(EdFile::M_UNIX);
+     else
+       return "Invalid mode";
+
+     return nullptr;
+   }
+
+   return "Unknown option";
+}
+
+static const char*                  // Error message, nullptr expected
    command_top(char*)               // Top command
 {
    using namespace editor;          // For editor::data, hist, text
@@ -374,7 +405,7 @@ static const Command_desc
 // {"MODE",     command_mode}       // Set mode
 ,  {"QUIT",     command_quit}       // Quit
 ,  {"SAVE",     command_save}       // Save
-// {"SET",      command_set}        // Set (separate list) Include margins? ... autowrap
+,  {"SET",      command_set}        // Set
 // {"TABS",     command_tabs}       // Tabs
 ,  {"TOP",      command_top}        // Top
 ,  {nullptr,    nullptr}            // End of list delimiter

@@ -16,10 +16,12 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2021/01/17
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
+#include <ctype.h>                  // For isspace
+#include <errno.h>                  // For errno
 #include <fcntl.h>                  // For open, O_*, ...
 #include <limits.h>                 // For INT_MAX, INT_MIN, ...
 #include <stdarg.h>                 // For va_* functions
@@ -35,15 +37,11 @@
 #include <pub/Fileman.h>            // For namespace pub::fileman
 #include <pub/Parser.h>             // For pub::Parser
 #include <pub/Signals.h>            // For pub::signals
-#include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
-#include <pub/utility.h>            // For pub::utility::to_stringv, ...
 
 #include "Config.h"                 // For Config (Implementation class)
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile
-#include "EdHist.h"                 // For EdFile TODO: REMOVE
-#include "EdText.h"                 // For EdText
 
 using namespace config;             // For implementation
 using namespace pub::debugging;     // For debugging
@@ -104,6 +102,9 @@ uint32_t               config::command_fg= 0x00000000; // Command FG
 
 uint32_t               config::message_bg= 0x00FFFF00; // Message BG
 uint32_t               config::message_fg= 0x00900000; // Message FG
+
+// Screen controls --- Initialized at startup --------------------------------
+xcb_rectangle_t        config::geom= {1030, 0, 80, 50}; // The screen geometry
 
 // XCB objects ------- Initialized at startup (Font configured) --------------
 xcb::Active*           config::actalt= nullptr; // Active, for temporary use
@@ -175,6 +176,31 @@ static void
 
 //----------------------------------------------------------------------------
 //
+// Subroutine-
+//       strtoi
+//
+// Purpose-
+//       Integer version of strtol
+//
+//----------------------------------------------------------------------------
+static int                          // Resultant value
+   strtoi(                          // Ascii string to integer
+     const char*       head,        // First character
+     char**            tail,        // (OUTPUT) Last character
+     int               base= 0)     // Radix
+{
+   long R= strtol(head, tail, base); // Resultant
+   if( R < INT_MIN || R > INT_MAX ) { // If range error
+     errno= ERANGE;                 // Indicate range error
+     *tail= (char*)head;
+     R= 0;
+   }
+
+   return int(R);
+}
+
+//----------------------------------------------------------------------------
+//
 // Method-
 //       Config::Config
 //
@@ -187,6 +213,12 @@ static void
 //   char*             argv[])      // Argument array (Unused)
 {  if( opt_hcdm ) fprintf(stderr, "Config::Config\n"); // (Don't use debugf)
    using namespace config;
+
+   // Allocate XCB objects
+   actalt= new xcb::Active();       // An Active work area
+   active= new xcb::Active();       // An Active work area
+   device= new xcb::Device();       // The screen/connection device
+   font= new xcb::Font(device);     // The Font object
 
    // Initialize HOME and AUTO
    const char* env= getenv("HOME"); // Get HOME directory
@@ -206,15 +238,6 @@ static void
    S += std::string("/Edit.conf");
    make_file(S, Edit_conf);
 
-   // Allocate XCB objects
-   actalt= new xcb::Active();       // An Active work area
-   active= new xcb::Active();       // An Active work area
-   device= new xcb::Device();       // The screen/connection device
-   font= new xcb::Font(device);     // The Font object
-
-   // Parse the configuration file
-   parser(S);
-
    // Set AUTOSAVE subdirectory
    env= getenv("AUTOSAVE");         // Get AUTOSAVE directory override
    if( env )
@@ -229,6 +252,9 @@ static void
 
      file= file->get_next();
    }
+
+   // Parse the configuration file
+   parser(S);
 
    // System related initialization
    if( init() )
@@ -251,7 +277,7 @@ static void
    delete font;
    delete actalt;
    delete active;
-// delete device;
+   delete device;
 
    term();
 }
@@ -599,11 +625,11 @@ static int                          // Return code (0 OK)
    pub::Trace::trace= pub::Trace::make(trace_table, TRACE_SIZE);
    close(fd);                       // Descriptor not needed once mapped
 
-   // TODO: REMOVE (BRINGUP)
-// debugf("%4d Config::init backtrace test\n", __LINE__);
+// Backtrace test
+// debugf("%4d Config::backtrace test\n", __LINE__);
 // Config::backtrace();
 
-   return 0;                        // Placeholder
+   return 0;
 }
 
 //----------------------------------------------------------------------------
@@ -702,39 +728,19 @@ static void
    va_end(argptr);                  // Close va_ functions
 }
 
-static int                          // The numeric value
-   parse_number(                    // Parse numeric value
-     const char*&      value,       // (IN/OUT) The current value string
-     int               max= INT_MAX) // Naximum value
+static int                          // The integer value
+   parse_int(                       // Parse integer value
+     const char*&      value)       // (IN/OUT) The current value string
 {
-   while( *value == ' ' )           // Remove leading blanks
-     ++value;
-
-   if( *value < '0' || *value > '9' ) {
+   char* tail;                      // Ending character
+   int V= strtoi(value, &tail);     // Get value
+   if( value == tail ) {            // If invalid
      value= nullptr;
      return -1;
    }
 
-   int V= 0;                        // The value
-   for(;;) {                        // Decode value
-     if( *value == ' ' || *value == ',' || *value == '\0' )
-       break;
-     if( *value < '0' || *value > '9' ) {
-       value= nullptr;
-       return -1;
-     }
-
-     V *= 10;
-     V += *value - '0';
-     if( V > max ) {
-       value= nullptr;
-       return -1;
-     }
-
-     value++;
-   }
-
-   while( *value == ' ' )           // Remove trailing blanks
+   value= tail;
+   while( isspace(*value) )         // Remove trailing white space
      ++value;
 
    return V;
@@ -750,8 +756,8 @@ static void
 
    uint32_t color= 0;
    for(int rgb= 0; rgb < 3; rgb++) {
-     int cc= parse_number(value, 255); // Get color component
-     if( value == nullptr ) {
+     int cc= parse_int(value);      // Get color component
+     if( value == nullptr || cc < 0 || cc > 255 ) {
        parse_error(file, "Name(%s) '%s' invalid\n", item.name, VALUE);
        return;
      }
@@ -788,7 +794,7 @@ static void
      } else {                       // Section [Options]
        for(const char* parm= parser.get_next(sect, nullptr); parm;
            parm= parser.get_next(sect, parm)) {
-         std::string value= parser.get_value(sect,parm);
+         const char* value= parser.get_value(sect,parm);
          Color_item* color= nullptr;
          for(int i= 0; color_list[i].name; i++) {
            if( strcmp(parm, color_list[i].name) == 0 ) {
@@ -797,19 +803,45 @@ static void
            }
          }
          if( color ) {
-           parse_color(name, *color, value.c_str());
+           parse_color(name, *color, value);
            continue;
          }
 
          if( strcmp(parm, "font") == 0 ) { // Font parameter?
-           int rc= font->open(value.c_str()); // Set the font
+           int rc= font->open(value); // Set the font
            if( rc == 0 )
              font_valid= true;
            continue;
          }
 
-         if( editor::set_option(parm, parser.get_value(sect,parm)) < 0 )
-           parse_error(name, "Unknown option '%s'\n", parm);
+         if( strcmp(parm, "autowrap") == 0 ) {
+           continue;
+         }
+
+         if( strcmp(parm, "case") == 0 ) {
+           continue;
+         }
+
+         if( strcmp(parm, "geometry") == 0 ) {
+           xcb_rectangle_t geom= {0, 0, 0, 0}; // The screen geometry
+           const char* VALUE= value; // (For use in error message)
+           geom.width= uint16_t(parse_int(value)); // Number of rows
+           if( value && *value == 'x' ) {
+             value++;
+             geom.height= uint16_t(parse_int(value)); // Number of columns
+           }
+           if( value && (*value == '+' || *value == '-') )
+             geom.x= int16_t(parse_int(value)); // X position
+           if( value && (*value == '+' || *value == '-') )
+             geom.y= int16_t(parse_int(value)); // Y position
+           if( value && *value == '\0' ) // If valid geometry
+             config::geom= geom;
+           else
+             parse_error(name, "geometry(%s) invalid\n", VALUE);
+           continue;
+         }
+
+         parse_error(name, "Invalid option: '%s'\n", parm);
        }
      }
    }

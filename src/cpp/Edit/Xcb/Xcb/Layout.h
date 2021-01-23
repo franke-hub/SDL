@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       XCB Layout Widget descriptor
 //
 // Last change date-
-//       2020/10/27
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_LAYOUT_H_INCLUDED
@@ -64,7 +64,7 @@ void
 //----------------------------------------------------------------------------
 // Layout::Attributes
 //----------------------------------------------------------------------------
-public:                             // These match Layout::config_t
+public:                             // Exactly matches Layout::config_t
 xcb_rectangle_t        rect= {0,0,0,0}; // Updated geometry
 XY_size_t              cur_disp= {0,0}; // Current (origin 0) X/Y displacement
 WH_size_t              max_size= {0,0}; // Maximum usable size (zero if none)
@@ -111,7 +111,7 @@ void
 //       Layout::configure
 //
 // Purpose-
-//       Layout configurator
+//       Layout configurator (The base class is a Box Layout)
 //
 //----------------------------------------------------------------------------
 virtual void

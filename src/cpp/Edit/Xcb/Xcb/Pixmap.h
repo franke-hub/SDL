@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       XCB based Pixmap
 //
 // Last change date-
-//       2020/12/23
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_PIXMAP_H_INCLUDED
@@ -85,12 +85,11 @@ Pixel_t                bg= 0x00FFFFFF; // Background, default WHITE
 //----------------------------------------------------------------------------
 // xcb::Pixmap::Constructors/Destructors/Operators
 //----------------------------------------------------------------------------
-protected:
+public:
    Pixmap(                          // Constructor
      Widget*           widget= nullptr, // Our parent Widget
      const char*       name= nullptr); // The Pixmap's name
 
-public:
 virtual
    ~Pixmap( void );                 // Destructor
 
@@ -131,7 +130,7 @@ virtual void
 //       xcb::Pixmap::clear
 //
 // Purpose-
-//       Clear the window, setting it to the background pixel.
+//       Clear the pixmap, setting it to the background pixel.
 //
 // Implementation note-
 //       flush() required.
@@ -157,29 +156,20 @@ virtual void
 //
 // Method-
 //       xcb::Pixmap::get_size
-//
-// Purpose-
-//       Get current width and height
-//
-//----------------------------------------------------------------------------
-WH_size_t                           // The current Pixmap size
-   get_size(                        // Get current Pixmap size
-     int               line= 0);    // Caller's line number
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       xcb::Pixmap::set_size
 //
 // Purpose-
+//       Get current width and height
 //       Set current width and height
 //
 //----------------------------------------------------------------------------
+WH_size_t                           // The current Pixmap/Window size
+   get_size( void );                // Get current Pixmap/Window size
+
 void
    set_size(                        // Set Pixmap size
      int               x,           // New width
-     int               y,           // New height
-     int               line= 0);    // Caller's line number
+     int               y);          // New height
 
 //----------------------------------------------------------------------------
 //

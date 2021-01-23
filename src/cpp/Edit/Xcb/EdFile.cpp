@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2021/01/16
+//       2021/01/19
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -354,23 +354,6 @@ size_t                              // The row number
    return row;
 }
 
-size_t                              // The row count
-   EdFile::get_rows(                // Get row count
-     const EdLine*     head,        // From this line
-     const EdLine*     tail)        // *To* this line
-{
-   size_t rows= 0;
-   while( head ) {
-     rows++;
-     if( head == tail )
-       break;
-
-     head= head->get_next();
-  }
-
-  return rows;
-}
-
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -702,23 +685,19 @@ void
 
    EdLine* line= nullptr;           // Activation line
    if( redo->head_remove ) {        // If redo remove
-     line_list.remove(redo->head_remove, redo->tail_remove);
+     remove(redo->head_remove, redo->tail_remove);
 
      line= redo->head_remove->get_prev();
    }
    if( redo->head_insert ) {        // If redo insert
      EdLine* after= redo->head_insert->get_prev();
-     line_list.insert(after, redo->head_insert, redo->tail_insert);
+     insert(after, redo->head_insert, redo->tail_insert);
 
      line= redo->head_insert->get_prev();
    }
 
 // if( line == nullptr ) return;    // (TODO: Only needed for empty redo)
    changed= true;                   // File changed
-
-   size_t rem_rows= get_rows(redo->head_remove, redo->tail_remove);
-   size_t ins_rows= get_rows(redo->head_insert, redo->tail_insert);
-   rows += ssize_t(ins_rows - rem_rows);
 
    editor::mark->handle_redo(this, redo);
    editor::text->activate(line);
@@ -758,22 +737,18 @@ void
 
    EdLine* line= nullptr;           // Activation line
    if( undo->head_insert ) {        // If undo insert
-     line_list.remove(undo->head_insert, undo->tail_insert);
+     remove(undo->head_insert, undo->tail_insert);
 
      line= undo->head_insert->get_prev();
    }
    if( undo->head_remove ) {        // If undo remove
      EdLine* after= undo->head_remove->get_prev();
-     line_list.insert(after, undo->head_remove, undo->tail_remove);
+     insert(after, undo->head_remove, undo->tail_remove);
 
      line= undo->head_remove->get_prev();
    }
 
 // if( line == nullptr ) return;    // (TODO: Only needed for empty undo)
-
-   size_t old_rows= get_rows(undo->head_insert, undo->tail_insert);
-   size_t new_rows= get_rows(undo->head_remove, undo->tail_remove);
-   rows += ssize_t(new_rows - old_rows);
 
    editor::mark->handle_undo(this, undo);
    editor::text->activate(line);
@@ -900,6 +875,46 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdFile::set_mode
+//
+// Purpose-
+//       Set the file mode (to M_DOS or M_UNIX)
+//
+// Implementation note-
+//       This is a stand-alone operation that includes saving the file.
+//
+//----------------------------------------------------------------------------
+void
+   EdFile::set_mode(                // Set the file mode
+     int               _mode)       // To this mode
+{
+   char delim[2]= { '\n', '\0'};    // Default, DOS delimiter
+   if( _mode == M_DOS )             // If DOS mode
+     delim[1]= '\r';
+   else
+     _mode= M_UNIX;
+   mode= _mode;
+
+   // We update the delimiter in all lines, including TOP and BOT
+   for(EdLine* line= line_list.get_head(); line; line= line->get_next() ) {
+     line->delim[0]= delim[0];
+     line->delim[1]= delim[1];
+   }
+
+   // Write the file
+   int rc= write();
+   if( rc ) {
+     put_message("Write failed");
+     damaged= true;
+   } else {
+     put_message("File saved");
+     reset();
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdFile::write
 //
 // Purpose-
@@ -989,7 +1004,7 @@ int                                 // Return code, 0 OK
    if( rc == 0 ) {
      struct stat st;                // File stats
      int rc= stat(file_name, &st);  // Get file information
-     if( rc != 0 )                  // If failure
+     if( rc != 0 )                  // If failure (writing new file)
        st.st_mode= (S_IRUSR | S_IWUSR); // Default, user read/write
      rc= rename(S.c_str(), file_name); // Rename the file
      if( rc == 0 )                  // If renamed

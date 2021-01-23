@@ -16,7 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2021/01/10
+//       2021/01/21
 //
 //----------------------------------------------------------------------------
 #ifndef EDTEXT_H_INCLUDED
@@ -61,7 +61,7 @@ enum                                // System mouse cursor state
 };
 
 struct Motion {                     // System motion controls
-int                    state;       // System cursor state
+int                    state;       // System mouse cursor state
 xcb_timestamp_t        time;        // Last movement timestamp
 int                    x;           // Last X position
 int                    y;           // Last Y position
@@ -70,7 +70,7 @@ int                    y;           // Last Y position
 //----------------------------------------------------------------------------
 // EdText::Attributes
 //----------------------------------------------------------------------------
-xcb::Active            active;      // (High overhead, only used in draw.)
+xcb::Active&           active;      // Active reference (*config::active)
 xcb::Font&             font;        // Font reference (*config::font)
 EdLine*                head= nullptr; // Current first data screen line
 EdLine*                tail= nullptr; // Current last  data screen line
@@ -95,8 +95,6 @@ xcb_atom_t             protocol= 0; // WM_PROTOCOLS atom
 xcb_atom_t             wm_close= 0; // WM_CLOSE atom
 
 // Configuration controls
-unsigned               COLS_W=80;   // Nominal columns
-unsigned               ROWS_H=50;   // Nominal rows
 unsigned               MINI_C=40;   // Minimum columns (Width)
 unsigned               MINI_R=10;   // Minimum rows    (Height)
 unsigned               USER_TOP= 1; // Number of reserved TOP lines

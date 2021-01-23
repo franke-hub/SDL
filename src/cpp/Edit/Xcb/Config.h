@@ -16,7 +16,7 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2021/01/16
+//       2021/01/21
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
@@ -201,6 +201,9 @@ extern uint32_t        command_fg;  // command.fg: Command line FG
 
 extern uint32_t        message_bg;  // message.bg: Message line BG
 extern uint32_t        message_fg;  // message.fg: Message line FG
+
+// Screen controls -----------------------------------------------------------
+extern xcb_rectangle_t geom;        // The screen geometry
 
 // Initialized controls
 extern std::string     AUTO;        // The AUTOSAVE directory

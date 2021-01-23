@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: (Dummy window placeholder.)
 //
 // Last change date-
-//       2020/12/12
+//       2021/01/21
 //
 //----------------------------------------------------------------------------
 #ifndef EDMISC_H_INCLUDED

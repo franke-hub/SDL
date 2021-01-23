@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Widget.h
 //
 // Last change date-
-//       2020/12/16
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::invalid_argument

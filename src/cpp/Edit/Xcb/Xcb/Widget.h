@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       XCB Widget descriptor
 //
 // Last change date-
-//       2020/10/07
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_WIDGET_H_INCLUDED
@@ -39,7 +39,7 @@ namespace xcb {
 // Implementation notes-
 //       FIFO (First In, First Out) ordering: Add to end of List
 //       LIFO (Last In, First Out) ordering: Add to beginning of List
-//       The child List is always searched starting at the beginning.
+//       The child List is always searched starting from the beginning.
 //
 //       The destructor removes this Widget's w_list children, setting each
 //       child Widget's parent= nullptr.  The child Widgets are NOT deleted.

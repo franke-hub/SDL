@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2021/01/09
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string

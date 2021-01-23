@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,10 +16,7 @@
 //       Editor: Implement EdMisc.h
 //
 // Last change date-
-//       2020/12/23
-//
-// Implementation note-
-//       Used to avoid circular references.
+//       2021/01/21
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -128,11 +125,6 @@ void
 // Purpose-
 //       Draw the Window
 //
-// Implementation note-
-//       ANOMOLY: The draw ONLY visible when the debugging display occurs.
-//                (Looks like a timing problem.)
-//       PROBLEM: USER ERROR: Expose events ignored. (Now fixed.)
-//
 //----------------------------------------------------------------------------
 void
    EdMisc::draw( void )             // Draw the Window
@@ -158,11 +150,6 @@ void
      for(int i= 0; i<6; i++)
        debugf("[%2d]: [%2d,%2d]\n", i, points[i].x, points[i].y);
    }
-
-// (Attempts to fix problem without expose handler.)
-// ::pub::Thread::sleep(0.001);     // Does this fix the problem?  NO!
-// ::pub::Thread::sleep(0.010);     // Does this fix the problem? (sometimes)
-// ::pub::Thread::sleep(0.020);     // Does this fix the problem? YES!
 
    flush();
 }

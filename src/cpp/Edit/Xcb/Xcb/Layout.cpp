@@ -16,7 +16,10 @@
 //       Implement Xcb/Layout.h
 //
 // Last change date-
-//       2021/01/10
+//       2021/01/22
+//
+// Implementation note-
+//       This is NOT well-tested code. // TODO: Test
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -32,13 +35,7 @@ using namespace pub::debugging;     // For debugging
 
 namespace xcb {
 //----------------------------------------------------------------------------
-// External data areas
-//----------------------------------------------------------------------------
-// Layout                 Layout::zero_Layout= { {0, 0, 0, 0}, {0, 0}
-//                            , {0, 0}, {0, 0}, {0, 0}, {0, 0} };
-
-//----------------------------------------------------------------------------
-// DEBUGGING: TODO: REMOVE
+// DEBUGGING: Only used with opt_hcdm
 //----------------------------------------------------------------------------
 void
    Layout::config_t::debug(const char* name, const char* info) const
@@ -162,7 +159,7 @@ void
 //       Layout::configure
 //
 // Purpose-
-//       Layout configurator, using default BoxLayout
+//       Box (default) layout configurator
 //
 //----------------------------------------------------------------------------
 void
@@ -242,7 +239,7 @@ void
 //       ColLayout::configure
 //
 // Purpose-
-//       Layout configurator
+//       Column layout configurator
 //
 //----------------------------------------------------------------------------
 void
@@ -281,7 +278,7 @@ void
    }
 
    // Update configuration
-// config.rect=     ** UNCHANGED **
+// config.rect=       ** UNCHANGED **
    config.cur_disp.x= modfig.cur_disp.x;
 // config.cur_disp.y= ** UNCHANGED **
    config.max_size= max(config.max_size, modfig.max_size);
@@ -326,7 +323,7 @@ void
 //       RowLayout::configure
 //
 // Purpose-
-//       Layout configurator
+//       Row layout configurator
 //
 //----------------------------------------------------------------------------
 void
@@ -364,8 +361,8 @@ void
      }
    }
 
-   // Update configuration (NEEDS WORK)
-// config.rect=     ** UNCHANGED **
+   // Update configuration
+// config.rect=       ** UNCHANGED **
 // config.cur_disp.x= ** UNCHANGED **
    config.cur_disp.y= modfig.cur_disp.y;
    config.max_size= max(config.max_size, modfig.max_size);

@@ -16,12 +16,13 @@
 //       Editor: Line/block mark descriptor
 //
 // Last change date-
-//       2021/01/16
+//       2021/01/21
 //
 //----------------------------------------------------------------------------
 #ifndef EDMARK_H_INCLUDED
 #define EDMARK_H_INCLUDED
 
+#include <sys/types.h>              // For system types
 #include <pub/List.h>               // For List
 
 //----------------------------------------------------------------------------
@@ -114,6 +115,9 @@ void
      EdFile*           file,        // For this EdFile
      EdLine*           head,        // From this EdLine
      EdLine*           tail);       // *To* this EdLine
+
+void
+   reset( void );                   // Reset the mark, removing the copy
 
 void
    undo( void );                    // Undo the mark

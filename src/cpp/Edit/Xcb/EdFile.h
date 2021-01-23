@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2021/01/12
+//       2021/01/21
 //
 // Implementation objects-
 //       EdLine: Editor EdFile line descriptor
@@ -269,10 +269,6 @@ char*
    allocate(                        // Allocate file text
      size_t            size) const; // Of this length
 
-EdMess*                             // The current EdMess
-   get_message( void ) const        // Get current EdMess
-{  return mess_list.get_head(); }
-
 EdLine*                             // The EdLine*
    get_line(                        // Get EdLine*
      size_t            row) const;  // For this row number
@@ -465,6 +461,22 @@ void
 //----------------------------------------------------------------------------
 void
    reset( void );                   // Reset the undo/redo lists
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::set_mode
+//
+// Purpose-
+//       Set the file mode (to M_DOS or M_UNIX)
+//
+// Implementation note-
+//       This is a stand-alone operation that includes saving the file.
+//
+//----------------------------------------------------------------------------
+void
+   set_mode(                        // Set the file mode
+     int               mode);       // To this mode
 
 //----------------------------------------------------------------------------
 //

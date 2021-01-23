@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2021/01/05
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -78,9 +78,7 @@ static int             opt_hcdm= false; // Hard Core Debug Mode
 static int             opt_index;   // Option index
 
 static int             opt_force= false; // Force editor start?
-static int             opt_ro= true; // Read-only mode? TODO: DEFAULT FALSE
 static const char*     opt_test= nullptr; // The test, if specified
-static int             opt_trace= false; // Use internal trace?
 static int             opt_verbose= -1; // Verbosity
 
 static const char*     OSTR= ":";   // The getopt_long optstring parameter
@@ -90,7 +88,6 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 
 ,  {"force",   no_argument,       &opt_force,   true} // --force
 ,  {"test",    required_argument, nullptr,      0} // --test {required}
-,  {"trace",   no_argument,       &opt_trace,   true} // --trace
 ,  {"verbose", optional_argument, &opt_verbose, 0} // --verbose {optional}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
@@ -101,7 +98,6 @@ enum OPT_INDEX                      // Must match OPTS[]
 
 ,  OPT_FORCE
 ,  OPT_TEST
-,  OPT_TRACE
 ,  OPT_VERBOSE
 };
 
@@ -183,8 +179,8 @@ static int                          // Return code (Always 1)
                    "  --hcdm\tHard Core Debug Mode\n"
 
                    "  --font=F\tSelect font F\n"
+                   "  --force\tForce start\n"
                    "  --test=T\tSelect test T\n" // (See Editor.cpp)
-                   "  --trace\tUse internal trace\n"
                    "  --verbose\t{=n} Verbosity, default 0\n"
                    , __FILE__
           );
@@ -278,7 +274,6 @@ static int                          // Return code (0 if OK)
            case OPT_HELP:           // These options handled by getopt
            case OPT_HCDM:
            case OPT_FORCE:
-           case OPT_TRACE:
              break;
 
            case OPT_TEST:
@@ -327,18 +322,6 @@ static int                          // Return code (0 if OK)
      }
    }
 
-   // Handle read-only control
-   if( toupper(*argv[0]) == 'V' )   // If View command alias
-     opt_ro= true;                  // Read/only mode
-   if( opt_ro == false )            // TODO: REMOVE (bringup warning)
-     fprintf(stderr, "RW mode selected\n");
-
-   // Verify parameter presence
-// if( optind >= argc ) {
-//   opt_help= true;
-//   fprintf(stderr, "No filename specified\n");
-// }
-
    // Return sequence
    int rc= 0;
    if( opt_help )
@@ -372,8 +355,8 @@ extern int                          // Return code
    Config config(argc, argv);       // Configure
    if( opt_hcdm || opt_verbose >= 0 ) {
      Config::errorf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
-     Config::errorf("--hcdm(%d) --verbose(%d) --force(%d) --trace(%d)\n"
-                   , opt_hcdm, opt_verbose, opt_force, opt_trace);
+     Config::errorf("--hcdm(%d) --verbose(%d) --force(%d)\n"
+                   , opt_hcdm, opt_verbose, opt_force);
    }
 
    //-------------------------------------------------------------------------

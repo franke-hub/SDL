@@ -15,14 +15,14 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/01/17
+##       2021/01/22
 ##
 ## Implementation notes-
-##       This is an EXPERIMENTAL project in BRINGUP mode.
+##       This is an EXPERIMENTAL project in PRE-ALPHA status.
 ##       ALL interfaces are preliminary and subject to major change.
 ##
-##       Find usage information, including key bindings, at the end of this
-##       document.
+##       Find editor usage information, including key bindings, at the end of
+##       this document.
 ##
 ##       For internal trace type information use: "rgrep trace\("
 ##
@@ -35,23 +35,22 @@
 
 ##############################################################################
 ## STATUS:
-2021/01/10 BUGS: (Not recently reproduced)
+2021/01/22 Code review. Xcb/Edit now used by author as default editor.
+
+2021/01/10 BUG: (Not reproduced since 2021/01/10)
          Blank lines intermittently duplicate prior line offset 2 columns
          (Doesn't show up immediately. Moving cursor over line shows it.)
          ** USE F9 DEBUGGING OPTION **
          It looks like data->cursor got changed in an unexplained manner.
-         Added .CSR trace event whenever cursor changes.
+         Added .CSR trace event whenever cursor changes to flush it out.
 
 2021/01/16 TODO:
-         Check EdMark: What about file delete/file new in relation to mark?
+         Some config options not coded yet.
          Implement backward locate; locate with wrap.
          Implement protected file.
 
-         Start geometry in options.
          For directories, load the file names. (Protected file)
-         Remove cursor from data view when switching to hist view
          Draw full background on line 0 (status, message, history)
-         Maybe: EdData derived from EdView. EdView all virtual, minimal.
          Multiple editor windows. (Restructure required.)
            (May not be too hard. Only one window open a time.)
          Possibly don't need to call mark.handle_redo from file.redo_insert.
@@ -59,6 +58,8 @@
            Isn't mark already done then???
 
 ##############################################################################
+2021/01/22 Code review. Xcb/Edit now used by author as default editor.
+
 2021/01/16 Block copy/paste operational, but must be done using ctrl-C/ctrl-V
 
 2021/01/10 Restructure. Removed TextWindow, function merged into EdText.

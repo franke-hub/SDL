@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Wrapper for X11/keysymdef.h
 //
 // Last change date-
-//       2020/09/06
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_KEYSYM_H_INCLUDED

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/12/23
+//       2021/01/18
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_DEVICE_H_INCLUDED
@@ -39,7 +39,7 @@ namespace xcb {
 //       Generic Device Event
 //
 // Implementation note-
-//       For events not associated with a Pixmap or Window:
+//       Used for events not associated with a Pixmap or Window:
 //         xcb_ge_generic_event_t      // GE generic event
 //         xcb_keymap_notify_event_t   // Keymap notify event
 //         xcb_mapping_notify_event_t  // Mapping notify event
@@ -48,13 +48,9 @@ namespace xcb {
 struct DeviceEvent {                // Device Event descriptor
 xcb_generic_event_t*   event;       // (Generic) event
 
-// Constructors ==============================================================
    DeviceEvent(                     // Default/event constructor
      xcb_generic_event_t* _event= nullptr)
 :  event(_event) {}
-
-// Destructor ================================================================
-   ~DeviceEvent( void ) = default;
 }; // struct DeviceEvent
 
 //----------------------------------------------------------------------------
@@ -80,13 +76,13 @@ bool                   operational= true; // TRUE while operational
 xcb_rectangle_t        geom= {0,0,0,0}; // Device geometry
 
 //----------------------------------------------------------------------------
-// xcb::Device::Constructors/Destructors/Operators
+// xcb::Device::Destructors/Constructors/Operators
 //----------------------------------------------------------------------------
 public:
-   Device( void );                  // Constructor
-
 virtual
    ~Device( void );                 // Destructor
+
+   Device( void );                  // Constructor
 
 //----------------------------------------------------------------------------
 // xcb::Device::Methods

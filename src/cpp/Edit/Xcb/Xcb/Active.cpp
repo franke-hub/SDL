@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2021/01/17
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -140,7 +140,7 @@ const char*                         // The changed text, nullptr if unchanged
 //       xcb::Active::get_cols
 //
 // Purpose-
-//       Return the buffer length (removing trailing blanks, if present)
+//       Return the buffer UTF8 Column count (trailing blanks removed)
 //
 //----------------------------------------------------------------------------
 Active::Ccount                      // The current buffer Column count
@@ -180,7 +180,7 @@ Active::Length                      // The current buffer used length
 //       xcb::Active::index
 //
 // Purpose-
-//       Address character at column index, fetching if required.
+//       Address character at column index, fetching and filling if required.
 //
 //----------------------------------------------------------------------------
 Active::Offset                      // The character Offset
@@ -286,7 +286,7 @@ void
      memcpy(buffer, source, buffer_used);
    }
 
-   if( buffer_used <= column ) {    // If expansion required
+   if( buffer_used < column ) {     // If expansion required
 //   fsm= FSM_CHANGED;              // (Blank fill DOES NOT imply change)
      memset(buffer + buffer_used, ' ', column + 1 - buffer_used);
      buffer_used= column + 1;
@@ -302,7 +302,7 @@ void
 //       xcb::Active::insert_char
 //
 // Purpose-
-//       Insert a (UTF32) character.
+//       Insert a (UTF32) character using UTF8 encoding.
 //
 //----------------------------------------------------------------------------
 void

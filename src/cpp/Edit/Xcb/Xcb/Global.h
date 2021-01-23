@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Global data areas and utilities
 //
 // Last change date-
-//       2020/12/19
+//       2021/01/22
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_GLOBAL_H_INCLUDED

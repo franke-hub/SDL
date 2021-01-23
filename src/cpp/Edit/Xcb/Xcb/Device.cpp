@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       XCB device driver
 //
 // Last change date-
-//       2020/12/24
+//       2021/01/21
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -28,14 +28,13 @@
 
 #include <pub/Debug.h>              // For Debug object
 #include <pub/Trace.h>              // For Trace object
-#include <pub/utility.h>            // For pub::utility::clock
+#include <pub/utility.h>            // For pub::utility::dump
 
 #include "Xcb/Device.h"             // Implementation class
 #include "Xcb/Global.h"             // For Global data areas and utilities
 #include "Xcb/Layout.h"             // For Layout
-#include "Xcb/Widget.h"             // For Widget
 #include "Xcb/Types.h"              // For enum KEY_STATE, DEV_EVENT_MASK
-
+#include "Xcb/Widget.h"             // For Widget
 #include "Xcb/Window.h"             // For Window (Base class)
 
 using pub::Debug;                   // For Debug object
@@ -139,7 +138,8 @@ static const char*                  // The widget name or "<nullptr>"
 
    // Clean up
    if( display ) XCloseDisplay(display);
-   if( c) xcb_disconnect(c);
+   if( c ) xcb_disconnect(c);
+   widget_id= 0;
 }
 
 //----------------------------------------------------------------------------
@@ -203,10 +203,10 @@ void
 // memset((char*)&config, 0, sizeof(config)); // (Already initialized)
    rect= geom;                      // Initialize rectangle
    Layout::configure(config);
-   rect= {20, 20, config.max_size.width, config.max_size.height};
+   rect= {0, 0, config.max_size.width, config.max_size.height};
 
    if( opt_hcdm )
-     debug_tree("Device::configure(config_t&)");
+     debug_tree("Device::configure");
 
    // Widget: configuration
    configure_widget(this);

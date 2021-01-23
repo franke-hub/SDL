@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,11 +16,16 @@
 //       XCB based Window
 //
 // Last change date-
-//       2020/12/23
+//       2021/01/22
 //
 // Implementation notes-
 //       The window field addresses the PARENT window. (Widget already has a
-//       parent field. The parent Widget is not necessarily the parent Window.)
+//       parent field. A parent Widget is not necessarily the parent Window.)
+//
+//       Device, Window, Pixmap and derived classes use the same widget_id
+//       field. Destructors for classes that initialize the widget_id field
+//       must zero that field to prevent multiple or invalid widget_id
+//       cleanup actions.
 //
 // Implementation note-
 //       WARNING: ******** DO NOT SIMULTANEOUSLY USE ********
@@ -159,19 +164,6 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       xcb::Window::get_size
-//
-// Purpose-
-//       Get current width and height
-//
-//----------------------------------------------------------------------------
-WH_size_t                           // The current window size
-   get_size(                        // Get current window size
-     int               line= 0);    // Caller's line number
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       xcb::Window::set_icon_name
 //
 // Purpose-
@@ -228,8 +220,7 @@ void
 void
    set_size(                        // Set window size
      int               x,           // New width
-     int               y,           // New height
-     int               line= 0);    // Caller's line number
+     int               y);          // New height
 
 //----------------------------------------------------------------------------
 //
