@@ -16,7 +16,7 @@
 ##       Edit files.
 ##
 ## Last change date-
-##       2019/10/08
+##       2022/01/23
 ##
 ## Usage-
 ##       e filename ...
@@ -29,5 +29,5 @@ if [[ ! -x "$pgm" ]] ; then
 fi
 
 $pgm "$@"
-clear
+## clear
 
