@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2020 Frank Eskesen.
+##       Copyright (C) 2020-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       Describe subdirectory content.
 ##
 ## Last change date-
-##       2020/10/12
+##       2021/01/23
 ##
 ## Implementation notes-
 ##       This distribution is kept locally in /home/data/home/. In addition
@@ -118,6 +118,14 @@
 ##       In development: ~/obj/cpp/Xcb/Edit
 ##           Source code editor using Xcb interfaces.
 ##
+##   ~/obj/cpp/Edit/Xcb
+##       Migrating ~/obj/cpp/Edit to use xcb interfaces.
+##       (Watch the progress of an editor being developed.)
+##       This might get split into Editor and Xcb interface components,
+##       once completed.
+##       (Already contains some WORKING sample xcb interface usage I couldn't
+##       find anywhere else.)
+##
 ##   ~/obj/cpp/Fileman
 ##       Subdirectory file search, uses src/cpp/inc/pub/Fileman.h interfaces.
 ##       Subdirectory file checker. (Used to find/fix source problems.)
@@ -159,15 +167,6 @@
 ##       A set of tools used to evaluate word usage patterns.
 ##       (VERY preliminary to a lanuage interpreter.)
 ##       See also: ~/obj/cpp/Brian (Brian is dyslexic for Brain.)
-##
-##   ~/obj/cpp/Xcb/Edit
-##       Migrating ~/obj/cpp/Edit to use xcb interfaces.
-##       (Watch the progress of an editor being developed.)
-##       This might get split into Editor and Xcb interface components,
-##       once completed.
-##       (Watch the progress of an editor being developed.)
-##       (Already contains some WORKING sample xcb interface usage I couldn't
-##       find anywhere else.)
 ##
 ## C# packages-
 ##   ~/src/mcs/*
