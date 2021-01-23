@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2010-2019 Frank Eskesen.
+##       Copyright (C) 2010-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Edit files.
 ##
 ## Last change date-
-##       2022/01/23
+##       2021/01/23
 ##
 ## Usage-
 ##       e filename ...
