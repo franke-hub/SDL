@@ -13,7 +13,7 @@
 //       Active.h
 //
 // Purpose-
-//       XCB Active Line descriptor.
+//       Active Line descriptor.
 //
 // Last change date-
 //       2021/01/24

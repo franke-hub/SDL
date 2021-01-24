@@ -16,18 +16,18 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2021/01/22
+//       2021/01/24
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
 #define EDITOR_H_INCLUDED
 
 #include <xcb/xproto.h>             // For xcb_keysym_t, xcb_rectangle_t, ...
-#include <pub/List.h>               // For pub::List
 
-#include "Xcb/Device.h"             // For xcb::Device
-#include "Xcb/Font.h"               // For xcb::Font
-#include "Xcb/Window.h"             // For xcb::Window
+#include <gui/Device.h>             // For gui::Device
+#include <gui/Font.h>               // For gui::Font
+#include <gui/Window.h>             // For gui::Window
+#include <pub/List.h>               // For pub::List
 
 //----------------------------------------------------------------------------
 // Forward references

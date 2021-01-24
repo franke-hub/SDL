@@ -16,7 +16,7 @@
 //       Editor: History EdView
 //
 // Last change date-
-//       2021/01/03
+//       2021/01/24
 //
 //----------------------------------------------------------------------------
 #ifndef EDHIST_H_INCLUDED
@@ -24,6 +24,7 @@
 
 #include <string>                   // For std::string
 #include <sys/types.h>              // For system types
+
 #include <pub/List.h>               // For pub::List
 
 #include "EdFile.h"                 // For EdLine (base class)

@@ -13,17 +13,17 @@
 //       EdMisc.h
 //
 // Purpose-
-//       Editor: (Dummy window placeholder.)
+//       Editor: (Window placeholder.)
 //
 // Last change date-
-//       2021/01/21
+//       2021/01/24
 //
 //----------------------------------------------------------------------------
 #ifndef EDMISC_H_INCLUDED
 #define EDMISC_H_INCLUDED
 
-#include "Xcb/Window.h"             // For xcb::Window
-#include "Xcb/Types.h"              // For xcb types
+#include <gui/Types.h>              // For GUI types
+#include <gui/Window.h>             // For gui::Window
 
 //----------------------------------------------------------------------------
 //
@@ -34,7 +34,7 @@
 //       Dummy window, placeholder base
 //
 //----------------------------------------------------------------------------
-class EdMisc : public xcb::Window { // Editor Window (placeholder)
+class EdMisc : public gui::Window { // Editor Window (placeholder)
 //----------------------------------------------------------------------------
 // EdMisc::Attributes
 //----------------------------------------------------------------------------

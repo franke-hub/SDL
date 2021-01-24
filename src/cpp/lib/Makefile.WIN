@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2020 Frank Eskesen.
+##       Copyright (c) 2007-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       WINDOWS Makefile versioning
 ##
 ## Last change date-
-##       2020/03/25
+##       2021/01/24
 ##
 ##############################################################################
 
@@ -35,7 +35,7 @@ clean: clean.win
 pristine: pristine.win
 
 include $(SRCDIR)/com/Makefile.DIR
-include $(SRCDIR)/gui/Makefile.DIR
+## include $(SRCDIR)/gui/Makefile.DIR ## (Not compatible)
 include $(SRCDIR)/obj/Makefile.DIR
 include $(SRCDIR)/pub/Makefile.DIR
 

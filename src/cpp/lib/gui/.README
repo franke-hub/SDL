@@ -1,0 +1,105 @@
+##############################################################################
+##
+##       Copyright (c) 2020-2021 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       ~/src/cpp/lib/gui README information file.
+##
+## Last change date-
+##       2021/01/24
+##
+## Implementation notes-
+##       Usage notes can be found at the end of this document.
+##
+##############################################################################
+
+##############################################################################
+## STATUS:
+2021/01/24 Migrated from ~/src/cpp/Edit/Xcb/Xcb
+
+2021/01/24 TODO:
+         ../Edit/Xcb/Xcb migration.
+
+##############################################################################
+2021/01/22 Code review.
+
+2020/07/19 Started
+
+##############################################################################
+## TODO:
+2021/01/24 Layout not well tested.
+
+##############################################################################
+## DEFERRED:
+2020/10/02 Fontconfig / Truetype fonts
+         While Fontconfig is easy enough to use, Truetype fonts are more
+         more complex and difficult.
+             ONE working example was found, and it is extremely fragile.
+             Most documentation is incomplete. That which exists largely
+             recommends using a higher level interface rather than the X11/XCB
+             interface. While looking at source code could be an option, it's
+             too time consuming.
+
+##############################################################################
+## FEATURE:
+
+##############################################################################
+## OPEN:
+
+##############################################################################
+## CLOSED:
+
+##############################################################################
+## FIXED:
+
+##############################################################################
+##
+## Pre-requisite packages:
+##       libX11-devel##          /usr/include/X11/XKBlib.h####       libxcb-devel##          /usr/include/xcb/xcb.h##          /usr/include/xcb/xproto.h##          /usr/lib/libxcb.dll.a####       libxcb-xfixes-devel##          /usr/include/xcb/xfixes.h##          /usr/lib/libxcb-fixes.dll.a####       [[ Needed, but already present ]]##          /usr/include/X11/keysymdef.h
+##
+##############################################################################
+
+##############################################################################
+##
+## Class structure:
+##     class Device : public Window
+##       The Device constructor contains the X11 Display definition, and
+##       initializes the Pixmap xcb_connection_t c and xcb_screen_t s fields.
+##       The Pixmap parent_id and widget_id fields are both initialized from
+##       the root screen.
+##
+##     class Window : public Pixmap
+##       The Window class contains event handlers and utility methods.
+##       It is the usual base class for application Windows.
+##
+##     class Pixmap : public Layout
+##       The Pixmap contains methods that apply to xcb_drawable_t objects.
+##       (Windows, type xcb_window_t, essentially are xcb_drawable_t object
+##       extensions.
+##
+##     class Layout : public Widget
+##       Layout objects define Window and Pixmap placement on the root Device.
+##       (Note: Layout objects and multiple Windows are not yet well-tested.
+##       This interface is in flux.)
+##
+##     class Widget : public pub::List<Widget>::Link, public pub::Named
+##       The Widget is a node placement class. All drawable objects must reside
+##       within a Device object tree.
+##
+## The Pixmap widget_id field:
+##     Although defined as a xcb_pixmap_t, it is only used as such in the
+##     Pixmap object. The Window and Device class use it as an xcb_window_t.
+##     The Window and Pixmap classes optionally create the Window or Pixmap.
+##     Derived classes that create the Window or Pixmap must zero the
+##     widget_id field in their destructor to avoid duplicate deletion.
+##
+##############################################################################

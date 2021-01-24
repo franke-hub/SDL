@@ -28,19 +28,18 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
+#include <gui/Device.h>             // For gui::Device
+#include <gui/Font.h>               // For gui::Font
+#include <gui/Keysym.h>             // For xcb_keycode_t symbols
+#include <gui/Layout.h>             // For gui::Layout
+#include <gui/Widget.h>             // For gui::Widget, our base class
+#include <gui/Window.h>             // For gui::Window
 #include <pub/Debug.h>              // For Debug, namespace pub::debugging
 #include <pub/Fileman.h>            // For namespace pub::fileman
 #include <pub/Signals.h>            // For pub::signals
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/UTF8.h>               // For pub::UTF8
-
-#include "Xcb/Device.h"             // For xcb::Device
-#include "Xcb/Font.h"               // For xcb::Font
-#include <Xcb/Keysym.h>             // For xcb_keycode_t symbols
-#include "Xcb/Layout.h"             // For xcb::Layout
-#include "Xcb/Widget.h"             // For xcb::Widget, our base class
-#include "Xcb/Window.h"             // For xcb::Window
 
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For Editor (Implementation class)
@@ -141,7 +140,7 @@ int                    editor::direction= 0;
      } else if( test == "bot-only" ) { // EdText visible
        // Result: EdMisc only appears after screen enlarged
        //   Device->Row->(EdText,EdMisc)
-       xcb::RowLayout* row= new xcb::RowLayout(device, "Row");
+       gui::RowLayout* row= new gui::RowLayout(device, "Row");
        window= new EdMisc(nullptr, "Bottom", 64, 64);
        row->insert( text );
        row->insert( window );
@@ -149,7 +148,7 @@ int                    editor::direction= 0;
      } else if( test == "top-only" ) { // (small horizontal window)
        // Result: No window visible
        //   Device->Row->(Top,EdText)
-       xcb::RowLayout* row= new xcb::RowLayout(device, "Row");
+       gui::RowLayout* row= new gui::RowLayout(device, "Row");
        window= new EdMisc(nullptr, "Top", 64, 14);
        row->insert( window );
        row->insert( text );         // Not visible
@@ -158,7 +157,7 @@ int                    editor::direction= 0;
        // Result: No window visible
        //   Device->Col->(EdMisc,EdText)
        //   (CLOSE Window checkstop: Bad Window when closing window)
-       xcb::ColLayout* col= new xcb::ColLayout(device, "Col");
+       gui::ColLayout* col= new gui::ColLayout(device, "Col");
        window= new EdMisc(nullptr, "Left", 14, 64);
        col->insert(window);         // Apparently visible
        col->insert(text);           // Not visible
@@ -168,11 +167,11 @@ int                    editor::direction= 0;
        //   (No expose events. EdText parent "Left")
        //   Device->Row->(Top,Col->(Left,EdText),Bottom)
        //   (CLOSE Window OK, No EdText so no Ctrl-Q)
-       xcb::RowLayout* row= new xcb::RowLayout(device, "Row");
+       gui::RowLayout* row= new gui::RowLayout(device, "Row");
        window= new EdMisc(nullptr, "Top", 64, 14);
        row->insert( window );
 
-       xcb::ColLayout* col= new xcb::ColLayout(row, "Col"); // (Row->insert(col))
+       gui::ColLayout* col= new gui::ColLayout(row, "Col"); // (Row->insert(col))
        if( false ) row->insert( col ); // (Tests duplicate insert)
        col->insert( new EdMisc(nullptr, "Left", 14, 64) );
        col->insert( text );
@@ -495,7 +494,7 @@ void
 {
    if( window && window->get_parent() ) { // If test window active
      Config::errorf("editor::do_test\n");
-     if( window->state & xcb::Window::WS_VISIBLE )
+     if( window->state & gui::Window::WS_VISIBLE )
        window->hide();
      else
        window->show();

@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/01/22
+##       2021/01/24
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in PRE-ALPHA status.
@@ -35,7 +35,8 @@
 
 ##############################################################################
 ## STATUS:
-2021/01/22 Code review. Xcb/Edit now used by author as default editor.
+2021/01/24 Xcb subdirectory moved to ~/src/cpp/inc/gui and ~/src/cpp/lib/gui
+         Fixed block cut bug.
 
 2021/01/10 BUG: (Not reproduced since 2021/01/10)
          Blank lines intermittently duplicate prior line offset 2 columns

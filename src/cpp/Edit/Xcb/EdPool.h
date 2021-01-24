@@ -16,7 +16,7 @@
 //       Editor: Storage Pool descriptor
 //
 // Last change date-
-//       2021/01/21
+//       2021/01/24
 //
 //----------------------------------------------------------------------------
 #ifndef EDPOOL_H_INCLUDED

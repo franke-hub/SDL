@@ -16,7 +16,7 @@
 //       Editor: Implement EdMisc.h
 //
 // Last change date-
-//       2021/01/21
+//       2021/01/24
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -25,6 +25,7 @@
 #include <sys/stat.h>               // For stat
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
+
 #include <pub/Debug.h>              // For namespace pub::debugging
 
 #include "Config.h"                 // For namespace config
@@ -64,8 +65,8 @@ enum // Compilation controls
 
    if( width  < 14 ) width=  14;    // Must be large enough for text
    if( height < 14 ) height= 14;    // Must be large enough for text
-   use_size.width=  xcb::WH_t(width);
-   use_size.height= xcb::WH_t(height);
+   use_size.width=  gui::WH_t(width);
+   use_size.height= gui::WH_t(height);
    min_size= use_size;
 }
 
@@ -103,8 +104,8 @@ void
    // Create the Graphic Context
    xcb_connection_t* const conn= window->c;
    xcb_drawable_t    const draw= window->widget_id;
-   xcb::Pixel_t bg= 0x00FFFFFF;
-   xcb::Pixel_t fg= 0x00FF0000;
+   gui::Pixel_t bg= 0x00FFFFFF;
+   gui::Pixel_t fg= 0x00FF0000;
 
    drawGC= xcb_generate_id(conn);
    uint32_t mask= XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
@@ -132,8 +133,8 @@ void
    if( opt_hcdm )
      debugh("EdMisc(%p)::draw Named(%s)\n", this, get_name().c_str());
 
-   xcb::PT_t X= xcb::PT_t(rect.width - 1);
-   xcb::PT_t Y= xcb::PT_t(rect.height - 1);
+   gui::PT_t X= gui::PT_t(rect.width - 1);
+   gui::PT_t Y= gui::PT_t(rect.height - 1);
    xcb_point_t points[]=
        { {0, 0}
        , {0, Y}

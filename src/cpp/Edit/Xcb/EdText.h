@@ -24,12 +24,13 @@
 
 #include <string>                   // For std::string
 #include <sys/types.h>              // For
-#include <pub/List.h>               // For pub::List
-
 #include <xcb/xproto.h>             // For XCB types
 #include <xcb/xfixes.h>             // For XCB xfixes extension
-#include "Xcb/Font.h"               // For xcb::Font
-#include "Xcb/Window.h"             // For xcb::Window (Base class)
+
+#include <gui/Font.h>               // For gui::Font
+#include <gui/Window.h>             // For gui::Window (Base class)
+#include <pub/List.h>               // For pub::List
+
 #include "Active.h"                 // For Active
 
 //----------------------------------------------------------------------------
@@ -49,7 +50,7 @@ class EdView;
 //       TextWindow keyboard, mouse, and screen controller.
 //
 //----------------------------------------------------------------------------
-class EdText : public xcb::Window { // Editor text Window viewport
+class EdText : public gui::Window { // Editor text Window viewport
 //----------------------------------------------------------------------------
 // EdText::Typedefs and enumerations
 //----------------------------------------------------------------------------
@@ -71,7 +72,7 @@ int                    y;           // Last Y position
 // EdText::Attributes
 //----------------------------------------------------------------------------
 Active&                active;      // Active reference (*config::active)
-xcb::Font&             font;        // Font reference (*config::font)
+gui::Font&             font;        // Font reference (*config::font)
 EdLine*                head= nullptr; // Current first data screen line
 EdLine*                tail= nullptr; // Current last  data screen line
 
@@ -255,7 +256,7 @@ xcb_point_t                         // The offset in Pixels
 //----------------------------------------------------------------------------
 virtual const char*                 // The associated text
    get_text(                        // Get text
-     xcb::Line*        line);       // For this Line
+     EdLine*           line);       // For this EdLine
 
 //----------------------------------------------------------------------------
 //

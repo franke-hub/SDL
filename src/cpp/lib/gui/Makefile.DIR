@@ -1,0 +1,109 @@
+##############################################################################
+##
+##       Copyright (c) 2007-2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.DIR
+##
+## Purpose-
+##       Subdirectory build control: included from ../Makefile.*
+##
+## Last change date-
+##       2020/06/29
+##
+##############################################################################
+
+##############################################################################
+## TARGET: prerequisites
+PREREQ := $(wildcard $(INCDIR)/gui/*)
+PREREQ += $(wildcard $(SRCDIR)/gui/*)
+PREREQ += $(wildcard $(SRCDIR)/gui/OS/USR/*)
+BSD_PREREQ := $(PREREQ)
+BSD_PREREQ += $(wildcard $(SRCDIR)/gui/OS/BSD/*)
+WIN_PREREQ := $(PREREQ)
+WIN_PREREQ += $(wildcard $(SRCDIR)/gui/OS/WIN/*)
+
+##############################################################################
+## TARGET: gui/libgui.a
+$(OBJDIR)/gui/libgui.a: $(BSD_PREREQ) libcom.a
+	(cd $(OBJDIR)/gui/; export MAKRUN=lib; $(MAKE))
+	touch $@
+
+libgui.a: $(OBJDIR)/gui/libgui.a
+	@echo trace31 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+build.bsd.lib: libgui.a
+
+##############################################################################
+## TARGET: gui/libgui.so.1.0
+$(OBJDIR)/gui/libgui.so.1.0: $(BSD_PREREQ) libcom.so
+	(cd $(OBJDIR)/gui/; export MAKRUN=dll; $(MAKE))
+	touch $@
+
+libgui.so.1.0: $(OBJDIR)/gui/libgui.so.1.0
+	@echo trace32 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+~/bin/libgui.so.1.0: libgui.so
+	cp -Lpf $< $@
+	rebase -b 0x220000000 $@
+	touch $@
+
+libgui.dll: $(OBJDIR)/gui/libgui.so.1.0
+	@echo trace33 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+~/bin/libgui.dll: libgui.dll
+	cp -Lpf $< $@
+	rebase -b 0x220000000 $@
+	touch $@
+
+.SECONDARY: libgui.so.1.0 /usr/local/lib/libgui.so.1.0
+build.cygwin.dll: libgui.dll libgui.so ~/bin/libgui.so
+build.linux.so: libgui.so /usr/local/lib/libgui.so
+
+##############################################################################
+## TARGET: libgui.lib
+$(OBJDIR)/gui/libgui.lib: $(WIN_PREREQ)
+	(cd $(OBJDIR)/gui/; $(MAKE))
+	touch $@
+
+libgui.lib: $(OBJDIR)/gui/libgui.lib libcom.lib
+	cp -Lpf $< $@
+	touch $@
+
+build.win.lib: libgui.lib
+
+##############################################################################
+## TARGET: gui.depend
+.PHONY: gui.depend
+depend: gui.depend
+gui.depend: ;
+	(cd $(OBJDIR)/gui/; $(MAKE) depend)
+
+##############################################################################
+## Cleanup
+.PHONY: gui.pristine
+pristine.bsd: gui.pristine
+pristine.win: gui.pristine
+gui.pristine: ;
+	(cd $(OBJDIR)/gui/; $(MAKE) pristine)
+
+.PHONY: gui.clean.bsd
+clean.bsd: gui.clean.bsd
+gui.clean.bsd: ;
+	-@rm -f libgui.a >/dev/null 2>/dev/null
+	-@rm -f libgui.so* libgui.dll >/dev/null 2>/dev/null
+
+.PHONY: gui.clean.win
+clean.win: gui.clean.win
+gui.clean.win: ;
+	-@rm -f libgui.lib >/dev/null 2>/dev/null
+

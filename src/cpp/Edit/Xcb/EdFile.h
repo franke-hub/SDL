@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2021/01/21
+//       2021/01/24
 //
 // Implementation objects-
 //       EdLine: Editor EdFile line descriptor
@@ -30,8 +30,9 @@
 #define EDFILE_H_INCLUDED
 
 #include <sys/stat.h>               // For struct stat
+
+#include <gui/Types.h>              // For gui::Line
 #include <pub/List.h>               // For pub::List
-#include "Xcb/Types.h"              // For xcb::Line
 
 #include "Editor.h"                 // For Editor
 
@@ -47,7 +48,24 @@
 //       Lines are allocated and deleted, but text is never deleted
 //
 //----------------------------------------------------------------------------
-class EdLine : public ::xcb::Line { // Editor line descriptor
+class EdLine : public pub::List<EdLine>::Link { // Editor Line descriptor
+//----------------------------------------------------------------------------
+// EdLine::Attributes
+public:
+const char*            text;        // Text, never nullptr
+
+uint16_t               flags= 0;    // Control flags
+enum FLAGS                          // Control flags
+{  F_NONE= 0x0000                   // No flags
+,  F_MARK= 0x0001                   // Line is marked (selected)
+,  F_PROT= 0x0002                   // Line is read/only
+,  F_HIDE= 0x0004                   // Line is hidden
+};
+
+unsigned char          delim[2]= {'\0', 0}; // Delimiter (NONE default)
+//   For [0]= '\n', [1]= either '\r' or '\0' for DOS or Unix format.
+//   For [0]= '\0', [1]= repetition count. {'\0',0}= NO delimiter
+
 //----------------------------------------------------------------------------
 // EdLine::Constructor/Destructor
 //----------------------------------------------------------------------------
@@ -68,18 +86,6 @@ public:
 //----------------------------------------------------------------------------
 void
    debug( void ) const;             // Debugging display
-
-//----------------------------------------------------------------------------
-// EdLine::Accessor methods
-//----------------------------------------------------------------------------
-public:
-inline EdLine*
-   get_next( void ) const
-{  return (EdLine*)::xcb::Line::get_next(); }
-
-inline EdLine*
-   get_prev( void ) const
-{  return (EdLine*)::xcb::Line::get_prev(); }
 }; // class EdLine
 
 //----------------------------------------------------------------------------

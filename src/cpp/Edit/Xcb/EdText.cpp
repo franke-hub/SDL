@@ -22,20 +22,19 @@
 #include <string>                   // For std::string
 #include <stdio.h>                  // For fprintf TODO: REMOVE
 #include <sys/types.h>              // For system types
-#include <pub/List.h>               // For pub::List
-#include <pub/UTF8.h>               // For pub::UTF8
-
 #include <xcb/xproto.h>             // For XCB types
 #include <xcb/xfixes.h>             // For XCB xfixes extension
 
+#include <gui/Device.h>             // For gui::Device
+#include <gui/Font.h>               // For gui::Font
+#include <gui/Keysym.h>             // For X11/keysymdef
+#include <gui/Types.h>              // For gui::DEV_EVENT_MASK
+#include <gui/Window.h>             // For gui::Window
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Fileman.h>            // For pub::fileman::Name
+#include <pub/List.h>               // For pub::List
 #include <pub/Trace.h>              // For pub::Trace
-
-#include "Xcb/Device.h"             // For xcb::Device
-#include "Xcb/Keysym.h"             // For X11/keysymdef
-#include "Xcb/Types.h"              // For xcb::DEV_EVENT_MASK
-#include "Xcb/Window.h"             // For xcb::Window
+#include <pub/UTF8.h>               // For pub::UTF8
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For Config, namespace config
@@ -129,11 +128,11 @@ static inline unsigned              // The truncated value
    unsigned mini_r= MINI_R;
    if( mini_c > col_size ) mini_c= col_size;
    if( mini_r > row_size ) mini_r= row_size;
-   min_size= { xcb::WH_t(mini_c   * font.length.width  + 2)
-             , xcb::WH_t(mini_r   * font.length.height + 2) };
-   use_size= { xcb::WH_t(col_size * font.length.width  + 2)
-             , xcb::WH_t(row_size * font.length.height + 2) };
-   use_unit= { xcb::WH_t(font.length.width), xcb::WH_t(font.length.height) };
+   min_size= { gui::WH_t(mini_c   * font.length.width  + 2)
+             , gui::WH_t(mini_r   * font.length.height + 2) };
+   use_size= { gui::WH_t(col_size * font.length.width  + 2)
+             , gui::WH_t(row_size * font.length.height + 2) };
+   use_unit= { gui::WH_t(font.length.width), gui::WH_t(font.length.height) };
 
    // Set window event mask
    emask= XCB_EVENT_MASK_KEY_PRESS
@@ -235,7 +234,7 @@ xcb_point_t                         // The offset in Pixels
    EdText::get_xy(                  // Get offset in Pixels
      int               col,         // And this column
      int               row)         // For this row
-{  return {xcb::PT_t(get_x(col)), xcb::PT_t(get_y(row))}; }
+{  return {gui::PT_t(get_x(col)), gui::PT_t(get_y(row))}; }
 
 //----------------------------------------------------------------------------
 //
@@ -248,7 +247,7 @@ xcb_point_t                         // The offset in Pixels
 //----------------------------------------------------------------------------
 const char*                         // The text
    EdText::get_text(                // Get text
-     xcb::Line*        line)        // For this Line
+     EdLine*           line)        // For this EdLine
 {
    const char* text= line->text;    // Default, use line text
    if( line == editor::data->cursor ) // If this is the cursor line
@@ -702,7 +701,7 @@ void
    Config::trace(".DRW", " all", head, tail);
 
    // Clear the drawable window
-   xcb::WH_size_t size= get_size(); // TODO: ??? Why is this needed ???
+   gui::WH_size_t size= get_size(); // TODO: ??? Why is this needed ???
    rect.width=  size.width;
    rect.height= size.height;
    NOQUEUE("xcb_clear_area", xcb_clear_area
@@ -776,7 +775,7 @@ void
          Config::errorf("%4d EdText diagonal", __LINE__);
          xcb_point_t points[2]=
              { {0,                     0}
-             , {xcb::PT_t(rect.width), xcb::PT_t(rect.height)}
+             , {gui::PT_t(rect.width), gui::PT_t(rect.height)}
              };
          NOQUEUE("xcb_poly_line", xcb_poly_line(c
                 , XCB_COORD_MODE_ORIGIN, widget_id, fontGC, 2, points));
@@ -810,7 +809,7 @@ void
 void
    EdText::grab_mouse( void )       // Grab the mouse cursor
 {
-   using xcb::WH_t;
+   using gui::WH_t;
 
    uint32_t x_origin= config::geom.x;
    uint32_t y_origin= config::geom.y;
@@ -924,7 +923,7 @@ void
    }
 
    // If size unchanged, do nothing
-   xcb::WH_size_t size= get_size();
+   gui::WH_size_t size= get_size();
    if( size.width == x && size.height == y ) // If unchanged
      return;                        // Nothing to do
 
@@ -935,7 +934,7 @@ void
 
    // Diagnostics
    if( opt_hcdm ) {
-     xcb::WH_size_t size= get_size();
+     gui::WH_size_t size= get_size();
      debugf("%4d [%d x %d]= chg_size <= [%d x %d]\n",  __LINE__
            , size.width, size.height, rect.width, rect.height);
      rect.width=  size.width;
@@ -1168,10 +1167,10 @@ int                                 // Return code, TRUE if error message
      int               state)       // Alt/Ctl/Shift state mask
 {
    if( key >= 0x0020 && key < 0x007F ) { // If text key
-     int mask= state & (xcb::KS_ALT | xcb::KS_CTRL);
+     int mask= state & (gui::KS_ALT | gui::KS_CTRL);
 
      if( mask ) {
-       if( mask == xcb::KS_ALT ) {
+       if( mask == gui::KS_ALT ) {
          key= toupper(key);
          switch(key) {
            case 'I':                  // INSERT allowed
@@ -1238,15 +1237,15 @@ void
 
    size_t column= view->get_column(); // The cursor column
    if( key >= 0x0020 && key < 0x007F ) { // If text key
-     int mask= state & (xcb::KS_ALT | xcb::KS_CTRL);
+     int mask= state & (gui::KS_ALT | gui::KS_CTRL);
      if( mask ) {
        key= toupper(key);
        switch(mask) {
-         case xcb::KS_ALT:
+         case gui::KS_ALT:
            key_alt(key);
            break;
 
-         case xcb::KS_CTRL:
+         case gui::KS_CTRL:
            key_ctl(key);
            break;
 
@@ -1541,7 +1540,7 @@ void
    EdHist* const hist= editor::hist;
    EdView* const view= editor::view;
 
-   // Use E.detail and xcb::Types::BUTTON_TYPE to determine button
+   // Use E.detail and gui::Types::BUTTON_TYPE to determine button
    // E.root_x/y is position on root window; E.event_x/y is position on window
    xcb_button_release_event_t& E= *event;
    if( opt_hcdm )
@@ -1553,7 +1552,7 @@ void
    size_t current_col= view->get_column(); // The current column number
    unsigned button_row= get_row(E.event_y); // (Absolute) button row
    switch( E.detail ) {
-     case xcb::BT_LEFT: {           // Left button
+     case gui::BT_LEFT: {           // Left button
        if( button_row < USER_TOP ) { // If on command/history line
          if( file->rem_message() ) { // If message removed
            draw_info();
@@ -1578,7 +1577,7 @@ void
        move_cursor_H(view->col_zero + get_col(E.event_x)); // Set new column
        break;
      }
-     case xcb::BT_RIGHT: {          // Right button
+     case gui::BT_RIGHT: {          // Right button
        if( button_row < USER_TOP ) {
          if( file->rem_message() ) { // If message removed
            draw_info();
@@ -1590,23 +1589,23 @@ void
        }
        break;
      }
-     case xcb::WT_PUSH:             // Mouse wheel push (away)
+     case gui::WT_PUSH:             // Mouse wheel push (away)
        view->move_cursor_V(-3);
        break;
 
-     case xcb::WT_PULL:             // Mouse wheel pull (toward)
+     case gui::WT_PULL:             // Mouse wheel pull (toward)
        view->move_cursor_V(+3);
        break;
 
-     case xcb::WT_LEFT:             // Mouse wheel left
+     case gui::WT_LEFT:             // Mouse wheel left
        move_cursor_H(current_col > 3 ? current_col - 3 : 0);
        break;
 
-     case xcb::WT_RIGHT:            // Mouse wheel right
+     case gui::WT_RIGHT:            // Mouse wheel right
        move_cursor_H(current_col + 3);
        break;
 
-     case xcb::BT_CNTR:             // Middle button (ignored)
+     case gui::BT_CNTR:             // Middle button (ignored)
      default:                       // (Buttons 6 and 7 undefined)
        break;
    }

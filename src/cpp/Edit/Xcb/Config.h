@@ -23,13 +23,14 @@
 #define CONFIG_H_INCLUDED
 
 #include <string>                   // For std::string
+
+#include <gui/Device.h>             // For gui::Device
+#include <gui/Font.h>               // For gui::Font
+#include <gui/Window.h>             // For gui::Window
 #include <pub/config.h>             // For _ATTRIBUTE_PRINTF macros
 #include <pub/Signals.h>            // For pub::signals
 
 #include "Active.h"                 // For Active
-#include "Xcb/Device.h"             // For xcb::Device
-#include "Xcb/Font.h"               // For xcb::Font
-#include "Xcb/Window.h"             // For xcb::Window
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -179,9 +180,9 @@ extern int             opt_verbose; // Debugging verbosity
 // XCB objects --------------------------------------------------------------
 extern Active*         actalt;      // Active, for temporary use
 extern Active*         active;      // Active, for temporary use
-extern xcb::Device*    device;      // The root Device
-extern xcb::Window*    window;      // The test Window
-extern xcb::Font*      font;        // The Font object
+extern gui::Device*    device;      // The root Device
+extern gui::Window*    window;      // The test Window
+extern gui::Font*      font;        // The Font object
 
 // Color controls ------------------------------------------------------------
 extern uint32_t        mark_bg;     // mark.bg: Marked text BG (background)

@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2021/01/22
+//       2021/01/24
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -39,11 +39,11 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
+#include <gui/Global.h>             // For namespace gui utilities
 #include <pub/Debug.h>              // For Debug object
 #include <pub/Exception.h>          // For Exception object
 #include <pub/Trace.h>              // For Trace object
 
-#include <Xcb/Global.h>             // For namespace xcb
 #include <Config.h>                 // For namespace config
 #include <Editor.h>                 // For namespace editor
 #include <EdText.h>                 // For EdText // TODO: ONLY IN sighandler
@@ -131,9 +131,9 @@ static int                          // Return code (0 OK)
    setlocale(LC_NUMERIC, "");       // Allows printf("%'d\n", 123456789);
 // fprintf(stderr, "%4d Edit::init(%'d) ?commas?\n", __LINE__, 123456789);
 
-   xcb::opt_hcdm= opt_hcdm;         // Expose options
-   xcb::opt_test= opt_test;
-   xcb::opt_verbose= opt_verbose;
+   gui::opt_hcdm= opt_hcdm;         // Expose options
+   gui::opt_test= opt_test;
+   gui::opt_verbose= opt_verbose;
 
    config::opt_hcdm= opt_hcdm;
    config::opt_test= opt_test;

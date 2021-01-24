@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2021/01/19
+//       2021/01/24
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -31,10 +31,11 @@
 #include <stdlib.h>                 // For various
 //nclude <unistd.h>                 // For close
 #include <sys/stat.h>               // For stat
+
+#include <gui/Types.h>              // For gui::Line
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Signals.h>            // For pub::signals::Signal
 #include <pub/List.h>               // For pub::List
-#include "Xcb/Types.h"              // For xcb::Line
 
 #include "Config.h"                 // For Config::check
 #include "Editor.h"                 // For namespace editor
@@ -1025,7 +1026,7 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
    EdLine::EdLine(                  // Constructor
      const char*       text)        // Line text
-:  ::xcb::Line(text)
+:  ::pub::List<EdLine>::Link(), text(text ? text : "")
 {  if( HCDM || (opt_hcdm && opt_verbose > 2) )
      traceh("EdLine(%p)::EdLine\n", this);
 

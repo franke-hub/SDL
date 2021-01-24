@@ -107,12 +107,12 @@ uint32_t               config::message_fg= 0x00900000; // Message FG
 // Screen controls --- Initialized at startup --------------------------------
 xcb_rectangle_t        config::geom= {1030, 0, 80, 50}; // The screen geometry
 
-// XCB objects ------- Initialized at startup (Font configured) --------------
+// GUI objects ------- Initialized at startup (Font configured) --------------
 Active*                config::actalt= nullptr; // Active, for temporary use
 Active*                config::active= nullptr; // Active, for temporary use
-xcb::Device*           config::device= nullptr; // The root Device
-xcb::Window*           config::window= nullptr; // A TEST Window TODO: BRINGUP
-xcb::Font*             config::font= nullptr; // The Font object
+gui::Device*           config::device= nullptr; // The root Device
+gui::Window*           config::window= nullptr; // A TEST Window TODO: BRINGUP
+gui::Font*             config::font= nullptr; // The Font object
 
 // (Internal) -------- Initialized at startup --------------------------------
 std::string            config::AUTO; // AUTOSAVE directory (~/.config/...)
@@ -218,8 +218,8 @@ static int                          // Resultant value
    // Allocate XCB objects
    actalt= new Active();            // An Active work area
    active= new Active();            // An Active work area
-   device= new xcb::Device();       // The screen/connection device
-   font= new xcb::Font(device);     // The Font object
+   device= new gui::Device();       // The screen/connection device
+   font= new gui::Font(device);     // The Font object
 
    // Initialize HOME and AUTO
    const char* env= getenv("HOME"); // Get HOME directory
