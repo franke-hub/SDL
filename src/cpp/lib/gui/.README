@@ -64,7 +64,20 @@
 ##############################################################################
 ##
 ## Pre-requisite packages:
-##       libX11-devel##          /usr/include/X11/XKBlib.h####       libxcb-devel##          /usr/include/xcb/xcb.h##          /usr/include/xcb/xproto.h##          /usr/lib/libxcb.dll.a####       libxcb-xfixes-devel##          /usr/include/xcb/xfixes.h##          /usr/lib/libxcb-fixes.dll.a####       [[ Needed, but already present ]]##          /usr/include/X11/keysymdef.h
+##       libX11-devel
+##          /usr/include/X11/XKBlib.h
+##
+##       libxcb-devel
+##          /usr/include/xcb/xcb.h
+##          /usr/include/xcb/xproto.h
+##          /usr/lib/libxcb.dll.a
+##
+##       libxcb-xfixes-devel
+##          /usr/include/xcb/xfixes.h
+##          /usr/lib/libxcb-fixes.dll.a
+##
+##       [[ Needed, but already present ]]
+##          /usr/include/X11/keysymdef.h
 ##
 ##############################################################################
 
