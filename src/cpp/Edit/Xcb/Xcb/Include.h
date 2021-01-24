@@ -15,33 +15,33 @@
 //       Test include prerequisites. Include one and only one file.
 //
 // Last change date-
-//       2021/01/22
+//       2021/01/24
 //
 //----------------------------------------------------------------------------
 #if false                           // Always false
 static_assert(false, "Always False");
 #elif false
-   #include <Xcb/Active.h>
+   #include <Active.h>
+#elif false
+   #include <EdFile.h>
+#elif false
+   #include <EdHist.h>
+#elif false
+   #include <EdMark.h>
+#elif false
+   #include <EdMisc.h>
+#elif false
+   #include <EdPool.h>
+#elif false
+   #include <EdText.h>
+#elif false
+   #include <EdView.h>
+#elif false
+   #include <Editor.h>
 #elif false
    #include <Xcb/Config.h>
 #elif false
    #include <Xcb/Device.h>
-#elif false
-   #include <Xcb/EdFile.h>
-#elif false
-   #include <Xcb/EdHist.h>
-#elif false
-   #include <Xcb/EdMark.h>
-#elif false
-   #include <Xcb/EdMisc.h>
-#elif false
-   #include <Xcb/EdPool.h>
-#elif false
-   #include <Xcb/EdText.h>
-#elif false
-   #include <Xcb/EdView.h>
-#elif false
-   #include <Xcb/Editor.h>
 #elif false
    #include <Xcb/Font.h>
 #elif false

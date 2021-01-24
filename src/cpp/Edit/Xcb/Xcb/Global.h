@@ -16,7 +16,7 @@
 //       Global data areas and utilities
 //
 // Last change date-
-//       2021/01/22
+//       2021/01/24
 //
 //----------------------------------------------------------------------------
 #ifndef XCB_GLOBAL_H_INCLUDED
@@ -48,21 +48,6 @@ namespace xcb {
 extern int             opt_hcdm;    // Hard Core Debug Mode?
 extern const char*     opt_test;    // Bringup test?
 extern int             opt_verbose; // Debugging verbosity
-
-//----------------------------------------------------------------------------
-//
-// uint32_t-
-//       xcb::keystate
-//
-// Purpose-
-//       Maintain keyboard state not maintained by xcb
-//
-//----------------------------------------------------------------------------
-enum
-{  KS_RESERVED_XCB= 0x0000ffff      // XCB reserved, i.e. XCB_KEY_BUT_MASK_*
-,  KS_INS=          0x00010000      // Insert state
-};
-extern uint32_t        keystate;    // THE Global keyboard state
 
 //----------------------------------------------------------------------------
 //

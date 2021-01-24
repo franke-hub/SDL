@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/01/21
+//       2021/01/24
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -32,12 +32,12 @@
 #include <pub/Fileman.h>            // For pub::fileman::Name
 #include <pub/Trace.h>              // For pub::Trace
 
-#include "Xcb/Active.h"             // For xcb::Active
 #include "Xcb/Device.h"             // For xcb::Device
 #include "Xcb/Keysym.h"             // For X11/keysymdef
 #include "Xcb/Types.h"              // For xcb::DEV_EVENT_MASK
 #include "Xcb/Window.h"             // For xcb::Window
 
+#include "Active.h"                 // For Active
 #include "Config.h"                 // For Config, namespace config
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile
@@ -65,6 +65,15 @@ static struct EdText_initializer {  // TODO: REMOVE
 }
 }  static_initializer;
 #endif
+
+//----------------------------------------------------------------------------
+// Internal data areas
+//----------------------------------------------------------------------------
+enum
+{  KS_RESERVED_XCB= 0x0000ffff      // XCB reserved, i.e. XCB_KEY_BUT_MASK_*
+,  KS_INS=          0x00010000      // Insert state
+};
+static uint32_t        keystate;    // THE Global keyboard state
 
 //----------------------------------------------------------------------------
 //
@@ -655,7 +664,7 @@ void
      L= 192;
    memcpy(buffer+57, S.c_str(), L);
 
-   if( xcb::keystate & xcb::KS_INS ) // Set insert mode (if not REP)
+   if( keystate & KS_INS )          // Set insert mode (if not REP)
      memcpy(buffer+35, "INS", 3);
    if( file->mode != EdFile::M_UNIX ) {
      if( file->mode == EdFile::M_DOS )
@@ -1247,7 +1256,7 @@ void
        return;
      }
 
-     if( xcb::keystate & xcb::KS_INS ) { // If Insert state
+     if( keystate & KS_INS ) {      // If Insert state
        view->active.insert_char(column, key);
        if( move_cursor_H(column + 1) ) {
          const char* buffer= view->active.get_buffer();
@@ -1310,7 +1319,7 @@ void
        break;
 
      case XK_Insert: {              // Insert key
-       xcb::keystate ^= xcb::KS_INS; // Invert the insert state
+       keystate ^= KS_INS;          // Invert the insert state
        draw_info();
        break;
      }

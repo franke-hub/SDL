@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2021/01/21
+//       2021/01/24
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -302,10 +302,13 @@ const char*                         // Error message, nullptr expected
        redo->rh_col= copy_lh;
        redo->lh_col= copy_rh;
      }
-     xcb::Active::Ccount count= copy_rh - copy_lh + 1;
-     xcb::Active& A= *config::active; // (Working Active line)
+     Active::Ccount count= copy_rh - copy_lh + 1;
+     Active& A= *config::active;    // (Working Active line)
      Copy copy= create_copy(mark_head, mark_tail);
      for(EdLine* line= copy.head; line; line= line->get_next()) {
+       line->delim[0]= '\n';
+       if( mark_file->mode == EdFile::M_DOS )
+         line->delim[1]= '\r';
        A.reset(line->text);         // (Used to perform block cut)
        A.replace_text(copy_lh, count, "");
        const char* text= A.get_changed();
@@ -643,8 +646,8 @@ const char*                         // Error message, nullptr expected
 
      // Update the inserted text
      size_t cols= (copy_rh - copy_lh) + 1; // Number of copy columns
-     xcb::Active& F= *config::actalt; // Copy from work area
-     xcb::Active& I= *config::active; // Copy into work area
+     Active& F= *config::actalt;    // Copy from work area
+     Active& I= *config::active;    // Copy into work area
      EdLine* line= copy.head;       // The current copy from line
      for(;;) {
        F.reset(line->text);

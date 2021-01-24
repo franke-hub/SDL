@@ -16,7 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2021/01/21
+//       2021/01/24
 //
 //----------------------------------------------------------------------------
 #ifndef EDTEXT_H_INCLUDED
@@ -28,9 +28,9 @@
 
 #include <xcb/xproto.h>             // For XCB types
 #include <xcb/xfixes.h>             // For XCB xfixes extension
-#include "Xcb/Active.h"             // For xcb::Active
 #include "Xcb/Font.h"               // For xcb::Font
 #include "Xcb/Window.h"             // For xcb::Window (Base class)
+#include "Active.h"                 // For Active
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -70,7 +70,7 @@ int                    y;           // Last Y position
 //----------------------------------------------------------------------------
 // EdText::Attributes
 //----------------------------------------------------------------------------
-xcb::Active&           active;      // Active reference (*config::active)
+Active&                active;      // Active reference (*config::active)
 xcb::Font&             font;        // Font reference (*config::font)
 EdLine*                head= nullptr; // Current first data screen line
 EdLine*                tail= nullptr; // Current last  data screen line

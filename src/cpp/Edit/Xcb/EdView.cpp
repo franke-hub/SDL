@@ -16,13 +16,14 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2021/01/22
+//       2021/01/24
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
 #include <sys/types.h>              // For system types
 #include <pub/Debug.h>              // For namespace pub::debugging
 
+#include "Active.h"                 // For Active
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile, EdLine

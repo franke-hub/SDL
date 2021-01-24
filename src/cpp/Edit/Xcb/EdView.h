@@ -16,7 +16,7 @@
 //       Editor: TextWindow view
 //
 // Last change date-
-//       2021/01/22
+//       2021/01/24
 //
 //----------------------------------------------------------------------------
 #ifndef EDVIEW_H_INCLUDED
@@ -26,8 +26,7 @@
 #include <sys/types.h>              // For system types
 #include <xcb/xproto.h>             // For xcb_gcontext_t, ...
 
-#include <Xcb/Active.h>             // For xcb::Active
-
+#include "Active.h"                 // For Active
 #include "Editor.h"                 // For Editor
 #include "EdFile.h"                 // For EdFile, EdLine
 #include "EdText.h"                 // For EdText
@@ -46,7 +45,7 @@ class EdView {                      // Editor TextWindow view
 // EdView::Attributes
 //----------------------------------------------------------------------------
 public:
-xcb::Active            active;      // The Active text buffer
+Active                 active;      // The Active text buffer
 EdLine*                cursor= nullptr; // The Active cursor line
 
 size_t                 col_zero= 0; // Current column[0]

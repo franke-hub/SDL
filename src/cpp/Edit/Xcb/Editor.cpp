@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/01/22
+//       2021/01/24
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -820,12 +820,12 @@ void
    file->redo_insert(redo);
 
    // Initialize the split lines
-   xcb::Active& A= D.active;
+   Active& A= D.active;
    A.index(D.get_column() + 1);     // (Insure blank fill to column)
    char* both= (char*)A.get_buffer(); // (Sets trailing '\0' delimiter)
-   xcb::Active& H= *config::active;
+   Active& H= *config::active;
    H.reset(both);
-   xcb::Active& T= *config::actalt;
+   Active& T= *config::actalt;
    T.reset();
    for(size_t lead= 0; ; lead++) {  // Insert leading blanks in tail
      if( both[lead] != ' ' ) {

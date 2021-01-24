@@ -34,8 +34,6 @@ int                    xcb::opt_hcdm= false; // Hard Core Debug Mode?
 const char*            xcb::opt_test= nullptr; // Run bringup test?
 int                    xcb::opt_verbose= -1; // Verbosity, default NONE
 
-uint32_t               xcb::keystate= KS_INS; // Keyboard state (insert)
-
 namespace xcb {
 //----------------------------------------------------------------------------
 //
