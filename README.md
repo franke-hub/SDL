@@ -9,7 +9,7 @@
 ##############################################################################
 ##
 ## Title-
-##       /home/data/home/.README
+##       /home/data/home/README.md
 ##
 ## Purpose-
 ##       Describe subdirectory content.
