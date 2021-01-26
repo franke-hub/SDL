@@ -15,7 +15,7 @@
 ##       Time/date/version marker for maint branch merge operation.
 ##
 ## Last change date-
-##       2021/01/18 14:00 (maint merge)
+##       2021/01/26 13:00 (maint merge)
 ##
 ## Implementation note-
 ##       The "~/bat/gitsynch maint" operation changes the last modification
