@@ -16,7 +16,7 @@
 //       Global data areas and utilities
 //
 // Last change date-
-//       2021/01/22
+//       2021/01/25
 //
 //----------------------------------------------------------------------------
 #ifndef GUI_GLOBAL_H_INCLUDED
@@ -65,7 +65,7 @@ static inline const char* oops( void ) { return strerror(errno); }
 //       Handle checkstop condition.
 //
 //----------------------------------------------------------------------------
-extern void
+[[ noreturn ]] extern void
    checkstop(                       // Check stop
      int               line,        // Line number
      const char*       name);       // Function name

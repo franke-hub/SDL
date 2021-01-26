@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2020 Frank Eskesen.
+//       Copyright (C) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define the the Named attribute and the NamedObject class.
 //
 // Last change date-
-//       2020/10/03
+//       2021/01/25
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_NAMED_H_INCLUDED
@@ -61,7 +61,7 @@ virtual
 // Named::Accessors
 //----------------------------------------------------------------------------
 public:
-std::string                         // The associated name
+const std::string&                  // The associated name
    get_name( void ) const           // Get associated name
 {  return name; }
 }; // class Named

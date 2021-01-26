@@ -44,7 +44,7 @@ namespace gui {
 //       Handle checkstop condition.
 //
 //----------------------------------------------------------------------------
-void
+[[ noreturn ]] void
    checkstop(                       // Check stop
      int               line,        // Line number
      const char*       name)        // Function name

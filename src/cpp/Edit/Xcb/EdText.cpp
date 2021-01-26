@@ -72,7 +72,7 @@ enum
 {  KS_RESERVED_XCB= 0x0000ffff      // XCB reserved, i.e. XCB_KEY_BUT_MASK_*
 ,  KS_INS=          0x00010000      // Insert state
 };
-static uint32_t        keystate;    // THE Global keyboard state
+static uint32_t        keystate= KS_INS; // Keyboard state
 
 //----------------------------------------------------------------------------
 //

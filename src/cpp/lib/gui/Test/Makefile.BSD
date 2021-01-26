@@ -1,0 +1,87 @@
+##############################################################################
+##
+##       Copyright (c) 2021 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2021/01/26
+##
+##############################################################################
+
+##############################################################################
+## Local module/library list
+MAKEXE := $(patsubst $(OBJDIR)/Config,,$(MAKEXE))
+MAKEXE := $(patsubst $(OBJDIR)/Tester,,$(MAKEXE))
+MAKOBJ :=
+MAKOBJ += Config.o
+MAKOBJ += Tester.o
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= make.dir
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+.PHONY: make.dir
+make.dir: $(MAKEXE)
+
+.PHONY: make.all
+make.all: $(MAKEXE)
+
+all: make.all
+
+##############################################################################
+## TARGET: liblocal.a
+liblocal.a : $(MAKOBJ)
+	$(AR) $(@) $(MAKOBJ)
+
+##############################################################################
+## Controls
+LLIBS  += -L$(OBJDIR) -llocal###### Local library
+CLIBS  += $(shell pkg-config --libs   xcb xcb-xfixes)
+CLIBS  += -lX11 -lXfixes ########## X11 library
+ignore += -ljpeg ################## JPEG library
+include H/gui/Makefile.BSD
+include H/pub/Makefile.BSD
+
+## ifeq "Linux" "$(findstring Linux, $(shell uname))"
+CLIBS  += -lboost_stacktrace_addr2line
+CLIBS  += -lboost_stacktrace_basic
+CLIBS  += -ldl
+## endif
+
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+CLOAD  += -Wl,--enable-auto-import
+endif
+
+##############################################################################
+## Dependencies
+$(MAKEXE) : liblocal.a
+
+##############################################################################
+## Debugging
+.PHONY: test
+test: ;
+	-@echo MAKEXE: $(MAKEXE)
+
+##############################################################################
+## Makefile cleanup
+clean : clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	-@rm -f liblocal.a >/dev/null 2>/dev/null
+

@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2021/01/24
+//       2021/01/26
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -594,7 +594,7 @@ static int                          // Return code (0 OK)
    debug->set_head(pub::Debug::HEAD_TIME);
    pub::Debug::set(debug);
 
-// if( opt_hcdm )                   // If Hard Core Debug Mode TODO: REPAIR
+   if( opt_hcdm )                   // If Hard Core Debug Mode
      debug->set_mode(pub::Debug::MODE_INTENSIVE);
    debugf("Editor PID(%4d) VID: %s %s\n", getpid(), __DATE__, __TIME__);
 

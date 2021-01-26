@@ -1,0 +1,28 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2021 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       md2ff
+##
+## Purpose-
+##       Convert markdown to firefox view
+##
+## Last change date-
+##       2021/01/26
+##
+##############################################################################
+
+##############################################################################
+## Convert markdown to firefox view
+markdown_py $1 >~/tmp/md2ff.html
+firefox --private-window ~/tmp/md2ff.html
+rm ~/tmp/md2ff.html
+
