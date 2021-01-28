@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,13 +16,13 @@
 //       Decoder base class.
 //
 // Last change date-
-//       2007/01/01
+//       2021/01/28
 //
 //----------------------------------------------------------------------------
 #ifndef DECODER_H_INCLUDED
 #define DECODER_H_INCLUDED
 
-#include <gui/Window.h>
+#include <sys/types.h>              // For uint32_t
 
 //----------------------------------------------------------------------------
 //
@@ -40,8 +40,7 @@ class Decoder {                     // Decoder
 public:
 virtual
    ~Decoder( void );                // Destructor
-   Decoder(                         // Constructor
-     GUI::Window&      window);     // The associated Window
+   Decoder( void );                 // Constructor
 
 private:                            // Bitwise copy is prohibited
    Decoder(const Decoder&);         // Disallowed copy constructor
@@ -58,8 +57,8 @@ virtual int                         // Return code (0 OK)
 //----------------------------------------------------------------------------
 // Decoder::Attributes
 //----------------------------------------------------------------------------
-protected:
-   GUI::Window&        window;      // The output Window
+uint32_t*              buffer= nullptr; // Image buffer (0x00rrggbb)
+uint32_t               width= 0;    // Buffer width
+uint32_t               height= 0;   // Buffer height
 }; // class Decoder
-
 #endif // DECODER_H_INCLUDED

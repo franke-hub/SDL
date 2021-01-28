@@ -7,15 +7,28 @@
 ##       within https://opensource.org/licenses/MIT)
 ##
 ##############################################################################
-## Makefile.BSD
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       Cygwin/Linux makefile
+##
+## Last change date-
+##       2021/01/28
+##
+## Implementation note-
+##       Uses XCB interfaces. Windows not supported.
+##
 ##############################################################################
 
 ##############################################################################
 ## Local module list
 LLIBS  += -L. -llocal
-LLIBS  += -LL -ljpeg
 LLIBS  += -LL -lgui
-LLIBS  += -lX11
+LLIBS  += -LL -lcom
+LLIBS  += -LL -lpub
+LLIBS  += -lX11 -ljpeg -lxcb -lxcb-xfixes -lxcb-image
 MAKEXE :=
 
 MAKOBJ := $(patsubst $(OBJDIR)/Viewer.o,,$(MAKOBJ))

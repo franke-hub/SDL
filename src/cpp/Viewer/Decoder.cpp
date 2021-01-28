@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,13 +16,12 @@
 //       Decoder implementation.
 //
 // Last change date-
-//       2007/01/01
+//       2021/01/28
 //
 //----------------------------------------------------------------------------
 #include <stdlib.h>
 
 #include "Decoder.h"
-using namespace GUI;
 
 //----------------------------------------------------------------------------
 //
@@ -35,6 +34,10 @@ using namespace GUI;
 //----------------------------------------------------------------------------
    Decoder::~Decoder( void )        // Destructor
 {
+   if( buffer ) {
+     free(buffer);
+     buffer= nullptr;
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -46,12 +49,8 @@ using namespace GUI;
 //       Constructor.
 //
 //----------------------------------------------------------------------------
-   Decoder::Decoder(                // Constructor
-     GUI::Window&      window)      // The associated Window
-:  window(window)
-{
-   window.setAttribute(Object::VISIBLE, FALSE);
-}
+   Decoder::Decoder( void )         // Constructor
+{  }
 
 //----------------------------------------------------------------------------
 //

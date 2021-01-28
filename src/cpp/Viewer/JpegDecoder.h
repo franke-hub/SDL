@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       JPEG decoder class.
 //
 // Last change date-
-//       2007/01/01
+//       2021/01/28
 //
 //----------------------------------------------------------------------------
 #ifndef JPEGDECODER_H_INCLUDED
@@ -40,8 +40,7 @@ class JpegDecoder : public Decoder { // JpegDecoder
 public:
 virtual
    ~JpegDecoder( void );            // Destructor
-   JpegDecoder(                     // Constructor
-     GUI::Window&      window);     // The associated Window
+   JpegDecoder( void );             // Constructor
 
 //----------------------------------------------------------------------------
 // JpegDecoder::Methods

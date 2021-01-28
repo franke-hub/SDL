@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,21 +16,21 @@
 //       JpegDecoder implementation.
 //
 // Last change date-
-//       2020/03/25
+//       2021/01/28
 //
 //----------------------------------------------------------------------------
-#include <setjmp.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <setjmp.h>                 // For jpeg library interface
+#include <stdio.h>                  // For fprintf
+#include <stdlib.h>                 // For standard library (free, exit)
+#include <sys/types.h>              // (Needed by jpeglib.h)
+#include <jpeglib.h>                // For jpeg library
 
 #include <com/Logger.h>
 #include <gui/Types.h>
-using namespace GUI;
 
-#include <jpeglib.h>                // (NEW: Standard location)
-
-#include "Decoder.h"
 #include "JpegDecoder.h"
+
+using namespace gui;
 
 //----------------------------------------------------------------------------
 //
@@ -83,6 +83,11 @@ my_error_exit (j_common_ptr cinfo)
 //----------------------------------------------------------------------------
    JpegDecoder::~JpegDecoder( void ) // Destructor
 {
+   // Free the buffer
+   if( buffer ) {
+     free(buffer);
+     buffer= nullptr;
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -94,11 +99,8 @@ my_error_exit (j_common_ptr cinfo)
 //       Constructor.
 //
 //----------------------------------------------------------------------------
-   JpegDecoder::JpegDecoder(        // Constructor
-     Window&           window)      // The associated Window
-:  Decoder(window)
-{
-}
+   JpegDecoder::JpegDecoder( void)  // Constructor
+:  Decoder() { }
 
 //----------------------------------------------------------------------------
 //
@@ -117,13 +119,10 @@ int                                 // Return code (0 OK)
                        cinfo;
    struct my_error_mgr jerr;
    FILE*               infile;      /* source file */
-   JSAMPARRAY          buffer;      /* Output row buffer */
+   JSAMPARRAY          outrow;      /* Output row buffer */
    int                 row_stride;  /* physical row width in output buffer */
 
    JSAMPLE*            col;         // Column pointer
-   XYLength            length;      // Length
-   Pixel*              pixel;       // -> Pixel
-   XOffset_t           x;           // Horizontal offset
 
    #ifdef HCDM
      Logger::log("\n");
@@ -136,6 +135,14 @@ int                                 // Return code (0 OK)
    if ((infile = fopen(fileName, "rb")) == NULL) {
      fprintf(stderr, "can't open %s\n", fileName);
      return 1;
+   }
+
+   //-------------------------------------------------------------------------
+   // Delete any existing Buffer
+   //-------------------------------------------------------------------------
+   if( buffer ) {
+     free(buffer);
+     buffer= nullptr;
    }
 
    //-------------------------------------------------------------------------
@@ -174,8 +181,13 @@ int                                 // Return code (0 OK)
    //-------------------------------------------------------------------------
    // Decode step 4: set decompression parameters
    //-------------------------------------------------------------------------
-   length.x= cinfo.image_width; length.y= cinfo.image_height;
-   window.resize(length);
+   width= cinfo.image_width;
+   height= cinfo.image_height;
+   buffer= (uint32_t*)malloc( width * height * sizeof(uint32_t));
+   if( buffer == nullptr ) {
+     fprintf(stderr, "No storage\n");
+     exit(EXIT_FAILURE);
+   }
 
    //-------------------------------------------------------------------------
    // Decode step 5: start decompressor
@@ -194,7 +206,7 @@ int                                 // Return code (0 OK)
    /* JSAMPLEs per row in output buffer */
    row_stride = cinfo.output_width * cinfo.output_components;
    /* Make a one-row-high sample array that will go away when done with image */
-   buffer = (*cinfo.mem->alloc_sarray)
+   outrow = (*cinfo.mem->alloc_sarray)
                  ((j_common_ptr) &cinfo, JPOOL_IMAGE, row_stride, 1);
 
    //-------------------------------------------------------------------------
@@ -204,20 +216,20 @@ int                                 // Return code (0 OK)
     * loop counter, so that we don't have to keep track ourselves.
     */
 
-   pixel= window.getPixel(0,0);
+   uint32_t* pixel= buffer;
    while (cinfo.output_scanline < cinfo.output_height) {
      /* jpeg_read_scanlines expects an array of pointers to scanlines.
       * Here the array is only one element long, but you could ask for
       * more than one scanline at a time if that's more convenient.
       */
-     (void) jpeg_read_scanlines(&cinfo, buffer, 1);
+     (void) jpeg_read_scanlines(&cinfo, outrow, 1);
 
      /* Assume put_scanline_someplace wants a pointer and sample count. */
-//// put_scanline_someplace(buffer[0], row_stride);
-     col= buffer[0];
-     for(x= 0; x<window.getLength().x; x++)
+//// put_scanline_someplace(outrow[0], row_stride);
+     col= outrow[0];
+     for(unsigned x= 0; x<width; x++)
      {
-       pixel->setColor(Pixel::getColor(col[0], col[1], col[2]));
+       *pixel= (col[0] << 16) | (col[1] << 8) | col[2];
        pixel++;
        col += 3;
      }
