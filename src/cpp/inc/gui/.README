@@ -1,0 +1,104 @@
+##############################################################################
+##
+##       Copyright (c) 2020-2021 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       Usage notes
+##
+## Last change date-
+##       2021/01/30
+##
+##############################################################################
+
+##############################################################################
+##
+## Class structure:
+##     class Device : public Window
+##       The Device constructor contains the X11 Display definition, and
+##       initializes the Pixmap xcb_connection_t c and xcb_screen_t s fields.
+##       The Pixmap parent_id and widget_id fields are both initialized from
+##       the root screen.
+##
+##     class Window : public Pixmap
+##       The Window class contains event handlers and utility methods.
+##       It is the usual base class for application Windows.
+##
+##     class Pixmap : public Layout
+##       The Pixmap contains methods that apply to xcb_drawable_t objects.
+##       (Windows, type xcb_window_t, essentially are xcb_drawable_t object
+##       extensions.
+##
+##     class Layout : public Widget
+##       Layout objects define Window and Pixmap placement on the root Device.
+##       (Note: Layout objects and multiple Windows are not yet well-tested.
+##       This interface is in flux.)
+##
+##     class Widget : public pub::List<Widget>::Link, public pub::Named
+##       The Widget is a node placement class. All drawable objects must reside
+##       within a Device object tree.
+##
+## The Pixmap widget_id field:
+##     Although defined as a xcb_pixmap_t, it is only used as such in the
+##     Pixmap object. The Window and Device class use it as an xcb_window_t.
+##     The Window and Pixmap classes optionally create the Window or Pixmap.
+##     Derived classes that create the Window or Pixmap must zero the
+##     widget_id field in their destructor to avoid duplicate deletion.
+##
+## Configuration methods:
+##     The Widget objects are currently intented to be part of a Device tree.
+##     The Device is the root Node, and Widgets are Nodes of that tree.
+##
+##     Before objects are used, they must be configured. You place objects
+##     on the device tree either when they are constructed, or using the
+##     Widget fifo, lifo, insert (a fifo alias), or remove.
+##
+##     Device::configure begins the configuration process. It then:
+##       For each Pixmap or Window, it invokes: configure(Device*,Window*)
+##         Setting the device, window, c (connection), and s (screen)
+##         fields. Note that no parent Window or Pixmap has been created yet.
+##         In particular, while Window* is valid, window->widget_id is not.
+##
+##       For each Layout object, it invokes: configure(config_t&)
+##         (Note: this is not well tested and will probably change, since
+##         it's intended to eventually be used for window resize operations.)
+##         The Layout object uses the Layout attributes to determine its
+##         size and location relative to the parent window.
+##
+##         Only Layout objects override this method. Most just set the Layout
+##         configuration control variables:
+##           min_size: The minimum acceptable window size
+##           use_size: The desired window size
+##           use_unit: The window size granule
+##         and use Layout's rect.width and rect.height output variable.
+##
+##       For each Widget, it invokes: configure( void )
+##         Where the object is created. At this point, the object's parent
+##         window will have been created. An application should initialize
+##         parent_id= window->widget_id.
+##
+##     Each configuration sequence completes before the next sequence is
+##     started. Each sequence procedes breadth first: all child objects are
+##     processed before any next level child objects are processed.
+##
+##     Device::draw invokes draw for all objects in the device tree. This is
+##     also a breadth-first operation.
+##
+##     Note that windows are not visible by default. Use the show() method to
+##     make a Window visible. Note also that certain window operations
+##     (such as move) have no effect unless the window is visible.
+##
+##     Sample programs:
+##       ~/src/cpp/Edit/Xcb/*       [[ The library's primary motivation ]]
+##       ~/src/cpp/lib/gui/Test/*   [[ Simple test programs ]]
+##       ~/src/cpp/Viewer/*         [[ JPEG viewer ]]
+##
+##############################################################################
