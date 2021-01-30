@@ -16,7 +16,7 @@
 //       Editor: History EdView
 //
 // Last change date-
-//       2021/01/24
+//       2021/01/29
 //
 //----------------------------------------------------------------------------
 #ifndef EDHIST_H_INCLUDED
@@ -76,8 +76,7 @@ virtual void
 //
 //----------------------------------------------------------------------------
 virtual xcb_gcontext_t               // The current graphic context
-   get_gc( void )                    // Get current graphic context
-{  return gc_font; }
+   get_gc( void );                   // Get current graphic context
 
 //----------------------------------------------------------------------------
 //

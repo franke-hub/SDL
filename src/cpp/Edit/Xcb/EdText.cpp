@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/01/24
+//       2021/01/29
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -603,7 +603,7 @@ bool                                // Return code, TRUE if handled
    if( HCDM )
      Config::trace(".DRW", "hist", hist->cursor);
    const char* buffer= hist->get_buffer();
-   putxy(gc_cmd, 1, 1, buffer);
+   putxy(hist->get_gc(), 1, 1, buffer);
    draw_cursor();
    flush();
    return true;

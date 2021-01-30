@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2021/01/24
+//       2021/01/29
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -100,6 +100,24 @@ void
      debugf("[%2d] %p '%s'\n", n++, line, line->text);
 
    EdView::debug();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdHist::get_gc
+//
+// Purpose-
+//       Get the current graphic context
+//
+//----------------------------------------------------------------------------
+xcb_gcontext_t                       // The current graphic context
+   EdHist::get_gc( void )            // Get current graphic context
+{
+   using namespace editor;
+   if( file->changed || file->damaged || data->active.get_changed() )
+     return text->gc_chg;
+   return text->gc_sts;
 }
 
 //----------------------------------------------------------------------------
