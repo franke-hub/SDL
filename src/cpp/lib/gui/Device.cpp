@@ -16,7 +16,7 @@
 //       Implement gui/Device.h
 //
 // Last change date-
-//       2021/01/21
+//       2021/01/27
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -354,6 +354,19 @@ Pixmap*                             // The Pixmap/Window, if located
 
 //----------------------------------------------------------------------------
 //
+// Method-
+//       Device::poll
+//
+// Purpose-
+//       Non-blocking poll for event
+//
+//----------------------------------------------------------------------------
+xcb_generic_event_t*                // The next event, or nullptr if none
+   Device::poll( void )             // (Non-blocking) poll for event
+{  return xcb_poll_for_event(c); }
+
+//----------------------------------------------------------------------------
+//
 // Subroutine-
 //       Device::to_keysym
 //
@@ -445,14 +458,13 @@ static inline pub::Trace::Record*   // Resultant
 }
 
 void
-   Device::run( void )              // Handle window events
+   Device::handle_event(            // Handle one event
+     xcb_generic_event_t* e)        // The event to handle
 {
    typedef ::pub::Trace::Record Record;
    int run_hcdm= opt_hcdm | HCDM;
 // run_hcdm= true;
 
-   while( operational ) {
-     xcb_generic_event_t* e= xcb_wait_for_event(c);
      if( e ) {
        // Trace XCB event
        Record* record= get_event_record(e);
@@ -699,6 +711,25 @@ void
            break;
        }
 
+     }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Device::run
+//
+// Purpose-
+//       Handle events (while operational)
+//
+//----------------------------------------------------------------------------
+void
+   Device::run( void )              // Handle window events
+{
+   while( operational ) {
+     xcb_generic_event_t* e= xcb_wait_for_event(c);
+     if( e ) {
+       handle_event(e);
        free(e);
      }
    }

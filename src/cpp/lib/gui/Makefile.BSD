@@ -45,7 +45,7 @@ all: dll lib
 ##############################################################################
 ## TARGET: libgui.so.1.0, libgui.so, libgui.dll
 libgui.so.1.0: $(MAKOBJ)
-	$(CC) -shared -o $@ $^ -LL -lcom -lX11
+	$(CC) -shared -o $@ $^ -LL -lpub -lX11 -lxcb -lxcb-xfixes
 	touch $@
 
 libgui.so: libgui.so.1.0
@@ -65,8 +65,6 @@ libgui.a: $(MAKOBJ)
 ifneq "" "$(DEPENDS)"
 Makeproj.dep: $(wildcard $(INCDIR)/gui/*)
 Makeproj.dep: $(wildcard $(SRCDIR)/*)
-Makeproj.dep: $(wildcard $(SRCDIR)/gui/OS/USR/*)
-Makeproj.dep: $(wildcard $(SRCDIR)/gui/OS/BSD/*)
 endif
 
 ##############################################################################

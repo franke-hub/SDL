@@ -87,6 +87,24 @@ virtual
 //----------------------------------------------------------------------------
 // gui::Device::Methods
 //----------------------------------------------------------------------------
+void
+   handle_event(                    // Process one event
+     xcb_generic_event_t*);         // The event to process
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       gui::Device::poll
+//
+// Purpose-
+//       Non-blocking poll for event
+//
+// Purpose-
+//       The caller must free the event
+//
+//----------------------------------------------------------------------------
+xcb_generic_event_t*                // The next event, or nullptr if none
+   poll( void );                    // (Non-blocking) poll for event
 
 //----------------------------------------------------------------------------
 // Implementation note-

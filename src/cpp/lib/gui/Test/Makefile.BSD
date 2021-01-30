@@ -52,8 +52,8 @@ liblocal.a : $(MAKOBJ)
 ##############################################################################
 ## Controls
 LLIBS  += -L$(OBJDIR) -llocal###### Local library
-CLIBS  += $(shell pkg-config --libs   xcb xcb-xfixes)
 CLIBS  += -lX11 -lXfixes ########## X11 library
+CLIBS  += $(shell pkg-config --libs xcb xcb-xfixes xcb-image)
 ignore += -ljpeg ################## JPEG library
 include H/gui/Makefile.BSD
 include H/pub/Makefile.BSD

@@ -16,7 +16,7 @@
 //       Implement Tester.h, bringup test Window
 //
 // Last change date-
-//       2021/01/26
+//       2021/01/29
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -106,8 +106,8 @@ void
    Window::configure();
 
    // Create the Graphic Context
-   gui::Pixel_t bg= 0x00FFFFFF;
-   gui::Pixel_t fg= 0x00FF0000;
+   bg= 0x00FFFFFF;
+   fg= 0x00FF0000;
 
    drawGC= xcb_generate_id(c);
    uint32_t mask= XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;

@@ -16,7 +16,7 @@
 //       Implement gui/Window.h
 //
 // Last change date-
-//       2021/01/22
+//       2021/01/27
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -109,9 +109,6 @@ void
    this->window= window;           // Set parent Window
    c= device->c;                   // Set Device connection
    s= device->s;                   // Set Device screen
-
-   // Set parent id (It is set again in Pixmap::configure().)
-   parent_id= window->widget_id;   // (This also works for Device)
 }
 
 void
@@ -120,7 +117,22 @@ void
    if( opt_hcdm )
      debugh("Pixmap(%p)::configure [%u,%u]\n", this, rect.width, rect.height);
 
+   // Set the parent_id. (The parent Window has been configured)
    parent_id= window->widget_id;
+
+   // Create the Pixmap
+   if( widget_id != 0 ) {           // If already created
+     debugf("%4d Pixmap: Nothing to do when pixmap created\n", __LINE__);
+     return;
+   }
+
+   widget_id= xcb_generate_id(c);   // Our XCB Pixmap ID
+   ENQUEUE("xcb_create_pixmap", xcb_create_pixmap_checked
+          ( c, s->root_depth, widget_id, parent_id
+          , rect.width, rect.height // Default position and size
+          ) );
+   if( opt_hcdm )
+     debugh("Pixmap(%p) created(%u) parent(%u)\n", this, widget_id, parent_id);
 }
 
 //----------------------------------------------------------------------------
@@ -403,8 +415,8 @@ void
      debugh("Window(%p)::configure [%d,%d,%u,%u]\n", this
            , rect.x, rect.y, rect.width, rect.height);
 
-   // Configure the Pixmap
-   Pixmap::configure();             // (Set parent_id)
+   // Set the parent_id. (The parent Window has been configured)
+   parent_id= window->widget_id;
 
    // Create the Window
    if( widget_id != 0 ) {           // If already created
