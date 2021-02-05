@@ -16,7 +16,7 @@
 //       Bringup test Window.
 //
 // Last change date-
-//       2021/01/26
+//       2021/02/01
 //
 //----------------------------------------------------------------------------
 #ifndef TESTER_H_INCLUDED
@@ -40,6 +40,7 @@ class Tester : public gui::Window { // Bringup Window
 //----------------------------------------------------------------------------
 public:
 xcb_gcontext_t         drawGC= 0;   // The default graphic context
+char                   key_debug[128]= {}; // Switchable debug flags
 
 //----------------------------------------------------------------------------
 // Tester::Constructor/Destructor
@@ -88,5 +89,10 @@ void
 void
    expose(                          // Handle this
      xcb_expose_event_t* event);    // Expose event
+
+void
+   key_input(                       // Handle this
+     xcb_keysym_t      key,         // Key input event
+     int               state);      // Alt/Ctl/Shift state mask
 }; // class Tester
 #endif // TESTER_H_INCLUDED

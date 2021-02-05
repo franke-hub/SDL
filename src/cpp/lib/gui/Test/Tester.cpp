@@ -16,7 +16,7 @@
 //       Implement Tester.h, bringup test Window
 //
 // Last change date-
-//       2021/01/29
+//       2021/02/01
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -26,6 +26,7 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
+#include <gui/Keysym.h>             // For X11 keysymdef.h macros
 #include <pub/Debug.h>              // For namespace pub::debugging
 
 #include "Config.h"                 // For namespace config
@@ -98,10 +99,12 @@ void
      debugh("Tester(%p)::configure Named(%s)\n", this, get_name().c_str());
 
    // Create the Window
-   emask |= XCB_EVENT_MASK_BUTTON_PRESS
-          | XCB_EVENT_MASK_EXPOSURE
-          | XCB_EVENT_MASK_STRUCTURE_NOTIFY
-          ;
+   emask= XCB_EVENT_MASK_NO_EVENT
+        | XCB_EVENT_MASK_KEY_PRESS
+        | XCB_EVENT_MASK_BUTTON_PRESS
+        | XCB_EVENT_MASK_EXPOSURE
+        | XCB_EVENT_MASK_STRUCTURE_NOTIFY
+        ;
 
    Window::configure();
 
@@ -193,3 +196,19 @@ void
    draw();
 }
 
+void
+   Tester::key_input(               // Handle this
+     xcb_keysym_t      key,         // Key input event
+     int               state)       // Alt/Ctl/Shift state mask
+{  (void)state;                     // Parameter currently unused
+
+   if( key == XK_Shift_L || key == XK_Shift_R )
+     return;                        // Ignore shift keys
+
+   if( key > 0 &&  key < 128 ) {
+     key_debug[key]= !key_debug[key];
+     if( key != ' ' )               // (Space key is silent)
+       printf("key_debug[%c] %s\n", key, key_debug[key] ? "ON" : "OFF");
+     opt_hcdm= key_debug['H'];      // Control opt_hcdm
+   }
+}
