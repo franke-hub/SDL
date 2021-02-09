@@ -1,7 +1,7 @@
 ##
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2017-2019 Frank Eskesen.
+##       Copyright (C) 2017-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Common shell startup script, sourced from .bashrc
 ##
 ## Last change date-
-##       2019/10/07
+##       2021/02/04
 ##
 ## Usage-
 ##       . bash_common
@@ -50,11 +50,11 @@ alias rename='mv -i'
 ##############################################################################
 ## Local environment control
 export BASH_ENV=$HOME/.bashrc
-export EDITOR="e"
+[ -z "$EDITOR" ] && export EDITOR="e"
 export PS1=$PWD:' '
 export PWD                          ## Required by makefiles
 unset  USERNAME
-export VISUAL="e"
+[ -z "$VISUAL" ] && export VISUAL="e"
 
 ##############################################################################
 ## Common envionment
