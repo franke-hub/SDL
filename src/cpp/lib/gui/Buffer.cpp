@@ -16,7 +16,7 @@
 //       Implement Buffer.h
 //
 // Last change date-
-//       2021/02/01
+//       2021/02/09
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -24,10 +24,10 @@
 #include <stdexcept>                // For std::range_error
 #include <xcb/xcb.h>                // For xcb basic types
 #include <xcb/xproto.h>             // For xcb types and prototypes
-#include <xcb/xcb_bitops.h>         // For xcb_host_byte_order
 #include <xcb/xcb_image.h>          // For xcb_image_t, associated functions
 
 #include <pub/Debug.h>              // For namespace pub::debugging
+#include <gui/Global.h>             // For gui::get_image_order
 #include <gui/Pixmap.h>             // For gui::Pixmap
 
 #include "gui/Buffer.h"             // Implementation class
@@ -227,7 +227,7 @@ void
    image.bpp= 32;                   // Storage per pixel (bits)
    image.unit= 32;                  // Scanline unit (bits)
    image.plane_mask= 0;             // (Unused here)
-   image.byte_order= xcb_host_byte_order(); // Byte order
+   image.byte_order= gui::get_image_order(); // Byte order
    image.bit_order=  XCB_IMAGE_ORDER_MSB_FIRST; // Bit order
    image.stride= image.width * 4;   // Bytes per image row
    image.size= image.width * image.height * 4; // Size of image (bytes)

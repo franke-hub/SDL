@@ -16,7 +16,7 @@
 //       Global data areas and utilities
 //
 // Last change date-
-//       2021/01/25
+//       2021/02/09
 //
 //----------------------------------------------------------------------------
 #ifndef GUI_GLOBAL_H_INCLUDED
@@ -48,17 +48,6 @@ extern int             opt_verbose; // Debugging verbosity
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       gui::oops
-//
-// Purpose-
-//       Return strerror(errno)
-//
-//----------------------------------------------------------------------------
-static inline const char* oops( void ) { return strerror(errno); }
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
 //       gui::checkstop
 //
 // Purpose-
@@ -69,6 +58,27 @@ static inline const char* oops( void ) { return strerror(errno); }
    checkstop(                       // Check stop
      int               line,        // Line number
      const char*       name);       // Function name
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       gui::get_image_order
+//
+// Purpose-
+//       Get host byte order. (Ubuntu does not provide xcb_bitops.h)
+//
+//----------------------------------------------------------------------------
+static inline xcb_image_order_t
+   get_image_order( void )
+{  static const int32_t test_word= 0x01020304;
+   const char* C= (const char*)&test_word;
+
+   if( *C == 0x01 )
+     return XCB_IMAGE_ORDER_MSB_FIRST;
+   if( *C == 0x04 )
+     return XCB_IMAGE_ORDER_LSB_FIRST;
+   throw "XCB_IMAGE_ORDER";         // (Has test_word been corrupted?)
+}
 
 //----------------------------------------------------------------------------
 //

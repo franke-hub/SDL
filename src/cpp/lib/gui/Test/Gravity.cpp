@@ -16,7 +16,7 @@
 //       Gravitational simulator.
 //
 // Last change date-
-//       2021/02/04
+//       2021/02/09
 //
 // Data points-
 //       https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html
@@ -64,7 +64,6 @@
 #include <sys/types.h>              // For type definitions
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
-#include <xcb/xcb_bitops.h>         // For xcb_host_byte_order
 
 #include <gui/Device.h>             // For gui::Device
 #include <gui/Global.h>             // For gui::opt_* controls
@@ -436,7 +435,7 @@ void
    image.bpp= 32;                   // Storage per pixel (bits)
    image.unit= 32;                  // Scanline unit (bits)
    image.plane_mask= 0;             // (Unused here)
-   image.byte_order= xcb_host_byte_order(); // Byte order
+   image.byte_order= gui::get_image_order(); // Byte order
    image.bit_order=  XCB_IMAGE_ORDER_MSB_FIRST; // Bit order
    image.stride= rect.width * 4;    // Bytes per image row
    image.size= rect.width * rect.height * 4; // Size of image (bytes)

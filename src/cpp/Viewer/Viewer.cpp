@@ -16,7 +16,7 @@
 //       Viewer master control.
 //
 // Last change date-
-//       2021/01/28
+//       2021/02/09
 //
 //----------------------------------------------------------------------------
 #include <cstdio>
@@ -25,9 +25,9 @@
 #include <unistd.h>
 #include <xcb/xcb.h>                // For xcb definitions
 #include <xcb/xproto.h>             // For xcb prototypes
-#include <xcb/xcb_bitops.h>         // For xcb_host_byte_order
 
 #include <gui/Device.h>             // For gui::Device
+#include <gui/Global.h>             // For gui::get_image_order
 #include <gui/Window.h>             // For gui::Window
 #include <pub/Debug.h>              // For Debug, namespace pub::debugging
 
@@ -142,7 +142,7 @@ int                                 // Return code (0 OK)
    image.bpp= 32;                   // Storage per pixel (bits)
    image.unit= 32;                  // Scanline unit (bits)
    image.plane_mask= 0;             // (Unused here)
-   image.byte_order= xcb_host_byte_order(); // Byte order
+   image.byte_order= gui::get_image_order(); // Byte order
    image.bit_order=  XCB_IMAGE_ORDER_MSB_FIRST; // Bit order
    image.stride= decoder.width * 4; // Bytes per image row
    image.size= decoder.width * decoder.height * 4; // Size of image (bytes)
