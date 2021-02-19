@@ -16,7 +16,7 @@
 //       GUI Type descriptors
 //
 // Last change date-
-//       2021/01/24
+//       2021/02/19
 //
 // Implementation notes-
 //       Use: xcb_point_t     <x,y> for screen point
@@ -79,6 +79,8 @@ enum BUTTON_TYPE                    // VALUE for xcb_button_press_event.detail
 ,  BT_RIGHT= 3                      // RIGHT button
 ,  WT_PUSH=  4                      // WHEEL PUSH  (spin top away from user)
 ,  WT_PULL=  5                      // WHEEL PULL  (spin top toward user)
+
+// Note: Some mice do not support WT_LEFT/RIGHT (WT_PRESS substituted)
 ,  WT_LEFT=  8                      // WHEEL LEFT  (push wheel to the left)
 ,  WT_RIGHT= 9                      // WHEEL RIGHT (push wheel to the right)
 }; // enum BUTTON_TYPE
