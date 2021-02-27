@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2021/02/21
+//       2021/02/27
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -98,9 +98,6 @@ uint32_t               config::change_fg=  0x00000000; // Status FG (modified)
 
 uint32_t               config::status_bg=  0x0080F080; // Status BG (pristine)
 uint32_t               config::status_fg=  0x00000000; // Status FG (pristine)
-
-uint32_t               config::command_bg= 0x0000FFFF; // Command BG
-uint32_t               config::command_fg= 0x00000000; // Command FG
 
 uint32_t               config::message_bg= 0x00FFFF00; // Message BG
 uint32_t               config::message_fg= 0x00900000; // Message FG
@@ -711,8 +708,6 @@ struct Color_item      color_list[]= // The color name/value list
 , {"change.fg",  &change_fg}
 , {"status.bg",  &status_bg}
 , {"status.fg",  &status_fg}
-, {"command.bg", &command_bg}
-, {"command.fg", &command_fg}
 , {"message.bg", &message_bg}
 , {"message.fg", &message_fg}
 , {nullptr,      nullptr}           // End of list

@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/02/26
+//       2021/02/27
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -148,7 +148,6 @@ static inline unsigned              // The truncated value
    if( fontGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, fontGC) );
    if( markGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, markGC) );
    if( gc_chg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_chg) );
-   if( gc_cmd ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_cmd) );
    if( gc_msg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_msg) );
    if( gc_sts ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_sts) );
 
@@ -176,8 +175,8 @@ void
    debugf("..motion(%d,%d,%d,%d)\n", motion.state, motion.time
          , motion.x, motion.y);
    debugf("..fontGC(%u) flipGC(%u) markGC(%u)\n", fontGC, flipGC, markGC);
-   debugf("..gc_chg(%u) gc_cmd(%u) gc_msg(%u) gc_sts(%u)\n"
-         , gc_chg, gc_cmd, gc_msg, gc_sts);
+   debugf("..gc_chg(%u) gc_msg(%u) gc_sts(%u)\n"
+         , gc_chg, gc_msg, gc_sts);
    debugf("..protocol(%u) wm_close(%u)\n", protocol, wm_close);
    Window::debug(info);
 }
@@ -478,7 +477,6 @@ void
    flipGC= font.makeGC(bg, fg);          // (Inverted)
    markGC= font.makeGC(mark_fg,    mark_bg);
    gc_chg= font.makeGC(change_fg,  change_bg);
-   gc_cmd= font.makeGC(command_fg, command_bg);
    gc_msg= font.makeGC(message_fg, message_bg);
    gc_sts= font.makeGC(status_fg,  status_bg);
 
@@ -489,8 +487,6 @@ void
    data->gc_mark= markGC;
    EdHist* const hist= editor::hist;
    hist->gc_flip= flipGC;
-   hist->gc_font= gc_cmd;
-   hist->gc_mark= gc_cmd;
 
    // Set up WM_DELETE_WINDOW protocol handler
    protocol= name_to_atom("WM_PROTOCOLS", true);

@@ -16,7 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2021/02/18
+//       2021/02/27
 //
 //----------------------------------------------------------------------------
 #ifndef EDTEXT_H_INCLUDED
@@ -87,7 +87,6 @@ xcb_gcontext_t         fontGC= 0;   // The standard graphic context
 xcb_gcontext_t         flipGC= 0;   // The inverted graphic context
 xcb_gcontext_t         markGC= 0;   // The selected graphic context
 xcb_gcontext_t         gc_chg= 0;   // Graphic context: status, changed file
-xcb_gcontext_t         gc_cmd= 0;   // Graphic context: history line
 xcb_gcontext_t         gc_msg= 0;   // Graphic context: message line
 xcb_gcontext_t         gc_sts= 0;   // Graphic context: status, default
 

@@ -16,7 +16,7 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2021/02/21
+//       2021/02/27
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
@@ -191,9 +191,6 @@ extern uint32_t        change_fg;   // change.fg: Status FG, modified file
 
 extern uint32_t        status_bg;   // status.bg: Status BG, pristine file
 extern uint32_t        status_fg;   // status.fg: Status FG, pristine file
-
-extern uint32_t        command_bg;  // command.bg: Command line BG
-extern uint32_t        command_fg;  // command.fg: Command line FG
 
 extern uint32_t        message_bg;  // message.bg: Message line BG
 extern uint32_t        message_fg;  // message.fg: Message line FG
