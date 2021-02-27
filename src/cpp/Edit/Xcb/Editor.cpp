@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/01/24
+//       2021/02/21
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -41,6 +41,7 @@
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/UTF8.h>               // For pub::UTF8
 
+#include "Active.h"                 // For Active
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For Editor (Implementation class)
 #include "EdFile.h"                 // For EdFile, EdLine, EdPool, ...
@@ -72,6 +73,8 @@ EdText*                editor::text= nullptr; // The Text Window
 pub::List<EdFile>      editor::file_list; // The list of EdFiles
 EdFile*                editor::file= nullptr; // The current File object
 
+Active*                editor::actalt= nullptr; // Active, for temporary use
+Active*                editor::active= nullptr; // Active, for temporary use
 EdMark*                editor::mark= nullptr; // The Mark Handler
 EdView*                editor::data= nullptr; // The data view
 EdHist*                editor::hist= nullptr; // The history view
@@ -111,6 +114,8 @@ int                    editor::direction= 0;
    textPool.fifo(new EdPool(EdPool::MIN_SIZE));
 
    // Allocate editor namespace objects
+   actalt= new Active();            // An Active work area
+   active= new Active();            // An Active work area
    text= new EdText();              // Text (window) handler
    data= new EdView();              // Data view
    hist= new EdHist();              // History view
@@ -215,6 +220,8 @@ int                    editor::direction= 0;
      delete pool;
 
    // Delete allocated objects
+   delete actalt;
+   delete active;
    delete text;
    delete data;
    delete hist;
@@ -286,17 +293,23 @@ void
                        ...)         // The remaining arguments
 {
    va_list             argptr;      // Argument list pointer
-
    va_start(argptr, fmt);           // Initialize va_ functions
    std::string S= pub::utility::to_stringv(fmt, argptr);
    va_end(argptr);                  // Close va_ functions
 
-   debugf("%s\n", S.c_str());
+   static int recursion= 0;
+   debugf("Editor::alertf(%s) %d\n", S.c_str(), recursion);
+   if( recursion )
+     return;
+
+   ++recursion;
    Config::debug(S.c_str());
    Config::trace(".BUG", __LINE__, "Config.cpp");
    Config::backtrace();
+   debug_flush();
 
    editor::put_message(S.c_str(), EdMess::T_MESS);
+   --recursion;
 }
 
 //----------------------------------------------------------------------------
@@ -538,21 +551,21 @@ void
 
 EdFile*                             // The last file inserted
    editor::insert_file(             // Insert file(s) onto the file list
-     const char*       _name)       // The file name (file wildcards allowed)
+     const char*       name_)       // The file name (file wildcards allowed)
 {  if( opt_hcdm )
-     traceh("editor::insert_file(%s)\n", _name);
+     traceh("editor::insert_file(%s)\n", name_);
 
    using namespace pub::fileman;    // Using fileman objects
 
    EdFile* last= nullptr;           // The last EdFile inserted
-   if( _name == nullptr )           // If missing parameter
-     _name= "unnamed.txt";          // Use default name
+   if( name_ == nullptr )           // If missing parameter
+     name_= "unnamed.txt";          // Use default name
 
    // Match existing file name(s)
-   Name name(_name);
+   Name name(name_);
    std::string error= name.resolve(); // Remove link qualifiers
    if( error != "" ) {
-     fprintf(stderr, "File(%s) %s\n", _name, error.c_str());
+     fprintf(stderr, "File(%s) %s\n", name_, error.c_str());
      return nullptr;
    }
 
@@ -580,9 +593,9 @@ EdFile*                             // The last file inserted
              last= new EdFile(wild.name.c_str());
              file_list.fifo(last);
            } else if( S_ISDIR(wild.st.st_mode) ) { // TODO: NOT CODED YET
-             fprintf(stderr, "File(%s) Directory: %s\n", _name, fqn.c_str());
+             fprintf(stderr, "File(%s) Directory: %s\n", name_, fqn.c_str());
            } else {
-             fprintf(stderr, "File(%s) Unusable: %s\n", _name, fqn.c_str());
+             fprintf(stderr, "File(%s) Unusable: %s\n", name_, fqn.c_str());
            }
          }
        }
@@ -639,6 +652,7 @@ void
    file->insert(head->get_prev(), line, line);
    redo->head_insert= redo->tail_insert= line;
    file->redo_insert(redo);
+   mark->handle_redo(file, redo);
    data->active.reset(line->text);
    file->activate(line);
    text->draw();
@@ -735,12 +749,12 @@ static const char* F_KEY= "123456789ABCDEF";
 //----------------------------------------------------------------------------
 void
    editor::put_message(             // Write message
-     const char*       _mess,       // Message text
-     int               _type)       // Message mode
+     const char*       mess_,       // Message text
+     int               type_)       // Message mode
 {  if( file )
-     file->put_message(_mess, _type);
+     file->put_message(mess_, type_);
    else
-     debugh("editor::put_message(%s)\n", _mess);
+     debugh("editor::put_message(%s)\n", mess_);
 }
 
 //----------------------------------------------------------------------------
@@ -817,14 +831,15 @@ void
    redo->head_insert= head;
    redo->tail_insert= tail;
    file->redo_insert(redo);
+   mark->handle_redo(file, redo);
 
    // Initialize the split lines
    Active& A= D.active;
    A.index(D.get_column() + 1);     // (Insure blank fill to column)
    char* both= (char*)A.get_buffer(); // (Sets trailing '\0' delimiter)
-   Active& H= *config::active;
+   Active& H= *editor::active;
    H.reset(both);
-   Active& T= *config::actalt;
+   Active& T= *editor::actalt;
    T.reset();
    for(size_t lead= 0; ; lead++) {  // Insert leading blanks in tail
      if( both[lead] != ' ' ) {

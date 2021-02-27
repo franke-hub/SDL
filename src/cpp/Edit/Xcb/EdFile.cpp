@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2021/01/24
+//       2021/02/21
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -90,8 +90,14 @@ static void
          , redo->head_remove, redo->tail_remove);
 
    redo->debug("Inconsistent");
-   Config::debug("REDO/UNDO inconsistent");
-   Config::failure("REDO/UNDO inconsistent");
+
+   if( !editor::file->damaged ) {   // One report per file
+     editor::file->damaged= true;
+     Editor::alertf("REDO/UNDO inconsistent");
+//   Config::debug("REDO/UNDO inconsistent");
+//   Config::failure("REDO/UNDO inconsistent");
+   } else
+     debugf("\n");
 }
 
 static void
@@ -100,7 +106,7 @@ static void
      EdFile*           file,        // This file for
      EdRedo*           redo)        // This redo
 {
-   for(EdLine* L= file->line_list.get_head(); L; L= L->get_next() ) {
+   for(EdLine* L= file->line_list.get_head(); L; L= L->get_next()) {
      if( L == test )
        return;
    }
@@ -267,9 +273,9 @@ static const char*                  // The file name (only)
 //
 //----------------------------------------------------------------------------
    EdFile::EdFile(                  // Constructor
-     const char*       _name)       // Fully qualified file name
+     const char*       name_)       // Fully qualified file name
 :  ::pub::List<EdFile>::Link()
-,  name(_name)
+,  name(name_)
 {  if( HCDM || opt_hcdm )
      traceh("EdFile(%p)::EdFile(%s)\n", this, get_name().c_str());
 
@@ -284,8 +290,8 @@ static const char*                  // The file name (only)
    top_line= top;
    csr_line= top;
 
-   if( _name )
-     append(_name, top);            // Insert the file
+   if( name_ )
+     append(name_, top);            // Insert the file
 }
 
    EdFile::~EdFile( void )          // Destructor
@@ -596,17 +602,17 @@ EdLine*                             // The allocated line
 //----------------------------------------------------------------------------
 void
    EdFile::put_message(             // Write message
-     const char*       _mess,       // Message text
-     int               _type)       // Message mode
+     const char*       mess_,       // Message text
+     int               type_)       // Message mode
 {
-   if( _mess == nullptr )           // Ignore if no message
+   if( mess_ == nullptr )           // Ignore if no message
      return;
 
    EdMess* mess= mess_list.get_head();
-   if( mess && _type <= mess->type )
+   if( mess && type_ <= mess->type )
      return;
 
-   mess_list.fifo(new EdMess(_mess, _type));
+   mess_list.fifo(new EdMess(mess_, type_));
    if( editor::file == this )       // (Only if this file is active)
      editor::text->draw_info();     // (Otherwise, message is deferred)
 }
@@ -621,10 +627,10 @@ int                                 // TRUE if message removed or remain
 
 int                                 // TRUE if message removed or remain
    EdFile::rem_message_type(        // Remove current EdMess
-     int                _type)      // If at this level or lower
+     int                type_)      // If at this level or lower
 {
    EdMess* mess= mess_list.get_head();
-   if( mess && _type >= mess->type ) {
+   if( mess && type_ >= mess->type ) {
      mess_list.remq();
      delete mess;
      return true;
@@ -681,7 +687,7 @@ void
    }
 
    // Perform redo action
-   Config::trace(".RDO", "file", redo, this, editor::data->cursor);
+   Config::trace(".RDO", redo, this, editor::data->cursor);
    assert_redo(redo, this);         // (Only active when USE_BRINGUP == true)
 
    EdLine* line= nullptr;           // Activation line
@@ -704,7 +710,6 @@ void
    editor::text->activate(line);
    editor::text->draw();
    undo_list.lifo(redo);            // Move REDO to UNDO list
-// debug("redo-done");
 
    if( USE_BRINGUP )
      Config::check("redo");
@@ -730,7 +735,7 @@ void
    }
 
    // Perform undo action
-   Config::trace(".UDO", "file", undo, this, editor::data->cursor);
+   Config::trace(".UDO", undo, this, editor::data->cursor);
    assert_undo(undo, this);         // (Only active when USE_BRINGUP == true)
 
    if( undo_list.get_head() == nullptr ) // If nothing left to undo
@@ -804,11 +809,11 @@ void
    EdFile::redo_insert(             // Insert
      EdRedo*           redo)        // This REDO onto the UNDO list
 {
-   Config::trace(".RDO", "inst", redo, this, editor::data->cursor);
-   assert_base(redo);               // (Only active when USE_BRINGUP == true)
+   Config::trace(".IDO", redo, this, editor::data->cursor);
+   assert_undo(redo, this);         // (Only active when USE_BRINGUP == true)
    redo_delete();                   // Delete the current REDO list
 
-   editor::mark->handle_redo(this, redo);
+// editor::mark->handle_redo(this, redo); // TODO: ..REMOVE..
    undo_list.lifo(redo);            // Insert the REDO onto the UNDO list
    changed= true;
 
@@ -887,14 +892,14 @@ void
 //----------------------------------------------------------------------------
 void
    EdFile::set_mode(                // Set the file mode
-     int               _mode)       // To this mode
+     int               mode_)       // To this mode
 {
    char delim[2]= { '\n', '\0'};    // Default, DOS delimiter
-   if( _mode == M_DOS )             // If DOS mode
+   if( mode_ == M_DOS )             // If DOS mode
      delim[1]= '\r';
    else
-     _mode= M_UNIX;
-   mode= _mode;
+     mode_= M_UNIX;
+   mode= mode_;
 
    // We update the delimiter in all lines, including TOP and BOT
    for(EdLine* line= line_list.get_head(); line; line= line->get_next() ) {
@@ -1068,11 +1073,11 @@ void
 //
 //----------------------------------------------------------------------------
    EdMess::EdMess(                  // Constructor
-     std::string       _mess,       // Message text
-     int               _type)       // Message type
-:  ::pub::List<EdMess>::Link(), mess(_mess), type(_type)
+     std::string       mess_,       // Message text
+     int               type_)       // Message type
+:  ::pub::List<EdMess>::Link(), mess(mess_), type(type_)
 {  if( HCDM || opt_hcdm )
-     traceh("EdMess(%p)::EdMess(%s,%d)\n", this, _mess.c_str(), _type);
+     traceh("EdMess(%p)::EdMess(%s,%d)\n", this, mess_.c_str(), type_);
 }
 
    EdMess::~EdMess( void )          // Destructor
@@ -1090,14 +1095,14 @@ void
 //
 //----------------------------------------------------------------------------
    EdHide::EdHide(                  // Constructor
-     EdLine*           _head,       // First hidden line
-     EdLine*           _tail)       // Final hidden line
+     EdLine*           head_,       // First hidden line
+     EdLine*           tail_)       // Final hidden line
 :  EdLine()
 {  if( HCDM || opt_hcdm )
      traceh("EdHide(%p)::EdHide\n", this);
 
    flags= F_HIDE;
-   list.insert(nullptr, _head, _tail);
+   list.insert(nullptr, head_, tail_);
 }
 
    EdHide::~EdHide( void )          // Destructor

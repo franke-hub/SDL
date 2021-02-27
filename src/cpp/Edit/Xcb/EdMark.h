@@ -16,7 +16,7 @@
 //       Editor: Line/block mark descriptor
 //
 // Last change date-
-//       2021/01/24
+//       2021/02/19
 //
 //----------------------------------------------------------------------------
 #ifndef EDMARK_H_INCLUDED
@@ -108,19 +108,21 @@ const char*                         // Error message, nullptr expected
 const char*                         // Error message, nullptr expected
    paste(                           // Paste the marked area
      EdFile*           file,        // Into this EdFile
-     EdLine*           line,        // After or into this line
+     EdLine*           line,        // After(line) or into(block) this line
      ssize_t           column= -1); // Start at this column (block copy)
-
-void
-   redo(                            // Redo the mark
-     EdFile*           file,        // For this EdFile
-     EdLine*           head,        // From this EdLine
-     EdLine*           tail);       // *To* this EdLine
 
 void
    reset( void );                   // Reset the mark, removing the copy
 
 void
    undo( void );                    // Undo the mark
+
+const char*                         // Error message, nullptr expected
+   verify_copy(                     // Verify copy + paste operation
+     EdLine*           line);       // After(line) or into(block) this line
+
+const char*                         // Error message, nullptr expected
+   verify_move(                     // Verify cut + paste operation
+     EdLine*           line);       // After(line) or into(block) this line
 }; // class EdMark
 #endif // EDMARK_H_INCLUDED

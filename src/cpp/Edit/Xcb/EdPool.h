@@ -60,14 +60,14 @@ char*                  data;        // The Pool data area
 //----------------------------------------------------------------------------
 public:
    EdPool(                          // Constructor
-     size_t            _size= 0)    // The pool allocation block size
+     size_t            size_= 0)    // The pool allocation block size
 :  ::pub::List<EdPool>::Link()
-,  used(0), size(_size < MIN_SIZE ? size_t(MIN_SIZE) : _size)
+,  used(0), size(size_ < MIN_SIZE ? size_t(MIN_SIZE) : size_)
 ,  data(new char[size])
 {  using namespace config; using namespace pub::debugging;
 
    if( opt_hcdm )
-     debugh("EdPool(%p)::EdPool(%zd)\n", this, _size);
+     debugh("EdPool(%p)::EdPool(%zd)\n", this, size_);
 }
 
 virtual

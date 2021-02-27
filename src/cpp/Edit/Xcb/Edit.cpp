@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2021/01/25
+//       2021/02/21
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -58,7 +58,7 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= true                // Extra bringup diagnostics?
+,  USE_BRINGUP= false               // Extra bringup diagnostics?
 ,  TRACE_SIZE= 0x01000000           // Default trace table size
 }; // Compilation controls
 

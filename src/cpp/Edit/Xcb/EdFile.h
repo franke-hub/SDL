@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2021/01/24
+//       2021/02/17
 //
 // Implementation objects-
 //       EdLine: Editor EdFile line descriptor
@@ -115,8 +115,8 @@ int                    type= T_INFO; // The message type
 //----------------------------------------------------------------------------
 public:
    EdMess(                          // Constructor
-     std::string       _mess,       // Message text
-     int               _type= T_INFO);
+     std::string       mess_,       // Message text
+     int               type_= T_INFO);
 
    ~EdMess( void );                 // Destructor
 }; // class EdMess
@@ -147,8 +147,8 @@ pub::List<EdLine>      list;        // The hidden line list
 //----------------------------------------------------------------------------
 public:
    EdHide(                          // Constructor
-     EdLine*           _head= nullptr, // First hidden line
-     EdLine*           _tail= nullptr); // Final hidden line
+     EdLine*           head_= nullptr, // First hidden line
+     EdLine*           tail_= nullptr); // Final hidden line
 
    ~EdHide( void );                 // Destructor
 
@@ -189,8 +189,8 @@ EdLine*                tail_insert= nullptr; // Last line  inserted
 EdLine*                head_remove= nullptr; // First line removed
 EdLine*                tail_remove= nullptr; // Last line  removed
 
-// Block copy/move columns. If lh_col > rh_col, lh_col is touch_col
-ssize_t                lh_col= -1;  // Left hand column
+// Block copy/move columns
+ssize_t                lh_col= -1;  // Left  hand column
 ssize_t                rh_col= -1;  // Right hand column
 
 //----------------------------------------------------------------------------
@@ -256,7 +256,7 @@ EdFile*                file;
 };
 
 static pub::signals::Signal<CloseEvent>
-                       close_signal; // The Closevent Signal
+                       close_signal; // The CloseEvent Signal
 
 //----------------------------------------------------------------------------
 // EdFile::Constructor/Destructor
@@ -382,15 +382,15 @@ EdLine*                             // The allocated line
 //----------------------------------------------------------------------------
 void
    put_message(                     // Write message
-     const char*       _mess,       // Message text
-     int               _type= EdMess::T_INFO); // Message mode
+     const char*       mess_,       // Message text
+     int               type_= EdMess::T_INFO); // Message mode
 
 int                                 // TRUE if message removed or remain
    rem_message( void );             // Remove current EdMess
 
 int                                 // TRUE if message removed or remain
    rem_message_type(                // Remove current EdMess
-     int                _type= EdMess::T_INFO);  // If at this level or lower
+     int                type_= EdMess::T_INFO);  // If at this level or lower
 
 //----------------------------------------------------------------------------
 //

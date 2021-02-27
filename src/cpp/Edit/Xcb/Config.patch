@@ -16,7 +16,7 @@
 //       Editor: Config.cpp extension: debugging listeners
 //
 // Last change date-
-//       2021/01/09
+//       2021/02/21
 //
 // Implementation note-
 //       Only included from Config.cpp
@@ -125,7 +125,7 @@ static pub::signals::Connector<const char*> config_debug=
                        debugSignal.connect([](const char*& info)
 {
    debugf("\n============================================================\n");
-   debugf("Config::debug(%s)\n", info ? info : "");
+   debugf("Config::debugSignal(%s)\n", info ? info : "");
 
    Editor::debug(info);
    debugf("\n");

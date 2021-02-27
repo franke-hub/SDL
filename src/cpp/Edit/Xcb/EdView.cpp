@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2021/01/24
+//       2021/02/21
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -154,7 +154,7 @@ void
    if( buffer ) {                   // If actually changed
      // Create a new REDO line, duplicating the current line chain
      EdLine* line= new EdLine();
-     *line= *cursor;                // (Duplicates links and delimiters)
+     *line= *cursor;                // (Duplicates links, flags, and delimiters)
 
      // Replace the text in the REDO line
      line->text= editor::allocate(buffer);
@@ -169,6 +169,7 @@ void
      redo->head_remove= redo->tail_remove= cursor;
      redo->head_insert= redo->tail_insert= line;
      editor::file->redo_insert(redo); // (Sets file->changed)
+     editor::mark->handle_redo(editor::file, redo);
 
      Config::trace(".CSR", "Vcmt", line, cursor); // (New, old)
      cursor= line;                  // Replace the cursor

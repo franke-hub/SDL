@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2021/01/26
+//       2021/02/21
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -29,6 +29,7 @@
 #include <stdlib.h>                 // For various
 #include <string.h>                 // For strcpy, strerror, ...
 #include <unistd.h>                 // For close, ...
+#include <arpa/inet.h>              // For htons
 #include <sys/mman.h>               // For mmap, ...
 #include <sys/signal.h>             // For signal, ...
 #include <sys/stat.h>               // For stat
@@ -104,12 +105,13 @@ uint32_t               config::command_fg= 0x00000000; // Command FG
 uint32_t               config::message_bg= 0x00FFFF00; // Message BG
 uint32_t               config::message_fg= 0x00900000; // Message FG
 
-// Screen controls --- Initialized at startup --------------------------------
+// Screen controls --- From configuration file -------------------------------
 xcb_rectangle_t        config::geom= {1030, 0, 80, 50}; // The screen geometry
 
+// Bringup controls -- From configuration file -------------------------------
+int32_t                config::USE_MOUSE_HIDE= true; // Use mouse hide logic?
+
 // GUI objects ------- Initialized at startup (Font configured) --------------
-Active*                config::actalt= nullptr; // Active, for temporary use
-Active*                config::active= nullptr; // Active, for temporary use
 gui::Device*           config::device= nullptr; // The root Device
 gui::Window*           config::window= nullptr; // A TEST Window TODO: BRINGUP
 gui::Font*             config::font= nullptr; // The Font object
@@ -215,9 +217,7 @@ static int                          // Resultant value
 {  if( opt_hcdm ) fprintf(stderr, "Config::Config\n"); // (Don't use debugf)
    using namespace config;
 
-   // Allocate XCB objects
-   actalt= new Active();            // An Active work area
-   active= new Active();            // An Active work area
+   // Allocate GUI objects
    device= new gui::Device();       // The screen/connection device
    font= new gui::Font(device);     // The Font object
 
@@ -276,8 +276,6 @@ static int                          // Resultant value
 
    // Delete XCB objects
    delete font;
-   delete actalt;
-   delete active;
    delete device;
 
    term();
@@ -326,7 +324,18 @@ void
 void
    Config::debug(                   // Debugging display
      const char*       info)        // Informational text
-{  debugSignal.signal(info); }
+{
+   if( info == nullptr )
+     info= "";
+
+   static int recursion= 0;
+   debugf("Config::debug(%s) %d\n", info, recursion);
+   if( recursion ) return;
+
+   ++recursion;
+   debugSignal.signal(info);
+   --recursion;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -418,11 +427,11 @@ void
    Config::trace(                   // Simple trace event
      const char*       ident,       // Trace identifier
      const char*       unit,        // Trace sub-identifier
-     void*             _one,        // Word one
-     void*             _two)        // Word two
+     void*             one_,        // Word one
+     void*             two_)        // Word two
 {
-   uintptr_t one= uintptr_t(_one);
-   uintptr_t two= uintptr_t(_two);
+   uintptr_t one= uintptr_t(one_);
+   uintptr_t two= uintptr_t(two_);
 
    typedef ::pub::Trace::Record Record;
    Record* record= (Record*)trace();
@@ -441,8 +450,7 @@ void
 
 void
    Config::trace(                   // Trace undo/redo operation
-     const char*       ident,       // Trace identifier (.UDO, .RDO)
-     const char*       unit,        // Trace sub-identifer (file,init,mark)
+     const char*       ident,       // Trace identifier
      EdRedo*           redo,        // The UNDO/REDO
      EdFile*           file,        // The UNDO/REDO file
      EdLine*           line)        // The UNDO/REDO cursor line
@@ -451,7 +459,12 @@ void
    Record* record= (Record*)trace(32);
    if( record ) {
      memset(record->value, 0, sizeof(record->value) + 32);
-     memcpy(&record->unit, unit, 4);
+     struct unit {
+       uint16_t lh_col;
+       uint16_t rh_col;
+     }* U= (unit*)(&record->unit);
+     U->lh_col= htons((uint16_t)redo->lh_col);
+     U->rh_col= htons((uint16_t)redo->rh_col);
 
      uintptr_t V0= uintptr_t(file);
      uintptr_t V1= uintptr_t(line);
@@ -530,7 +543,7 @@ static void
    if( recursion ) {                // If signal recursion
      fprintf(stderr, "sig_handler(%d) recursion(%d)\n", id, recursion);
      fflush(stderr);
-     abort();
+     exit(EXIT_FAILURE);
    }
 
    // Handle signal
@@ -594,13 +607,14 @@ static int                          // Return code (0 OK)
    debug->set_head(pub::Debug::HEAD_TIME);
    pub::Debug::set(debug);
 
-   if( opt_hcdm )                   // If Hard Core Debug Mode
+   if( opt_hcdm ) {                 // If Hard Core Debug Mode
      debug->set_mode(pub::Debug::MODE_INTENSIVE);
-   debugf("Editor PID(%4d) VID: %s %s\n", getpid(), __DATE__, __TIME__);
+     debugf("Editor PID(%4d) VID: %s %s\n", getpid(), __DATE__, __TIME__);
+   }
 
    //-------------------------------------------------------------------------
    // Create memory-mapped trace file
-   S= AUTO + "/trace.out";
+   S= AUTO + "/trace.mem";
    int fd= open(S.c_str(), O_RDWR | O_CREAT, S_IRWXU);
    if( fd < 0 ) {
      Config::errorf("%4d open(%s) %s\n", __LINE__, S.c_str()
@@ -729,6 +743,33 @@ static void
    va_end(argptr);                  // Close va_ functions
 }
 
+static int                          // {-1, 0, +1} [error, false, true]
+   parse_bool(                      // Parse boolean value
+     const char*       value)       // The current value string
+{
+   if( strcasecmp(value, "true") == 0 )
+     return true;
+   if( strcasecmp(value, "false") == 0 )
+     return false;
+
+   if( strcasecmp(value, "yes") == 0 )
+     return true;
+   if( strcasecmp(value, "no") == 0 )
+     return false;
+
+   if( strcasecmp(value, "on") == 0 )
+     return true;
+   if( strcasecmp(value, "off") == 0 )
+     return false;
+
+   if( strcasecmp(value, "1") == 0 )
+     return true;
+   if( strcasecmp(value, "0") == 0 )
+     return false;
+
+   return -1;
+}
+
 static int                          // The integer value
    parse_int(                       // Parse integer value
      const char*&      value)       // (IN/OUT) The current value string
@@ -778,13 +819,13 @@ static void
    *item.addr= color;
 }
 
-static bool            font_valid= false; // Font parameter present and valid?
-
 static void
    parser(                          // Configuration parser
      std::string       name)        // The parser file name
 {  if( opt_hcdm )                   // (Don't use debugf here)
      fprintf(stderr, "Config::parser(%s)\n", name.c_str());
+
+   static bool font_valid= false;   // Font parameter present and valid?
 
    pub::Parser parser(name);        // The parser object
    for(const char* sect= parser.get_next(nullptr); sect;
@@ -839,6 +880,14 @@ static void
              config::geom= geom;
            else
              parse_error(name, "geometry(%s) invalid\n", VALUE);
+           continue;
+         }
+
+         // TODO: REMOVE (Bringup temporaries)
+         if( strcmp(parm, "USE_MOUSE_HIDE") == 0 ) {
+           config::USE_MOUSE_HIDE= parse_bool(value);
+           if( config::USE_MOUSE_HIDE < 0 )
+             parse_error(name, "USE_MOUSE_HIDE(%s) invalid\n", value);
            continue;
          }
 

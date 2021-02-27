@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/01/29
+//       2021/02/26
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -52,18 +52,7 @@ using namespace pub::debugging;     // For debugging
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  USE_BRINGUP= true                // Use bringup debugging? TODO: REMOVE
-,  USE_HIDDEN= true                 // Use mouse hide/show? TODO: REMOVE
-// USE_HIDDEN= false                // Use mouse hide/show? TODO: REMOVE
 }; // Compilation controls
-
-#if false                           // Bringup diagnostic?
-static struct EdText_initializer {  // TODO: REMOVE
-   EdText_initializer( void )       // (DO NOT USE DEBUGF)
-{  fprintf(stderr, "%4d EdText: Cursor hiding(%s)\n", __LINE__
-                 , USE_HIDDEN ? "ENABLED" : "DISABLED");
-}
-}  static_initializer;
-#endif
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -114,7 +103,7 @@ static inline unsigned              // The truncated value
      Widget*           parent,      // Parent Widget
      const char*       name)        // Widget name
 :  Window(parent, name ? name : "EdText")
-,  active(*config::active), font(*config::font)
+,  active(*editor::active), font(*config::font)
 {
    if( opt_hcdm )
      debugh("EdText(%p)::EdText\n", this);
@@ -280,7 +269,7 @@ void
    pub::UTF8::Decoder decoder(text); // UTF8 input buffer
    xcb_char2b_t out[256];           // UTF16 output buffer
    unsigned outlen;                 // UTF16 output buffer length
-   unsigned outpix= left;           // Current output pixel
+   unsigned outpix= left;           // Current output pixel index
    for(outlen= 0; outlen<256; outlen++) {
      outpix += font.length.width;   // Ending pixel (+1)
      if( outpix > rect.width )      // If past end of screen
@@ -950,48 +939,34 @@ void
 //       EdText::synch_active
 //
 // Purpose-
-//       Set the Active (cursor) line to the current row.
-//
-// Inputs-
-//       this->head= top screen line
-//       data->row   screen row
+//       Set the Active (cursor) line from the current row.
 //
 //----------------------------------------------------------------------------
 void
    EdText::synch_active( void )     // Set the Active (cursor) line
 {
    EdView* const data= editor::data;
-
-   const char* code= " row";        // Default, row match
-   EdLine* active= nullptr;         // Default, no active line
-   EdLine* line= (EdLine*)this->head; // Get the first line
-   if( line == nullptr ) {          // If Empty      // TODO: SHOULD NOT OCCUR
-     Editor::alertf("%4d HCDM EdText\n", __LINE__); // TODO: REMOVE
-     return;
-   }
-
-   if( data->row < USER_TOP )
+   if( data->row < USER_TOP )       // (File initial value == 0)
      data->row= USER_TOP;
 
+   EdLine* line= head;              // Get the top line
+   const char* match_type= " row";  // Default, row match
    for(unsigned r= USER_TOP; ; r++) { // Set the Active line
      if( r == data->row ) {
-//     code= " row";                // Row match
-       active= line;
+//     match_type= " row";          // Row match
        break;
      }
 
      EdLine* next= line->get_next();
      if( next == nullptr ) {        // (Can occur if window grows)
-       code= "next";                // Next line null
+       match_type= "next";          // Next line null
        data->row= r;
-       active= line;
        break;
      }
 
      if( (r + 1) >= row_size ) {    // (Can occur if window shrinks)
-       code= "size";                // Window shrink
+       match_type= "size";          // Window shrink
        data->row= r;
-       active= line;
        break;
      }
 
@@ -999,9 +974,9 @@ void
    }
 
    // Set the new active line (with trace)
-   Config::trace(".CSR", code, active, data->cursor); // (New, old)
-   data->cursor= active;
-   data->active.reset(active->text);
+   Config::trace(".CSR", match_type, line, data->cursor); // (New, old)
+   data->cursor= line;
+   data->active.reset(line->text);
    draw_cursor();
 }
 
@@ -1028,18 +1003,15 @@ void
        draw();
        break;
 
-     case 'C': {                    // Copy
-       if( mark->mark_col >= 0 ) {
-         editor::put_message("Use ctrl-C + ctrl-V for block copy");
-         break;
-       }
-       const char* error= mark->copy();
+     case 'C': {                    // Copy the mark
+       const char* error= mark->verify_copy(data->cursor);
        if( error ) {
          editor::put_message(error);
          break;
        }
 
-       mark->paste(file, data->cursor);
+       mark->copy();
+       mark->paste(file, data->cursor, data->get_column());
        draw();
        break;
      }
@@ -1052,7 +1024,7 @@ void
        editor::join_lines();        // Join the current and next line
        break;
      }
-     case 'I': {                    // Insert
+     case 'I': {                    // Insert line
        data->commit();
        EdLine* after= data->cursor; // Insert afer the current cursor line
        if( after->get_next() == nullptr ) // If it's the last line
@@ -1082,6 +1054,7 @@ void
        redo->head_insert= head;
        redo->tail_insert= tail;
        file->redo_insert(redo);
+       mark->handle_redo(file, redo);
        file->activate(tail);        // (Activate the newly inserted line)
        draw();                      // And redraw
        break;
@@ -1091,18 +1064,15 @@ void
        draw();
        break;
 
-     case 'M': {                    // Move (Uses cut/paste)
-       if( mark->mark_col >= 0 ) {
-         editor::put_message("Use ctrl-X + ctrl-V for block move");
-         break;
-       }
-       const char* error= mark->cut();
+     case 'M': {                    // Move mark (Uses cut/paste)
+       const char* error= mark->verify_move(data->cursor);
        if( error ) {
          editor::put_message(error);
          break;
        }
 
-       mark->paste(file, data->cursor);
+       mark->cut();
+       mark->paste(file, data->cursor, data->get_column());
        draw();
        break;
      }
@@ -1137,11 +1107,12 @@ void
    EdMark* const mark= editor::mark;
 
    switch(key) {                    // CTRL-
-     case 'C': {                    // Copy
+     case 'C': {                    // Copy the mark
        editor::put_message( mark->copy() );
        break;
      }
-     case 'V': {                    // Paste
+     case 'V': {                    // Paste (from copy/cut)
+       data->commit();
        const char* error= mark->paste(file, data->cursor, data->get_column());
        if( error )
          editor::put_message(error);
@@ -1170,14 +1141,25 @@ int                                 // Return code, TRUE if error message
      int mask= state & (gui::KS_ALT | gui::KS_CTRL);
 
      if( mask ) {
+       key= toupper(key);
        if( mask == gui::KS_ALT ) {
-         key= toupper(key);
-         switch(key) {
-           case 'I':                  // INSERT allowed
-           case 'Q':                  // QUIT allowed
-           case 'U':                  // EdMark::reset allowed
+         switch(key) {                // Allowed keys:
+           case 'C':                  // COPY MARK
+           case 'D':                  // DELETE MARK
+           case 'I':                  // INSERT
+           case 'M':                  // MOVE MARK
+           case 'Q':                  // QUIT
+           case 'U':                  // UNDO MARK
              return false;
+
+           default:
              break;
+         }
+       } else if( mask == gui::KS_CTRL ) {
+         switch(key) {                // Allowed keys:
+           case 'C':                  // COPY
+           case 'V':                  // PASTE
+             return false;
 
            default:
              break;
@@ -1193,7 +1175,6 @@ int                                 // Return code, TRUE if error message
 
        default:                     // All others allowed
          return false;
-         break;
      }
    }
 
@@ -1210,16 +1191,13 @@ void
    EdFile* const file= editor::file;
    EdView* const view= editor::view;
 
+   // Diagnostics
+   const char* key_name= editor::key_to_name(key);
+   Config::trace(".KEY", (state<<16) | (key & 0x0000ffff), key_name);
    if( opt_hcdm ) {
-     char B[2]; B[0]= '\0'; B[1]= '\0'; const char* K= B;
-     if( key >= 0x0020 && key < 0x007F ) B[0]= char(key);
-     else K= editor::key_to_name(key);
      debugh("EdText(%p)::key_input(0x%.4x,%.4x) '%s'\n", this
-           , key, state, K);
+           , key, state, key_name);
    }
-
-   const char* name= editor::key_to_name(key);
-   Config::trace(".KEY", (state<<16) | (key & 0x0000ffff), name);
 
    // Handle protected line
    if( view == data ) {             // Only applies to data view
@@ -1313,10 +1291,10 @@ void
        flush();
        break;
      }
-     case XK_Escape:                // Escape: Invert history view
+     case XK_Escape: {              // Escape: Invert history view
        editor::do_history();
        break;
-
+     }
      case XK_Insert: {              // Insert key
        keystate ^= KS_INS;          // Invert the insert state
        draw_info();
@@ -1359,7 +1337,7 @@ void
               " F6: Change\n"
               " F7: Previous File\n"
               " F8: Next File\n"
-              " F9: Quick debug\n"
+              " F9: NOP\n"
               "F10: Line to top\n"
               "F11: Undo\n"
               "F12: Redo\n"
@@ -1412,19 +1390,7 @@ void
        }
        break;
      }
-     case XK_F9: {                  // Quick debug. TODO: REMOVE/REPLACE
-       pub::Trace* trace= pub::Trace::trace;
-       if( trace ) {
-         if( trace->flag[pub::Trace::X_HALT] ) {
-           Config::errorf("Tracing resumed\n");
-           trace->flag[pub::Trace::X_HALT]= false;
-           return;
-         }
-
-         trace->flag[pub::Trace::X_HALT]= true;
-       } // else Config::errorf("Tracing inactive\n");
-
-       Editor::alertf("F9");
+     case XK_F9: {                  // TODO: NOT ASSIGNED
        break;
      }
      case XK_F10: {                 // Line to top
@@ -1522,7 +1488,6 @@ void
        move_cursor_H(view->active.get_cols());
        break;
      }
-
      default:
        editor::put_message("Invalid key");
    }
@@ -1551,6 +1516,7 @@ void
 
    size_t current_col= view->get_column(); // The current column number
    unsigned button_row= get_row(E.event_y); // (Absolute) button row
+
    switch( E.detail ) {
      case gui::BT_LEFT: {           // Left button
        if( button_row < USER_TOP ) { // If on command/history line
@@ -1654,11 +1620,11 @@ void
 
    // printf("."); fflush(stdout);  // See when called
    if( E->event_x != motion.x || E->event_y != motion.y )
-     { if( USE_HIDDEN ) show_mouse(); } // TODO: REMOVE USE_HIDDEN
+     { if( config::USE_MOUSE_HIDE ) show_mouse(); } // TODO: REMOVE
    else {
      if( (E->time - motion.time) < 1000 ) // If less than 1 second idle
        return;                      // Ignore
-     { if( USE_HIDDEN ) hide_mouse(); } // TODO: REMOVE USE_HIDDEN
+     { if( config::USE_MOUSE_HIDE ) hide_mouse(); } // TODO: REMOVE
    }
 
    motion.time= E->time;

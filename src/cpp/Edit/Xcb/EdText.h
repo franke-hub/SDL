@@ -16,7 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2021/01/24
+//       2021/02/18
 //
 //----------------------------------------------------------------------------
 #ifndef EDTEXT_H_INCLUDED
@@ -71,7 +71,7 @@ int                    y;           // Last Y position
 //----------------------------------------------------------------------------
 // EdText::Attributes
 //----------------------------------------------------------------------------
-Active&                active;      // Active reference (*config::active)
+Active&                active;      // Active reference (*editor::active)
 gui::Font&             font;        // Font reference (*config::font)
 EdLine*                head= nullptr; // Current first data screen line
 EdLine*                tail= nullptr; // Current last  data screen line
@@ -144,7 +144,7 @@ void
 
 void
    activate(                        // Activate
-     EdLine*           _line);      // This line
+     EdLine*           line);       // This line
 
 //----------------------------------------------------------------------------
 //

@@ -16,7 +16,7 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2021/01/24
+//       2021/02/21
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
@@ -29,8 +29,6 @@
 #include <gui/Window.h>             // For gui::Window
 #include <pub/config.h>             // For _ATTRIBUTE_PRINTF macros
 #include <pub/Signals.h>            // For pub::signals
-
-#include "Active.h"                 // For Active
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -147,13 +145,12 @@ static void
    trace(                           // Simple trace event
      const char*       ident,       // Trace identifier
      const char*       code,        // Trace sub-identifier
-     void*             _one= nullptr,  // Word one
-     void*             _two= nullptr); // Word two
+     void*             one_= nullptr,  // Word one
+     void*             two_= nullptr); // Word two
 
 static void
    trace(                           // Trace undo/redo operation
-     const char*       ident,       // Trace identifier (.UDO, .RDO)
-     const char*       code,        // Trace sub-identifer (file,init,mark)
+     const char*       ident,       // Trace identifier
      EdRedo*           redo,        // The UNDO/REDO
      EdFile*           file,        // The UNDO/REDO file
      EdLine*           line= nullptr); // The UNDO/REDO cursor line
@@ -177,9 +174,7 @@ extern int             opt_hcdm;    // Hard Core Debug Mode?
 extern const char*     opt_test;    // Bringup test?
 extern int             opt_verbose; // Debugging verbosity
 
-// XCB objects --------------------------------------------------------------
-extern Active*         actalt;      // Active, for temporary use
-extern Active*         active;      // Active, for temporary use
+// GUI objects --------------------------------------------------------------
 extern gui::Device*    device;      // The root Device
 extern gui::Window*    window;      // The test Window
 extern gui::Font*      font;        // The Font object
@@ -205,6 +200,9 @@ extern uint32_t        message_fg;  // message.fg: Message line FG
 
 // Screen controls -----------------------------------------------------------
 extern xcb_rectangle_t geom;        // The screen geometry
+
+// TODO: REMOVE (Bringup controls) -------------------------------------------
+extern int32_t         USE_MOUSE_HIDE; // Use mouse hide logic?
 
 // Initialized controls
 extern std::string     AUTO;        // The AUTOSAVE directory

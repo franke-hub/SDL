@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2021/01/24
+//       2021/02/18
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -32,6 +32,7 @@
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
+class Active;                       // Editor Active line object
 class EdFile;                       // Editor file descriptor
 class EdHist;                       // Editor history view
 class EdMark;                       // Editor mark controller
@@ -104,6 +105,8 @@ extern EdText*         text;        // The Text Window
 extern pub::List<EdFile> file_list; // The list of EdFiles
 extern EdFile*         file;        // The current File object
 
+extern Active*         actalt;      // Active object (for temporary use)
+extern Active*         active;      // Active object (for temporary use)
 extern EdView*         data;        // The data view
 extern EdHist*         hist;        // The history view
 extern EdMark*         mark;        // The Mark Handler
@@ -274,8 +277,8 @@ const char*                         // The symbol name, "???" if unknown
 //----------------------------------------------------------------------------
 void
    put_message(                     // Write message
-     const char*       _mess,       // Message text
-     int               _type= 0);   // Message mode (default EdMess::T_INFO)
+     const char*       mess_,       // Message text
+     int               type_= 0);   // Message mode (default EdMess::T_INFO)
 
 //----------------------------------------------------------------------------
 //

@@ -15,35 +15,23 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/01/24
+##       2021/02/26
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in PRE-ALPHA status.
 ##       ALL interfaces are preliminary and subject to major change.
 ##
-##       Find editor usage information, including key bindings, at the end of
-##       this document.
-##
-##       For internal trace type information use: "rgrep trace\("
+##       Find usage and implementation information in "Editor.md"
 ##
 ##############################################################################
-
-##############################################################################
-## INFO: CYGWIN features not available or not working. (OK on Linux)
-         Config::backtrace()        // CYGWIN: no output
-         setlocale(LC_NUMERIC, ""); printf("%'d\n", 123456789); // No commas
 
 ##############################################################################
 ## STATUS:
+2021/02/21 Block block copy/move operational
+         Mark appears to be working. Debugging code remains but commented out.
+
 2021/01/24 Xcb subdirectory moved to ~/src/cpp/inc/gui and ~/src/cpp/lib/gui
          Fixed block cut bug.
-
-2021/01/10 BUG: (Not reproduced since 2021/01/10)
-         Blank lines intermittently duplicate prior line offset 2 columns
-         (Doesn't show up immediately. Moving cursor over line shows it.)
-         ** USE F9 DEBUGGING OPTION **
-         It looks like data->cursor got changed in an unexplained manner.
-         Added .CSR trace event whenever cursor changes to flush it out.
 
 2021/01/16 TODO:
          Some config options not coded yet.
@@ -54,9 +42,6 @@
          Draw full background on line 0 (status, message, history)
          Multiple editor windows. (Restructure required.)
            (May not be too hard. Only one window open a time.)
-         Possibly don't need to call mark.handle_redo from file.redo_insert.
-           file.redo_insert is called on original insert.
-           Isn't mark already done then???
 
 ##############################################################################
 2021/01/22 Code review. Xcb/Edit now used by author as default editor.
@@ -174,62 +159,3 @@
 
 ##############################################################################
 ## FIXED:
-
-##############################################################################
-##
-## General usage notes:
-##     When any line is changed, it is saved with trailing blanks removed.
-##     If the last line has no delimiter and is changed, its delimiter is
-##     changed to '\n' or "\r\n" depending upon the file mode.
-##
-##     Copy and move operations (Alt-C and Alt-M) are divided in two. The
-##     first part copies the lines into a work area, then (for move) deleting
-##     deleting the original lines. The second part pastes the lines. The
-##     paste operation can be repeated using Ctrl-V. For move, UNDO is also
-##     two operations. Once created, the copy list is only replaced. It is
-##     never deleted.
-##
-## Editor commands: (Command names are not case sensitive)
-##     BOT     Move the cursor to the last editor line (column 0)
-##     C       Change: C /find/replace/  (Find begins at CURRENT cursor)
-##     D       *TEMPORARY* Debug <option>
-##     DEBUG   (Alias of D)
-##     E       Edit another set of files (Path cannot contain wildcards)
-##     EDIT    (Alias of E)
-##     FILE    Save and close the current file
-##     L       Locate: L /find/ (Find begins at NEXT character)
-##     QUIT    (Unconditionally) close the current file
-##     SAVE    Save the current file
-##     TOP     Move the cursor to the first editor line (column 0)
-##
-##     Other planned commands may be scaffolded and do nothing.
-##
-## Editor key bindings:
-##     Alt-B   Mark block (Columns)
-##     Alt-C   Copy marked lines (Use Ctrl-C + Ctrl-V for block copy)
-##     Alt-D   Delete marked lines or block
-##     Alt-I   Insert line
-##     Alt-L   Mark line
-##     Alt-M   Move marked lines (Use Ctrl-X + Ctrl-V for block move)
-##     Alt-Q   (Safe) quit. Leave editor if no files are changed.
-##     Alt-U   Undo mark
-##
-##     Ctrl-C  Copy mark  (First half of Alt-C)
-##     Ctrl-V  Paste copy (Second half of Alt-C or Alt-M)
-##     Ctrl-X  Delete mark (Same as Alt-D)
-##
-##     ESC     Switch between command and data mode
-##     F1      Help message (to stdout)
-##     F2      *TEMPORARY* (Bringup test)
-##     F3      (Safe) quit. Close file if it's unchanged.
-##     F4      Move focus to next changed file
-##     F5      Repeat locate
-##     F6      Repeat change
-##     F7      Move focus to previous file
-##     F8      Move focus to next file
-##     F9      *TEMPORARY* (Debug everything, turn off/on internal trace)
-##     F10     Move current line to top of screen
-##     F11     UNDO (Note: Cannot UNDO a save operation)
-##     F12     REDO (Note: Any committed change after UNDO removes REDO)
-##
-##############################################################################

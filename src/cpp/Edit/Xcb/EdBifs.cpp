@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2021/01/24
+//       2021/02/26
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -183,6 +183,7 @@ static const char*                  // Error message, nullptr expected
      editor::hist->debug("command");
    } else
      return "Invalid command";
+   debug_flush();
 
    editor::hist->activate();
    return nullptr;
@@ -364,6 +365,30 @@ static const char*                  // Error message, nullptr expected
 }
 
 static const char*                  // Error message, nullptr expected
+   command_sort(char*)              // Sort editor::file_list
+{
+   pub::List<EdFile> sort_list;     // The sorted list of EdFiles
+
+   for(;;) {                        // Sort the file list
+     EdFile* low= editor::file_list.get_head();
+     if( low == nullptr )
+       break;
+
+     for(EdFile* file= low->get_next(); file; file= file->get_next()) {
+       if( file->name < low->name )
+         low= file;
+     }
+
+     editor::file_list.remove(low, low);
+     sort_list.fifo(low);
+   }
+
+   editor::file_list.insert(nullptr, sort_list.get_head(), sort_list.get_tail());
+
+   return nullptr;
+}
+
+static const char*                  // Error message, nullptr expected
    command_top(char*)               // Top command
 {
    using namespace editor;          // For editor::data, hist, text
@@ -407,6 +432,7 @@ static const Command_desc
 ,  {"QUIT",     command_quit}       // Quit
 ,  {"SAVE",     command_save}       // Save
 ,  {"SET",      command_set}        // Set
+,  {"SORT",     command_sort}       // Sort
 // {"TABS",     command_tabs}       // Tabs
 ,  {"TOP",      command_top}        // Top
 ,  {nullptr,    nullptr}            // End of list delimiter
