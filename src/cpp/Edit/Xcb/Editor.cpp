@@ -19,7 +19,9 @@
 //       2021/02/28
 //
 //----------------------------------------------------------------------------
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE                 // For strcasestr
+#endif
 #include <assert.h>                 // For assert
 #include <stdio.h>                  // For printf
 #include <stdlib.h>                 // For various
@@ -101,7 +103,7 @@ uint32_t               editor::locate_wrap= false;
 //       Editor editor::locate_case controlled strstr
 //
 //----------------------------------------------------------------------------
-static char*                        // Resultant
+static const char*                  // Resultant
    edit_strstr(                     // Multi-case strstr
      const char*       lhs,         // Source string
      const char*       rhs)         // Locate string
@@ -121,15 +123,15 @@ static char*                        // Resultant
 //       Locate last occurance of string in text.
 //
 //----------------------------------------------------------------------------
-static char*                        // Last occurance, nullptr none
+static const char*                  // Last occurance, nullptr none
    last_strstr(                     // Locate last occurance of string in text
      const char*       text,        // Text origin
      const char*       find)        // Search string
 {
-   char* last= edit_strstr(text, find); // Find first occurance
+   const char* last= edit_strstr(text, find); // Find first occurance
    if( last ) {                     // If existent
      for(;;) {                      // Find last occurrance
-       char* next= edit_strstr(last+1, find);
+       const char* next= edit_strstr(last+1, find);
        if( next == nullptr )
          break;
 
