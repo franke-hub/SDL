@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2021/01/24
+//       2021/02/27
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -433,6 +433,25 @@ void
 
    source= text;
    fsm= FSM_RESET;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Active::resize
+//
+// Purpose-
+//       Resize the buffer
+//
+//----------------------------------------------------------------------------
+const char*                         // The resized buffer
+   Active::resize(                  // Resize the buffer
+     size_t            size)        // To (exactly) this size
+{
+   fetch(size+1);
+   buffer_used= size;
+   buffer[buffer_used]= '\0';
+   return buffer;
 }
 
 //----------------------------------------------------------------------------

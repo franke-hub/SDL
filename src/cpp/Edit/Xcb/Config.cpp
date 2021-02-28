@@ -106,7 +106,7 @@ uint32_t               config::message_fg= 0x00900000; // Message FG
 xcb_rectangle_t        config::geom= {1030, 0, 80, 50}; // The screen geometry
 
 // Bringup controls -- From configuration file -------------------------------
-int32_t                config::USE_MOUSE_HIDE= true; // Use mouse hide logic?
+uint32_t               config::USE_MOUSE_HIDE= true; // Use mouse hide logic?
 
 // GUI objects ------- Initialized at startup (Font configured) --------------
 gui::Device*           config::device= nullptr; // The root Device
@@ -694,23 +694,31 @@ static void
 //       Configuration parser
 //
 //----------------------------------------------------------------------------
-struct Color_item {
-const char*            name;        // The color name
-uint32_t*              addr;        // The color value
+struct Option {                     // Value name, address pair
+const char*            name;        // The value name
+uint32_t*              addr;        // The value value
+}; // struct Option
+
+struct Option          bool_list[]= // Boolean parameter list
+{ {"locate.wrap",      &editor::locate_wrap}
+, {"locate.case",      &editor::locate_case}
+, {"locate.reverse",   &editor::locate_back}
+, {"USE_MOUSE_HIDE",   &USE_MOUSE_HIDE}
+, {nullptr,            nullptr}     // End of list
 };
 
-struct Color_item      color_list[]= // The color name/value list
-{ {"mark.bg",    &mark_bg}
-, {"mark.fg",    &mark_fg}
-, {"text.bg",    &text_bg}
-, {"text.fg",    &text_fg}
-, {"change.bg",  &change_bg}
-, {"change.fg",  &change_fg}
-, {"status.bg",  &status_bg}
-, {"status.fg",  &status_fg}
-, {"message.bg", &message_bg}
-, {"message.fg", &message_fg}
-, {nullptr,      nullptr}           // End of list
+struct Option          color_list[]= // The color parameter list
+{ {"mark.bg",          &mark_bg}
+, {"mark.fg",          &mark_fg}
+, {"text.bg",          &text_bg}
+, {"text.fg",          &text_fg}
+, {"change.bg",        &change_bg}
+, {"change.fg",        &change_fg}
+, {"status.bg",        &status_bg}
+, {"status.fg",        &status_fg}
+, {"message.bg",       &message_bg}
+, {"message.fg",       &message_fg}
+, {nullptr,            nullptr}      // End of list
 };
 
 static void
@@ -738,31 +746,38 @@ static void
    va_end(argptr);                  // Close va_ functions
 }
 
-static int                          // {-1, 0, +1} [error, false, true]
+static void                         // {-1, 0, +1} [error, false, true]
    parse_bool(                      // Parse boolean value
-     const char*       value)       // The current value string
+     std::string       file,        // The parse file name
+     const Option&     item,        // The item option descriptor
+     const char*       VALUE)       // The item value string
 {
-   if( strcasecmp(value, "true") == 0 )
-     return true;
-   if( strcasecmp(value, "false") == 0 )
-     return false;
+   int32_t value= -1;               // Default, invalid value
 
-   if( strcasecmp(value, "yes") == 0 )
-     return true;
-   if( strcasecmp(value, "no") == 0 )
-     return false;
+   if( strcasecmp(VALUE, "true") == 0 )
+     value= true;
+   else if( strcasecmp(VALUE, "false") == 0 )
+     value= false;
 
-   if( strcasecmp(value, "on") == 0 )
-     return true;
-   if( strcasecmp(value, "off") == 0 )
-     return false;
+   else if( strcasecmp(VALUE, "1") == 0 )
+     value= true;
+   else if( strcasecmp(VALUE, "0") == 0 )
+     value= false;
 
-   if( strcasecmp(value, "1") == 0 )
-     return true;
-   if( strcasecmp(value, "0") == 0 )
-     return false;
+   else if( strcasecmp(VALUE, "on") == 0 )
+     value= true;
+   else if( strcasecmp(VALUE, "off") == 0 )
+     value= false;
 
-   return -1;
+   else if( strcasecmp(VALUE, "yes") == 0 )
+     value= true;
+   else if( strcasecmp(VALUE, "no") == 0 )
+     value= false;
+
+   if( value >= 0 )                 // If the value is valid
+     *item.addr= (uint32_t)value;   // (true or false)
+   else
+     parse_error(file, "Name(%s) '%s' invalid\n", item.name, VALUE);
 }
 
 static int                          // The integer value
@@ -786,7 +801,7 @@ static int                          // The integer value
 static void
    parse_color(                     // Parse color option
      std::string       file,        // The parse file name
-     const Color_item& item,        // The item name descriptor
+     const Option&     item,        // The item option descriptor
      const char*       VALUE)       // The item value string
 {
    const char* value= VALUE;        // Working value
@@ -832,15 +847,27 @@ static void
        for(const char* parm= parser.get_next(sect, nullptr); parm;
            parm= parser.get_next(sect, parm)) {
          const char* value= parser.get_value(sect,parm);
-         Color_item* color= nullptr;
+         Option* option= nullptr;
          for(int i= 0; color_list[i].name; i++) {
            if( strcmp(parm, color_list[i].name) == 0 ) {
-             color= color_list + i;
+             option= color_list + i;
              break;
            }
          }
-         if( color ) {
-           parse_color(name, *color, value);
+         if( option ) {
+           parse_color(name, *option, value);
+           continue;
+         }
+
+         option= nullptr;
+         for(int i= 0; bool_list[i].name; i++) {
+           if( strcmp(parm, bool_list[i].name) == 0 ) {
+             option= bool_list + i;
+             break;
+           }
+         }
+         if( option ) {
+           parse_bool(name, *option, value);
            continue;
          }
 
@@ -848,14 +875,6 @@ static void
            int rc= font->open(value); // Set the font
            if( rc == 0 )
              font_valid= true;
-           continue;
-         }
-
-         if( strcmp(parm, "autowrap") == 0 ) {
-           continue;
-         }
-
-         if( strcmp(parm, "case") == 0 ) {
            continue;
          }
 
@@ -875,14 +894,6 @@ static void
              config::geom= geom;
            else
              parse_error(name, "geometry(%s) invalid\n", VALUE);
-           continue;
-         }
-
-         // TODO: REMOVE (Bringup temporaries)
-         if( strcmp(parm, "USE_MOUSE_HIDE") == 0 ) {
-           config::USE_MOUSE_HIDE= parse_bool(value);
-           if( config::USE_MOUSE_HIDE < 0 )
-             parse_error(name, "USE_MOUSE_HIDE(%s) invalid\n", value);
            continue;
          }
 

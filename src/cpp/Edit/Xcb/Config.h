@@ -199,7 +199,7 @@ extern uint32_t        message_fg;  // message.fg: Message line FG
 extern xcb_rectangle_t geom;        // The screen geometry
 
 // TODO: REMOVE (Bringup controls) -------------------------------------------
-extern int32_t         USE_MOUSE_HIDE; // Use mouse hide logic?
+extern uint32_t        USE_MOUSE_HIDE; // Use mouse hide logic?
 
 // Initialized controls
 extern std::string     AUTO;        // The AUTOSAVE directory

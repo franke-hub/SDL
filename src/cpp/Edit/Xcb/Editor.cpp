@@ -16,13 +16,14 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/02/21
+//       2021/02/28
 //
 //----------------------------------------------------------------------------
+#define _GNU_SOURCE                 // For strcasestr
 #include <assert.h>                 // For assert
 #include <stdio.h>                  // For printf
 #include <stdlib.h>                 // For various
-#include <com/istring.h>            // For stristr
+#include <string.h>                 // For string functions
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/stat.h>               // For stat
 #include <xcb/xcb.h>                // For XCB interfaces
@@ -87,9 +88,124 @@ pub::List<EdPool>      editor::filePool; // File allocation EdPool
 pub::List<EdPool>      editor::textPool; // Text allocation EdPool
 
 // Search controls -----------------------------------------------------------
-int                    editor::autowrap= false;
-int                    editor::case_sensitive= false;
-int                    editor::direction= 0;
+uint32_t               editor::locate_back= false;
+uint32_t               editor::locate_case= false;
+uint32_t               editor::locate_wrap= false;
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       edit_strstr
+//
+// Purpose-
+//       Editor editor::locate_case controlled strstr
+//
+//----------------------------------------------------------------------------
+static char*                        // Resultant
+   edit_strstr(                     // Multi-case strstr
+     const char*       lhs,         // Source string
+     const char*       rhs)         // Locate string
+{
+   if( editor::locate_case )        // If case sensitive compare
+     return strstr(lhs, rhs);
+   else
+     return strcasestr(lhs, rhs);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       last_strstr
+//
+// Purpose-
+//       Locate last occurance of string in text.
+//
+//----------------------------------------------------------------------------
+static char*                        // Last occurance, nullptr none
+   last_strstr(                     // Locate last occurance of string in text
+     const char*       text,        // Text origin
+     const char*       find)        // Search string
+{
+   char* last= edit_strstr(text, find); // Find first occurance
+   if( last ) {                     // If existent
+     for(;;) {                      // Find last occurrance
+       char* next= edit_strstr(last+1, find);
+       if( next == nullptr )
+         break;
+
+       last= next;
+     }
+   }
+
+   return last;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       prev_locate
+//
+// Purpose-
+//       Locate next occurance of string, searching backwards
+//
+//----------------------------------------------------------------------------
+static const char*                  // Return message, nullptr if OK
+   prev_locate(                     // Locate previous
+     int               offset)      // (For locate_change, offset= 0, else 1)
+{
+   const char* S= locate_string.c_str();
+
+   //-------------------------------------------------------------------------
+   // Locate in the active line
+   EdLine* line= data->cursor;
+
+   if( (line->flags & EdLine::F_PROT) == 0 ) { // If line is not protected
+     Active& A= *editor::active;    // Working Active buffer
+     A.reset(data->active.get_buffer());
+     size_t column= data->get_column() + editor::locate_string.size();
+     if( offset && column > 0 ) {
+       const char* C= A.resize(column - 1);
+       const char* M= last_strstr(C, S);
+       if( M != nullptr ) {
+         text->move_cursor_H(M - C);
+         text->draw_info();
+         return nullptr;
+       }
+     }
+   }
+
+   //-------------------------------------------------------------------------
+   // Search backward in file
+   for(line= line->get_prev(); line; line= line->get_prev() ) {
+     if( (line->flags & EdLine::F_PROT) == 0 ) {
+       const char* M= last_strstr(line->text, S);
+       if( M != nullptr ) {
+         text->activate(line);
+         text->move_cursor_H(M - line->text);
+         return nullptr;
+       }
+     }
+   }
+
+   //-------------------------------------------------------------------------
+   // Search wrap
+   if( editor::locate_wrap ) {
+     line= file->line_list.get_tail(); // (The "bot of file" line, skipped)
+     for(line= line->get_prev(); line; line= line->get_prev()) {
+       if( (line->flags & EdLine::F_PROT) == 0 ) {
+         const char* M= last_strstr(line->text, S);
+         if( M != nullptr ) {
+           text->activate(line);
+           text->move_cursor_H(M - line->text);
+           put_message("Wrapped");
+           return nullptr;
+         }
+       }
+     }
+   }
+
+   return "Not found";
+}
 
 //----------------------------------------------------------------------------
 //
@@ -410,36 +526,117 @@ const char*                         // Return message, nullptr if OK
 //       (Safely) remove a file from the file list.
 //
 //----------------------------------------------------------------------------
-void
+const char*                         // Error message, nullptr expected
    editor::do_exit( void )          // Safely remove a file from the file list
 {
    if( file->damaged )
-     put_message("File damaged");
-   else if( file->changed )
-     put_message("File changed");
-   else
-     remove_file();
+     return "File damaged";
+   if( file->changed )
+     return "File changed";
+
+   remove_file();
+   return nullptr;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::do_history
+//       editor::do_insert
 //
 // Purpose-
-//       Invert history view.
+//       Insert a line after the cursor.
 //
 //----------------------------------------------------------------------------
-void
-   editor::do_history( void )       // Invert history view
+const char*                         // Error message, nullptr expected
+   editor::do_insert( void )        // Insert a new, empty line
 {
-   if( view == hist ) {
-     data->activate();
-     text->draw_cursor();
-   } else {
-     text->undo_cursor();
-     hist->activate();
+   if( view != data )
+     return "Cursor view";
+
+   data->commit();
+   EdLine* after= data->cursor;     // Insert afer the current cursor line
+   if( after->get_next() == nullptr ) // If it's the last line
+     after= after->get_prev();      //  Use the prior line instead
+
+   EdLine* head= file->new_line();  // Get new, empty insert line
+   EdLine* tail= head;
+
+   // Handle insert after no delimiter line
+   EdRedo* redo= new EdRedo();
+   if( after->delim[0] == '\0' && after->delim[1] == '\0' ) {
+     head= file->new_line(after->text); // Get "after" line replacement
+
+     pub::List<EdLine> list;        // Connect head and tail
+     list.fifo(head);
+     list.fifo(tail);
+
+     // Remove the current "after" from the file, updating the REDO
+     file->remove(after);           // (Does not modify edLine->get_prev())
+     redo->head_remove= redo->tail_remove= after;
+     after= after->get_prev();
    }
+
+   // Insert the line(s) (with redo)
+   data->col_zero= data->col= 0;
+   file->insert(after, head, tail);
+   redo->head_insert= head;
+   redo->tail_insert= tail;
+   file->redo_insert(redo);
+   mark->handle_redo(file, redo);
+   file->activate(tail);            // (Activate the newly inserted line)
+   text->draw();                    // And redraw
+
+   return nullptr;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_join
+//
+// Purpose-
+//       Join the current and next line.
+//
+//----------------------------------------------------------------------------
+const char*                         // Return message, nullptr expected
+   editor::do_join( void )          // Join the current and next line
+{
+   if( view != data )
+     return "Cursor view";
+
+   data->commit();                  // Commit the active line (removes blanks)
+
+   // (The cursor line itself has already been verified non-protected)
+   EdLine* head= data->cursor;      // Address the cursor line
+   EdLine* tail= head->get_next();  // The join line
+   if( tail->flags & EdLine::F_PROT )
+     return "Protected";
+
+   // Join the lines
+   EdRedo* redo= new EdRedo();      // Create REDO
+   file->remove(head, tail);        // Remove the lines
+   redo->head_remove= head;
+   redo->tail_remove= tail;
+   if( head->text[0] == '\0' )      // If the head line is empty
+     data->active.reset(tail->text); // The tail line becomes the join line
+   else {
+     data->active.reset(head->text); // The current line
+     data->active.append_text(" ");
+     const char* text= tail->text;
+     while( *text == ' ' )
+       text++;
+     data->active.append_text(text);
+   }
+   EdLine* line= file->new_line( allocate(data->active.truncate()) );
+   file->insert(head->get_prev(), line, line);
+   redo->head_insert= redo->tail_insert= line;
+   file->redo_insert(redo);
+   mark->handle_redo(file, redo);
+   data->active.reset(line->text);
+   file->activate(line);
+   text->draw();
+
+   return nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -457,6 +654,9 @@ const char*                         // Return message, nullptr if OK
 {
    data->commit();                  // Commit the active line
 
+   if( locate_back )                // If reverse search active
+     return prev_locate(offset);
+
    const char* S= locate_string.c_str();
 
    //-------------------------------------------------------------------------
@@ -465,7 +665,7 @@ const char*                         // Return message, nullptr if OK
    size_t column= data->col_zero + data->col + offset;
    if( (line->flags & EdLine::F_PROT) == 0 ) { // If line is not protected
      const char* C= data->active.get_buffer(column); // Remaining characters
-     const char* M= stristr(C, S);
+     const char* M= edit_strstr(C, S);
      if( M != nullptr ) {
        data->activate();
        column += M - C;
@@ -477,20 +677,105 @@ const char*                         // Return message, nullptr if OK
 
    //-------------------------------------------------------------------------
    // Search remainder of file
-   for(;;) {
-     line= line->get_next();
-     if( line == nullptr )
-       return "Not found";
-
+   for(line= line->get_next(); line; line= line->get_next() ) {
      if( (line->flags & EdLine::F_PROT) == 0 ) {
-       const char* M= stristr(line->text, S);
+       const char* M= edit_strstr(line->text, S);
        if( M != nullptr ) {
+         data->activate();
          text->activate(line);
          text->move_cursor_H(M - line->text);
          return nullptr;
        }
      }
    }
+
+   //-------------------------------------------------------------------------
+   // Search wrap
+   if( editor::locate_wrap ) {
+     line= file->line_list.get_head(); // (The "top of file" line, skipped)
+     for(line= line->get_next(); line; line= line->get_next()) {
+       if( (line->flags & EdLine::F_PROT) == 0 ) {
+         const char* M= edit_strstr(line->text, S);
+         if( M != nullptr ) {
+           data->activate();
+           text->activate(line);
+           text->move_cursor_H(M - line->text);
+           put_message("Wrapped");
+           return nullptr;
+         }
+       }
+//     if( line == data->cursor )   // Not usually needed
+//       break;                     // (Completely omitted in prev_locate)
+     }
+   }
+
+   return "Not found";
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_split
+//
+// Purpose-
+//       Split the current line at the cursor.
+//
+//----------------------------------------------------------------------------
+const char*                         // Error message, nullptr expecte3d
+   editor::do_split( void )         // Split the current line at the cursor
+{
+   if( view != data )
+     return "Cursor view";
+
+   EdView& D= *data;                // Data view reference
+   D.commit();                      // Commit the active line
+
+   // Create and initialize REDO object, updating the file
+   EdLine* cursor= D.cursor;
+   EdRedo* redo= new EdRedo();
+   file->remove(cursor, cursor);
+   redo->head_remove= redo->tail_remove= cursor;
+
+   pub::List<EdLine> line_list;     // Replacement line list
+   line_list.fifo(file->new_line());
+   line_list.fifo(file->new_line());
+   EdLine* head= line_list.get_head();
+   EdLine* tail= line_list.get_tail();
+   file->insert(cursor->get_prev(), head, tail);
+   redo->head_insert= head;
+   redo->tail_insert= tail;
+   file->redo_insert(redo);
+   mark->handle_redo(file, redo);
+
+   // Initialize the split lines
+   Active& A= D.active;
+   A.index(D.get_column() + 1);     // (Insure blank fill to column)
+   char* both= (char*)A.get_buffer(); // (Sets trailing '\0' delimiter)
+   Active& H= *editor::active;
+   H.reset(both);
+   Active& T= *editor::actalt;
+   T.reset();
+   for(size_t lead= 0; ; lead++) {  // Insert leading blanks in tail
+     if( both[lead] != ' ' ) {
+       if( lead > 0 )
+         T.fetch(lead - 1);
+       break;
+     }
+   }
+
+   size_t X= pub::UTF8::index(both, D.get_column());
+   while( both[X] == ' ' )
+     X++;
+   T.append_text(both + X);
+   tail->text= allocate(T.truncate());
+   both[X]= '\0';
+   H.reset(both);
+   head->text= allocate(H.truncate());
+   A.reset(head->text);
+   file->activate(head);
+   text->draw();
+
+   return nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -518,6 +803,27 @@ void
        printf("%p\n", window->get_parent()->get_parent()); // (SEGFAULT TEST)
      }
      Config::errorf("editor::do_test NOT CONFIGURED\n");
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_view
+//
+// Purpose-
+//       Invert the view.
+//
+//----------------------------------------------------------------------------
+void
+   editor::do_view( void )          // Invert the view
+{
+   if( view == hist ) {
+     data->activate();
+     text->draw_cursor();
+   } else {
+     text->undo_cursor();
+     hist->activate();
    }
 }
 
@@ -610,53 +916,6 @@ EdFile*                             // The last file inserted
    return last;
 }
 #undef wildstrcmp
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       editor::join_lines
-//
-// Purpose-
-//       Join the current and next line.
-//
-//----------------------------------------------------------------------------
-void
-   editor::join_lines( void )       // Join the current and next line
-{
-   data->commit();                  // Commit the active line (removes blanks)
-
-   // (The cursor line itself has already been verified non-protected)
-   EdLine* head= data->cursor;      // Address the cursor line
-   EdLine* tail= head->get_next();  // The join line
-   if( tail->flags & EdLine::F_PROT ) {
-     put_message("Protected");
-     return;
-   }
-
-   // Join the lines
-   EdRedo* redo= new EdRedo();      // Create REDO
-   file->remove(head, tail);        // Remove the lines
-   redo->head_remove= head;
-   redo->tail_remove= tail;
-   if( head->text[0] == '\0' )      // If the head line is empty
-     data->active.reset(tail->text); // The tail line becomes the join line
-   else {
-     data->active.reset(head->text); // The current line
-     data->active.append_text(" ");
-     const char* text= tail->text;
-     while( *text == ' ' )
-       text++;
-     data->active.append_text(text);
-   }
-   EdLine* line= file->new_line( allocate(data->active.truncate()) );
-   file->insert(head->get_prev(), line, line);
-   redo->head_insert= redo->tail_insert= line;
-   file->redo_insert(redo);
-   mark->handle_redo(file, redo);
-   data->active.reset(line->text);
-   file->activate(line);
-   text->draw();
-}
 
 //----------------------------------------------------------------------------
 //
@@ -800,67 +1059,6 @@ const char*                         // Return code, nullptr expected
      const char*       name,        // This option name to
      const char*       value)       // This option value
 {  (void)name; (void)value; return "Not coded yet"; }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       editor::split_line
-//
-// Purpose-
-//       Split the current line at the cursor.
-//
-//----------------------------------------------------------------------------
-void
-   editor::split_line( void )       // Split the current line at the cursor
-{
-   EdView& D= *data;                // Data view reference
-   D.commit();                      // Commit the active line
-
-   // Create and initialize REDO object, updating the file
-   EdLine* cursor= D.cursor;
-   EdRedo* redo= new EdRedo();
-   file->remove(cursor, cursor);
-   redo->head_remove= redo->tail_remove= cursor;
-
-   pub::List<EdLine> line_list;     // Replacement line list
-   line_list.fifo(file->new_line());
-   line_list.fifo(file->new_line());
-   EdLine* head= line_list.get_head();
-   EdLine* tail= line_list.get_tail();
-   file->insert(cursor->get_prev(), head, tail);
-   redo->head_insert= head;
-   redo->tail_insert= tail;
-   file->redo_insert(redo);
-   mark->handle_redo(file, redo);
-
-   // Initialize the split lines
-   Active& A= D.active;
-   A.index(D.get_column() + 1);     // (Insure blank fill to column)
-   char* both= (char*)A.get_buffer(); // (Sets trailing '\0' delimiter)
-   Active& H= *editor::active;
-   H.reset(both);
-   Active& T= *editor::actalt;
-   T.reset();
-   for(size_t lead= 0; ; lead++) {  // Insert leading blanks in tail
-     if( both[lead] != ' ' ) {
-       if( lead > 0 )
-         T.fetch(lead - 1);
-       break;
-     }
-   }
-
-   size_t X= pub::UTF8::index(both, D.get_column());
-   while( both[X] == ' ' )
-     X++;
-   T.append_text(both + X);
-   tail->text= allocate(T.truncate());
-   both[X]= '\0';
-   H.reset(both);
-   head->text= allocate(H.truncate());
-   A.reset(head->text);
-   file->activate(head);
-   text->draw();
-}
 
 //----------------------------------------------------------------------------
 //

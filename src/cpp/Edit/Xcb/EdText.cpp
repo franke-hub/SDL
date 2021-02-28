@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/02/27
+//       2021/02/28
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -325,6 +325,7 @@ void
    if( file ) {
      data->commit();
 
+     file->csr_line= data->cursor;
      file->top_line= this->head;
      file->col_zero= data->col_zero;
      file->row_zero= data->row_zero;
@@ -994,11 +995,11 @@ void
    EdMark* const mark= editor::mark;
 
    switch(key) {                    // ALT-
-     case 'B':                      // Mark block
+     case 'B': {                    // Mark block
        editor::put_message(mark->mark(file, data->cursor, data->get_column()));
        draw();
        break;
-
+     }
      case 'C': {                    // Copy the mark
        const char* error= mark->verify_copy(data->cursor);
        if( error ) {
@@ -1017,49 +1018,18 @@ void
        break;
      }
      case 'J': {                    // Join lines
-       editor::join_lines();        // Join the current and next line
+       editor::put_message( editor::do_join() ); // Join current/next lines
        break;
      }
      case 'I': {                    // Insert line
-       data->commit();
-       EdLine* after= data->cursor; // Insert afer the current cursor line
-       if( after->get_next() == nullptr ) // If it's the last line
-         after= after->get_prev();  // Use the prior line instead
-
-       EdLine* head= file->new_line(); // Get new, empty insert line
-       EdLine* tail= head;
-
-       // Handle insert after no delimiter line
-       EdRedo* redo= new EdRedo();
-       if( after->delim[0] == '\0' &&  after->delim[1] == '\0' ) {
-         head= file->new_line(after->text); // Get "after" line replacement
-
-         pub::List<EdLine> list;    // Connect head and tail
-         list.fifo(head);
-         list.fifo(tail);
-
-         // Remove the current "after" from the file, updating the REDO
-         file->remove(after);       // (Does not modify edLine->get_prev())
-         redo->head_remove= redo->tail_remove= after;
-         after= after->get_prev();
-       }
-
-       // Insert the line(s) (with redo)
-       data->col_zero= data->col= 0;
-       file->insert(after, head, tail);
-       redo->head_insert= head;
-       redo->tail_insert= tail;
-       file->redo_insert(redo);
-       mark->handle_redo(file, redo);
-       file->activate(tail);        // (Activate the newly inserted line)
-       draw();                      // And redraw
+       editor::put_message( editor::do_insert() ); // Insert line after cursor
        break;
      }
-     case 'L':                      // Mark line
+     case 'L': {                    // Mark line
        editor::put_message( mark->mark(file, data->cursor) );
        draw();
        break;
-
+     }
      case 'M': {                    // Move mark (Uses cut/paste)
        const char* error= mark->verify_move(data->cursor);
        if( error ) {
@@ -1072,13 +1042,13 @@ void
        draw();
        break;
      }
-     case 'Q':                      // (Safe) quit
+     case 'Q': {                    // (Safe) quit
        if( editor::un_changed() )
          editor::exit();
        break;
-
+     }
      case 'S': {                    // Split line
-       editor::split_line();        // Split the current line
+       editor::put_message( editor::do_split() ); // Split the current line
        break;
      }
      case 'U': {                    // Undo mark
@@ -1123,7 +1093,6 @@ void
      }
      default:
        editor::put_message("Invalid key");
-       draw_info();
    }
 }
 
@@ -1287,8 +1256,8 @@ void
        flush();
        break;
      }
-     case XK_Escape: {              // Escape: Invert history view
-       editor::do_history();
+     case XK_Escape: {              // Escape: Invert the view
+       editor::do_view();
        break;
      }
      case XK_Insert: {              // Insert key
@@ -1348,7 +1317,7 @@ void
      }
      case XK_F3: {                  // (Safe) quit
        data->commit();
-       editor::do_exit();
+       editor::put_message( editor::do_exit() );
        break;
      }
      case XK_F4: {                  // Test changed
@@ -1357,11 +1326,11 @@ void
        break;
      }
      case XK_F5: {
-       editor::put_message(editor::do_locate());
+       editor::put_message( editor::do_locate() );
        break;
      }
      case XK_F6: {
-       editor::put_message(editor::do_change());
+       editor::put_message( editor::do_change() );
        break;
      }
      case XK_F7: {                  // Prior file
@@ -1546,8 +1515,8 @@ void
            break;
          }
 
-         // Invert history command line mode
-         editor::do_history();
+         // Invert the view
+         editor::do_view();
        }
        break;
      }

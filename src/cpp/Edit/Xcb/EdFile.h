@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2021/02/17
+//       2021/02/28
 //
 // Implementation objects-
 //       EdLine: Editor EdFile line descriptor
@@ -475,9 +475,6 @@ void
 //
 // Purpose-
 //       Set the file mode (to M_DOS or M_UNIX)
-//
-// Implementation note-
-//       This is a stand-alone operation that includes saving the file.
 //
 //----------------------------------------------------------------------------
 void

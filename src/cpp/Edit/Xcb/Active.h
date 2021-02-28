@@ -16,7 +16,7 @@
 //       Active Line descriptor.
 //
 // Last change date-
-//       2021/01/24
+//       2021/02/27
 //
 // Implementation note-
 //       Changed Lines also automatically remove any trailing blanks.
@@ -264,6 +264,19 @@ void
 void
    reset(                           // Set source text
      const char*       text= nullptr); // To this (immutable) text
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Active::resize
+//
+// Purpose-
+//       Resize the buffer
+//
+//----------------------------------------------------------------------------
+const char*                         // The resized buffer
+   resize(                          // Resize the buffer
+     size_t            size);       // To (exactly) this size
 
 //----------------------------------------------------------------------------
 //

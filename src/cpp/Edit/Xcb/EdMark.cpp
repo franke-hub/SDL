@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2021/02/26
+//       2021/02/28
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -243,7 +243,7 @@ const char*                         // Error message, nullptr expected
      return "No mark";
 
    if( editor::view != editor::data )
-     return "Cursor offscreen";
+     return "Cursor view";
 
    // Commit the current line
    editor::data->commit();
@@ -470,7 +470,7 @@ const char*                         // Error message, nullptr expected
      return "Mark offscreen";
 
    if( editor::view != editor::data )
-     return "Cursor offscreen";
+     return "Cursor view";
 
    if( column >= 0 ) {               // If block mark
      if( mark_col < 0 ) {            // If no block mark yet
@@ -570,7 +570,7 @@ const char*                         // Error message, nullptr expected
    if( copy_list.get_head() == nullptr )
      return "No copy/cut";
    if( editor::view != editor::data )
-     return "Cursor offscreen";
+     return "Cursor view";
    if( edLine->get_next() == nullptr )
      return "Protected";
    if( copy_col >= 0 ) {            // Validate block copy (Must fit in file)
@@ -744,7 +744,7 @@ const char*                         // Error message, nullptr expected
      return "No mark";
 
    if( editor::view != editor::data )
-     return "Cursor offscreen";
+     return "Cursor view";
 
    if( mark_col < 0 ) {             // Verify line copy
      if( edLine->get_next() == nullptr ) // Disallow copy past end

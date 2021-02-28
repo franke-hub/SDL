@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2021/02/26
+//       2021/02/28
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -43,15 +43,46 @@ enum // Compilation controls
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
-// Internal data areas
+// Internal tables
 //----------------------------------------------------------------------------
-static char            error_buffer[512]; // Error message buffer
+struct Name_addr {                  // Name address pair
+const char*            name;        // The symbol name
+int*                   addr;        // The symbol address
+}; // struct Name_addr
 
-namespace {                         // Anonymous namespace
-static struct INIT {                // Static initializer
-   INIT( void ) { error_buffer[sizeof(error_buffer-1)]= '\0'; }
-}  static_initializer;
-}  // Anonymous namespace
+struct Name_value {                 // Name value pair
+const char*            name;        // The value name
+int                    value;       // The associated value
+}; // struct Name_value
+
+static Name_value      bool_value[]= // Boolean value table
+{ {"true",             1}
+, {"false",            0}
+, {"1",                1}
+, {"0",                0}
+, {"on",               1}
+, {"off",              0}
+, {"yes",              1}
+, {"no",               0}
+, {nullptr,            -1}          // Not found value
+}; // bool_value[]
+
+static Name_value      mode_value[]= // Mode value table
+{ {"dos",              EdFile::M_DOS}
+, {"unix",             EdFile::M_UNIX}
+, {nullptr,            -1}          // Not found value
+}; // mode_value[]
+
+static Name_addr       true_addr[]= // Boolean symbols, default true
+{ {"locate.back",      (int*)&editor::locate_back}
+, {"locate.case",      (int*)&editor::locate_case}
+, {"locate.wrap",      (int*)&editor::locate_wrap}
+, {"reverse",          (int*)&editor::locate_back}
+, {"case_compare",     (int*)&editor::locate_case}
+, {"autowrap",         (int*)&editor::locate_wrap}
+, {"wrap",             (int*)&editor::locate_wrap}
+, {nullptr,            nullptr}     // Not found address
+}; // true_addr[]
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -65,14 +96,60 @@ static const char*                  // Error message, nullptr expected
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       file_writer
+//       find_addr
 //
 // Purpose-
-//       File writer, with error checking
+//       Locate a symbol address
+//
+//----------------------------------------------------------------------------
+static int*                         // The symbol address
+   find_addr(                       // Find symbol address
+     const char*       name,        // The symbol name
+     Name_addr*        addr)        // The address table
+{
+   while( addr->name ) {            // Search valid names
+     if( strcasecmp(name, addr->name) == 0 )
+       break;
+     addr++;
+   }
+
+   return addr->addr;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       find_value
+//
+// Purpose-
+//       Locate a symbol's value
+//
+//----------------------------------------------------------------------------
+static int                          // The symbol's value
+   find_value(                      // Find symbol value
+     const char*       name,        // The symbol name
+     Name_value*       addr)        // The value table
+{
+   while( addr->name ) {            // Search valid names
+     if( strcasecmp(name, addr->name) == 0 )
+       break;
+     addr++;
+   }
+
+   return addr->value;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       write_file
+//
+// Purpose-
+//       Write file (with error checking)
 //
 //----------------------------------------------------------------------------
 static const char*                  // Error message, nullptr expected
-   file_writer(                     // File writer
+   write_file(                      // Write file
      char*             parm)        // (Mutable) parameter string
 {
    EdFile* file= editor::file;
@@ -229,7 +306,7 @@ static const char*                  // Error message, nullptr expected
    command_file(                    // File command
      char*             parm)        // (Mutable) parameter string
 {
-   const char* mess= file_writer(parm); // Save the file
+   const char* mess= write_file(parm); // Save the file
    if( mess == nullptr )            // If saved
      mess= command_quit(parm);      // Quit the file
 
@@ -240,7 +317,7 @@ static const char*                  // Error message, nullptr expected
    command_forward(                 // Forward locate command
      char*             parm)        // (Mutable) parameter string
 {
-   editor::direction= +1;           // Forward search
+   editor::locate_back= false;      // Forward search
 
    while( *parm == ' ' )
      parm++;
@@ -257,7 +334,7 @@ static const char*                  // Error message, nullptr expected
 }
 
 static const char*                  // Error message, nullptr expected
-   command_locate(                  // Locate command
+   command_locate(                  // Locate command (current direction)
      char*             parm)        // (Mutable) parameter string
 {
    // TODO: HANDLE UTF8
@@ -316,7 +393,7 @@ static const char*                  // Error message, nullptr expected
    command_reverse(                 // Reverse locate command
      char*             parm)        // (Mutable) parameter string
 {
-   editor::direction= -1;           // Reverse search
+   editor::locate_back= true;       // Reverse search
 
    while( *parm == ' ' )
      parm++;
@@ -327,12 +404,7 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_save(                    // Save command
      char*             parm)        // (Mutable) parameter string
-{
-   const char* error= file_writer(parm); // Write the file
-   if( error ) return error;        // If failure, return error message
-
-   return nullptr;
-}
+{  return write_file(parm); }       // Write the file
 
 static const char*                  // Error message, nullptr expected
    command_set(                     // Set command
@@ -349,16 +421,27 @@ static const char*                  // Error message, nullptr expected
    const char* name= i().c_str();
    const char* value= i.next().remainder();
 
-   // TODO: Move to editor::set_option ????
    if( strcasecmp(name, "mode") == 0 ) {
-     if( strcasecmp(value, "dos") == 0 )
-       editor::file->set_mode(EdFile::M_DOS);
-     else if( strcasecmp(value, "unix") == 0 )
-       editor::file->set_mode(EdFile::M_UNIX);
-     else
-       return "Invalid mode";
+     int mode= find_value(value, mode_value);
+     if( mode >= 0 ) {
+       editor::file->set_mode(mode);
+       return nullptr;
+     }
 
-     return nullptr;
+     return "Invalid mode";
+   }
+
+   int* addr= find_addr(name, true_addr);
+   if( addr ) {
+     int mode= true;
+     if( value[0] != '\0' )
+       mode= find_value(value, bool_value);
+     if( mode >= 0 ) {
+       *addr= mode;
+       return nullptr;
+     }
+
+     return "Invalid value";
    }
 
    return "Unknown option";

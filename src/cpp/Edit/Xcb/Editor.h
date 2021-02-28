@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2021/02/18
+//       2021/02/27
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -119,9 +119,9 @@ extern pub::List<EdPool> filePool;  // File allocation EdPool
 extern pub::List<EdPool> textPool;  // Text allocation EdPool
 
 // Search controls -----------------------------------------------------------
-extern int             autowrap;    // Autowrap (false)
-extern int             case_sensitive; // Case sensitive search (false)
-extern int             direction;   // (Positive= forward, else reverse) (0)
+extern uint32_t        locate_back; // Reverse search (default= false)
+extern uint32_t        locate_case; // Case sensitive search (default= false)
+extern uint32_t        locate_wrap; // Autowrap (default= false)
 
 //----------------------------------------------------------------------------
 //
@@ -165,7 +165,7 @@ const char*                         // Error message, nullptr if none
 //       Change next occurance of string.
 //
 //----------------------------------------------------------------------------
-const char*                         // Return message, nullptr if OK
+const char*                         // Error message, nullptr expected
    do_change( void );               // Change next occurance of string
 
 //----------------------------------------------------------------------------
@@ -174,23 +174,35 @@ const char*                         // Return message, nullptr if OK
 //       editor::do_exit
 //
 // Purpose-
-//       (Safely) remove a file from the ring.
+//       (Safely) remove the current file from the ring.
 //
 //----------------------------------------------------------------------------
-void
-   do_exit( void );                 // Safely remove a file from the ring
+const char*                         // Error message, nullptr expected
+   do_exit( void );                 // Safely remove current file from the ring
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::do_history
+//       editor::do_insert
 //
 // Purpose-
-//       Invert history view.
+//       Insert a line after the cursor.
 //
 //----------------------------------------------------------------------------
-void
-   do_history( void );              // Invert history view
+const char*                         // Error message, nullptr expected
+   do_insert( void );               // Insert a new, empty line
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_join
+//
+// Purpose-
+//       Join the current and next line.
+//
+//----------------------------------------------------------------------------
+const char*                         // Error message, nullptr expected
+   do_join( void );                 // Join the current and next line
 
 //----------------------------------------------------------------------------
 //
@@ -201,9 +213,21 @@ void
 //       Locate next occurance of string.
 //
 //----------------------------------------------------------------------------
-const char*                         // Return message, nullptr if OK
+const char*                         // Error message, nullptr expected
    do_locate(                       // Locate next
      int               offset= 1);  // Use offset 0 for locate_change
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_split
+//
+// Purpose-
+//       Split the current line at the cursor.
+//
+//----------------------------------------------------------------------------
+const char*                         // Error message, nullptr expected
+   do_split( void );                // Split the current line at the cursor
 
 //----------------------------------------------------------------------------
 //
@@ -216,6 +240,18 @@ const char*                         // Return message, nullptr if OK
 //----------------------------------------------------------------------------
 void
    do_test( void );                 // Bringup test
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_view
+//
+// Purpose-
+//       Invert the view.
+//
+//----------------------------------------------------------------------------
+void
+   do_view( void );                 // Invert history view
 
 //----------------------------------------------------------------------------
 //
@@ -241,18 +277,6 @@ void
 EdFile*                             // The last file inserted
    insert_file(                     // Insert file(s) onto the file list
      const char*       name= nullptr); // The file name (wildards allowed)
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       editor::join_lines
-//
-// Purpose-
-//       Join the current and next line.
-//
-//----------------------------------------------------------------------------
-void
-   join_lines( void );              // Join the current and next line
 
 //----------------------------------------------------------------------------
 //
@@ -305,17 +329,6 @@ const char*                         // Error message, nullptr expected
    set_option(                      // Set a configurable option
      const char*       name,        // The option name
      const char*       value);      // The option value
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       editor::split_line
-//
-// Purpose-
-//       Split the current line at the cursor.
-//
-//----------------------------------------------------------------------------
-void   split_line( void );              // Split the current line at the cursor
 
 //----------------------------------------------------------------------------
 //

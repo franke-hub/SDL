@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2021/02/21
+//       2021/02/28
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -146,14 +146,15 @@ static void
      debug_redo(__LINE__, redo);
 
    if( redo->head_insert && redo->head_remove ) {
-     if( redo->tail_insert == nullptr || redo->tail_insert == nullptr )
-       debug_redo(__LINE__, redo);
+//   if( redo->tail_insert == nullptr || redo->tail_insert == nullptr )
+//     debug_redo(__LINE__, redo);  // (Already checked)
      if( redo->head_insert->get_prev() != redo->head_remove->get_prev() )
        debug_redo(__LINE__, redo);
      if( redo->tail_insert->get_next() != redo->tail_remove->get_next() )
        debug_redo(__LINE__, redo);
-   } else if( !(redo->head_insert || redo->head_remove) )
+   } else if( !(redo->head_insert || redo->head_remove) ) {
      debug_redo(__LINE__, redo);
+   }
 }
 
 static void
@@ -238,6 +239,50 @@ static void assert_base(EdRedo*) {} // Assert self-consistent REDO insert
 static void assert_redo(EdRedo*, EdFile*) {} // Assert self-consistent REDO
 static void assert_undo(EdRedo*, EdFile*) {} // Assert self-consistent UNDO
 #endif
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       chg_mode
+//
+// Purpose-
+//       Change the file mode after redo/undo.
+//
+//----------------------------------------------------------------------------
+static void
+   chg_mode(                        // Get file mode
+     const EdLine*     head,        // Head changed line
+     const EdLine*     tail)        // Tail changed line
+{
+   // The mode does not change unless all file lines changed, e.g. by set_mode
+   if( head->get_prev()->get_prev() != nullptr )
+     return;
+   if( tail->get_next()->get_next() != nullptr )
+     return;
+
+   int delim= '\0';                 // Unix delimiter modifier
+   int mode= EdFile::M_UNIX;
+   if( head->delim[1] == '\r' ) {
+     delim= '\r';
+     mode= EdFile::M_DOS;
+   }
+
+   for(const EdLine* line= head; line; line= line->get_next()) {
+     if( line->delim[0] != '\n' ) { // If neither DOS nor UNIX
+       if( line->delim[1] != '\0' ) // (line->delim[0] == '\0' assumed)
+         mode= EdFile::M_BIN;       // Must be binary file
+       break;
+     }
+     if( line->delim[1] != delim )  // If inconsistent mode
+       mode= EdFile::M_MIX;         // Mixed mode (Might still be binary)
+
+     if( line == tail )             // If all lines checked
+       break;
+   }
+
+   editor::file->mode= mode;        // Update the mode
+   editor::text->draw_info();       // And redraw
+}
 
 //----------------------------------------------------------------------------
 //
@@ -710,6 +755,8 @@ void
    editor::text->activate(line);
    editor::text->draw();
    undo_list.lifo(redo);            // Move REDO to UNDO list
+   if( redo->head_insert )          // If lines inserted
+     chg_mode(redo->head_insert, redo->tail_insert);
 
    if( USE_BRINGUP )
      Config::check("redo");
@@ -760,6 +807,8 @@ void
    editor::text->activate(line);
    editor::text->draw();
    redo_list.lifo(undo);            // Move UNDO to REDO list
+   if( undo->head_remove )          // If lines removed
+     chg_mode(undo->head_remove, undo->tail_remove);
 
    if( USE_BRINGUP )
      Config::check("undo");
@@ -886,36 +935,60 @@ void
 // Purpose-
 //       Set the file mode (to M_DOS or M_UNIX)
 //
-// Implementation note-
-//       This is a stand-alone operation that includes saving the file.
+// Implemenation note-
+//       Commit not needed since method is only called from EdBifs.cpp.
+//
+//       REDO/UNDO used for logical consistency when a change occurs.
 //
 //----------------------------------------------------------------------------
 void
    EdFile::set_mode(                // Set the file mode
      int               mode_)       // To this mode
 {
-   char delim[2]= { '\n', '\0'};    // Default, DOS delimiter
-   if( mode_ == M_DOS )             // If DOS mode
-     delim[1]= '\r';
-   else
-     mode_= M_UNIX;
-   mode= mode_;
+   if( mode_ != M_DOS )             // If not DOS mode
+     mode_= M_UNIX;                 // (Only M_DOS/M_UNIX allowed)
+   if( mode == mode_ )              // If unchanged
+     return;                        // Do nothing
 
-   // We update the delimiter in all lines, including TOP and BOT
-   for(EdLine* line= line_list.get_head(); line; line= line->get_next() ) {
-     line->delim[0]= delim[0];
-     line->delim[1]= delim[1];
+   mode= mode_;                     // Update the mode
+   if( rows == 0 ) {                // If Empty file
+     editor::put_message("Empty file");
+     return;
+   }
+   changed= true;
+
+   // Clear any existing mark
+   editor::mark->undo();
+
+   // Create the REDO
+   EdRedo* redo= new EdRedo();
+   pub::List<EdLine> list;          // The replacement list
+   EdLine* const head= line_list.get_head(); // (Multi-use)
+   EdLine* const next= head->get_next(); // (Multi-use)
+   redo->head_remove= next;
+   redo->tail_remove= line_list.get_tail()->get_prev();
+
+   for(EdLine* from= next; ; from= from->get_next()) {
+     if( from == nullptr ) {
+       // Since this shouldn't happen, memory leak is the least of our worries
+       Editor::alertf("%4d EdFile should not occur", __LINE__);
+       return;
+     }
+
+     list.fifo( new_line(from->text) ); // Replacement line
+     if( from == redo->tail_remove )
+       break;
    }
 
-   // Write the file
-   int rc= write();
-   if( rc ) {
-     put_message("Write failed");
-     damaged= true;
-   } else {
-     put_message("File saved");
-     reset();
-   }
+   redo->head_insert= list.get_head();
+   redo->tail_insert= list.get_tail();
+
+   // Replace the lines
+   line_list.remove(redo->head_remove, redo->tail_remove);
+   line_list.insert(head, redo->head_insert, redo->tail_insert);
+
+   redo_insert(redo);               // Insert the redo
+   activate(head);                  // (The old cursor's gone)
 }
 
 //----------------------------------------------------------------------------
