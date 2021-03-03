@@ -1,5 +1,7 @@
 # Editor documentation
 
+Last change date: 2021/03/02
+
 The Editor is a WYSIWYG editor that uses XCB for controlling the screen,
 keyboard, and mouse. Since it's based on XCB, it only operates under Cygwin or
 Linux. Some of the XCB functionality is offloaded into the GUI library, part
@@ -10,25 +12,27 @@ the screen, keyboard and other functions provided in the COM library. The COM
 library uses Windows(TM) functions and Linux ncurses for screen and keyboard
 control. The mouse is not used by this editor.
 
+(*WYSIWYG*: What you see is what you get.)
+
 ------------------------------------------------------------------------------
+
+## The editor command line
+The parameters are the list of files to be edited.
 
 ## General usage notes
 The TAB key only moves the cursor.
-The only way to get a '\t' character into a file is to copy copy.
-
-TODO: ??TAB command??
+The only way to get a '\t' character into a file is to copy an existing one.
+(TODO: ??Maybe some sort of insert tab command??)
 
 When any line is changed, it is saved with trailing blanks removed.
 If the last line has no delimiter and is changed, its delimiter is changed to
 '\n' or "\r\n" depending upon the file mode.
 
-Copy and move operations (Alt-C and Alt-M) are divided in two.[^why-mv-split]
-The first part copies the lines into a work area, then (for move) deleting the
-original lines.
-The second part pastes the lines.
+Copy and move operations (Alt-C and Alt-M) are divided in two[1],
+either copy or cut, then paste.
 The paste operation can be repeated using Ctrl-V.
-For move, UNDO is also two operations.
-Once created, the copy list is only replaced. It is never deleted.
+This implies that, for move, UNDO is also two operations.
+Once created, a copy list is only replaced. It is never deleted.
 
 ## Editor clip (Internal clipboard)
 Currently the internal clipboard and the system clipboard are maintained
@@ -40,21 +44,32 @@ The editor DOES NOT USE the system clipboard (yet.)
 ## Editor command guide (Command names are not case sensitive)
 <dl>
 <dt>BOT:   </dt><dd>Move the cursor to the last editor line (column 0)</dd>
-<dt>C:     </dt><dd>Change: C /find string/replace string/
-(Find begins at CURRENT character)</dd>
+<dt>C:     </dt><dd>(Change) example: `C /find string/replace string/`
+(Find search begins at *current* character)</dd>
 <dt>D:     </dt><dd>Debug \{option\}</dd>
 <dt>DEBUG: </dt><dd>(Alias of D)</dd>
 <dt>E:     </dt><dd>Edit another set of files
-(Only the filename can contain wildcards. The pathname cannot.)</dd>
+(Only the file name can contain wildcards. The path name cannot.)</dd>
 <dt>EDIT:  </dt><dd>(Alias of E)</dd>
-<dt>EXIT:  </dt><dd>Exit (safely.) If no files are changed, close the Editor.
-(The same as Alt-Q)</dd>
+<dt>EXIT:  </dt><dd>Exit (safely.)
+If no files are changed, close the Editor.</dd>
 <dt>FILE:  </dt><dd>Save and close the current file</dd>
-<dt>L:     </dt><dd>Locate: L /find string/
-(Find begins at NEXT character)</dd>
+<dt>L:     </dt><dd>(Locate) example: `L /find string/`
+(Find search begins at *next* character)</dd>
 <dt>QUIT:  </dt><dd>(Unconditionally) close the current file</dd>
 <dt>SAVE:  </dt><dd>Save the current file, leaving it active
 (The UNDO/REDO lists are deleted. There is no UN-SAVE.)</dd>
+<dt>SET:   </dt>
+<dd>Set an option (Example: `set mixed on`)
+
+<dl>
+<dt>MIXED: </dt><dd>Set locate mixed case mode (ON or off)</dd>
+<dt>PRIOR: </dt><dd>Set locate prior mode (ON or off)</dd>
+<dt>WRAP:  </dt><dd>Set locate wrap mode (ON or off)</dd>
+<dt>MODE:  </dt><dd>Change all file line delimiters (DOS or UNIX)</dd>
+</dl>
+</dd>
+<dt>SORT:  </dt><dd>Sort the file list (by name)</dd>
 <dt>TOP:   </dt><dd>Move the cursor to the first editor line (column 0)</dd>
 </dl>
 
@@ -72,29 +87,34 @@ The editor DOES NOT USE the system clipboard (yet.)
 <dt>Alt-L: </dt><dd>Mark line</dd>
 <dt>Alt-M: </dt><dd>Move mark   (lines or block)
 (This replaces internal Editor clipboard)</dd>
-<dt>Alt-Q: </dt><dd>Quit (safely)
-Leave editor if no files are changed.</dd>
+<dt>Alt-Q: </dt><dd>Quit (safely.) Close the file if it's unchanged.</dd>
 <dt>Alt-S: </dt><dd>Split the current line (at the cursor column)</dd>
 <dt>Alt-U: </dt><dd>Undo mark</dd>
 <br>
-<dt>Ctrl-C: </dt><dd>Copy mark   (First half of Alt-C)</dd>
+<dt>Ctrl-C: </dt><dd>Copy mark   (First half of Alt-C or Alt-M)</dd>
 <dt>Ctrl-V: </dt><dd>Paste copy  (Second half of Alt-C or Alt-M)</dd>
 <dt>Ctrl-X: </dt><dd>Delete mark (Same as Alt-D)</dd>
 <br>
-<dt>ESC: </dt><dd>Switch between command and data mode</dd>
-<dt>F1:  </dt><dd>Help message (to stdout)</dd>
-<dt>F2:  </dt><dd>(Bringup test, normally disabled)</dd>
-<dt>F3:  </dt><dd>(Safe) quit. Close file if it's unchanged.</dd>
-<dt>F4:  </dt><dd>Move focus to next changed file</dd>
-<dt>F5:  </dt><dd>Repeat locate</dd>
-<dt>F6:  </dt><dd>Repeat change</dd>
-<dt>F7:  </dt><dd>Move focus to previous file</dd>
-<dt>F8:  </dt><dd>Move focus to next file</dd>
-<dt>F9:  </dt><dd>(No operation)</dd>
-<dt>F10: </dt><dd>Move current line to top of screen</dd>
-<dt>F11: </dt><dd>UNDO (Note: Cannot UNDO a save operation)</dd>
-<dt>F12: </dt><dd>REDO (Note: Change after UNDO deletes REDO list)</dd>
+<dt>ESC:   </dt><dd>Switch between command and data mode</dd>
+<dt>F1:    </dt><dd>Help message (to stdout)</dd>
+<dt>F2:    </dt><dd>(No operation)</dd>
+<dt>F3:    </dt><dd>Quit (safely.) Close the file if it's unchanged.</dd>
+<dt>F4:    </dt><dd>Move focus to next changed file</dd>
+<dt>F5:    </dt><dd>Repeat locate</dd>
+<dt>F6:    </dt><dd>Repeat change</dd>
+<dt>F7:    </dt><dd>Move focus to previous file</dd>
+<dt>F8:    </dt><dd>Move focus to next file</dd>
+<dt>F9:    </dt><dd>(No operation)</dd>
+<dt>F10:   </dt><dd>Move current line to top of screen</dd>
+<dt>F11:   </dt><dd>UNDO (Note: Cannot UNDO a save operation)</dd>
+<dt>F12:   </dt><dd>REDO (Note: Change after UNDO deletes REDO list)</dd>
 </dl>
+
+#### Synonyms
+
+* Alt-D and Ctrl-X
+
+* Alt-Q and F3
 
 ------------------------------------------------------------------------------
 
@@ -104,9 +124,11 @@ Leave editor if no files are changed.</dd>
 Only the last line in the file can be the no delimiter line.
 This occurs when the last character in the file is not a newline.
 
-This line remains without a delimiter unless it is changed or lines are
-added after it. If either of these occur, the line is changed so that it
+This line remains without a delimiter unless it is split, joined, or lines are
+added after it. If any of these occur, the line is changed so that it
 has a text file delimiter.
+If the no delimiter line is simply modified, the modified line remains the
+no delimiter line.
 
 #### Undo/Redo operation
 All operations that change a file can be un-done and re-done.
@@ -124,11 +146,13 @@ what mark changes are required.
 #### Undo/Redo operation mark considertions
 There are four line changing operations: COMMIT, INSERT, SPLIT, and JOIN.
 COMMIT and INSERT are complicated slightly because the no-delimiter line might
-also need to be changed.[^sj-no-delimiter]
+also need to be changed.[2]
 
 For line REDO or UNDO operations, inserted lines are marked if either
+
 1. They are within a mark. (mark_head and mark_tail do not change.)
 2. Any removed lines were marked. (mark_head and/or mark_tail change.)
+
 They are unmarked otherwise.
 
 There are four group changing operations: CUT-LINE, PASTE-LINE, CUT-COLS, and
@@ -181,6 +205,9 @@ No output
 Missing commas.
 
 #### For internal trace type information use: "rgrep trace\("
+*rgrep*, recursive grep, is a script found in the *bat* subdirectory provided
+as a part of the distribution.
+
 When issued in the source tree, internal trace calls are listed.
 (These change too frequently to be documented here.)
 
@@ -288,12 +315,12 @@ differentiate between paste redo and undo.)
 
 -------- Footnotes -----------------------------------------------------------
 
-[^why-mv-split]: Why split move into cut and paste?
+[1]: Why split move into cut and paste?
 The quick answer is that it simplicifies REDO and UNDO logic.
 Move can move lines or blocks from one file to another.
 Since REDO and UNDO are file-specific operations, it would be impossible to
 REDO or UNDO a file to file move after one of the files was closed.
 
-[^sj-no-delimiter]: Split and join operations may modify the no-delimiter
+[2]: Split and join operations may modify the no-delimiter
 line as part of their normal operation. It's not a special case.
 

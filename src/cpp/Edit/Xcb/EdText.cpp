@@ -16,11 +16,11 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/02/28
+//       2021/03/02
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
-#include <stdio.h>                  // For fprintf TODO: REMOVE
+#include <stdio.h>                  // For sprintf
 #include <sys/types.h>              // For system types
 #include <xcb/xproto.h>             // For XCB types
 #include <xcb/xfixes.h>             // For XCB xfixes extension
@@ -51,7 +51,7 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= true                // Use bringup debugging? TODO: REMOVE
+,  USE_BRINGUP= false               // Use bringup debugging?
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
@@ -446,8 +446,8 @@ void
    }
 
    // Line is not in file (SHOULD NOT OCCUR)
-   Editor::alertf("%4d HCDM EdText file(%p) line(%p)", __LINE__
-                 , file, act_line); // TODO: REMOVE
+   Editor::alertf("%4d EdText file(%p) line(%p)", __LINE__
+                 , file, act_line);
    data->cursor= line= file->line_list.get_head();
    data->col_zero= data->col= 0;
    data->row_zero= 0;
@@ -685,11 +685,7 @@ void
      debugh("EdText(%p)::draw\n", this);
 
    Config::trace(".DRW", " all", head, tail);
-
    // Clear the drawable window
-   gui::WH_size_t size= get_size(); // TODO: ??? Why is this needed ???
-   rect.width=  size.width;
-   rect.height= size.height;
    NOQUEUE("xcb_clear_area", xcb_clear_area
           ( c, 0, widget_id, 0, 0, rect.width, rect.height) );
 
@@ -753,22 +749,8 @@ void
        row_used++;
        line= line->get_next();
      }
-     if( opt_hcdm ) debugf("%4d LAST xy(%d,%d)\n", __LINE__, 0, y);
-
-     if( USE_BRINGUP ) {
-       // BRINGUP: Draw diagonal line (to see where boundaries are)
-       if( opt_hcdm && opt_verbose > 2 ) { // (Optional, even with USE_BRINGUP)
-         Config::errorf("%4d EdText diagonal", __LINE__);
-         xcb_point_t points[2]=
-             { {0,                     0}
-             , {gui::PT_t(rect.width), gui::PT_t(rect.height)}
-             };
-         NOQUEUE("xcb_poly_line", xcb_poly_line(c
-                , XCB_COORD_MODE_ORIGIN, widget_id, fontGC, 2, points));
-         if( opt_verbose > 2 )
-           debugf("%4d POLY {0,{%d,%d}}\n", __LINE__, rect.width, rect.height);
-       }
-     }
+     if( opt_hcdm )
+       debugf("%4d LAST xy(%d,%d)\n", __LINE__, 0, y);
    }
 
    draw_info();                     // Draw the information line
@@ -915,8 +897,11 @@ void
 
    // Reconfigure the window
    set_size(x, y);
+   rect.width= (decltype(rect.width))x;
+   rect.height= (decltype(rect.height))y;
    col_size= x / font.length.width;
    row_size= y / font.length.height;
+
 
    // Diagnostics
    if( opt_hcdm ) {
@@ -1043,8 +1028,8 @@ void
        break;
      }
      case 'Q': {                    // (Safe) quit
-       if( editor::un_changed() )
-         editor::exit();
+       data->commit();
+       editor::put_message( editor::do_quit() );
        break;
      }
      case 'S': {                    // Split line
@@ -1056,6 +1041,8 @@ void
        mark->undo();
        if( file == mark_file )
          draw();
+       else
+         draw_info();               // (Remove "No Mark" message)
        break;
      }
      default:
@@ -1122,8 +1109,9 @@ int                                 // Return code, TRUE if error message
          }
        } else if( mask == gui::KS_CTRL ) {
          switch(key) {                // Allowed keys:
-           case 'C':                  // COPY
-           case 'V':                  // PASTE
+           case 'C':                  // COPY MARK
+           case 'V':                  // PASTE COPY
+           case 'X':                  // CUT MARK
              return false;
 
            default:
@@ -1198,6 +1186,9 @@ void
        return;
      }
 
+     if( editor::data_protected() )
+       return;
+
      if( keystate & KS_INS ) {      // If Insert state
        view->active.insert_char(column, key);
        if( move_cursor_H(column + 1) ) {
@@ -1234,6 +1225,9 @@ void
        break;
 
      case XK_BackSpace: {
+       if( editor::data_protected() )
+         return;
+
        undo_cursor();               // Clear the cursor
        if( column > 0 )
          column--;
@@ -1250,6 +1244,9 @@ void
      }
      case 0x007F:                  // (Should not occur)
      case XK_Delete: {
+       if( editor::data_protected() )
+         return;
+
        view->active.remove_char(column);
        view->active.append_text(" ");
        draw();
@@ -1270,14 +1267,14 @@ void
        view->enter_key();
        break;
      }
-     case XK_Tab: {                 // TODO: PRELIMINARY
+     case XK_Tab: {
        enum { TAB= 8 };             // TAB Column BRINGUP (( 2 ** N ))
        column += TAB;
        column &= ~(TAB - 1);
        move_cursor_H(column);
        break;
      }
-     case XK_ISO_Left_Tab:          // TODO: PRELIMINARY
+     case XK_ISO_Left_Tab:
        if( column ) {               // If not already at column[0]
          enum { TAB= 8 };           // TAB Column BRINGUP (( 2 ** N ))
          if( column <= TAB )
@@ -1295,7 +1292,7 @@ void
      // Function keys
      case XK_F1: {
        printf(" F1: This help message\n"
-              " F2: Bringup test\n"
+              " F2: NOP\n"
               " F3: Quit File\n"
               " F4: Test changed\n"
               " F5: Locate\n"
@@ -1306,18 +1303,15 @@ void
               "F10: Line to top\n"
               "F11: Undo\n"
               "F12: Redo\n"
-              "A-I: Insert\n"
-              "A-Q: Quit\n"
        );
        break;
      }
-     case XK_F2: {                  // Bringup test
-       editor::do_test();
+     case XK_F2: {                  // NOT ASSIGNED
        break;
      }
      case XK_F3: {                  // (Safe) quit
        data->commit();
-       editor::put_message( editor::do_exit() );
+       editor::put_message( editor::do_quit() );
        break;
      }
      case XK_F4: {                  // Test changed
@@ -1355,7 +1349,7 @@ void
        }
        break;
      }
-     case XK_F9: {                  // TODO: NOT ASSIGNED
+     case XK_F9: {                  // NOT ASSIGNED
        break;
      }
      case XK_F10: {                 // Line to top
@@ -1584,12 +1578,12 @@ void
            , E->time, E->detail, E->event, E->event_x, E->event_y);
 
    // printf("."); fflush(stdout);  // See when called
-   if( E->event_x != motion.x || E->event_y != motion.y )
-     { if( config::USE_MOUSE_HIDE ) show_mouse(); } // TODO: REMOVE
-   else {
+   if( E->event_x != motion.x || E->event_y != motion.y ) {
+     show_mouse();
+   } else {
      if( (E->time - motion.time) < 1000 ) // If less than 1 second idle
        return;                      // Ignore
-     { if( config::USE_MOUSE_HIDE ) hide_mouse(); } // TODO: REMOVE
+     { if( config::USE_MOUSE_HIDE ) hide_mouse(); }
    }
 
    motion.time= E->time;

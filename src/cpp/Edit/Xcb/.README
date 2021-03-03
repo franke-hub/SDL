@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/02/28
+##       2021/03/02
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in PRE-ALPHA status.
@@ -27,27 +27,31 @@
 
 ##############################################################################
 ## STATUS:
-2021/02/28 Implemented locate/change options, including set command
-         Added REDO/UNDO for EdFile::set_mode.
+2021/03/02 Some TODOs done, including implementing read/only file.
 
-2021/02/27 TODO:
+2021/03/01 TODO:
          Remove (commented out) EdMark debugging code.
-         Implement protected file.
+         Consider EdView base class, EdData/EdHist based on that.
 
          For directories, load the file names. (Protected file)
          Draw full background on line 0 (status, message, history)
          Multiple editor windows. (Restructure required.)
            (May not be too hard. Only one window open a time.)
 
+         Greps: "TODO:", "HCDM", "USE_BRINGUP", "NOT CODED"
+
 ##############################################################################
-2021/02/21 Block copy/move operational
+2021/02/28 Implemented locate/change options, including set command
+         Added REDO/UNDO for EdFile::set_mode.
+
+2021/02/21 Direct block copy/move (Ctrl-C/Ctrl-M) operational
 
 2021/01/24 Xcb subdirectory moved to ~/src/cpp/inc/gui and ~/src/cpp/lib/gui
          Fixed block cut bug.
 
 2021/01/22 Code review. Xcb/Edit now used by author as default editor.
 
-2021/01/16 Block copy/paste operational, but must be done using ctrl-C/ctrl-V
+2021/01/16 Block copy/paste operational using Ctrl-C/Ctrl-V or Ctrl-X/Ctrl-V
 
 2021/01/10 Restructure. Removed TextWindow, function merged into EdText.
 

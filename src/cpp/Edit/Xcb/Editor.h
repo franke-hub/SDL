@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2021/02/27
+//       2021/03/02
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -85,6 +85,21 @@ static void
      const char*       fmt,         // The PRINTF format string
                        ...)         // PRINTF argruments
    _ATTRIBUTE_PRINTF(1, 2);
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Editor::put_message
+//
+// Purpose-
+//       Formatted put_message (with default mode)
+//
+//----------------------------------------------------------------------------
+static void
+   put_message(                     // Formatted put_message
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // PRINTF argruments
+   _ATTRIBUTE_PRINTF(1, 2);
 }; // class Editor
 
 //----------------------------------------------------------------------------
@@ -104,6 +119,7 @@ extern EdText*         text;        // The Text Window
 
 extern pub::List<EdFile> file_list; // The list of EdFiles
 extern EdFile*         file;        // The current File object
+extern EdFile*         last;        // The last file inserted
 
 extern Active*         actalt;      // Active object (for temporary use)
 extern Active*         active;      // Active object (for temporary use)
@@ -159,6 +175,18 @@ const char*                         // Error message, nullptr if none
 //----------------------------------------------------------------------------
 //
 // Method-
+//       editor::data_protected
+//
+// Purpose-
+//       Check for protected file and data view
+//
+//----------------------------------------------------------------------------
+int                          // Return code, TRUE if error message
+   data_protected( void );   // Error if protected file and data view
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       editor::do_change
 //
 // Purpose-
@@ -167,18 +195,6 @@ const char*                         // Error message, nullptr if none
 //----------------------------------------------------------------------------
 const char*                         // Error message, nullptr expected
    do_change( void );               // Change next occurance of string
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       editor::do_exit
-//
-// Purpose-
-//       (Safely) remove the current file from the ring.
-//
-//----------------------------------------------------------------------------
-const char*                         // Error message, nullptr expected
-   do_exit( void );                 // Safely remove current file from the ring
 
 //----------------------------------------------------------------------------
 //
@@ -220,6 +236,18 @@ const char*                         // Error message, nullptr expected
 //----------------------------------------------------------------------------
 //
 // Method-
+//       editor::do_quit
+//
+// Purpose-
+//       (Safely) remove the current file from the ring.
+//
+//----------------------------------------------------------------------------
+const char*                         // Error message, nullptr expected
+   do_quit( void );                 // Safely remove current file from the ring
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       editor::do_split
 //
 // Purpose-
@@ -228,18 +256,6 @@ const char*                         // Error message, nullptr expected
 //----------------------------------------------------------------------------
 const char*                         // Error message, nullptr expected
    do_split( void );                // Split the current line at the cursor
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       editor::do_test
-//
-// Purpose-
-//       Bringup test.
-//
-//----------------------------------------------------------------------------
-void
-   do_test( void );                 // Bringup test
 
 //----------------------------------------------------------------------------
 //
@@ -274,9 +290,10 @@ void
 //       Insert file onto the file list
 //
 //----------------------------------------------------------------------------
-EdFile*                             // The last file inserted
+void
    insert_file(                     // Insert file(s) onto the file list
-     const char*       name= nullptr); // The file name (wildards allowed)
+     const char*       name= nullptr, // The file name (wildards allowed)
+     int               protect= false); // Protect file?
 
 //----------------------------------------------------------------------------
 //
@@ -284,7 +301,7 @@ EdFile*                             // The last file inserted
 //       editor::key_to_name
 //
 // Purpose-
-//       BRINGUP: Convert xcb_keysym_t to its name. (TODO: REMOVE)
+//       BRINGUP: Convert xcb_keysym_t to its name.
 //
 //----------------------------------------------------------------------------
 const char*                         // The symbol name, "???" if unknown
@@ -315,20 +332,6 @@ void
 //----------------------------------------------------------------------------
 void
    remove_file( void );             // Remove active file from the file list
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       editor::set_option
-//
-// Purpose-
-//       Set a configurable option.
-//
-//----------------------------------------------------------------------------
-const char*                         // Error message, nullptr expected
-   set_option(                      // Set a configurable option
-     const char*       name,        // The option name
-     const char*       value);      // The option value
 
 //----------------------------------------------------------------------------
 //

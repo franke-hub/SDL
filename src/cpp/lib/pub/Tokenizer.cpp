@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Tokenizer object methods.
 //
 // Last change date-
-//       2020/01/27
+//       2021/03/02
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::out_of_range exception, ...
@@ -97,9 +97,19 @@ Tokenizer::Iterator&                 // The next Iterator, always *this
        length= 0;                   // Nothing left
      else                           // Return
      {
+       int quote= 0;                // Not quoted
+       if( *origin == '\'' || *origin == '\"' )
+         quote= *origin;
        const char* ending= origin + 1;
-       while( *ending != '\0' && !isspace(*ending) )
-         ending++;
+       if( quote ) {                // If quoted
+         while( *ending != '\0' && *ending != quote )
+           ending++;
+         if( *ending == quote )
+           ending++;
+       } else {
+         while( *ending != '\0' && !isspace(*ending) )
+           ending++;
+       }
        length= ending - origin;
      }
    }
@@ -119,6 +129,14 @@ Tokenizer::Iterator&                 // The next Iterator, always *this
 std::string                         // The associated substring
    Tokenizer::Iterator::operator()( void ) // Get associated substring
 {
+   if( *(input+offset) == '\'' || *(input+offset) == '\"' ) { // Quoted string
+     size_t size= length-1;
+     if( *(input+offset) == *(input+offset+size) )
+       size--;
+     string result(input+offset+1, size);
+     return result;
+   }
+
    string result(input+offset, length);
    return result;
 }

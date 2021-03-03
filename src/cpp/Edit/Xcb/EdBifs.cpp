@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2021/02/28
+//       2021/03/02
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -74,13 +74,17 @@ static Name_value      mode_value[]= // Mode value table
 }; // mode_value[]
 
 static Name_addr       true_addr[]= // Boolean symbols, default true
-{ {"locate.back",      (int*)&editor::locate_back}
-, {"locate.case",      (int*)&editor::locate_case}
-, {"locate.wrap",      (int*)&editor::locate_wrap}
-, {"reverse",          (int*)&editor::locate_back}
-, {"case_compare",     (int*)&editor::locate_case}
-, {"autowrap",         (int*)&editor::locate_wrap}
+{ {"prior",            (int*)&editor::locate_back} // Short symbol names
+, {"mixed",            (int*)&editor::locate_case}
 , {"wrap",             (int*)&editor::locate_wrap}
+, {"locate.prior",     (int*)&editor::locate_back} // Official symbol names
+, {"locate.mixed",     (int*)&editor::locate_case}
+, {"locate.wrap",      (int*)&editor::locate_wrap}
+, {"reverse",          (int*)&editor::locate_back} // Symbol name aliases
+, {"mixed_case",       (int*)&editor::locate_case}
+, {"autowrap",         (int*)&editor::locate_wrap}
+// TODO: REMOVE (This allows USE_MOUSE_HIDE control for bringup debugging)
+, {"use_mouse_hide",   (int*)&config::USE_MOUSE_HIDE} // TODO: REMOVE
 , {nullptr,            nullptr}     // Not found address
 }; // true_addr[]
 
@@ -155,7 +159,7 @@ static const char*                  // Error message, nullptr expected
    EdFile* file= editor::file;
 
    if( file->protect )
-     return "Read-only file";
+     return "Read-only";
    if( file->damaged )
      return "Damaged file";
 
@@ -276,16 +280,14 @@ static const char*                  // Error message, nullptr expected
    typedef pub::Tokenizer Tokenizer;
    typedef Tokenizer::Iterator Iterator;
 
-   EdFile* last= nullptr;           // The last EdFile inserted
+   editor::last= editor::file;      // Insert after current file
    Tokenizer t(parm);
    for(Iterator i= t.begin(); i != t.end(); i.next() ) {
-     EdFile* file= editor::insert_file( i().c_str() );
-     if( file )
-       last= file;
+     editor::insert_file( i().c_str() );
    }
 
-   if( last ) {
-     editor::text->activate(last);
+   if( editor::file != editor::last ) {
+     editor::text->activate(editor::last);
      editor::text->draw();
    }
    editor::hist->activate();
@@ -481,6 +483,31 @@ static const char*                  // Error message, nullptr expected
    return nullptr;
 }
 
+static const char*                  // Error message, nullptr expected
+   command_view(                    // View command
+     char*             parm)        // (Mutable) parameter string
+{
+   if( parm == nullptr )
+     return "Missing parameter";
+
+   typedef pub::Tokenizer Tokenizer;
+   typedef Tokenizer::Iterator Iterator;
+
+   editor::last= editor::file;      // Insert after current file
+   Tokenizer t(parm);
+   for(Iterator i= t.begin(); i != t.end(); i.next() ) {
+     editor::insert_file(i().c_str(), true);
+   }
+
+   if( editor::file != editor::last ) {
+     editor::text->activate(editor::last);
+     editor::text->draw();
+   }
+   editor::hist->activate();
+
+   return nullptr;
+}
+
 //----------------------------------------------------------------------------
 //
 // Data area-
@@ -518,6 +545,8 @@ static const Command_desc
 ,  {"SORT",     command_sort}       // Sort
 // {"TABS",     command_tabs}       // Tabs
 ,  {"TOP",      command_top}        // Top
+,  {"V",        command_view}       // View
+,  {"VIEW",     command_view}       // View
 ,  {nullptr,    nullptr}            // End of list delimiter
 };
 

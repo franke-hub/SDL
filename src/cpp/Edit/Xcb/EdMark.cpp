@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2021/02/28
+//       2021/03/02
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -241,7 +241,6 @@ const char*                         // Error message, nullptr expected
    // Verify mark existence
    if( mark_file == nullptr )
      return "No mark";
-
    if( editor::view != editor::data )
      return "Cursor view";
 
@@ -281,8 +280,10 @@ const char*                         // Error message, nullptr expected
    EdMark::cut( void )              // Cut the marked area
 {
 // debugf("cut h(%p) t(%p) [%zd,%zd]\n", mark_head, mark_tail, mark_lh, mark_rh);
-   const char* error= copy();       // Copy the marked area
-   if( error ) return error;        // Only "No mark" possible
+   if( mark_file->protect )
+     return "Read/only mark";
+   const char* error= copy();
+   if( error ) return error;
 
    // Trace the cut
    Config::trace(".MRK", " C^X", mark_head, mark_tail);
@@ -465,10 +466,8 @@ const char*                         // Error message, nullptr expected
 // debugf("mark(%p,%p,%zd): ", edFile, edLine, column); edLine->debug();
    if( edLine->flags & EdLine::F_PROT )
      return "Protected";
-
    if( mark_file && mark_file != edFile )
      return "Mark offscreen";
-
    if( editor::view != editor::data )
      return "Cursor view";
 
@@ -571,13 +570,15 @@ const char*                         // Error message, nullptr expected
      return "No copy/cut";
    if( editor::view != editor::data )
      return "Cursor view";
+   if( editor::file->protect )
+     return "Read/only";
    if( edLine->get_next() == nullptr )
      return "Protected";
    if( copy_col >= 0 ) {            // Validate block copy (Must fit in file)
      EdLine* line= edLine;          // The first copy into line
      for(size_t i= 0; i<copy_rows; i++) {
        if( line == nullptr || line->flags & EdLine::F_PROT )
-         return "Protected";
+         return "Protected paste";
        line= line->get_next();
      }
    }
@@ -742,7 +743,8 @@ const char*                         // Error message, nullptr expected
 {
    if( mark_file == nullptr )
      return "No mark";
-
+   if( editor::file->protect )
+     return "Read/only";
    if( editor::view != editor::data )
      return "Cursor view";
 
@@ -754,7 +756,7 @@ const char*                         // Error message, nullptr expected
      EdLine* line= edLine;          // The first copy into line
      for(EdLine* from= mark_head; from; from= from->get_next()) {
        if( line == nullptr || line->flags & EdLine::F_PROT )
-         return "Protected";
+         return "Protected paste";
        if( from == mark_tail )
          break;
        line= line->get_next();
@@ -779,6 +781,9 @@ const char*                         // Error message, nullptr expected
 {
    const char* error= verify_copy(edLine);
    if( error == nullptr ) {
+     if( mark_file->protect )
+       return "Read/only mark";
+
      // If moving columns within a mark and to the right of the mark,
      // subtract the number of columns moved from the current column.
      EdView& data= *editor::data;   // The data view

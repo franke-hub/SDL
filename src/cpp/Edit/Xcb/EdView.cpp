@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2021/02/21
+//       2021/03/02
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -40,7 +40,7 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= true                // Extra bringup diagnostics?
+,  USE_BRINGUP= false               // Extra bringup diagnostics?
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
@@ -95,22 +95,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdView::activate
-//
-// Purpose-
-//       Activate thie EdView
-//
-//----------------------------------------------------------------------------
-void
-   EdView::activate( void )         // Activate this EdView
-{
-   editor::view= this;
-   editor::text->draw_info();       // (History or Status line)
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       EdView::get_gc
 //
 // Purpose-
@@ -130,6 +114,22 @@ xcb_gcontext_t                       // The current graphic context
    }
 
    return gc;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdView::activate
+//
+// Purpose-
+//       Activate thie EdView
+//
+//----------------------------------------------------------------------------
+void
+   EdView::activate( void )         // Activate this EdView
+{
+   editor::view= this;
+   editor::text->draw_info();       // (History or Status line)
 }
 
 //----------------------------------------------------------------------------
@@ -173,8 +173,9 @@ void
 
      Config::trace(".CSR", "Vcmt", line, cursor); // (New, old)
      cursor= line;                  // Replace the cursor
-   } else if( USE_BRINGUP )         // TODO: REMOVE or change to if( HCDM )
-     Config::trace(".CSR", "Vnop", cursor, cursor);
+   } else if( USE_BRINGUP ) {
+     Config::trace(".CSR", "Vnop", cursor, cursor); // (Old, old)
+   }
 }
 
 //----------------------------------------------------------------------------

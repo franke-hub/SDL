@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2021/02/27
+//       2021/03/01
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -700,9 +700,9 @@ uint32_t*              addr;        // The value value
 }; // struct Option
 
 struct Option          bool_list[]= // Boolean parameter list
-{ {"locate.wrap",      &editor::locate_wrap}
-, {"locate.case",      &editor::locate_case}
-, {"locate.reverse",   &editor::locate_back}
+{ {"locate.prior",     &editor::locate_back}
+, {"locate.mixed",     &editor::locate_case}
+, {"locate.wrap",      &editor::locate_wrap}
 , {"USE_MOUSE_HIDE",   &USE_MOUSE_HIDE}
 , {nullptr,            nullptr}     // End of list
 };

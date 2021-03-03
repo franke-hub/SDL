@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2021/02/21
+//       2021/03/02
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -46,7 +46,6 @@
 
 #include <Config.h>                 // For namespace config
 #include <Editor.h>                 // For namespace editor
-#include <EdText.h>                 // For EdText // TODO: ONLY IN sighandler
 
 using pub::Debug;                   // For Debug object
 using pub::Trace;                   // For Trace object
@@ -179,9 +178,6 @@ static int                          // Return code (Always 1)
                    "  --help\tThis help message\n"
                    "  --hcdm\tHard Core Debug Mode\n"
 
-                   "  --font=F\tSelect font F\n"
-                   "  --force\tForce start\n"
-                   "  --test=T\tSelect test T\n" // (See Editor.cpp)
                    "  --verbose\t{=n} Verbosity, default 0\n"
                    , __FILE__
           );

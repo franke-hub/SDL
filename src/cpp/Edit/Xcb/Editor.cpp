@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/02/28
+//       2021/03/02
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -64,7 +64,7 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= true                // Extra bringup diagnostics?
+,  USE_BRINGUP= false               // Extra bringup diagnostics?
 ,  USE_HCDM_FILE_DEBUG= true        // (As opposed to name-only file info)
 }; // Compilation controls
 
@@ -74,7 +74,8 @@ enum // Compilation controls
 EdText*                editor::text= nullptr; // The Text Window
 
 pub::List<EdFile>      editor::file_list; // The list of EdFiles
-EdFile*                editor::file= nullptr; // The current File object
+EdFile*                editor::file= nullptr; // The current File
+EdFile*                editor::last= nullptr; // The last inserted File
 
 Active*                editor::actalt= nullptr; // Active, for temporary use
 Active*                editor::active= nullptr; // Active, for temporary use
@@ -128,18 +129,18 @@ static const char*                  // Last occurance, nullptr none
      const char*       text,        // Text origin
      const char*       find)        // Search string
 {
-   const char* last= edit_strstr(text, find); // Find first occurance
-   if( last ) {                     // If existent
+   const char* final= edit_strstr(text, find); // Find first occurance
+   if( final ) {                    // If existent
      for(;;) {                      // Find last occurrance
-       const char* next= edit_strstr(last+1, find);
+       const char* next= edit_strstr(final+1, find);
        if( next == nullptr )
          break;
 
-       last= next;
+       final= next;
      }
    }
 
-   return last;
+   return final;
 }
 
 //----------------------------------------------------------------------------
@@ -242,8 +243,12 @@ static const char*                  // Return message, nullptr if OK
 
    //-------------------------------------------------------------------------
    // Load the edit files
+   int protect= false;              // Default, read/write files
+   if( argv[0][0] == 'v' || argv[0][0] == 'V' ) // If View command (not Edit)
+     protect= true;
+
    for(int i= argi; i<argc; i++) {
-     insert_file(argv[i]);
+     insert_file(argv[i], protect);
    }
    if( file_list.get_head() == nullptr ) // Always have something
      insert_file(nullptr);          // Even if it's an empty file
@@ -433,6 +438,28 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Editor::put_message
+//
+// Purpose-
+//       editor::put_message with formatting
+//
+//----------------------------------------------------------------------------
+void
+   Editor::put_message(             // editor::put_message with formatting
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // The remaining arguments
+{
+   va_list             argptr;      // Argument list pointer
+   va_start(argptr, fmt);           // Initialize va_ functions
+   std::string S= pub::utility::to_stringv(fmt, argptr);
+   va_end(argptr);                  // Close va_ functions
+
+   editor::put_message(S.c_str());
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       editor::allocate
 //
 // Purpose-
@@ -487,10 +514,30 @@ const char*                         // The (immutable) text
 
    size_t L= strlen(source);        // Source length
    if( source[L-1] == ' ' )         // (If UNEXPECTED trailing blanks)
-     fprintf(stderr, "%4d Editor UNEXPECTED\n", __LINE__); // TODO: REMOVE
+     Editor::put_message("%4d Editor UNEXPECTED", __LINE__);
    char* copy= allocate(L+1);       // Include trailing '\0' in string
    strcpy(copy, source);            // Duplicate the string
    return copy;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::data_protected
+//
+// Purpose-
+//       Check for protected file and data view
+//
+//----------------------------------------------------------------------------
+int                          // Return code, TRUE if error message
+   editor::data_protected( void ) // Error if protected file and data view
+{
+   if( file->protect && view == data ) {
+     editor::put_message("Read/only");
+     return true;
+   }
+
+   return false;
 }
 
 //----------------------------------------------------------------------------
@@ -508,6 +555,9 @@ const char*                         // The (immutable) text
 const char*                         // Return message, nullptr if OK
    editor::do_change( void )        // Change next occurance of string
 {
+   if( data_protected() )
+     return nullptr;
+
    const char* error= do_locate(0); // First, locate the string
    if( error ) return error;        // (If cannot locate)
 
@@ -516,27 +566,6 @@ const char*                         // Return message, nullptr if OK
    size_t length= locate_string.length();
    data->active.replace_text(column, length, change_string.c_str());
    text->draw();                    // (Only active line redraw required)
-   return nullptr;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       editor::do_exit
-//
-// Purpose-
-//       (Safely) remove a file from the file list.
-//
-//----------------------------------------------------------------------------
-const char*                         // Error message, nullptr expected
-   editor::do_exit( void )          // Safely remove a file from the file list
-{
-   if( file->damaged )
-     return "File damaged";
-   if( file->changed )
-     return "File changed";
-
-   remove_file();
    return nullptr;
 }
 
@@ -554,6 +583,8 @@ const char*                         // Error message, nullptr expected
 {
    if( view != data )
      return "Cursor view";
+   if( data_protected() )
+     return nullptr;
 
    data->commit();
    EdLine* after= data->cursor;     // Insert afer the current cursor line
@@ -605,6 +636,8 @@ const char*                         // Return message, nullptr expected
 {
    if( view != data )
      return "Cursor view";
+   if( data_protected() )
+     return nullptr;
 
    data->commit();                  // Commit the active line (removes blanks)
 
@@ -717,6 +750,27 @@ const char*                         // Return message, nullptr if OK
 //----------------------------------------------------------------------------
 //
 // Method-
+//       editor::do_quit
+//
+// Purpose-
+//       (Safely) remove a file from the file list.
+//
+//----------------------------------------------------------------------------
+const char*                         // Error message, nullptr expected
+   editor::do_quit( void )          // Safely remove a file from the file list
+{
+   if( file->damaged )
+     return "File damaged";
+   if( file->changed )
+     return "File changed";
+
+   remove_file();
+   return nullptr;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       editor::do_split
 //
 // Purpose-
@@ -728,6 +782,8 @@ const char*                         // Error message, nullptr expecte3d
 {
    if( view != data )
      return "Cursor view";
+   if( data_protected() )
+     return nullptr;
 
    EdView& D= *data;                // Data view reference
    D.commit();                      // Commit the active line
@@ -783,34 +839,6 @@ const char*                         // Error message, nullptr expecte3d
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::do_test
-//
-// Purpose-
-//       Bringup test. Currently flips window visibility.
-//
-//----------------------------------------------------------------------------
-void
-   editor::do_test( void )          // Bringup test
-{
-   if( window && window->get_parent() ) { // If test window active
-     Config::errorf("editor::do_test\n");
-     if( window->state & gui::Window::WS_VISIBLE )
-       window->hide();
-     else
-       window->show();
-     device->draw();
-   } else {
-     if( false ) {
-       debugf("SEGFAULT TEST!!\n");
-       printf("%p\n", window->get_parent()->get_parent()); // (SEGFAULT TEST)
-     }
-     Config::errorf("editor::do_test NOT CONFIGURED\n");
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       editor::do_view
 //
 // Purpose-
@@ -857,24 +885,23 @@ void
   #define wildstrcmp pub::utility::wildchar::strcmp
 #endif
 
-EdFile*                             // The last file inserted
+void
    editor::insert_file(             // Insert file(s) onto the file list
-     const char*       name_)       // The file name (file wildcards allowed)
+     const char*       name_,       // The file name (file wildcards allowed)
+     int               protect)     // Protect file?
 {  if( opt_hcdm )
      traceh("editor::insert_file(%s)\n", name_);
 
-   using namespace pub::fileman;    // Using fileman objects
-
-   EdFile* last= nullptr;           // The last EdFile inserted
    if( name_ == nullptr )           // If missing parameter
      name_= "unnamed.txt";          // Use default name
 
    // Match existing file name(s)
+   using namespace pub::fileman;    // Using fileman objects
    Name name(name_);
    std::string error= name.resolve(); // Remove link qualifiers
    if( error != "" ) {
-     fprintf(stderr, "File(%s) %s\n", name_, error.c_str());
-     return nullptr;
+     Editor::put_message("File(%s) %s", name_, error.c_str());
+     return;
    }
 
    {{{{ // Search directory, handling all wildcard file name matches
@@ -898,24 +925,34 @@ EdFile*                             // The last file inserted
 
          if( !is_dup ) {
            if( S_ISREG(wild.st.st_mode) ) {
-             last= new EdFile(wild.name.c_str());
-             file_list.fifo(last);
-           } else if( S_ISDIR(wild.st.st_mode) ) { // TODO: NOT CODED YET
-             fprintf(stderr, "File(%s) Directory: %s\n", name_, fqn.c_str());
+             EdFile* next= new EdFile(wild.name.c_str());
+             next->protect= protect;
+             file_list.insert(last, next, next);
+             last= next;
+           } else if( S_ISDIR(wild.st.st_mode) ) {
+             Editor::put_message("File(%s) Directory: %s", name_, fqn.c_str());
            } else {
-             fprintf(stderr, "File(%s) Unusable: %s\n", name_, fqn.c_str());
+             Editor::put_message("File(%s) Unusable: %s", name_, fqn.c_str());
            }
          }
        }
      }
      if( found )
-       return last;
+       return;
+
+     // If the file hasn't been written yet, it still might be a duplicate
+     for(EdFile* dup= file_list.get_head(); dup; dup= dup->get_next()) {
+       if( dup->name == name.name ) {
+         last= dup;
+         return;
+       }
+     }
    }}}}
 
-   // Non-existent file
-   last= new EdFile(name.name.c_str());
-   file_list.fifo(last);
-   return last;
+   // Non-existent file (Never protected)
+   EdFile* next= new EdFile(name.name.c_str());
+   file_list.insert(last, next, next);
+   last= next;
 }
 #undef wildstrcmp
 
@@ -925,7 +962,7 @@ EdFile*                             // The last file inserted
 //       editor::key_to_name
 //
 // Purpose-
-//       BRINGUP: Convert xcb_keysym_t to its name. (TODO: REMOVE)
+//       Convert xcb_keysym_t to its name.
 //
 //----------------------------------------------------------------------------
 const char*
@@ -1015,7 +1052,7 @@ void
 {  if( file )
      file->put_message(mess_, type_);
    else
-     debugh("editor::put_message(%s)\n", mess_);
+     debugf("ERROR: %s\n", mess_);
 }
 
 //----------------------------------------------------------------------------
@@ -1050,21 +1087,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::set_option
-//
-// Purpose-
-//       Set an editor option
-//
-//----------------------------------------------------------------------------
-const char*                         // Return code, nullptr expected
-   editor::set_option(              // Set an editor option
-     const char*       name,        // This option name to
-     const char*       value)       // This option value
-{  (void)name; (void)value; return "Not coded yet"; }
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       editor::un_changed
 //
 // Purpose-
@@ -1083,8 +1105,8 @@ bool                                // TRUE if editor in unchanged state
 
    for(EdFile* file= file_list.get_head(); file; file= file->get_next()) {
      if( file->changed && !file->damaged ) { // If changed and changeable
-       put_message("File changed");
        text->activate(file);
+       put_message("File changed");
        text->draw();
        return false;
      }

@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2021/02/28
+//       2021/03/01
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -94,8 +94,6 @@ static void
    if( !editor::file->damaged ) {   // One report per file
      editor::file->damaged= true;
      Editor::alertf("REDO/UNDO inconsistent");
-//   Config::debug("REDO/UNDO inconsistent");
-//   Config::failure("REDO/UNDO inconsistent");
    } else
      debugf("\n");
 }
@@ -146,8 +144,6 @@ static void
      debug_redo(__LINE__, redo);
 
    if( redo->head_insert && redo->head_remove ) {
-//   if( redo->tail_insert == nullptr || redo->tail_insert == nullptr )
-//     debug_redo(__LINE__, redo);  // (Already checked)
      if( redo->head_insert->get_prev() != redo->head_remove->get_prev() )
        debug_redo(__LINE__, redo);
      if( redo->tail_insert->get_next() != redo->tail_remove->get_next() )
@@ -509,6 +505,12 @@ EdLine*                             // The last inserted line
 
    // Load the file
    FILE* f= fopen(name, "rb");
+   if( f == nullptr ) {
+     damaged= true;
+     put_message("Open failure");
+     return nullptr;
+   }
+
    size_t L= fread(text, 1, size, f);
    fclose(f);
    if( L != size ) {
@@ -748,9 +750,7 @@ void
      line= redo->head_insert->get_prev();
    }
 
-// if( line == nullptr ) return;    // (TODO: Only needed for empty redo)
    changed= true;                   // File changed
-
    editor::mark->handle_redo(this, redo);
    editor::text->activate(line);
    editor::text->draw();
@@ -801,8 +801,6 @@ void
      line= undo->head_remove->get_prev();
    }
 
-// if( line == nullptr ) return;    // (TODO: Only needed for empty undo)
-
    editor::mark->handle_undo(this, undo);
    editor::text->activate(line);
    editor::text->draw();
@@ -851,7 +849,7 @@ void
 //       Add REDO to the UNDO list
 //
 // Implementation notes-
-//       DOES NOT update the cursor. TODO: Should it? Caller's do now.
+//       DOES NOT update the cursor.
 //
 //----------------------------------------------------------------------------
 void
@@ -862,7 +860,6 @@ void
    assert_undo(redo, this);         // (Only active when USE_BRINGUP == true)
    redo_delete();                   // Delete the current REDO list
 
-// editor::mark->handle_redo(this, redo); // TODO: ..REMOVE..
    undo_list.lifo(redo);            // Insert the REDO onto the UNDO list
    changed= true;
 
