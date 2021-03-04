@@ -1089,7 +1089,7 @@ int                                 // Return code, TRUE if error message
      xcb_keysym_t      key,         // Input key
      int               state)       // Alt/Ctl/Shift state mask
 {
-   if( key >= 0x0020 && key < 0x007F ) { // If text key
+   if( (key >= 0x0020 && key < 0x007F) || key == '\t' ) { // If text key
      int mask= state & (gui::KS_ALT | gui::KS_CTRL);
 
      if( mask ) {
