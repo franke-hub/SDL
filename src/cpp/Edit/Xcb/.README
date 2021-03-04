@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/03/02
+##       2021/03/03
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in PRE-ALPHA status.
@@ -27,7 +27,7 @@
 
 ##############################################################################
 ## STATUS:
-2021/03/02 Some TODOs done, including implementing read/only file.
+2021/03/03 Ctrl-TAB used for actual tab character.
 
 2021/03/01 TODO:
          Remove (commented out) EdMark debugging code.
@@ -41,6 +41,8 @@
          Greps: "TODO:", "HCDM", "USE_BRINGUP", "NOT CODED"
 
 ##############################################################################
+2021/03/02 Some TODOs done, including implementing read/only file.
+
 2021/02/28 Implemented locate/change options, including set command
          Added REDO/UNDO for EdFile::set_mode.
 

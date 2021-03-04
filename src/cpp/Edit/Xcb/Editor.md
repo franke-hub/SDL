@@ -1,28 +1,39 @@
 # Editor documentation
 
-Last change date: 2021/03/02
+Copyright (C) 2021 Frank Eskesen.
 
-The Editor is a WYSIWYG editor that uses XCB for controlling the screen,
-keyboard, and mouse. Since it's based on XCB, it only operates under Cygwin or
-Linux. Some of the XCB functionality is offloaded into the GUI library, part
-of the code distribution package. It also uses the PUB library.
+This file is free content, distributed under the MIT license.
+(See accompanying file LICENSE.MIT or the original contained
+within https://opensource.org/licenses/MIT)
 
-It's derived from ~/src/cpp/Edit, also a WYSIWYG editor. This editor uses
-the screen, keyboard and other functions provided in the COM library. The COM
-library uses Windows(TM) functions and Linux ncurses for screen and keyboard
-control. The mouse is not used by this editor.
+Last change date: 2021/03/03
+
+------------------------------------------------------------------------------
+
+The Editor is a WYSIWYG editor that uses XCB functionality to control the
+screen, keyboard, and mouse.
+Since it's based on XCB, it only operates under Cygwin or Linux.
+Some of the XCB functionality is offloaded into the GUI library, part of the
+code distribution package containing.
+The Editor also uses the PUB library.
+
+It's derived from ~/src/cpp/Edit, also a WYSIWYG editor.
+This editor uses the screen, keyboard and other functions provided in the
+COM library, but does not use the mouse.
+The COM library uses Windows(TM) functions and Linux ncurses for screen and
+keyboard control.
 
 (*WYSIWYG*: What you see is what you get.)
 
 ------------------------------------------------------------------------------
 
+
 ## The editor command line
 The parameters are the list of files to be edited.
 
 ## General usage notes
-The TAB key only moves the cursor.
-The only way to get a '\t' character into a file is to copy an existing one.
-(TODO: ??Maybe some sort of insert tab command??)
+The TAB key moves the cursor.
+Ctrl-TAB inserts a '\t' into the file.
 
 When any line is changed, it is saved with trailing blanks removed.
 If the last line has no delimiter and is changed, its delimiter is changed to

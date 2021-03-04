@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/03/02
+//       2021/03/03
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -1152,6 +1152,12 @@ void
            , key, state, key_name);
    }
 
+   // Convert Ctrl-TAB to standard TAB
+   if( key == XK_Tab && (state & gui::KS_CTRL) ) {
+     key= '\t';
+     state= 0;
+   }
+
    // Handle protected line
    if( view == data ) {             // Only applies to data view
      if( data->cursor->flags & EdLine::F_PROT // If protected line
@@ -1167,7 +1173,7 @@ void
    }
 
    size_t column= view->get_column(); // The cursor column
-   if( key >= 0x0020 && key < 0x007F ) { // If text key
+   if( (key >= 0x0020 && key < 0x007F) || key == '\t' ) { // If text key
      int mask= state & (gui::KS_ALT | gui::KS_CTRL);
      if( mask ) {
        key= toupper(key);
