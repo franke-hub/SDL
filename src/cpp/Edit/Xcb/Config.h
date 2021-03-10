@@ -198,7 +198,7 @@ extern uint32_t        message_fg;  // message.fg: Message line FG
 // Screen controls -----------------------------------------------------------
 extern xcb_rectangle_t geom;        // The screen geometry
 
-// TODO: REMOVE (Bringup controls) -------------------------------------------
+// (Operational controls) ----------------------------------------------------
 extern uint32_t        USE_MOUSE_HIDE; // Use mouse hide logic?
 
 // Initialized controls

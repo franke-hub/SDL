@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2021/03/02
+//       2021/03/09
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -301,7 +301,7 @@ void
 //       editor::key_to_name
 //
 // Purpose-
-//       BRINGUP: Convert xcb_keysym_t to its name.
+//       Convert xcb_keysym_t to its name.
 //
 //----------------------------------------------------------------------------
 const char*                         // The symbol name, "???" if unknown

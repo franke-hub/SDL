@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2021/03/01
+//       2021/03/10
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -105,12 +105,12 @@ uint32_t               config::message_fg= 0x00900000; // Message FG
 // Screen controls --- From configuration file -------------------------------
 xcb_rectangle_t        config::geom= {1030, 0, 80, 50}; // The screen geometry
 
-// Bringup controls -- From configuration file -------------------------------
+// Bringup controls -- From configuration file or set command ----------------
 uint32_t               config::USE_MOUSE_HIDE= true; // Use mouse hide logic?
 
 // GUI objects ------- Initialized at startup (Font configured) --------------
 gui::Device*           config::device= nullptr; // The root Device
-gui::Window*           config::window= nullptr; // A TEST Window TODO: BRINGUP
+gui::Window*           config::window= nullptr; // A TEST Window (Not needed)
 gui::Font*             config::font= nullptr; // The Font object
 
 // (Internal) -------- Initialized at startup --------------------------------
@@ -594,8 +594,8 @@ static int                          // Return code (0 OK)
    usr2_handler= signal(SIGUSR2, sig_handler);
 
    //-------------------------------------------------------------------------
-   // BRINGUP: Register term as an atexit handler
-// atexit(&term);                   // TODO: DISABLE
+   // Register term as an atexit handler
+// atexit(&term);                   // (Optional, not really needed)
 
    //-------------------------------------------------------------------------
    // Initialize/activate debugging trace (with options)

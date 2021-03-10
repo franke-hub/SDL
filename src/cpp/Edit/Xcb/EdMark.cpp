@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2021/03/02
+//       2021/03/04
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -279,7 +279,6 @@ const char*                         // Error message, nullptr expected
 const char*                         // Error message, nullptr expected
    EdMark::cut( void )              // Cut the marked area
 {
-// debugf("cut h(%p) t(%p) [%zd,%zd]\n", mark_head, mark_tail, mark_lh, mark_rh);
    if( mark_file->protect )
      return "Read/only mark";
    const char* error= copy();
@@ -335,7 +334,6 @@ const char*                         // Error message, nullptr expected
    redo->tail_remove= mark_tail;
    mark_file->redo_insert(redo);
    undo();                          // (No mark remains after cut)
-// redo->debug("new cut");          // TODO: REMOVE
 
    return nullptr;
 }
@@ -367,7 +365,6 @@ void
      EdFile*           file,        // For this file
      EdRedo*           redo)        // And this REDO
 {
-// debugf("\n"); redo->debug("handle_redo"); // TODO: REMOVE
    int rem_type= MT_NONE;           // Default, no remove mark
    if( redo->head_remove ) {        // If remove specified
      rem_type= get_mark(redo->head_remove, redo->tail_remove);
@@ -435,7 +432,6 @@ void
      EdFile*           file,        // For this file
      EdRedo*           undo)        // And this UNDO
 {
-// debugf("handle_undo\n");
    EdRedo redo= *undo;              // Copy the UNDO
 
    redo.head_insert= undo->head_remove; // Convert UNDO into REDO
@@ -463,7 +459,6 @@ const char*                         // Error message, nullptr expected
      EdLine*           edLine,      // And this EdLine
      ssize_t           column)      // And this column (block copy)
 {
-// debugf("mark(%p,%p,%zd): ", edFile, edLine, column); edLine->debug();
    if( edLine->flags & EdLine::F_PROT )
      return "Protected";
    if( mark_file && mark_file != edFile )
@@ -565,7 +560,6 @@ const char*                         // Error message, nullptr expected
      EdLine*           edLine,      // After(line) or into(block) this line
      ssize_t           column)      // Start at this column (if block copy)
 {
-// debugf("paste(%p,%p,%zd): ", edFile, edLine, column); edLine->debug();
    if( copy_list.get_head() == nullptr )
      return "No copy/cut";
    if( editor::view != editor::data )
@@ -645,7 +639,6 @@ const char*                         // Error message, nullptr expected
        head= head->get_next();
      }
      edFile->activate(copy.head);   // (The original line was removed)
-//   redo->debug("new paste block"); // TODO: REMOVE
 
      return nullptr;
    }
@@ -675,7 +668,6 @@ const char*                         // Error message, nullptr expected
    redo->tail_insert= copy.tail;
    edFile->redo_insert(redo);
    edFile->activate(edLine);
-// redo->debug("new paste line");   // TODO: REMOVE
 
    return nullptr;
 }
@@ -790,7 +782,6 @@ const char*                         // Error message, nullptr expected
      if( (data.cursor->flags & EdLine::F_MARK) // If moving into marked line
          && mark_lh >= 0            // If column move
          && data.get_column() > size_t(mark_rh) ) { // If move left past mark
-// debugf("%4d mark, move into marked line\n", __LINE__);
        size_t cols= mark_rh - mark_lh + 1; // Column move count
        if( cols <= data.col )       // If column adjustment sufficient
          data.col -= (decltype(data.col))cols;

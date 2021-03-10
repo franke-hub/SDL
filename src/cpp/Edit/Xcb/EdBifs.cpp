@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2021/03/02
+//       2021/03/10
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -83,8 +83,8 @@ static Name_addr       true_addr[]= // Boolean symbols, default true
 , {"reverse",          (int*)&editor::locate_back} // Symbol name aliases
 , {"mixed_case",       (int*)&editor::locate_case}
 , {"autowrap",         (int*)&editor::locate_wrap}
-// TODO: REMOVE (This allows USE_MOUSE_HIDE control for bringup debugging)
-, {"use_mouse_hide",   (int*)&config::USE_MOUSE_HIDE} // TODO: REMOVE
+, {"hidden",           (int*)&config::USE_MOUSE_HIDE} // Controls
+, {"mouse_hide",       (int*)&config::USE_MOUSE_HIDE}
 , {nullptr,            nullptr}     // Not found address
 }; // true_addr[]
 
@@ -232,6 +232,17 @@ static const char*                  // Error message, nullptr expected
    editor::locate_string= locate;
    editor::change_string= change;
    return editor::do_change();
+}
+
+static const char*                  // Error message, nullptr expected
+   command_cmd(                     // Command command
+     char*             parm)        // (Mutable) parameter string
+{
+   int rc= system(parm);
+   if( rc )
+     return "Command failed";
+
+   return nullptr;
 }
 
 static const char*                  // Error message, nullptr expected
@@ -528,6 +539,7 @@ static const Command_desc
                        command_desc[]= // The Command descriptor list
 {  {"BOT",      command_bot}        // Bottom
 ,  {"C",        command_change}     // Change
+,  {"CMD",      command_cmd}        // Command
 ,  {"D",        command_debug}      // Debug
 ,  {"DEBUG",    command_debug}      // Debug
 // {"DETAB",    command_detab}      // Detab

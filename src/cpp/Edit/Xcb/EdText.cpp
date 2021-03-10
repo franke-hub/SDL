@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/03/03
+//       2021/03/09
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -51,6 +51,7 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
+,  TAB= 8                           // TAB spacing (2**N)
 ,  USE_BRINGUP= false               // Use bringup debugging?
 }; // Compilation controls
 
@@ -1274,7 +1275,6 @@ void
        break;
      }
      case XK_Tab: {
-       enum { TAB= 8 };             // TAB Column BRINGUP (( 2 ** N ))
        column += TAB;
        column &= ~(TAB - 1);
        move_cursor_H(column);
@@ -1282,7 +1282,6 @@ void
      }
      case XK_ISO_Left_Tab:
        if( column ) {               // If not already at column[0]
-         enum { TAB= 8 };           // TAB Column BRINGUP (( 2 ** N ))
          if( column <= TAB )
            column= 0;
          else {
