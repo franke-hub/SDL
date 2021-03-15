@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/03/04
+##       2021/03/15
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in PRE-ALPHA status.
@@ -27,12 +27,14 @@
 
 ##############################################################################
 ## STATUS:
-2021/03/04 Ctrl-TAB on protected line missing protection.
-         Removed the commented out EdMark debugging code.
+2021/03/15 Added DETAB command, fixing some screen handling glitches.
+         Separated EdText.cpp into EdText.cpp, EdInps.cpp
+            Added keypad character handling.
+         Handle directory and unusable files better.
 
 2021/03/04 TODO: (Consider)
          Consider EdView base class, EdData/EdHist based on that.
-         Consider splitting: Editor.cpp, EdFile.cpp, and EdText.cpp.
+         Consider splitting: Editor.cpp and EdFile.cpp.
          Also: Config.cpp is 911 lines and Config.patch is ugly.
 
          For directories, load the file names. (Protected file)
@@ -44,6 +46,9 @@
          Greps: "TODO:", "HCDM", "USE_BRINGUP", "NOT CODED"
 
 ##############################################################################
+2021/03/04 Added protection for Ctrl-TAB on protected line.
+         Removed the commented out EdMark debugging code.
+
 2021/03/03 Ctrl-TAB used for actual tab character.
          An easy to implement TODO, but committed implementation incomplete.
 

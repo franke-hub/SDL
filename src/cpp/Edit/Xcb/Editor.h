@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2021/03/09
+//       2021/03/13
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -294,18 +294,6 @@ void
    insert_file(                     // Insert file(s) onto the file list
      const char*       name= nullptr, // The file name (wildards allowed)
      int               protect= false); // Protect file?
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       editor::key_to_name
-//
-// Purpose-
-//       Convert xcb_keysym_t to its name.
-//
-//----------------------------------------------------------------------------
-const char*                         // The symbol name, "???" if unknown
-   key_to_name(xcb_keysym_t key);   // Convert xcb_keysym_t to name
 
 //----------------------------------------------------------------------------
 //

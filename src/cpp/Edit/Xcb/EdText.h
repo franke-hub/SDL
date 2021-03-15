@@ -55,11 +55,16 @@ class EdText : public gui::Window { // Editor text Window viewport
 // EdText::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-enum                                // System mouse cursor state
+enum CURSOR_STATE                   // Mouse cursor state
 {  CS_RESET= 0                      // Reset (initial state, visible)
 ,  CS_HIDDEN                        // Hidden
 ,  CS_VISIBLE                       // Visible
-};
+}; // enum CURSOR_STATE
+
+enum KEYBOARD_STATE                 // Keyboard state (Low order 16 bits zero)
+{  KS_RESERVED_XCB= 0x0000ffff      // XCB reserved, i.e. XCB_KEY_BUT_MASK_*
+,  KS_INS=          0x00010000      // Insert state
+}; // enum KEYBOARD_STATE
 
 struct Motion {                     // System motion controls
 int                    state;       // System mouse cursor state
@@ -81,6 +86,7 @@ unsigned               row_size= 0; // The current screen row count
 unsigned               row_used= 0; // The last used screen row
 
 Motion                 motion= {CS_VISIBLE, 0, 0, 0}; // System motion controls
+uint32_t               keystate= KS_INS; // Keyboard state
 
 // Graphic contexts
 xcb_gcontext_t         fontGC= 0;   // The standard graphic context
@@ -282,6 +288,25 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdText::key_alt
+//       EdText::key_ctl
+//
+// Purpose-
+//       Handle alt-key input
+//       Handle ctl-key input
+//
+//----------------------------------------------------------------------------
+void
+   key_alt(                         // Handle this
+     xcb_keysym_t      key);        // Alt-key input event
+
+void
+   key_ctl(                         // Handle this
+     xcb_keysym_t      key);        // Ctrl-key input event
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdText::move_cursor_H
 //
 // Purpose-
@@ -358,33 +383,6 @@ void
 void
    synch_active( void );            // Set the Active (cursor) line
 
-//----------------------------------------------------------------------------
-//
-// Public method-
-//       EdText::key_input
-//
-// Purpose-
-//       Handle keypress event
-//
-//----------------------------------------------------------------------------
-void
-   key_alt(                         // Handle this
-     xcb_keysym_t      key);        // Alt_Key input event
-
-void
-   key_ctl(                         // Handle this
-     xcb_keysym_t      key);        // Ctrl_Key input event
-
-int                                 // Return code, TRUE if error message
-   key_protected(                   // Handle this protected line
-     xcb_keysym_t      key,         // Input key
-     int               state);      // Alt/Ctl/Shift state mask
-
-virtual void
-   key_input(                       // Handle this
-     xcb_keysym_t      key,         // Key input event
-     int               state);      // Alt/Ctl/Shift state mask
-
 //============================================================================
 // EdText::Event handlers
 //============================================================================
@@ -404,6 +402,11 @@ virtual void
 void
    expose(                          // Handle this
      xcb_expose_event_t* E);        // Expose event
+
+virtual void
+   key_input(                       // Handle this
+     xcb_keysym_t      key,         // Key input event
+     int               state);      // Alt/Ctl/Shift state mask
 
 virtual void
    motion_notify(                   // Handle this

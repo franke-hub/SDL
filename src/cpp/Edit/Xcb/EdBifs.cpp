@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2021/03/10
+//       2021/03/15
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -39,6 +39,7 @@ using namespace config;             // For opt_* controls
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
+,  TAB= 8                           // TAB spacing (2**N)
 ,  USE_BRINGUP= false               // Extra bringup diagnostics?
 }; // Compilation controls
 
@@ -75,16 +76,17 @@ static Name_value      mode_value[]= // Mode value table
 
 static Name_addr       true_addr[]= // Boolean symbols, default true
 { {"prior",            (int*)&editor::locate_back} // Short symbol names
-, {"mixed",            (int*)&editor::locate_case}
+, {"case",             (int*)&editor::locate_case}
 , {"wrap",             (int*)&editor::locate_wrap}
 , {"locate.prior",     (int*)&editor::locate_back} // Official symbol names
 , {"locate.mixed",     (int*)&editor::locate_case}
 , {"locate.wrap",      (int*)&editor::locate_wrap}
 , {"reverse",          (int*)&editor::locate_back} // Symbol name aliases
-, {"mixed_case",       (int*)&editor::locate_case}
+, {"mixed",            (int*)&editor::locate_case}
 , {"autowrap",         (int*)&editor::locate_wrap}
 , {"hidden",           (int*)&config::USE_MOUSE_HIDE} // Controls
 , {"mouse_hide",       (int*)&config::USE_MOUSE_HIDE}
+, {"use_mouse_hide",   (int*)&config::USE_MOUSE_HIDE}
 , {nullptr,            nullptr}     // Not found address
 }; // true_addr[]
 
@@ -253,7 +255,7 @@ static const char*                  // Error message, nullptr expected
 }
 
 static const char*                  // Error message, nullptr expected
-   command_debug(                   // Change command
+   command_debug(                   // Debug command
      char*             parm)        // (Mutable) parameter string
 {
    if( parm == nullptr || strcasecmp(parm, "all") == 0 )
@@ -278,6 +280,55 @@ static const char*                  // Error message, nullptr expected
    debug_flush();
 
    editor::hist->activate();
+   return nullptr;
+}
+
+static const char*                  // Error message, nullptr expected
+   command_detab(char*)             // De-tab command
+{
+   EdView* data= editor::data;
+   EdFile* file= editor::file;
+   EdLine* top= editor::text->head; // Save the head line
+   EdLine* cur= data->cursor;       // Save the cursor line
+   for(EdLine* line= file->line_list.get_head(); line; line= line->get_next()) {
+     Active* active= nullptr;
+     const char* text= line->text;  // Using the text line
+     const char* tabs= strchr(text, '\t'); // Locate the first tab
+     while( tabs ) {                // Remove tabs from the line
+       if( active == nullptr ) {
+         active= &data->active;
+         active->reset("");
+         data->cursor= line;
+       }
+
+       size_t L= tabs - text;       // Length of text
+       active->append_text(text, L); // Append the text
+       L= active->get_used();
+       L += TAB;
+       L &= ~(TAB - 1);
+       active->fetch(L-1);
+       if( L > active->get_used() )
+         active->append_text(" ");
+
+       text= tabs + 1;            // Skip past this tab
+       tabs= strchr(text, '\t');  // Locate the next tab
+     }
+
+     if( active ) {               // If tabs found
+       active->append_text(text); // Append trailing text
+       data->commit();
+       if( line == cur )
+         cur= data->cursor;
+       if( line == top )
+         editor::text->head= data->cursor;
+     }
+   }
+
+   // Reset the active line and redraw (whether or not needed)
+   data->cursor= cur;
+   data->active.reset(cur->text);
+   editor::text->draw();
+
    return nullptr;
 }
 
@@ -542,7 +593,7 @@ static const Command_desc
 ,  {"CMD",      command_cmd}        // Command
 ,  {"D",        command_debug}      // Debug
 ,  {"DEBUG",    command_debug}      // Debug
-// {"DETAB",    command_detab}      // Detab
+,  {"DETAB",    command_detab}      // Detab
 ,  {"E",        command_edit}       // Edit
 ,  {"EDIT",     command_edit}       // Edit
 ,  {"EXIT",     command_exit}       // Exit
@@ -550,7 +601,6 @@ static const Command_desc
 ,  {"GET",      command_get}        // Get
 ,  {"L",        command_locate}     // Locate (forward)
 // {"MARGINS",  command_margins}    // Set margins
-// {"MODE",     command_mode}       // Set mode
 ,  {"QUIT",     command_quit}       // Quit
 ,  {"SAVE",     command_save}       // Save
 ,  {"SET",      command_set}        // Set

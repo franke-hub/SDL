@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2021/03/04
+//       2021/03/14
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -308,6 +308,8 @@ const char*                         // Error message, nullptr expected
          line->text= editor::allocate(text);
        if( from == editor::data->cursor) // If modifying the cursor line
          repC= line;                // (Replace it after insertion)
+       if( from == editor::text->head ) // If modifying the head screen line
+         editor::text->head= line;  // (Replace it now)
        if( line == copy.tail )
          break;
        from= from->get_next();
@@ -325,6 +327,17 @@ const char*                         // Error message, nullptr expected
      editor::file->csr_line= editor::data->cursor;
      if( mark_file->csr_line->flags & EdLine::F_MARK )
        mark_file->activate(mark_head->get_prev());
+     else {
+       EdLine* head= editor::text->head; // (The top screen data line)
+       for(EdLine* line= mark_head; line; line= line->get_next()) {
+         if( line == head ) {
+           editor::text->head= mark_head->get_prev();
+           break;
+         }
+         if( line == mark_tail )
+           break;
+       }
+     }
 
      mark_file->line_list.remove(mark_head, mark_tail);
      mark_file->rows -= copy_rows;

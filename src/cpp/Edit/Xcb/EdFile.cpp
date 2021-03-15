@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2021/03/01
+//       2021/03/11
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -495,6 +495,16 @@ EdLine*                             // The last inserted line
      return nullptr;
    }
 
+   if( !S_ISREG(st.st_mode) ) {
+     damaged= true;
+     protect= true;
+     if( S_ISDIR(st.st_mode) )
+       put_message("Directory");
+     else
+       put_message("Unusable");
+     return nullptr;
+   }
+
    if( st.st_size == 0 )            // If empty file
      return nullptr;                // Nothing to append
 
@@ -656,7 +666,7 @@ void
      return;
 
    EdMess* mess= mess_list.get_head();
-   if( mess && type_ <= mess->type )
+   if( mess && type_ < mess->type )
      return;
 
    mess_list.fifo(new EdMess(mess_, type_));

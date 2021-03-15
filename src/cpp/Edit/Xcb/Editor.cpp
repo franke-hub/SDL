@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/03/02
+//       2021/03/13
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -33,7 +33,6 @@
 
 #include <gui/Device.h>             // For gui::Device
 #include <gui/Font.h>               // For gui::Font
-#include <gui/Keysym.h>             // For xcb_keycode_t symbols
 #include <gui/Layout.h>             // For gui::Layout
 #include <gui/Widget.h>             // For gui::Widget, our base class
 #include <gui/Window.h>             // For gui::Window
@@ -759,8 +758,6 @@ const char*                         // Return message, nullptr if OK
 const char*                         // Error message, nullptr expected
    editor::do_quit( void )          // Safely remove a file from the file list
 {
-   if( file->damaged )
-     return "File damaged";
    if( file->changed )
      return "File changed";
 
@@ -924,16 +921,10 @@ void
          }
 
          if( !is_dup ) {
-           if( S_ISREG(wild.st.st_mode) ) {
-             EdFile* next= new EdFile(wild.name.c_str());
-             next->protect= protect;
-             file_list.insert(last, next, next);
-             last= next;
-           } else if( S_ISDIR(wild.st.st_mode) ) {
-             Editor::put_message("File(%s) Directory: %s", name_, fqn.c_str());
-           } else {
-             Editor::put_message("File(%s) Unusable: %s", name_, fqn.c_str());
-           }
+           EdFile* next= new EdFile(wild.name.c_str());
+           next->protect |= protect; // (May already be set)
+           file_list.insert(last, next, next);
+           last= next;
          }
        }
      }
@@ -959,86 +950,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::key_to_name
-//
-// Purpose-
-//       Convert xcb_keysym_t to its name.
-//
-//----------------------------------------------------------------------------
-const char*
-   editor::key_to_name(xcb_keysym_t key) // Convert xcb_keysym_t to name
-{
-static char buffer[8];
-static const char* F_KEY= "123456789ABCDEF";
-   if( key >= 0x0020 && key <= 0x007f ) { // If text key
-     buffer[0]= char(key);
-     buffer[1]= '\0';
-     return buffer;
-   }
-
-   if( key >= XK_F1 && key <= XK_F12 ) { // If function key
-     buffer[0]= 'F';
-     buffer[1]= F_KEY[key - XK_F1];
-     buffer[2]= '\0';
-     return buffer;
-   }
-
-   switch( key ) {                  // Handle control key
-     case XK_BackSpace:
-       return "BackSpace";
-
-     case XK_Tab:
-       return "Tab";
-
-     case XK_ISO_Left_Tab:
-       return "Left_Tab";
-
-     case XK_Return:
-       return "Return";
-
-     case XK_Scroll_Lock:
-       return "Scroll_Lock";
-
-     case XK_Escape:
-       return "Escape";
-
-     case XK_Delete:
-       return "Delete";
-
-     case XK_Insert:
-       return "Insert";
-
-     case XK_Home:
-       return "Home";
-
-     case XK_End:
-       return "End";
-
-     case XK_Menu:
-       return "Menu";
-
-     case XK_Left:
-       return "Left arrow";
-
-     case XK_Up:
-       return "Up arrow";
-
-     case XK_Right:
-       return "Right arrow";
-
-     case XK_Down:
-       return "Down arrow";
-
-     default:
-       break;
-   }
-
-   return "???";
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       editor::put_message
 //
 // Purpose-
@@ -1052,7 +963,7 @@ void
 {  if( file )
      file->put_message(mess_, type_);
    else
-     debugf("ERROR: %s\n", mess_);
+     fprintf(stderr, "ERROR: %s\n", mess_);
 }
 
 //----------------------------------------------------------------------------
