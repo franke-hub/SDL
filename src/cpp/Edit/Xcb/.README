@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/03/15
+##       2021/03/22
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in PRE-ALPHA status.
@@ -27,6 +27,8 @@
 
 ##############################################################################
 ## STATUS:
+2021/03/22 Fixed file write on different filesystem.
+
 2021/03/15 Added DETAB command, fixing some screen handling glitches.
          Separated EdText.cpp into EdText.cpp, EdInps.cpp
             Added keypad character handling.

@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2021/03/11
+//       2021/03/22
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -29,11 +29,12 @@
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf, fopen, fclose, ...
 #include <stdlib.h>                 // For various
-//nclude <unistd.h>                 // For close
+#include <unistd.h>                 // For unlink
 #include <sys/stat.h>               // For stat
 
 #include <gui/Types.h>              // For gui::Line
 #include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Fileman.h>            // For pub::Name
 #include <pub/Signals.h>            // For pub::signals::Signal
 #include <pub/List.h>               // For pub::List
 
@@ -278,30 +279,6 @@ static void
 
    editor::file->mode= mode;        // Update the mode
    editor::text->draw_info();       // And redraw
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       name_of
-//
-// Purpose-
-//       Get filename part of file name
-//
-//----------------------------------------------------------------------------
-static const char*                  // The file name (only)
-   name_of(                         // Get file name
-     const char*       full)        // File name, possibly with path qualifiers
-{
-   size_t L= strlen(full);          // The fully qualified name
-   while( L > 0 ) {                 // Locate path qualifier
-     if( full[L-1] == '/' )
-       break;
-
-     L--;
-   }
-
-   return full + L;
 }
 
 //============================================================================
@@ -1081,21 +1058,25 @@ int                                 // Return code, 0 OK
    EdFile::write( void )            // Write (replace) the file
 {
    const char* const file_name= name.c_str();
-   std::string S= config::AUTO;     // The AUTOSAVE directory
+   using namespace pub::fileman;    // For pub::fileman::Name
+   std::string S= Name::get_path_name(name);
    S += "/";                        // Add directory delimiter
    S += config::AUTOFILE;           // AUTOSAVE file name header
-   S += name_of(file_name);         // Append file name
+   S += Name::get_file_name(name);  // Append file name
 
    int rc= write(S.c_str());        // Write AUTOSAVE file
    if( rc == 0 ) {
      struct stat st;                // File stats
-     int rc= stat(file_name, &st);  // Get file information
+     rc= stat(file_name, &st);      // Get file information
      if( rc != 0 )                  // If failure (writing new file)
        st.st_mode= (S_IRUSR | S_IWUSR); // Default, user read/write
-     rc= rename(S.c_str(), file_name); // Rename the file
+     rc= rename(S.c_str(), name.c_str()); // Rename the file
      if( rc == 0 )                  // If renamed
-       chmod(file_name, st.st_mode); // Restore the file mode
+       rc= chmod(file_name, st.st_mode); // Restore the file mode
    }
+
+   if( rc )                         // If write failure
+     unlink(S.c_str());             // Remove AUTOSAVE file
 
    return rc;
 }

@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2021/03/15
+//       2021/03/16
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -290,6 +290,10 @@ static const char*                  // Error message, nullptr expected
    EdFile* file= editor::file;
    EdLine* top= editor::text->head; // Save the head line
    EdLine* cur= data->cursor;       // Save the cursor line
+
+   if( file->protect )              // Do not modify protected files
+     return "Read/only";
+
    for(EdLine* line= file->line_list.get_head(); line; line= line->get_next()) {
      Active* active= nullptr;
      const char* text= line->text;  // Using the text line
