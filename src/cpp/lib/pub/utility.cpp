@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2020/12/20
+//       2021/04/01
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -407,6 +407,15 @@ enum FSM                            // Finite State machine
        memcpy(newData, paddr, 16);
      else if( size > 0 )
        memcpy(newData, paddr, size);
+   }
+
+   if( fsm == FSM_INDUP ) {         // If duplicating lines
+     if( sizeof(void*) > 4 )
+       fprintf(file, "%.16" PRIX64 "  to %.16" PRIX64 ", lines duplicated\n",
+                     int64_t(oldAddr), int64_t(vaddr-1));
+     else
+       fprintf(file, "%.8lX  to %.8lX, lines duplicated\n",
+                     long(oldAddr), long(vaddr-1));
    }
 }
 
