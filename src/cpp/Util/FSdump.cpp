@@ -73,16 +73,19 @@ int
      return 2;
    }
 
-   size_t inporg= 0;                // Set default offset
-   size_t inplen= info.st_size;     // Set default length
+   ssize_t inporg= 0;               // Set default offset
+   ssize_t inplen= info.st_size;    // Set default length
 
    if (argc > 2)                    // If length present
      inporg= atol(argv[2]);         // Set dump origin
-   if (argc > 3) {                  // If length present
+   if (argc > 3)                    // If length present
      inplen= atol(argv[3]);         // Set dump length
-     if( inplen > inporg )          // (Don't dump past end)
-       inplen= inporg;
-     inplen -= inporg;              // (Adjust for origin)
+   if( (inporg + inplen) > info.st_size ) { // (Don't dump past end)
+     inplen= info.st_size - inporg;
+     if( inplen < 0 ) {
+       printf("Origin > Length(%zd)\n", info.st_size);
+       return 0;
+     }
    }
 
    printf("Filename: '%s'[%zd:%zd]\n", inpfile, inporg, inplen);
