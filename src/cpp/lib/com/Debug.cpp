@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2020/10/03
+//       2021/04/02
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -856,6 +856,17 @@ void
        memcpy(newData, paddr, 16);
      else if( size > 0 )
        memcpy(newData, paddr, size);
+   }
+
+   if( fsm == FSM_INDUP ) {         // If INDUP state
+     if( sizeof(void*) > 4 )
+       fprintf(handle, "%.16" PRIX64 "  to %.16" PRIX64
+                       ", lines same as above\n",
+                       (int64_t)(void*)(intptr_t)oldAddr,
+                       (int64_t)(void*)(intptr_t)vaddr-1);
+     else
+       fprintf(handle, "%.8lX  to %.8lX, lines same as above\n",
+                       (long)(intptr_t)oldAddr, (long)(intptr_t)vaddr-1);
    }
 
    newAddr= vaddr;

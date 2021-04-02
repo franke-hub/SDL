@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test debugging methods.
 //
 // Last change date-
-//       2020/10/03
+//       2021/04/02
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -99,6 +99,11 @@ extern int                          // Return code
    debugf("\n");
    debugf("Snap(%p,%x)\n", buff+14, 4);
    snap(buff+14, 4);
+
+   debugf("\n");
+   debugf("Snap(%p,%zx)\n", buff, sizeof(buff));
+   memset(buff, 0, sizeof(buff));
+   snap(buff, sizeof(buff));
 
    Logger::log("Initial mode:\n");
    Logger::get()->logf("Message %s\n", "Logger::get->logf");
