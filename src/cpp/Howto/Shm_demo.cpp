@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Sample program: POSIX shared memory example.
 //
 // Last change date-
-//       2020/10/04
+//       2021/03/29
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>                  // For isprint()
@@ -224,7 +224,7 @@ static int                          // Error counter
 
    uint64_t* addr= (uint64_t*)mmap(nullptr, SIZE, PROT_RO, MAP_SHARED, fd, 0);
    printf("%4d %p= mmap(%p,%.8zx,%x,%x,%d,%d)\n", __LINE__
-          , addr, nullptr, SIZE, PROT_RW, MAP_SHARED, fd, 0);
+          , addr, nullptr, SIZE, PROT_RO, MAP_SHARED, fd, 0);
    if( addr == MAP_FAILED ) {       // If no can do
      perror("failed");
      return 1;
