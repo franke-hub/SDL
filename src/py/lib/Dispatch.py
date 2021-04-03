@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2016-2018 Frank Eskesen.
+##       Copyright (C) 2016-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,7 +16,7 @@
 ##       Dispatcher classes.
 ##
 ## Last change date-
-##       2018/01/01
+##       2021/04/03
 ##
 ## Usage notes-
 ##       from lib.Dispatch import OBJ, TAB, UOW, WDO, ...
@@ -259,6 +259,8 @@ class _Timer(object):
 ## Class OBJ: (The Dispatcher)
 ##############################################################################
 class OBJ(threading.Thread):
+    _obj = None                     ## The current (last) OBJ
+
     def __init__(self, *args, **kwargs):
         super(OBJ, self).__init__(*args, **kwargs)
         self.name = 'DispatchMain'
@@ -289,6 +291,7 @@ class OBJ(threading.Thread):
         self._stat_unget = 0        ## Number of unneeded _get_thread()s
         self._stat_unput = 0        ## Number of unneeded _put_thread()s
 
+        OBJ._obj = self;            ## The current dispatcher
         self.start()
 
     def add_timer(self, _when, _uow):
@@ -379,6 +382,10 @@ class OBJ(threading.Thread):
         _tab._queue.put(_uow)
         if not _tab._thread:
             self._get_thread(_tab)
+
+    @staticmethod
+    def get():
+        return OBJ._obj
 
     def _get_thread(self, _tab):    ## Only called from self.enqueue
         """Allocate a _Thread for a TAB"""
@@ -592,8 +599,8 @@ class OBJ(threading.Thread):
                     if _VERBOSE: debugf(self.name, 'Waiting: ABANDONED')
                     break
 
-                if _VERBOSE: debugf(self.name, 'Waiting: %2d of %2d _Threads pending' % (n, m))
-                time.sleep(delay * min(12, counter))
+                if _VERBOSE: debugf(self.name, 'Waiting: %2d of %2d Threads pending' % (n, m))
+                time.sleep(delay * min(15, counter))
 
 ##############################################################################
 ## Class TAB: (Task Action Block) base class

@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2018-2019 Frank Eskesen.
+##       Copyright (C) 2018-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,7 +16,7 @@
 ##       Define operator commands
 ##
 ## Last change date-
-##       2019/08/20
+##       2021/04/01
 ##
 ##############################################################################
 from __future__ import print_function
@@ -110,10 +110,10 @@ class Command(object):
             if test in omit: continue
             debugf("Running: '%s'" % test)
             try:
-                errorCount += command[test].run()
+                errorCount += command[test].run(('all', test))
             except Exception as X:
                 errorCount += 1
-                debugf('!!!!!!!! Test[%s] Exception:' % test)
+                debugf('!!!!!!!! Test[%s] Exception: %s' % (test, X))
                 Debug.handle_exception()
             debugf('')
         return errorCount

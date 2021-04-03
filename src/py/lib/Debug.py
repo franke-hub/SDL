@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2016-2018 Frank Eskesen.
+##       Copyright (C) 2016-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,7 +16,7 @@
 ##       Debugging utility.
 ##
 ## Last change date-
-##       2018/01/01
+##       2021/03/30
 ##
 ## Implementation notes-
 ##       Do not override printf or writef method.
@@ -38,10 +38,9 @@ __all__ = [ 'Debug', 'Logger', 'debugf', 'printf', 'tracef', 'writef' ]
 ##############################################################################
 ## Default modes
 ##############################################################################
-_MODE_APPEND = False                ## Append Mode?
-_MODE_FLUSH  = False                ## Flush Mode?
-_MODE_HCDM   = False                ## Hard Core Debug Mode?
-_MODE_LTNM   = False                ## Log Thread Name Mode?
+_USE_APPEND = False                 ## Append Mode?
+_USE_FLUSH  = False                 ## Flush Mode?
+_USE_HCDM   = False                 ## Hard Core Debug Mode?
 
 ##############################################################################
 ## Static accessor methods
@@ -76,6 +75,10 @@ _debug_lock = threading.RLock()     ## The global debug lock
 _singleton  = None                  ## The global debug singleton
 
 class Debug(object):
+    MODE_NORMAL = 0                 ## Log Format Mode (print mode)?
+    MODE_LOGGER = 1                 ## Log Format Mode (include time)?
+    MODE_LOGTNM = 2                 ## Log Format Mode (include time + thread)?
+
     def __init__(self, name='debug.out', append=False):
         global _singleton
         if not _singleton:
@@ -83,10 +86,10 @@ class Debug(object):
                 if not _singleton:
                     _singleton = self
 
-        self._APPEND = _MODE_APPEND ## Initial Append Mode
-        self._FLUSH  = _MODE_FLUSH  ## Initial Flush Mode
-        self._HCDM   = _MODE_HCDM   ## Initial Hard Core Debug Mode
-        self._LTNM   = _MODE_LTNM   ## Initial Log Thread Name Mode
+        self._APPEND = _USE_APPEND  ## Initial Append Mode
+        self._FLUSH  = _USE_FLUSH   ## Initial Flush Mode
+        self._HCDM   = _USE_HCDM    ## Initial Hard Core Debug Mode
+        self._MODE   = self.MODE_NORMAL ## Initial Log format
 
         self._file = None           ## The trace file
         self._name = name           ## The trace file name
@@ -128,7 +131,7 @@ class Debug(object):
 
     def _format_log(self, *args):   ## Logger style formatting
         M = '%.3f ' % time.time()
-        if self._LTNM:
+        if self._MODE > self.MODE_LOGGER:
             M = M + '[%-12s] ' % threading.current_thread().name
         M = M + ' '.join(str(arg) for arg in args)
         return M
@@ -137,6 +140,8 @@ class Debug(object):
         return ' '.join(str(arg) for arg in args)
 
     def _format(self, *args):
+        if self._MODE:
+            return self._format_log(*args)
         return self._format_prt(*args)
 
     @staticmethod
@@ -185,16 +190,19 @@ class Debug(object):
 
     def set_opt(self, name, value=True):
         name = name.upper()
+        if name == 'MODE':
+            self._MODE = int(value)
+            return
+
         if not isinstance(value, bool):
             raise ValueError('bool(%s(%s))' % (type(value), value))
-        if name == 'APPEND':        ## NOTE: effective AFTER next tracef
+        if name == 'APPEND':
             self._APPEND = value
+            self._close()
         elif name == 'FLUSH':
             self._FLUSH = value
         elif name == 'HCDM':
             self._HCDM = value
-        elif name == 'LTNM':
-            self._LTNM = value
         else:
             raise KeyError('set_opt(%s)' % name)
 
@@ -232,7 +240,7 @@ class Debug(object):
                 raise X
 
 ##############################################################################
-## Class Logger: Extends debugf/tracef to include [thread] and time
+## Class Logger: Extends debugf/tracef to include time and optionally thread.
 ##############################################################################
 class Logger(Debug):
     def __init__(self, name='debug.log', append=False):

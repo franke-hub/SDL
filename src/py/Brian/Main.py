@@ -1,7 +1,7 @@
 #!/bin/python3
 ##############################################################################
 ##
-##       Copyright (C) 2016-2018 Frank Eskesen.
+##       Copyright (C) 2016-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,7 +17,7 @@
 ##       Brian AI controller.
 ##
 ## Last change date-
-##       2018/01/01
+##       2021/04/03
 ##
 ## Usage-
 ##       ./Main.py
@@ -29,10 +29,10 @@ import threading
 import time
 
 from lib.Command import command
+from lib.Console import Console
 from lib.Debug import *
 import Common
 import Config
-from Console import Console
 
 _debugf = Common._debugf
 
@@ -80,12 +80,12 @@ if __name__ == "__main__":
         if True:                    ## Use logger format?
             tracef("\n\n")
             debug._format = debug._format_log
-            debug.set_opt("ltnm")
+            debug.set_opt("MODE", Debug.MODE_LOGTNM)
         _debugf(time.asctime(time.localtime(now)),
                 Config.PROGRAM +"/"+ Config.VERSION, "Started")
 
         import Imports
-        Console()
+        Common.add_thread(Console())
         Common.join()
         if False:
             debugf("Active threads:")

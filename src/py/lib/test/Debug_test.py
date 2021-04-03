@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2017-2018 Frank Eskesen.
+##       Copyright (C) 2017-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,7 +16,7 @@
 ##       Debug.py bringup test
 ##
 ## Last change date-
-##       2018/01/01
+##       2021/03/30
 ##
 ##############################################################################
 import sys
@@ -42,7 +42,7 @@ class __Command:
         init.set_opt('APPEND', True)
         init.set_opt('FLUSH', True)
         init.set_opt('HCDM', True)
-        init.set_opt('LTNM', True)
+        init.set_opt('MODE', Debug.MODE_LOGTNM)
 
         _raised = False
         try:
@@ -72,7 +72,7 @@ class __Command:
         assert Debug.get() == tini, 'one'
         assert Debug.get() is tini, 'two'
 
-        tini.set_opt('LTNM', True)
+        tini.set_opt('MODE', Debug.MODE_LOGTNM)
         debugf('Debug self-test: ', end=(time.asctime() + '\n'))
         debugf('NOISY LOGGER TEST')
         tracef('QUIET LOGGER TEST')

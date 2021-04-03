@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2016-2019 Frank Eskesen.
+##       Copyright (c) 2016-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,7 +16,7 @@
 ##       Brian AI: HTTP server, command['test-server']
 ##
 ## Last change date-
-##       2019/09/17
+##       2021/04/03
 ##
 ## Implementation notes-
 ##       VERBOSITY 0: No logging
@@ -61,7 +61,7 @@ __all__ = None                      ## Nothing exported
 ##############################################################################
 _DEFAULT_SESSION = "Default/Server" ## The default sessionID
 _PORT = 8081                        ## The default server port
-_USE_DAEMON = False                 ## Use daemon _TestServerThread?
+_USE_DAEMON = True                  ## Use daemon _TestServerThread?
 _VERBOSE = VERBOSE                  ## Verbosity, larger is noisier
 
 ##############################################################################
@@ -86,7 +86,7 @@ _404PAGE = ( '<HTML><HEAD><TITLE>NOT FOUND</TITLE></HEAD>'
 _WEBPAGE = ( '<HTML><HEAD><TITLE>'+PROGRAM+'/'+VERSION+'</TITLE></HEAD>'
            , '<META http-equiv="Expires" content="0">'
            , '<META http-equiv="CACHE-CONTROL" content="NO-CACHE">'
-           , '<BODY>Current IP Address: 67.243.74.127'
+           , '<BODY>Current IP Address: %s'
            , '</BODY></HTML>' )
 
 ##############################################################################
@@ -164,7 +164,9 @@ class _TestRequestHandler(_SimpleHTTPRequestHandler):
                 _logger(heading + ":", self.headers[heading])
 
         if self.path == "/" or self.path == "/index.html":
-            self.do_HTML(200, _WEBPAGE)
+            _page = list(_WEBPAGE)
+            _page[3] = _page[3] % self.client_address[0]
+            self.do_HTML(200, _page)
         elif self.path == "/favicon.ico":
             self.do_HTML(404, _404PAGE)
         else:
@@ -283,7 +285,7 @@ class _TestServerThread(threading.Thread):
         return was_running
 
     def run(self):
-        global _lock, _thread
+        global _thread
 
         _thread = self
         self._event.set()

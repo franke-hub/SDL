@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2018-2020 Frank Eskesen.
+##       Copyright (c) 2018-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,11 +15,7 @@
 ##       AIML server, using python3/site-package/aiml
 ##
 ## Last change date-
-##       2020/03/23
-##
-## Open problems-
-##       site-package/stdio threading conflicts with HttpServer.
-##           (This is only a problem on Cygwin.)
+##       2020/04/03
 ##
 ## Implementation note-
 ##       This subdirectory contains an HTTP server, a console server,

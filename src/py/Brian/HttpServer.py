@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2016-2018 Frank Eskesen.
+##       Copyright (C) 2016-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,7 +16,7 @@
 ##       Brian AI: HTTP server, command['http-server']
 ##
 ## Last change date-
-##       2018/01/01
+##       2021/04/03
 ##
 ## Implementation notes-
 ##       VERBOSITY 0: No logging
@@ -61,7 +61,7 @@ __all__ = None                      ## Nothing exported
 ##############################################################################
 _DEFAULT_SESSION = "Default/Server" ## The default sessionID
 _PORT = 8080                        ## The default server port
-_USE_DAEMON = False                 ## Use daemon _HttpServerThread?
+_USE_DAEMON = True                  ## Use daemon _HttpServerThread?
 _VERBOSE = VERBOSE                  ## Verbosity, larger is noisier
 
 ##############################################################################
@@ -287,7 +287,7 @@ class _HttpServerThread(threading.Thread):
         return was_running
 
     def run(self):
-        global _lock, _thread
+        global _thread
 
         _thread = self
         self._event.set()

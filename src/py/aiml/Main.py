@@ -1,7 +1,7 @@
 #!/bin/python3
 ##############################################################################
 ##
-##       Copyright (C) 2016-2018 Frank Eskesen.
+##       Copyright (C) 2016-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,7 +17,7 @@
 ##       AIML controller.
 ##
 ## Last change date-
-##       2018/01/01
+##       2021/04/03
 ##
 ## Usage-
 ##       ./Main.py
@@ -48,16 +48,6 @@ class __Echo_Command:
 command['echo'] = __Echo_Command
 
 ##############################################################################
-## __Pass_Command class (Built-in NOP command)
-##############################################################################
-class __Pass_Command:
-    @staticmethod
-    def run(argv):
-        return 0
-
-command['.quit'] = __Pass_Command   ## Adds built-in ".quit" to command list
-
-##############################################################################
 ## __Quit_Command class (Built-in QUIT command)
 ##############################################################################
 class __Quit_Command:
@@ -66,6 +56,7 @@ class __Quit_Command:
         Common.stop()
         return 0
 
+command['.quit'] = __Quit_Command   ## Adds built-in ".quit" to command list
 command['shutdown'] = __Quit_Command ## Delayed quit
 
 ##############################################################################

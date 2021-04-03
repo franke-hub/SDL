@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2016-2019 Frank Eskesen.
+##       Copyright (C) 2016-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,7 +16,7 @@
 ##       Utility (or reminder) functions.
 ##
 ## Last change date-
-##       2019/09/04
+##       2021/04/03
 ##
 ##############################################################################
 import sys
@@ -223,7 +223,7 @@ def visify(inp):
             elif c == '\t':
                 out += '\\t'
             elif ord(c) == ESC:
-                out += '\\E'
+                out += '\\e'
             else:
                 out += '\\x%.2X' % x
         elif c == '\\':
