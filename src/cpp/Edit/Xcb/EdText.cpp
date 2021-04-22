@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/03/13
+//       2021/04/22
 //
 // Implementation notes-
 //       EdInps.cpp provides keyboard and mouse event handlers.
@@ -125,6 +125,7 @@ static inline unsigned              // The truncated value
         | XCB_EVENT_MASK_EXPOSURE
         | XCB_EVENT_MASK_STRUCTURE_NOTIFY
 //      | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
+        | XCB_EVENT_MASK_FOCUS_CHANGE
 //      | XCB_EVENT_MASK_PROPERTY_CHANGE
         ;
 }
@@ -193,28 +194,28 @@ void
 //----------------------------------------------------------------------------
 int                                 // The column
    EdText::get_col(                 // Get column
-     int               x)           // For this x pixel position
+     int               x) const     // For this x pixel position
 {  return x/font.length.width; }
 
 int                                 // The row
    EdText::get_row(                 // Get row
-     int               y)           // For this y pixel position
+     int               y) const     // For this y pixel position
 {  return y/font.length.height; }
 
 int                                 // The offset in Pixels
    EdText::get_x(                   // Get offset in Pixels
-     int               col)         // For this column
+     int               col) const   // For this column
 {  return col * font.length.width + 1; }
 
 int                                 // The offset in Pixels
    EdText::get_y(                   // Get offset in Pixels
-     int               row)         // For this row
+     int               row) const   // For this row
 {  return row * font.length.height + 1; }
 
 xcb_point_t                         // The offset in Pixels
    EdText::get_xy(                  // Get offset in Pixels
      int               col,         // And this column
-     int               row)         // For this row
+     int               row) const   // For this row
 {  return {gui::PT_t(get_x(col)), gui::PT_t(get_y(row))}; }
 
 //----------------------------------------------------------------------------
@@ -228,7 +229,7 @@ xcb_point_t                         // The offset in Pixels
 //----------------------------------------------------------------------------
 const char*                         // The text
    EdText::get_text(                // Get text
-     EdLine*           line)        // For this EdLine
+     const EdLine*     line) const  // For this EdLine
 {
    const char* text= line->text;    // Default, use line text
    if( line == editor::data->cursor ) // If this is the cursor line
@@ -355,6 +356,7 @@ void
 
      // Synchronize
      synch_active();
+     flush();
    }
 }
 
@@ -529,45 +531,29 @@ void
 
    xcb_gcontext_t gc= set ? view->gc_flip : view->get_gc();
    putxy(gc, get_xy(view->col, view->row), buffer);
-
-   flush();
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
 //       EdText::draw_info
-//       EdText::draw_message
 //       EdText::draw_history
+//       EdText::draw_message
 //       EdText::draw_status
 //
 // Purpose-
 //       Draw the information line: draw_message, draw_history, or draw_status
-//         Draw the message line
 //         Draw the history line
+//         Draw the message line
 //         Draw the status line
 //
 //----------------------------------------------------------------------------
-static void
-   format6(
-     size_t            value,
-     char*             buffer)
+void
+   EdText::draw_info( void )        // Redraw the information line
 {
-   if( value > 10000000 )
-     sprintf(buffer, "*%.6u", unsigned(value % 1000000));
-   else
-     sprintf(buffer, "%7zu", value);
-}
-
-static void
-   format8(
-     size_t            value,
-     char*             buffer)
-{
-   if( value > 1000000000 )
-     sprintf(buffer, "*%.8u", unsigned(value % 100000000));
-   else
-     sprintf(buffer, "%9zu", value);
+   if( draw_message() ) return;
+   if( draw_history() ) return;
+   draw_status();
 }
 
 bool                                // Return code, TRUE if handled
@@ -588,14 +574,6 @@ bool                                // Return code, TRUE if handled
    return true;
 }
 
-void
-   EdText::draw_info( void )        // Redraw the information line
-{
-   if( draw_message() ) return;
-   if( draw_history() ) return;
-   draw_status();
-}
-
 bool                                // Return code, TRUE if handled
    EdText::draw_message( void )     // Message line
 {
@@ -613,6 +591,30 @@ bool                                // Return code, TRUE if handled
    putxy(gc_msg, 1, 1, buffer);
    flush();
    return true;
+}
+
+// format6: format 6 character field (draw_status helper)
+// format8: format 8 character field (draw_status helper)
+static void
+   format6(
+     size_t            value,
+     char*             buffer)
+{
+   if( value > 10000000 )
+     sprintf(buffer, "*%.6u", unsigned(value % 1000000));
+   else
+     sprintf(buffer, "%7zu", value);
+}
+
+static void
+   format8(
+     size_t            value,
+     char*             buffer)
+{
+   if( value > 1000000000 )
+     sprintf(buffer, "*%.8u", unsigned(value % 100000000));
+   else
+     sprintf(buffer, "%9zu", value);
 }
 
 void
@@ -683,72 +685,83 @@ void
           ( c, 0, widget_id, 0, 0, rect.width, rect.height) );
 
    // Display the text (if any)
-   ssize_t col_zero= editor::data->col_zero;
-   ssize_t col_last= col_zero + col_size; // Last file screen column
    tail= this->head;
    if( tail ) {
-     EdMark& mark= *editor::mark;
-     int is_mark= bool(mark.mark_file); // Is mark active?
+     EdLine* line= tail;
+     row_used= USER_TOP;
+
+     const unsigned max_used= row_size - USER_BOT;
+     while( row_used < max_used ) {
+       if( line == nullptr )
+         break;
+
+       draw_line(row_used, line);
+       row_used++;
+       tail= line;
+       line= line->get_next();
+     }
+
+     row_used -= USER_TOP;
+     if( opt_hcdm )
+       debugf("%4d LAST xy(%d,%d)\n", __LINE__, 0, row_used);
+   }
+
+   draw_info();                     // Draw the information line
+   draw_cursor();
+   flush();
+}
+
+void
+   EdText::draw_line(               // Draw one data line
+     unsigned          row,         // The (absolute) row number
+     const EdLine*     line)        // The line to draw
+{
+   int y= get_y(int(row));            // Convert row to pixel offset
+   ssize_t col_zero= editor::data->col_zero;
+   const char* text= get_text(line); // Get associated text
+   if( col_zero )                   // If offset
+     text += pub::UTF8::index(text, col_zero);
+   if( line->flags & EdLine::F_MARK ) {
+     ssize_t col_last= col_zero + col_size; // Last file screen column
      int lh_mark= 0;                // Default, mark line
      int rh_mark= col_size;
+     EdMark& mark= *editor::mark;
      if( mark.mark_col >= 0 ) {     // If column mark active
        if( mark.mark_lh > col_last || mark.mark_rh < col_zero ) {
-         is_mark= false;            // Inactive if out of range
+         lh_mark= rh_mark= col_size + 1;
        } else {                     // Otherwise compute screen offsets
          lh_mark= int( mark.mark_lh - col_zero );
          rh_mark= lh_mark + int( mark.mark_rh - mark.mark_lh ) + 1;
        }
      }
 
-     EdLine* line= tail;
-     row_used= 0;
-     unsigned y= get_y(USER_TOP);
-     unsigned font_height= font.length.height;
-     unsigned last_height= rect.height - USER_BOT * font_height;
-     while( (y + font_height) <= last_height ) {
-       if( line == nullptr )
-         break;
-       const char* text= get_text(line); // Get associated text
-       if( col_zero )               // If offset
-         text += pub::UTF8::index(text, col_zero);
-       if( is_mark && (line->flags & EdLine::F_MARK) ) {
-         // Marked lines are written in three sections:
-         //  R) The unmarked Right section at the end (may be null)
-         //  M) The marked Middle section (may be the entire line)
-         //  L) The unmarked Left section at the beginning (may be null)
-         active.reset(text);        // Load, then blank fill the line
-         active.fetch(strlen(text) + col_last + 1);
-         char* L= (char*)active.get_buffer(); // Text, length >= col_last + 1
-         if( unsigned(rh_mark) < col_size ) { // Right section
-           char* R= L + pub::UTF8::index(L, rh_mark);
-           unsigned x= get_x(rh_mark);
-           putxy(fontGC, x, y, R);
-           *R= '\0';                // (Terminate right section)
-         }
-         // Middle section
-         if( lh_mark < 0 ) lh_mark= 0;
-         char* M= L + pub::UTF8::index(L, lh_mark);
-         int x= get_x(lh_mark);
-         putxy(markGC, x, y, M);
-         *M= '\0';                  // (Terminate middle section)
-         // Left section
-         if( lh_mark > 0 )
-           putxy(fontGC, 1, y, L);
-       } else {
-         putxy(fontGC, 1, y, text);
-       }
-       y += font_height;
-       tail= line;
-       row_used++;
-       line= line->get_next();
+     // Marked lines are written in three sections:
+     //  R) The unmarked Right section at the end (may be null)
+     //  M) The marked Middle section (may be the entire line)
+     //  L) The unmarked Left section at the beginning (may be null)
+     active.reset(text);            // Load, then blank fill the line
+     active.fetch(strlen(text) + col_last + 1);
+     char* L= (char*)active.get_buffer(); // Text, length >= col_last + 1
+     if( unsigned(rh_mark) < col_size ) { // Right section
+       char* R= L + pub::UTF8::index(L, rh_mark);
+       unsigned x= get_x(rh_mark);
+       putxy(fontGC, x, y, R);
+       *R= '\0';                    // (Terminate right section)
      }
-     if( opt_hcdm )
-       debugf("%4d LAST xy(%d,%d)\n", __LINE__, 0, y);
-   }
 
-   draw_info();                     // Draw the information line
-   draw_cursor();
-   flush();
+     // Middle section
+     if( lh_mark < 0 ) lh_mark= 0;
+     char* M= L + pub::UTF8::index(L, lh_mark);
+     int x= get_x(lh_mark);
+     putxy(markGC, x, y, M);
+     *M= '\0';                      // (Terminate middle section)
+
+     // Left section
+     if( lh_mark > 0 )
+       putxy(fontGC, 1, y, L);
+   } else {
+     putxy(fontGC, 1, y, text);
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -774,12 +787,24 @@ void
 
    uint32_t x_origin= config::geom.x;
    uint32_t y_origin= config::geom.y;
-   uint16_t mask= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
-   uint32_t parm[2];
-   parm[0]= x_origin;
-   parm[1]= y_origin;
-   ENQUEUE("xcb_configure_window", xcb_configure_window_checked
-          (c, widget_id, mask, parm) );
+   if( x_origin || y_origin ) {     // If position specified
+     uint16_t mask= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
+     uint32_t parm[2];
+     parm[0]= x_origin;
+     parm[1]= y_origin;
+     ENQUEUE("xcb_configure_window", xcb_configure_window_checked
+            (c, widget_id, mask, parm) );
+   } else {                         // If position assigned
+     flush();                       // (Yes, this is needed)
+     xcb_get_geometry_cookie_t cookie= xcb_get_geometry(c, widget_id);
+     xcb_get_geometry_reply_t* r= xcb_get_geometry_reply(c, cookie, nullptr);
+     if( r ) {
+       x_origin= r->x;
+       y_origin= r->y;
+       free(r);
+     } else
+       debugf("%4d EdText xcb_get_geometry error\n", __LINE__);
+   }
 
    x_origin += rect.width/2;
    y_origin += rect.height/2;
@@ -857,6 +882,46 @@ int                                 // Return code, 0 if draw performed
    }
 
    return rc;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdText::move_screen_V
+//
+// Purpose-
+//       Move screen vertically
+//
+//----------------------------------------------------------------------------
+void
+   EdText::move_screen_V(           // Move screen vertically
+     int               rows)        // The row count (down is positive)
+{
+   EdView* data= editor::data;
+   data->commit();
+
+   if( rows > 0 ) {                 // Move down
+     while( rows-- ) {
+       EdLine* up= (EdLine*)head->get_next();
+       if( up == nullptr )
+         break;
+
+       data->row_zero++;
+       head= up;
+     }
+   } else if( rows < 0 ) {          // Move up
+     while( rows++ ) {
+       EdLine* up= (EdLine*)head->get_prev();
+       if( up == nullptr )
+         break;
+
+       data->row_zero--;
+       head= up;
+     }
+   }
+
+   synch_active();
+   draw();
 }
 
 //----------------------------------------------------------------------------

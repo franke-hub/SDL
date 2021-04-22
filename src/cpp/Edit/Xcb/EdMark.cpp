@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2021/03/14
+//       2021/04/10
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -279,6 +279,8 @@ const char*                         // Error message, nullptr expected
 const char*                         // Error message, nullptr expected
    EdMark::cut( void )              // Cut the marked area
 {
+   if( mark_file == nullptr )
+     return "No mark";
    if( mark_file->protect )
      return "Read/only mark";
    const char* error= copy();

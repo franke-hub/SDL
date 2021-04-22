@@ -16,7 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2021/02/27
+//       2021/04/22
 //
 //----------------------------------------------------------------------------
 #ifndef EDTEXT_H_INCLUDED
@@ -85,6 +85,7 @@ unsigned               col_size= 0; // The current screen column count
 unsigned               row_size= 0; // The current screen row count
 unsigned               row_used= 0; // The last used screen row
 
+int                    focus= false; // TRUE when we have focus
 Motion                 motion= {CS_VISIBLE, 0, 0, 0}; // System motion controls
 uint32_t               keystate= KS_INS; // Keyboard state
 
@@ -184,21 +185,28 @@ void
 //
 // Public method-
 //       EdText::draw
+//       EdText::draw_line
 //       EdText::draw_info
-//       EdText::draw_message
 //       EdText::draw_history
+//       EdText::draw_message
 //       EdText::draw_status
 //
 // Purpose-
 //       Draw the entire screen, data and info
+//       Draw one data line
 //       Draw the information line: draw_message, draw_history, or draw_status
-//         Draw the message line
 //         Draw the history line
+//         Draw the message line
 //         Draw the status line
 //
 //----------------------------------------------------------------------------
 virtual void
    draw( void );                    // Redraw the Window
+
+void
+   draw_line(                       // Draw one data line
+     unsigned          row,         // The row number (absolute)
+     const EdLine*     line);       // The line to draw
 
 void
    draw_info( void );               // Redraw the information line
@@ -231,24 +239,24 @@ void
 //----------------------------------------------------------------------------
 int                                 // The column
    get_col(                         // Get column
-     int               x);          // For this x pixel position
+     int               x) const;    // For this x pixel position
 
 int                                 // The row
    get_row(                         // Get row
-     int               y);          // For this y pixel position
+     int               y) const;    // For this y pixel position
 
 int                                 // The offset in Pixels
    get_x(                           // Get offset in Pixels
-     int               col);        // For this column
+     int               col) const;  // For this column
 
 int                                 // The offset in Pixels
    get_y(                           // Get offset in Pixels
-     int               row);        // For this row
+     int               row) const;  // For this row
 
 xcb_point_t                         // The offset in Pixels
    get_xy(                          // Get offset in Pixels
      int               col,         // And this column
-     int               row);        // For this row
+     int               row) const;  // For this row
 
 //----------------------------------------------------------------------------
 //
@@ -261,7 +269,7 @@ xcb_point_t                         // The offset in Pixels
 //----------------------------------------------------------------------------
 virtual const char*                 // The associated text
    get_text(                        // Get text
-     EdLine*           line);       // For this EdLine
+     const EdLine*     line) const; // For this EdLine
 
 //----------------------------------------------------------------------------
 //
@@ -316,6 +324,19 @@ void
 int                                 // Return code, 0 if draw performed
    move_cursor_H(                   // Move cursor horizontally
      size_t            column);     // The (absolute) column number
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdText::move_screen_V
+//
+// Purpose-
+//       Move screen vertically
+//
+//----------------------------------------------------------------------------
+void
+   move_screen_V(                   // Move screen vertically
+     int               rows);       // The row count (down is positive)
 
 //----------------------------------------------------------------------------
 //
@@ -402,6 +423,14 @@ virtual void
 void
    expose(                          // Handle this
      xcb_expose_event_t* E);        // Expose event
+
+void
+   focus_in(                        // Handle this
+     xcb_focus_in_event_t* E);      // Focus-in event
+
+void
+   focus_out(                       // Handle this
+     xcb_focus_out_event_t* E);     // Focus-out event
 
 virtual void
    key_input(                       // Handle this

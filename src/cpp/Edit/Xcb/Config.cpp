@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2021/03/10
+//       2021/04/22
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -103,7 +103,7 @@ uint32_t               config::message_bg= 0x00FFFF00; // Message BG
 uint32_t               config::message_fg= 0x00900000; // Message FG
 
 // Screen controls --- From configuration file -------------------------------
-xcb_rectangle_t        config::geom= {1030, 0, 80, 50}; // The screen geometry
+xcb_rectangle_t        config::geom= {0, 0, 80, 50}; // The screen geometry
 
 // Bringup controls -- From configuration file or set command ----------------
 uint32_t               config::USE_MOUSE_HIDE= true; // Use mouse hide logic?
@@ -879,17 +879,20 @@ static void
          }
 
          if( strcmp(parm, "geometry") == 0 ) {
+           if( value && *value == '\0' ) // If geometry=
+             continue;              // Ignore, omitted
            xcb_rectangle_t geom= {0, 0, 0, 0}; // The screen geometry
            const char* VALUE= value; // (For use in error message)
            geom.width= uint16_t(parse_int(value)); // Number of rows
            if( value && *value == 'x' ) {
              value++;
              geom.height= uint16_t(parse_int(value)); // Number of columns
-           }
-           if( value && (*value == '+' || *value == '-') )
-             geom.x= int16_t(parse_int(value)); // X position
-           if( value && (*value == '+' || *value == '-') )
-             geom.y= int16_t(parse_int(value)); // Y position
+             if( value && (*value == '+' || *value == '-') )
+               geom.x= int16_t(parse_int(value)); // X position
+             if( value && (*value == '+' || *value == '-') )
+               geom.y= int16_t(parse_int(value)); // Y position
+           } else                   // (Possibly x without y)
+             value= VALUE;
            if( value && *value == '\0' ) // If valid geometry
              config::geom= geom;
            else

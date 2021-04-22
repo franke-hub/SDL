@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2021/03/13
+//       2021/04/22
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -72,14 +72,14 @@ static unsigned short  kp_num[64]=  // Keypad conversion table, numlock on
 }; // kp_num
 
 static unsigned short  kp_off[64]=  // Keypad conversion table, numlock off
-{  0xff80, 0xff81, 0xff82, 0xff83, 0xff84, 0xff85, 0xff86, 0xff87
+{  0xff80, 0xff81, 0xff82, 0xff83, 0xff84, 0xff85, 0xff86, 0xff87 // 0xff80 ..
 ,  0xff88, 0xff89, 0xff8a, 0xff8b, 0xff8c, 0xff0d, 0xff8e, 0xff8f
 ,  0xff90, 0xff91, 0xff92, 0xff93, 0xff94, 0xff50, 0xff51, 0xff52
-,  0xff53, 0xff54, 0xff55, 0xff56, 0xff57, 0xff58, 0xff63, 0xffff
+,  0xff53, 0xff54, 0xff55, 0xff56, 0xff57, 0xff58, 0xff63, 0xffff // 0xff98 ..
 ,  0xffa0, 0xffa1, 0xffa2, 0xffa3, 0xffa4, 0xffa5, 0xffa6, 0xffa7
 ,  0xffa8, 0xffa9,    '*',    '+', 0xffac,    '-', 0xffae,    '/'
-,     '0',    '1',    '2',    '3',    '4',    '5',    '6',    '7'
-,     '8',    '9', 0xffba, 0xffbb, 0xffbc,    '=', 0xffbe, 0xffbf
+,     '0',    '1',    '2',    '3',    '4',    '5',    '6',    '7' // 0xffb0 ..
+,     '8',    '9', 0xffba, 0xffbb, 0xffbc,    '=', 0xffbe, 0xffbf // 0xffb8 ..
 }; // kp_off
 static_assert(0xff80 == XK_KP_Space     && 0xffbf == XK_F2
            && 0xff8d == XK_KP_Enter     && 0xff0d == XK_Return
@@ -98,7 +98,35 @@ static_assert(0xff80 == XK_KP_Space     && 0xffbf == XK_F2
 
 //----------------------------------------------------------------------------
 //
-// Method-
+// Subroutine-
+//       draw_active
+//
+// Purpose-
+//       Redraw the active line and the cursor
+//
+//----------------------------------------------------------------------------
+static void
+   draw_active( void )              // Redraw the active line
+{
+   EdText* text= editor::text;
+   EdView* view= editor::view;
+
+   if( view == editor::data ) {     // If data view
+     text->draw_line(view->row, view->cursor);
+   } else {                         // If history view
+     view->active.index(view->col_zero+text->col_size); // Blank fill
+     text->putxy(view->get_gc(), text->get_xy(0, view->row)
+                , view->active.get_buffer(view->col_zero));
+     text->draw_info();
+   }
+
+   text->draw_cursor();
+   text->flush();
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       key_to_name
 //
 // Purpose-
@@ -470,10 +498,8 @@ void
 
      if( keystate & KS_INS ) {      // If Insert state
        view->active.insert_char(column, key);
-       if( move_cursor_H(column + 1) ) {
-         const char* buffer= view->active.get_buffer();
-         putxy(view->get_gc(), get_xy(view->col - 1, view->row), buffer + view->active.index(column));
-       }
+       if( move_cursor_H(column + 1) )
+         draw_active();
      } else {
        view->active.replace_char(column, key);
        move_cursor_H(column + 1);
@@ -508,29 +534,22 @@ void
        if( editor::data_protected() )
          return;
 
-       undo_cursor();               // Clear the cursor
        if( column > 0 )
          column--;
        view->active.remove_char(column);
-       int rc= move_cursor_H(column);
-       if( rc ) {                   // If only line redraw
-         view->active.append_text(" "); // (Clear removed character)
-         const char* buffer= view->active.get_buffer(column);
-         putxy(view->get_gc(), get_xy(view->col, view->row), buffer);
-         draw_cursor();
-         flush();
-       }
+       move_cursor_H(column);
+       view->active.append_text(" ");
+       draw_active();
        break;
      }
-     case 0x007F:                  // (Should not occur)
-     case XK_Delete: {
+     case 0x007F:                  // (This encoding should not occur)
+     case XK_Delete: {             // (This encoding is expected instead)
        if( editor::data_protected() )
          return;
 
        view->active.remove_char(column);
        view->active.append_text(" ");
-       draw();
-       flush();
+       draw_active();
        break;
      }
      case XK_Escape: {              // Escape: Invert the view
@@ -638,12 +657,9 @@ void
        break;
      }
      case XK_F11: {                 // Undo
-       if( view->active.undo() ) {
-         view->active.index(view->col_zero+col_size); // Blank fill
-         putxy(view->get_gc(), get_xy(0, view->row), view->active.get_buffer(view->col_zero));
-         draw_info();
-         draw_cursor();
-       } else
+       if( view->active.undo() )
+         draw_active();
+       else
          file->undo();
        break;
      }
@@ -664,6 +680,7 @@ void
          draw_info();
 
        draw_cursor();
+       flush();
        break;
      }
      case XK_Left: {                // Left arrow
@@ -684,41 +701,13 @@ void
        break;
      }
      case XK_Page_Up: {             // Page_Up key
-       undo_cursor();
-       data->commit();
-       unsigned count= row_size - (USER_TOP + USER_BOT);
-       if( head->get_prev() && count ) {
-         while( --count ) {
-           EdLine* up= (EdLine*)head->get_prev();
-           if( up == nullptr )
-             break;
-
-           data->row_zero--;
-           head= up;
-         }
-         synch_active();
-         draw();
-       }
-       draw_cursor();
+       int rows= row_size - (USER_TOP + USER_BOT + 1);
+       move_screen_V(-rows);
        break;
      }
      case XK_Page_Down: {           // Page_Down key
-       undo_cursor();
-       data->commit();
-       unsigned count= row_size - (USER_TOP + USER_BOT);
-       if( head->get_next() && count ) {
-         while( --count ) {
-           EdLine* up= (EdLine*)head->get_next();
-           if( up == nullptr )
-             break;
-
-           data->row_zero++;
-           head= up;
-         }
-         synch_active();
-         draw();
-       }
-       draw_cursor();
+       int rows= row_size - (USER_TOP + USER_BOT + 1);
+       move_screen_V(+rows);
        break;
      }
      case XK_End: {                 // End key
@@ -793,11 +782,11 @@ void
        break;
      }
      case gui::WT_PUSH:             // Mouse wheel push (away)
-       view->move_cursor_V(-3);
+       move_screen_V(-3);
        break;
 
      case gui::WT_PULL:             // Mouse wheel pull (toward)
-       view->move_cursor_V(+3);
+       move_screen_V(+3);
        break;
 
      case gui::WT_LEFT:             // Mouse wheel left
@@ -845,6 +834,31 @@ void
            , E->window, E->count, E->x, E->y, E->width, E->height);
 
    draw();
+}
+
+void
+   EdText::focus_in(                // Handle this
+     xcb_focus_in_event_t* E)       // Focus-in event
+{
+   if( opt_hcdm && opt_verbose >= 0 )
+     debugh("gain focus: detail(%d) event(%d) mode(%d)\n"
+           , E->detail, E->event, E->mode);
+
+   draw_cursor();
+   flush();
+   focus= true;
+}
+
+void
+   EdText::focus_out(               // Handle this
+     xcb_focus_out_event_t* E)      // Focus-out event
+{
+   if( opt_hcdm && opt_verbose >= 0 )
+     debugh("lost focus: detail(%d) event(%d) mode(%d)\n"
+           , E->detail, E->event, E->mode);
+
+   undo_cursor();
+   focus= false;
 }
 
 void

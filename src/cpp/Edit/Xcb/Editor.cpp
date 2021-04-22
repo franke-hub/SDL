@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/03/13
+//       2021/04/22
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -848,6 +848,7 @@ void
    if( view == hist ) {
      data->activate();
      text->draw_cursor();
+     text->flush();
    } else {
      text->undo_cursor();
      hist->activate();
