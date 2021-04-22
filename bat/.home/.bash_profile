@@ -1,13 +1,13 @@
 ##############################################################################
 ##
-##       Copyright (C) 2020 Frank Eskesen.
+##       Copyright (C) 2020-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the "un-license,"
 ##       explicitly released into the Public Domain.
 ##       (See accompanying file LICENSE.UNLICENSE or the original
 ##       contained within http://unlicense.org)
 ##
-##############################################################################
+##============================================================================
 ##
 ## Title-
 ##       .bash_profile
@@ -16,13 +16,13 @@
 ##       Shell startup script, sourced during login
 ##
 ## Last change date-
-##        2020/01/19
+##        2021/04/20
 ##
 ##############################################################################
 
 ##############################################################################
 # Debugging hook
-# export debugging=~/.local/logs/user.log
+# export debugging=~/.local/log/user.log
 [ -n "$debugging" ] && date "+%s.%N HOST($HOST) USER($USER) begin .bash_profile $$ $0" >>$debugging
 
 ##############################################################################
@@ -30,6 +30,7 @@
 . $HOME/bat/f.appendstring
 
 ## Prepend in reverse order
+[ -d $HOME/.local/bin ] && PrependString PATH "$HOME/.local/bin"
 [ -d $HOME/bin ] && PrependString PATH "$HOME/bin"
 [ -d $HOME/bat ] && PrependString PATH "$HOME/bat"
 PrependString PATH "."
@@ -40,15 +41,17 @@ PrependString PATH "."
 ##############################################################################
 # LINUX/CYGWIN version code
 isCYGWIN=`uname | grep CYGWIN`
-if [ -z "$isCYGWIN" ] ; then
-  [ -d /usr/local/lib ] && PrependString LD_LIBRARY_PATH "/usr/local/lib"
-  PrependString LD_LIBRARY_PATH "."
-
-  [ ! -d /run/user/$UID/thumbnails ] && mkdir /run/user/$UID/thumbnails
-else
+if [ -n "$isCYGWIN" ] ; then
   if [ -z "$HOST" ] ; then
     export HOST=`hostname`
   fi
+
+  export CYGWIN="winsymlinks:nativestrict"
+else
+  [ -d /usr/local/lib ] && PrependString LD_LIBRARY_PATH "/usr/local/lib"
+  PrependString LD_LIBRARY_PATH "."
+
+##[ ! -d /run/user/$UID/thumbnails ] && mkdir /run/user/$UID/thumbnails
 fi
 
 ##############################################################################
@@ -58,7 +61,7 @@ fi
 ##############################################################################
 # Environment checks.
 [ -s ~/.cvspass ] && echo WARNING: ~/.cvspass exists
-[ -s ~/.local/logs/error.log ] && echo WARNING: ~/.local/logs/error.log exists
+[ -s ~/.local/log/error.log ] && echo WARNING: ~/.local/log/error.log exists
 
 unset -f AppendString PrependString
 

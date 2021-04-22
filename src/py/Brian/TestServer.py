@@ -16,7 +16,7 @@
 ##       Brian AI: HTTP server, command['test-server']
 ##
 ## Last change date-
-##       2021/04/03
+##       2021/04/06
 ##
 ## Implementation notes-
 ##       VERBOSITY 0: No logging
@@ -83,10 +83,11 @@ _404PAGE = ( '<HTML><HEAD><TITLE>NOT FOUND</TITLE></HEAD>'
            , 'The page you requested could not be found.'
            , '</BODY></HTML>' )
 
-_WEBPAGE = ( '<HTML><HEAD><TITLE>'+PROGRAM+'/'+VERSION+'</TITLE></HEAD>'
+def _WEBPAGE(addr):
+    return ( '<HTML><HEAD><TITLE>'+PROGRAM+'/'+VERSION+'</TITLE></HEAD>'
            , '<META http-equiv="Expires" content="0">'
            , '<META http-equiv="CACHE-CONTROL" content="NO-CACHE">'
-           , '<BODY>Current IP Address: %s'
+           , f'<BODY>Current IP Address: {addr}'
            , '</BODY></HTML>' )
 
 ##############################################################################
@@ -164,9 +165,7 @@ class _TestRequestHandler(_SimpleHTTPRequestHandler):
                 _logger(heading + ":", self.headers[heading])
 
         if self.path == "/" or self.path == "/index.html":
-            _page = list(_WEBPAGE)
-            _page[3] = _page[3] % self.client_address[0]
-            self.do_HTML(200, _page)
+            self.do_HTML(200, _WEBPAGE(self.client_address[0]))
         elif self.path == "/favicon.ico":
             self.do_HTML(404, _404PAGE)
         else:

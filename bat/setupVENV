@@ -1,0 +1,30 @@
+##############################################################################
+##
+##       Copyright (C) 2020-2021 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##============================================================================
+##
+## Title-
+##       setupVENV
+##
+## Function-
+##       Activate python virtual environment
+##
+## Last change date-
+##        2021/04/21
+##
+## Usage-
+##       . setupVENV
+##
+## Implementation note-
+##       Create directory ~/venv using: python -m venv ~/venv
+##
+##############################################################################
+venv="$HOME/venv"                   ## Default environment directory
+[ -n "$1" ] && venv="$1"
+source $venv/bin/activate

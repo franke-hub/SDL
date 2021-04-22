@@ -1,16 +1,21 @@
 !!############################################################################
 !!
-!!       Copyright (C) 2020 Frank Eskesen.
+!!       Copyright (C) 2020-2021 Frank Eskesen.
 !!
 !!       This file is free content, distributed under the "un-license,"
 !!       explicitly released into the Public Domain.
 !!       (See accompanying file LICENSE.UNLICENSE or the original
 !!       contained within http://unlicense.org)
 !!
+!!============================================================================
+!!
+!! Last change date-
+!!       2021/04/22
+!!
 !!############################################################################
-!=============================================================================
-! Resources for XTERM
-!=============================================================================
+!!============================================================================
+!! Resources for XTERM
+!!============================================================================
 xterm*background:                      Ivory
 xterm*foreground:                      Black
 xterm*fontWarnings:                    0

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Determine the absolute path to a file, resolving links one by one.
 //
 // Last change date-
-//       2007/01/01
+//       2021/04/15
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -103,7 +103,8 @@ static int                          // Return code, <= 0 if complete
    result[0]= '\0';
    if( *source != '/' )             // If not absolute path
    {
-     getcwd(result, MAX);
+     if( getcwd(result, MAX) == nullptr )
+       return ERR_SYSTEM;
      strcat(result, "/");
      if( strlen(result) + strlen(source) >= MAX )
        return ERR_TOOBIG;

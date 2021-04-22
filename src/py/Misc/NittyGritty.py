@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2019 Frank Eskesen.
+##       Copyright (C) 2019-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,7 +16,7 @@
 ##       Demonstrate some of what python can do.
 ##
 ## Last change date-
-##       2019/09/04
+##       2021/04/09
 ##
 ##############################################################################
 import sys
@@ -24,6 +24,7 @@ import argparse
 import calendar
 import inspect
 import keyword
+import random
 
 #### Compile-time controls ###################################################
 USE_CT_TRACEBACK = False            ## Compile-time stack trace
@@ -125,6 +126,87 @@ demoDict['Has -- operator.'] = test_False
 demoDict['Has -= operator, so use X -= 1 instead of X--.'] = test_True
 
 ##############################################################################
+## TEST: Attributes (simply)
+##############################################################################
+def test_attributes():
+    if VERBOSE > -1: return
+
+    debugf('\nSee source code for detail')
+    _dict = {'a': 'alpha', 'b': 'beta'}
+    _int  = 732
+    _list = ['a', 'b', _int, _dict]
+    _str  = '=str='
+    _tuple = (_dict, _int, _list, _str)
+
+    ## print(_tuple) ## (Before modification) ################################
+    _b = 'b'
+    _dict[_b] = 'BETA'
+    _dict['c'] = 'gamma'
+    _int = 237
+    _list += ['added']
+    _str = '=STR='
+    ##########################################################################
+    ## The tuple holds the integer and string values, but for list and dict
+    ## attribute holds references. Their content can change.
+    ## print(_tuple) ## (After modification)
+    assert _tuple[0]['c'] == 'gamma'   ## [_dict]['c'] (added)
+    assert _tuple[1] == 732            ## << DOES NOT CHANGE >>
+    assert _tuple[2][3]['b'] == 'BETA' ## [_list][_dict]['b'] (modified)
+    assert _tuple[3] == '=str='        ## << DOES NOT CHANGE >>
+
+    ## But, replacing the list or dictionary does not affect the tuple
+    _dict = {}                         ## Replace the dictionary
+    _list = []                         ## Replace the list
+    assert _tuple[2][3]['b'] == 'BETA' ## [_list][_dict]['b'] (modified)
+
+    ## But the tuple's original list and dictionary objects remain volatile
+    _tuple[2][3]['b'] = 'DELTA'        ## [_list][_dict]['b'] (modified)
+    assert _tuple[0]['b'] == 'DELTA'   ## [_dict]['b'] (modified)
+
+    ## The tuple's list and dictionary references cannot be modified
+    try:
+        random.seed()
+        if random.random() >= 0.5:
+            _tuple[0] = _tuple[0]      ## This this might work someday but
+        else:                          ## even with super optimization this
+            _tuple[2] = _tuple[2]      ## should generate a warning, right?
+        raise Exception('Huh? Do tuples allow item assignment now?')
+    except TypeError:
+        pass
+
+    ##########################################################################
+    ## You can't use dicts or lists as index values (they might change.)
+    ## You also can't use tuples containing dicts or lists as index values,
+    ## but tuples with strings and ints are OK.
+    _test = [ _int,  _str, (_str, _int),   [],   {}, ([],), ({},)]
+    _fail = [False, False,        False, True, True,  True,  True]
+    _dict = {}
+    for i in range(len(_test)):
+        try:
+            _dict[_test[i]] = 'foo'
+            if _fail[i]:
+                raise Exception('Unexpected success:', type(_test[i]))
+        except TypeError:
+            if _fail[i] == False:
+                raise Exception('Unexpected failure:', type(_test[i]))
+
+    ##########################################################################
+    ## When int or string attribute values are replaced, copies do not change
+    a = _str
+    b = a
+    a = 'mod'
+    assert b == _str and a == 'mod'
+
+    a = 732
+    b = a
+    a = 237
+    assert b == 732 and a == 237
+
+    return 'DEMO'
+
+demoDict['demo -1: Attribute tests'] = test_attributes
+
+##############################################################################
 ## TEST: Are declarations "class NAME" and "class NAME()" equivalent?
 ##############################################################################
 def test_class_declaration_equivalence():
@@ -209,7 +291,7 @@ demoDict['demo compile-traceback: Compile-time traceback'] = demo_compile_time_t
 def demo_exception_handling():      ## Demo needs source code
     if VERBOSE > -3: return
 
-    debugf('\nSee source code for more clarity')
+    debugf('\nSee source code for detail')
     ng = NittyGritty(123, 456, dis='dat', und='so_weiter') ## Define a class
     try:
         debugf(ng.no_such_attribute)
@@ -250,16 +332,16 @@ demoDict["demo main-attributes: How to get Main's attributes. (Don't try.)"] = d
 ## DEMO: traceback
 ##############################################################################
 def demo_traceback():
-    if VERBOSE > -1: return
+    if VERBOSE > -2: return
     debugf('\nNORMAL: ', end=''); traceback()
     return 'DEMO'
-demoDict['demo -1: Traceback'] = demo_traceback
+demoDict['demo -2: Traceback'] = demo_traceback
 
 ##############################################################################
 ## DEMO: tuple vs int
 ##############################################################################
 def demo_tuple_vs_int():            ## Only runs on demand
-    if VERBOSE > -1: return
+    if VERBOSE > -2: return
 
     ## The (456,) notation differentiates a TUPLE of length 1 from INT 456
     ## type((456)): <class 'int'>; type((456,)): <class 'tuple'>
@@ -268,7 +350,7 @@ def demo_tuple_vs_int():            ## Only runs on demand
     debugf('print( (456,), (456) ) =>', (456,), (456))
     return 'DEMO'
 
-demoDict['demo -1: tuple vs int'] = demo_tuple_vs_int
+demoDict['demo -2: Tuple vs int'] = demo_tuple_vs_int
 
 ##############################################################################
 ## DEMO: Usage

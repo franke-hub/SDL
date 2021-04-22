@@ -17,7 +17,7 @@
 ##       Command processor.
 ##
 ## Last change date-
-##       2021/04/03
+##       2021/04/20
 ##
 ## Usage-
 ##       ./Main.py
@@ -88,6 +88,16 @@ class __Echo_Command:
 command['echo'] = __Echo_Command
 
 ##############################################################################
+## __Load_Command class (Command Loader)
+##############################################################################
+class __Load_Command:
+    @staticmethod
+    def run(argv):
+        importlib.import_module(argv[1])
+
+command['load'] = __Load_Command
+
+##############################################################################
 ## __Quit_Command class (Built-in QUIT command)
 ##############################################################################
 class __Quit_Command:
@@ -119,16 +129,6 @@ class __Sleep_Command:
         return 0
 
 command['sleep'] = __Sleep_Command  ## Sleep command
-
-##############################################################################
-## __Load_Command class (Command Loader)
-##############################################################################
-class __Load_Command:
-    @staticmethod
-    def run(argv):
-        importlib.import_module(argv[1])
-
-command['load'] = __Load_Command
 
 ##############################################################################
 ## Mainline code

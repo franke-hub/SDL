@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2021/01/25
+##       2021/04/05
 ##
 ##############################################################################
 
@@ -45,7 +45,7 @@ all: dll lib
 ##############################################################################
 ## TARGET: libgui.so.1.0, libgui.so, libgui.dll
 libgui.so.1.0: $(MAKOBJ)
-	$(CC) -shared -o $@ $^ -LL -lpub -lX11 -lxcb -lxcb-xfixes
+	$(CC) -shared -o $@ $^ -LL -lpub -lX11 $(shell pkg-config --libs xcb xcb-xfixes xcb-image)
 	touch $@
 
 libgui.so: libgui.so.1.0

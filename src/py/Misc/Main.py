@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2019 Frank Eskesen.
+##       Copyright (C) 2019-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,7 +17,7 @@
 ##       Command processor.
 ##
 ## Last change date-
-##       2019/09/04
+##       2021/04/20
 ##
 ##############################################################################
 import sys
@@ -44,6 +44,7 @@ except Exception as X:
 ##############################################################################
 ## Constants (Some may be overridden by parameters)
 ##############################################################################
+_OMIT      = ['dirty', 'list', 'main']
 USE_LOGGER = False                  ## Use Debug logger?
 USE_PDB    = False                  ## Use PDB debugger?
 
@@ -72,7 +73,7 @@ def main():
 
     ## Run all applications ##################################################
     runner = Command(command)
-    runner.omit = ['dirty', 'list', 'main']
+    runner.omit = _OMIT
     runner.main([])
 
 ##############################################################################
@@ -151,5 +152,5 @@ if __name__ == "__main__":
             main()
     else:
         runner = Command(command)
-        runner.omit = ['dirty', 'list', 'main']
+        runner.omit = _OMIT
         runner.main(argv)
