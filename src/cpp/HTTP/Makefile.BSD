@@ -57,7 +57,7 @@ cert: ;
 openssl req -x509 -nodes -days 3653 -newkey rsa:1024 -keyout private.key -out public.crt >/dev/null 2>/dev/null
 	@echo "Generated: private.key, public.crt, valid for 10 years"
 
-key: certificate                    ## Alias for cert
+key: cert                           ## Alias for cert
 
 ##############################################################################
 ## Verify a certificate
