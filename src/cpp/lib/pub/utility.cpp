@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2021/04/01
+//       2021/04/29
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -661,7 +661,7 @@ std::string                         // Resultant
      result= std::string(buffer);
    else {
      buffer= new char[L+1];
-     vsnprintf(buffer, L, fmt, args);
+     vsnprintf(buffer, L+1, fmt, args);
      result= std::string(buffer);
      delete [] buffer;
    }
