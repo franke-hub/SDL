@@ -16,18 +16,22 @@
 ##       Edit files.
 ##
 ## Last change date-
-##       2021/01/23
+##       2021/05/06
 ##
 ## Usage-
 ##       e filename ...
 ##
 ##############################################################################
-pgm=$HOME/bin/edit
-if [[ ! -x "$pgm" ]] ; then
-  echo "$0 ERROR: can't execute $pgm"
-  exit
+[ -z "$EDITOR" ] && export EDITOR="$HOME/bin/edit"
+if [[ ! -x "$EDITOR" ]] ; then
+  editor=`whence $EDITOR`
+  if [[ ! -x "$editor" ]] ; then
+    echo "$0 ERROR: can't execute EDITOR: $EDITOR"
+    exit
+  fi
+  EDITOR="$editor"
 fi
 
-$pgm "$@"
+$EDITOR "$@"
 ## clear
 

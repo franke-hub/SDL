@@ -16,7 +16,7 @@
 ##       Common shell startup script, sourced from .bashrc
 ##
 ## Last change date-
-##       2021/02/04
+##       2021/05/06
 ##
 ## Usage-
 ##       . bash_common
@@ -50,7 +50,7 @@ alias rename='mv -i'
 ##############################################################################
 ## Local environment control
 export BASH_ENV=$HOME/.bashrc
-[ -z "$EDITOR" ] && export EDITOR="e"
+[ -z "$EDITOR" ] && export EDITOR="$HOME/bin/edit"
 export PS1=$PWD:' '
 export PWD                          ## Required by makefiles
 unset  USERNAME
