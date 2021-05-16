@@ -60,7 +60,7 @@ __all__ = None                      ## Nothing exported
 ## Control defaults
 ##############################################################################
 _DEFAULT_SESSION = "Default/Server" ## The default sessionID
-_PORT = 7000                        ## The default server port
+_PORT = 8080                        ## The default server port
 _USE_DAEMON = True                  ## Use daemon _HttpServerThread?
 _VERBOSE = VERBOSE                  ## Verbosity, larger is noisier
 
