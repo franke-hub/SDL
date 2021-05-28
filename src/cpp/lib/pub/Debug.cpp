@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,10 +16,11 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2020/10/03
+//       2021/05/23
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
+#include <sstream>                  // For std::stringstream
 #include <thread>                   // For std::this_thread
 
 #include <assert.h>                 // For debugging
@@ -29,9 +30,13 @@
 #include <time.h>                   // For clock_gettime, timespec, ...
 #include <unistd.h>                 // For isatty
 
+#define BOOST_STACKTRACE_LINK       // (Use static library)
+#define BOOST_STACKTRACE_USE_BACKTRACE
+#include <boost/stacktrace.hpp>     // For boost::stacktrace::stacktrace()
+
 #include <pub/utility.h>            // For utility::to_string
 #include <pub/Interval.h>           // For performance debugging
-#include <pub/Latch.h>              // For mutex performance comparison
+#include <pub/Latch.h>              // For Mutex performance comparison
 #include <pub/Named.h>              // For Named Threads
 #include <pub/Thread.h>             // For Threads
 
@@ -883,13 +888,25 @@ namespace debugging {
 //----------------------------------------------------------------------------
 //
 // Subsection-
-//       C-Language function calls.
+//       Debugging namespace function calls.
 //
 // Purpose-
-//       C-Language environment calls operate against the default
-//       debug object.
+//       These functions use the default debug object.
 //
 //----------------------------------------------------------------------------
+void
+   debug_backtrace( void )          // Display backtrace information
+{
+   auto trace= boost::stacktrace::stacktrace();
+   auto array= trace.as_vector();
+   for(size_t i= 1; i<array.size(); i++) {
+     auto frame= array[i];
+     debugf("[bt] %zd %s at %s:%zd\n", i-1, frame.name().c_str()
+           , frame.source_file().c_str(), frame.source_line());
+   }
+   debug_flush();
+}
+
 void
    debug_clr_head(                  // Clear a Heading options
      Debug::Heading    head)        // The Heading option to clear

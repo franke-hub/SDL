@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/04/22
+//       2021/05/23
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -426,9 +426,8 @@ void
 
    ++recursion;
    Config::debug(S.c_str());
-   Config::trace(".BUG", __LINE__, "Config.cpp");
-   Config::backtrace();
-   debug_flush();
+   Config::trace(".BUG", __LINE__, "Editor.cpp");
+   debug_backtrace();
 
    editor::put_message(S.c_str(), EdMess::T_MESS);
    --recursion;

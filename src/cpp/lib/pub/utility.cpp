@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2021/04/29
+//       2021/05/23
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -47,6 +47,14 @@ namespace _PUB_NAMESPACE {
 //
 //----------------------------------------------------------------------------
 namespace utility {
+//----------------------------------------------------------------------------
+// Volatile data (For avoiding compiler optimizations)
+//----------------------------------------------------------------------------
+volatile int           data= 0;     // For any use
+volatile int           unit= 1;     // By convention, always 1
+volatile int           zero= 0;     // By convention, always 0
+int nop( void ) { return 0; }       // Returns zero. Don't tell the compiler!
+
 //----------------------------------------------------------------------------
 //
 // Subroutine-

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test debugging methods.
 //
 // Last change date-
-//       2020/10/03
+//       2021/05/23
 //
 //----------------------------------------------------------------------------
 #include <errno.h>
@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "pub/Debug.h"
+#include "pub/utility.h"              // Volatile values prevent optimization
 
 using _PUB_NAMESPACE::Debug;
 using namespace _PUB_NAMESPACE::debugging;
@@ -32,6 +33,37 @@ using namespace _PUB_NAMESPACE::debugging;
 // Internal data areas
 //----------------------------------------------------------------------------
 static pub::Debug      debug;         // Debug object
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_bt
+//
+// Purpose-
+//       Test backtrace
+//
+// Implementation note-
+//       Best results when compiled without optimization.
+//       With optimization GCC inlines most of the call stack.
+//
+//----------------------------------------------------------------------------
+static void bar() {
+   debugf("Backtrace test\n");
+   debug_backtrace();
+   debugf("\n");
+}
+
+static void foo() {
+   bar();
+}
+
+static void the() {
+   foo();
+}
+
+static void test_bt() {
+   the();
+}
 
 //----------------------------------------------------------------------------
 //
@@ -47,11 +79,10 @@ extern int                          // Return code
 //   int               argc,        // Argument count (UNUSED)
 //   char*             argv[])      // Argument array (UNUSED)
 {
-   char                buff[128];
+   // Test backtrace
+    test_bt();
 
-   for(size_t i=0; i<sizeof(buff); i++)
-     buff[i]= 0x80 + i;
-
+   // Test modes
    debug_set_mode(Debug::MODE_DEFAULT);
    debugf("Standard mode:\n");
    debugf("This appears in %s and %s\n", "TRACE", "STDOUT");

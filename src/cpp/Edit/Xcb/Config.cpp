@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2021/04/22
+//       2021/05/23
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -46,7 +46,8 @@
 #include "EdFile.h"                 // For EdFile
 
 using namespace config;             // For implementation
-using namespace pub::debugging;     // For debugging
+using pub::Debug;                   // For pub::Debug
+using namespace pub::debugging;     // For pub::debugging
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -277,23 +278,6 @@ static int                          // Resultant value
 
    term();
 }
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       Config::backtrace
-//
-// Purpose-
-//       Display backtrace information. (CYGWIN version does nothing.)
-//
-//----------------------------------------------------------------------------
-#define BOOST_STACKTRACE_LINK       // (Use static library)
-#define BOOST_STACKTRACE_USE_BACKTRACE
-#include <iostream>                 // For std::cerr
-#include <boost/stacktrace.hpp>     // For boost::stacktrace::stacktrace()
-void
-   Config::backtrace( void )        // Display backtrace information
-{  std::cerr << boost::stacktrace::stacktrace(); }
 
 //----------------------------------------------------------------------------
 //
@@ -538,7 +522,7 @@ static void
 {
    static int recursion= 0;         // Signal recursion depth
    if( recursion ) {                // If signal recursion
-     fprintf(stderr, "sig_handler(%d) recursion(%d)\n", id, recursion);
+     fprintf(stderr, "sig_handler(%d) recursion\n", id);
      fflush(stderr);
      exit(EXIT_FAILURE);
    }
@@ -554,15 +538,17 @@ static void
 
    switch(id) {                     // Handle the signal
      case SIGINT:                   // (Console CTRL-C)
-       config::device->operational= false; // Unconditional immediate exit
+       config::device->operational= false; // Forced quasi-immediate exit
 //     exit(EXIT_FAILURE);          // Unconditional immediate exit
        break;
 
      case SIGSEGV:
-       Config::backtrace();         // Attempt diagnosis (recursion aborts)
+       Config::trace(".BUG", __LINE__, "SIGSEGV");
+       debug_backtrace();           // Attempt diagnosis (recursion aborts)
+       debug_set_mode(Debug::MODE_INTENSIVE);
        Config::debug("SIGSEGV");
-       Config::errorf("..terminating..\n");
-       exit(EXIT_FAILURE);          // Exit, no stacktrace
+       debugf("..terminated..\n");
+       exit(EXIT_FAILURE);
        break;
 
      default:
@@ -636,10 +622,6 @@ static int                          // Return code (0 OK)
 
    pub::Trace::trace= pub::Trace::make(trace_table, TRACE_SIZE);
    close(fd);                       // Descriptor not needed once mapped
-
-// Backtrace test
-// debugf("%4d Config::backtrace test\n", __LINE__);
-// Config::backtrace();
 
    return 0;
 }

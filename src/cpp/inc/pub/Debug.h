@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Debugging control.
 //
 // Last change date-
-//       2020/08/23
+//       2021/05/23
 //
 // Implementation notes-
 //       A file name of ">" or "1>" writes the log to stdout.
@@ -301,6 +301,9 @@ extern int             pub_check;   // Enable checking?      [default: false]
 extern int             pub_hcdm;    // Hard Core Debug Mode? [default: false]
 extern int             pub_verbose; // Debugging verbosity   [default: -1]
 }  // namespace options
+
+void                                // (Does nothing in Cygwin)
+   debug_backtrace( void);          // Write backtrace information
 
 void
    debug_clr_head(                  // Clear a Heading options

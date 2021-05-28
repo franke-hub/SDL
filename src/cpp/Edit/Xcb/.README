@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/04/22
+##       2021/05/23
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in PRE-ALPHA status.
@@ -31,6 +31,8 @@
 2021/04/22 Usability: Wheel mouse always moves data screen
 2021/04/10 Fix: EdMark.cpp: Delete when no mark present.
 2021/04/08 Usability improvement: Only show data cursor when Window in focus.
+
+2021/05/23 Fix: pub::debugging::debug_backtrace replaces Config.backtrace
 
 2021/03/04 TODO: (Consider)
          Consider EdView base class, EdData/EdHist based on that.

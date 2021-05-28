@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -50,6 +50,14 @@ namespace _PUB_NAMESPACE {
 //
 //----------------------------------------------------------------------------
 namespace utility {
+//----------------------------------------------------------------------------
+// Volatile data (For avoiding compiler optimizations)
+//----------------------------------------------------------------------------
+extern volatile int    data;        // For any use
+extern volatile int    unit;        // By convention, always 1
+extern volatile int    zero;        // By convention, always 0
+extern int nop( void );             // Returns zero. Don't tell the compiler!
+
 //----------------------------------------------------------------------------
 //
 // Subroutine-

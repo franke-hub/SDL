@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2018-2019 Frank Eskesen.
+##       Copyright (c) 2018-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       (Include this Makefile to add PUB library controls and dependencies.)
 ##
 ## Last change date-
-##       2019/02/19
+##       2021/05/23
 ##
 ## Implementation notes-
 ##       This version is intended to be included from CYGWIN/LINUX makefiles.
@@ -25,6 +25,7 @@
 ################################### Controls
 LLIBS  += -L$(LIBDIR) -lpub ####### PUB library
 CLIBS  += -lssl -lcrypto
+CLIBS  += -lboost_stacktrace_addr2line
 
 ##############################################################################
 ## Dependencies
