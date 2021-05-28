@@ -1,9 +1,16 @@
-More generic ignores.
+Added
 
 # Please enter the commit message for your changes. Lines starting
 # with '#' will be ignored, and an empty message aborts the commit.
 #
 # On branch maint
 # Changes to be committed:
-#	modified:   .gitignore
+#	new file:   .gitignore
+#	new file:   M
+#	new file:   S
+#	new file:   http/M
+#	new file:   http/Makefile
+#	new file:   http/S
+#	new file:   http/html
+#	new file:   http/package.json
 #

@@ -1,3 +1,2 @@
-769ad834e88e9e70407b2aa8e1972c6d7ad8948e 08028536f9717ac281ce295f48f1c9ad17f57186 Frank Eskesen <f.n.eskesen@gmail.com> 1607533361 -0500	commit: Moved: Now Xcb/Edit => Edit/Xcb
-08028536f9717ac281ce295f48f1c9ad17f57186 18d3950a30f28806a7797f17200fd54ab9441767 Frank Eskesen <f.n.eskesen@gmail.com> 1607535152 -0500	commit: Removed junk log.
-18d3950a30f28806a7797f17200fd54ab9441767 a2cd561bdc62c3a23d6dedf72a8a4748867ab9f3 Frank Eskesen <f.n.eskesen@gmail.com> 1607535244 -0500	commit: More generic ignores.
+de6499b734fd73e29ea3e55c39bf5e76a6bcf1af b5b05702ce2af80daa752e553b9233754ea44bda Frank Eskesen <f.n.eskesen@gmail.com> 1621281532 -0400	commit: Added
+b5b05702ce2af80daa752e553b9233754ea44bda 82893c652ada12a2aa733b0ee6ea61eaba4a9ae3 Frank Eskesen <f.n.eskesen@gmail.com> 1622161287 -0400	commit: Added
