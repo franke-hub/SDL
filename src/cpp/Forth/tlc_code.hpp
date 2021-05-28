@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019 Frank Eskesen.
+//       Copyright (c) 2019-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       TLC built-in Threaded functions
 //
 // Last change date-
-//       2019/01/01
+//       2021/05/19
 //
 //----------------------------------------------------------------------------
 
@@ -34,6 +34,11 @@ static Word TH_DEC[]= {DEF_SUB, TIMMW, Word(10), BASE, TPOKEW, TEXIT };
 // TH_HEX: Set BASE= 16
 //----------------------------------------------------------------------------
 static Word TH_HEX[]= {DEF_SUB, TIMMW, Word(16), BASE, TPOKEW, TEXIT };
+
+//----------------------------------------------------------------------------
+// TH_OCT: Set BASE= 8
+//----------------------------------------------------------------------------
+static Word TH_OCT[]= {DEF_SUB, TIMMW, Word(8), BASE, TPOKEW, TEXIT };
 
 //----------------------------------------------------------------------------
 // TH_SP: Write a space

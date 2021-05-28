@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (c) 2019-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       TLC mainline. Runs TLC interpreter.
 //
 // Last change date-
-//       2020/10/04
+//       2021/05/19
 //
 // Implementation notes-
 //       Interpretation code is almost wholly C++.
@@ -76,6 +76,7 @@ static inline void
    wordMap.insert("minus",   TNEG);
    wordMap.insert("nop",     TNOP);
    wordMap.insert("not",     TNOT);
+   wordMap.insert("oct",     TH_OCT);
    wordMap.insert("or",      TOR);
    wordMap.insert("echo",    TOUTC);
    wordMap.insert("outs",    TPUTS);
