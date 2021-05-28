@@ -1,0 +1,46 @@
+﻿
+/* index.css 2021/04/28 Copyright (C) 2021 Frank N. Eskesen */
+/* License: Public domain. Use at your own risk. No attribution required. */
+* {
+  background-color: #f0ffff
+}
+
+hr {
+  color: #eee
+}
+
+#google, img {
+  background-color: #dff;
+}
+
+#googtext {
+  width:1200px;
+}
+
+input[type=button], input[type=submit] {
+  background-color: #eef;
+}
+
+@media screen and (max-width: 1800px) {
+  #googtext {
+    width:900px;
+  }
+}
+
+@media screen and (max-width: 1300px) {
+  #googtext {
+    width:600px;
+  }
+}
+
+@media screen and (max-width: 992px) {
+  #googtext {
+    width:250px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  #googtext {
+    width:50px;
+  }
+}

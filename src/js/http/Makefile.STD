@@ -1,0 +1,64 @@
+##############################################################################
+##
+##       Copyright (C) 2021 Frank Eskesen.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.STD
+##
+## Purpose-
+##       Node.js local Makefile
+##
+## Last change date-
+##       2021/05/19
+##
+##############################################################################
+
+##############################################################################
+## Set default target
+.PHONY: default do help test
+ifeq "" "$(DEFAULT)"
+DEFAULT:= do
+endif
+
+default: $(DEFAULT)
+
+##############################################################################
+## Built-in targets
+do: ;
+	-node S/httpServer.js
+
+test: ;
+	-node S/debug.js test
+
+help: ;
+	@echo "List of make options:"
+	@echo "cert: Create openssl certificate"
+	@echo "do:   Run default (S/httpServer.js)"
+	@echo "help: This help message"
+	@echo "test: Run debug test (S/debug.js)"
+
+##############################################################################
+## Target cert: Make local encryption certificate
+host:=$(shell 'hostname')
+ifneq "" "$(USE_LOCALHOST)"
+  host:="localhost"
+endif
+
+.PHONY: cert
+cert: ;
+	openssl req -x509 -newkey rsa:2048 -nodes -sha256 -subj "/CN=$(host)" \
+  -keyout privkey.pem -out cert.pem
+
+##############################################################################
+## Target pristine
+.PHONY: pristine
+pristine: clean
+	-@rm -f log/*
+	-@rm -f *.pem

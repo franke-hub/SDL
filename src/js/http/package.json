@@ -1,0 +1,19 @@
+{ "name": "httpServer"
+, "version": "1.0.0"
+, "description": "HTTP/1.1 and HTTP/2: server, client and stress test"
+, "main": "httpServer.js"
+, "scripts":
+    { "httpServer": "make httpServer"
+    , "httpClient": "make httpClient"
+    , "httpStress": "make httpStress"
+    , "cert": "make cert"
+    , "http2Server": "make http2Server"
+    , "http2Client": "make http2Client"
+    , "http2Stress": "make http2Stress"
+    }
+, "author": "Frank Eskesen"
+, "license": "GPL-3.0"
+, "dependencies":
+    { "node-datetime": "^2.1.2"
+    }
+}
