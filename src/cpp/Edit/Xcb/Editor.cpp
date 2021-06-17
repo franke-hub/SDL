@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/05/23
+//       2021/06/17
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -88,6 +88,9 @@ std::string            editor::change_string; // The change string
 
 pub::List<EdPool>      editor::filePool; // File allocation EdPool
 pub::List<EdPool>      editor::textPool; // Text allocation EdPool
+
+// Diagnostic controls -------------------------------------------------------
+uint32_t               editor::diagnostic= 0; // Non-zero if abnormal state
 
 // Search controls -----------------------------------------------------------
 uint32_t               editor::locate_back= false;

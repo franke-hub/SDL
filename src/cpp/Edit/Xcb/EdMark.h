@@ -16,7 +16,7 @@
 //       Editor: Line/block mark descriptor
 //
 // Last change date-
-//       2021/02/19
+//       2021/06/17
 //
 //----------------------------------------------------------------------------
 #ifndef EDMARK_H_INCLUDED
@@ -25,6 +25,7 @@
 #include <sys/types.h>              // For system types
 
 #include <pub/List.h>               // For List
+#include <pub/Signals.h>            // For namespace pub::signals
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -64,6 +65,14 @@ size_t                 copy_rows= 0; // The number of copy/cut rows
 ssize_t                copy_col= -1; // The last column marked (-1 for line)
 ssize_t                copy_lh= -1; // Copy left-hand column
 ssize_t                copy_rh= -1; // Copy right-hand column
+
+// Signals -------------------------------------------------------------------
+struct ChangeEvent {                // File change event
+const EdRedo*          redo;
+};
+
+static pub::signals::Signal<ChangeEvent>
+                       change_signal; // The ChangeEvent Signal
 
 //----------------------------------------------------------------------------
 // EdMark::Constructor/Destructor

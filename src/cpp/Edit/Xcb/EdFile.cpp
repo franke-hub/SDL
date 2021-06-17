@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2021/03/22
+//       2021/06/17
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -58,7 +58,7 @@ enum // Compilation controls
 #define USE_BRINGUP true            // Use bringup diagnostics? TODO: false
 
 //----------------------------------------------------------------------------
-// Constants for parameterization
+// External data areas
 //----------------------------------------------------------------------------
 pub::signals::Signal<EdFile::CloseEvent>
                        EdFile::close_signal; // CloseEvent signal
@@ -643,10 +643,13 @@ void
      return;
 
    EdMess* mess= mess_list.get_head();
-   if( mess && type_ < mess->type )
+   if( mess && type_ < mess->type ) // Ignore less important message
      return;
 
-   mess_list.fifo(new EdMess(mess_, type_));
+   std::string S(mess_);            // Message string
+   if( type_ == EdMess::T_MESS )    // If action message
+     S += ": Click here to continue";
+   mess_list.fifo(new EdMess(S, type_));
    if( editor::file == this )       // (Only if this file is active)
      editor::text->draw_info();     // (Otherwise, message is deferred)
 }
@@ -860,7 +863,7 @@ void
 //       EdFile::remove
 //
 // Purpose-
-//       Remove file lines (or line)
+//       Remove file line(s)
 //
 //----------------------------------------------------------------------------
 void
@@ -871,6 +874,9 @@ void
    line_list.remove(head, tail);
 
    for(EdLine* line= head; line != tail; line= line->get_next()) {
+     if( line == top_line )         // If removing top line
+       top_line= head->get_prev()->get_next(); // Insure top_line is valid
+
      if( line == nullptr ) throw "Invalid remove chain";
      rows--;
    }
@@ -1122,6 +1128,32 @@ void
    strncpy(buffer, text, 41);
    debugf("%p F(%.4x) D(%.2x,%.2x) '%s'\n", this, flags
          , delim[0], delim[1], buffer);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdLine::is_within
+//
+// Purpose-
+//       Is this line within range head..tail (inclusive)?
+//
+//----------------------------------------------------------------------------
+bool
+   EdLine::is_within(               // Is this line within range head..tail?
+     const EdLine*     head,        // First line in range
+     const EdLine*     tail) const  // Final line in range
+{  if( HCDM || (opt_hcdm && opt_verbose > 2) )
+     debugh("EdLine(%p)::is_within(%p,%p)\n", this, head, tail);
+
+   for(const EdLine* line= head; line != nullptr; line= line->get_next() ) {
+     if( this == line )
+       return true;
+     if( this == tail )
+       break;
+   }
+
+   return false;
 }
 
 //============================================================================

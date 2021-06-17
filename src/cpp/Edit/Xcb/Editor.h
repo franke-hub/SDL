@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2021/03/13
+//       2021/06/17
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -133,6 +133,9 @@ extern std::string     change_string; // The change string
 
 extern pub::List<EdPool> filePool;  // File allocation EdPool
 extern pub::List<EdPool> textPool;  // Text allocation EdPool
+
+// Diagnostic controls -------------------------------------------------------
+extern uint32_t        diagnostic;  // Diagnostic state (TRUE if halted)
 
 // Search controls -----------------------------------------------------------
 extern uint32_t        locate_back; // Reverse search (default= false)

@@ -57,6 +57,12 @@ enum // Compilation controls
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
+// Internal data areas
+//----------------------------------------------------------------------------
+static pub::signals::Connector<EdMark::ChangeEvent>
+                       changeEvent_connector;
+
+//----------------------------------------------------------------------------
 //
 // Subroutine-
 //       int2char2b
@@ -100,6 +106,26 @@ static inline unsigned              // The truncated value
 {
    if( opt_hcdm )
      debugh("EdText(%p)::EdText\n", this);
+
+   // Handle EdMark::ChangeEvent (lambda function)
+   // Purpose: Repair EdText::head (if it changed)
+   using Event= EdMark::ChangeEvent;
+   changeEvent_connector= EdMark::change_signal.connect([this](Event& event) {
+     const EdRedo* redo= event.redo;
+     if( head->is_within(redo->head_remove, redo->tail_remove) ) {
+       for(EdLine* L= head->get_prev(); L != nullptr; L= L->get_prev() ) {
+         if( !L->is_within(redo->head_remove, redo->tail_remove) ) {
+           head= L->get_next();
+           return;
+         }
+       }
+
+       // This should not occur. The top line, the only one with a nullptr
+       // get_prev(), should never be within a redo_remove list. This indicates
+       // that something has gone very wrong, It can't be auto-corrected.
+       Editor::alertf("%4d EdText: internal error\n", __LINE__);
+     }
+   });
 
    // Basic window colors
    bg= config::text_bg;
@@ -275,7 +301,7 @@ void
      if( code >= 0x00010000 ) {     // If two characters required
        if( outlen >= 255 )          // If there's only room for one character
          break;
-       code -= 0x00010000;          // Subtract extended origin
+       code -= 0x00100000;          // Subtract extended origin
 //     code &= 0x000fffff;          // 20 bit remainder (operation not needed)
        out[outlen++]= int2char2b(0x0000d800 | (code >> 10)); // High order code
        code &= 0x000003ff;          // Low order 10 bits

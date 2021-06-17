@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2021/04/22
+//       2021/06/17
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -190,6 +190,9 @@ static const char* F_KEY= "123456789ABCDEF";
 
      case XK_Menu:
        return "Menu";
+
+     case XK_Break:
+       return "Break";
 
      case XK_Left:
        return "Left arrow";
@@ -540,6 +543,22 @@ void
        move_cursor_H(column);
        view->active.append_text(" ");
        draw_active();
+       break;
+     }
+     case XK_Break:
+     case XK_Pause: {
+       if( state & gui::KS_ALT ) { // Alt-Pause, diagnostic dump
+         if( editor::diagnostic ) {
+           editor::diagnostic= false;
+           Config::errorf("Tracing resumed\n");
+         } else {
+           editor::diagnostic= true;
+           Editor::alertf("*DEBUG*");
+         }
+         pub::Trace* trace= pub::Trace::trace;
+         if( trace )
+           trace->flag[pub::Trace::X_HALT]= bool(editor::diagnostic);
+       }
        break;
      }
      case 0x007F:                  // (This encoding should not occur)

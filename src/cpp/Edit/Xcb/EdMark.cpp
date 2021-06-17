@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2021/04/10
+//       2021/06/17
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -45,6 +45,12 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 static pub::signals::Connector<EdFile::CloseEvent>
                        closeEvent_connector;
+
+//----------------------------------------------------------------------------
+// External data areas
+//----------------------------------------------------------------------------
+pub::signals::Signal<EdMark::ChangeEvent>
+                       EdMark::change_signal; // ChangeEvent signal
 
 //----------------------------------------------------------------------------
 //
@@ -431,6 +437,10 @@ void
        }
      }
    }
+
+   // Raise ChangeEvent signal
+   ChangeEvent event= {redo};
+   change_signal.signal(event);
 }
 
 //----------------------------------------------------------------------------

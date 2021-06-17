@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2021/02/28
+//       2021/06/17
 //
 // Implementation objects-
 //       EdLine: Editor EdFile line descriptor
@@ -33,6 +33,7 @@
 
 #include <gui/Types.h>              // For gui::Line
 #include <pub/List.h>               // For pub::List
+#include <pub/Signals.h>            // For namespace pub::signals
 
 #include "Editor.h"                 // For Editor
 
@@ -86,6 +87,20 @@ public:
 //----------------------------------------------------------------------------
 void
    debug( void ) const;             // Debugging display
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdLine::is_within
+//
+// Purpose-
+//       Is this line within range head..tail (inclusive)?
+//
+//----------------------------------------------------------------------------
+bool
+   is_within(                       // Is this line within range head..tail?
+     const EdLine*     head,        // First line in range
+     const EdLine*     tail) const; // Final line in range
 }; // class EdLine
 
 //----------------------------------------------------------------------------
@@ -250,7 +265,7 @@ size_t                 row_zero= 0; // The current top row[0]
 unsigned               col= 0;      // The current cursor column (offset)
 unsigned               row= 0;      // The current cursor row (offset)
 
-// Signals
+// Signals -------------------------------------------------------------------
 struct CloseEvent {                 // File close event
 EdFile*                file;
 };
