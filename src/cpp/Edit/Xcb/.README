@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/06/17
+##       2021/06/18
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in PRE-ALPHA status.
@@ -27,10 +27,16 @@
 
 ##############################################################################
 ## STATUS:
-2021/06/17 Fix: A top line change disappears after mark below. (The change
-         is in the file, but not properly displayed on the screen.)
-         The problem is that EdText wasn't made aware when a head line is
-         removed. Fixed by creating a redo signal with an EdText listener.
+2021/06/18 Bug: Line numbers can get messed up.
+         Symptoms: Line[0] reported as line 98. (Noticed after the fact.)
+           top did not fix it when issued while ***tof*** line visible.
+
+2021/06/18 Bug: Cursor block not cleared.
+         Symptoms: Two cursor blocks on screen.
+           Associated with clicking on screen when in history view.
+
+2021/06/19 Bug: Undo change line leaves characters on display.
+         Add characters to a line, then undo. Update doesn't clear the line.
 
 2021/03/04 TODO: (Consider)
          Consider EdView base class, EdData/EdHist based on that.
@@ -46,7 +52,13 @@
          Greps: "TODO:", "HCDM", "USE_BRINGUP", "NOT CODED"
 
 ##############################################################################
-2021/06/17 Alt-Pause: Debugging: Dump, halt tracing
+## CHANGE LOG:
+2021/06/17 Fix: A top line change disappears after mark below. (The change
+         is in the file, but not properly displayed on the screen.)
+         The problem is that EdText wasn't made aware when a head line is
+         removed. Fixed by creating a redo signal with an EdText listener.
+
+2021/06/17 Added Alt-Pause for debugging: Dump, halt tracing
 2021/05/23 Fix: pub::debugging::debug_backtrace replaces Config.backtrace
 2021/04/22 Fix: Insert/delete/bs character on line with column mark display
 2021/04/22 Usability: Wheel mouse always moves data screen
