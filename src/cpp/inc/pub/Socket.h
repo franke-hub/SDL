@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019 Frank Eskesen.
+//       Copyright (c) 2019-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Standard posix socket wrapper and openssl wrapper.
 //
 // Last change date-
-//       2019/05/27
+//       2021/06/10
 //
 // Implementation warning-
 //       THE SSL_Socket CLASS IS EXPERIMENTAL. The author expressly admits to
@@ -49,10 +49,8 @@
 
 #include <string>                   // For std::string
 #include <netinet/in.h>             // For struct sockaddr_ definitions
+#include <openssl/ssl.h>            // For SSL, SSL_CTX
 #include <sys/socket.h>             // For socket methods
-#include <openssl/bio.h>            // For openssl methods
-#include <openssl/err.h>            // For openssl methods
-#include <openssl/ssl.h>            // For openssl methods
 
 #include "pub/Exception.h"          // For SocketException
 #include "pub/Object.h"             // For base class, _PUB_NAMESPACE, ...
