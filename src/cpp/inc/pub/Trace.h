@@ -212,7 +212,11 @@ uint32_t                            // Offset of record
 static void*                        // The storage, nullptr if inactive
    storage_if(                      // Conditionally allocate storage
      uint32_t          size)        // of this length
-{  if( trace ) return trace->allocate_if(size); else return nullptr; }
+{  if( trace )
+     return trace->allocate_if(size);
+   else
+     return nullptr;
+}
 }; // class Trace
 }  // namespace _PUB_NAMESPACE
 #endif // _PUB_TRACE_H_INCLUDED
