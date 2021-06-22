@@ -10,10 +10,10 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       pub/Parser.cpp
+//       Parser.cpp
 //
 // Purpose-
-//       Implement pub/Parser.h
+//       Parser implementation methods.
 //
 // Last change date-
 //       2021/01/02
