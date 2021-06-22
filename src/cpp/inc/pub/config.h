@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -13,30 +13,10 @@
 //       ~/pub/config.h
 //
 // Purpose-
-//       Configuration controls.
+//       Configuration control macros.
 //
 // Last change date-
-//       2018/01/01
+//       2021/06/11
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_CONFIG_H_INCLUDED
-#define _PUB_CONFIG_H_INCLUDED
-
-//----------------------------------------------------------------------------
-// Standard constants
-//----------------------------------------------------------------------------
-#define _PUB_NAMESPACE pub            // Change requires library recompile
-
-//----------------------------------------------------------------------------
-// Attributes (compiler dependent, no effect if not supported)
-//----------------------------------------------------------------------------
-#ifdef __GNUC__
-   #define _ATTRIBUTE_PRINTF(fmt_parm, arg_parm) \
-               __attribute__ ((format (printf, fmt_parm, arg_parm)))
-
-   #define _ATTRIBUTE_NORETURN __attribute__ ((noreturn))
-#else
-   #define _ATTRIBUTE_PRINTF(fmt_parm, arg_parm)
-   #define _ATTRIBUTE_NORETURN
-#endif
-#endif // _PUB_CONFIG_H_INCLUDED
+#include "macro/config.h"
