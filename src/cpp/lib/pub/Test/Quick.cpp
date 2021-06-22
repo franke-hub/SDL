@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,10 +16,11 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2020/12/14
+//       2021/06/11
 //
 //----------------------------------------------------------------------------
 #include <chrono>
+#include <cstdlib>                  // For std::free
 #include <ctype.h>                  // For isprint()
 #include <getopt.h>                 // For getopt()
 #include <iostream>
@@ -37,6 +38,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <arpa/inet.h>              // For htons, ntohs
 
 #include "MUST.H"                   // Error counting assert
 #include "pub/Debug.h"
@@ -47,10 +49,12 @@
 #include "pub/memory.h"             // See test_atomic_shared_ptr, NOT CODED YET
 #include "pub/Signals.h"            // See test_Signals
 #include "pub/Trace.h"              // See test_Trace
+#include "pub/Utf.h"                // See test_Utf
 #include "pub/UTF8.h"               // See test_UTF8
 #include "pub/utility.h"            // For _PUB_NAMESPACE::utility
 using namespace _PUB_NAMESPACE;
 using namespace _PUB_NAMESPACE::debugging;
+using _PUB_NAMESPACE::utility::dump;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -1200,6 +1204,274 @@ static inline int
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       test_Utf
+//
+// Purpose-
+//       Test utf.h
+//
+//----------------------------------------------------------------------------
+typedef Utf::utf8_t    utf8_t;      // Import Utf::utf8_t
+typedef Utf::utf16_t   utf16_t;     // Import Utf::utf16_t
+typedef Utf::utf32_t   utf32_t;     // Import Utf::utf32_t
+
+static utf16_t*        buff16= nullptr; // Source little endian utf16_t buffer
+static utf32_t*        buff32= nullptr; // Source utf32_t buffer
+
+static void
+   verify(                          // Verify
+     Utf8&             utf,         // This Utf8 object
+     const char*       desc)        // (Description)
+{
+   utf32_t code= 0;
+   for(auto it= utf.begin(); it != utf.end(); it++) {
+     utf32_t want= code;
+     if( code == 0 )
+       want= Utf::BYTE_ORDER_MARK;
+     else if( want >= 0x00D800 && want <= 0x00DFFF )
+       want= Utf::UNI_REPLACEMENT;
+
+     if( *it != want ) {
+       debugf("\n\n%4d Utf8.%s [%.6x] Error: %.6x != %.6x\n", __LINE__, desc
+             , code, want, *it);
+       debugf("\nit:\n");
+       dump(stdout, &it, sizeof(it));
+       dump(&it, sizeof(it));
+       debugf("\ndata:\n");
+       dump(stdout, (char*)it.origin + it.offset, 4);
+       dump((char*)it.origin + it.offset, 4);
+       break;
+     }
+     code++;
+   }
+   if( opt_verbose )
+     debugf("Utf8\t %x codes verified %s\n", code, desc);
+}
+
+static void
+   verify(                          // Verify
+     Utf16&            utf,         // This Utf16 object
+     const char*       desc)        // (Description)
+{
+   utf32_t code= 0;
+   for(auto it= utf.begin(); it != utf.end(); it++) {
+     utf32_t want= code;
+     if( code == 0 )
+       want= Utf::BYTE_ORDER_MARK;
+     else if( want >= 0x00D800 && want <= 0x00DFFF )
+       want= Utf::UNI_REPLACEMENT;
+
+     if( *it != want ) {
+       debugf("\n\n%4d Utf16.%s [%.6x] Error: %.6x != %.6x\n", __LINE__, desc
+             , code, want, *it);
+       debugf("\nit:\n");
+       dump(stdout, &it, sizeof(it));
+       dump(&it, sizeof(it));
+       debugf("\ndata:\n");
+       dump(stdout, (char*)it.origin + it.offset, 4);
+       dump((char*)it.origin + it.offset, 4);
+       break;
+     }
+     code++;
+   }
+   if( opt_verbose )
+     debugf("Utf16\t %x codes verified %s\n", code, desc);
+}
+
+static void
+   verify(                          // Verify
+     Utf32&            utf,         // This Utf32 object
+     const char*       desc)        // (Description)
+{
+   utf32_t code= 0;
+   for(auto it= utf.begin(); it != utf.end(); it++) {
+     utf32_t want= code;
+     if( code == 0 )
+       want= Utf::BYTE_ORDER_MARK;
+     else if( want >= 0x00D800 && want <= 0x00DFFF )
+       want= Utf::UNI_REPLACEMENT;
+
+     if( *it != want ) {
+       debugf("\n\n%4d Utf32.%s [%.6x] Error: %.6x != %.6x\n", __LINE__, desc
+             , code, want, *it);
+       debugf("\nit:\n");
+       dump(stdout, &it, sizeof(it));
+       dump(&it, sizeof(it));
+       debugf("\ndata:\n");
+       dump(stdout, (char*)it.origin + it.offset, 4);
+       dump((char*)it.origin + it.offset, 4);
+       break;
+     }
+     code++;
+   }
+   if( opt_verbose )
+     debugf("Utf32\t %x codes verified %s\n", code, desc);
+}
+
+static inline int
+   test_Utf( void )                 // Test Utf.h
+{
+// debug_set_mode(Debug::MODE_INTENSIVE);
+   debugf("\ntest_Utf\n");
+
+   // Source utf32_t buffer, manually constructed
+   enum { DIM= 0x00110000 };
+   buff32= (utf32_t*)malloc((DIM + 1) * sizeof(utf32_t));
+   for(int i= 0; i<DIM; i++) {
+     if( i >= 0x00D800 && i <= 0x00DFFF ) [[ unlikely ]]
+       buff32[i]= Utf::UNI_REPLACEMENT;
+     else
+       buff32[i]= i;
+   }
+   buff32[DIM]= 0;
+   buff32[0]= Utf::BYTE_ORDER_MARK;
+
+   //------------------------------------------------------------------------
+   // Test UTF8
+   //------------------------------------------------------------------------
+   {{ // (This allows re-use of names and simpler cut/paste update)
+     Utf8 utf(buff32);
+     verify(utf, "utf32_t*");
+
+     if( false ) {                  // Compare prefix/postfix operators
+       // Does your compiler optimize postfix? Look at listing to check.
+       // (GCC: optimizes out unused copy with -O3)
+       auto it= utf.begin();
+       printf("postfix\n");
+       it++;
+
+       printf("prefix\n");
+       ++it;
+     }
+   }}
+
+   //------------------------------------------------------------------------
+   // Test UTF16
+   //------------------------------------------------------------------------
+   {{
+     Utf16 utf(buff32);
+     verify(utf, "utf32_t*");
+
+     // Create and verify little endian source
+     size_t units= utf.get_units()+1;
+     buff16= (utf16_t*)malloc(units*sizeof(utf16_t));
+     memcpy(buff16, utf.get_data(), units*sizeof(utf16_t));
+     for(size_t i= 0; i<units; i++) { // Convert to little endian
+       uint16_t unit= buff16[i];
+       buff16[i]= ((unit & 0x00FF) << 8) | (unit >> 8);
+     }
+     Utf16 utfLE(buff16);
+     verify(utfLE, "utf16_t* (little endian)");
+
+     free(buff16);
+     buff16= nullptr;
+   }}
+
+   //------------------------------------------------------------------------
+   // Test UTF32
+   //------------------------------------------------------------------------
+   {{
+     Utf32 utf(buff32);
+     verify(utf, "utf32_t*");
+   }}
+
+   //------------------------------------------------------------------------
+   // Test type interactions (only meaningful after base type verification)
+   //------------------------------------------------------------------------
+   {{
+     Utf8  utf8(buff32);
+     Utf16 utf16(buff32);
+     Utf32 utf32(buff32);
+     if( opt_verbose ) {
+       debugf("\n");
+       debugf("%.6zx, %.6zx, %.6zx Utf8  codes/units/size\n", utf8.get_codes()
+             , utf8.get_units(), utf8.get_units());
+       debugf("%.6zx, %.6zx, %.6zx Utf16 codes/units/size\n", utf16.get_codes()
+             , utf16.get_units(), utf16.get_units() * sizeof(utf16_t));
+       debugf("%.6zx, %.6zx, %.6zx Utf32 codes/units/size\n", utf32.get_codes()
+             , utf32.get_units(), utf32.get_units() * sizeof(utf32_t));
+     }
+
+     if( opt_verbose ) debugf("\n");
+     Utf8 u8u8(utf8);
+     verify(u8u8, "u8u8");
+     Utf8 u8u8q(utf8.get_data());
+     verify(u8u8q, "u8u8=");
+     Utf8 u8u16(utf16);
+     verify(u8u16, "u8u16");
+     Utf8 u8u16q(utf16.get_data());
+     verify(u8u16q, "u8u16=");
+     Utf8 u8u32(utf32);
+     verify(u8u32, "u8u32");
+     Utf8 u8u32q(utf32.get_data());
+     verify(u8u32q, "u8u32=");
+     u8u8= u8u8;
+     verify(u8u8, "u8u8=self");
+     u8u8= utf8;
+     verify(u8u8, "u8u8=utf8");
+     u8u8= u8u16;
+     verify(u8u8, "u8u8=utf16");
+     u8u8= u8u32;
+     verify(u8u8, "u8u8=utf32");
+     u8u8= utf8.get_data();
+     verify(u8u8, "u8u8=utf8_t*");
+
+     if( opt_verbose ) debugf("\n");
+     Utf16 u16u8(utf8);
+     verify(u16u8, "u16u8");
+     Utf16 u16u8q(utf8.get_data());
+     verify(u16u8q, "u16u8=");
+     Utf16 u16u16(utf16);
+     verify(u16u16, "u16u16");
+     Utf16 u16u16q(utf16.get_data());
+     verify(u16u16q, "u16u16=");
+     Utf16 u16u32(utf32);
+     verify(u16u32, "u16u32");
+     Utf16 u16u32q(utf32.get_data());
+     verify(u16u32q, "u16u32=");
+     u16u16= u16u16;
+     verify(u16u16, "u16u16=self");
+     u16u16= utf8;
+     verify(u16u16, "u16u16=utf8");
+     u16u16= utf16;
+     verify(u16u16, "u16u16=utf16");
+     u16u16= utf32;
+     verify(u16u16, "u16u16=utf32");
+     u16u16= utf8.get_data();
+     verify(u16u16, "u16u16=utf8_t*");
+
+     if( opt_verbose ) debugf("\n");
+     Utf32 u32u8(utf8);
+     verify(u32u8, "u32u8");
+     Utf32 u32u8q(utf8.get_data());
+     verify(u32u8q, "u32u8=");
+     Utf32 u32u16(utf16);
+     verify(u32u16, "u32u16");
+     Utf32 u32u16q(utf16.get_data());
+     verify(u32u16q, "u32u16=");
+     Utf32 u32u32(utf32);
+     verify(u32u32, "u32u32");
+     Utf32 u32u32q(utf32.get_data());
+     verify(u32u32q, "u32u32=");
+     u32u32= u32u32;
+     verify(u32u32, "u32u32=self");
+     u32u32= utf8;
+     verify(u32u32, "u32u32=utf8");
+     u32u32= utf16;
+     verify(u32u32, "u32u32=utf16");
+     u32u32= utf32;
+     verify(u32u32, "u32u32=utf32");
+     u32u32= utf8.get_data();
+     verify(u32u32, "u32u32=utf8_t*");
+   }}
+
+   free(buff32);
+   buff32= nullptr;
+   return 0;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       main
 //
 // Purpose-
@@ -1223,10 +1495,11 @@ extern int                          // Return code
      if( opt_misc )    errorCount += test_Misc();
      if( opt_must )    errorCount += test_Must();
      if( opt_signals ) errorCount += test_Signals();
-     if( opt_utf8 )    errorCount += test_UTF8();
      if( opt_trace )   errorCount += test_Trace();
+     if( opt_utf8 )    errorCount += test_UTF8();
      if( utf8_encode ) errorCount += test_UTF8_encode(argc, argv);
      if( utf8_decode ) errorCount += test_UTF8_decode(argc, argv);
+     if( true )        errorCount += test_Utf();
    } catch(Exception& X) {
      errorCount++;
      debugf("%4d %s\n", __LINE__, std::string(X).c_str());
