@@ -16,13 +16,13 @@
 ##       Edit files.
 ##
 ## Last change date-
-##       2021/05/06
+##       2021/06/10
 ##
 ## Usage-
 ##       e filename ...
 ##
 ##############################################################################
-[ -z "$EDITOR" ] && export EDITOR="$HOME/bin/edit"
+. setupEDIT                         ## (If no display, use ncurses editor)
 if [[ ! -x "$EDITOR" ]] ; then
   editor=`whence $EDITOR`
   if [[ ! -x "$editor" ]] ; then
@@ -34,4 +34,3 @@ fi
 
 $EDITOR "$@"
 ## clear
-

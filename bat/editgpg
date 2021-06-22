@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2010-2019 Frank Eskesen.
+##       Copyright (C) 2010-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,10 +16,10 @@
 ##       Edit a GPG encrypted file.
 ##
 ## Last change date-
-##       2019/10/08
+##       2021/06/10
 ##
 ## Usage-
-##       editgpg [-as userid] foo
+##       editgpg [-as userid] filename
 ##
 ##############################################################################
 
@@ -87,7 +87,8 @@ if [ $rc != 0 ] ; then
 fi
 
 ##############################################################################
-# Edit, check resultant
+## Edit, check resultant
+. setupEDIT                         ## (If no display, use ncurses editor)
 $EDITOR $GPGFILE
 if [ ! -f "$GPGFILE" ] ; then
   echo "File \"$GPGFILE\" deleted. No change will occur."

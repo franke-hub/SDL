@@ -1,0 +1,36 @@
+##
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2021 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       setupEDIT
+##
+## Purpose-
+##       Set up EDITOR environment variable (heuristic.)
+##
+## Last change date-
+##       2021/06/10
+##
+## Usage-
+##       . setupEDIT
+##
+## Implementation note-
+##       edit.new: alias for XCB editor
+##       edit.old: alias for ncurses editor
+##
+##############################################################################
+
+##############################################################################
+## Heuristic: set EDITOR environment variable
+if [[ -z "$DISPLAY" ]] ; then       ## If no display available
+    export EDITOR=$HOME/bin/edit.old ## (Must) use ncurses editor
+elif [[ -z "$EDITOR" ]] ; then      ## If not already specified
+    export EDITOR=$HOME/bin/edit.new ## Use XCB editor
+fi
