@@ -1,11 +1,11 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (C) 2019-2021 Frank Eskesen.
 //
-//       This file is free content, distributed under the Lesser GNU
-//       General Public License, version 3.0.
-//       (See accompanying file LICENSE.LGPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2020/10/03
+//       2021/06/10
 //
 //----------------------------------------------------------------------------
 #include <errno.h>                  // For errno
@@ -25,6 +25,7 @@
 #include <string.h>                 // For memset, ...
 #include <unistd.h>                 // For close, ...
 #include <arpa/inet.h>              // [[ REMINDER: inet address conversions ]]
+#include <openssl/err.h>            // For ERR_error_string
 #include <sys/time.h>               // For timeval, ...
 
 #include <pub/utility.h>            // For to_string()

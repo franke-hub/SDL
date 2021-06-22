@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (c) 2019-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Sample HTTP/HTTPS Client/Server, using openssl socket layer.
 //
 // Last change date-
-//       2020/10/04
+//       2021/06/10
 //
 // Known bugs-
 //       std/ssl_stressor both eventually fail on Cygwin. (OK in Linux)
@@ -28,6 +28,7 @@
 #include <errno.h>                  // For errno
 #include <getopt.h>                 // For getopt()
 #include <string.h>                 // For memset, ...
+#include <openssl/err.h>            // For ERR_error_string
 #include <sys/time.h>               // For timeval
 
 #include <pub/utility.h>            // For to_string, visify
