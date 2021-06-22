@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Display environmental control variables.
 //
 // Last change date-
-//       2020/10/03
+//       2021/06/15
 //
 //----------------------------------------------------------------------------
 #define _FILE_OFFSET_BITS 64        // (Required for LINUX)
@@ -200,6 +200,29 @@ static inline int
        throw "Should Not Occur";
      }
    }
+
+   return 0;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_stdlib
+//
+// Purpose-
+//       Test cstdlib, stdlib.h
+//
+// Implementation notes-
+//       Expect exception or SEGFAULT if failure
+//
+//----------------------------------------------------------------------------
+static inline int
+   test_stdlib( void )              // Test cstdlib, stdlib.h (free)
+{
+// printf("test_stdlib, fault if error\n"); // (Silent test)
+
+   ::free(NULL);                    // Test stdlib.h
+   std::free(nullptr);              // Test cstdlib
 
    return 0;
 }
@@ -517,6 +540,7 @@ int                                 // Return code
 
      result |= demo_std_exception(); // Demo std::exception usage error
      result |= test_std_exception(); // Test std::exception
+     result |= test_stdlib();       // Test ::free(NULL), std::free(nullptr)
    } catch(const char* x) {
      fprintf(stderr, "catch(const char*(%s))\n", x);
      result= 2;
@@ -528,8 +552,7 @@ int                                 // Return code
      result= 2;
    }
 
-   if( result != 0 )
-     printf("result(%d)\n", result);
+   printf("result(%d)\n", result);
 
    return(result);
 }
