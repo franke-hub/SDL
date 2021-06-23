@@ -16,7 +16,7 @@
 //       Editor: Line/block mark descriptor
 //
 // Last change date-
-//       2021/06/17
+//       2021/06/23
 //
 //----------------------------------------------------------------------------
 #ifndef EDMARK_H_INCLUDED
@@ -68,7 +68,8 @@ ssize_t                copy_rh= -1; // Copy right-hand column
 
 // Signals -------------------------------------------------------------------
 struct ChangeEvent {                // File change event
-const EdRedo*          redo;
+EdFile*                file;        // The changed file
+const EdRedo*          redo;        // The changed line lists
 };
 
 static pub::signals::Signal<ChangeEvent>

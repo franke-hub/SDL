@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2021/06/17
+//       2021/06/23
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -676,9 +676,10 @@ void
        break;
      }
      case XK_F11: {                 // Undo
-       if( view->active.undo() )
+       if( view->active.undo() ) {
          draw_active();
-       else
+         draw_info();
+       } else
          file->undo();
        break;
      }
@@ -765,27 +766,25 @@ void
    switch( E.detail ) {
      case gui::BT_LEFT: {           // Left button
        if( button_row < USER_TOP ) { // If on command/history line
-         if( file->rem_message() ) { // If message removed
-           draw_info();
-           break;
+         if( !file->rem_message() ) { // If not message removed
+           if( view == hist )       // If history active
+             move_cursor_H(hist->col_zero + get_col(E.event_x)); // Update column
+           else
+             hist->activate();
          }
-
-         if( view == hist )         // If history active
-           move_cursor_H(hist->col_zero + get_col(E.event_x)); // Update column
-         else
-           hist->activate();
          draw_info();
          break;
        }
 
+       // Button press is on data screen
        if( view == hist ) {         // If history active
          data->activate();
          draw_info();
        }
 
-       if( button_row != view->row ) // If row changed
-         data->move_cursor_V(button_row - view->row); // Set new row
-       move_cursor_H(view->col_zero + get_col(E.event_x)); // Set new column
+       if( button_row != data->row ) // If row changed
+         data->move_cursor_V(button_row - data->row); // Set new row
+       move_cursor_H(data->col_zero + get_col(E.event_x)); // Set new column
        break;
      }
      case gui::BT_RIGHT: {          // Right button

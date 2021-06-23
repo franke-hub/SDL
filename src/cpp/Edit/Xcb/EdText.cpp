@@ -16,10 +16,10 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/04/22
+//       2021/06/23
 //
 // Implementation notes-
-//       EdInps.cpp provides keyboard and mouse event handlers.
+//       EdInps.cpp implements keyboard and mouse event handlers.
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -111,20 +111,32 @@ static inline unsigned              // The truncated value
    // Purpose: Repair EdText::head (if it changed)
    using Event= EdMark::ChangeEvent;
    changeEvent_connector= EdMark::change_signal.connect([this](Event& event) {
+     EdFile* file= event.file;
      const EdRedo* redo= event.redo;
+
+     /// If the head line was removed, we need to adjust it so that we point
+     /// to a head line that's actually in the file.
      if( head->is_within(redo->head_remove, redo->tail_remove) ) {
        for(EdLine* L= head->get_prev(); L != nullptr; L= L->get_prev() ) {
          if( !L->is_within(redo->head_remove, redo->tail_remove) ) {
            head= L->get_next();
+           if( file == editor::file )
+             editor::data->row_zero= file->get_row(head);
            return;
          }
        }
 
        // This should not occur. The top line, the only one with a nullptr
        // get_prev(), should never be within a redo_remove list. This indicates
-       // that something has gone very wrong, It can't be auto-corrected.
+       // that something has gone very wrong and can't be auto-corrected.
        Editor::alertf("%4d EdText: internal error\n", __LINE__);
      }
+
+     /// If the removal occurs in the current file prior to the head line,
+     /// row_zero needs to be adjusted as well. We'll just update it since
+     /// it's more work to see if it needs updating than to just do it.
+     if( file == editor::file )
+       editor::data->row_zero= file->get_row(head);
    });
 
    // Basic window colors
@@ -257,9 +269,12 @@ const char*                         // The text
    EdText::get_text(                // Get text
      const EdLine*     line) const  // For this EdLine
 {
+   EdView* data= editor::data;
    const char* text= line->text;    // Default, use line text
-   if( line == editor::data->cursor ) // If this is the cursor line
-     text= editor::data->active.get_buffer(); // Return the active buffer
+   if( line == data->cursor ) {     // If this is the cursor line
+     data->active.fetch(data->col_zero + col_size); // Add blank fill
+     text= data->active.get_buffer(); // Return the active buffer
+   }
    return text;
 }
 
@@ -301,8 +316,8 @@ void
      if( code >= 0x00010000 ) {     // If two characters required
        if( outlen >= 255 )          // If there's only room for one character
          break;
-       code -= 0x00100000;          // Subtract extended origin
-//     code &= 0x000fffff;          // 20 bit remainder (operation not needed)
+       code -= 0x00010000;          // Subtract extended origin
+//     code &= 0x001fffff;          // 21 bit remainder (operation not needed)
        out[outlen++]= int2char2b(0x0000d800 | (code >> 10)); // High order code
        code &= 0x000003ff;          // Low order 10 bits
        code |= 0x0000dc00;          // Low order code word
@@ -526,15 +541,15 @@ void
 //----------------------------------------------------------------------------
 //
 // Methods-
-//       EdText::draw_cursor
-//       EdText::undo_cursor
+//       EdText::draw_cursor (set == true)
+//       EdText::undo_cursor (set == false)
 //
 // Purpose-
 //       Set or clear the screen cursor character
 //
 //----------------------------------------------------------------------------
 void
-   EdText::draw_cursor(bool set)    // Set the character cursor
+   EdText::draw_cursor(bool set)    // Set/clear the character cursor
 {
    EdView* const view= editor::view;
 

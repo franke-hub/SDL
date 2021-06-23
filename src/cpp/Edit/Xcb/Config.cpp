@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2021/05/23
+//       2021/06/23
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -33,6 +33,7 @@
 #include <sys/mman.h>               // For mmap, ...
 #include <sys/signal.h>             // For signal, ...
 #include <sys/stat.h>               // For stat
+#include <xcb/xproto.h>             // For xcb_rectangle_t
 
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include <pub/Fileman.h>            // For namespace pub::fileman
@@ -376,10 +377,10 @@ void*                               // The trace record (uninitialized)
    Config::trace(                   // Get trace record
      unsigned          size)        // Of this extra size
 {
-  typedef ::pub::Trace::Record Record;
-  size += unsigned(sizeof(Record));
-  Record* record= (Record*)::pub::Trace::storage_if(size);
-  return record;
+   typedef ::pub::Trace::Record Record;
+   size += unsigned(sizeof(Record));
+   Record* record= (Record*)::pub::Trace::storage_if(size);
+   return record;
 }
 
 void
@@ -534,12 +535,12 @@ static void
    else if( id == SIGSEGV ) text= "SIGSEGV";
    else if( id == SIGUSR1 ) text= "SIGUSR1";
    else if( id == SIGUSR2 ) text= "SIGUSR2";
-   Config::errorf("\n\nsig_handler(%d) %s\n", id, text);
+   Config::errorf("sig_handler(%d) %s\n", id, text);
 
    switch(id) {                     // Handle the signal
      case SIGINT:                   // (Console CTRL-C)
-       config::device->operational= false; // Forced quasi-immediate exit
-//     exit(EXIT_FAILURE);          // Unconditional immediate exit
+       term();                      // Termination cleanup, then
+       exit(EXIT_FAILURE);          // Unconditional immediate exit
        break;
 
      case SIGSEGV:

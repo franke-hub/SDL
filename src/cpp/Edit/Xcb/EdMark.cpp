@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2021/06/17
+//       2021/06/23
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -324,9 +324,9 @@ const char*                         // Error message, nullptr expected
      }
      redo->head_insert= copy.head;
      redo->tail_insert= copy.tail;
-     mark_file->line_list.remove(mark_head, mark_tail);
+     mark_file->remove(mark_head, mark_tail);
      EdLine* after= mark_head->get_prev();
-     mark_file->line_list.insert(after, copy.head, copy.tail);
+     mark_file->insert(after, copy.head, copy.tail);
      if( repC)                      // If modifying the cursor line
        mark_file->activate(repC);   // Replace it now
    } else {                         // If line cut
@@ -347,13 +347,16 @@ const char*                         // Error message, nullptr expected
        }
      }
 
-     mark_file->line_list.remove(mark_head, mark_tail);
-     mark_file->rows -= copy_rows;
+     mark_file->remove(mark_head, mark_tail);
    }
 
    redo->head_remove= mark_head;
    redo->tail_remove= mark_tail;
    mark_file->redo_insert(redo);
+
+   // Raise ChangeEvent signal
+   ChangeEvent event= {mark_file, redo};
+   change_signal.signal(event);
    undo();                          // (No mark remains after cut)
 
    return nullptr;
@@ -439,7 +442,7 @@ void
    }
 
    // Raise ChangeEvent signal
-   ChangeEvent event= {redo};
+   ChangeEvent event= {file, redo};
    change_signal.signal(event);
 }
 
@@ -665,6 +668,10 @@ const char*                         // Error message, nullptr expected
      }
      edFile->activate(copy.head);   // (The original line was removed)
 
+     // Raise ChangeEvent signal
+     ChangeEvent event= {edFile, redo};
+     change_signal.signal(event);
+
      return nullptr;
    }
 
@@ -693,6 +700,10 @@ const char*                         // Error message, nullptr expected
    redo->tail_insert= copy.tail;
    edFile->redo_insert(redo);
    edFile->activate(edLine);
+
+   // Raise ChangeEvent signal
+   ChangeEvent event= {edFile, redo};
+   change_signal.signal(event);
 
    return nullptr;
 }

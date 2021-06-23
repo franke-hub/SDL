@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2021/03/02
+//       2021/06/23
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -151,7 +151,8 @@ void
    if( opt_hcdm )
      debugh("EdView(%p)::commit buffer(%s)\n", this , buffer);
 
-   if( buffer ) {                   // If actually changed
+   if( buffer                       // If actually changed
+       && (cursor->flags & EdLine::F_PROT) == 0 ) { // and not protected
      // Create a new REDO line, duplicating the current line chain
      EdLine* line= new EdLine();
      *line= *cursor;                // (Duplicates links, flags, and delimiters)
@@ -207,8 +208,7 @@ void
    EdText* text= editor::text;
 
    text->undo_cursor();
-   if( (cursor->flags & EdLine::F_PROT) == 0 ) // If not protected
-     commit();                      // Commit the active line
+   commit();                        // Commit the active line
 
    int rc= 1;                       // Default, no draw
    if( n > 0 ) {                    // Move down

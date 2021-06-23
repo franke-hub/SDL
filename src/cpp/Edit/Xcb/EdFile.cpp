@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2021/06/17
+//       2021/06/23
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -595,6 +595,7 @@ EdLine*                             // (Always tail)
      rows++;
    }
    rows++;                          // (Count the tail line)
+   row_zero= get_row(top_line);     // Correct row_zero
 
    return tail;
 }
@@ -881,6 +882,7 @@ void
      rows--;
    }
    rows--;                          // (Count the tail line)
+   row_zero= get_row(top_line);     // Correct row_zero
 }
 
 //----------------------------------------------------------------------------
@@ -1147,12 +1149,17 @@ bool
      debugh("EdLine(%p)::is_within(%p,%p)\n", this, head, tail);
 
    for(const EdLine* line= head; line != nullptr; line= line->get_next() ) {
-     if( this == line )
+     if( line == this )
        return true;
-     if( this == tail )
-       break;
+     if( line == tail )
+       return false;
    }
 
+   /// We get here because line == nullptr, which should not occur.
+   /// The associated list segment is corrupt, and code needs fixing.
+   if( head || tail )               // If the range is not empty
+     debugf("%4d EdLine(%p).is_within(%p..%p) invalid range\n", __LINE__
+           , this, head, tail);
    return false;
 }
 

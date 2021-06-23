@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/06/18
+##       2021/06/23
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in PRE-ALPHA status.
@@ -27,16 +27,15 @@
 
 ##############################################################################
 ## STATUS:
-2021/06/18 Bug: Line numbers can get messed up.
-         Symptoms: Line[0] reported as line 98. (Noticed after the fact.)
-           top did not fix it when issued while ***tof*** line visible.
+2021/06/23 Fixed: Cursor moves on data left click while in history view.
+         EdInps.cpp should use data, not view, for cursor row adjustment.
+         (view is a local variable and still points to history.)
 
-2021/06/18 Bug: Cursor block not cleared.
-         Symptoms: Two cursor blocks on screen.
-           Associated with clicking on screen when in history view.
+2021/06/23 Fixed: Undo change line leaves characters on display.
+         EdText::get_text now adds blank fill.
 
-2021/06/19 Bug: Undo change line leaves characters on display.
-         Add characters to a line, then undo. Update doesn't clear the line.
+2021/06/23 Fixed: Line numbers get messed up when cut offscreen before mark
+         Fixed EdFile, EdMark, and EdText. (Works, but code feels fragile.)
 
 2021/03/04 TODO: (Consider)
          Consider EdView base class, EdData/EdHist based on that.
@@ -46,10 +45,16 @@
          For directories, load the file names. (Protected file)
          Draw full background on line 0 (status, message, history)
          Multiple editor windows. (Restructure required.)
-           (May not be too hard. Only one window open a time.)
+           (May not be too hard. Only one window open at a time.)
 
 2021/03/04 TODO: (Search reminder)
          Greps: "TODO:", "HCDM", "USE_BRINGUP", "NOT CODED"
+
+##############################################################################
+## OPEN: (Currently not reproducible)
+2021/06/18 Bug: Cursor block not cleared. [Cannot currently reproduce.]
+         Symptoms: Two cursor blocks on screen.
+           Associated with clicking on screen when in history view.
 
 ##############################################################################
 ## CHANGE LOG:
