@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2021/06/23
+//       2021/06/24
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -95,34 +95,6 @@ static_assert(0xff80 == XK_KP_Space     && 0xffbf == XK_F2
            && 0xff9e == XK_KP_Insert    && 0xff63 == XK_Insert
            && 0xff9f == XK_KP_Delete    && 0xffff == XK_Delete
              , "/usr/include/X11/keysymdefs mismatch");
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       draw_active
-//
-// Purpose-
-//       Redraw the active line and the cursor
-//
-//----------------------------------------------------------------------------
-static void
-   draw_active( void )              // Redraw the active line
-{
-   EdText* text= editor::text;
-   EdView* view= editor::view;
-
-   if( view == editor::data ) {     // If data view
-     text->draw_line(view->row, view->cursor);
-   } else {                         // If history view
-     view->active.index(view->col_zero+text->col_size); // Blank fill
-     text->putxy(view->get_gc(), text->get_xy(0, view->row)
-                , view->active.get_buffer(view->col_zero));
-     text->draw_info();
-   }
-
-   text->draw_cursor();
-   text->flush();
-}
 
 //----------------------------------------------------------------------------
 //
@@ -502,7 +474,7 @@ void
      if( keystate & KS_INS ) {      // If Insert state
        view->active.insert_char(column, key);
        if( move_cursor_H(column + 1) )
-         draw_active();
+         view->draw_active();
      } else {
        view->active.replace_char(column, key);
        move_cursor_H(column + 1);
@@ -542,7 +514,7 @@ void
        view->active.remove_char(column);
        move_cursor_H(column);
        view->active.append_text(" ");
-       draw_active();
+       view->draw_active();
        break;
      }
      case XK_Break:
@@ -550,14 +522,13 @@ void
        if( state & gui::KS_ALT ) { // Alt-Pause, diagnostic dump
          if( editor::diagnostic ) {
            editor::diagnostic= false;
-           Config::errorf("Tracing resumed\n");
+           Config::errorf("Diagnostic mode exit\n");
+           pub::Trace* trace= pub::Trace::trace;
+           if( trace )
+             trace->flag[pub::Trace::X_HALT]= false;
          } else {
-           editor::diagnostic= true;
-           Editor::alertf("*DEBUG*");
+           Editor::alertf("*DEBUG*"); // (Sets editor::diagnostic, stops trace)
          }
-         pub::Trace* trace= pub::Trace::trace;
-         if( trace )
-           trace->flag[pub::Trace::X_HALT]= bool(editor::diagnostic);
        }
        break;
      }
@@ -568,7 +539,7 @@ void
 
        view->active.remove_char(column);
        view->active.append_text(" ");
-       draw_active();
+       view->draw_active();
        break;
      }
      case XK_Escape: {              // Escape: Invert the view
@@ -676,8 +647,8 @@ void
        break;
      }
      case XK_F11: {                 // Undo
-       if( view->active.undo() ) {
-         draw_active();
+       if( data->active.undo() ) {
+         data->draw_active();
          draw_info();
        } else
          file->undo();

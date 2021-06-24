@@ -16,7 +16,7 @@
 //       Editor: TextWindow view
 //
 // Last change date-
-//       2021/01/24
+//       2021/06/24
 //
 //----------------------------------------------------------------------------
 #ifndef EDVIEW_H_INCLUDED
@@ -83,15 +83,27 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdView::draw_active
+//
+// Purpose-
+//       Redraw the active line and (if the view is active, also) the cursor
+//
+//----------------------------------------------------------------------------
+void
+   draw_active( void );             // Redraw the active line
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdView::get_column
 //
 // Purpose-
 //       Get the current column
 //
 //----------------------------------------------------------------------------
-virtual size_t                       // The current column number
-   get_column( void )                // Get current column number
-{  return col_zero + col; }          // The current column number
+virtual size_t                      // The current column number
+   get_column( void )               // Get current column number
+{  return col_zero + col; }         // The current column number
 
 //----------------------------------------------------------------------------
 //
@@ -102,8 +114,8 @@ virtual size_t                       // The current column number
 //       Get the current graphic context
 //
 //----------------------------------------------------------------------------
-virtual xcb_gcontext_t               // The current graphic context
-   get_gc( void );                   // Get current graphic context
+virtual xcb_gcontext_t              // The current graphic context
+   get_gc( void );                  // Get current graphic context
 
 //----------------------------------------------------------------------------
 //
@@ -114,9 +126,9 @@ virtual xcb_gcontext_t               // The current graphic context
 //       Get the current row
 //
 //----------------------------------------------------------------------------
-virtual size_t                       // The current row number
-   get_row( void )                   // Get current row number
-{  return row_zero + row; }          // The current row number
+virtual size_t                      // The current row number
+   get_row( void )                  // Get current row number
+{  return row_zero + row; }         // The current row number
 
 //----------------------------------------------------------------------------
 //

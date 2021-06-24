@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/06/23
+##       2021/06/24
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in PRE-ALPHA status.
@@ -27,6 +27,18 @@
 
 ##############################################################################
 ## STATUS:
+2021/06/24 Fixed: UNDO changed active data line, cursor on history line.
+         EdInps.cpp needed to use redraw data, not view.
+         (Restructured data_active subroutine, moving it to EdView.cpp)
+
+##############################################################################
+## OPEN: (Currently not reproducible)
+2021/06/18 Bug: Cursor block not cleared. [Cannot currently reproduce.]
+         Symptoms: Two cursor blocks on screen.
+           Associated with clicking on screen when in history view.
+
+##############################################################################
+## CHANGE LOG:
 2021/06/23 Fixed: Cursor moves on data left click while in history view.
          EdInps.cpp should use data, not view, for cursor row adjustment.
          (view is a local variable and still points to history.)
@@ -37,27 +49,6 @@
 2021/06/23 Fixed: Line numbers get messed up when cut offscreen before mark
          Fixed EdFile, EdMark, and EdText. (Works, but code feels fragile.)
 
-2021/03/04 TODO: (Consider)
-         Consider EdView base class, EdData/EdHist based on that.
-         Consider splitting: Editor.cpp and EdFile.cpp.
-         Also: Config.cpp is 911 lines and Config.patch is ugly.
-
-         For directories, load the file names. (Protected file)
-         Draw full background on line 0 (status, message, history)
-         Multiple editor windows. (Restructure required.)
-           (May not be too hard. Only one window open at a time.)
-
-2021/03/04 TODO: (Search reminder)
-         Greps: "TODO:", "HCDM", "USE_BRINGUP", "NOT CODED"
-
-##############################################################################
-## OPEN: (Currently not reproducible)
-2021/06/18 Bug: Cursor block not cleared. [Cannot currently reproduce.]
-         Symptoms: Two cursor blocks on screen.
-           Associated with clicking on screen when in history view.
-
-##############################################################################
-## CHANGE LOG:
 2021/06/17 Fix: A top line change disappears after mark below. (The change
          is in the file, but not properly displayed on the screen.)
          The problem is that EdText wasn't made aware when a head line is
@@ -170,6 +161,19 @@
 
 ##############################################################################
 ## TODO:
+2021/03/04 Consider EdView restructure
+         Consider EdView base class, EdData/EdHist based on that.
+         Consider splitting: Editor.cpp and EdFile.cpp.
+         Also: Config.cpp is 911 lines and Config.patch is ugly.
+
+         For directories, load the file names. (Protected file)
+         Draw full background on line 0 (status, message, history)
+         Multiple editor windows. (Restructure required.)
+           (May not be too hard. Only one window open at a time.)
+
+2021/03/04 TODO: (Search reminder)
+         Greps: "TODO:", "HCDM", "USE_BRINGUP", "NOT CODED"
+
 2020/09/05 ** EXPERIMENTAL **
          Code review. Completely test all implemented functions.
             ==> Invalid font: Need better user error message

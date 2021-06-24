@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2021/06/23
+//       2021/06/24
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -781,15 +781,12 @@ void
 
    EdLine* line= nullptr;           // Activation line
    if( undo->head_insert ) {        // If undo insert
-     remove(undo->head_insert, undo->tail_insert);
-
      line= undo->head_insert->get_prev();
+     remove(undo->head_insert, undo->tail_insert);
    }
    if( undo->head_remove ) {        // If undo remove
-     EdLine* after= undo->head_remove->get_prev();
-     insert(after, undo->head_remove, undo->tail_remove);
-
      line= undo->head_remove->get_prev();
+     insert(line, undo->head_remove, undo->tail_remove);
    }
 
    editor::mark->handle_undo(this, undo);

@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/06/17
+//       2021/06/24
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -57,6 +57,7 @@
 using namespace config;             // For namespace config (opt_*)
 using namespace editor;             // For namespace editor
 using namespace pub::debugging;     // For debugging
+using pub::Debug;                   // For pub::Debug
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -423,17 +424,23 @@ void
    va_end(argptr);                  // Close va_ functions
 
    static int recursion= 0;
-   debugf("Editor::alertf(%s) %d\n", S.c_str(), recursion);
+   debug_set_mode(Debug::MODE_INTENSIVE); // (Flush after each debugf line)
+   debugf("Editor::alertf(%s)%s\n", S.c_str(), recursion ? " recursion" : "");
    if( recursion )
-     return;
+     exit(EXIT_FAILURE);
 
-   ++recursion;
-   Config::debug(S.c_str());
-   Config::trace(".BUG", __LINE__, "Editor.cpp");
-   debug_backtrace();
+   recursion= true;
+   Config::trace(".BUG", __LINE__, "Editor.cpp"); // (Trace error occurance)
+   debug_backtrace();               // (Diagnostic backtrace, if OS supported)
+   Config::debug(S.c_str());        // (Diagnostic dump)
 
-   editor::put_message(S.c_str(), EdMess::T_MESS);
-   --recursion;
+   diagnostic= true;                // Enter diagnostic state
+   Config::errorf("Diagnostic mode entered, alt-pause to exit\n");
+   pub::Trace* trace= pub::Trace::trace;
+   if( trace )
+     trace->flag[pub::Trace::X_HALT]= true;
+   editor::put_message(S.c_str(), EdMess::T_MESS); // (Alert user)
+   recursion= false;
 }
 
 //----------------------------------------------------------------------------

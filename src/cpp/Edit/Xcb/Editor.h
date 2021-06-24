@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2021/06/17
+//       2021/06/24
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -78,6 +78,7 @@ static void
 //
 // Implementation note-
 //       Do not include trailing '\n' in string.
+//       Side-effects: editor::diagnostic=true; internal trace stopped.
 //
 //----------------------------------------------------------------------------
 static void
