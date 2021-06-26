@@ -16,7 +16,7 @@
 //       Utf.h implementation methods: classes Utf, Utf8, Utf16, and Utf32.
 //
 // Last change date-
-//       2021/06/11
+//       2021/06/26
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
@@ -313,6 +313,9 @@ Utf::Init
    Utf8::get_init(                  // Get initializer
      const utf8_t*     data)        // From data
 {
+   if( data == nullptr )
+     data= (const utf8_t*)"";
+
    Init init(data, utf8iter);
    return init;
 }

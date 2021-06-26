@@ -378,7 +378,7 @@ size_t get_used(void) const { return used; } // Get number of bytes used
 utf32_t                             // The next Unicode code point, 0 if EOF
    decode( void )                   // Get next Unicode code point
 {
-   if( used >= size ) return 0;    // If EOF, return 0
+   if( used >= size ) return 0;     // If EOF, return 0
 
    utf32_t code= utf8[used++];      // Working resultant; Start character
    unsigned L= 0;                   // Number of additional characters
