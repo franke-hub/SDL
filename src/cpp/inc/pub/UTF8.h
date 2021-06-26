@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       UTF-8 utilities
 //
 // Last change date-
-//       2020/12/20
+//       2021/06/25
 //
 // Usage notes-
 //       The Encoder/Decoder implement RFC 3629, UTF-8 translation format.
@@ -45,16 +45,15 @@ namespace pub::UTF8 {
 // Bytes Bits    First     Last  Byte[0]  Byte[1]  Byte[2]  Byte[3]
 //     1    7 U+000000 U+00007F 0-----7-      N/A      N/A      N/A ( 7 bits)
 //     2   11 U+000080 U+0007FF 110---5- 10----6-      N/A      N/A (11 bits)
-//     3   16 U+000800 U+00D7FF 1110--4- 10----6- 10----6-      N/A (16 bits)
-//     3   16 U+00D800 U+00DFFF Disallowed: UTF16 surrogate pairs
-//     3   16 U+00E000 U+00FFFF 1110--4- 10----6- 10----6-      N/A (16 bits)
+//     3   16 U+000800 U+00FFFF 1110--4- 10----6- 10----6-      N/A (16 bits)
 //     4   21 U+010000 U+10FFFF 11110-3- 10----6- 10----6- 10----6- (21 bits)
 //     4   21 U+110000 U+1FFFFF Disallowed: Outside Unicode range
+//     3   16 U+00D800 U+00DFFF Disallowed: UTF16 surrogate pairs
 //
 //----------------------------------------------------------------------------
 enum { REPLACE_CHAR= 0x0000FFFD };  // Error replacement character
 typedef uint8_t        utf8_t;      // The UTF-8 character (octet) type
-typedef int            utf32_t;     // The UTF-32 code point type
+typedef uint32_t       utf32_t;     // The UTF-32 code point type
 
 //----------------------------------------------------------------------------
 //
@@ -197,12 +196,31 @@ static inline size_t                // The char* offset
 //----------------------------------------------------------------------------
 static inline bool                  // TRUE iff code is a valid start code
    is_start_encoding(               // Is the UTF-8 character a valid start?
-     int               code)        // The UTF-8 start character
+     unsigned          code)        // The UTF-8 start character
 {
    if( code < 0x00000080 || (code >= 0x000000C0 && code < 0x000000F7) )
      return true;
 
    return false;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       pub::UTF8::is_unicode
+//
+// Purpose-
+//       Determine whether a code point is valid
+//
+//----------------------------------------------------------------------------
+static inline bool                  // TRUE iff code point is valid
+   is_unicode(                      // Is code in allowed unicode range?
+     utf32_t           code)        // The source code point
+{
+   if( code > 0x10FFFF              // If outside unicode range -or-
+       || (code >= 0x00D800 && code <= 0x00DFFF) ) // If UTF16 surrogate pair
+     return false;
+   return true;
 }
 
 class Decoder {                     // UTF-8 decoder
@@ -287,7 +305,7 @@ inline int                          // Return code, 0 OK
    }
 
    for(unsigned i= 0; i<L; i++) {
-     int C= utf8[used+i];
+     unsigned C= utf8[used+i];
      if( C < 0x0080 || C > 0x00BF ) {
        if( pub_verb )
          fprintf(stderr, "UTF8.decode [0x%.4zx]+%d Data char(0x%.2x)\n"
@@ -300,11 +318,11 @@ inline int                          // Return code, 0 OK
    return 0;
 }
 
-inline unsigned                     // The extended value
+inline utf32_t                      // The extended value
    getX(                            // Get extended value (UNCHECKED)
      unsigned          L)           // For this length
 {
-   unsigned result= 0;
+   utf32_t result= 0;
    for(unsigned i= 0; i<L; i++) {
      result <<= 6;
      unsigned C= utf8[used++];
@@ -317,7 +335,7 @@ inline unsigned                     // The extended value
 // Decode error handlers
 inline utf32_t                      // Always REPLACE_CHAR
    bad_decode(                      // ERROR: Attempt to decode
-     unsigned          code,        // This invalid Unicode code point and
+     utf32_t           code,        // This invalid Unicode code point and
      unsigned          L) const     // This encoding length
 {
    if( pub_verb )
@@ -338,7 +356,7 @@ inline utf32_t                      // Always REPLACE_CHAR
 
 inline utf32_t                      // Always REPLACE_CHAR
    bad_unicode(                     // ERROR: Attempt to decode
-     unsigned          code,        // This invalid Unicode code point and
+     utf32_t           code,        // This invalid Unicode code point and
      unsigned          L) const     // This encoding length
 {
    if( pub_verb )
@@ -357,10 +375,10 @@ size_t get_used(void) const { return used; } // Get number of bytes used
 //----------------------------------------------------------------------------
 // pub::UTF8::Decoder::::Methods
 //----------------------------------------------------------------------------
-utf32_t                             // The next Unicode code point, -1 if EOF
+utf32_t                             // The next Unicode code point, 0 if EOF
    decode( void )                   // Get next Unicode code point
 {
-   if( used >= size ) return -1;    // If EOF, return -1
+   if( used >= size ) return 0;    // If EOF, return 0
 
    utf32_t code= utf8[used++];      // Working resultant; Start character
    unsigned L= 0;                   // Number of additional characters
@@ -512,11 +530,11 @@ void reset(char* buff, size_t _size= 0) { reset((utf8_t*)buff, _size); }
 // pub::UTF8::Encoder::Protected methods
 //----------------------------------------------------------------------------
 protected:
-inline unsigned                     // The extended value
+inline utf32_t                      // The extended value
    getX(                            // Get extended value (UNCHECKED)
      unsigned          L)           // For this length
 {
-   unsigned result= 0;
+   utf32_t result= 0;
    for(unsigned i= 0; i<L; i++) {
      result <<= 6;
      unsigned C= utf8[used++];
@@ -528,7 +546,7 @@ inline unsigned                     // The extended value
 
 inline void
    setX(                            // Insert extended value (UNCHECKED)
-     unsigned          code,        // The extended value
+     utf32_t           code,        // The extended value
      unsigned          L)           // The extended length
 {
    if( L )                          // If additional characters
@@ -539,7 +557,7 @@ inline void
 // Encode error handlers
 inline ssize_t                      // Always -1
    not_unicode(                     // ERROR: Attempt to encode
-     unsigned          code) const  // This invalid Unicode code point
+     utf32_t           code) const  // This invalid Unicode code point
 {
    if( pub_verb )
      fprintf(stderr, "UTF8.encode(0x%.4x) Not unicode\n", code);
@@ -558,7 +576,7 @@ size_t get_used(void) const { return used; } // Get number of bytes used
 //----------------------------------------------------------------------------
 ssize_t                             // Offset after encoding, -1 if error
    encode(                          // Encode
-     int               code)        // This Unicode code point
+     utf32_t           code)        // This Unicode code point
 {
    unsigned L= 1;
    if( code >= 0x00000080 ) {
