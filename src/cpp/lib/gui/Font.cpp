@@ -16,13 +16,12 @@
 //       Implement gui/Font.h
 //
 // Last change date-
-//       2021/01/22
+//       2021/06/26
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::runtime_error
 
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/UTF8.h>               // For pub::UTF8
 
 #include "gui/Global.h"             // For opt_* definitions, ...
 #include "gui/Device.h"             // For gui::Device
