@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2021/06/11
+//       2021/06/26
 //
 //----------------------------------------------------------------------------
 #include <chrono>
@@ -1499,7 +1499,7 @@ extern int                          // Return code
      if( opt_utf8 )    errorCount += test_UTF8();
      if( utf8_encode ) errorCount += test_UTF8_encode(argc, argv);
      if( utf8_decode ) errorCount += test_UTF8_decode(argc, argv);
-     if( true )        errorCount += test_Utf();
+     if( opt_utf8 )    errorCount += test_Utf();
    } catch(Exception& X) {
      errorCount++;
      debugf("%4d %s\n", __LINE__, std::string(X).c_str());

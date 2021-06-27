@@ -16,7 +16,7 @@
 //       UTF utilities
 //
 // Last change date-
-//       2021/06/11
+//       2021/06/26
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_UTF_H_INCLUDED
@@ -260,6 +260,19 @@ static unsigned                     // The UTF8 encoding length
      utf8_t*           buff);       // (OUT) Encoding buffer
 
 //----------------------------------------------------------------------------
+// Get byte offset of code index
+static size_t                       // The utf8_t* offset
+   index(                           // Get utf8_t* offset for
+     const utf8_t*     addr,        // This ('\0' terminated) utf8_t* string
+     size_t            X);          // And this code point index
+
+static size_t                       // The char* offset
+   index(                           // Get char* offset for
+     const char*       addr,        // This character string
+     size_t            X)           // And this logical index
+{  return index((const utf8_t*)addr, X); }
+
+//----------------------------------------------------------------------------
 // Get the number of bytes required to encode a UTF32 code point.
 static unsigned                     // The UTF8 byte length of the code point
    length(                          // Get UTF8 byte length of a code point
@@ -276,6 +289,15 @@ static unsigned                     // The UTF8 byte length of the code point
      return 3;
    return 4;
 }
+
+static unsigned                     // The next encoding length
+   length(                          // Get UTF8 byte length
+     const utf8_t*     buff);       // For this encoding
+
+static unsigned                     // The next encoding length
+   length(                          // Get UTF8 byte length
+     const char*       buff)        // For this encoding
+{  return length((const utf8_t*)buff); }
 
 //----------------------------------------------------------------------------
 // Public methods

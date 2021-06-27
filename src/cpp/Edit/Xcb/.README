@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/06/24
+##       2021/06/26
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in PRE-ALPHA status.
@@ -27,9 +27,7 @@
 
 ##############################################################################
 ## STATUS:
-2021/06/24 Fixed: UNDO changed active data line, cursor on history line.
-         EdInps.cpp needed to use redraw data, not view.
-         (Restructured data_active subroutine, moving it to EdView.cpp)
+2021/06/26 Hardened Utf8 support, fixing block copy.
 
 ##############################################################################
 ## OPEN: (Currently not reproducible)
@@ -39,6 +37,10 @@
 
 ##############################################################################
 ## CHANGE LOG:
+2021/06/24 Fixed: UNDO changed active data line, cursor on history line.
+         EdInps.cpp needed to use redraw data, not view.
+         (Restructured data_active subroutine, moving it to EdView.cpp)
+
 2021/06/23 Fixed: Cursor moves on data left click while in history view.
          EdInps.cpp should use data, not view, for cursor row adjustment.
          (view is a local variable and still points to history.)

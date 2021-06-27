@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2021/01/29
+//       2021/06/26
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -30,7 +30,6 @@
 #include <gui/Global.h>             // For GUI globals
 #include <gui/Types.h>              // For gui::Line
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/UTF8.h>               // For pub::UTF8
 
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For namespace editor
@@ -205,15 +204,14 @@ void
 //       EdHist::get_buffer
 //
 // Purpose-
-//       Get the active buffer (with blank fill)
+//       Get the active buffer with blank fill
 //
 //----------------------------------------------------------------------------
 const char*                         // Get the active buffer
    EdHist::get_buffer( void )       // Get the active buffer
 {
-   active.fetch(col_zero + 256);    // Blank fill
-   const char* text= active.get_buffer();
-   text += pub::UTF8::index(text, col_zero);
+   active.index(col_zero + 256);    // Blank fill
+   const char* text= active.get_buffer(col_zero);
    return text;
 }
 

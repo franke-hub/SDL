@@ -517,6 +517,43 @@ unsigned                            // The UTF8 encoding length
 //----------------------------------------------------------------------------
 //
 // Method-
+//       pub::Utf8::index
+//
+// Purpose-
+//       Get byte offset for code point index
+//
+//----------------------------------------------------------------------------
+size_t                              // The utf8_t* offset
+   Utf8::index(                     // Get utf8_t* offset for
+     const utf8_t*     addr,        // This ('\0' terminated) utf8_t* string
+     size_t            X)           // And this code point index
+{
+   size_t O= 0;                     // Current offset
+   while( X > 0 ) {
+     O += utf8size(addr, O);        // The current start character
+     --X;
+   }
+
+   return O;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       pub::Utf8::length
+//
+// Purpose-
+//       Get encoding length
+//
+//----------------------------------------------------------------------------
+unsigned                            // The UTF8 encoding length
+   Utf8::length(                    // Get UTF8 encoding length
+     const utf8_t*     buff)        // For this buffer
+{  return utf8size(buff,0); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       pub::Utf8::reset
 //
 // Purpose-

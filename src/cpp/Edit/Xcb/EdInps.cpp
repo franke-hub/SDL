@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2021/06/24
+//       2021/06/26
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -34,7 +34,6 @@
 #include <pub/Fileman.h>            // For pub::fileman::Name
 #include <pub/List.h>               // For pub::List
 #include <pub/Trace.h>              // For pub::Trace
-#include <pub/UTF8.h>               // For pub::UTF8
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For Config, namespace config
@@ -540,6 +539,7 @@ void
        view->active.remove_char(column);
        view->active.append_text(" ");
        view->draw_active();
+       draw_info();
        break;
      }
      case XK_Escape: {              // Escape: Invert the view

@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/06/24
+//       2021/06/26
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -41,7 +41,6 @@
 #include <pub/Signals.h>            // For pub::signals
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Trace.h>              // For pub::Trace
-#include <pub/UTF8.h>               // For pub::UTF8
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For namespace config
@@ -791,34 +790,38 @@ const char*                         // Error message, nullptr expecte3d
    if( data_protected() )
      return nullptr;
 
-   EdView& D= *data;                // Data view reference
-   D.commit();                      // Commit the active line
+   data->commit();                  // Commit the active line
 
    // Create and initialize REDO object, updating the file
-   EdLine* cursor= D.cursor;
+   EdLine* cursor= data->cursor;
    EdRedo* redo= new EdRedo();
    file->remove(cursor, cursor);
    redo->head_remove= redo->tail_remove= cursor;
 
    pub::List<EdLine> line_list;     // Replacement line list
-   line_list.fifo(file->new_line());
-   line_list.fifo(file->new_line());
-   EdLine* head= line_list.get_head();
-   EdLine* tail= line_list.get_tail();
+   EdLine* head= file->new_line();
+   EdLine* tail= file->new_line();
+   line_list.fifo(head);
+   line_list.fifo(tail);
    file->insert(cursor->get_prev(), head, tail);
    redo->head_insert= head;
    redo->tail_insert= tail;
    file->redo_insert(redo);
    mark->handle_redo(file, redo);
 
-   // Initialize the split lines
-   Active& A= D.active;
-   A.index(D.get_column() + 1);     // (Insure blank fill to column)
-   char* both= (char*)A.get_buffer(); // (Sets trailing '\0' delimiter)
-   Active& H= *editor::active;
-   H.reset(both);
+   ///  We use the active buffer as a modifiable work area. This corrupts it
+   ///  so it needs to be reset (to the new head text) when we're done.
+   ///  We build the head line in the Active buffer "H" and the tail line in
+   ///  the active buffer "T".
+
+   // Use the active buffer as a work area
+   Active& A= data->active;         // (The active [split] line)
+   A.index(data->get_column() + 1); // (Insure head and tail contain data)
+   char* both= (char*)A.get_buffer(); // The modifiable head/tail work area
+
+   // Create the tail line
    Active& T= *editor::actalt;
-   T.reset();
+   T.reset();                       // (Now contains "")
    for(size_t lead= 0; ; lead++) {  // Insert leading blanks in tail
      if( both[lead] != ' ' ) {
        if( lead > 0 )
@@ -826,17 +829,20 @@ const char*                         // Error message, nullptr expecte3d
        break;
      }
    }
-
-   size_t X= pub::UTF8::index(both, D.get_column());
-   while( both[X] == ' ' )
+   size_t X= A.index(data->get_column()); // The split column offset
+   while( both[X] == ' ' )          // Skip intervening blanks
      X++;
-   T.append_text(both + X);
-   tail->text= allocate(T.truncate());
-   both[X]= '\0';
+   T.append_text(both + X);         // (Append trailing text to leading blanks)
+   tail->text= allocate(T.truncate()); // Set tail line text
+
+   // Create the head line
+   both[X]= '\0';                   // (Delimits the head line at tail origin)
+   Active& H= *editor::active;
    H.reset(both);
-   head->text= allocate(H.truncate());
-   A.reset(head->text);
-   file->activate(head);
+   head->text= allocate(H.truncate()); // Set head line text
+
+   A.reset(head->text);             // (Discards the working buffer content)
+   text->activate(head);
    text->draw();
 
    return nullptr;

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2020 Frank Eskesen.
+//       Copyright (C) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Compile header files that have no execution component.
 //
 // Last change date-
-//       2020/10/20
+//       2021/06/26
 //
 //----------------------------------------------------------------------------
 #include "pub/Event.h"
@@ -26,4 +26,3 @@
 #include "pub/Mutex.h"
 #include "pub/Semaphore.h"
 #include "pub/Signals.h"
-#include "pub/UTF8.h"

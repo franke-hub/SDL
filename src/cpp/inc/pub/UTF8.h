@@ -16,9 +16,12 @@
 //       UTF-8 utilities
 //
 // Last change date-
-//       2021/06/25
+//       2021/06/26
 //
 // Usage notes-
+//       At some point this include file will be removed.
+//       Use Utf.h instead. (It handles error conditions more consistently.)
+//
 //       The Encoder/Decoder implement RFC 3629, UTF-8 translation format.
 //       Protected methods are only called after error checking.
 //

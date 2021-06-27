@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2021/06/23
+//       2021/06/26
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -649,15 +649,15 @@ const char*                         // Error message, nullptr expected
      edFile->redo_insert(redo);
 
      // Update the replacement text
-     size_t cols= (copy_rh - copy_lh) + 1; // Number of copy columns
      Active& F= *editor::actalt;    // Copy from work area
      Active& I= *editor::active;    // Copy into work area
      EdLine* line= copy.head;       // The current copy from line
      for(;;) {
        F.reset(line->text);
-       F.fetch(copy_rh + cols);
+       size_t rhix= F.index(copy_rh + 1);
+       size_t lhix= F.index(copy_lh);
        I.reset(head->text);
-       I.replace_text(column, 0, F.get_buffer(copy_lh), cols);
+       I.replace_text(column, 0, F.get_buffer()+lhix, rhix - lhix);
        I.truncate();
        line->text= editor::allocate(I.get_buffer());
        if( head == tail )

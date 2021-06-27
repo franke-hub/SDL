@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2021/03/16
+//       2021/06/26
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -209,7 +209,6 @@ static const char*                  // Error message, nullptr expected
    command_change(                  // Change command
      char*             parm)        // (Mutable) parameter string
 {
-   // TODO: HANDLE UTF8
    if( parm == nullptr )
      return "Missing parameter";
 
@@ -405,7 +404,6 @@ static const char*                  // Error message, nullptr expected
    command_locate(                  // Locate command (current direction)
      char*             parm)        // (Mutable) parameter string
 {
-   // TODO: HANDLE UTF8
    if( parm == nullptr )
      return "Missing parameter";
 

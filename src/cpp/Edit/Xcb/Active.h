@@ -16,7 +16,7 @@
 //       Active Line descriptor.
 //
 // Last change date-
-//       2021/02/27
+//       2021/06/26
 //
 // Implementation note-
 //       Changed Lines also automatically remove any trailing blanks.
@@ -43,11 +43,11 @@ class Active {                      // Active editor line
 //----------------------------------------------------------------------------
 // Active::Typedefs and enumerations
 //----------------------------------------------------------------------------
-public:                             // UTF8 size_t aliases
+public:                             // UTF-8 size_t aliases
 typedef size_t         Ccount;      // A column count
 typedef size_t         Column;      // A column number
 typedef size_t         Length;      // A length in bytes
-typedef size_t         Offset;      // A column number offset in bytes
+typedef size_t         Offset;      // A column number byte offset
 
 enum FSM                            // Finite State Machine states
 {  FSM_RESET= 0                     // Unchanged, Reset
@@ -113,11 +113,11 @@ const char*                         // The changed text, nullptr if unchanged
 //       Active::get_cols
 //
 // Purpose-
-//       Return the buffer UTF8 Column count (trailing blanks removed)
+//       Return the buffer UTF-8 Column count (trailing blanks removed)
 //
 //----------------------------------------------------------------------------
-Ccount                              // The current UTF8 Column count
-   get_cols( void );                // Get current UTF8 Column count
+Ccount                              // The current UTF-8 Column count
+   get_cols( void );                // Get current UTF-8 Column count
 
 //----------------------------------------------------------------------------
 //
@@ -130,19 +130,6 @@ Ccount                              // The current UTF8 Column count
 //----------------------------------------------------------------------------
 Length                              // The current buffer used Length
    get_used( void );                // Get current buffer used Length
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Active::index
-//
-// Purpose-
-//       Address character at column index, fetching and filling if required.
-//
-//----------------------------------------------------------------------------
-Offset                              // The character buffer Offset
-   index(                           // Get character buffer Offset for
-     Column            column);     // This Column
 
 //----------------------------------------------------------------------------
 //
@@ -170,6 +157,9 @@ void
 // Purpose-
 //       Fetch the source line, optionally expanding it
 //
+// Implementation note-
+//       Use index() method to fetch and fill to column.
+//
 //----------------------------------------------------------------------------
 void
    fetch(                            // Fetch the source line
@@ -178,10 +168,23 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Active::index
+//
+// Purpose-
+//       Address character at column index, fetching and filling if required.
+//
+//----------------------------------------------------------------------------
+Offset                              // The character buffer Offset
+   index(                           // Get character buffer Offset for
+     Column            column);     // This Column
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Active::insert_char
 //
 // Purpose-
-//       Insert a UTF32 character using UTF8 encoding.
+//       Insert a UTF-32 character using UTF-8 encoding.
 //
 //----------------------------------------------------------------------------
 void

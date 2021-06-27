@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2021/06/24
+//       2021/06/26
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -1145,7 +1145,7 @@ bool
 {  if( HCDM || (opt_hcdm && opt_verbose > 2) )
      debugh("EdLine(%p)::is_within(%p,%p)\n", this, head, tail);
 
-   for(const EdLine* line= head; line != nullptr; line= line->get_next() ) {
+   for(const EdLine* line= head; line; line= line->get_next() ) {
      if( line == this )
        return true;
      if( line == tail )

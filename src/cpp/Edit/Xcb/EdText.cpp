@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/06/23
+//       2021/06/26
 //
 // Implementation notes-
 //       EdInps.cpp implements keyboard and mouse event handlers.
@@ -36,7 +36,7 @@
 #include <pub/Fileman.h>            // For pub::fileman::Name
 #include <pub/List.h>               // For pub::List
 #include <pub/Trace.h>              // For pub::Trace
-#include <pub/UTF8.h>               // For pub::UTF8
+#include <pub/Utf.h>                // For pub::Utf classes
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For Config, namespace config
@@ -57,24 +57,17 @@ enum // Compilation controls
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
+// Typedefs and enumerations
+//----------------------------------------------------------------------------
+typedef pub::Utf::utf8_t   utf8_t;  // Import utf8_t
+typedef pub::Utf::utf16_t  utf16_t; // Import utf16_t
+typedef pub::Utf::utf32_t  utf32_t; // Import utf32_t
+
+//----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
 static pub::signals::Connector<EdMark::ChangeEvent>
                        changeEvent_connector;
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       int2char2b
-//
-// Purpose-
-//       Convert a 16-bit integer to xcb_char2b_t
-//
-//----------------------------------------------------------------------------
-static inline xcb_char2b_t          // The output character
-   int2char2b(                      // Convert integer to xcb_char2b_t
-     int               inp)         // This (16 bit) integer
-{  return { (uint8_t)(inp>>8), (uint8_t)inp }; }
 
 //----------------------------------------------------------------------------
 //
@@ -117,7 +110,7 @@ static inline unsigned              // The truncated value
      /// If the head line was removed, we need to adjust it so that we point
      /// to a head line that's actually in the file.
      if( head->is_within(redo->head_remove, redo->tail_remove) ) {
-       for(EdLine* L= head->get_prev(); L != nullptr; L= L->get_prev() ) {
+       for(EdLine* L= head->get_prev(); L; L= L->get_prev() ) {
          if( !L->is_within(redo->head_remove, redo->tail_remove) ) {
            head= L->get_next();
            if( file == editor::file )
@@ -286,9 +279,6 @@ const char*                         // The text
 // Purpose-
 //       Draw text at [left,top] point
 //
-// Implementation note-
-//       TODO: Handle text length > 255
-//
 //----------------------------------------------------------------------------
 void
    EdText::putxy(                   // Draw text
@@ -300,37 +290,34 @@ void
      debugh("EdText(%p)::putxy(%u,[%d,%d],'%s')\n", this
            , fontGC, left, top, text);
 
-   pub::UTF8::Decoder decoder(text); // UTF8 input buffer
-   xcb_char2b_t out[256];           // UTF16 output buffer
-   unsigned outlen;                 // UTF16 output buffer length
+   enum{ DIM= 256 };                // xcb_image_text_16 maximum length
+   xcb_char2b_t out[DIM];           // UTF16 output buffer
+
+   unsigned outlen= 0;              // UTF16 output buffer length
+   unsigned outorg= left;           // Current output origin index
    unsigned outpix= left;           // Current output pixel index
-   for(outlen= 0; outlen<256; outlen++) {
-     outpix += font.length.width;   // Ending pixel (+1)
-     if( outpix > rect.width )      // If past end of screen
-       break;
-
-     int code= decoder.decode();    // Next input character
-     if( code < 0 )                 // If none left
-       break;
-
-     if( code >= 0x00010000 ) {     // If two characters required
-       if( outlen >= 255 )          // If there's only room for one character
-         break;
-       code -= 0x00010000;          // Subtract extended origin
-//     code &= 0x001fffff;          // 21 bit remainder (operation not needed)
-       out[outlen++]= int2char2b(0x0000d800 | (code >> 10)); // High order code
-       code &= 0x000003ff;          // Low order 10 bits
-       code |= 0x0000dc00;          // Low order code word
+   for(auto it= pub::Utf8::const_iterator((const utf8_t*)text); *it; ++it) {
+     if( outlen > (DIM-4) ) {       // If time for a partial write
+       NOQUEUE("xcb_image_text_16", xcb_image_text_16
+              ( c, uint8_t(outlen), widget_id, fontGC
+              , uint16_t(outorg), uint16_t(top + font.offset.y), out) );
+       outorg= outpix;
+       outlen= 0;
      }
 
-     out[outlen]= int2char2b(code); // Set (possibly low order) code
-   }
-   if( outlen == 0 ) return;        // Zero length easy to render
-   if( outlen >= 256 ) outlen= 255; // Only 8-bit length allowed
+     utf32_t code= *it;             // Next encoding
+     outpix += font.length.width;   // Ending pixel (+1)
+     if( outpix > rect.width || code == 0 ) // If at end of encoding
+       break;
 
-   NOQUEUE("xcb_image_text_16", xcb_image_text_16
-          ( c, uint8_t(outlen), widget_id, fontGC
-          , uint16_t(left), uint16_t(top + font.offset.y), out) );
+     pub::Utf16::encode(code, (utf16_t*)out + outlen);
+     outlen += pub::Utf16::length(code);
+   }
+
+   if( outlen )                     // If there's something left to render
+     NOQUEUE("xcb_image_text_16", xcb_image_text_16
+            ( c, uint8_t(outlen), widget_id, fontGC
+            , uint16_t(outorg), uint16_t(top + font.offset.y), out) );
 }
 
 //----------------------------------------------------------------------------
@@ -560,15 +547,14 @@ void
    if( editor::file->mess_list.get_head() ) // If message line present
      return;                        // (Do nothing)
 
+   char buffer[8];                  // The cursor encoding buffer
    size_t column= view->get_column(); // The current column
-   char buffer[8];                  // Encoder buffer
-   pub::UTF8::Encoder encoder(buffer, sizeof(buffer));
-   pub::UTF8::Decoder decoder(view->active.get_buffer(column));
-   int code= decoder.decode();
-   if( code <= 0 )
+   const utf8_t* data= (const utf8_t*)view->active.get_buffer(column);
+   utf32_t code= pub::Utf8::decode(data);
+   if( code == 0 )
      code= ' ';
-   encoder.encode(code);
-   buffer[encoder.get_used()]= '\0';
+   pub::Utf8::encode(code, (utf8_t*)buffer);
+   buffer[pub::Utf8::length(code)]= '\0';
 
    xcb_gcontext_t gc= set ? view->gc_flip : view->get_gc();
    putxy(gc, get_xy(view->col, view->row), buffer);
@@ -761,7 +747,7 @@ void
    ssize_t col_zero= editor::data->col_zero;
    const char* text= get_text(line); // Get associated text
    if( col_zero )                   // If offset
-     text += pub::UTF8::index(text, col_zero);
+     text += pub::Utf8::index(text, col_zero);
    if( line->flags & EdLine::F_MARK ) {
      ssize_t col_last= col_zero + col_size; // Last file screen column
      int lh_mark= 0;                // Default, mark line
@@ -784,7 +770,7 @@ void
      active.fetch(strlen(text) + col_last + 1);
      char* L= (char*)active.get_buffer(); // Text, length >= col_last + 1
      if( unsigned(rh_mark) < col_size ) { // Right section
-       char* R= L + pub::UTF8::index(L, rh_mark);
+       char* R= L + pub::Utf8::index(L, rh_mark);
        unsigned x= get_x(rh_mark);
        putxy(fontGC, x, y, R);
        *R= '\0';                    // (Terminate right section)
@@ -792,7 +778,7 @@ void
 
      // Middle section
      if( lh_mark < 0 ) lh_mark= 0;
-     char* M= L + pub::UTF8::index(L, lh_mark);
+     char* M= L + pub::Utf8::index(L, lh_mark);
      int x= get_x(lh_mark);
      putxy(markGC, x, y, M);
      *M= '\0';                      // (Terminate middle section)
