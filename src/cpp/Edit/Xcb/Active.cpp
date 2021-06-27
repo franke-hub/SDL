@@ -92,10 +92,10 @@ void
      const char*       info) const  // Associated info
 {
    if( info ) debugf("Active(%p)::debug(%s) fsm(%d)\n", this, info, fsm);
-   debugf("..%2zd source(%s)\n", strlen(source), source);
+   debugf("..source(%s).%zd\n", source, strlen(source));
    if( fsm != FSM_RESET ) {
      buffer[buffer_used]= '\0';     // (Buffer is mutable)
-     debugf("..%2zd buffer(%s)\n", buffer_used, buffer);
+     debugf("..buffer(%s).%zd/%zd\n", buffer, buffer_used, buffer_size);
    }
 }
 
@@ -186,6 +186,7 @@ void
    if( size == 0 )                  // If nothing to insert
      return;                        // (Line unchanged)
 
+   fetch();                         // (Initialize buffer_used)
    expand(buffer_used + size + 1);  // Insure room for concatenation
    memcpy(buffer + buffer_used, join, size); // Concatenate
    buffer_used += size;

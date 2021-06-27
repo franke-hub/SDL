@@ -520,8 +520,15 @@ const char*                         // The (immutable) text
      return "";                     // (Immutable) empty copy
 
    size_t L= strlen(source);        // Source length
-   if( source[L-1] == ' ' )         // (If UNEXPECTED trailing blanks)
-     Editor::put_message("%4d Editor UNEXPECTED", __LINE__);
+   if( source[L-1] == ' ' ) {       // (If UNEXPECTED trailing blanks)
+//// if( true )                     // For production
+       Editor::put_message("%4d Editor UNEXPECTED(%s)", __LINE__, source);
+//// else {                         // For hard core debugging
+////   std::string S= pub::utility::visify(source); //
+////   Editor::put_message("%4d Editor UNEXPECTED(%s)", __LINE__, S.c_str());
+////   debugf("%4d Editor UNEXPECTED(%s)\n", __LINE__, S.c_str());
+//// }
+   }
    char* copy= allocate(L+1);       // Include trailing '\0' in string
    strcpy(copy, source);            // Duplicate the string
    return copy;
