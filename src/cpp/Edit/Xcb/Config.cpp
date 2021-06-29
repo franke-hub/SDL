@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2021/06/23
+//       2021/06/27
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -139,7 +139,7 @@ static void term( void );           // Terminate
 //----------------------------------------------------------------------------
 static const char*     Edit_conf=
    "[Program]\n"
-   "Http=http://eske-systems.com\n"
+   "URL=https://github.com/franke-hub/Cornucopia/tree/trunk/src/cpp/Edit/Xcb\n"
    "Exec=View ; Edit in read-only mode\n"
    "Exec=Edit ; Edit in read-write mode\n"
    "Purpose=Graphic text editor\n"
@@ -814,54 +814,52 @@ static void
 
 static void
    parser(                          // Configuration parser
-     std::string       name)        // The parser file name
+     std::string       file_name)   // The parser file name
 {  if( opt_hcdm )                   // (Don't use debugf here)
-     fprintf(stderr, "Config::parser(%s)\n", name.c_str());
+     fprintf(stderr, "Config::parser(%s)\n", file_name.c_str());
 
    static bool font_valid= false;   // Font parameter present and valid?
 
-   pub::Parser parser(name);        // The parser object
-   for(const char* sect= parser.get_next(nullptr); sect;
+   pub::Parser parser(file_name);   // The parser object
+   for(const char* sect= parser.get_next(nullptr); // Parse sections
+       sect;
        sect= parser.get_next(sect)) {
-     if( strcmp(sect, "Options") != 0 ) {
-       if( sect[0] != '\0' && strcmp(sect, "Program") != 0 )
-         parse_error(name, "Unknown section [%s]\n", sect);
-     } else {                       // Section [Options]
-       for(const char* parm= parser.get_next(sect, nullptr); parm;
-           parm= parser.get_next(sect, parm)) {
-         const char* value= parser.get_value(sect,parm);
+     if( strcmp(sect, "Options") == 0 ) { // Section [Options]
+       for(const char* name= parser.get_next(sect, nullptr); name;
+           name= parser.get_next(sect, name)) {
+         const char* value= parser.get_value(sect,name);
          Option* option= nullptr;
          for(int i= 0; color_list[i].name; i++) {
-           if( strcmp(parm, color_list[i].name) == 0 ) {
+           if( strcmp(name, color_list[i].name) == 0 ) {
              option= color_list + i;
              break;
            }
          }
          if( option ) {
-           parse_color(name, *option, value);
+           parse_color(file_name, *option, value);
            continue;
          }
 
          option= nullptr;
          for(int i= 0; bool_list[i].name; i++) {
-           if( strcmp(parm, bool_list[i].name) == 0 ) {
+           if( strcmp(name, bool_list[i].name) == 0 ) {
              option= bool_list + i;
              break;
            }
          }
          if( option ) {
-           parse_bool(name, *option, value);
+           parse_bool(file_name, *option, value);
            continue;
          }
 
-         if( strcmp(parm, "font") == 0 ) { // Font parameter?
+         if( strcmp(name, "font") == 0 ) { // Font parameter?
            int rc= font->open(value); // Set the font
            if( rc == 0 )
              font_valid= true;
            continue;
          }
 
-         if( strcmp(parm, "geometry") == 0 ) {
+         if( strcmp(name, "geometry") == 0 ) {
            if( value && *value == '\0' ) // If geometry=
              continue;              // Ignore, omitted
            xcb_rectangle_t geom= {0, 0, 0, 0}; // The screen geometry
@@ -879,12 +877,16 @@ static void
            if( value && *value == '\0' ) // If valid geometry
              config::geom= geom;
            else
-             parse_error(name, "geometry(%s) invalid\n", VALUE);
+             parse_error(file_name, "geometry(%s) invalid\n", VALUE);
            continue;
          }
 
-         parse_error(name, "Invalid option: '%s'\n", parm);
+         parse_error(file_name, "Invalid option name: '%s=%s'\n", name, value);
        }
+     } else if( strcmp(sect, "Program") == 0 ) { // Section [Program]
+       // [Program] elements are for user information only (and ignored here.)
+     } else if( *sect != '\0' ) {
+       parse_error(file_name, "Unknown section [%s]\n", sect);
      }
    }
    if( !font_valid )                // If valid font not present
