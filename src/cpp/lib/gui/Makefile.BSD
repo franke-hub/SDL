@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2021/04/05
+##       2021/07/09
 ##
 ##############################################################################
 
@@ -44,8 +44,12 @@ all: dll lib
 
 ##############################################################################
 ## TARGET: libgui.so.1.0, libgui.so, libgui.dll
+GUILIB := ############################ GUI libraries
+GUILIB += -lX11 $(shell pkg-config --libs xcb xcb-xfixes xcb-image)
+GUILIB += -lssl -lcrypto -lboost_stacktrace_addr2line ## PUB libraries
+
 libgui.so.1.0: $(MAKOBJ)
-	$(CC) -shared -o $@ $^ -LL -lpub -lX11 $(shell pkg-config --libs xcb xcb-xfixes xcb-image)
+	$(CC) -shared -o $@ $^ -LL -lpub $(GUILIB)
 	touch $@
 
 libgui.so: libgui.so.1.0

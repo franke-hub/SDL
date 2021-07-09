@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2020 Frank Eskesen.
+##       Copyright (c) 2007-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ../Makefile.*
 ##
 ## Last change date-
-##       2020/06/29
+##       2021/07/09
 ##
 ##############################################################################
 
@@ -43,7 +43,7 @@ build.bsd.lib: libgui.a
 
 ##############################################################################
 ## TARGET: gui/libgui.so.1.0
-$(OBJDIR)/gui/libgui.so.1.0: $(BSD_PREREQ) libcom.so
+$(OBJDIR)/gui/libgui.so.1.0: $(BSD_PREREQ) libpub.so
 	(cd $(OBJDIR)/gui/; export MAKRUN=dll; $(MAKE))
 	touch $@
 
