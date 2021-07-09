@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2021/04/08
+##       2021/07/09
 ##
 ##############################################################################
 
@@ -44,6 +44,10 @@ liblocal.a: $(MAKOBJ)
 	ar -r $@ $(MAKOBJ)
 
 ##############################################################################
+## Dependencies
+$(MAKEXE): liblocal.a
+
+##############################################################################
 ## TARGET: do
 .PHONY: do
 do: Edit
@@ -56,8 +60,12 @@ include: Include.o
 	echo "Include.o should fail to compile"
 
 ##############################################################################
-## Dependencies
-$(MAKEXE): liblocal.a
+## Target: install
+.PHONY: install
+install: default
+	cp Edit editxcb
+	strip editxcb
+	mv -i editxcb $(HOME)/bin/editxcb
 
 ##############################################################################
 ## Controls

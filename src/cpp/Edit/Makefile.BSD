@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2014 Frank Eskesen.
+##       Copyright (c) 2007-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2014/01/01
+##       2021/07/09
 ##
 ##############################################################################
 
@@ -49,6 +49,14 @@ liblocal.a : $(MAKLIB)
 ##############################################################################
 ## Dependencies
 Edit: liblocal.a
+
+##############################################################################
+## Target: install
+.PHONY: install
+install: default
+	cp Edit editor
+	strip editor
+	mv -i editor $(HOME)/bin/editor
 
 ##############################################################################
 ## Makefile cleanup
