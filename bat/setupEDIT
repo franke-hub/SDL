@@ -16,21 +16,21 @@
 ##       Set up EDITOR environment variable (heuristic.)
 ##
 ## Last change date-
-##       2021/06/10
+##       2021/07/05
 ##
 ## Usage-
 ##       . setupEDIT
 ##
 ## Implementation note-
-##       edit.new: alias for XCB editor
-##       edit.old: alias for ncurses editor
+##       editor:  alias for ncurses editor
+##       editxcb: alias for XCB editor
 ##
 ##############################################################################
 
 ##############################################################################
 ## Heuristic: set EDITOR environment variable
 if [[ -z "$DISPLAY" ]] ; then       ## If no display available
-    export EDITOR=$HOME/bin/edit.old ## (Must) use ncurses editor
+    export EDITOR=$HOME/bin/editor  ## (Must) use ncurses editor
 elif [[ -z "$EDITOR" ]] ; then      ## If not already specified
-    export EDITOR=$HOME/bin/edit.new ## Use XCB editor
+    export EDITOR=$HOME/bin/editxcb ## Use XCB editor
 fi
