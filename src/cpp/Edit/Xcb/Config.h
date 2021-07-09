@@ -16,7 +16,7 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2021/02/27
+//       2021/07/03
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
@@ -200,8 +200,6 @@ extern pub::signals::Signal<const char*> // The CheckEvent signal
                        checkSignal;
 extern pub::signals::Signal<const char*> // The DebugEvent signal
                        debugSignal;
-extern pub::signals::Signal<const int>   // The SignalEvent signal
-                       signalSignal;
 
 //----------------------------------------------------------------------------
 // Static string constants

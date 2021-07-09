@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2021/03/02
+//       2021/07/01
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -121,8 +121,8 @@ static int                          // Return code (0 OK)
 
 // edit_lock= sem_open(SEM_ID, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0);
    edit_lock= sem_open(SEM_ID, O_CREAT, S_IRUSR | S_IWUSR, 0);
-   if( edit_lock == SEM_FAILED ) {
-     fprintf(stderr, "Editor already running, or use --force\n");
+   if( edit_lock == SEM_FAILED ) {  // If cannot create semaphore
+     fprintf(stderr, "Editor already running, use --force to override\n");
      exit(EXIT_FAILURE);
    }
 

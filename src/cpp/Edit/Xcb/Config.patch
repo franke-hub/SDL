@@ -16,7 +16,7 @@
 //       Editor: Config.cpp extension: debugging listeners
 //
 // Last change date-
-//       2021/02/21
+//       2021/07/03
 //
 // Implementation note-
 //       Only included from Config.cpp
@@ -142,40 +142,3 @@ static pub::signals::Connector<const char*> config_debug=
    editor::hist->debug(info);
    debugf("============================================================\n\n");
 }); // config_debug (Connector)
-
-//----------------------------------------------------------------------------
-//
-// (Lambda) subroutine-
-//       config_signal (config::signalSignal listener)
-//
-// Purpose-
-//       Bringup debugging (Raise config debugSignal, then code hacking)
-//
-//----------------------------------------------------------------------------
-static pub::signals::Connector<const int> config_signal=
-                       signalSignal.connect([](const int& id)
-{
-   switch(id) {                     // Handle the signal
-     case SIGUSR1:
-       Config::debug("SIGUSR1");
-       if( config::window ) {       // Code hack: not useful
-         config::window->show();
-         config::window->hide();
-         config::window->flush();
-       }
-       editor::text->hide();
-       editor::text->show();
-       editor::text->draw();
-       editor::text->flush();
-       break;
-
-     case SIGUSR2:
-       Config::debug("SIGUSR2");
-       Config::failure("SIGUSR2");
-       break;
-
-     default:
-       Config::errorf("Signal(%d) ignored\n", id);
-       break;
-   }
-}); // config_signal (Connector)

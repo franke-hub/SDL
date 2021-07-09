@@ -15,11 +15,11 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/06/26
+##       2021/07/03
 ##
 ## Implementation notes-
-##       This is an EXPERIMENTAL project in PRE-ALPHA status.
-##       ALL interfaces are preliminary and subject to major change.
+##       This is an EXPERIMENTAL project in ALPHA status.
+##       ALL interfaces are preliminary and subject to change.
 ##
 ##       Find usage and implementation information in "Editor.md"
 ##
@@ -27,7 +27,7 @@
 
 ##############################################################################
 ## STATUS:
-2021/06/26 Hardened Utf8 support, fixing block copy.
+2021/07/03 Added TODO. No significant code changes.
 
 ##############################################################################
 ## OPEN: (Currently not reproducible)
@@ -37,6 +37,8 @@
 
 ##############################################################################
 ## CHANGE LOG:
+2021/06/26 Hardened Utf8 support, fixing block copy.
+
 2021/06/24 Fixed: UNDO changed active data line, cursor on history line.
          EdInps.cpp needed to use redraw data, not view.
          (Restructured data_active subroutine, moving it to EdView.cpp)
@@ -163,6 +165,10 @@
 
 ##############################################################################
 ## TODO:
+2021/07/03 Clone view (named view://filename)
+         Clone a file for split viewing. The view is read-only.
+         (No lines need to be allocated. They can just be copied.)
+
 2021/03/04 Consider EdView restructure
          Consider EdView base class, EdData/EdHist based on that.
          Consider splitting: Editor.cpp and EdFile.cpp.

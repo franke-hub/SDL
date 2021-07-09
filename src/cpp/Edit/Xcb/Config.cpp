@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2021/06/27
+//       2021/07/03
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -122,7 +122,6 @@ std::string            config::HOME; // HOME directory (getenv("HOME"))
 // (Internal) -------- Global event signals ----------------------------------
 pub::signals::Signal<const char*> config::checkSignal; // The CheckEvent signal
 pub::signals::Signal<const char*> config::debugSignal; // The DebugEvent signal
-pub::signals::Signal<const int> config::signalSignal; // The SignalEvent signal
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -543,7 +542,7 @@ static void
        exit(EXIT_FAILURE);          // Unconditional immediate exit
        break;
 
-     case SIGSEGV:
+     case SIGSEGV:                  // (Program fault)
        Config::trace(".BUG", __LINE__, "SIGSEGV");
        debug_backtrace();           // Attempt diagnosis (recursion aborts)
        debug_set_mode(Debug::MODE_INTENSIVE);
@@ -552,9 +551,8 @@ static void
        exit(EXIT_FAILURE);
        break;
 
-     default:
-       signalSignal.signal(id);
-       break;
+     default:                       // (SIGUSR1 || SIGUSR2)
+       break;                       // (No configured action)
    }
 
    recursion--;
