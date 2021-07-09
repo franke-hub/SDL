@@ -16,7 +16,7 @@
 //       Define the the Named attribute and the NamedObject class.
 //
 // Last change date-
-//       2021/01/25
+//       2021/07/09
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_NAMED_H_INCLUDED
@@ -50,10 +50,6 @@ virtual
    ~Named( void ) {}                // Destructor
 
    Named(                           // Constructor
-     const char*       name)        // The associated name
-:  name(name) {}
-
-   Named(                           // Constructor
      const std::string name)        // The associated name
 :  name(name) {}
 
@@ -82,10 +78,6 @@ class NamedObject : public Named, public Object { // The NamedObject type
 public:
 virtual
    ~NamedObject( void ) {}          // Destructor
-
-   NamedObject(                     // Constructor
-     const char*       name)        // The associated name
-:  Named(name), Object() {}
 
    NamedObject(                     // Constructor
      const std::string name)        // The associated name
