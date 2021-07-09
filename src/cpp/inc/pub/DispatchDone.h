@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Standard Dispatch Done callback objects.
 //
 // Last change date-
-//       2020/10/03
+//       2021/07/09
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_DISPATCHDONE_H_INCLUDED
@@ -24,7 +24,7 @@
 
 #include <pub/Event.h>              // For Wait event
 
-namespace _PUB_NAMESPACE::Dispatch {
+namespace _PUB_NAMESPACE::dispatch {
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
@@ -33,13 +33,13 @@ class Item;
 //----------------------------------------------------------------------------
 //
 // Class-
-//       Dispatch::Done
+//       dispatch::Done
 //
 // Purpose-
 //       The Dispatcher Done callback Object
 //
 //----------------------------------------------------------------------------
-class Done {                        // The Dispatch::Done callback Object
+class Done {                        // The dispatch::Done callback Object
 //----------------------------------------------------------------------------
 // Done::Constructors
 //----------------------------------------------------------------------------
@@ -108,5 +108,5 @@ void
    wait( void )                     // Wait for work Item completion
 {  event.wait(); }
 }; // class Wait
-}  // namespace _PUB_NAMESPACE::Done
+}  // namespace _PUB_NAMESPACE::dispatch
 #endif // _PUB_DISPATCHDONE_H_INCLUDED

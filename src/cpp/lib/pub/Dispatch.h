@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2020 Frank Eskesen.
+//       Copyright (C) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Work dispatcher, including local definitions.
 //
 // Last change date-
-//       2020/08/24
+//       2021/07/09
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -24,11 +24,11 @@
 
 #include <pub/Clock.h>              // DispatchTTL completion time
 #include <pub/Debug.h>              // For debugging
-#include <pub/Latch.h>              // Dispatch::Timers mutex
-#include <pub/List.h>               // Dispatch::Task itemList
-#include <pub/Named.h>              // Dispatch::Timers is a Named Thread
-#include <pub/Semaphore.h>          // Dispatch::Timers event
-#include <pub/Worker.h>             // Dispatch::Task base class
+#include <pub/Latch.h>              // dispatch::Timers mutex
+#include <pub/List.h>               // dispatch::Task itemList
+#include <pub/Named.h>              // dispatch::Timers is a Named Thread
+#include <pub/Semaphore.h>          // dispatch::Timers event
+#include <pub/Worker.h>             // dispatch::Task base class
 
 #include "pub/Dispatch.h"           // Include visible class definitions
 using namespace _PUB_NAMESPACE::debugging; // Enable debugging functions
@@ -49,7 +49,7 @@ using namespace _PUB_NAMESPACE::debugging; // Enable debugging functions
 //----------------------------------------------------------------------------
 #include <pub/ifmacro.h>
 
-namespace _PUB_NAMESPACE::Dispatch {
+namespace _PUB_NAMESPACE::dispatch {
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -170,7 +170,7 @@ void*                               // Cancellation token
 virtual void                        // Operate the Thread
    run()
 {
-   IFHCDM( traceh("Dispatch::Timers running..."); )
+   IFHCDM( traceh("dispatch::Timers running..."); )
 
    while( operational ) {
      double delay= 60.0;            // Minimum wait delay (seconds)
@@ -212,7 +212,7 @@ virtual void                        // Operate the Thread
      link= list.get_head();
    }
 
-   IFHCDM( traceh("Dispatch::Timers ...terminated"); )
+   IFHCDM( traceh("dispatch::Timers ...terminated"); )
 }
 
 virtual void
@@ -224,4 +224,4 @@ virtual void
    event.post();
 }
 }; // class Timers
-}  // namespace _PUB_NAMESPACE::Dispatch
+}  // namespace _PUB_NAMESPACE::dispatch

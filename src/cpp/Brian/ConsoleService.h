@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (c) 2019-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       The ConsoleService.
 //
 // Last change date-
-//       2020/01/06
+//       2021/07/09
 //
 //----------------------------------------------------------------------------
 #ifndef CONSOLESERVICE_H_INCLUDED
@@ -64,7 +64,7 @@ virtual void
 
 virtual void
    work(                            // Handle
-     pub::Dispatch::Item*
+     pub::dispatch::Item*
                        item);       // This work Item
 }; // class ConsoleService
 #endif // CONSOLESERVICE_H_INCLUDED

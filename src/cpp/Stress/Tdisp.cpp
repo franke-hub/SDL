@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,14 +16,14 @@
 //       ~/src/cpp/inc/pub/Dispatcher.h Stress test
 //
 // Last change date-
-//       2020/10/07
+//       2021/07/09
 //
 // Parameters-
 //       --help        (Display help message)
 //       --hcdm        (Hard Core Debug Mode)
 //
-//       --ditem=n     (Number of Dispatch::Items/Iteration)
-//       --dtask=n     (Number of Dispatch::Tasks/Thread)
+//       --ditem=n     (Number of dispatch::Items/Iteration)
+//       --dtask=n     (Number of dispatch::Tasks/Thread)
 //       --first       (First completion terminates test)
 //       --multi=n     (Thread count, alternatively)
 //       --quick       (Run quick test)
@@ -49,7 +49,7 @@
 #include <string.h>                 // For strcmp
 #include <unistd.h>                 // For getpid, ...
 
-#include "pub/Dispatch.h"           // For pub::Dispatch (Which we test)
+#include "pub/Dispatch.h"           // For pub::dispatch (Which we test)
 #include <pub/Debug.h>              // For pub::debugging::debugf, ...
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Event.h>              // For pub::Event
@@ -63,10 +63,10 @@
 // Global controls                  // Enable class access
 using pub::Debug;                   // Enable pub::Debug
 using pub::Trace;                   // Enable pub::Trace
-using DispDisp= pub::Dispatch::Disp; // Alias pub::Dispatch::Disp
-using DispItem= pub::Dispatch::Item; // Alias pub::Dispatch::Item
-using DispTask= pub::Dispatch::Task; // Alias pub::Dispatch::Task
-using DispWait= pub::Dispatch::Wait; // Alias pub::Dispatch::Wait
+using DispDisp= pub::dispatch::Disp; // Alias pub::dispatch::Disp
+using DispItem= pub::dispatch::Item; // Alias pub::dispatch::Item
+using DispTask= pub::dispatch::Task; // Alias pub::dispatch::Task
+using DispWait= pub::dispatch::Wait; // Alias pub::dispatch::Wait
 
 // Global controls                  // Enable subroutines access
 using namespace pub::debugging;     // Enable pub::debugging subroutines
@@ -255,8 +255,8 @@ static int                          // Return code (Always 1)
                    "  --help\tThis help message\n"
                    "  --hcdm\tHard Core Debug Mode\n"
                    "\n"
-                   "  --ditem=n\tNumber of Dispatch::Items/iteration\n"
-                   "  --dtask=n\tNumber of Dispatch::Tasks/Thread\n"
+                   "  --ditem=n\tNumber of dispatch::Items/iteration\n"
+                   "  --dtask=n\tNumber of dispatch::Tasks/Thread\n"
                    "  --first\tThread completion disable tracing\n"
                    "  --multi=n\tNumber of Threads (Parameter [1])\n"
                    "  --quick\tRun quick test\n"

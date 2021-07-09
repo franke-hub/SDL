@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2020 Frank Eskesen.
+//       Copyright (C) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,14 +16,14 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2020/12/27
+//       2021/07/09
 //
 //----------------------------------------------------------------------------
 #include "Dispatch.h"
 
-namespace _PUB_NAMESPACE::Dispatch {
+namespace _PUB_NAMESPACE::dispatch {
 //----------------------------------------------------------------------------
-// Dispatch::Static attributes
+// dispatch::Static attributes
 //----------------------------------------------------------------------------
 Latch                  Disp::mutex; // Termination mutex
 Timers*                Disp::timers= nullptr;
@@ -31,7 +31,7 @@ Timers*                Disp::timers= nullptr;
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Dispatch::Disp::debug
+//       dispatch::Disp::debug
 //
 // Purpose-
 //       Debugging display
@@ -40,14 +40,14 @@ Timers*                Disp::timers= nullptr;
 void
    Disp::debug( void )              // Debugging display
 {
-   traceh("Dispatch::debug()\n");
+   traceh("dispatch::debug()\n");
    WorkerPool::debug();
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Dispatch::Disp::cancel
+//       dispatch::Disp::cancel
 //
 // Purpose-
 //       Cancel delay event.
@@ -68,7 +68,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Dispatch::Disp::delay
+//       dispatch::Disp::delay
 //
 // Purpose-
 //       Handle delay event request.
@@ -90,7 +90,7 @@ void*                               // Cancellation token
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Dispatch::Disp::wait
+//       dispatch::Disp::wait
 //
 // Purpose-
 //       Wait for all work to complete.
@@ -114,7 +114,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Dispatch::Item::debug
+//       dispatch::Item::debug
 //
 // Purpose-
 //       Debugging display.
@@ -130,7 +130,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Dispatch::Task::debug
+//       dispatch::Task::debug
 //
 // Purpose-
 //       Debugging display.
@@ -151,7 +151,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Dispatch::Task::work
+//       dispatch::Task::work
 //
 // Purpose-
 //       Process all available Items
@@ -220,7 +220,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Dispatch::Task::work
+//       dispatch::Task::work
 //
 // Purpose-
 //       Implement pure virtual method

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       ConsoleCommand and ConsoleService object methods
 //
 // Last change date-
-//       2020/01/10
+//       2021/07/09
 //
 //----------------------------------------------------------------------------
 #include <mutex>
@@ -273,6 +273,6 @@ void
 //----------------------------------------------------------------------------
 void
    ConsoleService::work(            // Handle
-     pub::Dispatch::Item*
+     pub::dispatch::Item*
                        item)        // This work Item
 {  Service::work(item); }           // NOT CODED YET

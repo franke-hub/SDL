@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -13,10 +13,10 @@
 //       HttpClient.h
 //
 // Purpose-
-//       Define HTTP client objects.
+//       Define HTTP client objects. (( UNUSED ))
 //
 // Last change date-
-//       2020/01/10
+//       2021/07/09
 //
 // Implementation notes-
 //       argv[0] *INP* The input string
@@ -29,20 +29,6 @@
 #include <string>
 #include "Command.h"
 #include "Service.h"
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       HttpClientWork
-//
-// Purpose-
-//       The HttpClientService work item
-//
-//----------------------------------------------------------------------------
-struct HttpClientWork {             // HttpClient pub::Dispatch::Item.work
-std::string            request;     // The HTTP request
-
-}; // struct HttpClientWork
 
 //----------------------------------------------------------------------------
 //

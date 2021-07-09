@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2020/01/05
+//       2021/07/09
 //
 // Implementation notes-
 //       DispatchDone.h, DispatchItem.h, and DispatchTask.h are integral parts
@@ -32,7 +32,7 @@
 #include "DispatchItem.h"           // Diwpatch work Item object
 #include "DispatchTask.h"           // Dispatch Task object
 
-namespace _PUB_NAMESPACE::Dispatch {
+namespace _PUB_NAMESPACE::dispatch {
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
@@ -41,10 +41,10 @@ class Timers;                       // Dispatch: Timers Thread (INTERNAL)
 //----------------------------------------------------------------------------
 //
 // Static class-
-//       Disp
+//       pub::dispatch::Disp
 //
 // Purpose-
-//       Work dispatcher.
+//       Work dispatcher. (All methods are static.)
 //
 //----------------------------------------------------------------------------
 class Disp {                        // The dispatcher (static class)
@@ -87,7 +87,7 @@ static void
 static void*                        // Cancellation token
    delay(                           // Delay for
      double            seconds,     // This many seconds, then
-     Dispatch::Item*   item);       // Complete this work Item
+     Item*             item);       // Complete this work Item
 
 //----------------------------------------------------------------------------
 // Disp::enqueue()
@@ -97,8 +97,8 @@ static void*                        // Cancellation token
 //----------------------------------------------------------------------------
 static inline void
    enqueue(                         // Enqueue
-     Dispatch::Task*   task,        // Onto this Task
-     Dispatch::Item*   item)        // This Item
+     Task*             task,        // Onto this Task
+     Item*             item)        // This Item
 {  task->enqueue(item); }
 
 //----------------------------------------------------------------------------
@@ -110,5 +110,5 @@ static inline void
 static void
    wait( void );                    // Wait for all work to complete
 }; // class Disp
-}  // namespace _PUB_NAMESPACE::Dispatch
+}  // namespace _PUB_NAMESPACE::dispatch
 #endif // _PUB_DISPATCH_H_INCLUDED

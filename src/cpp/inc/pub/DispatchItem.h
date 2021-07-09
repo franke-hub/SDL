@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Standard Dispatch work Item object.
 //
 // Last change date-
-//       2020/06/13
+//       2021/07/09
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_DISPATCHITEM_H_INCLUDED
@@ -25,7 +25,7 @@
 #include "List.h"                   // Base class
 #include "DispatchDone.h"           // Used in post
 
-namespace _PUB_NAMESPACE::Dispatch {
+namespace _PUB_NAMESPACE::dispatch {
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -108,5 +108,5 @@ void
    }
 }
 }; // class Item
-}  // namespace _PUB_NAMESPACE::Dispatch
+}  // namespace _PUB_NAMESPACE::dispatch
 #endif // _PUB_DISPATCHITEM_H_INCLUDED

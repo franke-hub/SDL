@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (c) 2019-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define the Brian Common area.
 //
 // Last change date-
-//       2020/01/05
+//       2021/07/09
 //
 //----------------------------------------------------------------------------
 #ifndef COMMON_H_INCLUDED
@@ -121,9 +121,9 @@ public:
 void*                               // Cancellation token
    delay(                           // Delay for
      double            seconds,     // This many seconds, then
-     pub::Dispatch::Item*
+     pub::dispatch::Item*
                        item)        // Complete this work Item
-{  return pub::Dispatch::Disp::delay(seconds, item); }
+{  return pub::dispatch::Disp::delay(seconds, item); }
 
 void
    shutdown( void );                // Go into SHUTDOWN (CLOSE) state
@@ -133,16 +133,16 @@ void
 
 void
    work(                            // Drive the Task
-     pub::Dispatch::Task*
+     pub::dispatch::Task*
                        task,        // -> Task
-     pub::Dispatch::Item*
+     pub::dispatch::Item*
                        item)        // -> Item
 {  task->enqueue(item); }
 
 void
    work(                            // Drive a service
      std::string       name,        // The Service name
-     pub::Dispatch::Item*
+     pub::dispatch::Item*
                        item);       // -> work Item
 }; // class Common
 #endif // COMMON_H_INCLUDED

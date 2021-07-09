@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (c) 2019-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Brian Common object methods
 //
 // Last change date-
-//       2020/01/06
+//       2021/07/09
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -80,7 +80,7 @@ static const char*     user_agent=
 
    //-------------------------------------------------------------------------
    // Terminate dispatcher services
-   pub::Dispatch::Disp::wait();
+   pub::dispatch::Disp::wait();
 
    common= nullptr;                // Delete the singleton pointer
 }
@@ -231,7 +231,7 @@ void
 void
    Common::work(                    // Drive a Service
      std::string       name,        // The Service's name
-     pub::Dispatch::Item*
+     pub::dispatch::Item*
                        item)        // The associated work Item
 {  // debugf("Common::work(%s,%p)\n", name.c_str(), item);
    Service& service= ServiceMap[name]; // Locate the Service

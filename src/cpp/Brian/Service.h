@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (c) 2019-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       A service is a Named and mapped DispatchTask
 //
 // Last change date-
-//       2020/01/06
+//       2021/07/09
 //
 //----------------------------------------------------------------------------
 #ifndef SERVICE_H_INCLUDED
@@ -35,17 +35,17 @@
 //       Service
 //
 // Purpose-
-//       A Service is a Named Dispatch::Task Object
+//       A Service is a Named dispatch::Task Object
 //
 //----------------------------------------------------------------------------
-class Service : public pub::Dispatch::Task, public pub::NamedObject { // Service
+class Service : public pub::dispatch::Task, public pub::NamedObject { // Service
 //----------------------------------------------------------------------------
 // Service::Enumerations and typedefs
 //----------------------------------------------------------------------------
 public:
-typedef pub::Dispatch::Task Task;
-typedef pub::Dispatch::Item Item;
-typedef pub::Dispatch::Wait Wait;
+typedef pub::dispatch::Task Task;
+typedef pub::dispatch::Item Item;
+typedef pub::dispatch::Wait Wait;
 
 //----------------------------------------------------------------------------
 // Service::Attributes

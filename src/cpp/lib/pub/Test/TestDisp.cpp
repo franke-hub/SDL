@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2020/10/03
+//       2021/07/09
 //
 // Arguments: (For testtime only)
 //       [1] 10240 Number of outer loops
@@ -97,9 +97,9 @@ virtual void
 //       Pass work to next Task in list.
 //
 //----------------------------------------------------------------------------
-class PassAlongTask : public Dispatch::Task {
+class PassAlongTask : public dispatch::Task {
 protected:
-Dispatch::Task*        next;        // Next Task in list
+dispatch::Task*        next;        // Next Task in list
 
 public:
 virtual
@@ -109,14 +109,14 @@ virtual
 }
 
    PassAlongTask(
-     Dispatch::Task*   next)
-: Dispatch::Task()
+     dispatch::Task*   next)
+: dispatch::Task()
 , next(next)
 { }
 
 virtual void
    work(
-     Dispatch::Item*   item)
+     dispatch::Item*   item)
 {  next->enqueue(item); }           // Give the work to the next Task
 }; // class PassAlongTask
 
@@ -129,7 +129,7 @@ virtual void
 //       Report work item received, drive Done callback.
 //
 //----------------------------------------------------------------------------
-class RondesvousTask : public Dispatch::Task {
+class RondesvousTask : public dispatch::Task {
 protected:
 int                    index;       // Rondesvous identifier
 
@@ -142,13 +142,13 @@ virtual
 
    RondesvousTask(
      int               index)
-: Dispatch::Task()
+: dispatch::Task()
 , index(index)
 { }
 
 virtual void
    work(
-     Dispatch::Item*   item)
+     dispatch::Item*   item)
 {
    uint64_t bitmap= ((uint64_t)1)<<index;
 
@@ -215,15 +215,15 @@ static int
 
    IFHCDM( debugf("%4d test0000\n", __LINE__); )
 
-   Dispatch::Item     item;         // Our work Item
-   Dispatch::Wait     wait;         // Our Wait object
-   class Test0000Task : public Dispatch::Task {
+   dispatch::Item     item;         // Our work Item
+   dispatch::Wait     wait;         // Our Wait object
+   class Test0000Task : public dispatch::Task {
      protected:
        int* target;
 
      public:
-       Test0000Task( int* foo ) : Dispatch::Task(), target(foo) {}
-       virtual void work(Dispatch::Item* item) {
+       Test0000Task( int* foo ) : dispatch::Task(), target(foo) {}
+       virtual void work(dispatch::Item* item) {
          IFHCDM( debugf("%4d Task.work\n", __LINE__); )
          *target= 0;
          item->post();
@@ -247,7 +247,7 @@ static int
    wait.reset();
    Interval interval;
    interval.start();
-   Dispatch::Disp::delay(3.025, &item); // Note: Extra time for Clock granule
+   dispatch::Disp::delay(3.025, &item); // Note: Extra time for Clock granule
    wait.wait();
    double elapsed= interval.stop();
    if( elapsed < 3.0 || elapsed > 3.1 )
@@ -257,14 +257,14 @@ static int
 
    wait.reset();
    interval.start();
-   void* cancel= Dispatch::Disp::delay(3.025, &item);
+   void* cancel= dispatch::Disp::delay(3.025, &item);
    Thread::sleep(1.001);
-   Dispatch::Disp::cancel(cancel);
+   dispatch::Disp::cancel(cancel);
    wait.wait();
    elapsed= interval.stop();
    if( elapsed < 1.0 || elapsed > 1.1 )
      throwf(__LINE__, "delay 1.0<elapsed(%e)<1.1", elapsed);
-   if( item.cc != Dispatch::Item::CC_PURGE )
+   if( item.cc != dispatch::Item::CC_PURGE )
      throwf(__LINE__, "cc(%d) invalid", item.cc);
 
    return result;
@@ -285,8 +285,8 @@ static int
 //   char*             argv[])      // Argument array
 {
    RondesvousTask*     TASK[64];    // Rondesvous Task array
-   Dispatch::Item*     ITEM[64];    // Rondesvous Item array
-   Dispatch::Wait      WAIT[64];    // Rondesvous Wait array
+   dispatch::Item*     ITEM[64];    // Rondesvous Item array
+   dispatch::Wait      WAIT[64];    // Rondesvous Wait array
 
    IFHCDM( debugf("%4d test0001\n", __LINE__); )
 
@@ -295,12 +295,12 @@ static int
    for(int i= 0; i<64; i++)
    {
      TASK[i]= new RondesvousTask(i);
-     ITEM[i]= new Dispatch::Item(0, &WAIT[i]);
+     ITEM[i]= new dispatch::Item(0, &WAIT[i]);
    }
 
    // Drive work
    for(int i= 0; i<64; i++)
-     Dispatch::Disp::enqueue(TASK[i], ITEM[i]); // Drive work
+     dispatch::Disp::enqueue(TASK[i], ITEM[i]); // Drive work
 
    // Wait for completion
    for(int i= 0; i<64; i++)
@@ -400,10 +400,10 @@ static int
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
-   Dispatch::Task      FINAL;       // The final Task
-   Dispatch::Task**    TASK;        // The PassAlongTask array
-   Dispatch::Item**    ITEM;        // The Item array
-   Dispatch::Wait**    WAIT;        // The Wait array
+   dispatch::Task      FINAL;       // The final Task
+   dispatch::Task**    TASK;        // The PassAlongTask array
+   dispatch::Item**    ITEM;        // The Item array
+   dispatch::Wait**    WAIT;        // The Wait array
 
    IFHCDM( debugf("%4d testtime\n", __LINE__); )
 
@@ -428,22 +428,22 @@ static int
 // debugf("%16d HANGS\n", HANGS);
 
    // Create the Task array
-   Dispatch::Task* prior= &FINAL;
-   TASK= new Dispatch::Task*[TASKS];
+   dispatch::Task* prior= &FINAL;
+   TASK= new dispatch::Task*[TASKS];
    for(int i= TASKS-1; i >=0; i--)
    {
-     Dispatch::Task* task= new PassAlongTask(prior);
+     dispatch::Task* task= new PassAlongTask(prior);
      prior= task;
      TASK[i]= task;
    }
 
    // Create the ITEM and WAIT arrays
-   ITEM= new Dispatch::Item*[MULTI];
-   WAIT= new Dispatch::Wait*[MULTI];
+   ITEM= new dispatch::Item*[MULTI];
+   WAIT= new dispatch::Wait*[MULTI];
    for(int i= 0; i < MULTI; i++)
    {
-     WAIT[i]= new Dispatch::Wait();
-     ITEM[i]= new Dispatch::Item(0, WAIT[i]);
+     WAIT[i]= new dispatch::Wait();
+     ITEM[i]= new dispatch::Item(0, WAIT[i]);
    }
 
    // Run the test
@@ -474,7 +474,7 @@ static int
    debugf("%'16.3f ops/second\n", ops / elapsed);
 
    // Diagnostics
-   Dispatch::Disp::debug();
+   dispatch::Disp::debug();
 
    // Cleanup
    FINAL.reset();

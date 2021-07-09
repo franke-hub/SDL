@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (c) 2019-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Service object methods
 //
 // Last change date-
-//       2020/01/25
+//       2021/07/09
 //
 //----------------------------------------------------------------------------
 #include <map>
@@ -180,7 +180,7 @@ void
 //----------------------------------------------------------------------------
 void
    Service::work(                   // Process
-     pub::Dispatch::Item*
+     pub::dispatch::Item*
                        item)        // This work Item
 {  traceh("Service(%s)::work(%p) default\n", get_name().c_str(), item);
    item->post(127);

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (c) 2019-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2020/10/08
+//       2021/07/01
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -102,7 +102,7 @@ static Trace*          trace;       // Common Trace instance (Application contro
 
 //// Applications can, but normally do not access these fields
 uint64_t               wrap;        // The wrap counter
-uint32_t               _0008;       // Reserved
+uint8_t                user[4];     // (Available for application usage)
 uint8_t                flag[4];     // Control flags
 uint32_t               zero;        // Offset: Trace table origin
 uint32_t               last;        // Offset: Last trace entry before wrap

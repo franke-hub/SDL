@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Standard Dispatch Task object.
 //
 // Last change date-
-//       2020/08/24
+//       2021/07/09
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_DISPATCHTASK_H_INCLUDED
@@ -26,11 +26,11 @@
 #include "DispatchItem.h"           // Dispatch work Item
 #include "Worker.h"                 // Worker Thread Pool
 
-namespace _PUB_NAMESPACE::Dispatch {
+namespace _PUB_NAMESPACE::dispatch {
 //----------------------------------------------------------------------------
 //
 // Class-
-//       Dispatch::Task
+//       dispatch::Task
 //
 // Purpose-
 //       The Dispatch Task.
@@ -104,5 +104,5 @@ virtual void                        // (IMPLEMENT this method)
      Item*             item);       // This work Item
 /* item->post(); */
 }; // class Task
-}  // namespace _PUB_NAMESPACE::Dispatch
+}  // namespace _PUB_NAMESPACE::dispatch
 #endif // _PUB_DISPATCHTASK_H_INCLUDED
