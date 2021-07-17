@@ -15,7 +15,7 @@
 ##       Cygwin/Linux makefile
 ##
 ## Last change date-
-##       2021/01/28
+##       2021/07/15
 ##
 ## Implementation note-
 ##       Uses XCB interfaces. Windows not supported.
@@ -25,10 +25,6 @@
 ##############################################################################
 ## Local module list
 LLIBS  += -L. -llocal
-LLIBS  += -LL -lgui
-LLIBS  += -LL -lcom
-LLIBS  += -LL -lpub
-LLIBS  += -lX11 -ljpeg -lxcb -lxcb-xfixes -lxcb-image
 MAKEXE :=
 
 MAKOBJ := $(patsubst $(OBJDIR)/Viewer.o,,$(MAKOBJ))
@@ -51,6 +47,10 @@ liblocal.a : $(MAKOBJ)
 ##############################################################################
 ## Dependencies
 $(MAKEXE) : liblocal.a
+CLIBS  += -ljpeg
+include $(INCDIR)/gui/Makefile.BSD
+include $(INCDIR)/com/Makefile.BSD
+include $(INCDIR)/pub/Makefile.BSD
 
 ##############################################################################
 ## Makefile cleanup

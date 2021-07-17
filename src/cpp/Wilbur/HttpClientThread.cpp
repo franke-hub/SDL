@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,13 +16,14 @@
 //       HttpClientThread implementation methods.
 //
 // Last change date-
-//       2010/01/01
+//       2021/07/15
 //
 // Implementation notes-
 //       The HttpClientThread uses static objects.
 //       Only one HttpClientThread instance can exist.
 //
 //----------------------------------------------------------------------------
+#define USE_WINDOW FALSE            // TRUE to create control window
 #if defined(_OS_CYGWIN) || defined(_OS_WIN)
   #include <process.h>
 #endif
@@ -33,16 +34,18 @@
 #include <com/Status.h>
 #include <com/Thread.h>
 
+#if USE_WINDOW // (CURRENTLY NOT WORKING)
 #include <gui/Action.h>
 #include <gui/Event.h>
 #include <gui/Font.h>
 #include <gui/KeyCode.h>
 #include <gui/Text.h>
 #include <gui/Window.h>
+using namespace GUI;
+#endif
 
 #include "Common.h"
 #include "HttpClientThread.h"
-using namespace GUI;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -60,11 +63,6 @@ using namespace GUI;
 #endif
 
 #include <com/ifmacro.h>
-
-//----------------------------------------------------------------------------
-// Constants for parameterization
-//----------------------------------------------------------------------------
-#define USE_WINDOW FALSE            // TRUE to create control window
 
 //----------------------------------------------------------------------------
 //
@@ -106,14 +104,14 @@ static inline void
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static const XYLength  winLength= {512, 128};
-static const XYOffset  texOffset= {  0,  64};
-static const XYLength  texLength= {512,  64};
-
 static Barrier         barrier= BARRIER_INIT; // Serialization control
 static Status          status;      // Window completion control
 
 #if( USE_WINDOW )
+static const XYLength  winLength= {512, 128};
+static const XYOffset  texOffset= {  0,  64};
+static const XYLength  texLength= {512,  64};
+
 static Window          window(winLength); // Our GUI Window
 static Text            text1(&window, texLength); // Our Text
 static Text            text2(&window, texOffset, texLength); // Our Text
