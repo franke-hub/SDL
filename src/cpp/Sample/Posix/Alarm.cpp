@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       Test the operation of alarm and setitimer
 //
 // Last change date-
-//       2007/01/01
+//       2021/07/15
 //
 //----------------------------------------------------------------------------
 #include <pthread.h>                // Must be first
@@ -72,14 +72,12 @@ static int             posted= FALSE; // TRUE iff alarm went off
 static double
    tod( void )                      // The current time
 {
-   struct timeb        ticker;      // UTC time base
+   timeval tv;
+   gettimeofday(&tv, nullptr);
+   double tod = (double)tv.tv_sec;
+   tod += (double)tv.tv_usec / 1000000.0;
 
-   ftime(&ticker);                  // UTC (since epoch)
-   unsigned long secs= (unsigned long)ticker.time;
-   unsigned long msec= (unsigned long)ticker.millitm;
-
-   double result= (double)secs + double(msec)/1000.0;
-   return result;
+   return tod;
 }
 
 //----------------------------------------------------------------------------

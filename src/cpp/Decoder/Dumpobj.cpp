@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Dump object file.
 //
 // Last change date-
-//       2020/10/04
+//       2021/07/17
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -735,6 +735,7 @@ extern int                          // Return code
      fclose(fileHand);
    }
 #else  // defined(_OS_WIN) || defined(_OS_CYGWIN)
+   (void)argc; (void)argv;          // (UNUSED)
    fprintf(stderr, "WINDOWS or CYGWIN only!\n");
 #endif // defined(_OS_WIN) || defined(_OS_CYGWIN)
 

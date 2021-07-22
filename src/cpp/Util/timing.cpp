@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,13 +16,14 @@
 //       Timing test.
 //
 // Last change date-
-//       2007/01/01
+//       2021/07/22
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include <sys/timeb.h>
 
 #include <com/syslib.h>
@@ -90,14 +91,10 @@ static void
 static double                       // The time of day
    tod( void )                      // Get the the current time
 {
-   double              result;      // Resultant time
-   struct timeb        ticker;      // UTC time base
-
-   ftime(&ticker);                  // UTC (since epoch)
-   result  = (double)ticker.time;
-   result += (double)ticker.millitm / 1000.0;
-
-   return result;
+   timeval tv;
+   gettimeofday(&tv, nullptr);
+   double tod= (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
+   return tod;
 }
 
 //----------------------------------------------------------------------------
@@ -264,7 +261,7 @@ static void
    (*code)();
    finish= tod();
 
-   printf("%s: %8.3f\n", name, (finish-start));
+   printf("%s: %10.6f\n", name, (finish-start));
 }
 
 //----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       Storage allocation/release sample.
 //
 // Last change date-
-//       2007/01/01
+//       2021/07/17
 //
 //----------------------------------------------------------------------------
 #include "logger.h"
@@ -164,7 +164,7 @@ static int                          // Error count
    if( i != DIM_DATA )
    {
      errorCount++;
-     syslog(LOG_ERR, "%4d: ERROR: released %d of %d elements\n",
+     syslog(LOG_ERR, "%4d: ERROR: released %zd of %d elements\n",
             __LINE__, i, DIM_DATA);
    }
 

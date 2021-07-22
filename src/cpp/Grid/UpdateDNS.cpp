@@ -158,12 +158,10 @@ static void
 {
    if( stdlog != NULL )
    {
-     double            tod;        // Resultant time (double)
-     struct timeb      ticker;     // UTC time base
-
-     ftime(&ticker);               // UTC (since epoch)
-     tod  = (double)ticker.time;
-     tod += (double)ticker.millitm / 1000.0;
+     timeval tv;
+     gettimeofday(&tv, nullptr);
+     double tod = (double)tv.tv_sec;
+     tod += (double)tv.tv_usec / 1000000.0;
 
      fprintf(stdlog, "%14.3f ", tod); // Write time of day in log
      vfprintf(stdlog, fmt, argptr);

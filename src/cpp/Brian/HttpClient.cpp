@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2020-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Curl-based HTTP client.
 //
 // Last change date-
-//       2020/10/03
+//       2021/07/15
 //
 // Prerequisites-
 //       cURL: http://curl.haxx.se/ (Also google "cURL")
@@ -137,11 +137,9 @@ static void
    if( stdlog != NULL )
    {
      double            tod;        // Resultant time (double)
-     struct timeb      ticker;     // UTC time base
-
-     ftime(&ticker);               // UTC (since epoch)
-     tod  = (double)ticker.time;
-     tod += (double)ticker.millitm / 1000.0;
+     timeval tv;
+     gettimeofday(&tv, nullptr);
+     tod= (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
 
      fprintf(stdlog, "%14.3f ", tod); // Write time of day in log
      vfprintf(stdlog, fmt, argptr);

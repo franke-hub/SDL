@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       Tests posix time, gmtime and localtime
 //
 // Last change date-
-//       2007/01/01
+//       2021/07/21
 //
 // Description-
 //       On windows, time_t values don't seem to display GMT.
@@ -29,6 +29,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/timeb.h>
 #include <sys/types.h>
 
@@ -127,6 +128,9 @@ static void
           , daylight, tzname[0], tzname[1]
           , (long)ftod.time, ftod.millitm, ftod.timezone, ftod.dstflag
           );
+   timeval tv;
+   gettimeofday(&tv, nullptr);
+   printf("%.10ld= gettimeofday()\n", tv.tv_sec);
 }
 
 //----------------------------------------------------------------------------
@@ -143,6 +147,7 @@ extern int                          // Return code
      int             argc,          // Argument count
      char*           argv[])        // Argument array
 {
+   #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
    ftime(&ftod);
    time(&tod);
    if( argc > 1 )

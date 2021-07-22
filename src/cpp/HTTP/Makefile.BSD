@@ -54,7 +54,7 @@ include $(INCDIR)/pub/Makefile.BSD
 .PHONY: cert key
 cert: ;
 	@echo -e "US\nState\nLocality\nCompany\nDivision\nbigblue.org\n\n" |\
-openssl req -x509 -nodes -days 3653 -newkey rsa:1024 -keyout private.key -out public.crt >/dev/null 2>/dev/null
+openssl req -x509 -nodes -days 3653 -newkey rsa:2048 -keyout private.key -out public.crt >/dev/null 2>/dev/null
 	@echo "Generated: private.key, public.crt, valid for 10 years"
 
 key: cert                           ## Alias for cert

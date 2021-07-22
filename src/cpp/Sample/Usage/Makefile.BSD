@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2018-2019 Frank Eskesen.
+##       Copyright (c) 2018-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2019/02/16
+##       2021/07/22
 ##
 ##############################################################################
 
@@ -24,6 +24,7 @@
 LIBOBJ :=
 LIBOBJ += Command.o
 MAKEXE := $(patsubst $(OBJDIR)/Command,,$(MAKEXE))
+MAKEXE := $(patsubst $(OBJDIR)/Test_constructor,,$(MAKEXE))
 
 LLIBS  += -L. -llocal
 
@@ -57,6 +58,11 @@ include $(INCDIR)/pub/Makefile.BSD
 .PHONY: do
 do: default
 	@Main
+
+##############################################################################
+## Drive compile errors (COMPILE FAILS)
+.PHONY: error1
+error1: Test_constructor
 
 ##############################################################################
 ## Makefile cleanup
