@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2002 Frank Eskesen.
+//       Copyright (C) 2002-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Exon/Intron DataBase, scan for duplicate Exons.
 //
 // Last change date-
-//       2002/06/17
+//       2021/07/17
 //
 // Description-
 //       This routine examines an Exon/Intron database file, looking for
@@ -40,7 +40,7 @@
 #include "EiDBLoader.h"
 #include "List.h"
 #include "new.h"
-#include "wildstr.h"
+#include "Wildstr.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

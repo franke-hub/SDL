@@ -1,7 +1,7 @@
 #!/bin/bash
 ##############################################################################
 ##
-##       Copyright (C) 2014 Frank Eskesen.
+##       Copyright (C) 2014-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -12,203 +12,203 @@ set -x
 
 ##############################################################################
 ## Small file regression test
-exscan -v- -wild -out INP/sample.eidb AAACCCGGGTTT AAACCCGGGTTT >regress01.new
+exScan -v- -wild -out INP/sample.eidb AAACCCGGGTTT AAACCCGGGTTT >regress01.new
 diff regress01.new OUT/regress01.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan01 failure"
   exit 1
 fi
 
-exscan -v- -wild INP/sample.eidb ANACNCGNGTNT ARACYCGRGTYT >regress02.new
+exScan -v- -wild INP/sample.eidb ANACNCGNGTNT ARACYCGRGTYT >regress02.new
 diff regress02.new OUT/regress02.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan02 failure"
   exit 1
 fi
 
-exscan -v- -wild INP/sample.eidb AWACSCGSGTWT AMACMCGKGTKT >regress03.new
+exScan -v- -wild INP/sample.eidb AWACSCGSGTWT AMACMCGKGTKT >regress03.new
 diff regress03.new OUT/regress03.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan03 failure"
   exit 1
 fi
 
-exscan -v- -wild INP/sample.eidb AAACBCGBGTBT ADACCCGDGTDT >regress04.new
+exScan -v- -wild INP/sample.eidb AAACBCGBGTBT ADACCCGDGTDT >regress04.new
 diff regress04.new OUT/regress04.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan04 failure"
   exit 1
 fi
 
-exscan -v- -wild INP/sample.eidb AVACVCGVGTTT AHACHCGGGTHT >regress05.new
+exScan -v- -wild INP/sample.eidb AVACVCGVGTTT AHACHCGGGTHT >regress05.new
 diff regress05.new OUT/regress05.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan05 failure"
   exit 1
 fi
 
-exscan -v- -wild -out -rev -sum INP/sample.eidb TTTGGGCCCAAA AAACCCGGGTTT >regress06.new
+exScan -v- -wild -out -rev -sum INP/sample.eidb TTTGGGCCCAAA AAACCCGGGTTT >regress06.new
 diff regress06.new OUT/regress06.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan06 failure"
   exit 1
 fi
 
-exscan -v- -wild -minsize:71 -maxsize:72 INP/sample.eidb TTTGGGCCCAAA AAACCCGGGTTT >regress07.new
+exScan -v- -wild -minsize:71 -maxsize:72 INP/sample.eidb TTTGGGCCCAAA AAACCCGGGTTT >regress07.new
 diff regress07.new OUT/regress07.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan07 failure"
   exit 1
 fi
 
-exscan -v- -out -sum INP/sample.eidb TTTGGGCCCAAA AAACCCGGGTTT >regress08.new
+exScan -v- -out -sum INP/sample.eidb TTTGGGCCCAAA AAACCCGGGTTT >regress08.new
 diff regress08.new OUT/regress08.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan08 failure"
   exit 1
 fi
 
-exscan -v- -out -union INP/sample.eidb TTTGGGCCCAAA AAACCCGGGTTT >regress09.new
+exScan -v- -out -union INP/sample.eidb TTTGGGCCCAAA AAACCCGGGTTT >regress09.new
 diff regress09.new OUT/regress09.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan09 failure"
   exit 1
 fi
 
-exscan -v- -atg -out -union INP/sample.eidb AACC TTAA >regress0a.new
+exScan -v- -atg -out -union INP/sample.eidb AACC TTAA >regress0a.new
 diff regress0a.new OUT/regress0a.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan0a failure"
   exit 1
 fi
 
-exscan -v- -out -first INP/sample.eidb AACC TTAA >regress0b.new
+exScan -v- -out -first INP/sample.eidb AACC TTAA >regress0b.new
 diff regress0b.new OUT/regress0b.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan0b failure"
   exit 1
 fi
 
-exscan -v- -out -last  INP/sample.eidb AACC TTAA >regress0c.new
+exScan -v- -out -last  INP/sample.eidb AACC TTAA >regress0c.new
 diff regress0c.new OUT/regress0c.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan0c failure"
   exit 1
 fi
 
-exscan -v- -out -first -last INP/sample.eidb AACC TTAA >regress0d.new
+exScan -v- -out -first -last INP/sample.eidb AACC TTAA >regress0d.new
 diff regress0d.new OUT/regress0d.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan0d failure"
   exit 1
 fi
 
-exscan -v- -out -atg -first -last INP/sample.eidb AACC TTAA >regress0e.new
+exScan -v- -out -atg -first -last INP/sample.eidb AACC TTAA >regress0e.new
 diff regress0e.new OUT/regress0e.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan0e failure"
   exit 1
 fi
 
-exscan -v- -out -atg -first INP/sample.eidb AACC TTAA >regress0f.new
+exScan -v- -out -atg -first INP/sample.eidb AACC TTAA >regress0f.new
 diff regress0f.new OUT/regress0f.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan0f failure"
   exit 1
 fi
 
-exscan -v- -out -atg -last INP/sample.eidb AACC TTAA >regress0g.new
+exScan -v- -out -atg -last INP/sample.eidb AACC TTAA >regress0g.new
 diff regress0g.new OUT/regress0g.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan0g failure"
   exit 1
 fi
 
-exscan -v- -out -rev -first -last INP/sample.eidb AACC TTAA >regress0h.new
+exScan -v- -out -rev -first -last INP/sample.eidb AACC TTAA >regress0h.new
 diff regress0h.new OUT/regress0h.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan0h failure"
   exit 1
 fi
 
-exscan -v- -out -rev -first INP/sample.eidb AACC TTAA >regress0i.new
+exScan -v- -out -rev -first INP/sample.eidb AACC TTAA >regress0i.new
 diff regress0i.new OUT/regress0i.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan0i failure"
   exit 1
 fi
 
-exscan -v- -out -rev -last INP/sample.eidb AACC TTAA >regress0j.new
+exScan -v- -out -rev -last INP/sample.eidb AACC TTAA >regress0j.new
 diff regress0j.new OUT/regress0j.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan0j failure"
   exit 1
 fi
 
-exscan -v- -out -only -first -last INP/sample.eidb AACC TTAA >regress0k.new
+exScan -v- -out -only -first -last INP/sample.eidb AACC TTAA >regress0k.new
 diff regress0k.new OUT/regress0k.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan0k failure"
   exit 1
 fi
 
-exscan -v- -out -only -first INP/sample.eidb AACC TTAA >regress0l.new
+exScan -v- -out -only -first INP/sample.eidb AACC TTAA >regress0l.new
 diff regress0l.new OUT/regress0l.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan0l failure"
   exit 1
 fi
 
-exscan -v- -out -only -last INP/sample.eidb AACC TTAA >regress0m.new
+exScan -v- -out -only -last INP/sample.eidb AACC TTAA >regress0m.new
 diff regress0m.new OUT/regress0m.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan0m failure"
   exit 1
 fi
 
-inscan -v- -wild -out INP/sample.eidb aaacccgggttt aaacccgggttt >regress11.new
+inScan -v- -wild -out INP/sample.eidb aaacccgggttt aaacccgggttt >regress11.new
 diff regress11.new OUT/regress11.old
 if [[ $? != 0 ]] ; then
   echo "Regression inscan11 failure"
   exit 1
 fi
 
-inscan -v- -wild INP/sample.eidb anacncgngtnt aracycgrgtyt >regress12.new
+inScan -v- -wild INP/sample.eidb anacncgngtnt aracycgrgtyt >regress12.new
 diff regress12.new OUT/regress12.old
 if [[ $? != 0 ]] ; then
   echo "Regression inscan12 failure"
   exit 1
 fi
 
-inscan -v- -wild INP/sample.eidb awacscgsgtwt amacmcgkgtkt >regress13.new
+inScan -v- -wild INP/sample.eidb awacscgsgtwt amacmcgkgtkt >regress13.new
 diff regress13.new OUT/regress13.old
 if [[ $? != 0 ]] ; then
   echo "Regression inscan13 failure"
   exit 1
 fi
 
-inscan -v- -wild INP/sample.eidb aaacbcgbgtbt adacccgdgtdt >regress14.new
+inScan -v- -wild INP/sample.eidb aaacbcgbgtbt adacccgdgtdt >regress14.new
 diff regress14.new OUT/regress14.old
 if [[ $? != 0 ]] ; then
   echo "Regression inscan14 failure"
   exit 1
 fi
 
-inscan -v- -wild INP/sample.eidb avacvcgvgttt ahachcgggtht >regress15.new
+inScan -v- -wild INP/sample.eidb avacvcgvgttt ahachcgggtht >regress15.new
 diff regress15.new OUT/regress15.old
 if [[ $? != 0 ]] ; then
   echo "Regression inscan15 failure"
   exit 1
 fi
 
-inscan -v- -wild -out -rev -sum INP/sample.eidb tttgggcccaaa aaacccgggttt >regress16.new
+inScan -v- -wild -out -rev -sum INP/sample.eidb tttgggcccaaa aaacccgggttt >regress16.new
 diff regress16.new OUT/regress16.old
 if [[ $? != 0 ]] ; then
   echo "Regression inscan16 failure"
   exit 1
 fi
 
-inscan -v- -wild -minsize:71 -maxsize:72 INP/sample.eidb tttgggcccaaa aaacccgggttt >regress17.new
+inScan -v- -wild -minsize:71 -maxsize:72 INP/sample.eidb tttgggcccaaa aaacccgggttt >regress17.new
 diff regress17.new OUT/regress17.old
 if [[ $? != 0 ]] ; then
   echo "Regression inscan17 failure"
@@ -397,63 +397,68 @@ fi
 
 ##############################################################################
 ## Big file regression test
-exscan -v- -wild BIG/gb115.dEID              AACCTTGG GGTTCCAA >regress51.new
+if [[ ! -s "BIG/gb115.dEID" ]] ; then
+  echo "Missing BIG/gb115.dEID"
+  exit 0
+fi
+
+exScan -v- -wild BIG/gb115.dEID              AACCTTGG GGTTCCAA >regress51.new
 diff regress51.new OUT/regress51.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan51 failure"
   exit 1
 fi
 
-exscan -v- -wild -first BIG/gb115.dEID       AACCTTGG GGTTCCAA >regress52.new
+exScan -v- -wild -first BIG/gb115.dEID       AACCTTGG GGTTCCAA >regress52.new
 diff regress52.new OUT/regress52.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan52 failure"
   exit 1
 fi
 
-exscan -v- -wild -maxsize:400 BIG/gb115.dEID AACCTTGG GGTTCCAA >regress53.new
+exScan -v- -wild -maxsize:400 BIG/gb115.dEID AACCTTGG GGTTCCAA >regress53.new
 diff regress53.new OUT/regress53.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan53 failure"
   exit 1
 fi
 
-exscan -v- -wild -minsize:32 BIG/gb115.dEID  AACCTTGG GGTTCCAA >regress54.new
+exScan -v- -wild -minsize:32 BIG/gb115.dEID  AACCTTGG GGTTCCAA >regress54.new
 diff regress54.new OUT/regress54.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan54 failure"
   exit 1
 fi
 
-exscan -v- -wild -rev BIG/gb115.dEID         AACCTTGG GGTTCCAA >regress55.new
+exScan -v- -wild -rev BIG/gb115.dEID         AACCTTGG GGTTCCAA >regress55.new
 diff regress55.new OUT/regress55.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan55 failure"
   exit 1
 fi
 
-inscan -v- -wild BIG/gb115.dEID              aaccttgg ggttccaa >regress61.new
+inScan -v- -wild BIG/gb115.dEID              aaccttgg ggttccaa >regress61.new
 diff regress61.new OUT/regress61.old
 if [[ $? != 0 ]] ; then
   echo "Regression inscan61 failure"
   exit 1
 fi
 
-inscan -v- -wild -maxsize:400 BIG/gb115.dEID aaccttgg ggttccaa >regress63.new
+inScan -v- -wild -maxsize:400 BIG/gb115.dEID aaccttgg ggttccaa >regress63.new
 diff regress63.new OUT/regress63.old
 if [[ $? != 0 ]] ; then
   echo "Regression inscan63 failure"
   exit 1
 fi
 
-inscan -v- -wild -minsize:32 BIG/gb115.dEID  aaccttgg ggttccaa >regress64.new
+inScan -v- -wild -minsize:32 BIG/gb115.dEID  aaccttgg ggttccaa >regress64.new
 diff regress64.new OUT/regress64.old
 if [[ $? != 0 ]] ; then
   echo "Regression inscan64 failure"
   exit 1
 fi
 
-inscan -v- -wild -rev BIG/gb115.dEID         aaccttgg ggttccaa >regress65.new
+inScan -v- -wild -rev BIG/gb115.dEID         aaccttgg ggttccaa >regress65.new
 diff regress65.new OUT/regress65.old
 if [[ $? != 0 ]] ; then
   echo "Regression inscan65 failure"
@@ -462,21 +467,21 @@ fi
 
 ##############################################################################
 ## Other bigfile tests
-exscan -v- -wild -sum BIG/gb115.dEID         GAC ATG >exscan70.new
+exScan -v- -wild -sum BIG/gb115.dEID         GAC ATG >exscan70.new
 diff exscan70.new OUT/exscan70.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan70 failure"
   exit 1
 fi
 
-exscan -v- -atg  -sum BIG/gb115.dEID         GAC ATG >exscan71.new
+exScan -v- -atg  -sum BIG/gb115.dEID         GAC ATG >exscan71.new
 diff exscan71.new OUT/exscan71.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan71 failure"
   exit 1
 fi
 
-exscan -v- -atg -wild -sum BIG/gb115.dEID    GAC ATG >exscan72.new
+exScan -v- -atg -wild -sum BIG/gb115.dEID    GAC ATG >exscan72.new
 diff exscan72.new OUT/exscan72.old
 if [[ $? != 0 ]] ; then
   echo "Regression exscan72 failure"
