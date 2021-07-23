@@ -1,16 +1,21 @@
-Added
+Removed unsupported subdirectories.
 
 # Please enter the commit message for your changes. Lines starting
 # with '#' will be ignored, and an empty message aborts the commit.
 #
 # On branch maint
 # Changes to be committed:
-#	new file:   .gitignore
-#	new file:   M
-#	new file:   S
-#	new file:   http/M
-#	new file:   http/Makefile
-#	new file:   http/S
-#	new file:   http/html
-#	new file:   http/package.json
+#	modified:   .gitignore
+#	deleted:    Clone.STL/H
+#	deleted:    Clone.STL/L
+#	deleted:    Clone.STL/M
+#	deleted:    Clone.STL/Makefile
+#	deleted:    Clone.STL/O
+#	deleted:    Clone.STL/S
+#	deleted:    Clone.STL/test
+#	deleted:    Misc/H
+#	deleted:    Misc/L
+#	deleted:    Misc/M
+#	deleted:    Misc/Makefile
+#	deleted:    Misc/S
 #

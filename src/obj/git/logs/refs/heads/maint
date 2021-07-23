@@ -1,2 +1,5 @@
 de6499b734fd73e29ea3e55c39bf5e76a6bcf1af b5b05702ce2af80daa752e553b9233754ea44bda Frank Eskesen <f.n.eskesen@gmail.com> 1621281532 -0400	commit: Added
 b5b05702ce2af80daa752e553b9233754ea44bda 82893c652ada12a2aa733b0ee6ea61eaba4a9ae3 Frank Eskesen <f.n.eskesen@gmail.com> 1622161287 -0400	commit: Added
+82893c652ada12a2aa733b0ee6ea61eaba4a9ae3 cc2970ae3657abe367818f209846d03e1fe3f2e3 Frank Eskesen <f.n.eskesen@gmail.com> 1626279909 -0400	commit: Removed obsolete subdirectory.
+cc2970ae3657abe367818f209846d03e1fe3f2e3 aa62f77ea5da95fb45189d48d08cb69dce991580 Frank Eskesen <f.n.eskesen@gmail.com> 1626996891 -0400	commit: Moved obsolete subdirectories to .OBSOLETE
+aa62f77ea5da95fb45189d48d08cb69dce991580 306d7426c1376ac03033e964408eb9271232e4b3 Frank Eskesen <f.n.eskesen@gmail.com> 1626997755 -0400	commit: Removed unsupported subdirectories.
