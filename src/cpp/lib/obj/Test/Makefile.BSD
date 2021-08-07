@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2018 Frank Eskesen.
+##       Copyright (c) 2018-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -14,29 +14,29 @@
 ## Purpose-
 ##       CYGWIN/LINUX Makefile versioning
 ##
+## Last change date-
+##       2021/08/06
+##
 ##############################################################################
 
 ##############################################################################
 ## Local library list (Currently unused.)
 LIBOBJ := ######################### CURRENTLY UNUSED
-## LIBOBJ += Command.o
-## MAKEXE := $(patsubst $(OBJDIR)/Command,,$(MAKEXE))
-##
-## LLIBS  += -L. -llocal
+LIBOBJ += Thing.o
+MAKEXE := $(patsubst $(OBJDIR)/Thing,,$(MAKEXE))
+
+LLIBS  += -L. -llocal
 
 ##############################################################################
 ## Set default target
 ifeq "" "$(DEFAULT)"
-DEFAULT:= make.dir
+DEFAULT:= $(MAKEXE)
 endif
 
-.PHONY: make.dir
-make.dir: $(MAKEXE)
+.PHONY: default
+default: $(DEFAULT)
 
-.PHONY: make.all
-make.all: $(MAKEXE)
-
-all: make.all
+all: $(MAKEXE)
 
 ##############################################################################
 ## TARGET: liblocal.a
@@ -44,8 +44,7 @@ liblocal.a: $(LIBOBJ)
 	$(AR) $@ $^
 	touch $@
 
-## NOT CURRENTLY USED
-## $(MAKEXE): liblocal.a
+$(MAKEXE): liblocal.a
 
 ################################### Add obj controls and dependencies
 include $(INCDIR)/obj/Makefile.BSD
@@ -53,8 +52,8 @@ include $(INCDIR)/obj/Makefile.BSD
 ##############################################################################
 ## Run the default program
 .PHONY: do
-do: make.dir
-	@Enviro
+do: Stress
+	@Stress
 
 ##############################################################################
 ## Makefile cleanup

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,11 +16,12 @@
 //       Quick, minimal tests.
 //
 // Last change date-
-//       2020/10/03
+//       2021/07/24
 //
 //----------------------------------------------------------------------------
 #include <chrono>
 #include <iostream>
+#include <mutex>
 #include <string>
 
 #include <assert.h>
@@ -45,11 +46,6 @@ using namespace _OBJ_NAMESPACE;
 #ifndef TEST_COMPILE_ERRORS
 #undef  TEST_COMPILE_ERRORS         // If defined, test compile error detection
 #endif
-
-//----------------------------------------------------------------------------
-// External data areas
-//----------------------------------------------------------------------------
-#include "Thing.imp"                // Define static Thing attributes
 
 //----------------------------------------------------------------------------
 //
@@ -190,6 +186,7 @@ static inline int
 static inline int
    test_Array( void )               // Test Array.h
 {
+#ifdef USE_THING_OBJ
    debugf("\nNow testing Array.h\n");
 
    int errorCount= 0;              // Error counter
@@ -239,6 +236,9 @@ static inline int
    }
 
    return errorCount;
+#else
+   return 0;
+#endif
 }
 
 //----------------------------------------------------------------------------

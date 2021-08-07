@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,20 +16,141 @@
 //       Self-checking Object (with link)
 //
 // Last change date-
-//       2018/01/01
-//
-// Implementation note-
-//       Main module must declare and initialize errorCount:
-//       int Thing::errorCount= 0;
+//       2021/08/06
 //
 //----------------------------------------------------------------------------
 #ifndef THING_H_INCLUDED
 #define THING_H_INCLUDED
 
-#include "com/Debug.h"
+#include <cstddef>                   // For size_t
+#include <stdint.h>                  // For uint32_t
 
-#include "obj/Object.h"
-#include "obj/ifmacro.h"
+//----------------------------------------------------------------------------
+// Compile-time controls
+//----------------------------------------------------------------------------
+#define USE_THING_OBJ               // Use Object Thing
+#undef  USE_THING_OBJ               // Use basic Thing
+
+//----------------------------------------------------------------------------
+// Typed dependencies
+//----------------------------------------------------------------------------
+#ifdef USE_THING_OBJ                 // If using Object Thing
+  #include <obj/Object.h>
+  #define MAKE_THING(ARGS) new Thing(ARGS)
+  #define THING_BASE Thing_base, public obj::Object
+  #define THING_PTR  obj::Ref_t<Thing>
+#else                                // If using basic Thing
+  #include <memory>
+  class Thing;                       // (Forward reference)
+  #define MAKE_THING(ARGS) std::make_shared<Thing>(ARGS)
+  #define THING_BASE Thing_base
+  #define THING_PTR  std::shared_ptr<Thing>
+#endif
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       Thing_base
+//
+// Purpose-
+//       Self-checking Thing
+//
+//----------------------------------------------------------------------------
+class Thing;                            // Forward reference
+class Thing_base {                      // Self-checking Thing
+//----------------------------------------------------------------------------
+// Thing_base::Enumerations and Typedefs
+//----------------------------------------------------------------------------
+public:
+enum // Generic enum
+{  PrefixValidator= 0xfedcba9876543210L // Prefix validation word
+,  SuffixValidator= 0x0123456789abcdefL // Suffix validation word
+}; // enum
+
+//----------------------------------------------------------------------------
+// Thing_base::Attributes
+//----------------------------------------------------------------------------
+public:
+static int             errorCount;  // Error counter
+uint32_t               word[2];     // User words
+
+protected:
+size_t                 prefix;      // Validation prefix
+intptr_t               posAddr;     // The address of this object
+intptr_t               negAddr;     // The inverse address of this object
+size_t                 checkword;   // Validation word
+size_t                 suffix;      // Validation suffix
+
+//----------------------------------------------------------------------------
+// Thing_base::Operator new/delete
+//----------------------------------------------------------------------------
+public:
+static size_t
+   get_allocated( void );           // Return allocated object count
+
+static inline void*                 // Resultant Thing*
+   operator new(std::size_t size)   // Replacement operator new
+{  return allocate(size); }
+
+static inline void
+   operator delete(void* addr)      // Replacement operator delete
+{  deallocate(addr, size_t(-1)); }
+static inline void
+   operator delete(void* addr, size_t size) // Replacement operator delete
+{  deallocate(addr, size); }
+
+static void
+   deallocate_all( void );          // Delete all internal storage
+
+//----------------------------------------------------------------------------
+// Thing_base::Constructor/Destructor/operator=
+//----------------------------------------------------------------------------
+public:
+virtual
+   ~Thing_base( void );             // Destructor
+
+   Thing_base(                      // Constructor
+     size_t            checkword= 0); // Check word
+
+Thing_base&                         // Resultant (*this)
+   operator=(                       // Assignment operator
+     const Thing_base& source);     // Source Thing
+
+//----------------------------------------------------------------------------
+// Thing_base::Object methods
+//----------------------------------------------------------------------------
+virtual const std::string           // A String representation of this Object
+   string( void ) const;            // Represent this Object as a String
+
+//----------------------------------------------------------------------------
+// Thing_base::Allocator
+//----------------------------------------------------------------------------
+public:
+static void*                        // Resultant Thing*
+   allocate(std::size_t);           // Allocate a Thing
+
+static void
+   deallocate(void*, std::size_t);  // Deallocate a Thing
+static inline void
+   deallocate(void* addr)           // Deallocate a Thing
+{  deallocate(addr, std::size_t(-1)); }
+
+//----------------------------------------------------------------------------
+// Thing_base::Methods
+//----------------------------------------------------------------------------
+public:
+virtual int                         // Error count
+   check(                           // Count errors
+     int               lineno,      // Caller's line number
+     size_t            checkword= 0) const; // Check word
+
+int                                 // Error count
+   check( void ) const              // Count errors, no line number
+{  return check(-1); }
+
+static void
+   debug_static( void );            // Debug allocator data
+}; // class Thing_base
 
 //----------------------------------------------------------------------------
 //
@@ -37,176 +158,22 @@
 //       Thing
 //
 // Purpose-
-//       Self-checking Object
+//       Self-checking Object Thing
 //
 //----------------------------------------------------------------------------
-class Thing : public Object {       // Self-checking Object
-//----------------------------------------------------------------------------
-// Thing::Enumerations and Typedefs
-//----------------------------------------------------------------------------
+class Thing : public THING_BASE {   // Self-checking Object Thing
 public:
-enum                                // Generic enum
-{
-  PrefixValidator=      0x76543210L,// Prefix validation word
-  SuffixValidator=      0x89abcdefL // Suffix validation word
-}; // enum
+THING_PTR              link;        // Chain pointer
 
 //----------------------------------------------------------------------------
-// Thing::Attributes
-//----------------------------------------------------------------------------
-public:
-static int             errorCount;  // Error counter
-
-protected:
-   long                prefix;      // Validation prefix
-
-public:
-   Ref                 link;        // Chain pointer
-   long                word[2];     // User words
-
-protected:
-   intptr_t            posAddr;     // The address of this object
-   intptr_t            negAddr;     // The inverse address of this object
-   size_t              checkword;   // Validation word
-   long                suffix;      // Validation suffix
-
-//----------------------------------------------------------------------------
-// Thing::Operator new/delete
-//----------------------------------------------------------------------------
-public:
-static size_t
-   get_allocated( void );           // Return allocated object count
-
-static void*                        // Resultant Thing*
-   operator new(std::size_t);       // Replacement operator new
-
-static void
-   operator delete(void*);          // Replacement operator delete
-
-static void
-   operator delete(void*, std::size_t); // Replacement operator delete
-
-// Unexpected new/delete operators
-static void*                        // Resultant []Thing*
-   operator new[](std::size_t size) // Replacement operator new[]
-{  debugf("Thing::operator new[](%zd)\n", size);
-   return ::operator new[](size);
-}
-
-static void
-   operator delete[](void* addr, std::size_t size) // Replacement operator delete[]
-{  debugf("Thing::operator delete[](%p,%zd)\n", addr, size);
-   ::operator delete[](addr, size);
-}
-
-//----------------------------------------------------------------------------
-// Thing::Constructor/Destructor/operator=
+// Thing::Constructor/Destructor
 //----------------------------------------------------------------------------
 public:
 virtual
-   ~Thing( void )                   // Destructor
-{
-   IFHCDM(
-     printf("%4d: Thing(%p)::~Thing() %zd\n", __LINE__, this, checkword);
-   )
+   ~Thing( void ) {}                // Destructor
 
-   check(__LINE__);
-}
-
-   Thing(                           // Default constructor
-     long              checkword=0) // Check word
-:  Object()
-,  prefix(PrefixValidator)
-,  link()
-,  checkword(checkword)
-,  suffix(SuffixValidator)
-{
-   IFHCDM(
-     printf("%4d: Thing(%p)::Thing(%zd)\n", __LINE__, this, checkword);
-   )
-
-   posAddr= (intptr_t)this;
-   negAddr= ~posAddr;
-
-   word[0]= word[1]= 0;
-}
-
-Thing&                              // Resultant (*this)
-   operator=(                       // Assignment operator
-     const Thing&      source);     // Source Thing
-
-//----------------------------------------------------------------------------
-// Thing::Object methods
-//----------------------------------------------------------------------------
-virtual const std::string           // A String representation of this Object
-   string( void ) const             // Represent this Object as a String
-{
-   return ::obj::built_in::to_string("Thing(%p)::string %zd", this, checkword);
-}
-
-//----------------------------------------------------------------------------
-// Thing::Methods
-//----------------------------------------------------------------------------
-public:
-virtual int                         // Error count
-   check(                           // Count errors
-     int               lineno,      // Caller's line number
-     size_t            checkword=0) const // Check word
-{
-   IFHCDM(
-     if( false )
-       printf("%4d: Thing(%p)::check(%zd)\n", lineno, this, checkword);
-   )
-
-   if( prefix != PrefixValidator )
-   {
-     errorCount++;
-     errorf("%4d: Thing(%p).check() prefix(%.8lx)\n", lineno, this, prefix);
-   }
-
-   if( (intptr_t)this != posAddr )
-   {
-     errorCount++;
-     errorf("%4d: Thing(%p).check() posAddr(%.8zx)\n", lineno, this, (size_t)posAddr);
-   }
-
-   if( ~((intptr_t)this) != negAddr )
-   {
-     errorCount++;
-     errorf("%4d: Thing(%p).check() negAddr(%.8zx)\n", lineno, this, (size_t)negAddr);
-   }
-
-   if( suffix != SuffixValidator )
-   {
-     errorCount++;
-     errorf("%4d: Thing(%p).check() suffix(%.8lx)\n", lineno, this, suffix);
-   }
-
-   if( checkword != this->checkword && checkword != 0 )
-   {
-     errorCount++;
-     errorf("%4d: Thing(%p).check(%.8zx) checkword(%.8zx)\n", lineno, this,
-             checkword, this->checkword);
-   }
-
-   return errorCount;
-}
-
-virtual int                         // Error count
-   check( void ) const              // Count errors, no line number
-{
-   return check(-1);
-}
-
-static void
-   debug_static( void );            // Debug allocator data
-
-virtual void
-   debug( void ) const              // Debug this Object
-{
-   debugf("%4d: Thing(%p)::debug()\n", __LINE__, this);
-   check(__LINE__);
-}
+   Thing(                           // Constructor
+     size_t            checkword=0) // Check word
+:  Thing_base(checkword), link() {}
 }; // class Thing
-
 #endif // THING_H_INCLUDED

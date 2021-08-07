@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -13,23 +13,13 @@
 //       Stress.cpp
 //
 // Purpose-
-//       Stress tests.
+//       Stress and timing test, comparing Ref/Object and std::shared_ptr
 //
 // Last change date-
-//       2020/10/03
+//       2021/08/06
 //
-// Implementation notes-
-//       Timings use old Thing.imp block sizes and run with Chrome active.
-//
-//       time Stress ( 20000000, 100000, 10) on bluebird
-//          28.672 real     30.997
-//        2:43.723 user   2:01.836
-//           2.230 sys      10.530
-//
-//       time Stress (100000000, 100000, 10) on bluebird
-//        2:18.018 real   2:35.485
-//       13:31.267 user  10:42.162
-//           8.845 sys    0:38.453
+// Usage-
+//       Stress {iterations {threads {things}}}
 //
 //----------------------------------------------------------------------------
 #include <chrono>
@@ -45,13 +35,10 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "com/Debug.h"
-#include "obj/Allocator.h"          // For Allocator, Latch
-#include "obj/Array.h"
-#include "obj/Object.h"
-#include "obj/Ref.h"
-#include "obj/String.h"
-#include "obj/Thread.h"
+#include <com/Debug.h>
+#include <obj/Latch.h>
+#include <obj/Thread.h>
+
 using namespace _OBJ_NAMESPACE;
 
 #include "Thing.h"
@@ -59,11 +46,13 @@ using namespace _OBJ_NAMESPACE;
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#define USE_DEBUG_THREAD true       // Operate debug thread?
-#define USE_GC_SYNCH     true       // Use garbage collection synchronization?
+enum                                // Generic enum
+{  HCDM= true                       // Hard Core Debug Mode?
+}; // Generic enum
 
-#define USE_THING_CHECKING
-#undef  USE_THING_CHECKING
+#define USE_DEBUG_THREAD false      // Operate debug thread?
+#define USE_GC_SYNCH     true       // Use garbage collection synchronization?
+#define THREAD_ARRAY       32       // Pre-defined thread array size
 
 #define ITERATIONS  100000000
 #define THING_COUNT    100000
@@ -82,6 +71,9 @@ using namespace _OBJ_NAMESPACE;
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
+static double          started;     // Test start time
+static double          elapsed;     // Test elapsed time
+
 static size_t          iterations= ITERATIONS;
 static size_t          things=     THING_COUNT;
 static size_t          threads=    THREAD_COUNT;
@@ -96,9 +88,9 @@ static std::mutex      cv_mutex;    // Protects ready_cv
 
 // Statistics
 static std::atomic<size_t> error_count(0); // Number of errors encountered
-static std::atomic<size_t> total_alloc(0); // Number of Ref allocations
-static std::atomic<size_t> total_inuse(0); // Number of Refs in use
-static std::atomic<size_t> total_delet(0); // Number of Ref deletions
+static std::atomic<size_t> total_alloc(0); // Number of allocations
+static std::atomic<size_t> total_inuse(0); // Number of in use elements
+static std::atomic<size_t> total_delet(0); // Number of deallocations
 
 //----------------------------------------------------------------------------
 //
@@ -112,10 +104,10 @@ static std::atomic<size_t> total_delet(0); // Number of Ref deletions
 static inline void
    synchronized_gc( void )          // Run synchronized garbage collection
 {
-   #if USE_GC_SYNCH
+   #ifdef USE_THING_OBJ
      std::lock_guard<decltype(gc_mutex)> lock(gc_mutex);
 
-     while( Ref::gc() )
+     while( obj::Ref::gc() )
        ;
    #endif
 }
@@ -151,13 +143,12 @@ class TestThread : public Thread {
 //----------------------------------------------------------------------------
 // TestThread::Attributes
 //----------------------------------------------------------------------------
-typedef Array_t<Thing, THING_COUNT>  ARRAY_OBJ;
-
 const std::string      name;        // The Thread's name
 bool                   operational= false; // Operational state
 
 // The Thing (reference) array
-Ref_t<ARRAY_OBJ>       thing_array;
+typedef std::array<THING_PTR, THING_COUNT> ARRAY_OBJ;
+ARRAY_OBJ*             thing_array;
 
 // Statistical counters
 int                    curCount= 0; // Current active Thing count
@@ -172,7 +163,9 @@ int                    joinFSM= 0;  // Join state
 //----------------------------------------------------------------------------
 public:
    ~TestThread( void )
-{  debugf("TestThread::~TestThread %s\n", name.c_str()); }
+{  debugf("TestThread::~TestThread %s\n", name.c_str());
+   empty();
+}
 
    TestThread(const char* _name) : Thread(), name(_name)
 ,  thing_array(new ARRAY_OBJ())
@@ -184,15 +177,28 @@ public:
 void
    debug( void )                    // Debug a thread
 {
-   debugf("Thread(%s) [%6zd] %6d operational(%s) joinFSM(%d)\n", name.c_str(),
-          iteration, curCount, operational ? "true" : "false", joinFSM);
-   if( operational )
-   {
+   debugf("Thread(%s) [%'6zd] %'6d operational(%s) joinFSM(%d)\n", name.c_str()
+         , iteration, curCount, operational ? "true" : "false", joinFSM);
+   if( operational ) {
      debugf("Min/Cur/Max: %d, %d, %d, %7.5f, %7.5f, %7.5f\n",
             minCount, curCount, maxCount,
             (float)minCount/(float)things/0.5,
             (float)curCount/(float)things/0.5,
             (float)maxCount/(float)things/0.5);
+   }
+}
+
+void
+   empty( void )                    // Release all elements
+{
+   for(int ix= 0; ix<THING_COUNT; ix++) {
+     if( (*thing_array)[ix] != nullptr ) { // If present
+       (*thing_array)[ix]->check(__LINE__, ix); // Verify it
+       (*thing_array)[ix]= nullptr; // Then remove it
+
+       total_delet++;
+       total_inuse--;
+     }
    }
 }
 
@@ -210,23 +216,32 @@ void
    debugf("Thread(%s) id(%s) started \n", name.c_str(),
           get_id_string().c_str());
 
-   // Statistics
-   int                 THREAD0= (name == "000");
-   int*                slot= nullptr; // For testing random distribution
+   // Statistics, for random distribution verification
+   int                 slot_stats= false;
+   int*                slot= nullptr;
+
+   if( name == "000" && false ) {   // (Random distribution already verified)
+     size_t size= sizeof(int) * THING_COUNT;
+     slot= (int*)malloc(size);
+     if( slot ) {
+       memset(slot, 0, size);
+       slot_stats= true;
+       debugf("%4d HCDM Slot statistics enabled\n", __LINE__);
+     }
+   }
 
    // Initialize the Thing array
    size_t              newCount;    // The number of ready threads
    {{{{
        // On many systems, memory allocation requires a thread lock.
-       // It's much quicker to initialize one thread at a time.
+       // It's much quicker to lock once and initialize one thread at a time.
        std::lock_guard<decltype(readyMutex)> lock(readyMutex);
 
-       for(size_t i= 0; i<(*thing_array).size(); i += 2)
-       {
+       for(size_t i= 0; i<(*thing_array).size(); i += 2) {
          curCount++;
          minCount++;
          maxCount++;
-         (*thing_array)[i]= new Thing(i);
+         (*thing_array)[i]= MAKE_THING(i);
        }
 
        total_alloc += curCount;
@@ -238,17 +253,7 @@ void
    debugf("%4d Thread(%s) initialization complete\n", __LINE__, name.c_str());
    operational= true;
 
-   if( THREAD0 )
-   {
-     debugf("%4d HCDM Stress\n", __LINE__); THREAD0= false; // Ignore stats
-
-     size_t size= sizeof(int) * THING_COUNT;
-     slot= (int*)malloc(size);
-     memset(slot, 0, size);
-   }
-
-   if( newCount >= threads )        // If all threads are initialized
-   {
+   if( newCount >= threads ) {      // If all threads are initialized
      std::unique_lock<decltype(cv_mutex)> lock(cv_mutex);
      ready_cv.notify_all();
    } else {
@@ -263,28 +268,20 @@ void
    std::uniform_int_distribution<>
                        ud(0, (*thing_array).size()-1); // Uniform distributor
 
-   // Randomized object allocation deletion
-   for(iteration= 1; iteration<iterations; iteration++)
-   {
-     #if USE_GC_SYNCH
-       {{{{ std::lock_guard<decltype(gc_mutex)> lock(gc_mutex);
-       }}}}
-     #endif
-
-     if( iteration % (iterations/10) == 0 )
-     {
-////// synchronized_gc();           // Run garbage collector
-       debugf("%4d Thread(%s) iteration %zd\n", __LINE__, name.c_str(),
-              iteration);
+   //-------------------------------------------------------------------------
+   // Randomized object allocation/deletion
+   for(iteration= 1; iteration<iterations; iteration++) {
+     if( iteration % (iterations/10) == 0 ) {
+       debugf("%4d Thread(%s) iteration %'zd\n", __LINE__, name.c_str()
+             , iteration);
      }
 
      size_t ix= ud(mt);             // Select an index
-     if( THREAD0 )
+     if( slot_stats )
        slot[ix]++;
 
-     if( (*thing_array)[ix] == nullptr )  // If not present
-     {
-       (*thing_array)[ix]= new Thing(ix); // Add it
+     if( (*thing_array)[ix] == nullptr ) { // If not present
+       (*thing_array)[ix]= MAKE_THING(ix);
        curCount++;
        if( curCount > maxCount ) maxCount= curCount;
 
@@ -307,22 +304,15 @@ void
           (float)minCount/(float)things/0.5,
           (float)curCount/(float)things/0.5,
           (float)maxCount/(float)things/0.5);
-   if( false )                      // (Optional) Debug at completion
-   {
-     debugf("%4d HCDM\n", __LINE__);
-     Ref::debug_static();
-     Thing::debug_static();
-     Allocator::debug_static();
-   }
 
-   if( THREAD0 )
-   {
-     for(size_t ix= 0; ix<things; ix+=10)
-     {
+   if( slot_stats ) {
+     for(size_t ix= 0; ix<things; ix+=10) {
        debugf("[%8zd] %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d\n", ix,
               slot[ix+0], slot[ix+1], slot[ix+2], slot[ix+3], slot[ix+4],
               slot[ix+5], slot[ix+6], slot[ix+7], slot[ix+8], slot[ix+9]);
      }
+
+     free(slot);
    }
 }
 
@@ -333,29 +323,30 @@ virtual void
      _run();
    } catch(Exception& X) {
      error_count++;
-     debugf("%4d Thread(%s) catch(%s) what(%s)\n", __LINE__, name.c_str(),
-            X.string().c_str(), X.what());
+     debugf("%4d Thread(%s) catch(%s) what(%s)\n", __LINE__, name.c_str()
+           , X.string().c_str(), X.what());
    } catch(std::exception& X) {
      error_count++;
-     debugf("%4d Thread(%s) catch(std::exception) what(%s)\n", __LINE__,
-            name.c_str(), X.what());
+     debugf("%4d Thread(%s) catch(std::exception) what(%s)\n", __LINE__
+           , name.c_str(), X.what());
    } catch(...) {
      error_count++;
      debugf("%4d Thread(%s) catch(...)\n", __LINE__, name.c_str());
    }
 
-static Latch one_shot;
-   if( error_count.load() && one_shot.try_lock() )
-   {
-     Ref::debug_static();
+   // If error, first completed thread displays some diagnostic information
+   static Latch one_shot;
+   if( error_count.load() && one_shot.try_lock() ) {
+     #ifdef USE_THING_OBJ
+       obj::Ref::debug_static();
+     #endif
      Thing::debug_static();
-     Allocator::debug_static();
    }
 }
 }; // class TestThread
 
 // The test thread array
-static Array_t<TestThread, THREAD_COUNT> thread_array; // The Thread array
+TestThread*            thread_array[THREAD_ARRAY];
 
 //----------------------------------------------------------------------------
 //
@@ -384,8 +375,7 @@ std::condition_variable
 public:
    DebugThread( void ) : Thread()
 ,  fg_mutex(), fg_cv()
-{  start();
-}
+{  start(); }
 
 //----------------------------------------------------------------------------
 // DebugThread::Methods
@@ -405,28 +395,16 @@ void
    debugf("%4d Stress DebugThread started\n", __LINE__);
 
    // Operate the thread
-   while( operational )
-   {
+   while( operational ) {
      debugf("%4d Stress DebugThread waiting:\n", __LINE__);
      std::unique_lock<decltype(fg_mutex)> lock(fg_mutex);
      std::cv_status timeout= fg_cv.wait_for(lock, std::chrono::seconds(60));
-     if( timeout == std::cv_status::timeout )
-     {
+     if( timeout == std::cv_status::timeout ) {
        debugf("%4d Stress DebugThread status:\n", __LINE__);
-       Ref::debug_static();
+       #ifdef USE_THING_OBJ
+         obj::Ref::debug_static();
+       #endif
        Thing::debug_static();
-       Allocator::debug_static();
-
-#if 0  // Hard Core Debug Mode
-       for(std::size_t i= 0; i<thread_array.size(); i++)
-       {
-         Ref_t<TestThread> ref= thread_array[i];
-         if( ref.get() )
-           ref->debug();
-         else
-           debugf("TestThread[%zd] deleted\n", i);
-       }
-#endif
 
        // Implementation note: This GC invocation is intended to limit the
        // number of extended pages in the RefLink and Thing Allocators.
@@ -444,7 +422,8 @@ virtual void
      _run();
    } catch(Exception& X) {
      error_count++;
-     debugf("%4d catch(%s) what(%s)\n", __LINE__, X.string().c_str(), X.what());
+     debugf("%4d catch(%s) what(%s)\n", __LINE__
+           , X.string().c_str(), X.what());
    } catch(std::exception& X) {
      error_count++;
      debugf("%4d catch(std::exception) what(%s)\n", __LINE__, X.what());
@@ -471,7 +450,6 @@ static DebugThread     debugThread; // Our debug thread
 static int                          // Number of errors encountered
    test_Thread( void )              // Test Thread.h
 {
-   debugf("Now testing Thread.h\n");
    size_t              errorCount= 0; // Error counter
 
    debugf("Main: %s\n", Thread::get_id_string(std::this_thread::get_id()).c_str());
@@ -481,29 +459,27 @@ static int                          // Number of errors encountered
    delete thing;
    Thing::debug_static();
 
-   // Get starting object count
-   size_t old_object_count= Ref::get_object_count();
-   debugf("%3zd= get_object_count@%4d\n", Ref::get_object_count(), __LINE__);
-
    // Optional: Single-threaded test
    if( threads == 0 ) {
      TestThread bringup("bringup");
      bringup.run();
 
      // Static debugging
-     Ref::debug_static();
+     #ifdef USE_THING_OBJ
+       obj::Ref::debug_static();
+     #endif
      Thing::debug_static();
-     Allocator::debug_static();
      return 0;
    }
 
    //-------------------------------------------------------------------------
    // Multi-threaded stress test
    //-------------------------------------------------------------------------
+   debugf("%14.3f Multi-thread started..\n", tod() - started);
+   started= tod();                  // (Reset the clock)
    {{{{
      // Start all the TestThreads
-     for(std::size_t i= 0; i<thread_array.size(); i++)
-     {
+     for(std::size_t i= 0; i<threads; i++) {
        char buffer[32];
        sprintf(buffer, "%.3zd", i);
 
@@ -511,38 +487,47 @@ static int                          // Number of errors encountered
      }
 
      // Wait for all the TestThreads to complete
-     for(std::size_t i= 0; i<thread_array.size(); i++)
+     for(std::size_t i= 0; i<threads; i++)
        thread_array[i]->join();
-
-     debugf("** All TestThreads completed **\n");
-     for(std::size_t i= 0; i<thread_array.size(); i++)
-       thread_array[i]= nullptr;
+     debugf("%14.3f ** All TestThreads completed **\n", tod());
+     elapsed= tod() - started;
    }}}}
 
    // Complete any pending garbage collection
-   Ref::debug_static();
    Thing::debug_static();
-   Allocator::debug_static();
+   #ifdef USE_THING_OBJ
+     debugf("\n\n");
+     debugf("%14.3f ..Elapsed\n", tod() - started);
+     debugf("Totals: alloc(%'zd), inuse(%'zd), delet(%'zd)\n",
+            total_alloc.load(), total_inuse.load(), total_delet.load());
+     obj::Ref::debug_static();
+     for(std::size_t i= 0; i<threads; i++) {
+       thread_array[i]->empty();
+       thread_array[i]= nullptr;
+     }
 
-   double then= tod();
-   debugf("%14.3f GC Started..  %zd\n", then, total_inuse.load());
-   while( Ref::gc() )
-     ;
-   double now= tod();
-   debugf("%14.3f ..GC Complete %zd\n", now, Ref::get_object_count());
-   debugf("%14.3f GC Elapsed\n", now - then);
+     debugf("\n\n");
+     double then= tod();
+     debugf("%14.3f ..Elapsed (thread empty)\n", then - started);
+     debugf("%14.3f GC Started..  %'zd\n", then, total_inuse.load());
+     while( obj::Ref::gc() )
+       ;
+     double now= tod();
+     debugf("%14.3f ..GC Complete %'zd\n", now, obj::Ref::get_object_count());
+     debugf("%14.3f ..GC Time\n", now - then);
 
-   debugf("Totals: %zd, %zd, %zd\n",
-          total_alloc.load(), total_inuse.load(), total_delet.load());
-
-   // Verify garbage collection completed
-   size_t new_object_count= Ref::get_object_count();
-   if( new_object_count != old_object_count )
-   {
-     errorCount++;
-     debugf("ERROR: Ref::get_object_count(%zd) old_object_count(%zd)\n",
-            new_object_count, old_object_count);
-   }
+     debugf("Totals: alloc(%'zd), inuse(%'zd), delet(%'zd)\n",
+            total_alloc.load(), total_inuse.load(), total_delet.load());
+   #else
+     for(std::size_t i= 0; i<threads; i++) {
+       thread_array[i]->empty();
+       thread_array[i]= nullptr;
+     }
+     debugf("%14.3f ..Elapsed (thread empty)\n", tod() - started);
+   #endif
+   Thing::deallocate_all();
+   debugf("%14.3f ..Elapsed (deallocate_all)\n", tod() - started);
+   Thing::debug_static();
 
    #if USE_DEBUG_THREAD
      debugf("%4d Stress Terminating debugThread..\n", __LINE__);
@@ -551,56 +536,8 @@ static int                          // Number of errors encountered
      debugf("%4d Stress ..Terminated debugThread\n", __LINE__);
    #endif
 
-   // Static debugging
-   Ref::debug_static();
-   Thing::debug_static();
-   Allocator::debug_static();
-
    return errorCount;
 }
-
-//----------------------------------------------------------------------------
-//
-// Include-
-//       Thing.imp
-//
-// Purpose-
-//       The static Thing implementation.
-//
-//----------------------------------------------------------------------------
-#ifdef USE_THING_CHECKING
-#undef USE_DEBUG_MESSAGES
-static Latch           stress_oneShot;
-void
-   thing_check(size_t count)        // Called from Thing::operator new
-{
-   if( (count % 1048596) != 0 )     // If thing object list is not growing
-     return;
-
-   if( stress_oneShot.lock_word == 0 && stress_oneShot.try_lock() )
-   {
-     #ifdef USE_DEBUG_MESSAGES
-       debugf("\n\n******** ALLOCATION OVERFLOW %8zd\n", count);
-       Ref::debug_static();
-       Thing::debug_static();
-
-       for(int i= 0; i<threads; i++)
-         thread_array[i]->debug();
-     #endif
-
-     // Place holder
-
-     #ifdef USE_DEBUG_MESSAGES
-       debugf("\n\n........ ALLOCATION OVERFLOW %8zd\n\n\n",
-              Thing::get_allocated());
-     #endif
-
-     stress_oneShot.unlock();
-   }
-}
-#endif // USE_THING_CHECKING implementation
-
-#include "Thing.imp"                // Define static Thing attributes
 
 //----------------------------------------------------------------------------
 //
@@ -644,12 +581,10 @@ static void
    //-------------------------------------------------------------------------
    // Argument analysis
    //-------------------------------------------------------------------------
-   for(int argi=1; argi<argc; argi++)
-   {
+   for(int argi=1; argi<argc; argi++) {
      char* argp= argv[argi];
 
-     if( *argp == '-' )             // If switch format
-     {
+     if( *argp == '-' ) {           // If switch format
        argp++;                      // Skip over the switch char
 
        if( strcmp(argp, "h") == 0 || strcmp(argp, "H") == 0 )
@@ -662,11 +597,8 @@ static void
          error= true;
          fprintf(stderr, "Invalid parameter '%s'\n", argv[argi]);
        }
-     }
-     else
-     {
-       switch(count)
-       {
+     } else {
+       switch(count) {
          case 0:
            if( strcmp(argp, "long") == 0 )
              iterations= 100000000;
@@ -674,26 +606,25 @@ static void
              iterations= 20000000;
            else
              iterations= atoi(argp);
+           if( iterations < 10 )
+             iterations= 10;
            break;
 
          case 1:
            threads= atoi(argp);
-           if( threads > THREAD_COUNT )
-           {
+           if( threads > THREAD_ARRAY ) {
              error= true;
-             fprintf(stderr, "threads(%zd) > maximum(%d)\n", threads, THREAD_COUNT);
+             fprintf(stderr, "threads(%zd) > maximum(%d)\n", threads
+                           , THREAD_ARRAY);
            }
            break;
 
          case 2:
            things= atoi(argp);
-           if( things < 16 )
-           {
+           if( things < 16 ) {
              error= true;
              fprintf(stderr, "things(%zd) < minimum(%d)\n", things, 16);
-           }
-           else if( things > THING_COUNT )
-           {
+           } else if( things > THING_COUNT ) {
              error= true;
              fprintf(stderr, "things(%zd) > maximum(%d)\n", things, THING_COUNT);
            }
@@ -730,28 +661,29 @@ extern int                          // Return code
      int             argc,          // Argument count
      char*           argv[])        // Argument list
 {
-   Debug debug;
-   debugSetIntensiveMode();
-
    parm(argc, argv);                // Argument analysis
-   debugf("STRESS Iterations(%zd) Threads(%zd) Things(%zd)\n",
+   debugf("STRESS Iterations(%'zd) Threads(%'zd) Things(%'zd)\n",
           iterations, threads, things);
 
+   debugSetIntensiveMode();
+   setlocale(LC_NUMERIC, "");       // Allows printf("%'zd\n", ...
+
    // Diagnostic information
-   debugf("%8zd= sizeof(Ref)\n", sizeof(Ref));
-   debugf("%8zd= sizeof(Ref_t<Thing>)\n", sizeof(Ref_t<Thing>));
+   size_t storage= 0;
    debugf("%8zd= sizeof(Thing)\n", sizeof(Thing));
-   size_t storage= sizeof(Ref_t<Thing>) * things * threads;
    storage += (sizeof(Thing) * things * threads) / 2;
-   debugf("%zd Storage usage\n", storage);
+   debugf("%'zd Storage usage\n", storage);
 
    // Run the stress test
-   double then= tod();
-   debugf("%14.3f TC Started..\n", then);
+   double started= tod();           // Test start time (local variable)
+   debugf("%14.3f TC Started..\n", started);
    error_count += test_Thread();
    double now= tod();
-   debugf("%14.3f ..TC Complete\n", now);
-   debugf("%14.3f ..TC Elapsed\n", now - then);
+   debugf("%14.3f ..TC Complete, %zd x %'zd\n", now, threads, iterations);
+   double ops= (double)threads * (double)iterations;
+   debugf("%14.3f ..TC Elapsed (test), %.1f Mops/sec\n", elapsed
+         , (ops/elapsed)/1000000.0);
+   debugf("%14.3f ..TC Elapsed (total)\n", now - started);
    if( error_count.load() == 0 )
      debugf("NO Errors\n");
    else if( error_count.load() == 1 )
@@ -760,14 +692,11 @@ extern int                          // Return code
      debugf("%2zd Errors\n", error_count.load());
 
    // Diagnostic wait
-   if( false )
-   {
+   if( false ) {
      debugf("Delay 10 seconds\n");
      std::this_thread::sleep_for(std::chrono::seconds(10));
-     Ref::debug_static();
      Thing::debug_static();
    }
 
    return (error_count.load() != 0);
 }
-
