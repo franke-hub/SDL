@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/07/03
+##       2021/08/08
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in ALPHA status.
@@ -27,16 +27,16 @@
 
 ##############################################################################
 ## STATUS:
-2021/07/03 Added TODO. No significant code changes.
-
-##############################################################################
-## OPEN: (Currently not reproducible)
-2021/06/18 Bug: Cursor block not cleared. [Cannot currently reproduce.]
-         Symptoms: Two cursor blocks on screen.
-           Associated with clicking on screen when in history view.
+2021/08/08 Fixed some user interface annoyances.
 
 ##############################################################################
 ## CHANGE LOG:
+2021/08/08 User interface: limit history list to 8 lines
+         When the list is over long, it's usually easier to retype a line.
+
+2021/08/08 User interface: button should not cause scroll up.
+         This would occur when button pressed below end of file line.
+
 2021/06/26 Hardened Utf8 support, fixing block copy.
 
 2021/06/24 Fixed: UNDO changed active data line, cursor on history line.
@@ -206,8 +206,8 @@
              ONE working example found.
              Most documentation is incomplete. That which exists mostly
              recommends using a higher level interface rather than the X11/XCB
-             interface. While looking at source code could be an option, it's
-             too time consuming.
+             interface. While looking at the associated higer level source
+             code could be an option, it would be too time consuming.
 
 ##############################################################################
 ## FEATURE:
@@ -217,6 +217,9 @@
 
 ##############################################################################
 ## CLOSED:
+2021/08/08 Closed, not reproducable. (Probably fixed by 6/23 or 6/24 change.)
+2021/06/18 Bug: Two cursor blocks on screen.
+         Associated with clicking on screen when in history view.
 
 ##############################################################################
 ## FIXED:

@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2021/06/26
+//       2021/08/08
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -46,6 +46,8 @@ enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  USE_BRINGUP= false               // Extra bringup diagnostics?
 }; // Compilation controls
+
+static const int       MAX_HISTORY= 8; // Maximum history size
 
 //----------------------------------------------------------------------------
 //
@@ -184,7 +186,17 @@ void
      hist_list.remove(cursor, cursor);
    else
      cursor= new EdLine( editor::allocate(buffer) );
-   hist_list.fifo(cursor);
+   hist_list.fifo(cursor);          // (Inserts at tail)
+
+   // Don't keep too much history
+   int count= 0;
+   for(EdLine* line= hist_list.get_head(); line; line= line->get_next())
+     count++;
+   if( MAX_HISTORY && count > MAX_HISTORY ) {
+     EdLine* head= hist_list.get_head();
+     hist_list.remove(head, head);
+     delete head;
+   }
 
    // Process the command (Using mutable buffer)
    const char* text= cursor->text;

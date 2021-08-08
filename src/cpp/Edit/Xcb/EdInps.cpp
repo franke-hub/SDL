@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2021/06/26
+//       2021/08/08
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -753,8 +753,11 @@ void
          draw_info();
        }
 
-       if( button_row != data->row ) // If row changed
+       if( button_row != data->row ) { // If row changed
+         if( button_row > row_used ) // (Button should not cause scroll up)
+           button_row= row_used;
          data->move_cursor_V(button_row - data->row); // Set new row
+       }
        move_cursor_H(data->col_zero + get_col(E.event_x)); // Set new column
        break;
      }
