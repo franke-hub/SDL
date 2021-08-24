@@ -625,7 +625,7 @@ int                                 // Return code
    {
      rc= chmod(pathName,            // Restore permissions
                clientE->chmod());
-     if( rc != 0 )  
+     if( rc != 0 )
        throwf("%4d ClientThread: chmod(%s) restore failure", __LINE__, pathName);
    }
 
@@ -952,7 +952,7 @@ void
      // See if directory processing is complete.
      //-----------------------------------------------------------------------
      if( clientE == NULL && serverE == NULL ) // If complete
-       break;                       
+       break;
 
      //-----------------------------------------------------------------------
      // Determine relative positions of items
@@ -975,8 +975,8 @@ void
        msglog("ACTION: install\n");
        ptrEntry= new DirEntry(this); // Allocate a new element
 
-       strcpy(ptrEntry->fileName, serverE->fileName); 
-       strcpy(ptrEntry->linkName, serverE->linkName); 
+       strcpy(ptrEntry->fileName, serverE->fileName);
+       strcpy(ptrEntry->linkName, serverE->linkName);
        ptrEntry->fileInfo= serverE->fileInfo; // Set updated stats
        ptrEntry->fileSize= serverE->fileSize;
        ptrEntry->fileKsum= serverE->fileKsum;
@@ -1049,7 +1049,7 @@ void
 
        // (Unconditionally) remove the entry from our list, then delete it
        clientE= clientL->remove(clientE, clientP);
-       continue;                    
+       continue;
      }
 
      //-----------------------------------------------------------------------
@@ -1131,11 +1131,11 @@ void
          clientE->fileTime= 0;
 
          rc= installItem(pathName, serverE, clientE);
-         if( rc != RC_NORM )       
+         if( rc != RC_NORM )
          {
            // Remove the entry from the list, then release it
            clientE= clientL->remove(clientE, clientP);
-           continue;                
+           continue;
          }
 
          printAction("installed", serverE, "");
@@ -1237,8 +1237,8 @@ deferred_action:
          break;
 
        case AC_GETCLIENT:           // Get next CLIENT item
-         clientP= clientE;          
-         clientE= clientE->next;    
+         clientP= clientE;
+         clientE= clientE->next;
          break;
 
        case AC_BOTH:                // Get next item
@@ -1271,10 +1271,10 @@ deferred_action:
            }
          }
 
-         clientP= clientE;          
-         clientE= clientE->next;    
+         clientP= clientE;
+         clientE= clientE->next;
 
-         serverE= serverE->next;    
+         serverE= serverE->next;
          break;
 
        default:                     // If unknown code
@@ -1369,8 +1369,8 @@ int                                 // Return code
        break;
 
      case FT_LINK:                  // If soft link
-       returncd= removeItem(path, clientE); 
-       if( returncd == RC_NORM )    
+       returncd= removeItem(path, clientE);
+       if( returncd == RC_NORM )
          returncd= installItem(path, serverE, clientE);
        break;
 

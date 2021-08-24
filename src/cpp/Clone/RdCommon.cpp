@@ -50,7 +50,7 @@
 #include <com/Thread.h>
 #include <com/Unconditional.h>
 
-#if defined(_OS_WIN) 
+#if defined(_OS_WIN)
   #define _WINSOCK2API_  /* Prevent inclusion of winsock2.h by windows.h */
   #define _WINSOCKAPI_   /* Prevent inclusion of winsock.h by windows.h */
   #include <windows.h>
@@ -1416,8 +1416,8 @@ DirEntry*                           // -> DirEntry
    while( ptrE != NULL )            // Simple search of directory
    {
      rc= strcmp(fileName, ptrE->fileName); // Check it out
-     if( rc == 0 )                  
-       return ptrE;                 
+     if( rc == 0 )
+       return ptrE;
 
      ptrE= ptrE->next;
    }
@@ -1971,7 +1971,7 @@ void
    #endif
 
    perror(string);                  // Write the message in one line
-   fflush(stderr);      
+   fflush(stderr);
 
    if( stdlog != NULL )             // Write all messages to stdlog
    {
@@ -2274,7 +2274,7 @@ extern int                          // Resultant (per strcmp())
    if( (thread->getGVersionInfo().f[0]&VersionInfo::VIF0_CASE) != 0 )
      return strcmp(source, target);
 
-   return stricmp(source, target); 
+   return stricmp(source, target);
 }
 
 #ifdef _OS_WIN

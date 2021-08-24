@@ -820,7 +820,7 @@ static void
 //       Split then scan a parameter argument.
 //
 //----------------------------------------------------------------------------
-static void                     
+static void
    split(                           // Split then scan
      const char*       string)      // Argument
 {

@@ -100,7 +100,7 @@ static void my_init()
      strcpy(buffer, asctime(&v1));
      printf("Buffer(%p) '%s'\n", buffer, buffer);
    #endif
-} 
+}
 
 __attribute__((destructor))
 static void my_fini()

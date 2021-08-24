@@ -362,7 +362,7 @@ __attribute__((constructor))
 static void my_init()
 {
    IFHCDM( traceh("Inside my_init()\n"); )
-} 
+}
 #endif
 
 //----------------------------------------------------------------------------

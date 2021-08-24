@@ -1496,7 +1496,7 @@ const char*                         // Return message (NULL OK)
            break;
          }
        }
-      
+
        if( result != NULL )
          fprintf(stderr, "%4d: Unknown encoding: %s\n", __LINE__, inpLine);
        break;

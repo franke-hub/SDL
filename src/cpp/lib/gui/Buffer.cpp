@@ -240,11 +240,11 @@ void
      unsigned wmax= x;
      if( width < x )
        wmax= width;
- 
+
      unsigned hmax= y;
      if( height < y )
        hmax= height;
- 
+
      Pixel_t* pixel= (Pixel_t*)image.base; // The new buffer
      for(unsigned h= 0; h<hmax; h++) {
        unsigned P0= h * y;
@@ -256,14 +256,14 @@ void
          pixel[P0 + w]= p;
        }
      }
- 
+
      for(unsigned h= hmax; h<y; h++) {
        unsigned P0= h * y;
        for(unsigned w= 0; w<y; w++) {
          pixel[P0 + w]= p;
        }
      }
- 
+
      // Update the image buffer
      if( buffer )
        free(buffer);

@@ -43,7 +43,7 @@ static void my_init()
    #ifdef HCDM
      printf("Inside my_init()\n");
    #endif
-} 
+}
 #endif
 
 //----------------------------------------------------------------------------

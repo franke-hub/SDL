@@ -90,11 +90,11 @@ CLOSED: 2011/05/16 (CANNOT REPRODUCE)
 
 2011/03/16 Infrequent crash (at least in CYGWIN)
            1) EdPool.cpp: Does not format free area properly.
-           2) COMPILER BUG: Does not use logical compare for addresses. 
-           In EdPool.cpp, verify that requested size < available size, 
-           not just that the addresses don't match. 
+           2) COMPILER BUG: Does not use logical compare for addresses.
+           In EdPool.cpp, verify that requested size < available size,
+           not just that the addresses don't match.
 
-           Active.cpp: Do NOT set trailing blanks to '\0' as this causes 
+           Active.cpp: Do NOT set trailing blanks to '\0' as this causes
            them to be made available for allocation.
 
 2009/12/15 Found AUTOSAVE.000 and AUTOSAVE.001 on D: disk.

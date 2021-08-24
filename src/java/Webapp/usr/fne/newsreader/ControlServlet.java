@@ -88,7 +88,7 @@ public int                          // The VERBOSE attribute
 public void
    log(                             // Write a log message
      String            message)     // The log message
-{  
+{
    log(message, null);
 }
 
@@ -96,7 +96,7 @@ public void
    log(                             // Write log message
      String            message,     // The log message
      Throwable         e)           // (Optional) associated exception
-{  
+{
    if( context == null || verbose > 1 )
    {
      System.out.println("NewsReaderServlet: " + message);
@@ -273,7 +273,7 @@ public void
 
    out.println("</BODY></HTML>");
    if( debug ) log("..doPost()");
-} 
+}
 
 //----------------------------------------------------------------------------
 //
@@ -441,6 +441,6 @@ protected void
    out.println("</p>");
 
    log("..query()");
-} 
+}
 } // Class ControlServlet
 

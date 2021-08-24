@@ -121,7 +121,7 @@ class HTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         # Extract the form data
         form = cgi.FieldStorage(
-            fp=self.rfile, 
+            fp=self.rfile,
             headers=self.headers,
             environ={'REQUEST_METHOD':'POST',
                      'CONTENT_TYPE':self.headers['Content-Type'],

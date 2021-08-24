@@ -112,7 +112,7 @@ class Dialog(QDialog):
         layout.addWidget(radioButton3)
         layout.addWidget(checkBox)
         layout.addStretch(1)
-        self.topLeftGroupBox.setLayout(layout)    
+        self.topLeftGroupBox.setLayout(layout)
 
     def createTopRightGroupBox(self):
         self.topRightGroupBox = QGroupBox('Group 2')

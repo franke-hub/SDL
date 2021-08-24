@@ -1136,7 +1136,7 @@ void
        line->ctrl.marked= FALSE;
        line= (EdLine*)line->getNext();
      }
-     state= FSM_RESET;          
+     state= FSM_RESET;
 
      edit->viewChange(ring, head, tail); // Indicate lines changed
    }

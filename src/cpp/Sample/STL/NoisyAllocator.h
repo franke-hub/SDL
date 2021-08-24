@@ -146,7 +146,7 @@ template<typename _Tp>
 inline bool
    operator==(const NoisyAllocator<_Tp>&, const NoisyAllocator<_Tp>&)
    { return true; }
-  
+
 template<typename _Tp>
 inline bool
    operator!=(const NoisyAllocator<_Tp>&, const NoisyAllocator<_Tp>&)

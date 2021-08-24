@@ -188,7 +188,7 @@ public int                          // The VERBOSE attribute
 public void
    log(                             // Write a log message
      String            message)     // The log message
-{  
+{
    log(message, null);
 }
 
@@ -196,7 +196,7 @@ public void
    log(                             // Write log message
      String            message,     // The log message
      Throwable         e)           // (Optional) associated exception
-{  
+{
    if( context == null || verbose > 1 )
    {
      System.out.println("PlayerServlet: " + message);
@@ -337,7 +337,7 @@ public void
    out.println("<HEAD><TITLE>PlayerServlet POST</TITLE></HEAD>");
    out.println("<BODY>POST NOT EXPECTED</BODY>");
    out.println("</HTML>");
-} 
+}
 
 //----------------------------------------------------------------------------
 //
@@ -1201,6 +1201,6 @@ protected void
    //=========================================================================
    // BOGUS request
    putError(out, BOGUS);
-} 
+}
 } // Class PlayerServlet
 

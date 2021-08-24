@@ -699,7 +699,7 @@ void
      line= next;
    }
 
-   resetCache();        
+   resetCache();
    changed= TRUE;
 }
 
@@ -744,7 +744,7 @@ EdLine*                             // -> New, empty EdLine
 
    line->ctrl.delim= delimiter(mode);
 
-   resetCache();                
+   resetCache();
    changed= TRUE;
    return line;
 }
@@ -1157,7 +1157,7 @@ const char*                         // Return message
    next->setPrev(tail);
    rows += count;
 
-   resetCache();        
+   resetCache();
    changed= TRUE;
    return NULL;
 }

@@ -177,14 +177,14 @@ public void
    log(                             // Write a log message
      String            message,     // The log message
      Throwable         throwable)   // Associated exception
-{  
+{
    logger.log(header + ": " + message, throwable);
 }
 
 public void
    log(                             // Write a log message
      String            message)     // The log message
-{  
+{
    logger.log(header + ": " + message);
 }
 } // class LoggingServiceThread
