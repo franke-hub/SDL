@@ -16,13 +16,14 @@
 //       Source file checker.
 //
 // Last change date-
-//       2021/01/04
+//       2021/08/24
 //
 // Verifications-
 //       File permissions. (Auto-correctable)
 //       Path permissions. (Auto-correctable)
 //       Copyright statement. (Auto-correctable)
 //       Copyright year matches last change date year. (Auto-correctable)
+//       File line contains trailing blanks. (Auto-correctable)
 //       Copyright matches some prototype. (Use --verify)
 //
 // Auto-correctione-
@@ -842,7 +843,7 @@ static void
    }
    if( line == nullptr )            // If not found
      return;                        // Nothing to compare against
-   line= line->get_next();           // The actual last change date line
+   line= line->get_next();          // The actual last change date line
    if( line == nullptr ) {          // If not found
      printf("File(%s) Missing last change date\n", full.c_str());
      return;
@@ -1201,6 +1202,58 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       handle_data
+//
+// Function-
+//       Handle all file types, looking for trailing blanks
+//
+//----------------------------------------------------------------------------
+static void
+   handle_data(                     // Handle all data files
+     Data&             data)        // The content
+{
+   bool found= false;
+   Line* line= data.line().get_head();
+   while( line ) {
+     size_t L= strlen(line->text);
+     if( L > 0 && line->text[L-1] == ' ' ) {
+       if( !found ) {
+         found= true;
+         printf("File(%s) correct%s line with ending blank(s)\n'%s'\n"
+               , data.full().c_str(), opt_x ? "ed" : "able", line->text);
+       }
+
+       if( opt_x ) {
+         while( L > 0 && line->text[L-1] == ' ' )
+           --L;
+         string S(line->text, L);
+         Line* repl= data.get_line(S);
+         data.line().insert(line, repl, repl);
+         data.line().remove(line, line);
+         delete line;
+         line= repl;
+         if( !opt_multi )
+           break;
+       }
+     }
+
+     line= line->get_next();
+   }
+
+   if( found ) {
+     if( opt_x ) {
+       data.write();
+       data.change(false);
+     }
+
+     if( !opt_multi )
+       exit(0);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       handle_html
 //
 // Function-
@@ -1343,6 +1396,8 @@ static void
          }
        }
 
+       if( opt_verbose >= 0 )
+         handle_data(data);         // Common file checking
        if( is_code(name) )          // Implementation note: Sort likely first
          handle_code(data);
        else if( is_bash(name) )

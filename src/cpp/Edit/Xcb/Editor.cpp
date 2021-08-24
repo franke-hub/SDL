@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/06/26
+//       2021/08/24
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -516,21 +516,15 @@ const char*                         // The (immutable) text
    editor::allocate(                // Get (immutable) text
      const char*       source)      // Source (mutable) text
 {
-   if( *source == '\0' )            // If empty source
+   size_t L= strlen(source);        // Source length
+   while( L > 0 && source[L-1] == ' ' ) // This is unexpected, but correctable
+     --L;
+   if( L == 0 )                     // If empty source
      return "";                     // (Immutable) empty copy
 
-   size_t L= strlen(source);        // Source length
-   if( source[L-1] == ' ' ) {       // (If UNEXPECTED trailing blanks)
-//// if( true )                     // For production
-       Editor::put_message("%4d Editor UNEXPECTED(%s)", __LINE__, source);
-//// else {                         // For hard core debugging
-////   std::string S= pub::utility::visify(source); //
-////   Editor::put_message("%4d Editor UNEXPECTED(%s)", __LINE__, S.c_str());
-////   debugf("%4d Editor UNEXPECTED(%s)\n", __LINE__, S.c_str());
-//// }
-   }
    char* copy= allocate(L+1);       // Include trailing '\0' in string
-   strcpy(copy, source);            // Duplicate the string
+   memcpy(copy, source, L);         // Duplicate the string
+   copy[L]= '\0';                   // Including trailing '\0'
    return copy;
 }
 

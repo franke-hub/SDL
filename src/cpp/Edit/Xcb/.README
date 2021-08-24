@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/08/08
+##       2021/08/24
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in ALPHA status.
@@ -27,10 +27,14 @@
 
 ##############################################################################
 ## STATUS:
-2021/08/08 Fixed some user interface annoyances.
+2021/08/24 Block column move on a blank line left trailing blanks.
+         Active.index fetched column+1 rather than column. (problem source)
+         Editor.allocate now corrects error rather than just detecting it.
 
 ##############################################################################
 ## CHANGE LOG:
+2021/08/08 Fixed some user interface annoyances.
+
 2021/08/08 User interface: limit history list to 8 lines
          When the list is over long, it's usually easier to retype a line.
 

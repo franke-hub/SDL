@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2021/06/26
+//       2021/08/24
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -283,7 +283,7 @@ Active::Offset                      // The character Offset
    Active::index(                   // Get character Offset for
      Column            column)      // This Column
 {
-   fetch(column + 1);               // Load the buffer
+   fetch(column);                   // Load the buffer
    Offset offset= 0;
    while( column > 0 ) {
      if( buffer_used <= offset ) {  // If blank fill required
