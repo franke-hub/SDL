@@ -27,12 +27,15 @@
 
 ##############################################################################
 ## STATUS:
-2021/08/24 Block column move on a blank line left trailing blanks.
-         Active.index fetched column+1 rather than column. (problem source)
-         Editor.allocate now corrects error rather than just detecting it.
+2021/08/28 ?? Change background color in data view rather than status view
+         when the file is changed ?? Or both?? color = r,g,b;r,g,b
+
+2021/08/28 ?? Save/file command sets data view (to see line number) ??
 
 ##############################################################################
 ## CHANGE LOG:
+2021/08/24 Block column move on a blank line left trailing blanks.
+
 2021/08/08 Fixed some user interface annoyances.
 
 2021/08/08 User interface: limit history list to 8 lines
