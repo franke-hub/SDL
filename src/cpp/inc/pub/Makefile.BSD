@@ -15,7 +15,7 @@
 ##       (Include this Makefile to add PUB library controls and dependencies.)
 ##
 ## Last change date-
-##       2021/05/23
+##       2021/09/06
 ##
 ## Implementation notes-
 ##       This version is intended to be included from CYGWIN/LINUX makefiles.
@@ -24,8 +24,10 @@
 
 ################################### Controls
 LLIBS  += -L$(LIBDIR) -lpub ####### PUB library
-CLIBS  += -lssl -lcrypto
 CLIBS  += -lboost_stacktrace_addr2line
+CLIBS  += -lcrypto
+CLIBS  += -lpthread
+CLIBS  += -lssl
 
 ##############################################################################
 ## Dependencies

@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2021/08/06
+##       2021/09/06
 ##
 ##############################################################################
 
@@ -47,6 +47,7 @@ liblocal.a: $(LIBOBJ)
 $(MAKEXE): liblocal.a
 
 ################################### Add obj controls and dependencies
+include $(INCDIR)/com/Makefile.BSD
 include $(INCDIR)/obj/Makefile.BSD
 
 ##############################################################################

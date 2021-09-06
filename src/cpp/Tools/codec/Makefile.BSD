@@ -1,13 +1,22 @@
 ##############################################################################
 ##
-##       Copyright (C) 2006-2019 Frank Eskesen.
+##       Copyright (C) 2006-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
 ##       within https://opensource.org/licenses/MIT)
 ##
 ##############################################################################
-## Makefile.BSD
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2021/09/06
+##
 ##############################################################################
 
 ##############################################################################
@@ -34,6 +43,10 @@ endif
 
 .PHONY: make.dir
 make.dir: $(MAKEXE)
+
+##############################################################################
+## Controls
+include $(INCDIR)/com/Makefile.BSD
 
 ##############################################################################
 ## TARGET: liblocal.a

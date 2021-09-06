@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2020 Frank Eskesen.
+##       Copyright (c) 2007-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the "un-license,"
 ##       explicitly released into the Public Domain.
@@ -16,7 +16,7 @@
 ##       Default GCC compiler controls
 ##
 ## Last change date-
-##       2020/12/10
+##       2021/09/02
 ##
 ##############################################################################
 
@@ -58,7 +58,7 @@ COPTS  += -Wextra ################# Activate extra warnings
 COPTS  += -Werror ################# Treat warnings as errors
 ###### += -Wchar-subscripts ####### Array subscript of type char
 ###### += -Wcomment ############### Comment within a comment
-ignore += -Wconversion ############ Implicit conversion can change value
+###### += -Wconversion ############ Implicit conversion can change value
 ###### += -Wdangling-else ######### Possible if-else confusion
 ###### += -Wfatal-errors ########## Abort on first error
 ###### += -Wformat ################ Extensive printf, etc. checking
@@ -66,7 +66,7 @@ ignore += -Wconversion ############ Implicit conversion can change value
 COPTS  += -Wmissing-declarations ## Global function has no prototype
 ###### += -Wno-deprecated########## Don't warn about deprecated usage
 ###### += -Wreturn-type ########### Implicit return type
-ignore += -Wshadow ################ Disallow shadow variables
+###### += -Wshadow ################ Disallow shadow variables
 ###### += -Wswitch ################ Switch, enumerated index lacks case
 COPTS  += -Wswitch-default ######## Switch, missing default case
 ###### += -Wtemplate-debugging #### C++ only

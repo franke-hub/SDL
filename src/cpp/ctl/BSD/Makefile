@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2020 Frank Eskesen.
+##       Copyright (c) 2007-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the "un-license,"
 ##       explicitly released into the Public Domain.
@@ -16,7 +16,7 @@
 ##       Makefile for C++/Assembler programs
 ##
 ## Last change date-
-##       2020/09/21
+##       2021/09/06
 ##
 ## Preparation-
 ##       In your object directory,
@@ -32,6 +32,7 @@
 ##       make pristine "make clean" plus remove listing and object files.
 ##
 ## Environment controls-
+##       COMPILER      Override default (gcc) compiler
 ##       LINKMAP       Non-null to create link map
 ##       LISTING       Non-null to create listing files
 ##       OPTIMIZE      Override optimization controls
@@ -43,6 +44,7 @@
 ##       *.lst         Listing files.
 ##       *.o           Object files.
 ##       *.map         Linker files.
+##       *.stackdump   System stack dump
 ##       core          System core dump.
 ##       debug.*       Debugging output.
 ##       errs          Error output from certain script files.
@@ -62,7 +64,11 @@ SRCDIR = S######################### Source directory
 
 ##############################################################################
 ## Include compiler option control file
-INCSRC :=Makefile.GCC############## Default Control file
+ifeq "" "$(COMPILER)"
+COMPILER := GCC
+endif
+
+INCSRC :=Makefile.$(COMPILER)###### Compiler Control file
 ifeq "$(findstring $(OBJDIR)/$(INCSRC),$(wildcard $(OBJDIR)/Makefile.*))" "$(OBJDIR)/$(INCSRC)"
 INCSRC := $(OBJDIR)/$(INCSRC)
 else
@@ -90,7 +96,7 @@ vpath
 ## make% : ;
 
 % : %.o
-	$(CC) -o $@ $< $(CLOAD) $(CLIBS)
+	$(LD) -o $@ $< $(CLOAD) $(CLIBS)
 
 %.o : $(SRCDIR)/%.cpp
 	$(CC) -o $@ -c $<  $(CFLAGS)

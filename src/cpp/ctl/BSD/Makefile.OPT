@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2018 Frank Eskesen.
+##       Copyright (c) 2007-2021 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the "un-license,"
 ##       explicitly released into the Public Domain.
@@ -15,14 +15,16 @@
 ## Purpose-
 ##       Default compiler options.
 ##
+## Last change date-
+##       2021/09/02
+##
 ##############################################################################
 
 ##############################################################################
 ## AFLAGS   (Assembler flags)
+AFLAGS :=
 ifneq "" "$(LISTING)"
 AFLAGS := -l
-else
-AFLAGS :=
 endif
 
 ##############################################################################
@@ -48,13 +50,16 @@ CINCL  += -I$(INCDIR)############## Project include directory
 
 ##############################################################################
 ## CLIBS    (Loader libraries)
-CLIBS  += $(LLIBS)################# Load libraries
-CLIBS  += -L$(LIBDIR) -lcom ####### Common library
+CLIBS  += $(LLIBS)################# Local libraries
+###### += -L$(LIBDIR) -lcom######## Common library (To be deprecated)
+###### += -L$(LIBDIR) -lgui######## GUI library
+###### += -L$(LIBDIR) -lobj######## Object library (Experimental)
+###### += -L$(LIBDIR) -lpub######## Public library (Common library replacement)
 ###### += -lc###################### Standard C Library
 ###### += -lcurses################# CURSES Library
 ###### += -lm###################### Mathlib, Security
 ###### += -lncurses################ New CURSES Library
-CLIBS  += -lpthread################ Thread library
+###### += -lpthread################ Thread library
 ###### += -ls###################### Security
 ###### += -lX11#################### Standard X Library
 
