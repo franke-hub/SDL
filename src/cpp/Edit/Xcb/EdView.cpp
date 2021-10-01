@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2021/06/24
+//       2021/10/01
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -98,7 +98,7 @@ void
 //       EdView::draw_active
 //
 // Purpose-
-//       Redraw the active line and (if the view is active, also) the cursor
+//       Redraw the active (data) line
 //
 //----------------------------------------------------------------------------
 void
@@ -106,7 +106,9 @@ void
 {
    EdText* text= editor::text;
    active.index(col_zero+text->col_size); // Blank fill
-   text->putxy(get_gc(), text->get_xy(0, row), active.get_buffer(col_zero));
+   EdLine line= *cursor;            // (Copy the cursor flags)
+   line.text= active.get_buffer();
+   text->draw_line(row, &line);
    if( editor::view == this )
      text->draw_cursor();
    text->flush();

@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2021/08/08
+//       2021/10/01
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -139,6 +139,26 @@ void
    cursor= nullptr;
    active.reset("");
    EdView::activate();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdHist::draw_active
+//
+// Purpose-
+//       Redraw the active (history) line
+//
+//----------------------------------------------------------------------------
+void
+   EdHist::draw_active( void )      // Redraw the active line
+{
+   EdText* text= editor::text;
+   active.index(col_zero+text->col_size); // Blank fill
+   text->putxy(get_gc(), text->get_xy(0, row), active.get_buffer(col_zero));
+   if( editor::view == this )
+     text->draw_cursor();
+   text->flush();
 }
 
 //----------------------------------------------------------------------------

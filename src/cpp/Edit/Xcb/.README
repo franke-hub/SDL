@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/08/24
+##       2021/10/01
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in ALPHA status.
@@ -27,10 +27,9 @@
 
 ##############################################################################
 ## STATUS:
-2021/08/28 ?? Change background color in data view rather than status view
-         when the file is changed ?? Or both?? color = r,g,b;r,g,b
-
-2021/08/28 ?? Save/file command sets data view (to see line number) ??
+2021/09/08 Mark display update works improperly when line changed.
+2021/10/01 Fix: EdView.draw_active uses EdText.draw_line for display.
+           (EdHist.draw_active writes line directly.)
 
 ##############################################################################
 ## CHANGE LOG:
@@ -218,6 +217,10 @@
 
 ##############################################################################
 ## FEATURE:
+2021/08/28 ?? Change background color in data view rather than status view
+         when the file is changed ?? Or both?? color = r,g,b;r,g,b
+
+2021/08/28 ?? Save/file command sets data view (to see line number)
 
 ##############################################################################
 ## OPEN:

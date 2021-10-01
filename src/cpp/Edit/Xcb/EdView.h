@@ -16,7 +16,7 @@
 //       Editor: TextWindow view
 //
 // Last change date-
-//       2021/06/24
+//       2021/10/01
 //
 //----------------------------------------------------------------------------
 #ifndef EDVIEW_H_INCLUDED
@@ -86,10 +86,10 @@ virtual void
 //       EdView::draw_active
 //
 // Purpose-
-//       Redraw the active line and (if the view is active, also) the cursor
+//       Redraw the active (data) line
 //
 //----------------------------------------------------------------------------
-void
+virtual void
    draw_active( void );             // Redraw the active line
 
 //----------------------------------------------------------------------------
