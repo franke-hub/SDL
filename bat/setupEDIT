@@ -16,7 +16,7 @@
 ##       Set up EDITOR environment variable (heuristic.)
 ##
 ## Last change date-
-##       2021/07/17
+##       2021/10/04
 ##
 ## Usage-
 ##       . setupEDIT
@@ -29,8 +29,7 @@
 
 ##############################################################################
 ## Heuristic: set EDITOR environment variable
-CYGWIN=`uname | grep CYGWIN`
-if [[ -n "$CYGWIN" && -z "$DISPLAY" ]] ; then  ## If CYGWIN w/o display
+if [[ -z "$DISPLAY" ]] ; then       ## If no DISPLAY environment variable
     export EDITOR=$HOME/bin/editor  ## (Must) use ncurses editor
 elif [[ -z "$EDITOR" ]] ; then      ## If not already specified
     export EDITOR=$HOME/bin/editxcb ## Use XCB editor
