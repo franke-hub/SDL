@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2021/05/23
+//       2021/11/23
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -712,7 +712,7 @@ std::string                         // The visual representation
 
    int M= inp.length();
    for(int i= 0; i<M; i++) {
-     char C= inp[i];
+     unsigned char C= (unsigned char)inp[i];
      switch(C) {
        case '\a':
          out << "\\a";
@@ -759,7 +759,10 @@ std::string                         // The visual representation
          break;
 
        default:
-         out << C;
+         if( C < 0x20 || C >= 0x7F )
+           out << to_string("\\0x%.2X", C);
+         else
+           out << C;
          break;
      }
    }
