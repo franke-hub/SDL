@@ -40,7 +40,6 @@
 #include <unistd.h>
 #include <arpa/inet.h>              // For htons, ntohs
 
-#include "MUST.H"                   // Error counting assert
 #include "pub/Debug.h"
 #include "pub/config.h"             // For _PUB_NAMESPACE
 #include "pub/Object.h"
@@ -48,6 +47,7 @@
 #include "pub/Latch.h"              // See test_Latch
 #include "pub/memory.h"             // See test_atomic_shared_ptr, NOT CODED YET
 #include "pub/Signals.h"            // See test_Signals
+#include "pub/TEST.H"               // For error counting
 #include "pub/Trace.h"              // See test_Trace
 #include "pub/Utf.h"                // See test_Utf
 #include "pub/UTF8.h"               // See test_UTF8
@@ -78,6 +78,7 @@ using _PUB_NAMESPACE::utility::dump;
 //----------------------------------------------------------------------------
 // Options
 //----------------------------------------------------------------------------
+static int             opt_TEST= false; // (Only set if --all)
 static int             opt_case= false; // (Only set if --all)
 static int             opt_debug= 0; // --debug
 static int             opt_dump= false; // --dump
@@ -86,7 +87,6 @@ static int             opt_help= false; // --help or error
 static int             opt_index;   // Option index
 static int             opt_latch= false; // --latch
 static int             opt_misc= false; // --misc
-static int             opt_must= false; // --must
 static int             opt_signals= false; // --signals
 static int             opt_trace= false; // --trace
 static int             opt_verbose= false; // --verbose
@@ -100,7 +100,6 @@ static struct option   OPTS[]=      // Options
 ,  {"dump",    no_argument,       &opt_dump,    true}
 ,  {"latch",   no_argument,       &opt_latch,   true}
 ,  {"misc",    no_argument,       &opt_misc,    true}
-,  {"must",    no_argument,       &opt_must,    true}
 ,  {"signals", no_argument,       &opt_signals, true}
 ,  {"trace",   no_argument,       &opt_trace,   true}
 ,  {"utf8",    no_argument,       &opt_utf8,    true}
@@ -119,7 +118,6 @@ enum OPT_INDEX
 ,  OPT_DUMP
 ,  OPT_LATCH
 ,  OPT_MISC
-,  OPT_MUST
 ,  OPT_SIGNALS
 ,  OPT_TRACE
 ,  OPT_UTF8
@@ -225,9 +223,10 @@ static void
          switch( opt_index )
          {
            case OPT_ALL:
-             opt_latch= true;
-             opt_case= true;
+             opt_TEST= true;        // (Only set here)
+             opt_case= true;        // (Only set here)
              // opt_dump= true;     // Select separately (visual debugging)
+             opt_latch= true;
              opt_misc= true;
              opt_signals= true;
              // opt_trace= true;    // Select separately (visual debugging)
@@ -639,41 +638,6 @@ static constexpr const char* const good=
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       test_Must
-//
-// Purpose-
-//       Test case example, tests MUST functions.
-//
-//----------------------------------------------------------------------------
-static inline int
-   test_Must( void )                  // Test Case.h
-{
-   debugf("\ntest_Must\n");
-
-   int                 errorCount= 0; // Number of errors encountered
-
-   // This tests the MUST.H macros
-   int one= 1;
-   int two= 1;
-   std::thread::id is_thread= std::this_thread::get_id();
-   std::thread::id no_thread;
-
-   errorCount += VERIFY(1 == 1);
-   errorCount += VERIFY(1 == 2);
-   errorCount += MUST_EQ(one, 1);
-   errorCount += MUST_EQ(two, 2);
-   errorCount += MUST_NOT(Sample error description);
-   errorCount += MUST_EQ(is_thread, is_thread);
-   errorCount += MUST_EQ((volatile std::thread::id&)no_thread, no_thread);
-   errorCount += MUST_EQ((volatile std::thread::id&)is_thread, no_thread);
-   errorCount += MUST_EQ(no_thread, is_thread);
-
-   return errorCount;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
 //       test_Signals
 //
 // Purpose-
@@ -852,6 +816,46 @@ static inline int
    errorCount += MUST_EQ(B_counter, 16);
 
    return errorCount;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_TEST
+//
+// Purpose-
+//       Test case example, tests TEST.H functions.
+//
+//----------------------------------------------------------------------------
+static inline int
+   test_TEST( void )                  // Test TEST.H
+{
+   debugf("\ntest_TEST\n");
+
+   int                 errorCount= 0; // Number of errors encountered
+
+   // This tests the TEST.H macros, including error cases
+   int one= 1;
+   int two= 1;
+   std::thread::id is_thread= std::this_thread::get_id();
+   std::thread::id no_thread;
+
+   errorCount += VERIFY(1 == 1);
+   errorCount += VERIFY(1 == 2);
+                 debugf("%4d: Error expected\n", __LINE__ - 1);
+   errorCount += MUST_EQ(one, 1);
+   errorCount += MUST_EQ(two, 2);
+                 debugf("%4d: Error expected\n", __LINE__ - 1);
+   errorCount += MUST_NOT(Sample error description);
+                 debugf("%4d: Error expected\n", __LINE__ - 1);
+   errorCount += MUST_EQ(is_thread, is_thread);
+   errorCount += MUST_EQ((volatile std::thread::id&)no_thread, no_thread);
+   errorCount += MUST_EQ((volatile std::thread::id&)is_thread, no_thread);
+                 debugf("%4d: Error expected\n", __LINE__ - 1);
+   errorCount += MUST_EQ(no_thread, is_thread);
+                 debugf("%4d: Error expected\n", __LINE__ - 1);
+
+   return errorCount != 5;
 }
 
 //----------------------------------------------------------------------------
@@ -1489,11 +1493,11 @@ extern int                          // Return code
    try {
      parm(argc, argv);
 
+     if( opt_TEST )    errorCount += test_TEST();
      if( opt_case )    errorCount += test_Case();
      if( opt_dump )    errorCount += test_dump();
      if( opt_latch )   errorCount += test_Latch();
      if( opt_misc )    errorCount += test_Misc();
-     if( opt_must )    errorCount += test_Must();
      if( opt_signals ) errorCount += test_Signals();
      if( opt_trace )   errorCount += test_Trace();
      if( opt_utf8 )    errorCount += test_UTF8();

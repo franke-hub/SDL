@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2021/07/09
+//       2021/11/09
 //
 // Arguments: (For testtime only)
 //       [1] 10240 Number of outer loops
@@ -56,14 +56,10 @@ using namespace _PUB_NAMESPACE::debugging;
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#define HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-//----------------------------------------------------------------------------
-// Dependent macros
-//----------------------------------------------------------------------------
-#include <pub/ifmacro.h>
+enum
+{  HCDM= true                       // Hard Core Debug Mode?
+,  USE_PASSALONG_LAMBDA= false
+}; // enum
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -92,6 +88,7 @@ virtual void
 //
 // Class-
 //       PassAlongTask
+//       PassAlongLambdaTask
 //
 // Purpose-
 //       Pass work to next Task in list.
@@ -105,13 +102,13 @@ public:
 virtual
    ~PassAlongTask( void )
 {
-// IFHCDM( debugf("~PassAlongTask(%p) %2d\n", this, index); )
+// if( HCDM ) debugf("~PassAlongTask(%p) %2d\n", this, index);
 }
 
    PassAlongTask(
-     dispatch::Task*   next)
+     dispatch::Task*   next_)
 : dispatch::Task()
-, next(next)
+, next(next_)
 { }
 
 virtual void
@@ -119,6 +116,24 @@ virtual void
      dispatch::Item*   item)
 {  next->enqueue(item); }           // Give the work to the next Task
 }; // class PassAlongTask
+
+class PassAlongLambdaTask : public dispatch::LambdaTask {
+protected:
+dispatch::Task*        next;        // Next Task in list
+
+public:
+virtual
+   ~PassAlongLambdaTask( void )
+{
+// if( HCDM ) debugf("~PassAlongLambdaTask(%p) %2d\n", this, index);
+}
+
+   PassAlongLambdaTask(
+     dispatch::Task*   next_)
+:  LambdaTask([this](dispatch::Item* item) { next->enqueue(item); })
+,  next(next_)
+{ }
+}; // class PassAlongLambdaTask
 
 //----------------------------------------------------------------------------
 //
@@ -137,7 +152,7 @@ public:
 virtual
    ~RondesvousTask( void )
 {
-// IFHCDM( debugf("~RondesvousTask(%p) %2d\n", this, index); )
+// if( HCDM ) debugf("~RondesvousTask(%p) %2d\n", this, index);
 }
 
    RondesvousTask(
@@ -213,8 +228,10 @@ static int
 {
    int                 result= 1;   // Resultant
 
-   IFHCDM( debugf("%4d test0000\n", __LINE__); )
+   if( HCDM ) debugf("%4d test0000\n", __LINE__);
 
+   // Basic function test ====================================================
+   if( HCDM ) debugf("\n%4d Basic function test\n", __LINE__);
    dispatch::Item     item;         // Our work Item
    dispatch::Wait     wait;         // Our Wait object
    class Test0000Task : public dispatch::Task {
@@ -224,7 +241,6 @@ static int
      public:
        Test0000Task( int* foo ) : dispatch::Task(), target(foo) {}
        virtual void work(dispatch::Item* item) {
-         IFHCDM( debugf("%4d Task.work\n", __LINE__); )
          *target= 0;
          item->post();
        }
@@ -232,19 +248,51 @@ static int
 
    item.done= &wait;                // Set Wait object
    task.enqueue(&item);             // Drive work
-   IFHCDM( debugf("%4d waiting...\n", __LINE__); )
+   if( HCDM ) debugf("%4d waiting...\n", __LINE__);
    wait.wait();                     // Wait for work completion
    task.reset();
-   IFHCDM( debugf("%4d ...running\n", __LINE__); )
+   if( HCDM ) debugf("%4d ...running\n", __LINE__);
 
-   // Verify that task.work was driven
    if( result != 0 )
      throwf(__LINE__, "result(%d) non-zero", result);
    if( item.cc != 0 )
      throwf(__LINE__, "cc(%d) non-zero", item.cc);
 
-   // Verify delay and cancel
+   // Lambda function test ===================================================
+   if( HCDM ) debugf("\n%4d Lambda function test\n", __LINE__);
+   int not_done= true;
+   int not_task= true;
+   pub::Event event;                // Our completion item
+   dispatch::LambdaDone l_done([&](dispatch::Item* item_) { // Method done()
+     if( &item != item_ )
+       throwf("%4d &item(%p) item_(%p)\n", __LINE__, &item, item_);
+     not_done= false;
+     event.post();
+   });
+
+   dispatch::LambdaTask l_task([&](dispatch::Item* item_) { // Method work()
+     not_task= false;
+     item_->post();
+   });
+
+   item.cc= -1;                     // Set error result
+   item.done= &l_done;
+   l_task.enqueue(&item);           // Drive work
+   if( HCDM ) debugf("%4d waiting...\n", __LINE__);
+   event.wait();                    // Wait for event
+   if( HCDM ) debugf("%4d ...running\n", __LINE__);
+
+   if( item.cc != 0 )
+     throwf(__LINE__, "cc(%d) non-zero", item.cc);
+   if( not_task )
+     throwf(__LINE__, "not_task (l_task.work not driven)");
+   if( not_done )
+     throwf(__LINE__, "not_done (l_done.done not driven)");
+
+   // Verify delay and cancel ================================================
+   if( HCDM ) debugf("\n%4d delay/cancel function tests\n", __LINE__);
    wait.reset();
+   item.done= &wait;                // Set Wait object
    Interval interval;
    interval.start();
    dispatch::Disp::delay(3.025, &item); // Note: Extra time for Clock granule
@@ -288,7 +336,7 @@ static int
    dispatch::Item*     ITEM[64];    // Rondesvous Item array
    dispatch::Wait      WAIT[64];    // Rondesvous Wait array
 
-   IFHCDM( debugf("%4d test0001\n", __LINE__); )
+   if( HCDM ) debugf("\n%4d test0001\n", __LINE__);
 
    // Initialize
    rondesvous.store(0);
@@ -342,7 +390,7 @@ static int
 //   char*             argv[])      // Argument array
 {
 #if 0 // Implementation not exposed ==========================================
-   IFHCDM( debugf("%4d test0002\n", __LINE__); )
+   if( HCDM ) debugf("\n%4d test0002\n", __LINE__);
 
    // MaxThreads testing
    WorkerPool::debug();
@@ -377,11 +425,12 @@ static int
    one.post(0);
    Thread::sleep(1.5);
    WorkerPool::debug();
-#endif // Implementation not exposed =========================================
 
 // debugf("reset()\n");
    WorkerPool::reset();
    WorkerPool::debug();
+   debugf("\n");
+#endif // Implementation not exposed =========================================
 
    return 0;
 }
@@ -405,7 +454,7 @@ static int
    dispatch::Item**    ITEM;        // The Item array
    dispatch::Wait**    WAIT;        // The Wait array
 
-   IFHCDM( debugf("%4d testtime\n", __LINE__); )
+   if( HCDM ) debugf("%4d testtime\n", __LINE__);
 
    // Set defaults
    int LOOPS= 10240;                // Number of major iterations
@@ -432,7 +481,11 @@ static int
    TASK= new dispatch::Task*[TASKS];
    for(int i= TASKS-1; i >=0; i--)
    {
-     dispatch::Task* task= new PassAlongTask(prior);
+     dispatch::Task* task= nullptr;
+     if( USE_PASSALONG_LAMBDA && i & 1 )
+       task= new PassAlongLambdaTask(prior);
+     else
+       task= new PassAlongTask(prior);
      prior= task;
      TASK[i]= task;
    }
@@ -474,7 +527,7 @@ static int
    debugf("%'16.3f ops/second\n", ops / elapsed);
 
    // Diagnostics
-   dispatch::Disp::debug();
+   if( HCDM ) { debugf("\n"); dispatch::Disp::debug(); }
 
    // Cleanup
    FINAL.reset();
@@ -515,7 +568,7 @@ extern int
 
    debug_set_head(Debug::HEAD_THREAD); // Include thread in heading
    debug_set_file_mode("ab");       // Append trace file
-   IFHCDM( debug_set_mode(Debug::MODE_INTENSIVE); )
+   if( HCDM ) debug_set_mode(Debug::MODE_INTENSIVE);
    debugh("TestDisp started\n");
 
    try {

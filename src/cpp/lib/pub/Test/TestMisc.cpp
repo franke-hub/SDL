@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2021 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2020/10/03
+//       2021/11/19
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -28,13 +28,12 @@
 #include <pub/Exception.h>
 
 // The tested includes
+#include "pub/TEST.H"               // For VERIFY, ...
 #include "pub/Clock.h"
 #include "pub/Interval.h"
 #include "pub/Properties.h"
+#include "pub/Statistic.h"
 #include "pub/Tokenizer.h"
-
-// Helper functions
-#include "MUST.H"
 
 // Namespace accessors
 using namespace _PUB_NAMESPACE::debugging;
@@ -344,6 +343,46 @@ static inline int
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       test_Statistic
+//
+// Purpose-
+//       Test Statistic.
+//
+//----------------------------------------------------------------------------
+static inline int
+   test_Statistic( void )           // Test Statistic
+{
+   int errorCount= 0;
+
+   debugf("\ntest_Statistic\n");
+
+   pub::Statistic stat;
+   errorCount += VERIFY(stat.inc() == 1 );
+   errorCount += VERIFY(stat.inc() == 2 );
+   errorCount += VERIFY(stat.inc() == 3 );
+   errorCount += VERIFY(stat.inc() == 4 );
+   errorCount += VERIFY(stat.inc() == 5 );
+   errorCount += VERIFY(stat.dec() == 4 );
+   errorCount += VERIFY(stat.dec() == 3 );
+   errorCount += VERIFY(stat.dec() == 2 );
+   errorCount += VERIFY(stat.inc() == 3 );
+
+   errorCount += VERIFY(stat.counter.load() == 6 );
+   errorCount += VERIFY(stat.current.load() == 3 );
+   errorCount += VERIFY(stat.maximum.load() == 5 );
+   errorCount += VERIFY(stat.minimum.load() == 2 );
+
+   if( opt_debug ) {
+     printf("stat: %ld  %ld,%ld,%ld\n", stat.counter.load()
+           , stat.minimum.load() , stat.current.load(), stat.maximum.load());
+   }
+
+   return errorCount;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       test_Tokenizer
 //
 // Purpose-
@@ -488,6 +527,7 @@ extern int
      parm(argc, argv);
 
      errorCount += test_Properties(); // Test Properties.h
+     errorCount += test_Statistic(); // Test Statistic.h
      errorCount += test_Tokenizer(); // Test Tokenizer.h
 
      opt_debug= true;               // Following tests require output
