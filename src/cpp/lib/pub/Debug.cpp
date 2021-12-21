@@ -16,7 +16,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2021/05/23
+//       2021/12/11
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -24,6 +24,7 @@
 #include <thread>                   // For std::this_thread
 
 #include <assert.h>                 // For debugging
+#include <errno.h>                  // For errno
 #include <inttypes.h>               // For PRIx64
 #include <stdarg.h>                 // For va_list, ...
 #include <stdio.h>                  // For FILE I/O
@@ -86,8 +87,11 @@ int                    debugging::options::pub_verbose= -1;
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static std::recursive_mutex
-                       mutex;       // Recursive serialization Latch
+#if false
+static std::recursive_mutex mutex;  // Recursive serialization Latch
+#else
+static RecursiveLatch  mutex;       // Recursive serialization Latch
+#endif
 static Debug*          internal= nullptr; // The auto-allocated Debug object
 
 static struct GlobalDestructor {    // On unload, remove Debug::global
@@ -110,11 +114,16 @@ static bool                         // true iff different
      FILE*             output,      // The output handle
      FILE*             handle)      // The trace handle
 {
-   // Files do not differ if both are tty
-   if( isatty(fileno(output)) && isatty(fileno(handle)) )
-     return false;
+   bool differ= true;               // Default, files differ
+   if( output != handle ) {         // If they are not the same file
+     // Files do not differ if both are tty
+     int ERRNO= errno;              // Linux isatty can set errno
+     if( isatty(fileno(output)) && isatty(fileno(handle)) )
+       differ= false;
+     errno= ERRNO;                  // (Preserving errno)
+   }
 
-   return output != handle;
+   return differ;
 }
 
 //----------------------------------------------------------------------------
