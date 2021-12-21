@@ -16,15 +16,18 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2021/06/10
+//       2021/12/06
 //
 //----------------------------------------------------------------------------
 #include <errno.h>                  // For errno
 #include <mutex>                    // For mutex, std::lock_guard, ...
+
+#include <netdb.h>                  // Form addrinfo, ...
 #include <poll.h>                   // For poll, ...
+#include <stdarg.h>                 // For va_* functions
 #include <string.h>                 // For memset, ...
 #include <unistd.h>                 // For close, ...
-#include <arpa/inet.h>              // [[ REMINDER: inet address conversions ]]
+#include <arpa/inet.h>              // For internet address conversions
 #include <openssl/err.h>            // For ERR_error_string
 #include <sys/time.h>               // For timeval, ...
 
@@ -34,28 +37,14 @@
 #include "pub/Socket.h"             // The Socket Object
 
 using namespace _PUB_NAMESPACE::debugging; // For debugging
-using _PUB_NAMESPACE::utility::to_string; // For to_string
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-#ifndef IODM
-#undef  IODM                        // If defined, I/O Debug Mode
-#endif
-
-#ifndef SCDM                        // ** NOT IMPLEMENTED **
-#undef  SCDM                        // If defined, Soft Core Debug Mode
-#endif
-
-#ifndef TRACE                       // ** NOT IMPLEMENTED **
-#undef  TRACE                       // If defined, Use memory trace
-#endif
-
-#include <pub/ifmacro.h>
+enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  IODM= false                      // I/O Debug Mode
+}; // enum
 
 namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
@@ -93,7 +82,7 @@ static void
 //
 //----------------------------------------------------------------------------
    Socket::~Socket( void )          // Destructor
-{  IFHCDM( debugh("Socket(%p)::~Socket()\n", this); )
+{  if( HCDM ) debugh("Socket(%p)::~Socket()\n", this);
 
    close();
 }
@@ -109,7 +98,7 @@ static void
 //----------------------------------------------------------------------------
    Socket::Socket( void )           // Constructor
 :  Object(), handle(CLOSED), recv_timeo(0), send_timeo(0)
-{  IFHCDM( debugh("Socket(%p)::Socket()\n", this); )
+{  if( HCDM ) debugh("Socket(%p)::Socket()\n", this);
 
    memset(&host_addr, 0, sizeof(host_addr));
    memset(&peer_addr, 0, sizeof(peer_addr));
@@ -120,7 +109,7 @@ static void
    Socket::Socket(                  // Copy constructor
      const Socket&     source)      // Source Socket
 :  Object(), handle(CLOSED)
-{  IFHCDM( debugh("Socket(%p)::Socket(%p)\n", this, &source); )
+{  if( HCDM ) debugh("Socket(%p)::Socket(%p)\n", this, &source);
 
    this->host_addr= source.host_addr;
    this->peer_addr= source.peer_addr;
@@ -140,7 +129,7 @@ static void
 Socket&                             // (Always *this)
    Socket::operator=(               // Assignment operator
      const Socket&     source)      // Source Socket
-{  IFHCDM( debugh("Socket(%p)::operator=(%p)\n", this, &source); )
+{  if( HCDM ) debugh("Socket(%p)::operator=(%p)\n", this, &source);
 
    this->handle= CLOSED;
 
@@ -150,6 +139,80 @@ Socket&                             // (Always *this)
    this->peer_size= source.peer_size;
 
    return *this;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::debug
+//       Socket::trace
+//
+// Purpose-
+//       Diagnostic display
+//       Trace socket operation message
+//
+//----------------------------------------------------------------------------
+void
+   Socket::debug(                   // Diagnostic display
+     const char*       info) const  // Diagnostic info
+{
+   debugf("Socket(%p)::debug(%s) handle(%d)\n", this, info, handle);
+
+   std::string S= host_addr.to_string();
+   debugf("..host_addr: %s\n", host_addr.to_string().c_str());
+   debugf("..peer_addr: %s\n", peer_addr.to_string().c_str());
+   debugf("..host_size(%d), peer_size(%d), recv_timeo(%d), send_timeo(%d)\n"
+         , host_size, peer_size, recv_timeo, send_timeo);
+}
+
+void
+   Socket::trace(                   // Trace socket operation
+     int               line,        // For this source code line
+     const char*       fmt,         // Format string
+                       ...) const   // The PRINTF argument list
+{
+   va_list             argptr;      // Argument list pointer
+
+   int ERRNO= errno;                // (Preserve errno)
+   std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
+
+   traceh("%4d Socket(%p): ", line, this); // (Heading)
+
+   va_start(argptr, fmt);           // Initialize va_ functions
+   vtracef(fmt, argptr);            // (User error message)
+   va_end(argptr);                  // Close va_ functions
+
+   if( ERRNO ) {                    // If error
+     tracef(" %d:%s\n", ERRNO, strerror(ERRNO)); // (errno information)
+   } else {
+     tracef("\n");
+   }
+
+   errno= ERRNO;                    // (Restore errno)
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::get_host_name
+//
+// Purpose-
+//       Get the host name
+//
+//----------------------------------------------------------------------------
+std::string                         // The host name
+   Socket::get_host_name( void )    // Get host name
+{
+   char host_name[HOST_NAME_MAX];   // The host name
+   int rc= gethostname(host_name, HOST_NAME_MAX);
+   if( rc ) {
+     int ERRNO= errno;
+     traceh("%d Socket::get_host_name %d:%s\n", __LINE__
+           , ERRNO, strerror(ERRNO));
+     errno= ERRNO;
+     host_name[0]= '\0';
+   }
+   return host_name;
 }
 
 //----------------------------------------------------------------------------
@@ -213,16 +276,13 @@ int                                 // Return code
 int                                 // Return code, 0 OK
    Socket::bind(                    // Bind this Socket
      Port              port)        // To this Port
-{  IFHCDM( debugh("Socket(%p)::bind(%d)\n", this, port); )
+{  if( HCDM ) debugh("Socket(%p)::bind(%d)\n", this, port);
 
    set_host_port(port);             // Set the host port
 
    int rc= ::bind(handle, (sockaddr*)&host_addr, host_size);
-   IFIODM(
-     int ERRNO= errno;
-     traceh("%d= Socket(%p)::bind(...)\n", rc, this);
-     errno= ERRNO;
-   )
+   if( IODM )
+     trace(__LINE__, "%d= bind()", rc);
 
    return rc;
 }
@@ -241,7 +301,7 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
    Socket::close( void )            // Close the Socket
-{  IFHCDM( debugh("Socket(%p)::close() handle(%d)\n", this, handle); )
+{  if( HCDM ) debugh("Socket(%p)::close() handle(%d)\n", this, handle);
 
    int rc= 0;
    if( handle >= 0 ) {
@@ -263,18 +323,16 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 int                                 // Return code (0 OK)
    Socket::connect(                 // Connect to peer
-     sockaddr*         peer_addr,   // Peer address
+     const sockaddr*   peer_addr,   // Peer address
      socklen_t         peer_size)   // Peer address length
-{  IFHCDM( debugh("Socket(%p)::connect(%p,%d)\n", this, peer_addr, peer_size); )
+{  if( HCDM )
+     debugh("Socket(%p)::connect(%p,%d)\n", this, peer_addr, peer_size);
 
    if( size_t(peer_size) > sizeof(this->peer_addr) )
      throw SocketException("Socket::connect peer_size");
    int rc= ::connect(handle, peer_addr, peer_size);
-   IFIODM(
-     int ERRNO= errno;
-     traceh("%d= Socket(%p)::connect(...)\n", rc, this);
-     errno= ERRNO;
-   )
+   if( IODM )
+     trace(__LINE__, "%d= connect(%d)", rc, handle);
    if( rc == 0 ) {
      memcpy(&this->peer_addr, peer_addr, peer_size);
      this->peer_size= peer_size;
@@ -297,11 +355,8 @@ Socket*                             // The new connection Socket
 {
    int rc= ::listen(handle, SOMAXCONN); // Wait for new connection
    if( rc != 0 ) {                  // If listen failure
-     int ERRNO= errno;
-     traceh("%d= Socket(%p)::listen() error(%d,%s)\n", rc, this,
-            ERRNO, strerror(ERRNO));
+     trace(__LINE__, "%d= listen()", rc);
      display_ERR();
-     errno= ERRNO;
      return nullptr;
    }
 
@@ -318,15 +373,16 @@ Socket*                             // The new connection Socket
        return nullptr;              // (Expected)
 
      if( errno != EINTR ) {         // If not interrupted
-       errorf("Warning: Socket::listen, accept failure(%s)\n",
-              strerror(errno));
+       if( IODM )                   // (This shouldn't occur, but does)
+         trace(__LINE__, "listen [accept]");
        return nullptr;
      }
    }
 
    Socket* result= new Socket(*this);
    result->handle= client;
-   IFIODM( traceh("%p[%d]= Socket(%p)::listen()\n", result, client, this); )
+   if( IODM )
+     trace(__LINE__, "%p[%d]= listen", result, client);
 
    return result;
 }
@@ -345,9 +401,8 @@ int                                 // Return code, 0 OK
      int               family,      // Address Family
      int               type,        // Socket type
      int               protocol)    // Socket protocol
-{  IFHCDM(
+{  if( HCDM )
      debugh("Socket(%p)::open(%d,%d,%d)\n", this, family, type, protocol);
-   )
 
    if( handle >= 0 )
      throw SocketException("Socket already open"); // This is a usage error
@@ -357,29 +412,27 @@ int                                 // Return code, 0 OK
    host_size= sizeof(host_addr);
    peer_size= sizeof(peer_addr);
 
-   // (Current) implementation restrictions
-   if( family == AF_INET )
-     host_size= sizeof(sockaddr_in);
-   else if( family == AF_INET6 )
-     host_size= sizeof(sockaddr_in6);
-   else {
-     char temp[64];
-     sprintf(temp, "sa_family_t(%d) not supported", family);
-     throw SocketException(temp);
-   }
-
-   if( type != SOCK_STREAM ) {
-     char temp[64];
-     sprintf(temp, "socket type(%d) not supported", type);
-     throw SocketException(temp);
-   }
-
    handle= ::socket(family, type, protocol);
-   if( handle < 0 )
-     throw SocketException("Error creating socket"); // (SHOULD NOT OCCUR)
+   if( handle < 0 )                 // (Errors unexpected)
+     return handle;
 
    // Open accepted
-   host_addr.ss_family= family;
+   addrinfo hint{};                 // Hints
+   hint.ai_family= family;
+   hint.ai_socktype= type;
+   hint.ai_protocol= protocol;
+
+   addrinfo* info= nullptr;         // Resultant info
+   int rc= getaddrinfo(get_host_name().c_str(), nullptr, &hint, &info);
+   if( rc ) {                       // If unable to get addrinfo
+     if( IODM )
+       trace(__LINE__, "open [getaddrinfo]");
+   } else {
+     memcpy(&host_addr, info->ai_addr, info->ai_addrlen);
+     host_size= info->ai_addrlen;
+     freeaddrinfo(info);
+   }
+
    return 0;
 }
 
@@ -392,13 +445,53 @@ int                                 // Return code, 0 OK
 //       Read from the Socket
 //
 //----------------------------------------------------------------------------
-int                                 // Number of bytes read
+ssize_t                             // Number of bytes read
    Socket::read(                    // Read from the Socket
      void*             addr,        // Data address
-     int               size)        // Data length
+     size_t            size)        // Data length
 {
-   int L= ::recv(handle, (char*)addr, size, 0);
-   IFIODM( traceh("%d= Socket(%p)::read(...)\n", L, this); )
+   ssize_t L= ::recv(handle, (char*)addr, size, 0);
+   if( IODM ) trace(__LINE__, "%zd= read()", L);
+   return L;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::recv
+//
+// Purpose-
+//       Receive from the Socket
+//
+//----------------------------------------------------------------------------
+ssize_t                             // Number of bytes read
+   Socket::recv(                    // Receive from the Socket
+     void*             addr,        // Data address
+     size_t            size,        // Data length
+     int               flag)        // Receive options
+{
+   ssize_t L= ::recv(handle, (char*)addr, size, flag);
+   if( IODM ) trace(__LINE__, "%zd= recv()", L);
+   return L;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::send
+//
+// Purpose-
+//       Transmit to the Socket
+//
+//----------------------------------------------------------------------------
+ssize_t                             // Number of bytes sent
+   Socket::send(                    // Write to the Socket
+     const void*       addr,        // Data address
+     size_t            size,        // Data length
+     int               flag)        // Transmit options
+{
+   ssize_t L= ::send(handle, (char*)addr, size, flag);
+   if( IODM ) trace(__LINE__, "%zd= send()", L);
    return L;
 }
 
@@ -411,14 +504,53 @@ int                                 // Number of bytes read
 //       Write to the Socket
 //
 //----------------------------------------------------------------------------
-int                                 // Number of bytes sent
+ssize_t                             // Number of bytes sent
    Socket::write(                   // Write to the Socket
      const void*       addr,        // Data address
-     int               size)        // Data length
+     size_t            size)        // Data length
 {
-   int L= ::send(handle, (char*)addr, size, 0);
-   IFIODM( traceh("%d= Socket(%p)::write(...)\n", L, this); )
+   ssize_t L= ::send(handle, (char*)addr, size, 0);
+   if( IODM ) trace(__LINE__, "%zd= write()", L);
    return L;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::sockaddr_u::to_string
+//
+// Purpose-
+//       Convert (sockaddr_u) to string
+//
+//----------------------------------------------------------------------------
+std::string
+   Socket::sockaddr_u::to_string( void ) const // Convert to string
+{
+   std::string result;              // Resultant string
+   char work[INET6_ADDRSTRLEN];     // (Address string buffer)
+   const char* buff= nullptr;       // inet_ntop resultant
+
+   errno= 0;
+   if( su_family == AF_INET ) {    // If IPv4
+     buff= inet_ntop(AF_INET, &su_in.sin_addr, work, sizeof(work));
+     if( buff )
+       result= utility::to_string("%s:%d", buff, ntohs(su_in.sin_port));
+
+   } else if( su_family == AF_INET6) { // If IPv6
+     buff= inet_ntop(AF_INET6, &su_in6.sin6_addr, work, sizeof(work));
+     if( buff )
+       result= utility::to_string("[%s]:%d\n", buff, ntohs(su_in6.sin6_port));
+
+   } else {                         // If invalid address family
+     buff= work;                    // (Indicate result valid)
+     result= utility::to_string("<undefined(%d)>", su_family);
+     errno= EINVAL;
+   }
+
+   if( buff == nullptr )
+     result= "<inet_ntop error>";   // (errno set by inet_ntop)
+
+   return result;
 }
 
 //----------------------------------------------------------------------------
@@ -431,7 +563,7 @@ int                                 // Number of bytes sent
 //
 //----------------------------------------------------------------------------
    SSL_Socket::~SSL_Socket( void )  // Destructor
-{  IFHCDM( debugh("SSL_Socket(%p)::~SSL_Socket() ssl(%p)\n", this, ssl); )
+{  if( HCDM ) debugh("SSL_Socket(%p)::~SSL_Socket() ssl(%p)\n", this, ssl);
 
    if( ssl )                        // If SSL state exists
      SSL_free(ssl);                 // Delete it
@@ -449,8 +581,7 @@ int                                 // Number of bytes sent
    SSL_Socket::SSL_Socket(          // Constructor
      SSL_CTX*          context)     // The associated SSL Context
 :  Socket(), ssl_ctx(context), ssl(nullptr)
-{  IFHCDM( debugh("SSL_Socket(%p)::SSL_Socket(%p,%d,%d,%d)\n", this, context,
-                  family, type, protocol); )
+{  if( HCDM ) debugh("SSL_Socket(%p)::SSL_Socket(%p)\n", this, context);
 }
 
    SSL_Socket::SSL_Socket(          // Copy constructor
@@ -482,6 +613,52 @@ SSL_Socket&                         // (Always *this)
 //----------------------------------------------------------------------------
 //
 // Method-
+//       SSL_Socket::debug
+//       SSL_Socket::trace
+//
+// Purpose-
+//       Diagnostic display
+//       Trace socket operation message
+//
+//----------------------------------------------------------------------------
+void
+   SSL_Socket::debug(               // Diagnostic display
+     const char*       info) const  // Diagnostic info
+{
+   debugf("SSL_Socket(%p)::debug(%s)\n", this, info);
+
+   // NOT CODED TET
+}
+
+void
+   SSL_Socket::trace(               // Trace SSL_Socket operation
+     int               line,        // For this source code line
+     const char*       fmt,         // Format string
+                       ...) const   // The PRINTF argument list
+{
+   va_list             argptr;      // Argument list pointer
+
+   int ERRNO= errno;                // (Preserve errno)
+   std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
+
+   traceh("%4d SSL_Socket(%p) ", line, this); // (Heading)
+
+   va_start(argptr, fmt);           // Initialize va_ functions
+   vtracef(fmt, argptr);            // (User error message)
+   va_end(argptr);                  // Close va_ functions
+
+   if( ERRNO ) {                    // If error
+     tracef(" %d:%s\n", ERRNO, strerror(ERRNO)); // (errno information)
+   } else {
+     tracef("\n");
+   }
+
+   errno= ERRNO;                    // (Restore errno)
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       SSL_Socket::connect
 //
 // Purpose-
@@ -490,11 +667,10 @@ SSL_Socket&                         // (Always *this)
 //----------------------------------------------------------------------------
 int                                 // Return code (0 OK)
    SSL_Socket::connect(             // Connect to peer
-     sockaddr*         peer_addr,   // Peer address
+     const sockaddr*   peer_addr,   // Peer address
      socklen_t         peer_size)   // Peer address length
-{  IFHCDM(
+{  if( HCDM )
      debugh("SSL_Socket(%p)::connect(%p,%d)\n", this, peer_addr, peer_size);
-   )
 
    int rc= Socket::connect(peer_addr, peer_size); // Create the connection
    if( rc == 0 ) {
@@ -529,11 +705,8 @@ Socket*                             // The new connection SSL_Socket
 {
    int rc= ::listen(handle, SOMAXCONN); // Wait for new connection
    if( rc != 0 ) {                  // If listen failure
-     int ERRNO= errno;
-     traceh("%d= SSL_Socket(%p)::listen() error(%d,%s)\n", rc, this,
-            ERRNO, strerror(ERRNO));
+     trace(__LINE__, "%d= listen()", rc);
      display_ERR();
-     errno= ERRNO;
      return nullptr;
    }
 
@@ -574,7 +747,8 @@ Socket*                             // The new connection SSL_Socket
    SSL_Socket* result= new SSL_Socket(*this);
    result->handle= client;
    result->ssl= ssl;
-   IFIODM( traceh("%p[%d]=SSL_Socket(%p)::listen()\n", result, client, this); )
+   if( IODM )
+     trace(__LINE__, "%p[%d]= listen()", result, client);
 
    return result;
 }
@@ -588,25 +762,23 @@ Socket*                             // The new connection SSL_Socket
 //       Read from the SSL_Socket
 //
 //----------------------------------------------------------------------------
-int                                 // Number of bytes read
+ssize_t                             // Number of bytes read
    SSL_Socket::read(                // Read from the SSL_Socket
      void*             addr,        // Data address
-     int               size)        // Data length
+     size_t            size)        // Data length
 {
-   int ERRNO;                       // Preserved errno
-   int L;                           // Number of bytes read
+   ssize_t L;                       // Number of bytes read
 
    for(;;) {
      errno= 0;
      if( recv_timeo ) {
        pollfd fd= { handle, POLLIN, 0 }; // Our pollfd
        L= poll(&fd, 1, recv_timeo);
-       ERRNO= errno;
-       IFIODM(
-         traceh("%d= poll(%x,%x) %d\n", L, fd.events, fd.revents, recv_timeo);
-       )
-       if( L <= 0 ) {                 // If interrupt or timeout
-         if( ERRNO == EINTR )
+       if( IODM )
+         trace(__LINE__, "%zd= poll(%x,%x) %d", L
+                       , fd.events, fd.revents, recv_timeo);
+       if( L <= 0 ) {               // If interrupt or timeout
+         if( errno == EINTR )
            continue;
 
          break;
@@ -614,23 +786,21 @@ int                                 // Number of bytes read
      }
 
      L= SSL_read(ssl, addr, size);
-     ERRNO= errno;
      if( L > 0 )
        break;
 
      int X= SSL_get_error(ssl, L);
-     IFIODM(
-       traceh("%d= SSL_Socket(%p)::read() %d,%d,%s\n", L, this,
-              X, ERRNO, strerror(ERRNO));
+     if( IODM )  {
+       trace(__LINE__, "%zd= read() %d", L, X);
        display_ERR();
-     )
+     }
 
      if( X != SSL_ERROR_WANT_READ && X != SSL_ERROR_WANT_WRITE )
        break;
    }
 
-   IFIODM( traceh("%d= SSL_Socket(%p)::read(...)\n", L, this); )
-   errno= ERRNO;                    // (Return actual errno)
+   if( IODM )
+     trace(__LINE__, "%zd= read()", L);
    return L;
 }
 
@@ -643,17 +813,15 @@ int                                 // Number of bytes read
 //       Write to the SSL_Socket
 //
 //----------------------------------------------------------------------------
-int                                 // Number of bytes sent
+ssize_t                             // Number of bytes sent
    SSL_Socket::write(               // Write to the SSL_Socket
      const void*       addr,        // Data address
-     int               size)        // Data length
+     size_t            size)        // Data length
 {
-   int ERRNO;                       // Preserved errno
-   int L;                           // Number of bytes read
+   ssize_t L;                       // Number of bytes read
 
    for(;;) {
      L= SSL_write(ssl, addr, size);
-     ERRNO= errno;
      if( L > 0 )
        break;
 
@@ -665,8 +833,8 @@ int                                 // Number of bytes sent
        break;
    }
 
-   IFIODM( traceh("%d= SSL_Socket(%p)::write(...)\n", L, this); )
-   errno= ERRNO;
+   if( IODM )
+     trace(__LINE__, "%zd= write()", L);
    return L;
 }
 } // namespace _PUB_NAMESPACE

@@ -16,7 +16,7 @@
 //       Standard posix socket wrapper and openssl wrapper.
 //
 // Last change date-
-//       2021/06/10
+//       2021/12/06
 //
 // Implementation warning-
 //       THE SSL_Socket CLASS IS EXPERIMENTAL. The author expressly admits to
@@ -83,13 +83,22 @@ class Socket : public Object {      // Standard posix socket wrapper
 //----------------------------------------------------------------------------
 public:
 static const int       CLOSED= -1;  // Closed socket handle
-typedef int            Port;        // A port type
+typedef in_port_t      Port;        // A port type
+
+union sockaddr_u {                  // Aligned union: sockaddr_in, sockaddr_in6
+uint64_t               su_align[4]; // Alignment and maximum size (32)
+sa_family_t            su_family;   // Socket address family
+sockaddr_in            su_in;       // IPv4 internet address
+sockaddr_in6           su_in6;      // IPv6 internet address
+
+std::string to_string( void ) const; // Convert to display string
+}; // union sockaddr_u
 
 protected:
 int                    handle;      // The socket handle
 
-sockaddr_storage       host_addr;   // The host socket address
-sockaddr_storage       peer_addr;   // The peer socket address
+sockaddr_u             host_addr;   // The host socket address
+sockaddr_u             peer_addr;   // The peer socket address
 socklen_t              host_size;   // Length of host_addr
 socklen_t              peer_size;   // Length of peer_addr
 
@@ -108,12 +117,38 @@ virtual
 Socket& operator=(const Socket&);   // Assignment operator
 
 //----------------------------------------------------------------------------
+// Socket::debugging
+//----------------------------------------------------------------------------
+void
+   debug(                           // Debugging display
+     const char*       info= "") const; // Debugging info
+
+protected:
+void
+   trace(                           // Trace socket operation
+     int               line,        // For this source code line
+     const char*       fmt,         // Format string
+                       ...) const   // The PRINTF argument list
+   _ATTRIBUTE_PRINTF(3, 4);
+
+//----------------------------------------------------------------------------
 // Socket::Accessors
 //----------------------------------------------------------------------------
 public:
 int                                 // The socket handle
    get_handle( void ) const         // Get socket handle
 {  return handle; }
+
+const sockaddr_u&                   // The host internet address
+   get_host_addr( void ) const      // Get host internet address
+{  return host_addr; }
+
+static std::string                  // The host name
+   get_host_name( void );           // Get host name
+
+socklen_t                           // The host internet address length
+   get_host_size( void ) const      // Get host internet address length
+{  return host_size; }
 
 Port                                // The host Port number
    get_host_port( void ) const      // Get host Port number
@@ -126,9 +161,17 @@ int                                 // Return code
      void*             optval,      // Option value
      socklen_t*        optlen);     // Option length (IN/OUT)
 
+const sockaddr_u&                   // The peer internet address
+   get_peer_addr( void ) const      // Get peer internet address
+{  return peer_addr; }
+
 Port                                // The peer Port number
    get_peer_port( void ) const      // Get peer Port number
 {  return ntohs(((sockaddr_in*)&peer_addr)->sin_port); }
+
+socklen_t                           // The peer internet address length
+   get_peer_size( void ) const      // Get peer internet address length
+{  return peer_size; }
 
 void
    set_host_port(                   // Set host Port number to
@@ -150,7 +193,6 @@ void
 //----------------------------------------------------------------------------
 // Socket::Methods
 //----------------------------------------------------------------------------
-public:
 virtual int                         // Return code (0 OK)
    bind(                            // Bind this socket
      Port              port);       // To this Port
@@ -160,7 +202,7 @@ virtual int                         // Return code (0 OK)
 
 virtual int                         // Return code (0 OK)
    connect(                         // Connect to server
-     sockaddr*         peer_addr,   // Peer address
+     const sockaddr*   peer_addr,   // Peer address
      socklen_t         peer_size);  // Peer address length
 
 virtual Socket*                     // The next new connection
@@ -172,15 +214,27 @@ virtual int                         // Return code (0 OK)
      int               type,        // Socket type
      int               protocol);   // Socket protocol
 
-virtual int                         // The number of bytes read
+virtual ssize_t                     // The number of bytes read
    read(                            // Read from the socket
      void*             addr,        // Data address
-     int               size);       // Maximum data length
+     size_t            size);       // Maximum data length
 
-virtual int                         // The number of bytes written
+virtual ssize_t                     // The number of bytes read
+   recv(                            // Recieve socket data
+     void*             addr,        // Data address
+     size_t            size,        // Maximum data length
+     int               flag);       // Receive options
+
+virtual ssize_t                     // The number of bytes written
+   send(                            // Write to the socket
+     const void*       addr,        // Data address
+     size_t            size,        // Data length
+     int               flag);       // Send options
+
+virtual ssize_t                     // The number of bytes written
    write(                           // Write to the socket
      const void*       addr,        // Data address
-     int               size);       // Data length
+     size_t            size);       // Data length
 }; // class Socket
 
 //----------------------------------------------------------------------------
@@ -213,26 +267,41 @@ virtual
 SSL_Socket& operator=(const SSL_Socket&); // Assignment operator
 
 //----------------------------------------------------------------------------
+// SSL_Socket::debugging
+//----------------------------------------------------------------------------
+void
+   debug(                           // Debugging display
+     const char*       info) const; // Debugging info
+
+protected:
+void
+   trace(                           // Trace socket operation
+     int               line,        // For this source code line
+     const char*       fmt,         // Format string
+                       ...) const   // The PRINTF argument list
+   _ATTRIBUTE_PRINTF(3, 4);
+
+//----------------------------------------------------------------------------
 // SSL_Socket::Methods
 //----------------------------------------------------------------------------
 public:
 virtual int                         // Return code (0 OK)
    connect(                         // Connect to server
-     sockaddr*         peer_addr,   // Peer address
+     const sockaddr*   peer_addr,   // Peer address
      socklen_t         peer_size);  // Peer address length
 
 virtual Socket*                     // The next new connection
    listen( void );                  // Listen for new connections
 
-virtual int                         // The number of bytes read
+virtual ssize_t                     // The number of bytes read
    read(                            // Read from the socket
      void*             addr,        // Data address
-     int               size);       // Maximum data length
+     size_t            size);       // Maximum data length
 
-virtual int                         // The number of bytes written
+virtual ssize_t                     // The number of bytes written
    write(                           // Write to the socket
      const void*       addr,        // Data address
-     int               size);       // Data length
+     size_t            size);       // Data length
 }; // class SSL_Socket
 }  // namespace _PUB_NAMESPACE
 #endif // _PUB_SOCKET_H_INCLUDED
