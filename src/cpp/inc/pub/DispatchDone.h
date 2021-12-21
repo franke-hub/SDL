@@ -16,11 +16,13 @@
 //       Standard Dispatch Done callback objects.
 //
 // Last change date-
-//       2021/07/09
+//       2021/11/09
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_DISPATCHDONE_H_INCLUDED
 #define _PUB_DISPATCHDONE_H_INCLUDED
+
+#include <functional>               // For std::function
 
 #include <pub/Event.h>              // For Wait event
 
@@ -46,7 +48,7 @@ class Done {                        // The dispatch::Done callback Object
 public:
 virtual
    ~Done( void ) {}                 // Destructor
-   Done( void ) {}                  // Constructor
+   Done( void ) {}                  // Default constructor
 
    Done(const Done&) = delete;      // Disallowed copy constructor
    Done& operator=(const Done&) = delete; // Disallowed assignment operator
@@ -59,6 +61,47 @@ virtual void                        // OVERRIDE this method
    done(                            // Complete
      Item*             item) = 0;   // This work Item
 }; // class Done
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       dispatch::LambdaDone
+//
+// Purpose-
+//       The Dispatcher Done callback Object
+//
+//----------------------------------------------------------------------------
+class LambdaDone : public Done {    // The dispatch::LambdaDone callback Object
+//----------------------------------------------------------------------------
+// LambdaDone::Attributes
+//----------------------------------------------------------------------------
+public:
+typedef std::function<void(Item*)> function_t; // Work handler
+
+protected:
+function_t             callback;    // The Work item handler
+
+//----------------------------------------------------------------------------
+// LambdaDone::Constructors
+//----------------------------------------------------------------------------
+public:
+virtual
+   ~LambdaDone( void ) = default;         // Destructor
+   LambdaDone(function_t f)               // Constructor
+:  Done(), callback(f) {}
+
+   LambdaDone(const LambdaDone&) = delete; // Disallowed copy constructor
+   LambdaDone& operator=(const LambdaDone&) = delete; // Disallowed assignment operator
+
+//----------------------------------------------------------------------------
+// LambdaDone::Methods
+//----------------------------------------------------------------------------
+public:
+virtual void
+   done(                            // Complete
+     Item*             item)        // This work Item
+{  callback(item); }
+}; // class LambdaDone
 
 //----------------------------------------------------------------------------
 //

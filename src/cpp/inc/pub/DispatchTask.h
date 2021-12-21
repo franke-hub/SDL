@@ -16,11 +16,13 @@
 //       Standard Dispatch Task object.
 //
 // Last change date-
-//       2021/07/09
+//       2021/11/09
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_DISPATCHTASK_H_INCLUDED
 #define _PUB_DISPATCHTASK_H_INCLUDED
+
+#include <functional>               // For std::function
 
 #include "Dispatch.h"               // The Dispatcher
 #include "DispatchItem.h"           // Dispatch work Item
@@ -57,7 +59,7 @@ AU_List<Item>          itemList;    // The Work item list
 public:
 virtual
    ~Task( void ) {}                 // Destructor
-   Task( void )                     // Constructor
+   Task( void )                     // Default constructor
 :  Worker(), itemList() {}
 
    Task(const Task&) = delete;      // Disallowed copy constructor
@@ -104,5 +106,40 @@ virtual void                        // (IMPLEMENT this method)
      Item*             item);       // This work Item
 /* item->post(); */
 }; // class Task
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       dispatch::LambdaTask
+//
+// Purpose-
+//       A Dispatch Task where the function is constructor-defined
+//
+// Sample usage (which performs the default action)-
+//       LambdaTask task([this](Item* item) {
+//         // Your code goes here
+//         item->post();
+//      });
+//
+//----------------------------------------------------------------------------
+class LambdaTask : public Task {    // Dispatch Lambda Task
+public:
+typedef std::function<void(Item*)> function_t; // Work handler
+
+protected:
+function_t             callback;    // The Work item handler
+
+public:
+virtual
+   ~LambdaTask( void ) = default;   // Destructor
+   LambdaTask(function_t f)         // Lambda constructor
+:  Task(), callback(f) {}
+
+protected:
+virtual void                        // (Callback constructor-defined)
+   work(                            // Process
+     Item*             item)        // This work Item
+{  callback(item); }
+}; // class LambdaTask
 }  // namespace _PUB_NAMESPACE::dispatch
 #endif // _PUB_DISPATCHTASK_H_INCLUDED
