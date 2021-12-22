@@ -1,11 +1,10 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2020 Frank Eskesen.
+//       Copyright (C) 2018-2021 Frank Eskesen.
 //
-//       This file is free content, distributed under the GNU General
-//       Public License, version 3.0.
-//       (See accompanying file LICENSE.GPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+//       This file is free content, distributed under the MIT license.
+//       (See accompanying file LICENSE.MIT or the original contained
+//       within https://opensource.org/licenses/MIT)
 //
 //----------------------------------------------------------------------------
 //
@@ -16,7 +15,7 @@
 //       Sample program: How to use getopt_long
 //
 // Last change date-
-//       2020/10/04
+//       2021/12/08
 //
 // Usage notes-
 //       getopt_long does not print an invalid argument error message when
@@ -231,17 +230,14 @@ static int                          // Return code (0 if OK)
    // Parameter analysis
    //-------------------------------------------------------------------------
    int C;                           // The option character
-   while( (C= getopt_long(argc, argv, OSTR, OPTS, &opt_index)) != -1 )
-   {
-     switch( C )
-     {
+   while( (C= getopt_long(argc, argv, OSTR, OPTS, &opt_index)) != -1 ) {
+     switch( C ) {
        case 0:
        {{{{
          if( opt_verbose > 1 )
            debug_opt(__LINE__);
 
-         switch( opt_index )
-         {
+         switch( opt_index ) {
            case OPT_HELP:           // These options handled by getopt
            case OPT_HCDM:
              break;

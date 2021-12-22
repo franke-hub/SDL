@@ -2,10 +2,9 @@
 //
 //       Copyright (C) 2020 Frank Eskesen.
 //
-//       This file is free content, distributed under the GNU General
-//       Public License, version 3.0.
-//       (See accompanying file LICENSE.GPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+//       This file is free content, distributed under the MIT license.
+//       (See accompanying file LICENSE.MIT or the original contained
+//       within https://opensource.org/licenses/MIT)
 //
 //----------------------------------------------------------------------------
 //
