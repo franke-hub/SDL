@@ -16,7 +16,7 @@
 //       Editor: TextWindow screen
 //
 // Last change date-
-//       2021/04/22
+//       2021/12/21
 //
 //----------------------------------------------------------------------------
 #ifndef EDTEXT_H_INCLUDED
@@ -67,11 +67,17 @@ enum KEYBOARD_STATE                 // Keyboard state (Low order 16 bits zero)
 }; // enum KEYBOARD_STATE
 
 struct Motion {                     // System motion controls
-int                    state;       // System mouse cursor state
+int                    state;       // System mouse CURSOR_STATE
 xcb_timestamp_t        time;        // Last movement timestamp
 int                    x;           // Last X position
 int                    y;           // Last Y position
 }; // struct Motion
+
+enum STATUS_FLAGS                   // (Boolean flags)
+{  SF_RESET= 0                      // Reset, no flags set
+,  SF_FOCUS                         // TRUE when we have focus
+,  SF_NFC_MESSAGE                   // TRUE when "No Files Changed" message
+}; // enum KEYBOARD_STATE
 
 //----------------------------------------------------------------------------
 // EdText::Attributes
@@ -85,7 +91,7 @@ unsigned               col_size= 0; // The current screen column count
 unsigned               row_size= 0; // The current screen row count
 unsigned               row_used= 0; // The last used screen row
 
-int                    focus= false; // TRUE when we have focus
+int                    status= SF_RESET; // STATUS_FLAG bits
 Motion                 motion= {CS_VISIBLE, 0, 0, 0}; // System motion controls
 uint32_t               keystate= KS_INS; // Keyboard state
 

@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2021/08/08
+//       2021/12/21
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -482,6 +482,7 @@ void
      draw_cursor();
      flush();
 
+     status &= ~(SF_NFC_MESSAGE);   // "No File Changed" message not active
      return;
    }
 
@@ -602,8 +603,15 @@ void
        break;
      }
      case XK_F4: {                  // Test changed
-       if( editor::un_changed() )
-         editor::put_message("No files changed");
+       if( status & SF_NFC_MESSAGE )
+         draw_info();
+       else {
+         if( editor::un_changed() ) {
+           editor::put_message("No files changed");
+           status |= SF_NFC_MESSAGE;
+           return;
+         }
+       }
        break;
      }
      case XK_F5: {
@@ -707,7 +715,10 @@ void
      }
      default:
        editor::put_message("Invalid key");
+       break;
    }
+
+   status &= ~(SF_NFC_MESSAGE);     // "No File Changed" message not active
 }
 
 //============================================================================
@@ -838,7 +849,7 @@ void
 
    draw_cursor();
    flush();
-   focus= true;
+   status |= SF_FOCUS;
 }
 
 void
@@ -850,7 +861,7 @@ void
            , E->detail, E->event, E->mode);
 
    undo_cursor();
-   focus= false;
+   status &= ~(SF_FOCUS);
 }
 
 void

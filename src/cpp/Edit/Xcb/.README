@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/10/01
+##       2021/12/21
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in ALPHA status.
@@ -27,12 +27,16 @@
 
 ##############################################################################
 ## STATUS:
-2021/09/08 Mark display update works improperly when line changed.
-2021/10/01 Fix: EdView.draw_active uses EdText.draw_line for display.
-           (EdHist.draw_active writes line directly.)
+2021/12/21 Usability: Added "list" command to display the command list
+           Usability: Hitting F4 again removes the "No Files Changed" message
 
 ##############################################################################
 ## CHANGE LOG:
+2021/10/01 Fix: EdView.draw_active uses EdText.draw_line for display.
+           (EdHist.draw_active writes line directly.)
+
+2021/09/08 Mark display update works improperly when line changed.
+
 2021/08/24 Block column move on a blank line left trailing blanks.
 
 2021/08/08 Fixed some user interface annoyances.
@@ -217,6 +221,9 @@
 
 ##############################################################################
 ## FEATURE:
+2021/12/21 EdBifs::command_list improved usability.
+         Instead of using printf, list the commands in a read/only buffer.
+
 2021/08/28 ?? Change background color in data view rather than status view
          when the file is changed ?? Or both?? color = r,g,b;r,g,b
 

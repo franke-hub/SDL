@@ -16,12 +16,13 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2021/06/26
+//       2021/12/21
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
 
 #include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Fileman.h>            // For pub::fileman::Name::get_file_name()
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 
 #include "Config.h"                 // For namespace config
@@ -91,14 +92,81 @@ static Name_addr       true_addr[]= // Boolean symbols, default true
 }; // true_addr[]
 
 //----------------------------------------------------------------------------
+//
+// Data area-
+//       command_desc
+//
+// Purpose-
+//       The list of built-in commands.
+//
+//----------------------------------------------------------------------------
+typedef const char* Function(char*); // The command processor function
+
+struct Command_desc {               // The Command descriptor item
+Function*              func;        // The command function
+const char*            name;        // The command name
+const char*            desc;        // The command description
+};                     // The Command descriptor
+
+static const char* command_bot(char*); // Forward references: commands
+static const char* command_change(char*);
+static const char* command_cmd(char*);
+static const char* command_debug(char*);
+static const char* command_detab(char*);
+static const char* command_edit(char*);
+static const char* command_exit(char*);
+static const char* command_file(char*);
+static const char* command_get(char*);
+static const char* command_list(char*);
+static const char* command_locate(char*);
+// static const char* command_margins(char*);
+static const char* command_quit(char*);
+static const char* command_save(char*);
+static const char* command_set(char*);
+static const char* command_sort(char*);
+// static const char* command_tabs(char*);
+static const char* command_top(char*);
+static const char* command_view(char*);
+
+static const Command_desc
+                       command_desc[]= // The Command descriptor list
+{  {command_bot,    "BOT",     "Bottom of file"}
+,  {command_change, "C",       "Change"}
+,  {command_cmd,    "CMD",     "(System) command"}
+,  {command_debug,  "D",       "Alias for DEBUG"}
+,  {command_debug,  "DEBUG",   "Debugging display"}
+,  {command_detab,  "DETAB",   "Convert tabs to spaces"}
+,  {command_edit,   "E",       "Alias for EDIT"}
+,  {command_edit,   "EDIT",    "Edit file(s)"}
+,  {command_exit,   "EXIT",    "(Safe) Exit" }
+,  {command_file,   "FILE",    "Write and close file"}
+,  {command_get,    "GET",     "Append file"}
+,  {command_locate, "L",       "Locate (forward)"}
+,  {command_list,   "LIST",    "List commands"}
+// {command_margins,"MARGINS", "Set margins"}
+,  {command_quit,   "QUIT",    "(Unconditionally) close file"}
+,  {command_save,   "SAVE",    "Write file"}
+,  {command_set,    "SET",     "Set option= value"}
+,  {command_sort,   "SORT",    "{-f} Sort file list"
+                               " (using fully-qualified name)"}
+// {command_tabs,   "TABS",    "Set tabs"}
+,  {command_top,    "TOP",     "Top of File"}
+,  {command_view,   "V",       "Alias for VIEW"}
+,  {command_view,   "VIEW",    "Edit file(s) in read/only mode"}
+
+// Spelling errors/typos
+,  {command_list,   "",     nullptr} // Misspelled commands follow
+,  {command_save,  "SAE",   nullptr} // (SAVE)
+,  {command_save,  "SAVAE", nullptr} // (SAVE)
+,  {command_save,  "SAVCE", nullptr} // (SAVE)
+,  {command_save,  "SAVVE", nullptr} // (SAVE)
+,  {command_save,  "SVAE",  nullptr} // (SAVE)
+,  {nullptr     ,  nullptr, nullptr} // End of list delimiter
+};
+
+//----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
-static const char*                  // Error message, nullptr expected
-   command_locate(char*);           // Locate command
-
-static const char*                  // Error message, nullptr expected
-   command_quit(char*);             // (Unconditional) quit command
-
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -396,8 +464,21 @@ static const char*                  // Error message, nullptr expected
    command_get(char*)               // Get command
 {
    // SPECIAL CASE: Get after ending line with no delimiter.
-   // THe no delimiter line CHANGES. It's part of the REDO/UNDO.
+   // The no delimiter line CHANGES. It's part of the REDO/UNDO.
    return nullptr;                  // TODO: NOT CODED YET
+}
+
+static const char*                  // Error message, nullptr expected
+   command_list(char*)              // Display the command list
+{
+   printf("Command list: (Command names are not case sensitive)\n");
+   for(int i= 0; command_desc[i].name[0] != '\0'; ++i) {
+     char buffer[32];
+     sprintf(buffer, "%s:", command_desc[i].name);
+     printf("%-8s %s\n", buffer, command_desc[i].desc);
+   }
+
+   return nullptr;
 }
 
 static const char*                  // Error message, nullptr expected
@@ -514,18 +595,29 @@ static const char*                  // Error message, nullptr expected
 }
 
 static const char*                  // Error message, nullptr expected
-   command_sort(char*)              // Sort editor::file_list
+   command_sort(char* parm)         // Sort editor::file_list
 {
+   using pub::fileman::Name;        // File name extractor
    pub::List<EdFile> sort_list;     // The sorted list of EdFiles
 
+   bool opt_full= (parm && strcmp(parm, "-f") == 0);
    for(;;) {                        // Sort the file list
      EdFile* low= editor::file_list.get_head();
      if( low == nullptr )
        break;
 
+     std::string low_name= Name::get_file_name(low->name);
      for(EdFile* file= low->get_next(); file; file= file->get_next()) {
-       if( file->name < low->name )
-         low= file;
+       if( opt_full ) {             // Sort using fully qualified name
+         if( file->name < low->name )
+           low= file;
+       } else {                     // Sort using file name (w/ extension)
+         std::string file_name= Name::get_file_name(file->name);
+         if( file_name < low_name ) {
+           low= file;
+           low_name= Name::get_file_name(file_name);
+         }
+       }
      }
 
      editor::file_list.remove(low, low);
@@ -571,48 +663,6 @@ static const char*                  // Error message, nullptr expected
 
    return nullptr;
 }
-
-//----------------------------------------------------------------------------
-//
-// Data area-
-//       command_list
-//
-// Purpose-
-//       The list of build-in commands.
-//
-//----------------------------------------------------------------------------
-typedef const char* Function(char*); // The command processor function
-
-struct Command_desc {               // The Command descriptor item
-const char*            name;        // The command name
-Function*              func;        // THe command function
-};                     // The Command descriptor
-
-static const Command_desc
-                       command_desc[]= // The Command descriptor list
-{  {"BOT",      command_bot}        // Bottom
-,  {"C",        command_change}     // Change
-,  {"CMD",      command_cmd}        // Command
-,  {"D",        command_debug}      // Debug
-,  {"DEBUG",    command_debug}      // Debug
-,  {"DETAB",    command_detab}      // Detab
-,  {"E",        command_edit}       // Edit
-,  {"EDIT",     command_edit}       // Edit
-,  {"EXIT",     command_exit}       // Exit
-,  {"FILE",     command_file}       // File
-,  {"GET",      command_get}        // Get
-,  {"L",        command_locate}     // Locate (forward)
-// {"MARGINS",  command_margins}    // Set margins
-,  {"QUIT",     command_quit}       // Quit
-,  {"SAVE",     command_save}       // Save
-,  {"SET",      command_set}        // Set
-,  {"SORT",     command_sort}       // Sort
-// {"TABS",     command_tabs}       // Tabs
-,  {"TOP",      command_top}        // Top
-,  {"V",        command_view}       // View
-,  {"VIEW",     command_view}       // View
-,  {nullptr,    nullptr}            // End of list delimiter
-};
 
 //----------------------------------------------------------------------------
 //
