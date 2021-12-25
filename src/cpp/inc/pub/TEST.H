@@ -1,11 +1,10 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2021 Frank Eskesen.
+//       Copyright (C) 2018-2021 Frank Eskesen.
 //
-//       This file is free content, distributed under the Lesser GNU
-//       General Public License, version 3.0.
-//       (See accompanying file LICENSE.LGPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//       This file is free content, distributed under the MIT license.
+//       (See accompanying file LICENSE.MIT or the original contained
+//       within https://opensource.org/licenses/MIT)
 //
 //----------------------------------------------------------------------------
 //
@@ -16,7 +15,7 @@
 //       Testcase error checking.
 //
 // Last change date-
-//       2021/11/19
+//       2021/12/23
 //
 // Implementation note-
 //       Contained subroutines are in the default namespace, not pub::
@@ -25,20 +24,8 @@
 #ifndef TEST_H_INCLUDED
 #define TEST_H_INCLUDED
 
-// #include <sstream>                  // Used by id_string
 #include <pub/Debug.h>                 // For namespace pub::Debug::debugging
 #include <pub/utility.h>               // For pub::utility::to_string
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       id_string
-//
-// Purpose-
-//       Get id string of std::thread::id
-//
-//----------------------------------------------------------------------------
-// using _PUB_NAMESPACE::utility::to_string;
 
 //----------------------------------------------------------------------------
 // Macros
