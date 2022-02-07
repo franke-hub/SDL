@@ -30,7 +30,6 @@ default: $(DEFAULT)
 
 ##############################################################################
 ## Controls
-CLIBS  += -lhunspell
+CLOAD  += $(shell pkg-config --libs hunspell)
 include $(INCDIR)/com/Makefile.BSD
 include $(INCDIR)/pub/Makefile.BSD
-
