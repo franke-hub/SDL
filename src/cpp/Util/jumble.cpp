@@ -19,24 +19,30 @@
 //       2021/09/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>                   // For printf, sprintf
-#include <string.h>                  // For strcpy, ...
-#include <sys/stat.h>                // For stat
+#include <stdio.h>                  // For printf, sprintf
+#include <string.h>                 // For strcpy, ...
+#include <sys/stat.h>               // For stat
 
-#include <pub/Debug.h>               // For namespace pub::debugging
-#include <pub/List.h>                // For List
+#include <hunspell/hunspell.hxx>    // For hunspell C++ interface
 
-using namespace pub::debugging;      // For debugging
+#include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/List.h>               // For List
 
-
+using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#define BRINGUP false                // Testing bringup mode
+enum                                // Generic enum
+{  HCDM= true                       // Hard Core Debug Mode?
+,  BRINGUP= false                   // Bringup (test) mode?
+,  MAXCOL= 80                       // Maximum column length
+,  MAXLEN= 4096                     // Maximum word length
+}; // Generic enum
 
-#define MAXCOL 80                    // Maximum column length
-#define MAXLEN 4096                  // Modified word length
+typedef const char     CC;          // (Shortcut)
+static constexpr CC*   AFF_HOME= "/usr/share/myspell/en_US.aff";
+static constexpr CC*   DIC_HOME= "/usr/share/myspell/en_US.dic";
 
 //----------------------------------------------------------------------------
 // Struct Word (word list item)
@@ -48,9 +54,9 @@ char*                  word= nullptr; // The word string
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static int             outcol= 0;    // Output column
-static pub::List<Word> list;         // The Word List
-static int             spell= false; // Generate spelled word list?
+static Hunspell*       hs= nullptr; // The Hunspell object
+static int             outcol= 0;   // Output column
+static pub::List<Word> list;        // The Word List
 
 //----------------------------------------------------------------------------
 //
@@ -65,17 +71,13 @@ static void
    add_word(                        // Display string
      const char*       string)      // The word string
 {
-   char buff[MAXLEN + 64];          // Work area for sprintf
    char copy[MAXLEN];               // A copy of the word string
    strcpy(copy, string);            // Copy the string
 
    int L= (int)strlen(copy);        // The current string length
    while( L >= 3 ) {                // Find all unique words with length >= 3
-     sprintf(buff, "echo %s | aspell list >/tmp/aspell.out", copy);
-     system(buff);                  // Test the (copy) word
-     struct stat info;
-     stat("/tmp/aspell.out", &info);
-     if( info.st_size == 0 ) {      // If not misspelled
+     std::string S= copy;
+     if( hs->spell(S) ) {
        Word* word= list.get_head();
        while( word ) {              // Scan list for duplicate
          if( strcmp(copy, word->word) == 0 )
@@ -109,9 +111,9 @@ static void
      int               length,      // The string length
      const char*       string)      // The jumbled word
 {
-   #if( BRINGUP )
+   if( BRINGUP )
      printf("%s\n", string);
-   #else
+   else {
      if( (outcol+length) > MAXCOL ) {
        printf("\n");
        outcol= 0;
@@ -121,8 +123,37 @@ static void
 
      printf("%s", string);
      outcol += (length + 1);
-   #endif
+   }
 }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       init
+//
+// Purpose-
+//       Initialize
+//
+//----------------------------------------------------------------------------
+static void
+   init( void )
+{
+   hs= new Hunspell(AFF_HOME, DIC_HOME);
+   hs->add_dic("/home/eskesen/Library/Spelling/local.dic");
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       term
+//
+// Purpose-
+//       Terminate
+//
+//----------------------------------------------------------------------------
+static void
+   term( void )
+{  delete hs; }
 
 //----------------------------------------------------------------------------
 //
@@ -141,18 +172,15 @@ static void
 {
    char                modstr[MAXLEN]; // The modified word
 
-   #if( BRINGUP )
+   if( BRINGUP )
      tracef("%2d, %s\n", index, string); // For debugging only
-   #endif
 
    if( index >= length ) {
      display(length, string);
-     if( spell )
-       add_word(string);
+     add_word(string);
    } else {
-     #if( BRINGUP )
+     if( BRINGUP )
        tracef("%2d, %s => %2d, %s\n", index, string, index+1, string);
-     #endif
 
      jumble(index+1, length, string);
 
@@ -172,9 +200,8 @@ static void
          if( isValid ) {
            modstr[x]= modstr[index];
            modstr[index]= C;
-           #if( BRINGUP )
+           if( BRINGUP )
              tracef("%2d, %s => %2d, %s\n", index, string, index+1, modstr);
-           #endif
            jumble(index+1, length, modstr);
          }
        }
@@ -196,9 +223,9 @@ extern int                          // Return code
      int               argc,        // Argument count
      const char*       argv[])      // Argument array
 {
-   int                 i;
+   init();
 
-   for(i= 1; i<argc; i++) {
+   for(int i= 1; i<argc; i++) {
      int L= strlen(argv[i]);
      if( L < MAXLEN ) {
        if( argv[i][0] != '-' ) {    // If word parameter
@@ -207,9 +234,6 @@ extern int                          // Return code
            printf("\n");
            outcol= 0;
          }
-       } else {                     // If switch
-         if( argv[i][1] == 's' )    // If spell switch
-           spell= true;
        }
      }
    }
@@ -228,5 +252,6 @@ extern int                          // Return code
      }
    }
 
+   term();
    return 0;
 }
