@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2009-2021 Frank Eskesen.
+//       Copyright (c) 2009-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Display all possiblities for a jumbled word.
 //
 // Last change date-
-//       2021/09/01
+//       2022/02/09
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf, sprintf
@@ -225,6 +225,7 @@ extern int                          // Return code
 {
    init();
 
+   // Jumble all arguments
    for(int i= 1; i<argc; i++) {
      int L= strlen(argv[i]);
      if( L < MAXLEN ) {
@@ -238,6 +239,27 @@ extern int                          // Return code
      }
    }
 
+   // Sort the Word list
+   pub::List<Word> sort;            // The sorted Word List
+   Word* head= list.get_head();     // Reset the list, returning it
+   while( head != nullptr ) {       // (Bubble) sort the list
+     Word* low= head;
+     Word* next= low->get_next();
+     while( next != nullptr ) {
+       if( strcmp(low->word, next->word) > 0 )
+         low= next;
+
+       next= next->get_next();
+     }
+
+     list.remove(low, low);
+     sort.fifo(low);
+     head= list.get_head();
+   }
+   if( sort.get_head() )
+     list.insert(nullptr, sort.get_head(), sort.get_tail());
+
+   // Display the Word list
    Word* word= list.get_head();     // Display words
    if( word ) {                     // If any words
      printf("\n\nWord list:\n");
