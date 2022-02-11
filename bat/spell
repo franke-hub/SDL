@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2016-2019 Frank Eskesen.
+##       Copyright (C) 2016-2022 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,14 +16,26 @@
 ##       Spell checker.
 ##
 ## Last change date-
-##       2019/10/26
+##       2022/02/10
 ##
 ## Usage-
-##       spell file
+##       spell word ...
 ##
 ##############################################################################
-errors=`echo $* | aspell list`
-if [[ -z "$errors" ]] ; then echo OK
-else echo Misspelled: $errors
+if [ -x /bin/hunspell ] ; then
+  for i in "$@"
+  do
+    errors=`echo $i | hunspell -l -d en_US,local`
+    if [[ -z "$errors" ]] ; then echo OK: $i
+    else echo "NG: $errors"
+    fi
+  done
+else
+  for i in "$@"
+  do
+    errors=`echo $i | aspell list`
+    if [[ -z "$errors" ]] ; then echo OK: $i
+    else echo "NG: $errors"
+    fi
+  done
 fi
-
