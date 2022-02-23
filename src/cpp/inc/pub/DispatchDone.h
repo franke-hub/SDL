@@ -86,8 +86,10 @@ function_t             callback;    // The Work item handler
 //----------------------------------------------------------------------------
 public:
 virtual
-   ~LambdaDone( void ) = default;         // Destructor
-   LambdaDone(function_t f)               // Constructor
+   ~LambdaDone( void ) = default;   // Destructor
+   LambdaDone( void )               // Default constructor
+:  Done() { }                       // (Callback not initialized)
+   LambdaDone(function_t f)         // Constructor
 :  Done(), callback(f) {}
 
    LambdaDone(const LambdaDone&) = delete; // Disallowed copy constructor
@@ -97,6 +99,10 @@ virtual
 // LambdaDone::Methods
 //----------------------------------------------------------------------------
 public:
+void
+   on_done(function_t f)            // Replace callback
+{  callback= f; }
+
 virtual void
    done(                            // Complete
      Item*             item)        // This work Item

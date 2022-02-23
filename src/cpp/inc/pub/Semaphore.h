@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Semaphore implemenentation using condition variable.
 //
 // Last change date-
-//       2018/01/01
+//       2022/02/16
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_SEMAPHORE_H_INCLUDED
@@ -73,6 +73,10 @@ Semaphore& operator=(const Semaphore&) = delete;
 // Semaphore::Methods
 //----------------------------------------------------------------------------
 public:
+unsigned
+   get_count( void ) const          // Get current count
+{  return count; }
+
 void
    post( void )                     // Indicate resource available
 {  std::unique_lock<decltype(mutex)> lock(mutex);
@@ -96,14 +100,12 @@ bool                                // TRUE iff semaphore available
      double            seconds)     // Timeout delay, in seconds
 {  std::unique_lock<decltype(mutex)> lock(mutex);
 
-   if( seconds > 0.0 )              // If delayed operation
-   {
+   if( seconds > 0.0 ) {            // If delayed operation
      std::chrono::microseconds delta(uint64_t(seconds * 1000000.0));
      std::chrono::high_resolution_clock::time_point now=
          std::chrono::high_resolution_clock::now();
      std::chrono::high_resolution_clock::time_point timeout= now + delta;
-     while( !count )                // Handle spurious wake-ups
-     {
+     while( !count ) {              // Handle spurious wake-ups
        if( cv.wait_until(lock, timeout) == std::cv_status::timeout )
          break;
      }
