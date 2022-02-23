@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2020-2021 Frank Eskesen.
+##       Copyright (c) 2020-2022 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2021/12/21
+##       2022/02/23
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in ALPHA status.
@@ -27,11 +27,13 @@
 
 ##############################################################################
 ## STATUS:
-2021/12/21 Usability: Added "list" command to display the command list
-           Usability: Hitting F4 again removes the "No Files Changed" message
+2022/02/23 Synchronization commit. Added .README TODOs (only.)
 
 ##############################################################################
 ## CHANGE LOG:
+2021/12/21 Usability: Added "list" command to display the command list
+           Usability: Hitting F4 again removes the "No Files Changed" message
+
 2021/10/01 Fix: EdView.draw_active uses EdText.draw_line for display.
            (EdHist.draw_active writes line directly.)
 
@@ -175,6 +177,11 @@
 
 ##############################################################################
 ## TODO:
+2022/02/22 Run as a thread so that exitxcb has same window appearance as xterm
+
+2022/02/18 Add DIR command, DIR load, Copy block to history
+           Special handling for these DIR/BUFFER files
+
 2021/07/03 Clone view (named view://filename)
          Clone a file for split viewing. The view is read-only.
          (No lines need to be allocated. They can just be copied.)
