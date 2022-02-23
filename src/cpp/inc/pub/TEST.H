@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2021 Frank Eskesen.
+//       Copyright (C) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       Testcase error checking.
 //
 // Last change date-
-//       2021/12/23
+//       2022/02/23
 //
 // Implementation note-
 //       Contained subroutines are in the default namespace, not pub::
@@ -24,8 +24,10 @@
 #ifndef TEST_H_INCLUDED
 #define TEST_H_INCLUDED
 
-#include <pub/Debug.h>                 // For namespace pub::Debug::debugging
-#include <pub/utility.h>               // For pub::utility::to_string
+#include <thread>                   // For std::thread::id
+
+#include <pub/Debug.h>              // For namespace pub::Debug::debugging
+#include <pub/utility.h>            // For pub::utility::to_string
 
 //----------------------------------------------------------------------------
 // Macros
