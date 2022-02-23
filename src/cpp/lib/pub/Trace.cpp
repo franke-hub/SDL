@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2020 Frank Eskesen.
+//       Copyright (C) 2019-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Trace object methods.
 //
 // Last change date-
-//       2020/08/04
+//       2022/02/17
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -24,8 +24,9 @@
 #include <time.h>                   // For clock_gettime
 #include <mutex>                    // For std::lock_guard
 #include <new>                      // For std::bad_alloc
-#include <string.h>                 // For memcpy
+#include <string.h>                 // For memcpy, strncpy
 #include <unistd.h>                 // For sysconf
+#include <arpa/inet.h>              // For htonl
 
 #include <pub/Debug.h>              // For debugging
 #include <pub/Thread.h>             // For SCDM( Thread::current() )
@@ -275,49 +276,5 @@ void
    tracef("..wrap(%lu) zero(0x%.2x) last(0x%.8x) size(0x%.8x) next(0x%.8x)\n",
           wrap, zero, last, size, next.load());
    utility::dump(debug->get_FILE(), this, size, nullptr);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Trace::Record::trace
-//
-// Purpose-
-//       Initialize the Trace::Record
-//
-// Implementation note-
-//       Performance critical path.
-//
-//----------------------------------------------------------------------------
-static inline void
-   set_clock(                       // Set the clock
-     Trace::Record*    record)      // For this Trace::Record
-{
-   struct timespec     clock;       // UTC time base
-
-   clock_gettime(CLOCK_REALTIME, &clock); // Get UTC time base
-   uint64_t usec= clock.tv_sec * 1000000000;
-   usec += clock.tv_nsec;
-   record->clock= usec;
-}
-
-void
-   Trace::Record::trace(            // Initialize the Trace::Record
-     const char*       ident)       // The trace type identifier
-{
-   set_clock(this);                 // Set the clock
-
-   memcpy(this->ident, ident, sizeof(this->ident));
-}
-
-void
-   Trace::Record::trace(            // Initialize the Trace::Record
-     const char*       ident,       // The trace type identifier
-     uint32_t          unit)        // The trace unit identifier
-{
-   set_clock(this);                 // Set the clock
-
-   this->unit= unit;
-   memcpy(this->ident, ident, sizeof(this->ident));
 }
 }  // namespace _PUB_NAMESPACE

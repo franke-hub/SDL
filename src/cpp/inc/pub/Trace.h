@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2021 Frank Eskesen.
+//       Copyright (c) 2019-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2021/07/01
+//       2022/02/17
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -71,6 +71,8 @@
 
 #include <atomic>                   // For std::atomic_uint64_t, ...
 #include <stdint.h>                 // For uint32_t
+#include <string.h>                 // For memset, memcpy, strcpy
+#include <arpa/inet.h>              // For htonl
 
 #include "config.h"                 // For _PUB_NAMESPACE
 
@@ -85,10 +87,101 @@ namespace _PUB_NAMESPACE {
 //
 //----------------------------------------------------------------------------
 class Trace {                       // Trace object
+public:
+//----------------------------------------------------------------------------
+// Trace::Buffer, temporary character string storage area
+//----------------------------------------------------------------------------
+template<size_t N>                  // Buffer.temp *always* fully used
+struct Buffer {
+char                   temp[N];     // The temporary Buffer, '\0' padded
+
+   Buffer(const void* info, size_t size)
+{  if( size < N ) {
+     memcpy(temp, info, size);
+     memset(temp+size, '\0', N-size);
+   } else {
+     memcpy(temp, info, N);
+   }
+}
+
+   Buffer(const void* info)
+{  size_t size= strlen((const char*)info);
+   if( size < N ) {
+     memcpy(temp, info, size);
+     memset(temp+size, '\0', N-size);
+   } else {
+     memcpy(temp, info, N);
+   }
+}
+}; // struct Buffer
+
+//----------------------------------------------------------------------------
+// Trace::Record (POD: Plain Old Data)
+//----------------------------------------------------------------------------
+struct Record {                     // A standard (POD) trace record
+char                   ident[4];    // The trace type identifier
+uint32_t               unit;        // The trace unit identifier
+uint64_t               clock;       // The UTC epoch clock, in nanoseconds
+char                   value[16];   // Data values (For smallest Record)
+
+inline void
+   set_clock()                      // Set the clock
+{
+   struct timespec     clock;       // UTC time base
+   clock_gettime(CLOCK_REALTIME, &clock); // Get UTC time base
+#if true                            // Use big_endian clock value?
+   uint64_t nsec= (clock.tv_sec << 32) | clock.tv_nsec;
+   char* addr= (char*)&this->clock; // clock.tv_nsec: 0x00000000..0x3B9AC9FF
+   for(int i= 8; i>0; i--) {
+     addr[i-1]= char(nsec);
+     nsec >>= 8;
+   }
+#else
+   record->clock= (clock.tv_sec * 1000000000) + clock.tv_nsec;
+#endif
+}
+
+inline void
+   trace(                           // Initialize with
+     const char*       ident)       // This char[4] trace type identifier
+{  set_clock();                     // Set the clock
+   memcpy(this->ident, ident, sizeof(this->ident));
+}
+
+inline void
+   trace(                           // Initialize with
+     const char*       ident,       // This char[4] trace type identifier
+     uint32_t          code,        // Trace code
+     const void*       info= nullptr) // If present, char[16] info
+{  unit= htonl(code);
+   if( info ) {
+     memcpy(value, info, sizeof(value));
+   }
+   trace(ident);
+}
+
+inline void
+   trace(                           // Initialize with
+     const char*       ident,       // This char[4] trace type identifier
+     const char*       unit,        // This char[4] trace subtype identifier
+     void*             one= nullptr, // Word one
+     void*             two= nullptr) // Word two
+{  memcpy(&this->unit, unit, sizeof(this->unit));
+   uintptr_t uone= uintptr_t(one);
+   uintptr_t utwo= uintptr_t(two);
+   for(unsigned i= 8; i>0; i--) {
+     value[i-1]= char(uone);
+     value[i+7]= char(utwo);
+     uone >>= 8;
+     utwo >>= 8;
+   }
+   trace(ident);
+}
+}; // struct Record
+
 //----------------------------------------------------------------------------
 // Trace::Typedefs and enumerations
 //----------------------------------------------------------------------------
-public:
 enum                                // Generic enum
 {  ALIGNMENT= 32                    // Table/Record alignment (informative)
 ,  TABLE_SIZE_MAX=   0x00FFFFFF00UL // Maximum allowed table size
@@ -115,29 +208,8 @@ enum FLAG_X                         // Flag index
 }; // enum FLAG_X
 
 //----------------------------------------------------------------------------
-// Trace::Record (POD: Plain Old Data)
+// Trace::Destructor/Constructors/Operators
 //----------------------------------------------------------------------------
-public:
-struct Record {                     // A standard (POD) trace record
-char                   ident[4];    // The trace type identifier
-uint32_t               unit;        // The trace unit identifier
-uint64_t               clock;       // The UTC epoch clock, in nanoseconds
-char                   value[16];   // Data values (For smallest Record)
-
-void
-   trace(                           // Initialize the Record type identifier
-     const char*       ident);      // The trace type identifier (+clock)
-
-void
-   trace(                           // Initialize the Record identifiers
-     const char*       ident,       // The trace type identifier (+clock)
-     uint32_t          unit);       // The trace unit identifier
-}; // struct Record
-
-//----------------------------------------------------------------------------
-// Trace::Constructors
-//----------------------------------------------------------------------------
-public:
    ~Trace( void ) {}                // Destructor
 
 protected:                          // Applications MUST use make
@@ -147,7 +219,6 @@ protected:                          // Applications MUST use make
    Trace(const Trace&) = delete;    // Disallowed copy constructor
 Trace& operator=(const Trace&) = delete; // Disallowed assignment operator
 
-public:
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -166,6 +237,7 @@ public:
 //       may set this perhaps using Trace::trace= make(addr, size);
 //
 //----------------------------------------------------------------------------
+public:
 static Trace*                       // The Trace object
    make(                            // Create a Trace object from
      void*             addr,        // Storage area
@@ -174,14 +246,12 @@ static Trace*                       // The Trace object
 //----------------------------------------------------------------------------
 // Trace::Accessors
 //----------------------------------------------------------------------------
-public:
 bool is_active( void )              // Is trace active?
 {  return flag[X_HALT] == 0; }
 
 //----------------------------------------------------------------------------
 // Trace::Methods
 //----------------------------------------------------------------------------
-public:
 // allocate: Allocate storage
 void*                               // Resultant
    allocate(                        // Allocate a trace record
@@ -194,7 +264,7 @@ void*                               // -> Trace record
 {  if( is_active() ) return allocate(size); else return nullptr; }
 
 // deactivate: Globally deactivate this Trace object
-void
+inline void
    deactivate( void )               // Halt tracing
 {  flag[X_HALT]= true; }            // is_active() now returns false
 
@@ -203,7 +273,7 @@ void
 void
    dump( void ) const;              // Dump the trace table
 
-uint32_t                            // Offset of record
+inline uint32_t                     // Offset of record
    offset(                          // Get offset of
      void*             record)      // This record
 {  return uint32_t((char*)record - (char*)this); }
@@ -217,6 +287,43 @@ static void*                        // The storage, nullptr if inactive
    else
      return nullptr;
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       write
+//
+// Purpose-
+//       Trace::Record helpers
+//
+//----------------------------------------------------------------------------
+static inline Record*               // The trace record (uninitialized)
+   new_R(                           // Get trace record
+     unsigned          size= 0)     // Of this extra size
+{  size += unsigned(sizeof(Record));
+   Record* record= (Record*)storage_if(size);
+   return record;
+}
+
+static inline void
+   write(                           // Simple trace event
+     const char*       ident,       // Trace identifier
+     uint32_t          code= 0,     // Trace code
+     const char*       info= nullptr) // Trace info (15 characters max)
+{  Record* record= new_R();
+   if( record ) {
+     Buffer<16> buff(info);
+     record->trace(ident, code, buff.temp);
+   }
+}
+
+static inline void
+   write(                           // Simple trace event
+     const char*       ident,       // Trace identifier
+     const char*       unit,        // Trace sub-identifier
+     void*             one= nullptr, // Word one
+     void*             two= nullptr) // Word two
+{  Record* record= new_R(); if( record ) record->trace(ident, unit, one, two); }
 }; // class Trace
 }  // namespace _PUB_NAMESPACE
 #endif // _PUB_TRACE_H_INCLUDED
