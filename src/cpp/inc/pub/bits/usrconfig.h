@@ -10,33 +10,28 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/pub/macro/config.h
+//       ~/pub/macro/bits/usrconfig.h
 //
 // Purpose-
-//       Configuration control macros.
+//       Configuration controlled user macros.
 //
 // Last change date-
-//       2021/06/11
+//       2022/04/07
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_CONFIG_H_INCLUDED
-#define _PUB_CONFIG_H_INCLUDED
+#ifndef _PUB_BITS_USRCONFIG_H_INCLUDED
+#define _PUB_BITS_USRCONFIG_H_INCLUDED
+
+#include <pub/bits/pubconfig.h>
 
 //----------------------------------------------------------------------------
 // Standard constants
 //----------------------------------------------------------------------------
-#define _PUB_NAMESPACE pub            // Change requires library recompile
+#define _PUB_NAMESPACE _LIBPUB_NAMESPACE // I.E. `pub`
 
 //----------------------------------------------------------------------------
-// Attributes (compiler dependent, no effect if not supported)
+// Attributes
 //----------------------------------------------------------------------------
-#ifdef __GNUC__
-   #define _ATTRIBUTE_PRINTF(fmt_parm, arg_parm) \
-               __attribute__ ((format (printf, fmt_parm, arg_parm)))
-
-   #define _ATTRIBUTE_NORETURN __attribute__ ((noreturn))
-#else
-   #define _ATTRIBUTE_PRINTF(fmt_parm, arg_parm)
-   #define _ATTRIBUTE_NORETURN
-#endif
-#endif // _PUB_CONFIG_H_INCLUDED
+#define ATTRIB_NORETURN         _LIBPUB_NORETURN
+#define ATTRIB_PRINTF(fmt, arg) _LIBPUB_PRINTF(fmt, arg)
+#endif // _PUB_BITS_USRCONFIG_H_INCLUDED

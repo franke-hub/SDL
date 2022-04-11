@@ -81,11 +81,11 @@ static void
 //       Side-effects: editor::diagnostic=true; internal trace stopped.
 //
 //----------------------------------------------------------------------------
+ATTRIB_PRINTF(1, 2)
 static void
    alertf(                          // Write to stderr, trace iff opt_hcdm
      const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
+                       ...);        // PRINTF argruments
 
 //----------------------------------------------------------------------------
 //
@@ -96,11 +96,11 @@ static void
 //       Formatted put_message (with default mode)
 //
 //----------------------------------------------------------------------------
+ATTRIB_PRINTF(1, 2)
 static void
    put_message(                     // Formatted put_message
      const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
+                       ...);        // PRINTF argruments
 }; // class Editor
 
 //----------------------------------------------------------------------------

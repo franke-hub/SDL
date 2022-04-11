@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2021/07/01
+//       2022/03/07
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -58,7 +58,6 @@ using namespace pub::debugging;     // For debugging
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  USE_BRINGUP= false               // Extra bringup diagnostics?
-,  TRACE_SIZE= 0x01000000           // Default trace table size
 }; // Compilation controls
 
 //----------------------------------------------------------------------------

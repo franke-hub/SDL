@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021 Frank Eskesen.
+//       Copyright (c) 2021-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Configuration control macros.
 //
 // Last change date-
-//       2021/06/11
+//       2022/03/06
 //
 //----------------------------------------------------------------------------
-#include "macro/config.h"
+#include "bits/usrconfig.h"

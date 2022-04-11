@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2021/10/01
+//       2022/04/11
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -47,7 +47,7 @@ enum // Compilation controls
 ,  USE_BRINGUP= false               // Extra bringup diagnostics?
 }; // Compilation controls
 
-static const int       MAX_HISTORY= 8; // Maximum history size
+static const int       MAX_HISTORY= 32; // Maximum history size
 
 //----------------------------------------------------------------------------
 //
@@ -212,11 +212,8 @@ void
    int count= 0;
    for(EdLine* line= hist_list.get_head(); line; line= line->get_next())
      count++;
-   if( MAX_HISTORY && count > MAX_HISTORY ) {
-     EdLine* head= hist_list.get_head();
-     hist_list.remove(head, head);
-     delete head;
-   }
+   if( MAX_HISTORY && count > MAX_HISTORY )
+     delete hist_list.remq();
 
    // Process the command (Using mutable buffer)
    const char* text= cursor->text;
@@ -226,6 +223,7 @@ void
    else
      text= "";
    active.reset(text);              // Reset the (mutated) buffer
+   cursor= nullptr;                 // Reset the cursor
 
    editor::text->draw_info();
 }

@@ -64,6 +64,7 @@ enum CURSOR_STATE                   // Mouse cursor state
 enum KEYBOARD_STATE                 // Keyboard state (Low order 16 bits zero)
 {  KS_RESERVED_XCB= 0x0000ffff      // XCB reserved, i.e. XCB_KEY_BUT_MASK_*
 ,  KS_INS=          0x00010000      // Insert state
+,  KS_ESC=          0x00020000      // Escape state
 }; // enum KEYBOARD_STATE
 
 struct Motion {                     // System motion controls
@@ -409,6 +410,19 @@ void
 //----------------------------------------------------------------------------
 void
    synch_active( void );            // Set the Active (cursor) line
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdText::synch_file
+//
+// Purpose-
+//       Save the current state in the active file
+//
+//----------------------------------------------------------------------------
+void
+   synch_file(                      // Synchronize the active file
+     EdFile*           file) const; // The active file, which is updated
 
 //============================================================================
 // EdText::Event handlers

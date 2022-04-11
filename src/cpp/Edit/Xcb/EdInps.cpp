@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2021/12/21
+//       2022/04/09
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -44,6 +44,7 @@
 
 using namespace config;             // For config::opt_*, ...
 using namespace pub::debugging;     // For debugging
+using pub::Trace;                   // For pub::Trace
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -109,7 +110,7 @@ static const char*                  // The name of the key
 {
 static char buffer[16];
 static const char* F_KEY= "123456789ABCDEF";
-   if( key >= 0x0020 && key <= 0x007f ) { // If text key
+   if( key >= 0x0020 && key <= 0x007f ) { // If text key (but not TAB or ESC)
      buffer[0]= char(key);
      buffer[1]= '\0';
      return buffer;
@@ -206,6 +207,26 @@ static const char* F_KEY= "123456789ABCDEF";
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       is_text_key
+//
+// Purpose-
+//       Is the key a text key?
+//
+//----------------------------------------------------------------------------
+static bool
+   is_text_key(                     // Is key an input key?
+     xcb_keysym_t      key)         // Input key
+{
+   bool is_key= false;
+   if( (key >= 0x0020 && key < 0x007F) // If standard text key
+       || key == '\b' || key == '\t' || key == '\x1B' ) // or extended text key
+     is_key= true;
+   return is_key;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       line_protected
 //
 // Purpose-
@@ -217,7 +238,7 @@ static int                          // Return code, TRUE if error message
      xcb_keysym_t      key,         // Input key
      int               state)       // Alt/Ctl/Shift state mask
 {
-   if( (key >= 0x0020 && key < 0x007F) || key == '\t' ) { // If text key
+   if( is_text_key(key) ) {         // If text key
      int mask= state & (gui::KS_ALT | gui::KS_CTRL);
 
      if( mask ) {
@@ -346,6 +367,10 @@ void
          draw_info();               // (Remove "No Mark" message)
        break;
      }
+     case '\\': {                   // Escape
+       keystate |= KS_ESC;
+       break;
+     }
      default:
        editor::put_message("Invalid key");
        draw_info();
@@ -413,7 +438,7 @@ void
 
    // Diagnostics
    const char* key_name= key_to_name(key);
-   Config::trace(".KEY", (state<<16) | (key & 0x0000ffff), key_name);
+   Trace::trace(".KEY", (state<<16) | (key & 0x0000ffff), key_name);
    if( opt_hcdm ) {
      debugh("EdText(%p)::key_input(0x%.4x,%.4x) '%s'\n", this
            , key, state, key_name);
@@ -427,10 +452,14 @@ void
      key= kp_tab[key - KP_MIN];
    }
 
-   // Convert Ctrl-TAB to standard TAB
-   if( key == XK_Tab && (state & gui::KS_CTRL) ) {
-     key= '\t';
-     state= 0;
+   // Handle character escape state
+   if( keystate & KS_ESC ) {
+     if( key == XK_BackSpace || key == XK_Tab || key == XK_Escape
+         || is_text_key(key) ) {
+       key &= 0x00FF;               // Keys "cleverly chosen to map to ASCII"
+       state= 0;
+     }
+     keystate ^= KS_ESC;
    }
 
    // Handle protected line
@@ -448,7 +477,7 @@ void
    }
 
    size_t column= view->get_column(); // The cursor column
-   if( (key >= 0x0020 && key < 0x007F) || key == '\t' ) { // If text key
+   if( is_text_key(key) ) {         // If text key
      int mask= state & (gui::KS_ALT | gui::KS_CTRL);
      if( mask ) {
        key= toupper(key);
@@ -523,7 +552,7 @@ void
          if( editor::diagnostic ) {
            editor::diagnostic= false;
            Config::errorf("Diagnostic mode exit\n");
-           pub::Trace* trace= pub::Trace::trace;
+           pub::Trace* trace= pub::Trace::table;
            if( trace )
              trace->flag[pub::Trace::X_HALT]= false;
          } else {

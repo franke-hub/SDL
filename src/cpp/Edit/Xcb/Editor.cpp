@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2021/08/24
+//       2022/03/15
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -57,6 +57,7 @@ using namespace config;             // For namespace config (opt_*)
 using namespace editor;             // For namespace editor
 using namespace pub::debugging;     // For debugging
 using pub::Debug;                   // For pub::Debug
+using pub::Trace;                   // For pub::Trace
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -369,7 +370,11 @@ void
 {
    debugf("Editor::debug(%s)\n", info ? info : "");
    debugf("..device(%p) window(%p) text(%p)\n", device, window, text);
-   debugf("..file_list(%p,%p) file(%p)\n"
+   debugf("..mark(%p) data(%p) hist(%p) view(%p)\n", mark, data, hist, view);
+   debugf("..locate[%s] change[%s]\n"
+         , locate_string.c_str(), change_string.c_str());
+
+   debugf("\n..file_list(%p,%p) file(%p)\n"
          , file_list.get_head(), file_list.get_tail(), file);
    for(EdFile* file= file_list.get_head(); file; file= file->get_next()) {
      if( USE_HCDM_FILE_DEBUG )      // If hard core file debugging
@@ -377,13 +382,10 @@ void
      else                           // If name only file debugging
        debugf("..[%p] '%s'\n", file, file->name.c_str());
    }
-   debugf("..mark(%p) data(%p) hist(%p) view(%p)\n", mark, data, hist, view);
-   debugf("..locate[%s] change[%s]\n"
-         , locate_string.c_str(), change_string.c_str());
 
    size_t size; size_t used;        // Total size, Total used
    size= used= 0;
-   debugf("..filePool[%p,%p]\n", filePool.get_head(), filePool.get_tail());
+   debugf("\n..filePool[%p,%p]\n", filePool.get_head(), filePool.get_tail());
    for(EdPool* pool= filePool.get_head(); pool; pool= pool->get_next()) {
      debugf("..[%p] used(%'8zu) size(%'8zu)\n", pool
           , pool->get_used(), pool->get_size());
@@ -393,7 +395,7 @@ void
    debugf("..****TOTAL**** used(%'8zu) size(%'8zu)\n", used, size);
 
    size= used= 0;
-   debugf("..textPool[%p,%p]\n", textPool.get_head(), textPool.get_tail());
+   debugf("\n..textPool[%p,%p]\n", textPool.get_head(), textPool.get_tail());
    for(EdPool* pool= textPool.get_head(); pool; pool= pool->get_next()) {
      debugf("..[%p] used(%'8zu) size(%'8zu)\n", pool
            , pool->get_used(), pool->get_size());
@@ -429,13 +431,13 @@ void
      exit(EXIT_FAILURE);
 
    recursion= true;
-   Config::trace(".BUG", __LINE__, "Editor.cpp"); // (Trace error occurance)
+   Trace::trace(".BUG", __LINE__, "Editor.cpp"); // (Trace error occurance)
    debug_backtrace();               // (Diagnostic backtrace, if OS supported)
    Config::debug(S.c_str());        // (Diagnostic dump)
 
    diagnostic= true;                // Enter diagnostic state
    Config::errorf("Diagnostic mode entered, alt-pause to exit\n");
-   pub::Trace* trace= pub::Trace::trace;
+   pub::Trace* trace= pub::Trace::table;
    if( trace )
      trace->flag[pub::Trace::X_HALT]= true;
    editor::put_message(S.c_str(), EdMess::T_MESS); // (Alert user)

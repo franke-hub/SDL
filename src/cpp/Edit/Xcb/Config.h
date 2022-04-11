@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2021/07/03
+//       2022/04/08
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
@@ -27,7 +27,7 @@
 #include <gui/Device.h>             // For gui::Device
 #include <gui/Font.h>               // For gui::Font
 #include <gui/Window.h>             // For gui::Window
-#include <pub/config.h>             // For _ATTRIBUTE_PRINTF macros
+#include <pub/config.h>             // For ATTRIB_PRINTF macro
 #include <pub/Signals.h>            // For pub::signals
 
 //----------------------------------------------------------------------------
@@ -89,11 +89,11 @@ static void
 //       Write to stderr, write to trace iff opt_hcdm
 //
 //----------------------------------------------------------------------------
+ATTRIB_PRINTF(1, 2);
 static void
    errorf(                          // Write to stderr, trace iff opt_hcdm
      const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
+                       ...);        // PRINTF argruments
 
 //----------------------------------------------------------------------------
 //
@@ -104,11 +104,11 @@ static void
 //       Write error message and exit
 //
 //----------------------------------------------------------------------------
+ATTRIB_PRINTF(1, 2);
 static void
    failure(                         // Write error message and exit
      const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
+                       ...);        // PRINTF argruments
 
 //----------------------------------------------------------------------------
 //
@@ -116,26 +116,9 @@ static void
 //       Config::trace
 //
 // Purpose-
-//       Simple trace event
+//       REDO/UNDO trace event
 //
 //----------------------------------------------------------------------------
-static void*                        // The trace record (uninitialized)
-   trace(                           // Get trace record
-     unsigned          size= 0);    // Of this extra size
-
-static void
-   trace(                           // Simple trace event
-     const char*       ident,       // Trace identifier
-     uint32_t          code= 0,     // Trace code
-     const char*       info= nullptr); // Trace info (15 characters max)
-
-static void
-   trace(                           // Simple trace event
-     const char*       ident,       // Trace identifier
-     const char*       code,        // Trace sub-identifier
-     void*             one_= nullptr,  // Word one
-     void*             two_= nullptr); // Word two
-
 static void
    trace(                           // Trace undo/redo operation
      const char*       ident,       // Trace identifier

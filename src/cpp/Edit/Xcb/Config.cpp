@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2021/07/03
+//       2022/04/08
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -35,6 +35,7 @@
 #include <sys/stat.h>               // For stat
 #include <xcb/xproto.h>             // For xcb_rectangle_t
 
+#include <pub/config.h>             // For ATTRIB_PRINTF macro
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include <pub/Fileman.h>            // For namespace pub::fileman
 #include <pub/Parser.h>             // For pub::Parser
@@ -47,8 +48,9 @@
 #include "EdFile.h"                 // For EdFile
 
 using namespace config;             // For implementation
-using pub::Debug;                   // For pub::Debug
 using namespace pub::debugging;     // For pub::debugging
+using pub::Debug;                   // For pub::Debug
+using pub::Trace;                   // For pub::Trace
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -57,7 +59,7 @@ enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  PROT_RW= (PROT_READ | PROT_WRITE)
 ,  DIR_MODE= (S_IRWXU | S_IRGRP|S_IXGRP | S_IROTH|S_IXOTH)
-,  TRACE_SIZE= pub::Trace::TABLE_SIZE_MIN * 4 // Trace table size
+,  TRACE_SIZE= 0x00100000           // Trace table size (1,048,576)
 ,  USE_BRINGUP= false               // Extra bringup diagnostics?
 }; // Compilation controls
 
@@ -65,6 +67,7 @@ enum // Compilation controls
 // Internal data areas
 //----------------------------------------------------------------------------
 static pub::Debug*     debug= nullptr; // Our Debug object
+static std::string     debug_path;  // The debugging output path name
 static void*           trace_table= nullptr; // The internal trace area
 
 // Signal handlers
@@ -116,7 +119,7 @@ gui::Window*           config::window= nullptr; // A TEST Window (Not needed)
 gui::Font*             config::font= nullptr; // The Font object
 
 // (Internal) -------- Initialized at startup --------------------------------
-std::string            config::AUTO; // AUTOSAVE directory (~/.config/...)
+std::string            config::AUTO; // AUTOSAVE directory "~/.config/editxcb"
 std::string            config::HOME; // HOME directory (getenv("HOME"))
 
 // (Internal) -------- Global event signals ----------------------------------
@@ -225,19 +228,16 @@ static int                          // Resultant value
      Config::failure("No HOME directory");
    HOME= env;
 
-   // If required, create "$HOME/.config/uuid/" + UUID + "/Edit.conf"
+   // If required, create "$HOME/.config/editxcb/Edit.conf"
    std::string S= HOME + "/.config";
    make_dir(S);
-   S += "/uuid";
+   S += "/editxcb";
    make_dir(S);
-   S += std::string("/") + UUID;
-   make_dir(S);
-   AUTO= S;
-
+   AUTO= debug_path= S;
    S += std::string("/Edit.conf");
    make_file(S, Edit_conf);
 
-   // Set AUTOSAVE subdirectory
+   // Override AUTOSAVE directory, if required
    env= getenv("AUTOSAVE");         // Get AUTOSAVE directory override
    if( env )
      AUTO= env;
@@ -372,63 +372,6 @@ void
 //       Trace utilities
 //
 //----------------------------------------------------------------------------
-void*                               // The trace record (uninitialized)
-   Config::trace(                   // Get trace record
-     unsigned          size)        // Of this extra size
-{
-   typedef ::pub::Trace::Record Record;
-   size += unsigned(sizeof(Record));
-   Record* record= (Record*)::pub::Trace::storage_if(size);
-   return record;
-}
-
-void
-   Config::trace(                   // Simple trace event
-     const char*       ident,       // Trace identifier
-     uint32_t          code,        // Trace code
-     const char*       info)        // Trace info (15 characters max)
-{
-   typedef ::pub::Trace::Record Record;
-   Record* record= (Record*)trace();
-   if( record ) {
-     char* unit= (char*)&record->unit;
-     unit[3]= char(code >>  0);
-     unit[2]= char(code >>  8);
-     unit[1]= char(code >> 16);
-     unit[0]= char(code >> 24);
-
-     memset(record->value, 0, sizeof(record->value));
-     if( info )
-       strcpy(record->value, info);
-     record->trace(ident);
-   }
-}
-
-void
-   Config::trace(                   // Simple trace event
-     const char*       ident,       // Trace identifier
-     const char*       unit,        // Trace sub-identifier
-     void*             one_,        // Word one
-     void*             two_)        // Word two
-{
-   uintptr_t one= uintptr_t(one_);
-   uintptr_t two= uintptr_t(two_);
-
-   typedef ::pub::Trace::Record Record;
-   Record* record= (Record*)trace();
-   if( record ) {
-     memcpy(&record->unit, unit, 4);
-
-     for(unsigned i= 8; i>0; i--) {
-       record->value[0 + i - 1]= char(one);
-       record->value[8 + i - 1]= char(two);
-       one >>= 8;
-       two >>= 8;
-     }
-     record->trace(ident);
-   }
-}
-
 void
    Config::trace(                   // Trace undo/redo operation
      const char*       ident,       // Trace identifier
@@ -437,7 +380,7 @@ void
      EdLine*           line)        // The UNDO/REDO cursor line
 {
    typedef pub::Trace::Record Record;
-   Record* record= (Record*)trace(32);
+   Record* record= Trace::trace(32);
    if( record ) {
      memset(record->value, 0, sizeof(record->value) + 32);
      struct unit {
@@ -543,9 +486,9 @@ static void
        break;
 
      case SIGSEGV:                  // (Program fault)
-       Config::trace(".BUG", __LINE__, "SIGSEGV");
-       debug_backtrace();           // Attempt diagnosis (recursion aborts)
+       Trace::trace(".BUG", __LINE__, "SIGSEGV");
        debug_set_mode(Debug::MODE_INTENSIVE);
+       debug_backtrace();           // Attempt diagnosis (recursion aborts)
        Config::debug("SIGSEGV");
        debugf("..terminated..\n");
        exit(EXIT_FAILURE);
@@ -584,7 +527,7 @@ static int                          // Return code (0 OK)
 
    //-------------------------------------------------------------------------
    // Initialize/activate debugging trace (with options)
-   std::string S= AUTO + "/debug.out";
+   std::string S= debug_path + "/debug.out";
    debug= new pub::Debug(S.c_str());
    debug->set_head(pub::Debug::HEAD_TIME);
    pub::Debug::set(debug);
@@ -596,7 +539,7 @@ static int                          // Return code (0 OK)
 
    //-------------------------------------------------------------------------
    // Create memory-mapped trace file
-   S= AUTO + "/trace.mem";
+   S= debug_path + "/trace.mem";
    int fd= open(S.c_str(), O_RDWR | O_CREAT, S_IRWXU);
    if( fd < 0 ) {
      Config::errorf("%4d open(%s) %s\n", __LINE__, S.c_str()
@@ -619,7 +562,7 @@ static int                          // Return code (0 OK)
      return 1;
    }
 
-   pub::Trace::trace= pub::Trace::make(trace_table, TRACE_SIZE);
+   pub::Trace::table= pub::Trace::make(trace_table, TRACE_SIZE);
    close(fd);                       // Descriptor not needed once mapped
 
    return 0;
@@ -652,7 +595,7 @@ static void
    //-------------------------------------------------------------------------
    // Free the trace table (and disable tracing)
    if( trace_table ) {
-     pub::Trace::trace= nullptr;
+     pub::Trace::table= nullptr;
      munmap(trace_table, TRACE_SIZE);
      trace_table= nullptr;
    }
@@ -702,13 +645,14 @@ struct Option          color_list[]= // The color parameter list
 , {nullptr,            nullptr}      // End of list
 };
 
+ATTRIB_PRINTF(2, 3)
 static void
    parse_error(                     // Handle parse error
      std::string       file,        // The parse file name
      const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(2, 3);
+                       ...);        // PRINTF argruments
 
+ATTRIB_PRINTF(2, 3)
 static void
    parse_error(                     // Handle parse error
      std::string       file,        // The parse file name
@@ -894,4 +838,4 @@ static void
 //============================================================================
 // DEBUGGING EXTENSION: configCheck, configDebug, and configSignal listaners
 //============================================================================
-#include "Config.patch"             // Default config signal listeners
+#include "Config.hpp"               // Default config signal listeners

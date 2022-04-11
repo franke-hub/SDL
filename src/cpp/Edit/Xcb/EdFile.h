@@ -318,7 +318,7 @@ static size_t                       // The row count
 //----------------------------------------------------------------------------
 void
    debug(                           // Debugging display
-     const char*       info= nullptr) const; // Associated info
+     const char*       info= nullptr); // Associated info
 
 //----------------------------------------------------------------------------
 //

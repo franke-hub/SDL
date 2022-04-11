@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2021/06/26
+//       2022/03/15
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -31,6 +31,7 @@
 #include "EdView.h"                 // For EdView
 
 using namespace pub::debugging;     // For debugging
+using pub::Trace;                   // For pub::Trace
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -254,7 +255,7 @@ const char*                         // Error message, nullptr expected
    editor::data->commit();
 
    // Create (and trace) the copy
-   Config::trace(".MRK", " C^C", mark_head, mark_tail);
+   Trace::trace(".MRK", " C^C", mark_head, mark_tail);
 
    // Remove any current copy/cut
    reset();
@@ -293,7 +294,7 @@ const char*                         // Error message, nullptr expected
    if( error ) return error;
 
    // Trace the cut
-   Config::trace(".MRK", " C^X", mark_head, mark_tail);
+   Trace::trace(".MRK", " C^X", mark_head, mark_tail);
 
    // Perform the cut (with REDO)
    EdRedo* redo= new EdRedo();
@@ -606,7 +607,7 @@ const char*                         // Error message, nullptr expected
    }
 
    // Trace the paste, create the REDO
-   Config::trace(".MRK", " C^V", edFile, edLine);
+   Trace::trace(".MRK", " C^V", edFile, edLine);
    EdRedo* redo= new EdRedo();      // Create the REDO
 
    // Duplicate the copy_list, marking the duplicated lines

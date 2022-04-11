@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdText.h
 //
 // Last change date-
-//       2021/06/26
+//       2022/03/15
 //
 // Implementation notes-
 //       EdInps.cpp implements keyboard and mouse event handlers.
@@ -47,6 +47,7 @@
 
 using namespace config;             // For config::opt_*, ...
 using namespace pub::debugging;     // For debugging
+using pub::Trace;                   // For pub::Trace
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -334,30 +335,23 @@ void
    EdText::activate(                // Activate
      EdFile*           act_file)    // This file
 {
+   if( opt_hcdm )
+     debugh("EdText(%p)::activate(%s)\n", this
+           , act_file ? act_file->get_name().c_str() : "nullptr");
+
    EdView* const data= editor::data;
    EdFile* const file= editor::file;
 
-   if( opt_hcdm )
-     debugh("EdText(%p)::activate(%s)\n", this, act_file->get_name().c_str());
-
    // Trace file activation
-   Config::trace(".ACT", "file", act_file, file); // (New, Old)
+   Trace::trace(".ACT", "file", file, act_file); // (Old, new)
 
    // Out with the old
-   if( file ) {
-     data->commit();
-
-     file->csr_line= data->cursor;
-     file->top_line= this->head;
-     file->col_zero= data->col_zero;
-     file->row_zero= data->row_zero;
-     file->col= data->col;
-     file->row= data->row;
-   }
+   if( file )
+     synch_file(file);
 
    // In with the new
    editor::file= act_file;
-   this->head= nullptr;
+   this->head= this->tail= nullptr;
    if( act_file ) {
      this->head= this->tail= act_file->top_line;
      data->col_zero= act_file->col_zero;
@@ -396,7 +390,7 @@ void
    EdFile* const file= editor::file;
 
    // Trace line activation
-   Config::trace(".ACT", "line", act_line, data->cursor); // (New, Old)
+   Trace::trace(".ACT", "line", data->cursor, act_line); // (Old, new)
 
    // Activate
    undo_cursor();                   // Clear the character cursor
@@ -544,8 +538,8 @@ void
      debugh("EdText(%p)::cursor_%s cursor[%u,%u]\n", this
            , set ? "S" : "C", view->col, view->row);
 
-   if( editor::file->mess_list.get_head() ) // If message line present
-     return;                        // (Do nothing)
+// if( editor::file->mess_list.get_head() ) // If message line present
+//   return;                        // (Do nothing)
 
    char buffer[8];                  // The cursor encoding buffer
    size_t column= view->get_column(); // The current column
@@ -593,7 +587,7 @@ bool                                // Return code, TRUE if handled
      return false;
 
    if( HCDM )
-     Config::trace(".DRW", "hist", hist->cursor);
+     Trace::trace(".DRW", "hist", hist->cursor);
    const char* buffer= hist->get_buffer();
    putxy(hist->get_gc(), 1, 1, buffer);
    draw_cursor();
@@ -614,7 +608,7 @@ bool                                // Return code, TRUE if handled
    buffer[strlen(buffer)]= ' ';
 
    if( HCDM )
-     Config::trace(".DRW", " msg");
+     Trace::trace(".DRW", " msg");
    putxy(gc_msg, 1, 1, buffer);
    flush();
    return true;
@@ -683,7 +677,7 @@ void
    }
 
    if( HCDM )
-     Config::trace(".DRW", " sts", (void*)draw_col, (void*)draw_row);
+     Trace::trace(".DRW", " sts", (void*)draw_col, (void*)draw_row);
    xcb_gcontext_t gc= gc_sts;       // Set background/foreground GC
    if( file->changed || file->damaged || data->active.get_changed() )
      gc= gc_chg;
@@ -706,7 +700,7 @@ void
    if( opt_hcdm )
      debugh("EdText(%p)::draw\n", this);
 
-   Config::trace(".DRW", " all", head, tail);
+   Trace::trace(".DRW", " all", head, tail);
    // Clear the drawable window
    NOQUEUE("xcb_clear_area", xcb_clear_area
           ( c, 0, widget_id, 0, 0, rect.width, rect.height) );
@@ -1017,10 +1011,10 @@ void
      data->row= USER_TOP;
 
    EdLine* line= head;              // Get the top line
-   const char* match_type= " row";  // Default, row match
+   const char* match_type= " ???";  // Default, NO match
    for(unsigned r= USER_TOP; ; r++) { // Set the Active line
      if( r == data->row ) {
-//     match_type= " row";          // Row match
+       match_type= " row";          // Row match
        break;
      }
 
@@ -1041,8 +1035,35 @@ void
    }
 
    // Set the new active line (with trace)
-   Config::trace(".CSR", match_type, line, data->cursor); // (New, old)
+   Trace::trace(".CSR", match_type, data->cursor, line); // (Old, new)
    data->cursor= line;
    data->active.reset(line->text);
    draw_cursor();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdText::synch_file
+//
+// Purpose-
+//       Save the current state in the active file
+//
+//----------------------------------------------------------------------------
+void
+   EdText::synch_file(              // Synchronize the active file
+     EdFile*           file) const  // (Note that file is not const)
+{
+   EdView* const data= editor::data;
+
+   if( file == editor::file ) {     // This should *always* be true
+     data->commit();
+
+     file->csr_line= data->cursor;
+     file->top_line= this->head;
+     file->col_zero= data->col_zero;
+     file->row_zero= data->row_zero;
+     file->col= data->col;
+     file->row= data->row;
+   }
 }

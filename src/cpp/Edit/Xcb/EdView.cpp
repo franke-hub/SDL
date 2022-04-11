@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,13 +16,14 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2021/10/01
+//       2022/03/15
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
 #include <sys/types.h>              // For system types
 
 #include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Trace.h>              // For pub::Trace
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For namespace config
@@ -34,6 +35,7 @@
 
 using namespace config;             // For opt_* variables
 using namespace pub::debugging;     // For debugging
+using pub::Trace;                   // For pub::Trace
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -81,15 +83,13 @@ void
      const char*       info) const  // Associated info
 {
    if( info ) debugf("EdView(%p)::debug(%s)\n", this, info);
-   debugf("..col_zero(%zd) col(%u) row_zero(%zd) row(%u)\n"
-         , col_zero, col, row_zero, row);
+   debugf("..cursor(%p) col_zero(%zd) col(%u) row_zero(%zd) row(%u)\n"
+         , cursor, col_zero, col, row_zero, row);
    debugf("..gc_font(%u) gc_flip(%u) gc_mark(%u)\n"
          , gc_font, gc_flip, gc_mark);
-   if( cursor ) {
-     debugf("..cursor: "); cursor->debug(); // (Multi-statement line)
-   } else
-     debugf("..cursor(%p)\n", cursor);
-   active.debug();
+   if( cursor )
+     cursor->debug();
+   active.debug(info);
 }
 
 //----------------------------------------------------------------------------
@@ -194,10 +194,10 @@ void
      editor::file->redo_insert(redo); // (Sets file->changed)
      editor::mark->handle_redo(editor::file, redo);
 
-     Config::trace(".CSR", "Vcmt", line, cursor); // (New, old)
+     Trace::trace(".CSR", "Vcmt", cursor, line); // (Old, new)
      cursor= line;                  // Replace the cursor
    } else if( USE_BRINGUP ) {
-     Config::trace(".CSR", "Vnop", cursor, cursor); // (Old, old)
+     Trace::trace(".CSR", "Vnop", cursor, cursor); // (Old, old)
    }
 }
 

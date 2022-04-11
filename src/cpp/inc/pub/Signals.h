@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       pub::signals::Signal and pub::signals::Connector descriptors.
 //
 // Last change date-
-//       2020/12/08
+//       2022/03/10
 //
 // Usage notes-
 //       The Signal interface consists of these objects:
@@ -119,7 +119,7 @@
 #define debugf ::pub::debugging::debugf // Prevent ADL lookup
 #define pub_hcdm ::pub::debugging::options::pub_hcdm
 
-#include "detail/Signals.h"         // For internal classes
+#include "bits/Signals.h"           // For internal classes
 
 namespace pub::signals {
 //----------------------------------------------------------------------------
@@ -155,9 +155,9 @@ class Connector {                   // Signal/Listener Connector
 // pub::signals::Connector::Attributes
 //----------------------------------------------------------------------------
 protected:
-typedef detail::ListenerList<Event>
+typedef __detail::ListenerList<Event>
                        List_t;      // ListenerList type
-typedef detail::Listener<Event>
+typedef __detail::Listener<Event>
                        Slot_t;      // Listener type
 typedef ::std::shared_ptr<List_t>
                        Strong_t;    // shared_ptr<ListenerList> type
@@ -279,10 +279,10 @@ class Signal : public Named {       // Signal descriptor
 protected:
 typedef std::function<void(Event&)>
                        Function;   // Function<Event> class
-typedef detail::Listener<Event>
-                       Listener;    // Using detail::Listener
-typedef detail::ListenerList<Event>
-                       ListenerList; // Using detail::ListenerList
+typedef __detail::Listener<Event>
+                       Listener;    // Using __detail::Listener
+typedef __detail::ListenerList<Event>
+                       ListenerList; // Using __detail::ListenerList
 
 ::std::shared_ptr<ListenerList>
                        list;        // The ListenerList List accessor

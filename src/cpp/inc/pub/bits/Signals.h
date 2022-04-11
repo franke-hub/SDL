@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -10,27 +10,27 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       detail/Signals.h
+//       bits/Signals.h
 //
 // Purpose-
-//       Signals detail, not part of external interface
+//       Signals __detail, not part of external interface
 //
 // Last change date-
-//       2020/12/08
+//       2022/03/10
 //
 // Implementation note-
 //       This include is private. It requires macros defined in ../Signals.h.
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_DETAIL_SIGNALS_H_INCLUDED
-#define _PUB_DETAIL_SIGNALS_H_INCLUDED
+#ifndef _PUB_BITS_SIGNALS_H_INCLUDED
+#define _PUB_BITS_SIGNALS_H_INCLUDED
 
 namespace pub::signals {
-namespace detail {
+namespace __detail {
 //----------------------------------------------------------------------------
 //
 // Class-
-//       pub::signals::detail::Listener
+//       pub::signals::__detail::Listener
 //
 // Purpose-
 //       Listener descriptor, contains a std::function<void(Event&)> object.
@@ -51,7 +51,7 @@ typedef std::function<void(Event&)>
 const Function         function;   // The Event handler function
 
 //----------------------------------------------------------------------------
-// pub::signals::detail::Listener::Constructor
+// pub::signals::__detail::Listener::Constructor
 //----------------------------------------------------------------------------
 public:
    Listener(                        // Constructor
@@ -63,13 +63,13 @@ public:
 }
 
 //----------------------------------------------------------------------------
-// pub::signals::detail::Listener::Destructor
+// pub::signals::__detail::Listener::Destructor
 //----------------------------------------------------------------------------
    ~Listener( void )                // Destructor
 {  if( pub_hcdm ) debugf("Listener(%p)::~Listener\n", this); }
 
 //----------------------------------------------------------------------------
-// pub::signals::detail::Listener::signal
+// pub::signals::__detail::Listener::signal
 //----------------------------------------------------------------------------
 void
    signal(                          // Signal this Listener about
@@ -83,7 +83,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Class-
-//       pub::signals::detail::ListenerList
+//       pub::signals::__detail::ListenerList
 //
 // Purpose-
 //       The List<Listener<Event>> container, with locking controls
@@ -92,7 +92,7 @@ void
 template<typename Event>
 class ListenerList {                // The List of Listeners (container)
 //----------------------------------------------------------------------------
-// pub::signals::detail::ListenerList::Attributes
+// pub::signals::__detail::ListenerList::Attributes
 //----------------------------------------------------------------------------
 protected:
 typedef Listener<Event>Slot_t;      // The Listener class alias
@@ -102,7 +102,7 @@ mutable
 ::pub::List<Slot_t>    list;        // The actual List of Listeners
 
 //----------------------------------------------------------------------------
-// pub::signals::detail::ListenerList::Constructor
+// pub::signals::__detail::ListenerList::Constructor
 //----------------------------------------------------------------------------
 public:
    ListenerList( void )             // Default constructor
@@ -110,7 +110,7 @@ public:
 {  if( pub_hcdm ) debugf("ListenerList(%p)::ListenerList\n", this); }
 
 //----------------------------------------------------------------------------
-// pub::signals::detail::ListenerList::Destructor
+// pub::signals::__detail::ListenerList::Destructor
 //----------------------------------------------------------------------------
    ~ListenerList( void )            // Destructor
 {  if( pub_hcdm ) debugf("ListenerList(%p)::~ListenerList\n", this);
@@ -122,7 +122,7 @@ public:
 }
 
 //----------------------------------------------------------------------------
-// pub::signals::detail::ListenerList::debug
+// pub::signals::__detail::ListenerList::debug
 //----------------------------------------------------------------------------
 void
    debug( void )                    // Debugging display
@@ -137,7 +137,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::detail::ListenerList::signal
+//       pub::signals::__detail::ListenerList::signal
 //
 // Purpose-
 //       Signal Event occurance
@@ -154,7 +154,7 @@ void                                // (All Listeners are signaled)
 }
 
 //----------------------------------------------------------------------------
-// pub::signals::detail::ListenerList::insert
+// pub::signals::__detail::ListenerList::insert
 //----------------------------------------------------------------------------
 void
    insert(                          // Insert
@@ -168,7 +168,7 @@ void
 }
 
 //----------------------------------------------------------------------------
-// pub::signals::detail::ListenerList::remove
+// pub::signals::__detail::ListenerList::remove
 //----------------------------------------------------------------------------
 void
    remove(                          // Remove
@@ -181,6 +181,6 @@ void
    list.remove(slot, slot);         // Remove the Listener
 }
 }; // class ListenerList
-}  // namespace detail
+}  // namespace __detail
 }  // namespace pub::signals
-#endif // _PUB_DETAIL_SIGNALS_H_INCLUDED
+#endif // _PUB_BITS_SIGNALS_H_INCLUDED

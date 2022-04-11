@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2021/06/26
+//       2022/03/15
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -36,6 +36,7 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Fileman.h>            // For pub::Name
 #include <pub/Signals.h>            // For pub::signals::Signal
+#include <pub/Trace.h>              // For pub::Trace
 #include <pub/List.h>               // For pub::List
 
 #include "Config.h"                 // For Config::check
@@ -47,6 +48,7 @@
 
 using namespace config;             // For config::opt_*
 using namespace pub::debugging;     // For debugging
+using pub::Trace;                   // For pub::Trace
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -297,7 +299,7 @@ static void
 {  if( HCDM || opt_hcdm )
      traceh("EdFile(%p)::EdFile(%s)\n", this, get_name().c_str());
 
-   Config::trace(".NEW", "file", this);
+   Trace::trace(".NEW", "file", this);
 
    EdLine* top= new_line("* * * * Top of file * * * *");
    EdLine* bot= new_line("* * * * End of file * * * *");
@@ -317,7 +319,7 @@ static void
    if( HCDM || opt_hcdm )
      traceh("EdFile(%p)::~EdFile(%s)\n", this, get_name().c_str());
 
-   Config::trace(".DEL", "file", this);
+   Trace::trace(".DEL", "file", this);
 
    if( HCDM && !line_list.is_coherent() )
      Editor::alertf("%4d incoherent\n", __LINE__);
@@ -387,6 +389,10 @@ size_t                              // The row number
 // Purpose-
 //       Debugging display.
 //
+// Implementation notes-
+//       If the file is active, text->synch_file updates the state and commits
+//       the active line
+//
 //----------------------------------------------------------------------------
 static inline const char*           // "true" or "false"
    TF(bool B)
@@ -394,33 +400,36 @@ static inline const char*           // "true" or "false"
 
 void
    EdFile::debug(                   // Debugging display
-     const char*       info) const  // Associated info
+     const char*       info)        // Associated info
 {
    debugf("EdFile(%p)::debug(%s) '%s'\n", this
          , info ? info : "", get_name().c_str());
 
+   if( this == editor::file )       // If this is the active file
+     editor::text->synch_file(this); // Get current text state
    debugf("..mode(%d) changed(%s) damaged(%s) protect(%s)\n"
          , mode, TF(changed), TF(damaged), TF(protect));
+   debugf("..top_line(%p) csr_line(%p)\n", top_line, csr_line);
    debugf("..col_zero(%zd) col(%d) row_zero(%zd) row(%d) rows(%zd)\n"
          , col_zero, col, row_zero, row, rows);
 
-   debugf("..mess_list:\n");
+   debugf("..mess_list[%p,%p]:\n", mess_list.get_head(), mess_list.get_tail());
    for(EdMess* mess= mess_list.get_head(); mess; mess= mess->get_next()) {
      debugf("....(%p) %d '%s'\n", mess, mess->type, mess->mess.c_str());
    }
 
-   debugf("..redo_list:\n");
+   debugf("..redo_list[%p,%p]:\n", redo_list.get_head(), redo_list.get_tail());
    for(EdRedo* redo= redo_list.get_head(); redo; redo= redo->get_next()) {
      redo->debug("redo");
    }
 
-   debugf("..undo_list:\n");
+   debugf("..undo_list[%p,%p]:\n", undo_list.get_head(), undo_list.get_tail());
    for(EdRedo* redo= undo_list.get_head(); redo; redo= redo->get_next()) {
      redo->debug("undo");
    }
 
+   debugf("..line_list[%p,%p]:\n", line_list.get_head(), line_list.get_tail());
    if( strcasecmp(info, "lines") == 0 ) {
-     debugf("..line_list:\n");
      size_t N= 0;
      for(EdLine* line= line_list.get_head(); line; line= line->get_next()) {
        debugf("[%4zd] ", N++);
@@ -1101,14 +1110,14 @@ int                                 // Return code, 0 OK
 {  if( HCDM || (opt_hcdm && opt_verbose > 2) )
      traceh("EdLine(%p)::EdLine\n", this);
 
-   Config::trace(".NEW", "line", this);
+   Trace::trace(".NEW", "line", this);
 }
 
    EdLine::~EdLine( void )          // Destructor
 {  if( HCDM || (opt_hcdm && opt_verbose > 2) )
      traceh("EdLine(%p)::~EdLine\n", this);
 
-   Config::trace(".DEL", "line", this);
+   Trace::trace(".DEL", "line", this);
 }
 
 //----------------------------------------------------------------------------
@@ -1258,14 +1267,14 @@ void
 {  if( HCDM || opt_hcdm )
      debugh("EdRedo(%p)::EdRedo\n", this);
 
-   Config::trace(".NEW", "redo", this);
+   Trace::trace(".NEW", "redo", this);
 }
 
    EdRedo::~EdRedo( void )          // Destructor
 {  if( HCDM || opt_hcdm )
      debugh("EdRedo(%p)::~EdRedo\n", this);
 
-   Config::trace(".DEL", "redo", this);
+   Trace::trace(".DEL", "redo", this);
 }
 
 //----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       Config.patch
+//       Config.hpp
 //
 // Purpose-
 //       Editor: Config.cpp extension: debugging listeners
 //
 // Last change date-
-//       2021/07/03
+//       2022/03/15
 //
 // Implementation note-
 //       Only included from Config.cpp
@@ -46,8 +46,8 @@ static bool                         // *ALWAYS* true
    editor::put_message(message.c_str(), EdMess::T_MESS);
    debugf("Config::check checkstop(%s)\n", message.c_str());
 
-   if( pub::Trace::trace )          // Turn off tracing
-     pub::Trace::trace->flag[pub::Trace::X_HALT]= true;
+   if( pub::Trace::table )          // Turn off tracing
+     pub::Trace::table->flag[pub::Trace::X_HALT]= true;
 
    return true;
 }
