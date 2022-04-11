@@ -16,7 +16,7 @@
 //       Trace object methods.
 //
 // Last change date-
-//       2022/02/17
+//       2022/04/10
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -32,16 +32,33 @@
 #include <pub/Thread.h>             // For SCDM( Thread::current() )
 #include <pub/utility.h>            // For pub::utility::dump
 
-#include "pub/Trace.h"
-#include "pub/detail/Trace.h"
-using namespace _PUB_NAMESPACE::debugging; // For debugging
-using namespace _PUB_NAMESPACE::detail::Trace; // Our option namespace
+#include "pub/Trace.h"              // For pub::Trace, implemented
 
-namespace _PUB_NAMESPACE {
+using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
+
+namespace _LIBPUB_NAMESPACE {
+//----------------------------------------------------------------------------
+// Compile-time options
+//
+// Special Case Debug Mode-
+//   SCDM > 0 enables the special case logic in allocate(), which counts the
+//   compare_exchange retries in spins.
+//   When spins > SCDM, nullptr is returned to the caller, and we replace the
+//   allocated record a .TAF (Trace Allocation Failure) record. Additionally,
+//   if USE_DEACTIVATE, we invoke deactivate() (to terminate tracing.)
+//   (USE_DEACTIVATE has no effect unless SCDM is enabled.)
+//----------------------------------------------------------------------------
+enum // Compile-time options. We rely on optimization to elide unused code.
+{  CHECK= false                     // Check for should not occur conditions?
+,  HCDM= false                      // Hard Core Debug Mode?
+,  SCDM= 0                          // Special Case Debug Mode, spin limit
+,  USE_DEACTIVATE= false            // SCDM(Deactivate trace option)
+}; // Compile-time options
+
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-Trace*                 Trace::trace= nullptr; // The common Trace object
+Trace*                 Trace::table= nullptr; // The common Trace object
 
 //----------------------------------------------------------------------------
 // The SCDM_record, only used for Special Case Debug Mode
@@ -149,6 +166,31 @@ Trace*                              // Replaced Trace::trace
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Trace::static_debug
+//
+// Purpose-
+//       Display static debug information.
+//
+//----------------------------------------------------------------------------
+void
+   Trace::static_debug(             // Static debug information
+     const char*       info)        // Caller information
+{
+   debugf("Trace(%p)::static_debug(%s)\n", table, info);
+   if( table )
+     debugf("..next(0x%.8x) size(0x%.8x) zero(0x%.2x) last(0x%.8x) wrap(%lu)\n"
+           , table->next.load(), table->size, table->zero, table->last
+           , table->wrap);
+
+   #define TF pub::utility::to_ascii // TF: True or False
+   debugf("..CHECK(%s) HCDM(%s) SCDM(%d) USE_DEACTIVATE(%s)\n"
+          , TF(CHECK), TF(HCDM), SCDM, TF(USE_DEACTIVATE) );
+   #undef TF
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Trace::allocate
 //
 // Purpose-
@@ -160,6 +202,7 @@ Trace*                              // Replaced Trace::trace
 //       (or when using SCDM, Special Case Debug Mode.)
 //
 //----------------------------------------------------------------------------
+_LIBPUB_HOT
 void*                               // Resultant
    Trace::allocate(                 // Allocate a trace record
      uint32_t          size)        // of this length
@@ -273,8 +316,8 @@ void
    std::lock_guard<decltype(*debug)> lock(*debug);
 
    tracef("Trace(%p)::dump\n", this);
-   tracef("..wrap(%lu) zero(0x%.2x) last(0x%.8x) size(0x%.8x) next(0x%.8x)\n",
-          wrap, zero, last, size, next.load());
+   tracef("..next(0x%.8x) size(0x%.8x) zero(0x%.2x) last(0x%.8x) wrap(%lu)\n"
+         , next.load(), size, zero, last, wrap);
    utility::dump(debug->get_FILE(), this, size, nullptr);
 }
-}  // namespace _PUB_NAMESPACE
+}  // namespace _LIBPUB_NAMESPACE

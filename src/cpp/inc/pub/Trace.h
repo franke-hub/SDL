@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2022/02/17
+//       2022/04/10
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -24,34 +24,20 @@
 //       as a trace table item allocator. Applications may find other uses.
 //
 //       The Trace object is thread-safe and process-safe. Trace tables may be
-//       allocated in shared memory and shared between processes. Process's
-//       Trace::trace may differ.
-//
-//       A trace table SHOULD be large enough that so that table wrapping does
-//       not cause initialization interference.
+//       allocated in shared memory and shared between processes. However,
+//       thread and process safety relies on a Trace Record's build completion
+//       before allocation wraps and storage is reused. Shorter Record build
+//       sequences and larger trace tables further reduce an already low
+//       probability of table wrap storage collisions.
 //
 // Implementation notes-
-//       Applications are responsible for trace table allocation/release.
+//       Applications are responsible for trace table allocation and release.
 //       The Trace object is contained within the trace table. The entire
 //       trace table is initialized using make().
 //
-//       Trace storage allocation is performance critical. Therefore, this
-//       methods DOES NOT normally check for application errors. There is
-//       NO defined application mechanism to enable this checking.
-//
-//       Specifically, Trace::allocate MIGHT NOT check whether:
-//         * flag[X_HALT] == 0      (allocate_if provides this check)
-//         * Parameter size == 0    (Always an application error)
-//         * Parameter size > (this->size - sizeof(Trace))
-//         * Possible arithemetic overflow: size > (size + this->next)
-//           This condition can occur with large trace tables and large
-//           allocation requests. To prevent this, applications MUST NOT
-//           allow the size parameter plus the size of the trace table to
-//           exceed UINT32_MAX.
-//
 // Sample usage-
 //       void* storage= malloc(desired_size); // Unaligned is OK. make trims
-//       Trace::trace= pub::Trace::make(storage, desired_size);
+//       Trace::table= pub::Trace::make(storage, desired_size);
 //
 //       struct Record : public pub::Trace::Record { // Your Record
 //         : // Your data goes here
@@ -60,23 +46,23 @@
 //       Record* record= (Record*)Trace::storage_if(sizeof(Record));
 //       if( record ) {             // If trace is active
 //         : // Initialize your data
-//         record->trace(".xxx"); // Initialize the trace identifier + clock
+//         record->trace(".xxx");   // Set the trace identifier + clock
 //       }
 //       :
-//       free(Trace::trace); Trace::trace= nullptr; // Done with trace table
+//       Trace::table= nullptr; free(Trace::table); // Done with trace table
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_TRACE_H_INCLUDED
-#define _PUB_TRACE_H_INCLUDED
+#ifndef _LIBPUB_TRACE_H_INCLUDED
+#define _LIBPUB_TRACE_H_INCLUDED
 
 #include <atomic>                   // For std::atomic_uint64_t, ...
 #include <stdint.h>                 // For uint32_t
 #include <string.h>                 // For memset, memcpy, strcpy
 #include <arpa/inet.h>              // For htonl
 
-#include "config.h"                 // For _PUB_NAMESPACE
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -88,6 +74,163 @@ namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
 class Trace {                       // Trace object
 public:
+//----------------------------------------------------------------------------
+// Trace::Typedefs, enumerations, and constants
+//----------------------------------------------------------------------------
+enum                                // Generic enum
+{  ALIGNMENT= 32                    // Table and Record alignment
+,  TABLE_SIZE_MAX= 0x000FFFFF00UL   // Maximum allowed table size
+,  TABLE_SIZE_MIN= 0x0000010000UL   // Minimum allowed table size
+
+,  USE_BIG_ENDIAN= true             // Slower but trace easier to read
+,  WSIZE=          sizeof(void*)
+}; // enum
+
+enum FLAG_X                         // Flag[] indexes
+{  X_HALT= 0                        // The HALT flag. If non-zero, halt
+,  X_OFFSET= 3                      // Alignment offset adjustment
+}; // enum FLAG_X
+
+//----------------------------------------------------------------------------
+// Trace::Attributes
+//----------------------------------------------------------------------------
+// Applications allocate and delete trace table storage, setting and clearing
+// Trace::table.
+static Trace*          table;       // Common Trace instance
+
+// Applications can, but normally do not access these fields
+std::atomic_uint32_t   next;        // Offset: Next trace entry
+uint32_t               size;        // Offset: Size of trace table storage
+uint8_t                flag[4];     // Control flags
+uint8_t                user[4];     // (Available for application usage)
+uint32_t               zero;        // Offset: Trace table origin
+uint32_t               last;        // Offset: Last trace entry before wrap
+uint64_t               wrap;        // The wrap counter
+
+//----------------------------------------------------------------------------
+// Trace::Record (POD: Plain Old Data)
+//----------------------------------------------------------------------------
+struct Record {                     // A standard (POD) trace record
+char                   ident[4];    // The trace type identifier
+uint32_t               unit;        // The trace unit identifier
+uint64_t               clock;       // The UTC epoch clock, in nanoseconds
+char                   value[16];   // Data values (For smallest Record)
+
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+inline void
+   set_clock()                      // Set the clock
+{
+   struct timespec     clock;       // UTC time base
+   clock_gettime(CLOCK_REALTIME, &clock); // Get UTC time base
+
+   if( USE_BIG_ENDIAN ) {           // Use big_endian clock value?
+     uint64_t nsec= (clock.tv_sec << 32) | clock.tv_nsec;
+     char* addr= (char*)&this->clock; // clock.tv_nsec: 0x00000000..0x3B9AC9FF
+     for(int i= WSIZE; i>0; i--) {
+       addr[i-1]= char(nsec);
+       nsec >>= 8;
+     }
+   } else {
+     this->clock= (clock.tv_sec * 1000000000) + clock.tv_nsec;
+   }
+}
+
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+inline void
+   trace(                           // Initialize with
+     const char*       ident)       // This char[4] trace type identifier
+{  set_clock();                     // Set the clock
+   memcpy(this->ident, ident, sizeof(this->ident));
+}
+
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+inline void
+   trace(                           // Initialize with
+     const char*       ident,       // This char[4] trace type identifier
+     uint32_t          code)        // Trace code
+{  unit= htonl(code);
+
+   trace(ident);
+}
+
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+inline void
+   trace(                           // Initialize with
+     const char*       ident,       // This char[4] trace type identifier
+     uint32_t          code,        // Trace code
+     const void*       info)        // If present, char[16] info
+{  unit= htonl(code);
+   memcpy(value, info, sizeof(value));
+
+   trace(ident);
+}
+
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+inline void
+   trace(                           // Initialize with
+     const char*       ident,       // This char[4] trace type identifier
+     const char*       unit)        // This char[4] trace subtype identifier
+{  memcpy(&this->unit, unit, sizeof(this->unit));
+
+   trace(ident);
+}
+
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+inline void
+   trace(                           // Initialize with
+     const char*       ident,       // This char[4] trace type identifier
+     const char*       unit,        // This char[4] trace subtype identifier
+     const void*       one)         // Word one
+{  memcpy(&this->unit, unit, sizeof(this->unit));
+
+   if( USE_BIG_ENDIAN ) {           // Use big_endian conversion?
+     uintptr_t uone= uintptr_t(one);
+     for(unsigned i= WSIZE; i>0; i--) {
+       value[i      -1]= char(uone);
+       uone >>= 8;
+     }
+   } else {
+     ((void const**)value)[0]= one;
+   }
+   ((void const**)value)[1]= 0;
+
+   trace(ident);
+}
+
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+inline void
+   trace(                           // Initialize with
+     const char*       ident,       // This char[4] trace type identifier
+     const char*       unit,        // This char[4] trace subtype identifier
+     const void*       one,         // Word one
+     const void*       two)         // Word two
+{  memcpy(&this->unit, unit, sizeof(this->unit));
+
+   if( USE_BIG_ENDIAN ) {           // Use big_endian conversion?
+     uintptr_t uone= uintptr_t(one);
+     uintptr_t utwo= uintptr_t(two);
+     for(unsigned i= WSIZE; i>0; i--) {
+       value[i      -1]= char(uone);
+       value[i+WSIZE-1]= char(utwo);
+       uone >>= 8;
+       utwo >>= 8;
+     }
+   } else {
+     ((void const**)value)[0]= one;
+     ((void const**)value)[1]= two;
+   }
+
+   trace(ident);
+}
+}; // struct Record
+
 //----------------------------------------------------------------------------
 // Trace::Buffer, temporary character string storage area
 //----------------------------------------------------------------------------
@@ -116,98 +259,6 @@ char                   temp[N];     // The temporary Buffer, '\0' padded
 }; // struct Buffer
 
 //----------------------------------------------------------------------------
-// Trace::Record (POD: Plain Old Data)
-//----------------------------------------------------------------------------
-struct Record {                     // A standard (POD) trace record
-char                   ident[4];    // The trace type identifier
-uint32_t               unit;        // The trace unit identifier
-uint64_t               clock;       // The UTC epoch clock, in nanoseconds
-char                   value[16];   // Data values (For smallest Record)
-
-inline void
-   set_clock()                      // Set the clock
-{
-   struct timespec     clock;       // UTC time base
-   clock_gettime(CLOCK_REALTIME, &clock); // Get UTC time base
-#if true                            // Use big_endian clock value?
-   uint64_t nsec= (clock.tv_sec << 32) | clock.tv_nsec;
-   char* addr= (char*)&this->clock; // clock.tv_nsec: 0x00000000..0x3B9AC9FF
-   for(int i= 8; i>0; i--) {
-     addr[i-1]= char(nsec);
-     nsec >>= 8;
-   }
-#else
-   record->clock= (clock.tv_sec * 1000000000) + clock.tv_nsec;
-#endif
-}
-
-inline void
-   trace(                           // Initialize with
-     const char*       ident)       // This char[4] trace type identifier
-{  set_clock();                     // Set the clock
-   memcpy(this->ident, ident, sizeof(this->ident));
-}
-
-inline void
-   trace(                           // Initialize with
-     const char*       ident,       // This char[4] trace type identifier
-     uint32_t          code,        // Trace code
-     const void*       info= nullptr) // If present, char[16] info
-{  unit= htonl(code);
-   if( info ) {
-     memcpy(value, info, sizeof(value));
-   }
-   trace(ident);
-}
-
-inline void
-   trace(                           // Initialize with
-     const char*       ident,       // This char[4] trace type identifier
-     const char*       unit,        // This char[4] trace subtype identifier
-     void*             one= nullptr, // Word one
-     void*             two= nullptr) // Word two
-{  memcpy(&this->unit, unit, sizeof(this->unit));
-   uintptr_t uone= uintptr_t(one);
-   uintptr_t utwo= uintptr_t(two);
-   for(unsigned i= 8; i>0; i--) {
-     value[i-1]= char(uone);
-     value[i+7]= char(utwo);
-     uone >>= 8;
-     utwo >>= 8;
-   }
-   trace(ident);
-}
-}; // struct Record
-
-//----------------------------------------------------------------------------
-// Trace::Typedefs and enumerations
-//----------------------------------------------------------------------------
-enum                                // Generic enum
-{  ALIGNMENT= 32                    // Table/Record alignment (informative)
-,  TABLE_SIZE_MAX=   0x00FFFFFF00UL // Maximum allowed table size
-,  TABLE_SIZE_MIN=   0x0000010000UL // Minimum allowed table size
-}; // enum
-
-//----------------------------------------------------------------------------
-// Trace::Attributes
-//----------------------------------------------------------------------------
-static Trace*          trace;       // Common Trace instance (Application controlled)
-
-//// Applications can, but normally do not access these fields
-uint64_t               wrap;        // The wrap counter
-uint8_t                user[4];     // (Available for application usage)
-uint8_t                flag[4];     // Control flags
-uint32_t               zero;        // Offset: Trace table origin
-uint32_t               last;        // Offset: Last trace entry before wrap
-uint32_t               size;        // Offset: Size of trace table storage
-std::atomic_uint32_t   next;        // Offset: Next trace entry
-
-enum FLAG_X                         // Flag index
-{  X_HALT= 0                        // The HALT flag. If non-zero, halt
-,  X_OFFSET= 3                      // Alignment offset adjustment
-}; // enum FLAG_X
-
-//----------------------------------------------------------------------------
 // Trace::Destructor/Constructors/Operators
 //----------------------------------------------------------------------------
    ~Trace( void ) {}                // Destructor
@@ -233,8 +284,8 @@ Trace& operator=(const Trace&) = delete; // Disallowed assignment operator
 //       The resultant Trace object, however, is always ALIGNMENT aligned.
 //       The Trace object is at the (aligned) beginning of the storage area.
 //
-//       This method DOES NOT set Trace::trace. If desired, an application
-//       may set this perhaps using Trace::trace= make(addr, size);
+//       This method DOES NOT set Trace::table. If desired, an application
+//       may set this perhaps using Trace::table= make(addr, size);
 //
 //----------------------------------------------------------------------------
 public:
@@ -242,6 +293,12 @@ static Trace*                       // The Trace object
    make(                            // Create a Trace object from
      void*             addr,        // Storage area
      size_t            size);       // Storage length
+
+//----------------------------------------------------------------------------
+// Trace::Debugging (Displays compile-time options)
+//----------------------------------------------------------------------------
+static void
+   static_debug(const char* info= ""); // Static debugging information
 
 //----------------------------------------------------------------------------
 // Trace::Accessors
@@ -253,11 +310,14 @@ bool is_active( void )              // Is trace active?
 // Trace::Methods
 //----------------------------------------------------------------------------
 // allocate: Allocate storage
+_LIBPUB_HOT
 void*                               // Resultant
    allocate(                        // Allocate a trace record
      uint32_t          size);       // of this length
 
 // allocate_if: Allocate storagae, nullptr if is_active() == false
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
 void*                               // -> Trace record
    allocate_if(                     // Allocate a trace record
      uint32_t          size)        // of this length
@@ -279,11 +339,13 @@ inline uint32_t                     // Offset of record
 {  return uint32_t((char*)record - (char*)this); }
 
 // storage_if: Static storage allocator (with status checking)
-static void*                        // The storage, nullptr if inactive
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+static inline void*                 // The storage, nullptr if inactive
    storage_if(                      // Conditionally allocate storage
      uint32_t          size)        // of this length
-{  if( trace )
-     return trace->allocate_if(size);
+{  if( table )
+     return table->allocate_if(size);
    else
      return nullptr;
 }
@@ -291,39 +353,100 @@ static void*                        // The storage, nullptr if inactive
 //----------------------------------------------------------------------------
 //
 // Method-
-//       write
+//       trace
 //
 // Purpose-
 //       Trace::Record helpers
 //
 //----------------------------------------------------------------------------
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
 static inline Record*               // The trace record (uninitialized)
-   new_R(                           // Get trace record
+   trace(                           // Get trace record
      unsigned          size= 0)     // Of this extra size
 {  size += unsigned(sizeof(Record));
    Record* record= (Record*)storage_if(size);
    return record;
 }
 
-static inline void
-   write(                           // Simple trace event
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+static inline Record*
+   trace(                           // Simple trace event
+     const char*       ident)       // Trace identifier
+{  Record* record= trace();
+   if( record )
+     record->trace(ident);
+   return record;
+}
+
+// Usage note: For a zero code, specify (int)0 to disambiguate between
+// trace(ident, (char*)0). Using trace(ident, (char*)0) is discouraged.
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+static inline Record*
+   trace(                           // Simple trace event
      const char*       ident,       // Trace identifier
-     uint32_t          code= 0,     // Trace code
-     const char*       info= nullptr) // Trace info (15 characters max)
-{  Record* record= new_R();
+     uint32_t          code)        // Trace code
+{  Record* record= trace();
+   if( record )
+     record->trace(ident, code);
+   return record;
+}
+
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+static inline Record*
+   trace(                           // Simple trace event
+     const char*       ident,       // Trace identifier
+     uint32_t          code,        // Trace code
+     const char*       info)        // Trace info (15 characters max)
+{  Record* record= trace();
    if( record ) {
      Buffer<16> buff(info);
      record->trace(ident, code, buff.temp);
    }
+   return record;
 }
 
-static inline void
-   write(                           // Simple trace event
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+static inline Record*
+   trace(                           // Simple trace event
+     const char*       ident,       // Trace identifier
+     const char*       unit)        // Trace sub-identifier
+{  Record* record= trace();
+   if( record )
+     record->trace(ident, unit);
+   return record;
+}
+
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+static inline Record*
+   trace(                           // Simple trace event
      const char*       ident,       // Trace identifier
      const char*       unit,        // Trace sub-identifier
-     void*             one= nullptr, // Word one
-     void*             two= nullptr) // Word two
-{  Record* record= new_R(); if( record ) record->trace(ident, unit, one, two); }
+     const void*       one)         // Word one
+{  Record* record= trace();
+   if( record )
+     record->trace(ident, unit, one);
+   return record;
+}
+
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+static inline Record*
+   trace(                           // Simple trace event
+     const char*       ident,       // Trace identifier
+     const char*       unit,        // Trace sub-identifier
+     const void*       one,         // Word one
+     const void*       two)         // Word two
+{  Record* record= trace();
+   if( record )
+     record->trace(ident, unit, one, two);
+   return record;
+}
 }; // class Trace
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_TRACE_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_TRACE_H_INCLUDED
