@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2021 Frank Eskesen.
+//       Copyright (C) 2021-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Utf.h implementation methods: classes Utf, Utf8, Utf16, and Utf32.
 //
 // Last change date-
-//       2021/06/26
+//       2022/04/08
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
@@ -32,7 +32,7 @@
 #include "pub/Utf.h"                // Implementation class
 #include "pub/utility.h"            // For pub::to_string
 
-#define _PUB _PUB_NAMESPACE
+#define _PUB _LIBPUB_NAMESPACE
 using namespace _PUB::debugging;    // For debugging utility functions
 using _PUB::utility::to_string;     // For pub::utility::to_string
 
@@ -51,9 +51,9 @@ enum                                // Unicode characters
 }; // enum Unicode characters
 
 //----------------------------------------------------------------------------
-// _PUB_NAMESPACE ------------------------------------------------------------
+// _PUB NAMESPACE ------------------------------------------------------------
 //----------------------------------------------------------------------------
-namespace _PUB_NAMESPACE {
+namespace _PUB {
 typedef Utf::utf8_t    utf8_t;      // Import Utf::utf8_t
 typedef Utf::utf16_t   utf16_t;     // Import Utf::utf16_t
 typedef Utf::utf32_t   utf32_t;     // Import Utf::utf32_t

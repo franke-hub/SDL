@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       ~/src/cpp/inc/pub/Trace.h Stress test
 //
 // Last change date-
-//       2020/10/07
+//       2022/04/09
 //
 // Parameters-
 //       --help        (Display help message)
@@ -54,7 +54,6 @@
 #include <pub/macro/try_catch.h>    // For TRY_CATCH macro
 
 #include "pub/Trace.h"              // This is what we test
-#include "pub/detail/Trace.h"       // Trace.cpp compilation controls
 
 // Global controls
 using pub::Debug;                   // Enable Debug class access wo\ ::pub
@@ -430,12 +429,8 @@ extern int                          // Return code
             , TF(opt_first), TF(opt_mmap), opt_verbose
             , opt_trace, opt_trace, records);
 
-     // ~/lib/pub/Trace.cpp controls
-     using namespace pub::detail;   // For Trace compiler controls
-     debugf("\npub::Trace.cpp controls:\n");
-     debugf("..CHECK(%s) HCDM(%s) SCDM(%d) USE_DEACTIVATE(%s)\n"
-            , TF(Trace::CHECK), TF(Trace::HCDM), Trace::SCDM
-            , TF(Trace::USE_DEACTIVATE) );
+     // Display ~/lib/pub/Trace.cpp controls
+     Trace::static_debug();
 
      #undef TF
    }
@@ -448,7 +443,7 @@ extern int                          // Return code
      if( HCDM ) debugf("\n");
      if( false ) {                  // If true, tasks do nothing
        debugf("%4d HCDM.c == TRACE DISABLED ==\n", __LINE__);
-       Trace::trace->deactivate();
+       Trace::table->deactivate();
      }
 
      // Initialize (Trace area, Thread array)

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,15 +16,15 @@
 //       The Console object.
 //
 // Last change date-
-//       2020/01/10
+//       2022/04/08
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_CONSOLE_H_INCLUDED
 #define _PUB_CONSOLE_H_INCLUDED
 
-#include "config.h"                 // For _PUB_NAMESPACE, ...
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -110,11 +110,11 @@ static void                          // Write one character
 //       Console printf().
 //
 //----------------------------------------------------------------------------
+_LIBPUB_PRINTF(1,2)
 static void
    printf(                           // Print to Console
      const char*       fmt,          // Format
-                       ...)          // Arguments
-   _ATTRIBUTE_PRINTF(1, 2);          // PRINTF attribute
+                       ...);         // Arguments
 
 //----------------------------------------------------------------------------
 //
@@ -149,5 +149,5 @@ static void
 static void
    wait( void );                    // Wait for Console termination
 }; // class Console
-}  // namespace _PUB_NAMESPACE
+_LIBPUB_END_NAMESPACE
 #endif // _PUB_CONSOLE_H_INCLUDED

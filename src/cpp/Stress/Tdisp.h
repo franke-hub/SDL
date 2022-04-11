@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       ~/Stress/Tdisp.cpp customization.
 //
 // Last change date-
-//       2020/10/07
+//       2022/03/11
 //
 //----------------------------------------------------------------------------
 #ifndef S_TDISP_H_INCLUDED
@@ -171,7 +171,7 @@ virtual void
    //-------------------------------------------------------------------------
    // Run the test
    for(iteration= 1; iteration <= opt_iterations; iteration++) {
-//   Record* record= (Record*)Trace::trace->allocate_if(sizeof(Record));
+//   Record* record= (Record*)Trace::table->allocate_if(sizeof(Record));
 //   if( record == nullptr )        // If trace inactive
 //     break;                       // Abort test
 
@@ -213,8 +213,8 @@ void
    if( opt_verbose >= 3 ) {         // If tracing
      //-----------------------------------------------------------------------
      // Dump the trace table
-     debugf("\nTrace::trace(%p)->dump() (See debug.out)\n", Trace::trace);
-     Trace::trace->dump();
+     debugf("\nTrace::table(%p)->dump() (See debug.out)\n", Trace::table);
+     Trace::table->dump();
      if( opt_hcdm ) debug_flush();  // (Force dump completion)
 
      //-----------------------------------------------------------------------

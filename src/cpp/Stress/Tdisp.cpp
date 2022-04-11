@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2021 Frank Eskesen.
+//       Copyright (C) 2021-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       ~/src/cpp/inc/pub/Dispatcher.h Stress test
 //
 // Last change date-
-//       2021/07/09
+//       2022/03/11
 //
 // Parameters-
 //       --help        (Display help message)
@@ -462,7 +462,7 @@ extern int                          // Return code
      if( HCDM ) debugf("\n");
      if( false ) {                  // If true, tasks do nothing
        debugf("%4d HCDM.c == TRACE DISABLED ==\n", __LINE__);
-       Trace::trace->deactivate();
+       Trace::table->deactivate();
      }
 
      // Initialize (Trace area, Thread array)

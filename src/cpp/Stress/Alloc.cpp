@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       ~/src/cpp/inc/pub/Allocator.h Stress test
 //
 // Last change date-
-//       2020/10/07
+//       2022/03/11
 //
 // Parameters-
 //       --help        (Display help message)
@@ -547,7 +547,7 @@ extern int                          // Return code
      if( HCDM ) debugf("\n");
      if( false ) {                  // If true, tasks do nothing
        debugf("%4d HCDM.c == TRACE DISABLED ==\n", __LINE__);
-       Trace::trace->deactivate();
+       Trace::table->deactivate();
      }
 
      // Initialize (Trace area, Thread array)

@@ -20,6 +20,17 @@
 ##############################################################################
 
 ##############################################################################
+## Local module list
+
+##############################################################################
+## Local library
+LIBOBJ := ############################
+LIBOBJ += Empty.o
+MAKEXE := $(patsubst $(OBJDIR)/Empty,,$(MAKEXE))
+
+LLIBS  += -L. -llocal
+
+##############################################################################
 ## Set default target
 ifeq "" "$(DEFAULT)"
 DEFAULT:= make.dir
@@ -41,13 +52,31 @@ include $(INCDIR)/pub/Makefile.BSD
 include $(INCDIR)/com/Makefile.BSD
 
 ##############################################################################
+## TARGET: liblocal.a
+liblocal.a: $(LIBOBJ)
+	$(AR) $@ $^
+	touch $@
+
+$(MAKEXE): liblocal.a
+
+##############################################################################
 ## Run the Dirty program
-.PHONY: dirt
-dirt: Dirty
+.PHONY: dirty
+dirty: Dirty
 	@Dirty
 
 ##############################################################################
 ## Run the default program
 .PHONY: do
-do: make.dir
-	@Enviro
+do: TestDisp
+	TestDisp --hcdm --verbose
+## do: make.dir
+## 	@Enviro
+
+##############################################################################
+## Makefile cleanup
+.PHONY: clean.dir
+clean: clean.dir
+clean.dir: ;
+	-@rm liblocal.a      >/dev/null 2>/dev/null
+	-@rm trace.mem       >/dev/null 2>/dev/null

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2021 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2021/07/09
+//       2022/04/05
 //
 // Implementation notes-
 //       DispatchDone.h, DispatchItem.h, and DispatchTask.h are integral parts
@@ -28,9 +28,9 @@
 
 #include <pub/Latch.h>              // For mutex
 
-#include "DispatchDone.h"           // Dispatch Done/Wait object
-#include "DispatchItem.h"           // Diwpatch work Item object
-#include "DispatchTask.h"           // Dispatch Task object
+#include "pub/DispatchDone.h"       // Dispatch Done/Wait object
+#include "pub/DispatchItem.h"       // Dispatch work Item object
+#include "pub/DispatchTask.h"       // Dispatch Task object
 
 namespace _PUB_NAMESPACE::dispatch {
 //----------------------------------------------------------------------------

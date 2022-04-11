@@ -136,10 +136,35 @@ static void
 //
 //----------------------------------------------------------------------------
 static void
+   init_if(const char* file )      // Add dictionary if file exists
+{
+   struct stat info;
+   if( stat(file, &info) == 0 ) {
+     hs->add_dic(file);
+   }
+}
+
+static void
    init( void )
 {
    hs= new Hunspell(AFF_HOME, DIC_HOME);
-   hs->add_dic("/home/eskesen/Library/Spelling/local.dic");
+
+   const char* H= getenv("HOME");
+   if( H ) {
+     std::string S= getenv("HOME");
+     S += "/Library/Spelling/local.dic";
+     init_if(S.c_str());
+   }
+
+   init_if("/usr/share/myspell/en_AU.dic");
+   init_if("/usr/share/myspell/en_CA.dic");
+   init_if("/usr/share/myspell/en_GB.dic");
+
+   // Cygwin-only dictionaries
+   init_if("/usr/share/myspell/en_US-large.dic");
+   init_if("/usr/share/myspell/en_AU-large.dic");
+   init_if("/usr/share/myspell/en_CA-large.dic");
+   init_if("/usr/share/myspell/en_GB-large.dic");
 }
 
 //----------------------------------------------------------------------------

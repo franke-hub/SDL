@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       ~/Stress/Trace.cpp customization.
 //
 // Last change date-
-//       2020/10/07
+//       2022/04/09
 //
 //----------------------------------------------------------------------------
 #ifndef TRACE_H_INCLUDED
@@ -68,17 +68,14 @@ const char*                         // Get record identity (STATIC BUFFER)
    return buffer;
 }
 
-uint32_t                            // Offset from Trace::trace
+uint32_t                            // Offset from Trace::table
    offset( void )                   // Of this Record
-{  return Trace::trace->offset(this); }
+{  return Trace::table->offset(this); }
 
 void
    trace(                           // Initialize the Record
      const char*       ident)       // The trace type identifier
-{
-   this->clock= epoch_nano();       // (Ordered initialization)
-   memcpy(this->ident, ident, SIZE); // (Last)
-}
+{  ((Trace::Record*)this)->trace(ident); }
 }; // struct Record
 
 //----------------------------------------------------------------------------
@@ -119,7 +116,7 @@ virtual void
    //-------------------------------------------------------------------------
    // Run the test
    for(iteration= 0; iteration < opt_iterations; iteration++) {
-     Record* record= (Record*)Trace::trace->allocate_if(sizeof(Record));
+     Record* record= (Record*)Trace::table->allocate_if(sizeof(Record));
      if( record ) {                 // Bringup test
        pass++;
        record->value[0]=  pass;
@@ -241,7 +238,7 @@ void
    if( used == 0 ) {                // If first miss
      memcpy(traceCounter[0].ident, ".???", SIZE); // Overflow
      traceCounter[0].count= 0;
-     traceCounter[0].prior= (Record*)Trace::trace;
+     traceCounter[0].prior= (Record*)Trace::table;
      traceCounter[0].value= 0;
      used++;
    }
@@ -276,15 +273,15 @@ void
    // Diagnostics
    if( opt_verbose >= 3 ) {         // If tracing
      debugf("\n");
-     debugf("Trace::trace(%p)->dump() (See debug.out)\n", Trace::trace);
-     Trace::trace->dump();
+     debugf("Trace::table(%p)->dump() (See debug.out)\n", Trace::table);
+     Trace::table->dump();
      if( opt_hcdm ) debug_flush();  // (Force log completion)
    }
 
    // Trace table analysis
    unsigned count= 0;               // Number of trace records
 
-   Trace* trace= Trace::trace;      // The Trace object
+   Trace* trace= Trace::table;      // The Trace object
    Record* origin= (Record*)((char*)trace + trace->zero);
    Record* middle= (Record*)((char*)trace + trace->next);
    Record* ending= (Record*)((char*)trace + trace->size);

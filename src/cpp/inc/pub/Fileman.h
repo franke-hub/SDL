@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2021 Frank Eskesen.
+//       Copyright (c) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,18 +16,19 @@
 //       All the file management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2021/01/04
+//       2022/04/08
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_FILEMAN_H_INCLUDED
-#define _PUB_FILEMAN_H_INCLUDED
+#ifndef _LIBPUB_FILEMAN_H_INCLUDED
+#define _LIBPUB_FILEMAN_H_INCLUDED
 
 #include <string>                   // For std::string
 #include <sys/stat.h>               // For struct stat
 
-#include <pub/List.h>               // For pub::DHDL_List, ...
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include <pub/List.h>               // For pub::DHDL_list, ...
 
-namespace _PUB_NAMESPACE::fileman { // The pub::fileman namespace
+namespace _LIBPUB_NAMESPACE::fileman { // The pub::fileman namespace
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
@@ -50,8 +51,8 @@ class Data {                        // File data container
 protected:
 std::string            _path;       // The (locally qualified) path name
 std::string            _file;       // The file name
-DHDL_List<Line>        _line;       // The Line list
-DHDL_List<Pool>        _pool;       // The Pool list
+DHDL_list<Line>        _line;       // The Line list
+DHDL_list<Pool>        _pool;       // The Pool list
 
 bool                   _changed;    // File is changed
 bool                   _damaged;    // File is damaged
@@ -90,7 +91,7 @@ std::string                         // The path/file name
    full( void )                     // Get path/file name
 {  return _path + "/" + _file; }
 
-DHDL_List<Line>&                    // The Line list
+DHDL_list<Line>&                    // The Line list
    line( void )                     // Get Line list
 {  return _line; }
 
@@ -136,7 +137,7 @@ int                                 // Return code, 0 OK
 //       File information
 //
 //----------------------------------------------------------------------------
-class File : public SORT_List<File>::Link { // File information
+class File : public List<File>::Link { // File information
 //----------------------------------------------------------------------------
 // File::Attributes
 //----------------------------------------------------------------------------
@@ -147,27 +148,15 @@ const std::string      name;        // The file name (Does not include Path)
 const stat_t           st;          // The lstat info
 
 //----------------------------------------------------------------------------
-// File::Constructors
+// File::Destructor/Constructors
 //----------------------------------------------------------------------------
 public:
+virtual ~File( void ) = default;    // Destructor
+
    File(                            // Constructor
      const stat_t&     _st,         // Stat descriptor
      const std::string&_name)       // File name
 :  name(_name), st(_st) {}
-
-//----------------------------------------------------------------------------
-// File::Destructor
-//----------------------------------------------------------------------------
-virtual ~File( void ) {}            // Destructor
-
-//----------------------------------------------------------------------------
-// File::Methods
-//----------------------------------------------------------------------------
-public:
-virtual int                         // Result (<0, =0, >0)
-   compare(                         // Compare this (using file name) to
-     const SORT_List<void>::Link*
-                       _that) const; // That (File*) Link
 }; // class File
 
 //----------------------------------------------------------------------------
@@ -183,7 +172,7 @@ virtual int                         // Result (<0, =0, >0)
 //       It is not allocated or released by the Line object.
 //
 //----------------------------------------------------------------------------
-class Line : public DHDL_List<Line>::Link { // File line
+class Line : public DHDL_list<Line>::Link { // File line
 //----------------------------------------------------------------------------
 // Line::Attributes
 //----------------------------------------------------------------------------
@@ -301,7 +290,7 @@ class Path {                        // Path name information
 //----------------------------------------------------------------------------
 public:
 const std::string      name;        // The path name (Locally qualified)
-SORT_List<File>        list;        // The (sorted) list of Files
+List<File>             list;        // The (sorted) list of Files
 
 //----------------------------------------------------------------------------
 // Path::Constructors
@@ -326,7 +315,7 @@ virtual
 //       Storage is allocated from a Pool.
 //
 //----------------------------------------------------------------------------
-class Pool : public DHDL_List<Pool>::Link { // Storage Pool fragment
+class Pool : public DHDL_list<Pool>::Link { // Storage Pool fragment
 //----------------------------------------------------------------------------
 // Pool::Attributes
 //----------------------------------------------------------------------------
@@ -358,5 +347,5 @@ virtual char*                       // Allocated storage, nullptr on failure
    malloc(                          // Allocate storage
      size_t            _size);      // The required length
 }; // class Pool
-}  // namespace _PUB_NAMESPACE::fileman
-#endif // _PUB_FILEMAN_H_INCLUDED
+}  // namespace _LIBPUB_NAMESPACE::fileman
+#endif // _LIBPUB_FILEMAN_H_INCLUDED

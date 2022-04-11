@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2021 Frank Eskesen.
+//       Copyright (c) 2007-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Debugging control.
 //
 // Last change date-
-//       2021/05/23
+//       2022/04/08
 //
 // Implementation notes-
 //       A file name of ">" or "1>" writes the log to stdout.
@@ -36,9 +36,9 @@
 #include <stdio.h>                  // For FILE definition
 #include <string>                   // For std::string
 
-#include "config.h"                 // For _PUB_NAMESPACE
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -125,6 +125,10 @@ static Debug*                       // (The old common Debug instance)
    set(                             // Set
      Debug*            debug);      // This new common Debug instance)
 
+static Debug*                       // (The current common Debug instance)
+   show( void )                     // Get the current common Debug instance
+{  return common; }                 // Without trying to create it
+
 //----------------------------------------------------------------------------
 //
 // Debug uses a (hidden) static RecursiveLatch to prevent thread interference
@@ -190,89 +194,91 @@ inline void
 // Debug::Methods
 //----------------------------------------------------------------------------
 public:
+_LIBPUB_PRINTF(2, 3)
 virtual void
    debugf(                          // Write to trace and stdout
      const char*       fmt,         // The PRINTF format string
-                       ...)         // The PRINTF argument list
-   _ATTRIBUTE_PRINTF(2, 3);
+                       ...);        // The PRINTF argument list
 
 virtual void
+_LIBPUB_PRINTF(2, 3)
    debugh(                          // Write to trace and stdout with heading
      const char*       fmt,         // The PRINTF format string
-                       ...)         // The PRINTF argument list
-   _ATTRIBUTE_PRINTF(2, 3);
+                       ...);        // The PRINTF argument list
 
+_LIBPUB_PRINTF(2, 3)
 virtual void
    errorf(                          // Write to trace and stderr
      const char*       fmt,         // The PRINTF format string
-                       ...)         // The PRINTF argument list
-   _ATTRIBUTE_PRINTF(2, 3);
+                       ...);        // The PRINTF argument list
 
+_LIBPUB_PRINTF(2, 3)
 virtual void
    errorh(                          // Write to trace and stderr with heading
      const char*       fmt,         // The PRINTF format string
-                       ...)         // The PRINTF argument list
-   _ATTRIBUTE_PRINTF(2, 3);
+                       ...);        // The PRINTF argument list
 
+[[noreturn]]
+_LIBPUB_PRINTF(2, 3)
 virtual void
-   throwf(                         // Write to trace and stderr, throw exception
+   throwf(                          // Write to trace and stderr, throw exception
      const char*       fmt,         // The PRINTF format string
-                       ...)         // The PRINTF argument list
-   _ATTRIBUTE_PRINTF(2, 3) _ATTRIBUTE_NORETURN;
+                       ...);        // The PRINTF argument list
 
+_LIBPUB_PRINTF(2, 3)
 virtual void
    tracef(                          // Write to trace
      const char*       fmt,         // The PRINTF format string
-                       ...)         // The PRINTF argument list
-   _ATTRIBUTE_PRINTF(2, 3);
+                       ...);        // The PRINTF argument list
 
+_LIBPUB_PRINTF(2, 3)
 virtual void
    traceh(                          // Write to trace with heading
      const char*       fmt,         // The PRINTF format string
-                       ...)         // The PRINTF argument list
-   _ATTRIBUTE_PRINTF(2, 3);
+                       ...);        // The PRINTF argument list
 
+_LIBPUB_PRINTF(2, 0)
 virtual void
    vdebugf(                         // Write to trace and stdout
      const char*       fmt,         // The PRINTF format string
-     va_list           argptr)      // VALIST
-   _ATTRIBUTE_PRINTF(2, 0);
+     va_list           argptr);     // VALIST
 
+_LIBPUB_PRINTF(2, 0)
 virtual void
    vdebugh(                         // Write to trace and stdout with heading
      const char*       fmt,         // The PRINTF format string
-     va_list           argptr)      // VALIST
-   _ATTRIBUTE_PRINTF(2, 0);
+     va_list           argptr);     // VALIST
 
+_LIBPUB_PRINTF(2, 0)
 virtual void
    verrorf(                         // Write to trace and stderr
      const char*       fmt,         // The PRINTF format string
-     va_list           argptr)      // VALIST
-   _ATTRIBUTE_PRINTF(2, 0);
+     va_list           argptr);     // VALIST
 
+_LIBPUB_PRINTF(2, 0)
 virtual void
    verrorh(                         // Write to trace and stderr with heading
      const char*       fmt,         // The PRINTF format string
-     va_list           argptr)      // VALIST
-   _ATTRIBUTE_PRINTF(2, 0);
+     va_list           argptr);     // VALIST
 
+[[noreturn]]
+_LIBPUB_PRINTF(2, 0)
 virtual void
    vthrowf(                         // Write to trace and stderr, throw exception
      const char*       fmt,         // The PRINTF format string
-     va_list           argptr)      // VALIST
-   _ATTRIBUTE_PRINTF(2, 0) _ATTRIBUTE_NORETURN;
+     va_list           argptr);     // VALIST
 
+_LIBPUB_PRINTF(2, 0)
 virtual void
    vtracef(                         // Write to trace
      const char*       fmt,         // The PRINTF format string
-     va_list           argptr)      // VALIST
-   _ATTRIBUTE_PRINTF(2, 0);
+     va_list           argptr);     // VALIST
 
+_LIBPUB_PRINTF(2, 0)
 virtual void
    vtraceh(                         // Write to trace with heading
      const char*       fmt,         // The PRINTF format string
-     va_list           argptr)      // VALIST
-   _ATTRIBUTE_PRINTF(2, 0);
+     va_list           argptr);     // VALIST
 }; // class Debug
 
 //----------------------------------------------------------------------------
@@ -331,95 +337,97 @@ void
    debug_set_mode(                  // Set the Mode
      Debug::Mode       mode);       // To this Mode
 
+_LIBPUB_PRINTF(1, 2)
 void
    debugf(                          // Write to trace and stdout
      const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
+                       ...);        // PRINTF argruments
 
+_LIBPUB_PRINTF(1, 2)
 void
    debugh(                          // Write to trace and stdout with heading
      const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
+                       ...);        // PRINTF argruments
 
+_LIBPUB_PRINTF(1, 2)
 void
    errorf(                          // Write to trace and stderr
      const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
+                       ...);        // PRINTF argruments
 
+_LIBPUB_PRINTF(1, 2)
 void
    errorh(                          // Write to trace and stderr with heading
      const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
+                       ...);        // PRINTF argruments
 
+_LIBPUB_PRINTF(1, 2)
 void
    errorp(                          // Wrap perror(message), only to stderr
      const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
+                       ...);        // PRINTF argruments
 
+[[noreturn]]
+_LIBPUB_PRINTF(1, 2)
 void
    throwf(                          // Write to trace and stderr, throw exception */
      const char*       fmt,         // The PRINTF format string
-                       ...)         // The PRINTF argument list
-   _ATTRIBUTE_PRINTF(1, 2) _ATTRIBUTE_NORETURN;
+                       ...);        // The PRINTF argument list
 
+_LIBPUB_PRINTF(1, 2)
 void
    tracef(                          // Write to trace
      const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
+                       ...);        // PRINTF argruments
 
+_LIBPUB_PRINTF(1, 2)
 void
    traceh(                          // Write to trace, with heading
      const char*       fmt,         // The PRINTF format string
-                       ...)         // PRINTF argruments
-   _ATTRIBUTE_PRINTF(1, 2);
+                       ...);        // PRINTF argruments
 
+_LIBPUB_PRINTF(1, 0)
 void
    vdebugf(                         // Write to trace and stdout
      const char*       fmt,         // The PRINTF format string
-     va_list           argptr)      // VALIST
-   _ATTRIBUTE_PRINTF(1, 0);
+     va_list           argptr);     // VALIST
 
+_LIBPUB_PRINTF(1, 0)
 void
    vdebugh(                         // Write to trace and stdout with heading
      const char*       fmt,         // The PRINTF format string
-     va_list           argptr)      // VALIST
-   _ATTRIBUTE_PRINTF(1, 0);
+     va_list           argptr);     // VALIST
 
+_LIBPUB_PRINTF(1, 0)
 void
    verrorf(                         // Write to trace and stderr
      const char*       fmt,         // The PRINTF format string
-     va_list           argptr)      // VALIST
-   _ATTRIBUTE_PRINTF(1, 0);
+     va_list           argptr);     // VALIST
 
+_LIBPUB_PRINTF(1, 0)
 void
    verrorh(                         // Write to trace and stderr with heading
      const char*       fmt,         // The PRINTF format string
-     va_list           argptr)      // VALIST
-   _ATTRIBUTE_PRINTF(1, 0);
+     va_list           argptr);     // VALIST
 
+[[noreturn]]
+_LIBPUB_PRINTF(1, 0)
 void
    vthrowf(                         // Write to trace and stderr, throw exception */
      const char*       fmt,         // The PRINTF format string
-     va_list           argptr)      // VALIST
-   _ATTRIBUTE_PRINTF(1, 0) _ATTRIBUTE_NORETURN;
+     va_list           argptr);     // VALIST
 
+_LIBPUB_PRINTF(1, 0)
 void
    vtracef(                         // Write to trace
      const char*       fmt,         // The PRINTF format string
-     va_list           argptr)      // VALIST
-   _ATTRIBUTE_PRINTF(1, 0);
+     va_list           argptr);     // VALIST
 
+_LIBPUB_PRINTF(1, 0)
 void
    vtraceh(                         // Write to trace, with heading
      const char*       fmt,         // The PRINTF format string
-     va_list           argptr)      // VALIST
-   _ATTRIBUTE_PRINTF(1, 0);
+     va_list           argptr);     // VALIST
 }  // namespace debugging
-}  // namespace _PUB_NAMESPACE
+_LIBPUB_END_NAMESPACE
 #endif // _PUB_DEBUG_H_INCLUDED

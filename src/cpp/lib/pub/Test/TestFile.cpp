@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2021 Frank Eskesen.
+//       Copyright (c) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Fileman.h (parts untested by ~/src/cpp/Fileman)
 //
 // Last change date-
-//       2021/01/04
+//       2022/04/08
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -26,11 +26,12 @@
 
 #include <exception>
 
-#include <pub/Debug.h>
-#include "pub/Fileman.h"
+#include <pub/config.h>             // For _PUB_NAMESPACE macro
+#include <pub/Debug.h>              // For namespace debugging
+
+#include "pub/Fileman.h"            // For Fileman classes, implemented
 
 using namespace _PUB_NAMESPACE::debugging;
-
 //----------------------------------------------------------------------------
 //
 // Subroutine-

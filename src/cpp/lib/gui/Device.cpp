@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement gui/Device.h
 //
 // Last change date-
-//       2021/01/27
+//       2022/04/09
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -381,8 +381,8 @@ xcb_keysym_t                        // The associated keyboard symbol
 {
    int state= event->state;         // Working state
    if( state & KS_LOCK )            // If caps lock in effect
-     state ^= KS_SHIFT;             // Invert the shift state
-   state &= KS_SHIFT;               // Only interested in key::KS_SHIFT state
+     state ^= KS_SHFT;              // Invert the shift state
+   state &= KS_SHFT;                // Only interested in key::KS_SHFT state
 
 // // Convert defined ASCII symbols in the range 0x00..0x1f
 // // No keysym values for ff00-ff07,ff0c,ff0e-ff0f

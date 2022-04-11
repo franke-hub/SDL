@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Storage allocator description.                                                                 ts.
 //
 // Last change date-
-//       2020/10/03
+//       2022/02/23
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_ALLOCATOR_H_INCLUDED
@@ -163,13 +163,13 @@ class BlockAllocator : public Allocator { // BlockAllocator descriptor
 //----------------------------------------------------------------------------
 public:
 enum { DIM= 4 };                    // The number of fast slots
-struct Block : public SHSL_List<Block>::Link { // An allocation block
+struct Block : public SHSL_list<Block>::Link { // An allocation block
 uint64_t               _0004;       // Padding (16-byte 1st block alignment)
 };
 
 protected:
 size_t                 b_size;      // The allocation block size
-SHSL_List<Block>       b_list;      // The block list
+SHSL_list<Block>       b_list;      // The block list
 size_t                 size;        // The allocation size
 
 Latch                  mutex;       // Free slot allocation is single-threaded

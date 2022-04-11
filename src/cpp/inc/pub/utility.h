@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,14 +16,14 @@
 //       Utility functions.
 //
 // Last change date-
-//       2020/12/14
+//       2022/04/08
 //
 // Comparison operators-
 //       op_lt_istr    Case insensitive s LT operator
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_UTILITY_H_INCLUDED
-#define _PUB_UTILITY_H_INCLUDED
+#ifndef _LIBPUB_UTILITY_H_INCLUDED
+#define _LIBPUB_UTILITY_H_INCLUDED
 
 #include <string>                   // For std::string
 #include <thread>                   // For std::thread
@@ -32,9 +32,9 @@
 #include <stdarg.h>                 // For va_* functions
 #include <stdio.h>                  // For ::FILE*
 
-#include "config.h"                 // For _PUB_NAMESPACE, ...
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Namespace-
@@ -269,17 +269,17 @@ static inline const char*           // Resultant
 //       Convert printf format/arguments to std::string.
 //
 //----------------------------------------------------------------------------
+_LIBPUB_PRINTF(1, 2)
 std::string                         // Resultant
    to_string(                       // Create string from printf arguments
      const char*       fmt,         // Format string
-                       ...)         // PRINTF arguments
-   _ATTRIBUTE_PRINTF(1, 2);
+                       ...);        // PRINTF arguments
 
+_LIBPUB_PRINTF(1, 0)
 std::string                         // Resultant
    to_stringv(                      // Create string from printf arguments
      const char*       fmt,         // Format string
-     va_list           args)        // PRINTF arguments
-   _ATTRIBUTE_PRINTF(1, 0);
+     va_list           args);       // PRINTF arguments
 
 std::string                         // Resultant
    to_string(                       // Create string from std::thread::id
@@ -321,5 +321,5 @@ bool operator()(const std::string& L, const std::string& R) const
 {  return strcasecmp(L.c_str(), R.c_str()) < 0; }
 }; // struct op_lt_istr
 }  // namespace utility
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_UTILITY_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_UTILITY_H_INCLUDED

@@ -44,18 +44,19 @@
 //       (Check the library source code for details.)
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_SOCKET_H_INCLUDED
-#define _PUB_SOCKET_H_INCLUDED
+#ifndef _LIBPUB_SOCKET_H_INCLUDED
+#define _LIBPUB_SOCKET_H_INCLUDED
 
 #include <string>                   // For std::string
 #include <netinet/in.h>             // For struct sockaddr_ definitions
 #include <openssl/ssl.h>            // For SSL, SSL_CTX
 #include <sys/socket.h>             // For socket methods
 
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 #include "pub/Exception.h"          // For SocketException
 #include "pub/Object.h"             // For base class, _PUB_NAMESPACE, ...
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -124,12 +125,12 @@ void
      const char*       info= "") const; // Debugging info
 
 protected:
+_LIBPUB_PRINTF(3,4)
 void
    trace(                           // Trace socket operation
      int               line,        // For this source code line
      const char*       fmt,         // Format string
-                       ...) const   // The PRINTF argument list
-   _ATTRIBUTE_PRINTF(3, 4);
+                       ...) const;  // The PRINTF argument list
 
 //----------------------------------------------------------------------------
 // Socket::Accessors
@@ -274,12 +275,12 @@ void
      const char*       info) const; // Debugging info
 
 protected:
+_LIBPUB_PRINTF(3,4)
 void
    trace(                           // Trace socket operation
      int               line,        // For this source code line
      const char*       fmt,         // Format string
-                       ...) const   // The PRINTF argument list
-   _ATTRIBUTE_PRINTF(3, 4);
+                       ...) const;  // The PRINTF argument list
 
 //----------------------------------------------------------------------------
 // SSL_Socket::Methods
@@ -303,5 +304,5 @@ virtual ssize_t                     // The number of bytes written
      const void*       addr,        // Data address
      size_t            size);       // Data length
 }; // class SSL_Socket
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_SOCKET_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_SOCKET_H_INCLUDED

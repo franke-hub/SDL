@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2007-2021 Frank Eskesen.
+//       Copyright (C) 2007-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2021/12/11
+//       2022/04/08
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -41,7 +41,7 @@
 #include <pub/Named.h>              // For Named Threads
 #include <pub/Thread.h>             // For Threads
 
-#include "pub/Debug.h"
+#include "pub/Debug.h"              // For pub::Debug, implemented
 
 #ifdef _OS_WIN
   #include <windows.h>              // For GetCurrentThreadId
@@ -270,6 +270,7 @@ void
 void
    Debug::init( void )              // Activate the trace file
 {  IFHCDM( fprintf(stderr, "Debug(%p)::init()\n", this); )
+
    if( handle == nullptr )          // If still not active
    {
      if( isSTDIO(file_name.c_str()) )
@@ -498,6 +499,7 @@ void
 //       Debugging (stdout + trace) printf facility.
 //
 //----------------------------------------------------------------------------
+_LIBPUB_PRINTF(2, 3)
 void
    Debug::debugf(                   // Debug printf facility
      const char*       fmt,         // The PRINTF format string
@@ -519,6 +521,7 @@ void
 //       Debugging (stdout + trace) printf facility, with heading
 //
 //----------------------------------------------------------------------------
+_LIBPUB_PRINTF(2, 3)
 void
    Debug::debugh(                   // Debug printf facility with heading
      const char*       fmt,         // The PRINTF format string
@@ -540,6 +543,7 @@ void
 //       Debugging (stderr + trace) printf facility.
 //
 //----------------------------------------------------------------------------
+_LIBPUB_PRINTF(2, 3)
 void
    Debug::errorf(                   // Debug error printf facility
      const char*       fmt,         // The PRINTF format string
@@ -561,6 +565,7 @@ void
 //       Debugging (stderr + trace) printf facility.
 //
 //----------------------------------------------------------------------------
+_LIBPUB_PRINTF(2, 3)
 void
    Debug::errorh(                   // Debug error printf facility with heading
      const char*       fmt,         // The PRINTF format string
@@ -582,6 +587,8 @@ void
 //       Debugging (stderr + trace + throw) printf facility
 //
 //----------------------------------------------------------------------------
+[[noreturn]]
+_LIBPUB_PRINTF(2, 3)
 void
    Debug::throwf(                   // Debug printf exception facility
      const char*       fmt,         // The PRINTF format string
@@ -605,6 +612,7 @@ void
 //       Debugging (trace only) printf facility.
 //
 //----------------------------------------------------------------------------
+_LIBPUB_PRINTF(2, 3)
 void
    Debug::tracef(                   // Debug trace printf facility
      const char*       fmt,         // The PRINTF format string
@@ -626,6 +634,7 @@ void
 //       Debugging (trace only) printf facility, with heading
 //
 //----------------------------------------------------------------------------
+_LIBPUB_PRINTF(2, 3)
 void
    Debug::traceh(                   // Debug tracef facility, with heading
      const char*       fmt,         // The PRINTF format string
@@ -647,6 +656,7 @@ void
 //       Debugging (stdout + trace) vprintf facility.
 //
 //----------------------------------------------------------------------------
+_LIBPUB_PRINTF(2, 0)
 void
    Debug::vdebugf(                  // Debug printf facility
      const char*       fmt,         // The PRINTF format string
@@ -682,6 +692,7 @@ void
 //       Debugging (stdout + trace) vprintf facility, with heading
 //
 //----------------------------------------------------------------------------
+_LIBPUB_PRINTF(2, 0)
 void
    Debug::vdebugh(                  // Debug printf facility, with heading
      const char*       fmt,         // The PRINTF format string
@@ -721,6 +732,7 @@ void
 //       Debugging (stderr + trace) vprintf facility.
 //
 //----------------------------------------------------------------------------
+_LIBPUB_PRINTF(2, 0)
 void
    Debug::verrorf(                  // Debug error printf facility
      const char*       fmt,         // The PRINTF format string
@@ -756,6 +768,7 @@ void
 //       Debugging (stderr + trace) vprintf facility, with heading
 //
 //----------------------------------------------------------------------------
+_LIBPUB_PRINTF(2, 0)
 void
    Debug::verrorh(                  // Debug error printf facility with heading
      const char*       fmt,         // The PRINTF format string
@@ -795,6 +808,8 @@ void
 //       Debugging (stderr + throw) vprintf facility
 //
 //----------------------------------------------------------------------------
+[[noreturn]]
+_LIBPUB_PRINTF(2, 0)
 void
    Debug::vthrowf(                  // Debug vprintf exception facility
      const char*       fmt,         // The PRINTF format string
@@ -845,6 +860,7 @@ static char            buffer[512]; // Work buffer (Mutex protected)
 //       Debugging (trace only) vprintf facility.
 //
 //----------------------------------------------------------------------------
+_LIBPUB_PRINTF(2, 0)
 void
    Debug::vtracef(                  // Debug trace printf facility
      const char*       fmt,         // The PRINTF format string
@@ -873,6 +889,7 @@ void
 //       Debugging (trace only) vprintf facility, with heading
 //
 //----------------------------------------------------------------------------
+_LIBPUB_PRINTF(2, 0)
 void
    Debug::vtraceh(                  // Debug trace vprintf, with heading
      const char*       fmt,         // The PRINTF format string
@@ -910,7 +927,7 @@ void
    auto array= trace.as_vector();
    for(size_t i= 1; i<array.size(); i++) {
      auto frame= array[i];
-     debugf("[bt] %zd %s at %s:%zd\n", i-1, frame.name().c_str()
+     debugf("[bt] %2zd %s at %s:%zd\n", i-1, frame.name().c_str()
            , frame.source_file().c_str(), frame.source_line());
    }
    debug_flush();
@@ -963,6 +980,7 @@ void
    Debug::get()->set_mode(mode);
 }
 
+_LIBPUB_PRINTF(1, 2)
 void
    debugf(                          // Debug debug printf facility
      const char*       fmt,         // The PRINTF format string
@@ -975,6 +993,7 @@ void
    va_end(argptr);                  // Close va_ functions
 }
 
+_LIBPUB_PRINTF(1, 2)
 void
    debugh(                          // Debug debug printf facility with heading
      const char*       fmt,         // The PRINTF format string
@@ -987,6 +1006,7 @@ void
    va_end(argptr);                  // Close va_ functions
 }
 
+_LIBPUB_PRINTF(1, 2)
 void
    errorf(                          // Debug error printf facility
      const char*       fmt,         // The PRINTF format string
@@ -999,6 +1019,7 @@ void
    va_end(argptr);                  // Close va_ functions
 }
 
+_LIBPUB_PRINTF(1, 2)
 void
    errorh(                          // Debug error printf facility with heading
      const char*       fmt,         // The PRINTF format string
@@ -1011,6 +1032,7 @@ void
    va_end(argptr);                  // Close va_ functions
 }
 
+_LIBPUB_PRINTF(1, 2)
 void                                // Note: Does not use Debug object
    errorp(                          // Write message to stderr (only)
      const char*       fmt,         // The PRINTF format string
@@ -1029,6 +1051,8 @@ void                                // Note: Does not use Debug object
    fflush(stderr);                  // Flush stderr
 }
 
+[[noreturn]]
+_LIBPUB_PRINTF(1, 2)
 void
    throwf(                          // Debug printf exception facility
      const char*       fmt,         // The PRINTF format string
@@ -1041,6 +1065,7 @@ void
    va_end(argptr);                  // Close va_ functions
 }
 
+_LIBPUB_PRINTF(1, 2)
 void
    tracef(                          // Debug trace printf facility
      const char*       fmt,         // The PRINTF format string
@@ -1053,6 +1078,7 @@ void
    va_end(argptr);                  // Close va_ functions
 }
 
+_LIBPUB_PRINTF(1, 2)
 void
    traceh(                          // Debug trace printf facility, with heading
      const char*       fmt,         // The PRINTF format string
@@ -1065,6 +1091,7 @@ void
    va_end(argptr);                  // Close va_ functions
 }
 
+_LIBPUB_PRINTF(1, 0)
 void
    vdebugf(                         // Debug vdebugf facility
      const char*       fmt,         // The PRINTF format string
@@ -1073,6 +1100,7 @@ void
    Debug::get()->vdebugf(fmt, argptr);
 }
 
+_LIBPUB_PRINTF(1, 0)
 void
    vdebugh(                         // Debug vdebugf facility with heading
      const char*       fmt,         // The PRINTF format string
@@ -1081,6 +1109,7 @@ void
    Debug::get()->vdebugh(fmt, argptr);
 }
 
+_LIBPUB_PRINTF(1, 0)
 void
    verrorf(                         // Debug verrorf facility
      const char*       fmt,         // The PRINTF format string
@@ -1089,6 +1118,7 @@ void
    Debug::get()->verrorf(fmt, argptr);
 }
 
+_LIBPUB_PRINTF(1, 0)
 void
    verrorh(                         // Debug verrorf facility with heading
      const char*       fmt,         // The PRINTF format string
@@ -1097,6 +1127,8 @@ void
    Debug::get()->verrorh(fmt, argptr);
 }
 
+[[noreturn]]
+_LIBPUB_PRINTF(1, 0)
 void
    vthrowf(                         // Debug vthrowf exception facility
      const char*       fmt,         // The PRINTF format string
@@ -1106,6 +1138,7 @@ void
    throw "ShouldNotOccur";
 }
 
+_LIBPUB_PRINTF(1, 0)
 void
    vtracef(                         // Debug vtracef facility
      const char*       fmt,         // The PRINTF format string
@@ -1114,6 +1147,7 @@ void
    Debug::get()->vtracef(fmt, argptr);
 }
 
+_LIBPUB_PRINTF(1, 0)
 void
    vtraceh(                         // Debug vtracef facility, with heading
      const char*       fmt,         // The PRINTF format string

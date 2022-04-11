@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2021 Frank Eskesen.
+//       Copyright (c) 2007-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,18 +16,16 @@
 //       Test debugging methods.
 //
 // Last change date-
-//       2021/05/23
+//       2022/04/08
 //
 //----------------------------------------------------------------------------
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
+#include <errno.h>                    // For errno
 
-#include "pub/Debug.h"
-#include "pub/utility.h"              // Volatile values prevent optimization
+#include <pub/bits/pubconfig.h>       // For _LIBPUB_ macros
+#include "pub/Debug.h"                // For Debug, tested
 
-using _PUB_NAMESPACE::Debug;
-using namespace _PUB_NAMESPACE::debugging;
+using _LIBPUB_NAMESPACE::Debug;
+using namespace _LIBPUB_NAMESPACE::debugging;
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -42,25 +40,25 @@ static pub::Debug      debug;         // Debug object
 // Purpose-
 //       Test backtrace
 //
-// Implementation note-
-//       Best results when compiled without optimization.
-//       With optimization GCC inlines most of the call stack.
-//
 //----------------------------------------------------------------------------
+_LIBPUB_NOINLINE
 static void bar() {
    debugf("Backtrace test\n");
    debug_backtrace();
    debugf("\n");
 }
 
+_LIBPUB_NOINLINE
 static void foo() {
    bar();
 }
 
+_LIBPUB_NOINLINE
 static void the() {
    foo();
 }
 
+_LIBPUB_NOINLINE
 static void test_bt() {
    the();
 }
@@ -94,7 +92,7 @@ extern int                          // Return code
 
    debug_set_mode(Debug::MODE_IGNORE);
    errno= ESRCH;
-   errorp("Ignore mode: (ignored) This appears in STDERR (only)");
+   errorp("(ignored) Ignore mode: This appears in STDERR (only)");
    debugf("Ignore mode:\n");
    errorf("Ignore mode:\n");
    tracef("Ignore mode:\n");

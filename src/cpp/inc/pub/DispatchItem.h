@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2021 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,14 +16,14 @@
 //       Standard Dispatch work Item object.
 //
 // Last change date-
-//       2021/07/09
+//       2022/04/05
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_DISPATCHITEM_H_INCLUDED
 #define _PUB_DISPATCHITEM_H_INCLUDED
 
-#include "List.h"                   // Base class
-#include "DispatchDone.h"           // Used in post
+#include "pub/List.h"               // Base class
+#include "pub/DispatchDone.h"       // Used in post
 
 namespace _PUB_NAMESPACE::dispatch {
 //----------------------------------------------------------------------------
@@ -43,7 +43,7 @@ namespace _PUB_NAMESPACE::dispatch {
 //         if done != nullptr, done->done(this) is invoked.
 //
 //----------------------------------------------------------------------------
-class Item : public AU_List<Item>::Link { // A dispatcher work item
+class Item : public AI_list<Item>::Link { // A dispatcher work item
 //----------------------------------------------------------------------------
 // Item::Enumerations and typedefs
 //----------------------------------------------------------------------------
@@ -58,7 +58,10 @@ enum CC                             // Completion codes
 enum FC                             // Function codes
 {  FC_CHASE= (-1)                   // Chase (NOP)
 ,  FC_TRACE= (-2)                   // Trace (NOP)
+#if USE_FC_RESET
 ,  FC_RESET= (-3)                   // Reset the Worker
+#else
+#endif
 ,  FC_VALID= 0                      // All user function codes are positive
 }; // enum FC
 
@@ -76,25 +79,30 @@ void*                  work;        // (Available for application usage)
 //----------------------------------------------------------------------------
 public:
 virtual
-   ~Item( void ) {}                 // Destructor
+   ~Item( void ) { _term(); }       // Destructor
    Item( void )                     // Default constructor
-:  fc(FC_VALID), cc(CC_NORMAL), done(nullptr) {}
+:  fc(FC_VALID), cc(CC_NORMAL), done(nullptr) { _init(); }
 
    Item(                            // Constructor
      int               fc,          // Function code
      Done*             done= nullptr) // -> Done callback object
-:  fc(fc), cc(CC_NORMAL), done(done) {}
+:  fc(fc), cc(CC_NORMAL), done(done) { _init(); }
 
-private:                            // Bitwise copy is prohibited
-   Item(const Item&); // Disallowed copy constructor
-   Item& operator=(const Item&); // Disallowed assignment operator
+private:
+   void _init() const noexcept;
+   void _term() const noexcept;
+
+   Item(const Item&) = delete;      // Disallowed copy constructor
+   Item& operator=(const Item&) = delete; // Disallowed assignment operator
 
 //----------------------------------------------------------------------------
 // Item::Methods
 //----------------------------------------------------------------------------
 public:
 virtual void
-   debug( void ) const;             // Debugging display
+   debug(const char* info) const;   // Debugging display
+
+void debug( void ) { debug(""); }
 
 void
    post(                            // Complete the Work Item

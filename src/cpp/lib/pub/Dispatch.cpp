@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2021 Frank Eskesen.
+//       Copyright (C) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2021/07/09
+//       2022/03/10
 //
 //----------------------------------------------------------------------------
 #include "Dispatch.h"
@@ -98,7 +98,7 @@ void*                               // Cancellation token
 //----------------------------------------------------------------------------
 void
    Disp::wait( void )               // Wait for all work to complete
-{  IFHCDM( logf("Dispatch(%p)::wait()...\n", this); )
+{  if( HCDM ) traceh("Dispatch(*)::wait()...\n");
 
    if( timers != nullptr )
    {
@@ -108,8 +108,24 @@ void
      timers= nullptr;
    }
 
-   IFHCDM( logf("...Dispatch(%p)::wait()\n", this); )
+   if( HCDM ) traceh("...Dispatch(*)::wait()\n");
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       dispatch::Item::_init
+//       dispatch::Item::_term
+//
+// Purpose-
+//       Debugging display.
+//
+//----------------------------------------------------------------------------
+void Item::_init( void ) const noexcept
+{  /* tracef("%4d HCDM Item(%p)::_init()\n", __LINE__, this); */ }
+
+void Item::_term( void ) const noexcept
+{  /* tracef("%4d HCDM Item(%p)::_term()\n", __LINE__, this); */ }
 
 //----------------------------------------------------------------------------
 //
@@ -121,10 +137,26 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   Item::debug( void ) const        // Debugging display
+   Item::debug(const char* info) const // Debugging display
 {
-   tracef("Item(%p)::debug() fc(%d) cc(%d) done(%p) work(%p)\n",
-        this, fc, cc, done, work);
+   tracef("Item(%p)::debug(%s) fc(%d) cc(%d) done(%p) work(%p)\n"
+         , this, info, fc, cc, done, work);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       dispatch::Done::done
+//
+// Purpose-
+//       Implement pure virtual method
+//
+//----------------------------------------------------------------------------
+void
+   Done::done(                      // Process
+     Item*             item)        // This work Item
+{  if( HCDM ) traceh("Done(%p)::done(%p) PVM\n", this, item);
+   delete item;
 }
 
 //----------------------------------------------------------------------------
@@ -137,14 +169,23 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   Task::debug( void ) const        // Debugging display
+   Task::debug(const char* info) const        // Debugging display
 {
-   tracef("Task(%p)::debug()\n", this);
-   tracef("..itemList\n");
+   tracef("Task(%p)::debug(%s)\n", this, info);
    Item* item= itemList.get_tail();
-   while( item ) {
-     item->debug();
-     item= item->get_prev();
+   tracef("..itemList %p\n", item);
+   while( item && (void*)item != __detail::__end ) {
+     Item* cast= dynamic_cast<Item*>(item);
+//tracef("%4d TASK cast(%p)->%p item(%p)\n", __LINE__, cast, cast->get_prev(), item);
+     if( cast ) {
+//tracef("%4d TASK Item(%p)->%p IS an Item\n", __LINE__, cast, cast->get_prev());
+//cast->debug();
+//tracef("%4d HCDM\n", __LINE__);
+       item= cast->get_prev();      // (TODO: NOTE: Can't use cast->_prev)
+     } else {
+       tracef("Item(%p)->?? Not an Item\n", item);
+       item= nullptr;
+     }
    }
 }
 
@@ -159,61 +200,41 @@ void
 //----------------------------------------------------------------------------
 void
    Task::work( void )               // Worker interface
-{  IFHCDM( traceh("Task(%p):work()\n", this); )
-   if( itemList.get_tail() == nullptr ) // If nothing to do (should not occur)
-     return;                        // Do it quickly
+{  if( HCDM ) traceh("Task(%p)::work()\n", this);
 
-   //-----------------------------------------------------------------------
-   // In order to prevent the Task from being driven by multiple Threads,
-   // we add a fake Item to the itemList. We use swap to replace the list
-   // with the fake link.
-   Item                only;        // Our fake work Item
-   Item*               fake= &only;
+// Since this shouldn't occur and is handled properly if it does, skip it
+// if( itemList.is_empty() )        // If nothing to do (should not occur)
+//   return;                        // Do it quickly
 
-   Item* list= itemList.swap(fake); // Replace List with fake element
-   AU_FIFO<Item> fifo(list);        // Initialize the FIFO
-   for(;;) {                        // Drain the itemList
-     Item* item= fifo.remq();       // Get oldest link
-     if( item == nullptr ) {        // If none remain
-       list= itemList.swap(fake);   // Get new list
-       if( list == nullptr )        // If none left
-         return;
-
-       fifo.reset(list);            // Re-initialize the fifo
-       item= fifo.remq();           // Remove oldest link (the fake item)
-       assert( item == fake );      // Verify what we think we know
-//     item->set_prev(nullptr);     // (Function moved to fifo.remq())
-
-       item= fifo.remq();           // Remove oldest link
-       assert( item != nullptr );   // Which should not be a nullptr
-     }
-
-     if( item->fc < 0 )
+   for(auto it= itemList.begin(); it != itemList.end(); ++it) {
+     if( it->fc < 0 )
      {
        int cc= Item::CC_NORMAL;
-       switch(item->fc)
+       switch(it->fc)
        {
          case Item::FC_CHASE:
            break;
 
          case Item::FC_TRACE:
-           traceh("Task(%p):trace(%p)\n", this, item);
+           traceh("Task(%p):trace(%p)\n", this, it.get());
            break;
 
+#if USE_FC_RESET
          case Item::FC_RESET:
            itemList.reset();
-           item->post();          // May delete Item and/or Task
+           it->post();            // May delete Item and/or Task
            return;                // So don't look at them any more
+#endif
 
          default:
            cc= Item::CC_INVALID_FC;
            break;
        }
 
-       item->post(cc);
+       it->post(cc);
      }
      else
-       work(item);
+       work(it.get());
    }
 }
 
@@ -229,7 +250,7 @@ void
 void
    Task::work(                      // Process
      Item*             item)        // This work Item
-{  IFHCDM( logf("Task(%p)::work(%p)\n", this, item); )
+{  if( HCDM ) traceh("Task(%p)::work(%p) PVM\n", this, item);
    item->post();
 }
-}  // namespace _PUB_NAMESPACE::Dispatch
+}  // namespace _PUB_NAMESPACE::dispatch

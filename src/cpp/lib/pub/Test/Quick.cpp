@@ -923,7 +923,7 @@ using _PUB_NAMESPACE::Trace;
    void*    table_addr= malloc(table_size);
    memset(table_addr, 'T', table_size);
    Trace* trace= Trace::make(table_addr, table_size);
-   Trace::trace= trace;
+   Trace::table= trace;
    utility::dump(Debug::get()->get_FILE(), table_addr, table_size, table_addr);
 
    // Initialization tests
@@ -1020,11 +1020,11 @@ using _PUB_NAMESPACE::Trace;
      debugf("%4d Unable to reactivate trace\n", __LINE__);
    }
 
-   Trace::trace= nullptr;           // Disable global trace
+   Trace::table= nullptr;           // Disable global trace
    record= (Record*)Trace::storage_if(sizeof(Record));
    if( record ) {
      errorCount++;
-     debugf("%4d Record allocated while Trace::trace == nullptr\n", __LINE__);
+     debugf("%4d Record allocated while Trace::table == nullptr\n", __LINE__);
    }
 
    //-------------------------------------------------------------------------

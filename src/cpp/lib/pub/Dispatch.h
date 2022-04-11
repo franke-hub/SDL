@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2021 Frank Eskesen.
+//       Copyright (C) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Work dispatcher, including local definitions.
 //
 // Last change date-
-//       2021/07/09
+//       2022/03/10
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -24,30 +24,21 @@
 
 #include <pub/Clock.h>              // DispatchTTL completion time
 #include <pub/Debug.h>              // For debugging
+#include "pub/Dispatch.h"           // For dispatch objects, implemented
 #include <pub/Latch.h>              // dispatch::Timers mutex
 #include <pub/List.h>               // dispatch::Task itemList
 #include <pub/Named.h>              // dispatch::Timers is a Named Thread
 #include <pub/Semaphore.h>          // dispatch::Timers event
 #include <pub/Worker.h>             // dispatch::Task base class
 
-#include "pub/Dispatch.h"           // Include visible class definitions
 using namespace _PUB_NAMESPACE::debugging; // Enable debugging functions
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-#ifndef logf
-#define logf traceh                 // Alias for trace w/header
-#endif
-
-//----------------------------------------------------------------------------
-// Dependent macros
-//----------------------------------------------------------------------------
-#include <pub/ifmacro.h>
+enum
+{  HCDM= false                      // Hard Core Debug Mode?
+}; // enum
 
 namespace _PUB_NAMESPACE::dispatch {
 //----------------------------------------------------------------------------
@@ -115,7 +106,8 @@ public:
 void
    cancel(                          // Cancel
      void*             token)       // This timer event
-{
+{  if( HCDM ) traceh("dispatch::Timers::cancel(%p)\n", token);
+
    std::lock_guard<decltype(mutex)> lock(mutex);
 
    DispatchTTL* link= list.get_head();
@@ -164,13 +156,14 @@ void*                               // Cancellation token
    if( after == nullptr )           // If new head of list
      event.post();                  // Use the new timeout
 
+   if( HCDM )
+     traceh("%p= dispatch::Timers::delay(%8.6f, %p)\n", link, seconds, item);
    return link;
 }
 
 virtual void                        // Operate the Thread
    run()
-{
-   IFHCDM( traceh("dispatch::Timers running..."); )
+{  if( HCDM ) traceh("dispatch::Timers running...\n");
 
    while( operational ) {
      double delay= 60.0;            // Minimum wait delay (seconds)
@@ -212,12 +205,13 @@ virtual void                        // Operate the Thread
      link= list.get_head();
    }
 
-   IFHCDM( traceh("dispatch::Timers ...terminated"); )
+   if( HCDM ) traceh("dispatch::Timers ...terminated\n");
 }
 
 virtual void
    stop( void )                     // Terminate the Thread
-{
+{  if( HCDM ) traceh("dispatch::Timers::stop\n");
+
    std::lock_guard<decltype(mutex)> lock(mutex);
 
    operational= false;

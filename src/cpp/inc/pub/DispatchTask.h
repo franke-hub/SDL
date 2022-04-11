@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2021 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Standard Dispatch Task object.
 //
 // Last change date-
-//       2021/11/09
+//       2022/04/05
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_DISPATCHTASK_H_INCLUDED
@@ -24,8 +24,8 @@
 
 #include <functional>               // For std::function
 
-#include "Dispatch.h"               // The Dispatcher
-#include "DispatchItem.h"           // Dispatch work Item
+#include "pub/Dispatch.h"           // The Dispatcher
+#include "pub/DispatchItem.h"       // Dispatch work Item
 #include "Worker.h"                 // Worker Thread Pool
 
 namespace _PUB_NAMESPACE::dispatch {
@@ -51,7 +51,7 @@ class Task : public Worker {        // Dispatch Task
 // Task::Attributes
 //----------------------------------------------------------------------------
 protected:
-AU_List<Item>          itemList;    // The Work item list
+AI_list<Item>          itemList;    // The Work item list
 
 //----------------------------------------------------------------------------
 // Task::Constructors
@@ -69,20 +69,22 @@ virtual
 // Task::Methods
 //----------------------------------------------------------------------------
 public:
-inline int                          // TRUE iff Task has no enqueued work
+inline bool                         // TRUE iff Task has no enqueued work
    is_idle( void ) const            // Is this Task idle?
 {
-   return (itemList.get_tail() == nullptr);
+   return itemList.is_empty();
 }
 
-inline int                          // TRUE iff Task has enqueued work
+inline bool                         // TRUE iff Task has enqueued work
    is_busy( void ) const            // Is this Task busy?
 {
-   return (itemList.get_tail() != nullptr);
+   return !itemList.is_empty();
 }
 
 virtual void
-   debug( void ) const;             // Debugging display
+   debug(const char* info) const;   // Debugging display
+
+void debug( void ) { debug(""); }
 
 void
    enqueue(                         // Enqueue
@@ -104,7 +106,6 @@ protected:
 virtual void                        // (IMPLEMENT this method)
    work(                            // Process
      Item*             item);       // This work Item
-/* item->post(); */
 }; // class Task
 
 //----------------------------------------------------------------------------

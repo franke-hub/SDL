@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,9 +16,35 @@
 //       Describe the List objects.
 //
 // Last change date-
-//       2020/12/28
+//       2022/04/05
 //
 // Implementation notes-
+//       Unlike std::List<T>, pub::List<T> elements *are* links.
+//       Pros:
+//         This optimizes list handling, especially when copying is expensive.
+//       Cons:
+//         pub::List classes do not *own* List<T>::Link objects. It is the
+//         user's responsibility to create and delete them.
+//            Note that while this is similar to that of a std::list<T*>,
+//            accessing a pub::List<T>::Link requires one less load operation.
+//       Differences:
+//         ++pub::List<T>::end() == pub::List<T>::end()
+//         ++std::list<T>::end() == std::list<T>::begin()
+//         --pub::List<T>::end() == pub::List<T>::end()
+//         --std::list<T>::end() == std::list<T>::rbegin()
+//
+//         --pub::List<T>::begin() == pub::List<T>::end()
+//         --std::list<T>::begin() == std::list<T>::rend()
+//         *List<T>::end() and List<T>::end()-> throw an exception rather than
+//         act in an undefined manner.
+//
+//         std::list has methods not available in pub::List. It handle arrays
+//         extremely well. pub::AI_list provides a lock-free atomic insertion
+//         capability, not available in std::list.
+//
+//       Note: pub::List<T>::Link construction and destruction is *always*
+//       the user's responsibility. e.g. pub::~List<T> does nothing.
+//
 //       For all List classes, the is_coherent and is_on_list methods run in
 //       linear time. Method is_coherent examines the entire List. Method
 //       is_on_list traverses the List until either the Link is found or the
@@ -34,38 +60,28 @@
 //       are inserted. The tail Link is the insert point after which FIFO
 //       Links are inserted.
 //
-//       Unlike std::list, pub::List::Link objects must be user-allocated and
-//       user-released. None of the current List types use std::shared_ptr for
-//       Link pointers, therefore you probably shouldn't either.
-//       List destructors don't do anything. They neither remove anything nor
-//       delete anything.
-//
 // List types-
-//       AU_List<T>:    Atomic Update Linked List, the only thread-safe List.
-//       DHDL_List<T>:  Doubly Headed Doubly Linked List.
-//       DHSL_List<T>:  Doubly Headed Singly Linked List.
-//       NODE_List<T>:  Doubly Headed Doubly Linked List, with parent link.
-//       SHSL_List<T>:  Single Headed Singly Linked List.
-//       SORT_List<T>:  privately derived from DHDL_List<T>, implementing all
-//                      methods. A user-defined compare method is added to the
-//                      Link class, and a sort method is added to SORT_List.
-//       List<T>:       Equivalent to DHDL_List<T>.
+//       AI_list<T>:    Atomic Insert Singly Linked List, thread-safe.
+//       DHDL_list<T>:  Doubly Headed Doubly Linked List.
+//       DHSL_list<T>:  Doubly Headed Singly Linked List.
+//       SHSL_list<T>:  Single Headed Singly Linked List.
+//       List<T>:       Equivalent to DHDL_list<T>.
 //
 //       In each case, the associated Link class is defined within the List
 //       class. All Link classes must be derived from that List::Link class.
 //       An example follows:
 //
 // Example declaration and usage-
-//       class My_Link : public List<My_List>::Link {
+//       class My_link : public List<My_link>::Link {
 //       public:
-//         My_Link(...) : List<My_List>::Link(), ... { ... } // Constructor
-//         // Remainder of implementation of My_Link
-//       }; // class My_Link, the elements to be put on a class My_List
+//         My_link(...) : List<My_link>::Link(), ... { ... } // Constructor
+//         // Remainder of implementation of My_link
+//       }; // class My_link, the elements to be put on a class List<My_link>
 //
-//       List<My_Link> my_list1;    // A List containing My_Link elements
-//       List<My_Link> my_list2;    // Another List contining My_Link Links
+//       List<My_link> my_list1;    // A List containing My_link elements
+//       List<My_link> my_list2;    // Another List contining My_link Links
 //
-//       My_Link* link1= new My_Link(); // Create a new My_Link
+//       My_link* link1= new My_link(); // Create a new My_link
 //       my_list1.fifo(link1);         // Insert it (FIFO) onto my_list1
 //       My_link* link2= my_list1.remq(); // Then remove it, emptying my_list1
 //       assert( link1 == link2 );     // The link added is the link removed
@@ -73,1380 +89,566 @@
 //       // my_list1 is empty, my_list2 only contains link2 (which == link1)
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_LIST_H_INCLUDED
-#define _PUB_LIST_H_INCLUDED
+#ifndef _LIBPUB_LIST_H_INCLUDED
+#define _LIBPUB_LIST_H_INCLUDED
 
 #include <atomic>                   // For std::atomic
-#include "config.h"                 // For _PUB_NAMESPACE
+#include <functional>               // For std::less<>
 
-namespace _PUB_NAMESPACE {
+#include "bits/List.h"              // For List template definitions, ...
+
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
-// Forward references
+//
+// Class-
+//       AI_list<T>
+//
+// Purpose-
+//       Typed AI_list object, where T is of class AI_list<T>::Link.
+//
 //----------------------------------------------------------------------------
-template<class T> class AU_FIFO;    // AU_List helper class
-template<class T> class AU_List;    // Atomic update List
-template<class T> class DHDL_List;  // DHDL List
-template<class T> class DHSL_List;  // DHSL List
-template<class T> class NODE_List;  // NODE List
-template<class T> class SHSL_List;  // SHSL List
-template<class T> class SORT_List;  // SORT List
-template<class T> class List;       // List, equivalent to DHDL_List
+/*****************************************************************************
+   @brief An atomic container with fixed time element insertion and iteration.
+
+   @tparam T The type of the element, which *must* be a subclass of
+     AI_list<T>::Link.
+
+   Two classes of users can simultaneously access an AI_List<T>.
+   <em>Producers</em> atomically add links to the list using the lock-free
+   fifo() method. There may be any number of <em>producer</em> threads.
+   <em>Consumers</em> serially use all other AI_list methods. Each AI_list
+   only supports a single concurrent <em>consumer</em>.
+
+   Note the fifo() method returns the previous _tail, the newest item on the
+   List. If nullptr is returned, the List went from idle into active state.
+
+   The begin() method creates an input_iterator in linear time, first removing
+   all Links and then reversing that reversely inserted list. Those links,
+   now in FIFO order, are presented to the consumer.  Addionally, this input
+   iterator automatically handles links added to the List while iterating
+   without changing its state from active to idle (empty.)
+*****************************************************************************/
+template<class T>
+   class AI_list
+   {
+     public:
+       typedef T                              value_type;
+       typedef value_type*                    pointer;
+       typedef value_type&                    reference;
+
+       typedef AI_list<T>                     _Self;
+       typedef _AI_iter<T>                    iterator;
+
+       struct Link : protected __detail::_PREV_link
+       {
+         friend struct _AI_iter<T>;
+         friend class AI_list;
+         public:
+           pointer get_prev( void ) const
+           { return static_cast<pointer>(_prev); }
+       }; // struct Link
+
+     protected:
+       std::atomic<pointer> _tail= nullptr; // The newest List element
+
+     public:
+       //---------------------------------------------------------------------
+       // AI_list<T>::Constructor/Destructor
+       //---------------------------------------------------------------------
+       ~AI_list( void ) = default;
+       AI_list( void ) = default;
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       AI_list<T>::debug
+       //
+       // Purpose-
+       //       Debugging display
+       //
+       // Implementation notes-
+       //       Only the consumer thread can safely use this debugging method.
+       //
+       //---------------------------------------------------------------------
+       void debug(const char* info= "")
+       {
+         pointer tail= _tail.load();
+         debugf("AI_List(%p)::debug(%s) _tail(%p) __end(%p,%p)\n", this
+               , info, tail, __detail::__end, &__detail::__end);
+         _AI_iter<T>::debug(tail);
+       }
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       AI_list<T>::begin
+       //       AI_list<T>::end
+       //
+       // Purpose-
+       //       Create begin iterator
+       //       Create end   iterator
+       //
+       // Implementation notes-
+       //       Only the consumer can safely use this method.
+       //
+       //       The begin() iterator removes all current links, creating an
+       //       input iterator from them. These links are *only* associated
+       //       with that iterator. This process is automatically repeated
+       //       when all removed links have been processed so that links
+       //       inserted while the iteration is in progress are logically
+       //       part of that iteration. If no new links were inserted, the
+       //       AI_list becomes empty and the iterator == end().
+       //
+       //---------------------------------------------------------------------
+       iterator begin() noexcept { return iterator(this); }
+       iterator end()   noexcept { return iterator(); }
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       AI_list<T>::fifo
+       //
+       // Purpose-
+       //       Atomically insert a link onto the AI_list.
+       //
+       // Implementation note-
+       //       THREAD SAFE.  Any number of producer threads may simultaneously
+       //       use this method.
+       //
+       //---------------------------------------------------------------------
+       /**
+         @brief Thread-safe FIFO ordering Link insertion
+         @param link The Link to insert.
+
+         Inserts a Link into the list such that the begin() iterator has FIFO
+         ordering. The List itself has LIFO ordering.
+       **/
+       pointer                      // -> Prior tail
+         fifo(                      // Insert (fifo order)
+           pointer     link)        // -> Link to insert
+       {
+          pointer prev= _tail.load();
+          link->_prev= prev;
+          while( !_tail.compare_exchange_weak(prev, link) )
+            link->_prev= prev;
+
+          return prev;
+       }
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       AI_list<T>::get_tail
+       //
+       // Purpose-
+       //       Get the tail link.
+       //
+       // Implementation notes-
+       //       Only the consumer thread can safely use this method.
+       //
+       //---------------------------------------------------------------------
+       pointer                      // -> Tail Link
+         get_tail( void ) const     // Get tail link
+       { return _tail.load(); }
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       AI_list<T>::is_coherent
+       //
+       // Purpose-
+       //       Coherency check.
+       //
+       // Implementation notes-
+       //       Only the consumer thread can safely use this debugging method.
+       //
+       //---------------------------------------------------------------------
+       bool                         // TRUE if the object is coherent
+         is_coherent( void ) const  // Coherency check
+       {
+          pointer link= _tail.load(); // The newest Link
+          for(int count= 0; count < __detail::MAX_COHERENT; count++)
+          {
+            if( link == nullptr )
+              return true;
+
+            link= link->get_prev();
+          }
+
+          return false;
+       }
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       AI_list<T>::is_empty
+       //
+       // Purpose-
+       //       (Instantaneous) test for empty list.
+       //
+       // Implementation notes-
+       //       Only the consumer thread can safely use this method. Testing
+       //       for an empty List isn't useful when active producers exist.
+       //
+       //---------------------------------------------------------------------
+       bool                         // TRUE if the List is empty
+         is_empty( void ) const     // Is the List empty?
+       { return _tail.load() == nullptr; }
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       AI_list<T>::is_on_list
+       //
+       // Purpose-
+       //       Test whether link is present in this List.
+       //
+       // Implementation notes-
+       //       Only the consumer thread can safely use this method.
+       //
+       //---------------------------------------------------------------------
+       bool                         // TRUE if link is contained
+         is_on_list(                // Is link contained?
+           pointer     link) const  // -> Link
+       {
+          if( link )
+          {
+            pointer prev= _tail.load();
+            while( prev != nullptr && (void*)prev != __detail::__end )
+            {
+              if( prev == link )
+                return true;
+
+              prev= prev->get_prev();
+            }
+          }
+
+          return false;
+       }
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       AI_list<T>::reset
+       //
+       // Purpose-
+       //       Remove ALL Links from the List.
+       //
+       // Implementation notes-
+       //       Only the consumer thread can safely use this method.
+       //       The returned Links are (reverse) ordered from tail to head.
+       //
+       //---------------------------------------------------------------------
+       pointer                      // -> The set of removed Links
+         reset( void )              // Reset (empty) the List
+       {
+          pointer link= _tail.load();
+          while( !_tail.compare_exchange_weak(link, nullptr) )
+            ;
+
+          return link;
+       }
+
+       //---------------------------------------------------------------------
+       //
+       // Method-
+       //       AI_list<T>::reset
+       //
+       // Purpose-
+       //       Remove ALL Links from the List, replacing the List
+       //       The returned Links are (reverse) ordered from tail to head.
+       //
+       //       This method is used by the iterator to prevent triggering
+       //       of the empty to non-empty state transition. For a sample
+       //       implementation, see ~/src/cpp/lib/pub/Dispatch.cpp::work
+       //
+       //---------------------------------------------------------------------
+       /**
+         @brief Atomically replace the List
+         @param tail The tail pseudo-link that replaces the _List.
+         @return The set of removed links (tail->pointer->...->nullptr)
+
+         Note: The tail parameter is a pseudo-link. The first inserted Link
+         points to it, but tail is not a Link. It doesn't point anywhere.
+
+         @code
+           { [[atomic]]
+             if( _list::_tail == nullptr )
+               return nullptr;
+           }
+
+           { [[atomic]]
+             if( _list::_tail == tail )
+             {
+               _list::_tail= nullptr;
+               return nullptr;
+             }
+           }
+
+           { [[atomic]]
+             pointer prev= _list::_tail;
+             pointer _tail= (pointer)tail; // (tail is a pseudo-link)
+             return prev;
+           }
+         @endcode
+       **/
+       pointer
+         reset(                     // Reset (empty) the List
+           void* tail) noexcept     // Replacing it with this pseudo-link
+       {
+          pointer link= _tail.load(); // Get the current tail
+          if( link == nullptr )     // If the List is currently empty
+            return nullptr;         // Do not replace it
+
+          // Attempt replacement with empty pseudo-Link
+          while( (void*)link == tail )
+          {
+            if( _tail.compare_exchange_weak(link, nullptr) )
+              return nullptr;
+          }
+
+          // Replace the List
+          while( !_tail.compare_exchange_weak(link, (pointer)tail) )
+            ;
+
+          return link;              // Return the newest existing Link
+       }
+   }; // class AI_list<T>
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       AU_List<>
+//       DHDL_list<T>
 //
 // Purpose-
-//       The Atomic Update List is a thread-safe FIFO insertion List.
-//
-// Implementation notes-
-//       The FIFO and RESET methods run in constant time.
-//       The REMQ method runs in linear time.
-//       The SWAP method runs in constant time. AU_FIFO construction and reset
-//       run in linear time, inverting the list order in one pass through it.
-//
-//       The AU_List is a Singly Headed Singly Linked List maintained in
-//       reverse Link sequence: It begins with the tail Link and continues via
-//       the prev Link chain ending with the head Link.
-//
-//       The Atomic Update List is optimized for sequential FIFO insertion
-//       onto a single list by multiple threads. Insertion, via the FIFO
-//       method, is thread-safe and may be used concurrently with any other
-//       method.
-//
-//       Methods REMQ, SWAP, is_coherent and is_on_list must be run within a
-//       single-threaded consumer. While SWAP could operate concurrently with
-//       other threads, consumer thread logic is required to maintain global
-//       list ordering.
-//
-//       Methods LIFO, INSERT, and REMOVE (available on other List types)
-//       cannot be provided: No known thread-safe lock-free implementations
-//       exist. While method REMQ is provided, a more efficient method using
-//       a helper class (AU_FIFO) exists. See the example usage code below.
-//
-//----------------------------------------------------------------------------
-template<> class AU_List<void> {    // AU_List base
-public:
-class Link {                        // AU_List<void>::Link -------------------
-friend class AU_List;
-protected:
-Link*                  prev;        // -> Prior Link
-}; // class AU_List<void>::Link ----------------------------------------------
-
-//----------------------------------------------------------------------------
-// AU_List<>::Attributes
-//----------------------------------------------------------------------------
-protected:
-std::atomic<Link*>     tail= nullptr; // -> Tail Link
-
-//----------------------------------------------------------------------------
-// AU_List<>::Constructors/Destructor
-//----------------------------------------------------------------------------
-   AU_List( void ) {}               // Constructor
-   ~AU_List( void ) {}              // Destructor
-
-   AU_List(const AU_List&) = delete; // Disallowed copy constructor
-AU_List& operator=(const AU_List&) = delete; // Disallowed assignment operator
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       AU_List<>::fifo
-//
-// Purpose-
-//       Insert a link onto the list with FIFO ordering. (Thread-safe)
-//
-//----------------------------------------------------------------------------
-Link*                               // -> Prior tail
-   fifo(                            // Insert (FIFO order)
-     Link*             link);       // -> Link to insert
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       AU_List<>::get_tail
-//
-// Purpose-
-//       Get the tail link. (Implemented in AU_List<T>, not here.)
-//
-//----------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       AU_List<>::is_coherent
-//
-// Purpose-
-//       Coherency check.
-//
-// Implementation notes-
-//       Only the consumer thread can safely use this method.
-//
-//----------------------------------------------------------------------------
-int                                 // TRUE if the object is coherent
-   is_coherent( void ) const;       // Coherency check
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       AU_List<>::is_on_list
-//
-// Purpose-
-//       Test whether Link is present in this List.
-//
-// Implementation notes-
-//       Only the consumer thread can safely use this method.
-//
-//----------------------------------------------------------------------------
-int                                 // TRUE if link is contained
-   is_on_list(                      // Is link contained?
-     Link*             link) const; // -> Link
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       AU_List<>::remove
-//
-// Purpose-
-//       Remove a link from the list.
-//
-// Implementation notes-
-//       Only the consumer thread can safely use this method.
-//
-//----------------------------------------------------------------------------
-Link*                               // -> Removed Link
-   remove(                          // Remove link
-     Link*             link);       // The link to remove
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       AU_List<>::remq
-//
-// Purpose-
-//       Remove the head link from the list.
-//
-// Implementation notes-
-//       Only the consumer thread can safely use this method.
-//       This method is only suitable for small lists. See the swap method
-//       and the AU_FIFO helper class for more general usage.
-//
-//----------------------------------------------------------------------------
-Link*                               // -> Removed (logical head) Link
-   remq( void );                    // Remove head link
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       AU_List<>::reset
-//
-// Purpose-
-//       Remove ALL Links from the List.
-//
-// Implementation notes-
-//       Only the consumer thread can safely use this method.
-//       The links are (reverse) ordered from tail to head.
-//
-//----------------------------------------------------------------------------
-Link*                               // -> The set of removed Links
-   reset( void );                   // Reset (empty) the List
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       AU_List<>::swap
-//
-// Purpose-
-//       Remove ALL Links from the List, replacing the List
-//
-// Implementation notes-
-//       Consumers use this method to replace the current List with a dummy
-//       Link and then process all the removed List elements. When this
-//       processing completes, the process is repeated using the same dummy
-//       Link. If no new elements were added during processing, swap returns
-//       nullptr. If new elements were added, swap returns the new List with
-//       the dummy element as the head (last) element.
-//
-//       If (atomically) the current tail == nullptr or the replacement tail,
-//       the List remains or is emptied and nullptr is returned.
-//
-//       While multiple consumer threads could use this method, global FIFO
-//       ordering would then be lost.
-//
-//       A single consumer thread can maintain global FIFO ordering.
-//       Method swqp returns links ordered from tail to head. The AU_FIFO
-//       helper class efficiently inverts that LIFO ordering into FIFO order.
-//       Sample code:
-//         AU_List<Item>       itemList;    // The Work item list
-//         :
-//         // List handling logic (single-threaded)
-//         // (List handling logic only needs to be driven when an item is
-//         // added to an empty list, i.e. itemList.fifo() returns nullptr.
-//         // This logic handles spurious activation also.)
-//         Item                only;        // Our fake work Item
-//         Item*               fake= &only; // (and a pointer to it)
-//
-//         Item* list= itemList.swap(fake); // Replace List with fake element
-//         AU_FIFO<Item> fifo(list);        // Initialize the FIFO
-//         for(;;) {                        // Drain the itemList
-//           Item* item= fifo.remq();       // Get head link
-//           if( item == nullptr ) {        // If none remain
-//             list= itemList.swap(fake);   // Get new list
-//             if( list == nullptr )        // If none left
-//               return;                    // (or break)
-//
-//             fifo.reset(list);            // Re-initialize the AU_FIFO
-//             item= fifo.remq();           // Remove head link (the fake item)
-//             assert( item == fake );      // Verify what we think we know
-//
-//             item= fifo.remq();           // Remove next head link
-//             assert( item != nullptr );   // Which cannot be a nullptr
-//           }
-//
-//           // Process the removed Item (*item)
-//         }
-//
-//----------------------------------------------------------------------------
-Link*                               // -> The set of removed Links
-   swap(                            // Swap (empty) the List
-     Link*             tail);       // Replacing it with this link
-}; // class AU_List<>
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       AU_List<T>
-//
-// Purpose-
-//       Typed AU_List object, where T is of class AU_List<T>::Link.
+//       Typed DHDL_list object, where T is of class DHDL_list<T>::Link.
 //
 //----------------------------------------------------------------------------
 template<class T>
-class AU_List : public AU_List<void> { // AU_List<T>
-public:
-typedef AU_List<void>  B_List;      // The base List type
-typedef AU_List<void>::Link B_Link; // The base Link type
+   class DHDL_list : public DHDL_list<void>
+   {
+     public:
+       typedef T                              value_type;
+       typedef T*                             pointer;
+       typedef T&                             reference;
 
-class Link : public B_Link {        // AU_List<T>::Link ----------------------
-friend class AU_FIFO<T>;            // (For set_prev() access)
-public:
-T*                                  // -> Prior Link
-   get_prev( void ) const           // Get prior Link
-{  return static_cast<T*>(prev); }
+       typedef _DHDL_list_iterator<value_type> iterator;
+       typedef _DHDL_list_const_iterator<value_type> const_iterator;
 
-protected:
-void
-   set_prev(                        // Set prior Link
-     T*                link)        // To this link
-{  prev= link; }
-}; // class AU_List<T>::Link -------------------------------------------------
+       typedef DHDL_list<void>                _Base;
+#if ! USE_BASE_SORT
+       typedef std::function<bool(pointer, pointer)>
+                                              _Comparator;
+#endif
 
-//----------------------------------------------------------------------------
-// AU_List<T>::Constructor/Destructor
-//----------------------------------------------------------------------------
-   AU_List( void ) {}
-   ~AU_List( void ) {}
+       class Link : protected _Link
+       {
+         friend class DHDL_list;
+         public:
+           pointer get_next( void ) const
+           { return static_cast<pointer>(_next); }
 
-//----------------------------------------------------------------------------
-// AU_List<T>::Methods
-//----------------------------------------------------------------------------
-T*                                  // -> Prior tail
-   fifo(                            // Insert (fifo order)
-     T*                link)        // -> Link to insert
-{  return static_cast<T*>(B_List::fifo(link)); }
+           pointer get_prev( void ) const
+           { return static_cast<pointer>(_prev); }
+       }; // class DHDL_list<T>::Link
 
-T*                                  // -> Tail Link
-   get_tail( void ) const           // Get tail link
-{  return static_cast<T*>(tail.load()); }
+       //---------------------------------------------------------------------
+       // DHDL_list<T>::Constructor/Destructor
+       //---------------------------------------------------------------------
+       DHDL_list( void ) {}
+       ~DHDL_list( void ) {}
 
-int                                 // TRUE if the object is coherent
-   is_coherent( void ) const        // Coherency check
-{  return B_List::is_coherent(); }
+       //---------------------------------------------------------------------
+       // DHDL_list<T>::Methods
+       //---------------------------------------------------------------------
+             iterator begin()       noexcept { return iterator(_head); }
+       const_iterator begin() const noexcept { return const_iterator(_head); }
+             iterator end()         noexcept { return iterator(); }
+       const_iterator end()   const noexcept { return const_iterator(); }
 
-int                                 // TRUE if link is contained
-   is_on_list(                      // Is link contained?
-     T*                link)        // -> Link
-{  return B_List::is_on_list(link); }
+       void
+         fifo(                      // Insert (FIFO order)
+           pointer           link)  // -> Link to insert
+       { _Base::fifo(link); }
 
-T*                                  // Removed link (if on list)
-   remove(                          // Remove Link
-     T*                link)        // The link to remove
-{  return static_cast<T*>(B_List::remove(link)); }
+       pointer                      // -> Head pointer on List
+         get_head( void ) const     // Get head link
+       {  return static_cast<pointer>(_head); }
 
-T*                                  // Removed Link
-   remq( void )                     // Remove head Link
-{  return static_cast<T*>(B_List::remq()); }
+       pointer                      // -> Tail pointer on List
+         get_tail( void ) const     // Get tail link
+       {  return static_cast<pointer>(_tail); }
 
-T*                                  // -> The set of removed Links
-   reset( void )                    // Reset (empty) the List
-{  return static_cast<T*>(B_List::reset()); }
+       /**********************************************************************
+         @brief Insert link at position.
 
-T*                                  // (See above)
-   swap(                            // Swap (empty) the List
-     Link*             tail)        // Replacing it with this link
-{  return static_cast<T*>(B_List::swap(tail)); }
-}; // class AU_List<T>
+         @param link The Link *before* the insert position, nullptr for head.
+         @param head The first Link to insert.
+         @param tail The last Link to insert.
 
-//----------------------------------------------------------------------------
-//
-// Class-
-//       AU_FIFO<T>
-//
-// Purpose-
-//       A helper class used to improve AU_List::remq performance.
-//       (See sample code in AU_List<void>::swap() above.)
-//
-//----------------------------------------------------------------------------
-template<class T>                   // T is an AU_List::Link
-class AU_FIFO {                     // AU_FIFO helper class
-protected:
-T*                     head= nullptr; // The current head
+         Preconditions: The head to tail chain must be well-formed.
+         Postcondition: link->_next == head, head->_prev == link,
+                        tail->_next == link->next, tail->_next->_prev == tail
+       **********************************************************************/
+       void
+         insert(                    // Insert at position,
+           pointer                link, // -> Link to insert after
+           pointer                head, // -> First Link to insert
+           pointer                tail) // -> Final Link to insert
+       { _Base::insert(link, head, tail); }
 
-public:
-//----------------------------------------------------------------------------
-// AU_FIFO<T>::Constructor/Destructor
-//----------------------------------------------------------------------------
-   AU_FIFO(                         // Constructor
-     T*                tail)        // The list
-{  reset(tail); }                   // Initial conversion
+       bool                         // TRUE if the object is coherent
+         is_coherent( void ) const  // Coherency check
+       { return _Base::is_coherent(); }
 
-   ~AU_FIFO( void ) {}              // Does nothing
+       bool                         // TRUE if link is contained
+         is_on_list(                // Is Link contained?
+           pointer                link) const  // -> Link
+       { return _Base::is_on_list(link); }
 
-//----------------------------------------------------------------------------
-// AU_FIFO<T>::remq: Obtain next element
-//----------------------------------------------------------------------------
-T*                                  // The head Link
-   remq( void )                     // Get head Link
-{
-   T* result= head;
+       void
+         lifo(                      // Insert (LIFO order)
+           pointer                link) // -> Link to insert
+       { _Base::lifo(link); }
 
-   if( result != nullptr ) {
-     head= result->get_prev();
-     result->set_prev(nullptr);     // (set_prev() is protected)
-   }
+       void
+         remove(                    // Remove from list
+           pointer                head, // -> First Link to remove
+           pointer                tail) // -> Final Link to remove
+       { _Base::remove(head, tail); }
 
-   return result;
-}
+       pointer                      // Removed pointer
+         remq( void )               // Remove head link
+       { return static_cast<pointer>(_Base::remq()); }
 
-//----------------------------------------------------------------------------
-// AU_FIFO<T>::reset: (Re-)initialize the list
-//----------------------------------------------------------------------------
-void
-   reset(                           // Re-initialize the list
-     T*                tail)        // The list
-{
-   while( tail ) {
-     T* prev= tail->get_prev();
-     tail->set_prev(head);
-     head= tail;
-     tail= prev;
-   }
-}
-}; // class AU_FIFO<T>
+       pointer                      // -> The set of removed Links
+         reset( void )              // Reset (empty) the List
+       { return static_cast<pointer>(_Base::reset()); }
 
-//----------------------------------------------------------------------------
-//
-// Class-
-//       DHDL_List<>
-//
-// Purpose-
-//       The Doubly Headed, Doubly Linked List is a general purpose List.
-//
-// Implementation notes-
-//       The DHDL_List is not thread safe. Method usage must be serialized.
-//       The FIFO, LIFO, INSERT, and REMOVE methods run in constant time.
-//
-//----------------------------------------------------------------------------
-template<> class DHDL_List<void> {  // DHDL_List base
-public:
-class Link {                        // DHDL_List<void>::Link -----------------
-friend class DHDL_List;
-protected:
-Link*                  next;        // -> Forward Link
-Link*                  prev;        // -> Reverse Link
-}; // class DHDL_List<void>::Link --------------------------------------------
+       /**********************************************************************
+         @brief Sort using comparitor.
 
-//----------------------------------------------------------------------------
-// DHDL_List<>::Attributes
-//----------------------------------------------------------------------------
-protected:
-Link*                  head= nullptr; // -> Head Link
-Link*                  tail= nullptr; // -> Tail Link
+         Sample code:
+         @code
+           TODO: Copy from List.cpp or TestList.cpp when working
+         @endcode
+       **********************************************************************/
+#if USE_BASE_SORT
+       void sort(_Comparator cmp)   // Sort the List using Comparator
+       { _Base::sort(cmp); }
+#else
+       void sort(_Comparator cmp)   // Sort the List using Comparator
+       {
+         pointer head= reset();
 
-//----------------------------------------------------------------------------
-// DHDL_List<>::Constructors/Destructor
-//----------------------------------------------------------------------------
-   DHDL_List( void ) {}             // Default constructor
-   ~DHDL_List( void ) {}            // Default destructor
+         while( head )
+         {
+           pointer low= head;
+           pointer next= low->get_next();
+           while( next != nullptr )
+           {
+             if( cmp(next, low) )
+               low= next;
 
-   DHDL_List(const DHDL_List&) = delete; // Disallowed copy constructor
-DHDL_List&
-   operator=(const DHDL_List&) = delete; // Disallowed assignment operator
+             next= next->get_next();
+           }
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHDL_List<>::fifo
-//
-// Purpose-
-//       Insert a link onto the list with FIFO ordering.
-//
-//----------------------------------------------------------------------------
-void
-   fifo(                            // Insert (FIFO order)
-     Link*             link);       // -> Link to insert
+           if( low == head )
+             head= head->get_next();
+           else
+           {
+             if( low->get_next() != nullptr )
+               low->get_next()->_prev= low->_prev;
+             low->_prev->_next= low->get_next();
+           }
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHDL_List<>::get_head
-//       DHDL_List<>::get_tail
-//
-// Purpose-
-//       Get the head link. (Implemented in DHDL_List<T>, not here,)
-//       Get the tail link. (Implemented in DHDL_List<T>, not here.)
-//
-//----------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHDL_List<>::insert
-//
-// Purpose-
-//       Insert a chain of elements onto the list at the specified position.
-//
-//----------------------------------------------------------------------------
-void
-   insert(                          // Insert at position,
-     Link*             link,        // -> Link to insert after
-     Link*             head,        // -> First Link to insert
-     Link*             tail);       // -> Final Link to insert
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHDL_List<>::is_coherent
-//
-// Purpose-
-//       List coherency check.
-//
-//----------------------------------------------------------------------------
-int                                 // TRUE if the object is coherent
-   is_coherent( void ) const;       // Coherency check
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHDL_List<>::is_on_list
-//
-// Purpose-
-//       Test whether Link is present in this List.
-//
-//----------------------------------------------------------------------------
-int                                 // TRUE if link is contained
-   is_on_list(                      // Is Link contained?
-     Link*             link) const; // -> Link
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHDL_List<>::lifo
-//
-// Purpose-
-//       Insert a link onto the list with LIFO ordering.
-//
-//----------------------------------------------------------------------------
-void
-   lifo(                            // Insert (LIFO order)
-     Link*             link);       // -> Link to insert
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHDL_List<>::remove
-//
-// Purpose-
-//       Remove a chain of elements from the list.
-//
-//----------------------------------------------------------------------------
-void
-   remove(                          // Remove from list
-     Link*             head,        // -> First Link to remove
-     Link*             tail);       // -> Final Link to remove
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHDL_List<>::remq
-//
-// Purpose-
-//       Remove the head Link from the List.
-//
-//----------------------------------------------------------------------------
-Link*                               // -> Removed Link
-   remq( void );                    // Remove head Link
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHDL_List<>::reset
-//
-// Purpose-
-//       Remove ALL Links from the List.
-//
-//----------------------------------------------------------------------------
-Link*                               // The set of removed Links
-   reset( void );                   // Reset (empty) the list
-}; // class DHDL_List<>
+           fifo(low);
+         }
+       }
+#endif
+       }; // class DHDL_list<T>
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       DHDL_List<T>
+//       DHSL_list<T>
 //
 // Purpose-
-//       Typed DHDL_List object, where T is of class DHDL_List<T>::Link.
+//       Typed DHSL_list object, where T is of class DHSL_list<T>::Link.
 //
 //----------------------------------------------------------------------------
 template<class T>
-class DHDL_List : public DHDL_List<void> { // DHDL_List<T>
-public:
-typedef DHDL_List<void> B_List;     // The base List type
-typedef DHDL_List<void>::Link B_Link; // The base Link type
-
-class Link : public B_Link {        // DHDL_List<T>::Link --------------------
-public:
-T*                                  // -> Next Link
-   get_next( void ) const           // Get next Link
-{  return static_cast<T*>(next); }
-
-T*                                  // -> Prior Link
-   get_prev( void ) const           // Get prior Link
-{  return static_cast<T*>(prev); }
-}; // class DHDL_List<T>::Link -----------------------------------------------
-
-//----------------------------------------------------------------------------
-// DHDL_List<T>::Constructor/Destructor
-//----------------------------------------------------------------------------
-   DHDL_List( void ) {}
-   ~DHDL_List( void ) {}
-
-//----------------------------------------------------------------------------
-// DHDL_List<T>::Methods
-//----------------------------------------------------------------------------
-void
-   fifo(                            // Insert (FIFO order)
-     T*                link)        // -> Link to insert
-{  B_List::fifo(link); }
-
-T*                                  // -> Head T* on List
-   get_head( void ) const           // Get head link
-{  return static_cast<T*>(head); }
-
-T*                                  // -> Tail T* on List
-   get_tail( void ) const           // Get tail link
-{  return static_cast<T*>(tail); }
-
-void
-   insert(                          // Insert at position,
-     T*                link,        // -> Link to insert after
-     T*                head,        // -> First Link to insert
-     T*                tail)        // -> Final Link to insert
-{  B_List::insert(link, head, tail); }
-
-int                                 // TRUE if the object is coherent
-   is_coherent( void ) const        // Coherency check
-{  return B_List::is_coherent(); }
-
-int                                 // TRUE if link is contained
-   is_on_list(                      // Is Link contained?
-     T*                link) const  // -> Link
-{  return B_List::is_on_list(link); }
-
-void
-   lifo(                            // Insert (LIFO order)
-     T*                link)        // -> Link to insert
-{  B_List::lifo(link); }
-
-void
-   remove(                          // Remove from list
-     T*                head,        // -> First Link to remove
-     T*                tail)        // -> Final Link to remove
-{  B_List::remove(head, tail); }
-
-T*                                  // Removed T*
-   remq( void )                     // Remove head link
-{  return static_cast<T*>(B_List::remq()); }
-
-T*                                  // -> The set of removed Links
-   reset( void )                    // Reset (empty) the List
-{  return static_cast<T*>(B_List::reset()); }
-}; // class DHDL_List<T>
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       DHSL_List<>
-//
-// Purpose-
-//       The Doubly Headed, Singly Linked List.
-//
-// Implementation notes-
-//       The DHSL_List is not thread safe. Method usage must be serialized.
-//
-//       The FIFO, LIFO, REMQ, and RESET methods run in constant time.
-//       The INSERT and REMOVE methods run in linear time.
-//
-//----------------------------------------------------------------------------
-template<> class DHSL_List<void> {  // DHSL_List base
-public:
-class Link {                        // DHSL_List<void>::Link -----------------
-friend class DHSL_List;
-protected:
-Link*                  next;        // -> Forward Link
-}; // class DHSL_List<void>::Link --------------------------------------------
-
-//----------------------------------------------------------------------------
-// DHSL_List<>::Attributes
-//----------------------------------------------------------------------------
-protected:
-Link*                  head= nullptr; // -> Head Link
-Link*                  tail= nullptr; // -> Tail Link
-
-//----------------------------------------------------------------------------
-// DHSL_List<>::Constructors/Destructor
-//----------------------------------------------------------------------------
-   ~DHSL_List( void ) {}            // Default destructor
-   DHSL_List( void ) {}             // Default constructor
-
-   DHSL_List(const DHSL_List&) = delete; // Disallowed copy constructor
-DHSL_List&
-   operator=(const DHSL_List&) = delete; // Disallowed assignment operator
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHSL_List<>::fifo
-//
-// Purpose-
-//       Insert a Link onto the List with FIFO ordering.
-//
-//----------------------------------------------------------------------------
-void
-   fifo(                            // Insert (FIFO order)
-     Link*             link);       // -> Link to insert
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHSL_List<>::get_head
-//
-// Purpose-
-//       Get the head link. (Implemented in DHSL_List<T>, not here,)
-//
-//----------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHSL_List<>::insert
-//
-// Purpose-
-//       Insert a chain of elements onto the list at the specified position.
-//
-//----------------------------------------------------------------------------
-void
-   insert(                          // Insert at position,
-     Link*             link,        // -> Link to insert after
-     Link*             head,        // -> First Link to insert
-     Link*             tail);       // -> Final Link to insert
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHSL_List<>::is_coherent
-//
-// Purpose-
-//       List coherency check.
-//
-//----------------------------------------------------------------------------
-int                                 // TRUE if the object is coherent
-   is_coherent( void ) const;       // Coherency check
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHSL_List<>::is_on_list
-//
-// Purpose-
-//       Test whether Link is present in this List.
-//
-//----------------------------------------------------------------------------
-int                                 // TRUE if Link is contained
-   is_on_list(                      // Is Link contained?
-     Link*             link) const; // -> Link
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHSL_List<>::lifo
-//
-// Purpose-
-//       Insert a Link onto the List with LIFO ordering.
-//
-//----------------------------------------------------------------------------
-void
-   lifo(                            // Insert (LIFO order)
-     Link*             link);       // -> Link to insert
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHSL_List<>::remove
-//
-// Purpose-
-//       Remove a chain of elements from the List.
-//       This is an expensive operation for a DHSL_List.
-//
-//----------------------------------------------------------------------------
-void
-   remove(                          // Remove from DHSL_List
-     Link*             head,        // -> First Link to remove
-     Link*             tail);       // -> Final Link to remove
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHSL_List<>::remq
-//
-// Purpose-
-//       Remove the head Link from the list.
-//
-//----------------------------------------------------------------------------
-Link*                               // -> Removed Link
-   remq( void );                    // Remove head Link
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       DHSL_List<>::reset
-//
-// Purpose-
-//       Remove ALL Links from the List.
-//
-//----------------------------------------------------------------------------
-Link*                               // The set of removed Links
-   reset( void );                   // Reset (empty) the List
-}; // class DHSL_List<>
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       DHSL_List<T>
-//
-// Purpose-
-//       Typed DHSL_List object, where T is of class DHSL_List<T>::Link.
-//
-//----------------------------------------------------------------------------
-template<class T>
-class DHSL_List : public DHSL_List<void> { // DHSL_List<T>
-public:
-typedef DHSL_List<void> B_List;     // The base List type
-typedef DHSL_List<void>::Link B_Link; // The base Link type
-
-class Link : public B_Link {        // DHSL_List<T>::Link --------------------
-public:
-T*                                  // -> Next Link
-   get_next( void ) const           // Get next Link
-{  return static_cast<T*>(next); }
-}; // class DHSL_List<T>::Link -----------------------------------------------
-
-//----------------------------------------------------------------------------
-// DHSL_List<T>::Constructor/Destructor
-//----------------------------------------------------------------------------
-   DHSL_List( void ) {}
-   ~DHSL_List( void ) {}
-
-//----------------------------------------------------------------------------
-// DHSL_List<T>::Methods
-//----------------------------------------------------------------------------
-void
-   fifo(                            // Insert (FIFO order)
-     T*                link)        // -> Link to insert
-{  B_List::fifo(link); }
-
-T*                                  // -> Head T* on List
-   get_head( void ) const           // Get head Link
-{  return static_cast<T*>(head); }
-
-T*                                  // -> Tail T* on List
-   get_tail( void ) const           // Get tail Link
-{  return static_cast<T*>(tail); }
-
-void
-   insert(                          // Insert at position,
-     T*                link,        // -> Link to insert after
-     T*                head,        // -> First Link to insert
-     T*                tail)        // -> Final Link to insert
-{  B_List::insert(link, head, tail); }
-
-int                                 // TRUE if the object is coherent
-   is_coherent( void ) const        // Coherency check
-{  return B_List::is_coherent(); }
-
-int                                 // TRUE if Link is contained
-   is_on_list(                      // Is Link contained?
-     T*                link) const  // -> Link
-{  return B_List::is_on_list(link); }
-
-void
-   lifo(                            // Insert (LIFO order)
-     T*                link)        // -> Link to insert
-{  B_List::lifo(link); }
-
-void
-   remove(                          // Remove from DHSL_List
-     T*                head,        // -> First Link to remove
-     T*                tail)        // -> Final Link to remove
-{  B_List::remove(head, tail); }
-
-T*                                  // Removed T*
-   remq( void )                     // Remove head Link
-{  return static_cast<T*>(B_List::remq()); }
-
-T*                                  // -> The set of removed Links
-   reset( void )                    // Reset (empty) the List
-{  return static_cast<T*>(B_List::reset()); }
-}; // class DHSL_List<T>
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       NODE_List<T>
-//
-// Purpose-
-//       Typed NODE_List object, where T is of class NODE_List<T>::Link.
-//
-// Implementation note-
-//       This is a DHDL_List<T>; Links also contain a pointer to parent List
-//
-//----------------------------------------------------------------------------
-template<class T>
-class NODE_List : public DHDL_List<void> { // NODE_List<T>
-public:
-typedef DHDL_List<void> B_List;     // The base List type
-typedef DHDL_List<void>::Link B_Link; // The base Link type
-
-class Link : public B_Link {        // NODE_List<T>::Link --------------------
-protected:
-NODE_List<T>*          parent= nullptr; // The parent Link
-
-public:
-NODE_List<T>*                       // The parent List
-   get_parent(void) const           // Get parent List
-{  return parent; }
-
-void
-   set_parent(                      // Set parent Link
-     NODE_List<T>*     list)        // To this Link
-{  parent= list; }
-
-T*                                  // -> Next Link
-   get_next( void ) const           // Get next Link
-{  return static_cast<T*>(next); }
-
-T*                                  // -> Prior Link
-   get_prev( void ) const           // Get prior Link
-{  return static_cast<T*>(prev); }
-}; // class NODE_List<T>::Link -----------------------------------------------
-
-void
-   fifo(                            // Insert (FIFO order)
-     T*                link)        // -> Link to insert
-{
-   B_List::fifo(link);
-   link->set_parent(this);
-}
-
-T*                                  // -> Head T* on List
-   get_head( void ) const           // Get head link
-{  return static_cast<T*>(head); }
-
-T*                                  // -> Tail T* on List
-   get_tail( void ) const           // Get tail link
-{  return static_cast<T*>(tail); }
-
-void
-   insert(                          // Insert at position,
-     T*                link,        // -> Link to insert after
-     T*                head,        // -> First Link to insert
-     T*                tail)        // -> Final Link to insert
-{
-   B_List::insert(link, head, tail);
-   for(;;) {
-     head->set_parent(this);
-     if( head == tail )
-       break;
-     head= head->get_next();
-   }
-}
-
-int                                 // TRUE if the object is coherent
-   is_coherent( void ) const        // Coherency check
-{  return B_List::is_coherent(); }
-
-int                                 // TRUE if link is contained
-   is_on_list(                      // Is Link contained?
-     T*                link) const  // -> Link
-{  return B_List::is_on_list(link); }
-
-void
-   lifo(                            // Insert (LIFO order)
-     T*                link)        // -> Link to insert
-{
-   B_List::lifo(link);
-   link->set_parent(this);
-}
-
-void
-   remove(                          // Remove from list
-     T*                head,        // -> First Link to remove
-     T*                tail)        // -> Final Link to remove
-{
-   B_List::remove(head, tail);
-
-   for(;;) {
-     head->set_parent(nullptr);
-     if( head == tail )
-       break;
-     head= head->get_next();
-   }
-}
-
-T*                                  // Removed T*
-   remq( void )                     // Remove head link
-{
-   T* link= static_cast<T*>(B_List::remq());
-   if( link )
-     link->set_parent(nullptr);
-   return link;
-}
-
-T*                                  // -> The set of removed Links
-   reset( void )                    // Reset (empty) the List
-{
-   T* link= static_cast<T*>(B_List::reset());
-   T* next= link;
-   while( next != nullptr ) {
-     next->set_parent(nullptr);
-     next= next->get_next();
-   }
-
-   return link;
-}
-}; // class NODE_List<T>
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       SHSL_List<>
-//
-// Purpose-
-//       The Singly Headed, Singly Linked List.
-//
-// Implemenation notes-
-//       The SHDL_List is not thread safe. Method usage must be serialized.
-//       The SHSL_List is optimized for LIFO operation. If you think of
-//       this List as a Stack, LIFO == PUSH and REMQ == PULL.
-//
-//       The INSERT, LIFO and REMQ methods run in constant time.
-//       The FIFO and REMOVE methods run in linear time.
-//
-//----------------------------------------------------------------------------
-template<> class SHSL_List<void> {  // SHSL_List base
-public:
-class Link {                        // SHSL_List<void>::Link -----------------
-friend class SHSL_List;
-protected:
-Link*                  next;        // -> Next Link
-}; // class SHSL_List<void>::Link --------------------------------------------
-
-//----------------------------------------------------------------------------
-// SHSL_List<>::Attributes
-//----------------------------------------------------------------------------
-protected:
-Link*                  head= nullptr; // -> Head Link
-
-//----------------------------------------------------------------------------
-// SHSL_List<>::Constructors/Destructor
-//----------------------------------------------------------------------------
-   SHSL_List( void ) {}             // Default constructor
-   ~SHSL_List( void ) {}            // Default destructor
-
-   SHSL_List(const SHSL_List&) = delete; // Disallowed copy constructor
-SHSL_List&
-   operator=(const SHSL_List&) = delete; // Disallowed assignment operator
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SHSL_List<>::fifo
-//
-// Purpose-
-//       Insert a Link onto the List with FIFO ordering.
-//
-// Implementation notes-
-//       This examines all existing Link elements and takes linear time.
-//
-//----------------------------------------------------------------------------
-void
-   fifo(                            // Insert (FIFO order)
-     Link*             link);       // -> Link to insert
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SHSL_List<>::get_head
-//
-// Purpose-
-//       Get the head link. (Implemented in SHSL_List<T>, not here,)
-//
-//----------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SHSL_List<>::insert
-//
-// Purpose-
-//       Insert a chain of elements onto the list at the specified position.
-//
-//----------------------------------------------------------------------------
-void
-   insert(                          // Insert at position,
-     Link*             link,        // -> Link to insert after
-     Link*             head,        // -> First Link to insert
-     Link*             tail);       // -> Final Link to insert
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SHSL_List<>::is_coherent
-//
-// Purpose-
-//       List coherency check.
-//
-//----------------------------------------------------------------------------
-int                                 // TRUE if the object is coherent
-   is_coherent( void ) const;       // Coherency check
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SHSL_List<>::is_on_list
-//
-// Purpose-
-//       Test whether Link is present in this List.
-//
-//----------------------------------------------------------------------------
-int                                 // TRUE if Link is contained
-   is_on_list(                      // Is Link contained?
-     Link*             link) const; // -> Link
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SHSL_List<>::lifo
-//
-// Purpose-
-//       Insert a Link onto the List with LIFO ordering.
-//
-//----------------------------------------------------------------------------
-void
-   lifo(                            // Insert (LIFO order)
-     Link*             link);       // -> Link to insert
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SHSL_List<>::remove
-//
-// Purpose-
-//       Remove a chain of elements from the List.
-//
-// Implementation notes-
-//       This examines existing Link elements, taking linear time.
-//
-//----------------------------------------------------------------------------
-void
-   remove(                          // Remove from List
-     Link*             head,        // -> First Link to remove
-     Link*             tail);       // -> Final Link to remove
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SHSL_List<>::remq
-//
-// Purpose-
-//       Remove the head Link from the list.
-//
-// Implementation notes-
-//       REMQ is logically consistent with the LIFO and FIFO methods.
-//       The list is ordered from head to tail, so FIFO scans the list,
-//       inserting at the end of it, the tail.
-//
-//----------------------------------------------------------------------------
-Link*                               // -> Removed Link
-   remq( void );                    // Remove head Link
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SHSL_List<>::reset
-//
-// Purpose-
-//       Remove ALL Links from the List.
-//
-//----------------------------------------------------------------------------
-Link*                               // The set of removed Links
-   reset( void );                   // Reset (empty) the List
-}; // class SHSL_List<>
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       SHSL_List<T>
-//
-// Purpose-
-//       Typed SHSL_List object, where T is of class SHSL_List<T>::Link.
-//
-//----------------------------------------------------------------------------
-template<class T>
-class SHSL_List : public SHSL_List<void> { // SHSL_List<T>
-public:
-typedef SHSL_List<void> B_List;     // The base List type
-typedef SHSL_List<void>::Link B_Link; // The base Link type
-
-class Link : public B_Link {        // SHSL_List<T>::Link --------------------
-public:
-T*                                  // -> Next Link
-   get_next( void ) const           // Get next Link
-{  return static_cast<T*>(next); }
-}; // class SHSL_List<T>::Link -----------------------------------------------
-
-//----------------------------------------------------------------------------
-// SHSL_List<T>::Constructor/Destructor
-//----------------------------------------------------------------------------
-   SHSL_List( void ) {}
-   ~SHSL_List( void ) {}
-
-//----------------------------------------------------------------------------
-// SHSL_List<T>::Methods
-//----------------------------------------------------------------------------
-void
-   fifo(                            // Insert (FIFO order)
-     T*                link)        // -> Link to insert
-{  B_List::fifo(link); }
-
-T*                                  // -> Head T* on List
-   get_head( void ) const           // Get head link
-{  return static_cast<T*>(head); }
-
-void
-   insert(                          // Insert at position,
-     T*                link,        // -> Link to insert after
-     T*                head,        // -> First Link to insert
-     T*                tail)        // -> Final Link to insert
-{  B_List::insert(link, head, tail); }
-
-int                                 // TRUE if the object is coherent
-   is_coherent( void ) const        // Coherency check
-{  return B_List::is_coherent(); }
-
-int                                 // TRUE if Link is contained
-   is_on_list(                      // Is Link contained?
-     T*                link) const  // -> Link
-{  return B_List::is_on_list(link); }
-
-void
-   lifo(                            // Insert (LIFO order)
-     T*                link)        // -> Link to insert
-{  B_List::lifo(link); }
-
-void
-   remove(                          // Remove from List
-     T*                head,        // -> First Link to remove
-     T*                tail)        // -> Final Link to remove
-{  B_List::remove(head, tail); }
-
-T*                                  // Removed T*
-   remq( void )                     // Remove head link
-{  return static_cast<T*>(B_List::remq()); }
-
-T*                                  // -> The set of removed Links
-   reset( void )                    // Reset (empty) the List
-{  return static_cast<T*>(B_List::reset()); }
-}; // class SHSL_List<T>
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       SORT_List<>
-//
-// Purpose-
-//       Extend DHDL_List<> adding sort functionality
-//
-// Implementation note-
-//       The Link<T>::compare signature MUST MATCH Link<void>::compare
-//
-//----------------------------------------------------------------------------
-template<> class SORT_List<void> : public DHDL_List<void> { // SORT_List base
-public:
-typedef DHDL_List<void> B_List;     // The base List type
-typedef DHDL_List<void>::Link B_Link; // The base Link type
-
-class Link : public B_Link {        // SORT_List<void>:Link ------------------
-friend class SORT_List;
-public:
-virtual int                         // Result (<0, =0, >0)
-   compare(const Link*) const       // Compare to
-{  return 0; }
-
-protected:
-Link* get_next() { return static_cast<Link*>(next); }
-Link* get_prev() { return static_cast<Link*>(prev); }
-void  set_next(Link* link) { next= link; }
-void  set_prev(Link* link) { prev= link; }
-}; // class SORT_List<void>::Link --------------------------------------------
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SORT_List<>::sort
-//
-// Purpose-
-//       Sort the list. After this operation, the list is sorted.
-//       Sort runs in polynomial time, currently implemented as a bubble sort.
-//
-//----------------------------------------------------------------------------
-void
-   sort( void );                    // Sort the list
-}; // class SORT_List<>
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       SORT_List<T>
-//
-// Purpose-
-//       The SORT_List is a sortable DHDL_List.
-//
-// Implementation notes-
-//       A SORT_List is in sorted order (from lowest to highest) only after
-//       the sort method is invoked. If Links are added to the List, the
-//       List remains potentially out of sort order until the sort method
-//       is invoked (again.)
-//
-// Implementation notes-
-//       The Link<T>::compare method MUST BE supplied. There is no default.
-//
-// Code format:
-//       template<>
-//       int SORT_List<T>::Link::compare(const B_Link* that_) const overrider
-//       { /* Implementation */ }
-//       // T* that= static_cast<T*>(that_);
-//
-// To override the base class implementation, in class T code:
-//     virtual int compare(const SORT_List<void>::Link* that) const
-//     { implementation; }
-//
-//----------------------------------------------------------------------------
-template<class T>
-class SORT_List : public SORT_List<void> { // SORT_List<T>
-public:
-typedef SORT_List<void> B_List;     // The base List type
-typedef SORT_List<void>::Link B_Link; // The base Link type
-
-class Link : public B_Link {        // SORT_List<T>::Link --------------------
-public:
-// The compare method is user-supplied. See implementation notes above.
-virtual int                         // Result (<0, =0, >0)
-   compare(                         // Compare to
-     const B_Link*     that) const override; // This Link
-
-T*                                  // -> Next Link
-   get_next( void ) const           // Get next Link
-{  return static_cast<T*>(next); }
-
-T*                                  // -> Prior Link
-   get_prev( void ) const           // Get prior Link
-{  return static_cast<T*>(prev); }
-}; // class SORT_List<T>::Link -----------------------------------------------
-
-//----------------------------------------------------------------------------
-// SORT_List<T>::Constructor/Destructor
-//----------------------------------------------------------------------------
-   SORT_List( void ) {}
-   ~SORT_List( void ) {}
-
-//----------------------------------------------------------------------------
-// SORT_List<T>::Methods
-//----------------------------------------------------------------------------
-void
-   fifo(                            // Insert (FIFO order)
-     T*                link)        // -> Link to insert
-{  B_List::fifo(link); }
-
-T*                                  // -> Head T* on List
-   get_head( void ) const           // Get head link
-{  return static_cast<T*>(head); }
-
-T*                                  // -> Tail T* on List
-   get_tail( void ) const           // Get tail link
-{  return static_cast<T*>(tail); }
-
-void
-   insert(                          // Insert at position,
-     T*                link,        // -> Link to insert after
-     T*                head,        // -> First Link to insert
-     T*                tail)        // -> Final Link to insert
-{  B_List::insert(link, head, tail); }
-
-int                                 // TRUE if the object is coherent
-   is_coherent( void ) const        // Coherency check
-{  return B_List::is_coherent(); }
-
-int                                 // TRUE if link is contained
-   is_on_list(                      // Is Link contained?
-     T*                link) const  // -> Link
-{  return B_List::is_on_list(link); }
-
-void
-   lifo(                            // Insert (LIFO order)
-     T*                link)        // -> Link to insert
-{  B_List::lifo(link); }
-
-void
-   remove(                          // Remove from list
-     T*                head,        // -> First Link to remove
-     T*                tail)        // -> Final Link to remove
-{  B_List::remove(head, tail); }
-
-T*                                  // Removed T*
-   remq( void )                     // Remove head link
-{  return static_cast<T*>(B_List::remq()); }
-
-T*                                  // -> The set of removed Links
-   reset( void )                    // Reset (empty) the List
-{  return static_cast<T*>(B_List::reset()); }
-
-void
-   sort( void )                     // Sort the List
-{  B_List::sort(); }
-}; // class SORT_List<T>
+   class DHSL_list : public DHSL_list<void>
+   {
+     public:
+       typedef DHSL_list<void>                _Base;
+       typedef DHSL_list<void>::_Link         _Link;
+
+       class Link : protected _Link
+       {
+         friend class DHSL_list;
+         public:
+           T* get_next( void ) const
+           {  return static_cast<T*>(_next); }
+       }; // class DHSL_list<T>::Link
+
+       //---------------------------------------------------------------------
+       // DHSL_list<T>::Constructor/Destructor
+       //---------------------------------------------------------------------
+       DHSL_list( void ) {}
+       ~DHSL_list( void ) {}
+
+       //---------------------------------------------------------------------
+       // DHSL_list<T>::Methods
+       //---------------------------------------------------------------------
+       void
+         fifo(                      // Insert (FIFO order)
+           T*                link)  // -> Link to insert
+       { _Base::fifo(link); }
+
+       T*                           // -> Head T* on List
+         get_head( void ) const     // Get head Link
+       { return static_cast<T*>(_head); }
+
+       T*                           // -> Tail T* on List
+         get_tail( void ) const     // Get tail Link
+       { return static_cast<T*>(_tail); }
+
+       void
+         insert(                    // Insert at position,
+           T*                link,  // -> Link to insert after
+           T*                head,  // -> First Link to insert
+           T*                tail)  // -> Final Link to insert
+       { _Base::insert(link, head, tail); }
+
+       bool                         // TRUE if the object is coherent
+          is_coherent( void ) const // Coherency check
+       { return _Base::is_coherent(); }
+
+       bool                         // TRUE if Link is contained
+         is_on_list(                // Is Link contained?
+           T*                link) const  // -> Link
+       { return _Base::is_on_list(link); }
+
+       void
+         lifo(                      // Insert (LIFO order)
+           T*                link)  // -> Link to insert
+       { _Base::lifo(link); }
+
+       void
+         remove(                    // Remove from DHSL_list
+           T*                head,  // -> First Link to remove
+           T*                tail)  // -> Final Link to remove
+       { _Base::remove(head, tail); }
+
+       T*                           // Removed T*
+         remq( void )               // Remove head Link
+       {  return static_cast<T*>(_Base::remq()); }
+
+       T*                           // -> The set of removed Links
+         reset( void )              // Reset (empty) the List
+       { return static_cast<T*>(_Base::reset()); }
+   }; // class DHSL_list<T>
 
 //----------------------------------------------------------------------------
 //
@@ -1457,8 +659,85 @@ void
 //       Typed List object, where T is of class List<T>::Link.
 //
 //----------------------------------------------------------------------------
+template<class T> class List : public DHDL_list<T> {};
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       SHSL_list<T>
+//
+// Purpose-
+//       Typed SHSL_list object, where T is of class SHSL_list<T>::Link.
+//
+//----------------------------------------------------------------------------
 template<class T>
-class List : public DHDL_List<T> {  // List<T>, equivalent to DHDL_List<T>
-}; // class List<T>
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_LIST_H_INCLUDED
+   class SHSL_list : public SHSL_list<void>
+   {
+     public:
+       typedef SHSL_list<void>                _Base; // The base List type
+       typedef SHSL_list<void>::_Link         _Link; // The base Link type
+
+       class Link : public _Link
+       {
+         friend class SHSL_list;
+         public:
+           T*                       // -> Next Link
+             get_next( void ) const // Get next Link
+           { return static_cast<T*>(_next); }
+       }; // class SHSL_list<T>::Link ----------------------------------------
+
+       //---------------------------------------------------------------------
+       // SHSL_list<T>::Constructor/Destructor
+       //---------------------------------------------------------------------
+       SHSL_list( void ) {}
+       ~SHSL_list( void ) {}
+
+       //---------------------------------------------------------------------
+       // SHSL_list<T>::Methods
+       //---------------------------------------------------------------------
+       void
+         fifo(                      // Insert (FIFO order)
+           T*                link)  // -> Link to insert
+       { _Base::fifo(link); }
+
+       T*                           // -> Head T* on List
+         get_head( void ) const     // Get head link
+       { return static_cast<T*>(_head); }
+
+       void
+         insert(                    // Insert at position,
+           T*                link,  // -> Link to insert after
+           T*                head,  // -> First Link to insert
+           T*                tail)  // -> Final Link to insert
+       { _Base::insert(link, head, tail); }
+
+       bool                         // TRUE if the object is coherent
+         is_coherent( void ) const  // Coherency check
+       { return _Base::is_coherent(); }
+
+       bool                         // TRUE if Link is contained
+         is_on_list(                // Is Link contained?
+           T*                link) const  // -> Link
+       { return _Base::is_on_list(link); }
+
+       void
+         lifo(                      // Insert (LIFO order)
+           T*                link)  // -> Link to insert
+       { _Base::lifo(link); }
+
+       void
+         remove(                    // Remove from List
+           T*                head,  // -> First Link to remove
+           T*                tail)  // -> Final Link to remove
+       { _Base::remove(head, tail); }
+
+       T*                           // Removed T*
+         remq( void )               // Remove head link
+       { return static_cast<T*>(_Base::remq()); }
+
+       T*                           // -> The set of removed Links
+         reset( void )              // Reset (empty) the List
+       {  return static_cast<T*>(_Base::reset()); }
+   }; // class SHSL_list<T>
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_LIST_H_INCLUDED

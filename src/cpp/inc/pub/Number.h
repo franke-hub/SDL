@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021 Frank Eskesen.
+//       Copyright (c) 2021-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Number of any (byte) size multiple precision.
 //
 // Last change date-
-//       2021/10/01
+//       2022/03/06
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_NUMBER_H_INCLUDED
@@ -27,7 +27,7 @@
 #include <utility>                  // For std::pair
 #include <stdint.h>                 // For size_t
 
-#include <pub/macro/config.h>       // For _PUB_NAMESPACE
+#include <pub/config.h>             // For _PUB_NAMESPACE
 
 namespace _PUB_NAMESPACE {          // namespace pub
 //----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2021 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Display environmental control variables.
 //
 // Last change date-
-//       2021/06/15
+//       2022/04/08
 //
 //----------------------------------------------------------------------------
 #define _FILE_OFFSET_BITS 64        // (Required for LINUX)
@@ -511,9 +511,7 @@ static inline int
    //-------------------------------------------------------------------------
    printf("\n");
    MACROF(_PUB_NAMESPACE);
-#ifndef _OS_WIN
-   MACROF(_ATTRIBUTE_NORETURN);
-#endif
+   MACROF(ATTRIB_NORETURN);
 
    printf("\n");
    return result;

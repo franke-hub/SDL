@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2021 Frank Eskesen.
+//       Copyright (c) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Fileman.h object methods
 //
 // Last change date-
-//       2021/01/17
+//       2022/04/08
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -29,17 +29,15 @@
 #include <sys/stat.h>               // For struct stat, lstat
 #include <sys/types.h>              // For system types
 
-#include <pub/Debug.h>              // For pub::debugging::errorp
-#include "pub/Fileman.h"            // The class objects
-
-#include <pub/utility.h>            // For pub::utility::dump
 #include <pub/Debug.h>              // For pub::debugging
-#include "pub/Fileman.h"            // The class objects
+#include "pub/Fileman.h"            // For pub::fileman, implemented
+#include "pub/List.h"               // For pub::List
+#include <pub/utility.h>            // For pub::utility::dump
 
-using namespace _PUB_NAMESPACE::debugging;
-using _PUB_NAMESPACE::debugging::errorp;
+using namespace _LIBPUB_NAMESPACE::debugging;
+using _LIBPUB_NAMESPACE::debugging::errorp;
 
-namespace _PUB_NAMESPACE::fileman { // The fileman namespace
+namespace _LIBPUB_NAMESPACE::fileman { // The fileman namespace
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -297,24 +295,6 @@ int                                 // Return code, 0 OK
    }
 
    return rc;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       File::compare
-//
-// Purpose-
-//       Compare File objects (using associated name strings)
-//
-//----------------------------------------------------------------------------
-int                                 // Resultant
-   File::compare(                   // Compare this File's filename
-     const SORT_List<void>::Link*
-                       _that) const  // To that File's filename
-{
-   const File* that= dynamic_cast<const File*>(_that);
-   return name.compare(that->name);
 }
 
 //----------------------------------------------------------------------------
@@ -613,7 +593,16 @@ std::string                         // The invalid path ("" if none)
    //-------------------------------------------------------------------------
    // Sort the list
    //-------------------------------------------------------------------------
-   list.sort();
+#if USE_BASE_SORT
+   typedef const List<void>::_Link  Link;
+   list.sort([](Link* lhs, Link* rhs)
+            { return ((File*)lhs)->name < ((File*)rhs)->name; }
+   );
+#else
+   list.sort([](File* lhs, File* rhs)
+            { return lhs->name < rhs->name; }
+   );
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -655,4 +644,4 @@ char*                               // The allocated storage, nullptr if none
    used += size;                    // Indicate allocated
    return result;
 }
-}  // namespace _PUB_NAMESPACE::fileman
+}  // namespace _LIBPUB_NAMESPACE::fileman

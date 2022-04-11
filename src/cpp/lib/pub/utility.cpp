@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2021/11/23
+//       2022/04/08
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -33,10 +33,11 @@
 #include <string.h>                 // For memcpy, ...
 #include <time.h>                   // For clock_gettime, ...
 
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 #include <pub/Debug.h>              // For Debug object (see dump())
 #include "pub/utility.h"            // Function definitions
 
-namespace _PUB_NAMESPACE {
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 //
 // Namespace-
@@ -770,4 +771,4 @@ std::string                         // The visual representation
    return out.str();
 }
 }  // namespace utility
-}  // namespace _PUB_NAMESPACE
+}  // namespace _LIBPUB_NAMESPACE

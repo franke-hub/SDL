@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Thread function.
 //
 // Last change date-
-//       2020/08/23
+//       2022/04/02
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -24,7 +24,7 @@
 #include <memory>                   // For std::shared_ptr, ...
 #include <mutex>                    // For std::lock_guard
 #include <stdio.h>                  // For printf
-#include <stdlib.h>
+#include <stdlib.h>                 // For random
 #include <string.h>
 
 #include <pub/Debug.h>              // For pub::debugging methods
@@ -36,6 +36,8 @@
 #include "pub/Semaphore.h"          // For Semaphore
 #include "pub/Thread.h"             // For Thread
 
+#include "pub/Wrapper.h"            // For class Wrapper
+
 using pub::Debug;
 using pub::Event;
 using pub::Exception;
@@ -44,22 +46,24 @@ using pub::Mutex;
 using pub::Named;
 using pub::Semaphore;
 using pub::Thread;
+using pub::Wrapper;
 using namespace pub::debugging;
+
+#define opt_hcdm       pub::Wrapper::opt_hcdm
+#define opt_verbose    pub::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
+enum // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more
 
-#include "pub/ifmacro.h"
-
-#define MAXHANGERS        16        // Number of hangy threads to generate
-#define MAXNOISY        1000        // Number of noisy threads to generate
-#define MAXQUIET       25000        // Number of quiet threads to generate
-
-#define TIMING         1            // Number of timing loops to run
+,  MAXHANGERS=  16                  // Number of hangy threads to generate
+,  MAXNOISY=  1000                  // Number of noisy threads to generate
+,  MAXQUIET= 25000                  // Number of quiet threads to generate
+,  TIMING=       1                  // Number of timing loops to run
+}; // Generic enum
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -69,6 +73,7 @@ static std::mutex      betaMutex;
 static Semaphore       alphaSemaphore(1);
 static Semaphore       betaSemaphore(1);
 static Semaphore       blockedSemaphore(0);
+static int             error_count= 0;
 static Interval        interval;
 static double          noisy_delay= 0.001; // Default noisy delay
 
@@ -99,8 +104,9 @@ public:
 virtual void
    run(void)
 {
-   debugf("%10.6f NoisyThread(%p).run(%s)\n", interval.stop(), this,
-          get_name().c_str());
+   if( HCDM || opt_hcdm )
+     debugf("%10.6f NoisyThread(%p).run(%s)\n", interval.stop(), this
+           , get_name().c_str());
 
    // Indicate started
    setState(4);
@@ -109,8 +115,8 @@ virtual void
    // Sleep (allow possible thread deletion)
    Thread::sleep(delay);
 
-   // Terminate, display current
 #if 0
+   // Terminate, display current
    Thread* current= Thread::current();
    debugf("%10.6f NoisyThread(%p).exit(%s) %s\n", interval.stop(), this,
           get_name().c_str(), this == current ? "SAME" : "DIFF");
@@ -160,11 +166,11 @@ public:
 virtual void
    run(void)
 {
-// Thread* current= Thread::current();
-// if (this != current )
-//   debugf("%4d ERROR: Thread(%p) Current(%p)\n", __LINE__, this, current);
-
-// tracef("%10.6f QuietThread.exit\n", interval.stop());
+   Thread* current= Thread::current();
+   if (this != current ) {
+     error_count++;
+     debugf("%4d ERROR: Thread(%p) Current(%p)\n", __LINE__, this, current);
+   }
 }
 }; // class QuietThread
 
@@ -188,11 +194,13 @@ public:
 virtual void
    run(void)
 {
-   debugf("%10.6f HangingThread(%p).run()\n", interval.stop(), this);
+   if( HCDM || opt_hcdm )
+     debugf("%10.6f HangingThread(%p).run()\n", interval.stop(), this);
 
    Thread* current= Thread::current(); // The current Thread
    if( current != this )               // This MUST BE correct
    {
+     error_count++;
      debugf("%4d ERROR: HangingThread(%p) Current(%p)\n", __LINE__,
             this, current);
      ::exit(EXIT_FAILURE);
@@ -207,13 +215,16 @@ virtual void
    current= Thread::current();
    if( current != nullptr )
    {
+     error_count++;
      debugf("%4d ERROR: HangingThread(%p) Current(%p)\n", __LINE__,
             this, current);
    }
 
    // Show work being done on a deleted Thread
-   debugf("%10.6f HangingThread(%p) exit\n", interval.stop(), this);
-   fflush(stdout);
+   if( HCDM || opt_hcdm ) {
+     debugf("%10.6f HangingThread(%p) exit\n", interval.stop(), this);
+     fflush(stdout);
+   }
 }
 }; // class HangingThread
 
@@ -234,24 +245,31 @@ public:
 virtual void
    run(void)
 {
-   debugh("Before betaMutex.lock()\n");
+   if( HCDM || opt_hcdm )
+     debugh("Before betaMutex.lock()\n");
    betaMutex.lock();
 
    {{{{
-     debugh("Before alphaMutex.lock()\n");
+     if( HCDM || opt_hcdm )
+       debugh("Before alphaMutex.lock()\n");
      std::lock_guard<decltype(alphaMutex)> lock(alphaMutex);
 
-     debugh("Before alphaMutex.unlock()\n");
+     if( HCDM || opt_hcdm )
+       debugh("Before alphaMutex.unlock()\n");
    }}}}
 
-   debugh("sleep(1.0)...\n");
+   if( HCDM || opt_hcdm )
+     debugh("sleep(1.0)...\n");
    Thread::sleep(1.0);
-   debugh("...sleep(1.0)\n");
+   if( HCDM || opt_hcdm )
+     debugh("...sleep(1.0)\n");
 
-   debugh("Before betaMutex.unlock()\n");
+   if( HCDM || opt_hcdm )
+     debugh("Before betaMutex.unlock()\n");
    betaMutex.unlock();
 
-   debugh("done!\n");
+   if( HCDM || opt_hcdm )
+     debugh("done!\n");
 }
 }; // class MutexThread
 
@@ -272,27 +290,36 @@ public:
 virtual void
    run(void)
 {
-   debugh("Before betaSemaphore.wait()\n");
+   if( HCDM || opt_hcdm )
+     debugh("Before betaSemaphore.wait()\n");
    betaSemaphore.wait();
 
-   debugh("Before alphaSemaphore.wait()\n");
+   if( HCDM || opt_hcdm )
+     debugh("Before alphaSemaphore.wait()\n");
    alphaSemaphore.wait();
 
-   debugh("Before alphaSemaphore.post()\n");
+   if( HCDM || opt_hcdm )
+     debugh("Before alphaSemaphore.post()\n");
    alphaSemaphore.post();
 
-   debugh("sleep(1.0)...\n");
+   if( HCDM || opt_hcdm )
+     debugh("sleep(1.0)...\n");
    Thread::sleep(1.0);
-   debugh("...sleep(1.0)\n");
+   if( HCDM || opt_hcdm )
+     debugh("...sleep(1.0)\n");
 
-   debugh("Before betaSemaphore.post()\n");
+   if( HCDM || opt_hcdm )
+     debugh("Before betaSemaphore.post()\n");
    betaSemaphore.post();
 
-   debugh("Before blockedSemaphore.wait(3.5)...\n");
+   if( HCDM || opt_hcdm )
+     debugh("Before blockedSemaphore.wait(3.5)...\n");
    int rc= blockedSemaphore.wait(3.5);
-   debugh("...%d= blockedSemaphore.wait()\n", rc);
+   if( HCDM || opt_hcdm )
+     debugh("...%d= blockedSemaphore.wait()\n", rc);
 
-   debugh("done!\n");
+   if( HCDM || opt_hcdm )
+     debugh("done!\n");
 }
 }; // class SemaphoreThread
 
@@ -313,9 +340,11 @@ public:
 virtual void
    run(void)
 {
-   debugh("Before sleep(1.234)\n");
+   if( HCDM || opt_hcdm )
+     debugh("Before sleep(1.234)\n");
    sleep(1.234);
-   debugh("*After sleep(1.234)\n");
+   if( HCDM || opt_hcdm )
+     debugh("*After sleep(1.234)\n");
 }
 }; // class SleepThread
 
@@ -336,11 +365,13 @@ public:
 virtual void
    run(void)
 {
-   debugf("%10.6f StandardThread(%p).run()\n", interval.stop(), this);
+   if( HCDM || opt_hcdm )
+     debugf("%10.6f StandardThread(%p).run()\n", interval.stop(), this);
 
    Thread* current= Thread::current(); // The current Thread
    if( current != this )            // This MUST BE correct
    {
+     error_count++;
      debugf("%4d ERROR: StandardThread(%p) Current(%p)\n", __LINE__,
             this, current);
      ::exit(EXIT_FAILURE);
@@ -352,12 +383,14 @@ virtual void
    current= Thread::current();
    if( current != this )            // This MUST BE correct
    {
+     error_count++;
      debugf("%4d ERROR: StandardThread(%p) Current(%p)\n", __LINE__,
             this, current);
      ::exit(EXIT_FAILURE);
    }
 
-   debugf("%10.6f StandardThread(%p) exit\n", interval.stop(), this);
+   if( HCDM || opt_hcdm )
+     debugf("%10.6f StandardThread(%p) exit\n", interval.stop(), this);
 }
 }; // class StandardThread
 
@@ -412,29 +445,38 @@ static inline void
 {
    MutexThread         mutexThread;
 
-   debugh("\n");
-   debugh("testMutex\n");
-   debugh("Before alphaMutex.lock()\n");
+   if( HCDM || opt_hcdm ) {
+     debugh("\n");
+     debugh("testMutex\n");
+     debugh("Before alphaMutex.lock()\n");
+   }
    alphaMutex.lock();
 
-   debugh("thread.start()\n");
+   if( HCDM || opt_hcdm )
+     debugh("thread.start()\n");
    mutexThread.start();
 
-   debugh("sleep(1.0)...\n");
+   if( HCDM || opt_hcdm )
+     debugh("sleep(1.0)...\n");
    Thread::sleep(1.0);
-   debugh("...sleep(1.0)\n");
+   if( HCDM || opt_hcdm )
+     debugh("...sleep(1.0)\n");
 
-   debugh("Before alphaMutex.unlock()\n");
+   if( HCDM || opt_hcdm )
+     debugh("Before alphaMutex.unlock()\n");
    alphaMutex.unlock();
 
    {{{{
-     debugh("Before betaMutex.lock()\n");
+     if( HCDM || opt_hcdm )
+       debugh("Before betaMutex.lock()\n");
      std::lock_guard<decltype(betaMutex)> lock(betaMutex);
 
-     debugh("Before betaMutex.unlock()\n");
+     if( HCDM || opt_hcdm )
+       debugh("Before betaMutex.unlock()\n");
    }}}}
 
-   debugh("thread.join()\n");
+   if( HCDM || opt_hcdm )
+     debugh("thread.join()\n");
    mutexThread.join();
 }
 
@@ -452,28 +494,37 @@ static inline void
 {
    SemaphoreThread     semaphoreThread;
 
-   debugh("\n");
-   debugh("testSemaphore\n");
-   debugh("Before alphaSemaphore.wait()\n");
+   if( HCDM || opt_hcdm ) {
+     debugh("\n");
+     debugh("testSemaphore\n");
+     debugh("Before alphaSemaphore.wait()\n");
+   }
    alphaSemaphore.wait();
 
-   debugh("thread.start()\n");
+   if( HCDM || opt_hcdm )
+     debugh("thread.start()\n");
    semaphoreThread.start();
 
-   debugh("sleep(1.0)...\n");
+   if( HCDM || opt_hcdm )
+     debugh("sleep(1.0)...\n");
    Thread::sleep(1.0);
-   debugh("...sleep(1.0)\n");
+   if( HCDM || opt_hcdm )
+     debugh("...sleep(1.0)\n");
 
-   debugh("Before alphaSemaphore.post()\n");
+   if( HCDM || opt_hcdm )
+     debugh("Before alphaSemaphore.post()\n");
    alphaSemaphore.post();
 
-   debugh("Before betaSemaphore.wait()\n");
+   if( HCDM || opt_hcdm )
+     debugh("Before betaSemaphore.wait()\n");
    betaSemaphore.wait();
 
-   debugh("Before betaSemaphore.post()\n");
+   if( HCDM || opt_hcdm )
+     debugh("Before betaSemaphore.post()\n");
    betaSemaphore.post();
 
-   debugh("thread.join()\n");
+   if( HCDM || opt_hcdm )
+     debugh("thread.join()\n");
    semaphoreThread.join();
 }
 
@@ -495,9 +546,11 @@ static inline void
    sleepThread.join();
 
    // Test sleep in main thread
-   debugh("Before sleep(0.5)\n");
+   if( HCDM || opt_hcdm )
+     debugh("Before sleep(0.5)\n");
    Thread::sleep(0.5);
-   debugh("*After sleep(0.5)\n");
+   if( HCDM || opt_hcdm )
+     debugh("*After sleep(0.5)\n");
 }
 
 //----------------------------------------------------------------------------
@@ -523,13 +576,17 @@ static inline void
 try {
 for(int count= 0; count<TIMING; count++) { // Timing loop, normally once
    interval.start();
-   debugf("\n");
-   debugf("%10.6f %4d Creating hanging threads\n", interval.stop(), __LINE__);
+   if( HCDM || opt_hcdm ) {
+     debugf("\n");
+     debugf("%10.6f %4d Creating hanging threads\n", interval.stop(), __LINE__);
+   }
    for(i=0; i<MAXHANGERS; i++)
      hangingThread();
 
-   debugf("\n");
-   debugf("%10.6f %4d Creating Noisy threads\n", interval.stop(), __LINE__);
+   if( HCDM || opt_hcdm ) {
+     debugf("\n");
+     debugf("%10.6f %4d Creating Noisy threads\n", interval.stop(), __LINE__);
+   }
    for(i=0; i<MAXNOISY; i++)
    {
      sprintf(buffer, "%.4d", i);
@@ -537,8 +594,10 @@ for(int count= 0; count<TIMING; count++) { // Timing loop, normally once
      noisyArray[i]->safeStart();
    }
 
-   debugf("\n");
-   debugf("%10.6f %4d Creating Quiet threads\n", interval.stop(), __LINE__);
+   if( HCDM || opt_hcdm ) {
+     debugf("\n");
+     debugf("%10.6f %4d Creating Quiet threads\n", interval.stop(), __LINE__);
+   }
    for(i=0; i<MAXQUIET; i++)
      quietArray[i]= new QuietThread();
 
@@ -549,8 +608,10 @@ for(int count= 0; count<TIMING; count++) { // Timing loop, normally once
    // The debug.out trace file should not show this interference.
    prior= interval.stop();
    begin= prior;
-   debugf("%10.6f %4d Starting Quiet threads\n", interval.stop(), __LINE__);
-   fflush(stdout);
+   if( HCDM || opt_hcdm ) {
+     debugf("%10.6f %4d Starting Quiet threads\n", interval.stop(), __LINE__);
+     fflush(stdout);
+   }
    double maxstart= 0.0;
    double minstart= 99999.0;
    for(i=0; i<MAXQUIET; i++)
@@ -561,60 +622,72 @@ for(int count= 0; count<TIMING; count++) { // Timing loop, normally once
      prior= now;
      if( minstart > del ) minstart= del;
      if( maxstart < del ) maxstart= del;
-     IFHCDM( tracef("%10.6f %10.6f %6d %p\n", now, del, i, quietArray[i]); )
-     printf("%8d\r", i+1);
-     fflush(stdout);                // CYGWIN: better performance if used
+     if( HCDM || opt_hcdm ) {
+       printf("%8d\r", i+1);
+       if( (random() & 63) == 0 )
+         fflush(stdout);            // CYGWIN: better performance if used
+     }
    }
-   printf("\n");
    prior= interval.stop();
    double totstart= prior - begin;
    begin= prior;
 
    double maxjoin= 0.0;
    double minjoin= 99999.0;
-   debugf("%10.6f %4d Joining Quiet threads\n", interval.stop(), __LINE__);
-   fflush(stdout);
+   if( HCDM || opt_hcdm ) {
+     debugf("\n");
+     debugf("%10.6f %4d Joining Quiet threads\n", interval.stop(), __LINE__);
+     fflush(stdout);
+   }
    for(i=0; i<MAXQUIET; i++)
    {
-     IFHCDM( if( i == 0 ) tracef("%10.6f [0]\n", interval.stop()); )
+     if( HCDM && i == 0 )
+       tracef("%10.6f [0]\n", interval.stop());
      quietArray[i]->join();
      double now= interval.stop();
      double del= now - prior;
      prior= now;
      if( minjoin > del ) minjoin= del;
      if( maxjoin < del ) maxjoin= del;
-     IFHCDM( tracef("%10.6f %6d %p\n", interval.stop(), i, quietArray[i]); )
-     printf("%8d\r", i+1);
-//   fflush(stdout);                // CYGWIN: better performance if unused
+     if( HCDM || opt_hcdm ) {
+       printf("%8d\r", i+1);
+       if( (random() & 63) == 0 )
+         fflush(stdout);            // CYGWIN: better performance if unused
+     }
    }
-   printf("\n");
    double totjoin= prior - begin;
 
-   debugf("%10.6f %4d Deleting Quiet threads\n", interval.stop(), __LINE__);
+   if( HCDM || opt_hcdm ) {
+     debugf("\n");
+     debugf("%10.6f %4d Deleting Quiet threads\n", interval.stop(), __LINE__);
+   }
    for(i=0; i<MAXQUIET; i++)
      delete quietArray[i];
 
-   debugf("%10.6f %4d Joining Noisy threads\n", interval.stop(), __LINE__);
+   if( HCDM || opt_hcdm )
+     debugf("%10.6f %4d Joining Noisy threads\n", interval.stop(), __LINE__);
    for(i=0; i<MAXNOISY; i++)
    {
      noisyArray[i]->join();
      delete noisyArray[i];
    }
 
-   debugf("%10.6f %4d All threads completed\n", interval.stop(), __LINE__);
-   debugf("maxstart(%10.6f) minstart(%10.6f) avgstart(%10.6f)\n",
-          maxstart, minstart, (double)totstart / (double)MAXQUIET);
-   debugf(" maxjoin(%10.6f)  minjoin(%10.6f)  avgjoin(%10.6f)\n",
-          maxjoin,  minjoin, (double)totjoin / (double)MAXQUIET);
-   debugf("totstart(%10.6f)  totjoin(%10.6f)\n", totstart, totjoin);
+   if( HCDM || opt_hcdm ) {
+     debugf("%10.6f %4d All threads completed\n", interval.stop(), __LINE__);
+     debugf("maxstart(%10.6f) minstart(%10.6f) avgstart(%10.6f)\n",
+            maxstart, minstart, (double)totstart / (double)MAXQUIET);
+     debugf(" maxjoin(%10.6f)  minjoin(%10.6f)  avgjoin(%10.6f)\n",
+            maxjoin,  minjoin, (double)totjoin / (double)MAXQUIET);
+     debugf("totstart(%10.6f)  totjoin(%10.6f)\n", totstart, totjoin);
+   }
 }
-} catch(Exception& x) {
+}  catch(Exception& x) {
    debugf("Exception %s\n", x.to_string().c_str());
-} catch(std::exception& x) {
+}  catch(std::exception& x) {
    debugf("std::exception what(%s)\n", x.what());
-} catch(const char* x) {
+}  catch(const char* x) {
    debugf("Exception(char* %s)\n", x);
-} catch(...) {
+}  catch(...) {
    debugf("Exception(...)\n");
 }
 }
@@ -633,21 +706,48 @@ extern int
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
-   debugf("Thread bringup test\n");
-   debug_set_head(Debug::HEAD_THREAD);
-   debug_set_head(Debug::HEAD_TIME);
-// debug_set_mode(Debug::MODE_INTENSIVE);
-   if( argc > 1 )
-     noisy_delay= atof(argv[1]);
-   debugf("%10.6f noisy_delay\n", noisy_delay);
+   //-------------------------------------------------------------------------
+   // Initialize
+   Wrapper  tc;                     // The test case wrapper
+   Wrapper* tr= &tc;                // A test case wrapper pointer
 
-   for(int i= 0; i<8; i++)          // Test Event object
-     standardThread();
+   tc.on_init([](int argc, char* argv[])
+   {
+     debug_set_head(Debug::HEAD_THREAD);
+     debug_set_head(Debug::HEAD_TIME);
+     if( HCDM || opt_hcdm )
+       debug_set_mode(Debug::MODE_INTENSIVE);
 
-   testMutex();
-   testSemaphore();
-   testSleep();
-   testStress();
+     if( optind < argc )
+       noisy_delay= atof(argv[optind]);
 
-   return 0;
+     return 0;
+   });
+
+   //-------------------------------------------------------------------------
+   // Define the tests
+   tc.on_main([tr](int, char*[])
+   {
+     debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
+     if( HCDM || opt_hcdm ) {
+       debugf("%10.6f noisy_delay\n", noisy_delay);
+     } else {
+       debugf("(Test takes about 30 seconds.)\n");
+     }
+
+     for(int i= 0; i<8; i++)        // Test Event object
+       standardThread();
+
+     testMutex();
+     testSemaphore();
+     testSleep();
+     testStress();
+
+     tr->report_errors(error_count);
+     return error_count != 0;
+   });
+
+   //-------------------------------------------------------------------------
+   // Run the test
+   return tc.run(argc, argv);
 }

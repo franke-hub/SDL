@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       GUI Type descriptors
 //
 // Last change date-
-//       2021/02/19
+//       2022/04/09
 //
 // Implementation notes-
 //       Use: xcb_point_t     <x,y> for screen point
@@ -86,7 +86,7 @@ enum BUTTON_TYPE                    // VALUE for xcb_button_press_event.detail
 }; // enum BUTTON_TYPE
 
 enum KEY_STATE                      // MASK for xcb_key_press_event.state
-{  KS_SHIFT= XCB_KEY_BUT_MASK_SHIFT    // 0x0001 (Values subject to change)
+{  KS_SHFT=  XCB_KEY_BUT_MASK_SHIFT    // 0x0001 (Values subject to change)
 ,  KS_LOCK=  XCB_KEY_BUT_MASK_LOCK     // 0x0002
 ,  KS_CTRL=  XCB_KEY_BUT_MASK_CONTROL  // 0x0004
 ,  KS_MOD1=  XCB_KEY_BUT_MASK_MOD_1    // 0x0008 (ALT)

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       ~/Stress/Alloc.cpp customization.
 //
 // Last change date-
-//       2020/10/07
+//       2022/03/11
 //
 //----------------------------------------------------------------------------
 #ifndef S_ALLOC_H_INCLUDED
@@ -124,9 +124,9 @@ const char*                         // Get record identity (STATIC BUFFER)
    return buffer;
 }
 
-uint32_t                            // Offset from Trace::trace
+uint32_t                            // Offset from Trace::table
    offset( void )                   // Of this Record
-{  return Trace::trace->offset(this); }
+{  return Trace::table->offset(this); }
 
 void
    trace(                           // Initialize the Record
@@ -353,7 +353,7 @@ virtual
      for(size_t S= 0; S<opt_slots; S++) { // Release any allocated slots
        Slot& slot= slot_array[S];
        if( slot.addr ) {
-         Record* record= (Record*)Trace::trace->allocate_if(sizeof(Record));
+         Record* record= (Record*)Trace::table->allocate_if(sizeof(Record));
          if( record ) record->trace(ID_FREE, task, S, slot.addr, slot.size);
          slot.free();
        }
@@ -418,7 +418,7 @@ virtual void
    //-------------------------------------------------------------------------
    // Run the test
    for(iteration= 1; iteration <= opt_iterations; iteration++) {
-     Record* record= (Record*)Trace::trace->allocate_if(sizeof(Record));
+     Record* record= (Record*)Trace::table->allocate_if(sizeof(Record));
      if( record == nullptr )        // If trace inactive
        break;                       // Abort test
 
@@ -639,8 +639,8 @@ void
 
      //-----------------------------------------------------------------------
      // Dump the trace table
-     debugf("\nTrace::trace(%p)->dump() (See debug.out)\n", Trace::trace);
-     Trace::trace->dump();
+     debugf("\nTrace::table(%p)->dump() (See debug.out)\n", Trace::table);
+     Trace::table->dump();
      if( opt_hcdm ) debug_flush();  // (Force dump completion)
 
      //-----------------------------------------------------------------------

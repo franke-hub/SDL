@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Main::Task sequencing controls, including a trace table.
 //
 // Last change date-
-//       2020/10/07
+//       2022/03/11
 //
 // Implementation notes-
 //       Defines class Main and class Task.
@@ -327,7 +327,7 @@ virtual void
      } catch(...) {
        unsigned size= sizeof(Trace::Record);
        Trace::Record* record= (Trace::Record*)Trace::storage_if(size);
-       Trace::trace->deactivate();  // Terminate testing
+       Trace::table->deactivate();  // Terminate testing
        if( record ) {               // (Trace termination trace entry.)
          memset(record, 0, size);
          strcpy(record->value, "Exception");
@@ -347,7 +347,7 @@ virtual void
      // Option: the first Task completion deactivates tracing
      // Note: It's possible for multiple Tasks to finish "simultaneously"
      Trace::Record* record= (Trace::Record*)Trace::storage_if(sizeof(Trace));
-     Trace::trace->deactivate();    // Deactivate the Trace
+     Trace::table->deactivate();    // Deactivate the Trace
      if( record ) {                 // (Trace termination trace entry.)
        memset(record, 0, sizeof(Trace));
        record->trace(".HLT", __LINE__);
@@ -428,8 +428,8 @@ static void
 
    if( opt_verbose >= 5 ) {         // (Optionally) dump trace table
 #if true
-     debugh("Trace::trace(%p)->dump() (See debug.out)\n", Trace::trace);
-     Trace::trace->dump();
+     debugh("Trace::table(%p)->dump() (See debug.out)\n", Trace::table);
+     Trace::table->dump();
 #else
      debugh("trace_table(%p).%u (See debug.out)\n", trace_table, opt_trace);
      Debug* debug= Debug::get();
@@ -477,7 +477,7 @@ static void
      trace_table= malloc(opt_trace); // Allocate the trace table
    }
    if( trace_table == nullptr ) throw std::bad_alloc();
-   Trace::trace= Trace::make(trace_table, opt_trace); // Initialize the table
+   Trace::table= Trace::make(trace_table, opt_trace); // Initialize the table
 
    //-------------------------------------------------------------------------
    // Allocate and initialize the task_array
@@ -527,7 +527,7 @@ static void
 
    //-------------------------------------------------------------------------
    // Free the trace table
-   Trace::trace= nullptr;           // Disable tracing
+   Trace::table= nullptr;           // Disable tracing
    if( opt_mmap )
      munmap(trace_table, opt_trace);
    else

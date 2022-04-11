@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2021 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,9 +16,10 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2021/11/09
+//       2022/04/08
 //
 // Arguments: (For testtime only)
+//       TestDisp --timing          // (Only run timing test)
 //       [1] 10240 Number of outer loops
 //       [2]   160 Number of elements queued per loop
 //       [3]   120 Number of "pass-along" Tasks
@@ -44,21 +45,31 @@
 
 #include <exception>
 
-#include <pub/Debug.h>
-#include <pub/Event.h>
-#include <pub/Interval.h>
-#include <pub/Thread.h>
+#include <pub/config.h>             // For configuration macros
+#include <pub/Debug.h>              // For namespace pub::debugging
+#include "pub/Dispatch.h"           // For pub::dispatch objects, tested
+#include <pub/Event.h>              // For pub::Event
+#include <pub/Interval.h>           // For pub::Interval
+#include <pub/Thread.h>             // For pub::Thread
+#include <pub/Trace.h>              // For pub::Trace
 
-#include "pub/Dispatch.h"
+#include "pub/Wrapper.h"            // For class Wrapper
+
 using namespace _PUB_NAMESPACE;
 using namespace _PUB_NAMESPACE::debugging;
+
+#define opt_hcdm       pub::Wrapper::opt_hcdm
+#define opt_verbose    pub::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= true                       // Hard Core Debug Mode?
-,  USE_PASSALONG_LAMBDA= false
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+
+,  USE_PASSALONG_LAMBDA= false      // Use some PassAlongLambdaTasks?
+,  USE_TRACE= false                  // Enable tracing?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -66,23 +77,13 @@ enum
 //----------------------------------------------------------------------------
 static std::atomic<uint64_t>
                        rondesvous;  // Rondesvous bit map
-static pub::Event      one;         // Synchronization event
 
-//----------------------------------------------------------------------------
-//
-// Class-
-//       Waiter
-//
-// Purpose-
-//       Wait for event sequence.
-//
-//----------------------------------------------------------------------------
-class Waiter : public pub::Worker { // Waiter
-public:
-virtual void
-   work( void )                     // The Waiter function
-{  one.wait(); }                    // Wait for event completion
-}; // class Waiter
+// Extended options
+static int             opt_timing= false; // --timing
+static struct option   opts[]=      // The getopt_long parameter: longopts
+{  {"timing",  no_argument,       &opt_timing,    true} // --timing
+,  {0, 0, 0, 0}                     // (End of option list)
+};
 
 //----------------------------------------------------------------------------
 //
@@ -95,26 +96,34 @@ virtual void
 //
 //----------------------------------------------------------------------------
 class PassAlongTask : public dispatch::Task {
-protected:
+public:
 dispatch::Task*        next;        // Next Task in list
 
-public:
 virtual
    ~PassAlongTask( void )
-{
-// if( HCDM ) debugf("~PassAlongTask(%p) %2d\n", this, index);
-}
+{  if( HCDM ) debugf("~PassAlongTask(%p)\n", this); }
 
    PassAlongTask(
      dispatch::Task*   next_)
-: dispatch::Task()
-, next(next_)
-{ }
+:  dispatch::Task()
+,  next(next_)
+{  if( HCDM ) debugf("PassAlongTask(%p)\n", this); }
 
 virtual void
    work(
      dispatch::Item*   item)
-{  next->enqueue(item); }           // Give the work to the next Task
+{
+   if( HCDM )
+     debugf("PassAlongTask(%p)::work(%p) next(%p)\n", this, item, next);
+
+   if( USE_TRACE )
+     Trace::trace("WORK", " PAT", item, next);
+
+   if( next )
+     next->enqueue(item);           // Give the work to the next Task
+   else
+     item->post();
+}
 }; // class PassAlongTask
 
 class PassAlongLambdaTask : public dispatch::LambdaTask {
@@ -125,14 +134,27 @@ public:
 virtual
    ~PassAlongLambdaTask( void )
 {
-// if( HCDM ) debugf("~PassAlongLambdaTask(%p) %2d\n", this, index);
+   if( HCDM && opt_verbose > 1 )
+     debugf("~PassAlongLambdaTask(%p)\n", this);
 }
 
    PassAlongLambdaTask(
      dispatch::Task*   next_)
-:  LambdaTask([this](dispatch::Item* item) { next->enqueue(item); })
+:  LambdaTask([this](dispatch::Item* item)
+{
+   if( HCDM && opt_verbose > 1 )
+     debugf("PassAlongLambdaTask(%p)::work(%p) next(%p)\n", this, item, next);
+
+   if( USE_TRACE )
+     Trace::trace("WORK", "LPAT", item, next);
+
+   next->enqueue(item);
+})
 ,  next(next_)
-{ }
+{
+   if( HCDM && opt_verbose > 1 )
+     debugf("PassAlongLambdaTask(%p)\n", this);
+}
 }; // class PassAlongLambdaTask
 
 //----------------------------------------------------------------------------
@@ -151,15 +173,13 @@ int                    index;       // Rondesvous identifier
 public:
 virtual
    ~RondesvousTask( void )
-{
-// if( HCDM ) debugf("~RondesvousTask(%p) %2d\n", this, index);
-}
+{  if( HCDM ) debugf("~RondesvousTask(%p) %2d\n", this, index); }
 
    RondesvousTask(
      int               index)
-: dispatch::Task()
-, index(index)
-{ }
+:  dispatch::Task()
+,  index(index)
+{  if( HCDM ) debugf("RondesvousTask(%p) %2d\n", this, index); }
 
 virtual void
    work(
@@ -189,14 +209,16 @@ virtual void
 //       Write a diagnostic error message and throw an exception.
 //
 //----------------------------------------------------------------------------
+[[noreturn]]
+ATTRIB_PRINTF(2,3)
 static void
    throwf(                          // Abort with error message
      int               line,        // Line number
      const char*       fmt,         // Error message
-                       ...)         // PRINTF arguments
-   _ATTRIBUTE_PRINTF(2,3)
-   _ATTRIBUTE_NORETURN;
+                       ...);        // PRINTF arguments
 
+[[noreturn]]
+ATTRIB_PRINTF(2,3)
 static void
    throwf(                          // Abort with error message
      int               line,        // Line number
@@ -221,12 +243,15 @@ static void
 //       Bringup test.
 //
 //----------------------------------------------------------------------------
-static int
+static inline void line(int n)      // TODO: REMOVE
+{  tracef("%4d ", n); }
+
+static inline int
    test0000(int, char**)            // Mainline code
 //   int               argc,        // Argument count
 //   char*             argv[])      // Argument array
 {
-   int                 result= 1;   // Resultant
+   int                 error_count= 1; // Error count
 
    if( HCDM ) debugf("%4d test0000\n", __LINE__);
 
@@ -244,7 +269,7 @@ static int
          *target= 0;
          item->post();
        }
-   } task(&result);                 // Our Task
+   } task(&error_count);            // Our Task
 
    item.done= &wait;                // Set Wait object
    task.enqueue(&item);             // Drive work
@@ -253,8 +278,8 @@ static int
    task.reset();
    if( HCDM ) debugf("%4d ...running\n", __LINE__);
 
-   if( result != 0 )
-     throwf(__LINE__, "result(%d) non-zero", result);
+   if( error_count != 0 )
+     throwf(__LINE__, "result(%d) non-zero", error_count);
    if( item.cc != 0 )
      throwf(__LINE__, "cc(%d) non-zero", item.cc);
 
@@ -315,7 +340,7 @@ static int
    if( item.cc != dispatch::Item::CC_PURGE )
      throwf(__LINE__, "cc(%d) invalid", item.cc);
 
-   return result;
+   return error_count;
 }
 
 //----------------------------------------------------------------------------
@@ -327,7 +352,7 @@ static int
 //       Bringup test: Rondesvous Task.
 //
 //----------------------------------------------------------------------------
-static int
+static inline int
    test0001(int, char**)            // Mainline code
 //   int               argc,        // Argument count
 //   char*             argv[])      // Argument array
@@ -375,69 +400,6 @@ static int
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       test0002
-//
-// Purpose-
-//       Bringup test: MAX_THREADS.
-//
-// Implementation note-
-//       The implementation has been tested but not considered useful.
-//
-//----------------------------------------------------------------------------
-static int
-   test0002(int, char**)            // Mainline code
-//   int               argc,        // Argument count
-//   char*             argv[])      // Argument array
-{
-#if 0 // Implementation not exposed ==========================================
-   if( HCDM ) debugf("\n%4d test0002\n", __LINE__);
-
-   // MaxThreads testing
-   WorkerPool::debug();
-
-   one.reset();
-   for(int i= 0; i<732; i++)
-     WorkerPool::work(new Waiter());
-   Thread::sleep(1.5);
-   debugf("setMaxThreads(4096)\n");
-   WorkerPool::setMaxThreads(4096);
-   WorkerPool::debug();
-
-   debugf("post()\n");
-   one.post(0);
-   Thread::sleep(1.5);
-   WorkerPool::debug();
-
-   debugf("setMaxThreads(64)\n");
-   WorkerPool::setMaxThreads(64);
-   WorkerPool::debug();
-
-   debugf("setMaxThreads(4096)\n");
-   WorkerPool::setMaxThreads(4096);
-   WorkerPool::debug();
-
-   one.reset();
-   for(int i= 0; i<732; i++)
-     WorkerPool::work(new Waiter());
-   Thread::sleep(1.5);
-
-   debugf("post()\n");
-   one.post(0);
-   Thread::sleep(1.5);
-   WorkerPool::debug();
-
-// debugf("reset()\n");
-   WorkerPool::reset();
-   WorkerPool::debug();
-   debugf("\n");
-#endif // Implementation not exposed =========================================
-
-   return 0;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
 //       testtime
 //
 // Purpose-
@@ -449,7 +411,7 @@ static int
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
-   dispatch::Task      FINAL;       // The final Task
+   dispatch::Task*     FINAL;       // The final Task
    dispatch::Task**    TASK;        // The PassAlongTask array
    dispatch::Item**    ITEM;        // The Item array
    dispatch::Wait**    WAIT;        // The Wait array
@@ -463,26 +425,29 @@ static int
 // int HANGS= 2;                    // Number of no-wait requests
 
    // Parameter analysis
-// if( argc > 4 )
-//   HANGS= atoi(argv[4]);
-   if( argc > 3 )
-     TASKS= atoi(argv[3]);
-   if( argc > 2 )
-     MULTI= atoi(argv[2]);
-   if( argc > 1 )
-     LOOPS= atoi(argv[1]);
-   debugf("%16d LOOPS\n", LOOPS);
-   debugf("%16d MULTI\n", MULTI);
-   debugf("%16d TASKS\n", TASKS);
-// debugf("%16d HANGS\n", HANGS);
+// if( argc > optind + 3 )
+//   HANGS= atoi(argv[optind + 3]);
+   if( argc > optind + 2 )
+     TASKS= atoi(argv[optind + 2]);
+   if( argc > optind + 1 )
+     MULTI= atoi(argv[optind + 1]);
+   if( argc > optind + 0 )
+     LOOPS= atoi(argv[optind + 0]);
+   if( opt_verbose || opt_timing ) {
+     debugf("%16d LOOPS\n", LOOPS);
+     debugf("%16d MULTI\n", MULTI);
+     debugf("%16d TASKS\n", TASKS);
+//   debugf("%16d HANGS\n", HANGS);
+   }
 
    // Create the Task array
-   dispatch::Task* prior= &FINAL;
+   FINAL= new PassAlongTask(nullptr);
+   dispatch::Task* prior= FINAL;
    TASK= new dispatch::Task*[TASKS];
-   for(int i= TASKS-1; i >=0; i--)
+   for(int i= 0; i < TASKS; ++i)
    {
      dispatch::Task* task= nullptr;
-     if( USE_PASSALONG_LAMBDA && i & 1 )
+     if( USE_PASSALONG_LAMBDA && (i & 1) )
        task= new PassAlongLambdaTask(prior);
      else
        task= new PassAlongTask(prior);
@@ -499,15 +464,28 @@ static int
      ITEM[i]= new dispatch::Item(0, WAIT[i]);
    }
 
+   // Debugging display
+   if( USE_TRACE || (opt_hcdm && opt_verbose > 1) ) {
+     debugf("TASKS: %d\n", TASKS);
+     for(int i= 0; i<TASKS; ++i ) {
+       debugf("[%3d] %p->%p\n", i, TASK[i], ((PassAlongTask*)TASK[i])->next);
+     }
+     debugf("[%3d] %p [FINAL]\n", TASKS, FINAL);
+
+     debugf("MULTI: %d\n", MULTI);
+     for(int i= 0; i<MULTI; ++i ) {
+       debugf("[%3d] ITEM(%p)->WAIT(%p)\n", i, ITEM[i], WAIT[i]);
+     }
+   }
+
    // Run the test
-// debug_set_mode(Debug::MODE_IGNORE);
    Interval interval;
 
    interval.start();
    for(int loop= 0; loop < LOOPS; loop++)
    {
      for(int multi= 0; multi < MULTI; multi++)
-       TASK[0]->enqueue(ITEM[multi]);
+       TASK[TASKS-1]->enqueue(ITEM[multi]);
 
      for(int multi= 0; multi < MULTI; multi++)
      {
@@ -518,24 +496,29 @@ static int
 
    // Test complete
    double elapsed= interval.stop();
-// debug_set_mode(Debug::MODE_INTENSIVE);
-   debugf("%16.3f seconds elapsed\n", elapsed);
    double ops= (double)TASKS + 1.0;
    ops *= (double)MULTI;
    ops *= (double)LOOPS;
    setlocale(LC_ALL, "");           // Activates ' thousand separator
-   debugf("%'16.3f ops/second\n", ops / elapsed);
+   if( opt_verbose || opt_timing ) {
+     debugf("%'16.3f seconds elapsed\n", elapsed);
+     debugf("%'16.3f ops/second\n", ops / elapsed);
+   }
 
    // Diagnostics
-   if( HCDM ) { debugf("\n"); dispatch::Disp::debug(); }
+   if( opt_hcdm || opt_verbose ) {
+     debugf("\n");
+     dispatch::Disp::debug();
+   }
 
    // Cleanup
-   FINAL.reset();
+   FINAL->reset();
    for(int i= 0; i<TASKS; i++)
    {
      TASK[i]->reset();
      delete TASK[i];
    }
+   delete FINAL;
 
    for(int i= 0; i<MULTI; i++)
    {
@@ -564,35 +547,60 @@ extern int
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
-   int                 result= 0;
-
-   debug_set_head(Debug::HEAD_THREAD); // Include thread in heading
-   debug_set_file_mode("ab");       // Append trace file
-   if( HCDM ) debug_set_mode(Debug::MODE_INTENSIVE);
-   debugh("TestDisp started\n");
+   Wrapper  tc= opts;               // The test case wrapper
+   Wrapper* tr= &tc;                // A test case wrapper pointer
 
    try {
-     if( argc > 1 && strcmp(argv[1], "-time") == 0 )
-       result |= testtime(0, nullptr);
-     else
+     tc.on_info([]()
      {
-       if( true  ) result |= test0000(argc, argv);
-       if( true  ) result |= test0001(argc, argv);
-       if( true  ) result |= test0002(argc, argv);
-       if( true  ) result |= testtime(argc, argv);
-     }
+       fprintf(stderr, "  --timing\tRun timing test\n");
+     });
+
+     tc.on_init([](int argc, char* argv[])
+     {
+       debug_set_head(Debug::HEAD_THREAD); // Include thread in heading
+       if( HCDM )
+         debug_set_mode(Debug::MODE_INTENSIVE);
+
+       if( opt_verbose ) {
+         for(int i= 0; i<argc; ++i)
+           debugf("[%2d] '%s'\n", i, argv[i]);
+       }
+       return 0;
+     });
+
+     tc.on_main([tr](int argc, char* argv[])
+     {
+       if( opt_verbose < VERBOSE )
+         opt_verbose= VERBOSE;
+
+       if( opt_verbose )
+         debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
+
+       int error_count= 0;
+       if( opt_timing ) {
+         error_count= testtime(argc, argv);
+       } else {
+         if( true  ) error_count += test0000(argc, argv);
+         if( true  ) error_count += test0001(argc, argv);
+         if( true  ) error_count += testtime(argc, argv);
+       }
+
+     tr->report_errors(error_count);
+     return error_count != 0;
+     });
+
+     //-----------------------------------------------------------------------
+     // Run the test
+     return tc.run(argc, argv);
+
    } catch(const char* x) {
      debugf("Exception const char*(%s)\n", x);
-     result= 2;
    } catch(std::exception& x) {
      debugf("Exception exception(%s)\n", x.what());
-     result= 2;
    } catch(...) {
      debugf("Exception ...\n");
-     result= 2;
    }
 
-   debugf("Result(%d)\n", result);
-
-   return result;
+   return 2;
 }

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021 Frank Eskesen.
+//       Copyright (c) 2021-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,15 +16,17 @@
 //       UTF utilities
 //
 // Last change date-
-//       2021/06/26
+//       2022/04/08
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_UTF_H_INCLUDED
-#define _PUB_UTF_H_INCLUDED
+#ifndef _LIBPUB_UTF_H_INCLUDED
+#define _LIBPUB_UTF_H_INCLUDED
 
 #include <iterator>                 // For std::forward_iterator_tag
 
-namespace pub {
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
@@ -608,5 +610,5 @@ static unsigned                     // The UTF8 encoding length
 void
    reset( void );                   // Reset (empty) the Utf32
 }; // class Utf32
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_UTF_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_UTF_H_INCLUDED
