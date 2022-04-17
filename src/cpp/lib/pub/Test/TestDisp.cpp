@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2022/04/08
+//       2022/04/13
 //
 // Arguments: (For testtime only)
 //       TestDisp --timing          // (Only run timing test)
@@ -556,16 +556,12 @@ extern int
        fprintf(stderr, "  --timing\tRun timing test\n");
      });
 
-     tc.on_init([](int argc, char* argv[])
+     tc.on_init([](int, char**)
      {
        debug_set_head(Debug::HEAD_THREAD); // Include thread in heading
        if( HCDM )
          debug_set_mode(Debug::MODE_INTENSIVE);
 
-       if( opt_verbose ) {
-         for(int i= 0; i<argc; ++i)
-           debugf("[%2d] '%s'\n", i, argv[i]);
-       }
        return 0;
      });
 
@@ -581,6 +577,11 @@ extern int
        if( opt_timing ) {
          error_count= testtime(argc, argv);
        } else {
+         static const char* static_argv[]= { "100", "100", "100" };
+         argv= (char**)static_argv;
+         argc= 3;
+         optind= 0;
+
          if( true  ) error_count += test0000(argc, argv);
          if( true  ) error_count += test0001(argc, argv);
          if( true  ) error_count += testtime(argc, argv);

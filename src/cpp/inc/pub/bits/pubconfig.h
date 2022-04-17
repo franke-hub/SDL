@@ -54,6 +54,8 @@
 
 #if defined(__GNUC__)
 #  define _LIBPUB_COLD __attribute__ ((cold))
+#  define _LIBPUB_DEPRECATED __attribute__ ((deprecated))
+#  define _LIBPUB_DEPRECATED_USE(alt) __attribute__ ((deprecated (alt)))
 #  define _LIBPUB_FLATTEN __attribute__ ((flatten))
 #  define _LIBPUB_HOT __attribute__ ((hot))
 #  define _LIBPUB_MAYBE_UNUSED __attribute__ ((unused))
@@ -65,10 +67,12 @@
        __attribute__ ((format (printf, fmt_parm, arg_parm)))
 #  define _LIBPUB_PURE __attribute__ ((pure))
 #  define _LIBPUB_USED __attribute__ ((used))
-#  define _LIBPUB_VISIBILITY(v) __attribute__ ((__visibility__ (#v)))
+#  define _LIBPUB_VISIBILITY(v) __attribute__ ((visibility (#v)))
 #  define _LIBPUB_WARN_UNUSED __attribute__ ((warn_unused_result))
 #else
 #  define _LIBPUB_COLD
+#  define _LIBPUB_DEPRECATED
+#  define _LIBPUB_DEPRECATED_USE(alt)
 #  define _LIBPUB_FLATTEN
 #  define _LIBPUB_HOT
 #  define _LIBPUB_MAYBE_UNUSED

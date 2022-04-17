@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Allocator method implementations.
 //
 // Last change date-
-//       2020/10/03
+//       2022/04/12
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::bad_alloc, ...
@@ -184,7 +184,7 @@ void
      // Count the elements found on the free list
      size_t per_block= (b_size - sizeof(Block)) / size; // Units per block
      size_t total= 0;              // The number of allocated blocks
-     for(Block* block= b_list.get_head(); block; block= block->get_next() )
+     for(Block* block= b_list.get_tail(); block; block= block->get_prev() )
        total += per_block;
 
      Free* free= (Free*)old;

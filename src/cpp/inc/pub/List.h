@@ -16,7 +16,7 @@
 //       Describe the List objects.
 //
 // Last change date-
-//       2022/04/05
+//       2022/04/17
 //
 // Implementation notes-
 //       Unlike std::List<T>, pub::List<T> elements *are* links.
@@ -54,11 +54,6 @@
 //       FALSE should a List contains more than an implementation defined
 //       (Currently 1G) Link count. Other methods assume that the List is
 //       coherent and either ignore or do not check for usage errors.
-//
-//       By convention, Lists are ordered from head to tail. The head Link
-//       is the Link that will be removed by REMQ and before which LIFO Links
-//       are inserted. The tail Link is the insert point after which FIFO
-//       Links are inserted.
 //
 // List types-
 //       AI_list<T>:    Atomic Insert Singly Linked List, thread-safe.
@@ -431,9 +426,8 @@ template<class T>
        typedef T                              value_type;
        typedef T*                             pointer;
        typedef T&                             reference;
-
-       typedef _DHDL_list_iterator<value_type> iterator;
-       typedef _DHDL_list_const_iterator<value_type> const_iterator;
+       typedef _DHDL_const_iter<value_type>   const_iterator;
+       typedef _DHDL_iter<value_type>         iterator;
 
        typedef DHDL_list<void>                _Base;
 #if ! USE_BASE_SORT
@@ -461,8 +455,8 @@ template<class T>
        //---------------------------------------------------------------------
        // DHDL_list<T>::Methods
        //---------------------------------------------------------------------
-             iterator begin()       noexcept { return iterator(_head); }
-       const_iterator begin() const noexcept { return const_iterator(_head); }
+             iterator begin()       noexcept { return iterator(this); }
+       const_iterator begin() const noexcept { return const_iterator(this); }
              iterator end()         noexcept { return iterator(); }
        const_iterator end()   const noexcept { return const_iterator(); }
 
@@ -581,6 +575,12 @@ template<class T>
    class DHSL_list : public DHSL_list<void>
    {
      public:
+       typedef T                              value_type;
+       typedef T*                             pointer;
+       typedef T&                             reference;
+       typedef _DHSL_const_iter<value_type>   const_iterator;
+       typedef _DHSL_iter<value_type>         iterator;
+
        typedef DHSL_list<void>                _Base;
        typedef DHSL_list<void>::_Link         _Link;
 
@@ -588,8 +588,8 @@ template<class T>
        {
          friend class DHSL_list;
          public:
-           T* get_next( void ) const
-           {  return static_cast<T*>(_next); }
+           pointer get_next( void ) const
+           {  return static_cast<pointer>(_next); }
        }; // class DHSL_list<T>::Link
 
        //---------------------------------------------------------------------
@@ -601,24 +601,29 @@ template<class T>
        //---------------------------------------------------------------------
        // DHSL_list<T>::Methods
        //---------------------------------------------------------------------
+             iterator begin()       noexcept { return iterator(this); }
+       const_iterator begin() const noexcept { return const_iterator(this); }
+             iterator end()         noexcept { return iterator(); }
+       const_iterator end()   const noexcept { return const_iterator(); }
+
        void
          fifo(                      // Insert (FIFO order)
-           T*                link)  // -> Link to insert
+           pointer           link)  // -> Link to insert
        { _Base::fifo(link); }
 
-       T*                           // -> Head T* on List
+       pointer                      // -> Head T* on List
          get_head( void ) const     // Get head Link
-       { return static_cast<T*>(_head); }
+       { return static_cast<pointer>(_head); }
 
-       T*                           // -> Tail T* on List
+       pointer                      // -> Tail T* on List
          get_tail( void ) const     // Get tail Link
-       { return static_cast<T*>(_tail); }
+       { return static_cast<pointer>(_tail); }
 
        void
          insert(                    // Insert at position,
-           T*                link,  // -> Link to insert after
-           T*                head,  // -> First Link to insert
-           T*                tail)  // -> Final Link to insert
+           pointer           link,  // -> Link to insert after
+           pointer           head,  // -> First Link to insert
+           pointer           tail)  // -> Final Link to insert
        { _Base::insert(link, head, tail); }
 
        bool                         // TRUE if the object is coherent
@@ -627,39 +632,28 @@ template<class T>
 
        bool                         // TRUE if Link is contained
          is_on_list(                // Is Link contained?
-           T*                link) const  // -> Link
+           pointer           link) const  // -> Link
        { return _Base::is_on_list(link); }
 
        void
          lifo(                      // Insert (LIFO order)
-           T*                link)  // -> Link to insert
+           pointer           link)  // -> Link to insert
        { _Base::lifo(link); }
 
        void
          remove(                    // Remove from DHSL_list
-           T*                head,  // -> First Link to remove
-           T*                tail)  // -> Final Link to remove
+           pointer           head,  // -> First Link to remove
+           pointer           tail)  // -> Final Link to remove
        { _Base::remove(head, tail); }
 
-       T*                           // Removed T*
+       pointer                      // Removed T*
          remq( void )               // Remove head Link
-       {  return static_cast<T*>(_Base::remq()); }
+       {  return static_cast<pointer>(_Base::remq()); }
 
-       T*                           // -> The set of removed Links
+       pointer                      // -> The set of removed Links
          reset( void )              // Reset (empty) the List
-       { return static_cast<T*>(_Base::reset()); }
+       { return static_cast<pointer>(_Base::reset()); }
    }; // class DHSL_list<T>
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       List<T>
-//
-// Purpose-
-//       Typed List object, where T is of class List<T>::Link.
-//
-//----------------------------------------------------------------------------
-template<class T> class List : public DHDL_list<T> {};
 
 //----------------------------------------------------------------------------
 //
@@ -674,6 +668,11 @@ template<class T>
    class SHSL_list : public SHSL_list<void>
    {
      public:
+       typedef T                              value_type;
+       typedef T*                             pointer;
+       typedef T&                             reference;
+       typedef _SHSL_iter<value_type>         iterator;
+
        typedef SHSL_list<void>                _Base; // The base List type
        typedef SHSL_list<void>::_Link         _Link; // The base Link type
 
@@ -681,9 +680,9 @@ template<class T>
        {
          friend class SHSL_list;
          public:
-           T*                       // -> Next Link
-             get_next( void ) const // Get next Link
-           { return static_cast<T*>(_next); }
+           pointer                  // -> Prev Link
+             get_prev( void ) const // Get prev Link
+           { return static_cast<pointer>(_prev); }
        }; // class SHSL_list<T>::Link ----------------------------------------
 
        //---------------------------------------------------------------------
@@ -695,20 +694,30 @@ template<class T>
        //---------------------------------------------------------------------
        // SHSL_list<T>::Methods
        //---------------------------------------------------------------------
+       // The begin() iterator removes all current links, creating an input
+       // iterator from them. These links are *only* associated with that
+       // iterator. There is no const_iterator.
+       iterator begin() noexcept { return iterator(this); }
+       iterator end()   noexcept { return iterator(); }
+
        void
          fifo(                      // Insert (FIFO order)
-           T*                link)  // -> Link to insert
+           pointer           link)  // -> Link to insert
+#if true
+       ; // (Deprecated)
+#else
        { _Base::fifo(link); }
+#endif
 
-       T*                           // -> Head T* on List
-         get_head( void ) const     // Get head link
-       { return static_cast<T*>(_head); }
+       pointer                      // -> Tail T* on List
+         get_tail( void ) const     // Get tail link
+       { return static_cast<pointer>(_tail); }
 
        void
          insert(                    // Insert at position,
-           T*                link,  // -> Link to insert after
-           T*                head,  // -> First Link to insert
-           T*                tail)  // -> Final Link to insert
+           pointer           link,  // -> Link to insert after
+           pointer           head,  // -> First Link to insert
+           pointer           tail)  // -> Final Link to insert
        { _Base::insert(link, head, tail); }
 
        bool                         // TRUE if the object is coherent
@@ -717,27 +726,42 @@ template<class T>
 
        bool                         // TRUE if Link is contained
          is_on_list(                // Is Link contained?
-           T*                link) const  // -> Link
+           pointer           link) const  // -> Link
        { return _Base::is_on_list(link); }
 
        void
          lifo(                      // Insert (LIFO order)
-           T*                link)  // -> Link to insert
+           pointer           link)  // -> Link to insert
        { _Base::lifo(link); }
 
        void
          remove(                    // Remove from List
-           T*                head,  // -> First Link to remove
-           T*                tail)  // -> Final Link to remove
+           pointer           head,  // -> First Link to remove
+           pointer           tail)  // -> Final Link to remove
+#if true
+       ; // (Deprecated)
+#else
        { _Base::remove(head, tail); }
+#endif
 
-       T*                           // Removed T*
-         remq( void )               // Remove head link
-       { return static_cast<T*>(_Base::remq()); }
+       pointer                      // Removed T*
+         remq( void )               // Remove tail link
+       { return static_cast<pointer>(_Base::remq()); }
 
-       T*                           // -> The set of removed Links
+       pointer                      // -> The set of removed Links
          reset( void )              // Reset (empty) the List
-       {  return static_cast<T*>(_Base::reset()); }
+       {  return static_cast<pointer>(_Base::reset()); }
    }; // class SHSL_list<T>
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       List<T>
+//
+// Purpose-
+//       Typed List object, where T is of class List<T>::Link.
+//
+//----------------------------------------------------------------------------
+template<class T> class List : public DHDL_list<T> {};
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_LIST_H_INCLUDED

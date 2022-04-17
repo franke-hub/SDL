@@ -408,6 +408,34 @@ static int
    error_count += VERIFY( dhdl_list.is_coherent());
 
    //-------------------------------------------------------------------------
+   // DHDL_iter test
+   //-------------------------------------------------------------------------
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("DHDL_iter test:\nIter:");
+   }
+   for(int i=0; i<DIM; i++) {
+     dhdl_list.fifo(&dhdl_data[i]);
+   }
+   int ix= 1;
+   for(auto it= dhdl_list.begin(); it != dhdl_list.end(); ++it) {
+     if( opt_verbose )
+       debugf(" %2d", it->index);
+
+     dhdl_link= it.get();
+     error_count += VERIFY( it->index == ix );
+     error_count += VERIFY( dhdl_link->index == ix );
+     ++ix;
+   }
+   if( opt_verbose )
+     debugf("\n");
+
+   for(int i=0; i<DIM; i++)
+     error_count += VERIFY( dhdl_list.is_on_list(&dhdl_data[i]) );
+   error_count += VERIFY( dhdl_list.is_coherent());
+   dhdl_list.reset();
+
+   //-------------------------------------------------------------------------
    // DHDL remove/insert specific
    //-------------------------------------------------------------------------
    if( opt_verbose ) {
@@ -650,6 +678,38 @@ static int
    for(int i=0; i<DIM; i++)
      error_count += VERIFY( !dhsl_list.is_on_list(&dhsl_data[i]) );
    error_count += VERIFY( dhsl_list.is_coherent() );
+
+   //-------------------------------------------------------------------------
+   // DHSL iterator test
+   //-------------------------------------------------------------------------
+   if( opt_verbose ) {
+     debugf("\n");
+     debugf("DHSL_iter test:\nIter:");
+   }
+   for(int i=0; i<DIM; i++) {
+     dhsl_list.fifo(&dhsl_data[i]);
+   }
+   for(int i=0; i<DIM; i++)
+     error_count += VERIFY( dhsl_list.is_on_list(&dhsl_data[i]) );
+   error_count += VERIFY( dhsl_list.is_coherent() );
+
+   int ix= 0;
+   for(auto it= dhsl_list.begin(); it != dhsl_list.end(); ++it) {
+     if( opt_verbose )
+       debugf(" %2d", it->index);
+
+     dhsl_link= it.get();
+     error_count += VERIFY( dhsl_link->index == (ix + 1) );
+     error_count += VERIFY( it->index == (ix + 1) );
+     ++ix;
+   }
+   if( opt_verbose )
+     debugf("\n");
+
+   for(int i=0; i<DIM; i++)
+     error_count += VERIFY( dhsl_list.is_on_list(&dhsl_data[i]) );
+   error_count += VERIFY( dhsl_list.is_coherent() );
+
    dhsl_list.reset();
 
    return error_count;
@@ -664,8 +724,8 @@ static int
 //       Test List.h, SHSL_list
 //
 //----------------------------------------------------------------------------
-struct SHSL_block
-:  public Prefix, public SHSL_list<SHSL_block>::Link, public Suffix {
+struct SHSL_block : public Vclass
+,  public Prefix, public SHSL_list<SHSL_block>::Link, public Suffix {
 int                    index;
 }; // class SHSL_block
 
@@ -676,10 +736,10 @@ static void
 {
    if( opt_verbose ) {
      debugf("List:");
-     SHSL_block* link= anchor->get_head(); // Get head element
+     SHSL_block* link= anchor->get_tail(); // Get tail element
      while( link != nullptr ) {
        debugf(" %2d", link->index);
-       link= link->get_next();
+       link= link->get_prev();
      }
 
      debugf("\n");
@@ -694,10 +754,10 @@ static void
 {
    if( opt_verbose ) {
      debugf("List:");
-     SHSL_block* link= anchor->get_head(); // Get head element
+     SHSL_block* link= anchor->get_tail(); // Get tail element
      while( link != nullptr ) {
        debugf(" %2d", link->index);
-       link= link->get_next();
+       link= link->get_prev();
      }
 
      debugf(" --(%2d)", removed->index);
@@ -755,27 +815,32 @@ static int
    error_count += VERIFY( shsl_list.is_coherent() );
 
    //-------------------------------------------------------------------------
-   // SHSL FIFO test
+   // SHSL ITER test
    //-------------------------------------------------------------------------
    if( opt_verbose ) {
      debugf("\n");
-     debugf("SHSL_FIFO test:\n");
+     debugf("SHSL_iter test:\nIter:");
    }
    for(int i=0; i<DIM; i++) {
      shsl_data[i].index= i + 1;
-     shsl_list.fifo(&shsl_data[i]);
-     show_SHSL(&shsl_list);
+     shsl_list.lifo(&shsl_data[i]);
    }
    for(int i=0; i<DIM; i++)
      error_count += VERIFY( shsl_list.is_on_list(&shsl_data[i]) );
    error_count += VERIFY( shsl_list.is_coherent() );
 
-   for(;;) {
-     shsl_link= shsl_list.remq();
-     if( shsl_link == nullptr )
-       break;
-     show_SHSL(&shsl_list, shsl_link);
+   int ix= 0;
+   for(auto it= shsl_list.begin(); it != shsl_list.end(); ++it) {
+     if( opt_verbose )
+       debugf(" %2d", it->index);
+
+     shsl_link= it.get();
+     error_count += VERIFY( shsl_link->index == (ix + 1) );
+     error_count += VERIFY( it->index == (ix + 1) );
+     ++ix;
    }
+   if( opt_verbose )
+     debugf("\n");
    for(int i=0; i<DIM; i++)
      error_count += VERIFY( !shsl_list.is_on_list(&shsl_data[i]) );
    error_count += VERIFY( shsl_list.is_coherent() );
