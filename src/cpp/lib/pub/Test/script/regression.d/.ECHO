@@ -1,0 +1,32 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2022 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       .ECHO
+##
+## Function-
+##       Print parameters, exit 0
+##
+## Last change date-
+##       2022/03/04
+##
+##############################################################################
+
+echo .ECHO "$@"
+n=1
+for i in "$@"
+do
+  foo=\"$i\"
+  echo $n $foo
+  let n=n+1
+done
+
+exit 0

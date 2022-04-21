@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2021 Frank Eskesen.
+//       Copyright (C) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       Implement Wrapper.h generic program wrapper.
 //
 // Last change date-
-//       2022/04/02
+//       2022/04/19
 //
 // Implementation notes-
 //       Orignally created as a test case wrapper, now repurposed as a generic
@@ -460,9 +460,10 @@ int                                 // Return code (0 if OK)
 void
    Wrapper::report_errors(int error_count) // Display the error count
 {
-   if( error_count == 0 )
-     debugf("NO errors detected\n");
-   else if( error_count == 1 )
+   if( error_count == 0 ) {
+     if( opt_verbose )
+       debugf("NO errors detected\n");
+   } else if( error_count == 1 )
      debugf(" 1 error detected\n");
    else
      debugf("%2d errors detected\n", error_count);

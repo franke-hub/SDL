@@ -1,0 +1,15 @@
+Backtrace test
+[bt]  0 * at /home/eskesen/obj/cpp/lib/pub/Test/S/Test_bug.cpp:48
+[bt]  1 * at /home/eskesen/obj/cpp/lib/pub/Test/S/Test_bug.cpp:96
+[bt]  2 pub::Wrapper::run(int, char**) at /home/eskesen/obj/cpp/lib/pub/S/Wrapper.cpp:518
+[bt]  3 * at /home/eskesen/obj/cpp/lib/pub/Test/S/Test_bug.cpp:131
+[bt]  4*
+[bt]  5*
+*
+
+Standard mode:
+This appears in TRACE and STDOUT
+??????????.??? This appears in TRACE and STDOUT
+Intensive mode:
+This appears in TRACE and STDOUT
+??????????.??? This appears in TRACE and STDOUT

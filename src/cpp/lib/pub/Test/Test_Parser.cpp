@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test pub/Parser.h
 //
 // Last change date-
-//       2020/12/30
+//       2022/04/19
 //
 //----------------------------------------------------------------------------
 #include <stddef.h>
@@ -57,8 +57,8 @@ extern int                          // Return code
    main(void)                       // Mainline entry
 {
    pub::Parser parser;
-   long rc= parser.open("S/script/parser.inp");
-   printf("%ld= open(S/script/parser.inp)\n", rc);
+   long rc= parser.open("S/script/inp/parser.inp");
+   printf("%ld= open(S/script/inp/parser.inp)\n", rc);
    parser.debug(); printf("\n\n");
 
    resultant(parser, nullptr, "This");

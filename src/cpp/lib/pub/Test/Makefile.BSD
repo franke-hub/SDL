@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2018-2021 Frank Eskesen.
+##       Copyright (c) 2018-2022 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2021/10/01
+##       2022/04/21
 ##
 ##############################################################################
 
@@ -80,3 +80,4 @@ clean: clean.dir
 clean.dir: ;
 	-@rm liblocal.a      >/dev/null 2>/dev/null
 	-@rm trace.mem       >/dev/null 2>/dev/null
+	-@rm test_bug.*      >/dev/null 2>/dev/null

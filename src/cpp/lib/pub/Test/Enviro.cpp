@@ -16,7 +16,7 @@
 //       Display environmental control variables.
 //
 // Last change date-
-//       2022/04/08
+//       2022/04/19
 //
 //----------------------------------------------------------------------------
 #define _FILE_OFFSET_BITS 64        // (Required for LINUX)
@@ -35,9 +35,14 @@
 #include <string>
 using namespace std;
 
-#include "pub/ifmacro.h"
-#include "pub/Object.h"
-using namespace _PUB_NAMESPACE;
+#include "pub/TEST.H"               // For VERIFY, ...
+#include "pub/Clock.h"              // For pub::Clock
+#include "pub/Debug.h"              // For namespace pub::debugging
+#include "pub/Event.h"              // For pub::Event
+#include "pub/Exception.h"          // For pub::Exception, std::exception
+#include "pub/Interval.h"           // For pub::Interval
+#include "pub/Thread.h"             // For pub::Thread
+#include "pub/Wrapper.h"            // For pub::Wrapper
 
 #ifdef _OS_WIN
   #include <Windows.h>
@@ -61,6 +66,12 @@ using namespace _PUB_NAMESPACE;
   #error "_ADDR64 indeterminate"
 #endif
 
+using namespace _PUB_NAMESPACE;
+using namespace _PUB_NAMESPACE::debugging;
+using pub::Wrapper;                 // For pub::Wrapper class
+
+#define opt_verbose    pub::Wrapper::opt_verbose
+
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -81,9 +92,14 @@ using namespace _PUB_NAMESPACE;
 #define catcon(x) concat(x)
 
 #define MACROF(x) \
-   printf ("%8.5s %s(%s)\n",  "", #x, catcon(x))
+   debugf ("%8.5s %s(%s)\n",  "", #x, catcon(x))
 
-#define VERIFY(x) verify(x, #x)
+//----------------------------------------------------------------------------
+// Internal data areas. Counters external to confuse compiler
+//----------------------------------------------------------------------------
+volatile unsigned int  int_value= 0;
+volatile unsigned long long_value= 0;
+volatile double        dbl_value= 0.0;
 
 //----------------------------------------------------------------------------
 //
@@ -97,6 +113,38 @@ using namespace _PUB_NAMESPACE;
 class MyException : public std::runtime_error {
    using std::runtime_error::runtime_error;
 }; // class MyException
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       Timer
+//
+// Purpose-
+//       Background Thread that sets and clears `running`
+//
+//----------------------------------------------------------------------------
+class Timer : public pub::Thread {
+public:
+pub::Event             event;       // Test start event
+double                 test_time;   // Test run time
+static volatile int    running;     // Test running
+
+virtual
+~Timer( void ) = default;
+Timer(double t) : Thread(), test_time(t)
+{  }
+
+virtual void
+run( void )
+{
+   running= true;
+   event.post();
+   Thread::sleep(test_time);
+   running= false;
+   event.reset();
+}
+}; // class Timer
+volatile int           Timer::running=false;
 
 //----------------------------------------------------------------------------
 
@@ -122,22 +170,184 @@ static inline const char*           // " TRUE" or "FALSE"
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       verify
+//       interval_test
 //
 // Purpose-
-//       Verify statement
+//       Tests both Clock.h and Interval.h
 //
 //----------------------------------------------------------------------------
-static inline int                   // Returns !cc
-   verify(                          // Verify statement
-     int             cc,            // Condition (Should be TRUE)
-     const char*     stmt)          // Condition test
+static inline void
+   interval_test(                   // Test Clock.h and/or Interval.h
+     std::function<void(void)> starter,
+     std::function<double(void)> stopper)
 {
-   if( cc )                         // If variable is true
-     return false;                  // That's what should happen
+   const int           RETRIES= 256;
+   const double        TIMEOUT= 1.732; // Clock timeout
 
-   printf("Verify error: %s\n", stmt); // Verification error
-   return true;                     // Indicate error
+   uint32_t count;
+   starter();
+   double delta= stopper();
+   double prior= delta;
+
+   for(count= 0; count<RETRIES; count++) // Try to get a zero interval
+   {
+     prior= delta;
+     delta= stopper();
+     if( (delta - prior) == 0.0 )
+       break;
+   }
+
+   if( count != RETRIES )           // If a zero interval found
+   {
+     count= 0;
+     prior= delta;
+     delta= stopper();
+     while( (delta - prior) != 0.0 )
+     {
+       prior= delta;
+       delta= stopper();
+     }
+
+     while( (delta - prior) == 0.0 )
+     {
+       count++;
+       prior= delta;
+       delta= stopper();
+     }
+   } else {
+     count= 0;
+     starter();
+     delta= stopper();
+   }
+
+   if( opt_verbose ) {
+     debugf("%.6g Minimum interval\n", delta);
+     debugf("%d Interval count\n", count);
+   }
+
+   prior= delta;
+   while( delta < TIMEOUT )
+   {
+     if( opt_verbose ) { traceh("%.6f\r", delta); }
+     prior= delta;
+     delta= stopper();
+   }
+   if( opt_verbose ) {
+     traceh("\n");
+     debugf("%.6f Seconds (%f)\n", delta, TIMEOUT);
+     debugf("%.6f Prior\n", prior);
+     debugf("%.6g Diff\n", delta - prior);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_Clock
+//
+// Purpose-
+//       Test Clock.h
+//
+//----------------------------------------------------------------------------
+static inline int                   // Number of errors encountered
+   test_Clock( void )               // Test Clock.h
+{
+   int                 error_count= 0; // Number of errors encountered
+
+   debugf("\ntest_Clock\n");
+
+   _PUB_NAMESPACE::Clock clock;
+   double start= clock.now();
+
+   interval_test([clock, start]() mutable {start= clock.now(); },
+                 [clock, start]() {return clock.now() - start; });
+
+   debugf("%14.3f Clock::now()\n", _PUB_NAMESPACE::Clock::now());
+   debugh("Debug::now()\n");
+
+   _PUB_NAMESPACE::Clock one;
+   _PUB_NAMESPACE::Clock two;
+   _PUB_NAMESPACE::Clock wow;
+   two= 3.0;
+
+   wow= one + two;
+   error_count += VERIFY( wow == one + two );
+   error_count += VERIFY( (double)wow == (double)one + (double)two );
+
+   wow= one - two;
+   error_count += VERIFY( wow == one - two );
+   error_count += VERIFY( (double)wow == (double)one - (double)two );
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_Interval
+//
+// Purpose-
+//       Test Interval.h
+//
+//----------------------------------------------------------------------------
+static inline int                   // Number of errors encountered
+   test_Interval( void )            // Test Interval.h
+{
+   int                 error_count= 0; // Number of errors encountered
+
+   debugf("\ntest_Interval\n");
+
+   _PUB_NAMESPACE::Interval interval;
+
+   interval_test([interval]() mutable {interval.start(); },
+                 [interval]() mutable {return interval.stop(); });
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_Performance
+//
+// Purpose-
+//       Timing tests, for machine to machine comparisons.
+//
+// Implementation notes-
+//       Measurements within 1% should be considered identical.
+//
+//----------------------------------------------------------------------------
+static inline int                   // (Always 0)
+   test_Performance( void )         // Performance
+{
+   debugf("\ntest_Performance, for machine-to-machine comparison\n");
+
+   Timer timer= 1.0;                // Test timer
+
+   timer.start();
+   timer.event.wait();
+   while( timer.running )
+     int_value++;
+   timer.join();
+
+   timer.start();
+   timer.event.wait();
+   while( timer.running )
+     long_value++;
+   timer.join();
+
+   timer.start();
+   timer.event.wait();
+   while( timer.running )
+     dbl_value += 1.0;
+   timer.join();
+
+   // Tests complete
+   debugf("%'16d ints/second\n", int_value);
+   debugf("%'16ld longs/second\n", long_value);
+   debugf("%'16.0f doubles/second\n", dbl_value);
+
+   return 0;
 }
 
 //----------------------------------------------------------------------------
@@ -153,26 +363,29 @@ static inline int                   // Returns !cc
 //       Since it does not, the exception is COPIED into a std::exception
 //       and that exception is the BASE std::exception
 //
+//       GCC (now) checks for this usage error.
+//
 //----------------------------------------------------------------------------
 static inline int
    demo_std_exception( void )
 {
-#ifdef _CC_GCC                      // (This DEMOs the problem)
+#ifdef _CC_GCC                      // (This DEMOs the usage error)
    #pragma GCC diagnostic ignored "-Wcatch-value"
 #endif
 
+   debugf("\n");
    try {
      MyException up("oops");
      throw up;
-   } catch(exception x) {
-     if( strcmp(x.what(), "oops") != 0 )
-     {
-       printf("WHAT(%s) HAPPENED?\n", x.what());
-       printf("WHAT(%s) HAPPENED? is what was sort of expected\n", "oops");
+// } catch(exception& x) {          // Properly coded
+   } catch(exception x) {           // Improperly coded catch-value
+     if( strcmp(x.what(), "oops") != 0 ) {
+       debugf("WHAT(%s) HAPPENED?\n", x.what());
+       debugf("WHAT(%s) HAPPENED? was expected\n", "oops");
      }
    }
 
-   printf("demo_std_exception (fault)\n");
+   debugf("demo_std_exception: demonstrates usage error\n");
    return 0;
 }
 
@@ -188,7 +401,7 @@ static inline int
 static inline int
    test_std_exception( void )       // Test std::exception
 {
-   printf("test_std_exception, verifies success\n");
+   debugf("test_std_exception: verifies proper usage\n");
 
    try {
      MyException up("oops");
@@ -196,7 +409,7 @@ static inline int
    } catch(exception& x) {
      if( strcmp(x.what(), "oops") != 0 )
      {
-       printf("WHAT(%s) HAPPENED?\n", x.what());
+       debugf("WHAT(%s) HAPPENED?\n", x.what());
        throw "Should Not Occur";
      }
    }
@@ -219,7 +432,7 @@ static inline int
 static inline int
    test_stdlib( void )              // Test cstdlib, stdlib.h (free)
 {
-// printf("test_stdlib, fault if error\n"); // (Silent test)
+// debugf("test_stdlib, fault if error\n"); // (Silent test)
 
    ::free(NULL);                    // Test stdlib.h
    std::free(nullptr);              // Test cstdlib
@@ -240,99 +453,98 @@ static inline int
    environment( void )              // Verify compilation controls
 {
    const char*       chs;           // Pointer to character string
-   int               result= 0;     // Resultant
+   int               error_count= 0; // Error count
 
    //-------------------------------------------------------------------------
    // Variables which may be defined
    //-------------------------------------------------------------------------
-   printf("\n\n");
-   printf("Definition variables:\n");
-   printf("__LINE__(%d) __FILE__(%s)\n", __LINE__, __FILE__);
-   printf("\n");
+   debugf("\n\n");
+   debugf("Definition variables:\n");
+   debugf("__LINE__(%d) __FILE__(%s)\n", __LINE__, __FILE__);
+   debugf("\n");
 
    chs= "NOT";
 #ifdef _ADDR64
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "_ADDR64");
+   debugf("%8.5s defined(%s)\n", chs, "_ADDR64");
 
    chs= "NOT";
 #ifdef _LONG_LONG
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "_LONG_LONG");
+   debugf("%8.5s defined(%s)\n", chs, "_LONG_LONG");
 
    chs= "NOT";
 #ifdef LONGLONG_MIN
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "LONGLONG_MIN");
+   debugf("%8.5s defined(%s)\n", chs, "LONGLONG_MIN");
 
    chs= "NOT";
 #ifdef LONG_LONG_MIN
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "LONG_LONG_MIN");
+   debugf("%8.5s defined(%s)\n", chs, "LONG_LONG_MIN");
 
    chs= "NOT";
 #ifdef _ALL_SOURCE
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "_ALL_SOURCE");
+   debugf("%8.5s defined(%s)\n", chs, "_ALL_SOURCE");
 
    chs= "NOT";
 #ifdef _ANSI_C_SOURCE
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "_ANSI_C_SOURCE");
+   debugf("%8.5s defined(%s)\n", chs, "_ANSI_C_SOURCE");
 
    chs= "NOT";
 #ifdef __GNUC__
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "__GNUC__");
+   debugf("%8.5s defined(%s)\n", chs, "__GNUC__");
 
    chs= "NOT";
 #ifdef __GNUG__
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "__GNUG__");
+   debugf("%8.5s defined(%s)\n", chs, "__GNUG__");
 
    chs= "NOT";
 #ifdef _POSIX_SOURCE
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "_POSIX_SOURCE");
+   debugf("%8.5s defined(%s)\n", chs, "_POSIX_SOURCE");
 
    chs= "NOT";
   #ifdef _WIN64
     chs= "IS";
   #endif
-   printf("%8.5s defined(%s)\n", chs, "_WIN64");
+   debugf("%8.5s defined(%s)\n", chs, "_WIN64");
 
    chs= "NOT";
 #ifdef _XOPEN_SOURCE
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "_XOPEN_SOURCE");
+   debugf("%8.5s defined(%s)\n", chs, "_XOPEN_SOURCE");
 
    chs= "NOT";
 #ifdef _X86_
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "_X86_");
+   debugf("%8.5s defined(%s)\n", chs, "_X86_");
 
    chs= "NOT";
 #ifdef __x86_64__
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "__x86_64__");
+   debugf("%8.5s defined(%s)\n", chs, "__x86_64__");
 
    //-------------------------------------------------------------------------
    // Windows.h
    //-------------------------------------------------------------------------
-   printf("\n");
-
+   debugf("\nWindows:\n");
    MACROF(_INTEGRAL_MAX_BITS);
    MACROF(_MSC_VER);
    MACROF(WINADVAPI);
@@ -342,7 +554,7 @@ static inline int
    //-------------------------------------------------------------------------
    // GNU Compiler
    //-------------------------------------------------------------------------
-   printf("\n");
+   debugf("\nGCC\n");
    MACROF(__GNUC__);
    MACROF(__GNUG__);
    MACROF(__GCC_ATOMIC_BOOL_LOCK_FREE);
@@ -354,13 +566,10 @@ static inline int
    MACROF(__GCC_ATOMIC_POINTER_LOCK_FREE);
    MACROF(__GNUC_STDC_INLINE__);
 
-   // Temporary tests
-   // MACROF(_ELIDABLE_INLINE);     "static __inline__"
-
    //-------------------------------------------------------------------------
    // BSD/Linux
    //-------------------------------------------------------------------------
-   printf("\n");
+   debugf("\n");
    MACROF(__cplusplus);
    MACROF(__FAVOR_BSD);
    MACROF(__KERNEL_STRICT_NAMES);
@@ -390,79 +599,82 @@ static inline int
    MACROF(off_t);
 
    //-------------------------------------------------------------------------
-   // Operating system controls
+   // Build controls
    //-------------------------------------------------------------------------
-   printf("\n");
-
+   debugf("\n"); //-----------------------------------------------------------
    chs= "NOT";
 #ifdef _CC_GCC
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "_CC_GCC");
+   debugf("%8.5s defined(%s)\n", chs, "_CC_GCC");
 
    chs= "NOT";
 #ifdef _CC_MSC
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "_CC_MSC");
+   debugf("%8.5s defined(%s)\n", chs, "_CC_MSC");
 
    chs= "NOT";
 #ifdef _CC_XLC
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "_CC_XLC");
+   debugf("%8.5s defined(%s)\n", chs, "_CC_XLC");
 
-   chs= "NOT";
-#ifdef _OS_BSD
-   chs= "IS";
-#endif
-   printf("%8.5s defined(%s)\n", chs, "_OS_BSD");
-
-   chs= "NOT";
-#ifdef _OS_CYGWIN
-   chs= "IS";
-#endif
-   printf("%8.5s defined(%s)\n", chs, "_OS_CYGWIN");
-
-   chs= "NOT";
-#ifdef _OS_DOS
-   chs= "IS";
-#endif
-   printf("%8.5s defined(%s)\n", chs, "_OS_DOS");
-
-   chs= "NOT";
-#ifdef _OS_LINUX
-   chs= "IS";
-#endif
-   printf("%8.5s defined(%s)\n", chs, "_OS_LINUX");
-
-   chs= "NOT";
-#ifdef _OS_WIN
-   chs= "IS";
-#endif
-   printf("%8.5s defined(%s)\n", chs, "_OS_WIN");
-
-   //-------------------------------------------------------------------------
-   // Hardware controls
-   //-------------------------------------------------------------------------
-   printf("\n");
-
+   debugf("\n"); //-----------------------------------------------------------
    chs= "NOT";
 #ifdef _HW_PPC
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "_HW_PPC");
+   debugf("%8.5s defined(%s)\n", chs, "_HW_PPC");
 
    chs= "NOT";
 #ifdef _HW_X86
    chs= "IS";
 #endif
-   printf("%8.5s defined(%s)\n", chs, "_HW_X86");
+   debugf("%8.5s defined(%s)\n", chs, "_HW_X86");
+
+   debugf("\n"); //-----------------------------------------------------------
+   chs= "NOT";
+#ifdef _OS_BSD
+   chs= "IS";
+#endif
+   debugf("%8.5s defined(%s)\n", chs, "_OS_BSD");
+
+   chs= "NOT";
+#ifdef _OS_CYGWIN
+   chs= "IS";
+#endif
+   debugf("%8.5s defined(%s)\n", chs, "_OS_CYGWIN");
+
+   chs= "NOT";
+#ifdef _OS_DOS
+   chs= "IS";
+#endif
+   debugf("%8.5s defined(%s)\n", chs, "_OS_DOS");
+
+   chs= "NOT";
+#ifdef _OS_LINUX
+   chs= "IS";
+#endif
+   debugf("%8.5s defined(%s)\n", chs, "_OS_LINUX");
+
+   chs= "NOT";
+#ifdef _OS_WIN
+   chs= "IS";
+#endif
+   debugf("%8.5s defined(%s)\n", chs, "_OS_WIN");
+
+   //-------------------------------------------------------------------------
+   // pub Library
+   //-------------------------------------------------------------------------
+   debugf("\n");
+   MACROF(_PUB_NAMESPACE);
+   MACROF(ATTRIB_NORETURN);
 
    //-------------------------------------------------------------------------
    // inline.h
    //-------------------------------------------------------------------------
-   printf("\n"); // inline.h
+   debugf("\n"); // inline.h
    MACROF(INLINE);
    MACROF(INLINING);
 
@@ -471,50 +683,40 @@ static inline int
    //-------------------------------------------------------------------------
    struct stat s;
    struct stat64 s64;
-   printf("\n\n");
-   printf("Required variables:\n");
-   printf("\n");
-   printf("%8x INT_MAX\n", INT_MAX);
-   printf("%8lx LONG_MAX\n", LONG_MAX);
-   printf("%8d sizeof(off_t)\n", (int)sizeof(off_t));
-   printf("%8d sizeof(struct stat.st_size)\n", (int)sizeof(s.st_size));
-   printf("%8d sizeof(struct stat64.st_size)\n", (int)sizeof(s64.st_size));
-   printf("%8d sizeof(long)\n", (int)sizeof(long));
-   printf("%8d sizeof(void*)\n", (int)sizeof(void*));
+   debugf("\n\n");
+   debugf("Required variables:\n");
+   debugf("\n");
+   debugf("%8x INT_MAX\n", INT_MAX);
+   debugf("%8lx LONG_MAX\n", LONG_MAX);
+   debugf("%8d sizeof(off_t)\n", (int)sizeof(off_t));
+   debugf("%8d sizeof(struct stat.st_size)\n", (int)sizeof(s.st_size));
+   debugf("%8d sizeof(struct stat64.st_size)\n", (int)sizeof(s64.st_size));
+   debugf("%8d sizeof(long)\n", (int)sizeof(long));
+   debugf("%8d sizeof(void*)\n", (int)sizeof(void*));
 
    //-------------------------------------------------------------------------
    // Verify stdint.h
    //-------------------------------------------------------------------------
-   result |= VERIFY(sizeof(  int8_t) == 1);
-   result |= VERIFY(sizeof( uint8_t) == 1);
-   result |= VERIFY(sizeof( int16_t) == 2);
-   result |= VERIFY(sizeof(uint16_t) == 2);
-   result |= VERIFY(sizeof( int32_t) == 4);
-   result |= VERIFY(sizeof(uint32_t) == 4);
-   result |= VERIFY(sizeof( int64_t) == 8);
-   result |= VERIFY(sizeof(uint64_t) == 8);
+   error_count += VERIFY(sizeof(  int8_t) == 1);
+   error_count += VERIFY(sizeof( uint8_t) == 1);
+   error_count += VERIFY(sizeof( int16_t) == 2);
+   error_count += VERIFY(sizeof(uint16_t) == 2);
+   error_count += VERIFY(sizeof( int32_t) == 4);
+   error_count += VERIFY(sizeof(uint32_t) == 4);
+   error_count += VERIFY(sizeof( int64_t) == 8);
+   error_count += VERIFY(sizeof(uint64_t) == 8);
 
    //-------------------------------------------------------------------------
    // Environment variables
    //-------------------------------------------------------------------------
-   printf("\n\n");
-   printf("Environment variables:\n");
-   printf("\n");
-   printf("HOME(%s)\n", getenv("HOME"));
-   printf("HOST(%s)\n", getenv("HOST"));
-   printf("JAVA_HOME(%s)\n", getenv("JAVA_HOME"));
-   printf("TEMP(%s)\n", getenv("TEMP"));
-   printf("USER(%s)\n", getenv("USER"));
+   debugf("\nEnvironment variables:\n");
+   debugf("%8s HOME(%s)\n", "", getenv("HOME"));
+   debugf("%8s HOST(%s)\n", "", getenv("HOST"));
+   debugf("%8s JAVA_HOME(%s)\n", "", getenv("JAVA_HOME"));
+   debugf("%8s TEMP(%s)\n", "", getenv("TEMP"));
+   debugf("%8s USER(%s)\n", "", getenv("USER"));
 
-   //-------------------------------------------------------------------------
-   // pub Library
-   //-------------------------------------------------------------------------
-   printf("\n");
-   MACROF(_PUB_NAMESPACE);
-   MACROF(ATTRIB_NORETURN);
-
-   printf("\n");
-   return result;
+   return error_count;
 }
 
 //----------------------------------------------------------------------------
@@ -527,30 +729,40 @@ static inline int
 //
 //----------------------------------------------------------------------------
 int                                 // Return code
-   main(int, char**)                // Mainline entry
-//   int             argc,          // Parameter count
-//   char*           argv[])        // Parameter vector
+   main(                            // Mainline entry
+     int             argc,          // Argument count
+     char*           argv[])        // Argument array
 {
-   int               result= 0;     // Function resultant
+   //-------------------------------------------------------------------------
+   // Initialize
+   Wrapper  tc;                     // The test case wrapper
+   Wrapper* tr= &tc;                // A test case wrapper pointer
 
-   try {
-     result |= environment();       // Test compliation environment
+   tc.on_main([tr](int, char*[])
+   {
+     if( opt_verbose )
+       debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
 
-     result |= demo_std_exception(); // Demo std::exception usage error
-     result |= test_std_exception(); // Test std::exception
-     result |= test_stdlib();       // Test ::free(NULL), std::free(nullptr)
-   } catch(const char* x) {
-     fprintf(stderr, "catch(const char*(%s))\n", x);
-     result= 2;
-   } catch(exception& x) {
-     fprintf(stderr, "catch(exception.what(%s))\n", x.what());
-     result= 2;
-   } catch(...) {
-     fprintf(stderr, "catch(...)\n");
-     result= 2;
-   }
+     int error_count= 0;
 
-   printf("result(%d)\n", result);
+     setlocale(LC_ALL, "");         // Activates ' thousand separator
+     error_count += environment();  // Display compliation environment
+     error_count += test_stdlib();  // Test ::free(NULL), std::free(nullptr)
 
-   return(result);
+     if( opt_verbose ) {
+       error_count += demo_std_exception(); // Demo std::exception usage error
+       error_count += test_std_exception(); // Test std::exception
+       error_count += test_Clock(); // Test Clock.h
+       error_count += test_Interval(); // Test Interval.h
+       error_count += test_Performance(); // For machine to machine comparison
+     }
+
+     debugf("\n");
+     tr->report_errors(error_count);
+     return error_count != 0;
+   });
+
+   //-------------------------------------------------------------------------
+   // Run the test
+   return tc.run(argc, argv);
 }

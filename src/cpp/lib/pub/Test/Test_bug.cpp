@@ -16,21 +16,21 @@
 //       Test debugging methods.
 //
 // Last change date-
-//       2022/04/08
+//       2022/04/19
 //
 //----------------------------------------------------------------------------
-#include <errno.h>                    // For errno
+#include <errno.h>                  // For errno
 
-#include <pub/bits/pubconfig.h>       // For _LIBPUB_ macros
-#include "pub/Debug.h"                // For Debug, tested
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include "pub/Debug.h"              // For Debug, tested
+#include <pub/Wrapper.h>            // For class Wrapper
 
 using _LIBPUB_NAMESPACE::Debug;
 using namespace _LIBPUB_NAMESPACE::debugging;
+using pub::Wrapper;                 // For pub::Wrapper class
 
-//----------------------------------------------------------------------------
-// Internal data areas
-//----------------------------------------------------------------------------
-static pub::Debug      debug;         // Debug object
+#define opt_hcdm       pub::Wrapper::opt_hcdm
+#define opt_verbose    pub::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 //
@@ -73,41 +73,59 @@ static void test_bt() {
 //
 //----------------------------------------------------------------------------
 extern int                          // Return code
-   main(int, char**)                // Mainline code
-//   int               argc,        // Argument count (UNUSED)
-//   char*             argv[])      // Argument array (UNUSED)
+   main(                            // Mainline code
+     int               argc,        // Argument count (UNUSED)
+     char*             argv[])      // Argument array (UNUSED)
 {
-   // Test backtrace
-    test_bt();
+   //-------------------------------------------------------------------------
+   // Initialize
+   Wrapper  tc;                     // The test case wrapper
+   Wrapper* tr= &tc;                // A test case wrapper pointer
 
-   // Test modes
-   debug_set_mode(Debug::MODE_DEFAULT);
-   debugf("Standard mode:\n");
-   debugf("This appears in %s and %s\n", "TRACE", "STDOUT");
-   errorf("This appears in %s and %s\n", "TRACE", "STDERR");
-   tracef("This appears in %s ONLY\n",   "TRACE");
-   debugh("This appears in %s and %s\n", "TRACE", "STDOUT");
-   errorh("This appears in %s and %s\n", "TRACE", "STDERR");
-   traceh("This appears in %s ONLY\n",   "TRACE");
+   tc.on_main([tr](int, char*[])
+   {
+     if( opt_verbose )
+       debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
 
-   debug_set_mode(Debug::MODE_IGNORE);
-   errno= ESRCH;
-   errorp("(ignored) Ignore mode: This appears in STDERR (only)");
-   debugf("Ignore mode:\n");
-   errorf("Ignore mode:\n");
-   tracef("Ignore mode:\n");
-   debugh("Ignore mode:\n");
-   errorh("Ignore mode:\n");
-   traceh("Ignore mode:\n");
+     int error_count= 0;
 
-   debug_set_mode(Debug::MODE_INTENSIVE);
-   debugf("Intensive mode:\n");
-   debugf("This appears in %s and %s\n", "TRACE", "STDOUT");
-   errorf("This appears in %s and %s\n", "TRACE", "STDERR");
-   tracef("This appears in %s ONLY\n",   "TRACE");
-   debugh("This appears in %s and %s\n", "TRACE", "STDOUT");
-   errorh("This appears in %s and %s\n", "TRACE", "STDERR");
-   traceh("This appears in %s ONLY\n",   "TRACE");
+     // Test backtrace
+     test_bt();
 
-   return 0;                        // Normal completion
+     // Test modes
+     debug_set_mode(Debug::MODE_DEFAULT);
+     debugf("Standard mode:\n");
+     debugf("This appears in %s and %s\n", "TRACE", "STDOUT");
+     errorf("This appears in %s and %s\n", "TRACE", "STDERR");
+     tracef("This appears in %s ONLY\n",   "TRACE");
+     debugh("This appears in %s and %s\n", "TRACE", "STDOUT");
+     errorh("This appears in %s and %s\n", "TRACE", "STDERR");
+     traceh("This appears in %s ONLY\n",   "TRACE");
+
+     debug_set_mode(Debug::MODE_IGNORE);
+     errno= EAGAIN;
+     errorp("Ignore mode: This appears in STDERR (even with ignore mode)");
+     debugf("Ignore mode:\n");
+     errorf("Ignore mode:\n");
+     tracef("Ignore mode:\n");
+     debugh("Ignore mode:\n");
+     errorh("Ignore mode:\n");
+     traceh("Ignore mode:\n");
+
+     debug_set_mode(Debug::MODE_INTENSIVE);
+     debugf("Intensive mode:\n");
+     debugf("This appears in %s and %s\n", "TRACE", "STDOUT");
+     errorf("This appears in %s and %s\n", "TRACE", "STDERR");
+     tracef("This appears in %s ONLY\n",   "TRACE");
+     debugh("This appears in %s and %s\n", "TRACE", "STDOUT");
+     errorh("This appears in %s and %s\n", "TRACE", "STDERR");
+     traceh("This appears in %s ONLY\n",   "TRACE");
+
+     tr->report_errors(error_count);
+     return error_count != 0;
+   });
+
+   //-------------------------------------------------------------------------
+   // Run the test
+   return tc.run(argc, argv);
 }

@@ -1,0 +1,94 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2022 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       regression
+##
+## Function-
+##       Regression tests
+##
+## Last change date-
+##       2022/04/20
+##
+## Implementation notes-
+##       Run this script from ~/src/cpp/obj/pub/Test, the test subdirectory.
+##
+##############################################################################
+
+##############################################################################
+## Environment
+DDIR=S/script/regression.d
+
+##############################################################################
+## Parameter analysis
+make=1
+parm=
+verbose=0
+for arg in "$@"
+do
+  case $arg in
+    --nomake)
+      make=0
+      shift
+      ;;
+
+    --verbose*)
+      parm="$arg $parm"
+      shift
+      ;;
+
+    -x)
+      verbose=1
+      shift
+      ;;
+
+    -*)
+      echo "Parameter '$arg' ignored"
+      shift
+      ;;
+
+    *)
+      break
+      ;;
+  esac
+done
+
+test_set="$@"
+if [ "$1" == "" ] ; then
+  test_set=`ls $DDIR`
+fi
+
+##############################################################################
+## Make sure the test library is up to date
+if [ $make != 0 ] ; then
+  echo "Building tests..."
+  make all
+  rc=$?
+  if [[ $rc != 0 ]] ; then
+    echo "Test build failed"
+    exit $rc
+  fi
+fi
+
+##############################################################################
+## Run the regression tests
+[ $verbose != 0 ] && set -x
+for test in $test_set
+do
+  if [[ -x "$DDIR/$test" && ! -d "$DDIR/$test" ]] ; then
+    $DDIR/$test $parm
+    rc=$?
+    if [[ $rc != 0 ]] ; then
+      echo "ERROR $rc: $test failed"
+      exit $rc
+    fi
+  fi
+done

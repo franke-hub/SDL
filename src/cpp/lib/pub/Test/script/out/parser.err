@@ -1,0 +1,7 @@
+Parser: File(S/script/inp/parser.inp)
+Line(  4) Malformed value string
+Line(  5) Malformed name string
+Line(  6) Malformed section
+Line(  7) Missing name
+Line( 13) Use 'parameter=' to remove value
+5 Parse errors encountered

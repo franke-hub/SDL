@@ -1,0 +1,24 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2022 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       .FAILURE
+##
+## Function-
+##       This test always fails
+##
+## Last change date-
+##       2022/03/04
+##
+##############################################################################
+
+echo "NG $0"
+exit 2

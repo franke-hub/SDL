@@ -1,0 +1,38 @@
+##############################################################################
+##
+##       Copyright (C) 2022 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## Makefile.BSD
+##############################################################################
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## Add library controls and dependencies
+include $(INCDIR)/pub/Makefile.BSD
+
+##############################################################################
+## Target: install
+.PHONY: install
+install: default
+	strip filecomp
+	mv -i filecomp $(HOME)/bin/filecomp
+
+##############################################################################
+## Cleanup
+.PHONY: MAK_clean
+clean:  MAK_clean
+MAK_clean: ;
+	-@rm debug.* >/dev/null 2>/dev/null

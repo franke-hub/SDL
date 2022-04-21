@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2022/04/08
+//       2022/04/20
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -563,6 +563,9 @@ int                                 // Resultant 0, !0
    const unsigned char* W= (const unsigned char*)L_;
    const unsigned char* R= (const unsigned char*)R_;
    while( true ) {
+     if( *W == '\\' )
+       ++W;
+
      int diff= *W - *R;
      if( diff != 0 ) {
        if( *W == '*' ) {

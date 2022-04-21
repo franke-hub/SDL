@@ -1,0 +1,42 @@
+5= open(S/script/inp/parser.inp)
+[]
+'name with blanks'='nwbValue'
+'vwbName'='value with blanks'
+'goodie2'=''
+'this'='thisisthelast=value'
+'StandardEmpty'=''
+'AlternateEmpty'=''
+'This'='This is not a duplicate'
+'that'='that is not a duplicate'
+'other'='other is a most excellent line'
+[blank]
+'follow name'='follow value'
+'other'=' Value contains leading and trailing blanks. '
+' this name '='name contains leading/trailing blanks'
+'this name'='duplicatedvalue'
+'that name'='this is the that  value'
+'other name'='this is the other value'
+[oldsect]
+'this'='[oldsect]::this value'
+[section]
+'this'='[section]::duplicated value'
+[newsect]
+'this'='[newsect]::this value'
+
+
+'This is not a duplicate'= get_value((null),This)
+'thisisthelast=value'= get_value((null),this)
+'that is not a duplicate'= get_value((null),that)
+'other is a most excellent line'= get_value((null),other)
+''= get_value((null),StandardEmpty)
+''= get_value((null),AlternateEmpty)
+'(null)'= get_value((null),unknown)
+'follow value'= get_value(blank,follow name)
+'name contains leading/trailing blanks'= get_value(blank, this name )
+'duplicatedvalue'= get_value(blank,this name)
+'this is the that  value'= get_value(blank,that name)
+'this is the other value'= get_value(blank,other name)
+'(null)'= get_value(blank,unknown name)
+'[oldsect]::this value'= get_value(oldsect,this)
+'[section]::duplicated value'= get_value(section,this)
+'[newsect]::this value'= get_value(newsect,this)

@@ -1,0 +1,24 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2022 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       .SUCCESS
+##
+## Function-
+##       This test always succeeds
+##
+## Last change date-
+##       2022/03/04
+##
+##############################################################################
+
+echo "OK $0"
+exit 0
