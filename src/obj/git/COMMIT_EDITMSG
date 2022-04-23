@@ -1,16 +1,12 @@
-Added cpp/Tools/Compare.
+Added ~/src/cpp/lib/pub/Test/regression link
 
 # Please enter the commit message for your changes. Lines starting
 # with '#' will be ignored, and an empty message aborts the commit.
 #
 # On branch maint
 # Changes to be committed:
-#	new file:   cpp/Tools/Compare/H
-#	new file:   cpp/Tools/Compare/L
-#	new file:   cpp/Tools/Compare/M
-#	new file:   cpp/Tools/Compare/Makefile
-#	new file:   cpp/Tools/Compare/S
+#	new file:   regression
 #
 # Untracked files:
-#	UPDATED-2022-04
+#	../../../../UPDATED-2022-04
 #
