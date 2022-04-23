@@ -2,21 +2,21 @@
 //
 //       Copyright (c) 2007-2022 Frank Eskesen.
 //
-//       This file is free content, distributed under the Lesser GNU
-//       General Public License, version 3.0.
-//       (See accompanying file LICENSE.LGPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
 // Title-
-//       Test_Parser.cpp
+//       Test_parser.cpp
 //
 // Purpose-
 //       Test pub/Parser.h
 //
 // Last change date-
-//       2022/04/19
+//       2022/04/22
 //
 //----------------------------------------------------------------------------
 #include <stddef.h>

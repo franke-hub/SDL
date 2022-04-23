@@ -2,10 +2,10 @@
 //
 //       Copyright (c) 2007-2022 Frank Eskesen.
 //
-//       This file is free content, distributed under the Lesser GNU
-//       General Public License, version 3.0.
-//       (See accompanying file LICENSE.LGPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
@@ -16,7 +16,7 @@
 //       Test debugging methods.
 //
 // Last change date-
-//       2022/04/19
+//       2022/04/22
 //
 //----------------------------------------------------------------------------
 #include <errno.h>                  // For errno
@@ -103,7 +103,7 @@ extern int                          // Return code
      traceh("This appears in %s ONLY\n",   "TRACE");
 
      debug_set_mode(Debug::MODE_IGNORE);
-     errno= EAGAIN;
+     errno= 0;
      errorp("Ignore mode: This appears in STDERR (even with ignore mode)");
      debugf("Ignore mode:\n");
      errorf("Ignore mode:\n");
@@ -121,7 +121,6 @@ extern int                          // Return code
      errorh("This appears in %s and %s\n", "TRACE", "STDERR");
      traceh("This appears in %s ONLY\n",   "TRACE");
 
-     tr->report_errors(error_count);
      return error_count != 0;
    });
 

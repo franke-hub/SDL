@@ -15,15 +15,14 @@
 //       Sample test case
 //
 // Last change date-
-//       2022/04/02
+//       2022/04/22
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::runtime exception
 #include <string.h>                 // For strcmp
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
-
-#include "pub/Wrapper.h"            // For class Wrapper
+#include <pub/Wrapper.h>            // For pub::Wrapper
 
 using namespace pub::debugging;     // For debugging functions
 using pub::Wrapper;                 // For pub::Wrapper class
@@ -75,8 +74,7 @@ static inline int                   // Error count
    test_error( void )               // Test test error
 {  debugf("%4d test_error (always fails)\n", __LINE__);
 
-   int error_count= 1;
-   return error_count;
+   return 1;
 }
 
 //----------------------------------------------------------------------------
@@ -118,8 +116,6 @@ extern int                          // Return code
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
-   //-------------------------------------------------------------------------
-   // Initialize
    Wrapper  tc= opts;               // The test case wrapper
    Wrapper* tr= &tc;                // A test case wrapper pointer
 
@@ -128,6 +124,11 @@ extern int                          // Return code
      fprintf(stderr, "  --argument\tTest required_argument specifier\n");
      fprintf(stderr, "  --error\tTest test error\n");
      fprintf(stderr, "  --throw\tTest test exception\n");
+   });
+
+   tc.on_init([](int argc, char* argv[]) // (Unused in this sample)
+   { (void)argc; (void)argv;        // (Unused arguments)
+     return 0;
    });
 
    tc.on_parm([](std::string name, const char* value)
@@ -141,8 +142,12 @@ extern int                          // Return code
      return 0;
    });
 
-   tc.on_main([tr](int, char*[])
+   tc.on_term([]()                  // (Unused in this sample)
    {
+   });
+
+   tc.on_main([tr](int argc, char* argv[])
+   { (void)argc; (void)argv;        // (Unused arguments)
      if( opt_verbose )
        debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
 

@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       Test_Num.cpp
+//       Test_num.cpp
 //
 // Purpose-
 //       Test the Number object.
 //
 // Last change date-
-//       2022/04/19
+//       2022/04/22
 //
 //----------------------------------------------------------------------------
 #include <inttypes.h>               // For PRId64, PRIx64 printf format macros
@@ -71,12 +71,14 @@ static const uintmax_t uTWO= 0x0f1e2d3c4b5a6978LL;
 static int                          // Error count
    test_bringup( void )             // Bringup test
 {
-   debugf("\ntest_bringup\n");
+   if( opt_verbose ) {
+     debugf("\ntest_bringup\n");
 
-   debugf("%4zd= sizeof(Number)\n", sizeof(Number));
-   debugf("%4zd= sizeof(Number::Byte)\n", sizeof(Number::Byte));
-   debugf("%4zd= sizeof(Number::Word)\n", sizeof(Number::Word));
-   debugf("%4zd= Number::MIN_SIZE\n", Number::get_minsize());
+     debugf("%4zd= sizeof(Number)\n", sizeof(Number));
+     debugf("%4zd= sizeof(Number::Byte)\n", sizeof(Number::Byte));
+     debugf("%4zd= sizeof(Number::Word)\n", sizeof(Number::Word));
+     debugf("%4zd= Number::MIN_SIZE\n", Number::get_minsize());
+   }
 
    Number one= sONE;
    Number two= sTWO;
@@ -186,7 +188,8 @@ static int                          // Error count
 static int                          // Error count
    test_Number( void )              // Test Number object
 {
-   debugf("\ntest_Number\n");
+   if( opt_verbose )
+     debugf("\ntest_Number\n");
 
    int error_count= 0;
    Interval interval;
@@ -483,7 +486,8 @@ static int                          // Error count
      }
    }
    interval.stop();
-   debugf("%8.4f Seconds\n", interval.to_double());
+   if( opt_verbose )
+     debugf("%8.4f Seconds\n", interval.to_double());
 
    return error_count;
 }
@@ -500,7 +504,8 @@ static int                          // Error count
 static int                          // Error count
    test_Number8( void )             // Test Number object
 {
-   debugf("\ntest_Number8\n");
+   if( opt_verbose )
+     debugf("\ntest_Number8\n");
 
    int error_count= 0;
    if( false ) {
@@ -588,7 +593,8 @@ static int                          // Error count
      }
    }
    interval.stop();
-   debugf("%8.4f Seconds\n", interval.to_double());
+   if( opt_verbose )
+     debugf("%8.4f Seconds\n", interval.to_double());
    return error_count;
 }
 
@@ -604,9 +610,10 @@ static int                          // Error count
 static int                          // Number of errors encountered
    test_Number8_out( void )         // Test Number::out() (size == 8)
 {
-   int error_count= 0;              // Error counter
+   if( opt_verbose )
+     debugf("\ntest_Number8_out\n");
 
-   debugf("\ntest_Number8_out\n");
+   int error_count= 0;              // Error counter
 
    if( false ) {
      debugf("%4d HCDM test skipped\n", __LINE__);
@@ -754,7 +761,8 @@ static int                          // Number of errors encountered
        break;
    }
    interval.stop();
-   debugf("%8.4f Seconds\n", interval.to_double());
+   if( opt_verbose )
+     debugf("%8.4f Seconds\n", interval.to_double());
    return error_count;
 }
 
@@ -780,18 +788,17 @@ extern int
      if( opt_verbose )
        debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
 
-     int error_count= 0;
-
-     error_count += test_bringup();
-
+     int error_count= test_bringup();
      if( error_count == 0 ) {
+       test_Number();
        test_Number8();
        test_Number8_out();
-       test_Number();
-       debugf("\n");
      }
 
-     tr->report_errors(error_count);
+     if( opt_verbose ) {
+       debugf("\n");
+       tr->report_errors(error_count);
+     }
      return error_count != 0;
    });
 

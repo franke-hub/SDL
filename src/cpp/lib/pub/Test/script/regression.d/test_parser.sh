@@ -10,27 +10,25 @@
 ##----------------------------------------------------------------------------
 ##
 ## Title-
-##       test_Parser.sh
+##       test_parser.sh
 ##
 ## Function-
 ##       Parser regression set
 ##
 ## Last change date-
-##       2022/04/19
+##       2022/04/22
 ##
 ##############################################################################
-F=$(basename "$0")
-echo -e "\nRunning $F ======================================================="
 
 ##############################################################################
 ## Run test, check output
 ng=0
-Test_Parser 1>parser.out 2>parser.err
+Test_parser 1>parser.out 2>parser.err
 
 diff parser.out S/script/out/parser.out >/dev/null 2>/dev/null
 rc=$?
 if [[ $rc != 0 ]] ; then
-  echo "Error: stdout not as expected"
+  echo "Error: stdout data mismatch"
   diff parser.out S/script/out/parser.out
   ng=1
 fi
@@ -38,15 +36,9 @@ fi
 diff parser.err S/script/out/parser.err >/dev/null 2>/dev/null
 rc=$?
 if [[ $rc != 0 ]] ; then
-  echo "Error: stderr not as expected"
+  echo "Error: stderr data mismatch"
   diff parser.err S/script/out/parser.err
   ng=1
-fi
-
-if [[ $ng == 0 ]] ; then
-  echo "OK: test_Parser.sh"
-else
-  echo "NG: test_Parser.sh (Unexpected error)"
 fi
 
 ##############################################################################

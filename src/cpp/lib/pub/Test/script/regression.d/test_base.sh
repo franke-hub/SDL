@@ -10,17 +10,15 @@
 ##----------------------------------------------------------------------------
 ##
 ## Title-
-##       Unit-test.sh
+##       test_base.sh
 ##
 ## Function-
 ##       Run all executables with default options
 ##
 ## Last change date-
-##       2022/03/04
+##       2022/04/22
 ##
 ##############################################################################
-F=$(basename "$0")
-echo -e "\nRunning $F ======================================================="
 
 ##############################################################################
 ## Function OK: Run test, success expected
@@ -29,7 +27,6 @@ function OK
   $@
   rc=$?
   if [ $rc == 0 ] ; then
-    echo "OK $@"
     return
   fi
 
@@ -39,12 +36,25 @@ function OK
 
 ##############################################################################
 ## Run executables
-echo -e "\nUnit tests"
-OK Quick
-OK TestDisp
-OK TestList
-OK TestLock
-OK TestMisc
-OK Test_Num
-OK Test_Thr
-OK Test_bug
+test="Quick --all"
+./$test
+rc=$?
+if [[ $rc == 0 ]] ; then
+  echo "PASS: ./$test"
+else
+  echo "FAIL: ./$test, rc $rc"
+fi
+
+test_set="TestDisp TestList TestLock TestMisc Test_num Test_thr"
+for test in $test_set
+do
+  [[ "$test" == "Test_num" ]] && echo "TEST: ./$test (started)"
+  [[ "$test" == "Test_thr" ]] && echo "TEST: ./$test (started)"
+  ./$test
+  rc=$?
+  if [[ $rc == 0 ]] ; then
+    echo "PASS: ./$test"
+  else
+    echo "FAIL: ./$test, rc $rc"
+  fi
+done

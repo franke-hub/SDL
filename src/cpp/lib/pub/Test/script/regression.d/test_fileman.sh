@@ -10,25 +10,22 @@
 ##----------------------------------------------------------------------------
 ##
 ## Title-
-##       test_Fileman.sh
+##       test_fileman.sh
 ##
 ## Function-
 ##       Fileman regression set
 ##
 ## Last change date-
-##       2022/03/04
+##       2022/04/22
 ##
 ##############################################################################
-F=$(basename "$0")
-echo -e "\nRunning $F ======================================================="
-
 DO=TestFile
 
 ##############################################################################
 ## Function OK: Run test, success expected
 function OK
 {
-  $DO $@
+  $DO $parm $@
   rc=$?
   [ $rc == 0 ] && return
 
@@ -40,13 +37,37 @@ function OK
 ## Function NG: Run test, failure expected
 function NG
 {
-  $DO $@
+  $DO $parm $@
   rc=$?
   [ $rc != 0 ] && return
 
   echo "$DO $1 returned 0, but non-zero expected"
   exit 1
 }
+
+##############################################################################
+## Parameter analysis
+parm=
+verb=0
+for arg in "$@"
+do
+  case $arg in
+    --verbose*)
+      verb=1
+      parm="$arg $parm"
+      shift
+      ;;
+
+    -*)
+      echo "Parameter '$arg' ignored"
+      shift
+      ;;
+
+    *)
+      break
+      ;;
+  esac
+done
 
 ##############################################################################
 ## Remove/create links
@@ -56,8 +77,7 @@ ln -s loop loop
 ln -s /../zero zero
 
 ##############################################################################
-echo -e "\n\n================================================================"
-echo "OK Regression tests"
+[[ $verb > 0 ]] && echo "Regression tests, expect success"
 ## set -x
 OK ./../.                           ## Resolves to ../.
 OK ./././.                          ## Remove trailing blanks
@@ -67,8 +87,7 @@ OK *.xxyyz                          ## Non-existent (OK)
 ## set +x
 
 ##############################################################################
-echo -e "\n\n================================================================"
-echo "NG Regression tests"
+[[ $verb > 0 ]] && echo "Regression tests, expect failure"
 ## set -x
 NG ./ .//. S/.//.                   ## Empty file names
 NG zero                             ## Name /..

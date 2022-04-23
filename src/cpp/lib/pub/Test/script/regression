@@ -16,7 +16,7 @@
 ##       Regression tests
 ##
 ## Last change date-
-##       2022/04/20
+##       2022/04/22
 ##
 ## Implementation notes-
 ##       Run this script from ~/src/cpp/obj/pub/Test, the test subdirectory.
@@ -31,7 +31,7 @@ DDIR=S/script/regression.d
 ## Parameter analysis
 make=1
 parm=
-verbose=0
+setx=0
 for arg in "$@"
 do
   case $arg in
@@ -40,13 +40,13 @@ do
       shift
       ;;
 
-    --verbose*)
+    --*)
       parm="$arg $parm"
       shift
       ;;
 
     -x)
-      verbose=1
+      setx=1
       shift
       ;;
 
@@ -68,7 +68,7 @@ fi
 
 ##############################################################################
 ## Make sure the test library is up to date
-if [ $make != 0 ] ; then
+if [[ $make != 0 ]] ; then
   echo "Building tests..."
   make all
   rc=$?
@@ -80,15 +80,16 @@ fi
 
 ##############################################################################
 ## Run the regression tests
-[ $verbose != 0 ] && set -x
+[ $setx != 0 ] && set -x
 for test in $test_set
 do
   if [[ -x "$DDIR/$test" && ! -d "$DDIR/$test" ]] ; then
     $DDIR/$test $parm
     rc=$?
-    if [[ $rc != 0 ]] ; then
-      echo "ERROR $rc: $test failed"
-      exit $rc
+    if [[ $rc == 0 ]] ; then
+      echo "PASS: $test"
+    else
+      echo "FAIL: $test, rc $rc"
     fi
   fi
 done

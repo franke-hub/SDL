@@ -319,21 +319,12 @@ static int                          // Return code (0 if OK)
                opt_verbose= p2i(optarg, OPTS[opt_index].name);
              break;
 
-           default: {
-//             if( size_t(opt_index) < OPNO ) {
-//               std::string S= (argv[optind-1] + 2); // Strip out leading "--"
-//               size_t X= S.find('='); // Strip out trailing "=value"
-//               if( X != std::string::npos )
-//                 S= S.substr(0, X);
-//               if( parm_f(S, optarg) )
-//                 opt_help= true;
-//             } else {
+           default:
                opt_help= true;
                fprintf(stderr, "%4d Unexpected opt_index(%d)\n", __LINE__,
                                opt_index);
-//             }
              break;
-           }
+
          }
          break;
        }}}}
@@ -435,13 +426,13 @@ int                                 // Return code
      rc= compare();
      if( opt_verbose ) {
        if( rc == 0 )
-         printf("OK: Files '%s' and '%s' compare equal\n"
+         printf("PASS: Files '%s' and '%s' compare equal\n"
                , wild_name, file_name);
        else if( rc == 1 )
-         printf("NG: Files '%s' and '%s' data mismatch\n"
+         printf("FAIL: Files '%s' and '%s' data mismatch\n"
                , wild_name, file_name);
        else
-         printf("NG: Parameter error\n");
+         printf("FAIL: Parameter error\n");
      }
    } catch(pub::Exception& x) {
      fprintf(stderr, "pub::exception(%s)\n", x.what());

@@ -2,10 +2,10 @@
 //
 //       Copyright (c) 2018-2022 Frank Eskesen.
 //
-//       This file is free content, distributed under the Lesser GNU
-//       General Public License, version 3.0.
-//       (See accompanying file LICENSE.LGPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2022/04/13
+//       2022/04/22
 //
 // Arguments: (For testtime only)
 //       TestDisp --timing          // (Only run timing test)
@@ -587,7 +587,10 @@ extern int
          if( true  ) error_count += testtime(argc, argv);
        }
 
-     tr->report_errors(error_count);
+     if( opt_verbose ) {
+       debugf("\n");
+       tr->report_errors(error_count);
+     }
      return error_count != 0;
      });
 

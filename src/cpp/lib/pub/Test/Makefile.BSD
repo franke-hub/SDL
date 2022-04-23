@@ -79,5 +79,5 @@ do: TestDisp
 clean: clean.dir
 clean.dir: ;
 	-@rm liblocal.a      >/dev/null 2>/dev/null
-	-@rm trace.mem       >/dev/null 2>/dev/null
 	-@rm test_bug.*      >/dev/null 2>/dev/null
+	-@rm trace.mem       >/dev/null 2>/dev/null

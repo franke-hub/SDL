@@ -2,21 +2,21 @@
 //
 //       Copyright (c) 2018-2022 Frank Eskesen.
 //
-//       This file is free content, distributed under the Lesser GNU
-//       General Public License, version 3.0.
-//       (See accompanying file LICENSE.LGPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
 // Title-
-//       Test_Thr.cpp
+//       Test_thr.cpp
 //
 // Purpose-
 //       Test Thread function.
 //
 // Last change date-
-//       2022/04/02
+//       2022/04/22
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -104,7 +104,7 @@ public:
 virtual void
    run(void)
 {
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugf("%10.6f NoisyThread(%p).run(%s)\n", interval.stop(), this
            , get_name().c_str());
 
@@ -131,7 +131,6 @@ void
    started.reset();
    setState(2);
    start();
-// setState(3);                     // (May already be in state 4)
    started.wait();
 
    int stateControl= this->stateControl;
@@ -445,37 +444,37 @@ static inline void
 {
    MutexThread         mutexThread;
 
-   if( HCDM || opt_hcdm ) {
+   if( opt_verbose ) {
      debugh("\n");
      debugh("testMutex\n");
      debugh("Before alphaMutex.lock()\n");
    }
    alphaMutex.lock();
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("thread.start()\n");
    mutexThread.start();
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("sleep(1.0)...\n");
    Thread::sleep(1.0);
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("...sleep(1.0)\n");
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("Before alphaMutex.unlock()\n");
    alphaMutex.unlock();
 
    {{{{
-     if( HCDM || opt_hcdm )
+     if( opt_verbose )
        debugh("Before betaMutex.lock()\n");
      std::lock_guard<decltype(betaMutex)> lock(betaMutex);
 
-     if( HCDM || opt_hcdm )
+     if( opt_verbose )
        debugh("Before betaMutex.unlock()\n");
    }}}}
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("thread.join()\n");
    mutexThread.join();
 }
@@ -494,36 +493,36 @@ static inline void
 {
    SemaphoreThread     semaphoreThread;
 
-   if( HCDM || opt_hcdm ) {
+   if( opt_verbose ) {
      debugh("\n");
      debugh("testSemaphore\n");
      debugh("Before alphaSemaphore.wait()\n");
    }
    alphaSemaphore.wait();
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("thread.start()\n");
    semaphoreThread.start();
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("sleep(1.0)...\n");
    Thread::sleep(1.0);
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("...sleep(1.0)\n");
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("Before alphaSemaphore.post()\n");
    alphaSemaphore.post();
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("Before betaSemaphore.wait()\n");
    betaSemaphore.wait();
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("Before betaSemaphore.post()\n");
    betaSemaphore.post();
 
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("thread.join()\n");
    semaphoreThread.join();
 }
@@ -546,10 +545,10 @@ static inline void
    sleepThread.join();
 
    // Test sleep in main thread
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("Before sleep(0.5)\n");
    Thread::sleep(0.5);
-   if( HCDM || opt_hcdm )
+   if( opt_verbose )
      debugh("*After sleep(0.5)\n");
 }
 
@@ -571,125 +570,130 @@ static inline void
    double              begin;       // Begin interval
    double              prior;       // Prior interval
 
-   int                 i;
+   try {
+     for(int count= 0; count<TIMING; count++) { // Timing loop, normally once
+       interval.start();
+       if( opt_verbose ) {
+         debugf("\n");
+         debugf("%10.6f %4d Creating hanging threads\n", interval.stop()
+               , __LINE__);
+       }
+       for(int i=0; i<MAXHANGERS; i++)
+         hangingThread();
 
-try {
-for(int count= 0; count<TIMING; count++) { // Timing loop, normally once
-   interval.start();
-   if( HCDM || opt_hcdm ) {
-     debugf("\n");
-     debugf("%10.6f %4d Creating hanging threads\n", interval.stop(), __LINE__);
-   }
-   for(i=0; i<MAXHANGERS; i++)
-     hangingThread();
+       if( opt_verbose ) {
+         debugf("\n");
+         debugf("%10.6f %4d Creating Noisy threads\n", interval.stop()
+               , __LINE__);
+       }
+       for(int i=0; i<MAXNOISY; i++)
+       {
+         sprintf(buffer, "%.4d", i);
+         noisyArray[i]= new NoisyThread(buffer, noisy_delay);
+         noisyArray[i]->safeStart();
+       }
 
-   if( HCDM || opt_hcdm ) {
-     debugf("\n");
-     debugf("%10.6f %4d Creating Noisy threads\n", interval.stop(), __LINE__);
-   }
-   for(i=0; i<MAXNOISY; i++)
-   {
-     sprintf(buffer, "%.4d", i);
-     noisyArray[i]= new NoisyThread(buffer, noisy_delay);
-     noisyArray[i]->safeStart();
-   }
+       if( opt_verbose ) {
+         debugf("\n");
+         debugf("%10.6f %4d Creating Quiet threads\n", interval.stop()
+               , __LINE__);
+       }
+       for(int i=0; i<MAXQUIET; i++)
+         quietArray[i]= new QuietThread();
 
-   if( HCDM || opt_hcdm ) {
-     debugf("\n");
-     debugf("%10.6f %4d Creating Quiet threads\n", interval.stop(), __LINE__);
-   }
-   for(i=0; i<MAXQUIET; i++)
-     quietArray[i]= new QuietThread();
+       // Implementation note:
+       // Since Debug and printf do not share mutexes, printf statements can
+       // interfere with Debug output. The printf "\r" can elide all or part
+       // of a Debug stdout display line.
+       // The debug.out trace file should not show this interference.
+       prior= interval.stop();
+       begin= prior;
+       if( opt_verbose ) {
+         debugf("%10.6f %4d Starting Quiet threads\n", interval.stop()
+               , __LINE__);
+         fflush(stdout);
+       }
+       double maxstart= 0.0;
+       double minstart= 99999.0;
+       for(int i=0; i<MAXQUIET; i++)
+       {
+         quietArray[i]->start();
+         double now= interval.stop();
+         double del= now - prior;
+         prior= now;
+         if( minstart > del ) minstart= del;
+         if( maxstart < del ) maxstart= del;
+         if( opt_verbose ) {
+           printf("%8d\r", i+1);
+           if( (random() & 63) == 0 )
+             fflush(stdout);        // CYGWIN: better performance if used
+         }
+       }
+       prior= interval.stop();
+       double totstart= prior - begin;
+       begin= prior;
 
-   // Implementation note:
-   // Since Debug and printf do not share mutexes, printf statements can
-   // interfere with Debug output. The printf "\r" can elide all or part
-   // of a Debug stdout display line.
-   // The debug.out trace file should not show this interference.
-   prior= interval.stop();
-   begin= prior;
-   if( HCDM || opt_hcdm ) {
-     debugf("%10.6f %4d Starting Quiet threads\n", interval.stop(), __LINE__);
-     fflush(stdout);
-   }
-   double maxstart= 0.0;
-   double minstart= 99999.0;
-   for(i=0; i<MAXQUIET; i++)
-   {
-     quietArray[i]->start();
-     double now= interval.stop();
-     double del= now - prior;
-     prior= now;
-     if( minstart > del ) minstart= del;
-     if( maxstart < del ) maxstart= del;
-     if( HCDM || opt_hcdm ) {
-       printf("%8d\r", i+1);
-       if( (random() & 63) == 0 )
-         fflush(stdout);            // CYGWIN: better performance if used
+       double maxjoin= 0.0;
+       double minjoin= 99999.0;
+       if( opt_verbose ) {
+         debugf("\n");
+         debugf("%10.6f %4d Joining Quiet threads\n", interval.stop()
+               , __LINE__);
+         fflush(stdout);
+       }
+       for(int i=0; i<MAXQUIET; i++)
+       {
+         if( HCDM && i == 0 )
+           tracef("%10.6f [0]\n", interval.stop());
+         quietArray[i]->join();
+         double now= interval.stop();
+         double del= now - prior;
+         prior= now;
+         if( minjoin > del ) minjoin= del;
+         if( maxjoin < del ) maxjoin= del;
+         if( opt_verbose ) {
+           printf("%8d\r", i+1);
+           if( (random() & 63) == 0 )
+             fflush(stdout);        // CYGWIN: better performance if unused
+         }
+       }
+       double totjoin= prior - begin;
+
+       if( opt_verbose ) {
+         debugf("\n");
+         debugf("%10.6f %4d Deleting Quiet threads\n", interval.stop()
+               , __LINE__);
+       }
+       for(int i=0; i<MAXQUIET; i++)
+         delete quietArray[i];
+
+       if( opt_verbose )
+         debugf("%10.6f %4d Joining Noisy threads\n", interval.stop()
+               , __LINE__);
+       for(int i=0; i<MAXNOISY; i++)
+       {
+         noisyArray[i]->join();
+         delete noisyArray[i];
+       }
+
+       if( opt_verbose ) {
+         debugf("%10.6f %4d All threads completed\n", interval.stop(), __LINE__);
+         debugf("maxstart(%10.6f) minstart(%10.6f) avgstart(%10.6f)\n",
+                maxstart, minstart, (double)totstart / (double)MAXQUIET);
+         debugf(" maxjoin(%10.6f)  minjoin(%10.6f)  avgjoin(%10.6f)\n",
+                maxjoin,  minjoin, (double)totjoin / (double)MAXQUIET);
+         debugf("totstart(%10.6f)  totjoin(%10.6f)\n", totstart, totjoin);
+       }
      }
+   }  catch(Exception& x) {
+      debugf("Exception %s\n", x.to_string().c_str());
+   }  catch(std::exception& x) {
+      debugf("std::exception what(%s)\n", x.what());
+   }  catch(const char* x) {
+      debugf("Exception(char* %s)\n", x);
+   }  catch(...) {
+      debugf("Exception(...)\n");
    }
-   prior= interval.stop();
-   double totstart= prior - begin;
-   begin= prior;
-
-   double maxjoin= 0.0;
-   double minjoin= 99999.0;
-   if( HCDM || opt_hcdm ) {
-     debugf("\n");
-     debugf("%10.6f %4d Joining Quiet threads\n", interval.stop(), __LINE__);
-     fflush(stdout);
-   }
-   for(i=0; i<MAXQUIET; i++)
-   {
-     if( HCDM && i == 0 )
-       tracef("%10.6f [0]\n", interval.stop());
-     quietArray[i]->join();
-     double now= interval.stop();
-     double del= now - prior;
-     prior= now;
-     if( minjoin > del ) minjoin= del;
-     if( maxjoin < del ) maxjoin= del;
-     if( HCDM || opt_hcdm ) {
-       printf("%8d\r", i+1);
-       if( (random() & 63) == 0 )
-         fflush(stdout);            // CYGWIN: better performance if unused
-     }
-   }
-   double totjoin= prior - begin;
-
-   if( HCDM || opt_hcdm ) {
-     debugf("\n");
-     debugf("%10.6f %4d Deleting Quiet threads\n", interval.stop(), __LINE__);
-   }
-   for(i=0; i<MAXQUIET; i++)
-     delete quietArray[i];
-
-   if( HCDM || opt_hcdm )
-     debugf("%10.6f %4d Joining Noisy threads\n", interval.stop(), __LINE__);
-   for(i=0; i<MAXNOISY; i++)
-   {
-     noisyArray[i]->join();
-     delete noisyArray[i];
-   }
-
-   if( HCDM || opt_hcdm ) {
-     debugf("%10.6f %4d All threads completed\n", interval.stop(), __LINE__);
-     debugf("maxstart(%10.6f) minstart(%10.6f) avgstart(%10.6f)\n",
-            maxstart, minstart, (double)totstart / (double)MAXQUIET);
-     debugf(" maxjoin(%10.6f)  minjoin(%10.6f)  avgjoin(%10.6f)\n",
-            maxjoin,  minjoin, (double)totjoin / (double)MAXQUIET);
-     debugf("totstart(%10.6f)  totjoin(%10.6f)\n", totstart, totjoin);
-   }
-}
-}  catch(Exception& x) {
-   debugf("Exception %s\n", x.to_string().c_str());
-}  catch(std::exception& x) {
-   debugf("std::exception what(%s)\n", x.what());
-}  catch(const char* x) {
-   debugf("Exception(char* %s)\n", x);
-}  catch(...) {
-   debugf("Exception(...)\n");
-}
 }
 
 //----------------------------------------------------------------------------
@@ -713,9 +717,12 @@ extern int
 
    tc.on_init([](int argc, char* argv[])
    {
+     if( HCDM ) opt_hcdm= true;
+     if( VERBOSE > opt_verbose ) opt_verbose= VERBOSE;
+
      debug_set_head(Debug::HEAD_THREAD);
      debug_set_head(Debug::HEAD_TIME);
-     if( HCDM || opt_hcdm )
+     if( opt_hcdm )
        debug_set_mode(Debug::MODE_INTENSIVE);
 
      if( optind < argc )
@@ -728,12 +735,8 @@ extern int
    // Define the tests
    tc.on_main([tr](int, char*[])
    {
-     debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
-     if( HCDM || opt_hcdm ) {
-       debugf("%10.6f noisy_delay\n", noisy_delay);
-     } else {
-       debugf("(Test takes about 30 seconds.)\n");
-     }
+     if( opt_verbose )
+       debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
 
      for(int i= 0; i<8; i++)        // Test Event object
        standardThread();
@@ -743,7 +746,10 @@ extern int
      testSleep();
      testStress();
 
-     tr->report_errors(error_count);
+     if( opt_verbose ) {
+       debugf("\n");
+       tr->report_errors(error_count);
+     }
      return error_count != 0;
    });
 

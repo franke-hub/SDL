@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Lock.h
 //
 // Last change date-
-//       2020/10/03
+//       2022/04/22
 //
 //----------------------------------------------------------------------------
 #include "pub/Lock.h"               // The test object
@@ -38,14 +38,21 @@
 #include <pub/Debug.h>              // For debugging functions
 #include <pub/Exception.h>          // For pub::Exception, std::exception
 #include <pub/Thread.h>             // For pub::Thread::sleep
+#include <pub/Wrapper.h>            // For class Wrapper
+
 using pub::Debug;                   // For Debug object
 using namespace pub::debugging;     // For debugging functions
+using pub::Wrapper;                 // For pub::Wrapper class
+
+#define opt_hcdm       pub::Wrapper::opt_hcdm
+#define opt_verbose    pub::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Compile-time options
 //----------------------------------------------------------------------------
 enum // Compile time-options
 {  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // Compile time-options
 
 static const char*     OPT_LOCK= "/TestLock.cpp"; // Our lock name
@@ -53,29 +60,11 @@ static const char*     OPT_LOCK= "/TestLock.cpp"; // Our lock name
 //----------------------------------------------------------------------------
 // Options
 //----------------------------------------------------------------------------
-static int             opt_help= false; // --help (or error)
-static int             opt_hcdm= false; // Hard Core Debug Mode
-static int             opt_index;   // Option index
+static int             opt_reset= false; // Reset shared storage?
 
-static int             opt_reset= false; // Reset shared storage
-static int             opt_verbose= -1; // --verbose=n (Verbosity)
-
-static const char*     OSTR= ":";   // The getopt_long optstring parameter
-static struct option   OPTS[]=      // The getopt_long longopts parameter
-{  {"help",     no_argument,       &opt_help,    true}
-,  {"hcdm",     no_argument,       &opt_hcdm,    true}
-
-,  {"reset",    no_argument,       &opt_reset,   true}
-,  {"verbose",  optional_argument, &opt_verbose,  0}
+static struct option   opts[]=      // The getopt_long longopts parameter
+{  {"reset",    no_argument,       &opt_reset,   true}
 ,  {0, 0, 0, 0}                     // (End of option list)
-};
-
-enum OPT_INDEX                      // Must match OPTS[]
-{  OPT_HELP
-,  OPT_HCDM
-
-,  OPT_RESET
-,  OPT_VERBOSE
 };
 
 //----------------------------------------------------------------------------
@@ -95,286 +84,26 @@ char**                 argv;        // Argument array
    Main(int argc, char* argv[])
 :  argc(argc), argv(argv)
 {
-// if( opt_verbose > 0 )            // (For reference)
-//   debugh("[%6d] Main(%p)::Main()\n", getpid(), this);
-// debugh("[%6d] %4d HCDM\n", getpid(), __LINE__); // (For reference)
-   if( opt_verbose > 0 )
+   if( opt_verbose > 1 )
      debugh("[%6d] Main(%p)::Main\n", getpid(), this);
 }
 
 // Methods -------------------------------------------------------------------
-        int  process( void );       // Spawned process operation
         int  reset( void );         // Reset shared storage objects
 virtual int  run( void );           // The mainline code
+        int  spawned( void );       // Spawned process operation
 }; // class Main =============================================================
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       oops
+//       geterror
 //
 // Purpose-
 //       Return strerror(errno)
 //
 //----------------------------------------------------------------------------
-static inline const char* oops( void ) { return strerror(errno); }
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       init
-//
-// Purpose-
-//       Initialize
-//
-//----------------------------------------------------------------------------
-static int                          // Return code (0 OK)
-   init(int, char**)                // Initialize
-//   int               argc,        // Argument count
-//   char*             argv[])      // Argument array
-{
-   //-------------------------------------------------------------------------
-   // Initialize/activate debugging trace
-   Debug* debug= Debug::get();      // (To set file mode before use)
-   debug->set_file_mode("ab");      // (Append so second PID doesn't truncate)
-   debug->set_head(Debug::HEAD_TIME); // Include heading in time
-
-   if( HCDM ) opt_hcdm= true;       // If HCDM compile-time, force opt_hcdm
-   if( opt_hcdm ) {                 // If --hcdm option specified
-     debug->set_mode(Debug::MODE_INTENSIVE); // Hard Core Debug Mode
-   }
-
-   return 0;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       term
-//
-// Purpose-
-//       terminate
-//
-//----------------------------------------------------------------------------
-static void
-   term( void )                     // Terminate
-{
-   if( pub_lock ) {
-     delete pub_lock;
-     pub_lock= nullptr;
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       to_integer
-//
-// Purpose-
-//       Convert string to integer, handling error cases
-//
-// Implementation note-
-//       Leading or trailing blanks are NOT allowed.
-//
-//----------------------------------------------------------------------------
-static int                          // The integer value
-   to_integer(                      // Extract and verify integer value
-     const char*       inp)         // From this string
-{
-   errno= 0;
-   char* strend;                    // Ending character
-   long value= strtol(inp, &strend, 0);
-   if( strend == inp || *inp == ' ' || *strend != '\0' )
-     errno= EINVAL;
-   else if( value < INT_MIN || value > INT_MAX )
-     errno= ERANGE;
-
-   return value;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       parm_int
-//
-// Purpose-
-//       Convert parameter to integer, handling error cases
-//
-// Implementation note-
-//       optarg: The argument string
-//       opt_index: The argument index
-//
-//----------------------------------------------------------------------------
-static int                          // The integer value
-   parm_int( void )                 // Extract and verify integer value
-{
-   int value= to_integer(optarg);
-   if( errno ) {
-     opt_help= true;
-     if( errno == ERANGE )
-       fprintf(stderr, "--%s, range error: '%s'\n", OPTS[opt_index].name, optarg);
-     else
-       fprintf(stderr, "--%s, format error: '%s'\n", OPTS[opt_index].name, optarg);
-   }
-
-   return value;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       info
-//
-// Purpose-
-//       Parameter description.
-//
-//----------------------------------------------------------------------------
-static int                          // Return code (Always 1)
-   info( void)                      // Parameter description
-{
-   fprintf(stderr, "%s <options>\n"
-                   "Options:\n"
-                   "  --help\tThis help message\n"
-                   "  --hcdm\tHard Core Debug Mode\n"
-
-                   "  --reset\tReset shared storage\n"
-                   "  --verbose{=n}\tVerbosity, default 0\n"
-                   , __FILE__
-          );
-
-   return 1;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       parm
-//
-// Purpose-
-//       Parameter analysis.
-//
-//----------------------------------------------------------------------------
-static int                          // Return code (0 if OK)
-   parm(                            // Parameter analysis
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
-{
-   //-------------------------------------------------------------------------
-   // Parameter analysis
-   //-------------------------------------------------------------------------
-   int C;                           // The option character
-   while( (C= getopt_long(argc, argv, OSTR, OPTS, &opt_index)) != -1 )
-   {
-     switch( C )
-     {
-       case 0:
-       {{{{
-         switch( opt_index )
-         {
-           case OPT_HELP:           // These options handled by getopt
-           case OPT_HCDM:
-           case OPT_RESET:
-             break;
-
-           case OPT_VERBOSE:
-             if( optarg )
-               opt_verbose= parm_int();
-             break;
-
-           default:
-             fprintf(stderr, "%4d Unexpected opt_index(%d)\n", __LINE__,
-                             opt_index);
-             break;
-         }
-         break;
-       }}}}
-
-       case ':':
-         opt_help= true;
-         if( optopt == 0 )
-           fprintf(stderr, "%4d Option requires an argument '%s'.\n", __LINE__,
-                           argv[optind-1]);
-         else
-           fprintf(stderr, "%4d Option requires an argument '-%c'.\n", __LINE__,
-                           optopt);
-         break;
-
-       case '?':
-         opt_help= true;
-         if( optopt == 0 )
-           fprintf(stderr, "%4d Unknown option '%s'.\n", __LINE__,
-                           argv[optind-1]);
-         else if( isprint(optopt) )
-           fprintf(stderr, "%4d Unknown option '-%c'.\n", __LINE__, optopt);
-         else
-           fprintf(stderr, "%4d Unknown option character '0x%x'.\n", __LINE__,
-                           (optopt & 0x00ff));
-         break;
-
-       default:
-         fprintf(stderr, "%4d ShouldNotOccur ('%c',0x%x).\n", __LINE__,
-                         C, (C & 0x00ff));
-         break;
-     }
-   }
-
-   // Disallow positional parameters
-   for(int i= optind; i < argc; i++ ) {
-     opt_help= true;
-     fprintf(stderr, "'%s' Positional parameter not supported\n", argv[i]);
-   }
-
-   // Return sequence
-   int rc= 0;
-   if( opt_help )
-     rc= info();
-   return rc;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Main::process
-//
-// Purpose-
-//       Run the spawned process
-//
-//----------------------------------------------------------------------------
-int                                 // Error count
-   Main::process( void )            // Run the spawned process
-{
-   if( opt_verbose > 0 )
-     debugh("[%6d] Main(%p)::process()\n", getpid(), this);
-
-   //-------------------------------------------------------------------------
-   // Create the lock
-   pub_lock= new pub::Lock(OPT_LOCK); // Create the Lock
-
-   //-------------------------------------------------------------------------
-   // Test the lock
-   {{{{
-     pub::Thread::sleep(0.001);
-     std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
-     debugh("[%6d] 002\n", getpid());
-     pub::Thread::sleep(0.25);
-   }}}}
-
-   {{{{
-     pub::Thread::sleep(0.001);
-     std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
-     debugh("[%6d] 004\n", getpid());
-     pub::Thread::sleep(0.25);
-   }}}}
-
-   {{{{
-     pub::Thread::sleep(0.001);
-     std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
-     debugh("[%6d] 006\n", getpid());
-     pub::Thread::sleep(0.25);
-   }}}}
-
-   return 0;
-}
+static inline const char* geterror( void ) { return strerror(errno); }
 
 //----------------------------------------------------------------------------
 //
@@ -393,7 +122,7 @@ int                                 // Error count
    int
    rc= pub::Lock::unlink(OPT_LOCK); // Remove the lock
    if( rc ) {
-     errorf("%4d Lock::unlink(%s): %s\n", __LINE__, OPT_LOCK, oops());
+     errorf("%4d Lock::unlink(%s): %s\n", __LINE__, OPT_LOCK, geterror());
      error_count++;
    }
 
@@ -412,7 +141,7 @@ int                                 // Error count
 int                                 // Error count
    Main::run( void )                // Mainline code
 {
-   if( opt_verbose > 0 )
+   if( opt_verbose > 1 )
      debugh("[%6d] Main(%p)::run()\n", getpid(), this);
 
    //-------------------------------------------------------------------------
@@ -425,13 +154,10 @@ int                                 // Error count
    int
    rc= pub::Lock::create(OPT_LOCK, O_CREAT | O_EXCL);
    if( rc ) {
-     if( errno == EEXIST ) {        // If already open
-       rc= process();               // We must be the spawned process
-       term();
-       exit(rc);
-     }
+     if( errno == EEXIST )          // If already open
+       return spawned();            // We must be the spawned process
 
-     errorf("%4d Lock::create(%s): %s\n", __LINE__, OPT_LOCK, oops());
+     errorf("%4d Lock::create(%s): %s\n", __LINE__, OPT_LOCK, geterror());
      return 1;
    }
    pub_lock= new pub::Lock(OPT_LOCK); // Create the Lock
@@ -442,7 +168,7 @@ int                                 // Error count
    int pid;
    rc= posix_spawn(&pid, argv[0], nullptr, nullptr, argv, environ);
    if( rc ) {
-     errorf("%4d posix_spawn(%s): %s\n", __LINE__, argv[0], oops());
+     errorf("%4d posix_spawn(%s): %s\n", __LINE__, argv[0], geterror());
      return 1;
    }
    if( opt_verbose > 1 )
@@ -450,28 +176,32 @@ int                                 // Error count
 
    //-------------------------------------------------------------------------
    // Test the lock
-   debugh("[%6d] 001\n", getpid());
+   if( opt_verbose )
+     debugh("[%6d] 001\n", getpid());
    pub::Thread::sleep(0.25);
    pub_lock->unlock();
 
    {{{{
      pub::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
-     debugh("[%6d] 003\n", getpid());
+     if( opt_verbose )
+       debugh("[%6d] 003\n", getpid());
      pub::Thread::sleep(0.25);
    }}}}
 
    {{{{
      pub::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
-     debugh("[%6d] 005\n", getpid());
+     if( opt_verbose )
+       debugh("[%6d] 005\n", getpid());
      pub::Thread::sleep(0.25);
    }}}}
 
    {{{{
      pub::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
-     debugh("[%6d] 007\n", getpid());
+     if( opt_verbose )
+       debugh("[%6d] 007\n", getpid());
    }}}}
 
    //-------------------------------------------------------------------------
@@ -485,13 +215,61 @@ int                                 // Error count
      if( errno == EINTR )
        continue;
 
-     errorf("%4d waitpid(%d): %s\n", __LINE__, pid, oops());
+     errorf("%4d waitpid(%d): %s\n", __LINE__, pid, geterror());
      break;
    }
 
    //-------------------------------------------------------------------------
    // And we're done
    return reset();                  // Clean up and exit
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Main::spawned
+//
+// Purpose-
+//       Run the spawned process
+//
+//----------------------------------------------------------------------------
+int                                 // Error count
+   Main::spawned( void )            // Run the spawned process
+{
+   if( opt_verbose > 1 )
+     debugh("[%6d] Main(%p)::spawned()\n", getpid(), this);
+
+   //-------------------------------------------------------------------------
+   // Create the lock
+   pub_lock= new pub::Lock(OPT_LOCK); // Create the Lock
+
+   //-------------------------------------------------------------------------
+   // Test the lock
+   {{{{
+     pub::Thread::sleep(0.001);
+     std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
+     if( opt_verbose )
+       debugh("[%6d] 002\n", getpid());
+     pub::Thread::sleep(0.25);
+   }}}}
+
+   {{{{
+     pub::Thread::sleep(0.001);
+     std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
+     if( opt_verbose )
+       debugh("[%6d] 004\n", getpid());
+     pub::Thread::sleep(0.25);
+   }}}}
+
+   {{{{
+     pub::Thread::sleep(0.001);
+     std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
+     if( opt_verbose )
+       debugh("[%6d] 006\n", getpid());
+     pub::Thread::sleep(0.25);
+   }}}}
+
+   return 0;
 }
 
 //----------------------------------------------------------------------------
@@ -508,34 +286,66 @@ extern int                          // Return code
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
-   //-------------------------------------------------------------------------
-   // Initialize
-   //-------------------------------------------------------------------------
-   int rc= parm(argc, argv);        // Argument analysis
-   if( rc ) return rc;              // Return if invalid
+   Wrapper  tc= opts;               // The test case wrapper
+   Wrapper* tr= &tc;                // A test case wrapper pointer
 
-   rc= init(argc, argv);            // Initialize
-   if( rc ) return rc;              // Return if invalid
+   tc.on_info([]()
+   {
+     fprintf(stderr, "  --reset\tReset shared storage\n");
+   });
 
-   if( opt_verbose >= 0 ) {
-     debugf("[%6d] %s: %s %s\n", getpid(), __FILE__, __DATE__, __TIME__);
-     debugf("[%6d] --hcdm(%d) --reset(%d) --verbose(%d)\n"
-            , getpid(), opt_hcdm, opt_reset, opt_verbose);
-   }
+   tc.on_init([](int argc, char* argv[])
+   {
+     // Disallow positional parameters
+     int rc= 0;
+     for(int argx= optind; argx < argc; argx++ ) {
+       rc= 1;
+       fprintf(stderr, "'%s' Positional parameter not supported\n", argv[argx]);
+     }
+
+     //-----------------------------------------------------------------------
+     // Initialize/activate debugging trace
+     Debug* debug= Debug::get();      // (To set file mode before use)
+     debug->set_file_mode("ab");      // (Append so second PID doesn't truncate)
+     debug->set_head(Debug::HEAD_TIME); // Include heading in time
+
+     if( HCDM ) opt_hcdm= true;
+     if( opt_hcdm )
+       debug->set_mode(Debug::MODE_INTENSIVE); // Hard Core Debug Mode
+     if( VERBOSE > opt_verbose )
+       opt_verbose= VERBOSE;
+
+     return rc;
+   });
+
+   tc.on_term([]()
+   {
+     if( pub_lock ) {
+       delete pub_lock;
+       pub_lock= nullptr;
+     }
+   });
+
+   tc.on_main([tr](int argc, char* argv[])
+   {
+     if( opt_verbose > 1 ) {
+       debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
+       debugf("[%6d] %s: %s %s\n", getpid(), __FILE__, __DATE__, __TIME__);
+       debugf("[%6d] --hcdm(%d) --reset(%d) --verbose(%d)\n"
+             , getpid(), opt_hcdm, opt_reset, opt_verbose);
+     }
+
+     Main main(argc, argv);
+     int error_count= main.run();
+
+     if( opt_verbose ) {
+       debugf("\n");
+       tr->report_errors(error_count);
+     }
+     return error_count != 0;
+   });
 
    //-------------------------------------------------------------------------
-   // Operate
-   //-------------------------------------------------------------------------
-   Main main(argc, argv);
-   rc= main.run();
-
-   //-------------------------------------------------------------------------
-   // Terminate
-   //-------------------------------------------------------------------------
-   debugf("%d Error%s\n", rc, rc == 1 ? "" : "s");
-   term();                          // Termination cleanup
-
-   if( rc )
-     rc= 1;
-   return rc;
+   // Run the test
+   return tc.run(argc, argv);
 }

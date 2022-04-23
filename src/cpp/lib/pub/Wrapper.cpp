@@ -15,7 +15,7 @@
 //       Implement Wrapper.h generic program wrapper.
 //
 // Last change date-
-//       2022/04/19
+//       2022/04/22
 //
 // Implementation notes-
 //       Orignally created as a test case wrapper, now repurposed as a generic
@@ -38,7 +38,7 @@
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Trace.h>              // For pub::Trace
 
-#include "pub/Wrapper.h"             // For class Wrapper, implemented
+#include "pub/Wrapper.h"            // For class Wrapper, implemented
 
 using namespace pub;                // For pub:: classes
 
@@ -460,10 +460,9 @@ int                                 // Return code (0 if OK)
 void
    Wrapper::report_errors(int error_count) // Display the error count
 {
-   if( error_count == 0 ) {
-     if( opt_verbose )
-       debugf("NO errors detected\n");
-   } else if( error_count == 1 )
+   if( error_count == 0 )
+     debugf("NO errors detected\n");
+   else if( error_count == 1 )
      debugf(" 1 error detected\n");
    else
      debugf("%2d errors detected\n", error_count);

@@ -1,11 +1,10 @@
 ##############################################################################
 ##
-##       Copyright (c) 2020 Frank Eskesen.
+##       Copyright (c) 2020-2022 Frank Eskesen.
 ##
-##       This file is free content, distributed under the Lesser GNU
-##       General Public License, version 3.0.
-##       (See accompanying file LICENSE.LGPL-3.0 or the original
-##       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
 ##
 ##############################################################################
 ##
@@ -16,7 +15,7 @@
 ##       Timing test results.
 ##
 ## Last change date-
-##       2020/03/20
+##       2022/04/22
 ##
 ## Implementation/Usage note-
 ##       Only three tests are run. Small differences are irrelevant.
@@ -37,7 +36,8 @@
 ##       Mid:   9.650   21.659
 ##       Max:   9.769   21.905
 ##
-## 2020/03/23 (Version checkout on 2022/03/23)
+## 2022/03/23 (Checkout version 2020/03/23, no local code change)
+##       (Unexplained Linux timing change.)
 ##                WIN      UIX
 ##       Min:     @NA   21.344
 ##       Mid:     @NA   21.730

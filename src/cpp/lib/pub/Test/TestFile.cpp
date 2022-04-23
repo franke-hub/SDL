@@ -2,10 +2,10 @@
 //
 //       Copyright (c) 2020-2022 Frank Eskesen.
 //
-//       This file is free content, distributed under the Lesser GNU
-//       General Public License, version 3.0.
-//       (See accompanying file LICENSE.LGPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
@@ -16,22 +16,29 @@
 //       Test Fileman.h (parts untested by ~/src/cpp/Fileman)
 //
 // Last change date-
-//       2022/04/08
+//       2022/04/22
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+//#include <stdio.h>
+//#include <stdint.h>
+//#include <stdlib.h>
+//#include <string.h>
 
 #include <exception>
 
 #include <pub/config.h>             // For _PUB_NAMESPACE macro
 #include <pub/Debug.h>              // For namespace debugging
 
-#include "pub/Fileman.h"            // For Fileman classes, implemented
+#include "pub/Fileman.h"            // For Fileman classes, tested
+#include <pub/Wrapper.h>            // For class Wrapper
 
-using namespace _PUB_NAMESPACE::debugging;
+using namespace _PUB_NAMESPACE::debugging; // For debugging functions
+using namespace _PUB_NAMESPACE::fileman; // For pub::fileman classes
+using _PUB_NAMESPACE::Wrapper;      // For pub::Wrapper class
+
+#define opt_hcdm       pub::Wrapper::opt_hcdm
+#define opt_verbose    pub::Wrapper::opt_verbose
+
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -48,24 +55,21 @@ static int                          // Error count
 {
    int                 error_count= 0; // Number of errors encountered
 
-// printf("%4d test_name\n", __LINE__);
-   using namespace pub::fileman;
-
-   // For argv[0], extract file name
-   printf("'%s'= Name::get_file_name(%s)\n"
-         , Name::get_file_name(argv[0]).c_str(), argv[0]);
-
    // Resolve each argument
    for(int argx= 1; argx < argc; argx++) {
      char* C= argv[argx];
-     pub::fileman::Name name(C);
+     Name name(C);
      std::string error= name.resolve();
-     if( error == "" )              // If no error
-       printf("OK: '%s'= resolve(%s)\n", name.name.c_str(), C);
-     else {
-       error_count++;
-       printf("NG: '%s'= resolve(%s)\n", error.c_str(), C);
+     if( opt_verbose ) {
+       if( error == "" )              // If no error
+         debugf("OK: '%s'= resolve(%s)\n", name.name.c_str(), C);
+       else {
+         debugf("NG: '%s'= resolve(%s)\n", error.c_str(), C);
+       }
      }
+
+     if( error != "" )
+       error_count++;
    }
 
    return error_count;
@@ -85,22 +89,28 @@ extern int
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
-   int                 result= 0;
+   //-------------------------------------------------------------------------
+   // Initialize
+   Wrapper  tc;                     // The test case wrapper
+   Wrapper* tr= &tc;                // A test case wrapper pointer
 
-   try {
-     result= test_name(argc, argv);
-   } catch(const char* x) {
-     debugf("Exception const char*(%s)\n", x);
-     result= 2;
-   } catch(std::exception& x) {
-     debugf("Exception exception(%s)\n", x.what());
-     result= 2;
-   } catch(...) {
-     debugf("Exception ...\n");
-     result= 2;
-   }
+   //-------------------------------------------------------------------------
+   // Mainline code
+   tc.on_main([tr](int argc, char* argv[])
+   {
+     if( opt_verbose )
+       debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
 
-   printf("Result(%d)\n", result);
+     int error_count= test_name(argc, argv);
 
-   return result;
+     if( opt_verbose ) {
+       debugf("\n");
+       tr->report_errors(error_count);
+     }
+     return error_count != 0;
+   });
+
+   //-------------------------------------------------------------------------
+   // Run the test
+   return tc.run(argc, argv);
 }
