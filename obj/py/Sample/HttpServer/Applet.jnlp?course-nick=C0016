@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<jnlp spec='1.0+' codebase='http://localhost:8080/golfer'>
+ <information>
+  <title>Course Update</title>
+  <vendor>Frank Eskesen</vendor>
+  <description>Course Update</description>
+ </information>
+ <security><all-permissions/></security>
+ <resources>
+  <j2se version='1.7+'/>
+  <jar href='applet.jar'/>
+  <jar href='jars/common.jar'/>
+ </resources>
+ <applet-desc main-class='CourseEdit' name='Course Update'
+              height='95%' width='100%'>
+  <param name='course-nick' value='C0016'/>
+ </applet-desc>
+</jnlp>

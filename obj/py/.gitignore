@@ -1,0 +1,19 @@
+##############################################################################
+##
+##       Copyright (C) F.N. Eskesen 2019-2020.
+##
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
+##
+##############################################################################
+##
+## Title-
+##       ~/obj/py/.gitignore
+##
+## Purpose-
+##       Exclude files not meant for the repository from the repository.
+##
+##############################################################################
+## Currently unused

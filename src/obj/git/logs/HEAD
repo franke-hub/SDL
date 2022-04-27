@@ -1,3 +1,0 @@
-306d7426c1376ac03033e964408eb9271232e4b3 497128ec7c96dca73c55f5060ad6f6683c86b6b3 Frank Eskesen <f.n.eskesen@gmail.com> 1646596243 -0500	commit: Removed local files and corrected a link.
-497128ec7c96dca73c55f5060ad6f6683c86b6b3 d0014df5cbbbd34a814f95f1edccae2c0e978f3a Frank Eskesen <f.n.eskesen@gmail.com> 1650484596 -0400	commit: Added cpp/Tools/Compare.
-d0014df5cbbbd34a814f95f1edccae2c0e978f3a cd1e04c1600d97fd05db0d05ddf676698308e955 Frank Eskesen <f.n.eskesen@gmail.com> 1650728941 -0400	commit: Added ~/src/cpp/lib/pub/Test/regression link

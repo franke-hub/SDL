@@ -1,0 +1,16 @@
+#!/bin/bash
+#CYGWIN vmstat sample
+echo "VMSTAT " >vmstat.out
+date >>vmstat.out
+
+echo line 1
+sleep 1
+echo line 2
+sleep 1
+echo line 3
+sleep 1
+echo line 4
+sleep 1
+echo line 5
+sleep 1
+

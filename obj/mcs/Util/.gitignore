@@ -1,25 +1,17 @@
 ##############################################################################
 ##
-##       Copyright (c) 2020-2022 Frank Eskesen.
+##       Copyright (C) 2022 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
 ##       within https://opensource.org/licenses/MIT)
 ##
 ##############################################################################
-## ~/.gitignore
+## ~/obj/mcs/*/.gitignore
 ##############################################################################
 /*
 !/.gitignore
-!/.configure
-!/.LICENSE
-!/.README
-!/README.md
-
-##############################################################################
-## Public subdirectories
-!/bat
-!/bin
-!/bin
-!/obj
-!/usr
+!/L
+!/M
+!/Makefile
+!/S

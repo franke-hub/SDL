@@ -1,0 +1,53 @@
+##############################################################################
+##
+##       Copyright (C) 2018-2022 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/obj/.gitignore
+##
+## Purpose-
+##       Exclude files not meant for the repository from the repository.
+##
+##############################################################################
+## Local file ignores (Keep only maintained files and directories)
+/*
+!/.gitignore
+!/.README
+!/asm
+!/c
+!/cpp
+!/java
+!/js
+!/make
+!/mcs
+!/py
+
+## Global file ignores (Debugging and error files)
+**/debug.*
+**/*.stackdump
+
+## Global file ignores (Makefile artifacts)
+**/Makeproj.*
+**/make.dir
+
+## Global extension ignores (Outputs and temporaries)
+**/*.a
+**/*.class
+**/*.dll
+**/*.exe
+**/*.jar
+**/*.lib
+**/*.log
+**/*.lst
+**/*.o
+**/*.obj
+**/*.pdb
+**/*.pdf
+**/*.so
+**/*.so.1.0

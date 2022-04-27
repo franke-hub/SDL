@@ -1,0 +1,29 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2020 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       view
+##
+## Purpose-
+##       Remember the appletviewer command name and parameters
+##
+## Last change date-
+##       2020/01/15
+##
+##############################################################################
+[[ -z "$JAVA_HOME" ]] && ( echo JAVA_HOME not defined; exit 1 )
+
+URL="$@"
+if [[ -z "$URL" ]] ; then
+  URL=test.html
+fi
+
+appletviewer -J-Djava.security.policy=./java.policy "$URL"

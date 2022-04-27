@@ -1,0 +1,64 @@
+## IGNORED paths
+.home/.git/*
+.home/src/.LICENSE/*
+.home/src/asm/x86/boot/*
+.home/src/c/inc/jpeg/bsd/*
+.home/src/c/inc/jpeg/bsd.old/*
+.home/src/c/inc/jpeg/win/*
+.home/src/c/inc/jpeg/win.old/*
+.home/src/c/lib/jpeg.bsd/*
+.home/src/c/lib/jpeg.win/*
+.home/src/cpp/Clone/test/*
+.home/src/cpp/Dirty/*
+.home/src/cpp/Doc/gcc-pragma.h
+.home/src/cpp/Edit/Test/*
+.home/src/cpp/Edit/Xcb/.SCRIPT/*
+.home/src/cpp/Edit/Xcb/doc/*
+.home/src/cpp/EiDB/data/OUT/*
+.home/src/cpp/Tools/codec/data/INP/*
+.home/src/cpp/Wilbur/data/*
+.home/src/cpp/inc/jpeg/bsd/*
+.home/src/cpp/inc/jpeg/bsd.old/*
+.home/src/cpp/inc/jpeg/win/*
+.home/src/cpp/inc/jpeg/win.old/*
+.home/src/cpp/lang/*
+.home/src/doc/cpp/Doxygen/html/*
+.home/src/doc/cpp/Doxygen/latex/*
+.home/src/java/Applet/*
+.home/src/java/PMA/*
+.home/src/java/Webapp/usr/fne/sample/*
+.home/src/js/Dirty/*
+.home/src/js/http/node_modules/*
+.home/src/js/sudoku/*
+.home/src/mcs/Dirty/*
+.home/src/mcs/lib/Import/*
+.home/src/py/aiml/.PYAIML/*
+.home/src/py/aiml/aiml.local/*
+.home/usr/*
+
+## IGNORED files
+.home/bat/bat-CA/openssl.patch
+.home/src/c/lib/1st/jpeg/jpegsr9c.zip
+.home/src/c/lib/1st/jpeg/jpegsrc.v9c.tar.gz
+.home/src/cpp/Edit/Xcb/Editor.md
+.home/src/cpp/EiDB/Regression.bat
+.home/src/cpp/NNC/.DOC.txt
+.home/src/cpp/Patterns/make.bat
+.home/src/cpp/Sample/.OBSOLETE/opencv/hello_world.cpp
+.home/src/cpp/Tools/Makeproj/make.bat
+.home/src/doc/cpp/Doxygen/index.html.lnk
+.home/src/lily/Eskesen/.Private/Crypto.ly.gpg
+.home/src/py/InfoDB/.ASIDES.odt
+
+## BOOST license
+.home/src/cpp/inc/pub/memory.h
+
+## Files are read-only (and some are zip)
+.home/src/c/lib/1st/jpeg/*
+
+## Imported, non-standard code copyright.
+.home/src/cpp/Sample/opencv/hello_world.cpp
+.home/src/cpp/Spell/example.cpp
+
+## Non-standard formats
+.home/src/obj/git/*
