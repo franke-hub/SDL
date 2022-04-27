@@ -35,6 +35,10 @@ function OK
 }
 
 ##############################################################################
+## Insure TestLock semaphore is reset
+TestLock --reset >/dev/null 2>/dev/null
+
+##############################################################################
 ## Run executables
 test="Quick --all"
 ./$test

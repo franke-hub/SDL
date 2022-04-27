@@ -15,7 +15,7 @@
 //       Sample test case
 //
 // Last change date-
-//       2022/04/22
+//       2022/04/24
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::runtime exception
@@ -31,9 +31,8 @@ using pub::Wrapper;                 // For pub::Wrapper class
 #define opt_verbose    pub::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
-// Internal data areas
-//----------------------------------------------------------------------------
 // Extended options
+//----------------------------------------------------------------------------
 static int             opt_error= false;   // --error
 static const char*     opt_throw= nullptr; // --throw
 static struct option   opts[]=      // The getopt_long parameter: longopts

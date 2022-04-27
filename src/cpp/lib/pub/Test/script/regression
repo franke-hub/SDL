@@ -16,7 +16,7 @@
 ##       Regression tests
 ##
 ## Last change date-
-##       2022/04/22
+##       2022/04/25
 ##
 ## Implementation notes-
 ##       Run this script from ~/src/cpp/obj/pub/Test, the test subdirectory.
@@ -76,6 +76,7 @@ if [[ $make != 0 ]] ; then
     echo "Test build failed"
     exit $rc
   fi
+  echo ""
 fi
 
 ##############################################################################
@@ -83,6 +84,7 @@ fi
 [ $setx != 0 ] && set -x
 for test in $test_set
 do
+  [[ ! -a "$DDIR/$test" ]] && { echo "FAIL: '$DDIR/$test' missing"; exit 1; }
   if [[ -x "$DDIR/$test" && ! -d "$DDIR/$test" ]] ; then
     $DDIR/$test $parm
     rc=$?
@@ -90,6 +92,9 @@ do
       echo "PASS: $test"
     else
       echo "FAIL: $test, rc $rc"
+      exit $rc
     fi
   fi
 done
+
+echo "PASS: ** ALL TESTS **"

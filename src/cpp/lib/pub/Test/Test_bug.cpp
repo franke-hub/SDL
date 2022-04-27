@@ -16,7 +16,7 @@
 //       Test debugging methods.
 //
 // Last change date-
-//       2022/04/22
+//       2022/04/24
 //
 //----------------------------------------------------------------------------
 #include <errno.h>                  // For errno
@@ -31,6 +31,15 @@ using pub::Wrapper;                 // For pub::Wrapper class
 
 #define opt_hcdm       pub::Wrapper::opt_hcdm
 #define opt_verbose    pub::Wrapper::opt_verbose
+
+//----------------------------------------------------------------------------
+// Extended options
+//----------------------------------------------------------------------------
+static int             opt_trace= false;   // --backtrace
+static struct option   opts[]=      // The getopt_long parameter: longopts
+{  {"backtrace",  no_argument,       &opt_trace,  true} // --backtrace
+,  {0, 0, 0, 0}                     // (End of option list)
+};
 
 //----------------------------------------------------------------------------
 //
@@ -79,7 +88,7 @@ extern int                          // Return code
 {
    //-------------------------------------------------------------------------
    // Initialize
-   Wrapper  tc;                     // The test case wrapper
+   Wrapper  tc= opts;               // The test case wrapper
    Wrapper* tr= &tc;                // A test case wrapper pointer
 
    tc.on_main([tr](int, char*[])
@@ -90,7 +99,11 @@ extern int                          // Return code
      int error_count= 0;
 
      // Test backtrace
-     test_bt();
+     // Implementation note: backtrace is provided by the boost library and
+     // its output varies depending upon the installed version. Since
+     // regression testing checks our output, it's not tested by default.
+     if( opt_trace )
+       test_bt();
 
      // Test modes
      debug_set_mode(Debug::MODE_DEFAULT);
