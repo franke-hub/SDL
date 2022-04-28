@@ -1,7 +1,7 @@
 ##
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (c) 2012-2021 Frank Eskesen.
+##       Copyright (c) 2012-2022 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Extract nickname for subdirectory
 ##
 ## Last change date-
-##       2021/03/23
+##       2022/04/27
 ##
 ## Usage-
 ##       cd `nickdir alias_name`
@@ -33,73 +33,78 @@ function nickdir {
 __FULLDIR=""
 case $1 in
   list)
-    echo    aiml=`nickdir aiml`
-    echo   brian=`nickdir brian`
-    echo     cpp=`nickdir cpp`
-    echo     cmd=`nickdir cmd`
-    echo     ctl=`nickdir ctl`
-    echo    diva=`nickdir diva`
-    echo    edit=`nickdir edit`
-    echo   forth=`nickdir forth`
-    echo     gpg=`nickdir gpg`
-    echo    grid=`nickdir grid`
-    echo   grid0=`nickdir grid0`
-    echo   ":"
-    echo   grid9=`nickdir grid9`
-    echo   grida=`nickdir grida`
-    echo   ":"
-    echo   gridZ=`nickdir gridZ`
-    echo    home=`nickdir home`
-    echo   howto=`nickdir howto`
-    echo     inc=`nickdir inc`
-    echo    java=`nickdir java`
+    echo      aiml=`nickdir aiml`
+    echo     clone=`nickdir clone`
+    echo       cpp=`nickdir cpp`
+    echo       ctl=`nickdir ctl`
+##  echo      diva=`nickdir diva`
+    echo      edit=`nickdir edit`
+    echo     forth=`nickdir forth`
+    echo       gpg=`nickdir gpg`
+    echo      grid=`nickdir grid`
+##  echo     grid0=`nickdir grid0`
+##  echo     ":"
+##  echo     grid9=`nickdir grid9`
+##  echo     grida=`nickdir grida`
+##  echo     ":"
+##  echo     gridZ=`nickdir gridZ`
+    echo       gui=`nickdir gui`
+    echo      home=`nickdir home`
+    echo     howto=`nickdir howto`
+    echo       inc=`nickdir inc`
+    echo      java=`nickdir java`
     echo java.golf=`nickdir java.golf`
-    echo java.web=`nickdir java.web`
-    echo    lang=`nickdir lang`
-    echo     lib=`nickdir lib`
-    echo    lily=`nickdir lily`
-    echo     log=`nickdir log`
-    echo     lsl=`nickdir lsl`
-    echo     mag=`nickdir mag`
-    echo     mcs=`nickdir mcs`
-    echo mcs.ctl=`nickdir mcs.ctl`
-    echo mcs.lib=`nickdir mcs.lib`
-    echo mcs.test=`nickdir mcs.test`
-    echo obj.cpp=`nickdir obj.cpp`
-    echo obj.java=`nickdir obj.java`
-    echo obj.mcs=`nickdir obj.mcs`
-    echo  obj.py=`nickdir obj.py`
-    echo     src=`nickdir src`
-    echo    test=`nickdir test`
-    echo  wilbur=`nickdir wilbur`
+    echo  java.web=`nickdir java.web`
+    echo       lib=`nickdir lib`
+    echo       log=`nickdir log`
+    echo       mag=`nickdir mag`
+    echo       mcs=`nickdir mcs`
+    echo       obj=`nickdir obj`
+    echo       pub=`nickdir pub`
+    echo        py=`nickdir py`
+    echo    sample=`nickdir sample`
+    echo       src=`nickdir src`
+    echo    wilbur=`nickdir wilbur`
+    echo       xcb=`nickdir xcb`
     return
     ;;
 
+##############################################################################
+#### Generic source directories
+##src.cpp)
+##  __FULLDIR="$HOME/src/cpp"
+##  ;;
+##
+##src.cpp/*)
+##  __FULLDIR="$HOME/src/cpp/${1:5}"
+##  ;;
+##
+##src.mcs)
+##  __FULLDIR="$HOME/src/mcs"
+##  ;;
+##
+##src.mcs/*)
+##  __FULLDIR="$HOME/src/mcs/${1:5}"
+##  ;;
+##
+##src.py)
+##  __FULLDIR="$HOME/src/py"
+##  ;;
+##
+##src.py/*)
+##  __FULLDIR="$HOME/src/py/${1:5}"
+##  ;;
+
   ############################################################################
-  ## First level source directories without aliases
-  asm | c | cpp | java | lily | lsl | mcs | py)
-    __FULLDIR="$HOME/src/$1"
+  ## C++ source directories
+  src)
+    __FULLDIR="$HOME/src/cpp"
     ;;
 
-  ## First level object directories
-  obj.cpp)
-    __FULLDIR="$HOME/obj/cpp"
+  src/*)
+    __FULLDIR="$HOME/src/cpp/${1:4}"
     ;;
 
-  obj.java)
-    __FULLDIR="$HOME/obj/java"
-    ;;
-
-  obj.mcs)
-    __FULLDIR="$HOME/obj/mcs"
-    ;;
-
-  obj.py)
-    __FULLDIR="$HOME/obj/py"
-    ;;
-
-  ############################################################################
-  ## C++ aliased source directories
   ctl)
     __FULLDIR="$HOME/src/cpp/ctl/BSD"
     ;;
@@ -108,124 +113,129 @@ case $1 in
     __FULLDIR="$HOME/src/cpp/inc"
     ;;
 
-  cpp.* | src.*)
-    __FULLDIR="$HOME/src/cpp/${1:4}"
-    ;;
-
-  proj)
-    __FULLDIR="$HOME/src/cpp/Tools/Makeproj"
-    ;;
-
   ############################################################################
-  ## C++ object directories with lower case aliases
+  ## C++ object directories
+  obj | cpp)
+    __FULLDIR="$HOME/obj/cpp"
+    ;;
+
+  obj/cpp)
+    __FULLDIR="$HOME/obj/cpp"
+    ;;
+
+  obj/* | cpp/*)
+    __FULLDIR="$HOME/obj/cpp/${1:4}"
+    ;;
+
+  lib)
+    __FULLDIR="$HOME/obj/cpp/lib"
+    ;;
+
+  lib/*)
+    __FULLDIR="$HOME/obj/cpp/lib/${1:4}"
+    ;;
+
+  gui)
+    __FULLDIR="$HOME/obj/cpp/lib/gui"
+    ;;
+
+  gui/*)
+    __FULLDIR="$HOME/obj/cpp/lib/gui/${1:4}"
+    ;;
+
+  pub)
+    __FULLDIR="$HOME/obj/cpp/lib/pub"
+    ;;
+
+  pub/*)
+    __FULLDIR="$HOME/obj/cpp/lib/pub/${1:4}"
+    ;;
+
   [c,C]lone | [e,E]dit | [f,F]orth | [s,S]ample | [w,W]ilbur)
     eval __i=`echo ${1:0:1} | tr "[a-z]" "[A-Z]"`
     __FULLDIR="$HOME/obj/cpp/${__i}${1:1}"
     unset __i
     ;;
 
-  ## C++ object directories without aliases
-  cmd | lang | lib)
-    __FULLDIR="$HOME/obj/cpp/$1"
-    ;;
-
-  obj.*)
-    __FULLDIR="$HOME/obj/cpp/${1:4}"
-    ;;
-
-  ## Aliased C++ test object directory
-  lib.[t,T]est | [t,T]est)
-    __FULLDIR="$HOME/obj/cpp/lib/pub/Test"
-    ;;
-
-  ############################################################################
-  ## C# aliased source directories
-  mcs.ctl)
-    __FULLDIR="$HOME/src/mcs/ctl/BSD"
-    ;;
-
-  ## C# object directories with lower case aliases
-  mcs.[d,D]irty | mcs.[f,F]orth | mcs.[h,H]ello | mcs.[s,S]ample)
-    eval __i=`echo ${1:4}`
-    eval __j=`echo ${__i:0:1} | tr "[a-z]" "[A-Z]"`
-    __FULLDIR="$HOME/obj/mcs/${__j}${__i:1}"
-    unset __j
+  xcb | Xcb | XCB)
+    __FULLDIR="$HOME/obj/cpp/Edit/Xcb"
     unset __i
     ;;
 
-  ## C# aliased test object directory
-  mcs.[t,T]est)
-    __FULLDIR="$HOME/obj/mcs/lib/com/Test"
+  ############################################################################
+  ## C# source directories
+  ############################################################################
+  ## C# object directories
+  mcs)
+    __FULLDIR="$HOME/obj/mcs"
     ;;
 
-  ## C# object directories without aliases
-  mcs.*)
+  mcs/*)
     __FULLDIR="$HOME/obj/mcs/${1:4}"
     ;;
 
+##mcs.[d,D]irty | mcs.[f,F]orth | mcs.[h,H]ello | mcs.[s,S]ample)
+##  eval __i=`echo ${1:4}`
+##  eval __j=`echo ${__i:0:1} | tr "[a-z]" "[A-Z]"`
+##  __FULLDIR="$HOME/obj/mcs/${__j}${__i:1}"
+##  unset __j
+##  unset __i
+##  ;;
+
   ############################################################################
-  ## Java aliased object directories
-  java.golf)
-    __FULLDIR="$HOME/obj/java/Webapp/usr/fne/golfer"
+  ## Java object directories
+  java)
+    __FULLDIR="$HOME/obj/java"
     ;;
 
-  java.web)
-    __FULLDIR="$HOME/obj/java/Webapp/usr/fne"
-    ;;
-
-  ## Java object directories without aliases
-  java.*)
+  java/*)
     __FULLDIR="$HOME/obj/java/${1:5}"
     ;;
 
+  java.fne | java.web)
+    __FULLDIR="$HOME/obj/java/Webapp/usr/fne"
+    ;;
+
+  golf | java.golf)
+    __FULLDIR="$HOME/obj/java/Webapp/usr/fne/golfer"
+    ;;
+
   ############################################################################
-  ## Python object directories with lower case aliases
-  [b,B]rian)
-    __FULLDIR="$HOME/obj/py/Brian"
+  ## Python object directories
+  py)
+    __FULLDIR="$HOME/obj/py"
     ;;
 
-  py.[g,G]olf | py.[h,H]ello | py.[m,M]isc | py.[s,S]ample)
-    eval __i=`echo ${1:3:1} | tr "[a-z]" "[A-Z]"`
-    __FULLDIR="$HOME/obj/py/${__i}${1:4}"
-    unset __i
+  py/*)
+    __FULLDIR="$HOME/obj/py/${1:3}"
     ;;
 
-  ## Python aliased object directories
   aiml | AIML)
     __FULLDIR="$HOME/obj/py/aiml"
     ;;
 
-  py.[i,I]nfo)
-    __FULLDIR="$HOME/obj/py/InfoDB"
-    ;;
-
-  ## Python object directories without aliases
-  py.*)
-    __FULLDIR="$HOME/obj/py/${1:3}"
-    ;;
-
   ############################################################################
-  ## Aliased grid directories
-  diva)
-    __FULLDIR="$__GRIDHOME/diva-current/bin"
-    ;;
-
+  ## Grid directories
+##diva)
+##  __FULLDIR="$__GRIDHOME/diva-current/bin"
+##  ;;
+##
   grid)
     __FULLDIR="$__GRIDHOME"
     ;;
 
-  grid[0-9])
-    __FULLDIR="$__GRIDHOME/ogrid${1:4:1}/bin"
-    ;;
-
-  grid[a-z] | grid[A-Z])
-    eval __i=`echo ${1:4:1} | tr "[a-z]" "[A-Z]"`
-    __FULLDIR="$__GRIDHOME/hgrid${__i}/bin"
-    unset __i
-    ;;
+##grid[0-9])
+##  __FULLDIR="$__GRIDHOME/ogrid${1:4:1}/bin"
+##  ;;
+##
+##grid[a-z] | grid[A-Z])
+##  eval __i=`echo ${1:4:1} | tr "[a-z]" "[A-Z]"`
+##  __FULLDIR="$__GRIDHOME/hgrid${__i}/bin"
+##  unset __i
+##  ;;
 
   ############################################################################
-  ## Workbook aliased directories
+  ## Workbook directories
   gpg)
     __FULLDIR="$HOME/workbook/gpg"
     ;;
@@ -239,13 +249,13 @@ case $1 in
     ;;
 
   ############################################################################
-  ## Others
+  ## Miscellany
   home | HOME])
     __FULLDIR="$HOME"
     ;;
 
   log | logs)
-    __FULLDIR="$HOME/.local/logs"
+    __FULLDIR="$HOME/.local/log"
     ;;
 
   *)
@@ -265,8 +275,5 @@ fi
 ##############################################################################
 ## Return the translated directory name
 echo  $__FULLDIR
-
-unset __GRIDHOME
-unset __FULLDIR
 }
 

@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2020-2021 Frank Eskesen.
+##       Copyright (C) 2020-2022 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -9,13 +9,13 @@
 ##############################################################################
 ##
 ## Title-
-##       /home/data/home/README.md
+##       /home/data/home/README
 ##
 ## Purpose-
 ##       Describe subdirectory content.
 ##
 ## Last change date-
-##       2021/01/23
+##       2022/04/27
 ##
 ## Implementation notes-
 ##       This distribution is kept locally in /home/data/home/. In addition
