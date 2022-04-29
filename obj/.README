@@ -15,11 +15,17 @@
 ##       Describe subdirectory content.
 ##
 ## Last change date-
-##       2022/04/25
+##       2022/04/27
 ##
 ## Implementation notes-
-##       This directory is a placeholder for object files.
-##       The distribution object files are maintained in ../src/obj/ and
-##       updated here using `../src/obj/.README restore`.
+##       This is the object subdirectory.
+##       Where the language allows, object files are created here.
+##       All programs are run from the object directory.
+##
+##       This structure allows the source files to be shared on a read-only
+##       file system and allows for object files to be created locally.
+##       This creates the problem of keeping the local object directory
+##       synchronized with the distribution. The .UPDATE script performs the
+##       required synchronization.
 ##
 ##############################################################################

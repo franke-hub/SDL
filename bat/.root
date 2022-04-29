@@ -1,0 +1,25 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2022 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       .root
+##
+## Purpose-
+##       Echo the absolute path of the distribution source.
+##
+## Last change date-
+##       2022/04/28
+##
+##############################################################################
+root=$(dirname $0)
+cd $root
+root=`pwd -P`
+echo $(dirname $root)
