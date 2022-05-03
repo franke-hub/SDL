@@ -1,0 +1,207 @@
+#!/bin/bash
+##############################################################################
+##
+##       Copyright (C) 2019-2022 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/obj/.UPDATE
+##
+## Purpose-
+##       Synchronize this directory with the distribution obj directory.
+##
+## Last change date-
+##       2020/05/03
+##
+## Usage-
+##       .UPDATE
+##
+## Implementation notes-
+##       EXPERIMENTAL: Not ready for production use.
+##       TODO: Verify proper operation with blanks in file name.
+##
+##############################################################################
+message_test=0
+
+echo "** WARNING ** This script is EXPERIMENTAL and not well tested"
+
+##############################################################################
+## Function: CHANGED, display script changed message and exit
+function changed
+{
+   echo ""
+   echo "TODO: Consider always using repository version."
+   echo ""
+   echo "This file differs from the repository version and may be obsolete."
+   echo "Create a link to the version of the script you'd like to use, i.e."
+   echo ""
+   if [[ "$self" != "$(pwd -P)" ]] ; then
+     echo "Running from this file's directory, i.e"
+     echo "  cd $self"
+     echo ""
+   fi
+   echo "Select the repository version,"
+   echo "  ln -s $repo/obj/.UPDATE .FORCED"
+   echo ""
+   echo "Or this version,"
+   echo "  mv .UPDATE .FORCED"
+   echo ""
+   echo "Then retry the operation using the '.FORCED' script."
+   [[ $message_test == 0 ]] && exit 1
+}
+
+##############################################################################
+## Function: CLEAN, post-update cleanup
+function clean
+{
+   echo "Function clean NOT CODED YET"
+}
+
+##############################################################################
+## Function: FILE_MISSING, display configuration error message and exit
+function file_missing
+{
+   echo -e "\n\n** ERROR **\n"
+   echo "'$1' does not exist, therefore either"
+   echo "1) '$root' is not a distribution repository or"
+   echo "2) '$self' wasn't initially copied from"
+   echo "   '$repo' or"
+   echo "3) this script is incorrectly configured."
+   echo "Please correct the problem and retry the operation."
+
+   echo ""
+   echo "ROOT: '$root'"
+   echo "REPO: '$repo'"
+   echo "SELF: '$self'"
+   [[ $message_test == 0 ]] && exit 1
+}
+
+##############################################################################
+## Function: ROOT_INVALID, display error message and exit
+function root_invalid
+{
+   echo ""
+   echo "The file '$root/bat/.uuid'"
+   echo "contains a verification UUID used to insure that we're updating the"
+   echo "proper subdirectory. This verification failed."
+   echo "Update your \$PATH so that the .root script you want is the .root"
+   echo "script you'll get."
+   echo ""
+   echo "ROOT: '$root'"
+   echo "TYPE: `type .root`"
+   [[ $message_test == 0 ]] && exit 1
+}
+
+##############################################################################
+## Function: ROOT_MISSING, display error message and exit
+function root_missing
+{
+   echo ""
+   echo "The distribution bat directory (which contains the '.root' script)"
+   echo "needs to be included in \$PATH in order to locate it."
+   echo "We can't find the distribution, so we can't use it to update."
+   [[ $message_test == 0 ]] && exit 1
+}
+
+##############################################################################
+## Function: USAGE, display usage information and exit
+function usage
+{
+   echo ""
+   echo "$(basename $0):"
+   echo "Used after a 'git pull' operation to synchronize a local object"
+   echo "directory with its distribution repository counterpart."
+   [[ $message_test == 0 ]] && exit 1
+}
+
+##############################################################################
+## Initialization/verification
+root=`.root`
+[[ $? != 0 || -z "$root" ]] && root_missing
+
+repo=$root/obj
+self=$(dirname $0)
+pushd $self >/dev/null
+self=`pwd -P`
+popd >/dev/null
+
+[[ ! -x "$root/bat/sys/.uuid" ]] && file_missing "$root/bat/sys/.uuid"
+uuid=`$root/bat/sys/.uuid`
+[[ "$uuid" != "9ccc3005-3169-4af3-96ff-74557f0153bd" ]] && root_invalid
+
+[[ ! -d "$repo" ]] && file_missing "$repo"
+[[ ! -d "$self" ]] && file_missing "$self"
+[[ ! -f "$repo/.UPDATE" ]] && file_missing "$repo/.UPDATE"
+
+##############################################################################
+## Message test
+if [[ $message_test != 0 ]] ; then
+  echo -e "\nchanged-------------------------"
+  changed
+  echo -e "\nfile_missing--------------------"
+  file_missing $root/missing
+  echo -e "\ninvalid-------------------------"
+  root_invalid
+  echo -e "\nmissing-------------------------"
+  root_missing
+  echo -e "\nusage---------------------------"
+  usage
+
+  exit 1
+fi
+
+##############################################################################
+## If we're using the distribution object directory, update's not needed
+[[ "$self" == "$repo" ]] && { echo "Update not required"; exit 0; }
+
+##############################################################################
+## If the distribution obj/.UPDATE file changed, this .UPDATE may be obsolete.
+name=$(basename $0)
+if [[ "$name" == ".UPDATE" ]] ; then
+   diff "$self/.UPDATE" "$repo/.UPDATE" >/dev/null
+   [[ $? != 0 ]] && changed
+fi
+
+##############################################################################
+## Handle incomplete update
+if [[ -d "$repo/.git" ]] ; then
+   echo "Removing '$repo/.git', prior update incomplete"
+   rm -Rf "$repo/.git"
+fi
+
+if [[ -d "$self/.git" ]] ; then
+   echo "Removing '$self/.git', prior update incomplete"
+   rm -Rf "$self/.git"
+fi
+
+##############################################################################
+## Create temporary $repo/obj/.git source
+date=`date`
+pushd $repo >/dev/null
+git init -b trunk >/dev/null
+git add . >/dev/null
+git commit -m "Synchronization commit $date" >/dev/null
+git gc >/dev/null 2>/dev/null
+popd >/dev/null
+
+##############################################################################
+## Move $repo/.git here, and activate it
+mv $repo/.git $self/.git
+[[ ! -f .git/FETCH_HEAD ]] && touch .git/FETCH_HEAD
+[[ ! -d .git/refs ]] && mkdir .git/refs
+[[ ! -d .git/refs/heads ]] && mkdir .git/refs/heads
+[[ ! -d .git/refs/tags ]] && mkdir .git/refs/tags
+git reset --hard HEAD >/dev/null 2>/dev/null
+
+##############################################################################
+## Remove $self/.git. (Temporarily commented out.)
+##rm -Rf "$self/.git"
+## See if there's a way to auto-correct removed or renamed files.
+##   Test: added and renamed files.
+
+echo "Update complete"
