@@ -2,12 +2,32 @@
 ##
 ##       Copyright (C) 2022 Frank Eskesen.
 ##
-##       This file is free content, distributed under the MIT license.
-##       (See accompanying file LICENSE.MIT or the original contained
-##       within https://opensource.org/licenses/MIT)
+##       This file is free content, distributed under the "un-license,"
+##       explicitly released into the Public Domain.
+##       (See accompanying file LICENSE.UNLICENSE or the original
+##       contained within http://unlicense.org)
 ##
 ##############################################################################
 ## ~/obj/cpp/Copy/.gitignore
+##############################################################################
+##
+## Title-
+##       ~/obj/cpp/Copy/.gitignore
+##
+## Purpose-
+##       Sample .gitignore file.
+##
+## Last change date-
+##       2022/05/03
+##
+## Information-
+##       The basic .gitignore file template is given to the public domain.
+##       You can freely use it without attribution of any kind.
+##
+##       A .gitignore file's "look and feel" is explicitly not copyrighted.
+##       Likewise, the object directory's "look and feel" is explicitly
+##       not copyrighted.
+##
 ##############################################################################
 /*
 !/.gitignore

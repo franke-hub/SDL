@@ -1,5 +1,7 @@
 ## IGNORED paths
 .home/.git/*
+.home/bin/*
+.home/obj/*
 .home/src/.LICENSE/*
 .home/src/asm/x86/boot/*
 .home/src/c/inc/jpeg/bsd/*

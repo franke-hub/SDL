@@ -1,13 +1,22 @@
 ##############################################################################
 ##
-##       Copyright (C) 2020 Frank Eskesen.
+##       Copyright (C) 2020-2022 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
 ##       within https://opensource.org/licenses/MIT)
 ##
 ##############################################################################
-## Makefile.BSD
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile customization.
+##
+## Last change date-
+##       2022/05/03
+##
 ##############################################################################
 
 ##############################################################################
@@ -42,12 +51,10 @@ shm.do: Shm_demo
 shm.redo: Shm_demo
 	$< --name /shm_demo.shr --file ./shm_demo.out --redo
 
-shm.clean:
-	-@[[ -x "Shm_demo" ]] && Shm_demo --name /shm_demo.shr --file ./shm_demo.out --clean
-
 ##############################################################################
 ## Cleanup
 .PHONY: MAK_clean
-clean:  MAK_clean shm.clean
+clean:  MAK_clean
 MAK_clean: ;
-	-@rm debug.* >/dev/null 2>/dev/null
+	-@rm /dev/shm/shm_demo.shr >/dev/null 2>/dev/null
+	-@rm ./shm_demo.out        >/dev/null 2>/dev/null
