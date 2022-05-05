@@ -16,7 +16,7 @@
 //       Generic program wrapper.
 //
 // Last change date-
-//       2022/04/05
+//       2022/05/05
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_WRAPPER_H_INCLUDED
@@ -165,22 +165,20 @@ class Wrapper                       // Generic program wrapper
        @return The main program return code.
 
        @code
-         // Parameter analysis
-         int rc= parm(argc, argv)
-           (For each user option: rc |= parm_f(name, value))
-         if( rc ) {
-           (fprintf(stderr, list of built-in parameters)
-           info()
-         }
+         // Parameter analysis, exits if --help specified or error detected
+         parm(argc, argv)
+           (parm_f(parameter, argument) called for each user argument)
+           (If --help specified or an error was detected) {
+             (fprintf(stderr, list of built-in parameters)
+             info_f()
+             exit('error detected' ? 1 : 0)
+           }
 
-         // Initialization
+         // Initialization and operation
+         (local initialization: create trace table and debugging file)
          rc= init_f(argc, argv)
-         if( rc )
-           std::exit(rc)
-         (local initialization)
-
-         // Operation
-         rc= main_f(argc, argv)
+         if( rc == 0 )
+           rc= main_f(argc, argv)   // Program operation
 
          // Termination
          term_f()
@@ -194,7 +192,7 @@ class Wrapper                       // Generic program wrapper
      /************************************************************************
        Generic program sections
      ************************************************************************/
-     int  parm(int argc, char* argv[]); // Handle parameters
+     void parm(int argc, char* argv[]); // Handle parameters
 //   void info( void ) const;       // Handle parameter error(s) (public)
      int  init(int argc, char* argv[]); // Handle initialization
      int  main(int argc, char* argv[]); // Main function

@@ -15,13 +15,10 @@
 //       Implement Wrapper.h generic program wrapper.
 //
 // Last change date-
-//       2022/04/22
-//
-// Implementation notes-
-//       Orignally created as a test case wrapper, now repurposed as a generic
-//       program wrapper.
+//       2022/05/05
 //
 //----------------------------------------------------------------------------
+#include <mutex>                    // For std::lock_guard
 #include <ctype.h>                  // For isprint()
 #include <errno.h>                  // For errno
 #include <fcntl.h>                  // For open, O_*, ...
@@ -185,6 +182,33 @@ static void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Wrapper::atoi
+//
+// Purpose-
+//       Convert string to integer, setting errno.
+//
+// Implementation note-
+//       Leading or trailing blanks are NOT allowed.
+//
+//----------------------------------------------------------------------------
+int                                 // The integer value
+   Wrapper::atoi(                   // Extract and verify integer value
+     const char*       inp)         // From this string
+{
+   errno= 0;
+   char* strend;                    // Ending character
+   long value= strtol(inp, &strend, 0);
+   if( strend == inp || *inp == ' ' || *strend != '\0' )
+     errno= EINVAL;
+   else if( value < INT_MIN || value > INT_MAX )
+     errno= ERANGE;
+
+   return value;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Wrapper::info
 //
 // Purpose-
@@ -194,6 +218,8 @@ static void
 void
    Wrapper::info( void ) const
 {
+   if( opt_help > 1 )
+     fprintf(stderr, "\n\n");
    fprintf(stderr, "%s <options> ...\n"
                    "Options:\n"
                    "  --help\tThis help message\n"
@@ -205,7 +231,7 @@ void
           );
 
    info_f();
-   exit(0);
+   exit(opt_help > 1 ? 1 : 0);
 }
 
 //----------------------------------------------------------------------------
@@ -281,73 +307,13 @@ int                                 // Return code (0 OK)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Wrapper::atoi
-//
-// Purpose-
-//       Convert string to integer, setting errno.
-//
-// Implementation note-
-//       Leading or trailing blanks are NOT allowed.
-//
-//----------------------------------------------------------------------------
-int                                 // The integer value
-   Wrapper::atoi(                   // Extract and verify integer value
-     const char*       inp)         // From this string
-{
-   errno= 0;
-   char* strend;                    // Ending character
-   long value= strtol(inp, &strend, 0);
-   if( strend == inp || *inp == ' ' || *strend != '\0' )
-     errno= EINVAL;
-   else if( value < INT_MIN || value > INT_MAX )
-     errno= ERANGE;
-
-   return value;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Wrapper::ptoi
-//
-// Purpose-
-//       Convert parameter to integer, handling error cases
-//
-// Implementation note-
-//       optarg: The argument string
-//       opt_index: The argument index
-//
-//----------------------------------------------------------------------------
-int                                 // The integer value
-   Wrapper::ptoi(const char* V, const char* N) // Extract/verify parameter
-{
-   int value= atoi(V);
-   if( errno ) {
-     opt_help= true;
-     if( N == nullptr )
-       N= "parameter";
-
-     if( errno == ERANGE )
-       fprintf(stderr, "--%s, range error: '%s'\n", N, V);
-     else if( *optarg == '\0' )
-       fprintf(stderr, "--%s, no value specified\n", N);
-     else
-       fprintf(stderr, "--%s, format error: '%s'\n", N, V);
-   }
-
-   return value;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       parm
 //
 // Purpose-
-//       Parameter analysis.
+//       Parameter analysis, exits if --hcdm specified or error detected.
 //
 //----------------------------------------------------------------------------
-int                                 // Return code (0 if OK)
+void
    Wrapper::parm(                   // Parameter analysis
      int               argc,        // Argument count
      char*             argv[])      // Argument array
@@ -393,9 +359,9 @@ int                                 // Return code (0 if OK)
                if( X != std::string::npos )
                  S= S.substr(0, X);
                if( parm_f(S, optarg) )
-                 opt_help= true;
+                 opt_help= 2;
              } else {
-               opt_help= true;
+               opt_help= 2;
                fprintf(stderr, "%4d Unexpected opt_index(%d)\n", __LINE__,
                                opt_index);
              }
@@ -406,7 +372,7 @@ int                                 // Return code (0 if OK)
        }}}}
 
        case ':':
-         opt_help= true;
+         opt_help= 2;
          if( optopt == 0 ) {
            if( strchr(argv[optind-1], '=') )
              fprintf(stderr, "Option has no argument '%s'.\n"
@@ -415,37 +381,64 @@ int                                 // Return code (0 if OK)
              fprintf(stderr, "Option requires an argument '%s'.\n"
                            , argv[optind-1]);
          } else {
-           fprintf(stderr, "%4d Option requires an argument '-%c'.\n", __LINE__,
-                           optopt);
+           fprintf(stderr, "Option requires an argument '-%c'.\n", optopt);
          }
          break;
 
        case '?':
-         opt_help= true;
+         opt_help= 2;
          if( optopt == 0 )
-           fprintf(stderr, "%4d Unknown option '%s'.\n", __LINE__
-                         , argv[optind-1]);
+           fprintf(stderr, "Unknown option '%s'.\n", argv[optind-1]);
          else if( isprint(optopt) )
-           fprintf(stderr, "%4d Unknown option '-%c'.\n", __LINE__, optopt);
+           fprintf(stderr, "Unknown option '-%c'.\n", optopt);
          else
-           fprintf(stderr, "%4d Unknown option character '0x.2%x'.\n"
-                         , __LINE__, (optopt & 0x00ff));
+           fprintf(stderr, "Unknown option character '0x.2%x'.\n"
+                         , (optopt & 0x00ff));
          break;
 
        default:
-         fprintf(stderr, "%4d ShouldNotOccur ('%c',0x%x).\n", __LINE__
-         ,
-                         C, (C & 0x00ff));
-         opt_help= true;
+         opt_help= 2;
+         fprintf(stderr, "%4d %s ShouldNotOccur ('%c',0x%.2x).\n"
+                       , __LINE__, __FILE__, C, (C & 0x00ff));
          break;
      }
    }
 
-   if( opt_help ) {
+   if( opt_help )
      info();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Wrapper::ptoi
+//
+// Purpose-
+//       Convert parameter to integer, handling error cases
+//
+// Implementation note-
+//       optarg: The argument string
+//       opt_index: The argument index
+//
+//----------------------------------------------------------------------------
+int                                 // The integer value
+   Wrapper::ptoi(const char* V, const char* N) // Extract/verify parameter
+{
+   int value= atoi(V);
+   if( errno ) {
+     opt_help= 2;
+     if( N == nullptr )
+       N= "parameter";
+
+     if( errno == ERANGE )
+       fprintf(stderr, "--%s, range error: '%s'\n", N, V);
+     else if( *optarg == '\0' )
+       fprintf(stderr, "--%s, no value specified\n", N);
+     else
+       fprintf(stderr, "--%s, format error: '%s'\n", N, V);
    }
 
-   return 0;
+   return value;
 }
 
 //----------------------------------------------------------------------------
@@ -482,21 +475,20 @@ int                                 // Return code
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
-   //-------------------------------------------------------------------------
-   // Initialize
-   //-------------------------------------------------------------------------
-   int rc= parm(argc, argv);
-   if( rc ) return rc;
+   int rc;                          // Return code
 
-   rc= init(argc, argv);
-   if( rc )
-     return rc;
-
-   //-------------------------------------------------------------------------
-   // Run the tests
-   //-------------------------------------------------------------------------
    try {
-     rc= main_f(argc, argv);
+     //-----------------------------------------------------------------------
+     // Initialize
+     //-----------------------------------------------------------------------
+     parm(argc, argv);              // (Exits if parameter error or --help)
+     rc= init(argc, argv);
+
+     //-----------------------------------------------------------------------
+     // Run the main function
+     //-----------------------------------------------------------------------
+     if( rc == 0 )
+       rc= main_f(argc, argv);
    } catch(pub::Exception& x) {
      debugf("pub::exception(%s)\n", x.what());
      rc= 2;
@@ -543,10 +535,10 @@ void
 
    //-------------------------------------------------------------------------
    // Delete (close) our debugging trace file
-   Debug::lock();
-   if( debug == Debug::show() )
-     Debug::set(nullptr);
-   Debug::unlock();
+   {{{ std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
+       if( debug == Debug::show() )
+       Debug::set(nullptr);
+   }}}
 
    delete debug;
 }

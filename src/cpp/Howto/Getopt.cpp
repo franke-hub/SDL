@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2021 Frank Eskesen.
+//       Copyright (C) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       Sample program: How to use getopt_long
 //
 // Last change date-
-//       2021/12/08
+//       2022/05/05
 //
 // Usage notes-
 //       getopt_long does not print an invalid argument error message when
@@ -42,7 +42,7 @@ static int             opt_a= 0;    // -a
 static int             opt_b= 0;    // -b
 static const char*     opt_c= nullptr; // -c
 static const char*     opt_debug= "none"; // --debug
-static int             opt_verbose= -1; // --brief or --verbose
+static int             opt_verbose= -1; // --verbose
 
 static const char*     OSTR= ":abc:"; // The getopt_long optstring parameter
                                     // Notes:
@@ -172,7 +172,7 @@ static int                          // The integer value
 {
    int value= to_integer(optarg);
    if( errno ) {
-     opt_help= true;
+     opt_help= 2;
      if( errno == ERANGE )
        fprintf(stderr, "--%s, range error: '%s'\n", OPTS[opt_index].name, optarg);
      else if( *optarg == '\0' )
@@ -190,12 +190,14 @@ static int                          // The integer value
 //       info
 //
 // Purpose-
-//       Parameter description.
+//       Parameter description and exit
 //
 //----------------------------------------------------------------------------
-static int                          // Return code (Always 1)
+static void
    info( void)                      // Parameter description
 {
+   if( opt_help > 1 )
+     fprintf(stderr, "\n\n");
    fprintf(stderr, "%s <options> parameter ...\n"
                    "Options:\n"
                    "  --help\tThis help message\n"
@@ -208,8 +210,7 @@ static int                          // Return code (Always 1)
                    "  --verbose\t{=n} Verbosity, default 0\n"
                    , __FILE__
           );
-
-   return 1;
+   exit(opt_help > 1 ? 1 : 0);
 }
 
 //----------------------------------------------------------------------------
@@ -221,7 +222,7 @@ static int                          // Return code (Always 1)
 //       Parameter analysis.
 //
 //----------------------------------------------------------------------------
-static int                          // Return code (0 if OK)
+static void
    parm(                            // Parameter analysis
      int               argc,        // Argument count
      char*             argv[])      // Argument array
@@ -253,7 +254,7 @@ static int                          // Return code (0 if OK)
                opterr= false;
              else
              {
-               opt_help= true;
+               opt_help= 2;
                fprintf(stderr, "%4d --opterr must be on or off\n", __LINE__);
              }
              break;
@@ -286,39 +287,40 @@ static int                          // Return code (0 if OK)
          break;
 
        case ':':
-         opt_help= true;
-         if( optopt == 0 )
-           fprintf(stderr, "%4d Option requires an argument '%s'.\n", __LINE__,
-                           argv[optind-1]);
-         else
-           fprintf(stderr, "%4d Option requires an argument '-%c'.\n", __LINE__,
-                           optopt);
+         opt_help= 2;
+         if( optopt == 0 ) {
+           if( strchr(argv[optind-1], '=') )
+             fprintf(stderr, "Option has no argument '%s'.\n"
+                           , argv[optind-1]);
+           else
+             fprintf(stderr, "Option requires an argument '%s'.\n"
+                           , argv[optind-1]);
+         } else {
+           fprintf(stderr, "Option requires an argument '-%c'.\n", optopt);
+         }
          break;
 
        case '?':
-         opt_help= true;
+         opt_help= 2;
          if( optopt == 0 )
-           fprintf(stderr, "%4d Unknown option '%s'.\n", __LINE__,
-                           argv[optind-1]);
+           fprintf(stderr, "Unknown option '%s'.\n", argv[optind-1]);
          else if( isprint(optopt) )
-           fprintf(stderr, "%4d Unknown option '-%c'.\n", __LINE__, optopt);
+           fprintf(stderr, "Unknown option '-%c'.\n", optopt);
          else
-           fprintf(stderr, "%4d Unknown option character '0x%x'.\n", __LINE__,
-                           (optopt & 0x00ff));
+           fprintf(stderr, "Unknown option character '0x.2%x'.\n"
+                         , (optopt & 0x00ff));
          break;
 
        default:
-         fprintf(stderr, "%4d ShouldNotOccur ('%c',0x%x).\n", __LINE__,
-                         C, (C & 0x00ff));
+         opt_help= 2;
+         fprintf(stderr, "%4d ShouldNotOccur ('%c',0x%.2x).\n", __LINE__
+                       , C, (C & 0x00ff));
          break;
      }
    }
 
-   // Return sequence
-   int rc= 0;
    if( opt_help )
-     rc= info();
-   return rc;
+     info();
 }
 
 //----------------------------------------------------------------------------
@@ -338,10 +340,8 @@ extern int                          // Return code
    //-------------------------------------------------------------------------
    // Initialize
    //-------------------------------------------------------------------------
-   int rc= parm(argc, argv);        // Argument analysis
-   if( rc ) return rc;              // Return if invalid
-
-   rc= init(argc, argv);            // Initialize
+   parm(argc, argv);                // Argument analysis
+   int rc= init(argc, argv);        // Initialize
    if( rc ) return rc;              // Return if invalid
 
    printf("%s: %s %s\n", __FILE__, __DATE__, __TIME__); // Compile time message
