@@ -19,10 +19,10 @@
 /*
 !/.gitignore
 !/.README
-!/.UPDATE
 !/asm
 !/c
 !/cpp
+!/doc
 !/java
 !/js
 !/make
