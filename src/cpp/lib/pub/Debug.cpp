@@ -16,7 +16,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2022/04/08
+//       2022/05/12
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -1038,6 +1038,7 @@ void                                // Note: Does not use Debug object
      const char*       fmt,         // The PRINTF format string
                        ...)         // The remaining arguments
 {
+   int ERRNO= errno;                // Preserve errno
    va_list             argptr;      // Argument list pointer
 
    fflush(NULL);                    // Flush everything first
@@ -1049,6 +1050,7 @@ void                                // Note: Does not use Debug object
 
    perror(buffer);                  // Write the message in one line
    fflush(stderr);                  // Flush stderr
+   errno= ERRNO;                    // Restore errno
 }
 
 [[noreturn]]

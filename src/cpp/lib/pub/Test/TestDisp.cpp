@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2022/04/22
+//       2022/05/06
 //
 // Arguments: (For testtime only)
 //       TestDisp --timing          // (Only run timing test)
@@ -499,7 +499,7 @@ static int
    double ops= (double)TASKS + 1.0;
    ops *= (double)MULTI;
    ops *= (double)LOOPS;
-   setlocale(LC_ALL, "");           // Activates ' thousand separator
+   setlocale(LC_NUMERIC, "");       // Activates ' thousand separator
    if( opt_verbose || opt_timing ) {
      debugf("%'16.3f seconds elapsed\n", elapsed);
      debugf("%'16.3f ops/second\n", ops / elapsed);

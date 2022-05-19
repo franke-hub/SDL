@@ -16,7 +16,7 @@
 //       Display environmental control variables.
 //
 // Last change date-
-//       2022/04/22
+//       2022/05/06
 //
 //----------------------------------------------------------------------------
 #define _FILE_OFFSET_BITS 64        // (Required for LINUX)
@@ -745,7 +745,7 @@ int                                 // Return code
 
      int error_count= 0;
 
-     setlocale(LC_ALL, "");         // Activates ' thousand separator
+     setlocale(LC_NUMERIC, "");     // Activates ' thousand separator
      error_count += environment();  // Display compliation environment
      error_count += test_stdlib();  // Test ::free(NULL), std::free(nullptr)
 

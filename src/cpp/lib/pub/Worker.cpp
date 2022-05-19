@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2020 Frank Eskesen.
+//       Copyright (C) 2019-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2020/10/03
+//       2022/05/06
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -262,7 +262,7 @@ void
 {
    debugf("WorkerPool::debug()\n");
 
-// setlocale(LC_ALL, "");           // Activates ' thousand separator
+   setlocale(LC_NUMERIC, "");       // Activates ' thousand separator
    debugf("%'16d max_running\n", max_running);
 // debugf("%'16d max_size\n",    max_size);
    debugf("%'16d max_used\n",    max_used);
@@ -291,7 +291,12 @@ void
      thread->stop();
    }
 
+   // Reset the statistics
+   max_running= 0;
+   max_used= 0;
+   running= 0;
    used= 0;
+   workers= 0;
 }
 
 //----------------------------------------------------------------------------

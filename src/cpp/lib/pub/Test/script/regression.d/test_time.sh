@@ -10,57 +10,38 @@
 ##----------------------------------------------------------------------------
 ##
 ## Title-
-##       test_base.sh
+##       test_time.sh
 ##
 ## Function-
-##       Run executables with default options
+##       Run timing tests
 ##
 ## Last change date-
-##       2022/04/22
+##       2022/05/18
 ##
 ##############################################################################
 
 ##############################################################################
-## Function OK: Run test, success expected
-function OK
+## Function cmd: Run test, success expected
+function cmd
 {
-  $@
+  echo -e "\nTEST: $1 (started)"
+  "$@"
   rc=$?
   if [ $rc == 0 ] ; then
+    echo "PASS: $1"
     return
   fi
 
-  echo "$@ returned $rc, but 0 expected"
+  echo "FAIL: $1"
   exit 1
 }
 
 ##############################################################################
-## Insure TestLock semaphore is reset
-TestLock --reset >/dev/null 2>/dev/null
+## Bringup
+### S/script/regression.d/.ECHO    this "the other thing" that
+### S/script/regression.d/.FAILURE that "the other thing" this
 
 ##############################################################################
-## Run executables
-test="Quick --all"
-./$test
-rc=$?
-if [[ $rc == 0 ]] ; then
-  echo "PASS: ./$test"
-else
-  echo "FAIL: ./$test, rc $rc"
-  exit $rc
-fi
-
-test_set="TestList TestLock TestMisc Test_num Test_thr"
-for test in $test_set
-do
-  [[ "$test" == "Test_num" ]] && echo "TEST: ./$test (started)"
-  [[ "$test" == "Test_thr" ]] && echo "TEST: ./$test (started)"
-  ./$test
-  rc=$?
-  if [[ $rc == 0 ]] ; then
-    echo "PASS: ./$test"
-  else
-    echo "FAIL: ./$test, rc $rc"
-    exit $rc
-  fi
-done
+## Run timing tests
+cmd TestDisp --timing
+cmd TestSock --datagram --stress --runtime=30 --verbose

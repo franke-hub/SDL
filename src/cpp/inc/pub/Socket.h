@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2021 Frank Eskesen.
+//       Copyright (c) 2019-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Standard posix socket wrapper and openssl wrapper.
 //
 // Last change date-
-//       2021/12/06
+//       2022/05/15
 //
 // Implementation warning-
 //       THE SSL_Socket CLASS IS EXPERIMENTAL. The author expressly admits to
@@ -47,9 +47,12 @@
 #ifndef _LIBPUB_SOCKET_H_INCLUDED
 #define _LIBPUB_SOCKET_H_INCLUDED
 
+#include <functional>               // For std::function
+#include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
 #include <netinet/in.h>             // For struct sockaddr_ definitions
 #include <openssl/ssl.h>            // For SSL, SSL_CTX
+#include <sys/poll.h>               // For struct pollfd, ...
 #include <sys/socket.h>             // For socket methods
 
 #include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
@@ -97,6 +100,9 @@ std::string to_string( void ) const; // Convert to display string
 
 protected:
 int                    handle;      // The socket handle
+short                  family;      // The connection address family
+short                  type;        // The connection type
+//                     proto;       // The connection protocol, PF_UNSPEC
 
 sockaddr_u             host_addr;   // The host socket address
 sockaddr_u             peer_addr;   // The peer socket address
@@ -206,6 +212,10 @@ virtual int                         // Return code (0 OK)
      const sockaddr*   peer_addr,   // Peer address
      socklen_t         peer_size);  // Peer address length
 
+virtual int                         // Return code (0 OK)
+   connect(                         // Connect to server
+     const std::string&name_port);  // Peer name:port string
+
 virtual Socket*                     // The next new connection
    listen( void );                  // Listen for and accept new connections
 
@@ -213,7 +223,7 @@ virtual int                         // Return code (0 OK)
    open(                            // Open the Socket
      int               family,      // Address Family
      int               type,        // Socket type
-     int               protocol);   // Socket protocol
+     int               protocol= 0); // Socket protocol
 
 virtual ssize_t                     // The number of bytes read
    read(                            // Read from the socket
@@ -231,6 +241,10 @@ virtual ssize_t                     // The number of bytes written
      const void*       addr,        // Data address
      size_t            size,        // Data length
      int               flag);       // Send options
+
+virtual int                         // Return code (0 OK)
+   shutdown(                        // Shutdown the socket
+     int               how);        // Shutdown control flags
 
 virtual ssize_t                     // The number of bytes written
    write(                           // Write to the socket
@@ -304,5 +318,107 @@ virtual ssize_t                     // The number of bytes written
      const void*       addr,        // Data address
      size_t            size);       // Data length
 }; // class SSL_Socket
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       SocketSelect
+//
+// Purpose-
+//       Socket selector
+//
+// Implementation notes-
+//       ** NOT THREAD SAFE **
+//         Similar operation to epoll, but a SocketSelect object cannot be
+//         shared among threads. A mutex is used to enforce this restriction.
+//
+//       It it is the user's reponsibility to ensure that inserted Sockets
+//       remain consistent: They must not be deleted, opened or closed.
+//       Sockets should be only be inserted in one SocketSelect.
+//       Unpredictable results enforce these usage requirements.
+//
+//----------------------------------------------------------------------------
+class SocketSelect {                // Socket selector
+public:
+typedef std::function<void(void)>             v_func;
+
+enum { SIZE_INC= 32 };              // Array increment size TODO: MOVE TO .cpp
+
+struct Selector {
+const Socket*          socket;      // The associated Socket
+}; // struct Selector
+
+protected:
+mutable std::mutex     mutex;       // Internal mutex
+Selector*              sarray= nullptr; // Array of Selectors
+struct pollfd*         result= nullptr; // Array of pollfd's
+
+uint32_t               left= 0;     // Number of remaining selections
+uint32_t               next= 0;     // The next selection index
+uint32_t               size= 0;     // Array size(s)
+uint32_t               used= 0;     // Number of element used
+
+public:
+   SocketSelect();
+   ~SocketSelect();
+
+//----------------------------------------------------------------------------
+// SocketSelect::methods
+//----------------------------------------------------------------------------
+void
+   debug(                           // Debugging display
+     const char*       info= "");   // Caller information
+
+void
+   with_lock(v_func f)              // Run function holding SocketSelect mutex
+{  std::lock_guard<decltype(mutex)> lock(mutex); f(); }
+
+const struct pollfd*                // The associated pollfd
+   get_pollfd(                      // Extract pollfd
+     const Socket*     socket) const // For this Socket
+{  std::lock_guard<decltype(mutex)> lock(mutex);
+
+   ssize_t i= locate(socket);
+   if( i < 0 ) {
+     errno= EINVAL;
+     return nullptr;
+   }
+
+   return &result[i];
+}
+
+int                                 // Return code, 0 expected
+   insert(                          // Insert a Socket onto the list
+     const Socket*     socket,      // The associated Socket
+     int               events);     // The associated poll events
+
+int                                 // Return code, 0 expected
+   modify(                          // Replace the Socket's poll events mask
+     const Socket*     socket,      // The associated Socket
+     int               events);     // The associated poll events
+
+int                                 // Return code, 0 expected
+   remove(                          // Remove the Selector
+     const Socket*     socket);     // For this Socket
+
+Socket*                             // The next selected Socket, or nullptr
+   select(                          // Select next Socket
+     int               timeout);    // Timeout, in milliseconds
+
+Socket*                             // The next selected Socket, or nullptr
+   select(                          // Select next Socket
+     const struct timespec*         // (tv_sec, tv_nsec)
+                       timeout,     // Timeout, infinite if omitted
+     const sigset_t*   signals);    // Timeout, in milliseconds
+
+//============================================================================
+protected:
+ssize_t                             // The Selector index, -1 if not found
+   locate(                          // Locate the Selector index
+     const Socket*     socket) const; // For this Socket
+
+Socket*                             // The next selected Socket
+   remain( void );                  // Select next remaining Socket
+}; // class SocketSelect
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_SOCKET_H_INCLUDED

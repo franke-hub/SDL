@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2021 Frank Eskesen.
+//       Copyright (C) 2019-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,19 +16,30 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2021/12/06
+//       2022/05/18
+//
+// Implementation notes-
+//       SocketSelect:
+//         Do we want a Selector map rather than a List? NO. Too complex.
+//         Do we want a sorted socket array? Maybe, slightly more complex.
+//           Insert slower. Locate faster. (Implementation deferred)
 //
 //----------------------------------------------------------------------------
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE                 // For ppoll
+#endif
 #include <errno.h>                  // For errno
 #include <mutex>                    // For mutex, std::lock_guard, ...
 
-#include <netdb.h>                  // Form addrinfo, ...
+#include <fcntl.h>                  // For fcntl
+#include <netdb.h>                  // For addrinfo, ...
 #include <poll.h>                   // For poll, ...
 #include <stdarg.h>                 // For va_* functions
 #include <string.h>                 // For memset, ...
 #include <unistd.h>                 // For close, ...
 #include <arpa/inet.h>              // For internet address conversions
 #include <openssl/err.h>            // For ERR_error_string
+#include <sys/select.h>             // For select, ...
 #include <sys/time.h>               // For timeval, ...
 
 #include <pub/utility.h>            // For to_string()
@@ -131,7 +142,7 @@ Socket&                             // (Always *this)
      const Socket&     source)      // Source Socket
 {  if( HCDM ) debugh("Socket(%p)::operator=(%p)\n", this, &source);
 
-   this->handle= CLOSED;
+   close();
 
    this->host_addr= source.host_addr;
    this->peer_addr= source.peer_addr;
@@ -341,6 +352,56 @@ int                                 // Return code (0 OK)
    return rc;
 }
 
+static std::string
+   connect_mess(std::string name_port, std::string message)
+{
+   std::string S= "Socket::connect(";
+   S += name_port;
+   S += ") ";
+   S += message;
+   return S;
+}
+
+int                                 // Return code (0 OK)
+   Socket::connect(                 // Connect to peer
+     const std::string&name_port)   // Peer name:port
+{  if( HCDM )
+     debugh("Socket(%p)::connect(%s)\n", this, name_port.c_str());
+
+   size_t x= name_port.find(':');
+   if( x == std::string::npos )
+     throw SocketException(connect_mess(name_port, "missing ':' delimiter"));
+   std::string peer_name;
+   if( x == 0 )
+     peer_name= get_host_name();
+   else
+     peer_name= name_port.substr(0, x);
+
+   std::string peer_port= name_port.substr(x+1);
+   if( peer_port == "" )
+     throw SocketException(connect_mess(name_port, "missing port number"));
+
+   addrinfo hint{};                 // Hints
+   hint.ai_family= family;
+   hint.ai_socktype= type;
+   hint.ai_protocol= PF_UNSPEC;
+
+   addrinfo* info= nullptr;         // Resultant info
+   int rc= getaddrinfo(peer_name.c_str(), peer_port.c_str(), &hint, &info);
+   if( rc ) {                       // If unable to get addrinfo
+     errorp("%d= %s", rc, connect_mess(name_port, "[getaddrinfo]").c_str());
+   } else {
+     rc= connect(info->ai_addr, info->ai_addrlen);
+     int ERRNO= errno;
+     freeaddrinfo(info);
+     errno= ERRNO;
+     if( rc && IODM )
+       errorp("%d= %s", rc, connect_mess(name_port, "connect").c_str());
+   }
+
+   return rc;
+}
+
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -352,33 +413,159 @@ int                                 // Return code (0 OK)
 //----------------------------------------------------------------------------
 Socket*                             // The new connection Socket
    Socket::listen( void )           // Get new connection Socket
-{
+{  if( HCDM )
+     debugh("Socket(%p)::listen handle(%d)\n", this, handle);
+
    int rc= ::listen(handle, SOMAXCONN); // Wait for new connection
    if( rc != 0 ) {                  // If listen failure
-     trace(__LINE__, "%d= listen()", rc);
-     display_ERR();
+     if( IODM ) {
+       trace(__LINE__, "%d= listen()", rc);
+       display_ERR();
+     }
      return nullptr;
    }
 
    // Accept the next connection
    int client;
    for(;;) {
+     /* IMPLEMENTATION NOTE: *************************************************
+     A problem occurs in Test/TestSock --stress, where clients only use
+     connections for one HTTP operation. After about 30K operations clients
+     fail to connect and the server ::accept operation does not complete.
+
+     Problem 1) The server accept operation blocks.
+     It's only this part of the problem that we can address here. The options
+     tried are coded below. Options 0 and 1 rely on the client to fix the
+     problem and options 2 and 3 prevent the accept from blocking. We don't
+     want to leave Socket operations in an unrecoverable blocked state if it's
+     reasonably avoidable. Option 3 only has about a 0.5% overhead over the
+     entire HTTP operation sequence, and is the implementation chosen.
+
+     Problem 2) Clients fail to connect.
+     This occurs because sockets are left in the TIME_WAIT state after close,
+     and the rapid re-use of ports exhausts the port space. In a server, this
+     can only be fixed using SO_LINGER with linger l_onoff=1 and l_linger=0
+     to immediately close its half of the socket. It only needs to do this
+     when it detects a client close or a transmission error, so there's no
+     associated client recovery required.
+
+     We implement this SO_LINGER logic in TestSock's StreamServer::serve
+     method. With that logic and StreamServer::stop's normal recovery logic,
+     TestSock --stress runs properly with any of the options below.
+
+     Implementation options are coded below.
+     ************************************************************************/
+
+// ===========================================================================
+#define ACCEPT_OPTION 3
+#define LISTEN_HCDM false
+
+#if false                           // (Used for option verification)
+static int once= true;
+     if( once ) {
+       once= false;
+       debugf("%4d HCDM ACCEPT_OPTION(%d)\n", __LINE__, ACCEPT_OPTION);
+     }
+#endif
+
+#if ACCEPT_OPTION == 0
+     // Do nothing...
+     //
+     // The client fails to connect after about 30K operations and the ::accept
+     // operation hangs.
+     //
+     // 6025 ops/second Timing w/TestSock USE_LINGER == true
+
+#elif ACCEPT_OPTION == 1
+     // Add a short time delay
+     //
+     // The client fails to connect after about 30K operations and the ::accept
+     // operation hangs.
+     //
+     // 3200 ops/second Timing w/TestSock setting SO_LINGER option
+
+     usleep(125);
+
+#elif ACCEPT_OPTION == 2
+     // Use select to insure that the accept won't block.
+     //
+     // The client fails to connect after about 30K operations.
+     // The server does not see the client's failing connection attempts.
+     // With TestSock's StreamServer::stop method disabled, the select times
+     // out, and the "::accept would block" path is driven.
+     //
+     // With the stop method enabled, the listener socket is closed well before
+     // the select timeout. In this instance (for some unknown reason) select
+     // returns 1, so the accept fails with "Bad file descriptor" because it's
+     // using the CLOSED handle.
+     //
+     // 5825 ops/second Timing w/TestSock USE_LINGER == true
+
+     struct timeval tv= {};
+     tv.tv_usec= 1000000;
+
+     fd_set rd_set;
+     FD_ZERO(&rd_set);
+     FD_SET(handle, &rd_set);
+     int rc= select(handle+1, &rd_set, nullptr, nullptr, &tv);
+     if( LISTEN_HCDM )
+       traceh("%4d %d=select(%d) tv(%zd,%zd) %d:%s\n", __LINE__, rc, handle+1
+             , tv.tv_sec, tv.tv_usec, errno, strerror(errno));
+     if( rc == 0 ) {                // If timeout
+       if( IODM )
+         debugh("%4d %s ::accept would block\n", __LINE__, __FILE__);
+       return nullptr;
+     }
+
+#elif ACCEPT_OPTION == 3
+     // Use poll to insure that the accept won't block.
+     //
+     // The client fails to connect after about 30K operations.
+     // The server does not see the client's failing connection attempts.
+     // When the poll times out, (pfd.revents&POLLIN) == 0 whether or not
+     // TestSock's StreamServer::stop method is disabled, thus always driving
+     // the "::accept would block" path.
+     //
+     // 6000 ops/second Timing w/TestSock USE_LINGER == true
+
+     pollfd pfd= {};
+     pfd.fd= handle;
+     pfd.events= POLLIN;
+     int rc= poll(&pfd, 1, 1000);   // 1 second timeout (1000 ms)
+     if( LISTEN_HCDM )
+       traceh("%4d %d=poll() {%.4x,%.4x}\n", __LINE__, rc
+             , pfd.events, pfd.revents);
+     if( (pfd.revents & POLLIN) == 0 ) { // If timeout
+       if( IODM )
+         debugh("%4d %s ::accept would block\n", __LINE__, __FILE__);
+       return nullptr;
+     }
+#endif // ====================================================================
+
+     if( LISTEN_HCDM )
+       traceh("%4d HCDM accept\n", __LINE__);
      peer_size= sizeof(peer_addr);
      client= ::accept(handle, (sockaddr*)&peer_addr, &peer_size);
+     if( LISTEN_HCDM )
+       traceh("%4d HCDM(%d) %d %d,%d accepted %d %d:%s\n", __LINE__, handle
+             , ACCEPT_OPTION, get_host_port(), get_peer_port(), client
+             , errno, strerror(errno));
 
      if( client >= 0 )              // If valid handle
        break;
 
-     if( handle < 0 )               // If closed
+     if( handle < 0 )               // If socket is currently closed
        return nullptr;              // (Expected)
 
      if( errno != EINTR ) {         // If not interrupted
-       if( IODM )                   // (This shouldn't occur, but does)
-         trace(__LINE__, "listen [accept]");
+       if( IODM )
+         errorp("listen [accept]");
+
        return nullptr;
      }
    }
 
+   // NOTE: Copy constructor only copies host_addr/size and peer_addr/size.
    Socket* result= new Socket(*this);
    result->handle= client;
    if( IODM )
@@ -406,6 +593,11 @@ int                                 // Return code, 0 OK
 
    if( handle >= 0 )
      throw SocketException("Socket already open"); // This is a usage error
+
+   protocol= PF_UNSPEC;             // (Always specified as unspecified)
+   this->family= family;
+   this->type= type;
+// this->protocol= protocol;        // (this->protocol undefined)
 
    memset(&host_addr, 0, sizeof(host_addr));
    memset(&peer_addr, 0, sizeof(peer_addr));
@@ -493,6 +685,30 @@ ssize_t                             // Number of bytes sent
    ssize_t L= ::send(handle, (char*)addr, size, flag);
    if( IODM ) trace(__LINE__, "%zd= send()", L);
    return L;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::shutdown
+//
+// Purpose-
+//       Shutdown the Socket
+//
+//----------------------------------------------------------------------------
+int                                 // Return code, 0 OK
+   Socket::shutdown(                // Shutdown the Socket
+     int               how)         // Shutdown options
+{  if( HCDM )
+     debugh("Socket(%p)::shutdown(%d) handle(%d)\n", this, handle, how);
+
+   int rc= -1;
+   if( handle < 0 )
+     errno= EBADF;
+   else
+     rc= ::shutdown(handle, how);
+
+   return rc;
 }
 
 //----------------------------------------------------------------------------
@@ -836,5 +1052,299 @@ ssize_t                             // Number of bytes sent
    if( IODM )
      trace(__LINE__, "%zd= write()", L);
    return L;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       SocketSelect::SocketSelect
+//       SocketSelect::~SocketSelect
+//
+// Purpose-
+//       Constructor
+//       Destructor
+//
+//----------------------------------------------------------------------------
+   SocketSelect::SocketSelect( void )
+{  }
+
+   SocketSelect::~SocketSelect( void )
+{  free(sarray); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       SocketSelect::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+void
+   SocketSelect::debug(             // Debugging display
+     const char*       info)        // Caller information
+{
+   debugf("SocketSelect(%p)::debug(%s)\n", this, info);
+   debugf("..sarray(%p) result(%p)\n", sarray, result);
+   debugf("..left(%u) next(%u) size(%u) used(%u)\n", left, next, size, used);
+   for(unsigned i= 0; i<used; ++i) {
+     const Socket* socket= sarray[i].socket;
+     debugf("..[%3d] %p %3d {%.4x,%.4x}\n", i, socket, result[i].fd
+           , result[i].events, result[i].revents);
+     if( socket->get_handle() != result[i].fd )
+       debugf("..[%3d] %p %3d ERROR: SOCKET.HANDLE MISMATCH\n", i, socket
+             , socket->get_handle());
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       SocketSelect::insert
+//
+// Purpose-
+//       Insert a Socket onto sarray
+//
+//----------------------------------------------------------------------------
+int                                 // Return code, 0 expected
+   SocketSelect::insert(            // Insert Socket
+     const Socket*     socket,      // The associated Socket
+     int               events)      // The associated poll events
+{  std::lock_guard<decltype(mutex)> lock(mutex);
+
+   ssize_t j= locate(socket);
+   if( j >= 0 )                     // If extant, treat operation as modify
+     return modify(socket, events);
+
+   if( used >= size ) {             // If expansion required
+     if( (size+SIZE_INC) < size ) { // If arithmetic overflow
+       errno= ENOMEM;
+       return -1;
+     }
+
+     size_t combo_size= sizeof(*sarray) + sizeof(*result);
+     Selector* rep_sarray= (Selector*)malloc((size+SIZE_INC) * combo_size);
+     if( rep_sarray == nullptr ) {
+       errno= ENOMEM;
+       return -1;
+     }
+     for(unsigned i= 0; i<size; ++i)
+       rep_sarray[i]= sarray[i];
+
+     struct pollfd* rep_result= (struct pollfd*)(&rep_sarray[size+SIZE_INC]);
+     for(unsigned i= 0; i<size; ++i)
+       rep_result[i]= result[i];
+
+     size += SIZE_INC;
+     free(sarray);
+     sarray= rep_sarray;
+     result= rep_result;
+   }
+
+   sarray[used].socket= socket;
+   result[used].fd= socket->get_handle();
+   result[used].events= events;
+   result[used].revents= 0;
+   ++used;
+// left= next= 0;                   // Not needed
+
+   return 0;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       SocketSelect::modify
+//
+// Purpose-
+//       Modify a Socket's events mask
+//
+//----------------------------------------------------------------------------
+int                                 // Return code, 0 expected
+   SocketSelect::modify(            // Modify Socket
+     const Socket*     socket,      // The associated Socket
+     int               events)      // The associated poll events
+{  std::lock_guard<decltype(mutex)> lock(mutex);
+
+   ssize_t i= locate(socket);
+   if( i < 0 )                      // If not extant, treat operation as insert
+     return insert(socket, events);
+
+   result[i].fd= socket->get_handle();
+   result[i].events= events;
+   result[i].revents= 0;
+   left= next= 0;
+   return 0;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       SocketSelect::remove
+//
+// Purpose-
+//       Remove a Socket from sarray
+//
+//----------------------------------------------------------------------------
+int                                 // Return code, 0 expected
+   SocketSelect::remove(            // Remove Socket
+     const Socket*     socket)      // The associated Socket
+{  std::lock_guard<decltype(mutex)> lock(mutex);
+
+   ssize_t i= locate(socket);
+   if( i < 0 ) {
+     errno= EINVAL;
+     return -1;
+   }
+
+   if( next == used )
+     next= 0;
+   if( result[i].revents )
+     --left;
+
+   for(unsigned j= (unsigned)i + 1; j<used; ++j) {
+     sarray[j-1]= sarray[j];
+     result[j-1]= result[j];
+   }
+
+   --used;
+   // TODO: Shrink array if (size-used) > 1.5 SIZE_INC
+
+   return 0;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       SocketSelect::select
+//
+// Purpose-
+//       Select the next available Socket from sarray
+//
+//----------------------------------------------------------------------------
+Socket*                             // The next selected Socket, or nullptr
+   SocketSelect::select(            // Select next Socket
+     int               timeout)     // Timeout, in milliseconds
+{  std::lock_guard<decltype(mutex)> lock(mutex);
+
+   if( used == 0 ) {                // USAGE ERROR
+     if( IODM )
+       debugf("SocketSelect(%p)::select Empty Socket array\n", this);
+     errno= EINVAL;
+     return nullptr;
+   }
+
+   if( left )
+     return remain();
+
+   for(unsigned i= 0; i<used; ++i)
+     result[i].revents= 0;
+
+   left= poll(result, used, timeout);
+   if( left == 0 ) {
+     errno= EAGAIN;
+     return nullptr;
+   }
+
+   return remain();
+}
+
+Socket*                             // The next selected Socket, or nullptr
+   SocketSelect::select(            // Select next Socket
+     const struct timespec*         // (tv_sec, tv_nsec)
+                       timeout,     // Timeout, infinite if omitted
+     const sigset_t*   signals)     // Timeout, in milliseconds
+{  std::lock_guard<decltype(mutex)> lock(mutex);
+
+   if( used == 0 ) {                // USAGE ERROR
+     if( IODM )
+       debugf("SocketSelect(%p)::select Empty Socket array\n", this);
+     errno= EINVAL;
+     return nullptr;
+   }
+
+   if( left )
+     return remain();
+
+   for(unsigned i= 0; i<used; ++i)
+     result[i].revents= 0;
+
+   left= ppoll(result, used, timeout, signals);
+   if( left == 0 ) {
+     errno= EAGAIN;
+     return nullptr;
+   }
+
+   return remain();
+}
+
+//----------------------------------------------------------------------------
+//
+// Protected method-
+//       SocketSelect::locate
+//
+// Purpose-
+//       Locate a Socket in the sarray
+//
+// Implementation note-
+//       Caller must hold mutex lock.
+//
+//----------------------------------------------------------------------------
+ssize_t                             // The Selector index, -1 if not found
+   SocketSelect::locate(            // Locate the Selector index
+     const Socket*     socket) const // For this Socket
+{
+   for(unsigned i= next; i<used; ++i) {
+     if( sarray[i].socket == socket )
+       return i;
+   }
+
+   for(unsigned i= 0; i<next; ++i) {
+     if( sarray[i].socket == socket )
+       return i;
+   }
+
+   errno= EINVAL;
+   return -1;
+}
+
+//----------------------------------------------------------------------------
+//
+// Protected method-
+//       SocketSelect::remain
+//
+// Purpose-
+//       Select the next remaining Socket
+//
+// Implementation note-
+//       Caller must hold mutex lock.
+//
+//----------------------------------------------------------------------------
+Socket*                             // The next selected Socket
+   SocketSelect::remain( void )     // Select next remaining Socket
+{
+   for(unsigned i= next; i<used; ++i) {
+     if( result[i].revents != 0 ) {
+       --left;
+       next= i + 1;
+       return const_cast<Socket*>(sarray[i].socket);
+     }
+   }
+
+   for(unsigned i= 0; i<next; ++i) {
+     if( result[i].revents != 0 ) {
+       --left;
+       next= i + 1;
+       return const_cast<Socket*>(sarray[i].socket);
+     }
+   }
+
+   // ERROR: The number of elements set < number of elements found
+   // ** THIS IS AN INTERNAL ERROR, NOT AN APPLICATION ERROR **
+   debugf("%4d %s Should not occur(%d), internal correctable error\n"
+         , __LINE__, __FILE__, left);
+   left= 0;
+   errno= EAGAIN;
+   return nullptr;
 }
 } // namespace _PUB_NAMESPACE
