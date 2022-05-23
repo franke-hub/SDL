@@ -16,7 +16,7 @@
 //       Semaphore implemenentation using condition variable.
 //
 // Last change date-
-//       2022/02/16
+//       2022/05/04
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_SEMAPHORE_H_INCLUDED
@@ -84,6 +84,10 @@ void
    count++;
    cv.notify_one();
 }
+
+void
+   reset( void )                    // Reset the Semaphore
+{  count= 0; }
 
 void
    wait( void )                     // Wait for resource

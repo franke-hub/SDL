@@ -68,9 +68,11 @@ verify: ;
 
 ##############################################################################
 ## Run the default program
+ifneq "" "$(DEFAULT)"
 .PHONY: do
-do: default
-	@echo "no default program"
+do: $(DEFAULT)
+	$< $(OPTIONS)
+endif
 
 ##############################################################################
 ## List options
@@ -86,4 +88,5 @@ clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
 	-@rm liblocal.a      >/dev/null 2>/dev/null
+	-@rm trace.*         >/dev/null 2>/dev/null
 

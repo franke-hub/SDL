@@ -16,7 +16,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2022/05/06
+//       2022/05/23
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -262,7 +262,6 @@ void
 {
    debugf("WorkerPool::debug()\n");
 
-   setlocale(LC_NUMERIC, "");       // Activates ' thousand separator
    debugf("%'16d max_running\n", max_running);
 // debugf("%'16d max_size\n",    max_size);
    debugf("%'16d max_used\n",    max_used);

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (c) 2019-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,74 +16,63 @@
 //       Sample HTTP/HTTPS Client/Server, using openssl/bio.h functions.
 //
 // Last change date-
-//       2020/10/04
+//       2022/05/22
 //
 // Known bugs-
-//       std/ssl_stressor both eventually fail on Cygwin. (OK in Linux)
-//       1000: BIO_free_all error when BIO_f_buffer used
+//       bug_1000: BIO_free_all error when BIO_f_buffer used
+//         See detailed description in WorkerObject::worker().
+//         It's related to testing the server using Chrome browser.
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
-#include <sstream>                  // For std::stringstream
+
+#include <errno.h>                  // For errno
+#include <fcntl.h>                  // For open, O_*, ...
 #include <getopt.h>                 // For getopt()
 #include <string.h>                 // For memset, ...
 #include <openssl/bio.h>            // For openssl BIO methods
 #include <openssl/err.h>            // For openssl ERR methods
-#include <openssl/ssl.h>            // For openssl SSL methods
+#include <unistd.h>                 // For close, ...
+#include <sys/mman.h>               // For mmap, ...
 #include <sys/time.h>               // For timeval
 
 #include <pub/utility.h>            // For to_string, visify
 #include <pub/Debug.h>              // For debugging
-#include <pub/Interval.h>           // For Interval
-#include <pub/Semaphore.h>          // For Semaphore
-#include <pub/Thread.h>             // For Thread
-#include <pub/Trace.h>              // For Trace
-#include <pub/Worker.h>             // For Worker, WorkerPool
+#include <pub/Interval.h>           // For pub::Interval
+#include <pub/Semaphore.h>          // For pub::Semaphore
+#include "pub/Socket.h"             // The pub::Socket Object
+#include <pub/Statistic.h>          // For pub::Statistic
+#include <pub/Thread.h>             // For pub::Thread
+#include <pub/Trace.h>              // For pub::Trace
+#include <pub/Worker.h>             // For pub::Worker, pub::WorkerPool
 
-#include "pub/Socket.h"             // The Socket Object
-#include "BIO_debug.h"              // For debugging routines
+#include "SampleBIO.h"              // For debugging routines
 
 using namespace _PUB_NAMESPACE;     // For Socket, ...
 using namespace _PUB_NAMESPACE::debugging; // For debugging
 using _PUB_NAMESPACE::utility::visify; // For visify
 
 //----------------------------------------------------------------------------
-// Workarounds
-//
-// Latest CYGWIN version is missing TLS_*_method declarations.
-// This kludge gets around the problem for now, and (at this point in time)
-// the TLS_*_method and TLSv1_2_*_method are essentially identical.
-//----------------------------------------------------------------------------
-#ifndef SSL_EXT_TLS_ONLY
-#define TLS_method        TLSv1_2_method
-#define TLS_client_method TLSv1_2_client_method
-#define TLS_server_method TLSv1_2_server_method
-#endif
-
-//----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#define STD_PORT 8080               // Our standard port number
-#define SSL_PORT 8443               // Our SSL port number
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
-#define USE_RUNTIME 60              // Delay before terminating
-#define USE_CLIENT true             // Include Clients?
-#define USE_THREAD true             // Use ClientThread (else direct call)
-#define USE_SERVER true             // Include Servers?
-#define USE_WORKER true             // Use WorkerThread (else direct call)
+,  STD_PORT= 8080                   // Our STD port number
+,  SSL_PORT= 8443                   // Our SSL port number
 
-//----------------------------------------------------------------------------
-// Constants for parameterization
-//----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
+// Default options - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+,  USE_RUNTIME= 60                  // Delay before terminating
+,  USE_CLIENT= true                 // Include Clients?
+,  USE_SERVER= true                 // Include Servers?
+,  USE_STRESS= false                // Use stress test?
+,  USE_THREAD= true                 // Use ClientThread (else direct call)
+,  USE_TRACE=  false                // Use memory trace?
+,  USE_WORKER= true                 // Use WorkerObject (else direct call)
+}; // Generic enum
 
-#ifndef TRACE                       // ** NOT IMPLEMENTED **
-#undef  TRACE                       // If defined, Tracing active
-#endif
-
-#include <pub/ifmacro.h>
+static constexpr const char* TRACE_FILE= "./trace.mem"; // (Trace file name)
 
 //----------------------------------------------------------------------------
 // Macros
@@ -93,9 +82,11 @@ using _PUB_NAMESPACE::utility::visify; // For visify
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static int             testfail;    // Indicates test failure
 static Interval        interval;    // Stress interval timer
 static Semaphore       semaphore;   // Thread complete semaphore
+//atic Statistic       std_count;   // STD_ServerThread active requests
+static void*           table= nullptr; // The trace data area
+static int             testfail;    // Indicates test failure
 
 //----------------------------------------------------------------------------
 // HTTP responses
@@ -124,7 +115,7 @@ static const char*     http404=     // HTTP 404 (NOT FOUND) response
    "</html>\r\n"                    // 8
    ;
 
-static const char*     response=    // The response data
+static const char*     http200=     // HTTP 200 (NORMAL) response
    "HTTP/1.1 200 OK\r\n"
    "Server: RYO\r\n"
    "Content-type: text/html\r\n"
@@ -140,23 +131,23 @@ static const char*     response=    // The response data
 //----------------------------------------------------------------------------
 // Options
 //----------------------------------------------------------------------------
-static const char*     opt_debug= nullptr; // --debug{=filename}
 static int             opt_help= false; // --help or error
 static int             opt_index;   // Option index
 static int             opt_runtime= USE_RUNTIME; // Server run time
 static int             opt_client=  USE_CLIENT; // Use client?
 static int             opt_server=  USE_SERVER; // Use server?
-static int             opt_stress=  false;      // Use stress test?
+static int             opt_stress=  USE_STRESS; // Use stress test?
 static int             opt_thread=  USE_THREAD; // Use client thread?
+static int             opt_trace=   0;          // Use memory trace (size)?
 static int             opt_worker=  USE_WORKER; // Use worker?
 static int             opt_verbose= 0; // --verbose{=verbosity}
 static int             bug_1000= false; // BIO_free_all fails with BIO_f_buffer
 
 static struct option   OPTS[]=      // Options
 {  {"help",     no_argument,       &opt_help,    true}
-,  {"debug",    optional_argument, nullptr,      0}
 ,  {"runtime",  required_argument, nullptr,      0}
 ,  {"verbose",  optional_argument, nullptr,      0}
+,  {"trace",    optional_argument, &opt_trace,   0x00040000} // Trace length
 
 ,  {"bug_1000",    no_argument,    &bug_1000,    true} // Bug# 1000
 ,  {"client",      no_argument,    &opt_client,  true} // use_client
@@ -164,8 +155,10 @@ static struct option   OPTS[]=      // Options
 ,  {"stress",      no_argument,    &opt_stress,  true} // Stress test?
 ,  {"thread",      no_argument,    &opt_thread,  true} // client thread
 ,  {"worker",      no_argument,    &opt_worker,  true} // server thread
+,  {"no-bug_1000", no_argument,    &bug_1000,    false} // Bug# 1000
 ,  {"no-client",   no_argument,    &opt_client,  false} // use_client
 ,  {"no-server",   no_argument,    &opt_server,  false} // use_server
+,  {"no-stress",   no_argument,    &opt_stress,  false} // Stress test?
 ,  {"no-thread",   no_argument,    &opt_thread,  false} // client thread
 ,  {"no-worker",   no_argument,    &opt_worker,  false} // server thread
 ,  {0, 0, 0, 0}                     // (End of option list)
@@ -173,9 +166,9 @@ static struct option   OPTS[]=      // Options
 
 enum OPT_INDEX
 {  OPT_HELP
-,  OPT_DEBUG
 ,  OPT_RUNTIME
 ,  OPT_VERBOSE
+,  OPT_TRACE
 };
 
 //----------------------------------------------------------------------------
@@ -249,10 +242,65 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       free_BIO
+//
+// Purpose-
+//       Free a bio chain
+//
+// Implementation notes-
+//       Unclear documentation: Does BIO_free_all free the chain or not?
+//
+//----------------------------------------------------------------------------
+static void
+   free_BIO(                        // Free a BIO chain
+     BIO*              bio)         // The BIO chain
+{
+   try {
+     if( bio ) {
+       // The chain is broken. bio->next_bio->prev_bio == nullptr
+       // TODO: Investigate
+//     if( opt_verbose && (bio->next_bio || bio->prev_bio) )
+//       debug_chain(bio, "free_BIO"); // (Found broken chain)
+
+       if( true ) {                 // Assume BIO_free_all deletes the chain
+         BIO_free_all(bio);
+
+       } else if( false ) {         // (Cannot use this with broken chain)
+         while( bio ) {             // Find the last BIO*
+           BIO* next= bio->next_bio;
+           if( next == nullptr )
+             break;
+           bio= next;
+         }
+         while( bio ) {             // Delete the chain (last to first)
+           BIO* prev= bio->prev_bio;
+           BIO_free_all(bio);
+           bio= prev;
+         }
+
+       } else {
+         while( bio ) {             // Delete the chain (first to last)
+           BIO* next= bio->next_bio;
+           BIO_free_all(bio);
+           bio= next;
+         }
+       }
+     }
+   } catch(...) {
+     debugf("%4d free_BIO Exception...\n", __LINE__);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       handle_ERR
 //
 // Purpose-
-//       Display all pending OPENSSL errors
+//       Display all pending OPENSSL BIO errors
+//
+// Implementation notes-
+//       Message format: 'error:nnnnnnnn:<where>:<what>'
 //
 //----------------------------------------------------------------------------
 static void
@@ -284,8 +332,7 @@ static void
 static std::mutex      mutex;       // Latch protecting initialized
 static int             initialized= false; // TRUE when initialized
 
-   std::lock_guard<decltype(mutex)> lock(mutex);
-
+   LOCK_GUARD(mutex);
    if( !initialized ) {
      SSL_library_init();
      SSL_load_error_strings();
@@ -373,6 +420,7 @@ static void
    reconnect(                       // Attempt a dummy connection
      int               port)        // To this port
 {
+// debugf("%4d reconnect(%d)\n", __LINE__, port);
    try {
      Socket socket;
 
@@ -385,7 +433,32 @@ static void
      socket.connect((sockaddr*)&sa, sizeof(sa));
      Thread::sleep(0.125);
    } catch(...) {
+     debugf("%4d catch(...)\n", __LINE__);
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       set_socket_option
+//
+// Purpose-
+//       Set a socket option
+//
+// Implementation notes-
+//       Uses SOL_SOCKET level. Other levels NOT DEFINED YET.
+//       See alternate implementation in Worker::worker()
+//
+//----------------------------------------------------------------------------
+static inline int                   // Return code, 0 expected
+   set_socket_option(               // Set a socket option
+     const BIO*        bio,         // The associated BIO
+     int               code,        // The option code, SO_*
+     const void*       addr,        // -> Option value
+     socklen_t         size)        // Option length
+{
+   int sock= BIO_get_fd((BIO*)bio, nullptr);
+   return setsockopt(sock, SOL_SOCKET, code, addr, size);
 }
 
 //----------------------------------------------------------------------------
@@ -409,51 +482,54 @@ static const char*                  // "true" or "false"
 //----------------------------------------------------------------------------
 //
 // Class-
-//       WorkerThread
+//       WorkerObject
 //
 // Purpose-
-//       The Worker Thread
+//       Our Worker Object
 //
 //----------------------------------------------------------------------------
-class WorkerThread : public Worker { // The worker Thread
+class WorkerObject : public Worker { // Our Worker object
 //----------------------------------------------------------------------------
-// WorkerThread::Attributes
+// WorkerObject::Attributes
 //----------------------------------------------------------------------------
 public:
 BIO*                   bio;         // The connection BIO
 char                   buffer[32768]; // Input buffer;
 
 //----------------------------------------------------------------------------
-// WorkerThread::Constructors/Destructor
+// WorkerObject::Constructors/Destructor
 //----------------------------------------------------------------------------
 public:
 virtual
-   ~WorkerThread( void )            // Destructor
-{  IFHCDM( debugh("WorkerThread(%p)::~WorkerThread()...\n", this); )
+   ~WorkerObject( void )            // Destructor
+{  if( HCDM ) debugh("WorkerObject(%p)::~WorkerObject()...\n", this);
 
    if( bio ) {
      if( bug_1000 ) {
-       debugh("%4d HCDM\n", __LINE__);
-       debug_chain(bio, "~WorkerThread");
+       traceh("%4d HCDM\n", __LINE__);
+       debug_chain(bio, "~WorkerObject");
      }
-     try {
-       BIO_free_all(bio);
-     } catch(...) {
-       debugf("Exception...\n");
-     }
-     if( bug_1000 ) debugh("%4d HCDM\n", __LINE__);
+
+     // Client closed or in error state. Allow immediate port re-use
+     struct linger optval;
+     optval.l_onoff= 1;
+     optval.l_linger= 0;
+     ::setsockopt(BIO_get_fd(bio, nullptr), SOL_SOCKET, SO_LINGER
+                 , &optval, sizeof(optval));
+
+     free_BIO(bio);
    }
 
-   IFHCDM(debugh("WorkerThread(%p)::...~WorkerThread()\n", this); )
+   if( HCDM ) debugh("WorkerObject(%p)::...~WorkerObject()\n", this);
 }
 
-   WorkerThread(                    // Constructor
+   WorkerObject(                    // Constructor
      BIO*              bio)         // Connection BIO
 :  bio(bio)
-{  IFHCDM(debugh("WorkerThread(%p)::WorkerThread(%p)\n", this, bio); ) }
+{  if( HCDM ) debugh("WorkerObject(%p)::WorkerObject(%p)\n", this, bio); }
 
 //----------------------------------------------------------------------------
-// WorkerThread::Methods
+// WorkerObject::Methods
 //----------------------------------------------------------------------------
 public:
 std::string                         // The next token, "" if at end
@@ -482,17 +558,19 @@ std::string                         // The next token, "" if at end
 virtual void
    work( void )                     // Process work
 {
-   if( opt_verbose )
-     debugh("WorkerThread::work()\n");
+   if( opt_verbose > 1 )
+     debugh("WorkerObject::work()\n");
 
    try {
+//   std_count.inc();
      worker();
+//   std_count.dec();
    } catch(pub::Exception& X) {
-     debugging::debugh("Worker: %s\n", X.to_string().c_str());
+     debugh("WorkerObject: %s\n", X.to_string().c_str());
    } catch(std::exception& X) {
-     debugging::debugh("Worker: what(%s)\n", X.what());
+     debugh("WorkerObject: what(%s)\n", X.what());
    } catch(...) {
-     debugging::debugh("Worker: ...\n");
+     debugh("WorkerObject: ...\n");
    }
 
    delete this;                     // When done, delete this Worker
@@ -501,16 +579,16 @@ virtual void
 virtual void
    worker( void )                   // Process work
 {
-   // The default timeout
-   if( opt_stress == false ) {
-     struct timeval tv= { 3, 0 };   // 3.0 second timeout
-     ::setsockopt(BIO_get_fd(bio, nullptr), SOL_SOCKET, SO_RCVTIMEO,
-                  &tv, sizeof(tv));
-   }
+   // The default timeouts
+   struct timeval tv= { 3, 0 };     // 3.0 second timeout
+   ::setsockopt(BIO_get_fd(bio, nullptr), SOL_SOCKET, SO_RCVTIMEO
+               , &tv, sizeof(tv));
+   ::setsockopt(BIO_get_fd(bio, nullptr), SOL_SOCKET, SO_SNDTIMEO
+               , &tv, sizeof(tv));
 
    for(int count= 0;;count++) {
      buffer[0]= '\0';
-     int L= BIO_read(bio, buffer, sizeof(buffer));
+     int L= BIO_read(bio, buffer, sizeof(buffer)-1);
      if( L > 0 )
        buffer[L]= '\0';
 
@@ -520,10 +598,11 @@ virtual void
        if( bug_1000 ) {
          /** Problem: BIO_free_all, Chrome, BIO_f_buffer interaction?
          *** Problem: This bypass DOES NOT WORK
+         ***   NOTE: Problem occurred before subroutine free_BIO added.
          ***   When this happens, freeing the BIO becomes iffy.
          ***   BIO_free_all can abort without any error message.
          ***   (Platform specific. Occurs in Linux but not Cygwin.)
-         ***   There are no Google references to such a problem, so it's
+         ***   No Google references to such a problem were found, so it's
          ***   probably due to some error in this code.
          ***   Until the root cause for the problem is found,
          ***   it's bypassed by skipping the BIO_free_all.
@@ -537,37 +616,31 @@ virtual void
      }
 
      const char* C= buffer;
-     std::string method= get_token(C);
-     if( method != "GET" ) {
-       L= BIO_write(bio, http400, strlen(http400));
+     std::string meth= get_token(C);
+     std::string what= get_token(C);
+     std::string http= get_token(C);
+     if( meth != "GET" || http != "HTTP/1.1" ) {
+       L= BIO_write(bio, http400, strlen(http400)); // (Invalid request)
        if( opt_verbose > 1 )
          debugh("Worker: Sent %d '%s'\n", L, visify(http400).c_str());
      } else {
 
-     std::string what= get_token(C);
      if( what != "/" && what != "/index.html"
          && what != "/std" && what != "/ssl" ) {
-       L= BIO_write(bio, http404, strlen(http404));
+       L= BIO_write(bio, http404, strlen(http404)); // (Not found)
        if( opt_verbose > 1 )
          debugh("Worker: Sent %d '%s'\n", L, visify(http404).c_str());
      } else {
 
-     std::string http= get_token(C);
-     if( http != "HTTP/1.1" ) {
-       L= BIO_write(bio, http400, strlen(http400));
+       L= BIO_write(bio, http200, strlen(http200)); // (Normal response)
        if( opt_verbose > 1 )
-         debugh("Worker: Sent %d '%s'\n", L, visify(http400).c_str());
-     } else {
-
-     L= BIO_write(bio, response, strlen(response));
-     if( opt_verbose > 1 )
-       debugh("Worker: Sent %d '%s'\n", L, visify(response).c_str());
-     } } }
+         debugh("Worker: Sent %d '%s'\n", L, visify(http200).c_str());
+     } }
 
      BIO_flush(bio);
    }
 }
-}; // class WorkerThread
+}; // class WorkerObject
 
 //----------------------------------------------------------------------------
 //
@@ -591,7 +664,7 @@ char                   buffer[8192]; // Response data
 //----------------------------------------------------------------------------
 public:
    ~STD_ClientThread( void )        // Destructor
-{  if( bio ) BIO_free_all(bio); }
+{  free_BIO(bio); }
 
    STD_ClientThread( void )         // Constructor
 :  Thread(), bio(nullptr)
@@ -613,32 +686,47 @@ virtual void
    if( opt_verbose > 1 )
      debugh("STD_ClientThread::run()\n");
 
-try {
-   if( BIO_do_connect(bio) <= 0 )
-     throw Exception("STD_Client: connect failure");
-
-   // Write/read
-static const char*     request=     // The request data
+static const char* request=         // The request data
    "GET /std HTTP/1.1\r\n"
    ;
 
-   int L= BIO_write(bio, request, strlen(request));
-   if( opt_verbose > 1 )
-     debugh("STD Client: Wrote %d '%s'\n", L, visify(request).c_str());
+   try {
+     if( BIO_do_connect(bio) <= 0 ) {
+       // int ERRNO= errno;
+       // LOCK_GUARD(*Debug::get());
+       // debugf("%p Thread\n", this);
+       // errno= ERRNO;
+       // errorp("BIO_do_connect");
+       handle_ERR();
+       // debugf("\n");             // (Synchronizes the message sequence)
+       throw Exception("STD_Client: connect failure");
+     }
 
-   L= BIO_read(bio, buffer, sizeof(buffer)-1);
-   if( L > 0 ) {
-     buffer[L]= '\0';
+     // Write/read
+     int L= BIO_write(bio, request, strlen(request));
      if( opt_verbose > 1 )
-       debugh("STD Client: Read %d '%s'\n", L, visify(buffer).c_str());
+       debugh("STD Client: Wrote %d '%s'\n", L, visify(request).c_str());
+
+     L= BIO_read(bio, buffer, sizeof(buffer)-1);
+     if( L > 0 ) {
+       buffer[L]= '\0';
+       if( opt_verbose > 1 )
+         debugh("STD Client: Read %d '%s'\n", L, visify(buffer).c_str());
+     }
+
+   } catch(pub::Exception& X) {
+     debugh("STD_Client: %s\n", X.to_string().c_str());
+     testfail= true;
+   } catch(std::exception& X) {
+     debugh("STD_Client: what(%s)\n", X.what());
+     testfail= true;
+   } catch(...) {
+     debugh("STD_Client: catch(...)\n");
+     testfail= true;
    }
 
-} catch(...) {
-   traceh("STD_Client failure\n");
-   testfail= true;
-}
    // Close the connection
-   BIO_free_all(bio);
+   free_BIO(bio);
    bio= nullptr;
 
    // Post the semaphore
@@ -670,7 +758,7 @@ SSL_CTX*               context;     // SSL_CTX
 //----------------------------------------------------------------------------
 public:
    ~SSL_ClientThread( void )        // Destructor
-{  if( bio ) BIO_free_all(bio); }
+{  free_BIO(bio); }
 
    SSL_ClientThread(                // Constructor
      SSL_CTX*          context)     // SSL_CTX
@@ -687,45 +775,54 @@ virtual void
    if( opt_verbose > 1 )
      debugh("SSL_ClientThread::run()\n");
 
-   // Connect to server
-   SSL*                ssl;         // Working SSL
-
-try {
-   BIO_get_ssl(bio, &ssl);
-   if( ssl == nullptr ) {
-     handle_ERR();
-     throw Exception("SSL_Client: Cannot locate SSL");
-   }
-
-   sprintf(buffer, "localhost:%d", SSL_PORT);
-   if( BIO_set_conn_hostname(bio, buffer) <= 0 )
-     throw Exception("SSL_Client: cannot set hostname");
-
-   if( BIO_do_connect(bio) <= 0 )
-     throw Exception("SSL_Client: connect failure");
-
-   // Write/Read
-static const char*     request=     // The request data
+static const char* request=         // The request data
    "GET /ssl HTTP/1.1\r\n"
    ;
 
-   int L= BIO_write(bio, request, strlen(request));
-   if( opt_verbose > 1 )
-     debugh("SSL Client: Wrote %d '%s'\n", L, visify(request).c_str());
+   // Connect to server
+   SSL*                ssl;         // Working SSL
 
-   L= BIO_read(bio, buffer, sizeof(buffer)-1);
-   if( L > 0 ) {
-     buffer[L]= '\0';
+   try {
+     BIO_get_ssl(bio, &ssl);
+     if( ssl == nullptr ) {
+       handle_ERR();
+       throw Exception("SSL_Client: Cannot locate SSL");
+     }
+
+     sprintf(buffer, "localhost:%d", SSL_PORT);
+     if( BIO_set_conn_hostname(bio, buffer) <= 0 )
+       throw Exception("SSL_Client: cannot set hostname");
+
+     if( BIO_do_connect(bio) <= 0 ) {
+       handle_ERR();
+       throw Exception("SSL_Client: connect failure");
+     }
+
+     // Write/Read
+     int L= BIO_write(bio, request, strlen(request));
      if( opt_verbose > 1 )
-       debugh("SSL Client: Read %d '%s'\n", L, visify(buffer).c_str());
+       debugh("SSL Client: Wrote %d '%s'\n", L, visify(request).c_str());
+
+     L= BIO_read(bio, buffer, sizeof(buffer)-1);
+     if( L > 0 ) {
+       buffer[L]= '\0';
+       if( opt_verbose > 1 )
+         debugh("SSL Client: Read %d '%s'\n", L, visify(buffer).c_str());
+     }
+
+   } catch(pub::Exception& X) {
+     debugh("SSL_Client: %s\n", X.to_string().c_str());
+     testfail= true;
+   } catch(std::exception& X) {
+     debugh("SSL_Client: what(%s)\n", X.what());
+     testfail= true;
+   } catch(...) {
+     debugh("SSL_Client: catch(...)\n");
+     testfail= true;
    }
 
-} catch(...) {
-   traceh("STD_Client failure\n");
-   testfail= true;
-}
    // Close the connection
-   BIO_free_all(bio);
+   free_BIO(bio);
    bio= nullptr;
 
    // Post the semaphore
@@ -760,7 +857,7 @@ int                    port;        // Listener port
 //----------------------------------------------------------------------------
 public:
    ~STD_ServerThread( void )        // Destructor
-{  if( bio ) BIO_free_all(bio); }
+{  free_BIO(bio); }
 
    STD_ServerThread(                // Constructor
      int               port)        // Listener port
@@ -780,7 +877,6 @@ virtual void
    // socket.bind equivalent
    char buffer[16];
    sprintf(buffer, "%d", port);
-
    bio= BIO_new_accept(buffer);
    if( bio == nullptr )
      throw Exception("STD_Server: cannot create BIO");
@@ -799,9 +895,13 @@ virtual void
 
    try {
      while( operational ) {
+       if( USE_TRACE )
+         Trace::trace(".STD", __LINE__, "Before..");
        int rc= BIO_do_accept(bio);
+       if( USE_TRACE )
+         Trace::trace(".STD", __LINE__, "..After");
 
-       std::lock_guard<decltype(mutex)> lock(mutex);
+       LOCK_GUARD(mutex);
        if( ! operational )
          break;
 
@@ -811,7 +911,7 @@ virtual void
          handle_ERR();
        } else {
          BIO* client= BIO_pop(bio);
-         WorkerThread* worker= new WorkerThread(client);
+         WorkerObject* worker= new WorkerObject(client);
          if( opt_worker )
            WorkerPool::work(worker);
          else
@@ -823,14 +923,17 @@ virtual void
    } catch(std::exception& X) {
      debugh("std::Exception what(%s)\n", X.what());
    }
+
+   if( USE_TRACE )
+     Trace::trace(".STD", __LINE__, "..EXIT..");
+// debugf("%4d HCDM std serverthread exit\n", __LINE__);
 }
 
 void
    stop( void )                     // Terminate this Thread
 {
    {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex);
-
+     LOCK_GUARD(mutex);
      operational= false;            // Indicate terminated
    }}}}
 
@@ -839,7 +942,7 @@ void
    // (We ignore any and all errors that might occur doing this.)
    reconnect(STD_PORT);
 }
-}; // class std_serverThread
+}; // class STD_ServerThread
 
 //----------------------------------------------------------------------------
 //
@@ -890,7 +993,8 @@ virtual void
    if( ssl_bio == nullptr )
      throw Exception("SSL_Server: cannot create BIO");
 
-   SSL* ssl; BIO_get_ssl(ssl_bio, &ssl);
+   SSL* ssl;
+   BIO_get_ssl(ssl_bio, &ssl);
    if( ssl == nullptr )
      throw Exception("SSL_Server: cannot locate SSL");
 
@@ -929,9 +1033,16 @@ virtual void
 
    try {
      while( operational ) {
-       int rc= BIO_do_accept(acc_bio);
+//static bool first_time= true;
+//if( first_time ) debugh("%4d ssl_serverthread operational\n", __LINE__);
 
-       std::lock_guard<decltype(mutex)> lock(mutex);
+       int rc= BIO_do_accept(acc_bio);
+//if( first_time ) {
+//  debugh("%4d ssl_serverthread first accept\n", __LINE__);
+//  first_time= false;
+//}
+
+       LOCK_GUARD(mutex);
        if( ! operational )
          break;
 
@@ -951,9 +1062,9 @@ virtual void
            LOCK_GUARD(*Debug::get());
            errorf("SSL Handshake error:\n");
            handle_ERR();
-           BIO_free_all(client);
+           free_BIO(client);
          } else {
-           WorkerThread* worker= new WorkerThread(client);
+           WorkerObject* worker= new WorkerObject(client);
            if( opt_worker )
              WorkerPool::work(worker);
            else
@@ -967,16 +1078,27 @@ virtual void
      debugh("std::Exception what(%s)\n", X.what());
    }
 
-// BIO_free_all(acc_bio);
-   BIO_free_all(ssl_bio);
+   // ISSUE: Freeing acc_bio and/or ssl_bio;
+   if( false ) {                    // ** DO NOT USE **
+     debugf("%4d HCDM\n", __LINE__);
+     free_BIO(acc_bio);
+     debugf("%4d HCDM\n", __LINE__);
+     free_BIO(ssl_bio);             // (SEGMENTATION FAULT)
+     debugf("%4d HCDM\n", __LINE__);
+   } else if( true ) {              // ** IN-TEST **
+     free_BIO(acc_bio);
+   } else {                         // (Works)
+     free_BIO(ssl_bio);
+   }
+
+//debugf("%4d HCDM ssl serverthread exit\n", __LINE__);
 }
 
 void
    stop( void )                     // Terminate this Thread
 {
    {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex);
-
+     LOCK_GUARD(mutex);
      operational= false;              // Indicate terminated
    }}}}
 
@@ -999,6 +1121,7 @@ void
 static inline void
    dirty( void )                    // Quick and dirty test
 {
+   // Not currently used
 }
 
 //----------------------------------------------------------------------------
@@ -1014,15 +1137,17 @@ static void
    ssl_stressor(                    // Run SSL stress test
      SSL_CTX*          context)     // Our client context
 {
-static const int THREAD_COUNT= 64;  // Maximum thread count
+static const int THREAD_COUNT= 16;  // Maximum thread count
    testfail= false;                 // No failure yet
 
+   semaphore.reset();
    SSL_ClientThread* thread[THREAD_COUNT];
    for(int i= 0; i<THREAD_COUNT; i++) {
      thread[i]= new SSL_ClientThread(context);
      thread[i]->start();
    }
 
+   debugf("SSL Stress: Started\n");
    long op_count= 0;                // Number of completed threads
    interval.start();
    while( interval.stop() < double(opt_runtime) && testfail == false ) {
@@ -1035,12 +1160,13 @@ static const int THREAD_COUNT= 64;  // Maximum thread count
 
          thread[i]= new SSL_ClientThread(context);
          thread[i]->start();
+         break;
        }
      }
    }
+   double runtime= interval.stop();
 
    // Complete all threads
-   double runtime= interval.stop();
    for(;;) {
      int running= 0;
      for(int i= 0; i<THREAD_COUNT; i++) {
@@ -1057,14 +1183,14 @@ static const int THREAD_COUNT= 64;  // Maximum thread count
      if( running == 0 )
        break;
 
-     semaphore.wait(0.5);
+     Thread::sleep(2.5);
    }
 
    // Statistics
    debugf("SSL Client: %s\n", testfail ? "FAILED" : "Complete");
-   debugf("%8ld Operations\n", op_count);
-   debugf("%12.3f Seconds\n", runtime);
-   debugf("%12.3f Operations/second\n", double(op_count) / runtime);
+   debugf("%'8ld Operations\n", op_count);
+   debugf("%'12.3f Seconds\n", runtime);
+   debugf("%'12.3f Operations/second\n", double(op_count) / runtime);
 }
 
 //----------------------------------------------------------------------------
@@ -1082,12 +1208,15 @@ static void
 static const int THREAD_COUNT= 16;  // Maximum thread count
    testfail= false;                 // No failure yet
 
+   semaphore.reset();
    STD_ClientThread* thread[THREAD_COUNT];
    for(int i= 0; i<THREAD_COUNT; i++) {
      thread[i]= new STD_ClientThread();
      thread[i]->start();
+//debugf("%p Thread[%2d] started\n", thread[i], i);
    }
 
+   debugf("STD Stress: Started\n");
    long op_count= 0;                // Number of completed threads
    interval.start();
    while( interval.stop() < double(opt_runtime) && testfail == false ) {
@@ -1100,36 +1229,39 @@ static const int THREAD_COUNT= 16;  // Maximum thread count
 
          thread[i]= new STD_ClientThread();
          thread[i]->start();
+         break;
        }
      }
    }
-
-   // Complete all threads
    double runtime= interval.stop();
+
    for(;;) {
      int running= 0;
      for(int i= 0; i<THREAD_COUNT; i++) {
        if( thread[i] ) {
          running++;
          if( thread[i]->bio == nullptr ) {
+//debugf("%p Thread[%2d] join...\n", thread[i], i);
            thread[i]->join();
+//debugf("%p Thread[%2d] .joined\n", thread[i], i);
            delete thread[i];
            thread[i]= nullptr;
          }
+//else debugf("%p Thread[%2d] active\n", thread[i], i);
        }
      }
 
      if( running == 0 )
        break;
 
-     semaphore.wait(0.5);
+     Thread::sleep(2.5);
    }
 
    // Statistics
    debugf("STD Client: %s\n", testfail ? "FAILED" : "Complete");
-   debugf("%8ld Operations\n", op_count);
-   debugf("%12.3f Seconds\n", runtime);
-   debugf("%12.3f Operations/second\n", double(op_count) / runtime);
+   debugf("%'8ld Operations\n", op_count);
+   debugf("%'12.3f Seconds\n", runtime);
+   debugf("%'12.3f Operations/second\n", double(op_count) / runtime);
 }
 
 //----------------------------------------------------------------------------
@@ -1151,12 +1283,64 @@ static void
                    "  --{no-}server\n"
                    "  --{no-}thread\n"
                    "  --{no-}worker\n"
-                   "  --debug{=file_name}\n"
                    "  --runtime=value\n"
+                   "  --trace\t{=size} Enable trace, default size= 1M\n"
                    "  --verbose{=value}\n"
           );
 
    exit(EXIT_FAILURE);
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       init
+//
+// Purpose-
+//       Initialize
+//
+//----------------------------------------------------------------------------
+static void
+   init( void)                      // Initialize
+{
+   //-------------------------------------------------------------------------
+   // Create memory-mapped trace file
+   if( USE_TRACE && opt_trace < 0x00040000 )
+     opt_trace= 0x00040000;
+
+   if( opt_trace ) {                // If --trace specified
+     int mode= O_RDWR | O_CREAT;
+     int perm= S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+     int fd= open(TRACE_FILE, mode, perm);
+     if( fd < 0 ) {
+       fprintf(stderr, "%4d open(%s) %s\n", __LINE__
+                     , TRACE_FILE, strerror(errno));
+       exit(1);
+     }
+
+     int rc= ftruncate(fd, opt_trace); // (Expand to opt_trace length)
+     if( rc ) {
+       fprintf(stderr, "%4d ftruncate(%s,%.8x) %s\n", __LINE__
+                     , TRACE_FILE, opt_trace, strerror(errno));
+       exit(1);
+     }
+
+     mode= PROT_READ | PROT_WRITE;
+     table= mmap(nullptr, opt_trace, mode, MAP_SHARED, fd, 0);
+     if( table == MAP_FAILED ) {    // If no can do
+       fprintf(stderr, "%4d mmap(%s,%.8x) %s\n", __LINE__
+                     , TRACE_FILE, opt_trace, strerror(errno));
+       table= nullptr;
+       exit(1);
+     }
+
+     Trace::table= pub::Trace::make(table, opt_trace);
+     close(fd);                     // Descriptor not needed once mapped
+
+     Trace::trace(".INI", 0, "TRACE STARTED") ;
+   }
+
+   setlocale(LC_NUMERIC, "");
 }
 
 //----------------------------------------------------------------------------
@@ -1186,20 +1370,24 @@ static void
        case 0:
          switch( opt_index )
          {
-           case OPT_DEBUG:
-             opt_debug= optarg;
-             if( opt_verbose == 0 )
-               opt_verbose= 1;
-             break;
-
            case OPT_RUNTIME:
              opt_runtime= atoi(optarg);
              break;
 
+           case OPT_TRACE:
+             if( optarg )
+               opt_trace= atoi(optarg);
+             if( opt_trace < int(Trace::TABLE_SIZE_MIN) )
+               opt_trace= Trace::TABLE_SIZE_MIN;
+             else if( opt_trace > int(Trace::TABLE_SIZE_MAX) )
+               opt_trace= Trace::TABLE_SIZE_MAX;
+             break;
+
            case OPT_VERBOSE:
-             opt_verbose= 2;         // Default "extra" verbosity
+             opt_verbose= 1;
              if( optarg )
                opt_verbose= atoi(optarg);
+             options::pub_verbose= opt_verbose;
              break;
 
            default:
@@ -1238,6 +1426,26 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       term
+//
+// Purpose-
+//       Terminate
+//
+//----------------------------------------------------------------------------
+static void
+   term( void)                      // Terminate
+{
+   //-------------------------------------------------------------------------
+   // Terminate internal trace
+   if( table == Trace::table ) {
+     Trace::table= nullptr;
+     munmap(table, opt_trace);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       main
 //
 // Purpose-
@@ -1251,15 +1459,15 @@ extern int                          // Return code
 {
    unsigned int        errorCount= 0;
 
-   // Parse parameters
+   // Initialize
    parm(argc, argv);
+   init();
 
    // Set debugging object
-   Debug debug(opt_debug);
-   debug.set(&debug);
+   Debug debug;
+   Debug::set(&debug);
    debug.set_head(Debug::HEAD_THREAD);
-   IFHCDM( debug.set_mode(Debug::MODE_INTENSIVE); )
-   ELHCDM( if(opt_runtime > 0) debug.set_mode(Debug::MODE_INTENSIVE); )
+   if( HCDM || opt_runtime > 0 ) debug.set_mode(Debug::MODE_INTENSIVE);
    debug.debugh("SampleBIO started...\n");
 
    debugf("\n");
@@ -1269,10 +1477,13 @@ extern int                          // Return code
    debugf("%5s: stress\n",   torf(opt_stress));
    debugf("%5s: client\n",   torf(opt_client));
    debugf("%5s: thread\n",   torf(opt_thread));
+   debugf("%5s: trace\n",    torf(opt_trace));
    debugf("%5s: server\n",   torf(opt_server));
    debugf("%5s: worker\n",   torf(opt_worker));
    debugf("%5d: verbose\n",  opt_verbose);
    debugf("\n");
+   if( bug_1000 && opt_verbose <= 0 )
+     debugf("** bug_1000 active, check debug.out **\n\n");
 
    try {
      initialize_SSL();              // Initialize SSL
@@ -1294,8 +1505,21 @@ extern int                          // Return code
      }
 
      if( opt_stress ) {             // Run stress test?
+       debugf("\n");
        std_stressor();              // Run STD stress test
+       Thread::sleep(0.5);          // Completion delay
+       WorkerPool::debug();
+//     debugf("\nStatistics:\n"
+//            "%'16zd Counter (requests)\n%'16zd Current\n"
+//            "%'16zd Maximum\n%'16zd Minimum\n"
+//           , std_count.counter.load(), std_count.current.load()
+//           , std_count.maximum.load(), std_count.minimum.load() );
+
+       debugf("\n");
+       WorkerPool::reset();
        ssl_stressor(client_CTX);    // Run SSL stress test
+       Thread::sleep(0.5);          // Completion delay
+       WorkerPool::debug();
      } else {
        if( opt_client ) {
          if( opt_thread ) {
@@ -1322,9 +1546,8 @@ extern int                          // Return code
        ssl_server.join();
      }
 
-     debugf("%4d HCDM\n", __LINE__);
+//debugf("%4d HCDM\n", __LINE__);
      Thread::sleep(0.5);            // Completion delay
-     WorkerPool::debug();
 
      SSL_CTX_free(client_CTX);
      SSL_CTX_free(server_CTX);
@@ -1340,6 +1563,7 @@ extern int                          // Return code
 
    debug.debugf("...SampleBIO complete(%d)\n", errorCount);
    Debug::set(nullptr);
+   term();
 
    return ( errorCount != 0 );
 }

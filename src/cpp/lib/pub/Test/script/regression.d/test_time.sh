@@ -44,4 +44,4 @@ function cmd
 ##############################################################################
 ## Run timing tests
 cmd TestDisp --timing
-cmd TestSock --datagram --stress --runtime=30 --verbose
+cmd TestSock --datagram --stream --runtime=30 --verbose

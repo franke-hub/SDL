@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2021 Frank Eskesen.
+//       Copyright (c) 2019-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,30 +16,34 @@
 //       Sample HTTP/HTTPS Client/Server, using openssl socket layer.
 //
 // Last change date-
-//       2021/06/10
+//       2022/05/22
 //
 // Known bugs-
-//       std/ssl_stressor both eventually fail on Cygwin. (OK in Linux)
+//       Server: hostname, client 127.0.0.1 (Default changed in Socket.cpp)
 //       1000: Zero length read on first Chrome read
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
-#include <sstream>                  // For std::stringstream
+
 #include <errno.h>                  // For errno
+#include <fcntl.h>                  // For open, O_*, ...
 #include <getopt.h>                 // For getopt()
 #include <string.h>                 // For memset, ...
 #include <openssl/err.h>            // For ERR_error_string
+#include <openssl/ssl.h>            // For openssl SSL methods
+#include <unistd.h>                 // For close, ...
+#include <sys/mman.h>               // For mmap, ...
 #include <sys/time.h>               // For timeval
 
 #include <pub/utility.h>            // For to_string, visify
 #include <pub/Debug.h>              // For debugging
-#include <pub/Interval.h>           // For Interval
-#include <pub/Semaphore.h>          // For Semaphore
-#include <pub/Thread.h>             // For Thread
-#include <pub/Trace.h>              // For Trace
-#include <pub/Worker.h>             // For Worker, WorkerPool
-
-#include "pub/Socket.h"             // The Socket Object
+#include <pub/Interval.h>           // For pub::Interval
+#include <pub/Semaphore.h>          // For pub::Semaphore
+#include "pub/Socket.h"             // The pub::Socket Object
+#include <pub/Statistic.h>          // For pub::Statistic
+#include <pub/Thread.h>             // For pub::Thread
+#include <pub/Trace.h>              // For pub::Trace
+#include <pub/Worker.h>             // For pub::Worker, pub::WorkerPool
 
 using namespace _PUB_NAMESPACE;     // For Socket, ...
 using namespace _PUB_NAMESPACE::debugging; // For debugging
@@ -48,34 +52,37 @@ using _PUB_NAMESPACE::utility::visify; // For visify
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#define STD_PORT 8080               // Our standard port number
-#define SSL_PORT 8443               // Our SSL port number
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
-#define USE_RUNTIME 60              // Delay before terminating
-#define USE_CLIENT true             // Include Clients?
-#define USE_THREAD true             // Use ClientThread (else direct call)
-#define USE_SERVER true             // Include Servers?
-#define USE_WORKER true             // Use WorkerThread (else direct call)
+,  STD_PORT= 8080                   // Our STD port number
+,  SSL_PORT= 8443                   // Our SSL port number
+
+// Default options - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+,  USE_RUNTIME= 60                  // Delay before terminating
+,  USE_CLIENT= true                 // Include Clients?
+,  USE_THREAD= true                 // Use ClientThread (else direct call)
+,  USE_TRACE=  0                    // Use memory trace (size)?
+,  USE_SERVER= true                 // Include Servers?
+,  USE_WORKER= true                 // Use WorkerObject (else direct call)
+}; // Generic enum
+
+static constexpr const char* TRACE_FILE= "./trace.mem"; // (Trace file name)
 
 //----------------------------------------------------------------------------
-// Constants for parameterization
+// Macros
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-#ifndef TRACE                       // ** NOT IMPLEMENTED **
-#undef  TRACE                       // If defined, Tracing active
-#endif
-
-#include <pub/ifmacro.h>
+#define LOCK_GUARD(x) std::lock_guard<decltype(x)> lock(x)
 
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static int             testfail;    // Indicates test failure
+static std::string     host_name;   // The host name
 static Interval        interval;    // Stress interval timer
 static Semaphore       semaphore;   // Thread complete semaphore
+static void*           table= nullptr; // The trace data area
+static int             testfail;    // Indicates test failure
 
 //----------------------------------------------------------------------------
 // HTTP responses
@@ -104,7 +111,7 @@ static const char*     http404=     // HTTP 404 (NOT FOUND) response
    "</html>\r\n"                    // 8
    ;
 
-static const char*     response=    // The response data
+static const char*     http200=     // HTTP 200 (NORMAL) response
    "HTTP/1.1 200 OK\r\n"
    "Server: RYO\r\n"
    "Content-type: text/html\r\n"
@@ -120,7 +127,6 @@ static const char*     response=    // The response data
 //----------------------------------------------------------------------------
 // Options
 //----------------------------------------------------------------------------
-static const char*     opt_debug= nullptr; // --debug{=filename}
 static int             opt_help= false; // --help or error
 static int             opt_index;   // Option index
 static int             opt_runtime= USE_RUNTIME; // Server run time
@@ -128,15 +134,16 @@ static int             opt_client=  USE_CLIENT; // Use client?
 static int             opt_server=  USE_SERVER; // Use server?
 static int             opt_stress=  false;      // Use stress test?
 static int             opt_thread=  USE_THREAD; // Use client thread?
+static int             opt_trace=   0;          // Use memory trace (size)?
 static int             opt_worker=  USE_WORKER; // Use worker?
 static int             opt_verbose= 0; // --verbose{=verbosity}
 static int             fix_1000= true;  // Chrome: 0 length read
 
 static struct option   OPTS[]=      // Options
 {  {"help",     no_argument,       &opt_help,    true}
-,  {"debug",    optional_argument, nullptr,      0}
 ,  {"runtime",  required_argument, nullptr,      0}
 ,  {"verbose",  optional_argument, nullptr,      0}
+,  {"trace",    optional_argument, &opt_trace,   0x00040000} // Trace length
 
 ,  {"fix_1000",    no_argument,    &fix_1000,    true} // Fix# 1000
 ,  {"client",      no_argument,    &opt_client,  true} // use_client
@@ -154,9 +161,9 @@ static struct option   OPTS[]=      // Options
 
 enum OPT_INDEX
 {  OPT_HELP
-,  OPT_DEBUG
 ,  OPT_RUNTIME
 ,  OPT_VERBOSE
+,  OPT_TRACE
 };
 
 //----------------------------------------------------------------------------
@@ -195,7 +202,7 @@ static int                          // Actual password length
     int                rwflag,      // FALSE:decryption, TRUE:encryption
     void*              userdata)    // User data
 {
-   if( false )                      // Note: only usage of userdata parameter
+   if( false )                      // Note: only usage of userdata
      debugf("%4d HCDM(%p,%d,%d,%p)\n", __LINE__, buff, size, rwflag, userdata);
 
    if( rwflag ) {                   // If encryption
@@ -242,8 +249,7 @@ static void
 static std::mutex      mutex;       // Latch protecting initialized
 static int             initialized= false; // TRUE when initialized
 
-   std::lock_guard<decltype(mutex)> lock(mutex);
-
+   LOCK_GUARD(mutex);
    if( !initialized ) {
      SSL_library_init();
      SSL_load_error_strings();
@@ -335,14 +341,13 @@ static void
      Socket socket;
 
      socket.open(AF_INET, SOCK_STREAM, 0);
-     sockaddr_in sa;
-     memset(&sa, 0, sizeof(sa));
-     sa.sin_family= AF_INET;
-     sa.sin_port= htons(port);
-     sa.sin_addr.s_addr= htonl(0x7f000001);
-     socket.connect((sockaddr*)&sa, sizeof(sa));
+     std::string name_port= host_name;
+     name_port += ':';
+     name_port += std::to_string(port);
+     socket.connect(name_port);
      Thread::sleep(0.125);
    } catch(...) {
+     debugf("%4d catch(...)\n", __LINE__);
    }
 }
 
@@ -367,38 +372,39 @@ static const char*                  // "true" or "false"
 //----------------------------------------------------------------------------
 //
 // Class-
-//       WorkerThread
+//       WorkerObject
 //
 // Purpose-
-//       The Worker Thread
+//       The Worker object
 //
 //----------------------------------------------------------------------------
-class WorkerThread : public Worker { // The worker Thread
+class WorkerObject : public Worker { // The worker object
 //----------------------------------------------------------------------------
-// WorkerThread::Attributes
+// WorkerObject::Attributes
 //----------------------------------------------------------------------------
 public:
 char                   buffer[32768]; // Input buffer;
 Socket*                socket;      // The connection socket
 
 //----------------------------------------------------------------------------
-// WorkerThread::Constructors/Destructor
+// WorkerObject::Constructors/Destructor
 //----------------------------------------------------------------------------
 public:
 virtual
-   ~WorkerThread( void )            // Destructor
-{  IFHCDM( debugh("WorkerThread(%p)::~WorkerThread()...\n", this); )
+   ~WorkerObject( void )            // Destructor
+{  if( HCDM ) debugh("WorkerObject(%p)::~WorkerObject()...\n", this);
 
-   if( socket ) delete socket;
+   if( socket )
+     delete socket;
 }
 
-   WorkerThread(                    // Constructor
+   WorkerObject(                    // Constructor
      Socket*           socket)      // Connection socket
 :  socket(socket)
-{  IFHCDM( debugh("WorkerThread(%p)::WorkerThread(%p)\n", this, socket); ) }
+{  if( HCDM ) debugh("WorkerObject(%p)::WorkerObject(%p)\n", this, socket); }
 
 //----------------------------------------------------------------------------
-// WorkerThread::Methods
+// WorkerObject::Methods
 //----------------------------------------------------------------------------
 public:
 std::string                         // The next token, "" if at end
@@ -427,17 +433,17 @@ std::string                         // The next token, "" if at end
 virtual void
    work( void )                     // Process work
 {
-   if( opt_verbose )
-     debugh("WorkerThread::work()\n");
+   if( opt_verbose > 1 )
+     debugh("WorkerObject::work()\n");
 
    try {
      worker();
    } catch(pub::Exception& X) {
-     debugh("WorkerThread: %s\n", X.to_string().c_str());
+     debugh("WorkerObject: %s\n", X.to_string().c_str());
    } catch(std::exception& X) {
-     debugh("WorkerThread: what(%s)\n", X.what());
+     debugh("WorkerObject: what(%s)\n", X.what());
    } catch(...) {
-     debugh("WorkerThread: catch(...)\n");
+     debugh("WorkerObject: catch(...)\n");
    }
 
    delete this;                     // When done, delete this Worker
@@ -447,14 +453,13 @@ virtual void
    worker( void )                   // Process work
 {
    // Set default timeout
-   if( opt_stress == false ) {
-     struct timeval tv= { 3, 0 };   // 3.0 second timeout
-     socket->set_option(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-   }
+   struct timeval tv= { 3, 0 };     // 3.0 second timeout
+   socket->set_option(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+   socket->set_option(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
    for(int count= 0;;count++) {
      buffer[0]= '\0';
-     int L= socket->read(buffer, sizeof(buffer));
+     int L= socket->read(buffer, sizeof(buffer)-1);
      if( L > 0 )
        buffer[L]= '\0';
 
@@ -473,37 +478,35 @@ virtual void
      }
 
      const char* C= buffer;
-     std::string method= get_token(C);
-     if( method != "GET" ) {
+     std::string meth= get_token(C);
+     std::string what= get_token(C);
+     std::string http= get_token(C);
+     if( meth != "GET" || http != "HTTP/1.1" ) {
        L= socket->write(http400, strlen(http400));
        if( opt_verbose > 1 )
          debugh("Worker: Sent %d '%s'\n", L, visify(http400).c_str());
-       continue;
-     }
+     } else {
 
-     std::string what= get_token(C);
      if( what != "/" && what != "/index.html"
          && what != "/std" && what != "/ssl" ) {
        L= socket->write(http404, strlen(http404));
        if( opt_verbose > 1 )
          debugh("Worker: Sent %d '%s'\n", L, visify(http404).c_str());
-       continue;
-     }
+     } else {
 
-     std::string http= get_token(C);
-     if( http != "HTTP/1.1" ) {
-       L= socket->write(http400, strlen(http400));
+       L= socket->write(http200, strlen(http200));
        if( opt_verbose > 1 )
-         debugh("Worker: Sent %d '%s'\n", L, visify(http400).c_str());
-       continue;
-     }
-
-     L= socket->write(response, strlen(response));
-     if( opt_verbose > 1 )
-       debugh("Worker: Sent %d '%s'\n", L, visify(response).c_str());
+         debugh("Worker: Sent %d '%s'\n", L, visify(http200).c_str());
+     } }
    }
+
+   // Client closed or in error state. Allow immediate port re-use
+   struct linger optval;
+   optval.l_onoff= 1;
+   optval.l_linger= 0;
+   socket->set_option(SOL_SOCKET, SO_LINGER, &optval, sizeof(optval));
 }
-}; // class WorkerThread
+}; // class WorkerObject
 
 //----------------------------------------------------------------------------
 //
@@ -540,57 +543,55 @@ public:
 virtual void
    run( void )                      // Operate this Thread
 {
-   if( opt_verbose )
+   if( opt_verbose > 1 )
      debugh("STD_ClientThread::run()\n");
 
-try {
-   // Connect to server
-   sockaddr_in sa;
-   memset(&sa, 0, sizeof(sa));
-
-   sa.sin_family= AF_INET;
-   sa.sin_port= htons(STD_PORT);
-   sa.sin_addr.s_addr= htonl(0x7f000001);
-   int rc= socket.connect((sockaddr*)&sa, sizeof(sa));
-   if( rc < 0 ) {
-     int ERRNO= errno;
-     debugh("%d= STD connect() %d,%s\n", rc, ERRNO, strerror(ERRNO));
-     throw pub::Exception("Connect Failure");
-   }
-
-   // Write/read
 static const char*     request=     // The request data
    "GET /std HTTP/1.1\r\n"
    "\r\n"
    ;
 
-   int L= socket.write(request, strlen(request));
-   if( opt_verbose > 1 )
-     debugh("STD Client: Wrote %d '%s'\n", L, visify(request).c_str());
-   if( L <= 0 ) {
-     int ERRNO= errno;
-     debugh("%d= STD Write(%zd) %d,%s\n", L, strlen(request), ERRNO,
-            strerror(ERRNO));
-     throw pub::Exception("Write Failure");
-   }
+   try {
+     // Connect to server
+     std::string name_port= host_name;
+     name_port += ':';
+     name_port += std::to_string(STD_PORT);
+     int rc= socket.connect(name_port);
+     if( rc < 0 ) {
+       int ERRNO= errno;
+       debugh("%d= STD connect() %d,%s\n", rc, ERRNO, strerror(ERRNO));
+       throw pub::Exception("Connect Failure");
+     }
 
-   L= socket.read(buffer, sizeof(buffer)-1);
-   if( L > 0 ) {
-     buffer[L]= '\0';
+     // Write/read
+     int L= socket.write(request, strlen(request));
      if( opt_verbose > 1 )
-       debugh("STD Client: Read %d '%s'\n", L, visify(buffer).c_str());
+       debugh("STD Client: Wrote %d '%s'\n", L, visify(request).c_str());
+     if( L <= 0 ) {
+       int ERRNO= errno;
+       debugh("%d= STD Write(%zd) %d,%s\n", L, strlen(request), ERRNO,
+              strerror(ERRNO));
+       throw pub::Exception("Write Failure");
+     }
+
+     L= socket.read(buffer, sizeof(buffer)-1);
+     if( L > 0 ) {
+       buffer[L]= '\0';
+       if( opt_verbose > 1 )
+         debugh("STD Client: Read %d '%s'\n", L, visify(buffer).c_str());
+     }
+
+   } catch(pub::Exception& X) {
+     debugh("STD_Client: %s\n", X.to_string().c_str());
+     testfail= true;
+   } catch(std::exception& X) {
+     debugh("STD_Client: what(%s)\n", X.what());
+     testfail= true;
+   } catch(...) {
+     debugh("STD_Client: catch(...) socket(%4d)\n", socket.get_handle());
+     testfail= true;
    }
 
-} catch(pub::Exception& X) {
-   debugh("STD_Client: %s\n", X.to_string().c_str());
-   testfail= true;
-} catch(std::exception& X) {
-   debugh("STD_Client: what(%s)\n", X.what());
-   testfail= true;
-} catch(...) {
-   debugh("socket(%4d) STD_Client failure\n", socket.get_handle());
-   testfail= true;
-}
    // Close the connection
    socket.close();
 
@@ -636,50 +637,48 @@ public:
 virtual void
    run( void )                      // Operate this Thread
 {
-   if( opt_verbose )
+   if( opt_verbose > 1 )
      debugh("SSL_ClientThread::run()\n");
 
-try {
-   // Connect to server
-   sockaddr_in sa;
-   memset(&sa, 0, sizeof(sa));
-
-   sa.sin_family= AF_INET;
-   sa.sin_port= htons(SSL_PORT);
-   sa.sin_addr.s_addr= htonl(0x7f000001);
-   int rc= socket.connect((sockaddr*)&sa, sizeof(sa));
-   if( rc < 0 ) {
-     int ERRNO= errno;
-     debugh("%d= STD connect() %d,%s\n", rc, ERRNO, strerror(ERRNO));
-     throw pub::Exception("Connect Failure");
-   }
-
-   // Write/Read
 static const char*     request=     // The request data
    "GET /ssl HTTP/1.1\r\n"
    ;
 
-   int L= socket.write(request, strlen(request));
-   if( opt_verbose > 1 )
-     debugh("SSL Client: Wrote %d '%s'\n", L, visify(request).c_str());
+   try {
+     // Connect to server
+     std::string name_port= host_name;
+     name_port += ':';
+     name_port += std::to_string(SSL_PORT);
+     int rc= socket.connect(name_port);
+     if( rc < 0 ) {
+       int ERRNO= errno;
+       debugh("%d= STD connect() %d,%s\n", rc, ERRNO, strerror(ERRNO));
+       throw pub::Exception("Connect Failure");
+     }
 
-   L= socket.read(buffer, sizeof(buffer)-1);
-   if( L > 0 ) {
-     buffer[L]= '\0';
+     // Write/Read
+     int L= socket.write(request, strlen(request));
      if( opt_verbose > 1 )
-       debugh("SSL Client: Read %d '%s'\n", L, visify(buffer).c_str());
+       debugh("SSL Client: Wrote %d '%s'\n", L, visify(request).c_str());
+
+     L= socket.read(buffer, sizeof(buffer)-1);
+     if( L > 0 ) {
+       buffer[L]= '\0';
+       if( opt_verbose > 1 )
+         debugh("SSL Client: Read %d '%s'\n", L, visify(buffer).c_str());
+     }
+
+   } catch(pub::Exception& X) {
+     debugh("SSL_Client: %s\n", X.to_string().c_str());
+     testfail= true;
+   } catch(std::exception& X) {
+     debugh("SSL_Client: what(%s)\n", X.what());
+     testfail= true;
+   } catch(...) {
+     debugh("SSL_Client: catch(...) socket(%4d)\n", socket.get_handle());
+     testfail= true;
    }
 
-} catch(pub::Exception& X) {
-   debugh("SSL_Client: %s\n", X.to_string().c_str());
-   testfail= true;
-} catch(std::exception& X) {
-   debugh("SSL_Client: what(%s)\n", X.what());
-   testfail= true;
-} catch(...) {
-   debugh("socket(%4d) SSL_Client failure\n", socket.get_handle());
-   testfail= true;
-}
    // Close the connection
    socket.close();
 
@@ -705,7 +704,7 @@ class STD_ServerThread : public Thread { // The server Thread
 public:
 std::mutex             mutex;       // Object lock
 Semaphore              sem;         // Startup Semaphore
-Socket                 socket;      // Our listener Socket
+Socket                 listen;      // Our listener Socket
 
 bool                   operational; // TRUE while operational
 int                    port;        // Listener port
@@ -720,8 +719,8 @@ public:
    STD_ServerThread(                // Constructor
      int               port)        // Listener port
 :  Thread()
-,  sem(), socket(), operational(true), port(port)
-{  socket.open(AF_INET, SOCK_STREAM, 0); }
+,  sem(), listen(), operational(false), port(port)
+{  }
 
 //----------------------------------------------------------------------------
 // STD_ServerThread::Methods
@@ -732,21 +731,34 @@ virtual void
 {
    debugh("STD_ServerThread::run() port(%d)\n", port );
 
-   // Default SO_REUSEADDR=true
-   int optval= true;
-   socket.set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+   // Initialize the socket
+   int rc= listen.open(AF_INET, SOCK_STREAM, 0);
+   if( rc ) {                       // If failure
+     errorp("STD_server:open");
+     return;
+   }
 
-   socket.bind(port);               // Set port number
+   int optval= true;                // (Needed *before* the bind)
+   listen.set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+
+   rc= listen.bind(port);           // Set port number
+   if( rc ) {                       // If failure
+     errorp("STD_server:bind");
+     return;
+   }
+
+   // Ready to go
+   operational= true;
    sem.post();                      // Indicate started
 
    try {
      while( operational ) {
-       Socket* server= socket.listen();
+       Socket* server= listen.listen();
 
        {{{{
-         std::lock_guard<decltype(mutex)> lock(mutex);
+         LOCK_GUARD(mutex);
          if( operational && server ) {
-           WorkerThread* worker= new WorkerThread(server);
+           WorkerObject* worker= new WorkerObject(server);
            if( opt_worker )
              WorkerPool::work(worker);
            else
@@ -769,10 +781,9 @@ void
    stop( void )                     // Terminate this Thread
 {
    {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex);
-
+     LOCK_GUARD(mutex);
      operational= false;            // Indicate terminated
-     socket.close();                // Close the Socket
+     listen.close();                // Close the Socket
    }}}}
 
    //-------------------------------------------------------------------------
@@ -798,7 +809,7 @@ class SSL_ServerThread : public Thread { // The server Thread
 public:
 std::mutex             mutex;       // Object lock
 Semaphore              sem;         // Startup Semaphore
-SSL_Socket             socket;      // Our listener SSL_Socket
+SSL_Socket             listen;      // Our listener SSL_Socket
 
 bool                   operational; // TRUE while operational
 int                    port;        // Listener port
@@ -814,8 +825,8 @@ public:
      SSL_CTX*          context,     // SSL_CTX
      int               port)        // Listener port
 :  Thread()
-,  sem(), socket(context), operational(true), port(port)
-{  socket.open(AF_INET, SOCK_STREAM, 0); }
+,  sem(), listen(context), operational(true), port(port)
+{  listen.open(AF_INET, SOCK_STREAM, 0); }
 
 //----------------------------------------------------------------------------
 // SSL_ServerThread::Methods
@@ -828,19 +839,19 @@ virtual void
 
    // Default SO_REUSEADDR=true
    int optval= true;
-   socket.set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+   listen.set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
-   socket.bind(port);               // Set port number
+   listen.bind(port);               // Set port number
    sem.post();                      // Indicate started
 
    try {
      while( operational ) {
-       Socket* server= socket.listen();
+       Socket* server= listen.listen();
 
        {{{{
-         std::lock_guard<decltype(mutex)> lock(mutex);
+         LOCK_GUARD(mutex);
          if( operational && server ) {
-           WorkerThread* worker= new WorkerThread(server);
+           WorkerObject* worker= new WorkerObject(server);
            if( opt_worker )
              WorkerPool::work(worker);
            else
@@ -863,10 +874,9 @@ void
    stop( void )                     // Terminate this Thread
 {
    {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex);
-
+     LOCK_GUARD(mutex);
      operational= false;              // Indicate terminated
-     socket.close();                  // Close the Socket
+     listen.close();                  // Close the Socket
    }}}}
 
    //-------------------------------------------------------------------------
@@ -888,6 +898,7 @@ void
 static inline void
    dirty( void )                    // Quick and dirty test
 {
+   // Not currently used
 }
 
 //----------------------------------------------------------------------------
@@ -906,13 +917,14 @@ static void
 static const int THREAD_COUNT= 64;  // Maximum thread count
    testfail= false;                 // No failure yet
 
+   semaphore.reset();
    SSL_ClientThread* thread[THREAD_COUNT];
    for(int i= 0; i<THREAD_COUNT; i++) {
      thread[i]= new SSL_ClientThread(context);
      thread[i]->start();
    }
 
-   debugf("SSL Client: Started\n");
+   debugf("SSL Stress: Started\n");
    long op_count= 0;                // Number of completed threads
    interval.start();
    while( interval.stop() < double(opt_runtime) && testfail == false ) {
@@ -925,12 +937,13 @@ static const int THREAD_COUNT= 64;  // Maximum thread count
 
          thread[i]= new SSL_ClientThread(context);
          thread[i]->start();
+         break;
        }
      }
    }
+   double runtime= interval.stop();
 
    // Complete all threads
-   double runtime= interval.stop();
    for(;;) {
      int running= 0;
      for(int i= 0; i<THREAD_COUNT; i++) {
@@ -947,14 +960,14 @@ static const int THREAD_COUNT= 64;  // Maximum thread count
      if( running == 0 )
        break;
 
-     semaphore.wait(0.5);
+     Thread::sleep(0.5);
    }
 
    // Statistics
    debugf("SSL Client: %s\n", testfail ? "FAILED" : "Complete");
-   debugf("%8ld Operations\n", op_count);
-   debugf("%12.3f Seconds\n", runtime);
-   debugf("%12.3f Operations/second\n", double(op_count) / runtime);
+   debugf("%'8ld Operations\n", op_count);
+   debugf("%'12.3f Seconds\n", runtime);
+   debugf("%'12.3f Operations/second\n", double(op_count) / runtime);
 }
 
 //----------------------------------------------------------------------------
@@ -978,7 +991,7 @@ static const int THREAD_COUNT= 16;  // Maximum thread count
      thread[i]->start();
    }
 
-   debugf("STD Client: Started\n");
+   debugf("STD Stress: Started\n");
    long op_count= 0;                // Number of completed threads
    interval.start();
    while( interval.stop() < double(opt_runtime) && testfail == false ) {
@@ -991,6 +1004,7 @@ static const int THREAD_COUNT= 16;  // Maximum thread count
 
          thread[i]= new STD_ClientThread();
          thread[i]->start();
+         break;
        }
      }
    }
@@ -1013,14 +1027,14 @@ static const int THREAD_COUNT= 16;  // Maximum thread count
      if( running == 0 )
        break;
 
-     semaphore.wait(0.5);
+     Thread::sleep(0.5);
    }
 
    // Statistics
    debugf("STD Client: %s\n", testfail ? "FAILED" : "Complete");
-   debugf("%8ld Operations\n", op_count);
-   debugf("%12.3f Seconds\n", runtime);
-   debugf("%12.3f Operations/second\n", double(op_count) / runtime);
+   debugf("%'8ld Operations\n", op_count);
+   debugf("%'12.3f Seconds\n", runtime);
+   debugf("%'12.3f Operations/second\n", double(op_count) / runtime);
 }
 
 //----------------------------------------------------------------------------
@@ -1042,12 +1056,65 @@ static void
                    "  --{no-}server\n"
                    "  --{no-}thread\n"
                    "  --{no-}worker\n"
-                   "  --debug{=file_name}\n"
                    "  --runtime=value\n"
+                   "  --trace\t{=size} Enable trace, default size= 1M\n"
                    "  --verbose{=value}\n"
           );
 
    exit(EXIT_FAILURE);
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       init
+//
+// Purpose-
+//       Initialize
+//
+//----------------------------------------------------------------------------
+static void
+   init( void)                      // Initialize
+{
+   //-------------------------------------------------------------------------
+   // Create memory-mapped trace file
+   if( USE_TRACE && opt_trace < 0x00040000 )
+     opt_trace= 0x00040000;
+
+   if( opt_trace ) {                // If --trace specified
+     int mode= O_RDWR | O_CREAT;
+     int perm= S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+     int fd= open(TRACE_FILE, mode, perm);
+     if( fd < 0 ) {
+       fprintf(stderr, "%4d open(%s) %s\n", __LINE__
+                     , TRACE_FILE, strerror(errno));
+       exit(1);
+     }
+
+     int rc= ftruncate(fd, opt_trace); // (Expand to opt_trace length)
+     if( rc ) {
+       fprintf(stderr, "%4d ftruncate(%s,%.8x) %s\n", __LINE__
+                     , TRACE_FILE, opt_trace, strerror(errno));
+       exit(1);
+     }
+
+     mode= PROT_READ | PROT_WRITE;
+     table= mmap(nullptr, opt_trace, mode, MAP_SHARED, fd, 0);
+     if( table == MAP_FAILED ) {    // If no can do
+       fprintf(stderr, "%4d mmap(%s,%.8x) %s\n", __LINE__
+                     , TRACE_FILE, opt_trace, strerror(errno));
+       table= nullptr;
+       exit(1);
+     }
+
+     Trace::table= pub::Trace::make(table, opt_trace);
+     close(fd);                     // Descriptor not needed once mapped
+
+     Trace::trace(".INI", 0, "TRACE STARTED") ;
+   }
+
+   host_name= Socket::get_host_name();
+   setlocale(LC_NUMERIC, "");     // Allows printf("%'d\n", 123456789);
 }
 
 //----------------------------------------------------------------------------
@@ -1077,20 +1144,24 @@ static void
        case 0:
          switch( opt_index )
          {
-           case OPT_DEBUG:
-             opt_debug= optarg;
-             if( opt_verbose == 0 )
-               opt_verbose= 1;
-             break;
-
            case OPT_RUNTIME:
              opt_runtime= atoi(optarg);
              break;
 
+           case OPT_TRACE:
+             if( optarg )
+               opt_trace= atoi(optarg);
+             if( opt_trace < int(Trace::TABLE_SIZE_MIN) )
+               opt_trace= Trace::TABLE_SIZE_MIN;
+             else if( opt_trace > int(Trace::TABLE_SIZE_MAX) )
+               opt_trace= Trace::TABLE_SIZE_MAX;
+             break;
+
            case OPT_VERBOSE:
-             opt_verbose= 2;         // Default "extra" verbosity
+             opt_verbose= 1;
              if( optarg )
                opt_verbose= atoi(optarg);
+             options::pub_verbose= opt_verbose;
              break;
 
            default:
@@ -1129,6 +1200,26 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       term
+//
+// Purpose-
+//       Terminate
+//
+//----------------------------------------------------------------------------
+static void
+   term( void)                      // Terminate
+{
+   //-------------------------------------------------------------------------
+   // Terminate internal trace
+   if( table == Trace::table ) {
+     Trace::table= nullptr;
+     munmap(table, opt_trace);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       main
 //
 // Purpose-
@@ -1142,15 +1233,15 @@ extern int                          // Return code
 {
    unsigned int        errorCount= 0;
 
-   // Parse parameters
+   // Initialize
    parm(argc, argv);
+   init();
 
    // Set debugging object
-   Debug debug(opt_debug);
-   debug.set(&debug);
+   Debug debug;
+   Debug::set(&debug);
    debug.set_head(Debug::HEAD_THREAD);
-   IFHCDM( debug.set_mode(Debug::MODE_INTENSIVE); )
-   ELHCDM( if(opt_runtime > 0) debug.set_mode(Debug::MODE_INTENSIVE); )
+   if( HCDM || opt_runtime > 0 ) debug.set_mode(Debug::MODE_INTENSIVE);
    debug.debugh("SampleSSL Started...\n");
 
    debugf("\n");
@@ -1160,6 +1251,7 @@ extern int                          // Return code
    debugf("%5s: stress\n",   torf(opt_stress));
    debugf("%5s: client\n",   torf(opt_client));
    debugf("%5s: thread\n",   torf(opt_thread));
+   debugf("%5s: trace\n",    torf(opt_trace));
    debugf("%5s: server\n",   torf(opt_server));
    debugf("%5s: worker\n",   torf(opt_worker));
    debugf("%5d: verbose\n",  opt_verbose);
@@ -1185,8 +1277,16 @@ extern int                          // Return code
      }
 
      if( opt_stress ) {             // Run stress test?
+       debugf("\n");
        std_stressor();              // Run STD stress test
+       Thread::sleep(0.5);          // Completion delay
+       WorkerPool::debug();
+
+       debugf("\n");
+       WorkerPool::reset();
        ssl_stressor(client_CTX);    // Run SSL stress test
+       Thread::sleep(0.5);          // Completion delay
+       WorkerPool::debug();
      } else {
        if( opt_client ) {
          if( opt_thread ) {
@@ -1213,9 +1313,8 @@ extern int                          // Return code
        ssl_server.join();
      }
 
-     debugf("%4d HCDM\n", __LINE__);
+//debugf("%4d HCDM\n", __LINE__);
      Thread::sleep(0.5);            // Completion delay
-     WorkerPool::debug();
 
      SSL_CTX_free(client_CTX);
      SSL_CTX_free(server_CTX);
@@ -1231,6 +1330,7 @@ extern int                          // Return code
 
    debug.debugf("...SampleSSL complete(%d)\n", errorCount);
    Debug::set(nullptr);
+   term();
 
    return ( errorCount != 0 );
 }

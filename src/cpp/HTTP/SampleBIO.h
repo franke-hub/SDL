@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019 Frank Eskesen.
+//       Copyright (c) 2019-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -10,17 +10,17 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       BIO_debug.h
+//       SampleBIO.h
 //
 // Purpose-
 //       BIO debugging routines.
 //
 // Last change date-
-//       2019/03/26
+//       2022/05/07
 //
 //----------------------------------------------------------------------------
-#ifndef BIO_DEBUG_H_INCLUDED
-#define BIO_DEBUG_H_INCLUDED
+#ifndef SAMPLEBIO_H_INCLUDED
+#define SAMPLEBIO_H_INCLUDED
 
 #include <openssl/opensslv.h>       // For OPENSSL_VERSION_NUMBER
 #include <openssl/bio.h>            // For openssl BIO methods
@@ -80,16 +80,19 @@ static inline void
 {
    std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
 
-   debugh("debug BIO_METHOD(%p) %d\n", method, method->type);
-   debugh("..name(%s)\n",     method->name);
-   debugh("..bwrite(%p)\n",   method->bwrite);
-   debugh("..bread(%p)\n",    method->bread);
-   debugh("..bputs(%p)\n",    method->bputs);
-   debugh("..bgets(%p)\n",    method->bgets);
-   debugh("..ctrl(%p)\n",     method->ctrl);
-   debugh("..create(%p)\n",   method->create);
-   debugh("..destroy(%p)\n",  method->destroy);
-   debugh("..callback(%p)\n", method->callback_ctrl);
+   if( options::pub_verbose > 0 )
+     debugh("debug BIO_METHOD(%p) %d\n", method, method->type);
+   else
+     traceh("debug BIO_METHOD(%p) %d\n", method, method->type);
+   traceh("..name(%s)\n",     method->name);
+   traceh("..bwrite(%p)\n",   method->bwrite);
+   traceh("..bread(%p)\n",    method->bread);
+   traceh("..bputs(%p)\n",    method->bputs);
+   traceh("..bgets(%p)\n",    method->bgets);
+   traceh("..ctrl(%p)\n",     method->ctrl);
+   traceh("..create(%p)\n",   method->create);
+   traceh("..destroy(%p)\n",  method->destroy);
+   traceh("..callback(%p)\n", method->callback_ctrl);
 }
 
 static inline void
@@ -98,21 +101,20 @@ static inline void
 {
    std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
 
-   debugh("debug BIO(%p) METHOD(%p) %s\n", bio, bio->method, bio->method->name);
-// debugh("..callback(%p)\n", bio->callback);
-// debugh("..cb_arg(%p)\n",   bio->cb_arg);
-// debugh("..init(%d)\n",     bio->init);
-// debugh("..shutdown(%d)\n", bio->shutdown);
-// debugh("..flags(0x%x)\n",  bio->flags);
-// debugh("..reason(%d)\n",   bio->retry_reason);
-// debugh("..num(%d)\n",      bio->num);
-// debugh("..ptr(%p)\n",      bio->ptr);
-   debugh("..next(%p)\n",     bio->next_bio);
-   debugh("..prev(%p)\n",     bio->prev_bio);
-// debugh("..refs(%d)\n",     bio->references);
-// debugh("..reads(%ld)\n",   bio->num_read);
-// debugh("..writes(%ld)\n",  bio->num_write);
-// debugh("..\n"); debug(bio->method);
+   tracef("BIO(%p) N(%p) P(%p) %p:%s\n", bio, bio->next_bio, bio->prev_bio
+         , bio->method, bio->method->name);
+// traceh("..callback(%p)\n", bio->callback);
+// traceh("..cb_arg(%p)\n",   bio->cb_arg);
+// traceh("..init(%d)\n",     bio->init);
+// traceh("..shutdown(%d)\n", bio->shutdown);
+// traceh("..flags(0x%x)\n",  bio->flags);
+// traceh("..reason(%d)\n",   bio->retry_reason);
+// traceh("..num(%d)\n",      bio->num);
+// traceh("..ptr(%p)\n",      bio->ptr);
+// traceh("..refs(%d)\n",     bio->references);
+// traceh("..reads(%ld)\n",   bio->num_read);
+// traceh("..writes(%ld)\n",  bio->num_write);
+// traceh("..\n"); debug(bio->method);
 }
 
 static inline void
@@ -121,7 +123,10 @@ static inline void
      const char*       info= "")    // For this description
 {
    std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
-   debugh("%s: debug_chain(%p)\n", info, bio);
+   if( options::pub_verbose > 0 )
+     debugh("%s: debug_chain(%p)\n", info, bio);
+   else
+     traceh("%s: debug_chain(%p)\n", info, bio);
 
    while( bio )
    {
@@ -130,13 +135,13 @@ static inline void
      {
        if( true  ) {
          if( bio->next_bio->prev_bio != bio ) {
-           debugh("ERROR: BIO(%p)->next_bio(%p)->prev_bio(%p)\n",
+           debugf("BIO(%p)->next_bio(%p)->prev_bio(%p) **ERROR**\n",
                   bio, bio->next_bio, bio->next_bio->prev_bio);
          }
        }
 
        if( bio->next_bio == bio ) {
-         debugh("ERROR: %p= BIO(%p)->next_bio\n", bio->next_bio, bio);
+         debugf("BIO(%p)->next_bio(%p) **ERROR**\n", bio, bio->next_bio);
          break;
        }
      }
@@ -144,4 +149,4 @@ static inline void
      bio= bio->next_bio;
    }
 }
-#endif // BIO_DEBUG_H_INCLUDED
+#endif // SAMPLEBIO_H_INCLUDED

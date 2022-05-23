@@ -16,7 +16,7 @@
 //       Standard posix socket wrapper and openssl wrapper.
 //
 // Last change date-
-//       2022/05/15
+//       2022/05/23
 //
 // Implementation warning-
 //       THE SSL_Socket CLASS IS EXPERIMENTAL. The author expressly admits to
@@ -38,7 +38,7 @@
 //       (offsets of: sockaddr_in.in_port == sockaddr_in6.in6_port.)
 //
 // Implementation notes-
-//       Library error handling is limited, and mostly left up to the user.
+//       Error handling is limited, and mostly left up to the user.
 //       SocketException is only thrown for usage errors and SHOULD NOT OCCUR
 //       conditions.
 //       (Check the library source code for details.)
@@ -50,6 +50,7 @@
 #include <functional>               // For std::function
 #include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
+#include <errno.h>                  // For EINVAL
 #include <netinet/in.h>             // For struct sockaddr_ definitions
 #include <openssl/ssl.h>            // For SSL, SSL_CTX
 #include <sys/poll.h>               // For struct pollfd, ...
@@ -60,6 +61,11 @@
 #include "pub/Object.h"             // For base class, _PUB_NAMESPACE, ...
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+//----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+class SocketSelect;                 // Socket select controller
+
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -82,6 +88,8 @@ class SocketException : public Exception { using Exception::Exception;
 //
 //----------------------------------------------------------------------------
 class Socket : public Object {      // Standard posix socket wrapper
+friend class SocketSelect;
+
 //----------------------------------------------------------------------------
 // Socket::Attributes
 //----------------------------------------------------------------------------
@@ -99,6 +107,7 @@ std::string to_string( void ) const; // Convert to display string
 }; // union sockaddr_u
 
 protected:
+SocketSelect*          selector= nullptr; // The associated SocketSelector
 int                    handle;      // The socket handle
 short                  family;      // The connection address family
 short                  type;        // The connection type
@@ -305,6 +314,10 @@ virtual int                         // Return code (0 OK)
      const sockaddr*   peer_addr,   // Peer address
      socklen_t         peer_size);  // Peer address length
 
+virtual int                         // Return code (0 OK)
+   connect(                         // Connect to server
+     const std::string&name_port);  // Peer name:port string
+
 virtual Socket*                     // The next new connection
    listen( void );                  // Listen for new connections
 
@@ -342,21 +355,16 @@ class SocketSelect {                // Socket selector
 public:
 typedef std::function<void(void)>             v_func;
 
-enum { SIZE_INC= 32 };              // Array increment size TODO: MOVE TO .cpp
-
-struct Selector {
-const Socket*          socket;      // The associated Socket
-}; // struct Selector
-
 protected:
 mutable std::mutex     mutex;       // Internal mutex
-Selector*              sarray= nullptr; // Array of Selectors
-struct pollfd*         result= nullptr; // Array of pollfd's
+struct pollfd*         pollfd= nullptr; // Array of pollfd's
+Socket**               socket= nullptr; // Array of Socket's
+int*                   sindex= nullptr; // File descriptor to pollfd index
 
-uint32_t               left= 0;     // Number of remaining selections
-uint32_t               next= 0;     // The next selection index
-uint32_t               size= 0;     // Array size(s)
-uint32_t               used= 0;     // Number of element used
+int                    left= 0;     // Number of remaining selections
+int                    next= 0;     // The next selection index
+int                    size= 0;     // Number of result elements available
+int                    used= 0;     // Number of result elements used
 
 public:
    SocketSelect();
@@ -375,21 +383,39 @@ void
 
 const struct pollfd*                // The associated pollfd
    get_pollfd(                      // Extract pollfd
-     const Socket*     socket) const // For this Socket
+     int               fd) const    // For this file descriptor
 {  std::lock_guard<decltype(mutex)> lock(mutex);
 
-   ssize_t i= locate(socket);
-   if( i < 0 ) {
+   if( fd < 0 || fd >= size ) {
      errno= EINVAL;
      return nullptr;
    }
 
-   return &result[i];
+   fd= sindex[fd];
+   if( fd < 0 || fd >= size ) {     // (Not mapped, should not occur)
+     errno= EINVAL;
+     return nullptr;
+   }
+
+   return &pollfd[fd];
+}
+
+const Socket*                       // The associated Socket*
+   get_socket(                      // Extract Socket
+     int               fd) const    // For this file descriptor
+{  std::lock_guard<decltype(mutex)> lock(mutex);
+
+   if( fd < 0 || fd >= size ) {
+     errno= EINVAL;
+     return nullptr;
+   }
+
+   return socket[fd];
 }
 
 int                                 // Return code, 0 expected
    insert(                          // Insert a Socket onto the list
-     const Socket*     socket,      // The associated Socket
+     Socket*           socket,      // The associated Socket
      int               events);     // The associated poll events
 
 int                                 // Return code, 0 expected
@@ -399,7 +425,7 @@ int                                 // Return code, 0 expected
 
 int                                 // Return code, 0 expected
    remove(                          // Remove the Selector
-     const Socket*     socket);     // For this Socket
+     Socket*           socket);     // For this Socket
 
 Socket*                             // The next selected Socket, or nullptr
    select(                          // Select next Socket
@@ -413,10 +439,6 @@ Socket*                             // The next selected Socket, or nullptr
 
 //============================================================================
 protected:
-ssize_t                             // The Selector index, -1 if not found
-   locate(                          // Locate the Selector index
-     const Socket*     socket) const; // For this Socket
-
 Socket*                             // The next selected Socket
    remain( void );                  // Select next remaining Socket
 }; // class SocketSelect

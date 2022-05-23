@@ -189,7 +189,8 @@
 ## TODO:
 2022/04/11 Implement system clipboard.
 
-2022/04/11 Run detab command in background.
+2022/04/11 Run detab command in background. Use one undo/redo for the entire
+           detab. Find first/last detab lines; Those bound the detab.
 
 2022/02/22 Run as a thread so that exitxcb has same window appearance as xterm
 

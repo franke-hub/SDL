@@ -16,7 +16,7 @@
 ##       Extract nickname for subdirectory
 ##
 ## Last change date-
-##       2022/04/28
+##       2022/05/23
 ##
 ## Usage-
 ##       cd `nickdir alias_name`
@@ -36,9 +36,10 @@ case $1 in
     echo      aiml=`nickdir aiml`
     echo     clone=`nickdir clone`
     echo       cpp=`nickdir cpp`
-    echo       dll=`nickdir dll`
     echo       ctl=`nickdir ctl`
 ##  echo      diva=`nickdir diva`
+    echo       dll=`nickdir dll`
+    echo       doc=`nickdir doc`
     echo      edit=`nickdir edit`
     echo     forth=`nickdir forth`
     echo       gpg=`nickdir gpg`
@@ -110,18 +111,30 @@ case $1 in
     __FULLDIR="$HOME/src/cpp/ctl/BSD"
     ;;
 
+  ctl/*)
+    __FULLDIR="$HOME/src/cpp/$1"
+    ;;
+
   inc)
     __FULLDIR="$HOME/src/cpp/inc"
     ;;
 
+  inc/*)
+    __FULLDIR="$HOME/src/cpp/$1"
+    ;;
+
   ############################################################################
   ## C++ object directories
-  obj | cpp)
+  cpp)
     __FULLDIR="$HOME/obj/cpp"
     ;;
 
-  obj/cpp)
-    __FULLDIR="$HOME/obj/cpp"
+  obj/cpp | obj/doc | obj/java | obj/js | obj/mcs | obj/py)
+    __FULLDIR="$HOME/$1"
+    ;;
+
+  obj/cpp/* | obj/doc/* | obj/java/* | obj/js/* | obj/mcs/* | obj/py/*)
+    __FULLDIR="$HOME/$1"
     ;;
 
   obj/* | cpp/*)
@@ -172,24 +185,10 @@ case $1 in
     ;;
 
   ############################################################################
-  ## C# source directories
-  ############################################################################
-  ## C# object directories
-  mcs)
-    __FULLDIR="$HOME/obj/mcs"
+  ## Documentation source directories
+  doc | doc/*)
+    __FULLDIR="$HOME/src/$1"
     ;;
-
-  mcs/*)
-    __FULLDIR="$HOME/obj/mcs/${1:4}"
-    ;;
-
-##mcs.[d,D]irty | mcs.[f,F]orth | mcs.[h,H]ello | mcs.[s,S]ample)
-##  eval __i=`echo ${1:4}`
-##  eval __j=`echo ${__i:0:1} | tr "[a-z]" "[A-Z]"`
-##  __FULLDIR="$HOME/obj/mcs/${__j}${__i:1}"
-##  unset __j
-##  unset __i
-##  ;;
 
   ############################################################################
   ## Java object directories
@@ -208,6 +207,26 @@ case $1 in
   golf | java.golf)
     __FULLDIR="$HOME/obj/java/Webapp/usr/fne/golfer"
     ;;
+
+  ############################################################################
+  ## C# source directories
+  ############################################################################
+  ## C# object directories
+  mcs)
+    __FULLDIR="$HOME/obj/mcs"
+    ;;
+
+  mcs/*)
+    __FULLDIR="$HOME/obj/mcs/${1:4}"
+    ;;
+
+##mcs.[d,D]irty | mcs.[f,F]orth | mcs.[h,H]ello | mcs.[s,S]ample)
+##  eval __i=`echo ${1:4}`
+##  eval __j=`echo ${__i:0:1} | tr "[a-z]" "[A-Z]"`
+##  __FULLDIR="$HOME/obj/mcs/${__j}${__i:1}"
+##  unset __j
+##  unset __i
+##  ;;
 
   ############################################################################
   ## Python object directories

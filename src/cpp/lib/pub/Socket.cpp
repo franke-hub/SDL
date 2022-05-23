@@ -16,21 +16,16 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/05/18
-//
-// Implementation notes-
-//       SocketSelect:
-//         Do we want a Selector map rather than a List? NO. Too complex.
-//         Do we want a sorted socket array? Maybe, slightly more complex.
-//           Insert slower. Locate faster. (Implementation deferred)
+//       2022/05/23
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE                 // For ppoll
 #endif
-#include <errno.h>                  // For errno
+#include <new>                      // For std::bad_alloc
 #include <mutex>                    // For mutex, std::lock_guard, ...
 
+#include <errno.h>                  // For errno
 #include <fcntl.h>                  // For fcntl
 #include <netdb.h>                  // For addrinfo, ...
 #include <poll.h>                   // For poll, ...
@@ -39,13 +34,14 @@
 #include <unistd.h>                 // For close, ...
 #include <arpa/inet.h>              // For internet address conversions
 #include <openssl/err.h>            // For ERR_error_string
+#include <sys/resource.h>           // For getrlimit
 #include <sys/select.h>             // For select, ...
 #include <sys/time.h>               // For timeval, ...
 
 #include <pub/utility.h>            // For to_string()
 #include <pub/Debug.h>              // For debugging
 
-#include "pub/Socket.h"             // The Socket Object
+#include "pub/Socket.h"             // The Socket Objects
 
 using namespace _PUB_NAMESPACE::debugging; // For debugging
 
@@ -55,6 +51,8 @@ using namespace _PUB_NAMESPACE::debugging; // For debugging
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  IODM= false                      // I/O Debug Mode
+
+,  USE_CROSS_CHECK= true            // Use internal cross-checking?
 }; // enum
 
 namespace _PUB_NAMESPACE {
@@ -81,6 +79,21 @@ static void
      ec= ERR_get_error();
    }
    errno= ERRNO;                    // Restore errno
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       sno_handled
+//
+// Purpose-
+//       Message: A should not occur situation has been handled
+//
+//----------------------------------------------------------------------------
+static int
+   sno_handled(int line)
+{  errorf("%4d %s Should not occur (but handled)\n", line, __FILE__);
+   return 0;
 }
 
 //----------------------------------------------------------------------------
@@ -316,6 +329,9 @@ int                                 // Return code, 0 OK
 
    int rc= 0;
    if( handle >= 0 ) {
+     if( selector )                 // If SocketSelect controlled
+       selector->remove(this);
+
      rc= ::close(handle);
      handle= CLOSED;
    }
@@ -522,9 +538,8 @@ static int once= true;
      //
      // The client fails to connect after about 30K operations.
      // The server does not see the client's failing connection attempts.
-     // When the poll times out, (pfd.revents&POLLIN) == 0 whether or not
-     // TestSock's StreamServer::stop method is disabled, thus always driving
-     // the "::accept would block" path.
+     // When the poll times out (or fails) the accept is simply skipped,
+     // and nullptr returned (indicating a transient error.)
      //
      // 6000 ops/second Timing w/TestSock USE_LINGER == true
 
@@ -535,9 +550,13 @@ static int once= true;
      if( LISTEN_HCDM )
        traceh("%4d %d=poll() {%.4x,%.4x}\n", __LINE__, rc
              , pfd.events, pfd.revents);
-     if( (pfd.revents & POLLIN) == 0 ) { // If timeout
-       if( IODM )
-         debugh("%4d %s ::accept would block\n", __LINE__, __FILE__);
+     if( rc <= 0 ) {                // If polling error or timeout
+       if( IODM ) {
+         if( rc < 0 )
+           trace(__LINE__, "%d= poll()", rc);
+         else
+           debugh("%4d %s ::accept would block\n", __LINE__, __FILE__);
+       }
        return nullptr;
      }
 #endif // ====================================================================
@@ -907,6 +926,15 @@ int                                 // Return code (0 OK)
    return rc;
 }
 
+int                                 // Return code (0 OK)
+   SSL_Socket::connect(             // Connect to peer
+     const std::string&name_port)   // Peer name:port
+{  if( HCDM )
+     debugh("SSL_Socket(%p)::connect(%s)\n", this, name_port.c_str());
+
+   return Socket::connect(name_port);
+}
+
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -918,7 +946,9 @@ int                                 // Return code (0 OK)
 //----------------------------------------------------------------------------
 Socket*                             // The new connection SSL_Socket
    SSL_Socket::listen( void )       // Get new connection SSL_Socket
-{
+{  if( HCDM )
+     debugh("SSL_Socket(%p)::listen handle(%d)\n", this, handle);
+
    int rc= ::listen(handle, SOMAXCONN); // Wait for new connection
    if( rc != 0 ) {                  // If listen failure
      trace(__LINE__, "%d= listen()", rc);
@@ -1066,10 +1096,52 @@ ssize_t                             // Number of bytes sent
 //
 //----------------------------------------------------------------------------
    SocketSelect::SocketSelect( void )
-{  }
+{  if( HCDM )
+     debugh("SocketSelect(%p)::SocketSelect\n", this);
+
+   struct rlimit limits;
+   int rc= getrlimit(RLIMIT_NOFILE, &limits);
+   if( rc ) {
+     errorf("%4d %s %d=getrlimit %d:%s\n", __LINE__, __FILE__, rc
+           , errno, strerror(errno));
+     limits.rlim_cur= 1024;
+     limits.rlim_max= 4096;
+   }
+
+   size= limits.rlim_max;
+   pollfd= (struct pollfd*)malloc(size * sizeof(pollfd));
+   socket= (Socket**)malloc(size * sizeof(Socket));
+   sindex= (int*)malloc(size * sizeof(int));
+   if( pollfd == nullptr || socket == nullptr || sindex == nullptr )
+     throw std::bad_alloc();
+
+   memset(pollfd, 0, size * sizeof(pollfd));
+   memset(socket, 0, size * sizeof(Socket));
+   memset(sindex, 0xff, size * sizeof(int));
+}
 
    SocketSelect::~SocketSelect( void )
-{  free(sarray); }
+{  if( HCDM )
+     debugh("SocketSelect(%p)::~SocketSelect\n", this);
+
+   std::lock_guard<decltype(mutex)> lock(mutex);
+   for(int px= 0; px < used; ++px) {
+     int fd= pollfd[px].fd;
+     if( fd >= 0 && fd < size ) {
+       Socket* socket= this->socket[fd];
+       if( socket )
+         socket->selector= nullptr;
+       else if( USE_CROSS_CHECK )
+         sno_handled(__LINE__);
+     } else if( USE_CROSS_CHECK ) {
+       sno_handled(__LINE__);
+     }
+   }
+
+   free(pollfd);
+   free(socket);
+   free(sindex);
+}
 
 //----------------------------------------------------------------------------
 //
@@ -1085,15 +1157,33 @@ void
      const char*       info)        // Caller information
 {
    debugf("SocketSelect(%p)::debug(%s)\n", this, info);
-   debugf("..sarray(%p) result(%p)\n", sarray, result);
+   debugf("..pollfd(%p) socket(%p) sindex(%p)\n", pollfd, socket, sindex);
    debugf("..left(%u) next(%u) size(%u) used(%u)\n", left, next, size, used);
-   for(unsigned i= 0; i<used; ++i) {
-     const Socket* socket= sarray[i].socket;
-     debugf("..[%3d] %p %3d {%.4x,%.4x}\n", i, socket, result[i].fd
-           , result[i].events, result[i].revents);
-     if( socket->get_handle() != result[i].fd )
-       debugf("..[%3d] %p %3d ERROR: SOCKET.HANDLE MISMATCH\n", i, socket
-             , socket->get_handle());
+   debugf("..pollfd %d\n", used);
+   for(int px= 0; px<used; ++px) {
+     int fd= pollfd[px].fd;
+     const Socket* socket= this->socket[fd];
+     debugf("..[%3d] %p %3d:{%.4x,%.4x}\n", px, socket, fd
+           , pollfd[px].events, pollfd[px].revents);
+     if( socket->handle != pollfd[px].fd )
+       debugf("..[%3d] %p %3d ERROR: SOCKET.HANDLE MISMATCH\n", px, socket
+             , socket->handle);
+     else if( px != this->sindex[fd] )
+       debugf("..[%3d] %p %3d ERROR: HANDLE.SINDEX MISMATCH\n", px, socket
+             , this->sindex[fd]);
+
+   }
+
+   debugf("..socket\n");
+   for(int sx= 0; sx<size; ++sx) {
+     if( socket[sx] )
+       debugf("[%3d] %p\n", sx, socket[sx]);
+   }
+
+   debugf("..sindex\n");
+   for(int fd= 0; fd<size; ++fd) {
+     if( sindex[fd] >= 0 )
+       debugf("[%3d] -> [%3d]\n", fd, sindex[fd]);
    }
 }
 
@@ -1103,50 +1193,55 @@ void
 //       SocketSelect::insert
 //
 // Purpose-
-//       Insert a Socket onto sarray
+//       Insert a Socket onto the Socket array
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 expected
    SocketSelect::insert(            // Insert Socket
-     const Socket*     socket,      // The associated Socket
+     Socket*           socket,      // The associated Socket
      int               events)      // The associated poll events
 {  std::lock_guard<decltype(mutex)> lock(mutex);
 
-   ssize_t j= locate(socket);
-   if( j >= 0 )                     // If extant, treat operation as modify
-     return modify(socket, events);
-
-   if( used >= size ) {             // If expansion required
-     if( (size+SIZE_INC) < size ) { // If arithmetic overflow
-       errno= ENOMEM;
-       return -1;
-     }
-
-     size_t combo_size= sizeof(*sarray) + sizeof(*result);
-     Selector* rep_sarray= (Selector*)malloc((size+SIZE_INC) * combo_size);
-     if( rep_sarray == nullptr ) {
-       errno= ENOMEM;
-       return -1;
-     }
-     for(unsigned i= 0; i<size; ++i)
-       rep_sarray[i]= sarray[i];
-
-     struct pollfd* rep_result= (struct pollfd*)(&rep_sarray[size+SIZE_INC]);
-     for(unsigned i= 0; i<size; ++i)
-       rep_result[i]= result[i];
-
-     size += SIZE_INC;
-     free(sarray);
-     sarray= rep_sarray;
-     result= rep_result;
+   int fd= socket->handle;
+   if( fd < 0 || fd >= size ) {     // (Probably closed socket)
+     errorf("SocketSelect(%p)::insert(%p) invalid socket handle(%d)\n", this
+           , socket, fd);
+     errno= EINVAL;
+     return -1;
    }
 
-   sarray[used].socket= socket;
-   result[used].fd= socket->get_handle();
-   result[used].events= events;
-   result[used].revents= 0;
+   if( socket->selector ) {
+     errorf("SocketSelect(%p)::insert(%p) already inserted(%p)\n", this
+           , socket, socket->selector);
+     errno= EINVAL;
+     return -1;
+   }
+
+   if( USE_CROSS_CHECK ) {
+     if( used >= size ) {           // More FD's used than hard limit
+       errorf("SocketSelect(%p)::insert(%p) Should not occur\n", this, socket);
+       errno= EINVAL;
+       return -1;
+     }
+
+     // If the socket is already assigned, something is wrong with our table.
+     // Perhaps the socket got closed and opened, and we weren't informed.
+     if( this->socket[fd] ) {       // Socket already assigned
+       errorf("SocketSelect(%p)::insert(%p) Should not occur\n", this, socket);
+       errno= EINVAL;
+       return -1;
+     }
+   }
+
+   struct pollfd* pollfd= this->pollfd + used;
+   pollfd->fd= fd;
+   pollfd->events= events;
+   pollfd->revents= 0;
+   this->sindex[fd]= used;
+   this->socket[fd]= socket;
+
    ++used;
-// left= next= 0;                   // Not needed
+// left= next= 0;                   // Not needed, revents == 0
 
    return 0;
 }
@@ -1166,13 +1261,23 @@ int                                 // Return code, 0 expected
      int               events)      // The associated poll events
 {  std::lock_guard<decltype(mutex)> lock(mutex);
 
-   ssize_t i= locate(socket);
-   if( i < 0 )                      // If not extant, treat operation as insert
-     return insert(socket, events);
+   int fd= socket->handle;
+   if( fd < 0 || fd >= size ) {     // (Probably closed socket)
+     errorf("SocketSelect(%p)::modify(%p) invalid socket handle(%d)\n", this
+           , socket, fd);
+     errno= EINVAL;
+     return -1;
+   }
 
-   result[i].fd= socket->get_handle();
-   result[i].events= events;
-   result[i].revents= 0;
+   if( socket->selector != this ) { // If owned by a different selector
+     sno_handled(__LINE__);
+     return socket->selector->modify(socket, events);
+   }
+
+   int px= sindex[fd];
+   pollfd[px].events= events;
+   pollfd[px].revents= 0;
+
    left= next= 0;
    return 0;
 }
@@ -1183,32 +1288,40 @@ int                                 // Return code, 0 expected
 //       SocketSelect::remove
 //
 // Purpose-
-//       Remove a Socket from sarray
+//       Remove a Socket from the Socket array
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 expected
    SocketSelect::remove(            // Remove Socket
-     const Socket*     socket)      // The associated Socket
+     Socket*           socket)      // The associated Socket
 {  std::lock_guard<decltype(mutex)> lock(mutex);
 
-   ssize_t i= locate(socket);
-   if( i < 0 ) {
+   if( socket->selector == nullptr ) { // If Socket isn't owned by a selector
+     errorf("%4d %s remove(%p) but not active\n", __LINE__, __FILE__, socket);
      errno= EINVAL;
      return -1;
    }
 
-   if( next == used )
-     next= 0;
-   if( result[i].revents )
-     --left;
-
-   for(unsigned j= (unsigned)i + 1; j<used; ++j) {
-     sarray[j-1]= sarray[j];
-     result[j-1]= result[j];
+   if( socket->selector != this ) { // If owned by a different selector
+     sno_handled(__LINE__);
+     return socket->selector->remove(socket);
    }
 
+   socket->selector= nullptr;
+   int fd= socket->handle;
+   if( USE_CROSS_CHECK && (fd < 0 || fd >= size) ) // If invalid socket handle
+     return sno_handled(__LINE__);
+
+   int px= sindex[fd];              // Get the poll index
+   if( USE_CROSS_CHECK && (px < 0 || px >= size) ) // If invalid poll index
+     return sno_handled(__LINE__);
+
+   for(int i= px; i<(used-1); ++i)
+     pollfd[i]= pollfd[i+1];
+
+   this->socket[fd]= nullptr;
+   this->sindex[fd]= -1;
    --used;
-   // TODO: Shrink array if (size-used) > 1.5 SIZE_INC
 
    return 0;
 }
@@ -1219,7 +1332,7 @@ int                                 // Return code, 0 expected
 //       SocketSelect::select
 //
 // Purpose-
-//       Select the next available Socket from sarray
+//       Select the next available Socket from the Socket array
 //
 //----------------------------------------------------------------------------
 Socket*                             // The next selected Socket, or nullptr
@@ -1227,7 +1340,7 @@ Socket*                             // The next selected Socket, or nullptr
      int               timeout)     // Timeout, in milliseconds
 {  std::lock_guard<decltype(mutex)> lock(mutex);
 
-   if( used == 0 ) {                // USAGE ERROR
+   if( used == 0 ) {                // If true, usage error
      if( IODM )
        debugf("SocketSelect(%p)::select Empty Socket array\n", this);
      errno= EINVAL;
@@ -1237,10 +1350,10 @@ Socket*                             // The next selected Socket, or nullptr
    if( left )
      return remain();
 
-   for(unsigned i= 0; i<used; ++i)
-     result[i].revents= 0;
+   for(int px= 0; px<used; ++px)
+     pollfd[px].revents= 0;
 
-   left= poll(result, used, timeout);
+   left= poll(pollfd, used, timeout);
    if( left == 0 ) {
      errno= EAGAIN;
      return nullptr;
@@ -1266,46 +1379,16 @@ Socket*                             // The next selected Socket, or nullptr
    if( left )
      return remain();
 
-   for(unsigned i= 0; i<used; ++i)
-     result[i].revents= 0;
+   for(int px= 0; px<used; ++px)
+     pollfd[px].revents= 0;
 
-   left= ppoll(result, used, timeout, signals);
+   left= ppoll(pollfd, used, timeout, signals);
    if( left == 0 ) {
      errno= EAGAIN;
      return nullptr;
    }
 
    return remain();
-}
-
-//----------------------------------------------------------------------------
-//
-// Protected method-
-//       SocketSelect::locate
-//
-// Purpose-
-//       Locate a Socket in the sarray
-//
-// Implementation note-
-//       Caller must hold mutex lock.
-//
-//----------------------------------------------------------------------------
-ssize_t                             // The Selector index, -1 if not found
-   SocketSelect::locate(            // Locate the Selector index
-     const Socket*     socket) const // For this Socket
-{
-   for(unsigned i= next; i<used; ++i) {
-     if( sarray[i].socket == socket )
-       return i;
-   }
-
-   for(unsigned i= 0; i<next; ++i) {
-     if( sarray[i].socket == socket )
-       return i;
-   }
-
-   errno= EINVAL;
-   return -1;
 }
 
 //----------------------------------------------------------------------------
@@ -1323,19 +1406,21 @@ ssize_t                             // The Selector index, -1 if not found
 Socket*                             // The next selected Socket
    SocketSelect::remain( void )     // Select next remaining Socket
 {
-   for(unsigned i= next; i<used; ++i) {
-     if( result[i].revents != 0 ) {
+   for(int px= next; px<used; ++px) {
+     if( pollfd[px].revents != 0 ) {
        --left;
-       next= i + 1;
-       return const_cast<Socket*>(sarray[i].socket);
+       next= px + 1;
+       int fd= pollfd[px].fd;
+       return socket[fd];
      }
    }
 
-   for(unsigned i= 0; i<next; ++i) {
-     if( result[i].revents != 0 ) {
+   for(int px= 0; px<next; ++px) {
+     if( pollfd[px].revents != 0 ) {
        --left;
-       next= i + 1;
-       return const_cast<Socket*>(sarray[i].socket);
+       next= px + 1;
+       int fd= pollfd[px].fd;
+       return socket[fd];
      }
    }
 

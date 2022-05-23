@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2022/05/18
+//       2022/05/21
 //
 // Implementation notes-
 //       TODO: Implement --client, --server, --thread options
@@ -40,8 +40,6 @@
 #include "pub/TEST.H"               // For VERIFY, ...
 #include "pub/Wrapper.h"            // For class Wrapper
 
-// For SocketSelect
-
 using namespace _PUB_NAMESPACE;     // For pub:: classes
 using namespace pub::debugging;     // For debugging functions
 using namespace pub::utility;       // For utility`functions
@@ -59,6 +57,7 @@ enum                                // Generic enum
 
 ,  STD_PORT= 8080                   // Our STD port number
 ,  USE_CLIENT_COUNT= 16             // Number of stress test clients
+,  USE_CONNECT_RETRY= 0             // Number of retries before error
 ,  USE_LINGER= true                 // Use SO_LINGER timeout for client
 ,  USE_STOP_HCDM= false             // Write StreamServer::stop messages
 ,  USE_RECV_SELECT= true            // Use recv SocketSelect?
@@ -104,7 +103,8 @@ static int             sender;      // POSITIVE iff sender, NEGATIVE iff receive
 #endif
 
 static std::string     host_name;   // The host name
-static int             error_count= 0;  // Error counter
+static int             error_count= 0; // Error counter
+static int             retry_count= 0; // Connection retry counter
 
 //----------------------------------------------------------------------------
 // Extended options
@@ -113,13 +113,13 @@ static const char*     opt_client= nullptr;
 static int             opt_dgram=  false;
 static int             opt_runtime= 0;
 static int             opt_server= false;
-static int             opt_stress= false;
+static int             opt_stream= false;
 static struct option   opts[]=      // The getopt_long parameter: longopts
 {  {"client",   required_argument, nullptr,           0}
 ,  {"datagram", no_argument,       &opt_dgram,     true}
 ,  {"runtime",  required_argument, nullptr,           0}
 ,  {"server",   no_argument,       &opt_server,    true}
-,  {"stress",   no_argument,       &opt_stress,    true}
+,  {"stream",   no_argument,       &opt_stream,    true}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
@@ -191,6 +191,22 @@ static std::string                  // The next token, "" if at end
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       if_retry
+//
+// Purpose-
+//       Returns errno == EAGAIN || errno == EWOULDBLOCK
+//
+//----------------------------------------------------------------------------
+static bool if_retry( void )
+#if EAGAIN == EWOULDBLOCK
+{  return errno == EAGAIN; }
+#else
+{  return errno == EAGAIN; || errno == EWOULDBLOCK }
+#endif
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       reconnect
 //
 // Purpose-
@@ -252,8 +268,10 @@ static char buffer[8192];           // The response data buffer
      rc= socket.connect(name_port);
      if( rc < 0 ) {
        debugh("%d= STD connect %d:%s\n", rc, errno, strerror(errno));
-       if( ++error_count < 10 )
+       if( ++retry_count <= USE_CONNECT_RETRY ) {
+         Thread::sleep(5.0);       // (Sleep while server is polling)
          return;
+       }
        throw pub::Exception("Client connect Failure");
      }
 
@@ -310,9 +328,10 @@ static void
    std_stress( void )               // Standard stress test
 {
    if( opt_verbose )
-     debugf("--stress test: Started\n");
+     debugf("--stream test: Started\n");
 
    error_count= 0;                  // No errors yet
+   retry_count= 0;                  // No retries yet
    long op_count= 0;
    double runtime= 0.0;
    Interval interval;
@@ -328,7 +347,7 @@ static void
 
    // Statistics
    if( opt_verbose ) {
-     debugf("--stress test: %s\n", error_count ? "FAILED" : "Complete");
+     debugf("--stream test: %s\n", error_count ? "FAILED" : "Complete");
      debugf("%'10ld Operations\n", op_count);
      debugf("%'14.3f Seconds\n", runtime);
      debugf("%'14.3f Operations/second\n", double(op_count) / runtime);
@@ -438,6 +457,8 @@ virtual void
 
    try {
      select.insert(&packet, POLLIN);
+     if( opt_verbose > 1 )
+       select.debug("datagram server");
 
      operational= true;
      if( opt_verbose )
@@ -449,7 +470,7 @@ virtual void
          Socket* socket= select.select(1000); // 1 second timeout
 
          if( socket == nullptr ) {
-           error_count += VERIFY( errno == EAGAIN );
+           error_count += VERIFY( if_retry() );
            if( error_count )
              break;
            ++r_again;
@@ -472,7 +493,7 @@ virtual void
          if( opt_hcdm )
            traceh("%4zd= packet.recv(,,MSG_DONTWAIT)\n", L);
          if( L <= 0 ) {
-           error_count += VERIFY( errno == EAGAIN || errno == EWOULDBLOCK );
+           error_count += VERIFY( if_retry() );
            if( error_count )
              break;
            Thread::sleep(1.0/128.0);
@@ -545,6 +566,8 @@ void
    }
 
    select.insert(&packet, POLLOUT);
+   if( opt_verbose > 1 )
+      select.debug("datagram client");
    if( opt_verbose )
      debugf("--datagram test: Started\n");
 
@@ -804,7 +827,7 @@ int
      fprintf(stderr, "  --datagram\tRun datagram test\n");
      fprintf(stderr, "  --runtime=<seconds>\n");
 //   fprintf(stderr, "  --server\tRun server\n");
-     fprintf(stderr, "  --stress\tRun stress test\n");
+     fprintf(stderr, "  --stream\tRun stream test\n");
 //   fprintf(stderr, "  --thread\tRun multi-threaded client stress test\n");
    });
 
@@ -822,10 +845,11 @@ int
        debug_set_mode(Debug::MODE_INTENSIVE);
      }
 
-     if( !opt_client && !opt_server && !opt_dgram && !opt_stress )
-       opt_stress= true;
+     if( !opt_client && !opt_server && !opt_dgram && !opt_stream )
+       opt_stream= true;
 
-     if( (opt_client || opt_server || opt_stress) && opt_runtime == 0 )
+     if( opt_runtime == 0
+         && (opt_client || opt_dgram || opt_server || opt_stream) )
        opt_runtime= 20;
 
      setlocale(LC_NUMERIC, "");     // Allows printf("%'d\n", 123456789);
@@ -863,9 +887,9 @@ int
 //     else
 //       debugf("%5s: client\n",   "false");
        debugf("%5s: datagram\n", torf(opt_dgram));
-       debugf("%5s: server\n",   torf(opt_server));
+//     debugf("%5s: server\n",   torf(opt_server));
        debugf("%5d: runtime\n",  opt_runtime);
-       debugf("%5s: stress\n",   torf(opt_stress));
+       debugf("%5s: stream\n",   torf(opt_stream));
 //     debugf("%5s: thread\n",   torf(opt_thread));
 //     debugf("%5s: trace\n",    torf(opt_trace));
        debugf("%5d: verbose\n",  opt_verbose);
@@ -886,7 +910,7 @@ int
        packet_server.join();
      }
 
-     if( opt_stress ) {
+     if( opt_stream ) {
        stream_server.start();
        stream_server.event.wait();
        std_stress();
