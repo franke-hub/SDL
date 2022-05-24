@@ -1,0 +1,27 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2022 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       .uuid
+##
+## Purpose-
+##       Echo verification UUID.
+##
+## Last change date-
+##       2022/05/01
+##
+##
+## Implementation note-
+##       This UUID identifies this distribution.
+##       For alternate uses, use 'uuidgen -r' to generate a unique UUID.
+##
+##############################################################################
+echo "9ccc3005-3169-4af3-96ff-74557f0153bd"

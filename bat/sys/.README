@@ -1,0 +1,25 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2022 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       Subdirectory information
+##
+## Last change date-
+##       2022/05/24
+##
+## Implementation notes-
+##       This directory contains system scripts rather than general purpose
+##       scripts. The directory is currently EXPERIMENTAL.
+##
+##############################################################################
