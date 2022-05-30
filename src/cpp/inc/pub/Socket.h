@@ -16,7 +16,7 @@
 //       Standard posix socket wrapper and openssl wrapper.
 //
 // Last change date-
-//       2022/05/23
+//       2022/05/27
 //
 // Implementation warning-
 //       THE SSL_Socket CLASS IS EXPERIMENTAL. The author expressly admits to
@@ -51,6 +51,7 @@
 #include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
 #include <errno.h>                  // For EINVAL
+#include <fcntl.h>                  // For fcntl
 #include <netinet/in.h>             // For struct sockaddr_ definitions
 #include <openssl/ssl.h>            // For SSL, SSL_CTX
 #include <sys/poll.h>               // For struct pollfd, ...
@@ -108,18 +109,18 @@ std::string to_string( void ) const; // Convert to display string
 
 protected:
 SocketSelect*          selector= nullptr; // The associated SocketSelector
-int                    handle;      // The socket handle
-short                  family;      // The connection address family
-short                  type;        // The connection type
-//                     proto;       // The connection protocol, PF_UNSPEC
+int                    handle= CLOSED; // The socket handle (handle)
+short                  family= 0;   // The connection address family
+short                  type= 0;     // The connection type
+//                     proto= PF_UNSPEC; // The connection protocol
 
-sockaddr_u             host_addr;   // The host socket address
-sockaddr_u             peer_addr;   // The peer socket address
-socklen_t              host_size;   // Length of host_addr
-socklen_t              peer_size;   // Length of peer_addr
+sockaddr_u             host_addr= {};   // The host socket address
+sockaddr_u             peer_addr= {};   // The peer socket address
+socklen_t              host_size= 0;   // Length of host_addr
+socklen_t              peer_size= 0;   // Length of peer_addr
 
-int                    recv_timeo;  // Receive timeout
-int                    send_timeo;  // Send timeout
+int                    recv_timeo= -1; // Receive timeout
+int                    send_timeo= -1; // Send timeout
 
 //----------------------------------------------------------------------------
 // Socket::Destructor/Constructor/Assignment
@@ -151,6 +152,10 @@ void
 // Socket::Accessors
 //----------------------------------------------------------------------------
 public:
+int                                 // The socket flags
+   get_flags( void ) const          // Get socket flags
+{  return ::fcntl(handle, F_GETFL); }
+
 int                                 // The socket handle
    get_handle( void ) const         // Get socket handle
 {  return handle; }
@@ -189,10 +194,14 @@ socklen_t                           // The peer internet address length
    get_peer_size( void ) const      // Get peer internet address length
 {  return peer_size; }
 
+bool                                // TRUE iff socket is open
+   is_open( void )
+{  return handle >= 0; }
+
 void
-   set_host_port(                   // Set host Port number to
-     Port              port)        // This port value
-{  ((sockaddr_in*)&host_addr)->sin_port= htons(port); }
+   set_flags(                       // Set socket flags
+     int               flags)       // To this replacement value
+{  ::fcntl(handle, F_SETFL, flags); }
 
 int                                 // Return code
    set_option(                      // Set socket option (::setsockopt)
@@ -202,6 +211,16 @@ int                                 // Return code
      socklen_t         optlen);     // Option length
 
 void
+   set_peer_addr(                   // Set peer address
+     const sockaddr*   peeraddr,    // Peer address
+     socklen_t         peersize)    // Peer address length
+{  memcpy(&peer_addr, peeraddr, peersize); peer_size= peersize; }
+
+int                                 // Return code, 0 OK
+   set_peer_addr(                   // Set peer address (See set_host_addr)
+     std::string       name_port);  // "name:port" string
+
+void
    set_peer_port(                   // Set peer Port number to
      Port              port)        // This port value
 {  ((sockaddr_in*)&peer_addr)->sin_port= htons(port); }
@@ -209,9 +228,32 @@ void
 //----------------------------------------------------------------------------
 // Socket::Methods
 //----------------------------------------------------------------------------
+virtual Socket*                     // The next new connection
+   accept( void );                  // Accept new connections
+
 virtual int                         // Return code (0 OK)
+   bind(                            // Bind to address
+     const sockaddr*   host_addr,   // Host address
+     socklen_t         host_size);  // Host address length
+
+int                                 // Return code (0 OK)
+   bind(                            // Bind to address
+     const std::string&host)        // Host name:port string
+{
+   int rc= name_to_addr(host, &host_addr, &host_size);
+   if( rc )
+     return rc;
+
+   return bind((sockaddr*)&host_addr, host_size);
+}
+
+int                                 // Return code (0 OK)
    bind(                            // Bind this socket
-     Port              port);       // To this Port
+     Port              port)        // To this Port
+{
+   std::string nps= get_host_name() + ":" + std::to_string(port);
+   return bind(nps);
+}
 
 virtual int                         // Return code (0 OK)
    close( void );                   // Close the socket
@@ -221,18 +263,52 @@ virtual int                         // Return code (0 OK)
      const sockaddr*   peer_addr,   // Peer address
      socklen_t         peer_size);  // Peer address length
 
-virtual int                         // Return code (0 OK)
+int                                 // Return code (0 OK)
    connect(                         // Connect to server
-     const std::string&name_port);  // Peer name:port string
+     const std::string&peer)        // Peer name:port string
+{
+   int rc= name_to_addr(peer, &peer_addr, &peer_size);
+   if( rc )
+     return rc;
 
-virtual Socket*                     // The next new connection
-   listen( void );                  // Listen for and accept new connections
+   return connect((sockaddr*)&peer_addr, peer_size);
+}
+
+virtual int                         // Return code, 0 expected
+   listen( void );                  // Set Socket to listener (server)
 
 virtual int                         // Return code (0 OK)
    open(                            // Open the Socket
      int               family,      // Address Family
      int               type,        // Socket type
      int               protocol= 0); // Socket protocol
+
+// Return code: <0 if error; 0 if timeout; >0 if fds->revents valid
+virtual int                         // Return code
+   poll(                            // Poll this Socket
+     struct pollfd*    fds,         // IN/OUT The (system-defined) pollfd
+     int               timeout)     // Timeout (in milliseconds)
+{
+   if( fds->fd != handle )
+     fds->fd= handle;
+
+   return ::poll(fds, 1, timeout);
+}
+
+#ifdef _GNU_SOURCE                  // (Only available with _GNU_SOURCE)
+virtual int                         // Return code (0 OK)
+   ppoll(                           // Poll this Socket
+     struct pollfd*    fds,         // The (system) pollfd
+     const struct timespec*
+                       timeout,     // Timeout
+     const sigset_t*   sigmask)     // Signal set mask
+{
+   if( fds->fd != handle )
+     fds->fd= handle;
+
+   return ::ppoll(fds, 1, timeout, sigmask);
+}
+#endif
 
 virtual ssize_t                     // The number of bytes read
    read(                            // Read from the socket
@@ -259,6 +335,27 @@ virtual ssize_t                     // The number of bytes written
    write(                           // Write to the socket
      const void*       addr,        // Data address
      size_t            size);       // Data length
+
+protected:                          // (Currently) internal use only
+/**
+   @brief Set a socket address from a "name:port" string
+   @param nps The "name:port" string, which can also be specified as
+          ":port" to use get_host_name() as the host name.
+   @return 0 If successful,
+          -1 if error with errno set,
+          >0 if ::getaddrinfo failed. (See socket getaddrinfo return codes.)
+
+   Lookup fails if the address family does not match the socket address family
+   specfied in open.
+
+   Error errno values:
+     EINVAL The nps string is missing the ':' delimiter
+**/
+int                                 // Return code, 0 OK
+   name_to_addr(                    // Convert "name:port" to socket address
+     const std::string nps,         // The "name:port" name string
+     sockaddr_u*       addr,        // OUT: The sockaddr_u
+     socklen_t*        size);       // OUT: Length of sockaddr_u
 }; // class Socket
 
 //----------------------------------------------------------------------------
@@ -309,17 +406,17 @@ void
 // SSL_Socket::Methods
 //----------------------------------------------------------------------------
 public:
+virtual Socket*                     // The next new connection
+   accept( void );                  // Accept connection
+
 virtual int                         // Return code (0 OK)
    connect(                         // Connect to server
      const sockaddr*   peer_addr,   // Peer address
      socklen_t         peer_size);  // Peer address length
 
-virtual int                         // Return code (0 OK)
+int                                 // Return code (0 OK)
    connect(                         // Connect to server
      const std::string&name_port);  // Peer name:port string
-
-virtual Socket*                     // The next new connection
-   listen( void );                  // Listen for new connections
 
 virtual ssize_t                     // The number of bytes read
    read(                            // Read from the socket
@@ -341,14 +438,17 @@ virtual ssize_t                     // The number of bytes written
 //       Socket selector
 //
 // Implementation notes-
-//       ** NOT THREAD SAFE **
-//         Similar operation to epoll, but a SocketSelect object cannot be
-//         shared among threads. A mutex is used to enforce this restriction.
+//       ** THREAD SAFE, BUT NOT CURRENTLY MULTI-THREAD CAPABLE **
+//         Polling operations can hold the SocketSelector mutex for long
+//         intervals, blocking socket inserts, modification, and removal.
 //
-//       It it is the user's reponsibility to ensure that inserted Sockets
-//       remain consistent: They must not be deleted, opened or closed.
-//       Sockets should be only be inserted in one SocketSelect.
-//       Unpredictable results enforce these usage requirements.
+//       Sockets may only be associated with one SocketSelector object.
+//       Sockets are automatically removed from a SocketSelector whenever they
+//       are opened, closed, or deleted.
+//
+//       The SocketSelector is intended for use with a large number of sockets.
+//       It contains element arrays indexed by the file descriptor, each
+//       allocated large enough to contain *all* file descriptors.
 //
 //----------------------------------------------------------------------------
 class SocketSelect {                // Socket selector
@@ -383,16 +483,17 @@ void
 
 const struct pollfd*                // The associated pollfd
    get_pollfd(                      // Extract pollfd
-     int               fd) const    // For this file descriptor
+     const Socket*     socket) const // For this Socket
 {  std::lock_guard<decltype(mutex)> lock(mutex);
 
-   if( fd < 0 || fd >= size ) {
-     errno= EINVAL;
+   int fd= socket->handle;
+   if( fd < 0 || fd >= size ) {     // (Not valid, most likely closed)
+     errno= EBADF;
      return nullptr;
    }
 
    fd= sindex[fd];
-   if( fd < 0 || fd >= size ) {     // (Not mapped, should not occur)
+   if( fd < 0 || fd >= size ) {     // (Not mapped, most likely user error)
      errno= EINVAL;
      return nullptr;
    }

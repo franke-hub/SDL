@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2022/05/18
+##       2022/05/25
 ##
 ##############################################################################
 
@@ -24,6 +24,8 @@ DOC: See Edit.DOC (a text file)
 
 ##############################################################################
 FEATURE:
+2022/05/25 Reload command (mostly for read/only files)
+
 2022/05/18 Import features to/from ./Xcb/Editor
            * Indicate changed if current line modified (before commit)
            * Start in insert mode

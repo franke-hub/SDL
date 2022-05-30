@@ -16,10 +16,9 @@
 //       Sample HTTP/HTTPS Client/Server, using openssl socket layer.
 //
 // Last change date-
-//       2022/05/22
+//       2022/05/27
 //
 // Known bugs-
-//       Server: hostname, client 127.0.0.1 (Default changed in Socket.cpp)
 //       1000: Zero length read on first Chrome read
 //
 //----------------------------------------------------------------------------
@@ -149,13 +148,13 @@ static struct option   OPTS[]=      // Options
 ,  {"client",      no_argument,    &opt_client,  true} // use_client
 ,  {"server",      no_argument,    &opt_server,  true} // use_server
 ,  {"stress",      no_argument,    &opt_stress,  true} // Stress test?
-,  {"thread",      no_argument,    &opt_thread,  true} // client thread
-,  {"worker",      no_argument,    &opt_worker,  true} // server thread
+,  {"thread",      no_argument,    &opt_thread,  true} // Client threads?
+,  {"worker",      no_argument,    &opt_worker,  true} // Worker pool?
 ,  {"no-fix_1000", no_argument,    &fix_1000,    false} // Fix# 1000
 ,  {"no-client",   no_argument,    &opt_client,  false} // use_client
 ,  {"no-server",   no_argument,    &opt_server,  false} // use_server
-,  {"no-thread",   no_argument,    &opt_thread,  false} // client thread
-,  {"no-worker",   no_argument,    &opt_worker,  false} // server thread
+,  {"no-thread",   no_argument,    &opt_thread,  false} // Client thread
+,  {"no-worker",   no_argument,    &opt_worker,  false} // Worker pool
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
@@ -744,7 +743,12 @@ virtual void
    rc= listen.bind(port);           // Set port number
    if( rc ) {                       // If failure
      errorp("STD_server:bind");
-     return;
+//     return;
+   }
+   rc= listen.listen();
+   if( rc ) {                       // If failure
+     errorp("STD_server:listen");
+//     return;
    }
 
    // Ready to go
@@ -753,7 +757,7 @@ virtual void
 
    try {
      while( operational ) {
-       Socket* server= listen.listen();
+       Socket* server= listen.accept();
 
        {{{{
          LOCK_GUARD(mutex);
@@ -780,6 +784,8 @@ virtual void
 void
    stop( void )                     // Terminate this Thread
 {
+   sem.reset();
+
    {{{{
      LOCK_GUARD(mutex);
      operational= false;            // Indicate terminated
@@ -842,11 +848,12 @@ virtual void
    listen.set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
    listen.bind(port);               // Set port number
+   listen.listen();
    sem.post();                      // Indicate started
 
    try {
      while( operational ) {
-       Socket* server= listen.listen();
+       Socket* server= listen.accept();
 
        {{{{
          LOCK_GUARD(mutex);
@@ -873,6 +880,8 @@ virtual void
 void
    stop( void )                     // Terminate this Thread
 {
+   sem.reset();
+
    {{{{
      LOCK_GUARD(mutex);
      operational= false;              // Indicate terminated
@@ -1313,7 +1322,7 @@ extern int                          // Return code
        ssl_server.join();
      }
 
-//debugf("%4d HCDM\n", __LINE__);
+//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
      Thread::sleep(0.5);            // Completion delay
 
      SSL_CTX_free(client_CTX);

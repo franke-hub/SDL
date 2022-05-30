@@ -16,7 +16,7 @@
 ##       Run timing tests
 ##
 ## Last change date-
-##       2022/05/18
+##       2022/05/29
 ##
 ##############################################################################
 
@@ -37,11 +37,10 @@ function cmd
 }
 
 ##############################################################################
-## Bringup
-### S/script/regression.d/.ECHO    this "the other thing" that
-### S/script/regression.d/.FAILURE that "the other thing" this
+## Test started
+echo "TEST: test_time.sh (Started) Timing tests"
 
 ##############################################################################
 ## Run timing tests
 cmd TestDisp --timing
-cmd TestSock --datagram --stream --runtime=30 --verbose
+cmd TestSock --runtime=30 --verbose --packet --stream

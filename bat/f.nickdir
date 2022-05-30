@@ -16,7 +16,7 @@
 ##       Extract nickname for subdirectory
 ##
 ## Last change date-
-##       2022/05/23
+##       2022/05/25
 ##
 ## Usage-
 ##       cd `nickdir alias_name`
@@ -101,6 +101,14 @@ case $1 in
   ## C++ source directories
   src)
     __FULLDIR="$HOME/src/cpp"
+    ;;
+
+  src/com | src/gui | src/obj | src/pub)
+    __FULLDIR="$HOME/src/cpp/lib/${1:4}"
+    ;;
+
+  src/com/* | src/gui/* | src/obj/* | src/pub/*)
+    __FULLDIR="$HOME/src/cpp/lib/${1:4}"
     ;;
 
   src/*)
