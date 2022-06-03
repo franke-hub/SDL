@@ -1,3 +1,16 @@
+<!-- -------------------------------------------------------------------------
+//
+// Title-
+//       Nasties.md
+//
+// Purpose-
+//       Document difficult to debug problems.
+//
+// Last change date-
+//       2022/06/02
+//
+-------------------------------------------------------------------------- -->
+
 # ~/src/doc/Journal/Nasties.md
 
 Copyright (C) 2022 Frank Eskesen.
@@ -5,8 +18,6 @@ Copyright (C) 2022 Frank Eskesen.
 This file is free content, distributed under the MIT license.
 (See accompanying file LICENSE.MIT or the original contained
 within https://opensource.org/licenses/MIT)
-
-Last change date: 2022/05/15
 
 ----
 
@@ -21,13 +32,13 @@ server under a separate thread, and a client that sent a request, read the
 response, then closed the connection. On Linux, this stress test would run
 for several seconds and then the client connection would fail with the error
 "Cannot assign requested address." Furthermore, the server would not complete
-normally. It had to be interrupted. This problem did not occur on Windows.[1]
+normally. It had to be interrupted.
 
 I approached the problem by going after the server problem first. Server's that
 don't *always* shut down properly need fixing. I added a bunch of debugging
 traceh() statements, trying to figure out exactly where the program was stuck.
-I narrowed it down to ~/src/cpp/lib/pub/Socket.cpp, in Socket::listen. The
-::accept following the ::listen wasn't completing. Furthermore, the logic in
+I narrowed it down to ~/src/cpp/lib/pub/Socket.cpp, in Socket::accept. The
+::accept wasn't completing. Furthermore, the logic in
 TestSock.cpp to stop the StreamServer thread didn't work. Closing both the
 listener socket and the client socket still left the ::accept in limbo.
 
@@ -65,25 +76,16 @@ from the source shortly since it clutters the logic.
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Socket::listen (in ~/src/cpp/lib/pub/Socket.cpp)
+//       Socket::accept (in ~/src/cpp/lib/pub/Socket.cpp)
 //
 // Purpose-
-//       Listen for and accept new connections
+//       Aaccept new connections
 //
 //----------------------------------------------------------------------------
 Socket*                             // The new connection Socket
-   Socket::listen( void )           // Get new connection Socket
+   Socket::accept( void )           // Get new connection Socket
 {  if( HCDM )
-     debugh("Socket(%p)::listen handle(%d)\n", this, handle);
-
-   int rc= ::listen(handle, SOMAXCONN); // Wait for new connection
-   if( rc != 0 ) {                  // If listen failure
-     if( IODM ) {
-       trace(__LINE__, "%d= listen()", rc);
-       display_ERR();
-     }
-     return nullptr;
-   }
+     debugh("Socket(%p)::accept handle(%d)\n", this, handle);
 
    // Accept the next connection
    int client;
@@ -118,7 +120,7 @@ Socket*                             // The new connection Socket
 
 // ===========================================================================
 #define ACCEPT_OPTION 3
-#define LISTEN_HCDM false
+#define ACCEPT_HCDM false
 
 #if false                           // (Used for option verification)
 static int once= true;
@@ -168,7 +170,7 @@ static int once= true;
      FD_ZERO(&rd_set);
      FD_SET(handle, &rd_set);
      int rc= select(handle+1, &rd_set, nullptr, nullptr, &tv);
-     if( LISTEN_HCDM )
+     if( ACCEPT_HCDM )
        traceh("%4d %d=select(%d) tv(%zd,%zd) %d:%s\n", __LINE__, rc, handle+1
              , tv.tv_sec, tv.tv_usec, errno, strerror(errno));
      if( rc == 0 ) {                // If timeout
@@ -191,7 +193,7 @@ static int once= true;
      pfd.fd= handle;
      pfd.events= POLLIN;
      int rc= poll(&pfd, 1, 1000);   // 1 second timeout (1000 ms)
-     if( LISTEN_HCDM )
+     if( ACCEPT_HCDM )
        traceh("%4d %d=poll() {%.4x,%.4x}\n", __LINE__, rc
              , pfd.events, pfd.revents);
      if( rc <= 0 ) {                // If polling error or timeout
@@ -205,11 +207,11 @@ static int once= true;
      }
 #endif // ====================================================================
 
-     if( LISTEN_HCDM && false  )
+     if( ACCEPT_HCDM && false  )
        traceh("%4d HCDM accept\n", __LINE__);
      peer_size= sizeof(peer_addr);
      client= ::accept(handle, (sockaddr*)&peer_addr, &peer_size);
-     if( LISTEN_HCDM )
+     if( ACCEPT_HCDM )
        traceh("%4d HCDM(%d) %d %d,%d accepted %d %d:%s\n", __LINE__, handle
              , ACCEPT_OPTION, get_host_port(), get_peer_port(), client
              , errno, strerror(errno));
@@ -237,9 +239,5 @@ static int once= true;
    return result;
 }
 ```
-
-[1] The problem does not occur on Windows (Cygwin) probaby because it only
-completes about 120 operations/second. By the time a port would be reused,
-it's already exited TIME_WAIT state and available.
 
 ----
