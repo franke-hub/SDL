@@ -181,4 +181,20 @@ which is still not ready for distribution. Before the trunk commit, some maint
 commits will be needed for distribution verification. In particular, object
 subdirectories might have excessive .gitignore'd files.
 
+### 2022/06/05 Interesting bug
+
+~/src/cpp/HTTP/Makefile.BSD (temporarily) contained
+```
+test: ;
+	@echo -e "a\nb\nc\n"
+```
+which echoed `-e a\n\b\nc` (with the newline escapes properly handled but on
+my distribution test machine wrongly including the "-e".) To remove the "-e"
+this had to be changed to
+```
+test: ;
+	@printf "a\nb\nc\n"
+```
+Automatic certificate generation was added along the way for no extra charge.
+
 ----
