@@ -7,7 +7,7 @@
 //       Development journal
 //
 // Last change date-
-//       2022/06/02
+//       2022/06/05
 //
 -------------------------------------------------------------------------- -->
 
@@ -136,7 +136,49 @@ isn't overloaded. With three client threads throughput decreases.
 After that point there was no appreciable difference for a large range of 
 client threads, then throughput slowly decreased.
 
-With a large number of clients, the server thread count reaches the WorkerPool
-maximum. This might be why StreamClient throughput decreased at all.
+### 2022/06/03 Don't make this stupid mistake
+
+Because if you do, your VFT (Virtual Function Table) becomes inconsistent.
+The virtual function table is an array of virtual functions that the compiler
+considers invarient, whether or not it actually is.
+
+Socket.h
+```
+#ifdef _GNU_SOURCE
+virtual int                         // Return code (0 OK)
+   ppoll(                           // Poll this Socket
+     struct pollfd*    pfd,         // The (system) pollfd
+     const struct timespec*
+                       timeout,     // Timeout
+     const sigset_t*   sigmask)     // Signal set mask
+{  /* implementation */ }
+#endif
+```
+
+Move your implementation to the .cpp file. A virtual function should never
+be conditionally defined. You'll wind up pointing at the wrong function.
+Sometimes. Sometimes not.
+
+Yup, I actually did this. DOH.
+
+The same sort of problem can occur if you modify the order of virtual function
+declarations. A library and all users need to recompile their code to stay in
+synch
+
+### 2022/06/05
+
+While debugging and inserting a simple statement to the latched code in
+Worker.cpp, I noticed that it adversely affected the timing of TestDisp.cpp.
+I moved the statistic updating outside of the latched code, using atomic
+operations instead. Even though there's slightly more code there, TestDisp.cpp
+now has better throughput. I also added statistics to Thread.cpp.
+
+The ~/src/cpp/HTTP samples have been updated and are now more consistent with
+TestSock.cpp. This process also served as a TestSock.cpp code inspection.
+There's more to be done to clean up the samples, but they're OK for now. It's
+time for a synchronization commit and getting back to the stream server,
+which is still not ready for distribution. Before the trunk commit, some maint
+commits will be needed for distribution verification. In particular, object
+subdirectories might have excessive .gitignore'd files.
 
 ----

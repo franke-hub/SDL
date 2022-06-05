@@ -16,7 +16,7 @@
 //       Utility functions.
 //
 // Last change date-
-//       2022/04/08
+//       2022/06/04
 //
 // Comparison operators-
 //       op_lt_istr    Case insensitive s LT operator
@@ -161,8 +161,8 @@ void                                // Dump formatter
      const void*       addrp,       // Input data address
      size_t            size);       // Input data size
 
-void                                // Dump formatter
-   dump(                            // Dump formatter (Debug::get())
+void                                // Dump formatter (trace and stdout)
+   dump(                            // Dump formatter
      const void*       addrp,       // Input data address
      size_t            size);       // Input data size
 

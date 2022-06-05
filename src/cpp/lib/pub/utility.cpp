@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2022/04/20
+//       2022/06/04
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -435,12 +435,15 @@ void                                // Dump formatter
      size_t            size)        // Input data size
 {  dump(file, addrp, size, addrp); }
 
-// Note: This writes to *TRACE* file
+// Note: This writes to both stdout and the debug trace file
 void                                // Dump formatter
    dump(                            // Dump formatter
      const void*       addrp,       // Input data address
      size_t            size)        // Input data size
 {
+   dump(stdout, addrp, size, addrp);
+   fflush(stdout);
+
    Debug* debug= Debug::get();      // Get Debug*
    std::lock_guard<decltype(*debug)> lock(*debug);
 

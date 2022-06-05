@@ -16,7 +16,7 @@
 //       Standard posix socket wrapper and openssl wrapper.
 //
 // Last change date-
-//       2022/05/27
+//       2022/06/04
 //
 // Implementation warning-
 //       THE SSL_Socket CLASS IS EXPERIMENTAL. The author expressly admits to
@@ -85,7 +85,7 @@ class SocketException : public Exception { using Exception::Exception;
 //       Socket
 //
 // Purpose-
-//       Standard posix socket wrapper.
+//       Standard socket wrapper.
 //
 //----------------------------------------------------------------------------
 class Socket : public Object {      // Standard posix socket wrapper
@@ -136,7 +136,7 @@ Socket& operator=(const Socket&);   // Assignment operator
 //----------------------------------------------------------------------------
 // Socket::debugging
 //----------------------------------------------------------------------------
-void
+virtual void
    debug(                           // Debugging display
      const char*       info= "") const; // Debugging info
 
@@ -213,12 +213,11 @@ int                                 // Return code
 void
    set_peer_addr(                   // Set peer address
      const sockaddr*   peeraddr,    // Peer address
-     socklen_t         peersize)    // Peer address length
-{  memcpy(&peer_addr, peeraddr, peersize); peer_size= peersize; }
+     socklen_t         peersize);   // Peer address length
 
 int                                 // Return code, 0 OK
    set_peer_addr(                   // Set peer address (See set_host_addr)
-     std::string       name_port);  // "name:port" string
+     std::string       nps);        // "name:port" string
 
 void
    set_peer_port(                   // Set peer Port number to
@@ -240,7 +239,8 @@ int                                 // Return code (0 OK)
    bind(                            // Bind to address
      const std::string&host)        // Host name:port string
 {
-   int rc= name_to_addr(host, &host_addr, &host_size);
+   host_size= sizeof(host_addr);
+   int rc= name_to_addr(host, (sockaddr*)&host_addr, &host_size);
    if( rc )
      return rc;
 
@@ -250,24 +250,22 @@ int                                 // Return code (0 OK)
 int                                 // Return code (0 OK)
    bind(                            // Bind this socket
      Port              port)        // To this Port
-{
-   std::string nps= get_host_name() + ":" + std::to_string(port);
-   return bind(nps);
-}
+{  return bind(get_host_name() + ":" + std::to_string(port)); }
 
 virtual int                         // Return code (0 OK)
    close( void );                   // Close the socket
 
 virtual int                         // Return code (0 OK)
    connect(                         // Connect to server
-     const sockaddr*   peer_addr,   // Peer address
-     socklen_t         peer_size);  // Peer address length
+     const sockaddr*   peeraddr,    // Peer address
+     socklen_t         peersize);   // Peer address length
 
 int                                 // Return code (0 OK)
    connect(                         // Connect to server
      const std::string&peer)        // Peer name:port string
 {
-   int rc= name_to_addr(peer, &peer_addr, &peer_size);
+   peer_size= sizeof(peer_addr);
+   int rc= name_to_addr(peer, (sockaddr*)&peer_addr, &peer_size);
    if( rc )
      return rc;
 
@@ -277,55 +275,92 @@ int                                 // Return code (0 OK)
 virtual int                         // Return code, 0 expected
    listen( void );                  // Set Socket to listener (server)
 
+/**
+   @brief Set a socket address from a "name:port" string
+   @param nps The "name:port" string, which can also be specified as
+          ":port" which uses get_host_name() as the host name.
+   @return 0 If successful,
+          -1 if error with errno set,
+          >0 if ::getaddrinfo failed. (See socket getaddrinfo return codes.)
+
+   The address family must match the socket address family specfied in open.
+
+   Error errno values:
+     EINVAL The nps string is missing the ':' delimiter
+**/
+int                                 // Return code, 0 OK
+   name_to_addr(                    // Convert "name:port" to socket address
+     const std::string&nps,         // The "name:port" name string
+     sockaddr*         addr,        // OUT: The sockaddr
+     socklen_t*        size);       // INP/OUT: Length of sockaddr
+
 virtual int                         // Return code (0 OK)
    open(                            // Open the Socket
      int               family,      // Address Family
      int               type,        // Socket type
      int               protocol= 0); // Socket protocol
 
-// Return code: <0 if error; 0 if timeout; >0 if fds->revents valid
 virtual int                         // Return code
    poll(                            // Poll this Socket
-     struct pollfd*    fds,         // IN/OUT The (system-defined) pollfd
-     int               timeout)     // Timeout (in milliseconds)
-{
-   if( fds->fd != handle )
-     fds->fd= handle;
+     struct pollfd*    pfd,         // IN/OUT The (system-defined) pollfd
+     int               timeout);    // Timeout (in milliseconds)
 
-   return ::poll(fds, 1, timeout);
-}
-
-#ifdef _GNU_SOURCE                  // (Only available with _GNU_SOURCE)
 virtual int                         // Return code (0 OK)
    ppoll(                           // Poll this Socket
-     struct pollfd*    fds,         // The (system) pollfd
+     struct pollfd*    pfd,         // IN/OUT The (system-defined) pollfd
      const struct timespec*
                        timeout,     // Timeout
-     const sigset_t*   sigmask)     // Signal set mask
-{
-   if( fds->fd != handle )
-     fds->fd= handle;
-
-   return ::ppoll(fds, 1, timeout, sigmask);
-}
-#endif
+     const sigset_t*   sigmask);    // Signal set mask
 
 virtual ssize_t                     // The number of bytes read
-   read(                            // Read from the socket
+   read(                            // Read from the peer socket
      void*             addr,        // Data address
      size_t            size);       // Maximum data length
 
 virtual ssize_t                     // The number of bytes read
-   recv(                            // Recieve socket data
+   recv(                            // Receive from the peer socket
      void*             addr,        // Data address
      size_t            size,        // Maximum data length
      int               flag);       // Receive options
 
+ssize_t                             // The number of bytes read
+   recvfrom(                        // Read from some socket
+     void*             addr,        // Data address
+     size_t            size,        // Data length
+     int               flag,        // Send options
+     sockaddr*         peeraddr,    // Source peer address
+     socklen_t*        peersize);   // Source peer address length
+
+ssize_t                             // The number of bytes written
+   recvmsg(                         // Receive message from some socket
+     msghdr*           msg,         // Message header
+     int               flag);       // Send options
+
 virtual ssize_t                     // The number of bytes written
-   send(                            // Write to the socket
+   send(                            // Write to the peer socket
      const void*       addr,        // Data address
      size_t            size,        // Data length
      int               flag);       // Send options
+
+ssize_t                             // The number of bytes written
+   sendmsg(                         // Write to some socket
+     const msghdr*     msg,         // Message header
+     int               flag);       // Send options
+
+ssize_t                             // The number of bytes written
+   sendto(                          // Write to some socket
+     const void*       addr,        // Data address
+     size_t            size,        // Data length
+     int               flag,        // Send options
+     const sockaddr*   peeraddr,    // Target peer address
+     socklen_t         peersize);   // Target peer address length
+
+ssize_t                             // The number of bytes written
+   sendto(                          // Write to the peer socket
+     const void*       addr,        // Data address
+     size_t            size,        // Data length
+     int               flag)        // Send options
+{  return sendto(addr, size, flag, (sockaddr*)&peer_addr, peer_size); }
 
 virtual int                         // Return code (0 OK)
    shutdown(                        // Shutdown the socket
@@ -335,27 +370,6 @@ virtual ssize_t                     // The number of bytes written
    write(                           // Write to the socket
      const void*       addr,        // Data address
      size_t            size);       // Data length
-
-protected:                          // (Currently) internal use only
-/**
-   @brief Set a socket address from a "name:port" string
-   @param nps The "name:port" string, which can also be specified as
-          ":port" to use get_host_name() as the host name.
-   @return 0 If successful,
-          -1 if error with errno set,
-          >0 if ::getaddrinfo failed. (See socket getaddrinfo return codes.)
-
-   Lookup fails if the address family does not match the socket address family
-   specfied in open.
-
-   Error errno values:
-     EINVAL The nps string is missing the ':' delimiter
-**/
-int                                 // Return code, 0 OK
-   name_to_addr(                    // Convert "name:port" to socket address
-     const std::string nps,         // The "name:port" name string
-     sockaddr_u*       addr,        // OUT: The sockaddr_u
-     socklen_t*        size);       // OUT: Length of sockaddr_u
 }; // class Socket
 
 //----------------------------------------------------------------------------
@@ -390,7 +404,7 @@ SSL_Socket& operator=(const SSL_Socket&); // Assignment operator
 //----------------------------------------------------------------------------
 // SSL_Socket::debugging
 //----------------------------------------------------------------------------
-void
+virtual void
    debug(                           // Debugging display
      const char*       info) const; // Debugging info
 
@@ -416,7 +430,7 @@ virtual int                         // Return code (0 OK)
 
 int                                 // Return code (0 OK)
    connect(                         // Connect to server
-     const std::string&name_port);  // Peer name:port string
+     const std::string&nps);        // Peer "name:port" string
 
 virtual ssize_t                     // The number of bytes read
    read(                            // Read from the socket

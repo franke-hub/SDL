@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define the Thread Object.
 //
 // Last change date-
-//       2020/07/08
+//       2022/06/05
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_THREAD_H_INCLUDED
@@ -68,9 +68,19 @@ virtual
 Thread& operator=(const Thread&) = delete;
 
 //----------------------------------------------------------------------------
+// Thread::Debugging methods
+//----------------------------------------------------------------------------
+virtual void
+   debug(                           // Thread debugging display
+      const char*      info="") const; // Caller information
+
+static void
+   static_debug(                    // Thread(*) debugging display
+      const char*      info=nullptr); // Caller information (also adds detail)
+
+//----------------------------------------------------------------------------
 // Thread::Object methods
 //----------------------------------------------------------------------------
-public:
 virtual size_t                      // A hash code value for this Object
    hashf( void ) const              // Create hash code value for Object
 {  std::hash<std::thread::id> builtin;
@@ -80,7 +90,6 @@ virtual size_t                      // A hash code value for this Object
 //----------------------------------------------------------------------------
 // Thread::Accessor methods
 //----------------------------------------------------------------------------
-public:
 id                                  // The Thread ID (when active)
    get_id( void ) const             // Get Thread ID
 {  return thread.get_id(); }
@@ -105,7 +114,6 @@ bool                                // TRUE iff Thread is joinable
 //----------------------------------------------------------------------------
 // Thread::Static methods
 //----------------------------------------------------------------------------
-public:
 static Thread*                      // The current Thread*
    current( void );                 // Get current Thread*
 
@@ -120,7 +128,6 @@ static void
 //----------------------------------------------------------------------------
 // Thread::Methods
 //----------------------------------------------------------------------------
-public:
 void
    detach( void );                  // Detach execution thread from this Object
 

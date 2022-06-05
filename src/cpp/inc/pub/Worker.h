@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (c) 2019-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define a Worker used to handle discrete units of work.
 //
 // Last change date-
-//       2020/08/24
+//       2022/06/05
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_WORKER_H_INCLUDED
@@ -63,7 +63,8 @@ static unsigned                      // The current number of running threads
    get_running( void );              // Get current number of running threads
 
 static void
-   debug( void );                    // Debugging display (statistics)
+   debug(                            // Debugging display (statistics)
+     const char*       info= nullptr); // Caller info (adds detail)
 
 static void
    reset( void );                    // Reset (Empty) the WorkerThread pool

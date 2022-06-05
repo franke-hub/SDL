@@ -16,13 +16,13 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2022/05/27
+//       2022/06/02
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE                 // For ppoll
 #endif
-#include <atomic>                   // For std::atomic
+#include <atomic>                   // For std::atomic<>
 #include <new>                      // For std::bad_alloc
 #include <string>                   // For std::string
 
@@ -44,12 +44,22 @@
 
 using namespace _PUB_NAMESPACE;     // For pub:: classes
 using namespace pub::debugging;     // For debugging functions
-using namespace pub::utility;       // For utility`functions
+using namespace pub::utility;       // For utility functions
 using std::atomic;
 
 #define debugf         pub::debugging::debugf
 #define opt_hcdm       pub::Wrapper::opt_hcdm
 #define opt_verbose    pub::Wrapper::opt_verbose
+
+//----------------------------------------------------------------------------
+// Ignore undefined flags (These flags are/were undefined on Cygwin)
+#ifndef MSG_CONFIRM
+#define MSG_CONFIRM 0
+#endif
+
+#ifndef POLLRDHUP
+#define POLLRDHUP 0
+#endif
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -58,16 +68,24 @@ enum                                // Generic enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
-,  STD_PORT= 8080                   // Our STD port number
+,  STD_PORT= 8080                   // Our port number
+}; // Generic enum
 
-// Debugging options - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+enum                                // Debugging enum
+// Debugging/experimental options  - - - - - - - - - - - - - - - - - - - - - -
+{  OPT_PACKET_CLIENTS= 2            // Multi-thread packet client thread count
+,  OPT_STREAM_CLIENTS= 16           // Multi-thread stream client thread count
 ,  USE_CONNECT_RETRY= 0             // Number of retries before error
 ,  USE_LINGER= true                 // Use SO_LINGER timeout for client
 ,  USE_STOP_HCDM= false             // Write StreamServer::stop messages
+,  USE_PACKET_CONFIRM= false        // Use packet MSG_CONFIRM flag
+,  USE_PACKET_CONNECT= false        // Use connect, not set_peer_addr
+}; // Debugging  enum
 
+enum                                // Polling experimental controls
 // For packets, the polling operation occurs before each packet op
 // For streams, the polling operation occurs before each accept
-,  USE_POLL_BLOCK= 0                // Use blocking, don't poll
+{  USE_POLL_BLOCK= 0                // Use blocking, don't poll
 ,  USE_POLL_NONBLOCK= 1             // Use non-blocking, don't poll
 ,  USE_POLL_POLL= 2                 // Use poll before accept or packet op
 ,  USE_POLL_SELECT= 3               // Use SocketSelect polling
@@ -75,7 +93,23 @@ enum                                // Generic enum
 ,  USE_APOLL= USE_POLL_POLL         // Use accept polling method
 ,  USE_RPOLL= USE_POLL_POLL         // Use recv polling method
 ,  USE_SPOLL= USE_POLL_POLL         // Use send polling method
-}; // Generic enum
+}; // Polling experimental controls
+
+#if USE_PACKET_CONFIRM              // (Prefer false)
+  static constexpr const int pkt_confirm= MSG_CONFIRM;
+#else
+  static constexpr const int pkt_confirm= 0;
+#endif
+
+//----------------------------------------------------------------------------
+// Constant data
+//----------------------------------------------------------------------------
+static const char*     poll_method[]= // Polling experimental control names
+{  "BLOCK"
+,  "NONBLOCK"
+,  "POLL"
+,  "SELECT"
+};
 
 //----------------------------------------------------------------------------
 // Macros
@@ -85,31 +119,37 @@ enum                                // Generic enum
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static char            obuff[256];  // Packet output buffer
 static std::string     peer_addr;   // The server's name:port string
-static Event           test_start;  // The test start Event
+static bool            is_server= false; // TRUE if running server w/o client
 
+// Test controls
 static int             error_count= 0; // Error counter
 static int             retry_count= 0; // Connection retry counter
 static int             running= 0;  // Test running indicator
+static Event           test_start;  // The test start Event
 
-// Packet statistics
-static atomic<size_t>  rp_again;    // Number of read EAGAIN retries
-static atomic<size_t>  rp_block;    // Number of read EWOULDBLOCK retries
-static atomic<size_t>  rp_count;    // Number of read operations completed
+// Packet client statistics
+static atomic<size_t>  pcc_count;   // Number of operations completed
+static atomic<size_t>  pcr_again;   // Number of read poll retries
+static atomic<size_t>  pcr_count;   // Number of read operations completed
+static atomic<size_t>  pcw_again;   // Number of write poll retries
+static atomic<size_t>  pcw_count;   // Number of write operations completed
 
-static atomic<size_t>  wp_again;    // Number of write EAGAIN retries
-static atomic<size_t>  wp_block;    // Number of write EWOULDBLOCK retries
-static atomic<size_t>  wp_count;    // Number of write operations completed
+// Packet server statistics
+static atomic<size_t>  psr_again;   // Number of read poll/select retries
+static atomic<size_t>  psr_block;   // Number of read if_retry() retries
+static atomic<size_t>  psr_count;   // Number of read operations completed
+static atomic<size_t>  psw_count;   // Number of write operations completed
 
-// Stream statistics
-static atomic<size_t>  rs_again;    // Number of read EAGAIN retries
-static atomic<size_t>  rs_block;    // Number of read EWOULDBLOCK retries
-static atomic<size_t>  rs_count;    // Number of read operations completed
+// Stream client statistics
+static atomic<size_t>  scc_count;    // Number of operations completed
+static atomic<size_t>  scr_count;    // Number of read operations completed
+static atomic<size_t>  scw_count;    // Number of write operations completed
 
-static atomic<size_t>  ws_again;    // Number of write EAGAIN retries
-static atomic<size_t>  ws_block;    // Number of write EWOULDBLOCK retries
-static atomic<size_t>  ws_count;    // Number of write operations completed
+// Stream server statistics
+static atomic<size_t>  ssr_again;    // Number of read if_retry() retries
+static atomic<size_t>  ssr_count;    // Number of read operations completed
+static atomic<size_t>  ssw_count;    // Number of write operations completed
 
 //----------------------------------------------------------------------------
 // Extended options
@@ -138,8 +178,26 @@ static struct option   opts[]=      // The getopt_long parameter: longopts
 };
 
 //----------------------------------------------------------------------------
-// HTTP responses
+// HTTP request and responses
 //----------------------------------------------------------------------------
+static const char* httpREQ=         // HTTP request data
+   "GET / HTTP/1.1\r\n"
+   "\r\n"
+   ;
+
+static const char*     http200=     // HTTP 200 (NORMAL) response
+   "HTTP/1.1 200 OK\r\n"
+   "Server: RYO\r\n"
+   "Content-type: text/html\r\n"
+   "Content-length: 58\r\n"
+   "\r\n"
+   "<html>\r\n"                     // 8
+   "<body>\r\n"                     // 8
+   "<h1>Hello, World!</h1>\r\n"     // 24
+   "</body>\r\n"                    // 8
+   "</html>\r\n"                    // 8
+   ;
+
 static const char*     http400=     // HTTP 400 (INVALID) response
    "HTTP/1.1 400 !INVALID!\r\n"
    "Content-type: text/html\r\n"
@@ -163,32 +221,6 @@ static const char*     http404=     // HTTP 404 (NOT FOUND) response
    "</body>\r\n"                    // 8
    "</html>\r\n"                    // 8
    ;
-
-static const char*     http200=     // HTTP 200 (NORMAL) response
-   "HTTP/1.1 200 OK\r\n"
-   "Server: RYO\r\n"
-   "Content-type: text/html\r\n"
-   "Content-length: 58\r\n"
-   "\r\n"
-   "<html>\r\n"                     // 8
-   "<body>\r\n"                     // 8
-   "<h1>Hello, World!</h1>\r\n"     // 24
-   "</body>\r\n"                    // 8
-   "</html>\r\n"                    // 8
-   ;
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       line
-//
-// Purpose-
-//       Debugging: Easy to remove code tracker.
-//
-//----------------------------------------------------------------------------
-static inline void
-   line(int line)
-{  debugf("%4d %s HCDM\n", line, __FILE__); }
 
 //----------------------------------------------------------------------------
 //
@@ -234,11 +266,7 @@ static bool
    if( errno == EBADF )
      return true;                   // (Our socket was closed )
 
-   int mask= POLLHUP;
-   #ifdef POLLRDHUP
-     mask= (POLLHUP | POLLRDHUP);
-   #endif
-   if( pfd.revents & mask )
+   if( pfd.revents & (POLLHUP | POLLRDHUP) )
      return true;                   // (Peer socket was closed)
 
    return false;
@@ -251,11 +279,7 @@ static bool
    if( pfd == nullptr )
      return true;                   // (Our socket was closed )
 
-   int mask= POLLHUP;
-   #ifdef POLLRDHUP
-     mask= (POLLHUP | POLLRDHUP);
-   #endif
-   if( pfd->revents & mask )
+   if( pfd->revents & (POLLHUP | POLLRDHUP) )
      return true;                   // (Peer socket was closed)
 
    return false;
@@ -274,8 +298,22 @@ static bool if_retry( void )
 #if EAGAIN == EWOULDBLOCK
 {  return errno == EAGAIN; }
 #else
-{  return errno == EAGAIN; || errno == EWOULDBLOCK }
+{  return errno == EAGAIN || errno == EWOULDBLOCK; }
 #endif
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       line
+//
+// Purpose-
+//       Debugging: Easy to insert/remove code tracker.
+//
+//----------------------------------------------------------------------------
+static inline void
+   line(int line)
+{  debugf("%4d %s HCDM\n", line, __FILE__); }
+// line(__LINE__);
 
 //----------------------------------------------------------------------------
 //
@@ -318,19 +356,24 @@ static void
    error_count= 0;
    retry_count= 0;
 
-   rp_again.store(0);
-   rp_block.store(0);
-   rp_count.store(0);
-   wp_again.store(0);
-   wp_block.store(0);
-   wp_count.store(0);
+   pcc_count.store(0);              // Packet client operation counter
+   pcr_again.store(0);              // Packet client read counters
+   pcr_count.store(0);
+   pcw_again.store(0);              // Packet client write counters
+   pcw_count.store(0);
+   psr_again.store(0);              // Packet server read counters
+   psr_block.store(0);
+   psr_count.store(0);
+   psw_count.store(0);              // Packet server write counters
 
-   rs_again.store(0);
-   rs_block.store(0);
-   rs_count.store(0);
-   ws_again.store(0);
-   ws_block.store(0);
-   ws_count.store(0);
+   scc_count.store(0);              // Stream client operation counter
+   scr_count.store(0);              // Stream client read counters
+   scw_count.store(0);              // Stream client write counters
+   ssr_again.store(0);              // Stream server read counters
+   ssr_count.store(0);
+   ssw_count.store(0);              // Stream server write counters
+
+   WorkerPool::reset();
 }
 
 //----------------------------------------------------------------------------
@@ -345,200 +388,52 @@ static void
 static const char*                  // "true" or "false"
    torf(                            // True or False?
      int               cc)          // For this condition
-{
-   if( cc )
-     return "true";
-   return "false";
-}
+{  return cc ? "true" : "false"; }
 
 //----------------------------------------------------------------------------
 //
-// Class-
-//       PacketWorker
+// Subroutine-
+//       trace
 //
 // Purpose-
-//       The PacketWorker object
+//       Socket operation informational message
+//
+// Implementation notes-
+//       Preserves errno
 //
 //----------------------------------------------------------------------------
-class PacketWorker : public pub::Worker { // The PacketWorker object
-//----------------------------------------------------------------------------
-// PacketWorker::Attributes
-//----------------------------------------------------------------------------
-public:
-char                   ibuff[512];  // Input buffer
-Socket*                client;      // The client socket
+static void
+   trace(                           // Write trace message
+     int               line,        // For this source code line
+     const char*       fmt,         // Format string
+                       ...)         // The PRINTF argument list
+_LIBPUB_PRINTF(2,3);
 
-//----------------------------------------------------------------------------
-// PacketWorker::Constructors/Destructor
-//----------------------------------------------------------------------------
-public:
-virtual
-   ~PacketWorker( void )            // Destructor
-{  if( HCDM ) debugh("PacketWorker(%p)::~PacketWorker()...\n", this);
-
-//   if( client )
-//     delete client;
-}
-
-   PacketWorker(                    // Constructor
-     Socket*           client)      // Connection socket
-:  client(client)
-{  if( HCDM ) debugh("PacketWorker(%p)::PacketWorker(%p)\n", this, client); }
-
-//----------------------------------------------------------------------------
-// PacketWorker::Methods
-//----------------------------------------------------------------------------
-public:
-virtual void
-   work( void )                     // Process work
+static void
+   trace(                           // Write trace message
+     int               line,        // For this source code line
+     const char*       fmt,         // Format string
+                       ...)         // The PRINTF argument list
 {
-   if( opt_verbose > 1 )
-     debugh("PacketWorker::work()\n");
+   int ERRNO= errno;                // (Preserve errno)
+   va_list             argptr;      // Argument list pointer
 
-   try {
-     run();
-   } catch(pub::Exception& X) {
-     debugh("PacketWorker: %s\n", X.to_string().c_str());
-   } catch(std::exception& X) {
-     debugh("PacketWorker: what(%s)\n", X.what());
-   } catch(...) {
-     debugh("PacketWorker: catch(...)\n");
-   }
+   LOCK_GUARD(*Debug::get());
+
+   if( line != 0 )
+     traceh("%4d ", line);          // (Heading)
+
+   va_start(argptr, fmt);           // Initialize va_ functions
+   vtracef(fmt, argptr);            // (User error message)
+   va_end(argptr);                  // Close va_ functions
+
+   if( ERRNO )                      // If error
+     tracef(" %d:%s\n", ERRNO, strerror(ERRNO)); // (errno information)
+   else
+     tracef("\n");
+
+   errno= ERRNO;                    // (Restore errno)
 }
-
-void
-   run( void )                      // Process work
-{
-}
-}; // class PacketWorker
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       StreamWorker
-//
-// Purpose-
-//       The StreamWorker object
-//
-//----------------------------------------------------------------------------
-class StreamWorker : public pub::Worker { // The StreamWorker object
-//----------------------------------------------------------------------------
-// StreamWorker::Attributes
-//----------------------------------------------------------------------------
-public:
-char                   buffer[32768]; // Input buffer;
-Socket*                client;      // The client socket
-
-//----------------------------------------------------------------------------
-// StreamWorker::Constructors/Destructor
-//----------------------------------------------------------------------------
-public:
-virtual
-   ~StreamWorker( void )            // Destructor
-{  if( HCDM ) debugh("StreamWorker(%p)::~StreamWorker()...\n", this);
-
-   if( client )
-     delete client;
-}
-
-   StreamWorker(                    // Constructor
-     Socket*           client)      // Connection socket
-:  client(client)
-{  if( HCDM ) debugh("StreamWorker(%p)::StreamWorker(%p)\n", this, client); }
-
-//----------------------------------------------------------------------------
-// StreamWorker::Methods
-//----------------------------------------------------------------------------
-public:
-virtual void
-   work( void )                     // Process work
-{
-   if( opt_verbose > 1 )
-     debugh("StreamWorker::work()\n");
-
-   try {
-     run();
-   } catch(pub::Exception& X) {
-     debugh("StreamWorker: %s\n", X.to_string().c_str());
-   } catch(std::exception& X) {
-     debugh("StreamWorker: what(%s)\n", X.what());
-   } catch(...) {
-     debugh("StreamWorker: catch(...)\n");
-   }
-
-   delete this;                     // When done, delete this StreamWorker
-}
-
-void
-   run( void )                      // Process work
-{
-   // Set default timeout
-   struct timeval tv= { 3, 0 };     // 3.0 second timeout
-   client->set_option(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-   client->set_option(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
-
-   for(size_t count= 0;;++count) {
-     buffer[0]= '\0';
-     int L= client->read(buffer, sizeof(buffer)-1);
-     if( L <= 0 )
-       break;
-     buffer[L]= '\0';
-
-     if( opt_verbose > 1 )
-       debugh("Server: Read %d '%s'\n", L, visify(buffer).c_str());
-     if( L <= 0 ) {
-       if( L == 0 && count == 0 )
-         debugh("Server: %4d HCDM\n", __LINE__); // Bug workaround
-       break;
-     }
-
-     const char* C= buffer;
-     std::string meth= get_token(C);
-     std::string what= get_token(C);
-     std::string http= get_token(C);
-     if( meth != "GET" || http != "HTTP/1.1" ) {
-       L= client->write(http400, strlen(http400));
-       if( L <= 0 ) {
-         debugh("Server write(http400) failure\n");
-         break;
-       }
-       if( opt_verbose > 1 )
-         debugh("Worker: Sent %d '%s'\n", L, visify(http400).c_str());
-     } else {
-
-     if( what != "/" && what != "/index.html"
-         && what != "/std" && what != "/ssl" ) {
-       L= client->write(http404, strlen(http404));
-       if( L <= 0 ) {
-         debugh("Server write(http404) failure\n");
-         break;
-       }
-       if( opt_verbose > 1 )
-         debugh("Worker: Sent %d '%s'\n", L, visify(http404).c_str());
-     } else {
-
-       L= client->write(http200, strlen(http200));
-       if( L <= 0 ) {
-         debugh("Server write(http200) failure\n");
-         break;
-       }
-       if( opt_verbose > 1 )
-         debugh("Worker: Sent %d '%s'\n", L, visify(http200).c_str());
-     } }
-
-     ++rs_count;
-   }
-
-   // This fixes an accept hang problem. Optional only to test alternatives.
-   if( USE_LINGER ) {
-     // Client closed or in error state. Allow immediate port re-use
-     struct linger optval;
-     optval.l_onoff= 1;
-     optval.l_linger= 0;
-     client->set_option(SOL_SOCKET, SO_LINGER, &optval, sizeof(optval));
-   }
-}
-}; // class StreamWorker
 
 //----------------------------------------------------------------------------
 //
@@ -566,7 +461,223 @@ virtual void
    test_start.reset();
 }
 }; // class TimerThread
-static TimerThread timer_thread;
+static TimerThread timer_thread;    // *THE* TimerThread
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       PacketClient
+//
+// Purpose-
+//       Packet client stress test thread
+//
+//----------------------------------------------------------------------------
+class PacketClient : public Thread {
+public:
+char                   buffer[32768]; // Input/output buffer
+
+size_t                 last_recv= 0; // Last receive packet identifier
+size_t                 last_send= 0; // Last sent packet identifier
+
+Socket                 packet;      // Datagram Socket
+struct pollfd          pfd= {};     // Poll file descriptor
+
+//----------------------------------------------------------------------------
+// Constructors/Destructor
+//----------------------------------------------------------------------------
+   PacketClient()
+:  Thread()
+{
+   int rc= packet.open(AF_INET, SOCK_DGRAM, PF_UNSPEC);
+   if( rc ) {
+     trace(__LINE__, "PacketClient %d= open", rc);
+     return;
+   }
+
+   int optval= true;                // (Needed before the bind)
+   packet.set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+   packet.set_flags( packet.get_flags() | O_NONBLOCK );
+
+   pfd.events= POLLIN | POLLOUT;
+
+   if( USE_PACKET_CONNECT ) {       // (Prefer false)
+     rc= packet.connect(peer_addr); // Connect to peer
+     if( rc )
+       trace(__LINE__, "PacketClient %d=connect", rc);
+   } else {
+     rc= packet.set_peer_addr(peer_addr); // Set peer address
+     if( rc )
+       trace(__LINE__, "PacketClient %d=set_peer_addr(%s)", rc
+            , peer_addr.c_str());
+   }
+}
+
+   ~PacketClient() = default;
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       PacketClient::client
+//
+// Purpose-
+//       Read all responses, send one packet
+//
+// Implementation notes-
+//       PacketClient always uses polling and non-blocking sockets.
+//
+//----------------------------------------------------------------------------
+virtual void
+   client()
+{
+   int rc= packet.poll(&pfd, 63);    // Approx. 1/16 second timeout
+   if( rc < 0 ) {
+     ++error_count;
+     trace(__LINE__, "PacketClient %d= poll", rc);
+     return;
+   }
+
+   if( rc == 0 ) {
+     ++pcr_again;
+     return;
+   }
+
+   // Read all responses
+   if( pfd.revents & POLLIN ) {
+     for(int count= 0;;++count) {
+       struct sockaddr sockaddr;
+       socklen_t socklen= sizeof(sockaddr);
+
+       ssize_t
+       L= packet.recvfrom(buffer, sizeof(buffer), 0 , &sockaddr, &socklen);
+       if( L <= 0 ) {
+         if( if_retry() )
+           break;
+         if( count == 0 )
+           trace(__LINE__, "PacketClient %zd= recvfrom", L);
+
+         ++error_count;
+         trace(__LINE__, "PacketClient %zd= recvfrom", L);
+       }
+
+       if( running ) {              // (Avoids pcc_count/pcr_count mismatch)
+         ++pcc_count;
+         ++pcr_count;
+       }
+
+       // TODO: VERIFY RESPONSE (optional)
+       ++last_recv;                 // (TODO placeholder)
+     }
+   }
+
+   // Send next request
+   if( (pfd.revents & POLLOUT) == 0 ) {
+     ++pcw_again;
+     return;
+   }
+
+   std::string S= "GET ";
+   S += std::to_string(++last_send);
+   S += "/\r\n";
+   // Notes: packet.peer_addr/peer_size were set during construction, so we
+   // don't have to specify it here. (See Socket.h sendto inline)
+   ssize_t L;
+   if( USE_PACKET_CONNECT )         // (Prefer false)
+     L= packet.send(S.c_str(), S.size(), pkt_confirm);
+   else
+     L= packet.sendto(S.c_str(), S.size(), pkt_confirm);
+   // trace(__LINE__, "PacketClient %zd= sendto", L);
+   if( size_t(L) == S.size() ) {
+     ++pcw_count;
+     return;
+   }
+
+   ++error_count;
+   trace(__LINE__, "PacketClient %zd= sendto (%zd expected)", L, S.size());
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       PacketClient::run
+//
+// Purpose-
+//       Run single client packet stress test (while TimerThread active.)
+//
+//----------------------------------------------------------------------------
+virtual void
+   run()                            // PacketClient::run
+{
+   last_recv= 0;                    // Reset the sequence identifiers
+   last_send= 0;
+
+   test_start.wait();               // Wait for start signal
+
+   try {
+     while( running && error_count == 0 ) {
+       client();
+     }
+   } catch(pub::Exception& X) {
+     debugh("Exception: %s\n", X.to_string().c_str());
+   } catch(std::exception& X) {
+     debugh("std::Exception what(%s)\n", X.what());
+   }
+
+   if( opt_verbose > 1 )
+     debugf("Packet client %s terminated\n", peer_addr.c_str());
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       PacketClient::stress
+//
+// Purpose-
+//       Run packet client/server stress test.
+//
+//----------------------------------------------------------------------------
+static void
+   stress( void )                   // Packet stress test
+{
+   int thread_count= 1;
+   if( opt_thread )
+     thread_count= OPT_PACKET_CLIENTS;
+
+   PacketClient* client[thread_count];
+   for(int i= 0; i<thread_count; i++) {
+     client[i]= new PacketClient();
+     client[i]->start();
+   }
+   Thread::sleep(0.125);          // (Delay allows all Threads to start
+
+   if( opt_verbose ) {
+     if( !opt_server )
+       debugf("\n");
+     debugf("--packet test: Started\n");
+   }
+
+   timer_thread.start();
+   timer_thread.join();
+
+   for(int i= 0; i<thread_count; i++)
+     client[i]->join();
+
+   // Statistics
+   // Note: pcc_count counts completed operations:
+   //   client.send=>server.recv/send=>client.recv
+   //   Some packets could be lost in server.send=>client.recv
+   if( opt_verbose ) {
+     debugf("--packet test: %s\n", error_count ? "FAILED" : "Complete");
+     debugf("%'16zd Recv again\n", pcr_again.load());
+     debugf("%'16zd Recv count\n", pcr_count.load());
+     debugf("%'16zd Send again\n", pcw_again.load());
+     debugf("%'16zd Send count\n", pcw_count.load());
+     debugf("%'16zd Lost count\n", pcw_count.load() - pcr_count.load());
+     debugf("%'16zd Operations\n", pcc_count.load());
+     debugf("%'18.1f Operations/second\n"
+           , double(pcc_count.load()) / opt_runtime);
+   }
+}
+}; // class PacketClient
 
 //----------------------------------------------------------------------------
 //
@@ -579,47 +690,114 @@ static TimerThread timer_thread;
 //----------------------------------------------------------------------------
 class PacketServer : public Thread {
 public:
-char                   ibuff[512];  // Input buffer
+char                   buffer[32768]; // Input/output buffer
 Event                  event;       // Thread ready event
-Socket                 listen;      // Packet listener Socket
+Socket                 packet;      // Packet Socket
+struct pollfd          pfd= {};     // Poll file descriptor
+SocketSelect           select;      // Socket selector
 
 int                    operational= false; // TRUE while operational
 
+//----------------------------------------------------------------------------
+// Constructors/Destructor
+//----------------------------------------------------------------------------
    PacketServer()
 :  Thread(), event()
 {
-}
-
-   ~PacketServer() = default;
-
-virtual void
-   run()                            // PacketServer::run
-{
-   int rc= listen.open(AF_INET, SOCK_DGRAM, PF_UNSPEC);
+   int rc= packet.open(AF_INET, SOCK_DGRAM, PF_UNSPEC);
    if( rc ) {
-     errorp("PacketServer.open");
+     trace(__LINE__, "PacketServer %d= open", rc);
      return;
    }
 
    int optval= true;                // (Needed before the bind)
-   listen.set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+   packet.set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
    if( USE_RPOLL == USE_POLL_NONBLOCK )
-     listen.set_flags( listen.get_flags() | O_NONBLOCK );
+     packet.set_flags( packet.get_flags() | O_NONBLOCK );
 
-   rc= listen.bind(STD_PORT);       // Set port number
+   rc= packet.bind(STD_PORT);       // Set port number
    if( rc ) {
-     errorp("PacketServer.bind");
+     trace(__LINE__, "PacketServer %d= bind", rc);
      return;
    }
 
+   // Set default timeout
+   struct timeval tv= { 3, 0 };     // 3.0 second timeout
+   packet.set_option(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+   packet.set_option(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+
+   if( USE_RPOLL == USE_POLL_SELECT )
+     select.insert(&packet, POLLIN);
+   else if( USE_RPOLL == USE_POLL_NONBLOCK )
+     packet.set_flags( packet.get_flags() | O_NONBLOCK );
+
+   pfd.events= POLLIN;
+}
+
+   ~PacketServer() = default;
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       PacketServer::run
+//
+// Purpose-
+//       Operate the PacketServer
+//
+//----------------------------------------------------------------------------
+virtual void
+   run()                            // PacketServer::run
+{
    operational= true;
    if( opt_verbose )
      debugf("Packet server %s operational\n", peer_addr.c_str());
    event.post();
 
    try {
-     worker(&listen);
+     while( operational && error_count == 0 ) {
+       switch( USE_RPOLL ) {
+         case USE_POLL_POLL: {{{{
+           int rc= packet.poll(&pfd, 1000); // 1 second timeout
+           if( false )
+             trace(__LINE__, "%d= poll %d {%.4x,%.4x}", rc
+                  , pfd.fd, pfd.events, pfd.revents);
+           if( rc < 0 ) {
+             if( if_closed(pfd) )
+               return;
+
+             ++error_count;
+             errorf("%4d ERROR: %d= packet.poll() %d:%s\n", __LINE__, rc
+                   , errno, strerror(errno));
+           }
+           if( rc == 0 ) {
+             ++psr_again;
+             continue;
+           }
+           break;
+         }}}}
+         case USE_POLL_SELECT: {{{{
+           Socket* socket= nullptr;
+           socket= select.select(1000); // 1 second timeout
+           if( socket == nullptr ) {
+             if( if_closed(select, &packet) )
+               break;
+
+             error_count += VERIFY( if_retry() );
+             ++psr_again;
+             continue;
+           }
+           error_count += VERIFY( socket == &packet );
+           break;
+         }}}}
+         default:
+           // USE_POLL_BLOCK || USE_POLL_NONBLOCK
+           break;
+       }
+
+       if( operational && !error_count )
+         serve();
+     }
    } catch(pub::Exception& X) {
      debugh("Exception: %s\n", X.to_string().c_str());
    } catch(std::exception& X) {
@@ -627,212 +805,77 @@ virtual void
    }
 
    // Statistics
-   if( opt_verbose && !opt_client && !opt_packet && !opt_stream ) {
-     debugf("--packet info:\n");
-     debugf("%'16zd Recv again\n", rp_again.load());
-     debugf("%'16zd Recv block\n", rp_block.load());
-     debugf("%'16zd Recv count\n", rp_count.load());
-   }
+   if( opt_verbose ) {
+     debugf("--packet server info:\n");
+     debugf("%'16zd Recv again\n", psr_again.load());
+     debugf("%'16zd Recv block\n", psr_block.load());
+     debugf("%'16zd Recv count\n", psr_count.load());
+     debugf("%'16zd Send count\n", psw_count.load());
 
-   if( opt_verbose )
      debugf("Packet server %s terminated\n", peer_addr.c_str());
+   }
 }
 
+//----------------------------------------------------------------------------
+//
+// Method-
+//       PacketServer::serve
+//
+// Purpose-
+//       Serve one packet
+//
+//----------------------------------------------------------------------------
 void
-   stop()                           // PacketServer::stop
+   serve( void )                   // Read and process one input packet
+{
+   struct sockaddr   from;
+   socklen_t         size= sizeof(from);
+   ssize_t R= packet.recvfrom(buffer, sizeof(buffer), 0, &from, &size);
+   if( opt_hcdm ) {
+     int ERRNO= errno;
+     traceh("PacketServer %zd= packet.recvfrom\n", R);
+     errno= ERRNO;
+   }
+
+   if( R > 0 ) {
+     ++psr_count;
+
+     ssize_t S= packet.sendto(buffer, R, pkt_confirm, &from, size);
+     // trace(__LINE__, "PacketServer %zd= sendto", S);
+     if( R != S ) {
+       trace(__LINE__, "PacketServer %zd= sendto (%zd expected)", S, R);
+       return;
+     }
+
+     ++psw_count;
+     return;
+   }
+
+   // Error recovery for packet.recvfrom
+   if( packet.is_open() ) {
+     if( if_retry() ) {
+       ++psr_block;
+       return;
+     }
+
+     trace(__LINE__, "PacketServer %zd= packet.recvfrom", R);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       PacketServer::stop
+//
+// Purpose-
+//       Stop the PacketServer
+//
+//----------------------------------------------------------------------------
+void
+   stop()
 {
    operational= false;              // Indicate terminated
    event.reset();
-
-   int rc= listen.close();          // Close the Socket
-   if( opt_verbose > 1 )
-     debugh("%4d %s %d= listen.close()\n", __LINE__, __FILE__, rc);
-}
-
-void
-   stress()                         // PacketServer::stress
-{
-   Socket packet;                   // Datagram transmission Socket
-
-   int rc= packet.open(AF_INET, SOCK_DGRAM, PF_UNSPEC);
-   if( rc ) {
-     errorp("PacketServer.open");
-     return;
-   }
-
-   int optval= true;                // (Needed before the bind)
-   packet.set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-
-   if( USE_SPOLL == USE_POLL_NONBLOCK )
-     packet.set_flags( packet.get_flags() | O_NONBLOCK );
-
-   rc= packet.connect(peer_addr);   // Connect to peer
-   if( rc ) {
-     errorp("PacketServer.bind");
-     return;
-   }
-
-   SocketSelect select;             // Socket selector
-   if( USE_SPOLL == USE_POLL_SELECT )
-     select.insert(&packet, POLLOUT);
-
-   struct pollfd pfd= {};
-   pfd.events= POLLOUT;
-
-   if( opt_verbose ) {
-     if( !opt_server )
-       debugf("\n");
-     debugf("--packet test: Started\n");
-   }
-
-   Interval interval;
-   interval.start();
-   while( error_count == 0 && interval.stop() < opt_runtime ) {
-     Socket* socket= &packet;
-     switch( USE_SPOLL ) {
-       case USE_POLL_POLL: {{{{
-         rc= packet.poll(&pfd, 63); // Approx. 1/16 second timeout
-         error_count += VERIFY( rc >= 0 );
-         if( rc == 0 ) {
-           ++wp_again;
-           continue;
-         }
-       break;
-       }}}}
-       case USE_POLL_SELECT:
-         socket= select.select(63); // Approx. 1/16 second timeout
-         if( socket == nullptr ) {
-           error_count += VERIFY( if_retry() );
-           ++wp_again;
-           continue;
-         }
-         error_count += VERIFY( socket == &packet );
-       break;
-
-       default:
-         // USE_POLL_BLOCK || USE_POLL_NONBLOCK
-         break;
-     }
-
-     if( error_count )
-       break;
-
-     ssize_t L= packet.write(obuff, sizeof(obuff));
-     if( L <= 0 ) {
-       if( USE_SPOLL == USE_POLL_NONBLOCK && if_retry() ) {
-         ++wp_again;
-         continue;
-       }
-     }
-
-     error_count += VERIFY( L == sizeof(obuff) );
-     if( error_count == 0 )
-       ++wp_count;
-   }
-
-   // Statistics
-   if( opt_verbose ) {
-     debugf("--packet test: %s\n", error_count ? "FAILED" : "Complete");
-     debugf("%'16zd Send again\n", wp_again.load());
-     debugf("%'16zd Send count\n", wp_count.load());
-     if( opt_server ) {
-       debugf("%'16zd Recv again\n", rp_again.load());
-       debugf("%'16zd Recv block\n", rp_block.load());
-       debugf("%'16zd Recv count\n", rp_count.load());
-       debugf("%'16zd Lost count\n", wp_count.load() - rp_count.load());
-       debugf("%'18.1f Operations/second\n"
-             , double(rp_count.load()) / opt_runtime);
-     }
-   }
-}
-
-void
-   worker(                         // Process work
-     Socket*           client)     // The packet client
-{
-   // Set default timeout
-   struct timeval tv= { 3, 0 };     // 3.0 second timeout
-   client->set_option(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-   client->set_option(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
-
-   SocketSelect select;
-   if( USE_RPOLL == USE_POLL_SELECT )
-     select.insert(client, POLLIN);
-   else if( USE_RPOLL == USE_POLL_NONBLOCK )
-     client->set_flags( client->get_flags() | O_NONBLOCK );
-
-   struct pollfd pfd= {};
-   pfd.events= POLLIN;
-
-   while( operational && error_count == 0 ) {
-     memset(ibuff, 0, sizeof(ibuff));
-
-     Socket* socket= client;
-     switch( USE_RPOLL ) {
-       case USE_POLL_POLL: {{{{
-         int rc= client->poll(&pfd, 1000); // 1 second timeout
-         if( rc < 0 ) {
-           if( if_closed(pfd) )
-             return;
-
-           ++error_count;
-           errorf("%4d ERROR: %d= client->poll() %d:%s\n", __LINE__, rc
-                 , errno, strerror(errno));
-         }
-         if( rc == 0 ) {
-           ++rp_again;
-           continue;
-         }
-         break;
-       }}}}
-       case USE_POLL_SELECT:
-         socket= select.select(1000); // 1 second timeout
-         if( socket == nullptr ) {
-           if( if_closed(select, client) )
-             return;
-
-           error_count += VERIFY( if_retry() );
-           ++rp_again;
-           continue;
-         }
-         error_count += VERIFY( socket == client );
-         break;
-
-       default:
-         // USE_POLL_BLOCK || USE_POLL_NONBLOCK
-         break;
-     }
-
-     if( error_count )
-       break;
-
-     ssize_t L= client->read(ibuff, sizeof(ibuff));
-     if( opt_hcdm )
-       traceh("%4zd= client->read(\n", L);
-     if( L <= 0 ) {
-       if( !client->is_open() )
-         break;
-       error_count += VERIFY( if_retry() );
-       if( error_count )
-         break;
-
-       Thread::yield();
-       ++rp_block;
-       continue;
-     }
-
-     error_count += VERIFY( L == sizeof(obuff) );
-     for(unsigned i= 0; i<sizeof(obuff); ++i) {
-       if( ibuff[i] != obuff[i] ) {
-         ++error_count;
-         debugf("ibuff[%d] %.2x != %.2x\n", i, ibuff[i], obuff[i]);
-         break;
-       }
-     }
-     if( error_count )
-       break;
-     ++rp_count;
-   }
 }
 }; // class PacketServer
 
@@ -848,13 +891,114 @@ void
 class StreamClient : public Thread {
 public:
 char                   buffer[32768]; // Input buffer
+Event                  event;         // Thread started event
 
+//----------------------------------------------------------------------------
+// Constructors/Destructor
+//----------------------------------------------------------------------------
    StreamClient() = default;
    ~StreamClient() = default;
 
-virtual void
-   run()                            // StreamClient::run
+//----------------------------------------------------------------------------
+//
+// Method-
+//       StreamClient::client
+//
+// Purpose-
+//       Standard StreamClient test: single HTTP open/write/read/close op
+//
+// Implementation note-
+//       This Thread can still be running after the server is stopped, so we
+//       ignore any errors received when not still running.
+//
+//----------------------------------------------------------------------------
+void
+   client( void )                   // Standard HTTP operation
 {
+   Socket socket;
+   try {
+     int rc= socket.open(AF_INET, SOCK_STREAM, PF_UNSPEC);
+     if( rc ) {
+       if( !running )
+         return;
+       trace(__LINE__, "StreamClient %d=open", rc);
+       throw pub::Exception("StreamClient open Failure");
+     }
+
+     // Connect to server
+     rc= socket.connect(peer_addr);
+     if( rc < 0 ) {
+       if( !running )
+         return;
+       trace(__LINE__, "StreamClient %d= connect", rc);
+       if( ++retry_count <= USE_CONNECT_RETRY ) {
+         Thread::sleep(5.0);
+         return;
+       }
+       throw pub::Exception("StreamClient connect Failure");
+     }
+
+     // Write/read
+     ssize_t L= socket.write(httpREQ, strlen(httpREQ));
+     if( L <= 0 ) {
+       if( !running )
+         return;
+       trace(__LINE__, "StreamClient %zd= write(%zd)", L, strlen(httpREQ));
+       throw pub::Exception("StreamClient write Failure");
+     }
+     if( opt_verbose > 1 )
+       debugh("StreamClient %zd= write(%s)\n", L, visify(httpREQ).c_str());
+     ++scw_count;
+
+     L= socket.read(buffer, sizeof(buffer)-1);
+     if( L <= 0 ) {
+       if( !running )
+         return;
+       trace(__LINE__, "StreamClient %zd= read(%zd)", L, strlen(httpREQ));
+       throw pub::Exception("StreamClient read Failure");
+     }
+     buffer[L]= '\0';
+     if( opt_verbose > 1 )
+       debugh("StreamClient %zd= read(%s)\n", L, visify(buffer).c_str());
+
+     if( running ) {                // (Avoids scc_count/scr_count mismatch)
+       ++scr_count;
+       ++scc_count;
+     }
+   } catch(pub::Exception& X) {
+     debugh("StreamClient %s\n", X.to_string().c_str());
+     ++error_count;
+   } catch(std::exception& X) {
+     debugh("StreamClient what(%s)\n", X.what());
+     ++error_count;
+   } catch(...) {
+     debugh("StreamClient catch(...) socket(%4d)\n", socket.get_handle());
+     ++error_count;
+   }
+
+   // Close the connection
+   int rc= socket.close();
+   if( rc ) {
+     if( !running )
+       return;
+     trace(__LINE__, "StreamClient %d= close", rc);
+     throw pub::Exception("StreamClient close Failure");
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       StreamClient::run
+//
+// Purpose-
+//       Run single client stream stress test (while TimerThread active.)
+//
+//----------------------------------------------------------------------------
+virtual void
+   run()
+{
+   event.post();                    // Indicate ready
    test_start.wait();               // Wait for start signal
 
    try {
@@ -867,6 +1011,7 @@ virtual void
      debugh("std::Exception what(%s)\n", X.what());
    }
 
+   event.reset();
    if( opt_verbose > 1 )
      debugf("Stream client %s terminated\n", peer_addr.c_str());
 }
@@ -874,78 +1019,172 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       StreamClient::client
+//       StreamClient::stress
 //
 // Purpose-
-//       Client single HTTP operation
+//       Run stream client/server stress test.
 //
 //----------------------------------------------------------------------------
 static void
-   client( void )                   // Standard client test
+   stress( void )                   // Stream stress test
 {
-static const char* request=         // The request data
-   "GET / HTTP/1.1\r\n"
-   "\r\n"
-   ;
-static char buffer[8192];           // The response data buffer
+   int thread_count= 1;
+   if( opt_thread )
+     thread_count= OPT_STREAM_CLIENTS;
 
-   Socket socket;
-   try {
-     int rc= socket.open(AF_INET, SOCK_STREAM, PF_UNSPEC);
-     if( rc ) {
-       debugh("%d= STD open %d:%s\n", rc, errno, strerror(errno));
-       throw pub::Exception("Client open Failure");
-     }
-
-     // Connect to server
-     rc= socket.connect(peer_addr);
-     if( rc < 0 ) {
-       debugh("%d= STD connect %d:%s\n", rc, errno, strerror(errno));
-       if( ++retry_count <= USE_CONNECT_RETRY ) {
-         Thread::sleep(5.0);
-         return;
-       }
-       throw pub::Exception("Client connect Failure");
-     }
-
-     // Write/read
-     int L= socket.write(request, strlen(request));
-     if( opt_verbose > 1 )
-       debugh("STD Client: Wrote %d '%s'\n", L, visify(request).c_str());
-     if( L <= 0 ) {
-       int ERRNO= errno;
-       debugh("%d= STD Write(%zd) %d,%s\n", L, strlen(request), ERRNO,
-              strerror(ERRNO));
-       throw pub::Exception("Client write Failure");
-     }
-
-     L= socket.read(buffer, sizeof(buffer)-1);
-     if( L > 0 ) {
-       buffer[L]= '\0';
-       if( opt_verbose > 1 )
-         debugh("STD Client: Read %d '%s'\n", L, visify(buffer).c_str());
-     }
-
-     ++ws_count;
-   } catch(pub::Exception& X) {
-     debugh("client: %s\n", X.to_string().c_str());
-     ++error_count;
-   } catch(std::exception& X) {
-     debugh("client: what(%s)\n", X.what());
-     ++error_count;
-   } catch(...) {
-     debugh("client: catch(...) socket(%4d)\n", socket.get_handle());
-     ++error_count;
+   StreamClient* client[thread_count];
+   for(int i= 0; i<thread_count; i++) {
+     client[i]= new StreamClient();
+     client[i]->start();
+     client[i]->event.wait();
    }
 
-   // Close the connection
-   int rc= socket.close();
-   if( rc ) {
-     debugh("%d= STD close %d:%s\n", rc, errno, strerror(errno));
-     throw pub::Exception("Client open Failure");
+   if( opt_verbose ) {
+     if( !opt_server )
+       debugf("\n");
+     debugf("--stream test: Started\n");
+   }
+
+   timer_thread.start();
+   timer_thread.join();
+
+   for(int i= 0; i<thread_count; i++)
+     client[i]->join();
+
+   // Statistics marker
+   if( opt_verbose ) {
+     debugf("--stream test: %s\n", error_count ? "FAILED" : "Complete");
+     debugf("%'16ld Recv count\n", scr_count.load());
+     debugf("%'16ld Send count\n", scw_count.load());
+     debugf("%'16ld Operations\n", scc_count.load());
+     debugf("%'18.1f Operations/second\n"
+           , double(scc_count.load()) / opt_runtime);
    }
 }
 }; // class StreamClient
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       StreamWorker
+//
+// Purpose-
+//       The StreamWorker object
+//
+//----------------------------------------------------------------------------
+class StreamWorker : public pub::Worker { // The StreamWorker object
+//----------------------------------------------------------------------------
+// StreamWorker::Attributes
+//----------------------------------------------------------------------------
+public:
+char                   buffer[32768]; // Input buffer;
+Socket*                client;      // The client socket
+
+//----------------------------------------------------------------------------
+// Constructors/Destructor
+//----------------------------------------------------------------------------
+public:
+   StreamWorker(                    // Constructor
+     Socket*           client)      // Connection socket
+:  client(client)
+{  if( HCDM ) debugh("StreamWorker(%p)::StreamWorker(%p)\n", this, client); }
+
+virtual
+   ~StreamWorker( void )            // Destructor
+{  if( HCDM ) debugh("StreamWorker(%p)::~StreamWorker()...\n", this);
+
+   delete client;
+}
+
+//----------------------------------------------------------------------------
+// StreamWorker::work
+//----------------------------------------------------------------------------
+public:
+virtual void
+   work( void )                     // Process work
+{
+   if( opt_verbose > 1 )
+     debugh("StreamWorker::work()\n");
+
+   try {
+     run();
+   } catch(pub::Exception& X) {
+     debugh("StreamWorker: %s\n", X.to_string().c_str());
+   } catch(std::exception& X) {
+     debugh("StreamWorker: what(%s)\n", X.what());
+   } catch(...) {
+     debugh("StreamWorker: catch(...)\n");
+   }
+
+   delete this;                     // When done, delete this StreamWorker
+}
+
+//----------------------------------------------------------------------------
+// StreamWorker::run
+//----------------------------------------------------------------------------
+void
+   run( void )                      // Process work
+{
+   // Set default timeout
+   struct timeval tv= { 3, 0 };     // 3.0 second timeout
+   client->set_option(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+   client->set_option(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+
+   for(size_t count= 0;;++count) {
+     buffer[0]= '\0';
+     ssize_t L= client->read(buffer, sizeof(buffer)-1);
+     if( L < 0 ) {
+       trace(__LINE__, "StreamWorker %zd= read", L);
+       break;
+     } else if( L == 0 ) {
+       if( count == 0 ) {
+         debugh("%4d StreamWorker HCDM\n", __LINE__); // (SSL) bug workaround
+         continue;
+       }
+       break;
+     }
+     ++ssr_count;
+
+     buffer[L]= '\0';
+     if( opt_verbose > 1 )
+       debugh("StreamWorker %zd= read(%s)\n", L, visify(buffer).c_str());
+
+     const char* mess= nullptr;
+     const char* C= buffer;
+     std::string meth= get_token(C);
+     std::string what= get_token(C);
+     std::string http= get_token(C);
+     if( meth == "GET" && http == "HTTP/1.1" ) {
+       if( what == "/" || what == "/index.html"
+           || what == "/std" || what == "/ssl" )
+         mess= http200;
+       else
+         mess= http404;
+     } else {
+       mess= http400;
+     }
+
+     L= client->write(mess, strlen(mess));
+     if( L <= 0 ) {
+       trace(__LINE__, "StreamWorker %zd= write(%zd)", L, strlen(mess));
+       break;
+     }
+     ++ssw_count;
+
+     if( opt_verbose > 1 )
+       debugh("StreamWorker %zd= write(%s)\n", L, visify(mess).c_str());
+   }
+
+   // Client closed or in error state. Allow immediate port re-use
+   // When used, this code avoids a client "Connection refused" problem.
+   if( USE_LINGER ) {               // Optional only for debugging
+     struct linger optval;
+     optval.l_onoff= 1;
+     optval.l_linger= 0;
+     client->set_option(SOL_SOCKET, SO_LINGER, &optval, sizeof(optval));
+   }
+}
+}; // class StreamWorker
 
 //----------------------------------------------------------------------------
 //
@@ -959,21 +1198,33 @@ static char buffer[8192];           // The response data buffer
 class StreamServer : public Thread {
 public:
 char                   buffer[32768]; // Input buffer
-Socket*                socket= nullptr; // Client Socket
 Event                  event;       // Thread ready event
 Socket                 listen;      // Listener Socket
+Socket*                socket= nullptr; // Client Socket
 
 int                    operational= false; // TRUE while operational
 
+//----------------------------------------------------------------------------
+// Constructors/Destructor
+//----------------------------------------------------------------------------
    StreamServer() = default;
    ~StreamServer() = default;
 
+//----------------------------------------------------------------------------
+//
+// Method-
+//       StreamServer::run
+//
+// Purpose-
+//       Operate the StreamServer
+//
+//----------------------------------------------------------------------------
 virtual void
-   run()                            // StreamServer::run
+   run()
 {
    int rc= listen.open(AF_INET, SOCK_STREAM, PF_UNSPEC);
    if( rc ) {
-     errorp("StreamServer.open");
+     trace(__LINE__, "StreamServer %d= open", rc);
      return;
    }
 
@@ -985,13 +1236,13 @@ virtual void
 
    rc= listen.bind(STD_PORT);       // Set port number
    if( rc ) {
-     errorp("StreamServer.bind");
+     trace(__LINE__, "StreamServer %d= bind", rc);
      listen.close();
      return;
    }
    rc= listen.listen();             // Set listener socket
    if( rc ) {
-     errorp("StreamServer.listen");
+     trace(__LINE__, "StreamServer %d= listen", rc);
      listen.close();
      return;
    }
@@ -1022,7 +1273,7 @@ virtual void
                    , errno, strerror(errno));
            }
            if( rc == 0 ) {
-             ++rs_again;
+             ++ssr_again;
              continue;
            }
          break;
@@ -1034,7 +1285,7 @@ virtual void
                return;
 
              error_count += VERIFY( if_retry() );
-             ++rs_again;
+             ++ssr_again;
              continue;
            }
          break;
@@ -1060,95 +1311,36 @@ virtual void
    }
 
    // Statistics
-   if( opt_verbose && !opt_client && !opt_packet && !opt_stream ) {
-     debugf("--stream info:\n");
-     debugf("%'16ld Accept retr%s\n"
-           , rs_again.load(), rs_again.load() == 1 ? "y" : "ies");
-     debugf("%'16ld Operations\n", rs_count.load());
-   }
+   if( opt_verbose ) {
+     debugf("--stream server info:\n");
+     debugf("%'16ld Recv again\n", ssr_again.load());
+     debugf("%'16ld Recv count\n", ssr_count.load());
+     debugf("%'16ld Send count\n", ssw_count.load());
 
-   if( opt_verbose )
+     if( opt_worker )
+       WorkerPool::debug();
+
      debugf("Stream server %s terminated\n", peer_addr.c_str());
-}
-
-void
-   serve(Socket* client)            // StreamServer::serve
-{
-   // Set default timeout
-   struct timeval tv= { 3, 0 };     // 3.0 second timeout
-   client->set_option(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-   client->set_option(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
-
-   for(int count= 0;;count++) {
-     buffer[0]= '\0';
-     int L= client->read(buffer, sizeof(buffer)-1);
-     if( L <= 0 )
-       break;
-     buffer[L]= '\0';
-
-     if( opt_verbose > 1 )
-       debugh("Server: Read %d '%s'\n", L, visify(buffer).c_str());
-     if( L <= 0 ) {
-       if( L == 0 && count == 0 )
-         debugh("Server: %4d HCDM\n", __LINE__); // Bug workaround
-       break;
-     }
-
-     const char* C= buffer;
-     std::string meth= get_token(C);
-     std::string what= get_token(C);
-     std::string http= get_token(C);
-     if( meth != "GET" || http != "HTTP/1.1" ) {
-       L= client->write(http400, strlen(http400));
-       if( L <= 0 ) {
-         debugh("Server write(http400) failure\n");
-         break;
-       }
-       if( opt_verbose > 1 )
-         debugh("Worker: Sent %d '%s'\n", L, visify(http400).c_str());
-     } else {
-
-     if( what != "/" && what != "/index.html"
-         && what != "/std" && what != "/ssl" ) {
-       L= client->write(http404, strlen(http404));
-       if( L <= 0 ) {
-         debugh("Server write(http404) failure\n");
-         break;
-       }
-       if( opt_verbose > 1 )
-         debugh("Worker: Sent %d '%s'\n", L, visify(http404).c_str());
-     } else {
-
-       L= client->write(http200, strlen(http200));
-       if( L <= 0 ) {
-         debugh("Server write(http200) failure\n");
-         break;
-       }
-       if( opt_verbose > 1 )
-         debugh("Worker: Sent %d '%s'\n", L, visify(http200).c_str());
-     } }
-
-     ++rs_count;
-   }
-
-   // This fixes an accept hang problem. Optional only to test alternatives.
-   if( USE_LINGER ) {
-     // Client closed or in error state. Allow immediate port re-use
-     struct linger optval;
-     optval.l_onoff= 1;
-     optval.l_linger= 0;
-     client->set_option(SOL_SOCKET, SO_LINGER, &optval, sizeof(optval));
    }
 }
 
+//----------------------------------------------------------------------------
+//
+// Method-
+//       StreamServer::stop
+//
+// Purpose-
+//       Stop the StreamServer
+//
+//----------------------------------------------------------------------------
 void
-   stop()                           // StreamServer::stop
+   stop()
 {
-   operational= false;            // Indicate terminated
+   operational= false;              // Indicate terminated
    event.reset();
 
    if( USE_STOP_HCDM ) {
-     if( false ) {                // TRUE: Tests "::accept would block" logic
+     if( false ) {                  // TRUE: Tests accept block logic
        debugh("%4d %s stop DISABLED\n", __LINE__, __FILE__);
        return;
      }
@@ -1160,55 +1352,9 @@ void
      debugh("%4d %s %d= listen.close()\n", __LINE__, __FILE__, rc);
 
    //-------------------------------------------------------------------------
-   // We now create a dummy connection to complete any pending listen,
-   // ignoring any errors that occur.
+   // Create a dummy connection to complete any pending listen, ignoring any
+   // errors that occur.
    reconnect();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       StreamServer::stress
-//
-// Purpose-
-//       Run stream server stress test.
-//
-//----------------------------------------------------------------------------
-void
-   stress( void )                   // Stream stress test
-{
-static int THREAD_COUNT= 16;        // Maximum thread count
-
-   if( !opt_thread )
-     THREAD_COUNT= 1;
-
-   StreamClient* client[THREAD_COUNT];
-   for(int i= 0; i<THREAD_COUNT; i++) {
-     client[i]= new StreamClient();
-     client[i]->start();
-   }
-   Thread::sleep(0.125);          // (Delay allows all Threads to start
-
-   if( opt_verbose ) {
-     if( !opt_server )
-       debugf("\n");
-     debugf("--stream test: Started\n");
-   }
-
-   timer_thread.start();
-   timer_thread.join();
-
-   // Statistics
-   if( opt_verbose ) {
-     debugf("--stream test: %s\n", error_count ? "FAILED" : "Complete");
-     if( opt_server )
-       debugf("%'16ld Accept retr%s\n", rs_again.load()
-             , rs_again.load() == 1 ? "y" : "ies");
-     debugf("%'16ld Operations\n", ws_count.load());
-     debugf("%'16d Seconds\n", opt_runtime);
-     debugf("%'18.1f Operations/second\n"
-           , double(ws_count.load()) / opt_runtime);
-   }
 }
 }; // class StreamServer
 
@@ -1237,15 +1383,13 @@ int
      fprintf(stderr, "  --packet\tRun datagram test\n");
      fprintf(stderr, "  --stream\tRun stream test\n");
 
-     fprintf(stderr, "  --server\tRun local server\n");
      fprintf(stderr, "  --server=host:port\tUse remote server\n");
      fprintf(stderr, "  --thread\tRun multi-threaded stream client\n");
      fprintf(stderr, "  --worker\tRun multi-threaded stream server\n");
    });
 
-   tc.on_init([](int argc, char* argv[]) // (Unused in this sample)
-   { (void)argc; (void)argv;        // (Unused arguments)
-
+   tc.on_init([](int, char**)
+   {
      if( HCDM )
        opt_hcdm= true;
 
@@ -1259,21 +1403,17 @@ int
 
      setlocale(LC_NUMERIC, "");     // Allows printf("%'d\n", 123456789);
 
-     for(unsigned i= 0; i<sizeof(obuff); ++i)
-       obuff[i]= i;
-
-     if( !opt_client && !opt_server && !opt_packet && !opt_stream ) {
-       opt_server= true;
-       opt_client= true;
-     }
-
      if( opt_target ) {
        opt_server= false;
        peer_addr= opt_target;
      } else {
+       is_server= !opt_client && !opt_packet && !opt_stream;
        opt_server= true;
        peer_addr= Socket::get_host_name() + ":" + std::to_string(STD_PORT);
      }
+
+     if( !opt_client && !opt_server && !opt_packet && !opt_stream )
+       opt_client= true;
 
      if( opt_runtime == 0 && (opt_packet || opt_stream) )
        opt_runtime= 20;
@@ -1283,22 +1423,15 @@ int
 
    tc.on_main([tr](int, char*[])
    {
-static const char* poll_method[]=
-{  "BLOCK"
-,  "NONBLOCK"
-,  "POLL"
-,  "SELECT"
-};
-
      if( opt_verbose ) {
        debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
        debugf("\n");
        debugf("Settings:\n");
        debugf("%5d: runtime\n",  opt_runtime);
        if( opt_target )
-         debugf("%5s: server: %s\n",   torf(opt_server), opt_target);
+         debugf("%5s: server: %s\n", torf(is_server), opt_target);
        else
-         debugf("%5s: server: %s\n",   torf(opt_server), peer_addr.c_str());
+         debugf("%5s: server: %s\n", torf(is_server), peer_addr.c_str());
        debugf("%5d: verbose\n",opt_verbose);
 
        debugf("%5s: client\n", torf(opt_client));
@@ -1310,28 +1443,66 @@ static const char* poll_method[]=
        // Debugging, experimentation
        debugf("\n");
        debugf("%5s: USE_LINGER\n", torf(USE_LINGER));
+       debugf("%5s: USE_PACKET_CONFIRM\n", torf(USE_PACKET_CONFIRM));
+       debugf("%5s: USE_PACKET_CONNECT\n", torf(USE_PACKET_CONNECT));
+
        debugf("%5d: USE_APOLL: %s\n", USE_APOLL, poll_method[USE_APOLL]);
        debugf("%5d: USE_RPOLL: %s\n", USE_RPOLL, poll_method[USE_RPOLL]);
        debugf("%5d: USE_SPOLL: %s\n", USE_SPOLL, poll_method[USE_SPOLL]);
+
+       debugf("%5d: OPT_PACKET_CLIENTS\n", OPT_PACKET_CLIENTS);
+       debugf("%5d: OPT_STREAM_CLIENTS\n", OPT_STREAM_CLIENTS);
      }
 
-{{{{
-     PacketServer packet_server;
+     StreamClient stream_client;
      StreamServer stream_server;
+     PacketServer packet_server;
+
+     if( opt_client ) {
+       // Client statistics are not provided for this test.
+       PacketClient packet_client;
+       reset_statistics();
+       if( opt_verbose )
+         debugf("\n");
+       if( opt_server ) {
+         stream_server.start();
+         packet_server.start();
+         packet_server.event.wait();
+         stream_server.event.wait();
+       }
+
+       if( opt_verbose )
+         debugf("--client test: Started\n");
+       running= true;
+       packet_client.client();
+       stream_client.client();
+       running= false;
+       if( opt_verbose )
+         debugf("--client test: Complete\n");
+
+       if( opt_server ) {
+         packet_server.stop();
+         stream_server.stop();
+         packet_server.join();
+         stream_server.join();
+       }
+     }
 
      if( opt_packet ) {
        reset_statistics();
+       PacketClient packet_client;
        if( opt_server ) {
          if( opt_verbose )
            debugf("\n");
          packet_server.start();
          packet_server.event.wait();
-         packet_server.stress();
-         Thread::sleep(0.125);
+       }
+
+       packet_client.stress();
+
+       if( opt_server ) {
          packet_server.stop();
          packet_server.join();
-       } else {
-         packet_server.stress();
        }
      }
 
@@ -1342,41 +1513,37 @@ static const char* poll_method[]=
            debugf("\n");
          stream_server.start();
          stream_server.event.wait();
-         stream_server.stress();
-         Thread::sleep(0.125);
+       }
+
+       stream_client.stress();
+
+       if( opt_server ) {
          stream_server.stop();
          stream_server.join();
-       } else {
-         stream_server.stress();
        }
      }
 
-     if( opt_server && (opt_client || (!opt_packet && !opt_stream)) ) {
+     if( is_server ) {
        reset_statistics();
        if( opt_verbose )
          debugf("\n");
        packet_server.start();
-       packet_server.event.wait();
        stream_server.start();
+       packet_server.event.wait();
        stream_server.event.wait();
 
-       if( opt_client )
-         StreamClient::client();
-
        Thread::sleep(opt_runtime);
+
        packet_server.stop();
        stream_server.stop();
        packet_server.join();
        stream_server.join();
-     } else if( opt_client ) {
-       StreamClient::client();
      }
 
      if( opt_verbose ) {
        debugf("\n");
        tr->report_errors(error_count);
      }
-}}}}
      return error_count != 0;
    });
 
@@ -1389,10 +1556,8 @@ static const char* poll_method[]=
      }
 
      if( name == "server" ) {
-       if( value ) {
-         opt_server= false;
+       if( value )
          opt_target= value;
-       }
      }
 
      return 0;
@@ -1405,4 +1570,3 @@ static const char* poll_method[]=
    int rc= tc.run(argc, argv);      // (Allow debugging statment before exit)
    return rc;
 }
-

@@ -16,9 +16,10 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2022/05/23
+//       2022/06/05
 //
 //----------------------------------------------------------------------------
+#include <atomic>                   // For std::atomic<>
 #include <mutex>                    // For std::lock_guard
 
 #include <pub/Debug.h>              // For debugging
@@ -28,6 +29,8 @@
 
 #include "pub/Worker.h"
 using namespace _PUB_NAMESPACE::debugging;
+using std::atomic_uint;
+using std::atomic_size_t;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -58,13 +61,13 @@ static WorkerThread*   pool[MAX_THREADS]; // The built-in thread pool
 // tic WorkerThread**  pool= static_pool; // The current thread pool
 
 // Statistical counters
-static unsigned        max_running= 0; // Maximum number of running threads
+static atomic_size_t   max_running(0); // Maximum number of running threads
 // tic unsigned        max_size= MAX_THREADS; // Maximum size of thread pool
-static unsigned        max_used= 0; // Maximum number of used threads
-static unsigned        running= 0;  // Current number of running threads
+static atomic_uint     max_used(0); // Maximum number of pool threads
+static atomic_size_t   running(0);  // Current number of running threads
 static const unsigned  size= MAX_THREADS; // Size of thread pool
-static unsigned        used= 0;     // Current number of  used threads
-static unsigned        workers= 0;  // Number of WorkerPool::work() invocations
+static unsigned        used= 0;     // Current number of pool threads
+static atomic_size_t   workers(0);  // Number of WorkerPool::work() invocations
 
 //----------------------------------------------------------------------------
 //
@@ -97,30 +100,44 @@ virtual
 {  start(); }
 
 //----------------------------------------------------------------------------
+// WorkerThread::Accessors
+//----------------------------------------------------------------------------
+inline bool
+   is_operational( void )
+{  return operational; }
+
+//----------------------------------------------------------------------------
 // WorkerThread::done()
 //
 // Handle work completion.
 //----------------------------------------------------------------------------
-static inline void
-   done(                             // Work complete
-     WorkerThread*     thread)       // For this WorkerThread
+inline void
+   done( void )                      // Work complete
 {
-   {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex);
+   --running;
+   WorkerThread* thread= this;
+   unsigned now_used= 0;
 
-     running--;
+   if( operational )
+   {{{{ // PERFORMANCE CRITICAL ==============================================
+     std::lock_guard<decltype(mutex)> lock(mutex);
 
      if( used < size ) {
        pool[used++]= thread;
-       if( used > max_used )
-         max_used= used;
        thread= nullptr;
+       now_used= used;
      }
-   }}}}
+   }}}} // PERFORMANCE CRITICAL ==============================================
 
    if( thread ) {
      thread->detach();
      thread->stop();
+   }
+
+   unsigned was_maxi= 0;            // (Avoids load if pool size unchanged)
+   while( now_used > was_maxi ) {
+     if( max_used.compare_exchange_weak(was_maxi, now_used) )
+       break;
    }
 }
 
@@ -172,9 +189,11 @@ void
      }
      worker= nullptr;
 
-     done(this);
+     done();
      sem.wait();
    }
+
+   delete this;
 }
 }; // class WorkerThread
 
@@ -188,7 +207,7 @@ void
 //       Accessors: size
 //
 //----------------------------------------------------------------------------
-#if 0 // Implementation not exposed ==========================================
+#if 0 // DEPRECATED ==========================================================
 unsigned                            // The maximum number of pooled threads
    WorkerPool::getMaxThreads( void ) // Get maximum number of pooled threads
 {  return size; }
@@ -233,7 +252,7 @@ void
 
    size= new_size;
 }
-#endif // Implementation not exposed =========================================
+#endif // DEPRECATED =========================================================
 
 //----------------------------------------------------------------------------
 //
@@ -258,17 +277,26 @@ unsigned                            // The number of running threads
 //
 //----------------------------------------------------------------------------
 void
-   WorkerPool::debug( void )        // Debugging display
+   WorkerPool::debug(             // Debugging display
+     const char*       info)      // Caller information (adds thread list)
 {
-   debugf("WorkerPool::debug()\n");
+   debugf("WorkerPool::debug(%s)\n", info ? info : "");
 
-   debugf("%'16d max_running\n", max_running);
-// debugf("%'16d max_size\n",    max_size);
-   debugf("%'16d max_used\n",    max_used);
-   debugf("%'16d running\n",     running);
-// debugf("%'16d size\n",        size);
-   debugf("%'16d used\n",        used);
-   debugf("%'16d workers\n",     workers);
+   debugf("%'16zd max_running\n", max_running.load());
+// debugf("%'16d max_size\n",     max_size);
+   debugf("%'16d max_pooled\n",   max_used.load());
+   debugf("%'16zd running\n",     running.load());
+// debugf("%'16d size\n",         size);
+   debugf("%'16d pooled\n",       used);
+   debugf("%'16zd workers\n",     workers.load());
+
+   if( info ) {
+     std::lock_guard<decltype(mutex)> lock(mutex);
+     for(unsigned i= 0; i<used; i++) {
+       WorkerThread* thread= pool[i];
+       debugf("[%3d] %p\n", i, thread);
+     }
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -291,11 +319,11 @@ void
    }
 
    // Reset the statistics
-   max_running= 0;
-   max_used= 0;
-   running= 0;
+   max_running.store(0);
+   max_used.store(0);
+   running.store(0);
    used= 0;
-   workers= 0;
+   workers.store(0);
 }
 
 //----------------------------------------------------------------------------
@@ -311,19 +339,22 @@ void
    WorkerPool::work(                 // Process work
      Worker*           worker)       // Using this Worker
 {
+   ++workers;
+   size_t was_running= ++running;
+   size_t was_maximum= max_running.load();
+   while( was_running > was_maximum ) {
+     if( max_running.compare_exchange_weak(was_maximum, was_running) )
+       break;
+   }
+
    WorkerThread* thread= nullptr;
 
-   {{{{
+   {{{{ // PERFORMANCE CRITICAL ==============================================
      std::lock_guard<decltype(mutex)> lock(mutex);
-
-     workers++;
-     running++;
-     if( running > max_running )
-       max_running= running;
 
      if( used > 0 )
        thread= pool[--used];
-   }}}}
+   }}}} // PERFORMANCE CRITICAL ==============================================
 
    if( thread )
      thread->drive(worker);

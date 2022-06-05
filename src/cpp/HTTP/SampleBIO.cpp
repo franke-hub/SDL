@@ -16,7 +16,7 @@
 //       Sample HTTP/HTTPS Client/Server, using openssl/bio.h functions.
 //
 // Last change date-
-//       2022/05/22
+//       2022/06/03
 //
 // Known bugs-
 //       bug_1000: BIO_free_all error when BIO_f_buffer used
@@ -63,10 +63,10 @@ enum                                // Generic enum
 ,  SSL_PORT= 8443                   // Our SSL port number
 
 // Default options - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-,  USE_RUNTIME= 60                  // Delay before terminating
+,  USE_RUNTIME= 10                  // Default test runtime
 ,  USE_CLIENT= true                 // Include Clients?
 ,  USE_SERVER= true                 // Include Servers?
-,  USE_STRESS= false                // Use stress test?
+,  USE_STRESS= true                 // Use stress test?
 ,  USE_THREAD= true                 // Use ClientThread (else direct call)
 ,  USE_TRACE=  false                // Use memory trace?
 ,  USE_WORKER= true                 // Use WorkerObject (else direct call)
@@ -1188,9 +1188,9 @@ static const int THREAD_COUNT= 16;  // Maximum thread count
 
    // Statistics
    debugf("SSL Client: %s\n", testfail ? "FAILED" : "Complete");
-   debugf("%'8ld Operations\n", op_count);
-   debugf("%'12.3f Seconds\n", runtime);
-   debugf("%'12.3f Operations/second\n", double(op_count) / runtime);
+   debugf("%'16ld Operations\n", op_count);
+   debugf("%'18.1f Seconds\n", runtime);
+   debugf("%'18.1f Operations/second\n", double(op_count) / runtime);
 }
 
 //----------------------------------------------------------------------------
@@ -1259,9 +1259,9 @@ static const int THREAD_COUNT= 16;  // Maximum thread count
 
    // Statistics
    debugf("STD Client: %s\n", testfail ? "FAILED" : "Complete");
-   debugf("%'8ld Operations\n", op_count);
-   debugf("%'12.3f Seconds\n", runtime);
-   debugf("%'12.3f Operations/second\n", double(op_count) / runtime);
+   debugf("%'16ld Operations\n", op_count);
+   debugf("%'18.1f Seconds\n", runtime);
+   debugf("%'18.1f Operations/second\n", double(op_count) / runtime);
 }
 
 //----------------------------------------------------------------------------

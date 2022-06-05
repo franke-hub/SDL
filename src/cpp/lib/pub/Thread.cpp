@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2020 Frank Eskesen.
+//       Copyright (C) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2020/07/08
+//       2022/06/05
 //
 // Implementation note-
 //       The global Thread synchronization mutex is used to insure:
@@ -27,15 +27,21 @@
 //         3) Proper serialization of the thread id map.
 //
 //----------------------------------------------------------------------------
+#include <atomic>                   // For std::atomic<> statistics
 #include <chrono>                   // Used by Thread::sleep()
 #include <map>                      // Used to map std::thread::id to Thread*
-#include <mutex>                    // Used for lock_guard, mutex
+#include <mutex>                    // For lock_guard, mutex
+#include <string>                   // For std::string
 #include <system_error>             // Used by Thread::start()
 
 #include <pub/Debug.h>              // For debugging
 #include <pub/Exception.h>          // For debugging
+#include <pub/Named.h>              // For pub::Named
 
 #include "pub/Thread.h"             // Method declarations
+
+using namespace _PUB_NAMESPACE::debugging; // For debugging methods
+using std::atomic_size_t;
 
 namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
@@ -52,6 +58,11 @@ typedef Map::iterator  MapIter;     // Map iterator
 static Map             map;         // The active Thread map
 static std::mutex      mutex;       // Global synchronization mutex
 
+// Statistics
+static atomic_size_t   max_run(0);  // Maximum running Thread count
+static atomic_size_t   running(0);  // Number of running Threads
+static atomic_size_t   started(0);  // Number of started Threads
+
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -61,6 +72,14 @@ static std::mutex      mutex;       // Global synchronization mutex
 //       Start the Thread, insuring Thread::thread initialized first.
 //
 //----------------------------------------------------------------------------
+static void
+   exceptional(                     // Exceptional thread debugging
+     Thread*           thread)      // For this thread
+{
+   thread->debug("Exception");
+   Thread::static_debug("Exception");
+}
+
 static void
    thread_start(                    // Start
      Thread*           thread)      // This thread
@@ -72,15 +91,28 @@ static void
    }}}}
 
    try {
+     ++started;
+     size_t was_running= ++running;
+     size_t was_maximum= max_run.load();
+     while( was_running > was_maximum ) {
+       if( max_run.compare_exchange_weak(was_maximum, was_running) )
+         break;
+     }
+
      thread->run();
+
+     --running;
    } catch(pub::Exception& X) {
-     fprintf(stderr, "Thread(%p)::run(), pub::Exception: %s\n", thread,
-                     X.to_string().c_str());
+     debugf("%4d Thread(%p)::run(), pub::Exception: %s\n", __LINE__
+           , thread, X.to_string().c_str());
+     exceptional(thread);
    } catch(std::exception& X) {
-     fprintf(stderr, "Thread(%p)::run(), std::Exception what(%s)\n", thread,
-                     X.what());
+     debugf("%4d Thread(%p)::run(), std::exception what(%s)\n", __LINE__
+           , thread, X.what());
+     exceptional(thread);
    } catch(...) {
-     fprintf(stderr, "Thread(%p)::run(), catch(...)\n", thread);
+     debugf("%4d Thread(%p)::run(), catch(...)\n", __LINE__, thread);
+     exceptional(thread);
    }
 
    {{{{                             // Synchronize map
@@ -102,7 +134,7 @@ static void
 //
 //----------------------------------------------------------------------------
    Thread::~Thread( void )          // Destructor
-{//debugging::tracef("Thread(%p).~Thread\n", this); // Normally commented out
+{// debugging::tracef("Thread(%p).~Thread\n", this); // Normally commented out
    std::lock_guard<decltype(mutex)> lock(mutex);
 
    const MapIter mi= map.find(thread.get_id());
@@ -154,36 +186,49 @@ Thread*                             // The current Thread
 //
 // Method-
 //       Thread::debug
+//       Thread::static_debug
 //
 // Purpose-
-//       Debugging display
+//       Debugging displays
+//
+// Implementation notes-
+//       It's not a good idea to call static_debug in production mode
 //
 //----------------------------------------------------------------------------
-#if 0
 void
    Thread::debug(                   // Debugging display
-     const Thread*     thread)      // (OPTIONAL) thread
-{
-   Map copy;                        // (Copy of) The active Thread map
+     const char*       info) const  // Caller information
+{  debugf("Thread(%p)::debug(%s)\n", this, info);
 
-   {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex);
+   std::string name= "";
+   const Named* named= dynamic_cast<const Named*>(this);
+   if( named )
+     name= " Named(" + named->get_name() + ")";
 
-     for(auto mi : map)
-       copy[mi.first]= mi.second;
-   }}}}
-
-   using namespace debugging;
-   if( thread )
-     debugf("Thread(%p).debug() id(%s)\n", thread,
-            get_id_string(thread->thread.get_id()).c_str());
-   else
-     debugf("Thread(*).debug()\n");
-   debugf("..Map:\n");
-   for(auto mi : copy )
-     debugf("....[%s] (%p)\n", get_id_string(mi.first).c_str(), mi.second);
+   debugf("..thread(%s)%s\n", get_id_string().c_str(), name.c_str());
 }
-#endif
+
+void
+   Thread::static_debug(            // Debugging display
+     const char*       info)        // Caller information
+{  debugf("Thread::static_debug(%s)\n", info ? info : "");
+
+   {{{{ std::lock_guard<decltype(mutex)> lock(mutex);
+     debugf("%'16zd detached\n",    running.load() - map.size());
+     debugf("%'16zd max_running\n", max_run.load());
+     debugf("%'16zd running\n",     running.load());
+     debugf("%'16zd started\n",     started.load());
+
+     if( info && map.size() ) {
+       debugf("..[-thread id-] [--Thread*--]\n");
+       for(auto mi : map ) {
+         Thread* thread= mi.second;
+         debugf("..[%s] (%p) joinable(%d)\n", get_id_string(mi.first).c_str()
+               , thread, thread->joinable());
+       }
+     }
+   }}}}
+}
 
 //----------------------------------------------------------------------------
 //

@@ -16,12 +16,10 @@
 //       Sample HTTP/HTTPS Client/Server, using openssl socket layer.
 //
 // Last change date-
-//       2022/05/27
-//
-// Known bugs-
-//       1000: Zero length read on first Chrome read
+//       2022/06/02
 //
 //----------------------------------------------------------------------------
+#include <atomic>                   // For std::atomic<>
 #include <mutex>                    // For std::lock_guard, ...
 
 #include <errno.h>                  // For errno
@@ -36,17 +34,19 @@
 
 #include <pub/utility.h>            // For to_string, visify
 #include <pub/Debug.h>              // For debugging
+#include <pub/Event.h>              // For pub::Event
 #include <pub/Interval.h>           // For pub::Interval
 #include <pub/Semaphore.h>          // For pub::Semaphore
 #include "pub/Socket.h"             // The pub::Socket Object
 #include <pub/Statistic.h>          // For pub::Statistic
 #include <pub/Thread.h>             // For pub::Thread
-#include <pub/Trace.h>              // For pub::Trace
 #include <pub/Worker.h>             // For pub::Worker, pub::WorkerPool
 
 using namespace _PUB_NAMESPACE;     // For Socket, ...
-using namespace _PUB_NAMESPACE::debugging; // For debugging
-using _PUB_NAMESPACE::utility::visify; // For visify
+using namespace _PUB_NAMESPACE::debugging; // Debugging functions
+using _PUB_NAMESPACE::utility::visify;
+using std::atomic;
+using std::string;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -59,15 +59,14 @@ enum                                // Generic enum
 ,  SSL_PORT= 8443                   // Our SSL port number
 
 // Default options - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-,  USE_RUNTIME= 60                  // Delay before terminating
-,  USE_CLIENT= true                 // Include Clients?
-,  USE_THREAD= true                 // Use ClientThread (else direct call)
-,  USE_TRACE=  0                    // Use memory trace (size)?
+,  USE_RUNTIME= 10                  // Default test runtime
+,  USE_CLIENT= true                 // Include client tests?
+,  USE_THREAD= true                 // Use multiple clients?
 ,  USE_SERVER= true                 // Include Servers?
-,  USE_WORKER= true                 // Use WorkerObject (else direct call)
+,  USE_STRESS= true                 // Run stress tests?
+,  USE_WORKER= true                 // Use ServerWorker?
+,  USE_VERBOSE= 0                   // Default verbosity
 }; // Generic enum
-
-static constexpr const char* TRACE_FILE= "./trace.mem"; // (Trace file name)
 
 //----------------------------------------------------------------------------
 // Macros
@@ -79,13 +78,38 @@ static constexpr const char* TRACE_FILE= "./trace.mem"; // (Trace file name)
 //----------------------------------------------------------------------------
 static std::string     host_name;   // The host name
 static Interval        interval;    // Stress interval timer
-static Semaphore       semaphore;   // Thread complete semaphore
-static void*           table= nullptr; // The trace data area
-static int             testfail;    // Indicates test failure
+static string          STD_addr;    // STD "host:port" connection address
+static string          SSL_addr;    // SSL "host:port" connection address
+static int             is_server= false; // Run a server?
+
+// SSL controls
+static SSL_CTX*        client_CTX= nullptr; // Common client SSL_CTX
+static SSL_CTX*        server_CTX= nullptr; // Common server SSL_CTX
+
+// Test controls
+static Event           test_start;  // The test start Event
+static int             error_count= 0; // Error counter
+static int             running= false; // Test running indicator
+
+// Statistics
+static atomic<size_t>  op_count;    // Operation counter
 
 //----------------------------------------------------------------------------
 // HTTP responses
 //----------------------------------------------------------------------------
+static const char*     http200=     // HTTP 200 (NORMAL) response
+   "HTTP/1.1 200 OK\r\n"
+   "Server: RYO\r\n"
+   "Content-type: text/html\r\n"
+   "Content-length: 58\r\n"
+   "\r\n"
+   "<html>\r\n"                     // 8
+   "<body>\r\n"                     // 8
+   "<h1>Hello, World!</h1>\r\n"     // 24
+   "</body>\r\n"                    // 8
+   "</html>\r\n"                    // 8
+   ;
+
 static const char*     http400=     // HTTP 400 (INVALID) response
    "HTTP/1.1 400 !INVALID!\r\n"
    "Content-type: text/html\r\n"
@@ -110,19 +134,6 @@ static const char*     http404=     // HTTP 404 (NOT FOUND) response
    "</html>\r\n"                    // 8
    ;
 
-static const char*     http200=     // HTTP 200 (NORMAL) response
-   "HTTP/1.1 200 OK\r\n"
-   "Server: RYO\r\n"
-   "Content-type: text/html\r\n"
-   "Content-length: 58\r\n"
-   "\r\n"
-   "<html>\r\n"                     // 8
-   "<body>\r\n"                     // 8
-   "<h1>Hello, World!</h1>\r\n"     // 24
-   "</body>\r\n"                    // 8
-   "</html>\r\n"                    // 8
-   ;
-
 //----------------------------------------------------------------------------
 // Options
 //----------------------------------------------------------------------------
@@ -131,26 +142,21 @@ static int             opt_index;   // Option index
 static int             opt_runtime= USE_RUNTIME; // Server run time
 static int             opt_client=  USE_CLIENT; // Use client?
 static int             opt_server=  USE_SERVER; // Use server?
-static int             opt_stress=  false;      // Use stress test?
+static int             opt_stress=  USE_STRESS; // Use stress test?
 static int             opt_thread=  USE_THREAD; // Use client thread?
-static int             opt_trace=   0;          // Use memory trace (size)?
 static int             opt_worker=  USE_WORKER; // Use worker?
-static int             opt_verbose= 0; // --verbose{=verbosity}
-static int             fix_1000= true;  // Chrome: 0 length read
+static int             opt_verbose= USE_VERBOSE; // --verbose{=verbosity}
 
 static struct option   OPTS[]=      // Options
 {  {"help",     no_argument,       &opt_help,    true}
 ,  {"runtime",  required_argument, nullptr,      0}
 ,  {"verbose",  optional_argument, nullptr,      0}
-,  {"trace",    optional_argument, &opt_trace,   0x00040000} // Trace length
 
-,  {"fix_1000",    no_argument,    &fix_1000,    true} // Fix# 1000
 ,  {"client",      no_argument,    &opt_client,  true} // use_client
 ,  {"server",      no_argument,    &opt_server,  true} // use_server
 ,  {"stress",      no_argument,    &opt_stress,  true} // Stress test?
 ,  {"thread",      no_argument,    &opt_thread,  true} // Client threads?
 ,  {"worker",      no_argument,    &opt_worker,  true} // Worker pool?
-,  {"no-fix_1000", no_argument,    &fix_1000,    false} // Fix# 1000
 ,  {"no-client",   no_argument,    &opt_client,  false} // use_client
 ,  {"no-server",   no_argument,    &opt_server,  false} // use_server
 ,  {"no-thread",   no_argument,    &opt_thread,  false} // Client thread
@@ -162,7 +168,6 @@ enum OPT_INDEX
 {  OPT_HELP
 ,  OPT_RUNTIME
 ,  OPT_VERBOSE
-,  OPT_TRACE
 };
 
 //----------------------------------------------------------------------------
@@ -236,6 +241,31 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       get_token
+//
+// Purpose-
+//       Extract next token, "" if at end of line
+//
+//----------------------------------------------------------------------------
+static std::string                  // The next token, "" if at end
+   get_token(                       // Get next token
+     const char*&       text)
+{
+   while( *text == ' ' )
+     text++;
+
+   const char* origin= text;
+   while( *text != ' ' && *text != '\t'
+       && *text != '\r' && *text != '\n' && *text != '\0' )
+     text++;
+
+   std::string result(origin, text - origin);
+   return result;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       initialize_SSL
 //
 // Purpose-
@@ -258,6 +288,20 @@ static int             initialized= false; // TRUE when initialized
      initialized= true;
    }
 }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       line
+//
+// Purpose-
+//       Debugging: Easy to insert/remove code tracker.
+//
+//----------------------------------------------------------------------------
+static inline void
+   line(int line)
+{  debugf("%4d %s HCDM\n", line, __FILE__); }
+// line(__LINE__);
 
 //----------------------------------------------------------------------------
 //
@@ -370,322 +414,558 @@ static const char*                  // "true" or "false"
 
 //----------------------------------------------------------------------------
 //
-// Class-
-//       WorkerObject
+// Subroutine-
+//       trace
 //
 // Purpose-
-//       The Worker object
+//       Socket operation informational message
+//
+// Implementation notes-
+//       Preserves errno
 //
 //----------------------------------------------------------------------------
-class WorkerObject : public Worker { // The worker object
-//----------------------------------------------------------------------------
-// WorkerObject::Attributes
-//----------------------------------------------------------------------------
-public:
-char                   buffer[32768]; // Input buffer;
-Socket*                socket;      // The connection socket
+static void
+   trace(                           // Write trace message
+     int               line,        // For this source code line
+     const char*       fmt,         // Format string
+                       ...)         // The PRINTF argument list
+_LIBPUB_PRINTF(2,3);
 
-//----------------------------------------------------------------------------
-// WorkerObject::Constructors/Destructor
-//----------------------------------------------------------------------------
-public:
-virtual
-   ~WorkerObject( void )            // Destructor
-{  if( HCDM ) debugh("WorkerObject(%p)::~WorkerObject()...\n", this);
-
-   if( socket )
-     delete socket;
-}
-
-   WorkerObject(                    // Constructor
-     Socket*           socket)      // Connection socket
-:  socket(socket)
-{  if( HCDM ) debugh("WorkerObject(%p)::WorkerObject(%p)\n", this, socket); }
-
-//----------------------------------------------------------------------------
-// WorkerObject::Methods
-//----------------------------------------------------------------------------
-public:
-std::string                         // The next token, "" if at end
-   get_token(                       // Get next token
-     const char*&       text)
+static void
+   trace(                           // Write trace message
+     int               line,        // For this source code line
+     const char*       fmt,         // Format string
+                       ...)         // The PRINTF argument list
 {
-   while( *text == ' ' )
-     text++;
+   va_list             argptr;      // Argument list pointer
 
-   if( *text == '\0' )
-     return "";
+   int ERRNO= errno;                // (Preserve errno)
+   LOCK_GUARD(*Debug::get());
 
-   if( *text == '\r' && *(text+1) == '\n' ) {
-     text += 2;
-     return "\r\n";
+   if( line != 0 )
+     traceh("%4d ", line);          // (Heading)
+
+   va_start(argptr, fmt);           // Initialize va_ functions
+   vtracef(fmt, argptr);            // (User error message)
+   va_end(argptr);                  // Close va_ functions
+
+   if( ERRNO ) {                    // If error
+     tracef(" %d:%s\n", ERRNO, strerror(ERRNO)); // (errno information)
+   } else {
+     tracef("\n");
    }
 
-   const char* origin= text;
-   while( *text != ' ' && *text != '\t' && *text != '\r' )
-     text++;
-
-   std::string result(origin, text - origin);
-   return result;
+   errno= ERRNO;                    // (Restore errno)
 }
 
+//----------------------------------------------------------------------------
+//
+// Class-
+//       TimerThread
+//
+// Purpose-
+//       Background Thread that sets and clears `running`
+//
+//----------------------------------------------------------------------------
+class TimerThread : public pub::Thread {
+public:
+   ~TimerThread( void ) = default;
+   TimerThread( void ) = default;
+
+virtual void
+   run( void )
+{
+   // Reset statistics
+   error_count= 0;
+   op_count.store(0);
+
+   // Start the test
+   running= true;
+   test_start.post();
+
+   Thread::sleep(opt_runtime);
+
+   running= false;
+   test_start.reset();
+}
+}; // class TimerThread
+static TimerThread timer_thread;    // *THE* TimerThread
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       STD_client
+//
+// Purpose-
+//       Standard client stress test thread
+//
+//----------------------------------------------------------------------------
+class STD_client : public Thread {
+public:
+char                   buffer[32768]; // Input buffer
+Event                  event;         // Thread started event
+
+//----------------------------------------------------------------------------
+// Constructors/Destructor
+//----------------------------------------------------------------------------
+   STD_client() = default;
+   ~STD_client() = default;
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       STD_client::client
+//
+// Purpose-
+//       STD client test: single HTTP open/write/read/close op
+//
+// Implementation note-
+//       This Thread can still be running after the server is stopped, so we
+//       ignore any errors received when not still running.
+//
+//----------------------------------------------------------------------------
+void
+   client( void )                   // Standard HTTP operation
+{
+static const char*     request=     // The request data
+   "GET /std HTTP/1.1\r\n"
+   "\r\n"
+   ;
+
+   Socket socket;
+   try {
+     int rc= socket.open(AF_INET, SOCK_STREAM, PF_UNSPEC);
+     if( rc ) {
+       if( !running )
+         return;
+       trace(__LINE__, "STD_client %d=open", rc);
+       throw pub::Exception("STD_client open Failure");
+     }
+
+     // Connect to server
+     rc= socket.connect(STD_addr);
+     if( rc < 0 ) {
+       if( !running )
+         return;
+       trace(__LINE__, "STD_client %d= connect", rc);
+       throw pub::Exception("STD_client connect Failure");
+     }
+
+     // Write/read
+     ssize_t L= socket.write(request, strlen(request));
+     if( L <= 0 ) {
+       if( !running )
+         return;
+       trace(__LINE__, "STD_client %zd= write(%zd)", L, strlen(request));
+       throw pub::Exception("STD_client write Failure");
+     }
+     if( opt_verbose > 1 )
+       debugh("STD_client %zd= write(%s)\n", L, visify(request).c_str());
+
+     L= socket.read(buffer, sizeof(buffer)-1);
+     if( L <= 0 ) {
+       if( !running )
+         return;
+       trace(__LINE__, "STD_client %zd= read(%zd)", L, strlen(request));
+       throw pub::Exception("STD_client read Failure");
+     }
+     buffer[L]= '\0';
+     if( opt_verbose > 1 )
+       debugh("STD_client %zd= read(%s)\n", L, visify(buffer).c_str());
+
+     ++op_count;
+   } catch(pub::Exception& X) {
+     debugh("STD_client %s\n", X.to_string().c_str());
+     ++error_count;
+   } catch(std::exception& X) {
+     debugh("STD_client what(%s)\n", X.what());
+     ++error_count;
+   } catch(...) {
+     debugh("STD_client catch(...) socket(%4d)\n", socket.get_handle());
+     ++error_count;
+   }
+
+   // Close the connection
+   int rc= socket.close();
+   if( rc ) {
+     if( !running )
+       return;
+     trace(__LINE__, "STD_client %d= close", rc);
+     throw pub::Exception("STD_client close Failure");
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       STD_client::run
+//
+// Purpose-
+//       Run single client stream stress test (while TimerThread active.)
+//
+//----------------------------------------------------------------------------
+virtual void
+   run()
+{
+   event.post();                    // Indicate ready
+   test_start.wait();               // Wait for start signal
+
+   try {
+     while( running && error_count == 0 ) {
+       client();
+     }
+   } catch(pub::Exception& X) {
+     debugh("%4d pub::Exception: %s\n", __LINE__, X.to_string().c_str());
+   } catch(std::exception& X) {
+     debugh("%4d std::exception what(%s)\n", __LINE__, X.what());
+   }
+
+   event.reset();
+   if( opt_verbose > 1 )
+     debugf("Stream client %s terminated\n", STD_addr.c_str());
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       STD_client::stress
+//
+// Purpose-
+//       Run stream client/server stress test.
+//
+//----------------------------------------------------------------------------
+static void
+   stress( void )                   // Stream stress test
+{
+   int thread_count= 1;
+   if( opt_thread )
+     thread_count= 16; // OPT_STREAM_CLIENTS;
+
+   STD_client* client[thread_count];
+   for(int i= 0; i<thread_count; i++) {
+     client[i]= new STD_client();
+     client[i]->start();
+     client[i]->event.wait();
+   }
+
+// if( opt_verbose ) {
+     if( !opt_server )
+       debugf("\n");
+     debugf("--STD stress test: Started\n");
+// }
+
+   timer_thread.start();
+   timer_thread.join();
+
+   for(int i= 0; i<thread_count; i++)
+     client[i]->join();
+
+   // Statistics
+// if( opt_verbose ) {
+     debugf("--STD stress test: %s\n", error_count ? "FAILED" : "Complete");
+     debugf("%'16ld Operations\n", op_count.load());
+     debugf("%'18.1f Operations/second\n"
+           , double(op_count.load()) / opt_runtime);
+// }
+}
+}; // class STD_client
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       SSL_client
+//
+// Purpose-
+//       SSL client stress test thread
+//
+//----------------------------------------------------------------------------
+class SSL_client : public Thread {
+public:
+char                   buffer[32768]; // Input buffer
+Event                  event;         // Thread started event
+
+//----------------------------------------------------------------------------
+// Constructors/Destructor
+//----------------------------------------------------------------------------
+   SSL_client() = default;
+   ~SSL_client() = default;
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       SSL_client::client
+//
+// Purpose-
+//       SSL client test: single HTTP open/write/read/close op
+//
+// Implementation note-
+//       This Thread can still be running after the server is stopped, so we
+//       ignore any errors received when not still running.
+//
+//----------------------------------------------------------------------------
+void
+   client( void )                   // Standard HTTP operation
+{
+static const char*     request=     // The request data
+   "GET /ssl HTTP/1.1\r\n"
+   "\r\n"
+   ;
+
+   SSL_Socket socket(client_CTX);
+   try {
+     int rc= socket.open(AF_INET, SOCK_STREAM, PF_UNSPEC);
+     if( rc ) {
+       if( !running )
+         return;
+       trace(__LINE__, "SSL_client %d=open", rc);
+       throw pub::Exception("SSL_client open Failure");
+     }
+
+     // Connect to server
+     rc= socket.connect(SSL_addr);
+     if( rc < 0 ) {
+       if( !running )
+         return;
+       trace(__LINE__, "SSL_client %d= connect", rc);
+       throw pub::Exception("SSL_client connect Failure");
+     }
+
+     // Write/read
+     ssize_t L= socket.write(request, strlen(request));
+     if( L <= 0 ) {
+       if( !running )
+         return;
+       trace(__LINE__, "SSL_client %zd= write(%zd)", L, strlen(request));
+       throw pub::Exception("SSL_client write Failure");
+     }
+     if( opt_verbose > 1 )
+       debugh("SSL_client %zd= write(%s)\n", L, visify(request).c_str());
+
+     L= socket.read(buffer, sizeof(buffer)-1);
+     if( L <= 0 ) {
+       if( !running )
+         return;
+       trace(__LINE__, "SSL_client %zd= read(%zd)", L, strlen(request));
+       throw pub::Exception("SSL_client read Failure");
+     }
+     buffer[L]= '\0';
+     if( opt_verbose > 1 )
+       debugh("SSL_client %zd= read(%s)\n", L, visify(buffer).c_str());
+
+     ++op_count;
+   } catch(pub::Exception& X) {
+     debugh("SSL_client %s\n", X.to_string().c_str());
+     ++error_count;
+   } catch(std::exception& X) {
+     debugh("SSL_client what(%s)\n", X.what());
+     ++error_count;
+   } catch(...) {
+     debugh("SSL_client catch(...) socket(%4d)\n", socket.get_handle());
+     ++error_count;
+   }
+
+   // Close the connection
+   int rc= socket.close();
+   if( rc ) {
+     if( !running )
+       return;
+     trace(__LINE__, "SSL_client %d= close", rc);
+     throw pub::Exception("SSL_client close Failure");
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       SSL_client::run
+//
+// Purpose-
+//       Run single client stream stress test (while TimerThread active.)
+//
+//----------------------------------------------------------------------------
+virtual void
+   run()
+{
+   event.post();                    // Indicate ready
+   test_start.wait();               // Wait for start signal
+
+   try {
+     while( running && error_count == 0 ) {
+       client();
+     }
+   } catch(pub::Exception& X) {
+     debugh("Exception: %s\n", X.to_string().c_str());
+   } catch(std::exception& X) {
+     debugh("std::Exception what(%s)\n", X.what());
+   }
+
+   event.reset();
+   if( opt_verbose > 1 )
+     debugf("Stream client %s terminated\n", SSL_addr.c_str());
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       SSL_client::stress
+//
+// Purpose-
+//       Run stream client/server stress test.
+//
+//----------------------------------------------------------------------------
+static void
+   stress( void )                   // Stream stress test
+{
+   int thread_count= 1;
+   if( opt_thread )
+     thread_count= 32; // OPT_STREAM_CLIENTS;
+
+   SSL_client* client[thread_count];
+   for(int i= 0; i<thread_count; i++) {
+     client[i]= new SSL_client();
+     client[i]->start();
+     client[i]->event.wait();
+   }
+
+// if( opt_verbose ) {
+     if( !opt_server )
+       debugf("\n");
+     debugf("--SSL stress test: Started\n");
+// }
+
+   timer_thread.start();
+   timer_thread.join();
+
+   for(int i= 0; i<thread_count; i++)
+     client[i]->join();
+
+   // Statistics
+// if( opt_verbose ) {
+     debugf("--SSL stress test: %s\n", error_count ? "FAILED" : "Complete");
+     debugf("%'16ld Operations\n", op_count.load());
+     debugf("%'18.1f Operations/second\n"
+           , double(op_count.load()) / opt_runtime);
+// }
+}
+}; // class SSL_client
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       ServerWorker
+//
+// Purpose-
+//       Serve one HTTP connection.
+//
+//----------------------------------------------------------------------------
+class ServerWorker : public Worker { // The ServerWorker object
+//----------------------------------------------------------------------------
+// ServerWorker::Attributes
+//----------------------------------------------------------------------------
+public:
+char                   buffer[4096]; // Input buffer;
+Socket*                client;      // The client socket
+
+//----------------------------------------------------------------------------
+// ServerWorker::Constructors/Destructor
+//----------------------------------------------------------------------------
+public:
+   ServerWorker(                    // Constructor
+     Socket*           socket)      // Connection socket
+:  Worker(), client(socket)
+{  if( HCDM ) debugh("ServerWorker(%p)::ServerWorker(%p)\n", this, socket); }
+
+virtual
+   ~ServerWorker( void )            // Destructor
+{  if( HCDM ) debugh("ServerWorker(%p)::~ServerWorker()...\n", this);
+
+   delete client;
+}
+
+//----------------------------------------------------------------------------
+// ServerWorker::work
+//----------------------------------------------------------------------------
+public:
 virtual void
    work( void )                     // Process work
 {
    if( opt_verbose > 1 )
-     debugh("WorkerObject::work()\n");
+     debugh("ServerWorker::work()\n");
 
    try {
-     worker();
+     run();
    } catch(pub::Exception& X) {
-     debugh("WorkerObject: %s\n", X.to_string().c_str());
+     debugh("ServerWorker %s\n", X.to_string().c_str());
    } catch(std::exception& X) {
-     debugh("WorkerObject: what(%s)\n", X.what());
+     debugh("ServerWorker what(%s)\n", X.what());
    } catch(...) {
-     debugh("WorkerObject: catch(...)\n");
+     debugh("ServerWorker catch(...)\n");
    }
 
-   delete this;                     // When done, delete this Worker
+   delete this;                     // When done, delete this ServerWorker
 }
 
-virtual void
-   worker( void )                   // Process work
+//----------------------------------------------------------------------------
+// ServerWorker::run
+//----------------------------------------------------------------------------
+void
+   run( void )                      // Process work
 {
    // Set default timeout
    struct timeval tv= { 3, 0 };     // 3.0 second timeout
-   socket->set_option(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-   socket->set_option(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+   client->set_option(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+   client->set_option(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
-   for(int count= 0;;count++) {
+   for(size_t count= 0;;++count) {
      buffer[0]= '\0';
-     int L= socket->read(buffer, sizeof(buffer)-1);
-     if( L > 0 )
-       buffer[L]= '\0';
-
-     if( opt_verbose > 1 )
-       debugh("Worker: Read %d '%s'\n", L, visify(buffer).c_str());
-     if( L <= 0 ) {
-       if( fix_1000 ) {
-         /** Problem: Chrome read returns 0 length on first read.
-         ***   (This does not cause any real problem in this code.)
-         **/
-         if( L == 0 && count == 0 ) {
-           debugh("Worker: %4d HCDM\n", __LINE__); // Bug workaround
-         }
+     ssize_t L= client->read(buffer, sizeof(buffer)-1);
+     if( L < 0 ) {
+       trace(__LINE__, "ServerWorker %zd= read", L);
+       break;
+     } else if( L == 0 ) {
+       if( count == 0 ) {
+         debugh("%4d ServerWorker HCDM\n", __LINE__); // (SSL) bug workaround
+         continue;
        }
        break;
      }
 
+     buffer[L]= '\0';
+     if( opt_verbose > 1 )
+       debugh("ServerWorker %zd= read(%s)", L, visify(buffer).c_str());
+
+     const char* mess= nullptr;
      const char* C= buffer;
      std::string meth= get_token(C);
      std::string what= get_token(C);
      std::string http= get_token(C);
-     if( meth != "GET" || http != "HTTP/1.1" ) {
-       L= socket->write(http400, strlen(http400));
-       if( opt_verbose > 1 )
-         debugh("Worker: Sent %d '%s'\n", L, visify(http400).c_str());
+     if( meth == "GET" && http == "HTTP/1.1" ) {
+       if( what == "/" || what == "/index.html"
+           || what == "/std" || what == "/ssl" )
+         mess= http200;
+       else
+         mess= http404;
      } else {
+       mess= http400;
+     }
 
-     if( what != "/" && what != "/index.html"
-         && what != "/std" && what != "/ssl" ) {
-       L= socket->write(http404, strlen(http404));
-       if( opt_verbose > 1 )
-         debugh("Worker: Sent %d '%s'\n", L, visify(http404).c_str());
-     } else {
+     L= client->write(mess, strlen(mess));
+     if( L <= 0 ) {
+       trace(__LINE__, "ServerWorker %zd= write(%zd)", L, strlen(mess));
+       break;
+     }
 
-       L= socket->write(http200, strlen(http200));
-       if( opt_verbose > 1 )
-         debugh("Worker: Sent %d '%s'\n", L, visify(http200).c_str());
-     } }
+     if( opt_verbose > 1 )
+       debugh("ServerWorker %zd= write(%s)\n", L, visify(mess).c_str());
    }
 
    // Client closed or in error state. Allow immediate port re-use
    struct linger optval;
    optval.l_onoff= 1;
    optval.l_linger= 0;
-   socket->set_option(SOL_SOCKET, SO_LINGER, &optval, sizeof(optval));
+   client->set_option(SOL_SOCKET, SO_LINGER, &optval, sizeof(optval));
 }
-}; // class WorkerObject
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       STD_ClientThread
-//
-// Purpose-
-//       The Client Thread
-//
-//----------------------------------------------------------------------------
-class STD_ClientThread : public Thread { // The client Thread
-//----------------------------------------------------------------------------
-// STD_ClientThread::Attributes
-//----------------------------------------------------------------------------
-public:
-char                   buffer[8192]; // Response data
-Socket                 socket;      // Our client Socket
-
-//----------------------------------------------------------------------------
-// STD_ClientThread::Constructors
-//----------------------------------------------------------------------------
-public:
-   ~STD_ClientThread( void )        // Destructor
-{  }
-
-   STD_ClientThread( void )         // Constructor
-:  Thread(), socket()
-{  socket.open(AF_INET, SOCK_STREAM, 0); }
-
-//----------------------------------------------------------------------------
-// STD_ClientThread::Methods
-//----------------------------------------------------------------------------
-public:
-virtual void
-   run( void )                      // Operate this Thread
-{
-   if( opt_verbose > 1 )
-     debugh("STD_ClientThread::run()\n");
-
-static const char*     request=     // The request data
-   "GET /std HTTP/1.1\r\n"
-   "\r\n"
-   ;
-
-   try {
-     // Connect to server
-     std::string name_port= host_name;
-     name_port += ':';
-     name_port += std::to_string(STD_PORT);
-     int rc= socket.connect(name_port);
-     if( rc < 0 ) {
-       int ERRNO= errno;
-       debugh("%d= STD connect() %d,%s\n", rc, ERRNO, strerror(ERRNO));
-       throw pub::Exception("Connect Failure");
-     }
-
-     // Write/read
-     int L= socket.write(request, strlen(request));
-     if( opt_verbose > 1 )
-       debugh("STD Client: Wrote %d '%s'\n", L, visify(request).c_str());
-     if( L <= 0 ) {
-       int ERRNO= errno;
-       debugh("%d= STD Write(%zd) %d,%s\n", L, strlen(request), ERRNO,
-              strerror(ERRNO));
-       throw pub::Exception("Write Failure");
-     }
-
-     L= socket.read(buffer, sizeof(buffer)-1);
-     if( L > 0 ) {
-       buffer[L]= '\0';
-       if( opt_verbose > 1 )
-         debugh("STD Client: Read %d '%s'\n", L, visify(buffer).c_str());
-     }
-
-   } catch(pub::Exception& X) {
-     debugh("STD_Client: %s\n", X.to_string().c_str());
-     testfail= true;
-   } catch(std::exception& X) {
-     debugh("STD_Client: what(%s)\n", X.what());
-     testfail= true;
-   } catch(...) {
-     debugh("STD_Client: catch(...) socket(%4d)\n", socket.get_handle());
-     testfail= true;
-   }
-
-   // Close the connection
-   socket.close();
-
-   // Post the semaphore
-   if( opt_stress )
-     semaphore.post();
-}
-}; // class STD_ClientThread
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       SSL_ClientThread
-//
-// Purpose-
-//       The Client Thread
-//
-//----------------------------------------------------------------------------
-class SSL_ClientThread : public Thread { // The client Thread
-//----------------------------------------------------------------------------
-// SSL_ClientThread::Attributes
-//----------------------------------------------------------------------------
-public:
-char                   buffer[8192]; // Response data
-SSL_Socket             socket;      // Our client Socket
-
-//----------------------------------------------------------------------------
-// SSL_ClientThread::Constructors
-//----------------------------------------------------------------------------
-public:
-   ~SSL_ClientThread( void )        // Destructor
-{  }
-
-   SSL_ClientThread(                // Constructor
-     SSL_CTX*          context)     // SSL_CTX
-:  Thread(), socket(context)
-{  socket.open(AF_INET, SOCK_STREAM, 0); }
-
-//----------------------------------------------------------------------------
-// SSL_ClientThread::Methods
-//----------------------------------------------------------------------------
-public:
-virtual void
-   run( void )                      // Operate this Thread
-{
-   if( opt_verbose > 1 )
-     debugh("SSL_ClientThread::run()\n");
-
-static const char*     request=     // The request data
-   "GET /ssl HTTP/1.1\r\n"
-   ;
-
-   try {
-     // Connect to server
-     std::string name_port= host_name;
-     name_port += ':';
-     name_port += std::to_string(SSL_PORT);
-     int rc= socket.connect(name_port);
-     if( rc < 0 ) {
-       int ERRNO= errno;
-       debugh("%d= STD connect() %d,%s\n", rc, ERRNO, strerror(ERRNO));
-       throw pub::Exception("Connect Failure");
-     }
-
-     // Write/Read
-     int L= socket.write(request, strlen(request));
-     if( opt_verbose > 1 )
-       debugh("SSL Client: Wrote %d '%s'\n", L, visify(request).c_str());
-
-     L= socket.read(buffer, sizeof(buffer)-1);
-     if( L > 0 ) {
-       buffer[L]= '\0';
-       if( opt_verbose > 1 )
-         debugh("SSL Client: Read %d '%s'\n", L, visify(buffer).c_str());
-     }
-
-   } catch(pub::Exception& X) {
-     debugh("SSL_Client: %s\n", X.to_string().c_str());
-     testfail= true;
-   } catch(std::exception& X) {
-     debugh("SSL_Client: what(%s)\n", X.what());
-     testfail= true;
-   } catch(...) {
-     debugh("SSL_Client: catch(...) socket(%4d)\n", socket.get_handle());
-     testfail= true;
-   }
-
-   // Close the connection
-   socket.close();
-
-   // Post the semaphore
-   if( opt_stress )
-     semaphore.post();
-}
-}; // class SSL_ClientThread
+}; // class ServerWorker
 
 //----------------------------------------------------------------------------
 //
@@ -733,7 +1013,7 @@ virtual void
    // Initialize the socket
    int rc= listen.open(AF_INET, SOCK_STREAM, 0);
    if( rc ) {                       // If failure
-     errorp("STD_server:open");
+     trace(__LINE__, "STD_server:open");
      return;
    }
 
@@ -742,13 +1022,13 @@ virtual void
 
    rc= listen.bind(port);           // Set port number
    if( rc ) {                       // If failure
-     errorp("STD_server:bind");
-//     return;
+     trace(__LINE__, "STD_server:bind");
+     return;
    }
    rc= listen.listen();
    if( rc ) {                       // If failure
-     errorp("STD_server:listen");
-//     return;
+     trace(__LINE__, "STD_server:listen");
+     return;
    }
 
    // Ready to go
@@ -757,22 +1037,21 @@ virtual void
 
    try {
      while( operational ) {
-       Socket* server= listen.accept();
+       Socket* client= listen.accept();
 
        {{{{
          LOCK_GUARD(mutex);
-         if( operational && server ) {
-           WorkerObject* worker= new WorkerObject(server);
+         if( operational && client ) {
+           ServerWorker* worker= new ServerWorker(client);
            if( opt_worker )
              WorkerPool::work(worker);
            else
              worker->work();
-           server= nullptr;
+           client= nullptr;
          }
        }}}}
 
-       if( server )
-         delete server;
+       delete client;
      }
    } catch(pub::Exception& X) {
      debugh("Exception: %s\n", X.to_string().c_str());
@@ -853,22 +1132,21 @@ virtual void
 
    try {
      while( operational ) {
-       Socket* server= listen.accept();
+       Socket* client= listen.accept();
 
        {{{{
          LOCK_GUARD(mutex);
-         if( operational && server ) {
-           WorkerObject* worker= new WorkerObject(server);
+         if( operational && client ) {
+           ServerWorker* worker= new ServerWorker(client);
            if( opt_worker )
              WorkerPool::work(worker);
            else
              worker->work();
-           server= nullptr;
+           client= nullptr;
          }
        }}}}
 
-       if( server )
-         delete server;
+       delete client;
      }
    } catch(pub::Exception& X) {
      debugh("Exception: %s\n", X.to_string().c_str());
@@ -913,142 +1191,6 @@ static inline void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       ssl_stressor
-//
-// Purpose-
-//       Run SSL stress test
-//
-//----------------------------------------------------------------------------
-static void
-   ssl_stressor(                    // Run SSL stress test
-     SSL_CTX*          context)     // Our client context
-{
-static const int THREAD_COUNT= 64;  // Maximum thread count
-   testfail= false;                 // No failure yet
-
-   semaphore.reset();
-   SSL_ClientThread* thread[THREAD_COUNT];
-   for(int i= 0; i<THREAD_COUNT; i++) {
-     thread[i]= new SSL_ClientThread(context);
-     thread[i]->start();
-   }
-
-   debugf("SSL Stress: Started\n");
-   long op_count= 0;                // Number of completed threads
-   interval.start();
-   while( interval.stop() < double(opt_runtime) && testfail == false ) {
-     semaphore.wait();
-     for(int i= 0; i<THREAD_COUNT; i++) {
-       if( thread[i]->socket.get_handle() == Socket::CLOSED ) {
-         op_count++;
-         thread[i]->join();
-         delete thread[i];
-
-         thread[i]= new SSL_ClientThread(context);
-         thread[i]->start();
-         break;
-       }
-     }
-   }
-   double runtime= interval.stop();
-
-   // Complete all threads
-   for(;;) {
-     int running= 0;
-     for(int i= 0; i<THREAD_COUNT; i++) {
-       if( thread[i] ) {
-         running++;
-         if( thread[i]->socket.get_handle() == Socket::CLOSED ) {
-           thread[i]->join();
-           delete thread[i];
-           thread[i]= nullptr;
-         }
-       }
-     }
-
-     if( running == 0 )
-       break;
-
-     Thread::sleep(0.5);
-   }
-
-   // Statistics
-   debugf("SSL Client: %s\n", testfail ? "FAILED" : "Complete");
-   debugf("%'8ld Operations\n", op_count);
-   debugf("%'12.3f Seconds\n", runtime);
-   debugf("%'12.3f Operations/second\n", double(op_count) / runtime);
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       std_stressor
-//
-// Purpose-
-//       Run standard stress test
-//
-//----------------------------------------------------------------------------
-static void
-   std_stressor( void )             // Run standard stress test
-{
-static const int THREAD_COUNT= 16;  // Maximum thread count
-   testfail= false;                 // No failure yet
-
-   STD_ClientThread* thread[THREAD_COUNT];
-   for(int i= 0; i<THREAD_COUNT; i++) {
-     thread[i]= new STD_ClientThread();
-     thread[i]->start();
-   }
-
-   debugf("STD Stress: Started\n");
-   long op_count= 0;                // Number of completed threads
-   interval.start();
-   while( interval.stop() < double(opt_runtime) && testfail == false ) {
-     semaphore.wait();
-     for(int i= 0; i<THREAD_COUNT; i++) {
-       if( thread[i]->socket.get_handle() == Socket::CLOSED ) {
-         op_count++;
-         thread[i]->join();
-         delete thread[i];
-
-         thread[i]= new STD_ClientThread();
-         thread[i]->start();
-         break;
-       }
-     }
-   }
-
-   // Complete all threads
-   double runtime= interval.stop();
-   for(;;) {
-     int running= 0;
-     for(int i= 0; i<THREAD_COUNT; i++) {
-       if( thread[i] ) {
-         running++;
-         if( thread[i]->socket.get_handle() == Socket::CLOSED ) {
-           thread[i]->join();
-           delete thread[i];
-           thread[i]= nullptr;
-         }
-       }
-     }
-
-     if( running == 0 )
-       break;
-
-     Thread::sleep(0.5);
-   }
-
-   // Statistics
-   debugf("STD Client: %s\n", testfail ? "FAILED" : "Complete");
-   debugf("%'8ld Operations\n", op_count);
-   debugf("%'12.3f Seconds\n", runtime);
-   debugf("%'12.3f Operations/second\n", double(op_count) / runtime);
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
 //       info
 //
 // Purpose-
@@ -1060,13 +1202,11 @@ static void
 {
    fprintf(stderr, "SampleSSL [options]\n"
                    "Options:\n"
-                   "  --{no-}fix_1000\n"
                    "  --{no-}client\n"
                    "  --{no-}server\n"
                    "  --{no-}thread\n"
                    "  --{no-}worker\n"
                    "  --runtime=value\n"
-                   "  --trace\t{=size} Enable trace, default size= 1M\n"
                    "  --verbose{=value}\n"
           );
 
@@ -1085,44 +1225,15 @@ static void
 static void
    init( void)                      // Initialize
 {
-   //-------------------------------------------------------------------------
-   // Create memory-mapped trace file
-   if( USE_TRACE && opt_trace < 0x00040000 )
-     opt_trace= 0x00040000;
+   initialize_SSL();                // Initialize SSL
 
-   if( opt_trace ) {                // If --trace specified
-     int mode= O_RDWR | O_CREAT;
-     int perm= S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-     int fd= open(TRACE_FILE, mode, perm);
-     if( fd < 0 ) {
-       fprintf(stderr, "%4d open(%s) %s\n", __LINE__
-                     , TRACE_FILE, strerror(errno));
-       exit(1);
-     }
-
-     int rc= ftruncate(fd, opt_trace); // (Expand to opt_trace length)
-     if( rc ) {
-       fprintf(stderr, "%4d ftruncate(%s,%.8x) %s\n", __LINE__
-                     , TRACE_FILE, opt_trace, strerror(errno));
-       exit(1);
-     }
-
-     mode= PROT_READ | PROT_WRITE;
-     table= mmap(nullptr, opt_trace, mode, MAP_SHARED, fd, 0);
-     if( table == MAP_FAILED ) {    // If no can do
-       fprintf(stderr, "%4d mmap(%s,%.8x) %s\n", __LINE__
-                     , TRACE_FILE, opt_trace, strerror(errno));
-       table= nullptr;
-       exit(1);
-     }
-
-     Trace::table= pub::Trace::make(table, opt_trace);
-     close(fd);                     // Descriptor not needed once mapped
-
-     Trace::trace(".INI", 0, "TRACE STARTED") ;
-   }
+   client_CTX= new_client_CTX();
+   server_CTX= new_server_CTX("public.crt", "private.key");
 
    host_name= Socket::get_host_name();
+   STD_addr= host_name + ":" + std::to_string(STD_PORT);
+   SSL_addr= host_name + ":" + std::to_string(SSL_PORT);
+
    setlocale(LC_NUMERIC, "");     // Allows printf("%'d\n", 123456789);
 }
 
@@ -1155,15 +1266,6 @@ static void
          {
            case OPT_RUNTIME:
              opt_runtime= atoi(optarg);
-             break;
-
-           case OPT_TRACE:
-             if( optarg )
-               opt_trace= atoi(optarg);
-             if( opt_trace < int(Trace::TABLE_SIZE_MIN) )
-               opt_trace= Trace::TABLE_SIZE_MIN;
-             else if( opt_trace > int(Trace::TABLE_SIZE_MAX) )
-               opt_trace= Trace::TABLE_SIZE_MAX;
              break;
 
            case OPT_VERBOSE:
@@ -1218,12 +1320,8 @@ static void
 static void
    term( void)                      // Terminate
 {
-   //-------------------------------------------------------------------------
-   // Terminate internal trace
-   if( table == Trace::table ) {
-     Trace::table= nullptr;
-     munmap(table, opt_trace);
-   }
+   SSL_CTX_free(client_CTX);
+   SSL_CTX_free(server_CTX);
 }
 
 //----------------------------------------------------------------------------
@@ -1250,30 +1348,22 @@ extern int                          // Return code
    Debug debug;
    Debug::set(&debug);
    debug.set_head(Debug::HEAD_THREAD);
-   if( HCDM || opt_runtime > 0 ) debug.set_mode(Debug::MODE_INTENSIVE);
+   if( HCDM || opt_verbose > 1 ) debug.set_mode(Debug::MODE_INTENSIVE);
+debug.set_mode(Debug::MODE_INTENSIVE);
    debug.debugh("SampleSSL Started...\n");
 
    debugf("\n");
    debugf("Settings:\n");
-   debugf("%5s: fix_1000\n", torf(fix_1000));
    debugf("%5d: runtime\n",  opt_runtime);
    debugf("%5s: stress\n",   torf(opt_stress));
    debugf("%5s: client\n",   torf(opt_client));
    debugf("%5s: thread\n",   torf(opt_thread));
-   debugf("%5s: trace\n",    torf(opt_trace));
    debugf("%5s: server\n",   torf(opt_server));
    debugf("%5s: worker\n",   torf(opt_worker));
    debugf("%5d: verbose\n",  opt_verbose);
    debugf("\n");
 
    try {
-     initialize_SSL();              // Initialize SSL
-
-     SSL_CTX* client_CTX= new_client_CTX();
-     SSL_CTX* server_CTX= new_server_CTX("public.crt", "private.key");
-
-     STD_ClientThread std_client;   // Our STD_ClientThread
-     SSL_ClientThread ssl_client(client_CTX); // Our SSL_ClientThread
      STD_ServerThread std_server(STD_PORT); // Our STD_ServerThread
      SSL_ServerThread ssl_server(server_CTX, SSL_PORT); // Our SSL_ServerThread
 
@@ -1285,34 +1375,29 @@ extern int                          // Return code
        ssl_server.sem.wait();       // Wait until started
      }
 
+     if( opt_client ) {             // Run client test?
+       STD_client std_client;       // Our STD_client thread
+       SSL_client ssl_client;       // Our SSL_client thread
+       std_client.client();
+       ssl_client.client();
+     }
+
      if( opt_stress ) {             // Run stress test?
        debugf("\n");
-       std_stressor();              // Run STD stress test
-       Thread::sleep(0.5);          // Completion delay
+       WorkerPool::reset();
+       STD_client::stress();        // Run STD stress test
+       Thread::sleep(0.125);        // Completion delay
        WorkerPool::debug();
 
        debugf("\n");
        WorkerPool::reset();
-       ssl_stressor(client_CTX);    // Run SSL stress test
-       Thread::sleep(0.5);          // Completion delay
+       SSL_client::stress();        // Run SSL stress test
+       Thread::sleep(0.125);        // Completion delay
        WorkerPool::debug();
-     } else {
-       if( opt_client ) {
-         if( opt_thread ) {
-           std_client.start();      // Start our STD_ClientThread
-           ssl_client.start();      // Start our SSL_ClientThread
+     }
 
-           std_client.join();       // (Wait for completion)
-           ssl_client.join();       // (Wait for completion)
-         }
-       } else {
-         std_client.run();          // (Run in main thread)
-         ssl_client.run();          // (Run in main thread)
-       }
-
-       if( opt_server && opt_runtime > 0 ) {
-         Thread::sleep(opt_runtime);
-       }
+     if( is_server ) {              // Run server?
+       Thread::sleep(opt_runtime);
      }
 
      if( opt_server ) {
@@ -1322,11 +1407,9 @@ extern int                          // Return code
        ssl_server.join();
      }
 
-//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
+     // line(__LINE__);
      Thread::sleep(0.5);            // Completion delay
 
-     SSL_CTX_free(client_CTX);
-     SSL_CTX_free(server_CTX);
    } catch(pub::Exception& X) {
      errorCount++;
      debugf("pub::Exception: %s\n", X.to_string().c_str());

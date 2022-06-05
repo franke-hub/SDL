@@ -16,7 +16,7 @@
 //       Test Thread function.
 //
 // Last change date-
-//       2022/04/22
+//       2022/06/05
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -748,6 +748,8 @@ extern int
 
      if( opt_verbose ) {
        debugf("\n");
+       Thread::static_debug("");
+
        tr->report_errors(error_count);
      }
      return error_count != 0;

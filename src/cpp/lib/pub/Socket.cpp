@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/05/27
+//       2022/06/04
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -222,9 +222,11 @@ void
 //
 // Method-
 //       Socket::get_host_name
+//       Socket::set_peer_addr
 //
 // Purpose-
 //       Get the host name
+//       Set the peer internet address/length
 //
 //----------------------------------------------------------------------------
 std::string                         // The host name
@@ -240,6 +242,26 @@ std::string                         // The host name
      host_name[0]= '\0';
    }
    return host_name;
+}
+
+void
+   Socket::set_peer_addr(           // Set peer address
+     const sockaddr*   peeraddr,    // Peer address
+     socklen_t         peersize)    // Peer address length
+{
+   if( (size_t)peersize > sizeof(peer_addr) )
+     peersize= sizeof(peer_addr);
+
+   memcpy(&peer_addr, peeraddr, peersize);
+   peer_size= peersize;
+}
+
+int                                 // Return code, 0 OK
+   Socket::set_peer_addr(           // Set peer address (See set_host_addr)
+     std::string       nps)         // "name:port" string
+{
+   peer_size= sizeof(peer_addr);
+   return name_to_addr(nps, (sockaddr*)&peer_addr, &peer_size);
 }
 
 //----------------------------------------------------------------------------
@@ -308,137 +330,15 @@ Socket*                             // The new connection Socket
    // Accept the next connection
    int client;
    for(;;) {
-     /* IMPLEMENTATION NOTE: *************************************************
-     A problem occurs in Test/TestSock --stress, where clients only use
-     connections for one HTTP operation. After about 30K operations clients
-     fail to connect and the server ::accept operation does not complete.
-
-     Problem 1) The server accept operation blocks.
-     It's only this part of the problem that we can address here. The options
-     tried are coded below. Options 0 and 1 rely on the client to fix the
-     problem and options 2 and 3 prevent the accept from blocking. We don't
-     want to leave Socket operations in an unrecoverable blocked state if it's
-     reasonably avoidable. Option 3 only has about a 0.5% overhead over the
-     entire HTTP operation sequence, and is the implementation chosen.
-
-     Problem 2) Clients fail to connect.
-     This occurs because sockets are left in the TIME_WAIT state after close,
-     and the rapid re-use of ports exhausts the port space. In a server, this
-     can only be fixed using SO_LINGER with linger l_onoff=1 and l_linger=0
-     to immediately close its half of the socket. It only needs to do this
-     when it detects a client close or a transmission error, so there's no
-     associated client recovery required.
-
-     We implement this SO_LINGER logic in TestSock's StreamServer::serve
-     method. With that logic and StreamServer::stop's normal recovery logic,
-     TestSock --stress runs properly with any of the options below.
-
-     Implementation options are coded below.
-     ************************************************************************/
-
-// ===========================================================================
-#define ACCEPT_OPTION 0
-#define ACCEPT_HCDM false
-
-#if false                           // (Used for option verification)
-static int once= true;
-     if( once ) {
-       once= false;
-       debugf("%4d HCDM ACCEPT_OPTION(%d)\n", __LINE__, ACCEPT_OPTION);
-     }
-#endif
-
-#if ACCEPT_OPTION == 0
-     // Do nothing...
-     //
-     // The client fails to connect after about 30K operations and the ::accept
-     // operation hangs.
-     //
-     // 6025 ops/second Timing w/TestSock USE_LINGER == true
-
-#elif ACCEPT_OPTION == 1
-     // Add a short time delay
-     //
-     // The client fails to connect after about 30K operations and the ::accept
-     // operation hangs.
-     //
-     // 3200 ops/second Timing w/TestSock setting SO_LINGER option
-
-     usleep(125);
-
-#elif ACCEPT_OPTION == 2
-     // Use select to insure that the accept won't block.
-     //
-     // The client fails to connect after about 30K operations.
-     // The server does not see the client's failing connection attempts.
-     // With TestSock's StreamServer::stop method disabled, the select times
-     // out, and the "::accept would block" path is driven.
-     //
-     // With the stop method enabled, the listener socket is closed well before
-     // the select timeout. In this instance (for some unknown reason) select
-     // returns 1, so the accept fails with "Bad file descriptor" because it's
-     // using the CLOSED handle.
-     //
-     // 5825 ops/second Timing w/TestSock USE_LINGER == true
-
-     struct timeval tv= {};
-     tv.tv_usec= 1000000;
-
-     fd_set rd_set;
-     FD_ZERO(&rd_set);
-     FD_SET(handle, &rd_set);
-     int rc= select(handle+1, &rd_set, nullptr, nullptr, &tv);
-     if( ACCEPT_HCDM )
-       traceh("%4d %d=select(%d) tv(%zd,%zd) %d:%s\n", __LINE__, rc, handle+1
-             , tv.tv_sec, tv.tv_usec, errno, strerror(errno));
-     if( rc == 0 ) {                // If timeout
-       if( IODM )
-         debugh("%4d %s ::accept would block\n", __LINE__, __FILE__);
-       return nullptr;
-     }
-
-#elif ACCEPT_OPTION == 3
-     // Use poll to insure that the accept won't block.
-     //
-     // The client fails to connect after about 30K operations.
-     // The server does not see the client's failing connection attempts.
-     // When the poll times out (or fails) the accept is simply skipped,
-     // and nullptr returned (indicating a transient error.)
-     //
-     // 6000 ops/second Timing w/TestSock USE_LINGER == true
-
-     struct pollfd pfd;
-     pfd.fd= handle;
-     pfd.events= POLLIN;
-     pfd.revents= 0;
-     int rc= ::poll(&pfd, 1, 1000); // 1 second timeout (1000 ms)
-     if( ACCEPT_HCDM )
-       traceh("%4d %d=poll() {%.4x,%.4x}\n", __LINE__, rc
-             , pfd.events, pfd.revents);
-     if( rc <= 0 ) {                // If polling error or timeout
-       if( IODM ) {
-         if( rc < 0 )
-           trace(__LINE__, "%d= poll()", rc);
-         else
-           debugh("%4d %s ::accept would block\n", __LINE__, __FILE__);
-       }
-       return nullptr;
-     }
-#endif // ====================================================================
-
-     if( ACCEPT_HCDM )
-       traceh("%4d HCDM accept\n", __LINE__);
      peer_size= sizeof(peer_addr);
      client= ::accept(handle, (sockaddr*)&peer_addr, &peer_size);
-     if( ACCEPT_HCDM )
-       traceh("%4d HCDM(%d) %d %d,%d accepted %d %d:%s\n", __LINE__, handle
-             , ACCEPT_OPTION, get_host_port(), get_peer_port(), client
-             , errno, strerror(errno));
+     if( IODM )
+       trace(__LINE__, "%d= accept", client);
 
      if( client >= 0 )              // If valid handle
        break;
 
-     if( handle < 0 )               // If socket is currently closed
+     if( handle < 0 )               // If Socket is currently closed
        return nullptr;              // (Expected)
 
      if( errno != EINTR ) {         // If not interrupted
@@ -449,11 +349,12 @@ static int once= true;
      }
    }
 
-   // NOTE: Copy constructor only copies host_addr/size and peer_addr/size.
-   Socket* result= new Socket(*this);
+   Socket* result= new Socket();
    result->handle= client;
-   if( IODM )
-     trace(__LINE__, "%p[%d]= accept", result, client);
+   result->host_addr= this->host_addr;
+   result->peer_addr= this->peer_addr;
+   result->host_size= this->host_size;
+   result->peer_size= this->peer_size;
 
    return result;
 }
@@ -499,7 +400,7 @@ int                                 // Return code (0 OK)
 //       Close the Socket
 //
 // Implementation note-
-//       Duplicate close() function calls allowed.
+//       Calling close when aready closed allowed, and returns 0.
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
@@ -584,24 +485,24 @@ int                                 // Return code, 0 expected
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
    Socket::name_to_addr(            // Convert "host:port" to sockaddr_u
-     const std::string name_port,   // The "host:port" name string
-     sockaddr_u*       addr,        // OUT: The sockaddr_u
-     socklen_t*        size)        // OUT: Length of sockaddr_u
+     const std::string&nps,         // The "host:port" name string
+     sockaddr*         addr,        // OUT: The sockaddr*
+     socklen_t*        size)        // INP/OUT: The addr length
 {
-   size_t x= name_port.find(':');
+   size_t x= nps.find(':');
    if( x == std::string::npos ) {
      if( IODM )
-       traceh("'%s name:port missing ':' delimiter\n", name_port.c_str());
+       traceh("'%s name:port missing ':' delimiter\n", nps.c_str());
      errno= EINVAL;
      return -1;
    }
    std::string name;
    if( x )
-     name= name_port.substr(0, x);
+     name= nps.substr(0, x);
    else
      name= Socket::get_host_name();
 
-   std::string port= name_port.substr(x+1);
+   std::string port= nps.substr(x+1);
    if( port == "" )
      port= "0";
 
@@ -663,6 +564,40 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Socket::poll
+//       Socket::ppoll
+//
+// Purpose-
+//       Poll *this* Socket
+//
+//----------------------------------------------------------------------------
+int                                 // Return code
+   Socket::poll(                    // Poll this Socket
+     struct pollfd*    pfd,         // IN/OUT The (system-defined) pollfd
+     int               timeout)     // Timeout (in milliseconds)
+{
+   if( pfd->fd != handle )
+     pfd->fd= handle;
+
+   return ::poll(pfd, 1, timeout);
+}
+
+int                                 // Return code
+   Socket::ppoll(                   // Poll this Socket
+     struct pollfd*    pfd,         // The (system) pollfd
+     const struct timespec*
+                       timeout,     // Timeout
+     const sigset_t*   sigmask)     // Signal set mask
+{
+   if( pfd->fd != handle )
+     pfd->fd= handle;
+
+   return ::ppoll(pfd, 1, timeout, sigmask);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Socket::read
 //
 // Purpose-
@@ -683,6 +618,8 @@ ssize_t                             // Number of bytes read
 //
 // Method-
 //       Socket::recv
+//       Socket::recvfrom
+//       Socket::recvmsg
 //
 // Purpose-
 //       Receive from the Socket
@@ -694,8 +631,31 @@ ssize_t                             // Number of bytes read
      size_t            size,        // Data length
      int               flag)        // Receive options
 {
-   ssize_t L= ::recv(handle, (char*)addr, size, flag);
+   ssize_t L= ::recv(handle, addr, size, flag);
    if( IODM ) trace(__LINE__, "%zd= recv()", L);
+   return L;
+}
+
+ssize_t                             // The number of bytes read
+   Socket::recvfrom(                // Read from the socket
+     void*             addr,        // Data address
+     size_t            size,        // Data length
+     int               flag,        // Send options
+     sockaddr*         peer_addr,   // Source peer address
+     socklen_t*        peer_size)   // Source peer address length
+{
+   ssize_t L= ::recvfrom(handle, addr, size, flag, peer_addr, peer_size);
+   if( IODM ) trace(__LINE__, "%zd= recvfrom()", L);
+   return L;
+}
+
+ssize_t                             // The number of bytes written
+   Socket::recvmsg(                 // Receive message from the peer
+     msghdr*           msg,         // Message header
+     int               flag)        // Send options
+{
+   ssize_t L= ::recvmsg(handle, msg, flag);
+   if( IODM ) trace(__LINE__, "%zd= recvmsg()", L);
    return L;
 }
 
@@ -703,6 +663,8 @@ ssize_t                             // Number of bytes read
 //
 // Method-
 //       Socket::send
+//       Socket::sendmsg
+//       Socket::sendto
 //
 // Purpose-
 //       Transmit to the Socket
@@ -714,8 +676,31 @@ ssize_t                             // Number of bytes sent
      size_t            size,        // Data length
      int               flag)        // Transmit options
 {
-   ssize_t L= ::send(handle, (char*)addr, size, flag);
+   ssize_t L= ::send(handle, addr, size, flag);
    if( IODM ) trace(__LINE__, "%zd= send()", L);
+   return L;
+}
+
+ssize_t                             // The number of bytes written
+   Socket::sendmsg(                 // Write to the socket
+     const msghdr*     msg,         // Message header
+     int               flag)        // Send options
+{
+   ssize_t L= ::sendmsg(handle, msg, flag);
+   if( IODM ) trace(__LINE__, "%zd= sendmsg()", L);
+   return L;
+}
+
+ssize_t                             // The number of bytes written
+   Socket::sendto(                  // Write to the socket
+     const void*       addr,        // Data address
+     size_t            size,        // Data length
+     int               flag,        // Send options
+     const sockaddr*   peer_addr,   // Target peer address
+     socklen_t         peer_size)   // Target peer address length
+{
+   ssize_t L= ::sendto(handle, addr, size, flag, peer_addr, peer_size);
+   if( IODM ) trace(__LINE__, "%zd= sendto()", L);
    return L;
 }
 
@@ -874,8 +859,8 @@ void
      const char*       info) const  // Diagnostic info
 {
    debugf("SSL_Socket(%p)::debug(%s)\n", this, info);
-
-   // NOT CODED TET
+   debugf("..ssl_ctx(%p) ssl(%p)\n", ssl_ctx, ssl);
+   Socket::debug(info);
 }
 
 void
@@ -998,11 +983,11 @@ int                                 // Return code (0 OK)
 
 int                                 // Return code (0 OK)
    SSL_Socket::connect(             // Connect to peer
-     const std::string&name_port)   // Peer name:port
+     const std::string&nps)         // Peer "name:port" string
 {  if( HCDM )
-     debugh("SSL_Socket(%p)::connect(%s)\n", this, name_port.c_str());
+     debugh("SSL_Socket(%p)::connect(%s)\n", this, nps.c_str());
 
-   return Socket::connect(name_port);
+   return Socket::connect(nps);
 }
 
 //----------------------------------------------------------------------------
