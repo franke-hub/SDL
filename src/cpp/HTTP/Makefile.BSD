@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2019-2021 Frank Eskesen.
+##       Copyright (c) 2019-2022 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2021/05/16
+##       2021/06/05
 ##
 ##############################################################################
 
@@ -42,22 +42,24 @@ liblocal.a: $(LIBOBJ)
 	$(AR) $@ $^
 	touch $@
 
-$(MAKEXE): liblocal.a
+$(MAKEXE): liblocal.a make.cert
 
 ##############################################################################
-## Library dependencies
+## Dependencies
 include $(INCDIR)/com/Makefile.BSD
 include $(INCDIR)/pub/Makefile.BSD
 
 ##############################################################################
 ## Make a certificate
 .PHONY: cert key
-cert: ;
-	@echo -e "US\nState\nLocality\nCompany\nDivision\nbigblue.org\n\n" |\
+make.cert: ;
+	@printf "US\nState\nLocality\nCompany\nDivision\ncomputer.org\n\n\n" | \
 openssl req -x509 -nodes -days 3653 -newkey rsa:2048 -keyout private.key -out public.crt >/dev/null 2>/dev/null
-	@echo "Generated: private.key, public.crt, valid for 10 years"
+	@printf "Generated: private.key, public.crt, valid for 10 years\n"
+	@touch make.cert
 
-key: cert                           ## Alias for cert
+cert: make.cert
+keys: make.cert                     ## Alias for cert
 
 ##############################################################################
 ## Verify a certificate
@@ -87,6 +89,7 @@ help: ;
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
+	-@rm make.cert       >/dev/null 2>/dev/null
 	-@rm liblocal.a      >/dev/null 2>/dev/null
 	-@rm trace.*         >/dev/null 2>/dev/null
 
