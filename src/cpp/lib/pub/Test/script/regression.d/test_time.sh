@@ -38,9 +38,9 @@ function cmd
 
 ##############################################################################
 ## Test started
-echo "TEST: test_time.sh (Started) Timing tests"
+echo "TEST: test_time.sh Timing tests (started)"
 
 ##############################################################################
 ## Run timing tests
 cmd TestDisp --timing
-cmd TestSock --runtime=30 --verbose --packet --stream
+cmd TestSock --runtime=30 --verbose --packet --stream --thread --worker

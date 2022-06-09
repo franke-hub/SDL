@@ -197,4 +197,20 @@ test: ;
 ```
 Automatic certificate generation was added along the way for no extra charge.
 
+### 2022/06/08 Socket updated
+
+- Removed attempts at error recovery. It's now entirely the user's
+responsibility. Since it now closely matches the socket interface, it's no
+longer considered experimental.
+- Might want to implement some SSL_ interfaces, like SSL_set_mode. It's used
+in SSL_accept but maybe should be set by the user instead. Don't know enough
+yet to know what else might be needed.
+- No longer track setting send/recv timeout option. The retry logic that tried
+to use it was marginal at best.
+- Renamed SSL_Socket to SSL_socket.
+- Can now handle sockaddr* longer than host/peer_addr. (Extended size has been
+coded but not tested.)
+- As usual, when finding things that should have been be done better they've
+been implemented.
+
 ----

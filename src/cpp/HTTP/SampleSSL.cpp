@@ -16,7 +16,7 @@
 //       Sample HTTP/HTTPS Client/Server, using openssl socket layer.
 //
 // Last change date-
-//       2022/06/02
+//       2022/06/07
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -148,19 +148,20 @@ static int             opt_worker=  USE_WORKER; // Use worker?
 static int             opt_verbose= USE_VERBOSE; // --verbose{=verbosity}
 
 static struct option   OPTS[]=      // Options
-{  {"help",     no_argument,       &opt_help,    true}
-,  {"runtime",  required_argument, nullptr,      0}
-,  {"verbose",  optional_argument, nullptr,      0}
+{  {"help",     no_argument,       &opt_help,     true}
+,  {"runtime",  required_argument, nullptr,          0}
+,  {"verbose",  optional_argument, nullptr,          0}
 
-,  {"client",      no_argument,    &opt_client,  true} // use_client
-,  {"server",      no_argument,    &opt_server,  true} // use_server
-,  {"stress",      no_argument,    &opt_stress,  true} // Stress test?
-,  {"thread",      no_argument,    &opt_thread,  true} // Client threads?
-,  {"worker",      no_argument,    &opt_worker,  true} // Worker pool?
-,  {"no-client",   no_argument,    &opt_client,  false} // use_client
-,  {"no-server",   no_argument,    &opt_server,  false} // use_server
-,  {"no-thread",   no_argument,    &opt_thread,  false} // Client thread
-,  {"no-worker",   no_argument,    &opt_worker,  false} // Worker pool
+,  {"client",      no_argument,    &opt_client,   true} // Use client test?
+,  {"server",      no_argument,    &opt_server,   true} // Run server?
+,  {"stress",      no_argument,    &opt_stress,   true} // Use stress test?
+,  {"thread",      no_argument,    &opt_thread,   true} // Use multi-client?
+,  {"worker",      no_argument,    &opt_worker,   true} // Use server workers?
+,  {"no-client",   no_argument,    &opt_client,  false} // Don't use client
+,  {"no-server",   no_argument,    &opt_server,  false} // Don't run server
+,  {"no-stress",   no_argument,    &opt_stress,  false} // Don't use stress
+,  {"no-thread",   no_argument,    &opt_thread,  false} // Don't use multi-
+,  {"no-worker",   no_argument,    &opt_worker,  false} // Don't use workers
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
@@ -269,12 +270,13 @@ static std::string                  // The next token, "" if at end
 //       initialize_SSL
 //
 // Purpose-
-//       Initialize SSL
+//       Initialize SSL             // (Not needed)
 //
 //----------------------------------------------------------------------------
-static void
+static inline void
    initialize_SSL( void )           // Initialize SSL
 {
+#if 0
 static std::mutex      mutex;       // Latch protecting initialized
 static int             initialized= false; // TRUE when initialized
 
@@ -287,6 +289,7 @@ static int             initialized= false; // TRUE when initialized
 
      initialized= true;
    }
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -711,7 +714,7 @@ static const char*     request=     // The request data
    "\r\n"
    ;
 
-   SSL_Socket socket(client_CTX);
+   SSL_socket socket(client_CTX);
    try {
      int rc= socket.open(AF_INET, SOCK_STREAM, PF_UNSPEC);
      if( rc ) {
@@ -1094,7 +1097,7 @@ class SSL_ServerThread : public Thread { // The server Thread
 public:
 std::mutex             mutex;       // Object lock
 Semaphore              sem;         // Startup Semaphore
-SSL_Socket             listen;      // Our listener SSL_Socket
+SSL_socket             listen;      // Our listener SSL_socket
 
 bool                   operational; // TRUE while operational
 int                    port;        // Listener port
@@ -1225,14 +1228,14 @@ static void
 static void
    init( void)                      // Initialize
 {
-   initialize_SSL();                // Initialize SSL
-
    client_CTX= new_client_CTX();
    server_CTX= new_server_CTX("public.crt", "private.key");
 
    host_name= Socket::get_host_name();
    STD_addr= host_name + ":" + std::to_string(STD_PORT);
    SSL_addr= host_name + ":" + std::to_string(SSL_PORT);
+
+   is_server= opt_server && !opt_client && !opt_stress;
 
    setlocale(LC_NUMERIC, "");     // Allows printf("%'d\n", 123456789);
 }

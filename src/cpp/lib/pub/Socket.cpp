@@ -16,12 +16,14 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/06/04
+//       2022/06/08
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE                 // For ppoll
 #endif
+#define OPENSSL_API_COMPAT 0x3'00'00'000 // Deprecate function versions < 3.0.0
+
 #include <new>                      // For std::bad_alloc
 #include <mutex>                    // For mutex, std::lock_guard, ...
 
@@ -34,11 +36,12 @@
 #include <unistd.h>                 // For close, ...
 #include <arpa/inet.h>              // For internet address conversions
 #include <openssl/err.h>            // For ERR_error_string
+#include <openssl/ssl.h>            // For SSL, SSL_CTX
 #include <sys/resource.h>           // For getrlimit
 #include <sys/select.h>             // For select, ...
 #include <sys/time.h>               // For timeval, ...
 
-#include <pub/utility.h>            // For to_string()
+#include <pub/utility.h>            // For to_string(), ...
 #include <pub/Debug.h>              // For debugging
 
 #include "pub/Socket.h"             // The Socket Objects
@@ -50,12 +53,19 @@ using namespace _PUB_NAMESPACE::debugging; // For debugging
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
-,  IODM= false                      // I/O Debug Mode
+,  IODM= false                      // I/O Debug Mode?
+,  IOEM= true                       // I/O error Debug Mode?
 
 ,  USE_CROSS_CHECK= true            // Use internal cross-checking?
 }; // enum
 
 namespace _PUB_NAMESPACE {
+//----------------------------------------------------------------------------
+// Typedefs (used by internal subroutines)
+//----------------------------------------------------------------------------
+typedef pub::Socket::sockaddr_u     sockaddr_u;
+typedef pub::Socket::sockaddr_x     sockaddr_x;
+
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -84,6 +94,38 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       init_addr
+//
+// Purpose-
+//       Initialize host or peer socket address
+//
+// Implementation note-
+//       out_addr= &host_addr or &peer_addr. out_addr always != inp_addr.
+//       The caller sets host/peer_size, normally using it as inp_size.
+//
+//----------------------------------------------------------------------------
+static void
+   init_addr(                       // Initialize host or peer socket address
+     sockaddr_u*       out_addr,    // OUT: The target socket address
+     const void*       inp_addr,    // INP: The source socket address
+     socklen_t         inp_size)    // INP: The source socket address length
+{
+// memset(out_addr, 0, sizeof(*outaddr)); // (Not strictly necessary)
+   if( size_t(inp_size) > sizeof(sockaddr_u) ) {
+     sockaddr_x* alt_addr= (sockaddr_x*)out_addr;
+     alt_addr->sock_copy= (sockaddr*)malloc(inp_size);
+     if( alt_addr->sock_copy == nullptr )
+       throw std::bad_alloc();
+     memcpy(alt_addr->sock_copy, inp_addr, inp_size);
+     alt_addr->x_family= ((sockaddr*)inp_addr)->sa_family;
+   } else {
+     memcpy(out_addr, inp_addr, inp_size);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       sno_handled
 //
 // Purpose-
@@ -99,17 +141,43 @@ static int
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Socket::~Socket
+//       Socket::copy
 //
 // Purpose-
-//       Destructor
+//       Copy host_addr/size and peer_addr_size
 //
 //----------------------------------------------------------------------------
-   Socket::~Socket( void )          // Destructor
-{  if( HCDM )
-     debugh("Socket(%p)::~Socket()\n", this);
+void
+   Socket::copy(                    // Copy host_addr/size and peer_addr/size
+     const Socket&     source)      // From this source Socket
+{
+// memset(&host_addr, 0, sizeof(host_addr)); // (Not strictly necessary)
+   host_size= source.host_size;
+   if( size_t(host_size) > sizeof(host_addr) ) {
+     sockaddr_x* alt_addr= (sockaddr_x*)&host_addr;
+     alt_addr->sock_copy= (sockaddr*)malloc(host_size);
+     if( alt_addr->sock_copy == nullptr )
+       throw std::bad_alloc();
+     sockaddr* from= ((sockaddr_x*)&source.host_addr)->sock_copy;
+     memcpy(alt_addr->sock_copy, from, host_size);
+     host_addr.su_family= source.host_addr.su_family;
+   } else {
+     memcpy(&host_addr, &source.host_addr, host_size);
+   }
 
-   close();
+// memset(&peer_addr, 0, sizeof(peer_addr)); // (Not strictly necessary)
+   peer_size= source.peer_size;
+   if( size_t(peer_size) > sizeof(peer_addr) ) {
+     sockaddr_x* alt_addr= (sockaddr_x*)&peer_addr;
+     alt_addr->sock_copy= (sockaddr*)malloc(peer_size);
+     if( alt_addr->sock_copy == nullptr )
+       throw std::bad_alloc();
+     sockaddr* from= ((sockaddr_x*)&source.peer_addr)->sock_copy;
+     memcpy(alt_addr->sock_copy, from, peer_size);
+     peer_addr.su_family= source.peer_addr.su_family;
+   } else {
+     memcpy(&peer_addr, &source.peer_addr, peer_size);
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -138,10 +206,23 @@ static int
 {  if( HCDM )
      debugh("Socket(%p)::Socket(%p)\n", this, &source);
 
-   this->host_addr= source.host_addr;
-   this->peer_addr= source.peer_addr;
-   this->host_size= source.host_size;
-   this->peer_size= source.peer_size;
+   copy(source);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::~Socket
+//
+// Purpose-
+//       Destructor
+//
+//----------------------------------------------------------------------------
+   Socket::~Socket( void )          // Destructor
+{  if( HCDM )
+     debugh("Socket(%p)::~Socket()\n", this);
+
+   close();
 }
 
 //----------------------------------------------------------------------------
@@ -160,11 +241,7 @@ Socket&                             // (Always *this)
 
    close();
 
-   this->host_addr= source.host_addr;
-   this->peer_addr= source.peer_addr;
-   this->host_size= source.host_size;
-   this->peer_size= source.peer_size;
-
+   copy(source);
    return *this;
 }
 
@@ -188,8 +265,7 @@ void
    std::string S= host_addr.to_string();
    debugf("..host_addr: %s\n", host_addr.to_string().c_str());
    debugf("..peer_addr: %s\n", peer_addr.to_string().c_str());
-   debugf("..host_size(%d), peer_size(%d), recv_timeo(%d), send_timeo(%d)\n"
-         , host_size, peer_size, recv_timeo, send_timeo);
+   debugf("..host_size(%d), peer_size(%d)\n", host_size, peer_size);
 }
 
 void
@@ -222,11 +298,9 @@ void
 //
 // Method-
 //       Socket::get_host_name
-//       Socket::set_peer_addr
 //
 // Purpose-
 //       Get the host name
-//       Set the peer internet address/length
 //
 //----------------------------------------------------------------------------
 std::string                         // The host name
@@ -234,34 +308,10 @@ std::string                         // The host name
 {
    char host_name[HOST_NAME_MAX];   // The host name
    int rc= gethostname(host_name, HOST_NAME_MAX);
-   if( rc ) {
-     int ERRNO= errno;
-     traceh("%d Socket::get_host_name %d:%s\n", __LINE__
-           , ERRNO, strerror(ERRNO));
-     errno= ERRNO;
+   if( rc )
      host_name[0]= '\0';
-   }
+
    return host_name;
-}
-
-void
-   Socket::set_peer_addr(           // Set peer address
-     const sockaddr*   peeraddr,    // Peer address
-     socklen_t         peersize)    // Peer address length
-{
-   if( (size_t)peersize > sizeof(peer_addr) )
-     peersize= sizeof(peer_addr);
-
-   memcpy(&peer_addr, peeraddr, peersize);
-   peer_size= peersize;
-}
-
-int                                 // Return code, 0 OK
-   Socket::set_peer_addr(           // Set peer address (See set_host_addr)
-     std::string       nps)         // "name:port" string
-{
-   peer_size= sizeof(peer_addr);
-   return name_to_addr(nps, (sockaddr*)&peer_addr, &peer_size);
 }
 
 //----------------------------------------------------------------------------
@@ -270,7 +320,7 @@ int                                 // Return code, 0 OK
 //       Socket::get_option
 //
 // Purpose-
-//       Get socket option
+//       Get socket option (not traced)
 //
 //----------------------------------------------------------------------------
 int                                 // Return code
@@ -287,7 +337,7 @@ int                                 // Return code
 //       Socket::set_option
 //
 // Purpose-
-//       Set socket option
+//       Set socket option (not traced)
 //
 //----------------------------------------------------------------------------
 int                                 // Return code
@@ -296,21 +346,38 @@ int                                 // Return code
      int               optname,     // Name
      const void*       optval,      // Option value
      socklen_t         optlen)      // Option length (IN/OUT)
+{  return ::setsockopt(handle, optlevel, optname, optval, optlen); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::set_peer_addr
+//
+// Purpose-
+//       Set the peer internet address/length
+//
+//----------------------------------------------------------------------------
+void
+   Socket::set_peer_addr(           // Set peer address
+     const sockaddr*   peersock,    // Peer address
+     socklen_t         peersize)    // Peer address length
 {
-   int CC= ::setsockopt(handle, optlevel, optname, optval, optlen);
+   peer_size= peersize;
+   init_addr(&peer_addr, peersock, peersize);
+}
 
-   // Intercept SOL_SOCKET+SO_RCVTIMEO/SO_SNDTIMEO
-   if( CC == 0 && optlevel == SOL_SOCKET ) {
-     if( optname == SO_RCVTIMEO ) {
-       struct timeval* tv= (struct timeval*)optval;
-       recv_timeo= tv->tv_sec * 1000 + tv->tv_usec / 1000;
-     } else if( optname == SO_SNDTIMEO ) {
-       struct timeval* tv= (struct timeval*)optval;
-       send_timeo= tv->tv_sec * 1000 + tv->tv_usec / 1000;
-     }
+int                                 // Return code, 0 OK
+   Socket::set_peer_addr(           // Set peer address (See set_host_addr)
+     std::string       nps)         // "name:port" string
+{
+   sockaddr_storage peersock;
+   socklen_t peersize= sizeof(peersock);
+   int rc= name_to_addr(nps, (sockaddr*)&peersock, &peersize);
+   if( rc == 0 ) {
+     peer_size= peersize;
+     init_addr(&peer_addr, &peersock, peer_size);
    }
-
-   return CC;
+   return rc;
 }
 
 //----------------------------------------------------------------------------
@@ -321,6 +388,9 @@ int                                 // Return code
 // Purpose-
 //       Accept the next available connection
 //
+// Implementation notes-
+//       Retries errno == EINTR
+//
 //----------------------------------------------------------------------------
 Socket*                             // The new connection Socket
    Socket::accept( void )           // Get new connection Socket
@@ -328,33 +398,17 @@ Socket*                             // The new connection Socket
      debugh("Socket(%p)::accept handle(%d)\n", this, handle);
 
    // Accept the next connection
-   int client;
-   for(;;) {
-     peer_size= sizeof(peer_addr);
-     client= ::accept(handle, (sockaddr*)&peer_addr, &peer_size);
-     if( IODM )
-       trace(__LINE__, "%d= accept", client);
-
-     if( client >= 0 )              // If valid handle
-       break;
-
-     if( handle < 0 )               // If Socket is currently closed
-       return nullptr;              // (Expected)
-
-     if( errno != EINTR ) {         // If not interrupted
-       if( IODM )
-         errorp("accept");
-
-       return nullptr;
-     }
-   }
+   sockaddr_storage peersock;
+   socklen_t peersize= sizeof(peersock);
+   int client= ::accept(handle, (sockaddr*)&peersock, &peersize);
+   if( IODM ) trace(__LINE__, "%d= accept", client);
+   if( client < 0 )
+     return nullptr;
 
    Socket* result= new Socket();
    result->handle= client;
-   result->host_addr= this->host_addr;
-   result->peer_addr= this->peer_addr;
-   result->host_size= this->host_size;
-   result->peer_size= this->peer_size;
+   result->peer_size= peersize;
+   init_addr(&result->peer_addr, &peersock, peersize);
 
    return result;
 }
@@ -370,25 +424,32 @@ Socket*                             // The new connection Socket
 //----------------------------------------------------------------------------
 int                                 // Return code (0 OK)
    Socket::bind(                    // Bind to connection
-     const sockaddr*   hostaddr,    // Host address
+     const sockaddr*   hostsock,    // Host address
      socklen_t         hostsize)    // Host address length
 {  if( HCDM )
-     debugh("Socket(%p)::bind(%p,%d)\n", this, hostaddr, hostsize);
+     debugh("Socket(%p)::bind(%p,%d)\n", this, hostsock, hostsize);
 
-   if( size_t(host_size) > sizeof(this->host_addr) ) {
-     errno= EINVAL;                 // Buffer overflow detected
-     return -1;
-   }
-   int rc= ::bind(handle, hostaddr, hostsize);
-   if( IODM )
-     trace(__LINE__, "%d= bind(%d)", rc, handle);
+   int rc= ::bind(handle, hostsock, hostsize);
+   if( IODM ) trace(__LINE__, "%d= bind(%d)", rc, handle);
    if( rc == 0 ) {
-     if( (const sockaddr*)&host_addr != hostaddr )
-       memcpy(&host_addr, hostaddr, hostsize);
-     this->host_size= hostsize;
+     host_size= host_size;
+     init_addr(&host_addr, hostsock, host_size);
    }
 
    return rc;
+}
+
+int                                 // Return code (0 OK)
+   Socket::bind(                    // Bind to address
+     const std::string&host)        // Host name:port string
+{
+   sockaddr_storage hostsock;
+   socklen_t hostsize= sizeof(hostsock);
+   int rc= name_to_addr(host, (sockaddr*)&hostsock, &hostsize);
+   if( rc )
+     return rc;
+
+   return bind((sockaddr*)&hostsock, hostsize);
 }
 
 //----------------------------------------------------------------------------
@@ -400,7 +461,7 @@ int                                 // Return code (0 OK)
 //       Close the Socket
 //
 // Implementation note-
-//       Calling close when aready closed allowed, and returns 0.
+//       Calling close when aready closed is not an error.
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
@@ -411,6 +472,17 @@ int                                 // Return code, 0 OK
    if( handle >= 0 ) {
      if( selector )                 // If SocketSelect controlled
        selector->remove(this);
+
+     // Reset host_addr/peer_addr, host_size/peer_size
+     if( size_t(host_size) > sizeof(host_addr) )
+       free(((sockaddr_x*)&host_addr)->sock_copy);
+     if( size_t(peer_size) > sizeof(peer_addr) )
+       free(((sockaddr_x*)&peer_addr)->sock_copy);
+
+     memset(&host_addr, 0, sizeof(host_addr));
+     memset(&peer_addr, 0, sizeof(peer_addr));
+     host_size= 0;
+     peer_size= 0;
 
      rc= ::close(handle);
      handle= CLOSED;
@@ -430,25 +502,34 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 int                                 // Return code (0 OK)
    Socket::connect(                 // Connect to remote peer
-     const sockaddr*   peeraddr,    // Peer socket address
+     const sockaddr*   peersock,    // Peer socket address
      socklen_t         peersize)    // Peer address length
 {  if( HCDM )
-     debugh("Socket(%p)::connect(%p,%d)\n", this, peeraddr, peersize);
+     debugh("Socket(%p)::connect(%p,%d)\n", this, peersock, peersize);
 
-   if( size_t(peer_size) > sizeof(this->peer_addr) ) {
-     errno= EINVAL;                 // Buffer overflow detected
-     return -1;
-   }
-   int rc= ::connect(handle, peeraddr, peersize);
+   int rc= ::connect(handle, peersock, peersize);
    if( IODM )
-     trace(__LINE__, "%d= connect(%d)", rc, handle);
+     trace(__LINE__, "%d= connect(%d,%p,%d)", rc, handle, peersock, peersize);
+
    if( rc == 0 ) {
-     if( (const sockaddr*)&peer_addr != peeraddr )
-       memcpy(&peer_addr, peeraddr, peersize);
-     this->peer_size= peersize;
+     peer_size= peersize;
+     init_addr(&peer_addr, peersock, peersize);
    }
 
    return rc;
+}
+
+int                                 // Return code (0 OK)
+   Socket::connect(                 // Connect to address
+     const std::string&host)        // Peer name:port string
+{
+   sockaddr_storage peersock;
+   socklen_t peersize= sizeof(peersock);
+   int rc= name_to_addr(host, (sockaddr*)&peersock, &peersize);
+   if( rc )
+     return rc;
+
+   return connect((sockaddr*)&peersock, peersize);
 }
 
 //----------------------------------------------------------------------------
@@ -491,9 +572,9 @@ int                                 // Return code, 0 OK
 {
    size_t x= nps.find(':');
    if( x == std::string::npos ) {
-     if( IODM )
-       traceh("'%s name:port missing ':' delimiter\n", nps.c_str());
      errno= EINVAL;
+     if( IODM )
+       trace(__LINE__, "'%s name:port missing ':' delimiter", nps.c_str());
      return -1;
    }
    std::string name;
@@ -513,8 +594,8 @@ int                                 // Return code, 0 OK
 
    addrinfo* info= nullptr;         // Resultant info
    int rc= getaddrinfo(name.c_str(), port.c_str(), &hint, &info);
-   if( rc && IODM ) {               // If unable to get addrinfo
-     errorp("%d= getaddrinfo(%s,%s)", rc, name.c_str(), port.c_str());
+   if( IODM ) trace(__LINE__, "%d= getaddrinfo(%s)", rc, nps.c_str());
+   if( rc ) {                       // If unable to get addrinfo
      *size= 0;
    } else {
      memcpy(addr, info->ai_addr, info->ai_addrlen);
@@ -531,6 +612,9 @@ int                                 // Return code, 0 OK
 //
 // Purpose-
 //       Open a Socket
+//
+// Implementation notes-
+//       A SocketException is thrown if the Socket's already open
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
@@ -609,7 +693,7 @@ ssize_t                             // Number of bytes read
      void*             addr,        // Data address
      size_t            size)        // Data length
 {
-   ssize_t L= ::recv(handle, (char*)addr, size, 0);
+   ssize_t L= ::read(handle, (char*)addr, size);
    if( IODM ) trace(__LINE__, "%zd= read()", L);
    return L;
 }
@@ -722,8 +806,10 @@ int                                 // Return code, 0 OK
    int rc= -1;
    if( handle < 0 )
      errno= EBADF;
-   else
+   else {
      rc= ::shutdown(handle, how);
+     if( IODM ) trace(__LINE__, "%d= shutdown(%d)", rc, how);
+   }
 
    return rc;
 }
@@ -742,7 +828,7 @@ ssize_t                             // Number of bytes sent
      const void*       addr,        // Data address
      size_t            size)        // Data length
 {
-   ssize_t L= ::send(handle, (char*)addr, size, 0);
+   ssize_t L= ::write(handle, (char*)addr, size);
    if( IODM ) trace(__LINE__, "%zd= write()", L);
    return L;
 }
@@ -755,33 +841,38 @@ ssize_t                             // Number of bytes sent
 // Purpose-
 //       Convert (sockaddr_u) to string
 //
+// Implementation notes-
+//       Only families AF_INET and AF_INET6 are currently supported.
+//       Others can be added if desired.
+//
 //----------------------------------------------------------------------------
 std::string
    Socket::sockaddr_u::to_string( void ) const // Convert to string
 {
-   std::string result;              // Resultant string
-   char work[INET6_ADDRSTRLEN];     // (Address string buffer)
-   const char* buff= nullptr;       // inet_ntop resultant
+   std::string         result= "<inet_ntop error>"; // Default resultant
+
+   const char*         buff= nullptr; // inet_ntop resultant
+   char                work[INET6_ADDRSTRLEN]; // (Address string buffer)
 
    errno= 0;
-   if( su_family == AF_INET ) {    // If IPv4
-     buff= inet_ntop(AF_INET, &su_in.sin_addr, work, sizeof(work));
-     if( buff )
-       result= utility::to_string("%s:%d", buff, ntohs(su_in.sin_port));
+   switch( su_family )
+   {
+     case AF_INET:                  // If IPv4
+       buff= inet_ntop(AF_INET, &su_in.sin_addr, work, sizeof(work));
+       if( buff )
+         result= utility::to_string("%s:%d", buff, ntohs(su_in.sin_port));
+       break;
 
-   } else if( su_family == AF_INET6) { // If IPv6
-     buff= inet_ntop(AF_INET6, &su_in6.sin6_addr, work, sizeof(work));
-     if( buff )
-       result= utility::to_string("[%s]:%d\n", buff, ntohs(su_in6.sin6_port));
+     case AF_INET6:                 // If IPv6
+       buff= inet_ntop(AF_INET6, &su_in6.sin6_addr, work, sizeof(work));
+       if( buff )
+         result= utility::to_string("[%s]:%d\n", buff, ntohs(su_in6.sin6_port));
+       break;
 
-   } else {                         // If invalid address family
-     buff= work;                    // (Indicate result valid)
-     result= utility::to_string("<undefined(%d)>", su_family);
-     errno= EINVAL;
+     default:                       // If invalid address family
+       result= utility::to_string("<sa_family_t(%d)>", su_family);
+       errno= EINVAL;
    }
-
-   if( buff == nullptr )
-     result= "<inet_ntop error>";   // (errno set by inet_ntop)
 
    return result;
 }
@@ -789,14 +880,34 @@ std::string
 //----------------------------------------------------------------------------
 //
 // Method-
-//       SSL_Socket::~SSL_Socket
+//       SSL_socket::SSL_socket
+//
+// Purpose-
+//       Constructor
+//
+//----------------------------------------------------------------------------
+   SSL_socket::SSL_socket(          // Constructor
+     SSL_CTX*          context)     // The associated SSL Context
+:  Socket(), ssl_ctx(context), ssl(nullptr)
+{  if( HCDM ) debugh("SSL_socket(%p)::SSL_socket(%p)\n", this, context);
+}
+
+   SSL_socket::SSL_socket(          // Copy constructor
+     const SSL_socket& source)      // Source SSL_socket
+:  Socket(source), ssl_ctx(source.ssl_ctx), ssl(nullptr)
+{  }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       SSL_socket::~SSL_socket
 //
 // Purpose-
 //       Destructor
 //
 //----------------------------------------------------------------------------
-   SSL_Socket::~SSL_Socket( void )  // Destructor
-{  if( HCDM ) debugh("SSL_Socket(%p)::~SSL_Socket() ssl(%p)\n", this, ssl);
+   SSL_socket::~SSL_socket( void )  // Destructor
+{  if( HCDM ) debugh("SSL_socket(%p)::~SSL_socket() ssl(%p)\n", this, ssl);
 
    if( ssl )                        // If SSL state exists
      SSL_free(ssl);                 // Delete it
@@ -805,35 +916,15 @@ std::string
 //----------------------------------------------------------------------------
 //
 // Method-
-//       SSL_Socket::SSL_Socket
-//
-// Purpose-
-//       Constructor
-//
-//----------------------------------------------------------------------------
-   SSL_Socket::SSL_Socket(          // Constructor
-     SSL_CTX*          context)     // The associated SSL Context
-:  Socket(), ssl_ctx(context), ssl(nullptr)
-{  if( HCDM ) debugh("SSL_Socket(%p)::SSL_Socket(%p)\n", this, context);
-}
-
-   SSL_Socket::SSL_Socket(          // Copy constructor
-     const SSL_Socket& source)      // Source SSL_Socket
-:  Socket(source), ssl_ctx(source.ssl_ctx), ssl(nullptr)
-{  }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SSL_Socket::operator=
+//       SSL_socket::operator=
 //
 // Purpose-
 //       Assignment operator
 //
 //----------------------------------------------------------------------------
-SSL_Socket&                         // (Always *this)
-   SSL_Socket::operator=(           // Assignment operator
-     const SSL_Socket& source)      // Source SSL_Socket
+SSL_socket&                         // (Always *this)
+   SSL_socket::operator=(           // Assignment operator
+     const SSL_socket& source)      // Source SSL_socket
 {
    Socket::operator=(source);
 
@@ -846,8 +937,8 @@ SSL_Socket&                         // (Always *this)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       SSL_Socket::debug
-//       SSL_Socket::trace
+//       SSL_socket::debug
+//       SSL_socket::trace
 //
 // Purpose-
 //       Diagnostic display
@@ -855,16 +946,16 @@ SSL_Socket&                         // (Always *this)
 //
 //----------------------------------------------------------------------------
 void
-   SSL_Socket::debug(               // Diagnostic display
+   SSL_socket::debug(               // Diagnostic display
      const char*       info) const  // Diagnostic info
 {
-   debugf("SSL_Socket(%p)::debug(%s)\n", this, info);
+   debugf("SSL_socket(%p)::debug(%s)\n", this, info);
    debugf("..ssl_ctx(%p) ssl(%p)\n", ssl_ctx, ssl);
    Socket::debug(info);
 }
 
 void
-   SSL_Socket::trace(               // Trace SSL_Socket operation
+   SSL_socket::trace(               // Trace SSL_socket operation
      int               line,        // For this source code line
      const char*       fmt,         // Format string
                        ...) const   // The PRINTF argument list
@@ -874,7 +965,7 @@ void
    int ERRNO= errno;                // (Preserve errno)
    std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
 
-   traceh("%4d SSL_Socket(%p) ", line, this); // (Heading)
+   traceh("%4d SSL_socket(%p) ", line, this); // (Heading)
 
    va_start(argptr, fmt);           // Initialize va_ functions
    vtracef(fmt, argptr);            // (User error message)
@@ -892,56 +983,53 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       SSL_Socket::accept
+//       SSL_socket::accept
 //
 // Purpose-
 //       Accept next connection
 //
 //----------------------------------------------------------------------------
-Socket*                             // The new connection SSL_Socket
-   SSL_Socket::accept( void )       // Get new connection SSL_Socket
+Socket*                             // The new connection SSL_socket
+   SSL_socket::accept( void )       // Get new connection SSL_socket
 {  if( HCDM )
-     debugh("SSL_Socket(%p)::accept handle(%d)\n", this, handle);
+     debugh("SSL_socket(%p)::accept handle(%d)\n", this, handle);
 
    // Accept the next connection
-   int client;
-   for(;;) {
-     peer_size= sizeof(peer_addr);
-     client= ::accept(handle, (sockaddr*)&peer_addr, &peer_size);
+   sockaddr_storage peersock;
+   socklen_t peersize= sizeof(peersock);
+   int client= ::accept(handle, (sockaddr*)&peersock, &peersize);
+   if( IODM ) trace(__LINE__, "%d= accept", client);
+   if( client < 0 )
+     return nullptr;
 
-     if( client >= 0 )              // If valid handle
-       break;
+   SSL_socket* result= new SSL_socket(ssl_ctx);
+   result->handle= client;
+   init_addr(&result->peer_addr, &peersock, peersize);
+   peer_size= peersize;
 
-     if( handle < 0 )               // If closed
-       return nullptr;
-
-     if( errno != EINTR ) {         // If not interrupted
-       errorf("Warning: SSL_Socket::accept failure(%s)\n",
-              strerror(errno));
-       return nullptr;
-     }
-   }
-
-   SSL* ssl= SSL_new(ssl_ctx);
-   if( ssl == nullptr ) {
+   result->ssl= SSL_new(ssl_ctx);
+   if( IODM ) trace(__LINE__, "%p= SSL_new", result->ssl);
+   if( result->ssl == nullptr ) {
      display_ERR();
-     throw SocketException("SSL_new failure"); // (SHOULD NOT OCCUR)
-   }
-   SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
-
-   SSL_set_fd(ssl, client);
-   if( SSL_accept(ssl) < 0 ) {
-     if( handle >= 0 )
-       errorf("Warning: SSL_Socket::accept failure\n");
-     SSL_free(ssl);
+     delete result;
      return nullptr;
    }
+   SSL_set_fd(result->ssl, client);
+   SSL_set_mode(result->ssl, SSL_MODE_AUTO_RETRY);
 
-   SSL_Socket* result= new SSL_Socket(*this);
-   result->handle= client;
-   result->ssl= ssl;
-   if( IODM )
-     trace(__LINE__, "%p[%d]= accept()", result, client);
+   int rc= SSL_accept(result->ssl);
+   if( IODM ) trace(__LINE__, "%d= SSL_accept", rc);
+   if( rc != 1 ) {
+     if( IOEM ) {                   // (May need to pass error info to user)
+       char buff[256];
+       int ec= SSL_get_error(result->ssl, rc);
+       ERR_error_string(ec, buff);
+       fprintf(stderr, "%d= SSL_socket::accept '%s'\n", rc, buff);
+     }
+
+     delete result;
+     return nullptr;
+   }
 
    return result;
 }
@@ -949,29 +1037,36 @@ Socket*                             // The new connection SSL_Socket
 //----------------------------------------------------------------------------
 //
 // Method-
-//       SSL_Socket::connect
+//       SSL_socket::connect
 //
 // Purpose-
 //       Connect to peer
 //
+// Implementation notes-
+//       Currently, SocketException is thrown if SSL_new or SSL_connect fails.
+//       We may need to instead provide error recovery information.
+//
 //----------------------------------------------------------------------------
 int                                 // Return code (0 OK)
-   SSL_Socket::connect(             // Connect to peer
+   SSL_socket::connect(             // Connect to peer
      const sockaddr*   peer_addr,   // Peer address
      socklen_t         peer_size)   // Peer address length
 {  if( HCDM )
-     debugh("SSL_Socket(%p)::connect(%p,%d)\n", this, peer_addr, peer_size);
+     debugh("SSL_socket(%p)::connect(%p,%d)\n", this, peer_addr, peer_size);
 
    int rc= Socket::connect(peer_addr, peer_size); // Create the connection
    if( rc == 0 ) {
      ssl= SSL_new(ssl_ctx);
-     if( ssl == nullptr ) {
+     if( IODM ) trace(__LINE__, "%p= SSL_new", ssl);
+       if( ssl == nullptr ) {
        display_ERR();
        throw SocketException("SSL_new failure"); // (SHOULD NOT OCCUR)
      }
      SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
 
      SSL_set_fd(ssl, handle);
+     rc= SSL_connect(ssl);
+     if( IODM ) trace(__LINE__, "%d= SSL_connect(%p)", rc, ssl);
      if( SSL_connect(ssl) < 0 ) {
        display_ERR();
        throw SocketException("SSL_connect failure"); // (SHOULD NOT OCCUR)
@@ -981,82 +1076,43 @@ int                                 // Return code (0 OK)
    return rc;
 }
 
-int                                 // Return code (0 OK)
-   SSL_Socket::connect(             // Connect to peer
-     const std::string&nps)         // Peer "name:port" string
-{  if( HCDM )
-     debugh("SSL_Socket(%p)::connect(%s)\n", this, nps.c_str());
-
-   return Socket::connect(nps);
-}
-
 //----------------------------------------------------------------------------
 //
 // Method-
-//       SSL_Socket::read
+//       SSL_socket::read
 //
 // Purpose-
-//       Read from the SSL_Socket
+//       Read from the SSL_socket
 //
 //----------------------------------------------------------------------------
 ssize_t                             // Number of bytes read
-   SSL_Socket::read(                // Read from the SSL_Socket
+   SSL_socket::read(                // Read from the SSL_socket
      void*             addr,        // Data address
      size_t            size)        // Data length
 {
-   ssize_t L;                       // Number of bytes read
+   ssize_t L= SSL_read(ssl, addr, size);
+   if( IODM ) trace(__LINE__, "%zd= SSL_read()", L);
 
-   for(;;) {
-     L= SSL_read(ssl, addr, size);
-     if( L > 0 )
-       break;
-
-     int X= SSL_get_error(ssl, L);
-     if( IODM )  {
-       trace(__LINE__, "%zd= read() %d", L, X);
-       display_ERR();
-     }
-
-     if( X != SSL_ERROR_WANT_READ && X != SSL_ERROR_WANT_WRITE )
-       break;
-   }
-
-   if( IODM )
-     trace(__LINE__, "%zd= read()", L);
    return L;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       SSL_Socket::write
+//       SSL_socket::write
 //
 // Purpose-
-//       Write to the SSL_Socket
+//       Write to the SSL_socket
 //
 //----------------------------------------------------------------------------
 ssize_t                             // Number of bytes sent
-   SSL_Socket::write(               // Write to the SSL_Socket
+   SSL_socket::write(               // Write to the SSL_socket
      const void*       addr,        // Data address
      size_t            size)        // Data length
 {
-   ssize_t L;                       // Number of bytes read
+   ssize_t L= SSL_write(ssl, addr, size);
+   if( IODM ) trace(__LINE__, "%zd= SSL_write()", L);
 
-   for(;;) {
-     L= SSL_write(ssl, addr, size);
-     if( L > 0 )
-       break;
-
-     int X= SSL_get_error(ssl, L);
-     if( X == SSL_ERROR_ZERO_RETURN || X == SSL_ERROR_NONE )
-       break;
-
-     if( X != SSL_ERROR_WANT_READ && X != SSL_ERROR_WANT_WRITE )
-       break;
-   }
-
-   if( IODM )
-     trace(__LINE__, "%zd= write()", L);
    return L;
 }
 

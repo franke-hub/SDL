@@ -65,12 +65,18 @@ are in limbo anyway so the SO_LINGER reset doesn't add any extra client
 recovery complexity.
 
 Note that only a linger with l_onoff= 1 and l_linger=0 prevents the socket from
-going into TIME_WAIT state.
-
+going into TIME_WAIT state. Sample code:
+```
+    struct linger option;
+    option.l_onoff= 1;
+    option.l_linger= 0;
+    int rc= setsockopt(handle, SOL_SOCKET, SO_LINGER, &option, sizeof(option));
+    if( rc != 0 ) { /* Replace comment with your error recovery procedure */ }
+```
 The code used to diagnose the problem is included below. (This is a cleaned up
 version. There were a lot more debugging statements used while the actual
-problem and its solution were less clear.) The code will probably be removed
-from the source shortly since it clutters the logic.
+problem and its solution were less clear.) The code has since been removed
+from the source since it clutters the logic.
 
 ```
 //----------------------------------------------------------------------------

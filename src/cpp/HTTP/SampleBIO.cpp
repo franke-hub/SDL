@@ -323,12 +323,13 @@ static void
 //       initialize_SSL
 //
 // Purpose-
-//       Initialize SSL
+//       Initialize SSL             // (Not needed)
 //
 //----------------------------------------------------------------------------
-static void
+static inline void
    initialize_SSL( void )           // Initialize SSL
 {
+#if 0
 static std::mutex      mutex;       // Latch protecting initialized
 static int             initialized= false; // TRUE when initialized
 
@@ -341,6 +342,7 @@ static int             initialized= false; // TRUE when initialized
 
      initialized= true;
    }
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -1486,8 +1488,6 @@ extern int                          // Return code
      debugf("** bug_1000 active, check debug.out **\n\n");
 
    try {
-     initialize_SSL();              // Initialize SSL
-
      SSL_CTX* client_CTX= new_client_CTX();
      SSL_CTX* server_CTX= new_server_CTX("public.crt", "private.key");
 

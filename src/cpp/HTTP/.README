@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2019-2020 Frank Eskesen.
+##       Copyright (C) 2019-2022 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,53 +15,33 @@
 ##       Development status, history, and reminders.
 ##
 ## Last change date-
-##       2020/01/20
+##       2022/06/07
 ##
 ##############################################################################
 
 ##############################################################################
-## Subdirectory: Import.CMV
-         Copyrighted content extracted from:
-             Network Security with OpenSSL, 2002 version
-             By Pravir Chandra, Matt Messier, John Viega
-
-             Publisher : O'Reilly
-             ISBN : 0-596-00270-X
-         Redistribution disallowed
-         google "network security with openssl" for a downloadable version.
-
-##############################################################################
-## Subdirectory: Export.CMV
-         Contains a script that automatically generates keys required to
-         build a key subdirectory usable for openssl testing.
-
-##############################################################################
 ## STATUS:
-2019/03/25 lib/pub/Socket.cpp; HTTP/SampleSSL.cpp
-         While HTTP/SampleSSL.cpp and HTTP/SampleBIO.cpp currently run without
-         error, possible problems remain.
+2022/06/07 .README wasn't updated for prior distribution updates. Even the
+         initial distribution was out of synch with the code.
 
-         A Chrome browser listen can create an unusable socket/BIO. This only
-         occurs with the Chrome browser but symptoms occurs in both SampleSSL
-         and SampleBIO.cpp.
-
-         This problem now occurs in both Cygwin and Linux, but only when a
-         buffer is added to the BIO stack. USE_BUG_WORKAROUND has no effect.
-
-##############################################################################
-## FEATURES:
+2022/06/07 SampleBIO and SampleSSL run without error
+         Option defaults set so that neither requires any parameter to run the
+         stress tests.
+         To run only the server, use "--no-client --no-stress --runtime=xxx".
 
 ##############################################################################
 ## BUGS:
+2019/03/25 HTTP/SampleBIO.cpp (option --bug_1000)
+         A Chrome browser listen can create an unusable socket/BIO. This only
+         occurs with the Chrome browser but symptoms occurs in both SampleSSL
+         and SampleBIO.cpp.
+2022/06/07 Status: With --bug_1000 specified, only one SSL request is served.
+         The server fails on the second browser request.
+         Since it works OK without --bug_1000, debugging is deferred.
+         The current failure is not specific to Chrome.
 
 ##############################################################################
 ## TODO:
-2019/03/20 Verify SSL_Socket::read/write error recovery
-         Hacked read to handle receive timeout. Don't know how to properly
-         differentiate timeout from something that really should be retried
-         (or how to pass meaningful difference back to user.)
-
-2019/03/16 Build parameter passing and stress test into Sample*.cpp
 
 ##############################################################################
 ## FIXED:
@@ -69,3 +49,14 @@
 ##############################################################################
 ## CLOSED:
 
+##############################################################################
+## DONE:
+2019/03/20 Verify SSL_Socket::read/write error recovery
+         Hacked read to handle receive timeout. Don't know how to properly
+         differentiate timeout from something that really should be retried
+         (or how to pass meaningful difference back to user.)
+2022/06/07 Error recovery removed from Socket.cpp, and is left to the user.
+         SampleSSL's error recovery is to fail the test if errors occur.
+
+2019/03/16 Build parameter passing and stress test into Sample*.cpp
+2020/03/22 Done (First distribution version, .README not updated concurently.)

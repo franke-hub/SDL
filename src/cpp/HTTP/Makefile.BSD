@@ -22,8 +22,8 @@
 ##############################################################################
 ## Local library list
 LIBOBJ :=
-ignore += Dirty.o
-MAKEXE := $(patsubst $(OBJDIR)/Dirty,,$(MAKEXE))
+LIBOBJ += Empty.o
+MAKEXE := $(patsubst $(OBJDIR)/Empty,,$(MAKEXE))
 
 LLIBS  += -L. -llocal
 
@@ -34,7 +34,7 @@ DEFAULT:= $(MAKEXE)
 endif
 
 .PHONY: default
-default: $(DEFAULT) liblocal.a
+default: $(DEFAULT)
 
 ##############################################################################
 ## TARGET: liblocal.a
@@ -42,27 +42,26 @@ liblocal.a: $(LIBOBJ)
 	$(AR) $@ $^
 	touch $@
 
-$(MAKEXE): liblocal.a make.cert
+$(MAKEXE): L/libpub.a liblocal.a make.dir
 
 ##############################################################################
 ## Dependencies
-include $(INCDIR)/com/Makefile.BSD
 include $(INCDIR)/pub/Makefile.BSD
 
 ##############################################################################
 ## Make a certificate
-.PHONY: cert key
-make.cert: ;
+.PHONY: cert keys
+make.dir: ;
 	@printf "US\nState\nLocality\nCompany\nDivision\ncomputer.org\n\n\n" | \
 openssl req -x509 -nodes -days 3653 -newkey rsa:2048 -keyout private.key -out public.crt >/dev/null 2>/dev/null
-	@printf "Generated: private.key, public.crt, valid for 10 years\n"
-	@touch make.cert
+	@printf "Generated private.key, public.crt, valid for 10 years.\n"
+	@touch make.dir
 
-cert: make.cert
-keys: make.cert                     ## Alias for cert
+cert: make.dir
+keys: make.dir                      ## Alias for cert
 
 ##############################################################################
-## Verify a certificate
+## Verify the certificates
 .PHONY: verify
 verify: ;
 	openssl rsa -in private.key -check -noout
@@ -86,10 +85,15 @@ help: ;
 
 ##############################################################################
 ## Makefile cleanup
-clean : clean.dir
-.PHONY: clean.dir
+.PHONY: clean.dir pristine.dir
+clean: clean.dir
+pristine: pristine.dir
+pristine.dir: ;
+	-@rm make.dir        >/dev/null 2>/dev/null
+	-@rm private.key     >/dev/null 2>/dev/null
+	-@rm public.crt      >/dev/null 2>/dev/null
+
 clean.dir: ;
-	-@rm make.cert       >/dev/null 2>/dev/null
 	-@rm liblocal.a      >/dev/null 2>/dev/null
 	-@rm trace.*         >/dev/null 2>/dev/null
 

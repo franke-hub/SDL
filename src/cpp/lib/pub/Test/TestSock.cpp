@@ -69,6 +69,14 @@ enum                                // Generic enum
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  STD_PORT= 8080                   // Our port number
+
+// Default options
+,  USE_CLIENT= false                // --client
+,  USE_PACKET= false                // --packet or --datagram
+,  USE_SERVER= false                // --server
+,  USE_STREAM= false                // --stream
+,  USE_THREAD= false                // --thread
+,  USE_WORKER= false                // --worker
 }; // Generic enum
 
 enum                                // Debugging enum
@@ -154,26 +162,26 @@ static atomic<size_t>  ssw_count;    // Number of write operations completed
 //----------------------------------------------------------------------------
 // Extended options
 //----------------------------------------------------------------------------
-static int             opt_client= false;
-static int             opt_packet=  false;
+static int             opt_client= USE_CLIENT;
+static int             opt_packet= USE_PACKET;
 static int             opt_runtime= 0;
-static int             opt_server= false;
-static int             opt_stream= false;
+static int             opt_server= USE_SERVER;
+static int             opt_stream= USE_STREAM;
 static const char*     opt_target= nullptr;
-static int             opt_thread= true;  // TODO: DEFAULT FALSE
-static int             opt_worker= true;  // TODO: DEFAULT FALSE
+static int             opt_thread= USE_THREAD;
+static int             opt_worker= USE_WORKER;
 static struct option   opts[]=      // The getopt_long parameter: longopts
-{  {"client",   no_argument,       &opt_client,    true}
-,  {"datagram", no_argument,       &opt_packet,    true}
-,  {"packet",   no_argument,       &opt_packet,    true}
-,  {"runtime",  required_argument, nullptr,           0}
-,  {"server",   optional_argument, &opt_server,    true}
-,  {"stream",   no_argument,       &opt_stream,    true}
-,  {"stress",   no_argument,       &opt_stream,    true}
-,  {"thread",   no_argument,       &opt_thread,    true}
-,  {"worker",   no_argument,       &opt_worker,    true}
-,  {"nothread", no_argument,       &opt_thread,    false} // TODO: REMOVE
-,  {"noworker", no_argument,       &opt_worker,    false} // TODO: REMOVE
+{  {"client",    no_argument,       &opt_client,    true}
+,  {"datagram",  no_argument,       &opt_packet,    true}
+,  {"packet",    no_argument,       &opt_packet,    true}
+,  {"runtime",   required_argument, nullptr,           0}
+,  {"server",    optional_argument, &opt_server,    true}
+,  {"stream",    no_argument,       &opt_stream,    true}
+,  {"stress",    no_argument,       &opt_stream,    true}
+,  {"thread",    no_argument,       &opt_thread,    true}
+,  {"worker",    no_argument,       &opt_worker,    true}
+,  {"no-thread", no_argument,       &opt_thread,    false} // TODO: REMOVE
+,  {"no-worker", no_argument,       &opt_worker,    false} // TODO: REMOVE
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
@@ -1380,6 +1388,7 @@ int
    tc.on_info([]()
    {
      fprintf(stderr, "  --runtime=<seconds>\n");
+     fprintf(stderr, "  --client\tRun simple client test\n");
      fprintf(stderr, "  --packet\tRun datagram test\n");
      fprintf(stderr, "  --stream\tRun stream test\n");
 
@@ -1482,8 +1491,8 @@ int
 
        if( opt_server ) {
          packet_server.stop();
-         stream_server.stop();
          packet_server.join();
+         stream_server.stop();
          stream_server.join();
        }
      }
@@ -1535,8 +1544,8 @@ int
        Thread::sleep(opt_runtime);
 
        packet_server.stop();
-       stream_server.stop();
        packet_server.join();
+       stream_server.stop();
        stream_server.join();
      }
 

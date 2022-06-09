@@ -13,35 +13,17 @@
 //       ~/pub/Socket.h
 //
 // Purpose-
-//       Standard posix socket wrapper and openssl wrapper.
+//       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2022/06/04
-//
-// Implementation warning-
-//       THE SSL_Socket CLASS IS EXPERIMENTAL. The author expressly admits to
-//       a lack of experience with openssl. He finds its documentation to be
-//       either lacking or cryptic. However the documentation does make clear
-//       that it's easy to misuse openssl and believe that you are using it
-//       correctly when you are not. While this code "works," it probably
-//       contains multiple security flaws. These are in addition to glitches
-//       encountered in testing which have not been resolved.
-//
-//       For a usage sample, see ~/src/cpp/HTTP/SampleSSL.cpp
-//       Known flaws exist.  See ~/src/cpp/HTTP/.README
-//
-// Implementation limitations-
-//       sa_family_t: Only AF_INET and AF_INET6 are supported.
-//       socket type: Only SOCK_STREAM supported.
-//         protocols: Only IPPROTO_IP and IPPROTO_TCP supported. (UNCHECKED)
-//       get/set_host_port currently rely on the Port field at the same offset.
-//       (offsets of: sockaddr_in.in_port == sockaddr_in6.in6_port.)
+//       2022/06/08
 //
 // Implementation notes-
-//       Error handling is limited, and mostly left up to the user.
+//       Error recovery is non-existent, and is left up to the user.
+//
 //       SocketException is only thrown for usage errors and SHOULD NOT OCCUR
-//       conditions.
-//       (Check the library source code for details.)
+//       conditions. Recoverable SNO result only result in an error message.
+//       These need debugging and should be reported.
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SOCKET_H_INCLUDED
@@ -98,11 +80,18 @@ public:
 static const int       CLOSED= -1;  // Closed socket handle
 typedef in_port_t      Port;        // A port type
 
+// Extended sockaddr, used when size > sizeof(sockaddr_u)
+struct sockaddr_x {                 // Extended sockaddr
+sa_family_t            x_family;    // x_family
+sockaddr*              sock_copy;   // (Allocated) sockaddr copy
+}; // struct sockaddr_x
+
 union sockaddr_u {                  // Aligned union: sockaddr_in, sockaddr_in6
 uint64_t               su_align[4]; // Alignment and maximum size (32)
 sa_family_t            su_family;   // Socket address family
 sockaddr_in            su_in;       // IPv4 internet address
 sockaddr_in6           su_in6;      // IPv6 internet address
+sockaddr_x             su_x;        // Copy of sockaddr
 
 std::string to_string( void ) const; // Convert to display string
 }; // union sockaddr_u
@@ -119,18 +108,20 @@ sockaddr_u             peer_addr= {};   // The peer socket address
 socklen_t              host_size= 0;   // Length of host_addr
 socklen_t              peer_size= 0;   // Length of peer_addr
 
-int                    recv_timeo= -1; // Receive timeout
-int                    send_timeo= -1; // Send timeout
+//----------------------------------------------------------------------------
+// Socket::Constructors/Destructor/Assignment
+//----------------------------------------------------------------------------
+void                                // (Protected)
+   copy(                            // Copy host_addr/size and peer_addr/size
+     const Socket&     source);     // From this Socket
 
-//----------------------------------------------------------------------------
-// Socket::Destructor/Constructor/Assignment
-//----------------------------------------------------------------------------
 public:
+   Socket( void );                  // Default constructor
+   Socket(const Socket&);           // Copy constructor
+
 virtual
    ~Socket( void );                 // Destructor
-   Socket( void );                  // Constructor
 
-   Socket(const Socket&);           // Copy constructor
 Socket& operator=(const Socket&);   // Assignment operator
 
 //----------------------------------------------------------------------------
@@ -142,7 +133,7 @@ virtual void
 
 protected:
 _LIBPUB_PRINTF(3,4)
-void
+virtual void
    trace(                           // Trace socket operation
      int               line,        // For this source code line
      const char*       fmt,         // Format string
@@ -194,9 +185,17 @@ socklen_t                           // The peer internet address length
    get_peer_size( void ) const      // Get peer internet address length
 {  return peer_size; }
 
+virtual const SSL*                  // The associated SSL*
+   get_ssl( void ) const            // Get assocated SSL
+{  return nullptr; }                // (Always nullptr for Socket)
+
 bool                                // TRUE iff socket is open
-   is_open( void )
+   is_open( void ) const
 {  return handle >= 0; }
+
+bool                                // TRUE iff socket is open
+   is_ssl( void ) const             // Is this an SSL socket?
+{  return bool(get_ssl()); }        // (Only true for open SSL_sockets)
 
 void
    set_flags(                       // Set socket flags
@@ -230,29 +229,21 @@ void
 virtual Socket*                     // The next new connection
    accept( void );                  // Accept new connections
 
-virtual int                         // Return code (0 OK)
+int                                 // Return code (0 OK)
    bind(                            // Bind to address
      const sockaddr*   host_addr,   // Host address
      socklen_t         host_size);  // Host address length
 
 int                                 // Return code (0 OK)
    bind(                            // Bind to address
-     const std::string&host)        // Host name:port string
-{
-   host_size= sizeof(host_addr);
-   int rc= name_to_addr(host, (sockaddr*)&host_addr, &host_size);
-   if( rc )
-     return rc;
-
-   return bind((sockaddr*)&host_addr, host_size);
-}
+     const std::string&host);       // Host name:port string
 
 int                                 // Return code (0 OK)
    bind(                            // Bind this socket
      Port              port)        // To this Port
 {  return bind(get_host_name() + ":" + std::to_string(port)); }
 
-virtual int                         // Return code (0 OK)
+int                                 // Return code (0 OK)
    close( void );                   // Close the socket
 
 virtual int                         // Return code (0 OK)
@@ -262,17 +253,9 @@ virtual int                         // Return code (0 OK)
 
 int                                 // Return code (0 OK)
    connect(                         // Connect to server
-     const std::string&peer)        // Peer name:port string
-{
-   peer_size= sizeof(peer_addr);
-   int rc= name_to_addr(peer, (sockaddr*)&peer_addr, &peer_size);
-   if( rc )
-     return rc;
+     const std::string&peer);       // Peer name:port string
 
-   return connect((sockaddr*)&peer_addr, peer_size);
-}
-
-virtual int                         // Return code, 0 expected
+int                                 // Return code, 0 expected
    listen( void );                  // Set Socket to listener (server)
 
 /**
@@ -294,18 +277,18 @@ int                                 // Return code, 0 OK
      sockaddr*         addr,        // OUT: The sockaddr
      socklen_t*        size);       // INP/OUT: Length of sockaddr
 
-virtual int                         // Return code (0 OK)
+int                                 // Return code (0 OK)
    open(                            // Open the Socket
      int               family,      // Address Family
      int               type,        // Socket type
      int               protocol= 0); // Socket protocol
 
-virtual int                         // Return code
+int                                 // Return code
    poll(                            // Poll this Socket
      struct pollfd*    pfd,         // IN/OUT The (system-defined) pollfd
      int               timeout);    // Timeout (in milliseconds)
 
-virtual int                         // Return code (0 OK)
+int                                 // Return code (0 OK)
    ppoll(                           // Poll this Socket
      struct pollfd*    pfd,         // IN/OUT The (system-defined) pollfd
      const struct timespec*
@@ -317,7 +300,7 @@ virtual ssize_t                     // The number of bytes read
      void*             addr,        // Data address
      size_t            size);       // Maximum data length
 
-virtual ssize_t                     // The number of bytes read
+ssize_t                             // The number of bytes read
    recv(                            // Receive from the peer socket
      void*             addr,        // Data address
      size_t            size,        // Maximum data length
@@ -336,7 +319,7 @@ ssize_t                             // The number of bytes written
      msghdr*           msg,         // Message header
      int               flag);       // Send options
 
-virtual ssize_t                     // The number of bytes written
+ssize_t                             // The number of bytes written
    send(                            // Write to the peer socket
      const void*       addr,        // Data address
      size_t            size,        // Data length
@@ -362,7 +345,7 @@ ssize_t                             // The number of bytes written
      int               flag)        // Send options
 {  return sendto(addr, size, flag, (sockaddr*)&peer_addr, peer_size); }
 
-virtual int                         // Return code (0 OK)
+int                                 // Return code (0 OK)
    shutdown(                        // Shutdown the socket
      int               how);        // Shutdown control flags
 
@@ -375,34 +358,43 @@ virtual ssize_t                     // The number of bytes written
 //----------------------------------------------------------------------------
 //
 // Class-
-//       SSL_Socket
+//       SSL_socket
 //
 // Purpose-
 //       SSL Socket wrapper.
 //
+// Implementation notes-
+//       Note: send and recv are not supported. When using common code for
+//       Socket and SSL_socket I/O use read and write operations instead.
+//       Note that error recovery may require an is_ssl() test.
+//
+//       We may want to make the Socket send and receive function virtual and
+//       implement them here, throwing exceptions if invoked.
+//
 //----------------------------------------------------------------------------
-class SSL_Socket : public Socket {  // SSL Socket wrapper
+class SSL_socket : public Socket {  // SSL Socket wrapper
 //----------------------------------------------------------------------------
-// SSL_Socket::Attributes
+// SSL_socket::Attributes
 //----------------------------------------------------------------------------
 protected:
 SSL_CTX*               ssl_ctx;     // The associated SSL Context
 SSL*                   ssl;         // The associated SSL State
 
 //----------------------------------------------------------------------------
-// SSL_Socket::Destructor/Constructor/Assignment
+// SSL_socket::Constructors/Destructor/Assignment
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~SSL_Socket( void );             // Destructor
-   SSL_Socket(                      // Constructor
+   SSL_socket(                      // Constructor
      SSL_CTX*          context);    // The associated SSL Context
+   SSL_socket(const SSL_socket&);   // Copy constructor
 
-   SSL_Socket(const SSL_Socket&);   // Copy constructor
-SSL_Socket& operator=(const SSL_Socket&); // Assignment operator
+virtual
+   ~SSL_socket( void );             // Destructor
+
+SSL_socket& operator=(const SSL_socket&); // Assignment operator
 
 //----------------------------------------------------------------------------
-// SSL_Socket::debugging
+// SSL_socket::debugging
 //----------------------------------------------------------------------------
 virtual void
    debug(                           // Debugging display
@@ -410,14 +402,21 @@ virtual void
 
 protected:
 _LIBPUB_PRINTF(3,4)
-void
+virtual void
    trace(                           // Trace socket operation
      int               line,        // For this source code line
      const char*       fmt,         // Format string
                        ...) const;  // The PRINTF argument list
 
 //----------------------------------------------------------------------------
-// SSL_Socket::Methods
+// SSL_socket::Accessors
+//----------------------------------------------------------------------------
+virtual const SSL*                   // Get associated SSL
+   get_ssl( void ) const             // Get associated SSL
+{  return ssl; }
+
+//----------------------------------------------------------------------------
+// SSL_socket::Methods
 //----------------------------------------------------------------------------
 public:
 virtual Socket*                     // The next new connection
@@ -430,7 +429,8 @@ virtual int                         // Return code (0 OK)
 
 int                                 // Return code (0 OK)
    connect(                         // Connect to server
-     const std::string&nps);        // Peer "name:port" string
+     const std::string&nps)         // Peer "name:port" string
+{  return Socket::connect(nps); }   // Invokes connect(const sockaddr*,socklen)
 
 virtual ssize_t                     // The number of bytes read
    read(                            // Read from the socket
@@ -441,7 +441,7 @@ virtual ssize_t                     // The number of bytes written
    write(                           // Write to the socket
      const void*       addr,        // Data address
      size_t            size);       // Data length
-}; // class SSL_Socket
+}; // class SSL_socket
 
 //----------------------------------------------------------------------------
 //
@@ -480,6 +480,9 @@ int                    next= 0;     // The next selection index
 int                    size= 0;     // Number of result elements available
 int                    used= 0;     // Number of result elements used
 
+//----------------------------------------------------------------------------
+// SocketSelect::Constructor/Destructor
+//----------------------------------------------------------------------------
 public:
    SocketSelect();
    ~SocketSelect();

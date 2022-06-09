@@ -76,7 +76,7 @@ to connect because of the "Address already in use" problem described above.)
 This blocked accept condition leaves a server in an unusable and unstoppable
 state *when a client and server reside on the same machine*. The server is 
 unable to immediately complete a connect operation to complete its blocked
-accept.
+accept, because that connection's refused too.
 
 A server can prevent the blocked condition from occurring. Before the accept
 operation, a server should either use polling code such as
