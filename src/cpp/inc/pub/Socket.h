@@ -16,7 +16,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2022/06/08
+//       2022/06/09
 //
 // Implementation notes-
 //       Error recovery is non-existent, and is left up to the user.
@@ -185,17 +185,13 @@ socklen_t                           // The peer internet address length
    get_peer_size( void ) const      // Get peer internet address length
 {  return peer_size; }
 
-virtual const SSL*                  // The associated SSL*
-   get_ssl( void ) const            // Get assocated SSL
-{  return nullptr; }                // (Always nullptr for Socket)
-
 bool                                // TRUE iff socket is open
    is_open( void ) const
 {  return handle >= 0; }
 
-bool                                // TRUE iff socket is open
+virtual bool
    is_ssl( void ) const             // Is this an SSL socket?
-{  return bool(get_ssl()); }        // (Only true for open SSL_sockets)
+{  return false; }
 
 void
    set_flags(                       // Set socket flags
@@ -411,9 +407,9 @@ virtual void
 //----------------------------------------------------------------------------
 // SSL_socket::Accessors
 //----------------------------------------------------------------------------
-virtual const SSL*                   // Get associated SSL
-   get_ssl( void ) const             // Get associated SSL
-{  return ssl; }
+virtual bool
+   is_ssl( void ) const             // Is this an SSL socket?
+{  return true; }
 
 //----------------------------------------------------------------------------
 // SSL_socket::Methods

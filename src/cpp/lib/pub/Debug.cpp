@@ -273,6 +273,7 @@ void
 
    if( handle == nullptr )          // If still not active
    {
+     int ERRNO= errno;              // (Preserve errno)
      if( isSTDIO(file_name.c_str()) )
      {
        if( file_name[0] == '>' || file_name[0] == '1' )
@@ -290,6 +291,7 @@ void
          handle= stderr;
        }
      }
+     errno= ERRNO;
    }
 }
 

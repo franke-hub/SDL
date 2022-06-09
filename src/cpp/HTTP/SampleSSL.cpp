@@ -16,7 +16,7 @@
 //       Sample HTTP/HTTPS Client/Server, using openssl socket layer.
 //
 // Last change date-
-//       2022/06/07
+//       2022/06/09
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -55,8 +55,8 @@ enum                                // Generic enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
-,  STD_PORT= 8080                   // Our STD port number
 ,  SSL_PORT= 8443                   // Our SSL port number
+,  STD_PORT= 8080                   // Our STD port number
 
 // Default options - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ,  USE_RUNTIME= 10                  // Default test runtime
@@ -204,13 +204,13 @@ static int                          // Actual password length
    ctx_password_cb(                 // Our pem password callback
     char*              buff,        // Return buffer address (for password)
     int                size,        // Return buffer length  (for password)
-    int                rwflag,      // FALSE:decryption, TRUE:encryption
+    int                encrypt,     // TRUE:encryption, FALSE:decryption
     void*              userdata)    // User data
 {
-   if( false )                      // Note: only usage of userdata
-     debugf("%4d HCDM(%p,%d,%d,%p)\n", __LINE__, buff, size, rwflag, userdata);
+   if( HCDM )
+     debugf("%4d HCDM(%p,%d,%d,%p)\n", __LINE__, buff, size, encrypt, userdata);
 
-   if( rwflag ) {                   // If encryption
+   if( encrypt ) {                  // If encryption
      debugf("%4d HCDM SHOULD NOT OCCUR\n", __LINE__);
      return -1;                     // (NOT SUPPORTED)
    }
@@ -221,22 +221,6 @@ static int                          // Actual password length
 
    memcpy(buff, result, L);         // Set the resultant
    return L;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       ctx_password_cb_init
-//
-// Purpose-
-//       Initialize pem_password_cb
-//
-//----------------------------------------------------------------------------
-static void
-   ctx_password_cb_init(            // Initialize pem password callback
-     SSL_CTX*          context)     // For this context
-{
-   SSL_CTX_set_default_passwd_cb(context, ctx_password_cb);
 }
 
 //----------------------------------------------------------------------------
@@ -324,7 +308,7 @@ static SSL_CTX*
      CTX_error("SSL_CTX_new: %s");
 
    SSL_CTX_set_mode(context, SSL_MODE_AUTO_RETRY);
-   ctx_password_cb_init(context);
+   SSL_CTX_set_default_passwd_cb(context, ctx_password_cb);
 
    return context;
 }
@@ -347,7 +331,7 @@ static SSL_CTX*
    SSL_CTX* context= SSL_CTX_new(method);
    if( context == nullptr )
      CTX_error("SSL_CTX_new: %s");
-   ctx_password_cb_init(context);
+   SSL_CTX_set_default_passwd_cb(context, ctx_password_cb);
 
    if( SSL_CTX_use_certificate_file(context, pub_file, SSL_FILETYPE_PEM) <= 0 ) {
      debugf("new_serverCTX(%s,%s) invalid public file\n", pub_file, key_file);
@@ -440,9 +424,9 @@ static void
      const char*       fmt,         // Format string
                        ...)         // The PRINTF argument list
 {
+   int ERRNO= errno;                // (Preserve errno)
    va_list             argptr;      // Argument list pointer
 
-   int ERRNO= errno;                // (Preserve errno)
    LOCK_GUARD(*Debug::get());
 
    if( line != 0 )

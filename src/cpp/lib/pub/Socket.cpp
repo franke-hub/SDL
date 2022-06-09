@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/06/08
+//       2022/06/09
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -274,9 +274,9 @@ void
      const char*       fmt,         // Format string
                        ...) const   // The PRINTF argument list
 {
+   int ERRNO= errno;                // (Preserve errno)
    va_list             argptr;      // Argument list pointer
 
-   int ERRNO= errno;                // (Preserve errno)
    std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
 
    traceh("%4d Socket(%p): ", line, this); // (Heading)
@@ -889,8 +889,7 @@ std::string
    SSL_socket::SSL_socket(          // Constructor
      SSL_CTX*          context)     // The associated SSL Context
 :  Socket(), ssl_ctx(context), ssl(nullptr)
-{  if( HCDM ) debugh("SSL_socket(%p)::SSL_socket(%p)\n", this, context);
-}
+{  if( HCDM ) debugh("SSL_socket(%p)::SSL_socket(%p)\n", this, context); }
 
    SSL_socket::SSL_socket(          // Copy constructor
      const SSL_socket& source)      // Source SSL_socket

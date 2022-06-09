@@ -15,13 +15,13 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2021/06/05
+##       2022/06/09
 ##
 ##############################################################################
 
 ##############################################################################
-## Local library list
-LIBOBJ :=
+## Local library
+LIBOBJ := ############################
 LIBOBJ += Empty.o
 MAKEXE := $(patsubst $(OBJDIR)/Empty,,$(MAKEXE))
 
@@ -42,7 +42,7 @@ liblocal.a: $(LIBOBJ)
 	$(AR) $@ $^
 	touch $@
 
-$(MAKEXE): L/libpub.a liblocal.a make.dir
+$(MAKEXE): L/libpub.a liblocal.a cert.dir
 
 ##############################################################################
 ## Dependencies
@@ -50,15 +50,15 @@ include $(INCDIR)/pub/Makefile.BSD
 
 ##############################################################################
 ## Make a certificate
-.PHONY: cert keys
-make.dir: ;
+cert.dir: ;
 	@printf "US\nState\nLocality\nCompany\nDivision\ncomputer.org\n\n\n" | \
 openssl req -x509 -nodes -days 3653 -newkey rsa:2048 -keyout private.key -out public.crt >/dev/null 2>/dev/null
 	@printf "Generated private.key, public.crt, valid for 10 years.\n"
-	@touch make.dir
+	@touch cert.dir
 
-cert: make.dir
-keys: make.dir                      ## Alias for cert
+.PHONY: cert keys
+cert: cert.dir
+keys: cert.dir                      ## Alias for cert
 
 ##############################################################################
 ## Verify the certificates
@@ -89,7 +89,7 @@ help: ;
 clean: clean.dir
 pristine: pristine.dir
 pristine.dir: ;
-	-@rm make.dir        >/dev/null 2>/dev/null
+	-@rm cert.dir        >/dev/null 2>/dev/null
 	-@rm private.key     >/dev/null 2>/dev/null
 	-@rm public.crt      >/dev/null 2>/dev/null
 

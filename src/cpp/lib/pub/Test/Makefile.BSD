@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2022/04/21
+##       2022/06/09
 ##
 ##############################################################################
 
@@ -47,10 +47,6 @@ make.all: $(MAKEXE)
 
 all: make.all
 
-################################### Add pub controls and dependencies
-include $(INCDIR)/pub/Makefile.BSD
-include $(INCDIR)/com/Makefile.BSD
-
 ##############################################################################
 ## TARGET: liblocal.a
 liblocal.a: $(LIBOBJ)
@@ -74,10 +70,44 @@ do: TestDisp
 ## 	@Enviro
 
 ##############################################################################
+## Make a certificate
+host:=$(shell "hostname")
+cert.dir: ;
+	@printf "US\nState\nLocality\nCompany\nDivision\n$(host)\n\n\n" | \
+openssl req -x509 -nodes -days 3653 -newkey rsa:2048 -keyout private.pem -out public.pem >/dev/null 2>/dev/null
+	@printf "Generated private.pem, public.pem, valid for 10 years.\n"
+	@touch cert.dir
+
+.PHONY: cert keys
+cert: cert.dir
+keys: cert.dir                      ## Alias for cert
+
+##############################################################################
+## Verify the certificates
+.PHONY: verify
+verify: cert.dir
+	openssl rsa -in private.pem -check -noout
+	openssl x509 -in public.pem -text -noout
+
+##############################################################################
+## Dependency controls
+include $(INCDIR)/pub/Makefile.BSD  ## PUB library controls
+include $(INCDIR)/com/Makefile.BSD  ## Test_num.cpp requires Random
+
+$(MAKEXE): liblocal.a               ## All execs depend on local library
+TestSock: cert.dir                  ## TestSock depends on certificates
+
+##############################################################################
 ## Makefile cleanup
-.PHONY: clean.dir
+.PHONY: clean.dir pristine.dir
+pristine : pristine.dir
+pristine.dir: ;
+	-@rm -f cert.dir         >/dev/null 2>/dev/null
+	-@rm -f private.pem      >/dev/null 2>/dev/null
+	-@rm -f public.pem       >/dev/null 2>/dev/null
+
 clean: clean.dir
 clean.dir: ;
-	-@rm liblocal.a      >/dev/null 2>/dev/null
-	-@rm test_bug.*      >/dev/null 2>/dev/null
-	-@rm trace.mem       >/dev/null 2>/dev/null
+	-@rm -f liblocal.a       >/dev/null 2>/dev/null
+	-@rm -f test_bug.*       >/dev/null 2>/dev/null
+	-@rm -f trace.mem        >/dev/null 2>/dev/null

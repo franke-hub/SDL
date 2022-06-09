@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2022/06/02
+//       2022/06/09
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -26,10 +26,12 @@
 #include <new>                      // For std::bad_alloc
 #include <string>                   // For std::string
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <stdio.h>                  // For fprintf, ...
+// #include <stdlib.h>
+#include <string.h>                 // For memcpy, ...
+#include <unistd.h>                 // For getopt_long (parameters), ...
+#include <openssl/err.h>            // For ERR_error_string
+#include <openssl/ssl.h>            // For openssl SSL methods
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Event.h>              // For pub::Event
@@ -68,12 +70,14 @@ enum                                // Generic enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
-,  STD_PORT= 8080                   // Our port number
+,  SSL_PORT= 8443                   // Our SSL port number
+,  STD_PORT= 8080                   // Our STD port number
 
 // Default options
 ,  USE_CLIENT= false                // --client
 ,  USE_PACKET= false                // --packet or --datagram
 ,  USE_SERVER= false                // --server
+,  USE_SSL=    false                // --ssl
 ,  USE_STREAM= false                // --stream
 ,  USE_THREAD= false                // --thread
 ,  USE_WORKER= false                // --worker
@@ -127,8 +131,14 @@ static const char*     poll_method[]= // Polling experimental control names
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
+static std::string     peer_8080;   // The server's name:8080 string
 static std::string     peer_addr;   // The server's name:port string
+static int             peer_port= STD_PORT; // The server's port number
 static bool            is_server= false; // TRUE if running server w/o client
+
+// SSL controls
+static SSL_CTX*        client_CTX= nullptr; // Common client SSL_CTX
+static SSL_CTX*        server_CTX= nullptr; // Common server SSL_CTX
 
 // Test controls
 static int             error_count= 0; // Error counter
@@ -166,6 +176,7 @@ static int             opt_client= USE_CLIENT;
 static int             opt_packet= USE_PACKET;
 static int             opt_runtime= 0;
 static int             opt_server= USE_SERVER;
+static int             opt_ssl=    USE_SSL;
 static int             opt_stream= USE_STREAM;
 static const char*     opt_target= nullptr;
 static int             opt_thread= USE_THREAD;
@@ -176,6 +187,7 @@ static struct option   opts[]=      // The getopt_long parameter: longopts
 ,  {"packet",    no_argument,       &opt_packet,    true}
 ,  {"runtime",   required_argument, nullptr,           0}
 ,  {"server",    optional_argument, &opt_server,    true}
+,  {"ssl",       no_argument,       &opt_ssl,       true}
 ,  {"stream",    no_argument,       &opt_stream,    true}
 ,  {"stress",    no_argument,       &opt_stream,    true}
 ,  {"thread",    no_argument,       &opt_thread,    true}
@@ -229,6 +241,58 @@ static const char*     http404=     // HTTP 404 (NOT FOUND) response
    "</body>\r\n"                    // 8
    "</html>\r\n"                    // 8
    ;
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       CTX_error
+//
+// Purpose-
+//       Handle CTX creation error
+//
+//----------------------------------------------------------------------------
+static void
+   CTX_error(                       // Handle CTX creation error
+     const char*       fmt)         // Format string (with one %s)
+{
+   char buffer[256];                // Working buffer
+   long E= ERR_get_error();         // Get last error code
+   ERR_error_string(E, buffer);
+   std::string S= pub::utility::to_string(fmt, buffer);
+   throw SocketException(S);
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       ctx_password_cb
+//
+// Purpose-
+//       Our pem_password_cb
+//
+//----------------------------------------------------------------------------
+static int                          // Actual password length
+   ctx_password_cb(                 // Our pem password callback
+    char*              buff,        // Return buffer address (for password)
+    int                size,        // Return buffer length  (for password)
+    int                encrypt,     // TRUE:encryption, FALSE:decryption
+    void*              userdata)    // User data
+{
+   if( HCDM )
+     debugf("%4d HCDM(%p,%d,%d,%p)\n", __LINE__, buff, size, encrypt, userdata);
+
+   if( encrypt ) {                  // If encryption
+     debugf("%4d HCDM SHOULD NOT OCCUR\n", __LINE__);
+     return -1;                     // (NOT SUPPORTED)
+   }
+
+   const char* result= "xxyyz";     // Our (not so secret) password
+   int L= strlen(result);           // Resultant length
+   if( L > size ) L= size;          // (Cannot exceed maximum)
+
+   memcpy(buff, result, L);         // Set the resultant
+   return L;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -326,27 +390,65 @@ static inline void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       reconnect
+//       new_client_CTX
 //
 // Purpose-
-//       Attempt to create a connection, ignoring all errors.
+//       Create a client SSL_CTX
 //
 //----------------------------------------------------------------------------
-static void
-   reconnect( void )                // Attempt a dummy connection
+static SSL_CTX*
+   new_client_CTX( void )           // Create a client SSL_CTX
 {
-   try {
-     Socket socket;                 // (Socket closed by destructor)
-     int rc= socket.open(AF_INET, SOCK_STREAM, PF_UNSPEC);
-     if( rc == 0 ) {
-       rc= socket.connect(peer_addr);
-       if( USE_STOP_HCDM || opt_verbose > 1 )
-         debugh("%4d %s %d= socket.connect\n", __LINE__, __FILE__, rc);
-     }
-     Thread::sleep(0.125);
-   } catch(...) {
-     debugf("%4d %s catch(...)\n", __LINE__, __FILE__);
+   const SSL_METHOD* method= TLS_client_method();
+   SSL_CTX* context= SSL_CTX_new(method);
+   if( context == nullptr )
+     CTX_error("SSL_CTX_new: %s");
+
+   SSL_CTX_set_mode(context, SSL_MODE_AUTO_RETRY);
+   SSL_CTX_set_default_passwd_cb(context, ctx_password_cb);
+
+   return context;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       new_server_CTX
+//
+// Purpose-
+//       Create a server SSL_CTX
+//
+//----------------------------------------------------------------------------
+static SSL_CTX*
+   new_server_CTX(                  // Create a client SSL_CTX
+     const char*       pub_file,    // The public cert file name
+     const char*       key_file)    // The private key file name
+{
+   const SSL_METHOD* method= TLS_server_method();
+   SSL_CTX* context= SSL_CTX_new(method);
+   if( context == nullptr )
+     CTX_error("SSL_CTX_new: %s");
+   SSL_CTX_set_default_passwd_cb(context, ctx_password_cb);
+
+   if( SSL_CTX_use_certificate_file(context, pub_file, SSL_FILETYPE_PEM) <= 0 ) {
+     debugf("new_serverCTX(%s,%s) invalid public file\n", pub_file, key_file);
+     CTX_error("use_certificate file: %s");
    }
+
+   if( SSL_CTX_use_PrivateKey_file(context, key_file, SSL_FILETYPE_PEM) <= 0 ) {
+     debugf("new_serverCTX(%s,%s) invalid key file\n", pub_file, key_file);
+     CTX_error("use_PrivateKey file: %s");
+   }
+
+   if( !SSL_CTX_check_private_key(context) )
+   {
+     debugf("new_server_CTX(%s,%s) key mismatch\n", pub_file, key_file);
+     CTX_error("Public/private key mismatch: %s");
+   }
+
+   SSL_CTX_set_mode(context, SSL_MODE_AUTO_RETRY);
+
+   return context;
 }
 
 //----------------------------------------------------------------------------
@@ -423,22 +525,31 @@ static void
      const char*       fmt,         // Format string
                        ...)         // The PRINTF argument list
 {
-   int ERRNO= errno;                // (Preserve errno)
    va_list             argptr;      // Argument list pointer
 
+   int ERRNO= errno;                // (Preserve errno)
    LOCK_GUARD(*Debug::get());
 
-   if( line != 0 )
+   if( HCDM && true ) {
+     debugh("%4d ", line);          // (Heading)
+
+     va_start(argptr, fmt);         // Initialize va_ functions
+     vdebugf(fmt, argptr);          // (User error message)
+     va_end(argptr);                // Close va_ functions
+
+     debugf(" %d:%s\n", ERRNO, strerror(ERRNO)); // (errno information)
+   } else {
      traceh("%4d ", line);          // (Heading)
 
-   va_start(argptr, fmt);           // Initialize va_ functions
-   vtracef(fmt, argptr);            // (User error message)
-   va_end(argptr);                  // Close va_ functions
+     va_start(argptr, fmt);         // Initialize va_ functions
+     vtracef(fmt, argptr);          // (User error message)
+     va_end(argptr);                // Close va_ functions
 
-   if( ERRNO )                      // If error
-     tracef(" %d:%s\n", ERRNO, strerror(ERRNO)); // (errno information)
-   else
-     tracef("\n");
+     if( ERRNO )                    // If error
+       tracef(" %d:%s\n", ERRNO, strerror(ERRNO)); // (errno information)
+     else
+       tracef("\n");
+   }
 
    errno= ERRNO;                    // (Restore errno)
 }
@@ -509,14 +620,14 @@ struct pollfd          pfd= {};     // Poll file descriptor
    pfd.events= POLLIN | POLLOUT;
 
    if( USE_PACKET_CONNECT ) {       // (Prefer false)
-     rc= packet.connect(peer_addr); // Connect to peer
+     rc= packet.connect(peer_8080); // Connect to peer
      if( rc )
        trace(__LINE__, "PacketClient %d=connect", rc);
    } else {
-     rc= packet.set_peer_addr(peer_addr); // Set peer address
+     rc= packet.set_peer_addr(peer_8080); // Set peer address
      if( rc )
        trace(__LINE__, "PacketClient %d=set_peer_addr(%s)", rc
-            , peer_addr.c_str());
+            , peer_8080.c_str());
    }
 }
 
@@ -631,7 +742,7 @@ virtual void
    }
 
    if( opt_verbose > 1 )
-     debugf("Packet client %s terminated\n", peer_addr.c_str());
+     debugf("Packet client %s terminated\n", peer_8080.c_str());
 }
 
 //----------------------------------------------------------------------------
@@ -759,7 +870,7 @@ virtual void
 {
    operational= true;
    if( opt_verbose )
-     debugf("Packet server %s operational\n", peer_addr.c_str());
+     debugf("Packet server %s operational\n", peer_8080.c_str());
    event.post();
 
    try {
@@ -820,7 +931,7 @@ virtual void
      debugf("%'16zd Recv count\n", psr_count.load());
      debugf("%'16zd Send count\n", psw_count.load());
 
-     debugf("Packet server %s terminated\n", peer_addr.c_str());
+     debugf("Packet server %s terminated\n", peer_8080.c_str());
    }
 }
 
@@ -923,7 +1034,13 @@ Event                  event;         // Thread started event
 void
    client( void )                   // Standard HTTP operation
 {
-   Socket socket;
+   Socket     std_socket;
+   Socket*    target= &std_socket;
+   SSL_socket ssl_socket(client_CTX);
+   if( opt_ssl )
+     target= &ssl_socket;
+   Socket&    socket= *target;
+
    try {
      int rc= socket.open(AF_INET, SOCK_STREAM, PF_UNSPEC);
      if( rc ) {
@@ -1059,7 +1176,7 @@ static void
    for(int i= 0; i<thread_count; i++)
      client[i]->join();
 
-   // Statistics marker
+   // Statistics
    if( opt_verbose ) {
      debugf("--stream test: %s\n", error_count ? "FAILED" : "Complete");
      debugf("%'16ld Recv count\n", scr_count.load());
@@ -1207,7 +1324,9 @@ class StreamServer : public Thread {
 public:
 char                   buffer[32768]; // Input buffer
 Event                  event;       // Thread ready event
-Socket                 listen;      // Listener Socket
+Socket                 std_socket;
+SSL_socket             ssl_socket;
+Socket*                listen= &std_socket; // (Default) listener Socket
 Socket*                socket= nullptr; // Client Socket
 
 int                    operational= false; // TRUE while operational
@@ -1215,7 +1334,9 @@ int                    operational= false; // TRUE while operational
 //----------------------------------------------------------------------------
 // Constructors/Destructor
 //----------------------------------------------------------------------------
-   StreamServer() = default;
+   StreamServer()
+:  ssl_socket(server_CTX) {}
+
    ~StreamServer() = default;
 
 //----------------------------------------------------------------------------
@@ -1230,54 +1351,58 @@ int                    operational= false; // TRUE while operational
 virtual void
    run()
 {
-   int rc= listen.open(AF_INET, SOCK_STREAM, PF_UNSPEC);
+   if( opt_ssl )
+     listen= &ssl_socket;
+
+   int rc= listen->open(AF_INET, SOCK_STREAM, PF_UNSPEC);
    if( rc ) {
      trace(__LINE__, "StreamServer %d= open", rc);
      return;
    }
 
    int optval= true;                // (Needed before the bind)
-   listen.set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+   listen->set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
    if( USE_APOLL == USE_POLL_NONBLOCK )
-     listen.set_flags( listen.get_flags() | O_NONBLOCK );
+     listen->set_flags( listen->get_flags() | O_NONBLOCK );
 
-   rc= listen.bind(STD_PORT);       // Set port number
+   rc= listen->bind(peer_addr);     // Set port number
    if( rc ) {
      trace(__LINE__, "StreamServer %d= bind", rc);
-     listen.close();
+     listen->close();
      return;
    }
-   rc= listen.listen();             // Set listener socket
+   rc= listen->listen();            // Set listener socket
    if( rc ) {
      trace(__LINE__, "StreamServer %d= listen", rc);
-     listen.close();
+     listen->close();
      return;
    }
 
    SocketSelect select;
    if( USE_APOLL == USE_POLL_SELECT )
-     select.insert(&listen, POLLIN);
+     select.insert(socket, POLLIN);
 
    struct pollfd pfd= {};
    pfd.events= POLLIN;
 
    operational= true;
    if( opt_verbose )
-     debugf("Stream server %s operational\n", peer_addr.c_str());
+     debugf("Stream %sserver %s operational\n", opt_ssl ? "ssl_" : ""
+           , peer_addr.c_str());
    event.post();
 
    try {
      while( operational && error_count == 0 ) {
        switch( USE_APOLL ) {
          case USE_POLL_POLL: {{{{
-           rc= listen.poll(&pfd, 1000); // 1 second timeout
+           rc= listen->poll(&pfd, 1000); // 1 second timeout
            if( rc < 0 ) {
              if( if_closed(pfd) )
                continue;
 
              ++error_count;
-             errorf("%4d ERROR: %d= listen.poll() %d:%s\n", __LINE__, rc
+             errorf("%4d ERROR: %d= listen->poll() %d:%s\n", __LINE__, rc
                    , errno, strerror(errno));
            }
            if( rc == 0 ) {
@@ -1286,10 +1411,10 @@ virtual void
            }
          break;
          }}}}
-         case USE_POLL_SELECT:
-           socket= select.select(1000); // 1 second timeout
-           if( socket == nullptr ) {
-             if( if_closed(select, &listen) )
+         case USE_POLL_SELECT: {{{{
+           Socket* S= select.select(1000); // 1 second timeout
+           if( S == nullptr ) {
+             if( if_closed(select, listen) )
                return;
 
              error_count += VERIFY( if_retry() );
@@ -1297,15 +1422,15 @@ virtual void
              continue;
            }
          break;
-
+         }}}}
          default:
            // USE_POLL_BLOCK || USE_POLL_NONBLOCK
            break;
        }
 
-       Socket* socket= listen.accept();
-       if( socket ) {
-         StreamWorker* worker= new StreamWorker(socket);
+       Socket* client= listen->accept();
+       if( client ) {
+         StreamWorker* worker= new StreamWorker(client);
          if( opt_worker )
            WorkerPool::work(worker);
          else
@@ -1328,7 +1453,8 @@ virtual void
      if( opt_worker )
        WorkerPool::debug();
 
-     debugf("Stream server %s terminated\n", peer_addr.c_str());
+     debugf("Stream %sserver %s terminated\n", opt_ssl ? "ssl_" : ""
+           , peer_addr.c_str());
    }
 }
 
@@ -1355,14 +1481,30 @@ void
      debugh("%4d %s stop\n", __LINE__, __FILE__);
    }
 
-   int rc= listen.close();        // Close the listener Socket
+   int rc= listen->close();       // Close the listener Socket
    if( USE_STOP_HCDM || opt_verbose > 1 )
-     debugh("%4d %s %d= listen.close()\n", __LINE__, __FILE__, rc);
+     debugh("%4d %s %d= listen->close()\n", __LINE__, __FILE__, rc);
 
    //-------------------------------------------------------------------------
-   // Create a dummy connection to complete any pending listen, ignoring any
+   // Create a dummy connection to complete any pending accept, ignoring any
    // errors that occur.
-   reconnect();
+   try {
+     SSL_socket ssl_socket(client_CTX);
+     Socket     std_socket;
+     Socket*    target= &std_socket;
+     if( opt_ssl )
+       target= &ssl_socket;
+     Socket& socket= *target;
+
+     int rc= socket.open(AF_INET, SOCK_STREAM, PF_UNSPEC);
+     if( rc == 0 ) {
+       rc= socket.connect(peer_addr);
+       if( USE_STOP_HCDM || opt_verbose > 1 )
+         debugh("%4d %s %d= socket.connect\n", __LINE__, __FILE__, rc);
+     }
+     Thread::sleep(0.125);
+   } catch(...) {
+   }
 }
 }; // class StreamServer
 
@@ -1412,20 +1554,42 @@ int
 
      setlocale(LC_NUMERIC, "");     // Allows printf("%'d\n", 123456789);
 
+//   peer_port= STD_PORT;           // (Already defaulted)
+     if( opt_ssl ) {
+       peer_port= SSL_PORT;
+       client_CTX= new_client_CTX();
+       server_CTX= new_server_CTX("public.pem", "private.pem");
+     }
+
      if( opt_target ) {
        opt_server= false;
+//     is_server= false;            // (Default)
        peer_addr= opt_target;
      } else {
-       is_server= !opt_client && !opt_packet && !opt_stream;
        opt_server= true;
-       peer_addr= Socket::get_host_name() + ":" + std::to_string(STD_PORT);
+       is_server= !opt_client && !opt_packet && !opt_stream;
+       peer_addr= Socket::get_host_name() + ":" + std::to_string(peer_port);
      }
+
+     size_t x= peer_addr.find(':');
+     if( x == std::string::npos ) {
+       fprintf(stderr, "'--server=%s missing ':' delimiter"
+                     , peer_addr.c_str());
+       return -1;
+     }
+     if( x == 0 ) {
+       opt_server= true;
+       is_server= !opt_client && !opt_packet && !opt_stream;
+       peer_addr= Socket::get_host_name() + peer_addr;
+       x= peer_addr.find(":");
+     }
+     peer_8080= peer_addr.substr(0,x) + ":" + std::to_string(STD_PORT);
 
      if( !opt_client && !opt_server && !opt_packet && !opt_stream )
        opt_client= true;
 
-     if( opt_runtime == 0 && (opt_packet || opt_stream) )
-       opt_runtime= 20;
+     if( opt_runtime == 0 )
+       opt_runtime= 10;
 
      return 0;
    });
@@ -1437,14 +1601,12 @@ int
        debugf("\n");
        debugf("Settings:\n");
        debugf("%5d: runtime\n",  opt_runtime);
-       if( opt_target )
-         debugf("%5s: server: %s\n", torf(is_server), opt_target);
-       else
-         debugf("%5s: server: %s\n", torf(is_server), peer_addr.c_str());
+       debugf("%5s: server: %s\n", torf(is_server), peer_addr.c_str());
        debugf("%5d: verbose\n",opt_verbose);
 
        debugf("%5s: client\n", torf(opt_client));
        debugf("%5s: packet\n", torf(opt_packet));
+       debugf("%5s: ssl\n",    torf(opt_ssl));
        debugf("%5s: stream\n", torf(opt_stream));
        debugf("%5s: thread\n", torf(opt_thread));
        debugf("%5s: worker\n", torf(opt_worker));
@@ -1572,7 +1734,13 @@ int
      return 0;
    });
 
-   tc.on_term([]() {});             // (Unused so far)
+   tc.on_term([]()
+   {
+     if( client_CTX )
+       SSL_CTX_free(client_CTX);
+     if( server_CTX )
+       SSL_CTX_free(server_CTX);
+   });
 
    //-------------------------------------------------------------------------
    // Run the test
