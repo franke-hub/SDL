@@ -213,4 +213,42 @@ coded but not tested.)
 - As usual, when finding things that should have been be done better they've
 been implemented.
 
+### 2022/06/11 Conditional idiom
+
+- `if( condition || true )` (true)
+- `if( condition && true )` (condition)
+<br><br>
+- `if( condition || false )` (condition)
+- `if( condition && false )` (false)
+
+This idiom allows a conditional statement to be temporarily modified when
+testing. Because the same number of characters are used, modifying is slightly
+easier than:
+
+- `if( condition || true )` (true)
+- `if( condition || false )` (condition)
+<br><br>
+- `if( condition && true )` (condition)
+- `if( condition && false )` (false)
+
+When compiled using optimization, there's no runtime overhead with either
+method. These coding idioms are used to quickly compare options and sometimes
+left in distributed code.
+
+### 2022/06/12 Maint commit
+
+SocketSelect tables now start off relatively small, supporting file descriptor
+numbers less than 32 can grow in stages up to the maximum allowed value. The
+tables do not shrink since the storage used is reasonably small (20 bytes per
+file descriptor number) and shrinkage is likely to be temporary anyway.
+
+TestSock was switched to use SocketSelect polling. Errors found during testing
+were fixed. One error was notable. The SocketSelect destructor removes the
+Socket::selector field, which points to the SocketSelect object. Because of
+locking considerations, this removal isn't as benign as it might first appear
+and now results in a user error message that refers to the source code. A
+long and complex comment was added to the source code explaining the rationale
+behind the message. A short "how to fix your code" comment was also added.
+See ~/src/cpp/lib/pub/Socket.cpp, method SocketSelect::~SocketSelect.
+
 ----

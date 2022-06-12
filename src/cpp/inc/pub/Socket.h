@@ -16,7 +16,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2022/06/09
+//       2022/06/10
 //
 // Implementation notes-
 //       Error recovery is non-existent, and is left up to the user.
@@ -407,6 +407,7 @@ virtual void
 //----------------------------------------------------------------------------
 // SSL_socket::Accessors
 //----------------------------------------------------------------------------
+public:
 virtual bool
    is_ssl( void ) const             // Is this an SSL socket?
 {  return true; }
@@ -414,7 +415,6 @@ virtual bool
 //----------------------------------------------------------------------------
 // SSL_socket::Methods
 //----------------------------------------------------------------------------
-public:
 virtual Socket*                     // The next new connection
    accept( void );                  // Accept connection
 
@@ -466,7 +466,8 @@ public:
 typedef std::function<void(void)>             v_func;
 
 protected:
-mutable std::mutex     mutex;       // Internal mutex
+mutable std::recursive_mutex
+                       mutex;       // Internal mutex
 struct pollfd*         pollfd= nullptr; // Array of pollfd's
 Socket**               socket= nullptr; // Array of Socket's
 int*                   sindex= nullptr; // File descriptor to pollfd index
@@ -488,7 +489,7 @@ public:
 //----------------------------------------------------------------------------
 void
    debug(                           // Debugging display
-     const char*       info= "");   // Caller information
+     const char*       info= "") const; // Caller information
 
 void
    with_lock(v_func f)              // Run function holding SocketSelect mutex
@@ -555,6 +556,10 @@ Socket*                             // The next selected Socket, or nullptr
 protected:
 Socket*                             // The next selected Socket
    remain( void );                  // Select next remaining Socket
+
+inline void
+   resize(                          // Resize the SocketSelect
+     int               fd);         // For this file descriptor
 }; // class SocketSelect
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_SOCKET_H_INCLUDED

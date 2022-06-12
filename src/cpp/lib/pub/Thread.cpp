@@ -16,7 +16,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2022/06/05
+//       2022/06/12
 //
 // Implementation note-
 //       The global Thread synchronization mutex is used to insure:
@@ -206,6 +206,7 @@ void
      name= " Named(" + named->get_name() + ")";
 
    debugf("..thread(%s)%s\n", get_id_string().c_str(), name.c_str());
+   debugf("..joinable(%d)\n", joinable());
 }
 
 void
@@ -220,11 +221,12 @@ void
      debugf("%'16zd started\n",     started.load());
 
      if( info && map.size() ) {
-       debugf("..[-thread id-] [--Thread*--]\n");
+       debugf("..[-thread id-] [---Thread--]\n");
        for(auto mi : map ) {
          Thread* thread= mi.second;
-         debugf("..[%s] (%p) joinable(%d)\n", get_id_string(mi.first).c_str()
-               , thread, thread->joinable());
+         intptr_t ip= (intptr_t)thread;
+         debugf("..[%s] (%#11lx) joinable(%d)\n"
+               , get_id_string(mi.first).c_str(), ip, thread->joinable());
        }
      }
    }}}}

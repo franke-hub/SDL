@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2022/06/09
+//       2022/06/11
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -102,9 +102,11 @@ enum                                // Polling experimental controls
 ,  USE_POLL_POLL= 2                 // Use poll before accept or packet op
 ,  USE_POLL_SELECT= 3               // Use SocketSelect polling
 
-,  USE_APOLL= USE_POLL_POLL         // Use accept polling method
-,  USE_RPOLL= USE_POLL_POLL         // Use recv polling method
-,  USE_SPOLL= USE_POLL_POLL         // Use send polling method
+// Implementation note: USE_POLL_SELECT uses SocketSelect polling, so it's
+// actually using socket ::poll.
+,  USE_APOLL= USE_POLL_SELECT       // Use accept polling method
+,  USE_RPOLL= USE_POLL_SELECT       // Use recv polling method
+,  USE_SPOLL= USE_POLL_SELECT       // Use send polling method
 }; // Polling experimental controls
 
 #if USE_PACKET_CONFIRM              // (Prefer false)
@@ -854,7 +856,11 @@ int                    operational= false; // TRUE while operational
    pfd.events= POLLIN;
 }
 
-   ~PacketServer() = default;
+   ~PacketServer()
+{
+   if( USE_RPOLL == USE_POLL_SELECT )
+     select.remove(&packet);
+}
 
 //----------------------------------------------------------------------------
 //
@@ -1167,7 +1173,7 @@ static void
    if( opt_verbose ) {
      if( !opt_server )
        debugf("\n");
-     debugf("--stream test: Started\n");
+     debugf("--%s_stream test: Started\n", opt_ssl ? "ssl" : "std");
    }
 
    timer_thread.start();
@@ -1178,7 +1184,8 @@ static void
 
    // Statistics
    if( opt_verbose ) {
-     debugf("--stream test: %s\n", error_count ? "FAILED" : "Complete");
+     debugf("--%s_stream test: %s\n", opt_ssl ? "ssl" : "std"
+           , error_count ? "FAILED" : "Complete");
      debugf("%'16ld Recv count\n", scr_count.load());
      debugf("%'16ld Send count\n", scw_count.load());
      debugf("%'16ld Operations\n", scc_count.load());
@@ -1258,14 +1265,9 @@ void
    for(size_t count= 0;;++count) {
      buffer[0]= '\0';
      ssize_t L= client->read(buffer, sizeof(buffer)-1);
-     if( L < 0 ) {
-       trace(__LINE__, "StreamWorker %zd= read", L);
-       break;
-     } else if( L == 0 ) {
-       if( count == 0 ) {
-         debugh("%4d StreamWorker HCDM\n", __LINE__); // (SSL) bug workaround
-         continue;
-       }
+     if( L <= 0 ) {
+       if( L < 0 )
+         trace(__LINE__, "StreamWorker %zd= read", L);
        break;
      }
      ++ssr_count;
@@ -1324,20 +1326,32 @@ class StreamServer : public Thread {
 public:
 char                   buffer[32768]; // Input buffer
 Event                  event;       // Thread ready event
+
 Socket                 std_socket;
 SSL_socket             ssl_socket;
 Socket*                listen= &std_socket; // (Default) listener Socket
+
+SocketSelect           select;      // For POLL_SELECT mode
 Socket*                socket= nullptr; // Client Socket
 
 int                    operational= false; // TRUE while operational
 
 //----------------------------------------------------------------------------
-// Constructors/Destructor
+// Constructors/Destructor/Debug
 //----------------------------------------------------------------------------
    StreamServer()
 :  ssl_socket(server_CTX) {}
 
    ~StreamServer() = default;
+
+virtual void
+   debug(const char* info="") const
+{
+   debugf("StreamServer(%p)::debug(%s)\n", this, info);
+   debugf("..listen(%p) operational(%d)\n", listen, operational);
+   Thread::debug(info);
+   Thread::static_debug("StreamServer");
+}
 
 //----------------------------------------------------------------------------
 //
@@ -1379,16 +1393,15 @@ virtual void
      return;
    }
 
-   SocketSelect select;
    if( USE_APOLL == USE_POLL_SELECT )
-     select.insert(socket, POLLIN);
+     select.insert(listen, POLLIN);
 
    struct pollfd pfd= {};
    pfd.events= POLLIN;
 
    operational= true;
    if( opt_verbose )
-     debugf("Stream %sserver %s operational\n", opt_ssl ? "ssl_" : ""
+     debugf("Stream %s_server %s operational\n", opt_ssl ? "ssl" : "std"
            , peer_addr.c_str());
    event.post();
 
@@ -1414,11 +1427,10 @@ virtual void
          case USE_POLL_SELECT: {{{{
            Socket* S= select.select(1000); // 1 second timeout
            if( S == nullptr ) {
-             if( if_closed(select, listen) )
-               return;
-
-             error_count += VERIFY( if_retry() );
-             ++ssr_again;
+             if( !if_closed(select, listen) ) {
+               error_count += VERIFY( if_retry() );
+               ++ssr_again;
+             }
              continue;
            }
          break;
@@ -1445,7 +1457,7 @@ virtual void
 
    // Statistics
    if( opt_verbose ) {
-     debugf("--stream server info:\n");
+     debugf("--%s_stream server info:\n", opt_ssl ? "ssl" : "std");
      debugf("%'16ld Recv again\n", ssr_again.load());
      debugf("%'16ld Recv count\n", ssr_count.load());
      debugf("%'16ld Send count\n", ssw_count.load());
@@ -1453,7 +1465,7 @@ virtual void
      if( opt_worker )
        WorkerPool::debug();
 
-     debugf("Stream %sserver %s terminated\n", opt_ssl ? "ssl_" : ""
+     debugf("Stream %s_server %s terminated\n", opt_ssl ? "ssl" : "std"
            , peer_addr.c_str());
    }
 }

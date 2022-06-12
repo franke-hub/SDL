@@ -65,9 +65,7 @@ dirty: Dirty
 ## Run the default program
 .PHONY: do
 do: TestDisp
-	TestDisp --hcdm --verbose
-## do: make.dir
-## 	@Enviro
+	TestDisp --timing
 
 ##############################################################################
 ## Make a certificate

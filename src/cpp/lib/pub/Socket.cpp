@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/06/09
+//       2022/06/11
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -26,6 +26,7 @@
 
 #include <new>                      // For std::bad_alloc
 #include <mutex>                    // For mutex, std::lock_guard, ...
+#include <stdexcept>                // For std::runtime_error
 
 #include <errno.h>                  // For errno
 #include <fcntl.h>                  // For fcntl
@@ -121,6 +122,23 @@ static void
    } else {
      memcpy(out_addr, inp_addr, inp_size);
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       sno_exception
+//
+// Purpose-
+//       Message: A should not occur situation occured.
+//
+//----------------------------------------------------------------------------
+[[noreturn]]
+static void
+   sno_exception(int line)
+{
+   errorf("%4d %s Should not occur (but did)\n", line, __FILE__);
+   throw std::runtime_error("Should not occur");
 }
 
 //----------------------------------------------------------------------------
@@ -466,7 +484,8 @@ int                                 // Return code (0 OK)
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 OK
    Socket::close( void )            // Close the Socket
-{  if( HCDM ) debugh("Socket(%p)::close() handle(%d)\n", this, handle);
+{  if( HCDM )
+     debugh("Socket(%p)::close() handle(%d)\n", this, handle);
 
    int rc= 0;
    if( handle >= 0 ) {
@@ -1130,48 +1149,72 @@ ssize_t                             // Number of bytes sent
 {  if( HCDM )
      debugh("SocketSelect(%p)::SocketSelect\n", this);
 
-   struct rlimit limits;
-   int rc= getrlimit(RLIMIT_NOFILE, &limits);
-   if( rc ) {
-     errorf("%4d %s %d=getrlimit %d:%s\n", __LINE__, __FILE__, rc
-           , errno, strerror(errno));
-     limits.rlim_cur= 1024;
-     limits.rlim_max= 4096;
-   }
-
-   size= limits.rlim_max;
-   pollfd= (struct pollfd*)malloc(size * sizeof(pollfd));
-   socket= (Socket**)malloc(size * sizeof(Socket));
-   sindex= (int*)malloc(size * sizeof(int));
-   if( pollfd == nullptr || socket == nullptr || sindex == nullptr )
-     throw std::bad_alloc();
-
-   memset(pollfd, 0, size * sizeof(pollfd));
-   memset(socket, 0, size * sizeof(Socket));
-   memset(sindex, 0xff, size * sizeof(int));
+   // Implementation note: When the code's modified to contain an internal
+   // socket, use it's file descriptor as the initial limit.
+   resize(1);                  // (Start with minimum limit)
 }
 
    SocketSelect::~SocketSelect( void )
 {  if( HCDM )
      debugh("SocketSelect(%p)::~SocketSelect\n", this);
 
+// Locking here can't be necessary. Consider that if it was, then right after
+// the lock's released the waiter's going to reference deallocated storage.
+
+// Disassociating a Socket from the SocketSelect *shouldn't* be necessary.
+// If it was, then there's a good chance that whatever code was using the
+// SocketSelect still thinks it exists. Note that adding lock_guard logic
+// here only helps to diagnose the problem, it doesn't solve it. Each user
+// needs to insure that there are no dangling SocketSelect references to a
+// deleted object.
+// An example might help explain why:
+// SocketSelect accesses are protected by a mutex. A SocketSelect references
+// each inserted Socket and each inserted Socket references the SocketSelect.
+// Suppose the SocketSelect destructor is called and then an associated Socket
+// is closed in a different thread before the destructor completes. The Socket
+// close operation invokes SocketSelect::remove, which blocks but then resumes
+// after the destructor exits. SocketSelect::remove then references the (at
+// least partially) deleted SocketSelect.
+// Perhaps we could gimshuckle some way of fixing this particular problem, but
+// applications also need to correlate SocketSelect and Socket references and
+// insure that their SocketSelect object isn't deleted while Sockets reference
+// it. We can't check the application's correlation method, we can only check
+// our own. So we check, and if there's a *possible* dangling reference we
+// complain knowing that if a problem does exist, it will be hard to debug.
+
+// >>>>>>>>>>>>>>>>>>>>>>>> ** USER DEBUGGING NOTE ** <<<<<<<<<<<<<<<<<<<<<<<<
+// Before deleting a SocketSelect object, you should insure that no Socket
+// objects still reference it. That will remove the annoying error message
+// you got and quite likely also avoid some hard to debug future error.
+// >>>>>>>>>>>>>>>>>>>>>>>> ** USER DEBUGGING NOTE ** <<<<<<<<<<<<<<<<<<<<<<<<
    std::lock_guard<decltype(mutex)> lock(mutex);
    for(int px= 0; px < used; ++px) {
      int fd= pollfd[px].fd;
      if( fd >= 0 && fd < size ) {
        Socket* socket= this->socket[fd];
-       if( socket )
+       if( socket ) {
+         #define FMT "%4d User error: SocketSelect(%p) Socket(%p) fd(%d) " \
+                     "Dangling reference\n"
+         errorf(FMT, __LINE__, this, socket, fd);
+         sno_handled(__LINE__);     // See ** USER DEBUGGING NOTE **, above
+         debug("Additional debugging information");
          socket->selector= nullptr;
-       else if( USE_CROSS_CHECK )
-         sno_handled(__LINE__);
+       } else if( USE_CROSS_CHECK ) {
+         sno_handled(__LINE__);     // (socket[fd] == nullptr)
+       }
      } else if( USE_CROSS_CHECK ) {
-       sno_handled(__LINE__);
+       sno_handled(__LINE__);       // (pollfd[px].fd >= size)
      }
    }
 
    free(pollfd);
    free(socket);
    free(sindex);
+
+   pollfd= nullptr;
+   socket= nullptr;
+   sindex= nullptr;
+   size= 0;
 }
 
 //----------------------------------------------------------------------------
@@ -1182,11 +1225,16 @@ ssize_t                             // Number of bytes sent
 // Purpose-
 //       Debugging display
 //
+// Implementation note-
+//       This may be called with or without the lock held, which is why we use
+//       a recursive_mutex rather than just a mutex.
+//
 //----------------------------------------------------------------------------
 void
    SocketSelect::debug(             // Debugging display
-     const char*       info)        // Caller information
+     const char*       info) const  // Caller information
 {
+   std::lock_guard<decltype(mutex)> lock(mutex);
    debugf("SocketSelect(%p)::debug(%s)\n", this, info);
    debugf("..pollfd(%p) socket(%p) sindex(%p)\n", pollfd, socket, sindex);
    debugf("..left(%u) next(%u) size(%u) used(%u)\n", left, next, size, used);
@@ -1194,27 +1242,26 @@ void
    for(int px= 0; px<used; ++px) {
      int fd= pollfd[px].fd;
      const Socket* socket= this->socket[fd];
-     debugf("..[%3d] %p %3d:{%.4x,%.4x}\n", px, socket, fd
+     debugf("....[%3d] %p %3d:{%.4x,%.4x}\n", px, socket, fd
            , pollfd[px].events, pollfd[px].revents);
      if( socket->handle != pollfd[px].fd )
-       debugf("..[%3d] %p %3d ERROR: SOCKET.HANDLE MISMATCH\n", px, socket
+       debugf("....[%3d] %p %3d ERROR: SOCKET.HANDLE MISMATCH\n", px, socket
              , socket->handle);
      else if( px != this->sindex[fd] )
-       debugf("..[%3d] %p %3d ERROR: HANDLE.SINDEX MISMATCH\n", px, socket
+       debugf("....[%3d] %p %3d ERROR: HANDLE.SINDEX MISMATCH\n", px, socket
              , this->sindex[fd]);
-
    }
 
    debugf("..socket\n");
    for(int sx= 0; sx<size; ++sx) {
      if( socket[sx] )
-       debugf("[%3d] %p\n", sx, socket[sx]);
+       debugf("....[%3d] %p\n", sx, socket[sx]);
    }
 
    debugf("..sindex\n");
    for(int fd= 0; fd<size; ++fd) {
      if( sindex[fd] >= 0 )
-       debugf("[%3d] -> [%3d]\n", fd, sindex[fd]);
+       debugf("....[%3d] -> [%3d]\n", fd, sindex[fd]);
    }
 }
 
@@ -1231,15 +1278,18 @@ int                                 // Return code, 0 expected
    SocketSelect::insert(            // Insert Socket
      Socket*           socket,      // The associated Socket
      int               events)      // The associated poll events
-{  std::lock_guard<decltype(mutex)> lock(mutex);
+{  if( HCDM )
+     debugh("SocketSelect(%p)::insert(%p,0x%.4x) fd(%d)\n", this
+           , socket, events, socket->handle);
 
+   std::lock_guard<decltype(mutex)> lock(mutex);
    int fd= socket->handle;
-   if( fd < 0 || fd >= size ) {     // (Probably closed socket)
-     errorf("SocketSelect(%p)::insert(%p) invalid socket handle(%d)\n", this
-           , socket, fd);
+   if( fd < 0 ) {
      errno= EINVAL;
      return -1;
    }
+   if( fd >= size )
+     resize(fd);
 
    if( socket->selector ) {
      errorf("SocketSelect(%p)::insert(%p) already inserted(%p)\n", this
@@ -1270,6 +1320,7 @@ int                                 // Return code, 0 expected
    pollfd->revents= 0;
    this->sindex[fd]= used;
    this->socket[fd]= socket;
+   socket->selector= this;
 
    ++used;
 // left= next= 0;                   // Not needed, revents == 0
@@ -1290,8 +1341,10 @@ int                                 // Return code, 0 expected
    SocketSelect::modify(            // Modify Socket
      const Socket*     socket,      // The associated Socket
      int               events)      // The associated poll events
-{  std::lock_guard<decltype(mutex)> lock(mutex);
+{  if( HCDM )
+     debugh("SocketSelect(%p)::modify(%p,0x%.4x)\n", this, socket, events);
 
+   std::lock_guard<decltype(mutex)> lock(mutex);
    int fd= socket->handle;
    if( fd < 0 || fd >= size ) {     // (Probably closed socket)
      errorf("SocketSelect(%p)::modify(%p) invalid socket handle(%d)\n", this
@@ -1325,10 +1378,17 @@ int                                 // Return code, 0 expected
 int                                 // Return code, 0 expected
    SocketSelect::remove(            // Remove Socket
      Socket*           socket)      // The associated Socket
-{  std::lock_guard<decltype(mutex)> lock(mutex);
+{  if( HCDM )
+     debugh("SocketSelect(%p)::remove(%p) fd(%d)\n", this
+           , socket, socket->handle);
 
+   std::lock_guard<decltype(mutex)> lock(mutex);
    if( socket->selector == nullptr ) { // If Socket isn't owned by a selector
-     errorf("%4d %s remove(%p) but not active\n", __LINE__, __FILE__, socket);
+     if( IOEM ) {
+       errorf("%4d %s remove Socket(%p) selector(nullptr) fd(%d)\n"
+             , __LINE__, __FILE__, socket, socket->handle);
+       debug("Additional debugging information");
+     }
      errno= EINVAL;
      return -1;
    }
@@ -1369,8 +1429,10 @@ int                                 // Return code, 0 expected
 Socket*                             // The next selected Socket, or nullptr
    SocketSelect::select(            // Select next Socket
      int               timeout)     // Timeout, in milliseconds
-{  std::lock_guard<decltype(mutex)> lock(mutex);
+{  if( HCDM )
+     debugh("SocketSelect(%p)::select(%d)\n", this, timeout);
 
+   std::lock_guard<decltype(mutex)> lock(mutex);
    if( used == 0 ) {                // If true, usage error
      if( IODM )
        debugf("SocketSelect(%p)::select Empty Socket array\n", this);
@@ -1398,8 +1460,11 @@ Socket*                             // The next selected Socket, or nullptr
      const struct timespec*         // (tv_sec, tv_nsec)
                        timeout,     // Timeout, infinite if omitted
      const sigset_t*   signals)     // Timeout, in milliseconds
-{  std::lock_guard<decltype(mutex)> lock(mutex);
+{  if( HCDM )
+     debugh("SocketSelect(%p)::select({%'ld,%'ld},%p)\n", this
+           , timeout->tv_sec, timeout->tv_nsec, signals);
 
+   std::lock_guard<decltype(mutex)> lock(mutex);
    if( used == 0 ) {                // USAGE ERROR
      if( IODM )
        debugf("SocketSelect(%p)::select Empty Socket array\n", this);
@@ -1456,11 +1521,81 @@ Socket*                             // The next selected Socket
    }
 
    // ERROR: The number of elements set < number of elements found
-   // ** THIS IS AN INTERNAL ERROR, NOT AN APPLICATION ERROR **
-   debugf("%4d %s Should not occur(%d), internal correctable error\n"
-         , __LINE__, __FILE__, left);
+   // ** THIS IS AN INTERNAL LOGIC ERROR, NOT AN APPLICATION ERROR **
+   errorf("%4d internal error, info(%d)\n", __LINE__, left);
+   sno_handled(__LINE__);
    left= 0;
    errno= EAGAIN;
    return nullptr;
+}
+
+//----------------------------------------------------------------------------
+//
+// Protected method-
+//       SocketSelect::resize
+//
+// Purpose-
+//       Resize the internal tables
+//
+// Implementation note-
+//       Caller must hold mutex lock.
+//       Per fd storage: 20
+//
+//----------------------------------------------------------------------------
+inline void
+   SocketSelect::resize(            // Resize the SocketSelect tables
+     int               fd)          // For this file (positive) descriptor
+{  if( HCDM )
+     debugh("SocketSelect(%p)::resize(%d)\n", this, fd);
+
+   int new_size= 0;
+   if( fd < 32 )
+     new_size= 32;
+   else if( fd < 128 )
+     new_size= 128;
+   else if( fd < 512 )
+     new_size= 512;
+   else {
+     struct rlimit limits;
+     int rc= getrlimit(RLIMIT_NOFILE, &limits);
+     if( rc ) {
+       errorf("%4d %s %d=getrlimit %d:%s\n", __LINE__, __FILE__, rc
+             , errno, strerror(errno));
+       limits.rlim_cur= 1024;
+       limits.rlim_max= 4096;
+     }
+
+     if( size_t(fd) < size_t(limits.rlim_cur) )
+       new_size= limits.rlim_cur;
+     else if( size_t(fd) < size_t(limits.rlim_max) )
+       new_size= limits.rlim_max;
+     else {
+       // Request for file descriptor index >= limits.rlim_max
+       // This should not be possible.
+       debugf("%4d fd(%d) >= limit(%ld)\n", __LINE__, fd, limits.rlim_max);
+       sno_exception(__LINE__);
+     }
+   }
+
+   struct pollfd*
+   new_pollfd= (struct pollfd*)realloc(pollfd, new_size * sizeof(pollfd));
+   Socket** new_socket= (Socket**)realloc(socket, new_size * sizeof(Socket));
+   int* new_sindex= (int*)realloc(sindex, new_size * sizeof(int));
+   if( new_pollfd == nullptr||new_socket == nullptr||new_sindex == nullptr ) {
+     free(new_pollfd);
+     free(new_socket);
+     free(new_sindex);
+     throw std::bad_alloc();
+   }
+
+   int diff= new_size - size;
+   memset(new_pollfd + size, 0x00, diff * sizeof(pollfd));
+   memset(new_socket + size, 0x00, diff * sizeof(Socket));
+   memset(new_sindex + size, 0xff, diff * sizeof(int));
+
+   pollfd= new_pollfd;
+   socket= new_socket;
+   sindex= new_sindex;
+   size= new_size;
 }
 } // namespace _PUB_NAMESPACE
