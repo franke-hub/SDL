@@ -16,7 +16,7 @@
 ##       Extract nickname for subdirectory
 ##
 ## Last change date-
-##       2022/05/25
+##       2022/06/12
 ##
 ## Usage-
 ##       cd `nickdir alias_name`
@@ -71,36 +71,14 @@ case $1 in
     return
     ;;
 
-##############################################################################
-#### Generic source directories
-##src.cpp)
-##  __FULLDIR="$HOME/src/cpp"
-##  ;;
-##
-##src.cpp/*)
-##  __FULLDIR="$HOME/src/cpp/${1:5}"
-##  ;;
-##
-##src.mcs)
-##  __FULLDIR="$HOME/src/mcs"
-##  ;;
-##
-##src.mcs/*)
-##  __FULLDIR="$HOME/src/mcs/${1:5}"
-##  ;;
-##
-##src.py)
-##  __FULLDIR="$HOME/src/py"
-##  ;;
-##
-##src.py/*)
-##  __FULLDIR="$HOME/src/py/${1:5}"
-##  ;;
-
   ############################################################################
   ## C++ source directories
-  src)
+  src | src/cpp)
     __FULLDIR="$HOME/src/cpp"
+    ;;
+
+  src/cpp/*)
+    __FULLDIR="$HOME/$1"
     ;;
 
   src/com | src/gui | src/obj | src/pub)
