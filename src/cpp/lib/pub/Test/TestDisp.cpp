@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2022/05/06
+//       2022/06/18
 //
 // Arguments: (For testtime only)
 //       TestDisp --timing          // (Only run timing test)
@@ -69,7 +69,7 @@ enum
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  USE_PASSALONG_LAMBDA= false      // Use some PassAlongLambdaTasks?
-,  USE_TRACE= false                  // Enable tracing?
+,  USE_TRACE= false                 // Enable tracing?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -77,11 +77,14 @@ enum
 //----------------------------------------------------------------------------
 static std::atomic<uint64_t>
                        rondesvous;  // Rondesvous bit map
+static void*           table= nullptr; // The Trace table
 
 // Extended options
 static int             opt_timing= false; // --timing
+static int             opt_trace= 0; // --trace
 static struct option   opts[]=      // The getopt_long parameter: longopts
-{  {"timing",  no_argument,       &opt_timing,    true} // --timing
+{  {"timing",  no_argument,       &opt_timing,      true} // --timing
+,  {"trace",   optional_argument, &opt_trace, 0x00400000} // --trace
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
@@ -554,15 +557,38 @@ extern int
      tc.on_info([]()
      {
        fprintf(stderr, "  --timing\tRun timing test\n");
+       if( USE_TRACE )
+         fprintf(stderr,
+                "  --trace\t{=size} Create internal trace file './trace.mem'\n"
+                );
      });
 
-     tc.on_init([](int, char**)
+     tc.on_parm([tr](std::string P, const char* V)
+     {
+       if( P == "trace" ) {
+         if( V )
+           opt_trace= tr->ptoi(V);
+       }
+
+       return 0;
+     });
+
+     tc.on_init([tr](int, char**)
      {
        debug_set_head(Debug::HEAD_THREAD); // Include thread in heading
        if( HCDM )
          debug_set_mode(Debug::MODE_INTENSIVE);
 
+       if( USE_TRACE && opt_trace )
+         table= tr->init_trace("./trace.mem", opt_trace);
+
        return 0;
+     });
+
+     tc.on_term([tr]()
+     {
+       if( table )
+         tr->term_trace(table, opt_trace);
      });
 
      tc.on_main([tr](int argc, char* argv[])
@@ -587,11 +613,11 @@ extern int
          if( true  ) error_count += testtime(argc, argv);
        }
 
-     if( opt_verbose ) {
-       debugf("\n");
-       tr->report_errors(error_count);
-     }
-     return error_count != 0;
+       if( opt_verbose ) {
+         debugf("\n");
+         tr->report_errors(error_count);
+       }
+       return error_count != 0;
      });
 
      //-----------------------------------------------------------------------

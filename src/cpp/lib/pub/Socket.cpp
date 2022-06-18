@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/06/11
+//       2022/06/15
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -33,6 +33,7 @@
 #include <netdb.h>                  // For addrinfo, ...
 #include <poll.h>                   // For poll, ...
 #include <stdarg.h>                 // For va_* functions
+#include <stddef.h>                 // For offsetof
 #include <string.h>                 // For memset, ...
 #include <unistd.h>                 // For close, ...
 #include <arpa/inet.h>              // For internet address conversions
@@ -40,6 +41,7 @@
 #include <openssl/ssl.h>            // For SSL, SSL_CTX
 #include <sys/resource.h>           // For getrlimit
 #include <sys/select.h>             // For select, ...
+#include <sys/un.h>                 // For sockaddr_un
 #include <sys/time.h>               // For timeval, ...
 
 #include <pub/utility.h>            // For to_string(), ...
@@ -48,6 +50,12 @@
 #include "pub/Socket.h"             // The Socket Objects
 
 using namespace _PUB_NAMESPACE::debugging; // For debugging
+
+//----------------------------------------------------------------------------
+// Typedefs (used by internal subroutines)
+//----------------------------------------------------------------------------
+typedef pub::Socket::sockaddr_u     sockaddr_u;
+typedef pub::Socket::sockaddr_x     sockaddr_x;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -60,12 +68,15 @@ enum
 ,  USE_CROSS_CHECK= true            // Use internal cross-checking?
 }; // enum
 
+// Maximum/minimum sockaddr_u lengths
+static int constexpr   max_sock= (int)sizeof(sockaddr_u);
+static int constexpr   min_sock= (int)sizeof(sockaddr::sa_family);
+
 namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
-// Typedefs (used by internal subroutines)
+// Forward references
 //----------------------------------------------------------------------------
-typedef pub::Socket::sockaddr_u     sockaddr_u;
-typedef pub::Socket::sockaddr_x     sockaddr_x;
+[[noreturn]] static void sno_exception(int line);
 
 //----------------------------------------------------------------------------
 //
@@ -110,15 +121,26 @@ static void
      sockaddr_u*       out_addr,    // OUT: The target socket address
      const void*       inp_addr,    // INP: The source socket address
      socklen_t         inp_size)    // INP: The source socket address length
-{
+{  if( HCDM )
+     debugf("Socket::init_addr(%p,%p,%d)\n", out_addr, inp_addr, inp_size);
+
+   if( inp_size < min_sock ) {      // If sa_family won't fit in result
+     errorf("socket length(%d) < minimum(%d)\n", inp_size, min_sock);
+     sno_exception(__LINE__);
+   }
+
 // memset(out_addr, 0, sizeof(*outaddr)); // (Not strictly necessary)
-   if( size_t(inp_size) > sizeof(sockaddr_u) ) {
+   if( ((sockaddr*)inp_addr)->sa_family == AF_UNIX ) {
      sockaddr_x* alt_addr= (sockaddr_x*)out_addr;
-     alt_addr->sock_copy= (sockaddr*)malloc(inp_size);
-     if( alt_addr->sock_copy == nullptr )
+     alt_addr->x_sockaddr= (sockaddr*)malloc(inp_size+1);
+     if( alt_addr->x_sockaddr == nullptr )
        throw std::bad_alloc();
-     memcpy(alt_addr->sock_copy, inp_addr, inp_size);
+     memcpy(alt_addr->x_sockaddr, inp_addr, inp_size);
+     ((char*)alt_addr->x_sockaddr)[inp_size]= '\0';
      alt_addr->x_family= ((sockaddr*)inp_addr)->sa_family;
+   } else if( inp_size > max_sock ) { // If result won't fit in sockaddr_u
+     errorf("socket length(%d) > maximum(%d)\n", inp_size, max_sock);
+     sno_exception(__LINE__);
    } else {
      memcpy(out_addr, inp_addr, inp_size);
    }
@@ -169,33 +191,20 @@ void
    Socket::copy(                    // Copy host_addr/size and peer_addr/size
      const Socket&     source)      // From this source Socket
 {
+debugf("Socket(%p)::copy(%p)\n", this, &source);
 // memset(&host_addr, 0, sizeof(host_addr)); // (Not strictly necessary)
    host_size= source.host_size;
-   if( size_t(host_size) > sizeof(host_addr) ) {
-     sockaddr_x* alt_addr= (sockaddr_x*)&host_addr;
-     alt_addr->sock_copy= (sockaddr*)malloc(host_size);
-     if( alt_addr->sock_copy == nullptr )
-       throw std::bad_alloc();
-     sockaddr* from= ((sockaddr_x*)&source.host_addr)->sock_copy;
-     memcpy(alt_addr->sock_copy, from, host_size);
-     host_addr.su_family= source.host_addr.su_family;
-   } else {
-     memcpy(&host_addr, &source.host_addr, host_size);
-   }
+   const void* from= &source.host_addr;
+   if( source.host_addr.su_family == AF_UNIX )
+     from= ((sockaddr_x*)&source.host_addr)->x_sockaddr;
+   init_addr(&host_addr, from, host_size);
 
 // memset(&peer_addr, 0, sizeof(peer_addr)); // (Not strictly necessary)
    peer_size= source.peer_size;
-   if( size_t(peer_size) > sizeof(peer_addr) ) {
-     sockaddr_x* alt_addr= (sockaddr_x*)&peer_addr;
-     alt_addr->sock_copy= (sockaddr*)malloc(peer_size);
-     if( alt_addr->sock_copy == nullptr )
-       throw std::bad_alloc();
-     sockaddr* from= ((sockaddr_x*)&source.peer_addr)->sock_copy;
-     memcpy(alt_addr->sock_copy, from, peer_size);
-     peer_addr.su_family= source.peer_addr.su_family;
-   } else {
-     memcpy(&peer_addr, &source.peer_addr, peer_size);
-   }
+   from= &source.peer_addr;
+   if( source.peer_addr.su_family == AF_UNIX )
+     from= ((sockaddr_x*)&source.peer_addr)->x_sockaddr;
+   init_addr(&peer_addr, from, peer_size);
 }
 
 //----------------------------------------------------------------------------
@@ -280,7 +289,8 @@ void
 {
    debugf("Socket(%p)::debug(%s) handle(%d)\n", this, info, handle);
 
-   std::string S= host_addr.to_string();
+   debugf("..selector(%p) handle(%d) family(%d) type(%d)\n", selector
+         , handle, family, type);
    debugf("..host_addr: %s\n", host_addr.to_string().c_str());
    debugf("..peer_addr: %s\n", peer_addr.to_string().c_str());
    debugf("..host_size(%d), peer_size(%d)\n", host_size, peer_size);
@@ -315,17 +325,17 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Socket::get_host_name
+//       Socket::gethostname
 //
 // Purpose-
 //       Get the host name
 //
 //----------------------------------------------------------------------------
 std::string                         // The host name
-   Socket::get_host_name( void )    // Get host name
+   Socket::gethostname( void )      // Get host name
 {
    char host_name[HOST_NAME_MAX];   // The host name
-   int rc= gethostname(host_name, HOST_NAME_MAX);
+   int rc= ::gethostname(host_name, HOST_NAME_MAX);
    if( rc )
      host_name[0]= '\0';
 
@@ -390,7 +400,7 @@ int                                 // Return code, 0 OK
 {
    sockaddr_storage peersock;
    socklen_t peersize= sizeof(peersock);
-   int rc= name_to_addr(nps, (sockaddr*)&peersock, &peersize);
+   int rc= name_to_addr(nps, (sockaddr*)&peersock, &peersize, family);
    if( rc == 0 ) {
      peer_size= peersize;
      init_addr(&peer_addr, &peersock, peer_size);
@@ -450,7 +460,7 @@ int                                 // Return code (0 OK)
    int rc= ::bind(handle, hostsock, hostsize);
    if( IODM ) trace(__LINE__, "%d= bind(%d)", rc, handle);
    if( rc == 0 ) {
-     host_size= host_size;
+     host_size= hostsize;
      init_addr(&host_addr, hostsock, host_size);
    }
 
@@ -459,11 +469,13 @@ int                                 // Return code (0 OK)
 
 int                                 // Return code (0 OK)
    Socket::bind(                    // Bind to address
-     const std::string&host)        // Host name:port string
-{
+     const std::string&nps)         // Host name:port string
+{  if( HCDM )
+     debugh("Socket(%p)::bind(%s)\n", this, nps.c_str());
+
    sockaddr_storage hostsock;
    socklen_t hostsize= sizeof(hostsock);
-   int rc= name_to_addr(host, (sockaddr*)&hostsock, &hostsize);
+   int rc= name_to_addr(nps, (sockaddr*)&hostsock, &hostsize, family);
    if( rc )
      return rc;
 
@@ -493,10 +505,10 @@ int                                 // Return code, 0 OK
        selector->remove(this);
 
      // Reset host_addr/peer_addr, host_size/peer_size
-     if( size_t(host_size) > sizeof(host_addr) )
-       free(((sockaddr_x*)&host_addr)->sock_copy);
-     if( size_t(peer_size) > sizeof(peer_addr) )
-       free(((sockaddr_x*)&peer_addr)->sock_copy);
+     if( host_addr.su_family == AF_UNIX )
+       free(((sockaddr_x*)&host_addr)->x_sockaddr);
+     if( peer_addr.su_family == AF_UNIX )
+       free(((sockaddr_x*)&peer_addr)->x_sockaddr);
 
      memset(&host_addr, 0, sizeof(host_addr));
      memset(&peer_addr, 0, sizeof(peer_addr));
@@ -540,11 +552,13 @@ int                                 // Return code (0 OK)
 
 int                                 // Return code (0 OK)
    Socket::connect(                 // Connect to address
-     const std::string&host)        // Peer name:port string
-{
+     const std::string&nps)         // Peer name:port string
+{  if( HCDM )
+     debugh("Socket(%p)::connect(%s)\n", this, nps.c_str());
+
    sockaddr_storage peersock;
    socklen_t peersize= sizeof(peersock);
-   int rc= name_to_addr(host, (sockaddr*)&peersock, &peersize);
+   int rc= name_to_addr(nps, (sockaddr*)&peersock, &peersize, family);
    if( rc )
      return rc;
 
@@ -586,39 +600,70 @@ int                                 // Return code, 0 expected
 int                                 // Return code, 0 OK
    Socket::name_to_addr(            // Convert "host:port" to sockaddr_u
      const std::string&nps,         // The "host:port" name string
-     sockaddr*         addr,        // OUT: The sockaddr*
-     socklen_t*        size)        // INP/OUT: The addr length
-{
+     sockaddr*         addr,        // OUT: The sockaddr
+     socklen_t*        size,        // INP/OUT: The addr length
+     int               family)      // The preferred address family
+{  if( HCDM )
+     debugh("Socket(%p)::name_to_addr(%s,%p,%d,%d)\n", this
+           , nps.c_str(), addr, *size, family);
+
+   if( family == AF_UNIX ) {
+     if( nps.size() > sizeof(sockaddr_un::sun_path )
+         || size_t(*size) < (nps.size()+offsetof(sockaddr_un, sun_path)) ) {
+       errno= EINVAL;
+       if( IOEM )
+         trace(__LINE__, "'%s' AF_UNIX name too long", nps.c_str());
+       return -1;
+     }
+
+     *size= offsetof(sockaddr_un, sun_path) + nps.size();
+     addr->sa_family= AF_UNIX;
+     strcpy(((sockaddr_un*)addr)->sun_path, nps.c_str());
+     return 0;
+   }
+
    size_t x= nps.find(':');
    if( x == std::string::npos ) {
      errno= EINVAL;
-     if( IODM )
-       trace(__LINE__, "'%s name:port missing ':' delimiter", nps.c_str());
+     if( IOEM )
+       trace(__LINE__, "'%s' name:port missing ':' delimiter", nps.c_str());
      return -1;
    }
+
+   // Generate IpV4 or IpV6 address, preferring the specified address family
    std::string name;
    if( x )
      name= nps.substr(0, x);
    else
-     name= Socket::get_host_name();
+     name= Socket::gethostname();
 
    std::string port= nps.substr(x+1);
    if( port == "" )
      port= "0";
 
-   addrinfo hint{};                 // Hints
-   hint.ai_family= family;
-   hint.ai_socktype= type;
-   hint.ai_protocol= PF_UNSPEC;
-
    addrinfo* info= nullptr;         // Resultant info
-   int rc= getaddrinfo(name.c_str(), port.c_str(), &hint, &info);
+   int rc= getaddrinfo(name.c_str(), port.c_str(), nullptr, &info);
    if( IODM ) trace(__LINE__, "%d= getaddrinfo(%s)", rc, nps.c_str());
    if( rc ) {                       // If unable to get addrinfo
+     if( IOEM )
+       trace(__LINE__, "'%s' name:port invalid/unknown", nps.c_str());
      *size= 0;
+     errno= EINVAL;
+     rc= -1;
    } else {
-     memcpy(addr, info->ai_addr, info->ai_addrlen);
-     *size= info->ai_addrlen;
+     addrinfo* used= info;
+     if( family != AF_UNSPEC ) {
+       while( used ) {
+         if( family == used->ai_family )
+           break;
+
+         used= used->ai_next;
+       }
+       if( used == nullptr )
+         used= info;
+     }
+     memcpy(addr, used->ai_addr, used->ai_addrlen);
+     *size= used->ai_addrlen;
      freeaddrinfo(info);
    }
    return rc;
@@ -799,10 +844,17 @@ ssize_t                             // The number of bytes written
      const void*       addr,        // Data address
      size_t            size,        // Data length
      int               flag,        // Send options
-     const sockaddr*   peer_addr,   // Target peer address
-     socklen_t         peer_size)   // Target peer address length
+     const sockaddr*   peeraddr,    // Target peer address
+     socklen_t         peersize)    // Target peer address length
 {
-   ssize_t L= ::sendto(handle, addr, size, flag, peer_addr, peer_size);
+   if( family == AF_UNIX && (void*)peeraddr == (void*)&peer_addr ) {
+     peeraddr= ((sockaddr_u*)peeraddr)->su_x.x_sockaddr;
+     if( peeraddr == nullptr ) {
+       errorf("Socket::sendto peer_addr not initialized");
+       sno_exception(__LINE__);
+     }
+   }
+   ssize_t L= ::sendto(handle, addr, size, flag, peeraddr, peersize);
    if( IODM ) trace(__LINE__, "%zd= sendto()", L);
    return L;
 }
@@ -861,7 +913,7 @@ ssize_t                             // Number of bytes sent
 //       Convert (sockaddr_u) to string
 //
 // Implementation notes-
-//       Only families AF_INET and AF_INET6 are currently supported.
+//       Families AF_INET, AF_INET6, and IF_UNIX are currently supported.
 //       Others can be added if desired.
 //
 //----------------------------------------------------------------------------
@@ -871,7 +923,7 @@ std::string
    std::string         result= "<inet_ntop error>"; // Default resultant
 
    const char*         buff= nullptr; // inet_ntop resultant
-   char                work[INET6_ADDRSTRLEN]; // (Address string buffer)
+   char                work[256];   // (Address string buffer)
 
    errno= 0;
    switch( su_family )
@@ -885,9 +937,14 @@ std::string
      case AF_INET6:                 // If IPv6
        buff= inet_ntop(AF_INET6, &su_in6.sin6_addr, work, sizeof(work));
        if( buff )
-         result= utility::to_string("[%s]:%d\n", buff, ntohs(su_in6.sin6_port));
+         result= utility::to_string("[%s]:%d", buff, ntohs(su_in6.sin6_port));
        break;
 
+     case AF_UNIX: {{{{             // If AF_UNIX
+       sockaddr_un* un= (sockaddr_un*)this->su_x.x_sockaddr;
+       result= std::string(un->sun_path); // (Trailing '\0' always present)
+       break;
+     }}}}
      default:                       // If invalid address family
        result= utility::to_string("<sa_family_t(%d)>", su_family);
        errno= EINVAL;
@@ -1193,7 +1250,7 @@ ssize_t                             // Number of bytes sent
      if( fd >= 0 && fd < size ) {
        Socket* socket= this->socket[fd];
        if( socket ) {
-         #define FMT "%4d User error: SocketSelect(%p) Socket(%p) fd(%d) " \
+         #define FMT "%4d SocketSelect(%p) Socket(%p) fd(%d) User error: " \
                      "Dangling reference\n"
          errorf(FMT, __LINE__, this, socket, fd);
          sno_handled(__LINE__);     // See ** USER DEBUGGING NOTE **, above
@@ -1283,6 +1340,8 @@ int                                 // Return code, 0 expected
            , socket, events, socket->handle);
 
    std::lock_guard<decltype(mutex)> lock(mutex);
+// debugf("\n\nSS(%p)::insert(%p) %d\n", this, socket, socket->handle);
+// debug_backtrace();
    int fd= socket->handle;
    if( fd < 0 ) {
      errno= EINVAL;
@@ -1383,7 +1442,13 @@ int                                 // Return code, 0 expected
            , socket, socket->handle);
 
    std::lock_guard<decltype(mutex)> lock(mutex);
+// debugf("\n\nSS(%p)::remove(%p) %d %p\n", this, socket, socket->handle, socket->selector);
+// debug_backtrace();
    if( socket->selector == nullptr ) { // If Socket isn't owned by a selector
+     if( socket->handle < 0 ) {     // (Socket::close may have been blocked)
+       errno= EINVAL;
+       return -1;
+     }
      if( IOEM ) {
        errorf("%4d %s remove Socket(%p) selector(nullptr) fd(%d)\n"
              , __LINE__, __FILE__, socket, socket->handle);

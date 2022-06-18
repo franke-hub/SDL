@@ -309,7 +309,7 @@ extern int             pub_verbose; // Debugging verbosity   [default: -1]
 }  // namespace options
 
 void                                // (Does nothing in Cygwin)
-   debug_backtrace( void);          // Write backtrace information
+   debug_backtrace( void );         // Write backtrace information
 
 void
    debug_clr_head(                  // Clear a Heading options

@@ -16,14 +16,17 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2022/06/10
+//       2022/06/17
 //
 // Implementation notes-
-//       Error recovery is non-existent, and is left up to the user.
+//       Error recovery is the user's responsibility.
 //
 //       SocketException is only thrown for usage errors and SHOULD NOT OCCUR
-//       conditions. Recoverable SNO result only result in an error message.
-//       These need debugging and should be reported.
+//       conditions. Recoverable SNO conditions result in an error message
+//       which, unless described as a user error, should be reported.
+//
+//       Methods get_host_port, get_peer_port, set_host_port, and set_peer_port
+//       apply only to family AF_INET and AF_INET6 sockets.
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SOCKET_H_INCLUDED
@@ -80,21 +83,47 @@ public:
 static const int       CLOSED= -1;  // Closed socket handle
 typedef in_port_t      Port;        // A port type
 
-// Extended sockaddr, used when size > sizeof(sockaddr_u)
+// Extended sockaddr, currently only used for AF_UNIX
 struct sockaddr_x {                 // Extended sockaddr
-sa_family_t            x_family;    // x_family
-sockaddr*              sock_copy;   // (Allocated) sockaddr copy
+sa_family_t            x_family;    // Protocol family
+uint16_t               _0002[10];   // (Unused)
+uint16_t               x_socksize;  // Reserved, currently unused
+sockaddr*              x_sockaddr;  // Sockaddr copy (Possibly this)
 }; // struct sockaddr_x
 
-union sockaddr_u {                  // Aligned union: sockaddr_in, sockaddr_in6
+//---------------------------------------------------------------------------
+union sockaddr_u {                  // Aligned multi-family union
 uint64_t               su_align[4]; // Alignment and maximum size (32)
 sa_family_t            su_family;   // Socket address family
+sockaddr               su_sa;       // Generic socket address
 sockaddr_in            su_in;       // IPv4 internet address
 sockaddr_in6           su_in6;      // IPv6 internet address
-sockaddr_x             su_x;        // Copy of sockaddr
+sockaddr_x             su_x;        // Extended sockaddr format
 
-std::string to_string( void ) const; // Convert to display string
-}; // union sockaddr_u
+#if 0  // ---- For future expansion ----
+inline
+   sockaddr_u( void )               // Constructor
+{  su_align[0]= su_align[1]= su_align[2]= su_align[3]= 0; }
+
+   sockaddr_u(const sockaddr_u&);   // Copy constructor
+   sockaddr_u(const sockaddr*, socklen_t); // Copy constructor
+
+inline
+   ~sockaddr_u( void )              // Destructor
+{  reset(); }
+
+sockaddr_u&
+   operator=(const sockaddr_u&);    // Assignment operator
+sockaddr_u&
+   operator=(const sockaddr*, socklen_t); // Assignment operator
+
+void
+   reset( void );                   // Reset the sockaddr_u, zeroing it
+#endif // ---- For future expansion ----
+
+std::string                         // The display string
+   to_string( void ) const;         // Get display string
+}; // union sockaddr_u -------------------------------------------------------
 
 protected:
 SocketSelect*          selector= nullptr; // The associated SocketSelector
@@ -151,17 +180,18 @@ int                                 // The socket handle
    get_handle( void ) const         // Get socket handle
 {  return handle; }
 
+static std::string                  // The host name
+   gethostname( void );             // Get host name
+
 const sockaddr_u&                   // The host internet address
    get_host_addr( void ) const      // Get host internet address
 {  return host_addr; }
-
-static std::string                  // The host name
-   get_host_name( void );           // Get host name
 
 socklen_t                           // The host internet address length
    get_host_size( void ) const      // Get host internet address length
 {  return host_size; }
 
+// get_host_port only valid for AF_INET and AF_
 Port                                // The host Port number
    get_host_port( void ) const      // Get host Port number
 {  return ntohs(((sockaddr_in*)&host_addr)->sin_port); }
@@ -232,12 +262,12 @@ int                                 // Return code (0 OK)
 
 int                                 // Return code (0 OK)
    bind(                            // Bind to address
-     const std::string&host);       // Host name:port string
+     const std::string&nps);        // Host name:port string
 
 int                                 // Return code (0 OK)
    bind(                            // Bind this socket
      Port              port)        // To this Port
-{  return bind(get_host_name() + ":" + std::to_string(port)); }
+{  return bind(gethostname() + ":" + std::to_string(port)); }
 
 int                                 // Return code (0 OK)
    close( void );                   // Close the socket
@@ -249,20 +279,26 @@ virtual int                         // Return code (0 OK)
 
 int                                 // Return code (0 OK)
    connect(                         // Connect to server
-     const std::string&peer);       // Peer name:port string
+     const std::string&nps);        // Peer name:port string
 
 int                                 // Return code, 0 expected
    listen( void );                  // Set Socket to listener (server)
 
 /**
    @brief Set a socket address from a "name:port" string
-   @param nps The "name:port" string, which can also be specified as
-          ":port" which uses get_host_name() as the host name.
+   @param nps The "name:port" string.
+       AF_INET and AF_INET6 family names MUST contain the ':' delimiter, and
+       may be specified as ":port" to use gethostname() as the host.
+       If the family name is defaulted, AF_UNIX family names MUST NOT
+       contain the ':' delimiter.
+
+   @param addr OUT: The resultant sockaddr
+   @param size OUT: The resultant sockaddr length
+   @param family: The preferred address family.
+
    @return 0 If successful,
           -1 if error with errno set,
           >0 if ::getaddrinfo failed. (See socket getaddrinfo return codes.)
-
-   The address family must match the socket address family specfied in open.
 
    Error errno values:
      EINVAL The nps string is missing the ':' delimiter
@@ -271,7 +307,8 @@ int                                 // Return code, 0 OK
    name_to_addr(                    // Convert "name:port" to socket address
      const std::string&nps,         // The "name:port" name string
      sockaddr*         addr,        // OUT: The sockaddr
-     socklen_t*        size);       // INP/OUT: Length of sockaddr
+     socklen_t*        size,        // INP/OUT: Length of sockaddr
+     int               family= 0);  // The preferred address family
 
 int                                 // Return code (0 OK)
    open(                            // Open the Socket

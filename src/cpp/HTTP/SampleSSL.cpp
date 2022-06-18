@@ -16,7 +16,7 @@
 //       Sample HTTP/HTTPS Client/Server, using openssl socket layer.
 //
 // Last change date-
-//       2022/06/09
+//       2022/06/15
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -1215,7 +1215,7 @@ static void
    client_CTX= new_client_CTX();
    server_CTX= new_server_CTX("public.crt", "private.key");
 
-   host_name= Socket::get_host_name();
+   host_name= Socket::gethostname();
    STD_addr= host_name + ":" + std::to_string(STD_PORT);
    SSL_addr= host_name + ":" + std::to_string(SSL_PORT);
 

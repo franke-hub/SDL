@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2022/06/11
+//       2022/06/18
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -70,18 +70,19 @@ enum                                // Generic enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
-,  SSL_PORT= 8443                   // Our SSL port number
-,  STD_PORT= 8080                   // Our STD port number
-
 // Default options
 ,  USE_CLIENT= false                // --client
+,  USE_FAMILY= AF_INET              // --af
 ,  USE_PACKET= false                // --packet or --datagram
 ,  USE_SERVER= false                // --server
 ,  USE_SSL=    false                // --ssl
 ,  USE_STREAM= false                // --stream
-,  USE_THREAD= false                // --thread
-,  USE_WORKER= false                // --worker
+,  USE_THREAD= true                 // --thread
+,  USE_WORKER= true                 // --worker
 }; // Generic enum
+
+static constexpr const char* SSL_PORT= "8443"; // Default SSL port
+static constexpr const char* STD_PORT= "8080"; // Default STD port
 
 enum                                // Debugging enum
 // Debugging/experimental options  - - - - - - - - - - - - - - - - - - - - - -
@@ -128,15 +129,16 @@ static const char*     poll_method[]= // Polling experimental control names
 //----------------------------------------------------------------------------
 // Macros
 //----------------------------------------------------------------------------
+#define LINE() line(__LINE__)
 #define LOCK_GUARD(x) std::lock_guard<decltype(x)> lock(x)
+#define TRACE(...) trace(__LINE__, __VA_ARGS__)
 
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static std::string     peer_8080;   // The server's name:8080 string
-static std::string     peer_addr;   // The server's name:port string
-static int             peer_port= STD_PORT; // The server's port number
-static bool            is_server= false; // TRUE if running server w/o client
+static std::string     host_name;   // The server name
+static std::string     peer_http;   // The stream server's name:port string
+static std::string     peer_pack;   // The packet server's name:port string
 
 // SSL controls
 static SSL_CTX*        client_CTX= nullptr; // Common client SSL_CTX
@@ -162,40 +164,42 @@ static atomic<size_t>  psr_count;   // Number of read operations completed
 static atomic<size_t>  psw_count;   // Number of write operations completed
 
 // Stream client statistics
-static atomic<size_t>  scc_count;    // Number of operations completed
-static atomic<size_t>  scr_count;    // Number of read operations completed
-static atomic<size_t>  scw_count;    // Number of write operations completed
+static atomic<size_t>  scc_count;   // Number of operations completed
+static atomic<size_t>  scr_count;   // Number of read operations completed
+static atomic<size_t>  scw_count;   // Number of write operations completed
 
 // Stream server statistics
-static atomic<size_t>  ssr_again;    // Number of read if_retry() retries
-static atomic<size_t>  ssr_count;    // Number of read operations completed
-static atomic<size_t>  ssw_count;    // Number of write operations completed
+static atomic<size_t>  ssr_again;   // Number of read if_retry() retries
+static atomic<size_t>  ssr_count;   // Number of read operations completed
+static atomic<size_t>  ssw_count;   // Number of write operations completed
 
 //----------------------------------------------------------------------------
 // Extended options
 //----------------------------------------------------------------------------
+static int             opt_af=     USE_FAMILY;
 static int             opt_client= USE_CLIENT;
 static int             opt_packet= USE_PACKET;
 static int             opt_runtime= 0;
-static int             opt_server= USE_SERVER;
+static const char*     opt_server= nullptr;
 static int             opt_ssl=    USE_SSL;
 static int             opt_stream= USE_STREAM;
-static const char*     opt_target= nullptr;
 static int             opt_thread= USE_THREAD;
 static int             opt_worker= USE_WORKER;
 static struct option   opts[]=      // The getopt_long parameter: longopts
-{  {"client",    no_argument,       &opt_client,    true}
+{  {"af",        required_argument, nullptr,           0}
+,  {"client",    no_argument,       &opt_client,    true}
 ,  {"datagram",  no_argument,       &opt_packet,    true}
 ,  {"packet",    no_argument,       &opt_packet,    true}
 ,  {"runtime",   required_argument, nullptr,           0}
-,  {"server",    optional_argument, &opt_server,    true}
+,  {"server",    optional_argument, nullptr,           0}
 ,  {"ssl",       no_argument,       &opt_ssl,       true}
 ,  {"stream",    no_argument,       &opt_stream,    true}
-,  {"stress",    no_argument,       &opt_stream,    true}
 ,  {"thread",    no_argument,       &opt_thread,    true}
 ,  {"worker",    no_argument,       &opt_worker,    true}
-,  {"no-thread", no_argument,       &opt_thread,    false} // TODO: REMOVE
-,  {"no-worker", no_argument,       &opt_worker,    false} // TODO: REMOVE
+
+// These options can be used if USE_THREAD or USE_WORKER defaulted true
+,  {"no-thread", no_argument,       &opt_thread,    false}
+,  {"no-worker", no_argument,       &opt_worker,    false}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
@@ -243,6 +247,31 @@ static const char*     http404=     // HTTP 404 (NOT FOUND) response
    "</body>\r\n"                    // 8
    "</html>\r\n"                    // 8
    ;
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       af_name
+//
+// Purpose-
+//       Return address family name
+//
+//----------------------------------------------------------------------------
+static const char*                  // The address family name
+   af_name(                         // Get address family name
+     int               value)       // For this address family value
+{
+   if( value == AF_INET )
+     return "IpV4";
+
+   if( value == AF_INET6 )
+     return "IpV6";
+
+   if( value == AF_UNIX )
+     return "UNIX";
+
+   return "UNDEFINED";
+}
 
 //----------------------------------------------------------------------------
 //
@@ -532,8 +561,8 @@ static void
    int ERRNO= errno;                // (Preserve errno)
    LOCK_GUARD(*Debug::get());
 
-   if( HCDM && true ) {
-     debugh("%4d ", line);          // (Heading)
+   if( opt_verbose && true ) {
+     debugf("%4d ", line);          // (Heading)
 
      va_start(argptr, fmt);         // Initialize va_ functions
      vdebugf(fmt, argptr);          // (User error message)
@@ -576,7 +605,7 @@ virtual void
    running= true;
    test_start.post();
 
-   Thread::sleep(opt_runtime);
+   Thread::sleep(opt_runtime);      // (Run the test)
 
    running= false;
    test_start.reset();
@@ -609,9 +638,9 @@ struct pollfd          pfd= {};     // Poll file descriptor
    PacketClient()
 :  Thread()
 {
-   int rc= packet.open(AF_INET, SOCK_DGRAM, PF_UNSPEC);
+   int rc= packet.open(opt_af, SOCK_DGRAM, PF_UNSPEC);
    if( rc ) {
-     trace(__LINE__, "PacketClient %d= open", rc);
+     TRACE("PacketClient %d= open", rc);
      return;
    }
 
@@ -622,14 +651,13 @@ struct pollfd          pfd= {};     // Poll file descriptor
    pfd.events= POLLIN | POLLOUT;
 
    if( USE_PACKET_CONNECT ) {       // (Prefer false)
-     rc= packet.connect(peer_8080); // Connect to peer
+     rc= packet.connect(peer_pack); // Connect to peer
      if( rc )
-       trace(__LINE__, "PacketClient %d=connect", rc);
+       TRACE("PacketClient %d= connect", rc);
    } else {
-     rc= packet.set_peer_addr(peer_8080); // Set peer address
+     rc= packet.set_peer_addr(peer_pack); // Set peer address
      if( rc )
-       trace(__LINE__, "PacketClient %d=set_peer_addr(%s)", rc
-            , peer_8080.c_str());
+       TRACE("PacketClient %d= set_peer_addr(%s)", rc, peer_pack.c_str());
    }
 }
 
@@ -650,10 +678,10 @@ struct pollfd          pfd= {};     // Poll file descriptor
 virtual void
    client()
 {
-   int rc= packet.poll(&pfd, 63);    // Approx. 1/16 second timeout
+   int rc= packet.poll(&pfd, 63);   // Approx. 1/16 second timeout
    if( rc < 0 ) {
      ++error_count;
-     trace(__LINE__, "PacketClient %d= poll", rc);
+     TRACE("PacketClient %d= poll", rc);
      return;
    }
 
@@ -674,10 +702,10 @@ virtual void
          if( if_retry() )
            break;
          if( count == 0 )
-           trace(__LINE__, "PacketClient %zd= recvfrom", L);
+           TRACE("PacketClient %zd= recvfrom", L);
 
          ++error_count;
-         trace(__LINE__, "PacketClient %zd= recvfrom", L);
+         TRACE("PacketClient %zd= recvfrom", L);
        }
 
        if( running ) {              // (Avoids pcc_count/pcr_count mismatch)
@@ -706,14 +734,15 @@ virtual void
      L= packet.send(S.c_str(), S.size(), pkt_confirm);
    else
      L= packet.sendto(S.c_str(), S.size(), pkt_confirm);
-   // trace(__LINE__, "PacketClient %zd= sendto", L);
+   // TRACE("PacketClient %zd= sendto", L);
    if( size_t(L) == S.size() ) {
      ++pcw_count;
      return;
    }
 
    ++error_count;
-   trace(__LINE__, "PacketClient %zd= sendto (%zd expected)", L, S.size());
+   TRACE("PacketClient %zd= sendto(%s) (%zd expected)", L
+        , packet.get_peer_addr().to_string().c_str(), S.size());
 }
 
 //----------------------------------------------------------------------------
@@ -738,13 +767,15 @@ virtual void
        client();
      }
    } catch(pub::Exception& X) {
-     debugh("Exception: %s\n", X.to_string().c_str());
+     ++error_count;
+     debugf("%4d Exception: %s\n", __LINE__, X.to_string().c_str());
    } catch(std::exception& X) {
-     debugh("std::Exception what(%s)\n", X.what());
+     ++error_count;
+     debugf("%4d std::Exception what(%s)\n", __LINE__, X.what());
    }
 
    if( opt_verbose > 1 )
-     debugf("Packet client %s terminated\n", peer_8080.c_str());
+     debugf("Packet client %s terminated\n", peer_pack.c_str());
 }
 
 //----------------------------------------------------------------------------
@@ -768,19 +799,19 @@ static void
      client[i]= new PacketClient();
      client[i]->start();
    }
-   Thread::sleep(0.125);          // (Delay allows all Threads to start
+   Thread::sleep(0.125);            // (Allow all Threads to start)
 
-   if( opt_verbose ) {
-     if( !opt_server )
-       debugf("\n");
+   if( opt_verbose )
      debugf("--packet test: Started\n");
-   }
 
    timer_thread.start();
    timer_thread.join();
+   Thread::sleep(0.125);            // (Complete in-flight packets)
 
-   for(int i= 0; i<thread_count; i++)
+   for(int i= 0; i<thread_count; i++) {
      client[i]->join();
+     delete client[i];
+   }
 
    // Statistics
    // Note: pcc_count counts completed operations:
@@ -823,43 +854,11 @@ int                    operational= false; // TRUE while operational
 // Constructors/Destructor
 //----------------------------------------------------------------------------
    PacketServer()
-:  Thread(), event()
-{
-   int rc= packet.open(AF_INET, SOCK_DGRAM, PF_UNSPEC);
-   if( rc ) {
-     trace(__LINE__, "PacketServer %d= open", rc);
-     return;
-   }
-
-   int optval= true;                // (Needed before the bind)
-   packet.set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-
-   if( USE_RPOLL == USE_POLL_NONBLOCK )
-     packet.set_flags( packet.get_flags() | O_NONBLOCK );
-
-   rc= packet.bind(STD_PORT);       // Set port number
-   if( rc ) {
-     trace(__LINE__, "PacketServer %d= bind", rc);
-     return;
-   }
-
-   // Set default timeout
-   struct timeval tv= { 3, 0 };     // 3.0 second timeout
-   packet.set_option(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-   packet.set_option(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
-
-   if( USE_RPOLL == USE_POLL_SELECT )
-     select.insert(&packet, POLLIN);
-   else if( USE_RPOLL == USE_POLL_NONBLOCK )
-     packet.set_flags( packet.get_flags() | O_NONBLOCK );
-
-   pfd.events= POLLIN;
-}
+:  Thread(), event() {}
 
    ~PacketServer()
 {
-   if( USE_RPOLL == USE_POLL_SELECT )
-     select.remove(&packet);
+   packet.close();                  // If open, removes from select
 }
 
 //----------------------------------------------------------------------------
@@ -874,9 +873,43 @@ int                    operational= false; // TRUE while operational
 virtual void
    run()                            // PacketServer::run
 {
+   int rc= packet.open(opt_af, SOCK_DGRAM, PF_UNSPEC);
+   if( rc ) {
+     ++error_count;
+     TRACE("PacketServer %d= open %d:%s", rc, errno, strerror(errno));
+     return;
+   }
+
+   int optval= true;                // (Needed before the bind)
+   packet.set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+
+   if( USE_RPOLL == USE_POLL_NONBLOCK )
+     packet.set_flags( packet.get_flags() | O_NONBLOCK );
+
+   rc= packet.bind(peer_pack);      // Set port number
+   if( rc ) {
+     ++error_count;
+     TRACE("PacketServer %d= bind(%s)", rc ,peer_pack.c_str());
+     packet.close();
+     event.post();
+     return;
+   }
+
+   // Set default timeout
+   struct timeval tv= { 3, 0 };     // 3.0 second timeout
+   packet.set_option(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+   packet.set_option(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+
+   pfd.events= POLLIN;
+   if( USE_RPOLL == USE_POLL_SELECT )
+     select.insert(&packet, POLLIN);
+   else if( USE_RPOLL == USE_POLL_NONBLOCK )
+     packet.set_flags( packet.get_flags() | O_NONBLOCK );
+
    operational= true;
    if( opt_verbose )
-     debugf("Packet server %s operational\n", peer_8080.c_str());
+     debugf("Packet std_server %s operational(%s)\n", peer_pack.c_str()
+           , packet.get_host_addr().to_string().c_str());
    event.post();
 
    try {
@@ -885,7 +918,7 @@ virtual void
          case USE_POLL_POLL: {{{{
            int rc= packet.poll(&pfd, 1000); // 1 second timeout
            if( false )
-             trace(__LINE__, "%d= poll %d {%.4x,%.4x}", rc
+             TRACE("%d= poll %d {%.4x,%.4x}", rc
                   , pfd.fd, pfd.events, pfd.revents);
            if( rc < 0 ) {
              if( if_closed(pfd) )
@@ -924,20 +957,24 @@ virtual void
          serve();
      }
    } catch(pub::Exception& X) {
-     debugh("Exception: %s\n", X.to_string().c_str());
+     ++error_count;
+     debugf("%4d Exception: %s\n", __LINE__, X.to_string().c_str());
    } catch(std::exception& X) {
-     debugh("std::Exception what(%s)\n", X.what());
+     ++error_count;
+     debugf("%4d std::Exception what(%s)\n", __LINE__, X.what());
    }
+
+   packet.close();
 
    // Statistics
    if( opt_verbose ) {
-     debugf("--packet server info:\n");
+     debugf("Packet std_server info:\n");
      debugf("%'16zd Recv again\n", psr_again.load());
      debugf("%'16zd Recv block\n", psr_block.load());
      debugf("%'16zd Recv count\n", psr_count.load());
      debugf("%'16zd Send count\n", psw_count.load());
 
-     debugf("Packet server %s terminated\n", peer_8080.c_str());
+     debugf("Packet std_server %s terminated\n", peer_pack.c_str());
    }
 }
 
@@ -966,9 +1003,9 @@ void
      ++psr_count;
 
      ssize_t S= packet.sendto(buffer, R, pkt_confirm, &from, size);
-     // trace(__LINE__, "PacketServer %zd= sendto", S);
+     // TRACE("PacketServer %zd= sendto", S);
      if( R != S ) {
-       trace(__LINE__, "PacketServer %zd= sendto (%zd expected)", S, R);
+       TRACE("PacketServer %zd= sendto (%zd expected)", S, R);
        return;
      }
 
@@ -983,7 +1020,7 @@ void
        return;
      }
 
-     trace(__LINE__, "PacketServer %zd= packet.recvfrom", R);
+     TRACE("PacketServer %zd= packet.recvfrom", R);
    }
 }
 
@@ -1016,7 +1053,7 @@ void
 class StreamClient : public Thread {
 public:
 char                   buffer[32768]; // Input buffer
-Event                  event;         // Thread started event
+Event                  event;       // Thread started event
 
 //----------------------------------------------------------------------------
 // Constructors/Destructor
@@ -1048,22 +1085,23 @@ void
    Socket&    socket= *target;
 
    try {
-     int rc= socket.open(AF_INET, SOCK_STREAM, PF_UNSPEC);
+     int rc= socket.open(opt_af, SOCK_STREAM, PF_UNSPEC);
      if( rc ) {
        if( !running )
          return;
-       trace(__LINE__, "StreamClient %d=open", rc);
+       TRACE("StreamClient %d= open", rc);
        throw pub::Exception("StreamClient open Failure");
      }
 
      // Connect to server
-     rc= socket.connect(peer_addr);
+     rc= socket.connect(peer_http);
      if( rc < 0 ) {
        if( !running )
          return;
-       trace(__LINE__, "StreamClient %d= connect", rc);
+       TRACE("StreamClient %d= connect(%s) '%s'", rc, peer_http.c_str()
+            , socket.get_peer_addr().to_string().c_str());
        if( ++retry_count <= USE_CONNECT_RETRY ) {
-         Thread::sleep(5.0);
+         Thread::sleep(5.0);        // (Allow some TIME_WAIT expirations)
          return;
        }
        throw pub::Exception("StreamClient connect Failure");
@@ -1074,37 +1112,38 @@ void
      if( L <= 0 ) {
        if( !running )
          return;
-       trace(__LINE__, "StreamClient %zd= write(%zd)", L, strlen(httpREQ));
+       TRACE("StreamClient %zd= write(%zd)", L, strlen(httpREQ));
        throw pub::Exception("StreamClient write Failure");
      }
      if( opt_verbose > 1 )
-       debugh("StreamClient %zd= write(%s)\n", L, visify(httpREQ).c_str());
+       TRACE("StreamClient %zd= write(%s)\n", L, visify(httpREQ).c_str());
      ++scw_count;
 
      L= socket.read(buffer, sizeof(buffer)-1);
      if( L <= 0 ) {
        if( !running )
          return;
-       trace(__LINE__, "StreamClient %zd= read(%zd)", L, strlen(httpREQ));
+       TRACE("StreamClient %zd= read(%zd)", L, strlen(httpREQ));
        throw pub::Exception("StreamClient read Failure");
      }
      buffer[L]= '\0';
      if( opt_verbose > 1 )
-       debugh("StreamClient %zd= read(%s)\n", L, visify(buffer).c_str());
+       TRACE("StreamClient %zd= read(%s)\n", L, visify(buffer).c_str());
 
      if( running ) {                // (Avoids scc_count/scr_count mismatch)
        ++scr_count;
        ++scc_count;
      }
    } catch(pub::Exception& X) {
-     debugh("StreamClient %s\n", X.to_string().c_str());
      ++error_count;
+     debugf("%4d StreamClient %s\n", __LINE__, X.to_string().c_str());
    } catch(std::exception& X) {
-     debugh("StreamClient what(%s)\n", X.what());
      ++error_count;
+     debugf("%4d StreamClient what(%s)\n", __LINE__, X.what());
    } catch(...) {
-     debugh("StreamClient catch(...) socket(%4d)\n", socket.get_handle());
      ++error_count;
+     debugf("%4d StreamClient catch(...) socket(%4d)\n", __LINE__
+           , socket.get_handle());
    }
 
    // Close the connection
@@ -1112,7 +1151,7 @@ void
    if( rc ) {
      if( !running )
        return;
-     trace(__LINE__, "StreamClient %d= close", rc);
+     TRACE("StreamClient %d= close", rc);
      throw pub::Exception("StreamClient close Failure");
    }
 }
@@ -1137,14 +1176,16 @@ virtual void
        client();
      }
    } catch(pub::Exception& X) {
-     debugh("Exception: %s\n", X.to_string().c_str());
+     ++error_count;
+     debugf("%4d Exception: %s\n", __LINE__, X.to_string().c_str());
    } catch(std::exception& X) {
-     debugh("std::Exception what(%s)\n", X.what());
+     ++error_count;
+     debugf("%4d std::Exception what(%s)\n", __LINE__, X.what());
    }
 
    event.reset();
    if( opt_verbose > 1 )
-     debugf("Stream client %s terminated\n", peer_addr.c_str());
+     debugf("Stream client %s terminated\n", peer_http.c_str());
 }
 
 //----------------------------------------------------------------------------
@@ -1169,18 +1210,19 @@ static void
      client[i]->start();
      client[i]->event.wait();
    }
+   Thread::sleep(0.125);            // (Allow all Threads to start)
 
-   if( opt_verbose ) {
-     if( !opt_server )
-       debugf("\n");
+   if( opt_verbose )
      debugf("--%s_stream test: Started\n", opt_ssl ? "ssl" : "std");
-   }
 
    timer_thread.start();
    timer_thread.join();
+   Thread::sleep(0.125);            // (Complete in-flight requests)
 
-   for(int i= 0; i<thread_count; i++)
+   for(int i= 0; i<thread_count; i++) {
      client[i]->join();
+     delete client[i];
+   }
 
    // Statistics
    if( opt_verbose ) {
@@ -1219,11 +1261,12 @@ public:
    StreamWorker(                    // Constructor
      Socket*           client)      // Connection socket
 :  client(client)
-{  if( HCDM ) debugh("StreamWorker(%p)::StreamWorker(%p)\n", this, client); }
+{  if( HCDM )
+     debugf("StreamWorker(%p)::StreamWorker(%p)\n", this, client); }
 
 virtual
    ~StreamWorker( void )            // Destructor
-{  if( HCDM ) debugh("StreamWorker(%p)::~StreamWorker()...\n", this);
+{  if( HCDM ) debugf("StreamWorker(%p)::~StreamWorker()...\n", this);
 
    delete client;
 }
@@ -1236,16 +1279,19 @@ virtual void
    work( void )                     // Process work
 {
    if( opt_verbose > 1 )
-     debugh("StreamWorker::work()\n");
+     debugf("StreamWorker::work()\n");
 
    try {
      run();
    } catch(pub::Exception& X) {
-     debugh("StreamWorker: %s\n", X.to_string().c_str());
+     ++error_count;
+     debugf("%4d StreamWorker: %s\n", __LINE__, X.to_string().c_str());
    } catch(std::exception& X) {
-     debugh("StreamWorker: what(%s)\n", X.what());
+     ++error_count;
+     debugf("%4d StreamWorker: what(%s)\n", __LINE__, X.what());
    } catch(...) {
-     debugh("StreamWorker: catch(...)\n");
+     ++error_count;
+     debugf("%4d StreamWorker: catch(...)\n", __LINE__);
    }
 
    delete this;                     // When done, delete this StreamWorker
@@ -1267,14 +1313,14 @@ void
      ssize_t L= client->read(buffer, sizeof(buffer)-1);
      if( L <= 0 ) {
        if( L < 0 )
-         trace(__LINE__, "StreamWorker %zd= read", L);
+         TRACE("StreamWorker %zd= read", L);
        break;
      }
      ++ssr_count;
 
      buffer[L]= '\0';
      if( opt_verbose > 1 )
-       debugh("StreamWorker %zd= read(%s)\n", L, visify(buffer).c_str());
+       TRACE("StreamWorker %zd= read(%s)\n", L, visify(buffer).c_str());
 
      const char* mess= nullptr;
      const char* C= buffer;
@@ -1293,13 +1339,13 @@ void
 
      L= client->write(mess, strlen(mess));
      if( L <= 0 ) {
-       trace(__LINE__, "StreamWorker %zd= write(%zd)", L, strlen(mess));
+       TRACE("StreamWorker %zd= write(%zd)", L, strlen(mess));
        break;
      }
      ++ssw_count;
 
      if( opt_verbose > 1 )
-       debugh("StreamWorker %zd= write(%s)\n", L, visify(mess).c_str());
+       TRACE("StreamWorker %zd= write(%s)\n", L, visify(mess).c_str());
    }
 
    // Client closed or in error state. Allow immediate port re-use
@@ -1368,9 +1414,9 @@ virtual void
    if( opt_ssl )
      listen= &ssl_socket;
 
-   int rc= listen->open(AF_INET, SOCK_STREAM, PF_UNSPEC);
+   int rc= listen->open(opt_af, SOCK_STREAM, PF_UNSPEC);
    if( rc ) {
-     trace(__LINE__, "StreamServer %d= open", rc);
+     TRACE("StreamServer %d= open", rc);
      return;
    }
 
@@ -1380,16 +1426,21 @@ virtual void
    if( USE_APOLL == USE_POLL_NONBLOCK )
      listen->set_flags( listen->get_flags() | O_NONBLOCK );
 
-   rc= listen->bind(peer_addr);     // Set port number
+   rc= listen->bind(peer_http);     // Set port number
    if( rc ) {
-     trace(__LINE__, "StreamServer %d= bind", rc);
+     ++error_count;
+     TRACE("StreamServer %d= bind(%s)", rc, peer_http.c_str());
      listen->close();
+     event.post();
      return;
    }
-   rc= listen->listen();            // Set listener socket
+
+   rc= listen->listen();            // It's a listener socket
    if( rc ) {
-     trace(__LINE__, "StreamServer %d= listen", rc);
+     ++error_count;
+     TRACE("StreamServer %d= listen", rc);
      listen->close();
+     event.post();
      return;
    }
 
@@ -1401,8 +1452,8 @@ virtual void
 
    operational= true;
    if( opt_verbose )
-     debugf("Stream %s_server %s operational\n", opt_ssl ? "ssl" : "std"
-           , peer_addr.c_str());
+     debugf("Stream %s_server %s operational(%s)\n", opt_ssl ? "ssl" : "std"
+           , peer_http.c_str(), listen->get_host_addr().to_string().c_str());
    event.post();
 
    try {
@@ -1450,14 +1501,18 @@ virtual void
        }
      }
    } catch(pub::Exception& X) {
-     debugh("Exception: %s\n", X.to_string().c_str());
+     ++error_count;
+     debugf("%4d Exception: %s\n", __LINE__, X.to_string().c_str());
    } catch(std::exception& X) {
-     debugh("std::Exception what(%s)\n", X.what());
+     ++error_count;
+     debugf("%4d std::Exception what(%s)\n", __LINE__, X.what());
    }
+
+   listen->close();
 
    // Statistics
    if( opt_verbose ) {
-     debugf("--%s_stream server info:\n", opt_ssl ? "ssl" : "std");
+     debugf("Stream %s_server info:\n", opt_ssl ? "ssl" : "std");
      debugf("%'16ld Recv again\n", ssr_again.load());
      debugf("%'16ld Recv count\n", ssr_count.load());
      debugf("%'16ld Send count\n", ssw_count.load());
@@ -1466,7 +1521,7 @@ virtual void
        WorkerPool::debug();
 
      debugf("Stream %s_server %s terminated\n", opt_ssl ? "ssl" : "std"
-           , peer_addr.c_str());
+           , peer_http.c_str());
    }
 }
 
@@ -1487,15 +1542,15 @@ void
 
    if( USE_STOP_HCDM ) {
      if( false ) {                  // TRUE: Tests accept block logic
-       debugh("%4d %s stop DISABLED\n", __LINE__, __FILE__);
+       debugf("%4d %s stop DISABLED\n", __LINE__, __FILE__);
        return;
      }
-     debugh("%4d %s stop\n", __LINE__, __FILE__);
+     debugf("%4d %s stop\n", __LINE__, __FILE__);
    }
 
-   int rc= listen->close();       // Close the listener Socket
+   int rc= listen->close();         // Close the listener Socket
    if( USE_STOP_HCDM || opt_verbose > 1 )
-     debugh("%4d %s %d= listen->close()\n", __LINE__, __FILE__, rc);
+     TRACE("%d= listen->close()", rc);
 
    //-------------------------------------------------------------------------
    // Create a dummy connection to complete any pending accept, ignoring any
@@ -1508,13 +1563,13 @@ void
        target= &ssl_socket;
      Socket& socket= *target;
 
-     int rc= socket.open(AF_INET, SOCK_STREAM, PF_UNSPEC);
+     int rc= socket.open(opt_af, SOCK_STREAM, PF_UNSPEC);
      if( rc == 0 ) {
-       rc= socket.connect(peer_addr);
+       rc= socket.connect(peer_http);
        if( USE_STOP_HCDM || opt_verbose > 1 )
-         debugh("%4d %s %d= socket.connect\n", __LINE__, __FILE__, rc);
+         TRACE("%d= socket.connect", rc);
+       Thread::sleep(0.125);        // (For non-operational listen completion)
      }
-     Thread::sleep(0.125);
    } catch(...) {
    }
 }
@@ -1541,17 +1596,19 @@ int
 
    tc.on_info([]()
    {
-     fprintf(stderr, "  --runtime=<seconds>\n");
+     fprintf(stderr, "  --runtime\t={n} Integer seconds\n");
+     fprintf(stderr, "  --af\t\t={ipv4|ipv6|unix} Address family\n");
      fprintf(stderr, "  --client\tRun simple client test\n");
      fprintf(stderr, "  --packet\tRun datagram test\n");
+     fprintf(stderr, "  --ssl\tRun ssl stream test (implies --stream)\n");
      fprintf(stderr, "  --stream\tRun stream test\n");
 
-     fprintf(stderr, "  --server=host:port\tUse remote server\n");
+     fprintf(stderr, "  --server\t={host:port} Remote server\n");
      fprintf(stderr, "  --thread\tRun multi-threaded stream client\n");
      fprintf(stderr, "  --worker\tRun multi-threaded stream server\n");
    });
 
-   tc.on_init([](int, char**)
+   tc.on_init([](int argc, char** argv)
    {
      if( HCDM )
        opt_hcdm= true;
@@ -1566,42 +1623,67 @@ int
 
      setlocale(LC_NUMERIC, "");     // Allows printf("%'d\n", 123456789);
 
-//   peer_port= STD_PORT;           // (Already defaulted)
+     //-----------------------------------------------------------------------
+     // Parameter analysis
+     if( optind < argc ) {
+       fprintf(stderr, "Extra parameter%s: ", (argc-optind) == 1 ? "" : "s");
+       for(int i= optind; optind < argc; ++i)
+         fprintf(stderr, "%s%s", i == optind ? "" : ", ", argv[i]);
+       fprintf(stderr, "\n");
+       return 1;
+     }
+
+     host_name= Socket::gethostname(); // Default host name
+     const char* peer_port= STD_PORT;
      if( opt_ssl ) {
        peer_port= SSL_PORT;
        client_CTX= new_client_CTX();
        server_CTX= new_server_CTX("public.pem", "private.pem");
      }
 
-     if( opt_target ) {
-       opt_server= false;
-//     is_server= false;            // (Default)
-       peer_addr= opt_target;
+     std::string name= host_name;
+     std::string port= peer_port;
+     if( opt_server ) {
+       if( opt_server[0] != '\0' ) { // --server=name{:port}
+         const char* C= strchr(opt_server, ':');
+         if( C ) {                  // --server=name:port
+           if( C > opt_server )
+             name= std::string(opt_server, C - opt_server);
+           if( C[1] == '\0' ) {
+             fprintf(stderr, "--server(%s) empty port\n", opt_server);
+             return 1;
+           }
+           if( opt_af == AF_UNIX )
+             fprintf(stderr, "--server(%s) --af=unix port ignored\n"
+                           , opt_server);
+           port= std::string(C + 1);
+         } else {                   // --server=name
+           name= opt_server;
+         }
+
+         host_name= name;
+         if( opt_af==AF_UNIX )
+           opt_server= nullptr;
+       }
+     }
+     if( opt_ssl && opt_server == nullptr ) {
+       // opt_ssl without opt_server implies opt_stream
+       opt_stream= true;
+     }
+
+     if( opt_af == AF_UNIX ) {
+       peer_http= "/tmp/" + name + ":stream";
+       peer_pack= "/tmp/" + name + ":packet";
      } else {
-       opt_server= true;
-       is_server= !opt_client && !opt_packet && !opt_stream;
-       peer_addr= Socket::get_host_name() + ":" + std::to_string(peer_port);
+       peer_http= name + ":" + port;
+       peer_pack= peer_http;
      }
 
-     size_t x= peer_addr.find(':');
-     if( x == std::string::npos ) {
-       fprintf(stderr, "'--server=%s missing ':' delimiter"
-                     , peer_addr.c_str());
-       return -1;
-     }
-     if( x == 0 ) {
-       opt_server= true;
-       is_server= !opt_client && !opt_packet && !opt_stream;
-       peer_addr= Socket::get_host_name() + peer_addr;
-       x= peer_addr.find(":");
-     }
-     peer_8080= peer_addr.substr(0,x) + ":" + std::to_string(STD_PORT);
-
-     if( !opt_client && !opt_server && !opt_packet && !opt_stream )
+     if( !opt_server && !opt_client && !opt_packet && !opt_stream )
        opt_client= true;
 
      if( opt_runtime == 0 )
-       opt_runtime= 10;
+       opt_runtime= 5;
 
      return 0;
    });
@@ -1613,9 +1695,10 @@ int
        debugf("\n");
        debugf("Settings:\n");
        debugf("%5d: runtime\n",  opt_runtime);
-       debugf("%5s: server: %s\n", torf(is_server), peer_addr.c_str());
+       debugf("%5s: server: %s\n" , torf(bool(opt_server)), host_name.c_str());
        debugf("%5d: verbose\n",opt_verbose);
 
+       debugf("%5d: af: %s\n", opt_af, af_name(opt_af));
        debugf("%5s: client\n", torf(opt_client));
        debugf("%5s: packet\n", torf(opt_packet));
        debugf("%5s: ssl\n",    torf(opt_ssl));
@@ -1647,7 +1730,7 @@ int
        reset_statistics();
        if( opt_verbose )
          debugf("\n");
-       if( opt_server ) {
+       if( !opt_server ) {
          stream_server.start();
          packet_server.start();
          packet_server.event.wait();
@@ -1663,50 +1746,58 @@ int
        if( opt_verbose )
          debugf("--client test: Complete\n");
 
-       if( opt_server ) {
+       if( !opt_server ) {
          packet_server.stop();
          packet_server.join();
          stream_server.stop();
          stream_server.join();
+         if( opt_af == AF_UNIX ) {
+           unlink(peer_http.c_str());
+           unlink(peer_pack.c_str());
+         }
        }
      }
 
      if( opt_packet ) {
        reset_statistics();
        PacketClient packet_client;
-       if( opt_server ) {
-         if( opt_verbose )
-           debugf("\n");
+       if( opt_verbose )
+         debugf("\n");
+       if( !opt_server ) {
          packet_server.start();
          packet_server.event.wait();
        }
 
        packet_client.stress();
 
-       if( opt_server ) {
+       if( !opt_server ) {
          packet_server.stop();
          packet_server.join();
+         if( opt_af == AF_UNIX )
+           unlink(peer_pack.c_str());
        }
      }
 
      if( opt_stream ) {
        reset_statistics();
-       if( opt_server ) {
-         if( opt_verbose )
-           debugf("\n");
+       if( opt_verbose )
+         debugf("\n");
+       if( !opt_server ) {
          stream_server.start();
          stream_server.event.wait();
        }
 
        stream_client.stress();
 
-       if( opt_server ) {
+       if( !opt_server ) {
          stream_server.stop();
          stream_server.join();
+         if( opt_af == AF_UNIX )
+           unlink(peer_http.c_str());
        }
      }
 
-     if( is_server ) {
+     if( !opt_client && !opt_packet && !opt_stream ) {
        reset_statistics();
        if( opt_verbose )
          debugf("\n");
@@ -1715,12 +1806,17 @@ int
        packet_server.event.wait();
        stream_server.event.wait();
 
-       Thread::sleep(opt_runtime);
+       Thread::sleep(opt_runtime);  // (Operate the Servers)
 
        packet_server.stop();
        packet_server.join();
        stream_server.stop();
        stream_server.join();
+
+       if( opt_af == AF_UNIX ) {
+         unlink(peer_http.c_str());
+         unlink(peer_pack.c_str());
+       }
      }
 
      if( opt_verbose ) {
@@ -1732,15 +1828,32 @@ int
 
    tc.on_parm([tr](std::string name, const char* value)
    {
+     if( name == "af" ) {
+       if( ::strcasecmp(value, "INET") == 0
+           || ::strcasecmp(value, "IpV4") == 0 )
+         opt_af= AF_INET;
+       else if( ::strcasecmp(value, "INET6") == 0
+           || ::strcasecmp(value, "IpV6") == 0 )
+         opt_af= AF_INET6;
+       else if( ::strcasecmp(value, "UNIX") == 0
+           || ::strcasecmp(value, "LOCAL") == 0 )
+         opt_af= AF_UNIX;
+       else {
+         fprintf(stderr, "--af=%s not supported\n", value);
+         return -1;
+       }
+     } else
+
      if( name == "runtime" ) {
        if( value == nullptr )
-         value= "60";
+         value= "5";
        opt_runtime= tr->ptoi(value, name.c_str());
-     }
+     } else
 
      if( name == "server" ) {
+       opt_server= "";
        if( value )
-         opt_target= value;
+         opt_server= value;
      }
 
      return 0;
@@ -1752,10 +1865,13 @@ int
        SSL_CTX_free(client_CTX);
      if( server_CTX )
        SSL_CTX_free(server_CTX);
+     client_CTX= nullptr;
+     server_CTX= nullptr;
    });
 
    //-------------------------------------------------------------------------
    // Run the test
-   int rc= tc.run(argc, argv);      // (Allow debugging statment before exit)
+   int rc= tc.run(argc, argv);
+   // (Debugging statements are added here occasionally.)
    return rc;
 }
