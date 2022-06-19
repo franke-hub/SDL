@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2021 Frank Eskesen.
+//       Copyright (c) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Parser implementation methods.
 //
 // Last change date-
-//       2021/01/02
+//       2022/06/18
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -241,8 +241,9 @@ long                                // Return code, error counter
          C= nextc(F);
        }
 
-       while( parm_name.back() == ' ' ) // Remove trailing blanks
-         parm_name= parm_name.substr(0, parm_name.length() - 1);
+       size_t L= parm_name.length();
+       while( L && parm_name[--L] == ' ' )
+         parm_name= parm_name.substr(0, L);
      }
 
      if( C == ';' )
