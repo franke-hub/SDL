@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2022/06/18
+//       2022/06/23
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -964,8 +964,6 @@ virtual void
      debugf("%4d std::Exception what(%s)\n", __LINE__, X.what());
    }
 
-   packet.close();
-
    // Statistics
    if( opt_verbose ) {
      debugf("Packet std_server info:\n");
@@ -1038,6 +1036,7 @@ void
 {
    operational= false;              // Indicate terminated
    event.reset();
+   packet.close();
 }
 }; // class PacketServer
 

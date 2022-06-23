@@ -16,7 +16,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2022/06/17
+//       2022/06/23
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -85,7 +85,7 @@ typedef in_port_t      Port;        // A port type
 
 // Extended sockaddr, currently only used for AF_UNIX
 struct sockaddr_x {                 // Extended sockaddr
-sa_family_t            x_family;    // Protocol family
+sa_family_t            x_family;    // Socket address family
 uint16_t               _0002[10];   // (Unused)
 uint16_t               x_socksize;  // Reserved, currently unused
 sockaddr*              x_sockaddr;  // Sockaddr copy (Possibly this)
@@ -94,32 +94,27 @@ sockaddr*              x_sockaddr;  // Sockaddr copy (Possibly this)
 //---------------------------------------------------------------------------
 union sockaddr_u {                  // Aligned multi-family union
 uint64_t               su_align[4]; // Alignment and maximum size (32)
-sa_family_t            su_family;   // Socket address family
-sockaddr               su_sa;       // Generic socket address
-sockaddr_in            su_in;       // IPv4 internet address
-sockaddr_in6           su_in6;      // IPv6 internet address
+sa_family_t            su_af;       // Socket address family
+sockaddr               sa;          // Generic socket address
+sockaddr_in            su_i4;       // IPv4 internet address
+sockaddr_in6           su_i6;       // IPv6 internet address
 sockaddr_x             su_x;        // Extended sockaddr format
 
-#if 0  // ---- For future expansion ----
 inline
    sockaddr_u( void )               // Constructor
 {  su_align[0]= su_align[1]= su_align[2]= su_align[3]= 0; }
-
-   sockaddr_u(const sockaddr_u&);   // Copy constructor
-   sockaddr_u(const sockaddr*, socklen_t); // Copy constructor
 
 inline
    ~sockaddr_u( void )              // Destructor
 {  reset(); }
 
-sockaddr_u&
-   operator=(const sockaddr_u&);    // Assignment operator
-sockaddr_u&
-   operator=(const sockaddr*, socklen_t); // Assignment operator
+void
+   copy(const sockaddr_u&);         // Replacement copy from sockaddr_u
+void
+   copy(const sockaddr*, socklen_t); // Replacement copy from sockaddr
 
 void
    reset( void );                   // Reset the sockaddr_u, zeroing it
-#endif // ---- For future expansion ----
 
 std::string                         // The display string
    to_string( void ) const;         // Get display string
