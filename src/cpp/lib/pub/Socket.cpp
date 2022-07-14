@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/06/23
+//       2022/07/09
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -248,14 +248,14 @@ void
    Socket::trace(                   // Trace socket operation
      int               line,        // For this source code line
      const char*       fmt,         // Format string
-                       ...) const   // The PRINTF argument list
+                       ...)         // The PRINTF argument list
 {
    int ERRNO= errno;                // (Preserve errno)
    va_list             argptr;      // Argument list pointer
 
    std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
 
-   traceh("%4d Socket(%p): ", line, this); // (Heading)
+   traceh("%4d Socket: ", line);    // (Heading)
 
    va_start(argptr, fmt);           // Initialize va_ functions
    vtracef(fmt, argptr);            // (User error message)
@@ -383,8 +383,10 @@ Socket*                             // The new connection Socket
 
    Socket* result= new Socket();
    result->handle= client;
+   result->host_size= host_size;
+   result->host_addr.copy(host_addr);
    result->peer_size= peersize;
-   peer_addr.copy((sockaddr*)&peeraddr, peersize);
+   result->peer_addr.copy((sockaddr*)&peeraddr, peersize);
 
    return result;
 }
@@ -547,12 +549,12 @@ int                                 // Return code, 0 OK
      socklen_t*        size,        // INP/OUT: The addr length
      int               family)      // The preferred address family
 {  if( HCDM )
-     debugh("Socket(%p)::name_to_addr(%s,%p,%d,%d)\n", this
+     debugh("Socket::name_to_addr(%s,%p,%d,%d)\n"
            , nps.c_str(), addr, *size, family);
 
    if( family == AF_UNIX ) {
-     if( nps.size() > sizeof(sockaddr_un::sun_path )
-         || size_t(*size) < (nps.size()+offsetof(sockaddr_un, sun_path)) ) {
+     if( nps.size() >= sizeof(sockaddr_un::sun_path)
+         || size_t(*size) <= (nps.size()+offsetof(sockaddr_un, sun_path)) ) {
        errno= EINVAL;
        if( IOEM )
          trace(__LINE__, "'%s' AF_UNIX name too long", nps.c_str());
@@ -1464,8 +1466,6 @@ int                                 // Return code, 0 expected
            , socket, socket->handle);
 
    std::lock_guard<decltype(mutex)> lock(mutex);
-// debugf("\n\nSS(%p)::remove(%p) %d %p\n", this, socket, socket->handle, socket->selector);
-// debug_backtrace();
    if( socket->selector == nullptr ) { // If Socket isn't owned by a selector
      if( socket->handle < 0 ) {     // (Socket::close may have been blocked)
        errno= EINVAL;
@@ -1475,6 +1475,7 @@ int                                 // Return code, 0 expected
        errorf("%4d %s remove Socket(%p) selector(nullptr) fd(%d)\n"
              , __LINE__, __FILE__, socket, socket->handle);
        debug("Additional debugging information");
+       debug_backtrace();
      }
      errno= EINVAL;
      return -1;

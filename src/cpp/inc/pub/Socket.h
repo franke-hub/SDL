@@ -16,7 +16,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2022/06/23
+//       2022/07/05
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -87,7 +87,7 @@ typedef in_port_t      Port;        // A port type
 struct sockaddr_x {                 // Extended sockaddr
 sa_family_t            x_family;    // Socket address family
 uint16_t               _0002[10];   // (Unused)
-uint16_t               x_socksize;  // Reserved, currently unused
+uint16_t               x_socksize;  // Length (x_sockaddr)
 sockaddr*              x_sockaddr;  // Sockaddr copy (Possibly this)
 }; // struct sockaddr_x
 
@@ -156,12 +156,12 @@ virtual void
      const char*       info= "") const; // Debugging info
 
 protected:
-_LIBPUB_PRINTF(3,4)
-virtual void
+_LIBPUB_PRINTF(2,3)
+static void
    trace(                           // Trace socket operation
      int               line,        // For this source code line
      const char*       fmt,         // Format string
-                       ...) const;  // The PRINTF argument list
+                       ...);        // The PRINTF argument list
 
 //----------------------------------------------------------------------------
 // Socket::Accessors
@@ -217,6 +217,10 @@ bool                                // TRUE iff socket is open
 virtual bool
    is_ssl( void ) const             // Is this an SSL socket?
 {  return false; }
+
+static bool                         // TRUE iff socket family is supported
+   is_valid(sa_family_t sf)
+{  return sf == AF_INET || sf == AF_INET6 || sf == AF_UNIX; }
 
 void
    set_flags(                       // Set socket flags
@@ -298,7 +302,7 @@ int                                 // Return code, 0 expected
    Error errno values:
      EINVAL The nps string is missing the ':' delimiter
 **/
-int                                 // Return code, 0 OK
+static int                          // Return code, 0 OK
    name_to_addr(                    // Convert "name:port" to socket address
      const std::string&nps,         // The "name:port" name string
      sockaddr*         addr,        // OUT: The sockaddr
