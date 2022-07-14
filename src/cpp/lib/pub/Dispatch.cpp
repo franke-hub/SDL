@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2022/03/10
+//       2022/07/14
 //
 //----------------------------------------------------------------------------
 #include "Dispatch.h"
@@ -218,13 +218,6 @@ void
          case Item::FC_TRACE:
            traceh("Task(%p):trace(%p)\n", this, it.get());
            break;
-
-#if USE_FC_RESET
-         case Item::FC_RESET:
-           itemList.reset();
-           it->post();            // May delete Item and/or Task
-           return;                // So don't look at them any more
-#endif
 
          default:
            cc= Item::CC_INVALID_FC;

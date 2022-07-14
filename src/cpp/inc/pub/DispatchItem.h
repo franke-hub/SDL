@@ -16,7 +16,7 @@
 //       Standard Dispatch work Item object.
 //
 // Last change date-
-//       2022/04/05
+//       2022/07/14
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_DISPATCHITEM_H_INCLUDED
@@ -58,10 +58,6 @@ enum CC                             // Completion codes
 enum FC                             // Function codes
 {  FC_CHASE= (-1)                   // Chase (NOP)
 ,  FC_TRACE= (-2)                   // Trace (NOP)
-#if USE_FC_RESET
-,  FC_RESET= (-3)                   // Reset the Worker
-#else
-#endif
 ,  FC_VALID= 0                      // All user function codes are positive
 }; // enum FC
 
