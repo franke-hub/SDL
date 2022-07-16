@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2022/06/18
+//       2022/07/14
 //
 // Arguments: (For testtime only)
 //       TestDisp --timing          // (Only run timing test)
@@ -120,7 +120,7 @@ virtual void
      debugf("PassAlongTask(%p)::work(%p) next(%p)\n", this, item, next);
 
    if( USE_TRACE )
-     Trace::trace("WORK", " PAT", item, next);
+     Trace::trace(".PAT", " PAT", item, next);
 
    if( next )
      next->enqueue(item);           // Give the work to the next Task
@@ -149,7 +149,7 @@ virtual
      debugf("PassAlongLambdaTask(%p)::work(%p) next(%p)\n", this, item, next);
 
    if( USE_TRACE )
-     Trace::trace("WORK", "LPAT", item, next);
+     Trace::trace("WORK", ".PAL", item, next);
 
    next->enqueue(item);
 })
@@ -487,11 +487,18 @@ static int
    interval.start();
    for(int loop= 0; loop < LOOPS; loop++)
    {
-     for(int multi= 0; multi < MULTI; multi++)
+     for(int multi= 0; multi < MULTI; multi++) {
+       if( USE_TRACE )
+         Trace::trace(".ENQ", ">>>>", (void*)intptr_t(multi), ITEM[multi]);
+
        TASK[TASKS-1]->enqueue(ITEM[multi]);
+     }
 
      for(int multi= 0; multi < MULTI; multi++)
      {
+       if( USE_TRACE )
+         Trace::trace(".DEQ", "<<<<", (void*)intptr_t(multi), ITEM[multi]);
+
        WAIT[multi]->wait();
        WAIT[multi]->reset();
      }
