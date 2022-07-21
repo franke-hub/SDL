@@ -16,7 +16,7 @@
 ##       Extract nickname for subdirectory
 ##
 ## Last change date-
-##       2022/06/12
+##       2022/07/21
 ##
 ## Usage-
 ##       cd `nickdir alias_name`
@@ -37,6 +37,7 @@ case $1 in
     echo     clone=`nickdir clone`
     echo       cpp=`nickdir cpp`
     echo       ctl=`nickdir ctl`
+    echo       dev=`nickdir dev`
 ##  echo      diva=`nickdir diva`
     echo       dll=`nickdir dll`
     echo       doc=`nickdir doc`
@@ -81,11 +82,11 @@ case $1 in
     __FULLDIR="$HOME/$1"
     ;;
 
-  src/com | src/gui | src/obj | src/pub)
+  src/com | src/dev | src/gui | src/obj | src/pub)
     __FULLDIR="$HOME/src/cpp/lib/${1:4}"
     ;;
 
-  src/com/* | src/gui/* | src/obj/* | src/pub/*)
+  src/com/* | src/dev/* | src/gui/* | src/obj/* | src/pub/*)
     __FULLDIR="$HOME/src/cpp/lib/${1:4}"
     ;;
 
@@ -125,6 +126,14 @@ case $1 in
 
   obj/* | cpp/*)
     __FULLDIR="$HOME/obj/cpp/${1:4}"
+    ;;
+
+  dev)
+    __FULLDIR="$HOME/obj/cpp/lib/dev"
+    ;;
+
+  dev/*)
+    __FULLDIR="$HOME/obj/cpp/lib/dev/${1:4}"
     ;;
 
   dll)
