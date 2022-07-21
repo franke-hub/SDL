@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2022/06/08
+##       2022/07/21
 ##
 ##############################################################################
 
@@ -145,12 +145,13 @@ Include: $(INCDIR)/pub/http/*       ## Include test depends on include
 .PHONY: clean.dir pristine.dir
 pristine : pristine.dir
 pristine.dir: ;
-	-@rm -f cert.dir >/dev/null 2>/dev/null
+	-@rm -f cert.dir    >/dev/null 2>/dev/null
 	-@rm -f private.pem >/dev/null 2>/dev/null
-	-@rm -f public.pem >/dev/null 2>/dev/null
+	-@rm -f public.pem  >/dev/null 2>/dev/null
+	-@rm -f log/*       >/dev/null 2>/dev/null
 
 clean : clean.dir
 clean.dir: ;
-	-@rm -f Include >/dev/null 2>/dev/null
-	-@rm -f liblocal.a >/dev/null 2>/dev/null
+	-@rm -f Include     >/dev/null 2>/dev/null
+	-@rm -f liblocal.a  >/dev/null 2>/dev/null
 
