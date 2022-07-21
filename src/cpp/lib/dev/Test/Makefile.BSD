@@ -1,0 +1,156 @@
+##############################################################################
+##
+##       Copyright (c) 2022 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2022/06/08
+##
+##############################################################################
+
+##############################################################################
+## Local library
+LIBOBJ := ############################
+LIBOBJ += Bringup.o
+MAKEXE := $(patsubst $(OBJDIR)/Bringup,,$(MAKEXE))
+LIBOBJ += Thing.o                   ## Cut/Paste source
+MAKEXE := $(patsubst $(OBJDIR)/Thing,,$(MAKEXE))
+
+LIBOBJ += Agent.o
+MAKEXE := $(patsubst $(OBJDIR)/Agent,,$(MAKEXE))
+LIBOBJ += Client.o
+MAKEXE := $(patsubst $(OBJDIR)/Client,,$(MAKEXE))
+LIBOBJ += Data.o
+MAKEXE := $(patsubst $(OBJDIR)/Data,,$(MAKEXE))
+LIBOBJ += Listen.o
+MAKEXE := $(patsubst $(OBJDIR)/Listen,,$(MAKEXE))
+LIBOBJ += Options.o
+MAKEXE := $(patsubst $(OBJDIR)/Options,,$(MAKEXE))
+LIBOBJ += Request.o
+MAKEXE := $(patsubst $(OBJDIR)/Request,,$(MAKEXE))
+LIBOBJ += Response.o
+MAKEXE := $(patsubst $(OBJDIR)/Response,,$(MAKEXE))
+LIBOBJ += Server.o
+MAKEXE := $(patsubst $(OBJDIR)/Server,,$(MAKEXE))
+LIBOBJ += Stream.o
+MAKEXE := $(patsubst $(OBJDIR)/Stream,,$(MAKEXE))
+LIBOBJ += utility.o
+MAKEXE := $(patsubst $(OBJDIR)/utility,,$(MAKEXE))
+
+LLIBS  += -L. -llocal
+
+MAKEXE := $(patsubst $(OBJDIR)/Include,,$(MAKEXE))
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= make.dir
+endif
+
+.PHONY: default
+default: $(MAKEXE)
+
+all: default
+
+##############################################################################
+## TARGET: liblocal.a
+liblocal.a: $(LIBOBJ)
+	$(AR) $@ $^
+	touch $@
+
+##############################################################################
+## Targets: do, include, list
+.PHONY: do
+do: T_Stream
+	T_Stream --trace
+
+.PHONY: include                     ## Include is only compiled on demand
+include: Include
+	Include
+
+.PHONY: list
+list: ;
+	@echo "Targets: do, include, list"
+	@echo "Removes: client, dirty, option, server, stress, test"
+
+## TEMPORARY: TODO: REMOVE ###################################################
+.PHONY: client dirty option server stress test
+client: T_Stream
+	T_Stream --server --client --trace
+
+dirty: Dirty
+	Dirty
+
+option: T_Option
+	T_Option
+
+server: T_Stream
+	T_Stream --server
+
+stress: T_Stream
+	T_Stream --server --stress --trace
+
+test: T_Option T_Stream
+	T_Option
+	@echo ""
+	T_Stream --server --client
+	@echo ""
+	T_Stream --server --stress --time 10
+
+##############################################################################
+## Make a certificate
+host:=$(shell "hostname")
+ifneq "" "$(USE_LOCALHOST)"
+  host:="localhost"
+endif
+
+cert.dir: ;
+	@printf "US\nState\nLocality\nCompany\nDivision\n$(host)\n\n\n" | \
+openssl req -x509 -nodes -days 3653 -newkey rsa:2048 -keyout private.pem -out public.pem >/dev/null 2>/dev/null
+	@printf "Generated private.pem, public.pem, valid for 10 years.\n"
+	@touch cert.dir
+
+.PHONY: cert keys
+cert: cert.dir
+keys: cert.dir                      ## Alias for cert
+
+##############################################################################
+## Verify the certificates
+.PHONY: verify
+verify: ;
+	openssl rsa -in private.pem -check -noout
+	openssl x509 -in public.pem -text -noout
+
+##############################################################################
+## Dependency controls
+include $(INCDIR)/pub/Makefile.BSD  ## PUB library controls
+
+$(MAKEXE): liblocal.a cert.dir      ## Execs depend on local library, certs
+
+Include: $(INCDIR)/pub/http/*       ## Include test depends on include
+
+##############################################################################
+## Makefile cleanup
+.PHONY: clean.dir pristine.dir
+pristine : pristine.dir
+pristine.dir: ;
+	-@rm -f cert.dir >/dev/null 2>/dev/null
+	-@rm -f private.pem >/dev/null 2>/dev/null
+	-@rm -f public.pem >/dev/null 2>/dev/null
+
+clean : clean.dir
+clean.dir: ;
+	-@rm -f Include >/dev/null 2>/dev/null
+	-@rm -f liblocal.a >/dev/null 2>/dev/null
+

@@ -1,0 +1,156 @@
+##############################################################################
+##
+##       Copyright (C) 2022 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       README: List of usage notes, bugs, fixes, etc.
+##
+## Last change date-
+##       2022/07/16
+##
+##############################################################################
+
+##############################################################################
+## STATUS: (Current status; Significant checkpoints)
+2022/02/11 Started
+2022/07/16 PROTOCOL1B working
+
+##############################################################################
+## SOCKET INFO: (Generic information)
+typedef __uint32_t     in_addr_t;   // netinet/in.h => cygwin/in.h
+typedef __uint16_t     in_port_t;   // netinet/in.h => cygwin/in.h
+
+typedef __sa_family_t  sa_family_t; // sys/socket.h
+typedef __socklen_t    socklen_t;   // sys/socket.h
+
+#define AF_*; #define PF_*;         // cygwin/socket.h
+
+struct addrinfo {                   // netdb.h
+int                    ai_flags;    // input flags
+int                    ai_family;   // address family of socket
+int                    ai_socktype; // socket type
+int                    ai_protocol; // ai_protocol
+socklen_t              ai_addrlen;  // length of socket address
+char*                  ai_canonname; // canonical name of service location
+struct sockaddr*       ai_addr;     // socket address of socket
+struct addrinfo*       ai_next;     // pointer to next in list
+};
+
+struct hostent {                    // netdb.h
+char*                  h_name;      // Official name of host
+char**                 h_aliases;   // Alias list
+int                    h_addrtype;  // Host address type
+int                    h_length;    // Length of address
+char**                 h_addr_list; // List of addresses
+};
+
+struct in_addr {                    // netinet/in.h => cygwin/in.h
+in_addr_t              s_addr;      // Internet address
+};
+
+struct in6_addr {                   // netinet/in.h
+union {
+   int8_t              __s6_addr[16];
+   int16_t             __s6_addr16[8];
+   int32_t             __s6_addr32[4];
+} __u6;
+#define s6_addr   __u6.__s6_addr
+#define s6_addr16 __u6.__s6_addr16
+#define s6_addr32 __u6.__s6_addr32
+};
+
+struct linger {                     // sys/socket.h
+unsigned short         l_onoff;     // Linger active?
+unsigned short         l_linger;    // Linger timeout, in seconds
+};
+
+struct sockaddr {                   // sys/socket.h
+sa_family_t            sa_family;   // Address family
+char                   sa_data[14];
+};
+
+struct sockaddr_in {                // netinet/in.h => cygwin/in.h
+sa_family_t            sin_family;  // AF_INET
+in_port_t              sin_port;    // Port number
+struct in_addr         sin_addr;    // Internet address
+char                   __pad[*];
+};
+
+struct sockaddr_in6 {               // netinet/in.h => * => cygwin/in6.h
+sa_family_t            sin6_family; // AF_INET6
+in_port_t              sin6_port;   // Port number
+uint32_t               sin6_flowinfo; // Traffic class and flow info
+struct in6_addr        sin6_addr;   // IPv6 address
+uint32_t               sin6_scope_id; // Set of interfaces for a scope
+};
+
+struct sockaddr_storage {           // sys/socket.h
+sa_family_t            ss_family;   // Address family
+char                   __ss_pad1[*];
+int64_t                __ss_align;
+char                   __ss_pad2[*];
+};
+
+union sockaddr_x {                  // pub/Socket.h (pub::Socket::sockaddr_x)
+sa_family_t            x_family;    // Socket address family
+uint16_t               _0002[10];   // (Unused)
+uint16_t               x_socksize;  // Length(x_sockaddr)
+sockaddr*              x_sockaddr;  // Sockaddr copy (possibly this)
+};
+
+union sockaddr_u {                  // pub/Socket.h (pub::Socket::sockaddr_u)
+uint64_t               su_align[4]; // Alignment and maximum size (32)
+sa_family_t            su_af;       // Socket address family
+sockaddr               sa;          // Socket address
+sockaddr_in            su_i4;       // IPv4 internet address
+sockaddr_in6           su_i6;       // IPv6 internet address
+sockaddr_x             su_x;        // Extended sockaddr format
+
+std::string to_string( void ) const; // Convert to display string
+}; // union sockaddr_u
+
+##############################################################################
+## SETUP NOTES: (Setup information)
+
+##############################################################################
+## DEBUGGING NOTES:
+2022/02/11 Apparent anomoly: Maximum request count == cur_op_count + 1
+  Reference: T_Stream.h:ClientThread:do_SEND:request->on_end(lambda)
+         Note that cur_op_count is decremented while the Request is still
+         active. (We are running in the completion handler for that Request.)
+         When do_NEXT creates the next Request the number of active Requests
+         is *always* one more than the cur_op_count. It's working properly.
+         We should have expected this result.
+
+##############################################################################
+## USAGE NOTES: (Usage information)
+
+##############################################################################
+## HOWTO: (How-to reminders)
+
+##############################################################################
+## TODO: (Deferred)
+2022/02/16 TODO? Don't wait for content-length
+2022/02/16 TODO? Allow next HTTP1 write before response
+
+##############################################################################
+## FEATURE: (Ideas for improvement)
+
+##############################################################################
+## BUGS: (Open bugs)
+
+##############################################################################
+## FIXED: (Fixed bugs)
+
+##############################################################################
+## CLOSED: (Bugs closed without fixing)
+
