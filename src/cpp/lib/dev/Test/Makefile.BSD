@@ -91,12 +91,6 @@ list: ;
 client: T_Stream
 	T_Stream --server --client --trace
 
-Dirty: Dirty.o Thing.o
-	$(LD) -o Dirty $? $(CLOAD) $(CLIBS)
-
-dirty: Dirty
-	Dirty
-
 option: T_Option
 	T_Option
 
@@ -112,6 +106,13 @@ test: T_Option T_Stream
 	T_Stream --server --client
 	@echo ""
 	T_Stream --server --stress --time 10
+
+## Dirty contains a set of quick and dirty tests, and is not distributed.
+Dirty: Dirty.o Thing.o
+	$(LD) -o Dirty $? $(CLOAD) $(CLIBS)
+
+dirty: Dirty
+	Dirty
 
 ##############################################################################
 ## Make a certificate
@@ -157,6 +158,7 @@ pristine.dir: ;
 
 clean : clean.dir
 clean.dir: ;
+	-@rm -f Dirty       >/dev/null 2>/dev/null
 	-@rm -f Include     >/dev/null 2>/dev/null
 	-@rm -f liblocal.a  >/dev/null 2>/dev/null
 
