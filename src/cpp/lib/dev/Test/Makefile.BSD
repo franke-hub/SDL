@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2022/07/21
+##       2022/07/22
 ##
 ##############################################################################
 
@@ -24,10 +24,8 @@
 LIBOBJ := ############################
 LIBOBJ += Bringup.o
 MAKEXE := $(patsubst $(OBJDIR)/Bringup,,$(MAKEXE))
-LIBOBJ += Thing.o                   ## Cut/Paste source
-MAKEXE := $(patsubst $(OBJDIR)/Thing,,$(MAKEXE))
 
-LIBOBJ += Agent.o
+LIBOBJ += Agent.o                   ## Cut/Paste source
 MAKEXE := $(patsubst $(OBJDIR)/Agent,,$(MAKEXE))
 LIBOBJ += Client.o
 MAKEXE := $(patsubst $(OBJDIR)/Client,,$(MAKEXE))
@@ -47,6 +45,10 @@ LIBOBJ += Stream.o
 MAKEXE := $(patsubst $(OBJDIR)/Stream,,$(MAKEXE))
 LIBOBJ += utility.o
 MAKEXE := $(patsubst $(OBJDIR)/utility,,$(MAKEXE))
+
+###################################### Dirty build
+MAKEXE := $(patsubst $(OBJDIR)/Dirty,,$(MAKEXE))
+MAKEXE := $(patsubst $(OBJDIR)/Thing,,$(MAKEXE))
 
 LLIBS  += -L. -llocal
 
@@ -88,6 +90,9 @@ list: ;
 .PHONY: client dirty option server stress test
 client: T_Stream
 	T_Stream --server --client --trace
+
+Dirty: Dirty.o Thing.o
+	$(LD) -o Dirty $? $(CLOAD) $(CLIBS)
 
 dirty: Dirty
 	Dirty
