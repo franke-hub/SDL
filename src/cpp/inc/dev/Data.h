@@ -16,7 +16,7 @@
 //       HTTP request/response data buffer.
 //
 // Last change date-
-//       2022/02/11
+//       2022/02/16
 //
 // Implementation notes-
 //       We don't pass-through string functions, but do provide get_string.

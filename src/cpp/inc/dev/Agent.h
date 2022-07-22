@@ -16,7 +16,7 @@
 //       HTTP Agent objects: ClientAgent and ServerAgent.
 //
 // Last change date-
-//       2022/02/11
+//       2022/02/12
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_HTTP_AGENT_H_INCLUDED

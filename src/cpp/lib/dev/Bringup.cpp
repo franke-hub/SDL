@@ -16,7 +16,7 @@
 //       Temporary implementation placeholder.
 //
 // Last change date-
-//       2022/02/11
+//       2022/07/21
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::shared_ptr

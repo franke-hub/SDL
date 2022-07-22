@@ -16,7 +16,7 @@
 //       Implement http/Agent.h
 //
 // Last change date-
-//       2022/07/05
+//       2022/07/09
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::shared_ptr

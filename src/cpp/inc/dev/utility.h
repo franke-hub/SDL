@@ -16,7 +16,7 @@
 //       HTTP implementation utilities.
 //
 // Last change date-
-//       2022/02/11
+//       2022/03/11
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_HTTP_UTILITY_H_INCLUDED

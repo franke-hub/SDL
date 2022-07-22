@@ -16,7 +16,7 @@
 //       HTTP exceptions
 //
 // Last change date-
-//       2022/02/11
+//       2022/02/15
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_HTTP_EXCEPTION_H_INCLUDED

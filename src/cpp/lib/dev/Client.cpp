@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2022/07/16
+//       2022/07/18
 //
 // Implementation notes-
 //       Timing: W: 4088.7/sec  L: 307.5/sec protocol1a
