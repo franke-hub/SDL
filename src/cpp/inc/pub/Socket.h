@@ -16,7 +16,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2022/07/26
+//       2022/07/27
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -37,6 +37,7 @@
 #include <string>                   // For std::string
 #include <errno.h>                  // For EINVAL
 #include <fcntl.h>                  // For fcntl
+#include <unistd.h>                 // For gethostname
 #include <netinet/in.h>             // For struct sockaddr_ definitions
 #include <openssl/ssl.h>            // For SSL, SSL_CTX
 #include <sys/poll.h>               // For struct pollfd, ...
