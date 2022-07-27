@@ -15,7 +15,7 @@
 ##       README: List of usage notes, bugs, fixes, etc.
 ##
 ## Last change date-
-##       2022/07/16
+##       2022/07/24
 ##
 ##############################################################################
 
@@ -71,6 +71,12 @@ union {
 struct linger {                     // sys/socket.h
 unsigned short         l_onoff;     // Linger active?
 unsigned short         l_linger;    // Linger timeout, in seconds
+};
+
+struct pollfd {                     // sys/poll.h
+  int fd;
+  short events;
+  short revents;
 };
 
 struct sockaddr {                   // sys/socket.h

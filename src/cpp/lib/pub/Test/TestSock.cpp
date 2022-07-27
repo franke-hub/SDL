@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2022/06/23
+//       2022/07/25
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -37,6 +37,7 @@
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Interval.h>           // For pub::Interval
 #include <pub/Semaphore.h>          // For pub::Semaphore
+#include "pub/Select.h"             // For pub::Select, minimally tested
 #include "pub/Socket.h"             // For pub::Socket, tested
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Worker.h>             // For pub::Worker, pub::WorkerPool, ...
@@ -101,9 +102,9 @@ enum                                // Polling experimental controls
 {  USE_POLL_BLOCK= 0                // Use blocking, don't poll
 ,  USE_POLL_NONBLOCK= 1             // Use non-blocking, don't poll
 ,  USE_POLL_POLL= 2                 // Use poll before accept or packet op
-,  USE_POLL_SELECT= 3               // Use SocketSelect polling
+,  USE_POLL_SELECT= 3               // Use (Socket) Select polling
 
-// Implementation note: USE_POLL_SELECT uses SocketSelect polling, so it's
+// Implementation note: USE_POLL_SELECT uses Select polling, so it's
 // actually using socket ::poll.
 ,  USE_APOLL= USE_POLL_SELECT       // Use accept polling method
 ,  USE_RPOLL= USE_POLL_SELECT       // Use recv polling method
@@ -356,11 +357,11 @@ static std::string                  // The next token, "" if at end
 //       if_closed
 //
 // Purpose-
-//       Returns TRUE if error due to host or peer closing a socket
+//       Returns TRUE if an error is due to a host or peer closed socket
 //
 // Implementation notes-
-//       We can be in the middle of polling when a test terminates.
-//       This is a somewhat normal condition, not an error.
+//       A test terminating during polling operation is a somewhat normal
+//       condition, not an error.
 //
 //----------------------------------------------------------------------------
 static bool
@@ -376,7 +377,7 @@ static bool
 }
 
 static bool
-   if_closed(const SocketSelect& select, const Socket* socket)
+   if_closed(const Select& select, const Socket* socket)
 {
    const struct pollfd* pfd= select.get_pollfd(socket);
    if( pfd == nullptr )
@@ -846,7 +847,7 @@ char                   buffer[32768]; // Input/output buffer
 Event                  event;       // Thread ready event
 Socket                 packet;      // Packet Socket
 struct pollfd          pfd= {};     // Poll file descriptor
-SocketSelect           select;      // Socket selector
+Select                 select;      // Socket selector
 
 int                    operational= false; // TRUE while operational
 
@@ -901,10 +902,13 @@ virtual void
    packet.set_option(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
    pfd.events= POLLIN;
-   if( USE_RPOLL == USE_POLL_SELECT )
-     select.insert(&packet, POLLIN);
-   else if( USE_RPOLL == USE_POLL_NONBLOCK )
+   struct pollfd* ppfd= &pfd;
+   if( USE_RPOLL == USE_POLL_NONBLOCK )
      packet.set_flags( packet.get_flags() | O_NONBLOCK );
+   else if( USE_RPOLL == USE_POLL_SELECT ) {
+     select.insert(&packet, POLLIN);
+     packet.on_select([ppfd](int revents) {ppfd->revents= (short)revents;});
+   }
 
    operational= true;
    if( opt_verbose )
@@ -935,9 +939,9 @@ virtual void
            break;
          }}}}
          case USE_POLL_SELECT: {{{{
-           Socket* socket= nullptr;
-           socket= select.select(1000); // 1 second timeout
-           if( socket == nullptr ) {
+           pfd.revents= 0;
+           select.select(1000);     // 1 second timeout
+           if( pfd.revents == 0 ) {
              if( if_closed(select, &packet) )
                break;
 
@@ -945,7 +949,6 @@ virtual void
              ++psr_again;
              continue;
            }
-           error_count += VERIFY( socket == &packet );
            break;
          }}}}
          default:
@@ -1376,7 +1379,7 @@ Socket                 std_socket;
 SSL_socket             ssl_socket;
 Socket*                listen= &std_socket; // (Default) listener Socket
 
-SocketSelect           select;      // For POLL_SELECT mode
+Select                 select;      // For POLL_SELECT mode
 Socket*                socket= nullptr; // Client Socket
 
 int                    operational= false; // TRUE while operational
@@ -1443,11 +1446,14 @@ virtual void
      return;
    }
 
-   if( USE_APOLL == USE_POLL_SELECT )
-     select.insert(listen, POLLIN);
-
    struct pollfd pfd= {};
    pfd.events= POLLIN;
+   struct pollfd* ppfd= &pfd;
+
+   if( USE_APOLL == USE_POLL_SELECT ) {
+     select.insert(listen, POLLIN);
+     listen->on_select([ppfd](int revents) {ppfd->revents= (short)revents;});
+   }
 
    operational= true;
    if( opt_verbose )
@@ -1475,8 +1481,9 @@ virtual void
          break;
          }}}}
          case USE_POLL_SELECT: {{{{
-           Socket* S= select.select(1000); // 1 second timeout
-           if( S == nullptr ) {
+           pfd.revents= 0;
+           select.select(1000);     // 1 second timeout
+           if( pfd.revents == 0 ) {
              if( !if_closed(select, listen) ) {
                error_count += VERIFY( if_retry() );
                ++ssr_again;

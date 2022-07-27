@@ -16,7 +16,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2022/07/05
+//       2022/07/26
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -50,7 +50,7 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
-class SocketSelect;                 // Socket select controller
+class Select;                       // Socket selector controller
 
 //----------------------------------------------------------------------------
 //
@@ -72,17 +72,24 @@ class SocketException : public Exception { using Exception::Exception;
 // Purpose-
 //       Standard socket wrapper.
 //
+// Implementation notes-
+//       Standard socket wrapper.
+//
 //----------------------------------------------------------------------------
 class Socket : public Object {      // Standard posix socket wrapper
-friend class SocketSelect;
+friend class Select;
 
 //----------------------------------------------------------------------------
-// Socket::Attributes
+// Socket::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 static const int       CLOSED= -1;  // Closed socket handle
 typedef in_port_t      Port;        // A port type
+typedef std::function<void(int)>              v_func;
 
+//----------------------------------------------------------------------------
+// Socket::sockaddr_u, Socket::sockaddr_x
+//----------------------------------------------------------------------------
 // Extended sockaddr, currently only used for AF_UNIX
 struct sockaddr_x {                 // Extended sockaddr
 sa_family_t            x_family;    // Socket address family
@@ -91,7 +98,6 @@ uint16_t               x_socksize;  // Length (x_sockaddr)
 sockaddr*              x_sockaddr;  // Sockaddr copy (Possibly this)
 }; // struct sockaddr_x
 
-//---------------------------------------------------------------------------
 union sockaddr_u {                  // Aligned multi-family union
 uint64_t               su_align[4]; // Alignment and maximum size (32)
 sa_family_t            su_af;       // Socket address family
@@ -118,10 +124,15 @@ void
 
 std::string                         // The display string
    to_string( void ) const;         // Get display string
-}; // union sockaddr_u -------------------------------------------------------
+}; // union sockaddr_u
 
+//----------------------------------------------------------------------------
+// Socket::Attributes
+//----------------------------------------------------------------------------
 protected:
-SocketSelect*          selector= nullptr; // The associated SocketSelector
+Select*                selector= nullptr; // The associated Selector
+v_func                 selected;    // Selection processor
+
 int                    handle= CLOSED; // The socket handle (handle)
 short                  family= 0;   // The connection address family
 short                  type= 0;     // The connection type
@@ -176,20 +187,30 @@ int                                 // The socket handle
 {  return handle; }
 
 static std::string                  // The host name
-   gethostname( void );             // Get host name
+   gethostname( void )              // Get host name
+{
+   char host_name[256];             // The host name
+   host_name[0]= '\0';              // (If error, return "")
+   ::gethostname(host_name, 256);
+   return host_name;
+}
 
 const sockaddr_u&                   // The host internet address
    get_host_addr( void ) const      // Get host internet address
 {  return host_addr; }
 
+Port                                // The host Port number
+   get_host_port( void ) const      // Get host Port number
+{
+   if( host_addr.su_af != AF_INET && host_addr.su_af != AF_INET6 )
+     return -1;
+
+   return ntohs(host_addr.su_i4.sin_port);
+}
+
 socklen_t                           // The host internet address length
    get_host_size( void ) const      // Get host internet address length
 {  return host_size; }
-
-// get_host_port only valid for AF_INET and AF_
-Port                                // The host Port number
-   get_host_port( void ) const      // Get host Port number
-{  return ntohs(((sockaddr_in*)&host_addr)->sin_port); }
 
 int                                 // Return code
    get_option(                      // Get socket option (::getsockopt)
@@ -204,11 +225,19 @@ const sockaddr_u&                   // The peer internet address
 
 Port                                // The peer Port number
    get_peer_port( void ) const      // Get peer Port number
-{  return ntohs(((sockaddr_in*)&peer_addr)->sin_port); }
+{
+   if( peer_addr.su_af != AF_INET && peer_addr.su_af != AF_INET6 )
+     return -1;
+
+   return ntohs(peer_addr.su_i4.sin_port);
+}
 
 socklen_t                           // The peer internet address length
    get_peer_size( void ) const      // Get peer internet address length
 {  return peer_size; }
+
+const char*                         // The unix socket file name
+   get_unix_name( void ) const;     // Get unix socket file name
 
 bool                                // TRUE iff socket is open
    is_open( void ) const
@@ -222,10 +251,34 @@ static bool                         // TRUE iff socket family is supported
    is_valid(sa_family_t sf)
 {  return sf == AF_INET || sf == AF_INET6 || sf == AF_UNIX; }
 
+
+/*****************************************************************************
+  @brief Define lambda function: Handle Socket selection.
+
+  @param f: The lambda function
+
+  The lambda function:<br>
+      Should run quickly, if necessary scheduling rather than processing
+      an event.
+
+      @param int: The polling revent
+*****************************************************************************/
 void
+   on_select(v_func f)              // Define the event handler
+{  selected= f; }
+
+int
    set_flags(                       // Set socket flags
      int               flags)       // To this replacement value
-{  ::fcntl(handle, F_SETFL, flags); }
+{  return ::fcntl(handle, F_SETFL, flags); }
+
+void
+   set_host_port(                   // Set host Port number to
+     Port              port)        // This port value
+{
+   if( host_addr.su_af == AF_INET || host_addr.su_af == AF_INET6 )
+     host_addr.su_i4.sin_port= htons(port);
+}
 
 int                                 // Return code
    set_option(                      // Set socket option (::setsockopt)
@@ -240,13 +293,16 @@ void
      socklen_t         peersize);   // Peer address length
 
 int                                 // Return code, 0 OK
-   set_peer_addr(                   // Set peer address (See set_host_addr)
+   set_peer_addr(                   // Set peer address
      std::string       nps);        // "name:port" string
 
 void
    set_peer_port(                   // Set peer Port number to
      Port              port)        // This port value
-{  ((sockaddr_in*)&peer_addr)->sin_port= htons(port); }
+{
+   if( peer_addr.su_af == AF_INET || peer_addr.su_af == AF_INET6 )
+     peer_addr.su_i4.sin_port= htons(port);
+}
 
 //----------------------------------------------------------------------------
 // Socket::Methods
@@ -474,128 +530,5 @@ virtual ssize_t                     // The number of bytes written
      const void*       addr,        // Data address
      size_t            size);       // Data length
 }; // class SSL_socket
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       SocketSelect
-//
-// Purpose-
-//       Socket selector
-//
-// Implementation notes-
-//       ** THREAD SAFE, BUT NOT CURRENTLY MULTI-THREAD CAPABLE **
-//         Polling operations can hold the SocketSelector mutex for long
-//         intervals, blocking socket inserts, modification, and removal.
-//
-//       Sockets may only be associated with one SocketSelector object.
-//       Sockets are automatically removed from a SocketSelector whenever they
-//       are opened, closed, or deleted.
-//
-//       The SocketSelector is intended for use with a large number of sockets.
-//       It contains element arrays indexed by the file descriptor, each
-//       allocated large enough to contain *all* file descriptors.
-//
-//----------------------------------------------------------------------------
-class SocketSelect {                // Socket selector
-public:
-typedef std::function<void(void)>             v_func;
-
-protected:
-mutable std::recursive_mutex
-                       mutex;       // Internal mutex
-struct pollfd*         pollfd= nullptr; // Array of pollfd's
-Socket**               socket= nullptr; // Array of Socket's
-int*                   sindex= nullptr; // File descriptor to pollfd index
-
-int                    left= 0;     // Number of remaining selections
-int                    next= 0;     // The next selection index
-int                    size= 0;     // Number of result elements available
-int                    used= 0;     // Number of result elements used
-
-//----------------------------------------------------------------------------
-// SocketSelect::Constructor/Destructor
-//----------------------------------------------------------------------------
-public:
-   SocketSelect();
-   ~SocketSelect();
-
-//----------------------------------------------------------------------------
-// SocketSelect::methods
-//----------------------------------------------------------------------------
-void
-   debug(                           // Debugging display
-     const char*       info= "") const; // Caller information
-
-void
-   with_lock(v_func f)              // Run function holding SocketSelect mutex
-{  std::lock_guard<decltype(mutex)> lock(mutex); f(); }
-
-const struct pollfd*                // The associated pollfd
-   get_pollfd(                      // Extract pollfd
-     const Socket*     socket) const // For this Socket
-{  std::lock_guard<decltype(mutex)> lock(mutex);
-
-   int fd= socket->handle;
-   if( fd < 0 || fd >= size ) {     // (Not valid, most likely closed)
-     errno= EBADF;
-     return nullptr;
-   }
-
-   fd= sindex[fd];
-   if( fd < 0 || fd >= size ) {     // (Not mapped, most likely user error)
-     errno= EINVAL;
-     return nullptr;
-   }
-
-   return &pollfd[fd];
-}
-
-const Socket*                       // The associated Socket*
-   get_socket(                      // Extract Socket
-     int               fd) const    // For this file descriptor
-{  std::lock_guard<decltype(mutex)> lock(mutex);
-
-   if( fd < 0 || fd >= size ) {
-     errno= EINVAL;
-     return nullptr;
-   }
-
-   return socket[fd];
-}
-
-int                                 // Return code, 0 expected
-   insert(                          // Insert a Socket onto the list
-     Socket*           socket,      // The associated Socket
-     int               events);     // The associated poll events
-
-int                                 // Return code, 0 expected
-   modify(                          // Replace the Socket's poll events mask
-     const Socket*     socket,      // The associated Socket
-     int               events);     // The associated poll events
-
-int                                 // Return code, 0 expected
-   remove(                          // Remove the Selector
-     Socket*           socket);     // For this Socket
-
-Socket*                             // The next selected Socket, or nullptr
-   select(                          // Select next Socket
-     int               timeout);    // Timeout, in milliseconds
-
-Socket*                             // The next selected Socket, or nullptr
-   select(                          // Select next Socket
-     const struct timespec*         // (tv_sec, tv_nsec)
-                       timeout,     // Timeout, infinite if omitted
-     const sigset_t*   signals);    // Timeout, in milliseconds
-
-//============================================================================
-protected:
-Socket*                             // The next selected Socket
-   remain( void );                  // Select next remaining Socket
-
-inline void
-   resize(                          // Resize the SocketSelect
-     int               fd);         // For this file descriptor
-}; // class SocketSelect
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_SOCKET_H_INCLUDED

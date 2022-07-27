@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/07/09
+//       2022/07/26
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -49,7 +49,8 @@
 #include <pub/Debug.h>              // For debugging
 #include <pub/Must.h>               // For pub::Must::malloc
 
-#include "pub/Socket.h"             // The Socket Objects
+#include "pub/Select.h"             // For pub::Select
+#include "pub/Socket.h"             // For pub::Socket, implemented
 
 using namespace _PUB_NAMESPACE::debugging; // For debugging
 
@@ -67,7 +68,7 @@ enum
 ,  IODM= false                      // I/O Debug Mode?
 ,  IOEM= true                       // I/O error Debug Mode?
 
-,  USE_CROSS_CHECK= true            // Use internal cross-checking?
+,  USE_CHECKING= true               // Use internal cross-checking?
 }; // enum
 
 // Maximum/minimum sockaddr_u lengths
@@ -124,21 +125,6 @@ static void
 
 //----------------------------------------------------------------------------
 //
-// Subroutine-
-//       sno_handled
-//
-// Purpose-
-//       Message: A should not occur situation has been handled
-//
-//----------------------------------------------------------------------------
-static int
-   sno_handled(int line)
-{  errorf("%4d %s Should not occur (but handled)\n", line, __FILE__);
-   return 0;
-}
-
-//----------------------------------------------------------------------------
-//
 // Method-
 //       Socket::copy
 //
@@ -167,6 +153,7 @@ void
 //----------------------------------------------------------------------------
    Socket::Socket( void )           // Constructor
 :  Object()
+,  selected([](int) {})             // Default (NOP) event handler
 ,  host_addr(), peer_addr()
 {  if( HCDM )
      debugh("Socket(%p)::Socket()\n", this);
@@ -273,26 +260,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Socket::gethostname
-//
-// Purpose-
-//       Get the host name
-//
-//----------------------------------------------------------------------------
-std::string                         // The host name
-   Socket::gethostname( void )      // Get host name
-{
-   char host_name[HOST_NAME_MAX];   // The host name
-   int rc= ::gethostname(host_name, HOST_NAME_MAX);
-   if( rc )
-     host_name[0]= '\0';
-
-   return host_name;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       Socket::get_option
 //
 // Purpose-
@@ -306,6 +273,24 @@ int                                 // Return code
      void*             optval,      // Option value
      socklen_t*        optlen)      // Option length (IN/OUT)
 {  return ::getsockopt(handle, optlevel, optname, optval, optlen); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::get_unix_name
+//
+// Purpose-
+//       Get AF_UNIX socket file name
+//
+//----------------------------------------------------------------------------
+const char*                         // The unix socket file name
+   Socket::get_unix_name( void ) const // Get unix socket file name
+{
+   if( family != AF_UNIX )          // If not an AF_UNIX socket
+     return nullptr;                // There is no socket file name
+
+   return ((sockaddr_un*)host_addr.su_x.x_sockaddr)->sun_path;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -414,6 +399,14 @@ int                                 // Return code (0 OK)
      host_addr.copy(hostaddr, hostsize);
    }
 
+   int port= get_host_port();
+   if( port == 0 ) {                // If IPV4/6 port not assigned
+     sockaddr_storage haveaddr;
+     socklen_t havesize= sizeof(haveaddr);
+     if( ::getsockname(handle, (sockaddr*)&haveaddr, &havesize) == 0 )
+       host_addr.su_i4.sin_port= ((sockaddr_in*)&haveaddr)->sin_port;
+   }
+
    return rc;
 }
 
@@ -451,10 +444,20 @@ int                                 // Return code, 0 OK
 
    int rc= 0;
    if( handle >= 0 ) {
-     if( selector )                 // If SocketSelect controlled
-       selector->remove(this);
+     Select* selector= this->selector;
+     if( selector ) {               // If Select controlled
+       selector->with_lock([this]() {
+         // We may have been blocked by close() running on another thread.
+         // If so, selector->remove() will have set selector == nullptr
+         // and closed the socket.
+         if( this->selector )
+           this->selector->remove(this);
 
-     // Reset host_addr/peer_addr, host_size/peer_size
+         on_select([](int) {});     // Reset default (NOP) select handler
+       }); // selector->with_lock(...)
+     }
+
+     // Reset host_addr/peer_addr, host_size/peer_size, and handle
      host_addr.reset();
      peer_addr.reset();
      host_size= 0;
@@ -1213,477 +1216,5 @@ ssize_t                             // Number of bytes sent
    if( IODM ) trace(__LINE__, "%zd= SSL_write()", L);
 
    return L;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SocketSelect::SocketSelect
-//       SocketSelect::~SocketSelect
-//
-// Purpose-
-//       Constructor
-//       Destructor
-//
-//----------------------------------------------------------------------------
-   SocketSelect::SocketSelect( void )
-{  if( HCDM )
-     debugh("SocketSelect(%p)::SocketSelect\n", this);
-
-   // Implementation note: When the code's modified to contain an internal
-   // socket, use it's file descriptor as the initial limit.
-   resize(1);                  // (Start with minimum limit)
-}
-
-   SocketSelect::~SocketSelect( void )
-{  if( HCDM )
-     debugh("SocketSelect(%p)::~SocketSelect\n", this);
-
-// Locking here can't be necessary. Consider that if it was, then right after
-// the lock's released the waiter's going to reference deallocated storage.
-
-// Disassociating a Socket from the SocketSelect *shouldn't* be necessary.
-// If it was, then there's a good chance that whatever code was using the
-// SocketSelect still thinks it exists. Note that adding lock_guard logic
-// here only helps to diagnose the problem, it doesn't solve it. Each user
-// needs to insure that there are no dangling SocketSelect references to a
-// deleted object.
-// An example might help explain why:
-// SocketSelect accesses are protected by a mutex. A SocketSelect references
-// each inserted Socket and each inserted Socket references the SocketSelect.
-// Suppose the SocketSelect destructor is called and then an associated Socket
-// is closed in a different thread before the destructor completes. The Socket
-// close operation invokes SocketSelect::remove, which blocks but then resumes
-// after the destructor exits. SocketSelect::remove then references the (at
-// least partially) deleted SocketSelect.
-// Perhaps we could gimshuckle some way of fixing this particular problem, but
-// applications also need to correlate SocketSelect and Socket references and
-// insure that their SocketSelect object isn't deleted while Sockets reference
-// it. We can't check the application's correlation method, we can only check
-// our own. So we check, and if there's a *possible* dangling reference we
-// complain knowing that if a problem does exist, it will be hard to debug.
-
-// >>>>>>>>>>>>>>>>>>>>>>>> ** USER DEBUGGING NOTE ** <<<<<<<<<<<<<<<<<<<<<<<<
-// Before deleting a SocketSelect object, you should insure that no Socket
-// objects still reference it. That will remove the annoying error message
-// you got and quite likely also avoid some hard to debug future error.
-// >>>>>>>>>>>>>>>>>>>>>>>> ** USER DEBUGGING NOTE ** <<<<<<<<<<<<<<<<<<<<<<<<
-   std::lock_guard<decltype(mutex)> lock(mutex);
-   for(int px= 0; px < used; ++px) {
-     int fd= pollfd[px].fd;
-     if( fd >= 0 && fd < size ) {
-       Socket* socket= this->socket[fd];
-       if( socket ) {
-         #define FMT "%4d SocketSelect(%p) Socket(%p) fd(%d) User error: " \
-                     "Dangling reference\n"
-         errorf(FMT, __LINE__, this, socket, fd);
-         sno_handled(__LINE__);     // See ** USER DEBUGGING NOTE **, above
-         debug("Additional debugging information");
-         socket->selector= nullptr;
-       } else if( USE_CROSS_CHECK ) {
-         sno_handled(__LINE__);     // (socket[fd] == nullptr)
-       }
-     } else if( USE_CROSS_CHECK ) {
-       sno_handled(__LINE__);       // (pollfd[px].fd >= size)
-     }
-   }
-
-   free(pollfd);
-   free(socket);
-   free(sindex);
-
-   pollfd= nullptr;
-   socket= nullptr;
-   sindex= nullptr;
-   size= 0;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SocketSelect::debug
-//
-// Purpose-
-//       Debugging display
-//
-// Implementation note-
-//       This may be called with or without the lock held, which is why we use
-//       a recursive_mutex rather than just a mutex.
-//
-//----------------------------------------------------------------------------
-void
-   SocketSelect::debug(             // Debugging display
-     const char*       info) const  // Caller information
-{
-   std::lock_guard<decltype(mutex)> lock(mutex);
-   debugf("SocketSelect(%p)::debug(%s)\n", this, info);
-   debugf("..pollfd(%p) socket(%p) sindex(%p)\n", pollfd, socket, sindex);
-   debugf("..left(%u) next(%u) size(%u) used(%u)\n", left, next, size, used);
-   debugf("..pollfd %d\n", used);
-   for(int px= 0; px<used; ++px) {
-     int fd= pollfd[px].fd;
-     const Socket* socket= this->socket[fd];
-     debugf("....[%3d] %p %3d:{%.4x,%.4x}\n", px, socket, fd
-           , pollfd[px].events, pollfd[px].revents);
-     if( socket->handle != pollfd[px].fd )
-       debugf("....[%3d] %p %3d ERROR: SOCKET.HANDLE MISMATCH\n", px, socket
-             , socket->handle);
-     else if( px != this->sindex[fd] )
-       debugf("....[%3d] %p %3d ERROR: HANDLE.SINDEX MISMATCH\n", px, socket
-             , this->sindex[fd]);
-   }
-
-   debugf("..socket\n");
-   for(int sx= 0; sx<size; ++sx) {
-     if( socket[sx] )
-       debugf("....[%3d] %p\n", sx, socket[sx]);
-   }
-
-   debugf("..sindex\n");
-   for(int fd= 0; fd<size; ++fd) {
-     if( sindex[fd] >= 0 )
-       debugf("....[%3d] -> [%3d]\n", fd, sindex[fd]);
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SocketSelect::insert
-//
-// Purpose-
-//       Insert a Socket onto the Socket array
-//
-//----------------------------------------------------------------------------
-int                                 // Return code, 0 expected
-   SocketSelect::insert(            // Insert Socket
-     Socket*           socket,      // The associated Socket
-     int               events)      // The associated poll events
-{  if( HCDM )
-     debugh("SocketSelect(%p)::insert(%p,0x%.4x) fd(%d)\n", this
-           , socket, events, socket->handle);
-
-   std::lock_guard<decltype(mutex)> lock(mutex);
-// debugf("\n\nSS(%p)::insert(%p) %d\n", this, socket, socket->handle);
-// debug_backtrace();
-   int fd= socket->handle;
-   if( fd < 0 ) {
-     errno= EINVAL;
-     return -1;
-   }
-   if( fd >= size )
-     resize(fd);
-
-   if( socket->selector ) {
-     errorf("SocketSelect(%p)::insert(%p) already inserted(%p)\n", this
-           , socket, socket->selector);
-     errno= EINVAL;
-     return -1;
-   }
-
-   if( USE_CROSS_CHECK ) {
-     if( used >= size ) {           // More FD's used than hard limit
-       errorf("SocketSelect(%p)::insert(%p) Should not occur\n", this, socket);
-       errno= EINVAL;
-       return -1;
-     }
-
-     // If the socket is already assigned, something is wrong with our table.
-     // Perhaps the socket got closed and opened, and we weren't informed.
-     if( this->socket[fd] ) {       // Socket already assigned
-       errorf("SocketSelect(%p)::insert(%p) Should not occur\n", this, socket);
-       errno= EINVAL;
-       return -1;
-     }
-   }
-
-   struct pollfd* pollfd= this->pollfd + used;
-   pollfd->fd= fd;
-   pollfd->events= events;
-   pollfd->revents= 0;
-   this->sindex[fd]= used;
-   this->socket[fd]= socket;
-   socket->selector= this;
-
-   ++used;
-// left= next= 0;                   // Not needed, revents == 0
-
-   return 0;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SocketSelect::modify
-//
-// Purpose-
-//       Modify a Socket's events mask
-//
-//----------------------------------------------------------------------------
-int                                 // Return code, 0 expected
-   SocketSelect::modify(            // Modify Socket
-     const Socket*     socket,      // The associated Socket
-     int               events)      // The associated poll events
-{  if( HCDM )
-     debugh("SocketSelect(%p)::modify(%p,0x%.4x)\n", this, socket, events);
-
-   std::lock_guard<decltype(mutex)> lock(mutex);
-   int fd= socket->handle;
-   if( fd < 0 || fd >= size ) {     // (Probably closed socket)
-     errorf("SocketSelect(%p)::modify(%p) invalid socket handle(%d)\n", this
-           , socket, fd);
-     errno= EINVAL;
-     return -1;
-   }
-
-   if( socket->selector != this ) { // If owned by a different selector
-     sno_handled(__LINE__);
-     return socket->selector->modify(socket, events);
-   }
-
-   int px= sindex[fd];
-   pollfd[px].events= events;
-   pollfd[px].revents= 0;
-
-   left= next= 0;
-   return 0;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SocketSelect::remove
-//
-// Purpose-
-//       Remove a Socket from the Socket array
-//
-//----------------------------------------------------------------------------
-int                                 // Return code, 0 expected
-   SocketSelect::remove(            // Remove Socket
-     Socket*           socket)      // The associated Socket
-{  if( HCDM )
-     debugh("SocketSelect(%p)::remove(%p) fd(%d)\n", this
-           , socket, socket->handle);
-
-   std::lock_guard<decltype(mutex)> lock(mutex);
-   if( socket->selector == nullptr ) { // If Socket isn't owned by a selector
-     if( socket->handle < 0 ) {     // (Socket::close may have been blocked)
-       errno= EINVAL;
-       return -1;
-     }
-     if( IOEM ) {
-       errorf("%4d %s remove Socket(%p) selector(nullptr) fd(%d)\n"
-             , __LINE__, __FILE__, socket, socket->handle);
-       debug("Additional debugging information");
-       debug_backtrace();
-     }
-     errno= EINVAL;
-     return -1;
-   }
-
-   if( socket->selector != this ) { // If owned by a different selector
-     sno_handled(__LINE__);
-     return socket->selector->remove(socket);
-   }
-
-   socket->selector= nullptr;
-   int fd= socket->handle;
-   if( USE_CROSS_CHECK && (fd < 0 || fd >= size) ) // If invalid socket handle
-     return sno_handled(__LINE__);
-
-   int px= sindex[fd];              // Get the poll index
-   if( USE_CROSS_CHECK && (px < 0 || px >= size) ) // If invalid poll index
-     return sno_handled(__LINE__);
-
-   for(int i= px; i<(used-1); ++i)
-     pollfd[i]= pollfd[i+1];
-
-   this->socket[fd]= nullptr;
-   this->sindex[fd]= -1;
-   --used;
-
-   return 0;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       SocketSelect::select
-//
-// Purpose-
-//       Select the next available Socket from the Socket array
-//
-//----------------------------------------------------------------------------
-Socket*                             // The next selected Socket, or nullptr
-   SocketSelect::select(            // Select next Socket
-     int               timeout)     // Timeout, in milliseconds
-{  if( HCDM )
-     debugh("SocketSelect(%p)::select(%d)\n", this, timeout);
-
-   std::lock_guard<decltype(mutex)> lock(mutex);
-   if( used == 0 ) {                // If true, usage error
-     if( IODM )
-       debugf("SocketSelect(%p)::select Empty Socket array\n", this);
-     errno= EINVAL;
-     return nullptr;
-   }
-
-   if( left )
-     return remain();
-
-   for(int px= 0; px<used; ++px)
-     pollfd[px].revents= 0;
-
-   left= poll(pollfd, used, timeout);
-   if( left == 0 ) {
-     errno= EAGAIN;
-     return nullptr;
-   }
-
-   return remain();
-}
-
-Socket*                             // The next selected Socket, or nullptr
-   SocketSelect::select(            // Select next Socket
-     const struct timespec*         // (tv_sec, tv_nsec)
-                       timeout,     // Timeout, infinite if omitted
-     const sigset_t*   signals)     // Timeout, in milliseconds
-{  if( HCDM )
-     debugh("SocketSelect(%p)::select({%'ld,%'ld},%p)\n", this
-           , timeout->tv_sec, timeout->tv_nsec, signals);
-
-   std::lock_guard<decltype(mutex)> lock(mutex);
-   if( used == 0 ) {                // USAGE ERROR
-     if( IODM )
-       debugf("SocketSelect(%p)::select Empty Socket array\n", this);
-     errno= EINVAL;
-     return nullptr;
-   }
-
-   if( left )
-     return remain();
-
-   for(int px= 0; px<used; ++px)
-     pollfd[px].revents= 0;
-
-   left= ppoll(pollfd, used, timeout, signals);
-   if( left == 0 ) {
-     errno= EAGAIN;
-     return nullptr;
-   }
-
-   return remain();
-}
-
-//----------------------------------------------------------------------------
-//
-// Protected method-
-//       SocketSelect::remain
-//
-// Purpose-
-//       Select the next remaining Socket
-//
-// Implementation note-
-//       Caller must hold mutex lock.
-//
-//----------------------------------------------------------------------------
-Socket*                             // The next selected Socket
-   SocketSelect::remain( void )     // Select next remaining Socket
-{
-   for(int px= next; px<used; ++px) {
-     if( pollfd[px].revents != 0 ) {
-       --left;
-       next= px + 1;
-       int fd= pollfd[px].fd;
-       return socket[fd];
-     }
-   }
-
-   for(int px= 0; px<next; ++px) {
-     if( pollfd[px].revents != 0 ) {
-       --left;
-       next= px + 1;
-       int fd= pollfd[px].fd;
-       return socket[fd];
-     }
-   }
-
-   // ERROR: The number of elements set < number of elements found
-   // ** THIS IS AN INTERNAL LOGIC ERROR, NOT AN APPLICATION ERROR **
-   errorf("%4d internal error, info(%d)\n", __LINE__, left);
-   sno_handled(__LINE__);
-   left= 0;
-   errno= EAGAIN;
-   return nullptr;
-}
-
-//----------------------------------------------------------------------------
-//
-// Protected method-
-//       SocketSelect::resize
-//
-// Purpose-
-//       Resize the internal tables
-//
-// Implementation note-
-//       Caller must hold mutex lock.
-//       Per fd storage: 20
-//
-//----------------------------------------------------------------------------
-inline void
-   SocketSelect::resize(            // Resize the SocketSelect tables
-     int               fd)          // For this file (positive) descriptor
-{  if( HCDM )
-     debugh("SocketSelect(%p)::resize(%d)\n", this, fd);
-
-   int new_size= 0;
-   if( fd < 32 )
-     new_size= 32;
-   else if( fd < 128 )
-     new_size= 128;
-   else if( fd < 512 )
-     new_size= 512;
-   else {
-     struct rlimit limits;
-     int rc= getrlimit(RLIMIT_NOFILE, &limits);
-     if( rc ) {
-       errorf("%4d %s %d=getrlimit %d:%s\n", __LINE__, __FILE__, rc
-             , errno, strerror(errno));
-       limits.rlim_cur= 1024;
-       limits.rlim_max= 4096;
-     }
-
-     if( size_t(fd) < size_t(limits.rlim_cur) )
-       new_size= limits.rlim_cur;
-     else if( size_t(fd) < size_t(limits.rlim_max) )
-       new_size= limits.rlim_max;
-     else {
-       // Request for file descriptor index >= limits.rlim_max
-       // This should not be possible.
-       debugf("%4d fd(%d) >= limit(%ld)\n", __LINE__, fd, limits.rlim_max);
-       sno_exception(__LINE__);
-     }
-   }
-
-   struct pollfd*
-   new_pollfd= (struct pollfd*)realloc(pollfd, new_size * sizeof(pollfd));
-   Socket** new_socket= (Socket**)realloc(socket, new_size * sizeof(Socket));
-   int* new_sindex= (int*)realloc(sindex, new_size * sizeof(int));
-   if( new_pollfd == nullptr||new_socket == nullptr||new_sindex == nullptr ) {
-     free(new_pollfd);
-     free(new_socket);
-     free(new_sindex);
-     throw std::bad_alloc();
-   }
-
-   int diff= new_size - size;
-   memset(new_pollfd + size, 0x00, diff * sizeof(pollfd));
-   memset(new_socket + size, 0x00, diff * sizeof(Socket));
-   memset(new_sindex + size, 0xff, diff * sizeof(int));
-
-   pollfd= new_pollfd;
-   socket= new_socket;
-   sindex= new_sindex;
-   size= new_size;
 }
 } // namespace _PUB_NAMESPACE
