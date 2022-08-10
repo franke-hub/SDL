@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2022/07/14
+//       2022/08/10
 //
 // Arguments: (For testtime only)
 //       TestDisp --timing          // (Only run timing test)
@@ -536,9 +536,9 @@ static int
      delete WAIT[i];
    }
 
-   delete WAIT;
-   delete ITEM;
-   delete TASK;
+   delete[] WAIT;
+   delete[] ITEM;
+   delete[] TASK;
 
    return 0;
 }
