@@ -1103,6 +1103,9 @@ int                                 // Return code, 0 OK
 // Purpose-
 //       Constructor/Destructor
 //
+// Implementation notes-
+//       Implicit copy operator only used in EdView for a temporary EdLine
+//
 //----------------------------------------------------------------------------
    EdLine::EdLine(                  // Constructor
      const char*       text)        // Line text
@@ -1117,7 +1120,8 @@ int                                 // Return code, 0 OK
 {  if( HCDM || (opt_hcdm && opt_verbose > 2) )
      traceh("EdLine(%p)::~EdLine\n", this);
 
-   Trace::trace(".DEL", "line", this);
+   if( (flags & F_AUTO) == 0 )      // Do not trace temporary lines
+     Trace::trace(".DEL", "line", this);
 }
 
 //----------------------------------------------------------------------------

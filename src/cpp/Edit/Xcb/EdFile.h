@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2021/06/17
+//       2022/08/01
 //
 // Implementation objects-
 //       EdLine: Editor EdFile line descriptor
@@ -61,6 +61,7 @@ enum FLAGS                          // Control flags
 ,  F_MARK= 0x0001                   // Line is marked (selected)
 ,  F_PROT= 0x0002                   // Line is read/only
 ,  F_HIDE= 0x0004                   // Line is hidden
+,  F_AUTO= 0x0100                   // Line is in automatic (stack) storage
 };
 
 unsigned char          delim[2]= {'\0', 0}; // Delimiter (NONE default)

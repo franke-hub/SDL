@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2022/04/01
+##       2022/08/01
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in BETA state.
@@ -26,7 +26,14 @@
 ##############################################################################
 
 ##############################################################################
-## STATUS: 2022/04/11
+## STATUS: 2022/08/01
+2022/08/01 MINOR: Looking at trace the EdView temporary copied line was being
+           traced during delete but not when allocated.
+           EdView and EdFile.EdLine now avoid line delete tracing for that
+           temporary line.
+
+##############################################################################
+## CHANGE LOG:
 2022/03/15 Use Trace::trace functions rather than Config::trace.
            Use ~/.config/editxcb/ rather than ~/.config/uuid/.../ for debug
            and trace output.
@@ -37,8 +44,6 @@
            Solution: Use sequence `Alt-\` to indicate that the next character
            is to be "escaped". Added support for Alt-\ + (\b, \t, or \e).
 
-##############################################################################
-## CHANGE LOG:
 2022/02/23 Synchronization commit. Added .README TODOs (only.)
 
 2021/12/21 Usability: Added "list" command to display the command list

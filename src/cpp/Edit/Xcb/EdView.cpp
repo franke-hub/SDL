@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2022/03/15
+//       2022/08/01
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -107,6 +107,7 @@ void
    EdText* text= editor::text;
    active.index(col_zero+text->col_size); // Blank fill
    EdLine line= *cursor;            // (Copy the cursor flags)
+   line.flags |= EdLine::F_AUTO;    // (Do not trace ~EdLine)
    line.text= active.get_buffer();
    text->draw_line(row, &line);
    if( editor::view == this )
