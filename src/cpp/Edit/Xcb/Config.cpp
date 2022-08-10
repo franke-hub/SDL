@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2022/04/08
+//       2022/08/10
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -397,6 +397,8 @@ void
      uintptr_t R2= uintptr_t(redo->head_remove);
      uintptr_t R3= uintptr_t(redo->tail_remove);
 
+#pragma GCC diagnostic push         // GCC regression START
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
      for(unsigned i= 8; i>0; i--) {
        record->value[ 0 + i - 1]= char(V0);
        record->value[ 8 + i - 1]= char(V1);
@@ -414,6 +416,7 @@ void
      }
      record->trace(ident);
    }
+#pragma GCC diagnostic pop          // GCC regression END
 }
 
 //----------------------------------------------------------------------------

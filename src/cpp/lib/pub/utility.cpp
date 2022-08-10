@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2022/06/04
+//       2022/08/10
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -98,12 +98,15 @@ int                                 // Resultant value
 //       errno= EINVAL; // Indicates invalid value detected.
 //       errno= ERANGE; // Indicates invalid range detected.
 //
+//       Without adding the volatile attribute to 'result', GCC 12 doesn't
+//       check for result < 0 when full optimization (-O3) is used.
+//
 //----------------------------------------------------------------------------
 long                                // Resultant value
    atol(                            // Convert ASCII to long
      const char*       inp)         // Input string
 {
-   long                result= 0;   // Resultant
+   volatile long       result= 0;   // Resultant
 
    inp= skip_space(inp);
    if( *inp == '0' && (inp[1] == 'x' || inp[1] == 'X') )
