@@ -16,11 +16,11 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2022/07/18
+//       2022/07/31
 //
 // Implementation notes-
-//       Timing: W: 4088.7/sec  L: 307.5/sec protocol1a
-//       Timing: W: 5584.4/sec  L: 518.6/sec protocol1b
+//       Throughput: W: 5584.4/sec  L: 518.6/sec protocol1a
+//       Throughput: W: 4088.7/sec  L: 307.5/sec protocol1b
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -80,7 +80,7 @@ enum
 ,  VERBOSE= 1                       // Verbosity, range 0..5
 
 ,  BUFFER_SIZE= 1'048'576           // Input buffer size
-,  USE_PROTOCOL1A= false            // (Not PROTOCOL1B)
+,  USE_PROTOCOL1A= true             // (Not PROTOCOL1B)
 }; // enum
 
 // Imported Options
@@ -174,7 +174,6 @@ static constexpr CC*   HTTP_S2=   Options::HTTP_PROTOCOL_S2; // HTTPS/2
    if( !encrypt ) {
      socket= new pub::Socket();
      int
-//// rc= socket->open(addr.su_af, SOCK_STREAM, addr.su_af);
      rc= socket->open(addr.su_af, SOCK_STREAM, PF_UNSPEC);
      if( IODM )
        traceh("%4d Client %d= open(%d,%d,%d)\n", __LINE__, rc
@@ -206,9 +205,9 @@ static constexpr CC*   HTTP_S2=   Options::HTTP_PROTOCOL_S2; // HTTPS/2
 
    // Create the ClientThread
    if( USE_PROTOCOL1A )
-     thread= new ClientThread(this);
-   else
      operational= true;
+   else
+     thread= new ClientThread(this);
 }
 
 std::shared_ptr<Client>             // (New) Client
@@ -329,16 +328,16 @@ std::function<void(dispatch::Item*)>
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Client::protocol1a
+//       Client::protocol1b
 //
 // Purpose-
 //       Define the HTTP/1.0 and HTTP/1.1 write protocol handler
 //
 //----------------------------------------------------------------------------
 std::function<void(ClientItem*)>
-   Client::protocol1a( void )       // Define the HTTP/1 write protocol handler
+   Client::protocol1b( void )       // Define the HTTP/1 write protocol handler
 {  return [this](ClientItem* item)
- { if( HCDM ) debugh("Client(%p)::protocol1a(%p)\n", this, item);
+ { if( HCDM ) debugh("Client(%p)::protocol1b(%p)\n", this, item);
 
    if( item->fc == ClientItem::FC_FLUSH ) { // If FLUSH operation
 Trace::trace(".TXT", __LINE__, "flush wait");
@@ -453,16 +452,16 @@ Trace::trace(".TXT", __LINE__, "request ready");
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Client::protocol1b
+//       Client::protocol1a
 //
 // Purpose-
 //       Define the HTTP/1.0 and HTTP/1.1 write protocol handler
 //
 //----------------------------------------------------------------------------
 std::function<void(ClientItem*)>
-   Client::protocol1b( void )       // Define the HTTP/1 write protocol handler
+   Client::protocol1a( void )       // Define the HTTP/1 write protocol handler
 {  return [this](ClientItem* item)
- { if( HCDM ) debugh("Client(%p)::protocol1b(%p)\n", this, item);
+ { if( HCDM ) debugh("Client(%p)::protocol1a(%p)\n", this, item);
 
    if( item->fc == ClientItem::FC_FLUSH ) { // If FLUSH operation
 // debugh("%4d %s HCDM\n", __LINE__, __FILE__);

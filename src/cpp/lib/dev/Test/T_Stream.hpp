@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2022/07/16
+//       2022/07/31
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -450,6 +450,8 @@ void
    ++tot_op_count;
 
    std::shared_ptr<Request> Q= client->request();
+   if( Q.get() == nullptr )
+     return;                        // TODO: ? ADD ERROR RECOVERY HERE ?
    Q->method= meth;
    Q->path= path;
 
