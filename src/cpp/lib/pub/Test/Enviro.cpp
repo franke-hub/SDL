@@ -369,8 +369,10 @@ static inline int                   // (Always 0)
 static inline int
    demo_std_exception( void )
 {
-#ifdef _CC_GCC                      // (This DEMOs the usage error)
-   #pragma GCC diagnostic ignored "-Wcatch-value"
+#ifdef __GNUC__                     // (This DEMOs the usage error)
+#if __GNUC__ > 8 || (__GNUC__ == 8 && __GNUC_MINOR__ >= 1)
+#  pragma GCC diagnostic ignored "-Wcatch-value" // Added in 8.1
+#endif
 #endif
 
    debugf("\n");
