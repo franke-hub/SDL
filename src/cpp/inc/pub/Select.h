@@ -16,7 +16,7 @@
 //       Socket selector
 //
 // Last change date-
-//       2022/07/26
+//       2022/08/18
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SELECT_H_INCLUDED
@@ -54,6 +54,8 @@ struct control_op;                  // (Internal) control operation
 //       ** THREAD SAFE, BUT NOT CURRENTLY MULTI-THREAD CAPABLE **
 //         Polling operations can hold the Selector mutex for long intervals,
 //         blocking socket inserts, modification, and removal.
+//
+//       Locking needs work.
 //
 //       Sockets may only be associated with one Select object.
 //       Sockets are automatically removed from a Select whenever they

@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2022/07/31
+//       2022/08/16
 //
 // Implementation notes-
 //       Throughput: W: 5584.4/sec  L: 518.6/sec protocol1a
@@ -49,7 +49,6 @@
 #include "pub/http/Agent.h"         // For pub::http::ClientAgent (owner)
 #include "pub/http/Client.h"        // For pub::http::Client, implementated
 #include "pub/http/Exception.h"     // For pub::http::exceptions
-#include "pub/http/Handler.h"       // For pub::http::Handler TODO: MOVE ../.
 #include "pub/http/Request.h"       // For pub::http::Request
 #include "pub/http/Response.h"      // For pub::http::Response
 #include "pub/http/Stream.h"        // For pub::http::Stream
@@ -136,7 +135,7 @@ static constexpr CC*   HTTP_S2=   Options::HTTP_PROTOCOL_S2; // HTTPS/2
 ,  obuffer(BUFFER_SIZE)
 ,  proto_id(HTTP_H1)
 ,  semaphore(1)
-,  task([this](dispatch::Item* item) { protocol.work((ClientItem*)item); })
+,  task([this](dispatch::Item* item) { h_writer((ClientItem*)item); })
 {  if( HCDM )
      debugh("\nClient(%p)::Client(%p) %s\n", this, owner
            , addr.to_string().c_str());
@@ -147,10 +146,10 @@ static constexpr CC*   HTTP_S2=   Options::HTTP_PROTOCOL_S2; // HTTPS/2
    // Handle Options
    bool encrypt= false;             // Default, not encrypted
    if( USE_PROTOCOL1A ) {
-     protocol.on_work( protocol1a() ); // Default, protocol1a
+     h_writer= protocol1a();        // Default, protocol1a
      if( VERBOSE ) debugf("PROTOCOL1A\n");
    } else {
-     protocol.on_work( protocol1b() ); // Default, protocol1b
+     h_writer= protocol1b();        // Default, protocol1b
      if( VERBOSE ) debugf("PROTOCOL1B\n");
    }
    if( opts ) {
@@ -158,7 +157,7 @@ static constexpr CC*   HTTP_S2=   Options::HTTP_PROTOCOL_S2; // HTTPS/2
      if( type ) {                   // If protocol specified
        if( strcmp(type, HTTP_H2) == 0 || strcmp(type, HTTP_S2) == 0 ) {
          proto_id= HTTP_H2;
-         protocol.on_work( protocol2() );
+         h_writer= protocol2();
          if( strcmp(type, HTTP_S2) == 0 )
            encrypt= true;
        } else if( strcmp(type, HTTP_S1) == 0 ) {
@@ -310,19 +309,122 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Client::init_task
+//       Client::protocol1a
 //
 // Purpose-
-//       Initialize the output task
+//       Define the HTTP/1.0 and HTTP/1.1 write protocol handler
 //
 //----------------------------------------------------------------------------
-std::function<void(dispatch::Item*)>
-   Client::init_task( void )        // Initialize the output task
-{  if( HCDM ) debugh("Client(%p)::init_task\n", this);
+std::function<void(ClientItem*)>
+   Client::protocol1a( void )       // Define the HTTP/1 write protocol handler
+{  return [this](ClientItem* item)
+ { if( HCDM ) debugh("Client(%p)::protocol1a(%p)\n", this, item);
 
-   return [this](dispatch::Item* item)
-   {  protocol.work((ClientItem*)item);
-   };
+   if( item->fc == ClientItem::FC_FLUSH ) { // If FLUSH operation
+// debugh("%4d %s HCDM\n", __LINE__, __FILE__);
+     item->post();                  // Flush complete
+     return;
+   }
+
+   // debugh("%4d %s HCDM\n", __LINE__, __FILE__);
+   std::shared_ptr<ClientStream>  stream= item->stream;
+   delete item;                     // (No longer needed)
+   try {
+     // Format the request buffer
+     std::shared_ptr<ClientRequest> request= stream->get_request();
+     Request& Q= *request.get();    // (Q protected by request)
+
+     if( socket->get_handle() <= 0 ) { // If connection broken
+       return;
+     }
+
+     obuffer.reset();
+     obuffer.append(Q.method);
+     obuffer.append(' ');
+     obuffer.append(Q.path);
+     obuffer.append(' ');
+     obuffer.append(Q.proto_id);
+     obuffer.append("\r\n");
+
+     // Set Content-Length
+     Options& opts= Q;
+     opts.remove(HTTP_SIZE);
+     const Data& data= request->get_data();
+     size_t content_length= data.get_size();
+// debugh("Method(%s) Content_Length(%zd)\n", Q.method.c_str(), content_length); // TODO: REMOVE
+     if(content_length != 0 ) {
+       if( Q.method != HTTP_POST && Q.method != HTTP_PUT ) {
+         content_length= 0;
+         if( VERBOSE )
+           fprintf(stderr, "Option %s does not support data\n", Q.method.c_str());
+       }
+     } else if( Q.method == "POST" || Q.method == "PUT" ) {
+       stream->reject(411);       // Length required
+       return;
+     }
+
+     // Unpack header items
+     typedef Options::const_iterator iterator;
+     for(iterator i= opts.begin(); i != opts.end(); ++i) {
+       obuffer.append(i->first);
+       obuffer.append(':');
+       obuffer.append(i->second);
+       obuffer.append("\r\n");
+     }
+
+     // Add Content-Length (if required)
+     if( content_length ) {
+       obuffer.append(HTTP_SIZE);
+       obuffer.append(':');
+       obuffer.append(std::to_string(content_length));
+       obuffer.append("\r\n");
+     }
+
+     // Write the request headers
+     obuffer.append("\r\n");        // Add header delimiter
+     ssize_t L= write(__LINE__, obuffer.addr, obuffer.length);
+
+     // Write the POST/PUT data
+     if( content_length ) {
+       while( content_length > 0 ) {
+         L= data.store(obuffer.addr, obuffer.size);
+// debugh("%4d Client L(%zd) offset(%zd) length(%zd)\n", L, offset, content_length);
+         L= write(__LINE__, obuffer.addr, L);
+         content_length -= L;
+       }
+     }
+
+     // Wait for the response
+     size_t size= read(__LINE__, ibuffer.size - 1);
+     bool cc= stream->read(ibuffer.addr, size);
+     while( !cc ) {
+       size= read(__LINE__, ibuffer.size - 1);
+       cc= stream->read(ibuffer.addr, size);
+     }
+
+     stream->end();                 // Operation complete
+   } catch(pub::Exception& X) {
+     errorh("%4d %s %s\n", __LINE__, __FILE__, ((std::string)X).c_str());
+     connection_error(X.what());
+   } catch(io_exception& X) {
+     if( IODM )
+       errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
+     connection_error(X.what());
+   } catch(stream_error& X) {
+     if( IODM )
+       errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
+     connection_error(X.what());
+   } catch(std::exception& X) {
+     errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
+     connection_error(X.what());
+   } catch(const char* X) {
+     errorh("%4d %s catch(%s)\n", __LINE__, __FILE__, X);
+     connection_error(X);
+   } catch(...) {
+     errorh("%4d %s catch(...)\n", __LINE__, __FILE__);
+     connection_error("catch(...)");
+   }
+ };
 }
 
 //----------------------------------------------------------------------------
@@ -425,127 +527,6 @@ Trace::trace(".TXT", __LINE__, "request ready");
          content_length -= L;
        }
      }
-   } catch(pub::Exception& X) {
-     errorh("%4d %s %s\n", __LINE__, __FILE__, ((std::string)X).c_str());
-     connection_error(X.what());
-   } catch(io_exception& X) {
-     if( IODM )
-       errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
-     connection_error(X.what());
-   } catch(stream_error& X) {
-     if( IODM )
-       errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
-     connection_error(X.what());
-   } catch(std::exception& X) {
-     errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
-     connection_error(X.what());
-   } catch(const char* X) {
-     errorh("%4d %s catch(%s)\n", __LINE__, __FILE__, X);
-     connection_error(X);
-   } catch(...) {
-     errorh("%4d %s catch(...)\n", __LINE__, __FILE__);
-     connection_error("catch(...)");
-   }
- };
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Client::protocol1a
-//
-// Purpose-
-//       Define the HTTP/1.0 and HTTP/1.1 write protocol handler
-//
-//----------------------------------------------------------------------------
-std::function<void(ClientItem*)>
-   Client::protocol1a( void )       // Define the HTTP/1 write protocol handler
-{  return [this](ClientItem* item)
- { if( HCDM ) debugh("Client(%p)::protocol1a(%p)\n", this, item);
-
-   if( item->fc == ClientItem::FC_FLUSH ) { // If FLUSH operation
-// debugh("%4d %s HCDM\n", __LINE__, __FILE__);
-     item->post();                  // Flush complete
-     return;
-   }
-
-   // debugh("%4d %s HCDM\n", __LINE__, __FILE__);
-   std::shared_ptr<ClientStream>  stream= item->stream;
-   delete item;                     // (No longer needed)
-   try {
-     // Format the request buffer
-     std::shared_ptr<ClientRequest> request= stream->get_request();
-     Request& Q= *request.get();    // (Q protected by request)
-
-     if( socket->get_handle() <= 0 ) { // If connection broken
-       return;
-     }
-
-     obuffer.reset();
-     obuffer.append(Q.method);
-     obuffer.append(' ');
-     obuffer.append(Q.path);
-     obuffer.append(' ');
-     obuffer.append(Q.proto_id);
-     obuffer.append("\r\n");
-
-     // Set Content-Length
-     Options& opts= Q;
-     opts.remove(HTTP_SIZE);
-     const Data& data= request->get_data();
-     size_t content_length= data.get_size();
-// debugh("Method(%s) Content_Length(%zd)\n", Q.method.c_str(), content_length); // TODO: REMOVE
-     if(content_length != 0 ) {
-       if( Q.method != HTTP_POST && Q.method != HTTP_PUT ) {
-         content_length= 0;
-         if( VERBOSE )
-           fprintf(stderr, "Option %s does not support data\n", Q.method.c_str());
-       }
-     } else if( Q.method == "POST" || Q.method == "PUT" ) {
-       stream->reject(411);       // Length required
-       return;
-     }
-
-     // Unpack header items
-     typedef Options::const_iterator iterator;
-     for(iterator i= opts.begin(); i != opts.end(); ++i) {
-       obuffer.append(i->first);
-       obuffer.append(':');
-       obuffer.append(i->second);
-       obuffer.append("\r\n");
-     }
-
-     // Add Content-Length (if required)
-     if( content_length ) {
-       obuffer.append(HTTP_SIZE);
-       obuffer.append(':');
-       obuffer.append(std::to_string(content_length));
-       obuffer.append("\r\n");
-     }
-
-     // Write the request headers
-     obuffer.append("\r\n");        // Add header delimiter
-     ssize_t L= write(__LINE__, obuffer.addr, obuffer.length);
-
-     // Write the POST/PUT data
-     if( content_length ) {
-       while( content_length > 0 ) {
-         L= data.store(obuffer.addr, obuffer.size);
-// debugh("%4d Client L(%zd) offset(%zd) length(%zd)\n", L, offset, content_length);
-         L= write(__LINE__, obuffer.addr, L);
-         content_length -= L;
-       }
-     }
-
-     // Wait for the response
-     size_t size= read(__LINE__, ibuffer.size - 1);
-     bool cc= stream->read(ibuffer.addr, size);
-     while( !cc ) {
-       size= read(__LINE__, ibuffer.size - 1);
-       cc= stream->read(ibuffer.addr, size);
-     }
-
-     stream->end();                 // Operation complete
    } catch(pub::Exception& X) {
      errorh("%4d %s %s\n", __LINE__, __FILE__, ((std::string)X).c_str());
      connection_error(X.what());

@@ -16,7 +16,7 @@
 //       Compile bringup
 //
 // Last change date-
-//       2022/08/14
+//       2022/08/16
 //
 //----------------------------------------------------------------------------
 #if true
@@ -27,8 +27,6 @@
   #define IT "pub/http/Data.h"
 #elif true
   #define IT "pub/http/Exception.h"
-#elif true
-  #define IT "pub/http/Handler.h"
 #elif true
   #define IT "pub/http/Listen.h"
 #elif true

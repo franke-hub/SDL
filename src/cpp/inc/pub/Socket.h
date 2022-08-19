@@ -16,7 +16,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2022/07/27
+//       2022/08/17
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -86,7 +86,7 @@ friend class Select;
 public:
 static const int       CLOSED= -1;  // Closed socket handle
 typedef in_port_t      Port;        // A port type
-typedef std::function<void(int)>              v_func;
+typedef std::function<void(int)>              v_selected;
 
 //----------------------------------------------------------------------------
 // Socket::sockaddr_u, Socket::sockaddr_x
@@ -132,7 +132,7 @@ std::string                         // The display string
 //----------------------------------------------------------------------------
 protected:
 Select*                selector= nullptr; // The associated Selector
-v_func                 selected;    // Selection processor
+v_selected             selected;    // Selection processor
 
 int                    handle= CLOSED; // The socket handle (handle)
 short                  family= 0;   // The connection address family
@@ -265,7 +265,7 @@ static bool                         // TRUE iff socket family is supported
       @param int: The polling revent
 *****************************************************************************/
 void
-   on_select(v_func f)              // Define the event handler
+   on_select(v_selected f)          // Define the event handler
 {  selected= f; }
 
 int

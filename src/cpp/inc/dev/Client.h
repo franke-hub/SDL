@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2022/07/16
+//       2022/08/16
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_HTTP_CLIENT_H_INCLUDED
@@ -33,7 +33,6 @@
 #include <pub/Socket.h>             // For pub::Socket
 
 #include "pub/http/Data.h"          // For pub::http::Buffer
-#include "pub/http/Handler.h"       // For pub::http::Handler TODO: MOVE ../.
 #include "pub/http/Stream.h"        // For pub::http::Stream
 
 namespace pub::http {
@@ -74,6 +73,8 @@ protected:
 // Callback handlers ---------------------------------------------------------
 std::function<void(void)>
                        h_close;     // The close event handler
+std::function<void(ClientItem*)>
+                       h_writer;    // The Client's write (protocol) handler
 //----------------------------------------------------------------------------
 
 std::weak_ptr<Client>  self;        // Self-reference
@@ -84,7 +85,6 @@ SSL_CTX*               context= nullptr; // SSL context
 mutable Buffer         ibuffer;     // Our input buffer
 mutable Buffer         obuffer;     // Our output buffer
 const char*            proto_id;    // The Client's protocol/version
-Handler<ClientItem>    protocol;    // The Client's write protocol handler
 pub::Semaphore         semaphore;   // Used to limit HTTP/1 write operations
 Socket*                socket= nullptr; // Connection Socket
 StreamSet              stream_set;  // Our set of Streams
@@ -179,9 +179,6 @@ protected:
 void
    enqueue(                         // Enqueue a Request
      ClientItem*       item);       // The associated ClientItem
-
-std::function<void(dispatch::Item*)>
-   init_task( void );               // Initialize the output task
 
 std::function<void(ClientItem*)>
    protocol1a( void );              // Define the HTTP/1 protocol handler

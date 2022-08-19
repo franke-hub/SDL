@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2022/07/31
+//       2022/08/16
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -91,7 +91,6 @@ static const char*     priv_file= "private.pem"; // The private key file
 static Debug*          debug= nullptr; // Our Debug object
 static string          host= "localhost"; // The connection host
 static string          port= "8080"; // The connection port
-static double          test_interval= 2.0; // Stress test interval, in seconds
 static string          test_url= "/"; // The stress test URL
 static void*           trace_table= nullptr; // The internal trace area
 
@@ -106,6 +105,7 @@ static const char*     opt_debug= nullptr; // --debug
 static int             opt_verbose= -1; // --brief or --verbose
 static int             opt_bringup= false; // Run bringup test?
 static int             opt_client= false; // Run basic client test?
+static double          opt_runtime= 2.0;  // Stress test run time, in seconds
 static int             opt_server= false; // Run server?
 static int             opt_stress= false; // Run client stress test?
 static int             opt_trace= false;  // Create trace file?
@@ -122,9 +122,9 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 ,  {"client",  no_argument,       &opt_client,  true} // --client
 ,  {"host",    required_argument, nullptr,      0} // --host <string>
 ,  {"port",    required_argument, nullptr,      0} // --port <string>
+,  {"runtime", required_argument, nullptr,      0} // --runtime <string>
 ,  {"server",  optional_argument, &opt_server,  true} // --server
 ,  {"stress",  no_argument,       &opt_stress,  true} // --stress
-,  {"time",    required_argument, nullptr,      0} // --time <string>
 ,  {"trace",   no_argument,       &opt_trace,  true} // --trace
 ,  {"verify",  no_argument,       &opt_verify,  true} // --verify
 ,  {0, 0, 0, 0}                     // (End of option list)
@@ -140,9 +140,9 @@ enum OPT_INDEX                      // Must match OPTS[]
 ,  OPT_CLIENT
 ,  OPT_HOST
 ,  OPT_PORT
+,  OPT_RUNTIME
 ,  OPT_SERVER
 ,  OPT_STRESS
-,  OPT_TIME
 ,  OPT_TRACE
 ,  OPT_VERIFY
 ,  OPT_SIZE
@@ -636,7 +636,7 @@ int                                 // Error count
 int                                 // Error count
    test_stress( void )              // Stress test
 {
-   debugf("\nDriver.test_stress... (%.1f seconds)\n", test_interval);
+   debugf("\nDriver.test_stress... (%.1f seconds)\n", opt_runtime);
    error_count= 0;
 
    if( false )
@@ -667,12 +667,12 @@ int                                 // Error count
    // Run the stress test
    operational= true;               // Indicate operational
    do_NEXT();                       // Prime the pump
-   Thread::sleep(test_interval);    // Run the test
+   Thread::sleep(opt_runtime);      // Run the test
    operational= false;              // Indicate non-operational
    tot_op_count -= cur_op_count;    // (Current tests don't count)
 
    debugf("%'16.3f operations\n", (double)tot_op_count);
-   debugf("%'16.3f operations/second\n", (double)tot_op_count/test_interval);
+   debugf("%'16.3f operations/second\n", (double)tot_op_count/opt_runtime);
 
    // Cleanup
    client->wait();                  // Wait for operations to complete

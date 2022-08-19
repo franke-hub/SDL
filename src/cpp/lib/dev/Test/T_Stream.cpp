@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2022/06/15
+//       2022/08/16
 //
 // Arguments-
 //       With no arguments, --client --server defaulted
@@ -115,7 +115,7 @@ static int                          // Return code (Always 1)
                    "  --stress\tRun client stress test\n"
                    "  --host\tSet host name\n"
                    "  --port\tSet port number\n"
-                   "  --time\tSet test interval (seconds)\n"
+                   "  --runtime\tSet test run time (seconds)\n"
                    "  --trace\tActivate internal trace\n"
                    "  --server\tRun server\n"
                    "  --verify\tVerify file data\n"
@@ -308,8 +308,8 @@ static int                          // Return code (0 if OK)
              }
              break;
 
-           case OPT_TIME:
-             test_interval= atof(optarg);
+           case OPT_RUNTIME:
+             opt_runtime= atof(optarg);
              break;
 
            case OPT_VERBOSE:
