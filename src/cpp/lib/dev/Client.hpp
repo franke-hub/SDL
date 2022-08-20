@@ -16,7 +16,7 @@
 //       HTTP Client.cpp internal classes. (Only included from Client.cpp.)
 //
 // Last change date-
-//       2022/07/16
+//       2022/08/20
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_CLIENT_HPP_INCLUDED
@@ -150,7 +150,7 @@ static bool            initialized= false; // TRUE when initialized
    if( !initialized ) {
      SSL_library_init();
      SSL_load_error_strings();
-     ERR_load_BIO_strings();
+//   ERR_load_BIO_strings();        // Deprecated in OSSL version 3.0
      OpenSSL_add_all_algorithms();
 
      initialized= true;

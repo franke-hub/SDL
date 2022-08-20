@@ -16,13 +16,15 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2022/08/16
+//       2022/08/20
 //
 // Implementation notes-
 //       Throughput: W: 5584.4/sec  L: 518.6/sec protocol1a
 //       Throughput: W: 4088.7/sec  L: 307.5/sec protocol1b
 //
 //----------------------------------------------------------------------------
+#define OPENSSL_API_COMPAT 30000    // Deprecate OSSL functions < 3.0.0
+
 #include <new>                      // For std::bad_alloc
 #include <cstring>                  // For memcmp, memset
 #include <ostream>                  // For std::ostream
@@ -34,7 +36,8 @@
 #include <stdio.h>                  // For fprintf
 #include <stdint.h>                 // For integer types
 #include <arpa/inet.h>              // For inet_ntop
-#include <openssl/err.h>            // For ERR_error_string
+#include <openssl/err.h>            // For openssl error handling
+#include <openssl/ssl.h>            // For openssl core library
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Dispatch.h>           // For pub::Dispatch objects

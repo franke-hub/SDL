@@ -16,13 +16,13 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/07/26
+//       2022/08/20
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE                 // For ppoll
 #endif
-#define OPENSSL_API_COMPAT 0x3'00'00'000 // Deprecate function versions < 3.0.0
+#define OPENSSL_API_COMPAT 30000    // Deprecate OSSL functions < 3.0.0
 
 #include <new>                      // For std::bad_alloc
 #include <mutex>                    // For mutex, std::lock_guard, ...
