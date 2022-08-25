@@ -16,7 +16,7 @@
 //       Editor: Config.cpp extension: debugging listeners
 //
 // Last change date-
-//       2022/03/15
+//       2022/08/25
 //
 // Implementation note-
 //       Only included from Config.cpp
@@ -100,14 +100,19 @@ static pub::signals::Connector<const char*> config_check=
    // Verify undo/redo lists
    EdRedo* undo= editor::file->undo_list.get_tail();
    while( undo ) {
-     if( invalid_undo(undo) ) { Config::debug(info); return; }
+     if( invalid_undo(undo) ) {
+       Config::debug(info);
+       return;
+     }
      undo= undo->get_prev();
    }
 
    EdRedo* redo= editor::file->redo_list.get_tail();
    while( redo ) {
-     if( invalid_redo(redo) ) { Config::debug(info); return; }
-
+     if( invalid_redo(redo) ) {
+       Config::debug(info);
+       return;
+     }
      redo= redo->get_next();
    }
 }); // config_check (Connector)

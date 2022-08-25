@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2021/12/21
+//       2022/08/25
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -279,6 +279,9 @@ static const char*                  // Error message, nullptr expected
 {
    if( parm == nullptr )
      return "Missing parameter";
+
+   if( editor::file->protect )      // Do not modify protected files
+     return "Read/only";
 
    int D= (unsigned char)parm[0];   // The string delimiter
    parm++;

@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2022/08/01
+##       2022/08/25
 ##
 ## Implementation notes-
 ##       This is an EXPERIMENTAL project in BETA state.
@@ -26,14 +26,19 @@
 ##############################################################################
 
 ##############################################################################
-## STATUS: 2022/08/01
+## STATUS: 2022/08/25
+2022/08/25 Redo/Undo on modified line yields inconsistent REDO (crash)
+           FIX: Commit current line before processing redo.
+
+2022/08/25 Disallow change command for read-only files.
+
+##############################################################################
+## CHANGE LOG:
 2022/08/01 MINOR: Looking at trace the EdView temporary copied line was being
            traced during delete but not when allocated.
            EdView and EdFile.EdLine now avoid line delete tracing for that
            temporary line.
 
-##############################################################################
-## CHANGE LOG:
 2022/03/15 Use Trace::trace functions rather than Config::trace.
            Use ~/.config/editxcb/ rather than ~/.config/uuid/.../ for debug
            and trace output.

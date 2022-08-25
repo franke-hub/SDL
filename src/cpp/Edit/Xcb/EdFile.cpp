@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2022/03/15
+//       2022/08/23
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -1295,6 +1295,8 @@ void
      const char*       info) const  // Associated info
 {  debugf("EdRedo(%p)::debug(%s)\n", this, info ? info : "");
 
+   debugf("  COL [%3zd:%3zd]\n", lh_col, rh_col);
+
    debugf("  INS [");
    if( head_insert ) debugf("%p<-", head_insert->get_prev());
    debugf("%p,%p", head_insert, tail_insert);
@@ -1306,8 +1308,6 @@ void
      if( line == tail_insert )
        break;
    }
-
-   debugf("  COL [%3zd:%3zd]\n", lh_col, rh_col);
 
    debugf("  REM [");
    if( head_remove ) debugf("%p<-", head_remove->get_prev());

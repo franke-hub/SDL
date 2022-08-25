@@ -692,6 +692,7 @@ void
        break;
      }
      case XK_F12: {                 // Redo
+       data->commit();
        file->redo();
        break;
      }
