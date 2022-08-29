@@ -16,19 +16,20 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2022/06/05
+//       2022/08/29
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
 #include <mutex>                    // For std::lock_guard
 
-#include <pub/Debug.h>              // For debugging
-#include <pub/Latch.h>              // For mutex substitute
-#include <pub/Semaphore.h>
-#include <pub/Thread.h>
+#include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Exception.h>          // For pub::Exception
+#include "pub/Latch.h"              // For pub::Latch objects
+#include <pub/Semaphore.h>          // For pub::Semaphore
+#include <pub/Thread.h>             // For pub::Thread
+#include "pub/Worker.h"             // For pub:: Worker, implemented
 
-#include "pub/Worker.h"
-using namespace _PUB_NAMESPACE::debugging;
+using namespace _PUB_NAMESPACE::debugging; // For debugging methods
 using std::atomic_uint;
 using std::atomic_size_t;
 

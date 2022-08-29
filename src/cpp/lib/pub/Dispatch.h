@@ -16,7 +16,7 @@
 //       Work dispatcher, including local definitions.
 //
 // Last change date-
-//       2022/03/10
+//       2022/08/29
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -25,10 +25,11 @@
 #include <pub/Clock.h>              // DispatchTTL completion time
 #include <pub/Debug.h>              // For debugging
 #include "pub/Dispatch.h"           // For dispatch objects, implemented
-#include <pub/Latch.h>              // dispatch::Timers mutex
+#include "pub/Latch.h"              // dispatch::Timers mutex substitute
 #include <pub/List.h>               // dispatch::Task itemList
 #include <pub/Named.h>              // dispatch::Timers is a Named Thread
 #include <pub/Semaphore.h>          // dispatch::Timers event
+#include <pub/Thread.h>             // dispatch::Timers is a Named Thread
 #include <pub/Worker.h>             // dispatch::Task base class
 
 using namespace _PUB_NAMESPACE::debugging; // Enable debugging functions

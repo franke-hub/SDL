@@ -16,7 +16,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2022/05/12
+//       2022/08/29
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -35,13 +35,12 @@
 #define BOOST_STACKTRACE_USE_BACKTRACE
 #include <boost/stacktrace.hpp>     // For boost::stacktrace::stacktrace()
 
-#include <pub/utility.h>            // For utility::to_string
-#include <pub/Interval.h>           // For performance debugging
-#include <pub/Latch.h>              // For Mutex performance comparison
-#include <pub/Named.h>              // For Named Threads
-#include <pub/Thread.h>             // For Threads
-
 #include "pub/Debug.h"              // For pub::Debug, implemented
+#include <pub/Exception.h>          // For pub::Exception
+#include "pub/Latch.h"              // For pub::Latch objects
+#include <pub/Named.h>              // For pub::Named Threads
+#include <pub/Thread.h>             // For pub::Threads
+#include <pub/utility.h>            // For utility::to_string
 
 #ifdef _OS_WIN
   #include <windows.h>              // For GetCurrentThreadId
