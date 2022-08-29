@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2022/08/16
+//       2022/08/29
 //
 //----------------------------------------------------------------------------
 #ifndef _PUB_HTTP_CLIENT_H_INCLUDED
@@ -31,6 +31,7 @@
 #include <pub/Dispatch.h>           // For pub::Dispatch objects
 #include <pub/Semaphore.h>          // For pub::Semaphore
 #include <pub/Socket.h>             // For pub::Socket
+#include <pub/Thread.h>             // For pub::Thread
 
 #include "pub/http/Data.h"          // For pub::http::Buffer
 #include "pub/http/Stream.h"        // For pub::http::Stream
