@@ -15,7 +15,7 @@
 //       Testcase error checking.
 //
 // Last change date-
-//       2022/02/23
+//       2022/08/23
 //
 // Implementation note-
 //       Contained subroutines are in the default namespace, not pub::
@@ -115,8 +115,10 @@ static inline int                   // Error count
    ne_error(                        // Assert equal std::thread::id
      int               line,        // Calling line number
      const char*       expr,        // Expression
-     std::thread::id&  have,        // Actual value
-     std::thread::id&  want)        // Desired value
+     const std::thread::id&
+                       have,        // Actual value
+     const std::thread::id&
+                       want)        // Desired value
 {
    int result= 0;
 
@@ -129,13 +131,4 @@ static inline int                   // Error count
 
    return result;
 }
-
-static inline int                   // Error count
-   ne_error(                        // Assert equal std::thread::id
-     int               line,        // Calling line number
-     const char*       expr,        // Expression
-     volatile std::thread::id&
-                       have,        // Actual value
-     std::thread::id&  want)        // Desired value
-{  return ne_error(line, expr, const_cast<std::thread::id&>(have), want); }
 #endif // TEST_H_INCLUDED

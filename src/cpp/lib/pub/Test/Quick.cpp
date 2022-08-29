@@ -16,26 +16,27 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2022/04/23
+//       2022/08/27
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For std::free
 #include <ctype.h>                  // For isprint()
 #include <string>                   // For std::string
+#include <thread>                   // For std::thread::id
 
 #include <errno.h>                  // For errno, ...
 #include <limits.h>                 // For INT_MIN, INT_MAX, ...
 #include <stddef.h>                 // For offsetof
 
-#include <pub/config.h>             // For _PUB_NAMESPACE
-#include <pub/TEST.H>               // For error counting
-#include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/Exception.h>          // For pub::Exception
-#include <pub/Latch.h>              // See test_Latch
-#include <pub/Signals.h>            // See test_Signals
-#include <pub/Trace.h>              // See test_Trace
-#include <pub/utility.h>            // For _PUB_NAMESPACE::utility
-#include <pub/Wrapper.h>            // For pub::Wrapper
+#include "pub/config.h"             // For _PUB_NAMESPACE
+#include "pub/TEST.H"               // For error counting
+#include "pub/Debug.h"              // For namespace pub::debugging
+#include "pub/Exception.h"          // For pub::Exception
+#include "pub/Latch.h"              // See test_Latch
+#include "pub/Signals.h"            // See test_Signals
+#include "pub/Trace.h"              // See test_Trace
+#include "pub/utility.h"            // For _PUB_NAMESPACE::utility
+#include "pub/Wrapper.h"            // For pub::Wrapper
 
 using pub::Wrapper;                 // For pub::Wrapper class
 
@@ -221,44 +222,36 @@ static inline int
 
    int                 error_count= 0; // Number of errors encountered
 
+   static constexpr uintptr_t
+       HBIT= sizeof(uintptr_t) == 8 ? 0x8000000000000000L : 0x80000000;
+   std::thread::id null_id= std::thread::id();
+   std::thread::id tid;               // The current recursive.latch.load()
+
    //-------------------------------------------------------------------------
    if( opt_verbose )
-     debugf("..Testing: Share/ExclusiveLatch\n");
-   SharedLatch    shared;
-   ExclusiveLatch exclusive(shared);
+     debugf("..Testing: Latch\n");
+   Latch latch;
 
-   {{{{ std::lock_guard<decltype(shared)> lock1(shared);
-     error_count += MUST_EQ(shared.count, 1);
-     if( exclusive.try_lock() )
-       error_count += MUST_NOT(Obtain exclusive while shared);
+   latch.lock();
+   latch.unlock();
 
-     {{{{ std::lock_guard<decltype(shared)> lock2(shared);
-       error_count += MUST_EQ(shared.count, 2);
-     }}}}
-     error_count += MUST_EQ(shared.count, 1);
-   }}}}
-   error_count += MUST_EQ(shared.count, 0);
+   latch.try_lock();
+   latch.unlock();
 
-   if( exclusive.try_lock() )
-   {
-     error_count += MUST_EQ(shared.count, 0x80000000);
-     exclusive.unlock();;
-     error_count += MUST_EQ(shared.count, 0);
-   } else {
-     error_count += MUST_NOT(Fail to obtain exclusive latch);
+   try {                            // Test unlock when not held
+     latch.unlock();
+     error_count += MUST_NOT(Fail to throw an exception);
+   } catch(std::runtime_error& X) {
+     if( opt_verbose )
+       debugf("....Expected: %s\n", X.what());
    }
-
-   {{{{ std::lock_guard<decltype(exclusive)> lock(exclusive);
-     error_count += MUST_EQ(shared.count, 0x80000000);
-   }}}}
-   error_count += MUST_EQ(shared.count, 0);
 
    //-------------------------------------------------------------------------
    if( opt_verbose )
      debugf("..Testing: RecursiveLatch\n");
-   std::thread::id not_thread;
    RecursiveLatch recursive;
-   error_count += MUST_EQ(recursive.latch, not_thread);
+   tid= recursive.latch.load();
+   error_count += MUST_EQ(tid, null_id);
    error_count += MUST_EQ(recursive.count, 0);
 
    {{{{ std::lock_guard<decltype(recursive)> lock1(recursive);
@@ -270,24 +263,98 @@ static inline int
 
      error_count += MUST_EQ(recursive.count, 1);
    }}}}
-   error_count += MUST_EQ(recursive.latch, not_thread);
+   tid= recursive.latch.load();
+   error_count += MUST_EQ(tid, null_id);
    error_count += MUST_EQ(recursive.count, 0);
+
+   try {                            // Test unlock when not held
+     recursive.unlock();
+     error_count += MUST_NOT(Fail to throw an exception);
+   } catch(std::runtime_error& X) {
+     if( opt_verbose )
+       debugf("....Expected: %s\n", X.what());
+   }
 
    //-------------------------------------------------------------------------
    if( opt_verbose )
-     debugf("..Testing: NonRecursiveLatch\n");
-   NonRecursiveLatch nonrecursive;
-   error_count += MUST_EQ(nonrecursive.latch, not_thread);
+     debugf("..Testing: SHR_latch/XCL_latch\n");
+   SHR_latch shr;
+   XCL_latch xcl(shr);
 
-   {{{{ std::lock_guard<decltype(nonrecursive)> lock1(nonrecursive);
+   {{{{ std::lock_guard<decltype(shr)> lock1(shr);
+     error_count += MUST_EQ(shr.count, 1);
+//   if( xcl.try_lock() )             // (Deadlock if SHR+XCL on same thread)
+//     error_count += MUST_NOT(Obtain exclusive while shared);
+
+     {{{{ std::lock_guard<decltype(shr)> lock2(shr);
+       error_count += MUST_EQ(shr.count, 2);
+     }}}}
+     error_count += MUST_EQ(shr.count, 1);
+   }}}}
+   error_count += MUST_EQ(shr.count, 0);
+
+   if( xcl.try_lock() )
+   {
+     error_count += MUST_EQ(shr.count, HBIT);
+     xcl.unlock();;
+     error_count += MUST_EQ(shr.count, 0);
+   } else {
+     error_count += MUST_NOT(Fail to obtain exclusive latch);
+   }
+
+   {{{{ std::lock_guard<decltype(xcl)> lock(xcl);
+     error_count += MUST_EQ(shr.count, HBIT);
+   }}}}
+   error_count += MUST_EQ(shr.count, 0);
+   error_count += MUST_EQ(xcl.thread, null_id);
+
+   // Test release share lock when not held
+   try {
+     shr.unlock();
+     error_count += MUST_NOT(Fail to throw an exception);
+   } catch(std::runtime_error& X) {
+     if( opt_verbose )
+       debugf("....Expected: %s\n", X.what());
+   }
+   error_count += MUST_EQ(shr.count, 0);
+
+   // Test downgrade. (Note: upgrade not supported)
+   xcl.lock();
+   error_count += MUST_EQ(shr.count, HBIT);
+   error_count += MUST_EQ(xcl.thread, std::this_thread::get_id());
+
+   xcl.downgrade();
+   error_count += MUST_EQ(shr.count, 1);
+   error_count += MUST_EQ(xcl.thread, null_id);
+   error_count += MUST_EQ(shr.count, 1);
+   try {                            // Test downgrade when XCL not held
+     xcl.downgrade();
+     error_count += MUST_NOT(Fail to throw an exception);
+   } catch(std::runtime_error& X) {
+     if( opt_verbose )
+       debugf("....Expected: %s\n", X.what());
+   }
+   error_count += MUST_EQ(shr.count, 1);
+   shr.unlock();
+   error_count += MUST_EQ(shr.count, 0);
+
+   //-------------------------------------------------------------------------
+   if( opt_verbose )
+     debugf("..Testing: TestLatch\n");
+   TestLatch testlatch;
+   tid= recursive.latch.load();
+   error_count += MUST_EQ(tid, null_id);
+
+   {{{{ std::lock_guard<decltype(testlatch)> lock1(testlatch);
      try {
-       {{{{ std::lock_guard<decltype(nonrecursive)> lock2(nonrecursive);
-         error_count += MUST_NOT(Recursively hold NonRecursiveLatch);
+       {{{{ std::lock_guard<decltype(testlatch)> lock2(testlatch);
+         error_count += MUST_NOT(Recursively hold TestLatch);
        }}}}
-     } catch(Exception& X) {
-       if( opt_hcdm )
-         debugf("....Expected: %s\n", ((std::string)X).c_str());
-       error_count += MUST_EQ(nonrecursive.latch, not_thread);
+     } catch(std::runtime_error& X) {
+       if( opt_verbose )
+         debugf("....Expected: %s\n", X.what());
+       tid= recursive.latch.load();
+       error_count += MUST_EQ(tid, null_id);
      }
    }}}}
 
@@ -681,8 +748,8 @@ static inline int
    error_count += MUST_NOT(Sample error description);
                  debugf("%4d: Error expected\n", __LINE__ - 1);
    error_count += MUST_EQ(is_thread, is_thread);
-   error_count += MUST_EQ((volatile std::thread::id&)no_thread, no_thread);
-   error_count += MUST_EQ((volatile std::thread::id&)is_thread, no_thread);
+   error_count += MUST_EQ((std::thread::id&)no_thread, no_thread);
+   error_count += MUST_EQ((std::thread::id&)is_thread, no_thread);
                  debugf("%4d: Error expected\n", __LINE__ - 1);
    error_count += MUST_EQ(no_thread, is_thread);
                  debugf("%4d: Error expected\n", __LINE__ - 1);
@@ -910,7 +977,7 @@ extern int                          // Return code
      if( opt_hcdm )
        debugf("on_parm(%s,%s)\n", name.c_str(), value);
 
-     if( name == "all" ) {
+     if( name == "all" ) {          // Note: specify --hcdm *BEFORE* --all
        if( opt_hcdm ) {
          opt_TEST= true;            // (Only set here)
          opt_case= true;            // (Only set here)

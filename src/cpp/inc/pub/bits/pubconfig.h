@@ -23,7 +23,7 @@
 //       on its instantiation.
 //
 //----------------------------------------------------------------------------
-#ifndef _LIBPUB_VERSION
+#ifndef _LIBPUB_VERSION             // (Also, only include once.)
 #define _LIBPUB_VERSION 20220408
 
 #define _LIBPUB_CPP03 199711L

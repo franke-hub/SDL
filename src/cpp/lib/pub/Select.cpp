@@ -13,10 +13,14 @@
 //       Select.cpp
 //
 // Purpose-
-//       Socket method implementations.
+//       Select method implementations.
 //
 // Last change date-
-//       2022/07/26
+//       2022/08/29
+//
+// Implementation notes-
+//       Want to rename this. Maybe: Asynch, Poller, something better
+//       Locking needs (lots of) work.
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -344,14 +348,14 @@ DEBUGGING( reader->debug("READER BRINGUP TEST"); )
 // the lock's released any waiter's going to reference deallocated storage.
 // Users must insure that there are no dangling references to deleted Select
 // objects. That is, all Sockets must be removed.
-// We lock the update_mutex anyway so that if a dangling reference error
+// We obtain the shr_latch anyway so that if a dangling reference error
 // occurs, debugging information is more consistent.
 
 // Disassociating a Socket from the Select *shouldn't* be necessary here.
 // If it was, then there's a good chance that whatever code was using the
 // Select will still think it exists.
 // An example might help explain why:
-// Select accesses are protected by the select_mutex. A Select references
+// Select accesses are protected by the xcl_latch. A Select references
 // each inserted Socket and each inserted Socket references the Select.
 // Suppose the Select destructor is called and then an associated Socket
 // is closed in a different thread before the destructor completes. The Socket
@@ -370,7 +374,7 @@ DEBUGGING( reader->debug("READER BRINGUP TEST"); )
 // objects still reference it. That will remove the annoying error message
 // you got and quite likely also avoid some hard to debug future error.
 // >>>>>>>>>>>>>>>>>>>>>>>> ** USER DEBUGGING NOTE ** <<<<<<<<<<<<<<<<<<<<<<<<
-   std::lock_guard<decltype(update_mutex)> lock(update_mutex);
+   std::lock_guard<decltype(shr_latch)> lock(shr_latch);
    for(int px= 0; px < used; ++px) {
      int fd= pollfd[px].fd;
      if( fd >= 0 && fd < size ) {
@@ -413,15 +417,15 @@ DEBUGGING( reader->debug("READER BRINGUP TEST"); )
 //       Debugging display
 //
 // Implementation note-
-//       This may be called with or without the lock held, which is why we use
-//       a recursive_mutex rather than just a mutex.
+//       This may be called with or without the shr_latch held, but not with
+//       the xcl_latch held.
 //
 //----------------------------------------------------------------------------
 void
    Select::debug(                   // Debugging display
      const char*       info) const  // Caller information
 {
-   std::lock_guard<decltype(update_mutex)> lock(update_mutex);
+   std::lock_guard<decltype(shr_latch)> lock(shr_latch);
 
    debugf("Select(%p)::debug(%s)\n", this, info);
    debugf("..reader(%p) handle(%d)\n", reader, reader->get_handle());
@@ -458,12 +462,51 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Select::control( void )
 //       Select::control( const control op& )
 //
 // Purpose-
-//       Read and handle queued control operations
 //       Enqueue a control operations
+//
+//----------------------------------------------------------------------------
+void
+   Select::control(                 // Transmit control operation
+     const control_op& op)          // The operation to send
+{  if( HCDM )
+     debugh("Select(%p)::control({%c,,0x%.4x,%d})\n", this
+           , op.op, op.events, op.fd);
+
+DEBUGGING( debugh("WR control {%c, %.4x, %d}\n", op.op, op.events, op.fd); )
+   for(uint32_t spinCount= 1;;spinCount++) { // Retry until successful
+     ssize_t L= writer->write(&op, sizeof(op));
+     if( L == sizeof(op) )
+       return;                      // (Operation queued)
+     int ERRNO= errno;              // (Preserve errno)
+DEBUGGING( debugh("%zd= writer->write() %d%s\n", L, ERRNO, strerror(ERRNO)); )
+
+     if( ERRNO != EAGAIN && ERRNO != EWOULDBLOCK ) { // If unexpected error
+       debugh("Select(%p)::control({%c,,0x%.4x,%d}) %d:%s\n", this
+             , op.op, op.events, op.fd, ERRNO, strerror(ERRNO));
+       sno_exception(__LINE__);
+     }
+
+     // All we can do is wait. We use progressively longer wait intervals.
+     if( spinCount & 0x0000000f )
+       std::this_thread::yield();
+     else
+       std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Select::control( void )
+//
+// Purpose-
+//       Read and handle all queued control operations
+//
+// Implementation notes-
+//       MUST NOT hold shr_latch OR xcl_latch: Obtains xcl_latch
 //
 //----------------------------------------------------------------------------
 void
@@ -471,7 +514,7 @@ void
 {  if( HCDM )
      debugh("Select(%p)::control\n", this);
 
-   std::lock_guard<decltype(update_mutex)> lock(update_mutex);
+   std::unique_lock<decltype(xcl_latch)> lock(xcl_latch);
 
    control_op op;
    ssize_t L= reader->read(&op, sizeof(op));
@@ -488,6 +531,7 @@ DEBUGGING( debugh("RD control {%c, %.4x, %d}\n", op.op, op.events, op.fd); )
      if( socket == nullptr ) {      // If socket not assigned
        sno_handled(__LINE__);
        debugh("%4d Select::control fd(%d) not assigned\n", __LINE__, fd);
+       lock.unlock();               // (Debug requires shared lock)
        debug("ShouldNotOccur");
        do_again();
        return;
@@ -513,12 +557,13 @@ DEBUGGING( debugh("RD control {%c, %.4x, %d}\n", op.op, op.events, op.fd); )
          pollfd[px].events= op.events;
          pollfd[px].revents= 0;
 
-         left= next= 0;
+//       left= next= 0;             // Not needed, revents == 0
          break;
        }
        case OP_REMOVE: {
          int fd= socket->handle;
          if( USE_CHECKING && (fd < 0 || fd >= size) ) { // If invalid handle
+           lock.unlock();           // (Debug requires shared lock)
            debug("HCDM");
            sno_exception(__LINE__); // Internal error, not user error
          }
@@ -536,6 +581,7 @@ DEBUGGING( debugh("RD control {%c, %.4x, %d}\n", op.op, op.events, op.fd); )
          this->sarray[fd]= nullptr;
          this->sindex[fd]= -1;
          --used;
+         left= next= 0;
          break;
        }
        default:
@@ -556,38 +602,6 @@ DEBUGGING(
    do_again();
 }
 
-void
-   Select::control(                 // Transmit control operation
-     const control_op& op)          // The operation to send
-{  if( HCDM )
-     debugh("Select(%p)::control({%c,,0x%.4x,%d})\n", this
-           , op.op, op.events, op.fd);
-
-DEBUGGING( debugh("WR control {%c, %.4x, %d}\n", op.op, op.events, op.fd); )
-   for(;;) {                        // Retry until successful
-     ssize_t L= writer->write(&op, sizeof(op));
-     if( L == sizeof(op) )
-       return;                      // (Operation queued)
-     int ERRNO= errno;              // (Preserve errno)
-DEBUGGING( debugh("%zd= writer->write() %d%s\n", L, ERRNO, strerror(ERRNO)); )
-
-     {{{{
-       // Implementation note-
-       // Even though a concurrent select operation may have already drained
-       // the control queue, control() handles this "nothing to do" case.
-       std::lock_guard<decltype(select_mutex)> lock(select_mutex);
-
-       if( ERRNO != EAGAIN && ERRNO != EWOULDBLOCK ) { // If unexpected error
-         debugh("Select(%p)::control({%c,,0x%.4x,%d}) %d:%s\n", this
-               , op.op, op.events, op.fd, ERRNO, strerror(ERRNO));
-         sno_exception(__LINE__);
-       }
-
-       control();                   // Drain all queued operations
-     }}}}
-   }
-}
-
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -595,6 +609,10 @@ DEBUGGING( debugh("%zd= writer->write() %d%s\n", L, ERRNO, strerror(ERRNO)); )
 //
 // Purpose-
 //       Insert a Socket onto the Socket array
+//
+// Implementation notes-
+//       MUST NOT hold shr_latch OR xcl_latch: Conditionally invokes resize()
+//       Callers SHOULD invoke control() after invoking insert.
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 expected
@@ -604,10 +622,6 @@ int                                 // Return code, 0 expected
 {  if( HCDM )
      debugh("Select(%p)::insert(%p,0x%.4x) fd(%d)\n", this
            , socket, events, socket->handle);
-
-   std::lock_guard<decltype(socket_mutex)> socket_lock(socket_mutex);
-   std::lock_guard<decltype(select_mutex)> select_lock(select_mutex);
-   std::lock_guard<decltype(update_mutex)> update_lock(update_mutex);
 
    int fd= socket->handle;
    if( fd < 0 ) {
@@ -638,7 +652,6 @@ int                                 // Return code, 0 expected
 
    control_op op= {OP_INSERT, 0, (uint16_t)events, fd};
    control(op);                     // Enqueue the INSERT operation
-   control();                       // Process all enqueued operations
 
    return 0;
 }
@@ -658,8 +671,6 @@ int                                 // Return code, 0 expected
      int               events)      // The associated poll events
 {  if( HCDM )
      debugh("Select(%p)::modify(%p,0x%.4x)\n", this, socket, events);
-
-   std::lock_guard<decltype(socket_mutex)> lock(socket_mutex);
 
    if( socket->selector != this ) { // If owned by a different selector
      sno_handled(__LINE__);
@@ -688,16 +699,15 @@ int                                 // Return code, 0 expected
 // Purpose-
 //       Remove a Socket from the Socket array
 //
+// Implementation notes-
+//       Callers SHOULD invoke control() after invoking remove.
+//
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 expected
    Select::remove(                  // Remove Socket
      Socket*           socket)      // The associated Socket
 {  if( HCDM )
      debugh("Select(%p)::remove(%p) fd(%d)\n", this, socket, socket->handle);
-
-   std::lock_guard<decltype(socket_mutex)> socket_lock(socket_mutex);
-   std::lock_guard<decltype(select_mutex)> select_lock(select_mutex);
-   std::lock_guard<decltype(update_mutex)> update_lock(update_mutex);
 
    if( socket->selector == nullptr ) { // If Socket isn't owned by a selector
      if( socket->handle < 0 ) {     // (Socket::close may have been blocked)
@@ -721,7 +731,6 @@ int                                 // Return code, 0 expected
 
    control_op op= {OP_REMOVE, 0, 0, socket->get_handle()};
    control(op);                     // Enqueue the REMOVE operation
-   control();                       // Process all enqueued operations
 
    return 0;
 }
@@ -732,7 +741,7 @@ int                                 // Return code, 0 expected
 //       Select::select
 //
 // Purpose-
-//       Select the next available Socket from the Socket array
+//       Select the next available Socket from the Socket array w/timeout
 //
 //----------------------------------------------------------------------------
 Socket*                             // The next selected Socket, or nullptr
@@ -741,7 +750,7 @@ Socket*                             // The next selected Socket, or nullptr
 {  if( HCDM && VERBOSE > 1 )
      debugh("Select(%p)::select(%d)\n", this, timeout);
 
-   std::lock_guard<decltype(select_mutex)> lock(select_mutex);
+   std::unique_lock<decltype(shr_latch)> lock(shr_latch);
 
    for(int px= 0; px<used; ++px)
      pollfd[px].revents= 0;
@@ -750,7 +759,8 @@ Socket*                             // The next selected Socket, or nullptr
    if( left == 0 )
      return do_again();
 
-   return remain();
+   lock.unlock();                   // Select conditionally calls control()
+   return select();
 }
 
 Socket*                             // The next selected Socket, or nullptr
@@ -762,7 +772,7 @@ Socket*                             // The next selected Socket, or nullptr
      debugh("Select(%p)::select({%'ld,%'ld},%p)\n", this
            , timeout->tv_sec, timeout->tv_nsec, signals);
 
-   std::lock_guard<decltype(select_mutex)> lock(select_mutex);
+   std::unique_lock<decltype(shr_latch)> lock(shr_latch);
 
    for(int px= 0; px<used; ++px)
      pollfd[px].revents= 0;
@@ -771,23 +781,24 @@ Socket*                             // The next selected Socket, or nullptr
    if( left == 0 )
      return do_again();
 
-   return remain();
+   lock.unlock();                   // Select conditionally calls control()
+   return select();
 }
 
 //----------------------------------------------------------------------------
 //
 // Protected method-
-//       Select::remain
+//       Select::select( void )
 //
 // Purpose-
 //       Select the next remaining Socket
 //
 // Implementation note-
-//       Caller must hold select_mutex lock.
+//       MUST NOT hold shr_latch OR xcl_latch: Invokes control()
 //
 //----------------------------------------------------------------------------
 Socket*                             // The next selected Socket
-   Select::remain( void )           // Select next remaining Socket
+   Select::select( void )           // Select the next remaining Socket
 {
    // Handle control operation
    if( pollfd[0].revents ) {
@@ -795,44 +806,46 @@ Socket*                             // The next selected Socket
      return do_again();
    }
 
-#if true // Test mechanism
-   for(int px= 1; px<used; ++px) {
-     struct pollfd* poll= pollfd + px;
-     if( poll->revents != 0 ) {
-       --left;
-       Socket* socket= sarray[poll->fd];
-       socket->selected(poll->revents);
-     }
-   }
+   std::lock_guard<decltype(xcl_latch)> lock(xcl_latch);
 
-   return do_again();
-#else // Original. NOTE: left and next are not maintained properly now
-   // Handle ready events
-   for(int px= next; px<used; ++px) {
-     if( pollfd[px].revents != 0 ) {
-       --left;
-       next= px + 1;
-       int fd= pollfd[px].fd;
-       return sarray[fd];
+   if( USE_SELECT_FUNCTION ) {      // Test mechanism
+     for(int px= 1; px<used; ++px) {
+       struct pollfd* poll= pollfd + px;
+       if( poll->revents != 0 ) {
+         --left;
+         Socket* socket= sarray[poll->fd];
+         socket->selected(poll->revents);
+       }
      }
-   }
 
-   for(int px= 1; px<next; ++px) {
-     if( pollfd[px].revents != 0 ) {
-       --left;
-       next= px + 1;
-       int fd= pollfd[px].fd;
-       return sarray[fd];
+     return do_again();
+   } else {                         // Original: Use select socket
+     // Handle ready events
+     for(int px= next; px<used; ++px) {
+       if( pollfd[px].revents != 0 ) {
+         --left;
+         next= px + 1;
+         int fd= pollfd[px].fd;
+         return sarray[fd];
+       }
      }
-   }
 
-   // ERROR: The number of elements set < number of elements found
-   // ** THIS IS AN INTERNAL LOGIC ERROR, NOT AN APPLICATION ERROR **
-   errorf("%4d internal error, info(%d)\n", __LINE__, left);
-   sno_handled(__LINE__);
-   left= 0;
-   return do_again();
-#endif
+     for(int px= 1; px<next; ++px) {
+       if( pollfd[px].revents != 0 ) {
+         --left;
+         next= px + 1;
+         int fd= pollfd[px].fd;
+         return sarray[fd];
+       }
+     }
+
+     // ERROR: The number of elements set < number of elements found
+     // ** THIS IS AN INTERNAL LOGIC ERROR, NOT AN APPLICATION ERROR **
+     errorf("%4d internal error, info(%d)\n", __LINE__, left);
+     sno_handled(__LINE__);
+     left= 0;
+     return do_again();
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -844,8 +857,8 @@ Socket*                             // The next selected Socket
 //       Resize the internal tables
 //
 // Implementation note-
-//       Caller must hold update_mutex lock.
-//       Per fd storage: 20
+//       Caller MUST NOT hold shr_latch or xcl_latch.
+//       Uses 20 bytes per fd.
 //
 //----------------------------------------------------------------------------
 inline void
@@ -853,6 +866,8 @@ inline void
      int               fd)          // For this file (positive) descriptor
 {  if( HCDM )
      debugf("Select(%p)::resize(%d)\n", this, fd);
+
+   std::lock_guard<decltype(xcl_latch)> lock(xcl_latch);
 
    int new_size= 0;
    if( fd < 32 )

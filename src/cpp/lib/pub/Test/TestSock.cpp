@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2022/07/25
+//       2022/08/29
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -70,6 +70,7 @@ using std::atomic;
 enum                                // Generic enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
+,  USE_SELECT_FUNCTION= Select::USE_SELECT_FUNCTION
 
 // Default options
 ,  USE_CLIENT= false                // --client
@@ -263,13 +264,13 @@ static const char*                  // The address family name
      int               value)       // For this address family value
 {
    if( value == AF_INET )
-     return "IpV4";
+     return "ipv4";
 
    if( value == AF_INET6 )
-     return "IpV6";
+     return "ipv6";
 
    if( value == AF_UNIX )
-     return "UNIX";
+     return "unix";
 
    return "UNDEFINED";
 }
@@ -906,8 +907,9 @@ virtual void
    if( USE_RPOLL == USE_POLL_NONBLOCK )
      packet.set_flags( packet.get_flags() | O_NONBLOCK );
    else if( USE_RPOLL == USE_POLL_SELECT ) {
-     select.insert(&packet, POLLIN);
      packet.on_select([ppfd](int revents) {ppfd->revents= (short)revents;});
+     select.insert(&packet, POLLIN);
+     select.control();
    }
 
    operational= true;
@@ -940,7 +942,11 @@ virtual void
          }}}}
          case USE_POLL_SELECT: {{{{
            pfd.revents= 0;
-           select.select(1000);     // 1 second timeout
+           Socket* socket= select.select(1000); // 1 second timeout
+           if( (!USE_SELECT_FUNCTION) && socket ) {
+             pfd.revents= POLLIN;
+             error_count += VERIFY( socket == &packet );
+           }
            if( pfd.revents == 0 ) {
              if( if_closed(select, &packet) )
                break;
@@ -1451,8 +1457,9 @@ virtual void
    struct pollfd* ppfd= &pfd;
 
    if( USE_APOLL == USE_POLL_SELECT ) {
-     select.insert(listen, POLLIN);
      listen->on_select([ppfd](int revents) {ppfd->revents= (short)revents;});
+     select.insert(listen, POLLIN);
+     select.control();
    }
 
    operational= true;
@@ -1482,7 +1489,11 @@ virtual void
          }}}}
          case USE_POLL_SELECT: {{{{
            pfd.revents= 0;
-           select.select(1000);     // 1 second timeout
+           Socket* socket= select.select(1000); // 1 second timeout
+           if( (!USE_SELECT_FUNCTION) && socket ) {
+             pfd.revents= POLLIN;
+             error_count += VERIFY( socket == listen );
+           }
            if( pfd.revents == 0 ) {
              if( !if_closed(select, listen) ) {
                error_count += VERIFY( if_retry() );
@@ -1702,6 +1713,7 @@ int
        debugf("Settings:\n");
        debugf("%5d: runtime\n",  opt_runtime);
        debugf("%5s: server: %s\n" , torf(bool(opt_server)), host_name.c_str());
+       debugf("%5s: hcdm\n",   torf(opt_hcdm));
        debugf("%5d: verbose\n",opt_verbose);
 
        debugf("%5d: af: %s\n", opt_af, af_name(opt_af));
@@ -1717,6 +1729,8 @@ int
        debugf("%5s: USE_LINGER\n", torf(USE_LINGER));
        debugf("%5s: USE_PACKET_CONFIRM\n", torf(USE_PACKET_CONFIRM));
        debugf("%5s: USE_PACKET_CONNECT\n", torf(USE_PACKET_CONNECT));
+       debugf("%5d: USE_SELECT_FUNCTION: %s\n", USE_SELECT_FUNCTION
+             , USE_SELECT_FUNCTION ? "Function" : "Socket");
 
        debugf("%5d: USE_APOLL: %s\n", USE_APOLL, poll_method[USE_APOLL]);
        debugf("%5d: USE_RPOLL: %s\n", USE_RPOLL, poll_method[USE_RPOLL]);
@@ -1836,13 +1850,13 @@ int
    {
      if( name == "af" ) {
        if( ::strcasecmp(value, "INET") == 0
-           || ::strcasecmp(value, "IpV4") == 0 )
+           || ::strcasecmp(value, "ipv4") == 0 )
          opt_af= AF_INET;
        else if( ::strcasecmp(value, "INET6") == 0
-           || ::strcasecmp(value, "IpV6") == 0 )
+           || ::strcasecmp(value, "ipv6") == 0 )
          opt_af= AF_INET6;
-       else if( ::strcasecmp(value, "UNIX") == 0
-           || ::strcasecmp(value, "LOCAL") == 0 )
+       else if( ::strcasecmp(value, "unix") == 0
+           || ::strcasecmp(value, "local") == 0 )
          opt_af= AF_UNIX;
        else {
          fprintf(stderr, "--af=%s not supported\n", value);

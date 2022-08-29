@@ -444,17 +444,19 @@ int                                 // Return code, 0 OK
 
    int rc= 0;
    if( handle >= 0 ) {
-     Select* selector= this->selector;
-     if( selector ) {               // If Select controlled
-       selector->with_lock([this]() {
-         // We may have been blocked by close() running on another thread.
-         // If so, selector->remove() will have set selector == nullptr
-         // and closed the socket.
-         if( this->selector )
-           this->selector->remove(this);
+     Select* select= this->selector;
+     if( select ) {                 // If Select controlled
+       std::unique_lock<decltype(select->shr_latch)> lock(select->shr_latch);
 
+       // We may have been blocked by close() running on another thread.
+       // If so, selector->remove() will have set selector == nullptr
+       // and close will have closed the socket.
+       if( this->selector == select ) {
          on_select([](int) {});     // Reset default (NOP) select handler
-       }); // selector->with_lock(...)
+         select->remove(this);
+         lock.unlock();             // Cannot hold locks calling control()
+         select->control();
+       }
      }
 
      // Reset host_addr/peer_addr, host_size/peer_size, and handle

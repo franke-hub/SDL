@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -13,100 +13,73 @@
 //       Latch.h
 //
 // Purpose-
-//       Primitive mechanism for granting access to a resource.
+//       Primitive mechanisms for granting access to a resource.
 //
 // Last change date-
-//       2018/01/01
+//       2022/08/27
 //
 // Implementation notes-
-//       All Latch instances implement Lockable and interoperate with
-//       std::lock_guard. Latch does not inherit from Object.
+//       Internal logic for these mechanisms are further described in
+//         "~/src/cpp/lib/pub/.LOGICS.md".
 //
-//       The SharedLatch share counter is an unsigned 31 bit integer.
-//       Counter overflow temporarily prevents additional sharing.
+//       All Latch instances implement *Lockable* and interoperate with the
+//       STL (Standard Template Library.) They also implement the reset method,
+//       which unconditionally resets the Latch to its initial available state.
+//
+//       Latch objects do not inherit from Object. They do not and never will
+//       contain virtual methods. Only the XCL_latch requires construction.
+//       All other latch types may be used within constructors.
+//
+//       Refer to the implemenation notes for each latch type.
+//         Latch           Primitive exclusive latch
+//         RecursiveLatch  Primitive recursive exclusive latch
+//         SHR_latch       The shared part of a shared/exclusive latch pair
+//         XCL_latch       The exclusive reference to a SHR_latch
+//         NullLatch       A latch that does nothing
+//         TestLatch       Primitive exclusive latch that disallows recursion
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_LATCH_H_INCLUDED
-#define _PUB_LATCH_H_INCLUDED
+#ifndef _LIBPUB_LATCH_H_INCLUDED
+#define _LIBPUB_LATCH_H_INCLUDED
 
 #include <atomic>                   // For std::atomic
+#include <stdexcept>                // For std::runtime_error
+#include <thread>                   // For std::thread::id
+#include <stdint.h>                 // For uint32_t
 
-#include "config.h"                 // For _PUB_NAMESPACE, ...
-#include "Exception.h"              // For Exception
-#include "Thread.h"                 // For std::thread::id, Thread::null_id
+#include "bits/pubconfig.h"         // For _LIBPUB_NAMESPACE, ...
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Struct-
 //       Latch
 //
 // Purpose-
-//       Primitive (exclusive) latch.
+//       Primitive (exclusive) spin latch.
 //
 // Implementation notes-
-//       The Latch object does not and never will contain virtual methods
-//       or require class construction before it is used.
-//
-//       The Latch is implemented as a spin latch. That is, if the Latch is
-//       not immediately available the implementation loops attempting over
-//       and over trying to obtain the Latch.
-//
-//       The reset method does not check the state of the Latch; the Latch
-//       is unconditionally reset to its available state. The release method
-//       MAY check the state of the Latch. It is an error to release a Latch
-//       that has not been obtained.
-//
-//       Use SharedLatch to obtain shared access to a resource,
-//       Use ExclusiveLatch to obtain exclusive access to a shared resource.
+//       We improve error checking by using the thread id as the latch.
 //
 //----------------------------------------------------------------------------
 struct Latch {                      // Latch descriptor
 //----------------------------------------------------------------------------
 // Latch::Attributes
 //----------------------------------------------------------------------------
-enum
-{  RESET= 0                         // Available
-,  LOCKED= -1                       // Locked
-}; // (generic) enum
-
-volatile unsigned      latch= 0;    // The physical spin latch
+std::atomic<std::thread::id>
+                       latch{std::thread::id()}; // The spin latch
 
 //----------------------------------------------------------------------------
 // Latch::Methods
 //----------------------------------------------------------------------------
 void
-   unlock( void )                   // Release the Latch
-{  std::atomic<unsigned>* const atomic_latch= (std::atomic<unsigned>*)&latch;
-
-   atomic_latch->store(RESET);
-}
-
-bool                                // TRUE iff successful
-   try_lock( void )                 // Attempt to obtain the Latch
-{  std::atomic<unsigned>* const atomic_latch= (std::atomic<unsigned>*)&latch;
-
-   unsigned oldValue= RESET;
-   return atomic_latch->compare_exchange_strong(oldValue, LOCKED);
-}
-
-void
-   reset( void )                    // Initialize/Reset the Latch
-{  std::atomic<unsigned>* const atomic_latch= (std::atomic<unsigned>*)&latch;
-
-   atomic_latch->store(RESET);
-}
-
-void
    lock( void )                     // Obtain the Latch
-{  // 0f/10 31.5 @ 70% [w/ browser] 35.9 @ 40% [no browser]
-   for(unsigned spinCount= 1;;spinCount++)
-   {
+{
+   for(uint32_t spinCount= 1;;spinCount++) {
      if( try_lock() )
        return;
 
-     if( (spinCount & 0x0000000f) == 0 )
-     {
+     if( (spinCount & 0x0000000f) == 0 ) {
        if( (spinCount & 0x00000010) != 0 )
          std::this_thread::yield();
        else
@@ -114,35 +87,28 @@ void
      }
    }
 }
-}; // struct Latch
 
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       NullLatch
-//
-// Purpose-
-//       Define a Latch that does nothing (for single-threaded use.)
-//
-//----------------------------------------------------------------------------
-struct NullLatch {                  // NullLatch descriptor
-//----------------------------------------------------------------------------
-// NullLatch::Methods
-//----------------------------------------------------------------------------
 void
-   unlock( void ) {}                // Release the NullLatch
+   reset( void )                    // Initialize/Reset the Latch
+{  latch.store(std::thread::id()); }
 
 bool                                // TRUE iff successful
-   try_lock( void )                 // Attempt to obtain the NullLatch
-{  return true;                     // (Always succeeds)
+   try_lock( void )                 // Attempt to obtain the Latch
+{  std::thread::id oldValue= std::thread::id();
+   std::thread::id newValue= std::this_thread::get_id();
+   return latch.compare_exchange_strong(oldValue, newValue);
 }
 
 void
-   reset( void ) {}                 // Initialize/Reset the NullLatch
+   unlock( void )                   // Release the Latch
+{
+   // Verify that the current thread holds the Latch
+   if( latch.load() != std::this_thread::get_id() )
+     throw std::runtime_error("Latch unlock error");
 
-void
-   lock( void ) {}                  // Obtain the NullLatch
-}; // struct NullLatch
+   latch.store(std::thread::id()); // Release the Latch
+}
+}; // struct Latch
 
 //----------------------------------------------------------------------------
 //
@@ -152,39 +118,46 @@ void
 // Purpose-
 //       Primitive recursive latch.
 //
-// Implementation notes-
-//       The RecursiveLatch object does not and never will contain virtual
-//       methods or require class construction before it is used.
-//
 //----------------------------------------------------------------------------
 struct RecursiveLatch {             // RecursiveLatch descriptor
-volatile std::thread::id
-                       latch;       // The latch holder std::thread::id
-unsigned               count= 0;    // Share count
+std::atomic<std::thread::id>
+                       latch{std::thread::id()}; // The RecursiveLatch Thread
+uintptr_t              count{};     // Share count
 
 //----------------------------------------------------------------------------
 // RecursiveLatch::Methods
 //----------------------------------------------------------------------------
 void
-   unlock( void )                   // Release the RecursiveLatch
+   lock( void )                     // Obtain the Latch
 {
-   if( --count )                    // If not the original latch holder
-     return;                        // Return, latch still held
+   for(uint32_t spinCount= 1;;spinCount++) {
+     if( try_lock() )
+       return;
 
-   std::atomic<std::thread::id>* const atomic_latch= (std::atomic<std::thread::id>*)&latch;
-   atomic_latch->store(std::thread::id(0));
+     if( (spinCount & 0x0000000f) == 0 ) {
+       if( (spinCount & 0x00000010) != 0 )
+         std::this_thread::yield();
+       else
+         std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
+     }
+   }
+}
+
+void
+   reset( void )                    // Initialize/Reset the RecursiveLatch
+{
+   count= 0;
+   latch.store(std::thread::id());
 }
 
 bool                                // TRUE iff successful
    try_lock( void )                 // Attempt to obtain a RecursiveLatch
 {
-   std::atomic<std::thread::id>* const atomic_latch= (std::atomic<std::thread::id>*)&latch;
-   std::thread::id oldValue= atomic_latch->load();
+   std::thread::id oldValue= latch.load();
    std::thread::id newValue= std::this_thread::get_id();
-   if( oldValue != newValue )
-   {
-     oldValue= Thread::null_id;
-     if( !atomic_latch->compare_exchange_strong(oldValue, newValue) )
+   if( oldValue != newValue ) {
+     oldValue= std::thread::id();
+     if( !latch.compare_exchange_strong(oldValue, newValue) )
        return false;
    }
 
@@ -192,212 +165,286 @@ bool                                // TRUE iff successful
    return true;
 }
 
-void                                // NOTE: This method is NOT thread-safe
-   reset( void )                    // Initialize/Reset the RecursiveLatch
-{  std::atomic<std::thread::id>* const atomic_latch= (std::atomic<std::thread::id>*)&latch;
-
-   count= 0;
-   atomic_latch->store(std::thread::id(0));
-}
-
 void
-   lock( void )                     // Obtain the Latch
+   unlock( void )                   // Release the RecursiveLatch
 {
-   while( !try_lock() )
-     std::this_thread::sleep_for(std::chrono::nanoseconds(8));
+   // Verify that the current thread holds the RecursiveLatch
+   if( latch.load() != std::this_thread::get_id() )
+     throw std::runtime_error("RecursiveLatch unlock error");
+
+   // We have the latch (so we own both the count and the latch)
+   --count;                         // Decrement the recursion count
+   if( count == 0 )                 // If we're releasing the latch
+     latch.store(std::thread::id());
 }
 }; // struct RecursiveLatch
 
 //----------------------------------------------------------------------------
 //
 // Struct-
-//       NonRecursiveLatch
+//       SHR_latch
+//       XCL_latch
 //
 // Purpose-
-//       Primitive non-recursive latch.
+//       Primitive shared/exclusive latch, held shared.
+//       Primitive shared/exclusive latch, held exclusively.
+//
+// Usage-
+//       SHR_latch shr;             // (Used for shared access)
+//       XCL_latch xcl(shr);        // (Used for exclusive access)
+//
+//       In multiple threads:
+//       {{{{ std::lock_guard<decltype(shr)> s_lock(shr);
+//         // shared access to protected resources
+//       }}}}
+//
+//       In another thread:
+//       {{{{ std::lock_guard<decltype(xcl)> x_lock(xcl);
+//         // exclusive access to protected resources
+//       }}}}
 //
 // Implementation notes-
-//       THe NonRecursiveLatch object is a Latch that explicitly does not
-//       allow recursion. An Exception is thrown if a thread attempts to
-//       obtain a NonRecursiveLatch while holding it. Should this occur,
-//       THE LATCH IS RELEASED before the Exception is thrown.
+//       A Thread may hold either a SHR_latch or an XCL_latch, but not both.
+//       The implementation deadlocks during an attempt to hold both latches.
 //
+//============================================================================
+static_assert( sizeof(uintptr_t) == 8 || sizeof(uintptr_t) == 4 );
+
+struct SHR_latch {                  // SHR_latch descriptor
 //----------------------------------------------------------------------------
-struct NonRecursiveLatch {          // NonRecursiveLatch descriptor
-volatile std::thread::id
-                       latch;       // The latch holder std::thread::id
+// SHR_latch::Attributes
+//----------------------------------------------------------------------------
+std::atomic<uintptr_t> count{};     // The number of shared users
 
 //----------------------------------------------------------------------------
-// NonRecursiveLatch::Methods
+// SHR_latch::Methods
 //----------------------------------------------------------------------------
 void
-   unlock( void )                   // Release the NonRecursiveLatch
-{  std::atomic<std::thread::id>* const atomic_latch= (std::atomic<std::thread::id>*)&latch;
+   lock( void )                     // Obtain the SHR_latch
+{
+   while( !try_lock() )
+     std::this_thread::yield();
+}
 
-   atomic_latch->store(std::thread::id(0));
+void
+   reset( void )                    // Initialize/Reset the SHR_latch
+{  count.store(0); }
+
+bool                                // TRUE iff successful
+   try_lock( void )                 // Attempt to obtain the latch
+{
+   static constexpr const uintptr_t
+       HBIT= sizeof(uintptr_t) == 8 ? 0x8000000000000000L : 0x80000000;
+
+   uintptr_t oldValue= count.load();
+   if( oldValue & HBIT )            // (Disallow SHR_latch if XCL reservation)
+     return false;
+
+   uintptr_t newValue= oldValue + 1;
+   return count.compare_exchange_strong(oldValue, newValue);
+}
+
+void
+   unlock( void )                   // Release the SHR_latch
+{
+   static constexpr const uintptr_t
+       HBIT= sizeof(uintptr_t) == 8 ? 0x8000000000000000L : 0x80000000;
+
+   // Unlock, detecting unlock when not locked errors
+   uintptr_t oldValue= count.load();
+   for(;;) {
+     if( oldValue == 0 || oldValue == HBIT ) // If unlock when not locked
+       throw std::runtime_error("SHR_latch unlock error");
+
+     uintptr_t newValue= oldValue - 1;
+     if( count.compare_exchange_strong(oldValue, newValue) )
+       return;
+   }
+}
+}; // struct SHR_latch
+
+//============================================================================
+struct XCL_latch {                  // XCL_latch descriptor
+SHR_latch&             share;       // The associated SHR_latch
+std::thread::id        thread{std::thread::id()}; // The owning XCL thread
+
+//----------------------------------------------------------------------------
+// XCL_latch::Constructor
+//----------------------------------------------------------------------------
+   XCL_latch(
+     SHR_latch&        source)
+:  share(source) {}
+
+//----------------------------------------------------------------------------
+// XCL_latch::Methods
+//----------------------------------------------------------------------------
+/***
+   Downgrade from exclusive to shared mode.
+
+   Preconditions:
+     The exclusive latch *MUST* be held by the currently running Thread.
+***/
+void
+   downgrade( void )                // Downgrade XCL_latch to SHR_latch
+{
+   static constexpr const uintptr_t
+       HBIT= sizeof(uintptr_t) == 8 ? 0x8000000000000000L : 0x80000000;
+
+   if( thread != std::this_thread::get_id()
+       || share.count.load() != HBIT )
+     throw std::runtime_error("XCL_latch downgrade error");
+
+   thread= std::thread::id();
+   share.count.store(1);
+}
+
+void
+   lock( void )                     // Obtain the XCL_latch
+{
+   for(uint32_t spinCount= 1;;spinCount++)
+   {
+     if( try_lock() )
+        break;
+
+     if( spinCount & 0x00000007 )
+       std::this_thread::yield();
+     else
+       std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
+   }
+}
+
+void
+   reset( void )                    // Reset the XCL_latch
+{
+   thread= std::thread::id();
+   share.reset();
+}
+
+void
+   unlock( void )                   // Release the XCL_latch
+{
+   if( thread != std::this_thread::get_id() )
+     throw std::runtime_error("XCL_latch unlock error");
+
+   thread= std::thread::id();
+   share.reset();
 }
 
 bool                                // TRUE iff successful
-   try_lock( void )                 // Attempt to obtain a NonRecursiveLatch
-{  std::atomic<std::thread::id>* const atomic_latch= (std::atomic<std::thread::id>*)&latch;
+   try_lock( void )                 // Attempt to obtain the XCL_latch
+{
+   static constexpr const uintptr_t
+       HBIT= sizeof(uintptr_t) == 8 ? 0x8000000000000000L : 0x80000000;
 
-   std::thread::id oldValue= atomic_latch->load();
-   std::thread::id newValue= std::this_thread::get_id();
-   if( oldValue == newValue )       // If recursive
+   // Reserve the Latch for exclusive use
+   uintptr_t oldValue= share.count.load();
+   for(;;)
    {
-     atomic_latch->store(std::thread::id(0));
-     throw Exception("NonRecursiveLatch");
+     if( oldValue & HBIT )          // If already reserved
+       return false;                // (Only one reservation allowed)
+
+     uintptr_t newValue= oldValue | HBIT;
+     if( share.count.compare_exchange_strong(oldValue, newValue) )
+       break;
    }
 
-   return atomic_latch->compare_exchange_strong(oldValue, newValue);
+   thread= std::this_thread::get_id(); // We have the reservation
+
+   // Wait for all shares to unlock.
+   for(uint32_t spinCount= 1; share.count.load() != HBIT; spinCount++)
+   {
+     if( spinCount & 0x00000007 )
+       std::this_thread::yield();
+     else
+       std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
+   }
+
+   return true;
 }
+}; // struct XCL_latch
 
-void                                // NOTE: This method is NOT thread-safe
-   reset( void )                    // Initialize/Reset the NonRecursiveLatch
-{  std::atomic<std::thread::id>* const atomic_latch= (std::atomic<std::thread::id>*)&latch;
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       NullLatch
+//
+// Purpose-
+//       Define a (limited purpose) Latch that does nothing.
+//
+// Implementation notes-
+//       In code that may be conditionally compiled for single-threaded or
+//       multi-threaded operation, a NullLatch can be used instead of a
+//       Latch when compiled in single-threaded mode.
+//
+//----------------------------------------------------------------------------
+struct NullLatch {                  // NullLatch descriptor
+//----------------------------------------------------------------------------
+// NullLatch::Methods
+//----------------------------------------------------------------------------
+void
+   lock( void ) {}                  // Obtain the NullLatch
 
-   atomic_latch->store(std::thread::id(0));
-}
+void
+   reset( void ) {}                 // Initialize/Reset the NullLatch
 
+bool                                // TRUE iff successful
+   try_lock( void )                 // Attempt to obtain the NullLatch
+{  return true; }
+
+void
+   unlock( void ) {}                // Release the NullLatch
+}; // struct NullLatch
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       TestLatch
+//
+// Purpose-
+//       Primitive non-recursive debugging latch.
+//
+// Implementation notes-
+//       The TestLatch object is a special purpose (debugging) Latch that
+//       explicitly disallows recursion, thus detecting Latch self-deadlocks.
+//       If a thread attempts to obtain a TestLatch while holding it, a
+//       std::runtime_error is thrown. *THE LATCH IS RELEASED* before the
+//       exception is thrown.
+//
+//----------------------------------------------------------------------------
+struct TestLatch {                  // TestLatch descriptor
+std::atomic<std::thread::id>
+                       latch;       // The latch holder
+
+//----------------------------------------------------------------------------
+// TestLatch::Methods
+//----------------------------------------------------------------------------
 void
    lock( void )                     // Obtain the Latch
 {
    while( !try_lock() )
      std::this_thread::sleep_for(std::chrono::nanoseconds(8));
 }
-}; // struct NonRecursiveLatch
 
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       SharedLatch
-//
-// Purpose-
-//       Primitive shared latch.
-//
-// Implementation notes-
-//       The SharedLatch object does not and never will contain virtual
-//       methods or require class construction before it is used.
-//
-//----------------------------------------------------------------------------
-struct SharedLatch {                // SharedLatch descriptor
-//----------------------------------------------------------------------------
-// SharedLatch::Attributes
-//----------------------------------------------------------------------------
-volatile unsigned      count= 0;    // The number of shared users
-
-//----------------------------------------------------------------------------
-// SharedLatch::Methods
-//----------------------------------------------------------------------------
-void
-   unlock( void )                   // Release the SharedLatch
-{  std::atomic<unsigned>* const atomic_count= (std::atomic<unsigned>*)&count;
-
-   atomic_count->operator--();
-}
+void                                // NOTE: This method is NOT thread-safe
+   reset( void )                    // Initialize/Reset the TestLatch
+{  latch.store(std::thread::id()); }
 
 bool                                // TRUE iff successful
-   try_lock( void )                 // Attempt to obtain the latch
-{  std::atomic<unsigned>* atomic_count= (std::atomic<unsigned>*)&count;
-
-   unsigned oldValue= atomic_count->load() & 0x7fffffff;
-   unsigned newValue= oldValue + 1;
-   return atomic_count->compare_exchange_strong(oldValue, newValue);
-}
-
-void
-   reset( void )                    // Initialize/Reset the SharedLatch
-{  count= 0;
-}
-
-void
-   lock( void )                     // Obtain the SharedLatch
+   try_lock( void )                 // Attempt to obtain the TestLatch
 {
-   while( !try_lock() )
-     std::this_thread::yield();
-}
-}; // struct SharedLatch
+   std::thread::id oldValue= latch.load();
+   std::thread::id newValue= std::this_thread::get_id();
+   if( oldValue == newValue ) {     // If recursive
+     latch.store(std::thread::id());
+     throw std::runtime_error("TestLatch recursion error");
+   }
 
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       ExclusiveLatch
-//
-// Purpose-
-//       Obtain exclusive access to a SharedLatch
-//
-// Usage-
-//       SharedLatch     shared;
-//       ExclusiverLatch exclusive(shared);
-//
-//       {{{{ std::lock_guard<decltype(exclusive)> lock(exclusive);
-//         // exclusive access operations
-//       }}}}
-//
-// Implementation notes-
-//       Construction required. However, different ExclusiveLatch instances
-//       referencing the same SharedLock instance operate properly.
-//
-//----------------------------------------------------------------------------
-struct ExclusiveLatch {             // ExclusiveLatch descriptor
-SharedLatch&           shared;      // The associated SharedLatch
-
-//----------------------------------------------------------------------------
-// ExclusiveLatch::Constructor
-//----------------------------------------------------------------------------
-   ExclusiveLatch(
-     SharedLatch&      source)
-:  shared(source) {}
-
-//----------------------------------------------------------------------------
-// ExclusiveLatch::Methods
-//----------------------------------------------------------------------------
-void
-   unlock( void )                   // Release the ExclusivedLatch
-{  std::atomic<unsigned>* atomic_count= (std::atomic<unsigned>*)&shared.count;
-
-   atomic_count->store(0);
-}
-
-bool                                // TRUE iff successful
-   try_lock( void )                 // Attempt to obtain the ExclusivedLatch
-{  std::atomic<unsigned>* atomic_count= (std::atomic<unsigned>*)&shared.count;
-
-   unsigned oldValue= 0;
-   unsigned newValue= 0x80000000;
-   return atomic_count->compare_exchange_strong(oldValue, newValue);
+   return latch.compare_exchange_strong(oldValue, newValue);
 }
 
 void
-   lock( void )                     // Obtain the ExclusiveLatch
-{  std::atomic<unsigned>* atomic_count= (std::atomic<unsigned>*)&shared.count;
-
-   // First, reserve the Latch for exclusive use
-   unsigned oldValue= atomic_count->load() & 0x7fffffff;
-   unsigned newValue= oldValue | 0x80000000;
-   for(unsigned spinCount= 1;;spinCount++)
-   {
-     if( atomic_count->compare_exchange_weak(oldValue, newValue) )
-        break;
-
-     oldValue &= 0x7fffffff;
-     newValue= oldValue | 0x80000000;
-
-     if( spinCount & 0x00000007 )
-       std::this_thread::yield();
-     else
-       std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
-   }
-
-   // We have the exclusive reservation. Wait for shares to unlock.
-   for(unsigned spinCount= 1; atomic_count->load() != 0x80000000; spinCount++)
-   {
-     if( spinCount & 0x00000007 )
-       std::this_thread::yield();
-     else
-       std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
-   }
-}
-}; // struct ExclusiveLatch
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_LATCH_H_INCLUDED
+   unlock( void )                   // Release the TestLatch
+{  latch.store(std::thread::id()); }
+}; // struct TestLatch
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_LATCH_H_INCLUDED

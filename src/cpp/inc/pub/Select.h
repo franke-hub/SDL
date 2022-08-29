@@ -16,7 +16,7 @@
 //       Socket selector
 //
 // Last change date-
-//       2022/08/18
+//       2022/08/29
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SELECT_H_INCLUDED
@@ -33,6 +33,7 @@
 
 #include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 #include "pub/Exception.h"          // For SocketException
+#include "pub/Latch.h"              // For pub::SHR_latch, pub::XCL_latch
 #include "pub/Object.h"             // For base class, _PUB_NAMESPACE, ...
 #include "pub/Socket.h"             // For pub::Socket
 
@@ -51,11 +52,8 @@ struct control_op;                  // (Internal) control operation
 //       Socket selector
 //
 // Implementation notes-
-//       ** THREAD SAFE, BUT NOT CURRENTLY MULTI-THREAD CAPABLE **
-//         Polling operations can hold the Selector mutex for long intervals,
-//         blocking socket inserts, modification, and removal.
-//
-//       Locking needs work.
+//       ** THREAD SAFE, BUT NOT STRESS TESTED **
+//         Locking may need work.
 //
 //       Sockets may only be associated with one Select object.
 //       Sockets are automatically removed from a Select whenever they
@@ -63,7 +61,7 @@ struct control_op;                  // (Internal) control operation
 //
 //       A Selector is intended for use with a large number of sockets.
 //       It contains element arrays indexed by the file descriptor, each
-//       allocated large enough to contain *all* file descriptors.
+//       allocated large enough to contain *all* requested file descriptors.
 //
 //----------------------------------------------------------------------------
 class Select {                      // Socket selector
@@ -73,19 +71,20 @@ class Select {                      // Socket selector
 public:
 typedef std::function<void(void)>             v_func; // with_lock() function
 
+enum                                // Implementation controls
+{  USE_SELECT_FUNCTION= true        // Use (test) socket->selected method?
+}; // Implementation controls
+
 //----------------------------------------------------------------------------
 // Select::Attributes
 //----------------------------------------------------------------------------
+mutable SHR_latch      shr_latch;       // Shared latch
+mutable XCL_latch      xcl_latch= shr_latch; // Exclusive latch
+
 protected:
 Socket*                reader= nullptr; // Internal reader socket
 Socket*                writer= nullptr; // Internal writer socket
 
-mutable std::recursive_mutex
-                       select_mutex;    // Internal select mutex
-mutable std::recursive_mutex
-                       socket_mutex;    // Internal socket mutex
-mutable std::recursive_mutex
-                       update_mutex;    // Internal update mutex
 struct pollfd*         pollfd= nullptr; // Array of pollfd's
 Socket**               sarray= nullptr; // Array of Socket's
 int*                   sindex= nullptr; // File descriptor to pollfd index
@@ -109,14 +108,10 @@ void
    debug(                           // Debugging display
      const char*       info= "") const; // Caller information
 
-void
-   with_lock(v_func f)              // Run function holding socket_mutex
-{  std::lock_guard<decltype(socket_mutex)> lock(socket_mutex); f(); }
-
 const struct pollfd*                // The associated pollfd
    get_pollfd(                      // Extract pollfd
      const Socket*     socket) const // For this Socket
-{  std::lock_guard<decltype(update_mutex)> lock(update_mutex);
+{  std::lock_guard<decltype(shr_latch)> lock(shr_latch);
 
    int fd= socket->handle;
    if( fd < 0 || fd >= size ) {     // (Not valid, most likely closed)
@@ -136,7 +131,7 @@ const struct pollfd*                // The associated pollfd
 const Socket*                       // The associated Socket*
    get_socket(                      // Extract Socket
      int               fd) const    // For this file descriptor
-{  std::lock_guard<decltype(update_mutex)> lock(update_mutex);
+{  std::lock_guard<decltype(shr_latch)> lock(shr_latch);
 
    if( fd < 0 || fd >= size ) {
      errno= EINVAL;
@@ -179,12 +174,12 @@ void
    control(                         // Send control operation
      const control_op& op);         // The control operation
 
-Socket*                             // The next selected Socket
-   remain( void );                  // Select next remaining Socket
-
 inline void
    resize(                          // Resize the Select
      int               fd);         // For this file descriptor
+
+Socket*                             // The next selected Socket
+   select( void );                  // Select the next remaining Socket
 }; // class Select
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_SELECT_H_INCLUDED

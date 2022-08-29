@@ -16,7 +16,7 @@
 //       Signals __detail, not part of external interface
 //
 // Last change date-
-//       2022/03/10
+//       2022/08/23
 //
 // Implementation note-
 //       This include is private. It requires macros defined in ../Signals.h.
@@ -98,7 +98,7 @@ protected:
 typedef Listener<Event>Slot_t;      // The Listener class alias
 
 mutable
-::pub::SharedLatch     SHR;         // Protects the List of Listeners
+::pub::SHR_latch       SHR;         // Protects the List of Listeners
 ::pub::List<Slot_t>    list;        // The actual List of Listeners
 
 //----------------------------------------------------------------------------
@@ -161,7 +161,7 @@ void
      Slot_t*           slot)        // This Listener (FIFO ordering)
 {  if( pub_hcdm ) debugf("ListenerList(%p)::insert(%p)\n", this, slot);
 
-   ::pub::ExclusiveLatch XCL(SHR);  // While holding the exclusive Latch
+   ::pub::XCL_latch XCL(SHR);       // While holding the exclusive Latch
    std::lock_guard<decltype(XCL)> lock(XCL);
 
    list.fifo(slot);                 // Insert the Slot
@@ -175,7 +175,7 @@ void
      Slot_t*           slot)        // This Listener
 {  if( pub_hcdm ) debugf("ListenerList(%p)::remove(%p)\n", this, slot);
 
-   ::pub::ExclusiveLatch XCL(SHR);  // While holding the exclusive Latch
+   ::pub::XCL_latch XCL(SHR);       // While holding the exclusive Latch
    std::lock_guard<decltype(XCL)> lock(XCL);
 
    list.remove(slot, slot);         // Remove the Listener

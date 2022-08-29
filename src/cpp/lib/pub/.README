@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2018-2020 Frank Eskesen.
+##       Copyright (C) 2018-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       Development status, history, and reminders.
 ##
 ## Last change date-
-##       2020/08/22
+##       2022/08/23
 ##
 ##############################################################################
 
@@ -36,6 +36,9 @@
 
 ##############################################################################
 ## TODO:
+2022/08/23 Implement CLANG compiler compilation
+         ~/src/cpp/ctl/BSD/Makefile has some (untested) code already.
+
 2018/09/16 Create cascade delete test.
          ../obj/Ref jumps through hoops to avoid this.
          Why isn't this necessary in std::smart_ptr?

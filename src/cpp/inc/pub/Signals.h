@@ -16,7 +16,7 @@
 //       pub::signals::Signal and pub::signals::Connector descriptors.
 //
 // Last change date-
-//       2022/03/10
+//       2022/08/23
 //
 // Usage notes-
 //       The Signal interface consists of these objects:
@@ -110,7 +110,7 @@
 
 #include <pub/Debug.h>              // For pub::Debug, ...
 #include <pub/List.h>               // For pub::List
-#include <pub/Latch.h>              // For pub::ExclusiveLatch, SharedLatch
+#include <pub/Latch.h>              // For pub::XCL_latch, SHR_latch
 #include <pub/Named.h>              // For pub::Named (Base class)
 
 //----------------------------------------------------------------------------
