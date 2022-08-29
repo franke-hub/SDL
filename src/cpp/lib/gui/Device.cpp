@@ -16,7 +16,7 @@
 //       Implement gui/Device.h
 //
 // Last change date-
-//       2022/04/09
+//       2022/08/23
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -445,11 +445,13 @@ static inline pub::Trace::Record*   // Resultant
 {
    static int last_type= 0;         // Last e->response_type
 
-   if( opt_verbose < -1 ) return nullptr; // If disallowed via verbosity
+   if( opt_verbose < -1 )           // If disallowed via verbosity
+     return nullptr;
 
    // Disallow sequential noisy response_type events
-   if( e->response_type == XCB_MOTION_NOTIFY ) { // If noisy response_type
-     if( e->response_type == last_type ) return nullptr; // If another one
+   if( e->response_type == XCB_MOTION_NOTIFY ) { // If a noisy response_type
+     if( e->response_type == last_type ) // If duplicate noisy type
+       return nullptr;
    }
    last_type= e->response_type;     // Last type received, noisy or not
 

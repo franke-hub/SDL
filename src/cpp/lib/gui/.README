@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2020-2021 Frank Eskesen.
+##       Copyright (c) 2020-2022 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       ~/src/cpp/lib/gui README information file.
 ##
 ## Last change date-
-##       2021/01/30
+##       2022/08/24 (Added XCB INFO)
 ##
 ## Implementation notes-
 ##       Usage notes can be found in ~/src/cpp/inc/gui/.README
@@ -26,8 +26,55 @@
 ##############################################################################
 ## STATUS:
 2021/01/30 Migrated from ~/src/cpp/Edit/Xcb/Xcb
-
 2020/07/19 Started
+
+##############################################################################
+## XCB INFO: (Generic information)
+typedef struct {             // (/usr/include/xcb/xproto.h)
+    uint8_t   response_type;  /**< Type of the response */
+    uint8_t  pad0;           /**< Padding */
+    uint16_t sequence;       /**< Sequence number */
+    uint32_t pad[7];         /**< Padding */
+    uint32_t full_sequence;  /**< full sequence */
+} xcb_generic_event_t;
+
+// Values for xcb_generic_event_t::response_type (/usr/include/xcb/xcb.h)
+                               0 /** Opcode for X11 error */
+                               1 /** Opcode for X11 reply */
+#define XCB_KEY_PRESS          2 /** Opcode for xcb_key_press. */
+#define XCB_KEY_RELEASE        3 /** Opcode for xcb_key_release. */
+#define XCB_BUTTON_PRESS       4 /** Opcode for xcb_button_press. */
+#define XCB_BUTTON_RELEASE     5 /** Opcode for xcb_button_release. */
+#define XCB_MOTION_NOTIFY      6 /** Opcode for xcb_motion_notify. */
+#define XCB_ENTER_NOTIFY       7 /** Opcode for xcb_enter_notify. */
+#define XCB_LEAVE_NOTIFY       8 /** Opcode for xcb_leave_notify. */
+#define XCB_FOCUS_IN           9 /** Opcode for xcb_focus_in. */
+#define XCB_FOCUS_OUT         10 /** Opcode for xcb_focus_out. */
+#define XCB_KEYMAP_NOTIFY     11 /** Opcode for xcb_keymap_notify. */
+#define XCB_EXPOSE            12 /** Opcode for xcb_expose. */
+#define XCB_GRAPHICS_EXPOSURE 13 /** Opcode for xcb_graphics_exposure. */
+#define XCB_NO_EXPOSURE       14 /** Opcode for xcb_no_exposure. */
+#define XCB_VISIBILITY_NOTIFY 15 /** Opcode for xcb_visibility_notify. */
+#define XCB_CREATE_NOTIFY     16 /** Opcode for xcb_create_notify. */
+#define XCB_DESTROY_NOTIFY    17 /** Opcode for xcb_destroy_notify. */
+#define XCB_UNMAP_NOTIFY      18 /** Opcode for xcb_unmap_notify. */
+#define XCB_MAP_NOTIFY        19 /** Opcode for xcb_map_notify. */
+#define XCB_MAP_REQUEST       20 /** Opcode for xcb_map_request. */
+#define XCB_REPARENT_NOTIFY   21 /** Opcode for xcb_reparent_notify. */
+#define XCB_CONFIGURE_NOTIFY  22 /** Opcode for xcb_configure_notify. */
+#define XCB_CONFIGURE_REQUEST 23 /** Opcode for xcb_configure_request. */
+#define XCB_GRAVITY_NOTIFY    24 /** Opcode for xcb_gravity_notify. */
+#define XCB_RESIZE_REQUEST    25 /** Opcode for xcb_resize_request. */
+#define XCB_CIRCULATE_NOTIFY  26 /** Opcode for xcb_circulate_notify. */
+#define XCB_CIRCULATE_REQUEST 27 /** Opcode for xcb_circulate_request. */
+#define XCB_PROPERTY_NOTIFY   28 /** Opcode for xcb_property_notify. */
+#define XCB_SELECTION_CLEAR   29 /** Opcode for xcb_selection_clear. */
+#define XCB_SELECTION_REQUEST 30 /** Opcode for xcb_selection_request. */
+#define XCB_SELECTION_NOTIFY  31 /** Opcode for xcb_selection_notify. */
+#define XCB_COLORMAP_NOTIFY   32 /** Opcode for xcb_colormap_notify. */
+#define XCB_CLIENT_MESSAGE    33 /** Opcode for xcb_client_message. */
+#define XCB_MAPPING_NOTIFY    34 /** Opcode for xcb_mapping_notify. */
+#define XCB_GE_GENERIC        35 /** Opcode for xcb_ge_generic. */
 
 ##############################################################################
 ## TODO:
