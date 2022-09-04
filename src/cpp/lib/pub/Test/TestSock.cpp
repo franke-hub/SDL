@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2022/08/29
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -27,12 +27,12 @@
 #include <string>                   // For std::string
 
 #include <stdio.h>                  // For fprintf, ...
-// #include <stdlib.h>
 #include <string.h>                 // For memcpy, ...
 #include <unistd.h>                 // For getopt_long (parameters), ...
 #include <openssl/err.h>            // For ERR_error_string
 #include <openssl/ssl.h>            // For openssl SSL methods
 
+#include "pub/TEST.H"               // For VERIFY, ...
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Interval.h>           // For pub::Interval
@@ -41,18 +41,17 @@
 #include "pub/Socket.h"             // For pub::Socket, tested
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Worker.h>             // For pub::Worker, pub::WorkerPool, ...
+#include "pub/Wrapper.h"            // For pub::Wrapper
 
-#include "pub/TEST.H"               // For VERIFY, ...
-#include "pub/Wrapper.h"            // For class Wrapper
-
-using namespace _PUB_NAMESPACE;     // For pub:: classes
-using namespace pub::debugging;     // For debugging functions
-using namespace pub::utility;       // For utility functions
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB;                // For pub:: classes
+using namespace PUB::debugging;     // For debugging functions
+using namespace PUB::utility;       // For utility functions
 using std::atomic;
 
-#define debugf         pub::debugging::debugf
-#define opt_hcdm       pub::Wrapper::opt_hcdm
-#define opt_verbose    pub::Wrapper::opt_verbose
+#define debugf         PUB::debugging::debugf
+#define opt_hcdm       PUB::Wrapper::opt_hcdm
+#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Ignore undefined flags (These flags are/were undefined on Cygwin)
@@ -291,7 +290,7 @@ static void
    char buffer[256];                // Working buffer
    long E= ERR_get_error();         // Get last error code
    ERR_error_string(E, buffer);
-   std::string S= pub::utility::to_string(fmt, buffer);
+   std::string S= PUB::utility::to_string(fmt, buffer);
    throw SocketException(S);
 }
 
@@ -596,7 +595,7 @@ static void
 //       Background Thread that sets and clears `running`
 //
 //----------------------------------------------------------------------------
-class TimerThread : public pub::Thread {
+class TimerThread : public PUB::Thread {
 public:
    ~TimerThread( void ) = default;
    TimerThread( void ) = default;
@@ -768,7 +767,7 @@ virtual void
      while( running && error_count == 0 ) {
        client();
      }
-   } catch(pub::Exception& X) {
+   } catch(PUB::Exception& X) {
      ++error_count;
      debugf("%4d Exception: %s\n", __LINE__, X.to_string().c_str());
    } catch(std::exception& X) {
@@ -965,7 +964,7 @@ virtual void
        if( operational && !error_count )
          serve();
      }
-   } catch(pub::Exception& X) {
+   } catch(PUB::Exception& X) {
      ++error_count;
      debugf("%4d Exception: %s\n", __LINE__, X.to_string().c_str());
    } catch(std::exception& X) {
@@ -1098,7 +1097,7 @@ void
        if( !running )
          return;
        TRACE("StreamClient %d= open", rc);
-       throw pub::Exception("StreamClient open Failure");
+       throw PUB::Exception("StreamClient open Failure");
      }
 
      // Connect to server
@@ -1112,7 +1111,7 @@ void
          Thread::sleep(5.0);        // (Allow some TIME_WAIT expirations)
          return;
        }
-       throw pub::Exception("StreamClient connect Failure");
+       throw PUB::Exception("StreamClient connect Failure");
      }
 
      // Write/read
@@ -1121,7 +1120,7 @@ void
        if( !running )
          return;
        TRACE("StreamClient %zd= write(%zd)", L, strlen(httpREQ));
-       throw pub::Exception("StreamClient write Failure");
+       throw PUB::Exception("StreamClient write Failure");
      }
      if( opt_verbose > 1 )
        TRACE("StreamClient %zd= write(%s)\n", L, visify(httpREQ).c_str());
@@ -1132,7 +1131,7 @@ void
        if( !running )
          return;
        TRACE("StreamClient %zd= read(%zd)", L, strlen(httpREQ));
-       throw pub::Exception("StreamClient read Failure");
+       throw PUB::Exception("StreamClient read Failure");
      }
      buffer[L]= '\0';
      if( opt_verbose > 1 )
@@ -1142,7 +1141,7 @@ void
        ++scr_count;
        ++scc_count;
      }
-   } catch(pub::Exception& X) {
+   } catch(PUB::Exception& X) {
      ++error_count;
      debugf("%4d StreamClient %s\n", __LINE__, X.to_string().c_str());
    } catch(std::exception& X) {
@@ -1160,7 +1159,7 @@ void
      if( !running )
        return;
      TRACE("StreamClient %d= close", rc);
-     throw pub::Exception("StreamClient close Failure");
+     throw PUB::Exception("StreamClient close Failure");
    }
 }
 
@@ -1183,7 +1182,7 @@ virtual void
      while( running && error_count == 0 ) {
        client();
      }
-   } catch(pub::Exception& X) {
+   } catch(PUB::Exception& X) {
      ++error_count;
      debugf("%4d Exception: %s\n", __LINE__, X.to_string().c_str());
    } catch(std::exception& X) {
@@ -1254,7 +1253,7 @@ static void
 //       The StreamWorker object
 //
 //----------------------------------------------------------------------------
-class StreamWorker : public pub::Worker { // The StreamWorker object
+class StreamWorker : public PUB::Worker { // The StreamWorker object
 //----------------------------------------------------------------------------
 // StreamWorker::Attributes
 //----------------------------------------------------------------------------
@@ -1291,7 +1290,7 @@ virtual void
 
    try {
      run();
-   } catch(pub::Exception& X) {
+   } catch(PUB::Exception& X) {
      ++error_count;
      debugf("%4d StreamWorker: %s\n", __LINE__, X.to_string().c_str());
    } catch(std::exception& X) {
@@ -1517,7 +1516,7 @@ virtual void
            worker->work();
        }
      }
-   } catch(pub::Exception& X) {
+   } catch(PUB::Exception& X) {
      ++error_count;
      debugf("%4d Exception: %s\n", __LINE__, X.to_string().c_str());
    } catch(std::exception& X) {

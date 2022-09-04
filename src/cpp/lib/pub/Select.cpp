@@ -16,11 +16,10 @@
 //       Select method implementations.
 //
 // Last change date-
-//       2022/08/29
+//       2022/09/02
 //
 // Implementation notes-
 //       Want to rename this. Maybe: Asynch, Poller, something better
-//       Locking needs (lots of) work.
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -51,13 +50,13 @@
 #include <pub/utility.h>            // For to_string(), ...
 #include <pub/Debug.h>              // For debugging
 #include <pub/Event.h>              // For pub::Event
+#include "pub/Select.h"             // For pub::Select, implemented
+#include "pub/Socket.h"             // For pub::Socket
 #include <pub/Thread.h>             // For pub::Thread
 
-#include "pub/Select.h"             // For pub::Select, implemented
-#include "pub/Socket.h"             // The pub::Socket
+using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
 
-using namespace _PUB_NAMESPACE::debugging; // For debugging
-
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -81,7 +80,6 @@ enum
 #  define DEBUGGING(x)              // Ignore debugging statements
 #endif
 
-namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
@@ -327,6 +325,9 @@ DEBUGGING( reader->debug("READER BRINGUP TEST"); )
 {  if( HCDM )
      debugf("Select(%p)::~Select\n", this);
 
+   // Complete any pending operations. Hopefully they're close ops.
+   control();
+
    // Manually remove our reader socket from our tables
    if( reader ) {                   // If we have a reader socket
      int fd= reader->get_handle();  // Get the poll index
@@ -420,12 +421,18 @@ DEBUGGING( reader->debug("READER BRINGUP TEST"); )
 //       This may be called with or without the shr_latch held, but not with
 //       the xcl_latch held.
 //
+//       struct pollfd* pollfd;     // Array of pollfd's 0..used
+//       Socket**       sarray;     // Array of Socket's, indexed by fd
+//       int*           sindex;     // File descriptor to pollfd index
+//
 //----------------------------------------------------------------------------
-void
+int                                 // Number of detected errors
    Select::debug(                   // Debugging display
      const char*       info) const  // Caller information
 {
    std::lock_guard<decltype(shr_latch)> lock(shr_latch);
+
+   int error_count= 0;
 
    debugf("Select(%p)::debug(%s)\n", this, info);
    debugf("..reader(%p) handle(%d)\n", reader, reader->get_handle());
@@ -436,20 +443,33 @@ void
    for(int px= 0; px<used; ++px) {
      int fd= pollfd[px].fd;
      const Socket* socket= this->sarray[fd];
-     debugf("....[%3d] %p %3d:{%.4x,%.4x}\n", px, socket, fd
-           , pollfd[px].events, pollfd[px].revents);
-     if( socket->handle != pollfd[px].fd )
-       debugf("....[%3d] %p %3d ERROR: SOCKET.HANDLE MISMATCH\n", px, socket
-             , socket->handle);
-     else if( px != this->sindex[fd] )
-       debugf("....[%3d] %p %3d ERROR: HANDLE.SINDEX MISMATCH\n", px, socket
-             , this->sindex[fd]);
+     debugf("....[%3d] fd[%3d] pollfd{%.4x,%.4x} socket(%p)\n", px, fd
+           , pollfd[px].events, pollfd[px].revents, socket);
+     if( socket == nullptr ) {
+       ++error_count;
+       debugf("....[%3d] ERROR: NO ASSOCIATED SOCKET\n", px);
+     } else if( socket->handle != pollfd[px].fd ) {
+       ++error_count;
+       debugf("....[%3d] ERROR: SOCKET.HANDLE(%3d) FD(%3d) MISMATCH\n", px
+             , socket->handle, fd);
+     }
+     if( px != this->sindex[fd] ) {
+       ++error_count;
+       debugf("....[%3d] ERROR: SINDEX[%3d] MISMATCH(%3d)\n", px, fd
+              , this->sindex[fd]);
+     }
    }
 
    debugf("..sarray\n");
    for(int sx= 0; sx<size; ++sx) {
-     if( sarray[sx] )
-       debugf("....[%3d] %p\n", sx, sarray[sx]);
+     Socket* socket= sarray[sx];
+     if( socket ) {
+       debugf("....[%3d] %p->(%3d)\n", sx, socket, socket->handle);
+       if( sx != socket->handle ) {
+         ++error_count;
+         debugf("....[%3d] ERROR: SOCKET HANDLE MISMATCH\n", sx);
+       }
+     }
    }
 
    debugf("..sindex\n");
@@ -457,6 +477,8 @@ void
      if( sindex[fd] >= 0 )
        debugf("....[%3d] -> [%3d]\n", fd, sindex[fd]);
    }
+
+   return error_count;
 }
 
 //----------------------------------------------------------------------------
@@ -514,6 +536,7 @@ void
 {  if( HCDM )
      debugh("Select(%p)::control\n", this);
 
+   std::lock_guard<decltype(ctl_latch)> ctl_lock(ctl_latch);
    std::unique_lock<decltype(xcl_latch)> lock(xcl_latch);
 
    control_op op;
@@ -563,12 +586,12 @@ DEBUGGING( debugh("RD control {%c, %.4x, %d}\n", op.op, op.events, op.fd); )
        case OP_REMOVE: {
          int fd= socket->handle;
          if( USE_CHECKING && (fd < 0 || fd >= size) ) { // If invalid handle
-           lock.unlock();           // (Debug requires shared lock)
+           lock.unlock();         // (Debug requires shared lock)
            debug("HCDM");
            sno_exception(__LINE__); // Internal error, not user error
          }
 
-         int px= sindex[fd];        // Get the poll index
+         int px= sindex[fd];      // Get the poll index
          if( USE_CHECKING && (px < 0 || px >= size) ) { // If invalid fd
            debug("HCDM");
            sno_exception(__LINE__); // Internal error, not user error
@@ -612,7 +635,6 @@ DEBUGGING(
 //
 // Implementation notes-
 //       MUST NOT hold shr_latch OR xcl_latch: Conditionally invokes resize()
-//       Callers SHOULD invoke control() after invoking insert.
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 expected
@@ -622,6 +644,8 @@ int                                 // Return code, 0 expected
 {  if( HCDM )
      debugh("Select(%p)::insert(%p,0x%.4x) fd(%d)\n", this
            , socket, events, socket->handle);
+
+   std::lock_guard<decltype(ctl_latch)> lock(ctl_latch);
 
    int fd= socket->handle;
    if( fd < 0 ) {
@@ -652,6 +676,7 @@ int                                 // Return code, 0 expected
 
    control_op op= {OP_INSERT, 0, (uint16_t)events, fd};
    control(op);                     // Enqueue the INSERT operation
+   control();                       // Process the INSERT operation
 
    return 0;
 }
@@ -699,15 +724,14 @@ int                                 // Return code, 0 expected
 // Purpose-
 //       Remove a Socket from the Socket array
 //
-// Implementation notes-
-//       Callers SHOULD invoke control() after invoking remove.
-//
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 expected
    Select::remove(                  // Remove Socket
      Socket*           socket)      // The associated Socket
 {  if( HCDM )
      debugh("Select(%p)::remove(%p) fd(%d)\n", this, socket, socket->handle);
+
+   std::lock_guard<decltype(ctl_latch)> lock(ctl_latch);
 
    if( socket->selector == nullptr ) { // If Socket isn't owned by a selector
      if( socket->handle < 0 ) {     // (Socket::close may have been blocked)
@@ -731,6 +755,7 @@ int                                 // Return code, 0 expected
 
    control_op op= {OP_REMOVE, 0, 0, socket->get_handle()};
    control(op);                     // Enqueue the REMOVE operation
+   control();                       // Process the REMOVE operation
 
    return 0;
 }
@@ -800,13 +825,13 @@ Socket*                             // The next selected Socket, or nullptr
 Socket*                             // The next selected Socket
    Select::select( void )           // Select the next remaining Socket
 {
-   // Handle control operation
+   // Handle control operations
    if( pollfd[0].revents ) {
      control();
      return do_again();
    }
 
-   std::lock_guard<decltype(xcl_latch)> lock(xcl_latch);
+   std::lock_guard<decltype(shr_latch)> lock(shr_latch);
 
    if( USE_SELECT_FUNCTION ) {      // Test mechanism
      for(int px= 1; px<used; ++px) {
@@ -919,4 +944,4 @@ inline void
    sindex= new_sindex;
    size= new_size;
 }
-} // namespace _PUB_NAMESPACE
+} // namespace _LIBPUB_NAMESPACE

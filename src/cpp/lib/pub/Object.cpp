@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018 Frank Eskesen.
+//       Copyright (C) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,15 +16,14 @@
 //       Object method implementations.
 //
 // Last change date-
-//       2018/01/01
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <typeinfo>                 // For typeid, used in get_class_name
 #include <boost/core/demangle.hpp>  // Used in get_class_name
 #include <stdio.h>                  // For sprintf
 
-#include <pub/Debug.h>              // For debugging
-#include "pub/Object.h"
+#include "pub/Object.h"             // For pub::Object, implemented
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -35,7 +34,7 @@
 
 #include <pub/ifmacro.h>
 
-namespace _PUB_NAMESPACE {
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -110,4 +109,4 @@ std::string
    sprintf(buffer, "Object@%p", this);
    return buffer;
 }
-} // namespace _PUB_NAMESPACE
+} // namespace _LIBPUB_NAMESPACE

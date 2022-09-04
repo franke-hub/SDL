@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the BOOST license,
 //       version 1.0.
@@ -10,31 +10,34 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/pub/memory.h
+//       memory.h
 //
 // Purpose-
-//       TODO: Implement without boost.
+//       Define atomic_shared_ptr
 //
 // Last change date-
-//       2018/01/01
+//       2022/09/02
 //
 // Implementation note-
+//       TODO: Implement without boost.
 //       This is currently just a wrapper for boost::atomic_shared_ptr.
 //       Until this changes, this is distributed under the BOOST license,
 //       version 1.0. This license is less restrictive than the LGPL license.
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_MEMORY_H_INCLUDED
-#define _PUB_MEMORY_H_INCLUDED
+#ifndef _LIBPUB_MEMORY_H_INCLUDED
+#define _LIBPUB_MEMORY_H_INCLUDED
 
 #define _USE_BOOST_ATOMIC_SHARED_PTR true
 
 #if( _USE_BOOST_ATOMIC_SHARED_PTR )
 #include <boost/smart_ptr/atomic_shared_ptr.hpp> // The implementation to beat
 
-#include "config.h"                 // For _PUB_NAMESPACE, ...
+// Even though _LIBPUB_ macros are unused we still need this include.
+// It's needed here to follow the rule that any and all pub include files
+// directly or indirectly include pub/bits/pubconfig.h
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -58,10 +61,9 @@ class atomic_shared_ptr             // Atomic shared pointer
    atomic_shared_ptr(std::shared_ptr<T> p) // Probably not needed
 :  boost::atomic_shared_ptr<T>(p) {};
 }; // class atomic_shared_ptr<>
-}  // _PUB_NAMESPACE
 #else
 #error "No other implementation exists for atomic_shared_ptr"
 #endif
 
 #undef  _USE_BOOST_ATOMIC_SHARED_PTR // Avoid unnessary defines
-#endif // _PUB_MEMORY_H_INCLUDED
+#endif // _LIBPUB_MEMORY_H_INCLUDED

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,17 +16,16 @@
 //       Define the Mutex Object, combining std::mutex and Object
 //
 // Last change date-
-//       2020/06/23
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_MUTEX_H_INCLUDED
-#define _PUB_MUTEX_H_INCLUDED
+#ifndef _LIBPUB_MUTEX_H_INCLUDED
+#define _LIBPUB_MUTEX_H_INCLUDED
 
 #include <mutex>                    // For std::mutex base class
+#include <pub/Object.h>             // For pub::Object, base class
 
-#include "Object.h"                 // For pub::Object base class
-
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -41,8 +40,9 @@ namespace _PUB_NAMESPACE {
 //       No std::mutex methods are overriddern.
 //         lock(), try_lock(), unlock(), and native_handle()
 //       Used with lock_guard exactly like a std::mutex
-//         pub::Mutex instance;
-//         std::lock_guard<Mutex> lock(instance);
+//         using _LIBPUB_NAMESPACE::Mutex
+//         Mutex instance;
+//         std::lock_guard<decltype(instance)> lock(instance);
 //
 //----------------------------------------------------------------------------
 class Mutex : public std::mutex, public Object { // The Mutex Object
@@ -58,5 +58,5 @@ virtual
    Mutex(const Mutex&) = delete;
 Mutex& operator=(const Mutex&) = delete;
 }; // class Mutex
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_MUTEX_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_MUTEX_H_INCLUDED

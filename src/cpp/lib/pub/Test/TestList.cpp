@@ -16,7 +16,7 @@
 //       List tests.
 //
 // Last change date-
-//       2022/04/22
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <new>
@@ -31,16 +31,17 @@
 #include "pub/TEST.H"               // For VERIFY, ...
 #include "pub/Wrapper.h"            // For class Wrapper
 
-using namespace pub::debugging;     // For debugf, ...
-using pub::AI_list;
-using pub::DHDL_list;
-using pub::DHSL_list;
-using pub::SHSL_list;
-using pub::List;
-using pub::Wrapper;
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB::debugging;     // For debugf, ...
+using PUB::AI_list;
+using PUB::DHDL_list;
+using PUB::DHSL_list;
+using PUB::SHSL_list;
+using PUB::List;
+using PUB::Wrapper;
 
-#define opt_hcdm       pub::Wrapper::opt_hcdm
-#define opt_verbose    pub::Wrapper::opt_verbose
+#define opt_hcdm       PUB::Wrapper::opt_hcdm
+#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

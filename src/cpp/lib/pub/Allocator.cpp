@@ -16,17 +16,18 @@
 //       Allocator method implementations.
 //
 // Last change date-
-//       2022/04/12
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::bad_alloc, ...
 #include <mutex>                    // For std::lock_guard
 #include <stdlib.h>                 // For malloc, free
 
-#include <pub/Debug.h>              // For Debug, debugging
-#include "pub/Allocator.h"          // Implementation interfaces
+#include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
+#include "pub/Allocator.h"          // For pub::Allocator, implemented
 
-using namespace pub::debugging;     // For debugging
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB::debugging;     // For debugging functions
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -36,7 +37,7 @@ enum // Compile-time constants
 ,  BLOCK_ALIGN= 4096                // Block alignment
 ,  MALLOC_OVERHEAD= 16              // (Heuristic) malloc overhead
 ,  MIN_ELEMENTS= 16                 // Block minimum element count
-,  OVERHEAD= sizeof(pub::BlockAllocator::Block) + MALLOC_OVERHEAD
+,  OVERHEAD= sizeof(_LIBPUB_NAMESPACE::BlockAllocator::Block) + MALLOC_OVERHEAD
 ,  USE_DELETE_VERIFY= true          // Verify all storage released?
 }; // Compile-time constants
 
@@ -65,7 +66,7 @@ Free*                  next;
    throw std::runtime_error(buffer);
 }
 
-namespace pub {
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -320,4 +321,4 @@ void
    while( ! free.compare_exchange_weak(next, addr) )
      ((Free*)addr)->next= (Free*)next;
 }
-}  // namespace pub
+}  // namespace _LIBPUB_NAMESPACE

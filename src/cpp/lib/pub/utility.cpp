@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2022/08/10
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -33,23 +33,12 @@
 #include <string.h>                 // For memcpy, ...
 #include <time.h>                   // For clock_gettime, ...
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 #include <pub/Debug.h>              // For Debug object (see dump())
-#include "pub/utility.h"            // Function definitions
+#include "pub/utility.h"            // For utility functions, implemented
 
-namespace _LIBPUB_NAMESPACE {
+namespace _LIBPUB_NAMESPACE::utility {
 //----------------------------------------------------------------------------
-//
-// Namespace-
-//       utility
-//
-// Purpose-
-//       Implement pub/utility functions.
-//
-//----------------------------------------------------------------------------
-namespace utility {
-//----------------------------------------------------------------------------
-// Volatile data (For avoiding compiler optimizations)
+// Volatile data (Used to avoid compiler optimizations)
 //----------------------------------------------------------------------------
 volatile int           data= 0;     // For any use
 volatile int           unit= 1;     // By convention, always 1
@@ -779,5 +768,4 @@ std::string                         // The visual representation
 
    return out.str();
 }
-}  // namespace utility
-}  // namespace _LIBPUB_NAMESPACE
+}  // namespace _LIBPUB_NAMESPACE::utility

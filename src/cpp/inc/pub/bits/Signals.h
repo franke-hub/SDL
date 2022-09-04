@@ -2,10 +2,10 @@
 //
 //       Copyright (C) 2022 Frank Eskesen.
 //
-//       This file is free content, distributed under the GNU General
-//       Public License, version 3.0.
-//       (See accompanying file LICENSE.GPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+//       This file is free content, distributed under the Lesser GNU
+//       General Public License, version 3.0.
+//       (See accompanying file LICENSE.LGPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
@@ -16,21 +16,21 @@
 //       Signals __detail, not part of external interface
 //
 // Last change date-
-//       2022/08/23
+//       2022/09/02
 //
 // Implementation note-
 //       This include is private. It requires macros defined in ../Signals.h.
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_BITS_SIGNALS_H_INCLUDED
-#define _PUB_BITS_SIGNALS_H_INCLUDED
+#ifndef _LIBPUB_BITS_SIGNALS_H_INCLUDED
+#define _LIBPUB_BITS_SIGNALS_H_INCLUDED
 
-namespace pub::signals {
-namespace __detail {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace signals::__detail {
 //----------------------------------------------------------------------------
 //
 // Class-
-//       pub::signals::__detail::Listener
+//       signals::__detail::Listener
 //
 // Purpose-
 //       Listener descriptor, contains a std::function<void(Event&)> object.
@@ -40,9 +40,9 @@ namespace __detail {
 //
 //----------------------------------------------------------------------------
 template<typename Event>
-class Listener : public pub::List<Listener<Event>>::Link { // Listener descriptor
+class Listener : public List<Listener<Event>>::Link { // Listener descriptor
 //----------------------------------------------------------------------------
-// pub::Listener::Attribute
+// signals::__detail::Listener::Attribute
 //----------------------------------------------------------------------------
 protected:
 typedef std::function<void(Event&)>
@@ -51,7 +51,7 @@ typedef std::function<void(Event&)>
 const Function         function;   // The Event handler function
 
 //----------------------------------------------------------------------------
-// pub::signals::__detail::Listener::Constructor
+// signals::__detail::Listener::Constructor
 //----------------------------------------------------------------------------
 public:
    Listener(                        // Constructor
@@ -63,13 +63,13 @@ public:
 }
 
 //----------------------------------------------------------------------------
-// pub::signals::__detail::Listener::Destructor
+// signals::__detail::Listener::Destructor
 //----------------------------------------------------------------------------
    ~Listener( void )                // Destructor
 {  if( pub_hcdm ) debugf("Listener(%p)::~Listener\n", this); }
 
 //----------------------------------------------------------------------------
-// pub::signals::__detail::Listener::signal
+// signals::__detail::Listener::signal
 //----------------------------------------------------------------------------
 void
    signal(                          // Signal this Listener about
@@ -83,7 +83,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Class-
-//       pub::signals::__detail::ListenerList
+//       signals::__detail::ListenerList
 //
 // Purpose-
 //       The List<Listener<Event>> container, with locking controls
@@ -92,17 +92,16 @@ void
 template<typename Event>
 class ListenerList {                // The List of Listeners (container)
 //----------------------------------------------------------------------------
-// pub::signals::__detail::ListenerList::Attributes
+// signals::__detail::ListenerList::Attributes
 //----------------------------------------------------------------------------
 protected:
 typedef Listener<Event>Slot_t;      // The Listener class alias
 
-mutable
-::pub::SHR_latch       SHR;         // Protects the List of Listeners
-::pub::List<Slot_t>    list;        // The actual List of Listeners
+mutable SHR_latch      SHR;         // Protects the List of Listeners
+List<Slot_t>           list;        // The actual List of Listeners
 
 //----------------------------------------------------------------------------
-// pub::signals::__detail::ListenerList::Constructor
+// signals::__detail::ListenerList::Constructor
 //----------------------------------------------------------------------------
 public:
    ListenerList( void )             // Default constructor
@@ -110,7 +109,7 @@ public:
 {  if( pub_hcdm ) debugf("ListenerList(%p)::ListenerList\n", this); }
 
 //----------------------------------------------------------------------------
-// pub::signals::__detail::ListenerList::Destructor
+// signals::__detail::ListenerList::Destructor
 //----------------------------------------------------------------------------
    ~ListenerList( void )            // Destructor
 {  if( pub_hcdm ) debugf("ListenerList(%p)::~ListenerList\n", this);
@@ -122,7 +121,7 @@ public:
 }
 
 //----------------------------------------------------------------------------
-// pub::signals::__detail::ListenerList::debug
+// signals::__detail::ListenerList::debug
 //----------------------------------------------------------------------------
 void
    debug( void )                    // Debugging display
@@ -137,7 +136,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::__detail::ListenerList::signal
+//       signals::__detail::ListenerList::signal
 //
 // Purpose-
 //       Signal Event occurance
@@ -154,33 +153,33 @@ void                                // (All Listeners are signaled)
 }
 
 //----------------------------------------------------------------------------
-// pub::signals::__detail::ListenerList::insert
+// signals::__detail::ListenerList::insert
 //----------------------------------------------------------------------------
 void
    insert(                          // Insert
      Slot_t*           slot)        // This Listener (FIFO ordering)
 {  if( pub_hcdm ) debugf("ListenerList(%p)::insert(%p)\n", this, slot);
 
-   ::pub::XCL_latch XCL(SHR);       // While holding the exclusive Latch
+   XCL_latch XCL(SHR);              // While holding the exclusive Latch
    std::lock_guard<decltype(XCL)> lock(XCL);
 
    list.fifo(slot);                 // Insert the Slot
 }
 
 //----------------------------------------------------------------------------
-// pub::signals::__detail::ListenerList::remove
+// signals::__detail::ListenerList::remove
 //----------------------------------------------------------------------------
 void
    remove(                          // Remove
      Slot_t*           slot)        // This Listener
 {  if( pub_hcdm ) debugf("ListenerList(%p)::remove(%p)\n", this, slot);
 
-   ::pub::XCL_latch XCL(SHR);       // While holding the exclusive Latch
+   XCL_latch XCL(SHR);              // While holding the exclusive Latch
    std::lock_guard<decltype(XCL)> lock(XCL);
 
    list.remove(slot, slot);         // Remove the Listener
 }
 }; // class ListenerList
-}  // namespace __detail
-}  // namespace pub::signals
+}  // namespace signals::__detail
+_LIBPUB_END_NAMESPACE
 #endif // _PUB_BITS_SIGNALS_H_INCLUDED

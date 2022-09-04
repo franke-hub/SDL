@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/pub/Select.h
+//       Select.h
 //
 // Purpose-
 //       Socket selector
 //
 // Last change date-
-//       2022/08/29
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SELECT_H_INCLUDED
@@ -31,10 +31,7 @@
 #include <sys/poll.h>               // For struct pollfd, ...
 #include <sys/socket.h>             // For socket methods
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
-#include "pub/Exception.h"          // For SocketException
 #include "pub/Latch.h"              // For pub::SHR_latch, pub::XCL_latch
-#include "pub/Object.h"             // For base class, _PUB_NAMESPACE, ...
 #include "pub/Socket.h"             // For pub::Socket
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
@@ -53,7 +50,6 @@ struct control_op;                  // (Internal) control operation
 //
 // Implementation notes-
 //       ** THREAD SAFE, BUT NOT STRESS TESTED **
-//         Locking may need work.
 //
 //       Sockets may only be associated with one Select object.
 //       Sockets are automatically removed from a Select whenever they
@@ -78,6 +74,7 @@ enum                                // Implementation controls
 //----------------------------------------------------------------------------
 // Select::Attributes
 //----------------------------------------------------------------------------
+RecursiveLatch         ctl_latch;       // Control operation latch
 mutable SHR_latch      shr_latch;       // Shared latch
 mutable XCL_latch      xcl_latch= shr_latch; // Exclusive latch
 
@@ -104,7 +101,7 @@ public:
 //----------------------------------------------------------------------------
 // Select::methods
 //----------------------------------------------------------------------------
-void
+int                                 // Number of detected errors
    debug(                           // Debugging display
      const char*       info= "") const; // Caller information
 

@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2022/04/10
+//       2022/09/02
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -36,10 +36,11 @@
 //       trace table is initialized using make().
 //
 // Sample usage-
+//       using _LIBPUB_NAMESPACE;
 //       void* storage= malloc(desired_size); // Unaligned is OK. make trims
-//       Trace::table= pub::Trace::make(storage, desired_size);
+//       Trace::table= Trace::make(storage, desired_size);
 //
-//       struct Record : public pub::Trace::Record { // Your Record
+//       struct Record : public Trace::Record { // Your Record
 //         : // Your data goes here
 //       };
 //       :

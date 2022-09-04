@@ -9,24 +9,25 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/pub/ASCII.h
+//       ASCII.h
 //
 // Purpose-
 //       Enumerate the ASCII character set.
 //
 // Last change date-
-//       2018/01/01
+//       2022/09/02
 //
 // Implementation notes-
 //       This is only intended for use as a reference.
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_ASCII_H_INCLUDED
-#define _PUB_ASCII_H_INCLUDED
+#ifndef _LIBPUB_ASCII_H_INCLUDED
+#define _LIBPUB_ASCII_H_INCLUDED
 
-#include "config.h"                 // For _PUB_NAMESPACE
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE::detail::unused {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace __detail::unused {
 //----------------------------------------------------------------------------
 //
 // Enum-
@@ -177,6 +178,6 @@ enum ASCII                          // ASCII enumeration
 // Values 0x80 through 0xFF are not defined by ASCII.
 // See https://www.ascii-codes.com/ for differing code page implementations.
 }; // enum ASCII
-}  // namespace _PUB_NAMESPACE::detail::unused
-
-#endif // _PUB_ASCII_H_INCLUDED
+}  // namespace __detail::unused
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_ASCII_H_INCLUDED

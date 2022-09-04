@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/pub/Socket.h
+//       Socket.h
 //
 // Purpose-
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2022/08/17
+//       2022/09/02
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -43,9 +43,8 @@
 #include <sys/poll.h>               // For struct pollfd, ...
 #include <sys/socket.h>             // For socket methods
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
-#include "pub/Exception.h"          // For SocketException
-#include "pub/Object.h"             // For base class, _PUB_NAMESPACE, ...
+#include <pub/Exception.h>          // For pub::Exception
+#include <pub/Object.h>             // For base class, ...
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------

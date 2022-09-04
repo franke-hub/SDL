@@ -16,16 +16,17 @@
 //       Standard Dispatch work Item object.
 //
 // Last change date-
-//       2022/07/14
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_DISPATCHITEM_H_INCLUDED
-#define _PUB_DISPATCHITEM_H_INCLUDED
+#ifndef _LIBPUB_DISPATCHITEM_H_INCLUDED
+#define _LIBPUB_DISPATCHITEM_H_INCLUDED
 
 #include "pub/List.h"               // Base class
 #include "pub/DispatchDone.h"       // Used in post
 
-namespace _PUB_NAMESPACE::dispatch {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace dispatch {
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -112,5 +113,6 @@ void
    }
 }
 }; // class Item
-}  // namespace _PUB_NAMESPACE::dispatch
-#endif // _PUB_DISPATCHITEM_H_INCLUDED
+}  // namespace dispatch
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_DISPATCHITEM_H_INCLUDED

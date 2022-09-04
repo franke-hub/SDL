@@ -16,7 +16,7 @@
 //       Primitive mechanisms for granting access to a resource.
 //
 // Last change date-
-//       2022/08/27
+//       2022/09/02
 //
 // Implementation notes-
 //       Internal logic for these mechanisms are further described in
@@ -47,7 +47,7 @@
 #include <thread>                   // For std::thread::id
 #include <stdint.h>                 // For uint32_t
 
-#include "bits/pubconfig.h"         // For _LIBPUB_NAMESPACE, ...
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
@@ -288,7 +288,7 @@ void
    downgrade( void )                // Downgrade XCL_latch to SHR_latch
 {
    static constexpr const uintptr_t
-       HBIT= sizeof(uintptr_t) == 8 ? 0x8000000000000000L : 0x80000000;
+       HBIT= sizeof(uintptr_t) == 8 ? 0x8000'0000'0000'0000L : 0x8000'0000;
 
    if( thread != std::this_thread::get_id()
        || share.count.load() != HBIT )
@@ -327,14 +327,14 @@ void
      throw std::runtime_error("XCL_latch unlock error");
 
    thread= std::thread::id();
-   share.reset();
+   share.count.store(0);
 }
 
 bool                                // TRUE iff successful
    try_lock( void )                 // Attempt to obtain the XCL_latch
 {
    static constexpr const uintptr_t
-       HBIT= sizeof(uintptr_t) == 8 ? 0x8000000000000000L : 0x80000000;
+       HBIT= sizeof(uintptr_t) == 8 ? 0x8000'0000'0000'0000L : 0x8000'0000;
 
    // Reserve the Latch for exclusive use
    uintptr_t oldValue= share.count.load();
@@ -351,12 +351,13 @@ bool                                // TRUE iff successful
    thread= std::this_thread::get_id(); // We have the reservation
 
    // Wait for all shares to unlock.
-   for(uint32_t spinCount= 1; share.count.load() != HBIT; spinCount++)
+   for(uint32_t spinCount= 1; oldValue != HBIT; spinCount++)
    {
      if( spinCount & 0x00000007 )
        std::this_thread::yield();
      else
        std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
+     oldValue= share.count.load();
    }
 
    return true;

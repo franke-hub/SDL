@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2021 Frank Eskesen.
+//       Copyright (C) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -13,10 +13,10 @@
 //       Include.cpp
 //
 // Purpose-
-//       Compile header files that have no execution component.
+//       Compile header files that have no associated library module.
 //
 // Last change date-
-//       2021/11/10
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include "pub/Event.h"

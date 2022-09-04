@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       IFMACRO defaults and macros.
 //
 // Last change date-
-//       2020/06/26
+//       2022/09/02
 //
 // Controls-
 //       HCDM     Hard Core Debug Mode (Intensive tracing)

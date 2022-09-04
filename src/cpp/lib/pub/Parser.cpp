@@ -16,7 +16,7 @@
 //       Parser implementation methods.
 //
 // Last change date-
-//       2022/06/18
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -25,7 +25,7 @@
 
 #include "pub/Parser.h"             // Implementation class
 
-namespace pub {
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -460,4 +460,4 @@ const char*                         // The parameter value
 
    return nullptr;
 }
-}  // namespace pub
+}  // namespace _LIBPUB_NAMESPACE

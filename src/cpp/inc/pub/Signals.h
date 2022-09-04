@@ -2,10 +2,10 @@
 //
 //       Copyright (C) 2022 Frank Eskesen.
 //
-//       This file is free content, distributed under the GNU General
-//       Public License, version 3.0.
-//       (See accompanying file LICENSE.GPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+//       This file is free content, distributed under the Lesser GNU
+//       General Public License, version 3.0.
+//       (See accompanying file LICENSE.LGPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
@@ -13,10 +13,10 @@
 //       Signals.h
 //
 // Purpose-
-//       pub::signals::Signal and pub::signals::Connector descriptors.
+//       signals::Signal and signals::Connector descriptors.
 //
 // Last change date-
-//       2022/08/23
+//       2022/09/02
 //
 // Usage notes-
 //       The Signal interface consists of these objects:
@@ -101,8 +101,8 @@
 //       S.butt_click(66, 87, 65);   // Drives B1
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_SIGNALS_H_INCLUDED
-#define _PUB_SIGNALS_H_INCLUDED
+#ifndef _LIBPUB_SIGNALS_H_INCLUDED
+#define _LIBPUB_SIGNALS_H_INCLUDED
 
 #include <functional>               // For std::function
 #include <memory>                   // For std::shared_ptr, std::weak_ptr
@@ -116,16 +116,17 @@
 //----------------------------------------------------------------------------
 // Macros (temporary, undefined at end)
 //----------------------------------------------------------------------------
-#define debugf ::pub::debugging::debugf // Prevent ADL lookup
-#define pub_hcdm ::pub::debugging::options::pub_hcdm
+#define debugf debugging::debugf // Prevent ADL lookup
+#define pub_hcdm debugging::options::pub_hcdm
 
 #include "bits/Signals.h"           // For internal classes
 
-namespace pub::signals {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace signals {
 //----------------------------------------------------------------------------
 //
 // Typename-
-//       pub::signals::Function<Event>
+//       signals::Function<Event>
 //
 // Purpose-
 //       Define the (application-implemented) Signal Event handling function.
@@ -137,7 +138,7 @@ using Function=        std::function<void(Event&)>; // Function<Event> class
 //----------------------------------------------------------------------------
 //
 // Class-
-//       pub::signals::Connector<Event>
+//       signals::Connector<Event>
 //
 // Purpose-
 //       User controlled Signal/Function<Event> pair connection tracking.
@@ -152,7 +153,7 @@ using Function=        std::function<void(Event&)>; // Function<Event> class
 template<typename Event>
 class Connector {                   // Signal/Listener Connector
 //----------------------------------------------------------------------------
-// pub::signals::Connector::Attributes
+// signals::Connector::Attributes
 //----------------------------------------------------------------------------
 protected:
 typedef __detail::ListenerList<Event>
@@ -168,7 +169,7 @@ Weak_t                 list;        // The ListenerList (weak_ptr)
 Slot_t*                slot;        // The Listener (raw pointer)
 
 //----------------------------------------------------------------------------
-// pub::signals::Connector::Constructors
+// signals::Connector::Constructors
 //----------------------------------------------------------------------------
 public:
    Connector( void )                // Default constructor
@@ -200,7 +201,7 @@ public:
    Connector(const Connector&) = delete; // *NO* copy constructor
 
 //----------------------------------------------------------------------------
-// pub::signals::Connector::Destructor
+// signals::Connector::Destructor
 //----------------------------------------------------------------------------
    ~Connector( void )               // Destructor
 {  if( pub_hcdm ) debugf("Connector(%p)::~Connector\n", this);
@@ -209,7 +210,7 @@ public:
 }
 
 //----------------------------------------------------------------------------
-// pub::signals::Connector::Operators
+// signals::Connector::Operators
 //----------------------------------------------------------------------------
 Connector&
    operator=(Connector&& that)      // MOVE assignment (resets source)
@@ -227,7 +228,7 @@ Connector&
 Connector& operator=(const Connector&) = delete;
 
 //----------------------------------------------------------------------------
-// pub::signals::Connector::debug() // Debugging display
+// signals::Connector::debug() // Debugging display
 //----------------------------------------------------------------------------
 void
    debug(const char* info= nullptr)
@@ -240,7 +241,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::Connector::reset
+//       signals::Connector::reset
 //
 // Purpose-
 //       Forget the Signal/Function association.
@@ -260,12 +261,12 @@ void
    list.reset();                    // (Prevent duplicate remove)
    slot= nullptr;                   // (Prevent duplicate delete)
 }
-}; // class pub::signals::Connector
+}; // class signals::Connector
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       pub::signals::Signal<Event>
+//       signals::Signal<Event>
 //
 // Purpose-
 //       Signal descriptor
@@ -274,7 +275,7 @@ void
 template<typename Event>
 class Signal : public Named {       // Signal descriptor
 //----------------------------------------------------------------------------
-// pub::signals::Signal::Attributes
+// signals::Signal::Attributes
 //----------------------------------------------------------------------------
 protected:
 typedef std::function<void(Event&)>
@@ -288,7 +289,7 @@ typedef __detail::ListenerList<Event>
                        list;        // The ListenerList List accessor
 
 //----------------------------------------------------------------------------
-// pub::signals::Signal::Constructors
+// signals::Signal::Constructors
 //----------------------------------------------------------------------------
 public:
    Signal(                          // Constructor
@@ -301,19 +302,19 @@ public:
    Signal(const Signal&) = delete;  // *NO* copy constructor
 
 //----------------------------------------------------------------------------
-// pub::signals::Signal::Destructor
+// signals::Signal::Destructor
 //----------------------------------------------------------------------------
 virtual
    ~Signal( void )                  // Destructor
 {  if( pub_hcdm ) debugf("Signal(%p)::~Signal\n", this); }
 
 //----------------------------------------------------------------------------
-// pub::signals::Signal::Operators
+// signals::Signal::Operators
 //----------------------------------------------------------------------------
 Signal& operator=(const Signal&) = delete; // *NO* Assignment operator
 
 //----------------------------------------------------------------------------
-// pub::signals::Signal::debug, Debugging display
+// signals::Signal::debug, Debugging display
 //----------------------------------------------------------------------------
 void
    debug(                           // Debugging display
@@ -325,7 +326,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::Signal::connect
+//       signals::Signal::connect
 //
 // Purpose-
 //       Connect a Signal to a (Function<Event> container) Listener
@@ -351,7 +352,7 @@ Connector<Event>                    // The Signal/Function connector
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::Signal::signal
+//       signals::Signal::signal
 //
 // Purpose-
 //       Signal all Listeners about an Event
@@ -368,7 +369,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::Signal::reset
+//       signals::Signal::reset
 //
 // Purpose-
 //       Remove all Listeners
@@ -382,11 +383,12 @@ void
    // This is required in order to prevent dangling Listener references.
    list= std::make_shared<ListenerList>(); // Replace the ListenerList
 }
-}; // class pub::signals::Signal
-}  // namespace pub::signals
+}; // class signals::Signal
+}  // namespace signals
+_LIBPUB_END_NAMESPACE
 //----------------------------------------------------------------------------
 // Remove temporary macros
 //----------------------------------------------------------------------------
 #undef debugf
 #undef pub_hcdm
-#endif // _PUB_SIGNALS_H_INCLUDED
+#endif // _LIBPUB_SIGNALS_H_INCLUDED

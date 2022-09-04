@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2022/08/27
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For std::free
@@ -28,24 +28,22 @@
 #include <limits.h>                 // For INT_MIN, INT_MAX, ...
 #include <stddef.h>                 // For offsetof
 
-#include "pub/config.h"             // For _PUB_NAMESPACE
 #include "pub/TEST.H"               // For error counting
 #include "pub/Debug.h"              // For namespace pub::debugging
 #include "pub/Exception.h"          // For pub::Exception
 #include "pub/Latch.h"              // See test_Latch
 #include "pub/Signals.h"            // See test_Signals
 #include "pub/Trace.h"              // See test_Trace
-#include "pub/utility.h"            // For _PUB_NAMESPACE::utility
+#include "pub/utility.h"            // For pub::utility
 #include "pub/Wrapper.h"            // For pub::Wrapper
 
-using pub::Wrapper;                 // For pub::Wrapper class
-
-#define opt_hcdm       pub::Wrapper::opt_hcdm
-#define opt_verbose    pub::Wrapper::opt_verbose
-
-using namespace _PUB_NAMESPACE;
-using namespace _PUB_NAMESPACE::debugging;
-using _PUB_NAMESPACE::utility::dump;
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB;
+using namespace PUB::debugging;
+using PUB::utility::dump;
+using PUB::Wrapper;
+#define opt_hcdm       PUB::Wrapper::opt_hcdm
+#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -136,7 +134,7 @@ static inline void
      unsigned int      length,        // The dump length
      unsigned int      offset)        // The (virtual) origin
 {
-   using pub::utility::dump;
+   using PUB::utility::dump;
 
    char* ORIGIN= nullptr;
    ORIGIN += offset;
@@ -157,7 +155,7 @@ static inline void
      unsigned int      origin,        // The dump origin
      unsigned int      length)        // The dump length
 {
-   using pub::utility::dump;
+   using PUB::utility::dump;
 
    FILE* stdbug= Debug::get()->get_FILE();
    fprintf(stdbug, "\n%p[%.2x:%.4x]\n", buffer, origin, length);
@@ -178,7 +176,7 @@ static inline int
 
    int                 error_count= 0; // Number of errors encountered
 
-   using pub::utility::dump;
+   using PUB::utility::dump;
    alignas(256) char buffer[256];
    for(int i=  0; i<32; i++)
      buffer[i]= i;
@@ -390,10 +388,10 @@ static inline int
    int                 error_count= 0; // Number of errors encountered
 
    // Test utility.h (utility::dump tested separately)
-   using namespace pub::utility;
-   using pub::utility::atoi;
-   using pub::utility::atol;
-   using pub::utility::atox;
+   using namespace PUB::utility;
+   using PUB::utility::atoi;
+   using PUB::utility::atol;
+   using PUB::utility::atox;
 
    errno= 0;                          // No error
 
@@ -544,7 +542,7 @@ static inline int
 
    int                 error_count= 0; // Number of errors encountered
 
-   using namespace pub::signals;
+   using namespace PUB::signals;
    struct Event {                   // Our event type
      float             X;           // X value
      float             Y;           // Y value
@@ -559,7 +557,7 @@ static inline int
    using click_event=  Event;
    using click_signal= Signal<Event>;
 
-   pub::debugging::options::pub_hcdm= opt_hcdm;
+   PUB::debugging::options::pub_hcdm= opt_hcdm;
 
    struct gui_element{
      click_signal clicked;
@@ -769,7 +767,7 @@ static inline int
 static inline int
    test_Trace( void )               // Test Trace.h
 {
-using _PUB_NAMESPACE::Trace;
+   using _LIBPUB_NAMESPACE::Trace;
 
    debugf("\ntest_Trace\n");
 
@@ -811,13 +809,13 @@ using _PUB_NAMESPACE::Trace;
    #endif
 
    // Define our Trace::Record
-   typedef pub::Trace::Record Record;
+   typedef PUB::Trace::Record Record;
    Record* record= nullptr;         // Working Record*
 
    // Allocate the Trace table
    uint32_t table_size= 0x00020000; // Desired table space
-   table_size += sizeof(pub::Trace); // Address trim allowance
-   table_size += sizeof(pub::Trace); // For header
+   table_size += sizeof(PUB::Trace); // Address trim allowance
+   table_size += sizeof(PUB::Trace); // For header
    table_size += 7;                 // Insure tail trim
    void*    table_addr= malloc(table_size);
    memset(table_addr, 'T', table_size);

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2021 Frank Eskesen.
+//       Copyright (C) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,16 +16,16 @@
 //       Define the the Named attribute and the NamedObject class.
 //
 // Last change date-
-//       2021/07/09
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_NAMED_H_INCLUDED
-#define _PUB_NAMED_H_INCLUDED
+#ifndef _LIBPUB_NAMED_H_INCLUDED
+#define _LIBPUB_NAMED_H_INCLUDED
 
-#include "Object.h"
-#include <string>
+#include <string>                   // For std::string
+#include <pub/Object.h>             // For pub::Object.h
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -83,5 +83,5 @@ virtual
      const std::string name)        // The associated name
 :  Named(name), Object() {}
 }; // class Named
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_NAMED_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_NAMED_H_INCLUDED

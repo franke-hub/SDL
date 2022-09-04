@@ -1,11 +1,11 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2020-2022 Frank Eskesen.
 //
-//       This file is free content, distributed under the GNU General
-//       Public License, version 3.0.
-//       (See accompanying file LICENSE.GPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+//       This file is free content, distributed under the Lesser GNU
+//       General Public License, version 3.0.
+//       (See accompanying file LICENSE.LGPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
@@ -16,22 +16,21 @@
 //       Name/value string pair map.
 //
 // Last change date-
-//       2020/08/24
+//       2022/09/02
 //
 // Implementation notes-
 //       Property names are case insensitive.
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_PROPERTIES_H_INCLUDED
-#define _PUB_PROPERTIES_H_INCLUDED
+#ifndef _LIBPUB_PROPERTIES_H_INCLUDED
+#define _LIBPUB_PROPERTIES_H_INCLUDED
 
 #include <map>
 #include <string>
 
-#include "config.h"
-#include "utility.h"
+#include <pub/utility.h>            // For pub::utility::opt_lt_istr
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -105,5 +104,5 @@ virtual const char*                 // The Property value
    operator[](                      // Get Property value
      const string&     name) const; // For this Property name
 }; // class Properties
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_PROPERTIES_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_PROPERTIES_H_INCLUDED

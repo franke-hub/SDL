@@ -16,7 +16,7 @@
 //       Display environmental control variables.
 //
 // Last change date-
-//       2022/05/06
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #define _FILE_OFFSET_BITS 64        // (Required for LINUX)
@@ -66,11 +66,12 @@ using namespace std;
   #error "_ADDR64 indeterminate"
 #endif
 
-using namespace _PUB_NAMESPACE;
-using namespace _PUB_NAMESPACE::debugging;
-using pub::Wrapper;                 // For pub::Wrapper class
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB;
+using namespace PUB::debugging;
+using PUB::Wrapper;                 // For pub::Wrapper class
 
-#define opt_verbose    pub::Wrapper::opt_verbose
+#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -123,9 +124,9 @@ class MyException : public std::runtime_error {
 //       Background Thread that sets and clears `running`
 //
 //----------------------------------------------------------------------------
-class Timer : public pub::Thread {
+class Timer : public PUB::Thread {
 public:
-pub::Event             event;       // Test start event
+PUB::Event             event;       // Test start event
 double                 test_time;   // Test run time
 static volatile int    running;     // Test running
 
@@ -256,18 +257,18 @@ static inline int                   // Number of errors encountered
 
    debugf("\ntest_Clock\n");
 
-   _PUB_NAMESPACE::Clock clock;
+   _LIBPUB_NAMESPACE::Clock clock;
    double start= clock.now();
 
    interval_test([clock, start]() mutable {start= clock.now(); },
                  [clock, start]() {return clock.now() - start; });
 
-   debugf("%14.3f Clock::now()\n", _PUB_NAMESPACE::Clock::now());
+   debugf("%14.3f Clock::now()\n", _LIBPUB_NAMESPACE::Clock::now());
    debugh("Debug::now()\n");
 
-   _PUB_NAMESPACE::Clock one;
-   _PUB_NAMESPACE::Clock two;
-   _PUB_NAMESPACE::Clock wow;
+   _LIBPUB_NAMESPACE::Clock one;
+   _LIBPUB_NAMESPACE::Clock two;
+   _LIBPUB_NAMESPACE::Clock wow;
    two= 3.0;
 
    wow= one + two;
@@ -297,7 +298,7 @@ static inline int                   // Number of errors encountered
 
    debugf("\ntest_Interval\n");
 
-   _PUB_NAMESPACE::Interval interval;
+   _LIBPUB_NAMESPACE::Interval interval;
 
    interval_test([interval]() mutable {interval.start(); },
                  [interval]() mutable {return interval.stop(); });
@@ -670,7 +671,7 @@ static inline int
    // pub Library
    //-------------------------------------------------------------------------
    debugf("\n");
-   MACROF(_PUB_NAMESPACE);
+   MACROF(_LIBPUB_NAMESPACE);
    MACROF(ATTRIB_NORETURN);
 
    //-------------------------------------------------------------------------

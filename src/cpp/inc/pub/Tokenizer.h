@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,16 +16,17 @@
 //       Tokenizer object.
 //
 // Last change date-
-//       2020/10/03
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_TOKENIZER_H_INCLUDED
-#define _PUB_TOKENIZER_H_INCLUDED
+#ifndef _LIBPUB_TOKENIZER_H_INCLUDED
+#define _LIBPUB_TOKENIZER_H_INCLUDED
 
 #include <string>                   // For std::string
-#include "config.h"                 // For _PUB_NAMESPACE, ...
 
-namespace _PUB_NAMESPACE {
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -141,5 +142,5 @@ void
    this->input= _input.c_str();
 }
 }; // class Tokenizer
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_TOKENIZER_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_TOKENIZER_H_INCLUDED

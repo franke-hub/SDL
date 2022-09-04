@@ -2,10 +2,10 @@
 //
 //       Copyright (c) 2020-2022 Frank Eskesen.
 //
-//       This file is free content, distributed under the GNU General
-//       Public License, version 3.0.
-//       (See accompanying file LICENSE.GPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+//       This file is free content, distributed under the Lesser GNU
+//       General Public License, version 3.0.
+//       (See accompanying file LICENSE.LGPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
@@ -16,7 +16,7 @@
 //       All the file management classes, conveniently packaged in one file.
 //
 // Last change date-
-//       2022/04/08
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_FILEMAN_H_INCLUDED
@@ -28,7 +28,8 @@
 #include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 #include <pub/List.h>               // For pub::DHDL_list, ...
 
-namespace _LIBPUB_NAMESPACE::fileman { // The pub::fileman namespace
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace fileman {
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
@@ -347,5 +348,6 @@ virtual char*                       // Allocated storage, nullptr on failure
    malloc(                          // Allocate storage
      size_t            _size);      // The required length
 }; // class Pool
-}  // namespace _LIBPUB_NAMESPACE::fileman
+}  // namespace fileman
+_LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_FILEMAN_H_INCLUDED

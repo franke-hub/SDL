@@ -16,7 +16,7 @@
 //       List object methods.
 //
 // Last change date-
-//       2022/04/12
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -27,11 +27,11 @@
 #include <unistd.h>
 
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include "pub/List.h"
+#include "pub/List.h"               // For pub::List, implemented
 
-using namespace pub::debugging;     // Debugging functions
+using namespace _LIBPUB_NAMESPACE::debugging; // Debugging functions
 
-_LIBPUB_BEGIN_NAMESPACE
+namespace _LIBPUB_NAMESPACE {       // The fileman namespace
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -775,4 +775,4 @@ SHSL_list<void>::_Link*             // The set of removed _Links
 
    return link;
 }
-_LIBPUB_END_NAMESPACE
+} // namespace _LIBPUB_NAMESPACE

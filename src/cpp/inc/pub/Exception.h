@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -10,24 +10,24 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/pub/Exception.h
+//       Exception.h
 //
 // Purpose-
 //       Standard Exception and built-in Exceptions.
 //
 // Last change date-
-//       2020/01/10
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_EXCEPTION_H_INCLUDED
-#define _PUB_EXCEPTION_H_INCLUDED
+#ifndef _LIBPUB_EXCEPTION_H_INCLUDED
+#define _LIBPUB_EXCEPTION_H_INCLUDED
 
 #include <stdexcept>                // For std::runtime_error
 #include <string>                   // For std::string
 
-#include "Object.h"                 // For Object, _PUB_NAMESPACE, ...
+#include "Object.h"                 // For Object, _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -85,5 +85,5 @@ virtual inline
 // IndexException: When getting: index unknown. When setting: index exists.
 class IndexException : public Exception { using Exception::Exception;
 }; // class IndexException
-}  // _PUB_NAMESPACE
-#endif // _PUB_EXCEPTION_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_EXCEPTION_H_INCLUDED

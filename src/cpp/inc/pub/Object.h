@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -10,27 +10,27 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/pub/Object.h
+//       Object.h
 //
 // Purpose-
-//       A standard _PUB_OBJECT::Object
+//       The base object class.
 //
 // Last change date-
-//       2020/10/03
+//       2022/09/02
 //
 // Implementation notes-
 //       This header is guaranteed to #include "config.h"
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_OBJECT_H_INCLUDED
-#define _PUB_OBJECT_H_INCLUDED
+#ifndef _LIBPUB_OBJECT_H_INCLUDED
+#define _LIBPUB_OBJECT_H_INCLUDED
 
 #include <ostream>                  // For std::ostream
 #include <string>                   // For std::string
 
-#include "config.h"                 // For _PUB_NAMESPACE, ...
+#include "config.h"                 // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -88,7 +88,7 @@ inline std::string                  // The String representation of this Object
    to_string( void ) const          // Get String representation of this Object
 {  return operator std::string(); }
 }; // class Object
-}  // namespace _PUB_NAMESPACE
+_LIBPUB_END_NAMESPACE
 
 //----------------------------------------------------------------------------
 //
@@ -99,7 +99,7 @@ inline std::string                  // The String representation of this Object
 //       Global comparison operators, global cout << operator.
 //
 //----------------------------------------------------------------------------
-#define _PUB _PUB_NAMESPACE         // (Temporary)
+#define _PUB _LIBPUB_NAMESPACE      // (Temporary)
 inline bool                         // Resultant
    operator==(                      // Compare (L::R) for equality
      _PUB::Object&     L,           // Left parameter
@@ -143,4 +143,4 @@ inline std::ostream&                // (stream)
      const _PUB::Object&object)     // (This _PUB::Object)
 {  return stream << (std::string)object; }
 #undef _PUB
-#endif // _PUB_OBJECT_H_INCLUDED
+#endif // _LIBPUB_OBJECT_H_INCLUDED

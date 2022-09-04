@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/08/20
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -52,13 +52,19 @@
 #include "pub/Select.h"             // For pub::Select
 #include "pub/Socket.h"             // For pub::Socket, implemented
 
-using namespace _PUB_NAMESPACE::debugging; // For debugging
+using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
+
+namespace _LIBPUB_NAMESPACE {
+//----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+[[noreturn]] static void sno_exception(int line);
 
 //----------------------------------------------------------------------------
 // Typedefs (used by internal subroutines)
 //----------------------------------------------------------------------------
-typedef pub::Socket::sockaddr_u     sockaddr_u;
-typedef pub::Socket::sockaddr_x     sockaddr_x;
+typedef Socket::sockaddr_u          sockaddr_u;
+typedef Socket::sockaddr_x          sockaddr_x;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -74,12 +80,6 @@ enum
 // Maximum/minimum sockaddr_u lengths
 static int constexpr   max_sock= (int)sizeof(sockaddr_u);
 static int constexpr   min_sock= (int)sizeof(sockaddr::sa_family);
-
-namespace _PUB_NAMESPACE {
-//----------------------------------------------------------------------------
-// Forward references
-//----------------------------------------------------------------------------
-[[noreturn]] static void sno_exception(int line);
 
 //----------------------------------------------------------------------------
 //
@@ -446,16 +446,13 @@ int                                 // Return code, 0 OK
    if( handle >= 0 ) {
      Select* select= this->selector;
      if( select ) {                 // If Select controlled
-       std::unique_lock<decltype(select->shr_latch)> lock(select->shr_latch);
+       std::lock_guard<decltype(select->ctl_latch)> lock(select->ctl_latch);
 
        // We may have been blocked by close() running on another thread.
-       // If so, selector->remove() will have set selector == nullptr
-       // and close will have closed the socket.
+       // If so, selector->remove() will have set selector == nullptr.
        if( this->selector == select ) {
          on_select([](int) {});     // Reset default (NOP) select handler
          select->remove(this);
-         lock.unlock();             // Cannot hold locks calling control()
-         select->control();
        }
      }
 
@@ -878,7 +875,7 @@ void
        su_x.x_sockaddr= &this->sa;
      } else {
        assert( size_t(size) >= (offsetof(sockaddr_x, x_socksize) - 1) );
-       su_x.x_sockaddr= (sockaddr*)Must::malloc(size+1);
+       su_x.x_sockaddr= (sockaddr*)must::malloc(size+1);
        memcpy(su_x.x_sockaddr, source.su_x.x_sockaddr, size+1);
      }
    }
@@ -897,7 +894,7 @@ void
        assert( size_t(size) <= sizeof(sockaddr_un) );
        if( size_t(size) < offsetof(sockaddr_un, sun_path) )
          size= offsetof(sockaddr_un, sun_path);
-       copy= (char*)Must::malloc(size+1); // (+1 for trailing '\0')
+       copy= (char*)must::malloc(size+1); // (+1 for trailing '\0')
      }
 
      memcpy(copy, addr, size);
@@ -1219,4 +1216,4 @@ ssize_t                             // Number of bytes sent
 
    return L;
 }
-} // namespace _PUB_NAMESPACE
+} // namespace _LIBPUB_NAMESPACE

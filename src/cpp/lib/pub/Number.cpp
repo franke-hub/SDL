@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021 Frank Eskesen.
+//       Copyright (c) 2021-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Number.h
 //
 // Last change date-
-//       2021/10/01
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -35,9 +35,9 @@
 
 #include "pub/Number.h"             // The implementation class
 
-using namespace _PUB_NAMESPACE;
-using namespace _PUB_NAMESPACE::debugging;
-using _PUB_NAMESPACE::utility::to_string;
+using namespace _LIBPUB_NAMESPACE;
+using namespace _LIBPUB_NAMESPACE::debugging;
+using _LIBPUB_NAMESPACE::utility::to_string;
 using std::string;
 
 //----------------------------------------------------------------------------
@@ -59,7 +59,7 @@ enum
 //----------------------------------------------------------------------------
 #define wordof(x) (x / sizeof(Word))
 
-namespace _PUB_NAMESPACE {
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
@@ -1248,4 +1248,4 @@ void
    while( i < count )
      into[i++]= fill;
 }
-}  // namespace _PUB_NAMESPACE
+}  // namespace _LIBPUB_NAMESPACE

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,18 +16,18 @@
 //       Interval Timer.
 //
 // Last change date-
-//       2014/01/01
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_INTERVAL_H_INCLUDED
-#define _PUB_INTERVAL_H_INCLUDED
+#ifndef _LIBPUB_INTERVAL_H_INCLUDED
+#define _LIBPUB_INTERVAL_H_INCLUDED
 
 #include <chrono>
 #include <stdint.h>
 
-#include "config.h"                 // For _PUB_NAMESPACE
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -89,5 +89,5 @@ double                              // Resultant (in seconds)
    return (double)ns / 1000000000.0;
 }
 }; // class Interval
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_INTERVAL_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_INTERVAL_H_INCLUDED

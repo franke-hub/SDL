@@ -16,7 +16,7 @@
 //       Utf.h implementation methods: classes Utf, Utf8, Utf16, and Utf32.
 //
 // Last change date-
-//       2022/04/08
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
@@ -32,10 +32,10 @@
 #include "pub/Utf.h"                // Implementation class
 #include "pub/utility.h"            // For pub::to_string
 
-#define _PUB _LIBPUB_NAMESPACE
-using namespace _PUB::debugging;    // For debugging utility functions
-using _PUB::utility::to_string;     // For pub::utility::to_string
+using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
+using _LIBPUB_NAMESPACE::utility::to_string;
 
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -50,10 +50,6 @@ enum                                // Unicode characters
 ,  MARK_ORDER_BYTE= 0x00FFFE        // Little endian Byte Order Mark
 }; // enum Unicode characters
 
-//----------------------------------------------------------------------------
-// _PUB NAMESPACE ------------------------------------------------------------
-//----------------------------------------------------------------------------
-namespace _PUB {
 typedef Utf::utf8_t    utf8_t;      // Import Utf::utf8_t
 typedef Utf::utf16_t   utf16_t;     // Import Utf::utf16_t
 typedef Utf::utf32_t   utf32_t;     // Import Utf::utf32_t
@@ -216,8 +212,8 @@ Utf8::const_iterator& Utf8::const_iterator::operator++() // (Prefix operator)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf8::~Utf8
-//       pub::Utf8::Utf8
+//       Utf8::~Utf8
+//       Utf8::Utf8
 //
 // Purpose-
 //       Destructor
@@ -292,8 +288,8 @@ Utf8::const_iterator& Utf8::const_iterator::operator++() // (Prefix operator)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf8::get_init
-//       pub::Utf8::init
+//       Utf8::get_init
+//       Utf8::init
 //
 // Purpose-
 //       Initialization
@@ -382,7 +378,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf8::operators
+//       Utf8::operators
 //
 // Purpose-
 //       Operator method implementations
@@ -433,7 +429,7 @@ Utf8& Utf8::operator= (const utf8_t* src) // Copy utf8_t string
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf8::decode
+//       Utf8::decode
 //
 // Purpose-
 //       Decode the next code point
@@ -447,7 +443,7 @@ Utf::utf32_t                        // The next UTF32 code point
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf8::encode
+//       Utf8::encode
 //
 // Purpose-
 //       Encode a code point
@@ -517,7 +513,7 @@ unsigned                            // The UTF8 encoding length
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf8::index
+//       Utf8::index
 //
 // Purpose-
 //       Get byte offset for code point index
@@ -540,7 +536,7 @@ size_t                              // The utf8_t* offset
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf8::length
+//       Utf8::length
 //
 // Purpose-
 //       Get encoding length
@@ -554,7 +550,7 @@ unsigned                            // The UTF8 encoding length
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf8::reset
+//       Utf8::reset
 //
 // Purpose-
 //       Reset (empty) the Utf8
@@ -675,8 +671,8 @@ Utf16::const_iterator& Utf16::const_iterator::operator++() // (Prefix operator)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf16::~Utf16
-//       pub::Utf16::Utf16
+//       Utf16::~Utf16
+//       Utf16::Utf16
 //
 // Purpose-
 //       Destructor
@@ -754,8 +750,8 @@ Utf16::const_iterator& Utf16::const_iterator::operator++() // (Prefix operator)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf16::get_init
-//       pub::Utf16::init
+//       Utf16::get_init
+//       Utf16::init
 //
 // Purpose-
 //       Initialization
@@ -838,7 +834,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf16::operators
+//       Utf16::operators
 //
 // Purpose-
 //       Operator method implementations
@@ -889,7 +885,7 @@ Utf16& Utf16::operator= (const Utf32& src) // Copy Utf32 object
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf16::decode
+//       Utf16::decode
 //
 // Purpose-
 //       Decode the next code point
@@ -929,7 +925,7 @@ unsigned                            // The UTF16 encoding length
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf16::reset
+//       Utf16::reset
 //
 // Purpose-
 //       Reset (empty) the Utf16
@@ -975,8 +971,8 @@ Utf32::const_iterator& Utf32::const_iterator::operator++() // (Prefix operator)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf32::~Utf32
-//       pub::Utf32::Utf32
+//       Utf32::~Utf32
+//       Utf32::Utf32
 //
 // Purpose-
 //       Destructor
@@ -1052,8 +1048,8 @@ Utf32::const_iterator& Utf32::const_iterator::operator++() // (Prefix operator)
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf32::get_init
-//       pub::Utf32::init
+//       Utf32::get_init
+//       Utf32::init
 //
 // Purpose-
 //       Initialization
@@ -1130,7 +1126,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf32::operators
+//       Utf32::operators
 //
 // Purpose-
 //       Operator method implementations
@@ -1180,7 +1176,7 @@ Utf32& Utf32::operator= (const Utf16& src) // Copy Utf16 object
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf32::decode
+//       Utf32::decode
 //
 // Purpose-
 //       Decode the next code point
@@ -1214,7 +1210,7 @@ unsigned                            // The UTF32 encoding length
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Utf32::reset
+//       Utf32::reset
 //
 // Purpose-
 //       Reset (empty) the Utf32
@@ -1227,4 +1223,4 @@ void
    data= nullptr;
    size= codes= 0;
 }
-}  // namespace _PUB_NAMESPACE
+}  // namespace _LIBPUB_NAMESPACE

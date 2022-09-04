@@ -16,7 +16,7 @@
 //       Describe the List objects.
 //
 // Last change date-
-//       2022/04/17
+//       2022/09/02
 //
 // Implementation notes-
 //       Unlike std::List<T>, pub::List<T> elements *are* links.

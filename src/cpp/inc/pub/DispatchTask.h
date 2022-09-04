@@ -16,19 +16,20 @@
 //       Standard Dispatch Task object.
 //
 // Last change date-
-//       2022/04/05
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_DISPATCHTASK_H_INCLUDED
-#define _PUB_DISPATCHTASK_H_INCLUDED
+#ifndef _LIBPUB_DISPATCHTASK_H_INCLUDED
+#define _LIBPUB_DISPATCHTASK_H_INCLUDED
 
 #include <functional>               // For std::function
 
 #include "pub/Dispatch.h"           // The Dispatcher
 #include "pub/DispatchItem.h"       // Dispatch work Item
-#include "Worker.h"                 // Worker Thread Pool
+#include "pub/Worker.h"             // Worker Thread Pool
 
-namespace _PUB_NAMESPACE::dispatch {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace dispatch {
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -142,5 +143,6 @@ virtual void                        // (Callback constructor-defined)
      Item*             item)        // This work Item
 {  callback(item); }
 }; // class LambdaTask
-}  // namespace _PUB_NAMESPACE::dispatch
-#endif // _PUB_DISPATCHTASK_H_INCLUDED
+}  // namespace dispatch
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_DISPATCHTASK_H_INCLUDED

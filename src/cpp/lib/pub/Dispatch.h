@@ -16,7 +16,7 @@
 //       Work dispatcher, including local definitions.
 //
 // Last change date-
-//       2022/08/29
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -32,7 +32,7 @@
 #include <pub/Thread.h>             // dispatch::Timers is a Named Thread
 #include <pub/Worker.h>             // dispatch::Task base class
 
-using namespace _PUB_NAMESPACE::debugging; // Enable debugging functions
+using namespace _LIBPUB_NAMESPACE::debugging; // Enable debugging functions
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -41,7 +41,7 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 }; // enum
 
-namespace _PUB_NAMESPACE::dispatch {
+namespace _LIBPUB_NAMESPACE::dispatch {
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -219,4 +219,4 @@ virtual void
    event.post();
 }
 }; // class Timers
-}  // namespace _PUB_NAMESPACE::dispatch
+}  // namespace _LIBPUB_NAMESPACE::dispatch

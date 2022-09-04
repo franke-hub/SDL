@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,20 +16,21 @@
 //       Redefined interfaces that throw bad_alloc iff failure.
 //
 // Last change date-
-//       2018/01/01
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_MUST_H_INCLUDED
-#define _PUB_MUST_H_INCLUDED
+#ifndef _LIBPUB_MUST_H_INCLUDED
+#define _LIBPUB_MUST_H_INCLUDED
 
 #include <new>                      // For bad_alloc
 #include <stdio.h>                  // For fprintf()
 #include <stdlib.h>                 // For ::free, ::malloc
 #include <string.h>                 // For ::strdup
 
-#include "config.h"                 // For _PUB_NAMESPACE
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE::Must {    // Add checking to malloc storage functions
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace must {                    // Add checking to malloc storage functions
 //----------------------------------------------------------------------------
 // free(void*), explicitly allowing nullptr
 static inline void
@@ -65,5 +66,6 @@ static inline char*                 // The duplicated string
 
    return result;
 }
-}  // namespace _PUB_NAMESPACE::Must
-#endif // _PUB_MUST_H_INCLUDED
+}  // namespace must
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_MUST_H_INCLUDED

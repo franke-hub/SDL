@@ -16,15 +16,15 @@
 //       Define a Worker used to handle discrete units of work.
 //
 // Last change date-
-//       2022/06/05
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_WORKER_H_INCLUDED
-#define _PUB_WORKER_H_INCLUDED
+#ifndef _LIBPUB_WORKER_H_INCLUDED
+#define _LIBPUB_WORKER_H_INCLUDED
 
-#include "config.h"                 // For _PUB_NAMESPACE, ...
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Interface class-
@@ -73,5 +73,5 @@ static void
    work(                             // Process work
      Worker*           worker);      // Using this Worker
 }; // class WorkerPool
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_WORKER_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_WORKER_H_INCLUDED

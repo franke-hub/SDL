@@ -1,11 +1,11 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
-//       This file is free content, distributed under the GNU General
-//       Public License, version 3.0.
-//       (See accompanying file LICENSE.GPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+//       This file is free content, distributed under the Lesser GNU
+//       General Public License, version 3.0.
+//       (See accompanying file LICENSE.LGPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
@@ -16,11 +16,11 @@
 //       Inter-process named Lock.
 //
 // Last change date-
-//       2020/07/18
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_LOCK_H_INCLUDED
-#define _PUB_LOCK_H_INCLUDED
+#ifndef _LIBPUB_LOCK_H_INCLUDED
+#define _LIBPUB_LOCK_H_INCLUDED
 
 #include <stdexcept>                // For std::logic_error
 #include <string>                   // For std::string
@@ -28,7 +28,9 @@
 #include <sys/stat.h>               // For S_* constants and macros
 #include <semaphore.h>              // For semaphore
 
-namespace pub {                     // The pub library namespace
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -100,5 +102,5 @@ static int                          // Return code, 0 OK
      const char*       name)        // The Lock name
 {  return sem_unlink(name); }
 }; // class Lock
-}  // namespace pub
-#endif // _PUB_LOCK_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_LOCK_H_INCLUDED

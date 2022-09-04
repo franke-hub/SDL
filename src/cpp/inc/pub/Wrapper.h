@@ -16,7 +16,7 @@
 //       Generic program wrapper.
 //
 // Last change date-
-//       2022/06/14
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_WRAPPER_H_INCLUDED

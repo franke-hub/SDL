@@ -16,14 +16,16 @@
 //       Test pub/Parser.h
 //
 // Last change date-
-//       2022/04/22
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "pub/Parser.h"
+#include "pub/Parser.h"             // For pub::Parser
+
+#define PUB _LIBPUB_NAMESPACE
 
 //----------------------------------------------------------------------------
 //
@@ -36,7 +38,7 @@
 //----------------------------------------------------------------------------
 static void
    resultant(                       // Show resultant
-     pub::Parser&      parser,      // For this parser,
+     PUB::Parser&      parser,      // For this parser,
      const char*       sect,        // This section, and
      const char*       parm)        // This parameter
 {
@@ -56,7 +58,7 @@ static void
 extern int                          // Return code
    main(void)                       // Mainline entry
 {
-   pub::Parser parser;
+   PUB::Parser parser;
    long rc= parser.open("S/script/inp/parser.inp");
    printf("%ld= open(S/script/inp/parser.inp)\n", rc);
    parser.debug(); printf("\n\n");

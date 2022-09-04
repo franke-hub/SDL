@@ -16,23 +16,24 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2022/04/05
+//       2022/09/02
 //
 // Implementation notes-
 //       DispatchDone.h, DispatchItem.h, and DispatchTask.h are integral parts
 //       of the Dispatcher. Their include is guaranteed.
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_DISPATCH_H_INCLUDED
-#define _PUB_DISPATCH_H_INCLUDED
+#ifndef _LIBPUB_DISPATCH_H_INCLUDED
+#define _LIBPUB_DISPATCH_H_INCLUDED
 
-#include <pub/Latch.h>              // For mutex
+#include <pub/Latch.h>              // For pub::Latch
 
 #include "pub/DispatchDone.h"       // Dispatch Done/Wait object
 #include "pub/DispatchItem.h"       // Dispatch work Item object
 #include "pub/DispatchTask.h"       // Dispatch Task object
 
-namespace _PUB_NAMESPACE::dispatch {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace dispatch {
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
@@ -41,7 +42,7 @@ class Timers;                       // Dispatch: Timers Thread (INTERNAL)
 //----------------------------------------------------------------------------
 //
 // Static class-
-//       pub::dispatch::Disp
+//       dispatch::Disp
 //
 // Purpose-
 //       Work dispatcher. (All methods are static.)
@@ -110,5 +111,6 @@ static inline void
 static void
    wait( void );                    // Wait for all work to complete
 }; // class Disp
-}  // namespace _PUB_NAMESPACE::dispatch
-#endif // _PUB_DISPATCH_H_INCLUDED
+}  // namespace dispatch
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_DISPATCH_H_INCLUDED

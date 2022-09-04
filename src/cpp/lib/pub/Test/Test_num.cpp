@@ -16,7 +16,7 @@
 //       Test the Number object.
 //
 // Last change date-
-//       2022/04/22
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <inttypes.h>               // For PRId64, PRIx64 printf format macros
@@ -27,19 +27,18 @@
 #include <pub/TEST.H>               // For VERIFY macro
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Interval.h>           // For pub::Interval
+#include "pub/Number.h"             // For pub::Number, tested
 #include <com/Random.h>             // For com::Random
-//#include <com/Verify.h>             // For test verification
 #include <pub/Wrapper.h>            // For pub::Wrapper
 
-#include "pub/Number.h"             // For pub::Number, tested
-
-using namespace pub;                // For Number
-using namespace pub::debugging;     // For debugging functions
-using pub::Wrapper;                 // For pub::Wrapper class
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB;                // For Number
+using namespace PUB::debugging;     // For debugging functions
+using PUB::Wrapper;                 // For pub::Wrapper class
 using namespace std;
 
-#define opt_hcdm       pub::Wrapper::opt_hcdm
-#define opt_verbose    pub::Wrapper::opt_verbose
+#define opt_hcdm       PUB::Wrapper::opt_hcdm
+#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

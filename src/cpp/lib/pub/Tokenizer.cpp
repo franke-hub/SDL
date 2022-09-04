@@ -16,7 +16,7 @@
 //       Tokenizer object methods.
 //
 // Last change date-
-//       2021/03/02
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::out_of_range exception, ...
@@ -25,11 +25,9 @@
 #include <ctype.h>                  // For isspace
 #include <string.h>                 // For memcmp, strstr
 
-#include <pub/Debug.h>
+#include "pub/Tokenizer.h"          // For pub::Tokenizer, implemented
 
-#include "pub/Tokenizer.h"
-
-namespace _PUB_NAMESPACE {
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Static data areas
 //----------------------------------------------------------------------------
@@ -162,4 +160,4 @@ Tokenizer::Iterator
    next();
    return result;
 }
-} // namespace _PUB_NAMESPACE
+} // namespace _LIBPUB_NAMESPACE

@@ -16,7 +16,7 @@
 //       Test Fileman.h (parts untested by ~/src/cpp/Fileman)
 //
 // Last change date-
-//       2022/04/22
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 //#include <stdio.h>
@@ -26,18 +26,18 @@
 
 #include <exception>
 
-#include <pub/config.h>             // For _PUB_NAMESPACE macro
 #include <pub/Debug.h>              // For namespace debugging
 
 #include "pub/Fileman.h"            // For Fileman classes, tested
 #include <pub/Wrapper.h>            // For class Wrapper
 
-using namespace _PUB_NAMESPACE::debugging; // For debugging functions
-using namespace _PUB_NAMESPACE::fileman; // For pub::fileman classes
-using _PUB_NAMESPACE::Wrapper;      // For pub::Wrapper class
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB::debugging;     // For debugging functions
+using namespace PUB::fileman;
+using PUB::Wrapper;
 
-#define opt_hcdm       pub::Wrapper::opt_hcdm
-#define opt_verbose    pub::Wrapper::opt_verbose
+#define opt_hcdm       PUB::Wrapper::opt_hcdm
+#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 //
@@ -45,11 +45,11 @@ using _PUB_NAMESPACE::Wrapper;      // For pub::Wrapper class
 //       test_name
 //
 // Purpose-
-//       Test pub::fileman::Name
+//       Test PUB::fileman::Name
 //
 //----------------------------------------------------------------------------
 static int                          // Error count
-   test_name(                       // Test pub::fileman::Name
+   test_name(                       // Test PUB::fileman::Name
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {

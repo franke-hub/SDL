@@ -16,7 +16,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2022/04/22
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -29,19 +29,19 @@
 
 // The tested includes
 #include "pub/TEST.H"               // For VERIFY, ...
-#include "pub/Properties.h"
-#include "pub/Statistic.h"
-#include "pub/Tokenizer.h"
-
-#include "pub/Wrapper.h"            // For class Wrapper
+#include "pub/Properties.h"         // For pub::Properties
+#include "pub/Statistic.h"          // For pub::Statistic
+#include "pub/Tokenizer.h"          // For pub::Tokenizer
+#include "pub/Wrapper.h"            // For pub::Wrapper
 
 // Namespace accessors
-using namespace _PUB_NAMESPACE::debugging;
-using Exception= _PUB_NAMESPACE::Exception;
-using IndexException= _PUB_NAMESPACE::IndexException;
-using pub::Wrapper;                 // For pub::Wrapper class
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB::debugging;
+using Exception= PUB::Exception;
+using IndexException= PUB::IndexException;
+using PUB::Wrapper;                 // For pub::Wrapper class
 
-#define opt_verbose    pub::Wrapper::opt_verbose
+#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 //
@@ -80,7 +80,7 @@ static inline int
    if( opt_verbose )
      debugf("\ntest_Properties\n");
 
-   using _PUB_NAMESPACE::Properties;
+   using _LIBPUB_NAMESPACE::Properties;
    typedef Properties::MapIter_t MapIter_t; // Map iterator type
    Properties props;                // Our test object
 
@@ -198,7 +198,7 @@ static inline int
    if( opt_verbose )
      debugf("\ntest_Statistic\n");
 
-   pub::Statistic stat;
+   PUB::Statistic stat;
    error_count += VERIFY(stat.inc() == 1 );
    error_count += VERIFY(stat.inc() == 2 );
    error_count += VERIFY(stat.inc() == 3 );
@@ -239,8 +239,8 @@ static inline int
    if( opt_verbose )
      debugf("\ntest_Tokenizer\n");
 
-   using _PUB_NAMESPACE::Tokenizer;
-   typedef _PUB_NAMESPACE::Tokenizer::Iterator Iterator;
+   using _LIBPUB_NAMESPACE::Tokenizer;
+   typedef _LIBPUB_NAMESPACE::Tokenizer::Iterator Iterator;
    Tokenizer izer(" a  b  c  def g "); // Our test object
    Iterator it= izer.begin();
    error_count += VERIFY( it != izer.end() );

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2020 Frank Eskesen.
+//       Copyright (c) 2018-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,23 +16,23 @@
 //       Event (wait/post) implementation.                                                   ts.
 //
 // Last change date-
-//       2020/01/10
+//       2022/09/02
 //
 // Implementation note-
 //       An Event is not (currently) an Object.
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_EVENT_H_INCLUDED
-#define _PUB_EVENT_H_INCLUDED
+#ifndef _LIBPUB_EVENT_H_INCLUDED
+#define _LIBPUB_EVENT_H_INCLUDED
 
 #include <condition_variable>
 #include <iostream>
 #include <mutex>
 #include <stdint.h>
 
-#include "config.h"                 // For _PUB_NAMESPACE
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -99,5 +99,5 @@ int32_t                             // The event code (Always positive)
    return code & 0x7fffffff;        // 31-bit post code
 }
 }; // class Event
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_EVENT_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_EVENT_H_INCLUDED

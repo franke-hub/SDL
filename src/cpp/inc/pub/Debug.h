@@ -16,7 +16,7 @@
 //       Debugging control.
 //
 // Last change date-
-//       2022/04/08
+//       2022/09/02
 //
 // Implementation notes-
 //       A file name of ">" or "1>" writes the log to stdout.
@@ -29,8 +29,8 @@
 //       Debug instance is loaded into each DLL where it's used.
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_DEBUG_H_INCLUDED
-#define _PUB_DEBUG_H_INCLUDED
+#ifndef _LIBPUB_DEBUG_H_INCLUDED
+#define _LIBPUB_DEBUG_H_INCLUDED
 
 #include <stdarg.h>                 // For va_* functions
 #include <stdio.h>                  // For FILE definition
@@ -284,13 +284,10 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Namespace-
-//       pub::debugging
+//       _LIBPUB_NAMESPACE::debugging
 //
 // Purpose-
 //       Ease of use function calls operate using the common Debug instance
-//
-// Implementation notes-
-//       "using namespace _PUB_NAMESPACE:debugging;" enables these functions
 //
 //----------------------------------------------------------------------------
 namespace debugging {
@@ -430,4 +427,4 @@ void
      va_list           argptr);     // VALIST
 }  // namespace debugging
 _LIBPUB_END_NAMESPACE
-#endif // _PUB_DEBUG_H_INCLUDED
+#endif // _LIBPUB_DEBUG_H_INCLUDED

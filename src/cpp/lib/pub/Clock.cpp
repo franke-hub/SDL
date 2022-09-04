@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2007-2018 Frank Eskesen.
+//       Copyright (C) 2007-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Clock object methods.
 //
 // Last change date-
-//       2018/01/01
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #define USE_EXPERIMENTAL false      // Note: No difference in result
@@ -36,7 +36,7 @@
 
 #include "pub/Clock.h"
 
-namespace _PUB_NAMESPACE {
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -70,4 +70,4 @@ double                              // The time of day
    return result;
 #endif
 }
-}  // namespace _PUB_NAMESPACE
+}  // namespace _LIBPUB_NAMESPACE

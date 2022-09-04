@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,20 +16,20 @@
 //       Storage SubAllocator description.                                                                 ts.
 //
 // Last change date-
-//       2020/10/07
+//       2022/09/02
 //
 // Implementation note-
 //       Placeholder until implemented.
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_SUBALLOCATOR_H_INCLUDED
-#define _PUB_SUBALLOCATOR_H_INCLUDED
+#ifndef _LIBPUB_SUBALLOCATOR_H_INCLUDED
+#define _LIBPUB_SUBALLOCATOR_H_INCLUDED
 
 #include <sys/types.h>              // For size_t
 
 #include "pub/Allocator.h"          // For Allocator (base class)
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -124,5 +124,5 @@ public:
 //      void*             addr,     // This storage
 //      size_t            size= 0); // Of this length (Optional)
 }; // class SubAllocator
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_SUBALLOCATOR_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_SUBALLOCATOR_H_INCLUDED

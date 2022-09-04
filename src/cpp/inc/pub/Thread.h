@@ -16,18 +16,18 @@
 //       Define the Thread Object.
 //
 // Last change date-
-//       2022/06/05
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_THREAD_H_INCLUDED
-#define _PUB_THREAD_H_INCLUDED
+#ifndef _LIBPUB_THREAD_H_INCLUDED
+#define _LIBPUB_THREAD_H_INCLUDED
 
 #include <thread>                   // For std::thread
 
-#include "utility.h"                // For utility::to_string(std::thread::id)
-#include "Object.h"
+#include <pub/Object.h>             // For pub::Object, base class
+#include <pub/utility.h>            // For utility::to_string(std::thread::id)
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -142,5 +142,5 @@ virtual void
 void
    start( void );                   // Start this Thread
 }; // class Thread
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_THREAD_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_THREAD_H_INCLUDED

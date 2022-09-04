@@ -16,14 +16,14 @@
 //       Properties implementation methods.
 //
 // Last change date-
-//       2020/08/24
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <pub/Exception.h>
 #include <pub/utility.h>
 
 #include "pub/Properties.h"
-using _PUB_NAMESPACE::utility::to_string;
+using _LIBPUB_NAMESPACE::utility::to_string;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -38,7 +38,7 @@ using _PUB_NAMESPACE::utility::to_string;
 
 #include <pub/ifmacro.h>
 
-namespace _PUB_NAMESPACE {
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -156,4 +156,4 @@ const char*                         // The Property value
 
    return result;
 }
-} // namespace _PUB_NAMESPACE
+} // namespace _LIBPUB_NAMESPACE

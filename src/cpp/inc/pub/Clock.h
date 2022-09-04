@@ -16,7 +16,7 @@
 //       A Clock contains a positive time offset from an Epoch.
 //
 // Last change date-
-//       2020/01/27
+//       2022/09/02
 //
 // Implementation notes-
 //       An Epoch is an arbitrary time origin which cannot change without
@@ -24,12 +24,12 @@
 //       for at least microsecond clock resolution until the year 2100.
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_CLOCK_H_INCLUDED
-#define _PUB_CLOCK_H_INCLUDED
+#ifndef _LIBPUB_CLOCK_H_INCLUDED
+#define _LIBPUB_CLOCK_H_INCLUDED
 
-#include "config.h"                 // For _PUB_NAMESPACE
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -168,5 +168,5 @@ public:
 static double                       // The number of seconds since the Epoch
    now( void );                     // Get number of seconds since the Epoch
 };
-}  // namespace _PUB_NAMESPACE
-#endif  // _PUB_CLOCK_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif  // _LIBPUB_CLOCK_H_INCLUDED

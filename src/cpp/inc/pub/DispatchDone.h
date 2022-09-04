@@ -16,17 +16,18 @@
 //       Standard Dispatch Done callback objects.
 //
 // Last change date-
-//       2022/04/05
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_DISPATCHDONE_H_INCLUDED
-#define _PUB_DISPATCHDONE_H_INCLUDED
+#ifndef _LIBPUB_DISPATCHDONE_H_INCLUDED
+#define _LIBPUB_DISPATCHDONE_H_INCLUDED
 
 #include <functional>               // For std::function
 
 #include <pub/Event.h>              // For Wait event
 
-namespace _PUB_NAMESPACE::dispatch {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace dispatch {
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
@@ -157,5 +158,6 @@ void
    wait( void )                     // Wait for work Item completion
 {  event.wait(); }
 }; // class Wait
-}  // namespace _PUB_NAMESPACE::dispatch
-#endif // _PUB_DISPATCHDONE_H_INCLUDED
+}  // namespace dispatch
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_DISPATCHDONE_H_INCLUDED

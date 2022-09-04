@@ -16,20 +16,20 @@
 //       Number of any (byte) size multiple precision.
 //
 // Last change date-
-//       2022/03/06
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_NUMBER_H_INCLUDED
-#define _PUB_NUMBER_H_INCLUDED
+#ifndef _LIBPUB_NUMBER_H_INCLUDED
+#define _LIBPUB_NUMBER_H_INCLUDED
 
 #include <ostream>                  // For std::ostream
 #include <string>                   // For std::string
 #include <utility>                  // For std::pair
 #include <stdint.h>                 // For size_t
 
-#include <pub/config.h>             // For _PUB_NAMESPACE
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE {          // namespace pub
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -228,5 +228,5 @@ void store(Byte*, size_t) const;    // Store into Byte array w\ expand/truncate
 
 #include "Number.i"                 // Inline methods and global operators
 
-} // namespace _PUB_NAMESPACE
-#endif // _PUB_NUMBER_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_NUMBER_H_INCLUDED

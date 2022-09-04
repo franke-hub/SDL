@@ -16,7 +16,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2022/08/29
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -29,7 +29,7 @@
 #include <pub/Thread.h>             // For pub::Thread
 #include "pub/Worker.h"             // For pub:: Worker, implemented
 
-using namespace _PUB_NAMESPACE::debugging; // For debugging methods
+using namespace _LIBPUB_NAMESPACE::debugging; // For debugging methods
 using std::atomic_uint;
 using std::atomic_size_t;
 
@@ -45,7 +45,7 @@ using std::atomic_size_t;
 //----------------------------------------------------------------------------
 #include <pub/ifmacro.h>
 
-namespace _PUB_NAMESPACE {
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
@@ -180,7 +180,7 @@ void
      if( worker != nullptr ) {
        try {
          worker->work();
-       } catch(pub::Exception& X) {
+       } catch(Exception& X) {
          debugging::debugh("WorkerException: %s\n", X.to_string().c_str());
        } catch(std::exception& X) {
          debugging::debugh("WorkerException: what(%s)\n", X.what());
@@ -362,4 +362,4 @@ void
    else
      new WorkerThread(worker);
 }
-}  // namespace _PUB_NAMESPACE
+}  // namespace _LIBPUB_NAMESPACE

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021 Frank Eskesen.
+//       Copyright (c) 2021-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,25 +16,25 @@
 //       Integer statistic counter.
 //
 // Last change date-
-//       2021/11/10
+//       2022/09/02
 //
 // Usage notes-
 //       The minimum value is the minimum value after a maximum's detected.
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_STATISTIC_H_INCLUDED
-#define _PUB_STATISTIC_H_INCLUDED
+#ifndef _LIBPUB_STATISTIC_H_INCLUDED
+#define _LIBPUB_STATISTIC_H_INCLUDED
 
 #include <atomic>                   // For std::atomic_uint64_t, ...
 #include <stdint.h>                 // For uint64_t
 
-#include "config.h"                 // For _PUB_NAMESPACE
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Struct-
-//       pub::Statistic
+//       Statistic
 //
 // Purpose-
 //       Statistic counter.
@@ -50,7 +50,7 @@ std::atomic_int64_t    maximum= 0;  // Highest value
 std::atomic_int64_t    minimum= 0;  // Lowest value after a maximum
 
 //----------------------------------------------------------------------------
-// pub::Statistic::Methods
+// Statistic::Methods
 //----------------------------------------------------------------------------
 int64_t                             // Current value
    inc( void )                      // Increment value
@@ -101,5 +101,5 @@ int64_t                             // Current value
    return new_value;
 }
 }; // struct Statistic
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_STATISTIC_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_STATISTIC_H_INCLUDED

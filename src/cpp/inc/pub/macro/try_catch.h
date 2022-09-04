@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       TRY_CATCH macro definition.
 //
 // Last change date-
-//       2020/09/09
+//       2022/09/02
 //
 // Usage notes, requires:
 //       #include <pub/Exception.h> // For pub::Exception, std::exception

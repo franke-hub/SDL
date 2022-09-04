@@ -16,7 +16,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2022/06/12
+//       2022/09/02
 //
 // Implementation note-
 //       The global Thread synchronization mutex is used to insure:
@@ -40,10 +40,10 @@
 
 #include "pub/Thread.h"             // Method declarations
 
-using namespace _PUB_NAMESPACE::debugging; // For debugging methods
+using namespace _LIBPUB_NAMESPACE::debugging; // For debugging methods
 using std::atomic_size_t;
 
-namespace _PUB_NAMESPACE {
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
@@ -102,8 +102,8 @@ static void
      thread->run();
 
      --running;
-   } catch(pub::Exception& X) {
-     debugf("%4d Thread(%p)::run(), pub::Exception: %s\n", __LINE__
+   } catch(Exception& X) {
+     debugf("%4d Thread(%p)::run(), Exception: %s\n", __LINE__
            , thread, X.to_string().c_str());
      exceptional(thread);
    } catch(std::exception& X) {
@@ -296,4 +296,4 @@ void
      }
    }
 }
-} // namespace _PUB_NAMESPACE
+} // namespace _LIBPUB_NAMESPACE

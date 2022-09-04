@@ -10,17 +10,17 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/pub/macro/bits/usrconfig.h
+//       bits/usrconfig.h
 //
 // Purpose-
 //       Configuration controlled user macros.
 //
 // Last change date-
-//       2022/04/07
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_BITS_USRCONFIG_H_INCLUDED
-#define _PUB_BITS_USRCONFIG_H_INCLUDED
+#ifndef _LIBPUB_BITS_USRCONFIG_H_INCLUDED
+#define _LIBPUB_BITS_USRCONFIG_H_INCLUDED
 
 #include <pub/bits/pubconfig.h>
 
@@ -34,4 +34,4 @@
 //----------------------------------------------------------------------------
 #define ATTRIB_NORETURN         _LIBPUB_NORETURN
 #define ATTRIB_PRINTF(fmt, arg) _LIBPUB_PRINTF(fmt, arg)
-#endif // _PUB_BITS_USRCONFIG_H_INCLUDED
+#endif // _LIBPUB_BITS_USRCONFIG_H_INCLUDED

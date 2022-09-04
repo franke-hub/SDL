@@ -16,7 +16,7 @@
 //       Test Lock.h
 //
 // Last change date-
-//       2022/04/22
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include "pub/Lock.h"               // The test object
@@ -40,12 +40,13 @@
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Wrapper.h>            // For class Wrapper
 
-using pub::Debug;                   // For Debug object
-using namespace pub::debugging;     // For debugging functions
-using pub::Wrapper;                 // For pub::Wrapper class
+#define PUB _LIBPUB_NAMESPACE
+using PUB::Debug;                   // For Debug object
+using namespace PUB::debugging;     // For debugging functions
+using PUB::Wrapper;                 // For PUB::Wrapper class
 
-#define opt_hcdm       pub::Wrapper::opt_hcdm
-#define opt_verbose    pub::Wrapper::opt_verbose
+#define opt_hcdm       PUB::Wrapper::opt_hcdm
+#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Compile-time options
@@ -70,7 +71,7 @@ static struct option   opts[]=      // The getopt_long longopts parameter
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static pub::Lock*      pub_lock= nullptr; // Our named lock
+static PUB::Lock*      pub_lock= nullptr; // Our named lock
 
 //============================================================================
 // Class: Main (Mainline code)
@@ -120,7 +121,7 @@ int                                 // Error count
    int error_count= 0;
 
    int
-   rc= pub::Lock::unlink(OPT_LOCK); // Remove the lock
+   rc= PUB::Lock::unlink(OPT_LOCK); // Remove the lock
    if( rc ) {
      errorf("%4d Lock::unlink(%s): %s\n", __LINE__, OPT_LOCK, geterror());
      error_count++;
@@ -152,7 +153,7 @@ int                                 // Error count
    //-------------------------------------------------------------------------
    // Create the lock name (test for uniqueness)
    int
-   rc= pub::Lock::create(OPT_LOCK, O_CREAT | O_EXCL);
+   rc= PUB::Lock::create(OPT_LOCK, O_CREAT | O_EXCL);
    if( rc ) {
      if( errno == EEXIST )          // If already open
        return spawned();            // We must be the spawned process
@@ -160,7 +161,7 @@ int                                 // Error count
      errorf("%4d Lock::create(%s): %s\n", __LINE__, OPT_LOCK, geterror());
      return 1;
    }
-   pub_lock= new pub::Lock(OPT_LOCK); // Create the Lock
+   pub_lock= new PUB::Lock(OPT_LOCK); // Create the Lock
    pub_lock->lock();                // Grab the Lock
 
    //-------------------------------------------------------------------------
@@ -178,27 +179,27 @@ int                                 // Error count
    // Test the lock
    if( opt_verbose )
      debugh("[%6d] 001\n", getpid());
-   pub::Thread::sleep(0.25);
+   PUB::Thread::sleep(0.25);
    pub_lock->unlock();
 
    {{{{
-     pub::Thread::sleep(0.001);
+     PUB::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
      if( opt_verbose )
        debugh("[%6d] 003\n", getpid());
-     pub::Thread::sleep(0.25);
+     PUB::Thread::sleep(0.25);
    }}}}
 
    {{{{
-     pub::Thread::sleep(0.001);
+     PUB::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
      if( opt_verbose )
        debugh("[%6d] 005\n", getpid());
-     pub::Thread::sleep(0.25);
+     PUB::Thread::sleep(0.25);
    }}}}
 
    {{{{
-     pub::Thread::sleep(0.001);
+     PUB::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
      if( opt_verbose )
        debugh("[%6d] 007\n", getpid());
@@ -241,32 +242,32 @@ int                                 // Error count
 
    //-------------------------------------------------------------------------
    // Create the lock
-   pub_lock= new pub::Lock(OPT_LOCK); // Create the Lock
+   pub_lock= new PUB::Lock(OPT_LOCK); // Create the Lock
 
    //-------------------------------------------------------------------------
    // Test the lock
    {{{{
-     pub::Thread::sleep(0.001);
+     PUB::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
      if( opt_verbose )
        debugh("[%6d] 002\n", getpid());
-     pub::Thread::sleep(0.25);
+     PUB::Thread::sleep(0.25);
    }}}}
 
    {{{{
-     pub::Thread::sleep(0.001);
+     PUB::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
      if( opt_verbose )
        debugh("[%6d] 004\n", getpid());
-     pub::Thread::sleep(0.25);
+     PUB::Thread::sleep(0.25);
    }}}}
 
    {{{{
-     pub::Thread::sleep(0.001);
+     PUB::Thread::sleep(0.001);
      std::lock_guard<decltype(*pub_lock)> temp(*pub_lock);
      if( opt_verbose )
        debugh("[%6d] 006\n", getpid());
-     pub::Thread::sleep(0.25);
+     PUB::Thread::sleep(0.25);
    }}}}
 
    return 0;

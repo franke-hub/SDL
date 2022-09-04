@@ -16,7 +16,7 @@
 //       Test Thread function.
 //
 // Last change date-
-//       2022/06/05
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -28,29 +28,29 @@
 #include <string.h>
 
 #include <pub/Debug.h>              // For pub::debugging methods
-#include "pub/Event.h"              // For Event
-#include "pub/Exception.h"          // For Exception
-#include <pub/Interval.h>           // For Interval (performance debugging)
-#include "pub/Mutex.h"              // For Mutex
-#include "pub/Named.h"              // For Named (Threads)
-#include "pub/Semaphore.h"          // For Semaphore
-#include "pub/Thread.h"             // For Thread
+#include "pub/Event.h"              // For pub::Event
+#include "pub/Exception.h"          // For pub::Exception
+#include <pub/Interval.h>           // For pub::Interval (performance debugging)
+#include "pub/Mutex.h"              // For pub::Mutex
+#include "pub/Named.h"              // For pub::Named (Threads)
+#include "pub/Semaphore.h"          // For pub::Semaphore
+#include "pub/Thread.h"             // For pub::Thread
+#include "pub/Wrapper.h"            // For pub::Wrapper
 
-#include "pub/Wrapper.h"            // For class Wrapper
+#define PUB _LIBPUB_NAMESPACE
+using PUB::Debug;
+using PUB::Event;
+using PUB::Exception;
+using PUB::Interval;
+using PUB::Mutex;
+using PUB::Named;
+using PUB::Semaphore;
+using PUB::Thread;
+using PUB::Wrapper;
+using namespace PUB::debugging;
 
-using pub::Debug;
-using pub::Event;
-using pub::Exception;
-using pub::Interval;
-using pub::Mutex;
-using pub::Named;
-using pub::Semaphore;
-using pub::Thread;
-using pub::Wrapper;
-using namespace pub::debugging;
-
-#define opt_hcdm       pub::Wrapper::opt_hcdm
-#define opt_verbose    pub::Wrapper::opt_verbose
+#define opt_hcdm       PUB::Wrapper::opt_hcdm
+#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

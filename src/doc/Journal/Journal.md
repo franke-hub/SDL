@@ -7,7 +7,7 @@
 //       Development journal
 //
 // Last change date-
-//       2022/06/05
+//       2022/09/02
 //
 -------------------------------------------------------------------------- -->
 
@@ -250,5 +250,11 @@ and now results in a user error message that refers to the source code. A
 long and complex comment was added to the source code explaining the rationale
 behind the message. A short "how to fix your code" comment was also added.
 See ~/src/cpp/lib/pub/Socket.cpp, method SocketSelect::~SocketSelect.
+
+### 2022/09/02 Maint commit
+
+Made pub library source and include files more consistent.
+The dev library files were also updated, but they are also being updated
+for other reasons and are not ready to be released.
 
 ----

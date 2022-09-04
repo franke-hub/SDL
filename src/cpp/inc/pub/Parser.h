@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020 Frank Eskesen.
+//       Copyright (c) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Simple parameter file parser.
 //
 // Last change date-
-//       2020/12/30
+//       2022/09/02
 //
 // Notes-
 //       An parameter file consists of section name declarations:
@@ -35,17 +35,18 @@
 //       Comment lines begin with semicolons.
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_PARSER_H_INCLUDED
-#define _PUB_PARSER_H_INCLUDED
+#ifndef _LIBPUB_PARSER_H_INCLUDED
+#define _LIBPUB_PARSER_H_INCLUDED
 
 #include <string>                   // For std::string
+
 #include <pub/List.h>               // For pub::List
 
-namespace pub {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
-//       pub::Parser
+//       Parser
 //
 // Purpose-
 //       External Parameter controls.
@@ -56,14 +57,14 @@ class Parser {
 // Parser::Structures
 //----------------------------------------------------------------------------
 protected:
-struct Parameter : public pub::List<Parameter>::Link {
+struct Parameter : public List<Parameter>::Link {
 std::string            parm_name;   // The Parameter's name
 std::string            parm_value;  // The Parameter's value
 };
 
-struct Section : public pub::List<Section>::Link {
+struct Section : public List<Section>::Link {
 std::string            sect_name;   // This Section's name
-pub::List<Parameter>   parm_list;   // The Parameter list
+List<Parameter>        parm_list;   // The Parameter list
 };
 
 //----------------------------------------------------------------------------
@@ -75,7 +76,7 @@ std::string            file_name;   // The file name
 List<Section>          sect_list;   // The Section List
 
 //----------------------------------------------------------------------------
-// pub::Parser::Constructors/Destructor
+// Parser::Constructors/Destructor
 //----------------------------------------------------------------------------
 public:
    Parser(                          // Default constructor
@@ -101,7 +102,7 @@ void error(size_t, const char*);    // Handle error
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Parser::open
+//       Parser::open
 //
 // Purpose-
 //       (Re)load the parameter file
@@ -128,7 +129,7 @@ long                                // Return code, error_count
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Parser::close
+//       Parser::close
 //
 // Purpose-
 //       Reset the Parser.
@@ -140,7 +141,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Parser::get_next
+//       Parser::get_next
 //
 // Purpose-
 //       Get next section or parameter name (for iteration.)
@@ -161,7 +162,7 @@ const char*                         // The next parameter name
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::Parser::get_value
+//       Parser::get_value
 //
 // Purpose-
 //       Extract a parameter value.
@@ -181,5 +182,5 @@ const char*                         // The parameter value
      std::string       parm) const  // The parameter name
 {  return get_value(sect.c_str(), parm.c_str()); }
 }; // class Parser
-}  // namespace PUB
-#endif // PUB_PARSER_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // LIBPUB_PARSER_H_INCLUDED

@@ -15,19 +15,21 @@
 //       Testcase error checking.
 //
 // Last change date-
-//       2022/08/23
+//       2022/09/02
 //
 // Implementation note-
-//       Contained subroutines are in the default namespace, not pub::
+//       Uses the default namespace, not `pub`
 //
 //----------------------------------------------------------------------------
-#ifndef TEST_H_INCLUDED
-#define TEST_H_INCLUDED
+#ifndef _LIBPUB_TEST_H_INCLUDED
+#define _LIBPUB_TEST_H_INCLUDED
 
 #include <thread>                   // For std::thread::id
 
-#include <pub/Debug.h>              // For namespace pub::Debug::debugging
+#include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/utility.h>            // For pub::utility::to_string
+
+#define _PUB _LIBPUB_NAMESPACE      // (Undefined at end)
 
 //----------------------------------------------------------------------------
 // Macros
@@ -60,7 +62,7 @@ static inline int                   // Error count
 
    if( !valid ) {
      result= 1;
-     pub::debugging::debugf("%4d: Error: VERIFY(%s)\n", line, expr);
+     _PUB::debugging::debugf("%4d: Error: VERIFY(%s)\n", line, expr);
    }
 
    return result;
@@ -80,7 +82,7 @@ static inline int                   // Error count
      int               line,        // Calling line number
      const char*       text)        // Expression
 {
-   pub::debugging::debugf("%4d: Error: MUST_NOT(%s)\n", line, text);
+   _PUB::debugging::debugf("%4d: Error: MUST_NOT(%s)\n", line, text);
    return 1;
 }
 
@@ -104,8 +106,8 @@ static inline int                   // Error count
 
    if( want != have ) {
      result= 1;
-     pub::debugging::debugf("%4d: Error: MUST_EQ(%s) have(%ld) want(%ld)\n"
-                           , line, expr, have, want);
+     _PUB::debugging::debugf("%4d: Error: MUST_EQ(%s) have(%ld) want(%ld)\n"
+                            , line, expr, have, want);
    }
 
    return result;
@@ -124,11 +126,12 @@ static inline int                   // Error count
 
    if( want != have ) {
      result= 1;
-     pub::debugging::debugf("%4d: Error: MUST_EQ(%s) have(%s) want(%s)\n"
-         , line, expr, pub::utility::to_string(have).c_str()
-         , pub::utility::to_string(want).c_str());
+     _PUB::debugging::debugf("%4d: Error: MUST_EQ(%s) have(%s) want(%s)\n"
+         , line, expr, _PUB::utility::to_string(have).c_str()
+         , _PUB::utility::to_string(want).c_str());
    }
 
    return result;
 }
-#endif // TEST_H_INCLUDED
+#undef _PUB                         // (Temporary)
+#endif // _LIBPUB_TEST_H_INCLUDED

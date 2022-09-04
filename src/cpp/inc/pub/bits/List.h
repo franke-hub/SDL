@@ -16,7 +16,7 @@
 //       ../List.h template definitions and internal base classes.
 //
 // Last change date-
-//       2022/04/17
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_LIST_H_INCLUDED
@@ -48,7 +48,7 @@ namespace __detail
 
    /// Exceptions
    /**
-     @brief Exception pub::__detail::end_dereferenced
+     @brief Exception __detail::end_dereferenced
 
      In lieu of undefined behavior, this std::domain_error exception is thrown
      when an end() iterator is dereferenced.

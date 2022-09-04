@@ -16,7 +16,7 @@
 //       Implement Wrapper.h generic program wrapper.
 //
 // Last change date-
-//       2022/06/14
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -43,7 +43,7 @@
 using namespace pub;                // For pub:: classes
 using std::string;
 
-_LIBPUB_BEGIN_NAMESPACE
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -391,7 +391,7 @@ void*                               // The (initialized) trace file
      return nullptr;
    }
 
-   Trace::table= pub::Trace::make(table, size);
+   Trace::table= Trace::make(table, size);
    close(fd);                     // Descriptor not needed once mapped
 
    Trace::trace(".INI", 0, "TRACE STARTED") ;
@@ -641,8 +641,8 @@ int                                 // Return code
      //-----------------------------------------------------------------------
      if( rc == 0 )
        rc= main_f(argc, argv);
-   } catch(pub::Exception& x) {
-     debugf("pub::exception(%s)\n", x.what());
+   } catch(Exception& x) {
+     debugf("Exception(%s)\n", x.what());
      rc= 2;
    } catch(std::exception& x) {
      debugf("std::exception(%s)\n", x.what());
@@ -725,4 +725,4 @@ void
      munmap(table, size);
    }
 }
-_LIBPUB_END_NAMESPACE
+} // namespace _LIBPUB_NAMESPACE

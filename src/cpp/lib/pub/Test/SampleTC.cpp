@@ -15,20 +15,22 @@
 //       Sample test case
 //
 // Last change date-
-//       2022/04/24
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::runtime exception
 #include <string.h>                 // For strcmp
+
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Wrapper.h>            // For pub::Wrapper
 
-using namespace pub::debugging;     // For debugging functions
-using pub::Wrapper;                 // For pub::Wrapper class
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB::debugging;     // For debugging functions
+using PUB::Wrapper;
 
-#define opt_hcdm       pub::Wrapper::opt_hcdm
-#define opt_verbose    pub::Wrapper::opt_verbose
+#define opt_hcdm       PUB::Wrapper::opt_hcdm
+#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Extended options
@@ -92,7 +94,7 @@ static inline int                   // Error count
    int error_count= 0;
 
    if( strcmp(opt_throw, "pub") == 0 )
-     throw pub::Exception("pub exception test");
+     throw PUB::Exception("pub exception test");
    if( strcmp(opt_throw, "std") == 0 )
      throw std::runtime_error("std exception test");
    if( true )

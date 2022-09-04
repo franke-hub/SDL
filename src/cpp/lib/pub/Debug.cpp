@@ -16,7 +16,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2022/08/29
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -69,7 +69,7 @@
 //----------------------------------------------------------------------------
 #include <pub/ifmacro.h>
 
-namespace _PUB_NAMESPACE {
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
@@ -1158,5 +1158,5 @@ void
 {  std::lock_guard<decltype(mutex)> lock(mutex);
    Debug::get()->vtraceh(fmt, argptr);
 }
-}  // namespace _PUB_NAMESPACE::debugging
-}  // namespace _PUB_NAMESPACE
+}  // namespace debugging
+}  // namespace _LIBPUB_NAMESPACE

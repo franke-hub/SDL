@@ -16,7 +16,7 @@
 //       Test pub/Wrapper.h
 //
 // Last change date-
-//       2022/06/14
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::runtime_error
@@ -28,14 +28,13 @@
 #include <pub/Debug.h>
 
 // The tested includes
-#include <pub/config.h>             // For _PUB_NAMESPACE
 #include <pub/TEST.H>               // For VERIFY, ...
 #include <pub/Debug.h>              // For debugging
 
 #include "pub/Wrapper.h"            // For class Wrapper, verified
 
 // Namespace accessors
-#define PUB _PUB_NAMESPACE
+#define PUB _LIBPUB_NAMESPACE
 using namespace PUB;                // For pub objects
 using namespace PUB::debugging;     // For debugging subroutines
 using PUB::Wrapper;                 // For pub::Wrapper class

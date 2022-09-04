@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2020 Frank Eskesen.
+//       Copyright (C) 2019-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Console subroutine methods.
 //
 // Last change date-
-//       2020/01/10
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -26,14 +26,14 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include <pub/Debug.h>
-#include <pub/Event.h>
-#include <pub/Exception.h>
+#include "pub/Console.h"            // For pub::Console, implemented
+#include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Event.h>              // For pub::Event
+#include <pub/Exception.h>          // For pub::Exception
 
-#include "pub/Console.h"
-using namespace _PUB_NAMESPACE::debugging; // For debugging, throwf
+using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
 
-namespace _PUB_NAMESPACE {
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
@@ -118,9 +118,8 @@ char*                               // addr || nullptr iff non-operational
 {
    if( addr == nullptr || size == 0 )
    {
-     fprintf(stderr, "::pub::Console::get(%p,%u) PARMERR\n",
-                     addr, size);
-     throw ::pub::Exception("Invalid parameter");
+     fprintf(stderr, "Console::gets(%p,%u) PARMERR\n", addr, size);
+     throw Exception("Invalid parameter");
    }
 
    unsigned used= 0;                // Number of bytes used
@@ -290,4 +289,4 @@ void
 void
    Console::wait( void )            // Wait for termination
 {  event.wait(); }
-}  // namespace _PUB_NAMESPACE
+}  // namespace _LIBPUB_NAMESPACE

@@ -16,11 +16,11 @@
 //       The Console object.
 //
 // Last change date-
-//       2022/04/08
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_CONSOLE_H_INCLUDED
-#define _PUB_CONSOLE_H_INCLUDED
+#ifndef _LIBPUB_CONSOLE_H_INCLUDED
+#define _LIBPUB_CONSOLE_H_INCLUDED
 
 #include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
@@ -150,4 +150,4 @@ static void
    wait( void );                    // Wait for Console termination
 }; // class Console
 _LIBPUB_END_NAMESPACE
-#endif // _PUB_CONSOLE_H_INCLUDED
+#endif // _LIBPUB_CONSOLE_H_INCLUDED

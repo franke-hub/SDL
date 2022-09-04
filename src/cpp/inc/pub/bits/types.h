@@ -10,19 +10,22 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/pub/bits/types.h
+//       bits/types.h
 //
 // Purpose-
 //       Extend sys/types.h
 //
 // Last change date-
-//       2022/02/23
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_TYPES_H_INCLUDED
 #define _LIBPUB_TYPES_H_INCLUDED
 
+#include <sys/stdint.h>             // (This include is guaranteed)
 #include <sys/types.h>              // (This include is guaranteed)
+
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 _LIBPUB_END_NAMESPACE

@@ -16,7 +16,7 @@
 //       Trace object methods.
 //
 // Last change date-
-//       2022/04/10
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
@@ -30,9 +30,8 @@
 
 #include <pub/Debug.h>              // For debugging
 #include <pub/Thread.h>             // For SCDM( Thread::current() )
-#include <pub/utility.h>            // For pub::utility::dump
-
 #include "pub/Trace.h"              // For pub::Trace, implemented
+#include <pub/utility.h>            // For pub::utility::dump
 
 using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
 
@@ -67,9 +66,9 @@ static const char*     SCDM_id= ".TAF"; // Trace Allocation Failure
 static const char*     SCDM_name= "Trace.c"; // 8 characters, counting '\0'
 
 struct SCDM_record {                // Special Case Trace::Record
-char                   ident[4];    // (Same as pub::Trace::Record)
+char                   ident[4];    // (Same as Trace::Record)
 uint32_t               spins;       // The number of retries
-uint64_t               clock;       // (Same as pub::Trace::Record)
+uint64_t               clock;       // (Same as Trace::Record)
 Thread*                thread;      // The Thread identifier
 char                   name[8];     // This module's name
 }; // struct SCDM_record
@@ -182,7 +181,7 @@ void
            , table->next.load(), table->size, table->zero, table->last
            , table->wrap);
 
-   #define TF pub::utility::to_ascii // TF: True or False
+   #define TF utility::to_ascii     // TF: True or False
    debugf("..CHECK(%s) HCDM(%s) SCDM(%d) USE_DEACTIVATE(%s)\n"
           , TF(CHECK), TF(HCDM), SCDM, TF(USE_DEACTIVATE) );
    #undef TF

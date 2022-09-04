@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2022/08/10
+//       2022/09/02
 //
 // Arguments: (For testtime only)
 //       TestDisp --timing          // (Only run timing test)
@@ -35,6 +35,7 @@
 //
 //----------------------------------------------------------------------------
 #include <atomic>
+#include <exception>
 
 #include <inttypes.h>
 #include <locale.h>
@@ -43,9 +44,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <exception>
-
-#include <pub/config.h>             // For configuration macros
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/Dispatch.h"           // For pub::dispatch objects, tested
 #include <pub/Event.h>              // For pub::Event
@@ -55,11 +53,12 @@
 
 #include "pub/Wrapper.h"            // For class Wrapper
 
-using namespace _PUB_NAMESPACE;
-using namespace _PUB_NAMESPACE::debugging;
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB;
+using namespace PUB::debugging;
 
-#define opt_hcdm       pub::Wrapper::opt_hcdm
-#define opt_verbose    pub::Wrapper::opt_verbose
+#define opt_hcdm       PUB::Wrapper::opt_hcdm
+#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -290,7 +289,7 @@ static inline int
    if( HCDM ) debugf("\n%4d Lambda function test\n", __LINE__);
    int not_done= true;
    int not_task= true;
-   pub::Event event;                // Our completion item
+   PUB::Event event;                // Our completion item
    dispatch::LambdaDone l_done([&](dispatch::Item* item_) { // Method done()
      if( &item != item_ )
        throwf("%4d &item(%p) item_(%p)\n", __LINE__, &item, item_);

@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/pub/bits/pubconfig.h
+//       bits/pubconfig.h
 //
 // Purpose-
 //       Configuration control macros.
 //
 // Last change date-
-//       2022/04/08
+//       2022/09/02
 //
 // Implementer notes-
 //       Function attributes should appear on a function's declaration and also
@@ -24,7 +24,7 @@
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_VERSION             // (Also, only include once.)
-#define _LIBPUB_VERSION 20220408
+#define _LIBPUB_VERSION 20220902
 
 #define _LIBPUB_CPP03 199711L
 #define _LIBPUB_CPP11 201103L

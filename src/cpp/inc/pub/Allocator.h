@@ -16,18 +16,18 @@
 //       Storage allocator description.                                                                 ts.
 //
 // Last change date-
-//       2022/02/23
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_ALLOCATOR_H_INCLUDED
-#define _PUB_ALLOCATOR_H_INCLUDED
+#ifndef _LIBPUB_ALLOCATOR_H_INCLUDED
+#define _LIBPUB_ALLOCATOR_H_INCLUDED
 
 #include <sys/types.h>              // For size_t
 
 #include <pub/Latch.h>              // For Latch
 #include <pub/List.h>               // For List
 
-namespace pub {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -218,5 +218,5 @@ virtual void
      void*             addr,        // This storage
      size_t            size= 0);    // Of this length (Optional)
 }; // class BlockAllocator
-}  // namespace pub
-#endif // _PUB_ALLOCATOR_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_ALLOCATOR_H_INCLUDED

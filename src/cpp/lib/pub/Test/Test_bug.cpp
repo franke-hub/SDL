@@ -16,21 +16,21 @@
 //       Test debugging methods.
 //
 // Last change date-
-//       2022/04/24
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <errno.h>                  // For errno
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 #include "pub/Debug.h"              // For Debug, tested
 #include <pub/Wrapper.h>            // For class Wrapper
 
-using _LIBPUB_NAMESPACE::Debug;
-using namespace _LIBPUB_NAMESPACE::debugging;
-using pub::Wrapper;                 // For pub::Wrapper class
+#define PUB _LIBPUB_NAMESPACE
+using PUB::Debug;
+using namespace PUB::debugging;
+using PUB::Wrapper;                 // For pub::Wrapper class
 
-#define opt_hcdm       pub::Wrapper::opt_hcdm
-#define opt_verbose    pub::Wrapper::opt_verbose
+#define opt_hcdm       PUB::Wrapper::opt_hcdm
+#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Extended options

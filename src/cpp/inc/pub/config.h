@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/pub/config.h
+//       config.h
 //
 // Purpose-
 //       Configuration control macros.
 //
 // Last change date-
-//       2022/03/06
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#include "bits/usrconfig.h"
+#include "pub/bits/usrconfig.h"

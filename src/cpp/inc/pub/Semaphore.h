@@ -16,20 +16,20 @@
 //       Semaphore implemenentation using condition variable.
 //
 // Last change date-
-//       2022/05/04
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_SEMAPHORE_H_INCLUDED
-#define _PUB_SEMAPHORE_H_INCLUDED
+#ifndef _LIBPUB_SEMAPHORE_H_INCLUDED
+#define _LIBPUB_SEMAPHORE_H_INCLUDED
 
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <stdint.h>                 // For uint64_t
 
-#include "config.h"                 // For _PUB_NAMESPACE
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
-namespace _PUB_NAMESPACE {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -122,5 +122,5 @@ bool                                // TRUE iff semaphore available
    return true;
 }
 }; // class Semaphore
-}  // namespace _PUB_NAMESPACE
-#endif // _PUB_SEMAPHORE_H_INCLUDED
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_SEMAPHORE_H_INCLUDED

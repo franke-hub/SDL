@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021 Frank Eskesen.
+//       Copyright (c) 2021-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,14 +16,14 @@
 //       Implement the methods defined in Number.h.
 //
 // Last change date-
-//       2021/10/01
+//       2022/09/02
 //
 // Implementation notes-
-//       Only included by Number.h (inside namespace _PUB_NAMESPACE)
+//       Only included by Number.h (inside namespace _LIBPUB_NAMESPACE)
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_NUMBER_I_INCLUDED
-#define _PUB_NUMBER_I_INCLUDED
+#ifndef _LIBPUB_NUMBER_I_INCLUDED
+#define _LIBPUB_NUMBER_I_INCLUDED
 
 //----------------------------------------------------------------------------
 //
@@ -401,4 +401,4 @@ inline Number
      intmax_t          lhs,
      const Number&     rhs)
 {  Number LHS(lhs); LHS %= rhs; return LHS; }
-#endif // _PUB_NUMBER_I_INCLUDED
+#endif // _LIBPUB_NUMBER_I_INCLUDED

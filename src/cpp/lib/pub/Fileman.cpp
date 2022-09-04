@@ -16,7 +16,7 @@
 //       Fileman.h object methods
 //
 // Last change date-
-//       2022/04/08
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -619,7 +619,7 @@ void
 {
    if( HCDM ) {
      tracef("%p Pool used(%zd) size(%zd) data(%p)\n", this, used, size, data);
-     pub::utility::dump(Debug::get()->get_FILE(), data, used);
+     utility::dump(Debug::get()->get_FILE(), data, used);
      tracef("\n");
    }
 }

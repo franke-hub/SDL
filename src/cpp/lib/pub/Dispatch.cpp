@@ -16,12 +16,12 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2022/07/14
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
-#include "Dispatch.h"
+#include "Dispatch.h"               // For namespace pub::dispatch definitions
 
-namespace _PUB_NAMESPACE::dispatch {
+namespace _LIBPUB_NAMESPACE::dispatch {
 //----------------------------------------------------------------------------
 // dispatch::Static attributes
 //----------------------------------------------------------------------------
@@ -246,4 +246,4 @@ void
 {  if( HCDM ) traceh("Task(%p)::work(%p) PVM\n", this, item);
    item->post();
 }
-}  // namespace _PUB_NAMESPACE::dispatch
+}  // namespace _LIBPUB_NAMESPACE::dispatch

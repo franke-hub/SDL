@@ -16,7 +16,7 @@
 //       Utility functions.
 //
 // Last change date-
-//       2022/06/04
+//       2022/09/02
 //
 // Comparison operators-
 //       op_lt_istr    Case insensitive s LT operator
@@ -32,7 +32,7 @@
 #include <stdarg.h>                 // For va_* functions
 #include <stdio.h>                  // For ::FILE*
 
-#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
@@ -205,7 +205,7 @@ char*                               // Resultant
 //       Unsigned string comparison is used, allowing UTF8 comparison.
 //
 //       ::strcasecmp and ::strncasecmp might not be included in string.h,
-//       so they are included here.
+//       but they are always included here.
 //
 //----------------------------------------------------------------------------
 int                                 // Resultant <0,=0,>0
@@ -253,7 +253,7 @@ int                                 // Resultant 0, !0
 //       utility::to_ascii
 //
 // Purpose-
-//       Convert to ascii
+//       Convert boolean to ascii
 //
 //----------------------------------------------------------------------------
 static inline const char*           // Resultant
