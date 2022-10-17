@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2022/06/09
+##       2022/09/11
 ##
 ##############################################################################
 
@@ -66,6 +66,12 @@ dirty: Dirty
 .PHONY: do
 do: TestDisp
 	TestDisp --timing
+
+##############################################################################
+## Run the Quick program
+.PHONY: quick
+quick: Quick
+	@Quick --all --verbose
 
 ##############################################################################
 ## Make a certificate

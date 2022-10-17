@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/09/02
+//       2022/09/26
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -126,6 +126,144 @@ static void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Socket::sockaddr_u::operator=
+//
+// Purpose-
+//       Assignment operator
+//
+//----------------------------------------------------------------------------
+Socket::sockaddr_u&
+   Socket::sockaddr_u::operator=(   // Assignment
+     const sockaddr_u& src)         // From this sockaddr_u
+{
+   reset();                         // Release allocated storage
+
+   memcpy(this, &src, sizeof(*this));
+   if( src.su_af == AF_UNIX ) {
+     socklen_t size= src.su_x.x_socksize;
+     assert( size_t(size) <= sizeof(sockaddr_un) );
+     if( src.su_x.x_sockaddr == &src.sa ) {
+       assert( size_t(size) <  (offsetof(sockaddr_x, x_socksize) - 1) );
+       su_x.x_sockaddr= &this->sa;
+     } else {
+       assert( size_t(size) >= (offsetof(sockaddr_x, x_socksize) - 1) );
+       su_x.x_sockaddr= (sockaddr*)must::malloc(size+1);
+       memcpy(su_x.x_sockaddr, src.su_x.x_sockaddr, size+1);
+     }
+   }
+   return *this;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::sockaddr_u::copy
+//
+// Purpose-
+//       Copy (replace) content from source
+//
+//----------------------------------------------------------------------------
+void
+   Socket::sockaddr_u::copy(        // Replace this sockaddr_u
+     const sockaddr*   addr,        // From this sockaddr
+     socklen_t         size)        // Of this length
+{
+   reset();                         // Release allocated storage
+
+   if( addr->sa_family == AF_UNIX ) {
+     char* copy= (char*)this;
+     if( size_t(size) >= (offsetof(sockaddr_x, x_socksize) - 1) ) {
+       assert( size_t(size) <= sizeof(sockaddr_un) );
+       if( size_t(size) < offsetof(sockaddr_un, sun_path) )
+         size= offsetof(sockaddr_un, sun_path);
+       copy= (char*)must::malloc(size+1); // (+1 for trailing '\0')
+     }
+
+     memcpy(copy, addr, size);
+     copy[size]= '\0';
+     su_x.x_family= AF_UNIX;
+     su_x.x_socksize= size;
+     su_x.x_sockaddr= (sockaddr*)copy;
+   } else {
+     if( size_t(size) > sizeof(sockaddr_u) ) {
+       errorf("socket length(%d) > maximum(%d)\n", size, max_sock);
+       sno_exception(__LINE__);
+     }
+
+     memcpy(this, addr, size);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::sockaddr_u::reset
+//
+// Purpose-
+//       Reset the sockaddr_u, zeroing it
+//
+//----------------------------------------------------------------------------
+void
+   Socket::sockaddr_u::reset( void ) // Reset the sockaddr_u
+{
+   if( su_af == AF_UNIX && su_x.x_sockaddr != &this->sa )
+     free(su_x.x_sockaddr);
+
+   su_align[0]= su_align[1]= su_align[2]= su_align[3]= 0;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::sockaddr_u::to_string
+//
+// Purpose-
+//       Convert (sockaddr_u) to string
+//
+// Implementation notes-
+//       Families AF_INET, AF_INET6, and IF_UNIX are currently supported.
+//       Others can be added if desired.
+//
+//----------------------------------------------------------------------------
+std::string
+   Socket::sockaddr_u::to_string( void ) const // Convert to string
+{
+   std::string         result= "<inet_ntop error>"; // Default resultant
+
+   const char*         buff= nullptr; // inet_ntop resultant
+   char                work[256];   // (Address string buffer)
+
+   errno= 0;
+   switch( su_af )
+   {
+     case AF_INET:                  // If IPv4
+       buff= inet_ntop(AF_INET, &su_i4.sin_addr, work, sizeof(work));
+       if( buff )
+         result= utility::to_string("%s:%d", buff, ntohs(su_i4.sin_port));
+       break;
+
+     case AF_INET6:                 // If IPv6
+       buff= inet_ntop(AF_INET6, &su_i6.sin6_addr, work, sizeof(work));
+       if( buff )
+         result= utility::to_string("[%s]:%d", buff, ntohs(su_i6.sin6_port));
+       break;
+
+     case AF_UNIX: {{{{             // If AF_UNIX
+       sockaddr_un* un= (sockaddr_un*)this->su_x.x_sockaddr;
+       result= std::string(un->sun_path); // (Trailing '\0' always present)
+       break;
+     }}}}
+     default:                       // If invalid address family
+       result= utility::to_string("<sa_family_t(%d)>", su_af);
+       errno= EINVAL;
+   }
+
+   return result;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Socket::copy
 //
 // Purpose-
@@ -136,10 +274,10 @@ void
    Socket::copy(                    // Copy host_addr/size and peer_addr/size
      const Socket&     source)      // From this source Socket
 {
-   host_addr.copy(source.host_addr);
-   peer_addr.copy(source.peer_addr);
    host_size= source.host_size;
+   host_addr= source.host_addr;
    peer_size= source.peer_size;
+   peer_addr= source.peer_addr;
 }
 
 //----------------------------------------------------------------------------
@@ -153,7 +291,7 @@ void
 //----------------------------------------------------------------------------
    Socket::Socket( void )           // Constructor
 :  Object()
-,  selected([](int) {})             // Default (NOP) event handler
+,  h_select([](int) {})             // Default (NOP) event handler
 ,  host_addr(), peer_addr()
 {  if( HCDM )
      debugh("Socket(%p)::Socket()\n", this);
@@ -349,9 +487,6 @@ int                                 // Return code, 0 OK
 // Purpose-
 //       Accept the next available connection
 //
-// Implementation notes-
-//       Retries errno == EINTR
-//
 //----------------------------------------------------------------------------
 Socket*                             // The new connection Socket
    Socket::accept( void )           // Get new connection Socket
@@ -369,9 +504,9 @@ Socket*                             // The new connection Socket
    Socket* result= new Socket();
    result->handle= client;
    result->host_size= host_size;
-   result->host_addr.copy(host_addr);
+   result->host_addr= host_addr;
    result->peer_size= peersize;
-   result->peer_addr.copy((sockaddr*)&peeraddr, peersize);
+   result->peer_addr.copy(&peeraddr, peersize);
 
    return result;
 }
@@ -492,6 +627,16 @@ int                                 // Return code (0 OK)
    if( rc == 0 ) {
      peer_size= peersize;
      peer_addr.copy(peeraddr, peersize);
+     sockaddr_storage hostaddr= {};
+     socklen_t hostsize= sizeof(hostaddr);
+     rc= ::getsockname(handle, (sockaddr*)&hostaddr, &hostsize);
+     if( rc == 0 )
+       host_addr.copy((sockaddr*)&hostaddr, hostsize);
+
+     if( HCDM )
+       debugf("%4d HCDM %d= getsockname(%s,%d) %d:%s\n", __LINE__, rc
+             , ((sockaddr_u*)&hostaddr)->to_string().c_str(), hostsize
+             , errno, strerror(errno));
    }
 
    return rc;
@@ -632,7 +777,7 @@ int                                 // Return code, 0 OK
    Socket::open(                    // Open a Socket
      int               family,      // Address Family
      int               type,        // Socket type
-     int               protocol)    // Socket protocol
+     int               protocol)    // Socket protocol (IGNORED)
 {  if( HCDM )
      debugh("Socket(%p)::open(%d,%d,%d)\n", this, family, type, protocol);
 
@@ -851,6 +996,7 @@ ssize_t                             // Number of bytes sent
    return L;
 }
 
+#if 0
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -978,6 +1124,7 @@ std::string
 
    return result;
 }
+#endif
 
 //----------------------------------------------------------------------------
 //
@@ -1105,7 +1252,7 @@ Socket*                             // The new connection SSL_socket
 
    SSL_socket* result= new SSL_socket(ssl_ctx);
    result->handle= client;
-   peer_addr.copy((sockaddr*)&peeraddr, peersize);
+   peer_addr.copy(&peeraddr, peersize);
    peer_size= peersize;
 
    result->ssl= SSL_new(ssl_ctx);

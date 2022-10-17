@@ -16,7 +16,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2022/09/02
+//       2022/10/10
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -56,18 +56,10 @@
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-#ifndef SCDM
-#undef  SCDM                        // If defined, Soft Core Debug Mode
-#endif
-
-//----------------------------------------------------------------------------
-// Dependent macros
-//----------------------------------------------------------------------------
-#include <pub/ifmacro.h>
+enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+};
 
 namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
@@ -93,10 +85,14 @@ static RecursiveLatch  mutex;       // Recursive serialization Latch
 #endif
 static Debug*          internal= nullptr; // The auto-allocated Debug object
 
+static int             global_destructor_invoked= false;
 static struct GlobalDestructor {    // On unload, remove Debug::global
 inline
    ~GlobalDestructor( void )
-{  Debug::set(nullptr); }           // Cleans up both Debug::common & internal
+{  if( false ) debugging::debugf("Debug::GlobalDestructor~\n");
+   Debug::set(nullptr);             // Cleans up both Debug::common & internal
+   global_destructor_invoked= true;
+}
 }  globalDestructor;
 
 //----------------------------------------------------------------------------
@@ -160,7 +156,7 @@ static bool                         // true iff STDIO
 //
 //----------------------------------------------------------------------------
    Debug::~Debug( void )            // Destructor
-{  IFHCDM( fprintf(stderr, "Debug(%p)::~Debug()\n", this); )
+{  if( HCDM ) { fprintf(stderr, "Debug(%p)::~Debug()\n", this); }
    term();
 }
 
@@ -179,11 +175,11 @@ static bool                         // true iff STDIO
 //----------------------------------------------------------------------------
    Debug::Debug(                    // Constructor
      const char*       name)        // The output file_name, default "debug.out"
-{  IFHCDM( fprintf(stderr, "Debug(%p)::Debug(%s)\n", this, name); )
+{  if( HCDM ) { fprintf(stderr, "Debug(%p)::Debug(%s)\n", this, name); }
    if( name != nullptr && name[0] != '\0' )
      this->file_name= name;
 
-   IFHCDM( mode= MODE_INTENSIVE; )
+   if( HCDM ) mode= MODE_INTENSIVE;
 }
 
 //----------------------------------------------------------------------------
@@ -241,7 +237,9 @@ void
    if( head & HEAD_THREAD )         // Thread heading
    {
      Thread* current= Thread::current();
-     Named* named= dynamic_cast<Named*>(current);
+     Named* named= nullptr;
+     if( current )
+       named= dynamic_cast<Named*>(current);
      if( named )
        fprintf(file, "<%13s> ", named->get_name().c_str());
      else
@@ -268,7 +266,7 @@ void
 //----------------------------------------------------------------------------
 void
    Debug::init( void )              // Activate the trace file
-{  IFHCDM( fprintf(stderr, "Debug(%p)::init()\n", this); )
+{  if( HCDM ) { fprintf(stderr, "Debug(%p)::init()\n", this); }
 
    if( handle == nullptr )          // If still not active
    {
@@ -305,11 +303,12 @@ void
 //----------------------------------------------------------------------------
 void
    Debug::term( void )              // Deactivate the trace file
-{  IFHCDM( fprintf(stderr, "Debug(%p)::term()\n", this); )
+{  if( HCDM ) { fprintf(stderr, "Debug(%p)::term()\n", this); }
 
    std::lock_guard<decltype(mutex)> lock(mutex);
 
-   if( handle != nullptr && handle != stdout && handle != stderr) // If close required
+   if( handle != nullptr            // If close required
+       && handle != stdout && handle != stderr)
    {
      int rc= fclose(handle);        // Close the file
      if( rc != 0 )                  // If error encountered
@@ -328,6 +327,11 @@ void
 // Function-
 //       Extract the current default debug object.
 //
+// Implementation notes-
+//       Once global destructors are invoked, the system is unstable.
+//       We try to carry on, but results are unpredictable.
+//       The underlying file system might disappear at any moment.
+//
 //----------------------------------------------------------------------------
 Debug*                              // -> Current default debug object
    Debug::get( void )               // Extract the current default debug object
@@ -342,6 +346,10 @@ Debug*                              // -> Current default debug object
      {
        Debug::common= result= new Debug();
        internal= result;
+       if( global_destructor_invoked ) {
+         result->set_file_mode("ab");
+         result->set_mode(MODE_INTENSIVE);
+       }
      }
 
      #if defined(HCDM) || false
@@ -366,8 +374,8 @@ Debug*                              // The removed Debug object
      Debug*            object)      // This new default debug object
 {
    #if defined(HCDM) || false
-     fprintf(stderr, "Debug(*)::set(%p) %p %d\n",
-                     object, Debug::common, isInternal);
+     fprintf(stderr, "Debug(*)::set(%p) %p\n",
+                     object, Debug::common);
    #endif
 
    std::lock_guard<decltype(mutex)> lock(mutex);
@@ -377,7 +385,6 @@ Debug*                              // The removed Debug object
    {
      delete internal;
      internal= nullptr;
-
      removed= nullptr;
    }
 
@@ -396,7 +403,7 @@ Debug*                              // The removed Debug object
 //----------------------------------------------------------------------------
 void
    Debug::lock( void )              // Lock the mutex
-{  return mutex.lock(); }
+{  mutex.lock(); }
 
 //----------------------------------------------------------------------------
 //
@@ -458,7 +465,7 @@ void
 void
    Debug::set_file_mode(            // Set the trace file mode
      const char*       mode)        // The trace file mode
-{  IFHCDM( fprintf(stderr, "Debug(%p)::setMode(%s)\n", this, name); )
+{  if( HCDM ) { fprintf(stderr, "Debug(%p)::setMode(%s)\n", this, mode); }
    std::lock_guard<decltype(mutex)> lock(mutex);
 
    if( handle )                     // If file is open
@@ -481,7 +488,7 @@ void
 void
    Debug::set_file_name(            // Set the trace file name
      const char*       name)        // The trace file name
-{  IFHCDM( fprintf(stderr, "Debug(%p)::setName(%s)\n", this, name); )
+{  if( HCDM ) { fprintf(stderr, "Debug(%p)::setName(%s)\n", this, name); }
    std::lock_guard<decltype(mutex)> lock(mutex);
 
    term();                          // Deactivate trace

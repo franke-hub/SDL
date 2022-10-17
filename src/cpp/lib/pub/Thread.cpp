@@ -16,7 +16,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2022/09/02
+//       2022/10/16
 //
 // Implementation note-
 //       The global Thread synchronization mutex is used to insure:
@@ -25,6 +25,18 @@
 //         2) When a running Thread terminates, thread.detach() is only
 //            called once. The thread.detach() method is idempotent.
 //         3) Proper serialization of the thread id map.
+//
+//       We need to avoid a possible deadlock between the (internal) Thread
+//       mutex and the exposed Debug mutex. Since Thread::static_debug uses
+//       debugf we need to obtain the Debug mutex if it might be invoked.
+//       When needed, we always get the Debug mutex first.
+//       Debug methods can invoke Thread::current but this should not be a
+//       problem. If this turns out to be wrong, Thread::current will need to
+//       get the Debug mutex.
+//
+//       In some environments after detach the std::thread field can't be
+//       relied on to obtain the thread id. We preserve the thread id
+//       separately to work around this problem.
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<> statistics
@@ -37,31 +49,54 @@
 #include <pub/Debug.h>              // For debugging
 #include <pub/Exception.h>          // For debugging
 #include <pub/Named.h>              // For pub::Named
+#include "pub/Thread.h"             // For pub::Thread, implemened
 
-#include "pub/Thread.h"             // Method declarations
-
-using namespace _LIBPUB_NAMESPACE::debugging; // For debugging methods
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB::debugging;     // For debugging methods
 using std::atomic_size_t;
 
 namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
+// Constants for parameterization
+//----------------------------------------------------------------------------
+#if false                           // TODO: REMOVE?
+#  define MAP_DEBUG(x) {x}
+#  define MAP_DEBUG_DECL(x) x
+#else
+#  define MAP_DEBUG(x) {}
+#  define MAP_DEBUG_DECL(x)
+#endif
+
+enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbiosity, higher is more verbose
+};
+
+//----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-const std::thread::id  Thread::null_id; // Null Thread id
+const Thread::id_t     Thread::null_id; // Null Thread id
 
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-typedef std::map<std::thread::id, Thread*> Map; // Id to Thread map
-typedef Map::iterator  MapIter;     // Map iterator
+typedef std::map<Thread::id_t, Thread*> Map; // Id to Thread map
+typedef Map::iterator  iterator;    // Map iterator
+typedef Map::const_iterator
+                       const_iterator; // Map const_iterator
 
-static Map             map;         // The active Thread map
-static std::mutex      mutex;       // Global synchronization mutex
+// Tasks may still exist after static destruction, but the Map destructor
+// makes the Map unusable in some environments.
+// In an attempt to carry on, we make the Map persistent.
+static Map*            map_ptr= new Map(); // (Needs to persist)
+static Map&            map= *map_ptr; // The active Thread map
+static std::recursive_mutex
+                       mutex;       // Global synchronization mutex
 
 // Statistics
-static atomic_size_t   max_run(0);  // Maximum running Thread count
-static atomic_size_t   running(0);  // Number of running Threads
-static atomic_size_t   started(0);  // Number of started Threads
+static size_t          max_run= 0;  // Maximum running Thread count
+static size_t          running= 0;  // Number of running Threads
+static size_t          started= 0;  // Number of started Threads
 
 //----------------------------------------------------------------------------
 //
@@ -84,24 +119,28 @@ static void
    thread_start(                    // Start
      Thread*           thread)      // This thread
 {
-   {{{{                             // Synchronize thread move and map
-     std::lock_guard<decltype(mutex)> lock(mutex);
-
-     map[std::this_thread::get_id()]= thread; // Add thread to the map
-   }}}}
-
    try {
-     ++started;
-     size_t was_running= ++running;
-     size_t was_maximum= max_run.load();
-     while( was_running > was_maximum ) {
-       if( max_run.compare_exchange_weak(was_maximum, was_running) )
-         break;
-     }
+     {{{{
+       MAP_DEBUG_DECL(
+         std::lock_guard<decltype(*Debug::get())> debug(*Debug::get());
+       )
+       std::lock_guard<decltype(mutex)> lock(mutex);
+
+       map[thread->get_id()]= thread; // Add thread to the map
+
+       ++started;
+       ++running;
+       if( running > max_run )
+         max_run= running;
+
+       MAP_DEBUG(
+         debugh("%4d thread_start\n[%s]=%p inserted\n", __LINE__
+               , thread->get_id_string().c_str(), thread);
+         Thread::static_debug("thread insert");
+       )
+     }}}}
 
      thread->run();
-
-     --running;
    } catch(Exception& X) {
      debugf("%4d Thread(%p)::run(), Exception: %s\n", __LINE__
            , thread, X.to_string().c_str());
@@ -115,34 +154,28 @@ static void
      exceptional(thread);
    }
 
-   {{{{                             // Synchronize map
+   // Note: *thread might already be deleted, so thread* cannot be used here.
+   {{{{
+     MAP_DEBUG_DECL(
+       bool erased= false;
+       std::lock_guard<decltype(*Debug::get())> debug(*Debug::get());
+     )
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-     const MapIter mi= map.find(std::this_thread::get_id());
-     if( mi != map.end() )          // If the thread still exists
-       map.erase(mi);               // Remove it from the map
+     --running;
+     iterator mi= map.find(std::this_thread::get_id());
+     if( mi != map.end() ) {        // If the Thread's still mapped
+       map.erase(mi);
+       MAP_DEBUG( erased= true; )
+     }
+
+     MAP_DEBUG(
+       debugh("%4d thread_start\n[%s]=%p removed(%d)\n", __LINE__
+             , utility::to_string(std::this_thread::get_id()).c_str(), thread
+             , erased);
+       Thread::static_debug("thread remove");
+     )
    }}}}
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Thread::~Thread
-//
-// Purpose-
-//       Destructor
-//
-//----------------------------------------------------------------------------
-   Thread::~Thread( void )          // Destructor
-{// debugging::tracef("Thread(%p).~Thread\n", this); // Normally commented out
-   std::lock_guard<decltype(mutex)> lock(mutex);
-
-   const MapIter mi= map.find(thread.get_id());
-   if( mi != map.end() )
-     map.erase(mi);
-
-   if( thread.joinable() )
-     thread.detach();
 }
 
 //----------------------------------------------------------------------------
@@ -155,8 +188,43 @@ static void
 //
 //----------------------------------------------------------------------------
    Thread::Thread( void )           // Constructor
-:  Object(), thread()
-{//debugging::tracef("Thread(%p).Thread\n", this); // Normally commented out
+:  thread()
+{  if( HCDM ) debugf("Thread(%p)::Thread\n", this); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Thread::~Thread
+//
+// Purpose-
+//       Destructor
+//
+//----------------------------------------------------------------------------
+   Thread::~Thread( void )          // Destructor
+{  if( HCDM ) debugf("Thread(%p)::~Thread\n", this);
+
+   MAP_DEBUG_DECL( bool erased= false; )
+   {{{{
+     MAP_DEBUG_DECL(
+       std::lock_guard<decltype(*Debug::get())> debug(*Debug::get());
+     )
+     std::lock_guard<decltype(mutex)> lock(mutex);
+
+     iterator mi= map.find(id);
+     if( mi != map.end() ) {
+       map.erase(mi);
+       MAP_DEBUG( erased= true; )
+     }
+
+     MAP_DEBUG(
+       debugh("%4d Thread::~Thread delete\n[%s]=%p erased(%d)\n", __LINE__
+             , get_id_string().c_str(), this, erased);
+       Thread::static_debug("thread_delete");
+     )
+   }}}}
+
+   if( thread.joinable() )
+     thread.detach();
 }
 
 //----------------------------------------------------------------------------
@@ -172,12 +240,13 @@ Thread*                             // The current Thread
    Thread::current( void )          // Get current Thread
 {
    Thread* thread= nullptr;         // Default, not found
+   {{{{
+     std::lock_guard<decltype(mutex)> lock(mutex);
 
-   std::lock_guard<decltype(mutex)> lock(mutex);
-
-   const MapIter mi= map.find(std::this_thread::get_id());
-   if( mi != map.end() )
-     thread= mi->second;
+     const_iterator mi= map.find(std::this_thread::get_id());
+     if( mi != map.end() )
+       thread= mi->second;
+   }}}}
 
    return thread;
 }
@@ -198,35 +267,48 @@ Thread*                             // The current Thread
 void
    Thread::debug(                   // Debugging display
      const char*       info) const  // Caller information
-{  debugf("Thread(%p)::debug(%s)\n", this, info);
-
-   std::string name= "";
+{
    const Named* named= dynamic_cast<const Named*>(this);
+   std::string name= "";
    if( named )
      name= " Named(" + named->get_name() + ")";
 
-   debugf("..thread(%s)%s\n", get_id_string().c_str(), name.c_str());
-   debugf("..joinable(%d)\n", joinable());
+   {{{{
+     std::lock_guard<decltype(*Debug::get())> debug(*Debug::get());
+     std::lock_guard<decltype(mutex)> lock(mutex);
+
+     debugf("Thread(%p)::debug(%s)\n", this, info);
+     debugf("..id(%s) joinable(%d)%s\n"
+           , get_id_string().c_str(), joinable(), name.c_str());
+   }}}}
 }
 
 void
    Thread::static_debug(            // Debugging display
      const char*       info)        // Caller information
-{  debugf("Thread::static_debug(%s)\n", info ? info : "");
+{
+   {{{{
+     std::lock_guard<decltype(*Debug::get())> debug(*Debug::get());
+     std::lock_guard<decltype(mutex)> lock(mutex);
 
-   {{{{ std::lock_guard<decltype(mutex)> lock(mutex);
-     debugf("%'16zd detached\n",    running.load() - map.size());
-     debugf("%'16zd max_running\n", max_run.load());
-     debugf("%'16zd running\n",     running.load());
-     debugf("%'16zd started\n",     started.load());
+     debugf("Thread::static_debug(%s)\n", info ? info : "");
+     debugf("%'16zd detached\n", running - map.size());
+     debugf("%'16zd max_run\n",  max_run);
+     debugf("%'16zd running\n",  running);
+     debugf("%'16zd started\n",  started);
 
      if( info && map.size() ) {
-       debugf("..[-thread id-] [---Thread--]\n");
+       debugf("..[----thread id---] (-----Thread-----)\n");
        for(auto mi : map ) {
          Thread* thread= mi.second;
-         intptr_t ip= (intptr_t)thread;
-         debugf("..[%s] (%#11lx) joinable(%d)\n"
-               , get_id_string(mi.first).c_str(), ip, thread->joinable());
+         const Named* named= dynamic_cast<const Named*>(thread);
+         std::string name= "";
+         if( named )
+           name= " " + named->get_name();
+
+         debugf("..[%s] (%#.14zx) joinable(%d)%s\n"
+               , get_id_string(mi.first).c_str(), intptr_t(thread)
+               , thread->joinable(), name.c_str());
        }
      }
    }}}}
@@ -243,11 +325,14 @@ void
 //----------------------------------------------------------------------------
 void
    Thread::detach( void )           // Detach excution thread from this object
-{
-   std::lock_guard<decltype(mutex)> lock(mutex);
+{  if( HCDM ) debugf("Thread(%#.14zx)::detach\n", intptr_t(this));
 
-   if( thread.joinable() )
-     thread.detach();
+   {{{{
+     std::lock_guard<decltype(mutex)> lock(mutex);
+
+     if( thread.joinable() )
+       thread.detach();
+   }}}}
 }
 
 //----------------------------------------------------------------------------
@@ -283,10 +368,13 @@ void
    for(;;)                          // (Retry if resource unavailable)
    {
      try {
-       std::lock_guard<decltype(mutex)> lock(mutex);
+       {{{{
+         std::lock_guard<decltype(mutex)> lock(mutex);
 
-       std::thread t(thread_start, this);
-       thread= std::move(t);
+         std::thread t(thread_start, this);
+         id= t.get_id();
+         thread= std::move(t);
+       }}}}
        break;
      } catch(const std::system_error& X) {
        if( X.code() != std::errc::resource_unavailable_try_again )

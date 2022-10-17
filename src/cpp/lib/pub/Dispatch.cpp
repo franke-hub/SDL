@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2022/09/02
+//       2022/10/05
 //
 //----------------------------------------------------------------------------
 #include "Dispatch.h"               // For namespace pub::dispatch definitions
@@ -114,22 +114,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       dispatch::Item::_init
-//       dispatch::Item::_term
-//
-// Purpose-
-//       Debugging display.
-//
-//----------------------------------------------------------------------------
-void Item::_init( void ) const noexcept
-{  /* tracef("%4d HCDM Item(%p)::_init()\n", __LINE__, this); */ }
-
-void Item::_term( void ) const noexcept
-{  /* tracef("%4d HCDM Item(%p)::_term()\n", __LINE__, this); */ }
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       dispatch::Item::debug
 //
 // Purpose-
@@ -139,8 +123,8 @@ void Item::_term( void ) const noexcept
 void
    Item::debug(const char* info) const // Debugging display
 {
-   tracef("Item(%p)::debug(%s) fc(%d) cc(%d) done(%p) work(%p)\n"
-         , this, info, fc, cc, done, work);
+   tracef("Item(%p)::debug(%s) fc(%d) cc(%d) done(%p)\n"
+         , this, info, fc, cc, done);
 }
 
 //----------------------------------------------------------------------------
@@ -220,7 +204,7 @@ void
            break;
 
          default:
-           cc= Item::CC_INVALID_FC;
+           cc= Item::CC_ERROR_FC;
            break;
        }
 

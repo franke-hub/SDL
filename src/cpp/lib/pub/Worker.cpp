@@ -16,7 +16,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2022/09/02
+//       2022/10/09
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -28,6 +28,7 @@
 #include <pub/Semaphore.h>          // For pub::Semaphore
 #include <pub/Thread.h>             // For pub::Thread
 #include "pub/Worker.h"             // For pub:: Worker, implemented
+#include <pub/utility.h>            // For pub::utility::on_exception
 
 using namespace _LIBPUB_NAMESPACE::debugging; // For debugging methods
 using std::atomic_uint;
@@ -182,10 +183,13 @@ void
          worker->work();
        } catch(Exception& X) {
          debugging::debugh("WorkerException: %s\n", X.to_string().c_str());
+         utility::on_exception(X.to_string());
        } catch(std::exception& X) {
          debugging::debugh("WorkerException: what(%s)\n", X.what());
+         utility::on_exception(X.what());
        } catch(...) {
          debugging::debugh("WorkerException: ...\n");
+         utility::on_exception("...");
        }
      }
      worker= nullptr;
@@ -295,7 +299,7 @@ void
      std::lock_guard<decltype(mutex)> lock(mutex);
      for(unsigned i= 0; i<used; i++) {
        WorkerThread* thread= pool[i];
-       debugf("[%3d] %p\n", i, thread);
+       debugf("[%4d] %#.14zx\n", i, intptr_t(thread));
      }
    }
 }

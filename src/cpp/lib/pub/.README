@@ -15,12 +15,14 @@
 ##       Development status, history, and reminders.
 ##
 ## Last change date-
-##       2022/08/23
+##       2022/10/16
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
+2022/10/16 Added Diagnostic.h, for tracking hard to debug problems.
+
 2019/03/15 See ~/src/cpp/HTTP/.README for additional information.
 
 ##############################################################################
@@ -28,6 +30,10 @@
 
 ##############################################################################
 ## BUGS:
+2022/10/16 Test/TestDisp throughput regression ** IMPORTANT **
+         Appears to be due to kernel changes slowing down some task switching.
+         This impacts all DispatchTask users.
+
 2020/08/22 BlockAllocator needs performance review.
          (Linux malloc/free somehow *BEATS* BlockAllocator's performance.)
 

@@ -16,7 +16,7 @@
 //       Socket selector
 //
 // Last change date-
-//       2022/09/02
+//       2022/10/16
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SELECT_H_INCLUDED
@@ -49,7 +49,7 @@ struct control_op;                  // (Internal) control operation
 //       Socket selector
 //
 // Implementation notes-
-//       ** THREAD SAFE, BUT NOT STRESS TESTED **
+//       Thread safe.
 //
 //       Sockets may only be associated with one Select object.
 //       Sockets are automatically removed from a Select whenever they
@@ -65,8 +65,6 @@ class Select {                      // Socket selector
 // Select::Typdefs and enumerations
 //----------------------------------------------------------------------------
 public:
-typedef std::function<void(void)>             v_func; // with_lock() function
-
 enum                                // Implementation controls
 {  USE_SELECT_FUNCTION= true        // Use (test) socket->selected method?
 }; // Implementation controls
@@ -86,7 +84,7 @@ struct pollfd*         pollfd= nullptr; // Array of pollfd's
 Socket**               sarray= nullptr; // Array of Socket's
 int*                   sindex= nullptr; // File descriptor to pollfd index
 
-int                    left= 0;     // Number of remaining selections
+std::atomic_int        left= 0;     // Number of remaining selections
 int                    next= 0;     // The next selection index
 int                    size= 0;     // Number of result elements available
 int                    used= 0;     // Number of result elements used
@@ -164,6 +162,9 @@ Socket*                             // The next selected Socket, or nullptr
      const struct timespec*         // (tv_sec, tv_nsec)
                        timeout,     // Timeout, infinite if omitted
      const sigset_t*   signals);    // Signal set
+
+void
+   tickle( void );                  // Complete the current select()
 
 //============================================================================
 protected:

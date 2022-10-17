@@ -16,7 +16,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2022/09/02
+//       2022/09/23
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -85,7 +85,7 @@ friend class Select;
 public:
 static const int       CLOSED= -1;  // Closed socket handle
 typedef in_port_t      Port;        // A port type
-typedef std::function<void(int)>              v_selected;
+typedef std::function<void(int)>              f_select;
 
 //----------------------------------------------------------------------------
 // Socket::sockaddr_u, Socket::sockaddr_x
@@ -107,17 +107,26 @@ sockaddr_in6           su_i6;       // IPv6 internet address
 sockaddr_x             su_x;        // Extended sockaddr format
 
 inline
-   sockaddr_u( void )               // Constructor
+   sockaddr_u( void )               // Default constructor
 {  su_align[0]= su_align[1]= su_align[2]= su_align[3]= 0; }
+
+inline
+   sockaddr_u(const sockaddr_u& src) // Copy constructor
+{  operator=(src); }
 
 inline
    ~sockaddr_u( void )              // Destructor
 {  reset(); }
 
-void
-   copy(const sockaddr_u&);         // Replacement copy from sockaddr_u
+sockaddr_u& operator=(const sockaddr_u&); // Assignment operator
+
 void
    copy(const sockaddr*, socklen_t); // Replacement copy from sockaddr
+void
+   copy(                            // Replacement copy
+     const sockaddr_storage* addr,  // From sockaddr_storage
+     socklen_t         size)
+{  copy((const sockaddr*)addr, size); }
 
 void
    reset( void );                   // Reset the sockaddr_u, zeroing it
@@ -131,7 +140,7 @@ std::string                         // The display string
 //----------------------------------------------------------------------------
 protected:
 Select*                selector= nullptr; // The associated Selector
-v_selected             selected;    // Selection processor
+f_select               h_select;    // Selection handler
 
 int                    handle= CLOSED; // The socket handle (handle)
 short                  family= 0;   // The connection address family
@@ -178,6 +187,16 @@ static void
 // Socket::Accessors
 //----------------------------------------------------------------------------
 public:
+/*****************************************************************************
+  @brief Drive the selection handler
+
+  @param revent: The polling revent
+*****************************************************************************/
+void
+   do_select(                       // Drive the event handler
+     int               revent)      // The polling revent
+{  h_select(revent); }
+
 int                                 // The socket flags
    get_flags( void ) const          // Get socket flags
 {  return ::fcntl(handle, F_GETFL); }
@@ -236,6 +255,10 @@ socklen_t                           // The peer internet address length
    get_peer_size( void ) const      // Get peer internet address length
 {  return peer_size; }
 
+Select*                             // The Select
+   get_select( void )               // Get Select
+{  return selector; }
+
 const char*                         // The unix socket file name
    get_unix_name( void ) const;     // Get unix socket file name
 
@@ -253,19 +276,21 @@ static bool                         // TRUE iff socket family is supported
 
 
 /*****************************************************************************
-  @brief Define lambda function: Handle Socket selection.
+  @brief Define the Socket polling selection handler.
 
-  @param f: The lambda function
+  @param f: The lambda std::function<void(int)> function
 
-  The lambda function:<br>
-      Should run quickly, if necessary scheduling rather than processing
-      an event.
+  The lambda function is driven asynchronously (normally by Select) when
+  a polling event indicates that work can be processed.
 
-      @param int: The polling revent
+  Ususally only one thread drives polling for multiple sockets.
+  In order for this thread to avoid a processing backlog, this function should
+  run quickly. It may be necessary to defer processing (e.g by scheduling work)
+  rather than immediately processing the polling event.
 *****************************************************************************/
 void
-   on_select(v_selected f)          // Define the event handler
-{  selected= f; }
+   on_select(f_select f)            // Define the event handler
+{  h_select= f; }
 
 int
    set_flags(                       // Set socket flags
@@ -405,7 +430,7 @@ ssize_t                             // The number of bytes read
 ssize_t                             // The number of bytes written
    recvmsg(                         // Receive message from some socket
      msghdr*           msg,         // Message header
-     int               flag);       // Send options
+     int               flag);       // Recv options
 
 ssize_t                             // The number of bytes written
    send(                            // Write to the peer socket

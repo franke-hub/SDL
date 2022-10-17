@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2022/09/02
+//       2022/10/03
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -59,6 +59,7 @@
 #include <atomic>                   // For std::atomic_uint64_t, ...
 #include <stdint.h>                 // For uint32_t
 #include <string.h>                 // For memset, memcpy, strcpy
+#include <time.h>                   // For CLOCK_REALTIME
 #include <arpa/inet.h>              // For htonl
 
 #include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros

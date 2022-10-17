@@ -16,7 +16,7 @@
 //       Describe the List objects.
 //
 // Last change date-
-//       2022/09/02
+//       2022/10/03
 //
 // Implementation notes-
 //       Unlike std::List<T>, pub::List<T> elements *are* links.
@@ -491,6 +491,12 @@ template<class T>
            pointer                tail) // -> Final Link to insert
        { _Base::insert(link, head, tail); }
 
+       void
+         insert(                    // Insert at position,
+           pointer                link, // -> Link to insert after
+           pointer                head) // -> The Link to insert
+       { _Base::insert(link, head, head); }
+
        bool                         // TRUE if the object is coherent
          is_coherent( void ) const  // Coherency check
        { return _Base::is_coherent(); }
@@ -510,6 +516,11 @@ template<class T>
            pointer                head, // -> First Link to remove
            pointer                tail) // -> Final Link to remove
        { _Base::remove(head, tail); }
+
+       void
+         remove(                    // Remove from list
+           pointer                link) // -> The Link to remove
+       { _Base::remove(link, link); }
 
        pointer                      // Removed pointer
          remq( void )               // Remove head link
@@ -645,6 +656,11 @@ template<class T>
            pointer           head,  // -> First Link to remove
            pointer           tail)  // -> Final Link to remove
        { _Base::remove(head, tail); }
+
+       void
+         remove(                    // Remove from list
+           pointer                link) // -> The Link to remove
+       { _Base::remove(link, link); }
 
        pointer                      // Removed T*
          remq( void )               // Remove head Link

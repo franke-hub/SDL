@@ -16,7 +16,7 @@
 //       Configuration control macros.
 //
 // Last change date-
-//       2022/09/02
+//       2022/09/09
 //
 // Implementer notes-
 //       Function attributes should appear on a function's declaration and also
@@ -47,8 +47,10 @@
 //----------------------------------------------------------------------------
 //----------------------------------------------------------------------------
 #if __cplusplus >= _LIBPUB_CPP17
+#  define _LIBPUB_FALLTHROUGH [[fallthrough]]
 #  define _LIBPUB_NODISCARD [[nodiscard]]
 #else
+#  define _LIBPUB_FALLTHROUGH
 #  define _LIBPUB_NODISCARD
 #endif
 

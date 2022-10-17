@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2022/09/02
+//       2022/10/16
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -34,16 +34,41 @@
 #include <time.h>                   // For clock_gettime, ...
 
 #include <pub/Debug.h>              // For Debug object (see dump())
+#include <pub/Trace.h>              // For pub::Trace
 #include "pub/utility.h"            // For utility functions, implemented
+
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB;
+using namespace PUB::debugging;
 
 namespace _LIBPUB_NAMESPACE::utility {
 //----------------------------------------------------------------------------
-// Volatile data (Used to avoid compiler optimizations)
+// Internal data areas
+//----------------------------------------------------------------------------
+static std::thread::id null_id;     // The non-executing thread id
+
+//----------------------------------------------------------------------------
+// Volatile data and functions used to avoid compiler optimizations
 //----------------------------------------------------------------------------
 volatile int           data= 0;     // For any use
 volatile int           unit= 1;     // By convention, always 1
 volatile int           zero= 0;     // By convention, always 0
-int nop( void ) { return 0; }       // Returns zero. Don't tell the compiler!
+int  nop( void ) { return 0; }      // Returns zero. Don't tell the compiler!
+bool is_null(void* V) { return V == nullptr; } // Allows is_null(this)
+
+//----------------------------------------------------------------------------
+// (Replacable) global exception diagnostic
+//----------------------------------------------------------------------------
+f_exception            on_exception= [](std::string what)
+{
+   debugf("utility::on_exception(%s)\n", what.c_str());
+   if( Trace::table ) {
+     Trace::trace(".BUG", 0, what.c_str());
+     Trace::table->flag[Trace::X_HALT]= true;
+   }
+
+   debug_backtrace();
+}; // on_exception
 
 //----------------------------------------------------------------------------
 //
@@ -681,6 +706,15 @@ std::string                         // Resultant
    to_string(                       // Create string from std::thread::id
      const std::thread::id& id)     // The std::thread::id
 {
+   if( sizeof(id) == 8 ) {
+     char buff[24];
+     sprintf(buff, "0x%.14zx", *(size_t*)(&id));
+     return buff;
+   }
+
+   if( id == null_id )
+     return "null_id";
+
    std::stringstream ss;
    ss << id;
    return ss.str();
@@ -713,6 +747,10 @@ std::string                         // The visual representation
    for(int i= 0; i<M; i++) {
      unsigned char C= (unsigned char)inp[i];
      switch(C) {
+       case '\0':
+         out << "\\0";
+         break;
+
        case '\a':
          out << "\\a";
          break;
@@ -767,5 +805,62 @@ std::string                         // The visual representation
    }
 
    return out.str();
+}
+
+//----------------------------------------------------------------------------
+//
+// (Bits) subroutine-
+//       utility::not_coded_yet
+//
+// Purpose-
+//       Display "NOT CODED YET"  message
+//
+//----------------------------------------------------------------------------
+void
+   not_coded_yet(                   // Handle "NOT CODED YET" condition
+     int               line,        // Source file line
+     const char*       file)        // Source file name
+{
+   debugh("%4d %s HCDM: %s\n", line, file, "NOT CODED YET");
+   throw std::runtime_error("NOT CODED YET");
+}
+
+//----------------------------------------------------------------------------
+//
+// (Bits) subroutine-
+//      utility::report_error
+//
+// Purpose-
+//       Display system error message, preserving errno
+//
+//----------------------------------------------------------------------------
+void
+   report_error(                    // Display system error message
+     int               line,        // Source file line
+     const char*       file,        // Source file name
+     const char*       op)          // Operation name
+{
+   int ERRNO= errno;
+   debugh("%4d %s: %s failure: %d:%s\n", line, file, op
+         , ERRNO, strerror(ERRNO));
+   errno= ERRNO;
+}
+
+//----------------------------------------------------------------------------
+//
+// (Bits) subroutine-
+//       utility::should_not_occur
+//
+// Purpose-
+//       Display "SHOULD NOT OCCUR"  message
+//
+//----------------------------------------------------------------------------
+void
+   should_not_occur(                // Handle "SHOULD NOT OCCUR" condition
+     int               line,        // Source file line
+     const char*       file)        // Source file name
+{
+   debugh("%4d %s HCDM: %s\n", line, file, "SHOULD NOT OCCUR");
+   throw std::runtime_error("SHOULD NOT OCCUR");
 }
 }  // namespace _LIBPUB_NAMESPACE::utility

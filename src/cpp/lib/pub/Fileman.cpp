@@ -16,7 +16,7 @@
 //       Fileman.h object methods
 //
 // Last change date-
-//       2022/09/02
+//       2022/09/15
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -150,7 +150,9 @@ Line*                               // The allocated Line*
    size_t size= string.length() + 1;
 
    Pool* pool= _pool.get_head();    // Get last inserted Pool
-   char* text= pool->malloc(size);
+   char* text= nullptr;
+   if( pool )                       // (If empty pool)
+     text= pool->malloc(size);
    if( text == nullptr ) {          // If a new Pool is needed
      if( size > MIN_POOL_SIZE )
        pool= new Pool(size);

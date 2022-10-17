@@ -16,15 +16,21 @@
 //       Utility functions.
 //
 // Last change date-
-//       2022/09/02
+//       2022/10/16
 //
-// Comparison operators-
-//       op_lt_istr    Case insensitive s LT operator
+// Implementation notes-
+//       ato* routines:
+//         DO NOT set errno= 0.
+//         Ignore leading white space, allow trailing white space.
+//         Disallow invalid (hexi)decimal characters.
+//
+//       utility::op_lt_istr, defines case insensitive string<string compare
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_UTILITY_H_INCLUDED
 #define _LIBPUB_UTILITY_H_INCLUDED
 
+#include <functional>               // For std::function
 #include <string>                   // For std::string
 #include <thread>                   // For std::thread
 
@@ -32,7 +38,7 @@
 #include <stdarg.h>                 // For va_* functions
 #include <stdio.h>                  // For ::FILE*
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include "pub/bits/utility.h"       // For internal utility functions
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
@@ -43,20 +49,27 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 // Purpose-
 //       Implement pub/utility functions.
 //
-// Implementation notes (ato* routines)-
-//       These routines DO NOT set errno= 0.
-//       Leading white space is ignored, trailing white space is allowed.
-//       Invalid (hexi)decimal characters are NOT allowed.
-//
 //----------------------------------------------------------------------------
 namespace utility {
 //----------------------------------------------------------------------------
-// Volatile data (For avoiding compiler optimizations)
+// Typedefs and enumerations
 //----------------------------------------------------------------------------
+typedef std::function<void(const std::string&)>         f_exception;
+
+//----------------------------------------------------------------------------
+// External data areas
+//----------------------------------------------------------------------------
+// Volatile data (For avoiding compiler optimizations)
 extern volatile int    data;        // For any use
 extern volatile int    unit;        // By convention, always 1
 extern volatile int    zero;        // By convention, always 0
-extern int nop( void );             // Returns zero. Don't tell the compiler!
+
+// Functions used to avoid compiler quirks or optimizations
+extern bool is_null(void*);         // Allows is_null(this)
+extern int  nop( void );            // Returns zero. Don't tell the compiler!
+
+// General (user-replaceable) exception handler
+extern f_exception     on_exception; // General exception handler
 
 //----------------------------------------------------------------------------
 //
@@ -292,7 +305,8 @@ std::string                         // Resultant string
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       utility::visify
+//       utility::visify(std::string)
+//       utility::visify(int)
 //
 // Purpose-
 //       Change control characters in string to their C++ equivalents.
@@ -305,9 +319,16 @@ std::string                         // The visual representation
    visify(                          // Get visual representation of
      const std::string&inp);        // This string
 
-//============================================================================
-// Operator structures
-//============================================================================
+static inline std::string           // The visual representation
+   visify(                          // Get visual representation of
+     int               C)           // This character
+{
+   char buff[2]= {(char)C, '\0'};
+   std::string S(buff, 1);          // (Allow '\0' character)
+   return visify(S);
+}
+
+//----------------------------------------------------------------------------
 //
 // Struct-
 //       utility::op_lt_istr
