@@ -16,38 +16,41 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2022/08/29
+//       2022/10/16
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_HTTP_CLIENT_H_INCLUDED
-#define _PUB_HTTP_CLIENT_H_INCLUDED
+#ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
+#define _LIBPUB_HTTP_CLIENT_H_INCLUDED
 
+#include <new>                      // For in-place constructor
+#include <cstdint>                  // For integer types
 #include <functional>               // For std::function
 #include <memory>                   // For std::shared_ptr
 #include <mutex>                    // For std::mutex, super class
 #include <string>                   // For std::string
-#include <stdint.h>                 // For integer type
 
 #include <pub/Dispatch.h>           // For pub::Dispatch objects
+#include <pub/Event.h>              // For pub::Event
 #include <pub/Semaphore.h>          // For pub::Semaphore
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Thread.h>             // For pub::Thread
 
-#include "pub/http/Data.h"          // For pub::http::Buffer
-#include "pub/http/Stream.h"        // For pub::http::Stream
+#include "pub/http/Ioda.h"          // For pub::http::Ioda
+#include "pub/http/Stream.h"        // For pub::http::Stream, ...
 
-namespace pub::http {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace http {
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
-class ClientAgent;                  // pub::http::ClientAgent
-class ClientItem;                   // pub::http::ClientItem (internal)
-class ClientRequest;                // pub::http::ClientRequest
-class ClientResponse;               // pub::http::ClientResponse
-class ClientStream;                 // pub::http::ClientStream
-class Options;                      // pub::http::Options
-class Request;                      // pub::http::Request
-class Response;                     // pub::http::Response
+class ClientAgent;
+class ClientItem;                   // (Internal)
+class ClientRequest;
+class ClientResponse;
+class ClientStream;
+class Options;
+class Request;
+class Response;
 
 //----------------------------------------------------------------------------
 //
@@ -63,42 +66,57 @@ class Client : public std::mutex {  // Client class (lockable)
 // Client::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-typedef Socket::sockaddr_u   sockaddr_u; // Using Socket::sockaddr_u
-typedef dispatch::LambdaDone LambdaDone; // Using dispatch::LambdaDone
-typedef dispatch::LambdaTask LambdaTask; // Using dispatch::LambdaTask
+typedef Ioda::Size     Size;
+
+typedef std::weak_ptr<ClientAgent>            agent_ptr;
+typedef std::shared_ptr<ClientStream>         stream_ptr;
+typedef Socket::sockaddr_u                    sockaddr_u;
+typedef dispatch::LambdaDone                  LambdaDone;
+typedef dispatch::LambdaTask                  LambdaTask;
+
+// Callback handlers
+typedef std::function<void(void)>             f_close;
+typedef std::function<void(ClientItem*)>      f_iotask; // (Internal)
+typedef std::function<void(void)>             f_reader; // (Internal)
+typedef std::function<void(void)>             f_writer; // (Internal)
 
 //----------------------------------------------------------------------------
 // Client::Attributes
 //----------------------------------------------------------------------------
 protected:
 // Callback handlers ---------------------------------------------------------
-std::function<void(void)>
-                       h_close;     // The close event handler
-std::function<void(ClientItem*)>
-                       h_writer;    // The Client's write (protocol) handler
+f_close                h_close;     // The close event handler
+f_iotask               h_iptask;    // The (input) I/O handler
+f_iotask               h_optask;    // The (output) I/O handler
+f_reader               h_reader;    // The (reader) protocol handler
+f_writer               h_writer;    // The (writer) protocol handler
 //----------------------------------------------------------------------------
 
 std::weak_ptr<Client>  self;        // Self-reference
-std::weak_ptr<ClientAgent>
-                       agent;       // Our owning Agent
+agent_ptr              agent;       // Our owning Agent
 
 SSL_CTX*               context= nullptr; // SSL context
-mutable Buffer         ibuffer;     // Our input buffer
-mutable Buffer         obuffer;     // Our output buffer
+Ioda                   ioda_out;    // The output buffer
+size_t                 ioda_off;    // The output buffer offset
 const char*            proto_id;    // The Client's protocol/version
-pub::Semaphore         semaphore;   // Used to limit HTTP/1 write operations
+Semaphore              sem_rd;      // Used to complete HTTP/1 read operations
+Semaphore              sem_wr;      // Used to limit HTTP/1 write operations
+Size                   size_inp;    // The input buffer length
+Size                   size_out;    // The output buffer length
 Socket*                socket= nullptr; // Connection Socket
+stream_ptr             stream;      // The active stream
+ClientItem*            stream_item; // The active ClientItem
 StreamSet              stream_set;  // Our set of Streams
-LambdaTask             task;        // Output task
-Thread*                thread= nullptr; // Client read Thread
+LambdaTask             task_inp;    // Reader task
+LambdaTask             task_out;    // Writer task
 
+int                    fsm= 0;      // Finite State Machine
 bool                   operational= false; // TRUE while operational
 
 //----------------------------------------------------------------------------
-// Client::Destructor, constructors
+// Client::Constructors, Creator, destructor
 //----------------------------------------------------------------------------
 public:
-   ~Client( void );                 // Destructor
    Client(                          // Constructor
      ClientAgent*      owner,       // Our agent
      const sockaddr_u& addr,        // Target internet address
@@ -106,32 +124,36 @@ public:
      const Options*    opts= nullptr); // Client Options
 
 static std::shared_ptr<Client>      // The Client
-   make(                            // Get Client
+   make(                            // Create Client
      ClientAgent*      owner,       // Our agent
      const sockaddr_u& addr,        // Target internet address
      socklen_t         size,        // Target internet address length
      const Options*    opts= nullptr); // Client Options
 
+   ~Client( void );                 // Destructor
+
 //----------------------------------------------------------------------------
 // Client::debug
 //----------------------------------------------------------------------------
-void debug(const char*) const;      // Debugging display
-void debug( void ) const            // Debugging display
-{  debug(""); }
+void debug(const char* info= "") const; // Debugging display
 
 //----------------------------------------------------------------------------
 // Client::Accessor methods
 //----------------------------------------------------------------------------
-Buffer&                             // The input Buffer
-   get_buffer( void ) const         // Get input Buffer
-{  ibuffer.reset(); return ibuffer; }
+bool
+   is_operational( void ) const        // Is the Client operational
+{  return operational; }
 
 int                                 // The socket handle (<0 if not connected)
    get_handle( void ) const         // Get socket handle
 {  return socket->get_handle(); }
 
-const sockaddr_u&                   // The connected internet address
-   get_peer_addr( void ) const      // Get connected internet address
+const sockaddr_u&                   // The Client's internet address
+   get_host_addr( void ) const      // Get Client's internet address
+{  return socket->get_host_addr(); }
+
+const sockaddr_u&                   // The Server's internet address
+   get_peer_addr( void ) const      // Get Server's internet address
 {  return socket->get_peer_addr(); }
 
 const char*
@@ -147,28 +169,28 @@ std::shared_ptr<Stream>             // The associated Stream
 {  return stream_set.get_stream(id); }
 
 void
-   on_close(                        // Set close event handler
-     std::function<void(void)> f)
+   on_close(const f_close& f)       // Set close event handler
 {  h_close= f; }
 
 //----------------------------------------------------------------------------
 // Client::Methods
 //----------------------------------------------------------------------------
 void
+   async(                           // Handle asynchronous polling event
+     int               revent);     // Polling revent
+
+void
    close( void );                   // Close the client
 
 void
-   connection_error(const char*);   // Handle connection error
+   error(const char*);              // Handle connection error
 
 std::shared_ptr<ClientRequest>      // The ClientRequest
    request(                         // Create a ClientRequest
      const Options*    opts= nullptr); // The associated Options
 
-void
-   run( void );                     // Operate the ClientThread
-
-void
-   writeStream(ClientStream*);      // Write ClientStream Request/Response
+int                                 // Return code, 0 expected
+   write(ClientStream*);            // Write ClientStream Request
 
 int                                 // Return code, 0 expected
    wait( void );                    // Wait for current Requests to complete
@@ -177,30 +199,48 @@ int                                 // Return code, 0 expected
 // Client::Protected methods
 //----------------------------------------------------------------------------
 protected:
-void
-   enqueue(                         // Enqueue a Request
-     ClientItem*       item);       // The associated ClientItem
+void    http1( void );              // Use HTTP/0, HTTP/1 protocol handlers
+void    http2( void );              // Use HTTP/2 protocol handlers
 
-std::function<void(ClientItem*)>
-   protocol1a( void );              // Define the HTTP/1 protocol handler
+void    read(int);                  // Read from Socket (caller __LINE__)
+void    read( void )                // Read from Socket
+{  return read(0); }
 
-std::function<void(ClientItem*)>
-   protocol1b( void );              // Define the HTTP/1 protocol handler
-
-std::function<void(ClientItem*)>
-   protocol2( void );               // Define the HTTP/2 protocol handler
-
-size_t                              // Read length
-   read(int, size_t);               // Line number, maximum length
-
-size_t                              // Read length
-   read(size_t);                    // Maximum length
-
-ssize_t                             // Written length
-   write(int, const void*, size_t); // Write to Socket
-
-ssize_t                             // Written length
-   write(const void*, size_t);      // Write to Socket
+ssize_t write(int);                // Write into Socket (caller __LINE__)
+ssize_t write()                    // Write into Socket
+{  return write(0); }
 }; // class Client
-} // namespace pub::http
-#endif // _PUB_HTTP_CLIENT_H_INCLUDED
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       ClientApp
+//
+// Purpose-
+//       Placeholder for Client application, NOT IMPLEMENTED.
+//
+//----------------------------------------------------------------------------
+class ClientApp {
+//----------------------------------------------------------------------------
+// ClientApp::Attributes
+//----------------------------------------------------------------------------
+typedef std::function<void(Socket*)>          f_socket; // Socket ready
+f_socket               h_socket;    // The Socket ready handler
+
+//----------------------------------------------------------------------------
+// ClientApp::Constructor, destructor
+//----------------------------------------------------------------------------
+public:
+   ClientApp( void ) = default;
+   ~ClientApp( void ) = default;
+
+//----------------------------------------------------------------------------
+// ClientApp::Methods
+//----------------------------------------------------------------------------
+void
+   on_socket(const f_socket& f)     // Set socket selection handler
+{  h_socket= f; }
+}; // class ClientApp
+}  // namespace http
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_HTTP_CLIENT_H_INCLUDED

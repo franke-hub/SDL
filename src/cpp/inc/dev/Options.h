@@ -16,18 +16,20 @@
 //       HTTP Options.
 //
 // Last change date-
-//       2022/02/20
+//       2022/10/16
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_HTTP_OPTIONS_H_INCLUDED
-#define _PUB_HTTP_OPTIONS_H_INCLUDED
+#ifndef _LIBPUB_HTTP_OPTIONS_H_INCLUDED
+#define _LIBPUB_HTTP_OPTIONS_H_INCLUDED
 
 #include <string>                   // For std::string
 #include <strings.h>                // For strcasecmp
 
 #include <pub/List.h>               // For pub::List
+#include "dev/bits/devconfig.h"     // For HTTP config controls
 
-namespace pub::http {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace http {
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -74,7 +76,7 @@ typedef std::string    string;
 //----------------------------------------------------------------------------
 // Options::Option
 //----------------------------------------------------------------------------
-class Option : public pub::List<Option>::Link { // Option descriptor
+class Option : public List<Option>::Link { // Option descriptor
 public:
 const string           first;       // The Option name
 string                 second;      // The Option value
@@ -94,7 +96,7 @@ public:
    ~const_iterator( void ) = default; // Destructor
    const_iterator( void ) = default;  // Default (end) constructor
    const_iterator(const const_iterator&); // Copy constructor
-   const_iterator(const pub::List<Option>&); // Constructor
+   const_iterator(const List<Option>&); // Constructor
 
 bool operator==(const const_iterator&) const; // Operator ==
 bool operator!=(const const_iterator&) const; // Operator !=
@@ -116,7 +118,7 @@ public:
    ~iterator( void ) = default;     // Destructor
    iterator( void ) = default;      // Default (end) constructor
    iterator(const const_iterator&); // Copy constructor
-   iterator(const pub::List<Option>&); // Constructor
+   iterator(const List<Option>&);   // Constructor
 
 bool operator==(const const_iterator&) const; // Operator ==
 bool operator!=(const const_iterator&) const; // Operator !=
@@ -133,7 +135,7 @@ void swap(iterator&);               // (Swappable)
 // Options::Attributes
 //----------------------------------------------------------------------------
 protected:
-pub::List<Option>      opts;        // The Option list
+List<Option>           opts;        // The Option list
 
 //----------------------------------------------------------------------------
 // Options::Destructor/Constructor
@@ -212,5 +214,6 @@ string&                             // The (settable) Option value
      const string&     name)        // For this Option name
 {  return operator[](name.c_str()); }
 }; // class Options
-}  // namespace pub::http
-#endif // _PUB_HTTP_OPTIONS_H_INCLUDED
+}  // namespace http
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_HTTP_OPTIONS_H_INCLUDED

@@ -2,21 +2,21 @@
 //
 //       Copyright (C) 2022 Frank Eskesen.
 //
-//       This file is free content, distributed under the GNU General
-//       Public License, version 3.0.
-//       (See accompanying file LICENSE.GPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+//       This file is free content, distributed under the Lesser GNU
+//       General Public License, version 3.0.
+//       (See accompanying file LICENSE.LGPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
 // Title-
-//       http/Frame.hpp
+//       http/Frame.h
 //
 // Purpose-
 //       HTTP Frame description.
 //
 // Last change date-
-//       2022/02/11
+//       2022/10/16
 //
 // Implementation notes-
 //       References: RFC7540, RFC7541, RFC8740
@@ -30,7 +30,11 @@
 
 #include <stdint.h>                 // For uint8_t, uint32_t, ...
 
-namespace pub::http {
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include "dev/bits/devconfig.h"     // For HTTP config controls
+
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace http {
 //----------------------------------------------------------------------------
 //
 // Struct-
@@ -216,9 +220,9 @@ enum code_t                         // Error code values
 ,  REFUSED_STREAM=           0x0007 // Stream not processed
 ,  CANCEL=                   0x0008 // Stream cancelled
 ,  COMPRESSION_ERROR=        0x0009 // Compression state not updated
-,  CONNECT_ERROR=            0x000A // TCP Connection error for CONNECT method
+,  CONNECT_ERROR=            0x000A // TCP Connection error for CONNECT metho
 ,  ENHANCE_YOUR_CALM=        0x000B // Processing capability exceeded
-,  INADEQUATE_SECURITY=      0x000C // Negotiated TLS parameters not acceptable
+,  INADEQUATE_SECURITY=      0x000C // Negotiated TLS parameters not acceptabe
 ,  HTTP_1_1_REQUIRED=        0x000D // Use HTTP/1.1 for the request
 }; // enum code_t
 }; // struct FrameEC
@@ -529,5 +533,6 @@ void
    this->size[0]= V >> 24;
 }
 }; // struct FrameUpdate
-}  // namespace pub::http
+}  // namespace http
+_LIBPUB_END_NAMESPACE
 #endif // _PUB_HTTP_FRAME_HPP_INCLUDED

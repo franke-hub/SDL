@@ -16,7 +16,7 @@
 //       Implement http/Response.h
 //
 // Last change date-
-//       2022/07/16
+//       2022/10/16
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -36,17 +36,20 @@
 
 #include "pub/http/Client.h"        // For pub::http::Client
 #include "pub/http/Exception.h"     // For pub::http:exceptions
+#include "pub/http/Ioda.h"          // For pub::http:Ioda
 #include "pub/http/Request.h"       // For pub::http::Request // TODO: NEEDED?
 #include "pub/http/Response.h"      // For pub::http::Response, implemented
 #include "pub/http/Server.h"        // For pub::http::Server
 #include "pub/http/Stream.h"        // For pub::http::Stream
-#include "pub/http/utility.h"       // For namespace pub::http::utility
 
-using namespace _PUB_NAMESPACE;
-using namespace _PUB_NAMESPACE::debugging;
-using _PUB_NAMESPACE::utility::to_string;
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB;
+using namespace PUB::debugging;
+using PUB::utility::dump;          // TODO: REMOVE
+using PUB::utility::to_string;
 using std::string;
 
+namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -63,13 +66,9 @@ enum FSM                            // Finite State Machine states
 }; // enum FSM
 
 //----------------------------------------------------------------------------
-// Namespace pub::http
-//----------------------------------------------------------------------------
-namespace pub::http {               // Implementation namespace
-//----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-pub::Statistic         Response::obj_count; // Response object count
+Statistic              Response::obj_count; // Response object count
 
 //----------------------------------------------------------------------------
 // Constants
@@ -82,49 +81,34 @@ static constexpr CC*   HTTP_HEAD=  Options::HTTP_METHOD_HEAD;
 
 //----------------------------------------------------------------------------
 //
-// Subroutine-
-//       dump
-//
-// Purpose-
-//       Storage dump
-//
-//----------------------------------------------------------------------------
-static inline void
-   dump(void* addr, size_t size)    // TODO: REMOVE
-{
-   std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
-
-   ::pub::utility::dump(stdout, addr, size);
-   ::pub::utility::dump(addr, size);
-}
-
-//----------------------------------------------------------------------------
-//
 // Method-
-//       Response::~Response
 //       Response::Response
-//       Response::make
+//       Response::~Response
 //
 // Purpose-
-//       Destructor
 //       Constructors
-//       Creator
+//       Destructor
 //
 //----------------------------------------------------------------------------
-   Response::~Response( void )      // Destructor
-{  if( HCDM ) debugh("Response(%p)::~Response\n", this);
-
-   obj_count.dec();
-}
-
    Response::Response( void )       // Default constructor
 :  Options()
-,  h_data(utility::f_data())
-,  h_end(utility::f_void())
-,  h_error(utility::f_error())
-{  if( HCDM ) debugh("Response(%p)::Response\n", this);
+,  h_ioda([](Ioda&) { })
+,  h_end([]( void ) { })
+,  h_error([](string) { })
+{  if( HCDM ) debugh("Response(%p)!\n", this);
 
    obj_count.inc();
+   INS_DEBUG_OBJ("Response");
+}
+
+   Response::~Response( void )      // Destructor
+{  if( HCDM ) debugh("Response(%p)~\n", this);
+
+   obj_count.dec();
+
+   if( stream )
+     stream->use_count(__LINE__, __FILE__, "--Response~");
+   REM_DEBUG_OBJ("Response");
 }
 
 //----------------------------------------------------------------------------
@@ -181,11 +165,11 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   Response::reject(                // Reject the Response
-     int               code)        // With this error code
+   Response::reject(int code)       // Reject the Response
 {  if( HCDM ) debugh("Response(%p)::reject(%d)\n", this, code);
 
-   utility::not_coded_yet(__LINE__, __FILE__);
+   stream->reject(code);
+   stream->close();
 }
 
 //----------------------------------------------------------------------------
@@ -199,7 +183,7 @@ void
 //       Virtual methods; only implemented in ServerResponse
 //
 //----------------------------------------------------------------------------
-bool Response::read(const void*, const size_t) // (ClientResponse only)
+bool Response::read(Ioda&)          // (ClientResponse only)
 {  utility::should_not_occur(__LINE__, __FILE__); return false; }
 
 void
@@ -213,22 +197,25 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ClientResponse::~ClientResponse
 //       ClientResponse::ClientResponse
+//       ClientResponse::~ClientResponse
 //       ClientResponse::make
 //
 // Purpose-
-//       Destructor
 //       Constructor
+//       Destructor
 //       Creator
 //
 //----------------------------------------------------------------------------
-   ClientResponse::~ClientResponse( void ) // Destructor
-{  if( HCDM ) debugh("http::~ClientResponse(%p)\n", this); }
-
    ClientResponse::ClientResponse( void ) // Default constructor
 :  Response()
-{  if( HCDM ) debugh("http::ClientResponse(%p)\n", this); }
+{  if( HCDM ) debugh("http::ClientResponse(%p)!\n", this);
+   INS_DEBUG_OBJ("ClientResponse");
+}
+
+   ClientResponse::~ClientResponse( void ) // Destructor
+{  if( HCDM ) debugh("http::ClientResponse(%p)~\n", this);
+}
 
 std::shared_ptr<ClientResponse>     // The ClientResponse
    ClientResponse::make(            // Get ClientResponse
@@ -281,151 +268,124 @@ std::shared_ptr<ClientStream>
 //
 //----------------------------------------------------------------------------
 bool                                // TRUE if read complete
-   ClientResponse::read(            // Read
-     const void*       addr,        // Data address
-     size_t            size)        // Data length
+   ClientResponse::read(            // Read from
+     Ioda&             data)        // This I/O Data Area
 {  if( HCDM )
-     debugh("ClientResponse(%p)::read({%p,%zd})\n", this, addr, size);
+     debugh("ClientResponse(%p)::read({*,%zd})\n", this, data.get_used());
 
-   data.append(addr, size);         // Append the read segment
+   ioda += std::move(data);         // Append the I/O Data Area
 
-   // Because we are indirectly called from the Client, this always succeeds
    std::shared_ptr<Client> client= get_stream()->get_client();
-   Buffer& buffer= client->get_buffer(); // Borrow the Client's input buffer
-   buffer.fetch(data);
-// traceh("%4d %s HCDM\n", __LINE__, __FILE__); // data.debug(); // TODO: REMOVE
-// dump(buffer.addr, buffer.length);
+   if( client.get() == nullptr )
+     return true;
 
    if( fsm == FSM_RESET )
      fsm= FSM_HEAD;
 
+   IodaReader reader(ioda);         // The Ioda reader
    if( fsm == FSM_HEAD ) {
-// traceh("%4d %s HCDM\n", __LINE__, __FILE__);
      // RFC 2616: In the interest of robustness, servers SHOULD ignore any
      // empty lines read where a Request-Line is expected.
      // Note: RFC 7230 DOES NOT specify this action for Start-Lines
-     int P= buffer.peek_char();       // (P always used as peek character)
+     int P= reader.peek();          // (P always used as peek character)
      while( P == '\r' || P == '\n' ) {
-       buffer.read_char();
-       P= buffer.peek_char();
+       reader.get();
+       P= reader.peek();
      }
 
      // Insure header completion
-// traceh("%4d %s HCDM\n", __LINE__, __FILE__); // buffer.debug(); // TODO: REMOVE
+// debugh("%4d %s HCDM\n", __LINE__, __FILE__); // reader.debug(); // TODO: REMOVE
      for(;;) {
-       int C= buffer.read_char();
+       int C= reader.get();
        if( C == '\n' ) {
-         C= buffer.read_char();
+         C= reader.get();
          if( C == '\r' )
-           C= buffer.read_char();
+           C= reader.get();
          if( C == '\n' )
            break;
        }
 
-       if( C == 0 ) {
-// traceh("%4d %s HCDM\n", __LINE__, __FILE__); // buffer.debug(); // TODO: REMOVE
-// dump(buffer.addr, buffer.length);
-         if( buffer.offset < buffer.size )
-           return false;
-
-         reject(431);               // Header fields too large
-         get_stream()->close();
-         return true;
-       }
+       if( C == EOF )
+         return false;
      }
 
      //-----------------------------------------------------------------------
      // Header complete, parse as specified in RFC 7230
      //-----------------------------------------------------------------------
-// traceh("%4d %s HCDM\n", __LINE__, __FILE__);
-// traceh("%4d %s HCDM: ", __LINE__, __FILE__); buffer.debug(); // TODO: REMOVE
-     buffer.offset= 0;
-// traceh("%4d %s HCDM: ", __LINE__, __FILE__); buffer.debug(); // TODO: REMOVE
-     P= buffer.peek_char();
+     reader.set_offset(0);
+     P= reader.peek();
      while( P == '\r' || P == '\n' ) {
-       buffer.read_char();
-       P= buffer.peek_char();
+       reader.get();
+       P= reader.peek();
      }
 
      // Parse the Start-Line
-// char temp[32];
-// memset(temp, 0, sizeof(temp));
-// if( buffer.size > 31 ) memcpy(temp, buffer.addr, 31);
-// else                   memcpy(temp, buffer.addr, buffer.size);
-
-     string protocol= buffer.read_token(" ");
-     string status= buffer.read_token(" ");
-     string message= buffer.read_token("\r\n");
-// traceh("\nprotocol(%s) status(%s) message(%s)\n", protocol.c_str(), status.c_str(), message.c_str()); // TODO: REMOVE
+     string protocol= reader.get_token(" ");
+     string status= reader.get_token(" ");
+     string message= reader.get_token("\r\n");
 
      // Start-Line validity checks
      if( protocol == "" || status == "" || message == "" ) {
-// buffer.debug(); // TODO: REMOVE
-// debugf("temp(%s) method(%s) path(%s) proto_id(%s)\n", temp, protocol.c_str(), status.c_str(), message.c_str());
+debugh("%4d Response: protocol(%s) status(%s) message(%s)\n", __LINE__, protocol.c_str(), status.c_str(), message.c_str()); // TODO: REMOVE
        throw stream_error("Invalid Start-Line");
      }
      code= atoi(status.c_str());    // TODO: IMPROVE ROBUSTNESS
 
      // Parse Header lines
      for(;;) {
-       P= buffer.peek_char();
+       P= reader.peek();
        if( P == '\r' ) {
-         int C= buffer.read_char(); // (C always used as read character)
-         C= buffer.read_char();
+         int C= reader.get();       // (C always used as read character)
+         C= reader.get();
          if( C != '\n' )
            throw std::runtime_error("Invalid Header-Line: '\\r' w/o '\\n'");
          break;
        }
 
-       std::string name= buffer.read_token(":");
-       P= buffer.peek_char();
+       std::string name= reader.get_token(":");
+       P= reader.peek();
        if( P == ' ' || P == '\t' ) // Ignore first leading white space char
-         buffer.read_char();
-       std::string value= buffer.read_token("\r\n");
+         reader.get();
+       std::string value= reader.get_token("\r\n");
 
        // Check for obs-fold in a response message.
        // It's use is deprecated except within a message/http container.
        // TODO: Find out the definition of "messsage/http container."
        // TODO: Do we need to allow this if using HTTP/1.0??
        // TODO: If allowed, the value definition continues
-       P= buffer.peek_char();
+       P= reader.peek();
        if( P == ' ' || P == '\t' )
          throw std::runtime_error("Header-Line obs-fold: {'\\r','\\n',WS}");
 
-       if( name == ""||value == "" || isspace(name[0])||isspace(value[0]) )
+       if( name == ""||value == "" || isspace(name[0])||isspace(value[0]) ) {
+debugf("Response name(%s) value(%s)\n", name.c_str(), value.c_str());
+utility::on_exception("Invalid Header-Line format");
          throw std::runtime_error("Invalid Header-Line format");
+       }
        insert(name, value);
      }
 
      // Discard Header data
-// buffer.debug(); // TODO: REMOVE
-// data.debug(); // TODO: REMOVE
-     data.discard(buffer.offset);
-// data.debug(); // TODO: REMOVE
+     size_t offset= reader.get_offset();
+     ioda.discard(offset);
+     reader.set_offset(0);
      fsm= FSM_BODY;
    }
 
    //-------------------------------------------------------------------------
    // Load response data
    //-------------------------------------------------------------------------
-// traceh("%4d %s HCDM (Load Response Data)\n", __LINE__, __FILE__);
-   std::shared_ptr<ClientRequest> Q= get_request();
    const char* value= locate(HTTP_SIZE);
    if( value ) {
-// traceh("%4d %s HCDM\n", __LINE__, __FILE__);
      ssize_t content_length= atol(value);
-// traceh("%4d %s HCDM %s want(%zd) have(%zd)\n", __LINE__, __FILE__, Q->method.c_str(), content_length, data.get_size()); // TODO: REMOVE
-// data.debug(); // TODO: REMOVE
      if( content_length < 0 || content_length > RESP_LIMIT ) {
        reject(413);
-       get_stream()->close();
        return true;
      }
-
-     // TODO: CHECK FOR OVERFLOW
-     if( data.get_size() < size_t(content_length) && Q->method != HTTP_HEAD ) {
-// traceh("%4d %s HCDM %s have(%zd) < want(%zd) (get more)\n", __LINE__, __FILE__, Q->method.c_str(), data.get_size(), content_length);
-       return false;
+     std::shared_ptr<ClientRequest> Q= get_request();
+     if( Q->method != HTTP_HEAD ) {
+       if( (ioda.get_used()) < size_t(content_length) )
+         return false;
      }
    }
 
@@ -436,22 +396,26 @@ bool                                // TRUE if read complete
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerResponse::~ServerResponse
 //       ServerResponse::ServerResponse
+//       ServerResponse::~ServerResponse
 //       ServerResponse::make
 //
 // Purpose-
-//       Destructors
-//       Constructor
+//       Constructors
+//       Destructor
 //       Creator
 //
 //----------------------------------------------------------------------------
-   ServerResponse::~ServerResponse( void ) // Destructor
-{  if( HCDM ) debugh("http::~ServerResponse(%p)\n", this); }
-
    ServerResponse::ServerResponse( void ) // Default constructor
 :  Response()
-{  if( HCDM ) debugh("http::ServerResponse(%p)\n", this); }
+{  if( HCDM ) debugh("http::ServerResponse(%p)!\n", this);
+   INS_DEBUG_OBJ("ServerResponse");
+}
+
+   ServerResponse::~ServerResponse( void ) // Destructor
+{  if( HCDM ) debugh("http::ServerResponse(%p)~\n", this);
+   REM_DEBUG_OBJ("ServerResponse");
+}
 
 std::shared_ptr<ServerResponse>     // The ServerResponse
    ServerResponse::make(            // Get ServerResponse
@@ -464,7 +428,7 @@ std::shared_ptr<ServerResponse>     // The ServerResponse
 
    std::shared_ptr<ServerResponse> Q= std::make_shared<ServerResponse>();
    Q->self= Q;                      // Set self-reference
-   Q->stream= owner->get_self();    // Set ourClientStream
+   Q->stream= owner->get_self();    // Set our ServerStream
 
    // Extract options
    if( opts )
@@ -507,9 +471,11 @@ void
      const void*       addr,        // Data address
      size_t            size)        // Data length
 {  if( HCDM )
-     debugh("ClientResponse(%p)::write({%p,%zd})\n", this, addr, size);
+     debugh("ServerResponse(%p)::write({%p,%zd})\n", this, addr, size);
 
-   data.append(addr, size);         // Append to Data
+   ioda.write(addr, size);          // Append to Data
+// debugf("%4d ServerResponse::write(%p,%zd)\n", __LINE__, addr, size);
+// dump(addr, size);
 }
 
 void
@@ -530,10 +496,12 @@ void
    std::shared_ptr<ServerStream> stream= get_stream();
    if( !stream )
      utility::not_coded_yet(__LINE__, __FILE__);
-   stream->write(mess.c_str(), mess.size());
+   Ioda temp;
+   temp.put(mess);
+   stream->write(temp);
 
-   mess= data.get_string();
-   if( mess.size() > 0 )
-     stream->write(mess.c_str(), mess.size());
+// ioda.debug("ServerResponse.write");
+   if( ioda.get_used() > 0 )
+     stream->write(ioda);
 }
-}  // namespace pub::http
+}  // namespace _LIBPUB_NAMESPACE::http

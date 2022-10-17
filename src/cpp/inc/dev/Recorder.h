@@ -1,0 +1,131 @@
+//----------------------------------------------------------------------------
+//
+//       Copyright (C) 2022 Frank Eskesen.
+//
+//       This file is free content, distributed under the Lesser GNU
+//       General Public License, version 3.0.
+//       (See accompanying file LICENSE.LGPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//
+//----------------------------------------------------------------------------
+//
+// Title-
+//       dev/Recorder.h
+//
+// Purpose-
+//       Profiling event recorder
+//
+// Last change date-
+//       2022/10/16
+//
+//----------------------------------------------------------------------------
+#ifndef _LIBPUB_RECORDER_H_INCLUDED
+#define _LIBPUB_RECORDER_H_INCLUDED
+
+#include <functional>               // For std::function
+#include <iostream>                 // For std::cout
+#include <mutex>                    // For std::mutex
+#include <string>                   // For std::string
+#include <stdio.h>                  // For sprintf, ...
+
+#include <pub/List.h>               // For pub::List
+#include <pub/Statistic.h>          // For pub::Statistic
+#include "dev/bits/devconfig.h"     // For HTTP config controls
+
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+//----------------------------------------------------------------------------
+//
+// Class-
+//       Recorder
+//
+// Purpose-
+//       (Globally lockable) event recorder
+//
+//----------------------------------------------------------------------------
+class Recorder {                    // Event recorder
+//----------------------------------------------------------------------------
+// Recorder::typedefs and enumerations
+//----------------------------------------------------------------------------
+public:
+typedef std::string    string;      // Import std::string
+typedef std::mutex     mutex_t;     // The mutex type
+
+//----------------------------------------------------------------------------
+// Recorder::Record
+//----------------------------------------------------------------------------
+struct Record {
+typedef std::function<string(void)> f_report;
+typedef std::function<void(void)>   f_reset;
+
+string                 name;        // The name of the Record
+f_report               h_report;    // Report recording
+f_reset                h_reset;     // Reset this Record
+
+void on_report(const f_report& f)   // Set reporter function
+{  h_report= f; }
+
+void on_reset(const f_reset& f)     // Set reset function
+{  h_reset= f; }
+}; // class Record
+
+//----------------------------------------------------------------------------
+// Recorder::RecordItem
+//----------------------------------------------------------------------------
+struct RecordItem : public List<RecordItem>::Link {
+Record*                record;      // The associated Record
+
+   RecordItem(Record* R)            // Constructor
+:  record(R) {}
+}; // struct RecordItem
+
+//----------------------------------------------------------------------------
+// Recorder::Attributes
+//----------------------------------------------------------------------------
+protected:
+static Recorder*       common;      // -> The Common Recorder instance
+static mutex_t         mutex;       // -> The global Recorder mutex
+
+List<RecordItem>       list;        // The RecordItem list
+typedef std::function<void(Record&)>f_reporter; // The reporter function
+
+//----------------------------------------------------------------------------
+// Recorder::Constructors/Denstructor
+//----------------------------------------------------------------------------
+public:
+   Recorder( void );                // Default constructor
+   ~Recorder( void );               // Destructor
+
+//----------------------------------------------------------------------------
+// Recorder::debug
+//----------------------------------------------------------------------------
+void debug(const char* info= "") const; // Debugging display
+
+//----------------------------------------------------------------------------
+// Recorder::Accessor methods
+//----------------------------------------------------------------------------
+static mutex_t&                     // The global Recorder mutex
+   get_mutex( void )                // Get global Recorder mutex
+{  return mutex; }
+
+static Recorder*                    // -> The common Recorder instance
+   get( void );                     // Get the common Recorder instance
+
+static Recorder*                    // (The old common Recorder instance)
+   set(                             // Set
+     Recorder*         debug);      // This new common Recorder instance)
+
+static Recorder*                    // (The current common Recorder instance)
+   show( void )                     // Get the current common Recorder instance
+{  return common; }                 // Without trying to create it
+
+//----------------------------------------------------------------------------
+// Recorder::Methods
+//----------------------------------------------------------------------------
+void insert(Record*);               // Insert Record* into List, NO duplicates
+void remove(Record*);               // Remove Record* from List
+
+void report(f_reporter);            // Generate report
+void reset( void );                 // Reset recording data
+}; // class Recorder
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_RECORDER_H_INCLUDED

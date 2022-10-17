@@ -16,7 +16,7 @@
 //       HTTP Listen object.
 //
 // Last change date-
-//       2022/07/05
+//       2022/10/16
 //
 // Implementation notes-
 //       The Listen object is the Server analog to a Client Agent.
@@ -24,8 +24,8 @@
 //       Client connection.
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_HTTP_LISTEN_H_INCLUDED
-#define _PUB_HTTP_LISTEN_H_INCLUDED
+#ifndef _LIBPUB_HTTP_LISTEN_H_INCLUDED
+#define _LIBPUB_HTTP_LISTEN_H_INCLUDED
 
 #include <cstdlib>                  // For size_t
 #include <cstring>                  // For memcmp
@@ -42,14 +42,16 @@
 #include <pub/Thread.h>             // For pub::Thread, super class
 
 #include "pub/http/Options.h"       // For pub::http::Options
+#include "pub/http/Request.h"       // For pub::http::ServerRequest
 
-namespace pub::http {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace http {
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
-class Request;                      // pub::http::Request
-class Server;                       // pub::http::Server
-class ServerAgent;                  // pub::http::ServerAgent
+class Request;
+class Server;
+class ServerAgent;
 
 //----------------------------------------------------------------------------
 //
@@ -60,12 +62,14 @@ class ServerAgent;                  // pub::http::ServerAgent
 //       Define the Listen class. (A Named Thread)
 //
 //----------------------------------------------------------------------------
-class Listen : public pub::Named, public pub::Thread { // Listen class
+class Listen : public Named, public Thread { // Listen class
 //----------------------------------------------------------------------------
 // Listen::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-typedef Socket::sockaddr_u sockaddr_u; // Using pub::Socket::sockaddr_u
+typedef Socket::sockaddr_u sockaddr_u;
+typedef std::function<void(void)>             f_close; // Callback handlers
+typedef std::function<void(ServerRequest&)>   f_request;
 
 struct op_lt {                      // Compare operator
 bool operator()(const sockaddr_u& lhs, const sockaddr_u& rhs) const
@@ -91,16 +95,14 @@ Socket                 listen;      // The listen Socket
 Map_t                  map;         // The Server map
 std::mutex             mutex;       // The Server map mutex
 
-pub::Debug             log;         // The logger object
+Debug                  log;         // The logger object
 Options                opts;        // The Listen Options
 
 bool                   operational; // TRUE while Listen is operational
 
 // Callback handlers
-std::function<void(void)>
-                       h_close;     // The close event handler
-std::function<void(Request&)>
-                       h_request;   // The request event handler
+f_close                h_close;     // The close event handler
+f_request              h_request;   // The request event handler
 
 //----------------------------------------------------------------------------
 // Listen::Static attributes
@@ -134,9 +136,6 @@ static std::shared_ptr<Listen>      // The Listener
      socklen_t         size,        // sizeof(addr)
      const Options*    opts= nullptr); // Listen options
 
-std::function<void(Request&)>
-   init_request( void );            // Initialize h_request
-
 //----------------------------------------------------------------------------
 // Listen::debug
 //----------------------------------------------------------------------------
@@ -150,7 +149,7 @@ void
 public:
 void
    do_request(                      // Drive the Request event handler
-     Request*          request)     // For this Request
+     ServerRequest*    request)     // For this ServerRequest
 {  h_request(*request); }
 
 int                                 // The socket handle (<0 if not connected)
@@ -166,13 +165,11 @@ const sockaddr_u&                   // The connectionID
 {  return listen.get_host_addr(); }
 
 void
-   on_close(                        // Set close event handler
-     std::function<void(void)> f)
+   on_close(const f_close& f)       // Set close event handler
 {  h_close= f; }
 
 void
-   on_request(                      // Set Request event handler
-     std::function<void(Request&)> f)
+   on_request(const f_request& f)   // Set Request event handler
 {  h_request= f; }
 
 void
@@ -221,5 +218,6 @@ void
 virtual void
    run( void );                     // Operate the Listen
 }; // class Listen
-} // namespace pub::http
-#endif // _PUB_HTTP_LISTEN_H_INCLUDED
+}  // namespace http
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_HTTP_LISTEN_H_INCLUDED

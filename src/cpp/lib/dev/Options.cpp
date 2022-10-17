@@ -16,7 +16,7 @@
 //       Implement http/Options.h
 //
 // Last change date-
-//       2022/02/20
+//       2022/09/05
 //
 //----------------------------------------------------------------------------
 #include <algorithm>                // For std::swap
@@ -36,15 +36,14 @@
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
-#include <pub/utility.h>            // For pub::utility::to_string()
 
 #include "pub/http/Options.h"       // For pub::http::Options, implemented
-#include "pub/http/utility.h"       // For namespace pub::http::utility
 
-using namespace _PUB_NAMESPACE;
-using namespace _PUB_NAMESPACE::debugging;
+using namespace _LIBPUB_NAMESPACE;
+using namespace _LIBPUB_NAMESPACE::debugging;
 using std::string;
 
+namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -52,7 +51,6 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 }; // enum
 
-namespace pub::http {               // Implementation namespace
 static const Options::const_iterator
                        static_end;  // A static Options::end()
 
@@ -276,7 +274,7 @@ void
      const string&     value)       // The Option value
 :  first(name), second(value)
 {  if( name == "" )
-     throw std::invalid_argument("pub::Options::Option name == \"\"");
+     throw std::invalid_argument("pub::http::Options::Option name == \"\"");
 }
 
 //----------------------------------------------------------------------------
@@ -293,7 +291,7 @@ void
 :  item(from.item) {}
 
    Options::const_iterator::const_iterator( // Constructor
-     const pub::List<Option>& from)
+     const List<Option>& from)
 :  item(from.get_head()) {}
 
 //----------------------------------------------------------------------------
@@ -379,4 +377,4 @@ Options::const_iterator
 void
    Options::const_iterator::swap(const_iterator& that) // Swap iterators
 {  std::swap(item, that.item); }
-}  // namespace pub::http
+}  // namespace _LIBPUB_NAMESPACE::http

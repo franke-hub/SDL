@@ -16,11 +16,11 @@
 //       HTTP Response information.
 //
 // Last change date-
-//       2022/07/16
+//       2022/10/03
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_HTTP_RESPONSE_H_INCLUDED
-#define _PUB_HTTP_RESPONSE_H_INCLUDED
+#ifndef _LIBPUB_HTTP_RESPONSE_H_INCLUDED
+#define _LIBPUB_HTTP_RESPONSE_H_INCLUDED
 
 #include <functional>               // For std::function
 #include <memory>                   // For std::shared_ptr
@@ -28,15 +28,16 @@
 
 #include <pub/Statistic.h>          // For pub::Statistic
 
-#include <pub/http/Data.h>          // For pub::http::Hunk, pub::http::Data
+#include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include <pub/http/Options.h>       // For pub::http::Options, super class
 
-namespace pub::http {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace http {
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
-class Request;                      // pub::http::Request
-class Stream;                       // pub::http::Stream
+class Request;
+class Stream;
 
 //----------------------------------------------------------------------------
 //
@@ -49,26 +50,34 @@ class Stream;                       // pub::http::Stream
 //----------------------------------------------------------------------------
 class Response : public Options {   // Http Response
 //----------------------------------------------------------------------------
-// Response::Attributes
+// Request::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-static pub::Statistic  obj_count;   // Request counter
+typedef std::string    string;      // (Using std::string)
+
+// Callback handlers
+typedef std::function<void(Ioda&)>            f_ioda;
+typedef std::function<void(void)>             f_end;
+typedef std::function<void(const string&)>    f_error;
+
+//----------------------------------------------------------------------------
+// Response::Attributes
+//----------------------------------------------------------------------------
+static Statistic       obj_count;   // Request counter
 
 protected:
 std::weak_ptr<Response>self;        // Self reference
 std::shared_ptr<Stream>stream;      // Associated Stream
 
-Data                   data;        // Response data
+Ioda                   ioda;        // Response data area accumulator
+//size_t                 ioda_off;    // Response data area offset
 int                    code= 0;     // Response code
 int                    fsm= 0;      // Finite State Machine
 
 // Callback handlers (TODO: REMOVE UNUSED)
-std::function<void(const Hunk&)>
-                       h_data;      // The Response data handler
-std::function<void(void)>
-                       h_end;       // The Response completion handler
-std::function<void(const std::string&)>
-                       h_error;     // The Response (connection) error handler
+f_ioda                 h_ioda;      // The Response data handler
+f_end                  h_end;       // The Response completion handler
+f_error                h_error;     // The Response (connection) error handler
 
 //----------------------------------------------------------------------------
 // Response::Destructor/Constructors
@@ -92,9 +101,9 @@ int
    get_code( void ) const           // Get response code
 {  return code; }
 
-Data&
-   get_data( void ) const
-{  return const_cast<Data&>(data); }
+Ioda&
+   get_ioda( void )
+{  return ioda; }
 
 std::shared_ptr<Request>
    get_request( void ) const;
@@ -113,18 +122,15 @@ void
 {  this->code= code_; }
 
 void
-   on_data(                         // Set response data handler
-     const std::function<void(const Hunk&)>& f)
-{  h_data= f; }
+   on_ioda(const f_ioda& f)         // Set response data handler
+{  h_ioda= f; }
 
 void
-   on_end(                          // Set completion handler
-     const std::function<void(void)>& f)
+   on_end(const f_end& f)           // Set completion handler
 {  h_end= f; }
 
 void
-   on_error(                        // Set connection error handler
-     const std::function<void(const std::string&)>& f)
+   on_error(const f_error& f)       // Set connection error handler
 {  h_error= f; }
 
 //----------------------------------------------------------------------------
@@ -147,11 +153,11 @@ void
 //       Virtual methods; only implemented in ServerResponse
 //
 //----------------------------------------------------------------------------
-virtual bool read(const void*, size_t); // (Async) read Response data
+virtual bool read(Ioda&);           // (Async) read Response data
 
-virtual void write(const void*, size_t); // (ServerResponse only)
-virtual void write( void );         // (ServerResponse only)
-void write(std::string S)           // (ServerResponse only)
+virtual void write(const void*, size_t); // (Write Server Response data)
+virtual void write();               // (Server Response complete)
+void write(std::string S)           // (Write Server Response data)
 {  write(S.c_str(), S.size()); }
 }; // class Response
 
@@ -199,7 +205,7 @@ std::shared_ptr<ClientStream>
 //----------------------------------------------------------------------------
 // ClientResponse::Methods
 //----------------------------------------------------------------------------
-virtual bool read(const void*, size_t); // (Async) read Response data
+virtual bool read(Ioda&);           // (Async) read Response data
 }; // class ClientResponse
 
 //----------------------------------------------------------------------------
@@ -246,11 +252,9 @@ std::shared_ptr<ServerStream>
 //----------------------------------------------------------------------------
 // ServerResponse::Methods
 //----------------------------------------------------------------------------
-virtual void
-   write(const void*, size_t);      // Write response data
-
-virtual void
-   write( void );                   // Transmit the response
+virtual void write(const void*, size_t); // (Write Server Response data)
+virtual void write();               // (Server Response complete)
 }; // class ServerRequest
-}  // namespace pub::http
-#endif // _PUB_HTTP_RESPONSE_H_INCLUDED
+}  // namespace http
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_HTTP_RESPONSE_H_INCLUDED

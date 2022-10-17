@@ -13,10 +13,10 @@
 //       T_Option.cpp
 //
 // Purpose-
-//       Test pub::http::Options.h
+//       Test http::Options.h
 //
 // Last change date-
-//       2022/02/11
+//       2022/09/02
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -26,9 +26,10 @@
 
 #include "pub/http/Options.h"       // For pub::http::Options, tested
 
-using namespace pub;                // For pub classes
-using namespace pub::debugging;     // For pub debugging functions
-using namespace pub::http;          // For pub::http classes
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB;                // For pub classes
+using namespace PUB::debugging;     // For pub debugging functions
+using namespace PUB::http;          // For pub::http classes
 using namespace std;                // For std classes
 
 typedef Options::const_iterator const_iterator;

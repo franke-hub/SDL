@@ -16,7 +16,13 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2022/07/14
+//       2022/10/16
+//
+// Implementation notes-
+//       TODO: Create ClientListen and ServerListen, used by ClientAgent.
+//         ClientListen tracks server connections, using HTTP1 HTTP2, and
+//         encryption to determine whether or not to share a connection.
+//         ServerListen is basically this implementation.
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -40,22 +46,21 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Socket.h>             // For pub::Socket
-#include <pub/utility.h>            // For pub::utility::to_string()
+#include <pub/utility.h>            // For pub::utility::to_string(), ...
 
 #include "pub/http/Agent.h"         // For pub::http::ServerAgent, owner
-#include "pub/http/Listen.h"        // The pub::http::Listen, implemented
+#include "pub/http/Listen.h"        // For pub::http::Listen, implemented
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Request.h"       // For pub::http::Request
 #include "pub/http/Server.h"        // For pub::http::Server
 #include "pub/http/Stream.h"        // For pub::http::Stream
-#include "pub/http/utility.h"       // For namespace pub::http::utility
 
-using namespace _PUB_NAMESPACE;
-using namespace _PUB_NAMESPACE::debugging;
-// using pub::Socket;
-// using pub::Socket::sockaddr_u;
+using namespace _LIBPUB_NAMESPACE;
+using namespace _LIBPUB_NAMESPACE::debugging;
+using _LIBPUB_NAMESPACE::utility::should_not_occur;
 using std::string;
 
+namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -67,7 +72,6 @@ enum
 
 static constexpr const char* LOG_FILE= "log/HttpServer.log";
 
-namespace pub::http {               // Implementation namespace
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -81,23 +85,7 @@ static void
    report_error(                    // Display generic system error message
      int               line,        // For this source code line
      const char*       op)          // For this operation name
-{  utility::report_error(line, "Listen", op); }
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       should_not_occur
-//
-// Purpose-
-//       Display "SHOULD NOT OCCUR" message
-//
-//----------------------------------------------------------------------------
-#if 1  // (UNUSED)
-static void
-   should_not_occur(                // Display "SHOULD NOT OCCUR"  message
-     int               line)        // For this source code line
-{  debugh("\n%4d %s SHOULD NOT OCCUR\n\n", line, __FILE__); }
-#endif
+{  utility::report_error(line, __FILE__, op); }
 
 //----------------------------------------------------------------------------
 //
@@ -115,7 +103,7 @@ static void
      debugh("Listen(%p)::~Listen\n", this);
 
    if( map.begin() != map.end() ) { // TODO: ?REMOVE? (Do we need this logic?)
-     should_not_occur(__LINE__);
+     debugf("\n\n%d %s SHOULD NOT OCCUR<<<<<<<<<<<<\n\n", __LINE__, __FILE__);
      reset();
    }
 }
@@ -129,8 +117,12 @@ static void
 ,  agent(agent ? agent->get_self() : nullptr)
 ,  listen(), map(), mutex(), log(LOG_FILE)
 ,  operational(false)
-,  h_close(utility::f_void())
-,  h_request(init_request())
+,  h_close([](void) { })
+,  h_request([](ServerRequest& Q)
+   {
+     std::shared_ptr<Stream> stream= Q.get_stream();
+     stream->reject(501);           // (No request handler available)
+   })
 {  if( HCDM )
      debugh("Listen(%p)::Listen\n", this);
 
@@ -161,14 +153,6 @@ static void
 
    operational= true;
    start();
-}
-
-std::function<void(Request&)>
-   Listen::init_request( void )     // Initialize h_request
-{  return [](Request& Q) {
-     std::shared_ptr<Stream> stream= Q.get_stream();
-     stream->reject(501);           // (No request handler available)
-   };
 }
 
 std::shared_ptr<Listen>             // The Listener
@@ -269,13 +253,14 @@ void
    Socket socket;
    int
    rc= socket.open(AF_INET, SOCK_STREAM, 0);
-   if( rc ) report_error(__LINE__, "close: socket.open");
-   rc= socket.connect((sockaddr*)&listen.get_host_addr(), sizeof(sockaddr_u));
-   if( rc ) report_error(__LINE__, "close: socket.connect");
+   if( rc == 0 )
+     rc= socket.connect((sockaddr*)&listen.get_host_addr(), sizeof(sockaddr_u));
 
    // Close the Listen Socket
-   rc= listen.close();              // Close the Listener Socket
-   if( rc ) report_error(__LINE__, "close");
+   if( rc == 0 )
+     rc= listen.close();            // Close the Listener Socket
+   if( rc )
+     report_error(__LINE__, "close");
    h_close();                       // Drive the close handler
 
    // Close all Servers
@@ -458,25 +443,31 @@ void
 {  if( HCDM )
      debugh("Listen(%p)::reset\n", this);
 
-   // Close all servers
-   // Note: server->close() closes the Server's socket, also causing
-   // the Server to exit the read loop. The Server then calls disconnect
-   // which removes the server entry from the map, removing its penultimate
-   // shared_ptr<Server>. Exiting loop iteration removes its last known
-   // shared_ptr, driving delete.
-   {{{{
+   std::list<std::weak_ptr<Server>> list;
+
+   if( HCDM )
+     debugh("%4d Listen HCDM copying the Server list...\n", __LINE__);
+   {{{{                             // Copy the Server list
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-// debugh("Listen HCDM deleting Servers...\n");
-     for(iterator it= map.begin(); it != map.end(); it= map.begin()) {
-       std::shared_ptr<Server> server= it->second;
-// debugf("...Server(%p) %s\n", server.get(), it->first->to_string().c_str());
+     for(auto it : map ) {
+       std::shared_ptr<Server> server= it.second;
+       list.emplace_back(server);
+     }
+   }}}}
+
+   if( HCDM )
+     debugh("%4d ServerAgent HCDM deleting Servers...\n", __LINE__);
+   for(auto it : list) {
+     std::shared_ptr<Server> server= it.lock();
+     if( server ) {
        server->close();
        server->join();
-       server= nullptr;
      }
-// debugf("...All Servers deleted\n");
-   }}}}
+   }
+
+   if( HCDM )
+     debugf("...All Servers deleted\n");
 }
 
 //----------------------------------------------------------------------------
@@ -520,7 +511,7 @@ debugf("%4d host(%s) peer(%s)\n", __LINE__, socket->get_host_addr().to_string().
 
        // Add server to map
        // Implementation note: additional locking is not required because
-       // new Server objects are only created here, in the Listen thread.
+       // new Server objects are only created in this Listen thread.
        std::shared_ptr<Server> server= Server::make(this, socket);
        std::shared_ptr<Server> insert= map_insert(id, server);
        if( server.get() != insert.get() ) { // If duplicate entry
@@ -541,4 +532,4 @@ debugf("%4d host(%s) peer(%s)\n", __LINE__, socket->get_host_addr().to_string().
    // Non-operational
    reset();
 }
-}  // namespace pub::http
+}  // namespace _LIBPUB_NAMESPACE::http

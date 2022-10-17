@@ -16,16 +16,20 @@
 //       HTTP exceptions
 //
 // Last change date-
-//       2022/02/15
+//       2022/10/16
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_HTTP_EXCEPTION_H_INCLUDED
-#define _PUB_HTTP_EXCEPTION_H_INCLUDED
+#ifndef _LIBPUB_HTTP_EXCEPTION_H_INCLUDED
+#define _LIBPUB_HTTP_EXCEPTION_H_INCLUDED
 
 #include <stdexcept>                // For std::exception, ...
 #include <string>                   // For std::string
 
-namespace pub::http {
+#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include "dev/bits/devconfig.h"     // For HTTP config controls
+
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace http {
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -73,5 +77,6 @@ public: using io_exception::io_exception;
 class stream_error : public exception {
 public: using exception::exception;
 }; // class stream_error
-}  // namespace pub::http
-#endif // _PUB__HTTPEXCEPTION_H_INCLUDED
+}  // namespace http
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB__HTTPEXCEPTION_H_INCLUDED

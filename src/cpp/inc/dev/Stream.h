@@ -16,15 +16,11 @@
 //       HTTP Stream object.
 //
 // Last change date-
-//       2022/07/16
-//
-// Implementation notes-
-//       May need Http1ClientStream, Http2ServerStream, etc.
-//       May need to implement extender class to dynamically change type.
+//       2022/10/12
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_HTTP_STREAM_H_INCLUDED
-#define _PUB_HTTP_STREAM_H_INCLUDED
+#ifndef _LIBPUB_HTTP_STREAM_H_INCLUDED
+#define _LIBPUB_HTTP_STREAM_H_INCLUDED
 
 #include <cstdlib>                  // For size_t
 #include <functional>               // For std::function
@@ -32,23 +28,26 @@
 #include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
 
+#include <pub/Dispatch.h>           // For pub::dispatch objects
 #include <pub/Statistic.h>          // For pub::Statistic
 
-#include "pub/http/Data.h"          // For pub::http::Data
+#include "pub/http/Ioda.h"          // For pub::http::Ioda, ...
 
-namespace pub::http {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace http {
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
-class Client;                       // pub::http::Client
-class ClientRequest;                // pub::http::ClientRequest
-class ClientResponse;               // pub::http::ClientResponse
-class Options;                      // pub::http::Options
-class Server;                       // pub::http::Server
-class ServerRequest;                // pub::http::ServerRequest
-class ServerResponse;               // pub::http::ServerResponse
-class Request;                      // pub::http::Request
-class Response;                     // pub::http::Response
+class Client;
+class ClientRequest;
+class ClientResponse;
+class Options;
+class Server;
+class ServerRequest;
+class ServerResponse;
+// class StreamItem;                   // (Internal) TODO: REMOVE
+class Request;
+class Response;
 
 //----------------------------------------------------------------------------
 //
@@ -63,7 +62,17 @@ class Stream {                      // Stream base class
 //----------------------------------------------------------------------------
 // Stream::Typedefs and enumerations
 //----------------------------------------------------------------------------
-protected:
+public:
+typedef std::shared_ptr<Request>    request_ptr;
+typedef std::shared_ptr<Response>   response_ptr;
+typedef std::string                 string;
+typedef uint32_t                    uint31_t; // (High order bit used as flag)
+
+// Callback handler types
+typedef std::function<void(void)>             f_close;
+typedef std::function<void(void)>             f_end;
+typedef std::function<void(const string&)>    f_error;
+
 enum FSM                            // Finite State Machine states
 {  F_IDLE= 0                        // IDLE (initial state)
 ,  F_OPEN                           // OPEN (active)
@@ -77,27 +86,25 @@ enum FSM                            // Finite State Machine states
 //----------------------------------------------------------------------------
 // Stream::Attributes
 //----------------------------------------------------------------------------
+protected:
 std::weak_ptr<Stream>  self;        // Self reference
-std::shared_ptr<Request>  request;  // Associated Request
-std::shared_ptr<Response> response; // Associated Response
+request_ptr            request;     // Associated Request
+response_ptr           response;    // Associated Response
 
 // Callback handlers
-std::function<void(void)>
-                       h_close;     // The close event handler
-std::function<void(void)>
-                       h_end;       // The Stream completion handler
-std::function<void(const std::string&)>
-                       h_error;     // The error event handler
+f_close                h_close;     // The close event handler
+f_end                  h_end;       // The Stream completion handler
+f_error                h_error;     // The error event handler
 
 // Controls
 uint32_t               fsm= 0;      // Finite State Machine state
-uint32_t               ident= 1;    // Stream identifier (uint31_t)
+uint31_t               ident= 1;    // Stream identifier
 
 //----------------------------------------------------------------------------
 // Stream::Static attributes
 //----------------------------------------------------------------------------
 public:
-static pub::Statistic  obj_count;   // Stream counter
+static Statistic       obj_count;   // Stream counter
 
 //----------------------------------------------------------------------------
 // Stream::Destructor, constructors
@@ -109,30 +116,29 @@ virtual
 //----------------------------------------------------------------------------
 // Stream::debug
 //----------------------------------------------------------------------------
-virtual void debug(const char*) const; // Debugging display
-void debug( void ) const;           // Debugging display
+virtual void debug(const char* info= "") const; // Debugging display
 
 //----------------------------------------------------------------------------
 // Stream::Accessor methods
 //----------------------------------------------------------------------------
 uint32_t                            // The state
-   get_fsm( void )                  // Get state
+   get_fsm( void ) const            // Get state
 {  return fsm; }                    // TODO: VERIFY NEED
 
-uint32_t                            // The Stream identifier
-   get_ident( void )                // Get Stream identifier
+uint31_t                            // The Stream identifier
+   get_ident( void ) const          // Get Stream identifier
 {  return ident; }
 
 std::shared_ptr<Request>
-   get_request( void )              // Get Request
+   get_request( void ) const        // Get Request
 {  return request; }
 
 std::shared_ptr<Response>
-   get_response( void )              // Get Response
+   get_response( void ) const        // Get Response
 {  return response; }
 
 std::shared_ptr<Stream>
-   get_self( void )                 // Get self-reference
+   get_self( void ) const           // Get self-reference
 {  return self.lock(); }
 
 static const char*                  // The status text
@@ -145,19 +151,19 @@ void
 
 // TODO: These may not be needed, substituting virtual methods instead.
 void
-   on_close(                        // Set close event handler
-     std::function<void(void)> f)
+   on_close(const f_close& f)       // Set close event handler
 {  h_close= f; }
 
 void
-   on_end(                          // Set completion handler
-     const std::function<void(void)>& f)
+   on_end(const f_end& f)           // Set completion handler
 {  h_end= f; }
 
 void
-   on_error(                        // Set error event handler
-     std::function<void(const std::string&)> f)
+   on_error(const f_error& f)       // Set error event handler
 {  h_error= f; }
+
+void
+   use_count(int, const char*, const char* info= "") const; // Display use count
 
 //----------------------------------------------------------------------------
 // Stream::I/O methods, MUST be overridden by subclass.
@@ -165,18 +171,18 @@ void
 // Servers asynchronously read request and synchronously write response data
 //----------------------------------------------------------------------------
 virtual bool                        // Return code: TRUE if complete
-   read(const void*, size_t) = 0;   // (Async) read data segment from stream
+   read(Ioda&) = 0;                 // (Async) read data segment from stream
 
 virtual void
-   write(const void*, size_t) = 0;  // Transmit data segment to stream
+   write(Ioda&) = 0;                // Write I/O data area to stream
 virtual void
-   write( void ) = 0;               // Transmission completed
+   write( void ) = 0;               // Write completed
 
 //----------------------------------------------------------------------------
 // Stream::Methods
 //----------------------------------------------------------------------------
 void
-   close( void );                   // Close the Strea,m
+   close( void );                   // Close the Stream
 
 void
    end( void );                     // End the Stream
@@ -199,16 +205,37 @@ void
 //----------------------------------------------------------------------------
 class ClientStream : public Stream { // ClientStream descriptor
 //----------------------------------------------------------------------------
+// ClientStream::Typedefs and enumerations
+//----------------------------------------------------------------------------
+public:
+enum REJECT_CODE                    // Reject codes
+{  RC_NORMAL                        // Normal, no error
+,  RC_TBD= -1                       // To be determined
+};
+
+//----------------------------------------------------------------------------
 // ClientStream::Attributes
+//----------------------------------------------------------------------------
+protected:
 std::weak_ptr<Client>  client;      // Our Client
+
+//----------------------------------------------------------------------------
+// ClientStream::Protocol handlers
+//----------------------------------------------------------------------------
+void
+   http1( void );                    // HTTP/0, HTTP/1 protocol handler
+
+void
+   http2( void );                    // HTTP/2 protocol handler
 
 //----------------------------------------------------------------------------
 // ClientStream::Destructor, constructors, creators
 //----------------------------------------------------------------------------
 public:
+   ClientStream(Client*);           // Constructor
+
 virtual
    ~ClientStream( void );           // Destructor
-   ClientStream(Client*);           // Constructor
 
 static std::shared_ptr<ClientStream> // The ClientStream
    make(Client*, const Options* opts=nullptr); // Create ClientStream
@@ -234,12 +261,12 @@ std::shared_ptr<ClientStream>
 // ClientStream::I/O methods
 //----------------------------------------------------------------------------
 virtual bool                        // Return code: TRUE if complete
-   read(const void*, size_t);       // (Async) read response segment
+   read(Ioda&);                     // (Async) read Response segment
 
 virtual void
-   write(const void*, size_t);      // Transmit Request segment to stream
-virtual void                        // (Transmitter indicates)
-   write( void );                   // Transmission completed
+   write(Ioda&);                    // Write Request segment to stream
+virtual void
+   write( void );                   // Write transmission complete
 
 //----------------------------------------------------------------------------
 // ClientStream::Methods
@@ -296,12 +323,19 @@ std::shared_ptr<Server>
 // ServerStream::I/O methods
 //----------------------------------------------------------------------------
 virtual bool                        // Return code: TRUE if complete
-   read(const void*, size_t);       // (Async) read request segment
+   read(Ioda&);                     // (Async) read request segment
+
+
+void write(int, const void*, size_t); // Write to Socket
+
+void write(const void* addr, size_t size) // Write to Socket
+{  write(0, addr, size); }
 
 virtual void
-   write(const void*, size_t);      // Transmit Response segment to Server
-virtual void                        // (Transmitter indicates)
-   write( void );                   // Indicate Response completed
+   write(Ioda&);                    // Write Response segment to Server
+
+virtual void
+   write( void );                   // Write Response complete
 
 //----------------------------------------------------------------------------
 // ServerStream::Methods
@@ -352,9 +386,7 @@ StreamSet&
 //----------------------------------------------------------------------------
 // StreamSet::debug
 //----------------------------------------------------------------------------
-void debug(const char*) const;      // Debugging display
-void debug( void ) const            // Debugging display
-{  debug(""); }
+void debug(const char* info="") const; // Debugging display
 
 //----------------------------------------------------------------------------
 // StreamSet::Accessor methods
@@ -389,5 +421,6 @@ void
      std::shared_ptr<Stream>
                        stream);     // The Stream to remove
 }; // class StreamSet
-} // namespace pub::http
-#endif // _PUB_HTTP_STREAM_H_INCLUDED
+}  // namespace http
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_HTTP_STREAM_H_INCLUDED

@@ -16,11 +16,11 @@
 //       HTTP Request.
 //
 // Last change date-
-//       2022/07/16
+//       2022/10/03
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_HTTP_REQUEST_H_INCLUDED
-#define _PUB_HTTP_REQUEST_H_INCLUDED
+#ifndef _LIBPUB_HTTP_REQUEST_H_INCLUDED
+#define _LIBPUB_HTTP_REQUEST_H_INCLUDED
 
 #include <functional>               // For std::function
 #include <memory>                   // For std::shared_ptr
@@ -28,22 +28,23 @@
 
 #include <pub/Statistic.h>          // For pub::Statistic
 
-#include "pub/http/Data.h"          // For pub::http::Data, pub::http::Hunk
+#include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Options.h"       // For pub::http::Options, super class
 
-namespace pub::http {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace http {
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
-class Client;                       // pub::http::Client
-class ClientResponse;               // pub::http::ClientResponse
-class ClientStream;                 // pub::http::ClientStream
-class Request;                      // pub::http::Request
-class Response;                     // pub::http::Response
-class Server;                       // pub::http::Server
-class ServerResponse;               // pub::http::ServerResponse
-class ServerStream;                 // pub::http::ServerStream
-class Stream;                       // pub::http::Stream
+class Client;
+class ClientResponse;
+class ClientStream;
+class Request;
+class Response;
+class Server;
+class ServerResponse;
+class ServerStream;
+class Stream;
 
 //----------------------------------------------------------------------------
 //
@@ -56,29 +57,36 @@ class Stream;                       // pub::http::Stream
 //----------------------------------------------------------------------------
 class Request : public Options {    // Http request
 //----------------------------------------------------------------------------
-// Request::Attributes
+// Request::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-static pub::Statistic  obj_count;   // Request counter
+typedef std::string    string;      // (Using std::string)
 
-std::string            method;      // Request method
-std::string            path;        // Request path
-std::string            proto_id;    // Request protocol/version
+// Callback handlers
+typedef std::function<void(Ioda&)>            f_ioda;
+typedef std::function<void(void)>             f_end;
+typedef std::function<void(const string&)>    f_error;
+
+//----------------------------------------------------------------------------
+// Request::Attributes
+//----------------------------------------------------------------------------
+static Statistic       obj_count;   // Request counter
+
+string                 method;      // Request method
+string                 path;        // Request path
+string                 proto_id;    // Request protocol/version
 
 protected:
 std::weak_ptr<Request> self;        // Self reference
 std::shared_ptr<Stream>stream;      // Associated Stream
 
-Data                   data;        // POST/PUT data
+Ioda                   ioda;        // I/O Data Area
 int                    fsm= 0;      // Finite State Machine
 
 // Callback handlers
-std::function<void(const Hunk&)>
-                       h_data;      // The Request data handler
-std::function<void(void)>
-                       h_end;       // The Request completion handler
-std::function<void(const std::string&)>
-                       h_error;     // The Request connection error handler
+f_ioda                 h_ioda;      // The Request data handler
+f_end                  h_end;       // The Request completion handler
+f_error                h_error;     // The Request connection error handler
 
 //----------------------------------------------------------------------------
 // Request::Destructor/Constructors
@@ -98,9 +106,9 @@ void debug( void ) const            // Debugging display
 //----------------------------------------------------------------------------
 // Request::Accessor methods
 //----------------------------------------------------------------------------
-const Data&                         // The associated (const) Data
-   get_data( void ) const           // Get associated (const) Data
-{  return data; }
+Ioda&                               // The associated Ioda
+   get_ioda( void )                 // Get associated Ioda
+{  return ioda; }
 
 std::shared_ptr<Response>
    get_response( void ) const;
@@ -114,18 +122,15 @@ std::shared_ptr<Stream>
 {  return stream; }
 
 void
-   on_data(                         // Set Request data handler
-     const std::function<void(const Hunk&)>& f)
-{  h_data= f; }
+   on_ioda(const f_ioda& f)         // Set Request data handler
+{  h_ioda= f; }
 
 void
-   on_end(                          // Set completion handler
-     const std::function<void(void)>& f)
+   on_end(const f_end& f)           // Set completion handler
 {  h_end= f; }
 
 void
-   on_error(                        // Set connection error handler
-     const std::function<void(const std::string&)>& f)
+   on_error(const f_error& f)       // Set connection error handler
 {  h_error= f; }
 
 //----------------------------------------------------------------------------
@@ -146,10 +151,10 @@ void reject(int);                   // Reject the request
 //       Virtual methods; only implemented in ClientRequest
 //
 //----------------------------------------------------------------------------
-virtual bool read(const void*, size_t); // (Async) read Request data
+virtual bool read(Ioda&);           // (Async) read Request data
 
-virtual void write(const void*, const size_t); // (ClientRequest only)
-virtual void write();               // (ClientRequest only)
+virtual void write(const void*, size_t); // (Write Client Request data)
+virtual void write();               // (Client Request complete)
 }; // class Request
 
 //----------------------------------------------------------------------------
@@ -196,16 +201,10 @@ std::shared_ptr<ClientStream>
 //----------------------------------------------------------------------------
 // ClientRequest::Methods
 //----------------------------------------------------------------------------
-virtual void
-   end( void );                     // Complete the ClientRequest
+virtual void end( void );           // Complete the ClientRequest
 
-virtual void
-   write(                           // Write POST/PUT data
-     const void*       addr,        // Data address
-     size_t            size);       // Data length
-
-virtual void
-   write( void );                   // Transmit the ClientRequest
+virtual void write(const void*, size_t); // (Write Client Request data)
+virtual void write();               // (Client Request complete)
 }; // class ClientRequest
 
 //----------------------------------------------------------------------------
@@ -222,6 +221,7 @@ class ServerRequest : public Request { // ServerRequest class
 // ServerRequest::Attributes
 //----------------------------------------------------------------------------
 protected:
+//size_t                 ioda_off;    // I/O Data Area read offset
 
 //----------------------------------------------------------------------------
 // ServerRequest::Destructor/Constructors
@@ -252,7 +252,8 @@ std::shared_ptr<ServerStream>
 virtual void
    end( void );                     // Complete the ServerRequest
 
-virtual bool read(const void*, size_t); // (Async) read Request data
+virtual bool read(Ioda&);           // (Async) read Request data
 }; // class ServerRequest
-}  // namespace pub::http
-#endif // _PUB_HTTP_REQUEST_H_INCLUDED
+}  // namespace http
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_HTTP_REQUEST_H_INCLUDED

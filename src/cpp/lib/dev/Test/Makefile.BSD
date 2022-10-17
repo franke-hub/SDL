@@ -15,44 +15,28 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2022/07/22
+##       2022/10/16
 ##
 ##############################################################################
 
 ##############################################################################
-## Local library
-LIBOBJ := ############################
-LIBOBJ += Bringup.o
-MAKEXE := $(patsubst $(OBJDIR)/Bringup,,$(MAKEXE))
+## Local library/executable lists
+LIBOBJ := $(MAKOBJ) ################## Default, all files are library files
+LIBOBJ := $(patsubst $(OBJDIR)/Dirty.o,,$(LIBOBJ)) ## (Not distributed)
+LIBOBJ := $(patsubst $(OBJDIR)/Thing.o,,$(LIBOBJ)) ## (Not distributed)
+LIBOBJ := $(patsubst $(OBJDIR)/Include.o,,$(LIBOBJ)) ## (Built on demand)
 
-LIBOBJ += Agent.o                   ## Cut/Paste source
-MAKEXE := $(patsubst $(OBJDIR)/Agent,,$(MAKEXE))
-LIBOBJ += Client.o
-MAKEXE := $(patsubst $(OBJDIR)/Client,,$(MAKEXE))
-LIBOBJ += Data.o
-MAKEXE := $(patsubst $(OBJDIR)/Data,,$(MAKEXE))
-LIBOBJ += Listen.o
-MAKEXE := $(patsubst $(OBJDIR)/Listen,,$(MAKEXE))
-LIBOBJ += Options.o
-MAKEXE := $(patsubst $(OBJDIR)/Options,,$(MAKEXE))
-LIBOBJ += Request.o
-MAKEXE := $(patsubst $(OBJDIR)/Request,,$(MAKEXE))
-LIBOBJ += Response.o
-MAKEXE := $(patsubst $(OBJDIR)/Response,,$(MAKEXE))
-LIBOBJ += Server.o
-MAKEXE := $(patsubst $(OBJDIR)/Server,,$(MAKEXE))
-LIBOBJ += Stream.o
-MAKEXE := $(patsubst $(OBJDIR)/Stream,,$(MAKEXE))
-LIBOBJ += utility.o
-MAKEXE := $(patsubst $(OBJDIR)/utility,,$(MAKEXE))
-
-###################################### Dirty build
-MAKEXE := $(patsubst $(OBJDIR)/Dirty,,$(MAKEXE))
-MAKEXE := $(patsubst $(OBJDIR)/Thing,,$(MAKEXE))
+MAKEXE := ############################
+MAKEXE += T_Option
+MAKEXE += T_Quick
+MAKEXE += T_Stream
+MAKEXE += TestIoda
+LIBOBJ := $(patsubst $(OBJDIR)/T_Option.o,,$(LIBOBJ))
+LIBOBJ := $(patsubst $(OBJDIR)/T_Quick.o,,$(LIBOBJ))
+LIBOBJ := $(patsubst $(OBJDIR)/T_Stream.o,,$(LIBOBJ))
+LIBOBJ := $(patsubst $(OBJDIR)/TestIoda.o,,$(LIBOBJ))
 
 LLIBS  += -L. -llocal
-
-MAKEXE := $(patsubst $(OBJDIR)/Include,,$(MAKEXE))
 
 ##############################################################################
 ## Set default target
@@ -72,10 +56,10 @@ liblocal.a: $(LIBOBJ)
 	touch $@
 
 ##############################################################################
-## Targets: do, include, list
+## Targets: do, include, list, quick
 .PHONY: do
 do: T_Stream
-	T_Stream --trace
+	T_Stream
 
 .PHONY: include                     ## Include is only compiled on demand
 include: Include
@@ -86,10 +70,14 @@ list: ;
 	@echo "Targets: do, include, list"
 	@echo "Removes: client, dirty, option, server, stress, test"
 
+.PHONY: quick
+quick: T_Quick
+	T_Quick --all --verbose
+
 ## TEMPORARY: TODO: REMOVE ###################################################
 .PHONY: client dirty option server stress test
 client: T_Stream
-	T_Stream --server --client --trace
+	T_Stream --server --client
 
 option: T_Option
 	T_Option
@@ -98,7 +86,7 @@ server: T_Stream
 	T_Stream --server
 
 stress: T_Stream
-	T_Stream --server --stress --trace
+	T_Stream --server --stress --verbose
 
 test: T_Option T_Stream
 	T_Option
@@ -107,9 +95,13 @@ test: T_Option T_Stream
 	@echo ""
 	T_Stream --server --stress --time 10
 
+.PHONY: ioda
+ioda: TestIoda
+	TestIoda
+
 ## Dirty contains a set of quick and dirty tests, and is not distributed.
-Dirty: Dirty.o Thing.o
-	$(LD) -o Dirty $? $(CLOAD) $(CLIBS)
+Dirty: Dirty.o Thing.o liblocal.a
+	$(LD) -o Dirty Dirty.o Thing.o $(CLOAD) $(CLIBS)
 
 dirty: Dirty
 	Dirty

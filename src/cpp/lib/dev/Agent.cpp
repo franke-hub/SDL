@@ -16,7 +16,11 @@
 //       Implement http/Agent.h
 //
 // Last change date-
-//       2022/07/09
+//       2022/10/16
+//
+// Implementation notes-
+//       TODO: Create intermediate Connector object rather than a full Client.
+//       TODO: Create ClientListen, ServerListen for management.
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::shared_ptr
@@ -39,27 +43,29 @@
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Socket.h>             // For pub::Socket::sockaddr_u
 
-#include "pub/http/Agent.h"         // For pub::http::Agent objects, implemented
+#include "pub/http/Agent.h"         // For pub::http::Agent, implemented
 #include "pub/http/Client.h"        // For pub::http::Client
 #include "pub/http/Listen.h"        // For pub::http::Listen
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Request.h"       // For pub::http::Request
 
-using namespace _PUB_NAMESPACE;
-using namespace _PUB_NAMESPACE::debugging;
-//using _PUB_NAMESPACE::Socket::sockaddr_u;
-//using _PUB_NAMESPACE::utility::to_string;
+using namespace _LIBPUB_NAMESPACE;
+using namespace _LIBPUB_NAMESPACE::debugging;
 using std::string;
+typedef Socket::sockaddr_u          sockaddr_u;
 
+namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
-// HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+
+,  POLL_TIMEOUT= 5000               // Select timeout, in milliseconds
+,  USE_VERIFY= true                 // Use verification checking
 }; // enum
 
-namespace pub::http {               // Implementation namespace
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -103,34 +109,33 @@ static in_port_t                    // The port numbername
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ClientAgent::~ClientAgent
 //       ClientAgent::ClientAgent
+//       ClientAgent::~ClientAgent
 //
 // Purpose-
-//       Destructor
 //       Constructors
+//       Destructor
 //
 //----------------------------------------------------------------------------
-   ClientAgent::~ClientAgent( void ) // Destructor
-{  if( HCDM )
-     debugh("http::~ClientAgent(%p)\n", this);
-
-   reset();
-}
-
    ClientAgent::ClientAgent( void ) // Default constructor
+:  Named("pub::http::CAgent"), Thread()
 {  if( HCDM )
      debugh("http::ClientAgent(%p)\n", this);
+
+   start();                         // Start polling
 }
 
-std::shared_ptr<ClientAgent>
-   ClientAgent::make( void )        // Default creator
+   ClientAgent::~ClientAgent( void ) // Destructor
 {  if( HCDM )
-     debugh("http::ClientAgent::make\n");
+     debugh("http::~ClientAgent(%p)...\n", this);
 
-   std::shared_ptr<ClientAgent> A= std::make_shared<ClientAgent>();
-   A->self= A;
-   return A;
+   operational= false;
+   reset();                         // Disconnect all Clients
+   select.tickle();                 // Drive polling completion
+   join();                          // Wait for polling completion
+
+   if( HCDM )
+     debugh("...http::~ClientAgent(%p)\n", this);
 }
 
 //----------------------------------------------------------------------------
@@ -146,128 +151,17 @@ void
    ClientAgent::debug(const char* info) const // Debugging display
 {  debugf("http::ClientAgent(%p)::debug(%s)\n", this, info);
 
+   std::lock_guard<decltype(mutex)> lock(mutex);
+
    int index= 0;                    // (Artificial) index
    for(const_iterator it= map.begin(); it != map.end(); ++it) {
      std::shared_ptr<Client> client= it->second;
-     string S= client->get_peer_addr().to_string();
-     debugf("..[%2d] Client(%p): %s\n", index, client.get(), S.c_str());
+     string H= client->get_host_addr().to_string();
+     string P= client->get_peer_addr().to_string();
+     debugf("..[%2d] Client(%p): %s :: %s\n", index, client.get()
+           , H.c_str(), P.c_str());
      ++index;
    }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ClientAgent::get_client
-//       ClientAgent::map_insert
-//       ClientAgent::map_locate
-//       ClientAgent::map_remove
-//
-// Purpose-
-//       Get Client sockaddr_u connectionID
-//       Insert sockaddr_u::Client* map entry
-//       Locate Client* from sockaddr_u
-//       Remove sockaddr_u::Client* map entry
-//
-// Implementation notes-
-//       Protected by mutex
-//
-//----------------------------------------------------------------------------
-int                                 // Return code, 0 expected
-   ClientAgent::get_client(         // Get Client connectionID
-     const char*       host,        // *INP* The host name
-     const char*       port,        // *INP* The port number or service name
-     sockaddr_u&       sock_addr,   // *OUT* The sockaddr_u
-     socklen_t&        sock_size)   // *OUT* The sockaddr length
-{
-   sock_addr.reset();               // Initialize resultant
-   sock_size= 0;
-
-   string nps= host; nps += ':'; nps += port;
-   sockaddr_storage hostaddr;
-   socklen_t hostsize= sizeof(hostaddr);
-   int rc= Socket::name_to_addr(nps, (sockaddr*)&hostaddr, &hostsize, AF_INET);
-   if( rc ) {                       // If error
-     debugh("ClientAgent::connect(%s:%s) invalid host:port\n", host, port);
-     connect_error= rc;
-     return -1;
-   }
-
-   sock_addr.copy((sockaddr*)&hostaddr, hostsize);
-   sock_size= hostsize;
-   return 0;
-}
-
-std::shared_ptr<Client>             // The associated Client
-   ClientAgent::map_insert(         // Associate
-     const sockaddr_u& id,          // This sockaddr_u with
-     std::shared_ptr<Client>
-                       client)      // This Client
-{  if( HCDM )
-     debugh("http::ClientAgent(%p)::insert(%s)\n", this
-           , id.to_string().c_str());
-
-   {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex);
-
-     const_iterator it= map.find(id);
-     if( it != map.end() )          // If found
-       return it->second;           // (Duplicate entry)
-
-     map[id]= client;               // Insert the entry
-   }}}}
-
-   if( HCDM )
-     debugh("%p= ClientAgent(%p)::insert(%s)\n", client.get(), this
-           , id.to_string().c_str());
-
-   return client;
-}
-
-std::shared_ptr<Client>             // The associated Client
-   ClientAgent::map_locate(         // Locate Client
-     const sockaddr_u& id) const    // For this sockaddr_u
-{
-   std::shared_ptr<Client> client;  // Default, not found
-
-   {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex);
-
-     const_iterator it= map.find(id);
-     if( it != map.end() )          // If found
-       client= it->second;
-   }}}}
-
-   if( HCDM ) {
-     string S= id.to_string();
-     debugh("%p= ClientAgent(%p)::locate(%s)\n", client.get(), this, S.c_str());
-   }
-
-   return client;
-}
-
-std::shared_ptr<Client>             // The associated Client
-   ClientAgent::map_remove(         // Remove Client
-     const sockaddr_u&  id)         // For this sockaddr_u
-{
-   std::shared_ptr<Client> client;  // Default, not found
-
-   {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex);
-
-     iterator it= map.find(id);
-     if( it != map.end() ) {        // If found
-       client= it->second;          // (Return removed Client)
-       map.erase(it);               // Remove it from the map
-     }
-   }}}}
-
-   if( HCDM ) {
-     string S= id.to_string();
-     debugh("%p= ClientAgent(%p)::remove(%s)\n", client.get(), this, S.c_str());
-   }
-
-   return client;
 }
 
 //----------------------------------------------------------------------------
@@ -281,33 +175,41 @@ std::shared_ptr<Client>             // The associated Client
 //----------------------------------------------------------------------------
 std::shared_ptr<Client>             // The associated Client
    ClientAgent::connect(            // Create Client connection
-     std::string       host_,       // The host name
-     std::string       port_,       // The port number or name (HTTP, ...)
+     string            host,        // The host:port name
      const Options*    opts)        // The associated Options
 {
-   const char* host= host_.c_str();
-   const char* port= port_.c_str();
    if( HCDM )
-     debugh("http::ClientAgent(%p)::connect(%s:%s)\n", this, host, port);
+     debugh("http::ClientAgent(%p)::connect(%s)\n", this, host.c_str());
 
-   sockaddr_u id;                   // (Set by get_client)
-   socklen_t  sz;                   // "
-   int rc= get_client(host, port, id, sz);
-   if( rc )                         // If unknown host/port
-     return nullptr;                // Return, error reported by get_client
+   for(int index= 0; index < 2; ++index ) { // Try AF_INET, AF_INET6
+     sockaddr_storage host_id;
+     socklen_t host_sz= sizeof(host_id);
+     int AF= index ? AF_INET6 : AF_INET;
+     int rc= Socket::name_to_addr(host, (sockaddr*)&host_id, &host_sz, AF);
+     if( rc ) {                     // If error
+       if( VERBOSE > 1 )
+         debugf("ClientAgent::connect(%s) failure %s\n", host.c_str()
+               , index ? "ipv6" : "ipv4");
+       continue;
+     }
 
-   std::shared_ptr<Client> client= map_locate(id);
-   if( client.get() )               // If already in map, use it
+     // Create a new Client
+     sockaddr_u peer_addr;
+     peer_addr.copy(&host_id, host_sz);
+
+     std::shared_ptr<Client>
+     client= Client::make(this, peer_addr, host_sz, opts);
+     if( client->get_handle() <= 0 ) // If connect failure
+       continue;
+
+     // Add client to map, returning the Client
+     map_insert(peer_addr, client->get_host_addr(), client);
      return client;
+   }
 
-   // No existing Client, create one
-   client= Client::make(this, id, sz, opts);
-   if( client->get_handle() <= 0 )  // If connect failure
-     return nullptr;                // Return, error reported by Client
-
-   map_insert(id, client);          // Add client to map
-
-   return client;
+   // Unable to connect
+   errno= EINVAL;
+   return nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -325,7 +227,12 @@ void
 {  if( HCDM )
      debugh("ClientAgent(%p)::disconnect(%p)\n", this, client);
 
-   map.erase(client->get_peer_addr()); // Remove Client from map
+   {{{{
+     std::lock_guard<decltype(mutex)> lock(mutex);
+
+     key_t key(client->get_peer_addr(), client->get_host_addr());
+     map.erase(key);                // Remove Client from map
+   }}}}
 }
 
 //----------------------------------------------------------------------------
@@ -336,26 +243,148 @@ void
 // Purpose-
 //       Reset the ClientAgent
 //
+// Implementation notes-
+//       Note: client->close closes the Client's socket, immediately stopping
+//       request or response processing. The Client then calls disconnect,
+//       removing its entry from the map.
+//
 //----------------------------------------------------------------------------
 void
    ClientAgent::reset( void )       // Reset the ClientAgent
 {  if( HCDM ) debugh("ClientAgent(%p)::reset\n", this);
 
-   // Close all Clients
-   // Note: client->close() closes the Client's socket. This immediately
-   // stops the Client from processing requests.
-   // The Client then calls disconnect, removing its entry from the map.
+   std::list<std::weak_ptr<Client>> list;
+
+   if( HCDM )
+     debugh("%4d ClientAgent HCDM copying the Client list...\n", __LINE__);
+   {{{{                             // Copy the Client list
+     std::lock_guard<decltype(mutex)> lock(mutex);
+
+     for(auto it : map ) {
+       std::shared_ptr<Client> client= it.second;
+       list.emplace_back(client);
+     }
+   }}}}
+
+   if( HCDM )
+     debugh("%4d ClientAgent HCDM deleting Clients...\n", __LINE__);
+   for(auto it : list) {
+     std::shared_ptr<Client> client= it.lock();
+     if( client && client->is_operational() )
+       client->close();
+   }
+
+   if( HCDM )
+     debugf("...All Clients deleted\n");
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientAgent::run
+//
+// Purpose-
+//       Run the ClientAgent socket selector
+//
+//----------------------------------------------------------------------------
+void
+   ClientAgent::run( void )        // Run the ClientAgent socket selector
+{  if( HCDM ) debugh("%4d ClientAgent(%p)::run...\n", __LINE__, this);
+
+   while( operational ) {
+     Socket* socket= select.select(POLL_TIMEOUT);
+     if( socket ) {
+       const struct pollfd* info= select.get_pollfd(socket);
+       socket->do_select(info->revents);
+     }
+   }
+
+   if( HCDM )
+     debugh("%4d ...ClientAgent(%p)::run\n", __LINE__, this);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientAgent::map_insert
+//       ClientAgent::map_locate
+//       ClientAgent::map_remove
+//
+// Purpose-
+//       Get Client sockaddr_u connectionID
+//       Insert sockaddr_u::Client* map entry
+//       Locate Client* from sockaddr_u
+//       Remove sockaddr_u::Client* map entry
+//
+// Implementation notes-
+//       Protected by mutex
+//
+//----------------------------------------------------------------------------
+void
+   ClientAgent::map_insert(         // Associate
+     const key_t&       key,        // This Server/Client pair with
+     std::shared_ptr<Client>
+                       client)      // This Client
+{
    {{{{
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-// debugh("%4d ClientAgent HCDM deleting Clients...\n", __LINE__);
-     for(iterator it= map.begin(); it != map.end(); it= map.begin()) {
-       std::shared_ptr<Client> client= it->second;
-// debugf("...Client(%p)\n", client.get());
-       client->close();
+     const_iterator it= map.find(key); // Locate the Client
+     if( it != map.end() ) {        // If found
+       debugh("ClientAgent::map_insert(%s) duplicate\n", string(key).c_str());
+       throw std::runtime_error("usage error");
      }
-// debugf("...All Clients deleted\n");
+
+     map[key]= client;               // Insert the entry
    }}}}
+
+   if( HCDM )
+     debugh("%p= ClientAgent(%p)::map_insert(%s)\n", client.get(), this
+           , string(key).c_str());
+}
+
+std::shared_ptr<Client>             // The associated Client
+   ClientAgent::map_locate(         // Locate Client
+     const key_t&      key) const   // For this Client/Server pair
+{
+   std::shared_ptr<Client> client;  // Default, not found
+
+   {{{{
+     std::lock_guard<decltype(mutex)> lock(mutex);
+
+     const_iterator it= map.find(key);
+     if( it != map.end() )          // If found
+       client= it->second;
+   }}}}
+
+   if( HCDM )
+     debugh("%p= ClientAgent(%p)::map_locate(%s)\n", client.get(), this
+           , string(key).c_str());
+
+   return client;
+}
+
+void
+   ClientAgent::map_remove(         // Remove Client
+     const key_t&       key)        // For this sockaddr_u
+{
+   std::shared_ptr<Client> client;  // Default, not found
+
+   {{{{
+     std::lock_guard<decltype(mutex)> lock(mutex);
+
+     iterator it= map.find(key);
+     if( it == map.end() ) {        // If not found
+       debugh("ClientAgent(%p)::map_remove(%s) not found\n", this
+             , string(key).c_str());
+       return;
+     }
+
+     map.erase(it);                 // Remove it from the map
+   }}}}
+
+   if( HCDM )
+     debugh("ClientAgent(%p)::map_remove(%s)\n", this, string(key).c_str());
 }
 
 //----------------------------------------------------------------------------
@@ -363,12 +392,10 @@ void
 // Method-
 //       ServerAgent::~ServerAgent
 //       ServerAgent::ServerAgent
-//       ServerAgent::make
 //
 // Purpose-
 //       Destructor
 //       Constructors
-//       Creators
 //
 //----------------------------------------------------------------------------
    ServerAgent::~ServerAgent( void ) // Destructor
@@ -381,16 +408,6 @@ void
    ServerAgent::ServerAgent( void ) // Default constructor
 {  if( HCDM )
      debugh("http::ServerAgent(%p)\n", this);
-}
-
-std::shared_ptr<ServerAgent>
-   ServerAgent::make( void ) // Default creator
-{  if( HCDM )
-     debugh("http::ServerAgent::make\n");
-
-   std::shared_ptr<ServerAgent> A= std::make_shared<ServerAgent>();
-   A->self= A;
-   return A;
 }
 
 //----------------------------------------------------------------------------
@@ -435,8 +452,8 @@ void
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 expected
    ServerAgent::get_server(         // Get Server connectionID
-     std::string       host_,       // *INP* The host name (for interface)
-     std::string       port_,       // *INP* The port number or service name
+     string            host_,       // *INP* The host name (for interface)
+     string            port_,       // *INP* The port number or service name
      sockaddr_u&       sock_addr,   // *OUT* The sockaddr_u
      socklen_t&        sock_size,   // *OUT* The sockaddr length
      sa_family_t       family)      // The address family
@@ -544,8 +561,8 @@ std::shared_ptr<Listen>             // The associated Listen
 //----------------------------------------------------------------------------
 std::shared_ptr<Listen>             // The associated server Listener
    ServerAgent::connect(            // Create server Listener
-     std::string       host_,       // The host name (for interface)
-     std::string       port_,       // The port number or name (HTTP, ...)
+     string            host_,       // The host name (for interface)
+     string            port_,       // The port number or name (HTTP, ...)
      sa_family_t       family,      // The address family
      const Options*    opts)        // The associated Options
 {
@@ -604,23 +621,47 @@ void
    ServerAgent::reset( void )       // Reset the ServerAgent
 {  if( HCDM ) debugh("ServerAgent(%p)::reset\n", this);
 
-   // Close all Listeners. Each Listener then closes all its Servers.
-   // Note: Listen::close() clears Listen::operational and closes the Listen's
-   // socket. This immediately causes the Listen to stop processing requests.
-   // Listen::close() invokes Listen::reset(), which closes all of its active
-   // Servers using logic similar to this method's.
-   // The Listen then calls disconnect, removing its entry from the map.
+   std::list<std::weak_ptr<Listen>> list;
 
-   {{{{
+   if( HCDM )
+     debugh("%4d ServerAgent HCDM copying the Listen list...\n", __LINE__);
+   {{{{                             // Copy the Listen list
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-//// debugh("ServerAgent HCDM deleting Listens...\n");
-     for(iterator it= map.begin(); it != map.end(); it= map.begin()) {
-       std::shared_ptr<Listen> listen= it->second;
-////   debugf("...Listen(%p)\n", listen.get());
-       listen->close();
+     for(auto it : map ) {
+       std::shared_ptr<Listen> listen= it.second;
+       list.emplace_back(listen);
      }
-//// debugf("...All Listens deleted\n");
    }}}}
+
+   if( HCDM )
+     debugh("%4d ServerAgent HCDM deleting Listens...\n", __LINE__);
+   for(auto it : list) {
+     std::shared_ptr<Listen> listen= it.lock();
+     if( listen )
+       listen->close();
+   }
+
+   if( HCDM )
+     debugf("...All Listens deleted\n");
 }
-}  // namespace pub::http
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ServerAgent::run
+//
+// Purpose-
+//       Run the ServerAgent socket selector
+//
+//----------------------------------------------------------------------------
+void
+   ServerAgent::run( void )        // Run the ClientAgent socket selector
+{  if( HCDM ) debugh("ServerAgent(%p)::run\n", this);
+// debugf("[%s]=%p ServerAgent\n", get_id_string().c_str(), this);
+
+   while( operational ) {
+     throw "SHOULD NOT OCCUR"; // NOT CODED YET
+   }
+}
+}  // namespace _LIBPUB_NAMESPACE::::http

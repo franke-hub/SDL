@@ -16,15 +16,16 @@
 //       HTTP Agent objects: ClientAgent and ServerAgent.
 //
 // Last change date-
-//       2022/02/12
+//       2022/10/16
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_HTTP_AGENT_H_INCLUDED
-#define _PUB_HTTP_AGENT_H_INCLUDED
+#ifndef _LIBPUB_HTTP_AGENT_H_INCLUDED
+#define _LIBPUB_HTTP_AGENT_H_INCLUDED
 
 #include <cstdlib>                  // For size_t
 #include <cstring>                  // For memcmp
 #include <functional>               // For std::function
+#include <list>                     // For std::list
 #include <map>                      // For std::map
 #include <memory>                   // For std::shared_ptr
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -32,15 +33,111 @@
 #include <netinet/in.h>             // For in_port_t
 #include <sys/socket.h>             // For socket
 
+#include <pub/Named.h>              // For pub::Named (base class)
+#include <pub/Select.h>             // For pub::Select
 #include <pub/Socket.h>             // For pub::Socket::sockaddr_u
+#include <pub/Thread.h>             // For pub::Thread (base class)
 
-namespace pub::http {
+#include "dev/bits/devconfig.h"     // For HTTP config controls
+
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace http {
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
-class Client;                       // pub::http::Client object
-class Listen;                       // pub::http::Listen object
-class Options;                      // pub::http::Options object
+class ClientAgent;
+class Client;
+class Listen;
+class Options;
+class ServerAgent;
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       ClientConnectionPair
+//
+// Purpose-
+//       The ClientAgent's map key
+//
+//----------------------------------------------------------------------------
+struct ClientConnectionPair {       // The ClientAgent map key
+typedef Socket::sockaddr_u          sockaddr_u;
+
+sockaddr_u             peer;        // The Server's internet address
+sockaddr_u             host;        // The Client's internet address
+
+   ClientConnectionPair(            // Constructor
+     const sockaddr_u& peer,        // The Server's internet address
+     const sockaddr_u& host)        // The Client's internet address
+:  peer(peer), host(host) {}
+
+   ClientConnectionPair(            // Copy constructor
+     const ClientConnectionPair& src)
+:  peer(src.peer), host(src.host) {}
+
+ClientConnectionPair&
+   operator=(const ClientConnectionPair& src) // Assignment operator
+{  peer= src.peer; host= src.host; return *this; }
+
+bool operator<(const ClientConnectionPair& rhs) const
+{
+   int cc= memcmp(&peer, &rhs.peer, sizeof(peer));
+   if( cc == 0 )
+     cc= memcmp(&host, &rhs.host, sizeof(host));
+
+   return (cc < 0);
+}
+
+   explicit operator std::string() const // Cast to std::string
+{  return std::string("{") + peer.to_string() + ";" + host.to_string() + "}"; }
+}; // struct ClientConnectionPair
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       Agent
+//
+// Purpose-
+//       The Agent owns the ClientAgent and the ServerAgent
+//
+// Implementation notes-
+//       Agent::shutdown is used for an orderly shutdown.
+//
+//----------------------------------------------------------------------------
+class Agent {                       // AgentOwner class
+//----------------------------------------------------------------------------
+// ClientAgent::Typedefs and enumerations
+//----------------------------------------------------------------------------
+public:
+typedef std::shared_ptr<ClientAgent>          client_ptr;
+typedef std::shared_ptr<ServerAgent>          server_ptr;
+
+//----------------------------------------------------------------------------
+// Agent::Attributes
+//----------------------------------------------------------------------------
+protected:
+client_ptr             client;      // The ClientAgent
+server_ptr             server;      // The ServerAgent
+
+//----------------------------------------------------------------------------
+// Agent::Constructors, destructor
+//----------------------------------------------------------------------------
+public:
+   Agent( void ) = default;
+   ~Agent( void ) = default;
+
+//----------------------------------------------------------------------------
+// Agent::Methods
+//----------------------------------------------------------------------------
+client_ptr
+   get_client( void ) { return nullptr; } // NOT IMPLEMENTED
+
+server_ptr
+   get_server( void ) { return nullptr; } // NOT IMPLEMENTED
+
+void
+   shutdown( void ) { } // NOT IMPLEMENTED
+}; // class Agent
 
 //----------------------------------------------------------------------------
 //
@@ -51,19 +148,21 @@ class Options;                      // pub::http::Options object
 //       Define the ClientAgent class.
 //
 //----------------------------------------------------------------------------
-class ClientAgent {                 // ClientAgent class
+class ClientAgent : public Named, public Thread { // The ClientAgent class
 //----------------------------------------------------------------------------
 // ClientAgent::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-typedef Socket::sockaddr_u sockaddr_u; // Using pub::Socket::sockaddr_u
+typedef ClientConnectionPair        key_t;
+typedef std::shared_ptr<Client>     client_ptr;
+typedef Socket::sockaddr_u          sockaddr_u;
 
 struct op_lt {                      // Less than compare operator
-bool operator()(const sockaddr_u& lhs, const sockaddr_u& rhs) const
-{  return memcmp(&lhs, &rhs, sizeof(sockaddr_u)) < 0; }
+bool operator()(const key_t& lhs, const key_t& rhs) const
+{  return lhs.operator<(rhs); }
 }; // struct op_lt
 
-typedef std::map<sockaddr_u, std::shared_ptr<Client>, op_lt>
+typedef std::map<key_t, client_ptr, op_lt>
                        Map_t;       // The Client Map type
 typedef Map_t::const_iterator
                        const_iterator; // The Client Map const iterator type
@@ -75,7 +174,9 @@ typedef Map_t::iterator
 //----------------------------------------------------------------------------
 std::weak_ptr<ClientAgent> self;    // Self-reference
 
-int                    connect_error; // Latest connect error
+Select                 select;      // The Client Socket selector
+int                    connect_error= 0; // Latest connect error
+bool                   operational= true; // TRUE while operational
 
 protected:
 Map_t                  map;         // The Client map
@@ -93,9 +194,6 @@ public:
    ~ClientAgent( void );            // Destructor
    ClientAgent( void );             // Default constructor
 
-static std::shared_ptr<ClientAgent>
-   make( void );                    // Creator
-
 //----------------------------------------------------------------------------
 // ClientAgent::debug
 //----------------------------------------------------------------------------
@@ -111,29 +209,17 @@ std::shared_ptr<ClientAgent>
 {  return self.lock(); }
 
 //----------------------------------------------------------------------------
-// ClientAgent::Map control methods (mutex protected)
+//
+// Method-
+//       ClientAgent::async
+//
+// Purpose-
+//       Poll for work
+//
 //----------------------------------------------------------------------------
-protected:
-int                                 // Return code, 0 expected
-   get_client(                      // Get Client connection specifier
-     const char*       host,        // *INP* The host name
-     const char*       port,        // *INP* The port number or service name
-     sockaddr_u&       sockaddr,    // *OUT* The sockaddr_u
-     socklen_t&        socklen);    // *OUT* The sockaddr length
-
-std::shared_ptr<Client>             // The associated Client
-   map_insert(                      // Associate
-     const sockaddr_u&  id,         // This connectionID with
-     std::shared_ptr<Client>
-                       client);     // This Client
-
-std::shared_ptr<Client>             // The associated Client
-   map_locate(                      // Locate Client
-     const sockaddr_u& id) const;   // For this connectionID
-
-std::shared_ptr<Client>             // The removed Client
-   map_remove(                      // Remove Client
-     const sockaddr_u&  id);        // For this connectionID
+public:
+void
+   async( void );                   // Poll for work
 
 //----------------------------------------------------------------------------
 //
@@ -143,15 +229,13 @@ std::shared_ptr<Client>             // The removed Client
 // Purpose-
 //       Create Client connection
 //
-// Options-
-//       TBD
+// Implementation note-
+//       Options to be determined.
 //
 //----------------------------------------------------------------------------
-public:
 std::shared_ptr<Client>             // The associated Client
    connect(                         // Get Client connection
-     std::string       host,        // The host name
-     std::string       port,        // The port number or name (HTTP, ...)
+     std::string       host,        // The host:port name
      const Options*    opts= nullptr); // The associated Options
 
 //----------------------------------------------------------------------------
@@ -164,8 +248,8 @@ std::shared_ptr<Client>             // The associated Client
 //
 //----------------------------------------------------------------------------
 void
-   disconnect(                      // Remove Client connection
-     Client*           client);     // For this Client
+   disconnect(                      // Disconnect
+     Client*           client);     // This Client
 
 //----------------------------------------------------------------------------
 //
@@ -178,6 +262,44 @@ void
 //----------------------------------------------------------------------------
 void
    reset( void );                   // Reset the ClientAgent
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientAgent::run
+//
+// Purpose-
+//       Run the ClientAgent socket selector (while operational)
+//
+//----------------------------------------------------------------------------
+void
+   run( void );                     // Run the ClientAgent socket selector
+
+//----------------------------------------------------------------------------
+// ClientAgent::Map control methods (mutex protected)
+//----------------------------------------------------------------------------
+protected:
+void
+   map_insert(                      // Associate
+     const key_t&       key,        // This Server/Client internet address pair
+     std::shared_ptr<Client>
+                       client);     // With this Client
+
+void
+   map_insert(                      // Associate
+     const sockaddr_u&  peer,       // This Server internet address and
+     const sockaddr_u&  host,       // This Client internet address with
+     std::shared_ptr<Client>
+                       client)      // This Client
+{  key_t key(peer, host); map_insert(key, client); }
+
+std::shared_ptr<Client>             // The associated Client
+   map_locate(                      // Locate Client with
+     const key_t&       key) const; // This Server/Client internet address pair
+
+void
+   map_remove(                      // Remove
+     const key_t&       key);       // This Client mapping
 }; // class ClientAgent
 
 //----------------------------------------------------------------------------
@@ -194,7 +316,7 @@ class ServerAgent {                 // ServerAgent class
 // ServerAgent::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-typedef Socket::sockaddr_u sockaddr_u; // Using pub::Socket::sockaddr_u
+typedef Socket::sockaddr_u sockaddr_u; // Using Socket::sockaddr_u
 
 struct op_lt {                      // Less than compare operator
 bool operator()(const sockaddr_u& lhs, const sockaddr_u& rhs) const
@@ -211,7 +333,9 @@ typedef Map_t::iterator
 //----------------------------------------------------------------------------
 // ServerAgent::Attributes
 //----------------------------------------------------------------------------
-int                    connect_error; // Latest connect error
+Select                 select;      // The Server Socket selector
+int                    connect_error= 0; // Latest connect error
+bool                   operational= true; // TRUE while operational
 
 protected:
 std::weak_ptr<ServerAgent> self;    // Self-reference
@@ -231,9 +355,6 @@ public:
    ~ServerAgent( void );            // Destructor
    ServerAgent( void );             // Default constructor
 
-static std::shared_ptr<ServerAgent>
-   make( void );                    // Creator
-
 //----------------------------------------------------------------------------
 // ServerAgent::debug
 //----------------------------------------------------------------------------
@@ -247,32 +368,6 @@ void debug( void ) const            // Debugging display
 std::shared_ptr<ServerAgent>
    get_self( void ) const
 {  return self.lock(); }
-
-//----------------------------------------------------------------------------
-// ServerAgent::Map control methods (mutex protected)
-//----------------------------------------------------------------------------
-protected:
-int                                 // Return code, 0 expected
-   get_server(                      // Get Server connection specifier
-     std::string       host,        // *INP* The host name (for interface)
-     std::string       port,        // *INP* The port number or service name
-     sockaddr_u&       sockaddr,    // *OUT* The sockaddr_u
-     socklen_t&        socklen,     // *OUT* The sockaddr length
-     sa_family_t       family= AF_UNSPEC); // The address family
-
-std::shared_ptr<Listen>             // The associated Listen
-   map_insert(                      // Associate
-     const sockaddr_u& id,          // This connectionID with
-     std::shared_ptr<Listen>
-                       Listen);     // This Listen
-
-std::shared_ptr<Listen>             // The associated Listen
-   map_locate(                      // Locate Listen
-     const sockaddr_u& id) const;   // For this connectionID
-
-std::shared_ptr<Listen>             // The removed Listen
-   map_remove(                      // Remove Listen
-     const sockaddr_u& id);         // For this connectionID
 
 //----------------------------------------------------------------------------
 //
@@ -315,6 +410,45 @@ void
 //----------------------------------------------------------------------------
 void
    reset( void );                   // Reset the ServerAgent
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ServerAgent::run
+//
+// Purpose-
+//       Run the ServerAgent socket selector (while operational)
+//
+//----------------------------------------------------------------------------
+void
+   run( void );                     // Run the ServerAgent socket selector
+
+//----------------------------------------------------------------------------
+// ServerAgent::Map control methods (mutex protected)
+//----------------------------------------------------------------------------
+protected:
+int                                 // Return code, 0 expected
+   get_server(                      // Get Server connection specifier
+     std::string       host,        // *INP* The host name (for interface)
+     std::string       port,        // *INP* The port number or service name
+     sockaddr_u&       sockaddr,    // *OUT* The sockaddr_u
+     socklen_t&        socklen,     // *OUT* The sockaddr length
+     sa_family_t       family= AF_UNSPEC); // The address family
+
+std::shared_ptr<Listen>             // The associated Listen
+   map_insert(                      // Associate
+     const sockaddr_u& id,          // This connectionID with
+     std::shared_ptr<Listen>
+                       Listen);     // This Listen
+
+std::shared_ptr<Listen>             // The associated Listen
+   map_locate(                      // Locate Listen
+     const sockaddr_u& id) const;   // For this connectionID
+
+std::shared_ptr<Listen>             // The removed Listen
+   map_remove(                      // Remove Listen
+     const sockaddr_u& id);         // For this connectionID
 }; // class ServerAgent
-} // namespace pub::http
-#endif // _PUB_HTTP_AGENT_H_INCLUDED
+}  // namespace http
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_HTTP_AGENT_H_INCLUDED

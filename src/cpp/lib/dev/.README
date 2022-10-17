@@ -15,14 +15,20 @@
 ##       README: List of usage notes, bugs, fixes, etc.
 ##
 ## Last change date-
-##       2022/07/24
+##       2022/10/16
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS: (Current status; Significant checkpoints)
-2022/07/16 PROTOCOL1B working with updated Socket.
 2021/11/01 Started
+2022/06/18 Resumed active development
+           ~/src/cpp/lib/pub/Test/TestSock.cpp working
+2022/07/16 Moved source into distribution library.
+2022/07/22 PROTOCOL1B (since renamed to PROTOCOL1A) working.
+2022/08/31 PROTOCOL1A (since renamed to HTTP1) working with updated Socket.
+2022/09/25 Asychronous Client I/O working (with one client)
+2022/10/15 Asychronous Client I/O working. Server Client I/O is synchronous.
 
 ##############################################################################
 ## SOCKET INFO: (Generic information)
@@ -134,8 +140,9 @@ std::string to_string( void ) const; // Convert to display string
          Note that cur_op_count is decremented while the Request is still
          active. (We are running in the completion handler for that Request.)
          When do_NEXT creates the next Request the number of active Requests
-         is *always* one more than the cur_op_count. It's working properly.
-         We should have expected this result.
+         is *always* one more than the cur_op_count.
+
+         It's working properly. We should have expected this result.
 
 ##############################################################################
 ## USAGE NOTES: (Usage information)
@@ -148,11 +155,18 @@ std::string to_string( void ) const; // Convert to display string
 2022/02/16 TODO? Don't wait for content-length
 2022/02/16 TODO? Allow next HTTP1 write before response
 
+           TODO? Rename ServerAgent to ListenAgent
+                 Keep ServerAgent? ServerRequest/Response, etc?
+
+           TODO? Move connect logic outside of Client.
+                 Pass resulting connection to Client constructor.
+
 ##############################################################################
 ## FEATURE: (Ideas for improvement)
 
 ##############################################################################
 ## BUGS: (Open bugs)
+2022/10/16 Linux performance is pathetic.
 
 ##############################################################################
 ## FIXED: (Fixed bugs)

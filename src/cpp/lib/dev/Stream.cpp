@@ -16,7 +16,7 @@
 //       Implement http/Stream.h
 //
 // Last change date-
-//       2022/07/16
+//       2022/10/16
 //
 // TODO:
 //       Add ServerStream::make method, shared_ptr reference to Server
@@ -36,31 +36,34 @@
 #include <stdint.h>                 // For integer types
 
 #include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Dispatch.h>           // For namespace pub::dispatch
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Trace.h>              // For pub::Trace
-#include <pub/utility.h>            // For pub::to_string
+#include <pub/utility.h>            // For pub::to_string, ...
 
+#include "pub/http/bits/devconfig.h" // Must be first http include (TODO: REMOVE)
 #include "pub/http/Client.h"        // For pub::http::Client
+#include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Request.h"       // For pub::http::Request
 #include "pub/http/Response.h"      // For pub::http::Response
 #include "pub/http/Server.h"        // For pub::http::Server
 #include "pub/http/Stream.h"        // For pub::http::Stream, implemented
-#include "pub/http/utility.h"       // For namespace pub::http::utility
 
-using namespace _PUB_NAMESPACE;
-using namespace _PUB_NAMESPACE::debugging;
-using _PUB_NAMESPACE::utility::to_string;
-using _PUB_NAMESPACE::utility::visify;
+using namespace _LIBPUB_NAMESPACE;
+using namespace _LIBPUB_NAMESPACE::debugging;
+using _LIBPUB_NAMESPACE::utility::to_string;
+using _LIBPUB_NAMESPACE::utility::visify;
 using std::string;
 
+namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  IODM= false                      // Input/Output Debug Mode?
-,  VERBOSE= 2                       // Verbosity, higher is more verbose
+,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 ,  BUFFER_SIZE= 8'096               // Input buffer size (Header collector)
 ,  POST_LIMIT= 1'048'576            // POST/PUT size limit
@@ -70,7 +73,6 @@ enum
 // Macros
 //----------------------------------------------------------------------------
 
-namespace pub::http {               // Implementation namespace
 //----------------------------------------------------------------------------
 // Constants
 //----------------------------------------------------------------------------
@@ -83,7 +85,7 @@ static constexpr CC*   HTTP_SIZE= Options::HTTP_HEADER_LENGTH;
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-pub::Statistic         Stream::obj_count; // Stream object count
+Statistic              Stream::obj_count; // Stream object count
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -111,34 +113,31 @@ static struct{int code; const char* text;}
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Stream::~Stream
 //       Stream::Stream
+//       Stream::~Stream
 //
 // Purpose-
-//       Destructor
 //       Constructors
+//       Destructor
 //
 //----------------------------------------------------------------------------
-   Stream::~Stream( void )          // Destructor
-{  if( HCDM )
-     debugh("Stream(%p)::~Stream\n", this);
+   Stream::Stream( void )           // Default constructor
+:  h_close([]() {})
+,  h_end([]() {})
+,  h_error([](const string&) {})
+{  if( HCDM ) debugh("Stream(%p)!\n", this);
 
-// Trace::trace(".DEL", ".STR", this); // (Trace ~ClientStream, ~ServerStream)
-   obj_count.dec();
+   Trace::trace(".NEW", ".STR", this); // (Trace ClientStream, ServerStream)
+   obj_count.inc();
+   INS_DEBUG_OBJ("Stream");
 }
 
-   Stream::Stream( void )           // Default constructor
-:  h_close(utility::f_void())
-,  h_end(utility::f_void())
-,  h_error(utility::f_error())
-{  if( HCDM )
-     debugh("Stream(%p)::Stream\n", this);
+   Stream::~Stream( void )          // Destructor
+{  if( HCDM ) debugh("Stream(%p)~\n", this);
 
-//   buffer= new char[BUFFER_SIZE];   // Input buffer
-//debugh("%4d %s buffer(%p)\n", __LINE__, __FILE__, buffer);
-
-// Trace::trace(".NEW", ".STR", this); // (Trace ClientStream, ServerStream)
-   obj_count.inc();
+   Trace::trace(".DEL", ".STR", this); // (Trace ~ClientStream, ~ServerStream)
+   obj_count.dec();
+   REM_DEBUG_OBJ("Stream");
 }
 
 //----------------------------------------------------------------------------
@@ -153,11 +152,56 @@ static struct{int code; const char* text;}
 void
    Stream::debug(const char* info) const  // Debugging display
 {  debugf("Stream(%p)::debug(%s)\n", this, info);
+
+   // NEEDS WORK, but unused so far
 }
 
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Stream::get_text
+//
+// Purpose-
+//       Get text for status code
+//
+//----------------------------------------------------------------------------
+const char*                         // The status text
+   Stream::get_text(int code)       // Convert status code to text
+{
+   for(int i= 1; code_text[i].text; ++i) { // (code_text[0] is internal error)
+     if( code == code_text[i].code )
+       return code_text[i].text;
+   }
+
+   debugh("%4d %s code(%d) undefined\n", __LINE__, __FILE__, code);
+   return code_text[0].text;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Stream::use_count
+//
+// Purpose-
+//       Display the use count
+//
+// Implemenation notes-
+//       Call *after* incrementing or *before* decrementing.
+//       std::shared_ptr<Stream> S->use_count(__LINE__, __FILE__, "info");
+//
+//----------------------------------------------------------------------------
 void
-   Stream::debug( void ) const      // Debugging display
-{  debug(""); }
+   Stream::use_count(               // Display the use count
+     int               line,        // Caller's line number
+     const char*       file,        // Caller's file name
+     const char*       info) const  // Caller's information
+{
+   static std::mutex mutex;
+   std::lock_guard<std::mutex> lock(mutex);
+
+   debugf("%2zd use_count Stream(%#12zx) %4d %s %s\n", self.use_count()
+         , intptr_t(this), line, file, info);
+}
 
 //----------------------------------------------------------------------------
 //
@@ -169,12 +213,13 @@ void
 //
 //----------------------------------------------------------------------------
 bool                                // Return code: TRUE if complete
-   Stream::read(const void*, size_t) // (Async) read data segment from stream
+   Stream::read(Ioda&)              // (Async) read data segment
 {  utility::should_not_occur(__LINE__, __FILE__); return true; }
 
 void
-   Stream::write(const void*, size_t) // Write data segment to stream
+   Stream::write(Ioda&)             // Write data segment to stream
 {  utility::should_not_occur(__LINE__, __FILE__); }
+
 void
    Stream::write( void )            // Write data complete
 {  utility::should_not_occur(__LINE__, __FILE__); }
@@ -199,27 +244,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       get_text
-//
-// Purpose-
-//       Get text for status code
-//
-//----------------------------------------------------------------------------
-const char*                         // The status text
-   Stream::get_text(int code)       // Convert status code to text
-{
-   for(int i= 1; code_text[i].text; ++i) { // (code_text[0] is internal error)
-     if( code == code_text[i].code )
-       return code_text[i].text;
-   }
-
-   debugh("%4d %s code(%d) undefined\n", __LINE__, __FILE__, code);
-   return code_text[0].text;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       Stream::end
 //
 // Purpose-
@@ -230,17 +254,20 @@ void
    Stream::end( void )              // Terminate the Stream
 {  if( HCDM ) debugh("Stream(%p)::end\n", this);
 
-   std::shared_ptr<Stream> stream= get_self();
-   if( stream ) {
-     if( response )                 // (Can be nullptr if end already called)
-       response->end();             // Complete the Response
-     if( request )
-       request->end();              // Complete the Request
-
-     h_end();                       // Drive Stream::on_end
-     response= nullptr;             // Remove Response reference
-     request= nullptr;              // Remove Request reference
+   if( utility::is_null(this) ) {   // TODO: REMOVE
+     utility::on_exception("Stream::end");
+     return;
    }
+
+   std::shared_ptr<Stream> stream= get_self();
+   if( response )                   // (Can be nullptr if end already called)
+     response->end();               // Complete the Response
+   if( request )
+     request->end();                // Complete the Request
+
+   h_end();                         // Drive Stream::on_end
+   response= nullptr;               // Remove Response reference
+   request= nullptr;                // Remove Request reference
 }
 
 //----------------------------------------------------------------------------
@@ -275,29 +302,33 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ClientStream::~ClientStream
 //       ClientStream::ClientStream
+//       ClientStream::~ClientStream
 //       ClientStream::make
 //
 // Purpose-
-//       Destructor
 //       Constructors
+//       Destructor
 //       Creators
 //
 //----------------------------------------------------------------------------
-   ClientStream::~ClientStream( void ) // Destructor
-{  if( HCDM )
-     debugh("ClientStream(%p)::~ClientStream\n", this);
-   Trace::trace(".DEL", "CSTR", this);
-}
-
    ClientStream::ClientStream(      // Constructor
      Client*           owner)       // Associated Client
 :  Stream()
 ,  client(owner->get_self())
 {  if( HCDM )
-     debugh("ClientStream(%p)::ClientStream(%p)\n", this, owner);
+     debugh("ClientStream(%p)!(%p)\n", this, owner);
+
    Trace::trace(".NEW", "CSTR", this);
+   INS_DEBUG_OBJ("ClientStream");
+// http1();                         // TODO: HANDLE HTTP2, etc
+}
+
+   ClientStream::~ClientStream( void ) // Destructor
+{  if( HCDM )
+     debugh("ClientStream(%p)~\n", this);
+   Trace::trace(".DEL", "CSTR", this);
+   REM_DEBUG_OBJ("ClientStream");
 }
 
 std::shared_ptr<ClientStream>       // The ClientStream
@@ -338,16 +369,24 @@ std::shared_ptr<ClientResponse>
 // Purpose-
 //       (Asynchronously) read data segment from Client.
 //
+// Implementation note-
+//       Field response is protected, so Client can't call response->read.
+//
 //----------------------------------------------------------------------------
 bool                                // Return code: TRUE if complete
    ClientStream::read(              // (Async) read data segment
-     const void*       addr,        // Data address
-     size_t            size)        // Data length
+     Ioda&             ioda)        // I/O Data Area
 {  if( HCDM )
-     debugh("ClientStream(%p)::read(%p,%zd)\n", this, addr, size);
+     debugh("ClientStream(%p)::read(*,%zd)\n", this, ioda.get_used());
 
-// traceh("%4d %s HCDM\n", __LINE__, __FILE__);
-   return response->read(addr, size);
+#if 1
+   bool cc= response->read(ioda);
+   if( cc )
+     end();
+   return cc;
+#else
+   return response->read(ioda);
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -361,9 +400,9 @@ bool                                // Return code: TRUE if complete
 //----------------------------------------------------------------------------
 void
    ClientStream::write(             // Write data segment to stream
-     const void*       addr,        // Data address
-     size_t            size)        // Data length
-{  if( HCDM ) debugh("ClientStream(%p)::write(%p,%zd)\n", this, addr, size);
+     Ioda&             ioda)        // I/O Data Area
+{  if( HCDM )
+     debugh("ClientStream(%p)::write(*,%zd)\n", this, ioda.get_used());
 
    utility::should_not_occur(__LINE__, __FILE__);
 }
@@ -373,10 +412,16 @@ void
 {  if( HCDM ) debugh("ClientStream(%p)::write\n", this);
 
    std::shared_ptr<Client> client= get_client();
+   int rc= -1;                      // Default, rejected
    if( client )
-     client->writeStream(this);
-   else
+     rc= client->write(this);
+
+   if( rc )
      utility::not_coded_yet(__LINE__, __FILE__);
+
+#if 0 // Will need to end if client write fails too.
+   end();
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -395,36 +440,38 @@ void
      debugh("\nClientStream(%p)::reject(%d) %s\n\n", this, code, get_text(code));
 
    response->set_code(code);
-   response->get_data().reset();
+   response->get_ioda().reset();
    end();
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerStream::~ServerStream
 //       ServerStream::ServerStream
+//       ServerStream::~ServerStream
 //       ServerStream::make
 //
 // Purpose-
-//       Destructor
 //       Constructors
+//       Destructor
 //       Creators
 //
 //----------------------------------------------------------------------------
-   ServerStream::~ServerStream( void ) // Destructor
-{  if( HCDM )
-     debugh("ServerStream(%p)::~ServerStream\n", this);
-   Trace::trace(".DEL", "SSTR", this);
-}
-
    ServerStream::ServerStream(      // Constructor
      Server*           owner)       // Associated Server
 :  Stream()
 ,  server(owner->get_self())
 {  if( HCDM )
-     debugh("ServerStream(%p)::ServerStream(%p)\n", this, owner);
+     debugh("ServerStream(%p)!(%p)\n", this, owner);
    Trace::trace(".NEW", "SSTR", this);
+   INS_DEBUG_OBJ("ServerStream");
+}
+
+   ServerStream::~ServerStream( void ) // Destructor
+{  if( HCDM )
+     debugh("ServerStream(%p)~\n", this);
+   Trace::trace(".DEL", "SSTR", this);
+   REM_DEBUG_OBJ("ServerStream");
 }
 
 std::shared_ptr<ServerStream>       // The ServerStream
@@ -467,12 +514,11 @@ std::shared_ptr<ServerResponse>
 //----------------------------------------------------------------------------
 bool                                // Return code: TRUE if complete
    ServerStream::read(              // (Async) read data segment
-      const void*      addr,        // Data address
-      size_t           size)        // Data length
+      Ioda&            ioda)        // I/O Data Area
 {  if( HCDM )
-     debugh("ServerStream(%p)::read(%p,%zd)\n", this, addr, size);
+     debugh("ServerStream(%p)::read(*,%zd)\n", this, ioda.get_used());
 
-   return request->read(addr, size);
+   return request->read(ioda);
 }
 
 //----------------------------------------------------------------------------
@@ -485,11 +531,26 @@ bool                                // Return code: TRUE if complete
 //
 //----------------------------------------------------------------------------
 void
-   ServerStream::write(const void* addr, size_t size) // Write data segment to stream
-{
+   ServerStream::write(             // Write to Server
+     int               line,        // Caller's line number
+     const void*       addr,        // Data address
+     size_t            size)        // Data length
+{  if( HCDM )
+     debugh("%4d ServerStream(%p)::write(%p,%zd)\n", line, this, addr, size);
+
    std::shared_ptr<Server> server= get_server();
    if( server )
      server->write(addr, size);
+}
+
+void
+   ServerStream::write(Ioda& ioda) // Write data segment to stream
+{
+   std::shared_ptr<Server> server= get_server();
+   if( server )
+     server->write(ioda);
+   else
+     ioda.reset();
 }
 
 //----------------------------------------------------------------------------
@@ -521,11 +582,11 @@ void
      debugh("\nServerStream(%p)::reject(%d) %s\n\n", this, code, get_text(code));
 
    char buff[128];                  // TODO: FIX PROTOCOL
-   sprintf(buff, "HTTP/1.1 %.3d %s\r\n\r\n", code, get_text(code));
+   size_t L= sprintf(buff, "HTTP/1.1 %.3d %s\r\n\r\n", code, get_text(code));
 
    response->set_code(code);
-   response->get_data().reset();
-   write(buff, strlen(buff));
+   response->get_ioda().reset();
+   write(buff, L);
 // write();
    end();
 }
@@ -644,4 +705,4 @@ void
    std::lock_guard<decltype(mutex)> lock(mutex);
    root.stream= nullptr;
 }
-}  // namespace pub::http
+}  // namespace _LIBPUB_NAMESPACE::http

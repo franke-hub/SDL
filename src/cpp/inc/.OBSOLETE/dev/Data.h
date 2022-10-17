@@ -13,28 +13,30 @@
 //       http/Data.h
 //
 // Purpose-
-//       HTTP request/response data buffer.
+//       HTTP request/response data organizer.
 //
 // Last change date-
-//       2022/02/16
+//       2022/09/11
 //
 // Implementation notes-
 //       We don't pass-through string functions, but do provide get_string.
 //
 //----------------------------------------------------------------------------
-#ifndef _PUB_HTTP_DATA_H_INCLUDED
-#define _PUB_HTTP_DATA_H_INCLUDED
+#ifndef _LIBPUB_HTTP_DATA_H_INCLUDED
+#define _LIBPUB_HTTP_DATA_H_INCLUDED
 
 #include <string>                   // For std::string
 #include <stdint.h>                 // For uint8_t
 
+#include "pub/Buffer.h"             // For pub::Buffer
 #include <pub/List.h>               // For pub::List
 
-namespace pub::http {
+_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace http {
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
-struct Hunk;                        // pub::http::Hunk, defined here
+struct Hunk;                        // (defined in this header file)
 
 //----------------------------------------------------------------------------
 //
@@ -42,10 +44,10 @@ struct Hunk;                        // pub::http::Hunk, defined here
 //       Data
 //
 // Purpose-
-//       Request/response data buffer.
+//       Request/response data organizer.
 //
 //----------------------------------------------------------------------------
-class Data {                        // Request/response data buffer
+class Data {                        // Request/response data organizer
 //----------------------------------------------------------------------------
 // Data::Attributes
 //----------------------------------------------------------------------------
@@ -53,7 +55,7 @@ public:
 static constexpr size_t npos= -1;   // No position, or length to end of string
 
 protected:
-pub::List<Hunk>        list;        // Our list of Hunks
+List<Hunk>             list;        // Our list of Hunks
 size_t                 size= 0;     // The combined Hunk size
 
 //----------------------------------------------------------------------------
@@ -102,19 +104,23 @@ const char* operator[](size_t) const; // Address (single) character
 // Data::Methods
 //----------------------------------------------------------------------------
 void append(const void*, size_t);   // Append buffer
+void append(const Buffer&);         // Append Buffer
 void append(const Data&);           // Append Data
 void append(const Hunk&);           // Append Hunk
 void append(const std::string);     // Append std::string
 
 void discard(size_t);               // Discard (beginning at origin)
 
-size_t                              // The number of bytes stored
-   store(                           // Store (copy) the buffer
-     void*             addr,        // Into this address
-     size_t            size,        // For this length
-     size_t            offset= 0) const; // Starting at this offset
-
 void reset( void );                 // Reset the Data
+
+size_t                              // The number of bytes stored
+   store(                           // Store (copy) the Data
+     BufferBorrow&     buff) const; // Into this BufferBorrow
+
+size_t                              // The number of bytes stored
+   store(                           // Store (copy) the Data
+     void*             addr,        // Into this address
+     size_t            size) const; // For this length
 }; // class Data
 
 //----------------------------------------------------------------------------
@@ -123,20 +129,20 @@ void reset( void );                 // Reset the Data
 //       Hunk
 //
 // Purpose-
-//       Data buffer segment
+//       Data segment
 //
 //----------------------------------------------------------------------------
-struct Hunk : public pub::List<Hunk>::Link { // Data buffer segment
+struct Hunk : public List<Hunk>::Link { // Data segment
 char*                  addr;        // Data address
 size_t                 size;        // Data length
-
-   ~Hunk( void ) = default;         // Destructor
 
    Hunk( void ) = default;          // Default constructor
    Hunk(                            // Constructor
      const void*       addr_,       // Source buffer*
      size_t            size_)       // Source buffer length
 :  Link(), addr((char*)addr_), size(size_) {}
+
+   ~Hunk( void ) = default;         // Destructor
 
 //----------------------------------------------------------------------------
 // Hunk::debug
@@ -145,65 +151,6 @@ void debug(const char*) const;      // Debugging display
 void debug( void ) const            // Debugging display
 {  debug(""); }
 }; // struct Hunk
-
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       Buffer
-//
-// Purpose-
-//       Data accumulator buffer.
-//
-// Implementation notes-
-//       The maximum length is predefined, built into Buffer logic.
-//       Method append throws std::length_error on buffer overflow.
-//
-//----------------------------------------------------------------------------
-struct Buffer {                     // Data accumulator Buffer
-
-char* const            addr= nullptr; // The accumulator buffer address
-const size_t           size= 0;     // The accumulator buffer length
-size_t                 length= 0;   // Append offset
-size_t                 offset= 0;   // Reader offset
-
-   ~Buffer( void );                 // Destructor
-   Buffer(size_t size= 0);          // Constructor
-
-//----------------------------------------------------------------------------
-// Buffer::debug
-//----------------------------------------------------------------------------
-void debug(const char*) const;      // Debugging display
-void debug( void ) const            // Debugging display
-{  debug(""); }
-
-//----------------------------------------------------------------------------
-// Buffer::Methods
-//----------------------------------------------------------------------------
-void append(const char*);          // Append string to Buffer
-void append(const std::string&);   // Append string to Buffer
-void append(int C);                // Append character to Buffer
-
-void
-   fetch(                           // Fetch
-     const Data&       data,        // From this Data
-     size_t            offset= 0);  // At this Data offset
-void fetch(const Hunk&);            // Fetch (from Hunk)
-
-int                                 // The next character
-   peek_char( void ) const;         // Examine current character
-
-int                                 // The next character
-   read_char( void );               // Read next character
-
-// Implementation note: read_token modifies the accumulator buffer. The buffer
-// MUST be initialized again before it can be reused.
-const char*                         // The next token, or ""
-   read_token(                      // Get next token
-     const char*       delim);      // Allowed delimiters
-
-void
-   reset( void )                    // Reset the buffer for re-use
-{  length= 0; offset= 0; }
-}; // struct Buffer
-}  // namespace pub::http
-#endif // _PUB_HTTP_DATA_H_INCLUDED
+}  // namespace http
+_LIBPUB_END_NAMESPACE
+#endif // _LIBPUB_HTTP_DATA_H_INCLUDED

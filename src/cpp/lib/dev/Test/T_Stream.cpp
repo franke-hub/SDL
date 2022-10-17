@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2022/08/16
+//       2022/10/16
 //
 // Arguments-
 //       With no arguments, --client --server defaulted
@@ -31,6 +31,13 @@
 //
 //----------------------------------------------------------------------------
 #include "T_Stream.hpp"             // Prerequisite includes, etc
+
+// Signal handlers
+typedef void (*sig_handler_t)(int);
+static sig_handler_t   sys1_handler= nullptr; // System SIGINT  signal handler
+static sig_handler_t   sys2_handler= nullptr; // System SIGSEGV signal handler
+static sig_handler_t   usr1_handler= nullptr; // System SIGUSR1 signal handler
+static sig_handler_t   usr2_handler= nullptr; // System SIGUSR2 signal handler
 
 //----------------------------------------------------------------------------
 //
@@ -100,13 +107,14 @@ static int                          // The integer value
 //       Parameter description.
 //
 //----------------------------------------------------------------------------
-static int                          // Return code (Always 1)
+static void
    info( void)                      // Parameter description
 {
    fprintf(stderr, "%s <options> parameter ...\n", __FILE__ );
    fprintf(stderr, "Options:\n"
                    "  --help\tThis help message\n"
                    "  --hcdm\tHard Core Debug Mode\n"
+                   "  --iodm\tI/O Debug Mode\n"
 
                    "  --debug\targument\n"
                    "  --verbose\t{=n} Verbosity, default 0\n"
@@ -116,12 +124,68 @@ static int                          // Return code (Always 1)
                    "  --host\tSet host name\n"
                    "  --port\tSet port number\n"
                    "  --runtime\tSet test run time (seconds)\n"
+                   "  --ssl\tUse SSL sockets\n"
+                   "  --thread\tUse client threads\n"
                    "  --trace\tActivate internal trace\n"
                    "  --server\tRun server\n"
                    "  --verify\tVerify file data\n"
+                   "  --worker\tUse server threads\n"
           );
 
-   return 1;
+   exit(1);
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       sig_handler
+//
+// Purpose-
+//       Handle signals.
+//
+//----------------------------------------------------------------------------
+static void
+   sig_handler(                     // Handle signals
+     int               id)          // The signal identifier
+{
+   static int recursion= 0;         // Signal recursion depth
+   if( recursion ) {                // If signal recursion
+     fprintf(stderr, "sig_handler(%d) recursion\n", id);
+     fflush(stderr);
+     exit(EXIT_FAILURE);
+   }
+
+   // Handle signal
+   recursion++;                     // Disallow recursion
+   const char* text= "SIG????";
+   if( id == SIGINT ) text= "SIGINT";
+   else if( id == SIGSEGV ) text= "SIGSEGV";
+   else if( id == SIGUSR1 ) text= "SIGUSR1";
+   else if( id == SIGUSR2 ) text= "SIGUSR2";
+   errorf("\n\nsig_handler(%d) %s\n\n", id, text);
+
+   if( Trace::table ) {
+     Trace::trace(".SIG", __LINE__, text);
+     Trace::table->flag[Trace::X_HALT]= true;
+   }
+
+   switch(id) {                     // Handle the signal
+     case SIGINT:                   // (Console CTRL-C)
+       // TODO: NOT CODED YET
+       break;
+
+     case SIGSEGV:                  // (Program fault)
+       debug_set_mode(Debug::MODE_INTENSIVE);
+       debug_backtrace();           // Attempt diagnosis (recursion aborts)
+       debugf("..terminated..\n");
+       exit(EXIT_FAILURE);
+       break;
+
+     default:                       // (SIGUSR1 || SIGUSR2)
+       break;                       // (No configured action)
+   }
+
+   recursion--;
 }
 
 //----------------------------------------------------------------------------
@@ -149,6 +213,30 @@ static void make_dir(std::string path) // Insure directory exists
 static int                          // Return code, 0 expected
    init( void)                      // Initialize
 {
+   if( HCDM )
+     opt_hcdm= true;
+
+   if( opt_hcdm && opt_verbose < 1 )
+     opt_verbose= 1;
+
+   if( USE_SIGNAL ) {
+     sys1_handler= signal(SIGINT,  sig_handler);
+     sys2_handler= signal(SIGSEGV, sig_handler);
+     usr1_handler= signal(SIGUSR1, sig_handler);
+     usr2_handler= signal(SIGUSR2, sig_handler);
+   }
+
+   Debug* extant= Debug::show();
+   debug= new Debug("debug.out");   // Create Debug object
+   if( extant )
+     debug->set_file_mode("ab");
+   Debug::set(debug);
+   if( opt_hcdm || USE_INTENSIVE ) { // If Hard Core INTENSIVE Debug Mode
+     debug_set_mode(Debug::MODE_INTENSIVE);
+     debugh("HCDM: MODE_INTENSIVE\n");
+   }
+   debug_set_head(Debug::HEAD_THREAD);
+
    if( opt_trace ) {                // If --trace specified
      //-----------------------------------------------------------------------
      // If required, create memory-mapped trace subdirectory
@@ -188,11 +276,16 @@ static int                          // Return code, 0 expected
        return 1;
      }
 
-     Trace::table= pub::Trace::make(trace_table, TRACE_SIZE);
+     Trace::table= PUB::Trace::make(trace_table, TRACE_SIZE);
      close(fd);                     // Descriptor not needed once mapped
 
      Trace::trace(".INI", 0, "TRACE STARTED") ;
    }
+
+   client_agent= new ClientAgent();
+   server_agent= new ServerAgent();
+
+   setlocale(LC_NUMERIC, "");       // For printf("%'d\n", 123456789);
 
    return 0;
 }
@@ -209,9 +302,22 @@ static int                          // Return code, 0 expected
 static void
    term( void )                     // Terminate
 {
-   Trace::trace(".INI", 0, "TRACE STOPPED") ;
+   // Remove client/server agent
+   delete client_agent;
+   delete server_agent;
+   client_agent= nullptr;
+   server_agent= nullptr;
 
-   // Free the trace table (and disable tracing)
+   //-------------------------------------------------------------------------
+   // Restore system signal handlers
+   if( sys1_handler ) signal(SIGINT,  sys1_handler);
+   if( sys2_handler ) signal(SIGSEGV, sys2_handler);
+   if( usr1_handler ) signal(SIGUSR1, usr1_handler);
+   if( usr2_handler ) signal(SIGUSR2, usr2_handler);
+   sys1_handler= sys2_handler= usr1_handler= usr2_handler= nullptr;
+
+   // Release the trace table (which disables tracing)
+   Trace::trace(".XIT", 0, "TRACE STOPPED") ;
    if( trace_table ) {
      Trace::table= nullptr;
      munmap(trace_table, TRACE_SIZE);
@@ -219,9 +325,11 @@ static void
    }
 
    // Terminate debugging
+#if 0  // TODO: REMOVE (when thread/worker tracing removed)
    opt_hcdm= false;
    Debug::set(nullptr);
    delete debug;
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -245,15 +353,23 @@ static inline int                   // Error count
    debugf("\ntest_bringup\n");
    int error_count= 0;
 
-   size_of("Client",        sizeof(pub::http::Client));
-   size_of("ClientAgent",   sizeof(pub::http::ClientAgent));
-   size_of("Listen",        sizeof(pub::http::Listen));
-   size_of("Options",       sizeof(pub::http::Options));
-   size_of("Request",       sizeof(pub::http::Request));
-   size_of("Response",      sizeof(pub::http::Response));
-   size_of("Server",        sizeof(pub::http::Server));
-   size_of("ServerAgent",   sizeof(pub::http::ServerAgent));
-   size_of("Stream",        sizeof(pub::http::Stream));
+   size_of("Client",        sizeof(PUB::http::Client));
+   size_of("ClientAgent",   sizeof(PUB::http::ClientAgent));
+   size_of("Listen",        sizeof(PUB::http::Listen));
+   size_of("Options",       sizeof(PUB::http::Options));
+   size_of("Request",       sizeof(PUB::http::Request));
+   size_of("Response",      sizeof(PUB::http::Response));
+   size_of("Server",        sizeof(PUB::http::Server));
+   size_of("ServerAgent",   sizeof(PUB::http::ServerAgent));
+   size_of("Stream",        sizeof(PUB::http::Stream));
+
+   if( true  ) {                    // Bringup internal tests
+     printf("\npage200(\"BODY\")\n%s", page200("BODY").c_str());
+     printf("\npage403(\"/FILE\")\n%s", page403("/FILE").c_str());
+     printf("\npage404(\"/FILE\")\n%s", page404("/FILE").c_str());
+     printf("\npage405(\"METH\")\n%s", page405("METH").c_str());
+     printf("\npage500(\"OOPS\")\n%s", page500("OOPS").c_str());
+   }
 
    return error_count;
 }
@@ -267,7 +383,7 @@ static inline int                   // Error count
 //       Parameter analysis.
 //
 //----------------------------------------------------------------------------
-static int                          // Return code (0 if OK)
+static void                         // Exit if error detected
    parm(                            // Parameter analysis
      int               argc,        // Argument count
      char*             argv[])      // Argument array
@@ -283,12 +399,19 @@ static int                          // Return code (0 if OK)
          switch( opt_index ) {
            case OPT_HELP:           // These options handled by getopt
            case OPT_HCDM:
+           case OPT_IODM:
            case OPT_BRINGUP:
            case OPT_CLIENT:
            case OPT_SERVER:
+           case OPT_STREAM:
            case OPT_STRESS:
+           case OPT_THREAD:
            case OPT_TRACE:
            case OPT_VERIFY:
+           case OPT_WORKER:
+
+           case OPT_NO_THREAD:
+           case OPT_NO_WORKER:
              break;
 
            case OPT_DEBUG:
@@ -361,10 +484,8 @@ static int                          // Return code (0 if OK)
    }
 
    // Return sequence
-   int rc= 0;
    if( opt_help )
-     rc= info();
-   return rc;
+     info();
 }
 
 //----------------------------------------------------------------------------
@@ -381,52 +502,66 @@ extern int
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
-   int                 error_count= 0; // Error counter
-
    //-------------------------------------------------------------------------
    // Initialize
    //-------------------------------------------------------------------------
    host= Socket::gethostname();     // Use the default host name
-   int rc= parm(argc, argv);        // Argument analysis
-   if( rc ) return rc;              // Return if invalid
+   parm(argc, argv);                // Argument analysis (Exit if error)
    init();                          // Initialize
 
-   debug= new Debug("debug.out");   // Create Debug object
-   Debug::set(debug);
-   if( HCDM || true ) {             // If Hard Core INTENSIVE Debug Mode
-     debug_set_mode(Debug::MODE_INTENSIVE);
-     debugh("%4d %s HCDM: MODE_INTENSIVE\n", __LINE__, __FILE__);
-   }
-   debug_set_head(Debug::HEAD_THREAD);
+   if( opt_verbose ) {
+     debugf("%s %s %s (Compiled)\n", __FILE__, __DATE__, __TIME__);
 
-   setlocale(LC_NUMERIC, "");       // For printf("%'d\n", 123456789);
+     time_t tod;
+     time(&tod);
+     struct tm* info= localtime(&tod);
+     char buff[32];
+     strftime(buff, sizeof(buff), "%b %e %Y %R:%S", info);
+     debugf("%s %s (Started)\n", __FILE__, buff);
+
+     debugf("\n");
+     debugf("Settings:\n");
+     debugf("%5.1f: runtime\n",  opt_runtime);
+     debugf("%5s: server: %s\n", torf(bool(opt_server)), host.c_str());
+     debugf("%5s: hcdm\n",   torf(opt_hcdm));
+     debugf("%5s: iodm\n",   torf(opt_iodm));
+     debugf("%5d: verbose\n",opt_verbose);
+
+     debugf("%5s: client: %d\n", torf(opt_client), OPT_CLIENTS);
+     debugf("%5s: ssl\n",    torf(opt_ssl));
+     debugf("%5s: stress\n", torf(opt_stress));
+     debugf("%5s: thread\n", torf(opt_thread));
+     debugf("%5s: worker\n", torf(opt_worker));
+
+     // Debugging, experimentation
+     debugf("\n");
+     debugf("%5d: MAX_REQUEST_COUNT\n", MAX_REQUEST_COUNT);
+     debugf("%5s: Protocol (unencrypted)\n", "HTTP1");
+     debugf("\n\n");
+   }
 
    //-------------------------------------------------------------------------
-   // TRY wrapper
+   // Run the tests (with try wrapper)
    //-------------------------------------------------------------------------
    try {
      if( opt_bringup )
        error_count += test_bringup();
 
      ServerThread* server= nullptr;
-     if( opt_server ) {
-       server= new ServerThread();  // (Create, auto-start ServerThread)
-       Thread::sleep(0.125);        // (ServerThread startup delay)
-     }
+     if( opt_server )
+       server= new ServerThread();
 
      if( opt_client || opt_stress ) {
-       ClientThread client;         // (The T_Stream pseudo ClientThread)
-
        if( opt_client ) {
-         error_count += client.test_client();
-         error_count += client.statistics();
+         error_count= 0;
+         ClientThread::test_client();
+         ClientThread::statistics();
        }
        if( opt_stress ) {
-         error_count += client.test_stress();
-         error_count += client.statistics();
+         error_count= 0;
+         ClientThread::test_stress();
+         ClientThread::statistics();
        }
-
-       client.join();
 
        if( server )
          server->stop();
@@ -441,17 +576,17 @@ extern int
    //-------------------------------------------------------------------------
    // Handle exceptions
    //-------------------------------------------------------------------------
-   catch(pub::Exception& X) {
-     error_count++;
+   catch(PUB::Exception& X) {
+     ++error_count;
      debugf("%4d T_Stream: %s\n", __LINE__, ((string)X).c_str());
    } catch(std::exception& X) {
-     error_count++;
+     ++error_count;
      debugf("%4d T_Stream: std::exception(%s)\n", __LINE__, X.what());
    } catch(const char* X) {
-     error_count++;
+     ++error_count;
      debugf("%4d T_Stream: catch(\"%s\")\n", __LINE__, X);
    } catch(...) {
-     error_count++;
+     ++error_count;
      debugf("%4d T_Stream: catch(...)\n", __LINE__);
    }
 
@@ -464,10 +599,10 @@ extern int
    else if( error_count == 1 )
      debugf("1 error detected\n");
    else {
-     debugf("%d errors detected\n", error_count);
+     debugf("%zd errors detected\n", error_count.load());
      error_count= 1;
    }
 
    term();                          // Terminate
-   return error_count;
+   return error_count.load();
 }
