@@ -7,7 +7,7 @@
 //       Development journal
 //
 // Last change date-
-//       2022/09/02
+//       2022/10/16
 //
 -------------------------------------------------------------------------- -->
 
@@ -44,7 +44,7 @@ was to build one. The resulting program is
 stressor and datagram socket test. The com library supports datagram sockets,
 so the pub library should too.
 
-I added a connect(std::string) method to Socket.h to make it easier to connect
+I added a connect(std\::string) method to Socket.h to make it easier to connect
 using the LAN, which also makes it easier to run clients and servers on
 different machines. I did run into one nasty error which deserves special
 mention. It's the first one documented in './Nasties.md'.
@@ -54,7 +54,7 @@ mention. It's the first one documented in './Nasties.md'.
 Completed implementation of ~/src/cpp/lib/pub/TestSock.cpp, a datagram and
 HTTP protocol stress tester.
 
-Implemented pub::SocketSelect class in Socket.h/Socket.cpp, used by
+Implemented pub\::SocketSelect class in Socket.h/Socket.cpp, used by
 TestSock.cpp --datagram stress test.
 
 ### 2022/05/19
@@ -65,14 +65,14 @@ It's not *usable* by multiple threads because a select operation blocks any
 update to SocketSelect while it's in progress. Select operations can have an
 arbitrarily long timeout.
 
-I looks like pub::SocketSelect can be greatly improved, working more like
+I looks like pub\::SocketSelect can be greatly improved, working more like
 Linux epoll in non-Linux environments. The Socket lookup can be made easier
 and quicker by having the list of Sockets indexed by the file descriptor. We
 can add an additional Socket, owned by SocketSelect, that can be part of every
 poll request. With this, when a change to the polling list needs to be made,
 it can be instantiated quickly. Also, we can separately maintain a (locked)
 updated polling list which would be instantiated at the next
-SocketSelect::select operation. When the updated polling list is created, we
+SocketSelect\::select operation. When the updated polling list is created, we
 signal the change by writing a simple message on the owned socket, completing
 any active poll operation.
 
@@ -83,7 +83,7 @@ validation to be sure that a Socket on the file descriptor indexed list
 hasn't been replaced during a poll event.
 
 We can also add some sort of Socket callback function instead of the polling
-select. This would would be a std::function residing in the Socket, and we
+select. This would would be a std\::function residing in the Socket, and we
 could use Worker (pool) threads to drive them. This could be implemented as a
 derived class of SocketSelect (say SocketDriver or SocketThread) that would do
 all the polling.
@@ -120,10 +120,10 @@ has the structure of the others.
 Socket.cpp/TestSock.cpp experimental results running short stress tests:
 - A 5 second test was more than enough. Operations/second throughput remained
 essentially unchanged when a 24 hour test was used.
-- In general, using ::poll rather than ::select got better throughput. Select
-operations are not used in Socket.cpp. SocketSelect::select uses ::poll, which
-can handle more sockets anyway. (Maybe SocketSelect::select should be renamed
-to SocketSelect::poll.)
+- In general, using \::poll rather than \::select got better throughput. Select
+operations are not used in Socket.cpp. SocketSelect\::select uses \::poll, which
+can handle more sockets anyway. (Maybe SocketSelect\::select should be renamed
+to SocketSelect\::poll.)
 - The number of stress test client threads has interesting effects,
 particularly in the PacketClient stress test.
   - For PacketClient, when the client and server are on the same machine an
@@ -244,17 +244,90 @@ file descriptor number) and shrinkage is likely to be temporary anyway.
 
 TestSock was switched to use SocketSelect polling. Errors found during testing
 were fixed. One error was notable. The SocketSelect destructor removes the
-Socket::selector field, which points to the SocketSelect object. Because of
+Socket\::selector field, which points to the SocketSelect object. Because of
 locking considerations, this removal isn't as benign as it might first appear
 and now results in a user error message that refers to the source code. A
 long and complex comment was added to the source code explaining the rationale
 behind the message. A short "how to fix your code" comment was also added.
-See ~/src/cpp/lib/pub/Socket.cpp, method SocketSelect::~SocketSelect.
+See ~/src/cpp/lib/pub/Socket.cpp, method SocketSelect\::~SocketSelect.
 
 ### 2022/09/02 Maint commit
 
 Made pub library source and include files more consistent.
 The dev library files were also updated, but they are also being updated
 for other reasons and are not ready to be released.
+
+### 2022/09/12
+
+Finally added the trivial List\::insert(after,link) and List\::remove(link)
+method (rather than requiring head == tail) use a single link.
+
+Normal profiling doesn't account for task switching.
+The dispatcher timing test in ~/src/cpp/lib/pub/Test/TestDisp.cpp now takes
+about 22 seconds to run on a machine where it used to take about 5 seconds.
+Windows shows no such regression.
+Normal profiling doesn't show anything unexpected.
+The latest Fedora update brings the elapsed time down to 16 seconds.
+
+In order to investigate (later) why this is happening, I added a new
+dev/Recorder.h / Recorder.cpp function that provides data collection from
+generic sensors to be added to a Recorder pool.
+
+Working on the http library.
+There are some things that need to be resolved.
+
+I want to have multiple client application instances active at the same time.
+This multiple simultaneous client-server connections, which means that the
+Client map can't simply use the Server's sockaddr_u as an index by the
+ClientAgent.
+There may be a need for multiple connection indexes, with each index pointing
+to something containing a list of possible Clients and the actual Client
+resolution requiring the host and peer sockaddr_u objects.
+
+Each application instance requires that its requests are processed in sequence,
+but applications will want to queue multiple requests.
+An application can insure that requests are transmitted in sequence by
+binding to a particular Client/Server connection.
+How does the ClientAgent manage these multiple ClientServer connections?
+Do we share connections, allowing multiple applications to access each one?
+Maybe not, at least to start.
+
+Connections can take a long time to complete, requiring multiple steps and
+possibly upgrading from HTTP/1 to HTTP/2 along the way.
+The ClientAgent has to provide this functionality, and probably requires
+a dispatch\::Task and Worker threads for this purpose.
+
+When terminating a connection, we might want to keep the structure in place
+for a few seconds to allow it to be reused without requiring the complete
+connection process.
+
+Servers should probably listen for both ipv6 and ipv4 connections.
+Clients should probably try both ipv6 and ipv4 addresses before rejecting
+a connection.
+
+The ClientAgent and ServerAgent need to manage the Select polling.
+They need to be able to use the sockaddr_u pair to locate the associated
+Client or Server given the Socket that can process data.
+They need to adjust the polling event mask depending upon their current
+state, always using non-blocking I/O requests.
+
+When receiving data, Clients and Servers cannot quickly tell whether or not
+more data is required to for response and request completion.
+As a first implementation pass, all data received will be enqueued
+to the client or server application.
+Read polling will always be active, but write polling will only be used when
+a transmission blocks.
+
+### 2022/10/16
+
+Commit: Client uses asychronous polling. Also includes Recorder.h commit.
+
+We now use Ioda (Input/Output Data Area) rather than Data for buffering.
+This features minimal data copying when moving data between components,
+and when discarding leading data.
+
+While the Windows throughput is essentially unchanged, the Linux throughput
+has dramatically regressed. This needs to be fixed but I also wanted to
+synchronize the maint and trunk branches.
 
 ----
