@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2022/03/15
+//       2022/09/11
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -577,6 +577,58 @@ const char*                         // Return message, nullptr if OK
    data->active.replace_text(column, length, change_string.c_str());
    text->draw();                    // (Only active line redraw required)
    return nullptr;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_find
+//
+// Purpose-
+//       Locate next occurance of a string that begins a line.
+//
+// Implementation notes-
+//       Case sensitive compare. (Don't want to implement memicmp.)
+//
+//----------------------------------------------------------------------------
+const char*                         // Return message, nullptr if OK
+   editor::do_find(                 // Find next col[0] occurance of
+     const char*       S)           // This string
+{
+   data->commit();                  // Commit the active line
+
+   size_t L= strlen(S);             // The string length
+
+   //-------------------------------------------------------------------------
+   // Search remainder of file
+   EdLine* line= data->cursor;
+   for(line= line->get_next(); line; line= line->get_next() ) {
+     if( memcmp(line->text, S, L) == 0 ) {
+       if( line->get_next() ) {     // If not "end of file" line
+         data->activate();
+         text->activate(line);
+         text->move_cursor_H(0);
+         return nullptr;
+       }
+     }
+   }
+
+   //-------------------------------------------------------------------------
+   // Search wrap
+   if( editor::locate_wrap ) {
+     line= file->line_list.get_head(); // (The "top of file" line, skipped)
+     for(line= line->get_next(); line; line= line->get_next()) {
+       if( memcmp(line->text, S, L) == 0 && line->get_next() ) {
+         data->activate();
+         text->activate(line);
+         text->move_cursor_H(0);
+         put_message("Wrapped");
+         return nullptr;
+       }
+     }
+   }
+
+   return "Not found";
 }
 
 //----------------------------------------------------------------------------

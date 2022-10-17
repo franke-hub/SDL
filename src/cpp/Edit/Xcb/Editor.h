@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2021/06/24
+//       2022/09/11
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -199,6 +199,18 @@ int                          // Return code, TRUE if error message
 //----------------------------------------------------------------------------
 const char*                         // Error message, nullptr expected
    do_change( void );               // Change next occurance of string
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::do_find
+//
+// Purpose-
+//       Change next occurance of string that begins a line.
+//
+//----------------------------------------------------------------------------
+const char*                         // Error message, nullptr expected
+   do_find(const char*);            // Find next col[0] occurance of string
 
 //----------------------------------------------------------------------------
 //

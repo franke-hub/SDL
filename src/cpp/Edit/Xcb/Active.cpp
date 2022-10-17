@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,13 +16,13 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2021/08/24
+//       2022/09/11
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
 
 #include <pub/Debug.h>              // For pub::Debug object
-#include <pub/Must.h>               // For pub::Must methods
+#include <pub/Must.h>               // For pub::must methods
 #include <pub/Utf.h>                // For pub::Utf methods and objects
 
 #include "Config.h"                 // For config::opt_hcdm
@@ -30,7 +30,7 @@
 
 using namespace config;             // For config::opt_hcdm
 using namespace pub::debugging;     // For debugging
-using namespace pub;                // For Must::
+using namespace pub;                // For namespace must::
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -56,7 +56,7 @@ typedef pub::Utf::utf8_t utf8_t;    // Import pub::Utf::utf8_t
    if( opt_hcdm )
      debugh("Active(%p)::~Active\n", this);
 
-   Must::free(buffer);
+   must::free(buffer);
 }
 
 //----------------------------------------------------------------------------
@@ -74,7 +74,7 @@ typedef pub::Utf::utf8_t utf8_t;    // Import pub::Utf::utf8_t
    if( opt_hcdm )
      debugh("Active(%p)::Active\n", this);
 
-   buffer= (char*)Must::malloc(buffer_size);
+   buffer= (char*)must::malloc(buffer_size);
    fsm= FSM_RESET;
 }
 
@@ -218,10 +218,10 @@ void
    if( length >= buffer_size ) {    // If expansion required
      size_t replace_size= length + BUFFER_SIZE;
      replace_size &= ~(BUFFER_SIZE - 1);
-     char* replace= (char*)Must::malloc(replace_size);
+     char* replace= (char*)must::malloc(replace_size);
      if( fsm != FSM_RESET )
        memcpy(replace, buffer, buffer_used+1);
-     Must::free(buffer);
+     must::free(buffer);
      buffer= replace;
      buffer_size= replace_size;
    }

@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2022/08/25
+//       2022/09/15
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -116,6 +116,7 @@ static const char* command_detab(char*);
 static const char* command_edit(char*);
 static const char* command_exit(char*);
 static const char* command_file(char*);
+static const char* command_find(char*);
 static const char* command_get(char*);
 static const char* command_list(char*);
 static const char* command_locate(char*);
@@ -139,7 +140,9 @@ static const Command_desc
 ,  {command_edit,   "E",       "Alias for EDIT"}
 ,  {command_edit,   "EDIT",    "Edit file(s)"}
 ,  {command_exit,   "EXIT",    "(Safe) Exit" }
+,  {command_find,   "FI",      "Find (column 1)"} // (Alias)
 ,  {command_file,   "FILE",    "Write and close file"}
+,  {command_find,   "FIND",    "Find (column 1)"}
 ,  {command_get,    "GET",     "Append file"}
 ,  {command_locate, "L",       "Locate (forward)"}
 ,  {command_list,   "LIST",    "List commands"}
@@ -449,6 +452,19 @@ static const char*                  // Error message, nullptr expected
      mess= command_quit(parm);      // Quit the file
 
    return mess;
+}
+
+static const char*                  // Error message, nullptr expected
+   command_find(                    // Find command
+     char*             parm)        // (Mutable) parameter string
+{
+   // Leading blanks have been removed, so we need special handling.
+   // We use the special character '.' and ignore it if it's first.
+   // To find an actual leading '.', use "..".
+   if( *parm == '.' )
+     parm++;
+
+   return editor::do_find(parm);
 }
 
 static const char*                  // Error message, nullptr expected
