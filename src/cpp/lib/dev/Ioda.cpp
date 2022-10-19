@@ -16,7 +16,7 @@
 //       Implement http/Ioda.h
 //
 // Last change date-
-//       2022/10/04
+//       2022/10/19
 //
 //----------------------------------------------------------------------------
 // #define NDEBUG                   // TODO: USE (to disable asserts)
@@ -80,7 +80,8 @@ static constexpr Size  PAGE_SIZE= Ioda::PAGE_SIZE;
 //       TODO: Optimize using an Ioda::Page pool.
 //
 //----------------------------------------------------------------------------
-static inline Page* get_page( void )
+static inline Page*
+   get_page( void )
 {
    Page* page= (Page*)malloc(sizeof(Page));
    if( page == nullptr )
@@ -110,7 +111,8 @@ static inline Page* get_page( void )
 //       Deallocate an Ioda::Page
 //
 //----------------------------------------------------------------------------
-static inline void put_page(Page* page)
+static inline void
+   put_page(Page* page)
 {  if( HCDM )
      debugf("put_page(%p.(%p))\n", page, page->data);
 
@@ -146,11 +148,12 @@ static void should_not_occur(int line)
 //----------------------------------------------------------------------------
    Ioda::Mesg::Mesg( void )
 {  if( HCDM )
-     debugh("Ioda(%p)::Mesg\n", this);
+     debugh("Ioda(%p)::Mesg!\n", this);
 
    memset((struct msghdr*)this, 0, sizeof(struct msghdr));
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Ioda::Mesg::Mesg(Mesg&& move)
 {  if( HCDM )
      debugh("Ioda(%p)::Mesg(Mesg&& %p)\n", this, &move);
@@ -163,9 +166,10 @@ static void should_not_occur(int line)
    move.msg_iovlen= 0;
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Ioda::Mesg::~Mesg( void )
 {  if( HCDM )
-     debugh("Ioda(%p)::~Mesg {%p,%'zd)\n", this, msg_iov, size_t(msg_iovlen));
+     debugh("Ioda(%p)::Mesg~ {%p,%'zd)\n", this, msg_iov, size_t(msg_iovlen));
 
    free(msg_iov);
 }
@@ -273,6 +277,7 @@ void
      debugh("Ioda(%p)::Ioda\n", this);
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Ioda::Ioda(Ioda&& move)        // Move constructor
 :  list()
 {  if( HCDM )
@@ -286,11 +291,11 @@ void
    }
    size= move.size;
    used= move.used;
-   move.ix_page= nullptr;
    move.size= 0;
    move.used= 0;
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Ioda::Ioda(size_t s)               // Constructor
 :  list()
 {  if( HCDM )
@@ -363,46 +368,6 @@ Ioda& Ioda::operator+=(Ioda&& move) // Move append
    move.used= 0;
 
    return *this;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Ioda::operator[]
-//
-// Purpose-
-//       Index operator
-//
-// Implementation notes-
-//       Internal logic errors result in runtime_error("Should not occur")
-//
-//----------------------------------------------------------------------------
-int Ioda::operator[](size_t index)    // Index operator
-{  if( HCDM && VERBOSE > 1 )
-     debugh("Ioda(%p)::operator[](%'zd)\n", this, index);
-
-   if( index >= used )
-     return EOF;
-
-   if( ix_page == nullptr ) {       // If no cache exists
-     ix_off0= 0;
-     ix_page= list.get_head();      // Start at zero
-     if( ix_page == nullptr ) should_not_occur(__LINE__);
-   }
-
-   while( index < ix_off0 ) {       // Reverse search
-     ix_page= ix_page->get_prev();
-     if( ix_page == nullptr ) should_not_occur(__LINE__);
-     ix_off0 -= ix_page->used;
-   }
-
-   while( index >= ix_off0 + ix_page->used ) { // Forward search
-     ix_off0 += ix_page->used;
-     ix_page= ix_page->get_next();
-     if( ix_page == nullptr ) should_not_occur(__LINE__);
-   }
-
-   return ix_page->data[index - ix_off0];
 }
 
 //----------------------------------------------------------------------------
@@ -606,7 +571,8 @@ void
 //       Set used length, converting a read Ioda into a write Ioda.
 //
 //----------------------------------------------------------------------------
-void Ioda::set_used(size_t size)    // Set used length
+void
+   Ioda::set_used(size_t size)      // Set used length
 {  if( HCDM )
      debugh("Ioda(%p)::set_used(%'zd)\n", this, size);
 
@@ -650,7 +616,8 @@ void Ioda::set_used(size_t size)    // Set used length
 //       Write character to Ioda
 //
 //----------------------------------------------------------------------------
-void Ioda::put(int copy)            // Write character
+void
+   Ioda::put(int copy)              // Write character
 {  if( HCDM && VERBOSE > 2 )
      debugh("Ioda(%p)::put('%c')\n", this, copy);
 
@@ -674,7 +641,8 @@ void Ioda::put(int copy)            // Write character
 //       Reset the Ioda size, making it an input buffer
 //
 //----------------------------------------------------------------------------
-void Ioda::reset( void )            // Reset (empty) the Ioda
+void
+   Ioda::reset( void )              // Reset (empty) the Ioda
 {
    for(;;) {
      Page* page= list.remq();
@@ -685,10 +653,10 @@ void Ioda::reset( void )            // Reset (empty) the Ioda
    }
 
    size= used= 0;
-   ix_page= nullptr;
 }
 
-void Ioda::reset(size_t s)          // Reset the Ioda size
+void
+   Ioda::reset(size_t s)            // Reset the Ioda size
 {  if( HCDM )
      debugh("Ioda(%p)::reset(%'zd)\n", this, s);
 
@@ -710,15 +678,11 @@ void Ioda::reset(size_t s)          // Reset the Ioda size
 // Purpose-
 //       Split leading data
 //
-// Implementation notes-
-//       TODO: TEST <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-//
 //----------------------------------------------------------------------------
 void
    Ioda::split(                     // Split leading data
      Ioda&             ioda,        // (Leading data resultant)
      size_t            slen)        // Split at length
-
 {  if( HCDM )
      debugh("Ioda(%p)::split(%p,%'zd(\n", this, &ioda, slen);
 
@@ -779,7 +743,10 @@ debug("should not occur");
 //       Write buffer to Ioda
 //
 //----------------------------------------------------------------------------
-void Ioda::write(const void* copy, size_t size) // Write buffer
+void
+   Ioda::write(                     // Write buffer
+     const void*       copy,        // Buffer address
+     size_t            size)        // Buffer length
 {  if( HCDM && VERBOSE > 2 )
      debugh("Ioda(%p)::write(%p,%'zd)\n", this, copy, size);
 
@@ -823,15 +790,57 @@ void Ioda::write(const void* copy, size_t size) // Write buffer
 //       Destructor
 //
 //----------------------------------------------------------------------------
-   IodaReader::IodaReader(Ioda& I)
+   IodaReader::IodaReader(const Ioda& I)
 :  ioda(I)
-{  if( HCDM )
-     debugh("IodaReader(%p)::IodaReader(%p)\n", this, &ioda);
-}
+{  if( HCDM ) debugh("IodaReader(%p)::IodaReader(%p)\n", this, &ioda); }
 
    IodaReader::~IodaReader( void )
-{  if( HCDM )
-     debugh("IodaReader(%p)::~IodaReader\n", this);
+{  if( HCDM ) debugh("IodaReader(%p)::~IodaReader\n", this); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       IodaReader::index
+//
+// Purpose-
+//       Get character at offset
+//
+// Implementation notes-
+//       Internal logic errors result in runtime_error("Should not occur")
+//       These logic errors can also occur through usage errors, e.g.
+//       if const Ioda& ioda doesn't remain constant.
+//
+//----------------------------------------------------------------------------
+int
+   IodaReader::index(size_t index) const // Index operation
+{  if( HCDM && VERBOSE > 1 )
+     debugh("IodaReader(%p)::operator[](%'zd)\n", this, index);
+
+   if( index >= ioda.used )
+     return EOF;
+
+   if( ix_page == nullptr ) {       // If no cache exists
+     ix_off0= 0;
+     ix_page= ioda.list.get_head(); // Start at zero
+     if( ix_page == nullptr )       // (Must have some used if index < used)
+       should_not_occur(__LINE__);
+   }
+
+   while( index < ix_off0 ) {       // Reverse search
+     ix_page= ix_page->get_prev();
+     if( ix_page == nullptr )       // (Implies index < get_head()->used)
+       should_not_occur(__LINE__);
+     ix_off0 -= ix_page->used;
+   }
+
+   while( index >= ix_off0 + ix_page->used ) { // Forward search
+     ix_off0 += ix_page->used;
+     ix_page= ix_page->get_next();
+     if( ix_page == nullptr )       // (Implies ioda.used < Sigma(page->used))
+       should_not_occur(__LINE__);
+   }
+
+   return ix_page->data[index - ix_off0];
 }
 
 //----------------------------------------------------------------------------
@@ -853,7 +862,7 @@ int IodaReader::bksp( void )
      return EOF;
 
    --offset;
-   return ioda[offset];
+   return index(offset);
 }
 
 int IodaReader::get ( void )
@@ -861,7 +870,7 @@ int IodaReader::get ( void )
    if( offset >= ioda.get_used() )
      return EOF;
 
-   return ioda[offset++];
+   return index(offset++);
 }
 
 int IodaReader::peek( void ) const
@@ -869,7 +878,7 @@ int IodaReader::peek( void ) const
    if( offset >= ioda.get_used() )
      return EOF;
 
-   return ioda[offset];
+   return index(offset);
 }
 
 //----------------------------------------------------------------------------

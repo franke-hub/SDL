@@ -16,7 +16,7 @@
 //       HTTP I/O data area.
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/19
 //
 // Implementation notes-
 //       The I/O data area contains a scatter/gather I/O area used both as an
@@ -39,6 +39,11 @@
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 namespace http {
+//----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+class IodaReader;
+
 //============================================================================
 //
 // Class-
@@ -69,19 +74,11 @@ namespace http {
 //
 //----------------------------------------------------------------------------
 class Ioda {                        // Input/Output Data Area
-//----------------------------------------------------------------------------
-// Ioda::Typedefs, enumerations, and constants
-//----------------------------------------------------------------------------
-public:
-typedef uint32_t       Size;        // (Limited) size type
-typedef std::string    string;
-
-static constexpr Size  LOG2_SIZE= 12;   // Log2(PAGE_SIZE)
-static constexpr Size  PAGE_SIZE= 4096; // The Iota::Page data size
-
+friend class IodaReader;
 //============================================================================
 // Ioda::Mesg, struct msghdr wrapper with storage allocation control
 //----------------------------------------------------------------------------
+public:
 struct Mesg : public msghdr {       // Wrapper for struct msghdr
    Mesg( void );                    // Default constructor
    Mesg(const Mesg&) = delete;;     // Copy constructor
@@ -104,6 +101,8 @@ size_t size( void ) const;          // Get total data length
 // Ioda::Page, address of I/O data page
 //----------------------------------------------------------------------------
 struct Page : public List<Page>::Link { // Ioda page list link
+typedef uint32_t       Size;        // (Limited) size type
+
 char*                  data;        // Data address
 Size                   used;        // Number of bytes used
 
@@ -114,16 +113,21 @@ void debug(const char* info= "") const; // Debugging display
 }; // struct Ioda::Page
 
 //============================================================================
+// Ioda::Typedefs, enumerations, and constants
+//----------------------------------------------------------------------------
+typedef uint32_t       Size;        // (Limited) size type
+typedef std::string    string;
+
+static constexpr Size  LOG2_SIZE= 12;   // Log2(PAGE_SIZE)
+static constexpr Size  PAGE_SIZE= 4096; // The Iota::Page data size
+
+//----------------------------------------------------------------------------
 // Ioda::Attributes
 //----------------------------------------------------------------------------
 protected:
 List<Page>             list;        // Our list of Pages
 size_t                 size= 0;     // The combined (available) size
 size_t                 used= 0;     // The combined (used) size
-
-// operator[] cache
-mutable Page*          ix_page= nullptr; // The associated Page
-mutable size_t         ix_off0= 0;  // The page origin's index
 
 //----------------------------------------------------------------------------
 // Ioda::Contructors/Destructor
@@ -145,8 +149,6 @@ Ioda& operator=(Ioda&&);            // (Move) assignment
 Ioda& operator+=(const Ioda&) = delete; // Append Ioda (copy)
 Ioda& operator+=(Ioda&&);           // Append Ioda (move)
 Ioda& operator+=(const string&);    // Append std::string
-
-int   operator[](size_t);           // Get character at offset
 
 explicit operator string( void ) const; // (Cast) std::string operator
 
@@ -213,34 +215,62 @@ typedef std::string    string;
 // IodaReader::Attributes
 //----------------------------------------------------------------------------
 protected:
-Ioda&                  ioda;        // The associated Ioda
-Size                   offset= 0;   // The current offset
+const Ioda&            ioda;        // The associated (const) Ioda
+size_t                 offset= 0;   // The current offset
+
+// operator[] cache
+mutable Ioda::Page*    ix_page= nullptr; // The associated Page
+mutable size_t         ix_off0= 0;  // The page origin's index
 
 //----------------------------------------------------------------------------
 // IodaReader::Constructors/Destructor
 //----------------------------------------------------------------------------
 public:
-   IodaReader(Ioda&);               // Constructor
+   IodaReader(const Ioda&);         // Constructor
    ~IodaReader( void );             // Destructor
+
+//----------------------------------------------------------------------------
+// IodaReader::Operators
+//----------------------------------------------------------------------------
+int
+   operator[](size_t x) const       // Get character at offset
+{  return index(x); }
 
 //----------------------------------------------------------------------------
 // IodaReader::Accessor methods
 //----------------------------------------------------------------------------
-size_t get_offset( void ) {return offset;} // Get offset
-void   set_offset(Size s) {offset= s;} // Set offset
+int
+   index(size_t) const;             // Get character at offset
+
+size_t
+   get_offset( void ) const         // Get offset
+{  return offset; }
+
+void
+   set_offset(size_t o)             // Set offset
+{  offset= o; }
 
 //----------------------------------------------------------------------------
 // IodaReader::Methods
 //----------------------------------------------------------------------------
-int    bksp( void );                // Get the previous character
-int    get( void );                 // Get the next character
-string get_line( void );            // Get the next line
-string get_token(string delim);     // Get the next token
-int    peek( void ) const;          // Examine the next character
+int
+   bksp( void );                    // Get the previous character
+
+int
+   get( void );                     // Get the next character
+
+string
+   get_line( void );                // Get the next line
+
+string
+   get_token(string delim);         // Get the next token
+
+int
+   peek( void ) const;              // Examine the next character
 
 void
    reset( void )                    // Reset the IodaReader for re-use
-{  offset= 0; }
+{  offset= 0; ix_page= nullptr; ix_off0= 0; }
 }; // class IodaReader
 }  // namespace http
 _LIBPUB_END_NAMESPACE

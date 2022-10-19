@@ -16,7 +16,7 @@
 //       TestIoda.h
 //
 // Last change date-
-//       2022/10/03
+//       2022/10/19
 //
 // Implementation notes-
 //       Usability study.
@@ -52,7 +52,7 @@ typedef Ioda::Page        Page;
 //----------------------------------------------------------------------------
 enum
 {  HCDM= true                       // Hard Core Debug Mode?
-,  VERBOSE= 1                       // Verbosity, higher is more verbose
+,  VERBOSE= 2                       // Verbosity, higher is more verbose
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -200,8 +200,8 @@ static const size_t sizes[SIZES_DIM]=
    debugf("\nIoda::split\n");
    for(size_t sx= 0; sx < SIZES_DIM; ++sx) {
      size_t size= sizes[sx];
-tracef("\n");
-     debugf("SIZE:(0x%.6zx) %'6zd\n", size, size);
+     if( opt_verbose > 1 )
+       tracef("\nSIZE:(0x%.6zx) %'6zd\n", size, size);
      size_t page= size_t(-1);
      for(size_t px= 0; px < 8; ++px) {
        page= px * 4096;
@@ -209,75 +209,85 @@ tracef("\n");
        if( page >= (size-1) ) break;
        if( page > 0 )
        { Ioda tail; tail.put(full);
-tracef("split(0x%.6zx) page-1\n", page-1);
+         if( opt_verbose > 1 )
+           tracef("split(0x%.6zx) page-1\n", page-1);
          Ioda head; tail.split(head, page - 1);
          error_count += VERIFY( ((string)head + (string)tail) == full);
          if( error_count ) break;
        }
        if( page >= (size-0) ) break;
        { Ioda tail; tail.put(full);
-tracef("split(0x%.6zx) page-0\n", page-0);
+         if( opt_verbose > 1 )
+           tracef("split(0x%.6zx) page-0\n", page-0);
          Ioda head; tail.split(head, page - 0);
          error_count += VERIFY( ((string)head + (string)tail) == full);
          if( error_count ) break;
        }
        if( (page+1) == (size-1) ) break;
        { Ioda tail; tail.put(full);
-tracef("split(0x%.6zx) page+1\n", page+1);
+         if( opt_verbose > 1 )
+           tracef("split(0x%.6zx) page+1\n", page+1);
          Ioda head; tail.split(head, page + 1);
          error_count += VERIFY( ((string)head + (string)tail) == full);
          if( error_count ) break;
        }
      }
 
-tracef(" page(0x%.6zx)\n", page);
+     if( opt_verbose > 1 )
+       tracef(" page(0x%.6zx)\n", page);
      if( size <= 4095 && size > 1 )
      { Ioda tail; tail.put(full);
-tracef("split(0x%.6zx) page+0\n", size_t(0));
+       if( opt_verbose > 1 )
+         tracef("split(0x%.6zx) page+0\n", size_t(0));
        Ioda head; tail.split(head, 0);
        error_count += VERIFY( ((string)head + (string)tail) == full);
        if( error_count ) break;
      }
      if( size <= 4095 && size > 2 )
      { Ioda tail; tail.put(full);
-tracef("split(0x%.6zx) page+1\n", size_t(1));
+       if( opt_verbose > 1 )
+         tracef("split(0x%.6zx) page+1\n", size_t(1));
        Ioda head; tail.split(head, 1);
        error_count += VERIFY( ((string)head + (string)tail) == full);
        if( error_count ) break;
      }
      if( page > 0 && page == (size - 1) )
      { Ioda tail; tail.put(full);
-tracef("split(0x%.6zx) page-1\n", page - 1);
+       if( opt_verbose > 1 )
+         tracef("split(0x%.6zx) page-1\n", page - 1);
        Ioda head; tail.split(head, page - 1);
        error_count += VERIFY( ((string)head + (string)tail) == full);
        if( error_count ) break;
      }
      if( size > 0 )
      { Ioda tail; tail.put(full);
-tracef("split(0x%.6zx) SIZE-1\n", size - 1);
+       if( opt_verbose > 1 )
+         tracef("split(0x%.6zx) SIZE-1\n", size - 1);
        Ioda head; tail.split(head, size - 1);
        error_count += VERIFY( ((string)head + (string)tail) == full);
        if( error_count ) break;
      }
      { Ioda tail; tail.put(full);
-tracef("split(0x%.6zx) SIZE\n", size + 0);
+       if( opt_verbose > 1 )
+         tracef("split(0x%.6zx) SIZE\n", size + 0);
        Ioda head; tail.split(head, size + 0);
        error_count += VERIFY( ((string)head + (string)tail) == full);
        if( error_count ) break;
      }
      { Ioda tail; tail.put(full);
-tracef("split(0x%.6zx) SIZE+1\n", size + 1);
+       if( opt_verbose > 1 )
+         tracef("split(0x%.6zx) SIZE+1\n", size + 1);
        Ioda head; tail.split(head, size + 1);
        error_count += VERIFY( ((string)head + (string)tail) == full);
        if( error_count ) break;
      }
-if( size == 8191 ) {
-   Ioda tail; tail.put(full);
-   Ioda head; tail.split(head, size);
-tracef("\n\nVIEW %zd\nhead %zd\n{{{%s}}}\n\ntail %zd\n{{{%s}}}\n", size
-      , ((string)head).size(), visify((string)head).c_str()
-      , ((string)tail).size(), visify((string)tail).c_str());
-}
+     if( opt_verbose > 1 && size == 8191 ) {
+       Ioda tail; tail.put(full);
+       Ioda head; tail.split(head, size);
+       tracef("\n\nVIEW %zd\nhead %zd\n{{{%s}}}\n\ntail %zd\n{{{%s}}}\n", size
+             , ((string)head).size(), visify((string)head).c_str()
+             , ((string)tail).size(), visify((string)tail).c_str());
+     }
    }
 
    //-------------------------------------------------------------------------
