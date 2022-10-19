@@ -16,7 +16,7 @@
 //       Implement http/Stream.h
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/19
 //
 // TODO:
 //       Add ServerStream::make method, shared_ptr reference to Server
@@ -38,6 +38,7 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Dispatch.h>           // For namespace pub::dispatch
 #include <pub/Exception.h>          // For pub::Exception
+#include <pub/Statistic.h>          // For pub::Statistic
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For pub::to_string, ...
 
@@ -85,7 +86,7 @@ static constexpr CC*   HTTP_SIZE= Options::HTTP_HEADER_LENGTH;
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-Statistic              Stream::obj_count; // Stream object count
+statistic::Active      Stream::obj_count; // Stream object count
 
 //----------------------------------------------------------------------------
 // Internal data areas

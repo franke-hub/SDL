@@ -19,7 +19,6 @@
 //       2022/09/15
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>                  // For fprintf()
 #include <stdint.h>                 // For integer types
 
 #include <pub/Debug.h>              // For namespace pub::debugging

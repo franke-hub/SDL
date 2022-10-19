@@ -16,7 +16,7 @@
 //       Implement http/Response.h
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/19
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -32,6 +32,7 @@
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
+#include <pub/Statistic.h>          // For pub::Statistic
 #include <pub/utility.h>            // For pub::to_string, ...
 
 #include "pub/http/Client.h"        // For pub::http::Client
@@ -68,7 +69,7 @@ enum FSM                            // Finite State Machine states
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-Statistic              Response::obj_count; // Response object count
+statistic::Active      Response::obj_count; // Response object count
 
 //----------------------------------------------------------------------------
 // Constants

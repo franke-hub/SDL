@@ -16,7 +16,7 @@
 //       HTTP Response information.
 //
 // Last change date-
-//       2022/10/03
+//       2022/10/19
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_RESPONSE_H_INCLUDED
@@ -63,7 +63,8 @@ typedef std::function<void(const string&)>    f_error;
 //----------------------------------------------------------------------------
 // Response::Attributes
 //----------------------------------------------------------------------------
-static Statistic       obj_count;   // Request counter
+static statistic::Active
+                       obj_count;   // Request object counter
 
 protected:
 std::weak_ptr<Response>self;        // Self reference

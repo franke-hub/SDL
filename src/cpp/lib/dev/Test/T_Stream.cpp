@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/19
 //
 // Arguments-
 //       With no arguments, --client --server defaulted
@@ -120,12 +120,11 @@ static void
                    "  --verbose\t{=n} Verbosity, default 0\n"
                    "  --bringup\tRun bringup test\n"
                    "  --client\tRun client basic test\n"
-                   "  --stress\tRun client stress test\n"
+                   "  --stress\t{=n} Run client stress test\n"
                    "  --host\tSet host name\n"
                    "  --port\tSet port number\n"
                    "  --runtime\tSet test run time (seconds)\n"
                    "  --ssl\tUse SSL sockets\n"
-                   "  --thread\tUse client threads\n"
                    "  --trace\tActivate internal trace\n"
                    "  --server\tRun server\n"
                    "  --verify\tVerify file data\n"
@@ -403,14 +402,10 @@ static void                         // Exit if error detected
            case OPT_BRINGUP:
            case OPT_CLIENT:
            case OPT_SERVER:
-           case OPT_STREAM:
-           case OPT_STRESS:
-           case OPT_THREAD:
            case OPT_TRACE:
            case OPT_VERIFY:
            case OPT_WORKER:
 
-           case OPT_NO_THREAD:
            case OPT_NO_WORKER:
              break;
 
@@ -435,6 +430,15 @@ static void                         // Exit if error detected
              opt_runtime= atof(optarg);
              break;
 
+           case OPT_STREAM:
+           case OPT_STRESS:
+             if( optarg ) {
+               opt_stress= parm_int();
+               if( opt_stress < 0 )
+                 opt_stress= 0;
+             }
+             break;
+
            case OPT_VERBOSE:
              if( optarg )
                opt_verbose= parm_int();
@@ -451,11 +455,11 @@ static void                         // Exit if error detected
        case ':':
          opt_help= true;
          if( optopt == 0 )
-           fprintf(stderr, "%4d Option requires an argument '%s'.\n", __LINE__,
-                           argv[optind-1]);
+           fprintf(stderr, "%4d Option has no argument '%s'.\n"
+                         , __LINE__, argv[optind-1]);
          else
-           fprintf(stderr, "%4d Option requires an argument '-%c'.\n", __LINE__,
-                           optopt);
+           fprintf(stderr, "%4d Option requires an argument '%s'.\n"
+                         , __LINE__, argv[optind-1]);
          break;
 
        case '?':
@@ -527,10 +531,12 @@ extern int
      debugf("%5s: iodm\n",   torf(opt_iodm));
      debugf("%5d: verbose\n",opt_verbose);
 
-     debugf("%5s: client: %d\n", torf(opt_client), OPT_CLIENTS);
+     debugf("%5s: client\n", torf(opt_client));
      debugf("%5s: ssl\n",    torf(opt_ssl));
-     debugf("%5s: stress\n", torf(opt_stress));
-     debugf("%5s: thread\n", torf(opt_thread));
+     if( opt_stress )
+       debugf("%5s: stress: %d\n", torf(opt_stress), opt_stress);
+     else
+       debugf("%5s: stress\n", torf(opt_stress));
      debugf("%5s: worker\n", torf(opt_worker));
 
      // Debugging, experimentation

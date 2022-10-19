@@ -16,20 +16,18 @@
 //       Profiling event recorder
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/17
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_RECORDER_H_INCLUDED
 #define _LIBPUB_RECORDER_H_INCLUDED
 
 #include <functional>               // For std::function
-#include <iostream>                 // For std::cout
 #include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
-#include <stdio.h>                  // For sprintf, ...
 
 #include <pub/List.h>               // For pub::List
-#include <pub/Statistic.h>          // For pub::Statistic
+
 #include "dev/bits/devconfig.h"     // For HTTP config controls
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
@@ -44,20 +42,14 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 class Recorder {                    // Event recorder
 //----------------------------------------------------------------------------
-// Recorder::typedefs and enumerations
-//----------------------------------------------------------------------------
-public:
-typedef std::string    string;      // Import std::string
-typedef std::mutex     mutex_t;     // The mutex type
-
-//----------------------------------------------------------------------------
 // Recorder::Record
 //----------------------------------------------------------------------------
+public:
 struct Record {
-typedef std::function<string(void)> f_report;
-typedef std::function<void(void)>   f_reset;
+typedef std::function<std::string(void)>      f_report;
+typedef std::function<void(void)>             f_reset;
 
-string                 name;        // The name of the Record
+std::string            name;        // The name of the Record
 f_report               h_report;    // Report recording
 f_reset                h_reset;     // Reset this Record
 
@@ -79,6 +71,15 @@ Record*                record;      // The associated Record
 }; // struct RecordItem
 
 //----------------------------------------------------------------------------
+// Recorder::typedefs and enumerations
+//----------------------------------------------------------------------------
+typedef std::function<void(Record&)>
+                       f_reporter;  // The reporter function
+
+typedef std::string    string;      // Import std::string
+typedef std::mutex     mutex_t;     // The mutex type
+
+//----------------------------------------------------------------------------
 // Recorder::Attributes
 //----------------------------------------------------------------------------
 protected:
@@ -86,7 +87,6 @@ static Recorder*       common;      // -> The Common Recorder instance
 static mutex_t         mutex;       // -> The global Recorder mutex
 
 List<RecordItem>       list;        // The RecordItem list
-typedef std::function<void(Record&)>f_reporter; // The reporter function
 
 //----------------------------------------------------------------------------
 // Recorder::Constructors/Denstructor

@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/19
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -80,12 +80,11 @@ enum
 
 enum                                // Default option values
 {  DEFAULT_OPTIONS                  // (Dummy)
-,  OPT_CLIENTS= 4                   // Multi-thread client thread count
+,  OPT_THREAD= 4                    // Stress test client thread count
 
 ,  USE_CLIENT= false                // --client
 ,  USE_SERVER= false                // --server
-,  USE_STRESS= false                // --stress
-,  USE_THREAD= false                // --thread (Client threads)
+,  USE_STRESS= 0                    // --stress
 ,  USE_TRACE=  false                // --trace
 ,  USE_VERIFY= false                // --verify
 ,  USE_WORKER= true                 // --worker (Server threads)
@@ -141,7 +140,6 @@ static double          opt_runtime= USE_RUNTIME; // Stress test run time, in sec
 static int             opt_server= USE_SERVER; // Run server?
 static int             opt_ssl= false;  // Run SSL client/server?
 static int             opt_stress= USE_STRESS; // Run client stress test?
-static int             opt_thread= USE_THREAD; // Create client threads?
 static int             opt_trace= USE_TRACE; // Create trace file?
 static int             opt_verify= USE_VERIFY; // Verify file data?
 static int             opt_worker= USE_WORKER; // Create server threads?
@@ -161,16 +159,14 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 ,  {"runtime", required_argument, nullptr,      0}    // --runtime <string>
 ,  {"server",  optional_argument, &opt_server,  true} // --server
 ,  {"ssl",     no_argument,       &opt_ssl,  true}    // --stress
-,  {"stream",  no_argument,       &opt_stress,  true} // --stream (alias)
-,  {"stress",  no_argument,       &opt_stress,  true} // --stress
-,  {"thread",  no_argument,       &opt_thread,  true} // --thread
+,  {"stream",  optional_argument, &opt_stress,  OPT_THREAD} // --stream (alias)
+,  {"stress",  optional_argument, &opt_stress,  OPT_THREAD} // --stress
 ,  {"trace",   no_argument,       &opt_trace,   true} // --trace
 ,  {"verify",  no_argument,       &opt_verify,  true} // --verify
 ,  {"worker",  no_argument,       &opt_worker,  true} // --worker
 
-// These options can be used if USE_THREAD or USE_WORKER defaulted true
-,  {"no-thread", no_argument,     &opt_thread,  false} // --thread
-,  {"no-worker", no_argument,     &opt_worker,  false} // --worker
+// This option can be used if USE_WORKER defaulted true
+,  {"no-worker", no_argument,     &opt_worker,  false} // --no-worker
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
@@ -187,14 +183,13 @@ enum OPT_INDEX                      // Must match OPTS[]
 ,  OPT_PORT
 ,  OPT_RUNTIME
 ,  OPT_SERVER
+,  OPT_SSL
 ,  OPT_STREAM
 ,  OPT_STRESS
-,  OPT_THREAD
 ,  OPT_TRACE
 ,  OPT_VERIFY
 ,  OPT_WORKER
 
-,  OPT_NO_THREAD
 ,  OPT_NO_WORKER
 ,  OPT_SIZE
 };
@@ -579,7 +574,7 @@ void
 
    Q->on_end([this]() {
      if( opt_hcdm && opt_verbose )
-       debugh("on_end  current(%zd) total(%zd)\n"
+       debugh("on_end current(%zd) total(%zd)\n"
              , cur_op_count.load(), send_op_count.load());
      if( running )                  // (Only count running send completions)
        ++send_op_count;
@@ -637,7 +632,7 @@ void
 virtual void
    run( void )                      // Operate the client Thread
 {  if( opt_hcdm && opt_verbose )
-     debugh("[%2d] ClientThread::run\n", serial);
+     debugh("[%2d] ClientThread::run...\n", serial);
 
    // Initialize
    get_client();
@@ -647,7 +642,7 @@ virtual void
              , cur_op_count.load(), send_op_count.load());
 
      // debugh("stress.next... %s\n", running ? "running" : "quiesced");
-     Statistic* stat= &Request::obj_count;
+     statistic::Active* stat= &Request::obj_count;
      while( running && cur_op_count.load() < MAX_REQUEST_COUNT ) {
        if( opt_hcdm && opt_verbose ) // Use detailed tracking?
          debugh("%4ld {%2ld,%2ld,%2ld} cur_op_count %zd\n"
@@ -682,7 +677,8 @@ virtual void
    ready.reset();                   // Not ready
    ended.post();                    // Indicate complete
 
-   debugf("...ClientThread.run\n");
+   if( opt_hcdm && opt_verbose )
+     debugf("...[%2d] ClientThread.run\n", serial);
    Trace::trace(".TXT", __LINE__, "TS.stress exit");
 }
 
@@ -720,7 +716,7 @@ static void
    statistics( void )               // Display statistics
 {
    // Verify object counters (TODO: REMOVE) vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-   Statistic* stat= &Stream::obj_count;
+   statistic::Active* stat= &Stream::obj_count;
    debugf("%'16ld {%2ld,%2ld,%2ld} Stream counts\n", stat->counter.load()
          , stat->minimum.load(), stat->current.load(), stat->maximum.load());
 
@@ -831,12 +827,8 @@ static void
 {  debugf("\nClientThread.test_stress... (%.1f seconds)\n", opt_runtime);
    error_count= 0;
 
-   int thread_count= 1;
-   if( opt_thread )
-     thread_count= OPT_CLIENTS;
-
-   ClientThread* client[thread_count];
-   for(int i= 0; i<thread_count; i++) {
+   ClientThread* client[opt_stress];
+   for(int i= 0; i<opt_stress; i++) {
      client[i]= new ClientThread();
      client[i]->start();
    }
@@ -848,7 +840,7 @@ static void
    timer_thread.start();
    timer_thread.join();
 
-   for(int i= 0; i<thread_count; i++) {
+   for(int i= 0; i<opt_stress; i++) {
      client[i]->close();
      client[i]->join();
      delete client[i];
@@ -856,8 +848,9 @@ static void
 
    debugf("--%s_stream test: %s\n", opt_ssl ? "ssl" : "std"
          , error_count ? "FAILED" : "Complete");
-   debugf("%'16.3f operations\n", (double)send_op_count);
-   debugf("%'16.3f operations/second\n", (double)send_op_count/opt_runtime);
+   double op_count= double(send_op_count.load());
+   debugf("%'16.3f operations\n", op_count);
+   debugf("%'16.3f operations/second\n", op_count/opt_runtime);
 }
 
 //----------------------------------------------------------------------------

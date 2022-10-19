@@ -38,7 +38,6 @@
 #include <pub/Interval.h>           // For pub::Interval
 #include <pub/Semaphore.h>          // For pub::Semaphore
 #include "pub/Socket.h"             // The pub::Socket Object
-#include <pub/Statistic.h>          // For pub::Statistic
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Worker.h>             // For pub::Worker, pub::WorkerPool
 

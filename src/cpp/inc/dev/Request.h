@@ -16,7 +16,7 @@
 //       HTTP Request.
 //
 // Last change date-
-//       2022/10/03
+//       2022/10/19
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_REQUEST_H_INCLUDED
@@ -70,7 +70,8 @@ typedef std::function<void(const string&)>    f_error;
 //----------------------------------------------------------------------------
 // Request::Attributes
 //----------------------------------------------------------------------------
-static Statistic       obj_count;   // Request counter
+static statistic::Active
+                       obj_count;   // Request object counter
 
 string                 method;      // Request method
 string                 path;        // Request path

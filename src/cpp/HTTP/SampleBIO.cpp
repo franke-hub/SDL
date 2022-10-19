@@ -84,7 +84,7 @@ static constexpr const char* TRACE_FILE= "./trace.mem"; // (Trace file name)
 //----------------------------------------------------------------------------
 static Interval        interval;    // Stress interval timer
 static Semaphore       semaphore;   // Thread complete semaphore
-//atic Statistic       std_count;   // STD_ServerThread active requests
+//atic statistic::Active std_count; // STD_ServerThread active requests
 static void*           table= nullptr; // The trace data area
 static int             testfail;    // Indicates test failure
 

@@ -16,7 +16,7 @@
 //       Implement http/Request.h
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/19
 //
 // Implementation notes-
 //       TODO: Consider moving ClientRequest::write to Client::write
@@ -38,6 +38,7 @@
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
+#include <pub/Statistic.h>          // For pub::Statistic
 #include <pub/utility.h>            // For pub::to_string, ...
 
 #include "pub/http/Client.h"        // For pub::http::Client
@@ -76,7 +77,7 @@ enum FSM                            // Finite State Machine states
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-Statistic              Request::obj_count; // Request object count
+statistic::Active      Request::obj_count; // Request object count
 
 //----------------------------------------------------------------------------
 // Constants

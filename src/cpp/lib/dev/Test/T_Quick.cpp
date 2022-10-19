@@ -16,9 +16,10 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2022/10/05
+//       2022/10/19
 //
 //----------------------------------------------------------------------------
+#include <iostream>                 // For std::cout
 #include <stdint.h>                 // For standard integer types
 #include <string.h>                 // For std::string, size_t
 
@@ -74,7 +75,7 @@ static struct option   opts[]=      // Options
 //
 //----------------------------------------------------------------------------
 struct SampleRecord : public pub::Recorder::Record {
-pub::Statistic         stat;        // A named, reported statistic
+pub::statistic::Active stat;        // A named, reported statistic
 
    SampleRecord(std::string name= "unnamed")
 {

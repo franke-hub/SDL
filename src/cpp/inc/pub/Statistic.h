@@ -13,10 +13,10 @@
 //       Statistic.h
 //
 // Purpose-
-//       Integer statistic counter.
+//       Statistics counters.
 //
 // Last change date-
-//       2022/09/02
+//       2022/10/19
 //
 // Usage notes-
 //       The minimum value is the minimum value after a maximum's detected.
@@ -31,26 +31,27 @@
 #include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace statistic {
 //----------------------------------------------------------------------------
 //
 // Struct-
-//       Statistic
+//       Active
 //
 // Purpose-
-//       Statistic counter.
+//       Track objects or events.
 //
 // Implementation note-
-//       Use current.load() to get current value, etc. for maximum/minimum.
+//       Use current.load() to get current value, etc.
 //
 //----------------------------------------------------------------------------
-struct Statistic {                  // Statistic
+struct Active {                     // Active counter
 std::atomic_int64_t    counter= 0;  // Total increment count
 std::atomic_int64_t    current= 0;  // Current value
 std::atomic_int64_t    maximum= 0;  // Highest value
 std::atomic_int64_t    minimum= 0;  // Lowest value after a maximum
 
 //----------------------------------------------------------------------------
-// Statistic::Methods
+// Active::Methods
 //----------------------------------------------------------------------------
 int64_t                             // Current value
    inc( void )                      // Increment value
@@ -100,6 +101,7 @@ int64_t                             // Current value
 
    return new_value;
 }
-}; // struct Statistic
+}; // struct Active
+}  // namespace statistic
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_STATISTIC_H_INCLUDED

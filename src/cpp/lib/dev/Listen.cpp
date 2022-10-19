@@ -16,7 +16,7 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/17
 //
 // Implementation notes-
 //       TODO: Create ClientListen and ServerListen, used by ClientAgent.
@@ -90,24 +90,16 @@ static void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Listen::~Listen
 //       Listen::Listen
+//       Listen::~Listen
+//       Listen::make
 //
 // Purpose-
-//       Destructor
 //       Constructors
+//       Destructor
+//       Creator
 //
 //----------------------------------------------------------------------------
-   Listen::~Listen( void )          // Destructor
-{  if( HCDM )
-     debugh("Listen(%p)::~Listen\n", this);
-
-   if( map.begin() != map.end() ) { // TODO: ?REMOVE? (Do we need this logic?)
-     debugf("\n\n%d %s SHOULD NOT OCCUR<<<<<<<<<<<<\n\n", __LINE__, __FILE__);
-     reset();
-   }
-}
-
    Listen::Listen(                  // Default constructor
      ServerAgent*      agent,       // The creating ServerAgent
      const sockaddr_u& addr,        // Target internet address
@@ -118,8 +110,7 @@ static void
 ,  listen(), map(), mutex(), log(LOG_FILE)
 ,  operational(false)
 ,  h_close([](void) { })
-,  h_request([](ServerRequest& Q)
-   {
+,  h_request([](ServerRequest& Q) {
      std::shared_ptr<Stream> stream= Q.get_stream();
      stream->reject(501);           // (No request handler available)
    })
@@ -155,7 +146,19 @@ static void
    start();
 }
 
-std::shared_ptr<Listen>             // The Listener
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Listen::~Listen( void )          // Destructor
+{  if( HCDM )
+     debugh("Listen(%p)::~Listen\n", this);
+
+   if( map.begin() != map.end() ) { // TODO: ?REMOVE? (Do we need this logic?)
+     debugf("\n\n%d %s >>>>>>>> UNEXPECTED <<<<<<<<\n\n", __LINE__, __FILE__);
+     reset();
+   }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+std::shared_ptr<Listen>
    Listen::make(                    // Create Listener
      ServerAgent*      agent,       // The creating ServerAgent
      const sockaddr_u& addr,        // Target internet address
@@ -329,6 +332,7 @@ std::shared_ptr<Server>             // The associated Server
    return server;
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::shared_ptr<Server>             // The associated Server
    Listen::map_locate(              // Locate Server
      const sockaddr_u& id)          // For this connectionID
@@ -351,6 +355,7 @@ std::shared_ptr<Server>             // The associated Server
    return server;
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::shared_ptr<Server>             // The associated Server
    Listen::map_remove(              // Remove Server
      const sockaddr_u& id)          // For this connectionID

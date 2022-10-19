@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/17
 //
 // Implementation notes-
 //       TODO: Add polling flag in select, used for timeouts.
@@ -529,7 +529,8 @@ void
 
    operational= false;              // Indicate non-operational
    wait();                          // Flush the work queue
-   // Note: Must call agent->disconnect before socket->close, peer_addr needed.
+   // Note: Must call agent->disconnect before socket->close.
+   // The Socket's peer_addr is needed for the Agent's map lookup.
    std::shared_ptr<ClientAgent> agent= this->agent.lock();
    if( agent ) {                    // Report close to Agent
      agent->disconnect(this);
@@ -574,7 +575,7 @@ void
 
      if( item->stream->read(item->ioda) ) // If operation complete
        sem_rd.post();
-     item->post();                  // (Omitted line found by Diagnostic.h)
+     item->post();                  // (Omitted line found using Diagnostic.h)
    }; // h_iptask=
 
    // h_optask - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -881,7 +882,8 @@ int                                 // Return code, 0 expected
 char temp[16];
 memset(temp, 0, sizeof(temp));
 std::shared_ptr<Request> Q= S->get_request();
-snprintf(temp, sizeof(temp), "%s %s %s\r\n", Q->method.c_str(), Q->path.c_str(), Q->proto_id.c_str());
+snprintf(temp, sizeof(temp), "%s %s %s\r\n", Q->method.c_str(), Q->path.c_str()
+        , Q->proto_id.c_str());
 Trace::trace(".CNQ", 0, temp);      // (Client eNQueue)
 }}}}
 

@@ -16,7 +16,7 @@
 //       HTTP Stream object.
 //
 // Last change date-
-//       2022/10/12
+//       2022/10/19
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_STREAM_H_INCLUDED
@@ -104,7 +104,8 @@ uint31_t               ident= 1;    // Stream identifier
 // Stream::Static attributes
 //----------------------------------------------------------------------------
 public:
-static Statistic       obj_count;   // Stream counter
+static statistic::Active
+                       obj_count;   // Stream object counter
 
 //----------------------------------------------------------------------------
 // Stream::Destructor, constructors
