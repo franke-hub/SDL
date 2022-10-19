@@ -16,7 +16,7 @@
 //       Implement http/Agent.h
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/17
 //
 // Implementation notes-
 //       TODO: Create intermediate Connector object rather than a full Client.
@@ -639,7 +639,7 @@ void
    for(auto it : list) {
      std::shared_ptr<Listen> listen= it.lock();
      if( listen )
-       listen->close();
+       listen->reset();
    }
 
    if( HCDM )
