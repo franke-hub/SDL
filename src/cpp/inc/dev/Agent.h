@@ -13,10 +13,10 @@
 //       http/Agent.h
 //
 // Purpose-
-//       HTTP Agent objects: ClientAgent and ServerAgent.
+//       HTTP Agent objects: ClientAgent and ListenAgent.
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/23
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_AGENT_H_INCLUDED
@@ -49,7 +49,7 @@ class ClientAgent;
 class Client;
 class Listen;
 class Options;
-class ServerAgent;
+class ListenAgent;
 
 //----------------------------------------------------------------------------
 //
@@ -98,7 +98,7 @@ bool operator<(const ClientConnectionPair& rhs) const
 //       Agent
 //
 // Purpose-
-//       The Agent owns the ClientAgent and the ServerAgent
+//       The Agent owns the ClientAgent and the ListenAgent
 //
 // Implementation notes-
 //       Agent::shutdown is used for an orderly shutdown.
@@ -110,14 +110,14 @@ class Agent {                       // AgentOwner class
 //----------------------------------------------------------------------------
 public:
 typedef std::shared_ptr<ClientAgent>          client_ptr;
-typedef std::shared_ptr<ServerAgent>          server_ptr;
+typedef std::shared_ptr<ListenAgent>          listen_ptr;
 
 //----------------------------------------------------------------------------
 // Agent::Attributes
 //----------------------------------------------------------------------------
 protected:
 client_ptr             client;      // The ClientAgent
-server_ptr             server;      // The ServerAgent
+listen_ptr             listen;      // The ListenAgent
 
 //----------------------------------------------------------------------------
 // Agent::Constructors, destructor
@@ -132,8 +132,8 @@ public:
 client_ptr
    get_client( void ) { return nullptr; } // NOT IMPLEMENTED
 
-server_ptr
-   get_server( void ) { return nullptr; } // NOT IMPLEMENTED
+listen_ptr
+   get_listen( void ) { return nullptr; } // NOT IMPLEMENTED
 
 void
    shutdown( void ) { } // NOT IMPLEMENTED
@@ -172,8 +172,6 @@ typedef Map_t::iterator
 //----------------------------------------------------------------------------
 // ClientAgent::Attributes
 //----------------------------------------------------------------------------
-std::weak_ptr<ClientAgent> self;    // Self-reference
-
 Select                 select;      // The Client Socket selector
 int                    connect_error= 0; // Latest connect error
 bool                   operational= true; // TRUE while operational
@@ -184,29 +182,16 @@ mutable std::recursive_mutex
                        mutex;       // The Client map mutex
 
 //----------------------------------------------------------------------------
-// ClientAgent::Static attributes
-//----------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------
-// ClientAgent::Destructor, constructors, creators
+// ClientAgent::Constructor, denstructor
 //----------------------------------------------------------------------------
 public:
-   ~ClientAgent( void );            // Destructor
    ClientAgent( void );             // Default constructor
+   ~ClientAgent( void );            // Destructor
 
 //----------------------------------------------------------------------------
 // ClientAgent::debug
 //----------------------------------------------------------------------------
-void debug(const char*) const;      // Debugging display
-void debug( void ) const            // Debugging display
-{  debug(""); }
-
-//----------------------------------------------------------------------------
-// ClientAgent::Accessor methods
-//----------------------------------------------------------------------------
-std::shared_ptr<ClientAgent>
-   get_self( void ) const
-{  return self.lock(); }
+void debug(const char* info= "") const; // Debugging display
 
 //----------------------------------------------------------------------------
 //
@@ -217,7 +202,6 @@ std::shared_ptr<ClientAgent>
 //       Poll for work
 //
 //----------------------------------------------------------------------------
-public:
 void
    async( void );                   // Poll for work
 
@@ -285,6 +269,7 @@ void
      std::shared_ptr<Client>
                        client);     // With this Client
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    map_insert(                      // Associate
      const sockaddr_u&  peer,       // This Server internet address and
@@ -293,10 +278,12 @@ void
                        client)      // This Client
 {  key_t key(peer, host); map_insert(key, client); }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::shared_ptr<Client>             // The associated Client
    map_locate(                      // Locate Client with
      const key_t&       key) const; // This Server/Client internet address pair
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    map_remove(                      // Remove
      const key_t&       key);       // This Client mapping
@@ -305,15 +292,15 @@ void
 //----------------------------------------------------------------------------
 //
 // Class-
-//       ServerAgent
+//       ListenAgent
 //
 // Purpose-
-//       Define the ServerAgent class.
+//       Define the ListenAgent class.
 //
 //----------------------------------------------------------------------------
-class ServerAgent {                 // ServerAgent class
+class ListenAgent : public Named, public Thread { // ListenAgent class
 //----------------------------------------------------------------------------
-// ServerAgent::Typedefs and enumerations
+// ListenAgent::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 typedef Socket::sockaddr_u sockaddr_u; // Using Socket::sockaddr_u
@@ -331,48 +318,45 @@ typedef Map_t::iterator
                        iterator;    // The Listen Map iterator type
 
 //----------------------------------------------------------------------------
-// ServerAgent::Attributes
+// ListenAgent::Attributes
 //----------------------------------------------------------------------------
 Select                 select;      // The Server Socket selector
 int                    connect_error= 0; // Latest connect error
 bool                   operational= true; // TRUE while operational
 
 protected:
-std::weak_ptr<ServerAgent> self;    // Self-reference
-
 Map_t                  map;         // The Server map
 mutable std::recursive_mutex
                        mutex;       // The Server map mutex
 
 //----------------------------------------------------------------------------
-// ServerAgent::Static attributes
-//----------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------
-// ServerAgent::Destructor, constructors, creators
+// ListenAgent::Constructor, destructor
 //----------------------------------------------------------------------------
 public:
-   ~ServerAgent( void );            // Destructor
-   ServerAgent( void );             // Default constructor
+   ListenAgent( void );             // Default constructor
+   ~ListenAgent( void );            // Destructor
 
 //----------------------------------------------------------------------------
-// ServerAgent::debug
+// ListenAgent::debug
 //----------------------------------------------------------------------------
-void debug(const char*) const;      // Debugging display
-void debug( void ) const            // Debugging display
-{  debug(""); }
-
-//----------------------------------------------------------------------------
-// ServerAgent::accessors
-//----------------------------------------------------------------------------
-std::shared_ptr<ServerAgent>
-   get_self( void ) const
-{  return self.lock(); }
+void debug(const char* info= "") const; // Debugging display
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerAgent::connect
+//       ListenAgent::async
+//
+// Purpose-
+//       Poll for work
+//
+//----------------------------------------------------------------------------
+void
+   async( void );                   // Poll for work
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ListenAgent::connect
 //
 // Purpose-
 //       Create Listen connection
@@ -381,15 +365,14 @@ std::shared_ptr<ServerAgent>
 public:
 std::shared_ptr<Listen>             // The associated Listen
    connect(                         // Get Listen connection
-     std::string       host,        // The host name (for interface)
-     std::string       port,        // The port number or name (HTTP, ...)
+     std::string       host,        // The host:port name
      sa_family_t       family= AF_UNSPEC, // The address family
      const Options*    opts= nullptr); // The associated Options
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerAgent::disconnect
+//       ListenAgent::disconnect
 //
 // Purpose-
 //       Remove Listener
@@ -402,53 +385,50 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerAgent::reset
+//       ListenAgent::reset
 //
 // Purpose-
-//       Reset the ServerAgent, closing all Listeners.
+//       Reset the ListenAgent, closing all Listeners.
 //
 //----------------------------------------------------------------------------
 void
-   reset( void );                   // Reset the ServerAgent
+   reset( void );                   // Reset the ListenAgent
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerAgent::run
+//       ListenAgent::run
 //
 // Purpose-
-//       Run the ServerAgent socket selector (while operational)
+//       Run the ListenAgent socket selector (while operational)
+//
+// Implementation notes-
+//       The ListenAgent's Select is used here and also by Server
 //
 //----------------------------------------------------------------------------
 void
-   run( void );                     // Run the ServerAgent socket selector
+   run( void );                     // Run the ListenAgent socket selector
 
 //----------------------------------------------------------------------------
-// ServerAgent::Map control methods (mutex protected)
+// ListenAgent::Map control methods (mutex protected)
 //----------------------------------------------------------------------------
 protected:
-int                                 // Return code, 0 expected
-   get_server(                      // Get Server connection specifier
-     std::string       host,        // *INP* The host name (for interface)
-     std::string       port,        // *INP* The port number or service name
-     sockaddr_u&       sockaddr,    // *OUT* The sockaddr_u
-     socklen_t&        socklen,     // *OUT* The sockaddr length
-     sa_family_t       family= AF_UNSPEC); // The address family
-
 std::shared_ptr<Listen>             // The associated Listen
    map_insert(                      // Associate
      const sockaddr_u& id,          // This connectionID with
      std::shared_ptr<Listen>
                        Listen);     // This Listen
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::shared_ptr<Listen>             // The associated Listen
    map_locate(                      // Locate Listen
      const sockaddr_u& id) const;   // For this connectionID
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::shared_ptr<Listen>             // The removed Listen
    map_remove(                      // Remove Listen
      const sockaddr_u& id);         // For this connectionID
-}; // class ServerAgent
+}; // class ListenAgent
 }  // namespace http
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_HTTP_AGENT_H_INCLUDED

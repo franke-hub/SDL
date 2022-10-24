@@ -16,7 +16,7 @@
 //       Implement http/Ioda.h
 //
 // Last change date-
-//       2022/10/19
+//       2022/10/23
 //
 //----------------------------------------------------------------------------
 // #define NDEBUG                   // TODO: USE (to disable asserts)
@@ -362,7 +362,7 @@ Ioda& Ioda::operator+=(Ioda&& move) // Move append
    if( head ) {
      Page* tail= move.list.get_tail();
      move.list.reset();
-     list.insert(nullptr, head, tail);
+     list.insert(list.get_tail(), head, tail);
    }
    move.size= 0;
    move.used= 0;

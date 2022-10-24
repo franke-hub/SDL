@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2022/10/19
+//       2022/10/24
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -31,7 +31,6 @@
 #include <unistd.h>                 // For close, ...
 #include <sys/mman.h>               // For mmap, ...
 #include <sys/signal.h>             // For signal, ...
-#include <sys/stat.h>               // For stat
 
 #include <pub/TEST.H>               // For VERIFY macro
 #include <pub/Debug.h>              // For debugging classes and functions
@@ -43,11 +42,13 @@
 #include <pub/utility.h>            // For pub::utility::to_string, visify
 #include <pub/Worker.h>             // For pub::WorkerPool::reset
 
-#include "pub/http/Agent.h"         // For pub::http::ClientAgent, ServerAgent
+#include "pub/http/Agent.h"         // For pub::http::ClientAgent, ListenAgent
 #include "pub/http/Client.h"        // For pub::http::Client
+#include "pub/http/Global.h"        // For pub::http::Global
 #include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Listen.h"        // For pub::http::Listen
 #include "pub/http/Options.h"       // For pub::http::Options
+#include "pub/http/Recorder.h"      // For pub::Recorder
 #include "pub/http/Request.h"       // For pub::http::Request
 #include "pub/http/Response.h"      // For pub::http::Response
 #include "pub/http/Server.h"        // For pub::http::Server
@@ -76,6 +77,7 @@ enum
 ,  USE_INTENSIVE= true              // Option: Use intensive debug mode
 ,  USE_LOGGER= false                // Option: Use logger
 ,  USE_SIGNAL= false                // Option: Use signal handler
+,  USE_TIMING_RECORD= false         // Option: Use timing record
 }; // generic enum
 
 enum                                // Default option values
@@ -115,12 +117,13 @@ static string          test_url= "/"; // The stress test URL
 static void*           trace_table= nullptr; // The internal trace area
 
 static ClientAgent*    client_agent= nullptr; // Our ClientAgent
-static ServerAgent*    server_agent= nullptr; // Our ServerAgent
+static ListenAgent*    listen_agent= nullptr; // Our ListenAgent
 
 // Test controls
 typedef std::atomic_size_t          atomic_count_t;
 static atomic_count_t  error_count= 0; // Error counter
 static atomic_count_t  send_op_count= 0; // The total send complete count
+static Event           test_ended;  // The test ended Event
 static Event           test_start;  // The start test Event
 static int             running= false; // Test running indicator
 
@@ -574,8 +577,8 @@ void
 
    Q->on_end([this]() {
      if( opt_hcdm && opt_verbose )
-       debugh("on_end current(%zd) total(%zd)\n"
-             , cur_op_count.load(), send_op_count.load());
+       traceh("on_end current(%zd) total(%zd) running(%d)\n"
+             , cur_op_count.load(), send_op_count.load(), running);
      if( running )                  // (Only count running send completions)
        ++send_op_count;
 
@@ -660,12 +663,13 @@ virtual void
               , cur_op_count.load());
    };
 
+   ended.reset();                   // Indicate not complete
    ready.post();                    // Indicate ready
    test_start.wait();               // Wait for start signal
 
    try {                            // Run the stress test
      do_NEXT();                     // Prime the pump
-     client->wait();                // Wait for operations to complete
+     test_ended.wait();             // Wait for the test to complete
    } catch(Exception& X) {
      ++error_count;
      debugf("%4d Exception: %s\n", __LINE__, X.to_string().c_str());
@@ -674,6 +678,7 @@ virtual void
      debugf("%4d std::Exception what(%s)\n", __LINE__, X.what());
    }
 
+   client->wait();                  // Wait for operations to complete
    ready.reset();                   // Not ready
    ended.post();                    // Indicate complete
 
@@ -728,6 +733,19 @@ static void
    debugf("%'16ld {%2ld,%2ld,%2ld} Response counts\n", stat->counter.load()
          , stat->minimum.load(), stat->current.load(), stat->maximum.load());
 
+   if( USE_TIMING_RECORD ) {
+     debugf("\n\n");
+     Recorder::get()->report([](Recorder::Record& record) {
+       debugf("%s\n", record.h_report().c_str());
+     }); // reporter.report
+   }
+
+   if( opt_verbose > 1 ) {
+     debugf("\n");
+     WorkerPool::debug();
+     WorkerPool::reset();
+   }
+
    error_count += VERIFY( Stream::obj_count.current.load() == 0 );
    error_count += VERIFY( Request::obj_count.current.load() == 0 );
    error_count += VERIFY( Response::obj_count.current.load() == 0 );
@@ -751,6 +769,8 @@ static void
    stat->minimum.store(0);
    stat->current.store(0);
    stat->maximum.store(0);
+
+   Recorder::get()->reset();
 }
 
 //----------------------------------------------------------------------------
@@ -772,9 +792,9 @@ static void
    client.do_NEXT= [](void) {
      if( opt_hcdm && opt_verbose ) debugf("test_client.do_NEXT NOP\n");
    };
+   client.get_client();
 
    // Bringup tests
-   client.get_client();
    client.do_SEND(HTTP_GET, "/");
    client.do_SEND(HTTP_HEAD, "/index.htm");
 
@@ -836,9 +856,14 @@ static void
    if( opt_verbose )
      debugf("--%s_stress test: Started\n", opt_ssl ? "ssl" : "std");
 
+   test_ended.reset();
    TimerThread timer_thread;
    timer_thread.start();
    timer_thread.join();
+   test_ended.post();
+
+   debugf("--%s_stream test: %s\n", opt_ssl ? "ssl" : "std"
+         , error_count ? "FAILED" : "Complete");
 
    for(int i= 0; i<opt_stress; i++) {
      client[i]->close();
@@ -846,8 +871,6 @@ static void
      delete client[i];
    }
 
-   debugf("--%s_stream test: %s\n", opt_ssl ? "ssl" : "std"
-         , error_count ? "FAILED" : "Complete");
    double op_count= double(send_op_count.load());
    debugf("%'16.3f operations\n", op_count);
    debugf("%'16.3f operations/second\n", op_count/opt_runtime);
@@ -881,8 +904,13 @@ std::atomic_int        ClientThread::global_serial= 0; // Global serial number
 // Purpose-
 //       The T_Stream listener Thread
 //
+// Implementation notes-
+//       The ServerThread actually runs completely asynchronously.
+//       This thread is never started, and listen creates its own thread.
+//
 //----------------------------------------------------------------------------
-class ServerThread  : public Thread { // The listener Thread
+class ServerThread {                // The listener Thread
+public:
 std::shared_ptr<Listen>
                        listen;      // Our Listener
 
@@ -901,10 +929,6 @@ bool                   operational= false; // TRUE while operational
 //       Constructor
 //       Destructor
 //
-// Implementation notes-
-//       The ServerThread actually runs completely asynchronously.
-//       This thread is never started, and listen creates its own thread.
-//
 //----------------------------------------------------------------------------
 public:
    ServerThread( void )
@@ -914,7 +938,8 @@ public:
    opts.insert("key",  priv_file);  // The private key file
    opts.insert("http1", "true");    // HTTP1 allowed
 
-   listen= server_agent->connect("", port, AF_INET, &opts); // Create Listener
+   std::string host= ":"; host += port;
+   listen= listen_agent->connect(host, AF_INET, &opts); // Create Listener
 
    // Initialize the Listen handlers
    listen->on_close([this]( void ) {
@@ -946,9 +971,12 @@ public:
      }
    });
 
+   ended.reset();
+   ready.post();
    operational= true;
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    ~ServerThread( void )
 {
    listen->on_close([]( void ) {});
@@ -1059,22 +1087,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerThread::join
-//
-// Purpose-
-//       Complete the listen Thread
-//
-//----------------------------------------------------------------------------
-void
-   join( void )                     // Complete the listen Thread
-{
-   listen->join();                  // Wait for Listener termination
-// Thread::join();                  // (This isn't a real Thread)
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       ServerThread::run
 //
 // Function-
@@ -1088,25 +1100,7 @@ void
 void
    run( void )
 {  // NOT CODED YET
-debugf("[%s]=%p ServerThread\n", get_id_string().c_str(), this);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ServerThread::start
-//
-// Function-
-//       Start the ClientThread.
-//
-//----------------------------------------------------------------------------
-virtual void
-   start( void )                   // Start the ServerThread
-{
-   ended.reset();
-   ready.reset();
-   Thread::start();
-   ready.wait();
+debugf("%4d %s HCDM\n", __LINE__, __FILE__);
 }
 
 //----------------------------------------------------------------------------

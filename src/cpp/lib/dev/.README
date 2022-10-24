@@ -15,20 +15,9 @@
 ##       README: List of usage notes, bugs, fixes, etc.
 ##
 ## Last change date-
-##       2022/10/16
+##       2022/10/24
 ##
 ##############################################################################
-
-##############################################################################
-## STATUS: (Current status; Significant checkpoints)
-2021/11/01 Started
-2022/06/18 Resumed active development
-           ~/src/cpp/lib/pub/Test/TestSock.cpp working
-2022/07/16 Moved source into distribution library.
-2022/07/22 PROTOCOL1B (since renamed to PROTOCOL1A) working.
-2022/08/31 PROTOCOL1A (since renamed to HTTP1) working with updated Socket.
-2022/09/25 Asychronous Client I/O working (with one client)
-2022/10/15 Asychronous Client I/O working. Server Client I/O is synchronous.
 
 ##############################################################################
 ## SOCKET INFO: (Generic information)
@@ -131,46 +120,61 @@ std::string to_string( void ) const; // Convert to display string
 }; // union sockaddr_u
 
 ##############################################################################
-## SETUP NOTES: (Setup information)
+## STATUS: (Current status; Significant checkpoints)
+2021/11/01 Started
+2022/06/18 Resumed active development
+           ~/src/cpp/lib/pub/Test/TestSock.cpp working
+2022/07/16 Moved source into distribution library.
+2022/07/22 PROTOCOL1B (since renamed to PROTOCOL1A) working.
+2022/08/31 PROTOCOL1A (since renamed to HTTP1) working with updated Socket.
+2022/09/25 Asychronous Client I/O working (with one client)
+2022/10/15 Asychronous Client I/O working. Server Client I/O is synchronous.
+2022/10/23 Asychronous Client/Server I/O working well, but with known bugs.
 
 ##############################################################################
-## DEBUGGING NOTES:
-2022/02/11 Apparent anomoly: Maximum request count == cur_op_count + 1
-  Reference: T_Stream.h:ClientThread:do_SEND:request->on_end(lambda)
-         Note that cur_op_count is decremented while the Request is still
-         active. (We are running in the completion handler for that Request.)
-         When do_NEXT creates the next Request the number of active Requests
-         is *always* one more than the cur_op_count.
+## BUGS: (Open bugs)
+2022/10/24 Linux stress test completes but doesn't terminate properly
+         when more than ~10 client threads are used.
 
-         It's working properly. We should have expected this result.
+2022/10/24 Intermittent termination error: "609 S/Select.cpp Should not
+         occur (but did)". The associated debug shows a closed socket
+         handle still active in the pollfd and sarray tables.
 
-##############################################################################
-## USAGE NOTES: (Usage information)
+2022/10/24 Cygwin stress test works best with --stress=1 (one client.) When
+         when more than one client is used, throughput decreases.
 
 ##############################################################################
-## HOWTO: (How-to reminders)
+## FIXED: (Fixed bugs)
+2022/10/23 Ioda operator+=(Ioda&&) inserted at head rather than at tail
+         TODO: Maybe make that operator-=(string&), since that might've been
+         used instead in ServerResponse::write(). (Use all operator -='s)
+
+2022/10/16 Linux throughput performance is pathetic.
+2022/10/24 Fixed using Server polling
+         It wasn't so much polling that fixed the problem, it was the extra
+         threading used in the Server.
+
+##############################################################################
+## CLOSED: (Bugs closed without fixing)
+2022/10/24 (None)
 
 ##############################################################################
 ## TODO: (Deferred)
 2022/02/16 TODO? Don't wait for content-length
 2022/02/16 TODO? Allow next HTTP1 write before response
 
-           TODO? Rename ServerAgent to ListenAgent
-                 Keep ServerAgent? ServerRequest/Response, etc?
-
            TODO? Move connect logic outside of Client.
                  Pass resulting connection to Client constructor.
 
+2022/10/24 Need to stress test Select more. Maybe we should create a new
+         Client/Server for each ClientStream. (Must consider async.)
+
+##############################################################################
+## DONE:
+2022/10/24 Rename ServerAgent to ListenAgent
+         Server, ServerRequest/Response keep their current names
+
 ##############################################################################
 ## FEATURE: (Ideas for improvement)
-
-##############################################################################
-## BUGS: (Open bugs)
-2022/10/16 Linux performance is pathetic.
-
-##############################################################################
-## FIXED: (Fixed bugs)
-
-##############################################################################
-## CLOSED: (Bugs closed without fixing)
+2022/10/24 Support HTTP/2 (First w/o encryption)
 

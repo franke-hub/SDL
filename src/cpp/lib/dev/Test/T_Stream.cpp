@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2022/10/19
+//       2022/10/23
 //
 // Arguments-
 //       With no arguments, --client --server defaulted
@@ -196,19 +196,6 @@ static void
 //       Initialize
 //
 //----------------------------------------------------------------------------
-static void make_dir(std::string path) // Insure directory exists
-{
-   struct stat info;
-   int rc= stat(path.c_str(), &info);
-   if( rc != 0 ) {
-     rc= mkdir(path.c_str(), DIR_MODE);
-     if( rc ) {
-       fprintf(stderr, "Cannot create %s", path.c_str());
-       exit(1);
-     }
-   }
-}
-
 static int                          // Return code, 0 expected
    init( void)                      // Initialize
 {
@@ -238,21 +225,8 @@ static int                          // Return code, 0 expected
 
    if( opt_trace ) {                // If --trace specified
      //-----------------------------------------------------------------------
-     // If required, create memory-mapped trace subdirectory
-     const char* env= getenv("HOME"); // Get HOME directory
-     if( env == nullptr ) {
-       fprintf(stderr, "No HOME directory\n");
-       return 1;
-     }
-     std::string S= env;
-     S += "/.config";
-     make_dir(S);
-     S += "/.trace";
-     make_dir(S);
-
-     //-----------------------------------------------------------------------
      // Create memory-mapped trace file
-     S += "/trace.mem";
+     string S= "./trace.mem";
      int fd= open(S.c_str(), O_RDWR | O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
      if( fd < 0 ) {
        fprintf(stderr, "%4d open(%s) %s\n", __LINE__
@@ -282,7 +256,7 @@ static int                          // Return code, 0 expected
    }
 
    client_agent= new ClientAgent();
-   server_agent= new ServerAgent();
+   listen_agent= new ListenAgent();
 
    setlocale(LC_NUMERIC, "");       // For printf("%'d\n", 123456789);
 
@@ -303,9 +277,9 @@ static void
 {
    // Remove client/server agent
    delete client_agent;
-   delete server_agent;
+   delete listen_agent;
    client_agent= nullptr;
-   server_agent= nullptr;
+   listen_agent= nullptr;
 
    //-------------------------------------------------------------------------
    // Restore system signal handlers
@@ -355,11 +329,11 @@ static inline int                   // Error count
    size_of("Client",        sizeof(PUB::http::Client));
    size_of("ClientAgent",   sizeof(PUB::http::ClientAgent));
    size_of("Listen",        sizeof(PUB::http::Listen));
+   size_of("ListenAgent",   sizeof(PUB::http::ListenAgent));
    size_of("Options",       sizeof(PUB::http::Options));
    size_of("Request",       sizeof(PUB::http::Request));
    size_of("Response",      sizeof(PUB::http::Response));
    size_of("Server",        sizeof(PUB::http::Server));
-   size_of("ServerAgent",   sizeof(PUB::http::ServerAgent));
    size_of("Stream",        sizeof(PUB::http::Stream));
 
    if( true  ) {                    // Bringup internal tests
@@ -550,12 +524,16 @@ extern int
    // Run the tests (with try wrapper)
    //-------------------------------------------------------------------------
    try {
+     Global global;                 // Define the Global area
+
      if( opt_bringup )
        error_count += test_bringup();
 
      ServerThread* server= nullptr;
-     if( opt_server )
+     if( opt_server ) {
        server= new ServerThread();
+       server->ready.wait();
+     }
 
      if( opt_client || opt_stress ) {
        if( opt_client ) {
@@ -568,13 +546,11 @@ extern int
          ClientThread::test_stress();
          ClientThread::statistics();
        }
-
-       if( server )
-         server->stop();
      }
 
      if( server ) {
-       server->join();
+       server->stop();
+       server->ended.wait();
        delete server;
      }
    }

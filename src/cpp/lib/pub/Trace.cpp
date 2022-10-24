@@ -142,7 +142,7 @@ Trace*                              // -> Trace instance
 //       Trace::take
 //
 // Purpose-
-//       Atomically take and reset the commont the Trace object.
+//       Atomically take and reset the common Trace object.
 //
 // Implementation note-
 //       Not needed, at least yet. Trace::trace= nullptr suffices.

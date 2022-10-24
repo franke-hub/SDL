@@ -16,7 +16,7 @@
 //       Profiling event recorder
 //
 // Last change date-
-//       2022/10/17
+//       2022/10/19
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_RECORDER_H_INCLUDED
@@ -49,9 +49,9 @@ struct Record {
 typedef std::function<std::string(void)>      f_report;
 typedef std::function<void(void)>             f_reset;
 
-std::string            name;        // The name of the Record
-f_report               h_report;    // Report recording
-f_reset                h_reset;     // Reset this Record
+std::string            name= "";    // The name of the Record
+f_report               h_report= []() { return ""; }; // Report recording
+f_reset                h_reset=  []() { }; // Reset this Record
 
 void on_report(const f_report& f)   // Set reporter function
 {  h_report= f; }
@@ -65,7 +65,6 @@ void on_reset(const f_reset& f)     // Set reset function
 //----------------------------------------------------------------------------
 struct RecordItem : public List<RecordItem>::Link {
 Record*                record;      // The associated Record
-
    RecordItem(Record* R)            // Constructor
 :  record(R) {}
 }; // struct RecordItem

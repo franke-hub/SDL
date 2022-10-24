@@ -7,7 +7,7 @@
 //       Development journal
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/24
 //
 -------------------------------------------------------------------------- -->
 
@@ -320,7 +320,8 @@ a transmission blocks.
 
 ### 2022/10/16
 
-Commit: Client uses asychronous polling. Also includes Recorder.h commit.
+Commit: Client uses asychronous polling. Also includes Diagnostic.h and
+Recorder.h commits.
 
 We now use Ioda (Input/Output Data Area) rather than Data for buffering.
 This features minimal data copying when moving data between components,
@@ -329,5 +330,76 @@ and when discarding leading data.
 While the Windows throughput is essentially unchanged, the Linux throughput
 has dramatically regressed. This needs to be fixed but I also wanted to
 synchronize the maint and trunk branches.
+
+#### inc/dev/Recorder.h
+Used for generic statistic recording, reporting, and resetting.
+Recorders are inserted into or removed from a global table. The recorded
+information is displayed on demand.
+
+#### inc/pub/Diagnostic.h
+Contains debugging diagnostic objects.
+- Pristine, used to check for "wild stores" clobbering objects. A Pristine
+object is (temporarily) placed before and after an object suspected of
+being somehow clobbered by wild stores.
+- namespace std::pub_diag, used for shared_ptr tracking. Useful for finding
+shared_ptr instances. This uses conditional macros to redefine make_shared,
+shared_ptr, and weak_ptr so most code is unchanged. It also defines and
+conditionally activates INS_DEBUG_OBJ(x) and REM_DEBUG_OBJ(x) macros to
+be placed in objects containing shared pointers of interest.
+
+Unless activated, namespace std::pub_diag has no overhead. When activated,
+objects and their shared_ptrs can be displayed at any time using the
+static method std::Debug_ptr::debug. This turned out to be useful and was
+probably quicker to implement than tracking down one instance where a
+shared_ptr<Stream> was not being cleared. (This also happened to be a
+memory leak of an object not managed by a shared_ptr.)
+
+While (C++11) template<T,U> dynamic_pointer_cast(shared_ptr<U>) is implemented,
+the other associated pointer_casts are not used in the dev library and
+are not implemented both because they weren't needed and couldn't be properly
+tested.
+
+### 2022/10/24 Trunk commit ~/src/cpp/lib/dev HTTP/1 operational
+
+Commit: Both Client and Server use asychronous polling.
+
+The HTTP server remains in development. Known bugs exist, and only HTTP/1
+without encryption is currently supported.
+
+Cygwin throughput is best when only one Client/Server pair is used, i.e.
+`T_Stream --server --stress=1` This needs investigation.
+
+Linux throughput has dramatically improved. This version matches
+../pub/Test/TestSock throughput when four client threads are used and
+scales linearly at least up to ten clients. (Test termination problems
+currently preclude using more clients than that.)
+
+I originally went looking for a red herring when investigating this problem,
+adding timing event recording to the Client/Server path. Doing this, I found
+that the client and server thread clocks were not closely synchronized.
+In fact, the Server clock (in both Cygwin and Linux) ran about .15 seconds
+behind the Client clock. The Server would seem to receive a request nearly
+.15 seconds before it was sent and the Client would receive its (asynchronous)
+response more than .15 seconds after it was sent.
+
+Investigation showed that yes, different CPUs (on different threads) can be
+out of synch. I didn't find anything indicating that the synchronization
+error would be this large. While considering writing a clock synchronization
+thread (which the kernel should be able to generally do without actually
+needing a thread) the red herring began to stink.
+
+Linux top and the gnome-system-monitor both showed that essentially *no*
+multi-threading occurred, so I switched to implementing Server polling.
+This requires multi-threading both when servicing requests and when receiving
+reponses. With a few glitches here and there this, proved easy to do using
+Client.cpp to model the changes needed in Server.cpp.
+More server multi-threading fixed the throughput issue, and polling reduced
+the overhead compared to ~/src/cpp/lib/pub/TestSock.cpp.
+
+I'm temporarily leaving the timing code (in ~/src/cpp/lib/dev/Global.cpp and
+../../inc/dev/Global.h) and spread throughout the HTTP/1 send/receive path.
+The Global code will be moved to ~/src/cpp/lib/.OBSOLETE/dev rather than
+simply discarded but the recording hooks will be removed.
+If you're interested in these later, use gitk to look at today's version.
 
 ----

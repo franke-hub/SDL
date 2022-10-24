@@ -16,7 +16,7 @@
 //       Select method implementations.
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/23
 //
 // Implementation notes-
 //       TODO: rename this. Maybe: Asynch, Poller, something better
@@ -199,7 +199,7 @@ int                    operational= false; // TRUE iff listener active
    target= INET_HOST;
    if( USE_AF == AF_UNIX )
      target= UNIX_BASE + std::to_string(++serial);
-DEBUGGING( debugf("%4d target(%s)\n", __LINE__, target.c_str()); )
+DEBUGGING( debugf("%4d Select target(%s)\n", __LINE__, target.c_str()); )
    rc= listen.bind(target);        // Set connection target
    if( rc ) {
      debugf("Select(%p)::Connector(%p): bind(%s) failed\n", select, this
@@ -208,7 +208,7 @@ DEBUGGING( debugf("%4d target(%s)\n", __LINE__, target.c_str()); )
    }
    if( USE_AF == AF_INET )
      target= target + std::to_string(listen.get_host_port());
-DEBUGGING( debugf("%4d target(%s)\n", __LINE__, target.c_str()); )
+DEBUGGING( debugf("%4d Select target(%s)\n", __LINE__, target.c_str()); )
 
    rc= listen.listen();            // Indicate listener socket
    if( rc ) {
@@ -236,7 +236,7 @@ DEBUGGING( debugh("Select(%p)::Connector(%p)\nCreated listener %s\n", select, th
    while( reader == nullptr && operational ) {
      reader= listen.accept();
    }
-DEBUGGING( debugh("%4d HCDM reader(%p)\n", __LINE__, reader); )
+DEBUGGING( debugh("%4d Select HCDM reader(%p)\n", __LINE__, reader); )
 
    listen.close();
    if( USE_AF == AF_UNIX )
@@ -300,7 +300,7 @@ DEBUGGING( debugf("Select(%p)::Connector(%p) target(%s)\n", this, &connector, co
    int optval= true;
    writer->set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
-DEBUGGING( debugf("%4d HCDM\n", __LINE__); )
+DEBUGGING( debugf("%4d Select HCDM\n", __LINE__); )
    int rc= writer->connect(connector.target);
    if( rc ) {
      debugf("%4d Select(%p) target(%s) connect error %d:%s\n", __LINE__, this
@@ -308,7 +308,10 @@ DEBUGGING( debugf("%4d HCDM\n", __LINE__); )
      sno_exception(__LINE__);
    }
    connector.join();
-DEBUGGING( debugf("%4d HCDM rc(%d) writer(%p) reader(%p)\n", __LINE__, rc, writer, connector.reader); )
+DEBUGGING(
+   debugf("%4d Select HCDM rc(%d) writer(%p) reader(%p)\n", __LINE__, rc
+         , writer, connector.reader);
+)
 
    rc= writer->set_flags( writer->get_flags() | O_NONBLOCK );
    if( rc ) {
@@ -516,6 +519,11 @@ int                                 // Number of detected errors
 // Purpose-
 //       Enqueue a control operations
 //
+// Implentation notes-
+//       TODO: instead of waiting, enqueue a work element that's checked
+//       by control. (Ops need to be handled in order. How do we synchronize?)
+//       Maybe add a sequence number to the op.
+//
 //----------------------------------------------------------------------------
 void
    Select::control(                 // Transmit control operation
@@ -717,7 +725,8 @@ int                                 // Return code, 0 expected
 
    control_op op= {OP_INSERT, 0, (uint16_t)events, fd};
    control(op);                     // Enqueue the INSERT operation
-   control();                       // Process the INSERT operation
+// Listen creates select which inserts, so we can't invoke control now.
+// control();                       // Process the INSERT operation
 
    return 0;
 }
@@ -821,7 +830,9 @@ Socket*                             // The next selected Socket, or nullptr
      left= poll(pollfd, used, timeout);
    }}}}
    Trace::trace(".SEL", "POLL", i2v(left));
-DEBUGGING( debugh("%4d left(%d)= poll(%d)\n", __LINE__, left, used); )
+DEBUGGING(
+   debugh("%4d Select left(%d)= poll(%d)\n", __LINE__, left.load(), used);
+)
    if( left )                       // Handle initial selection
      return select();
 
@@ -851,7 +862,9 @@ Socket*                             // The next selected Socket, or nullptr
      left= ppoll(pollfd, used, timeout, signals);
    }}}}
    Trace::trace(".SEL", "POLL", i2v(left));
-DEBUGGING( debugh("%4d left(%d)= poll(%d)\n", __LINE__, left, used); )
+DEBUGGING(
+   debugh("%4d Select left(%d)= poll(%d)\n", __LINE__, left.load(), used);
+)
    if( left )                       // Handle initial selection
      return select();
 
@@ -939,7 +952,7 @@ DEBUGGING( debugh("left(%d)\n", left); )
 
      // ERROR: The number of elements set < number of elements found
      // ** THIS IS AN INTERNAL LOGIC ERROR, NOT AN APPLICATION ERROR **
-     errorf("%4d internal error, info(%d)\n", __LINE__, left.load());
+     errorf("%4d Select internal error, info(%d)\n", __LINE__, left.load());
      sno_handled(__LINE__);
      left= 0;
      return do_again();
@@ -991,7 +1004,8 @@ inline void
      else {
        // Request for file descriptor index >= limits.rlim_max
        // This should not be possible.
-       debugf("%4d fd(%d) >= limit(%ld)\n", __LINE__, fd, limits.rlim_max);
+       debugf("%4d Select fd(%d) >= limit(%ld)\n", __LINE__
+             , fd, limits.rlim_max);
        sno_exception(__LINE__);
      }
    }

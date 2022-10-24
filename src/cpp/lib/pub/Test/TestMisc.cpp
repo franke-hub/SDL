@@ -16,7 +16,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2022/09/02
+//       2022/10/22
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -198,7 +198,7 @@ static inline int
    if( opt_verbose )
      debugf("\ntest_Statistic\n");
 
-   PUB::Statistic stat;
+   PUB::statistic::Active stat;
    error_count += VERIFY(stat.inc() == 1 );
    error_count += VERIFY(stat.inc() == 2 );
    error_count += VERIFY(stat.inc() == 3 );

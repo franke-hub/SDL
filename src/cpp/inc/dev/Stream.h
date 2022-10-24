@@ -16,7 +16,7 @@
 //       HTTP Stream object.
 //
 // Last change date-
-//       2022/10/19
+//       2022/10/20
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_STREAM_H_INCLUDED
@@ -31,6 +31,7 @@
 #include <pub/Dispatch.h>           // For pub::dispatch objects
 #include <pub/Statistic.h>          // For pub::Statistic
 
+#include "pub/http/Global.h"        // For pub::http::Global, ...
 #include "pub/http/Ioda.h"          // For pub::http::Ioda, ...
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
@@ -45,7 +46,6 @@ class Options;
 class Server;
 class ServerRequest;
 class ServerResponse;
-// class StreamItem;                   // (Internal) TODO: REMOVE
 class Request;
 class Response;
 
@@ -99,6 +99,7 @@ f_error                h_error;     // The error event handler
 // Controls
 uint32_t               fsm= 0;      // Finite State Machine state
 uint31_t               ident= 1;    // Stream identifier
+TimingRecord*          record= nullptr; // Timing record (for debugging)
 
 //----------------------------------------------------------------------------
 // Stream::Static attributes
@@ -130,6 +131,10 @@ uint31_t                            // The Stream identifier
    get_ident( void ) const          // Get Stream identifier
 {  return ident; }
 
+TimingRecord*
+   get_record( void )               // Get TimingRecord
+{  return record; }
+
 std::shared_ptr<Request>
    get_request( void ) const        // Get Request
 {  return request; }
@@ -149,6 +154,14 @@ void
    set_ident(                       // Set Stream identifier
      uint32_t          id)          // (The identifier value)
 {  ident= id; }
+
+void
+   set_record(int index)            // Set TimingRecord
+{  if( record ) record->record(index); }
+
+void
+   set_record(int index, TimingRecord::clock_t time) // Set TimingRecord
+{  if( record ) record->clock[index]= time; }
 
 // TODO: These may not be needed, substituting virtual methods instead.
 void
@@ -185,7 +198,7 @@ virtual void
 void
    close( void );                   // Close the Stream
 
-void
+virtual void
    end( void );                     // End the Stream
 
 virtual void
@@ -273,6 +286,9 @@ virtual void
 // ClientStream::Methods
 //----------------------------------------------------------------------------
 virtual void
+   end( void );                     // End the Stream
+
+virtual void
    reject(                          // Reject a Request, simulating Response
      int               code);       // The rejection status code
 }; // class ClientStream
@@ -341,6 +357,9 @@ virtual void
 //----------------------------------------------------------------------------
 // ServerStream::Methods
 //----------------------------------------------------------------------------
+virtual void
+   end( void );                     // End the Stream
+
 virtual void
    reject(                          // Reject a Request, writing Response
      int               code);       // The rejection status code

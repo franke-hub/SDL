@@ -148,7 +148,8 @@ Ioda& operator=(Ioda&&);            // (Move) assignment
 
 Ioda& operator+=(const Ioda&) = delete; // Append Ioda (copy)
 Ioda& operator+=(Ioda&&);           // Append Ioda (move)
-Ioda& operator+=(const string&);    // Append std::string
+Ioda& operator+=(const string& S)   // Append std::string
+{  write(S.c_str(), S.size()); return *this; }
 
 explicit operator string( void ) const; // (Cast) std::string operator
 
@@ -179,7 +180,7 @@ void set_used(size_t);              // Set the used data length
 void put(int);                      // Write character
 
 void put(const string& S)           // Write string
-{  write(S.c_str(), Size(S.size())); }
+{  write(S.c_str(), S.size()); }
 
 void reset( void );                 // Reset (empty) the Ioda
 void reset(size_t);                 // Reset the Ioda as input buffer

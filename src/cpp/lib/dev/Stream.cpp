@@ -16,7 +16,7 @@
 //       Implement http/Stream.h
 //
 // Last change date-
-//       2022/10/19
+//       2022/10/21
 //
 // TODO:
 //       Add ServerStream::make method, shared_ptr reference to Server
@@ -44,6 +44,7 @@
 
 #include "pub/http/bits/devconfig.h" // Must be first http include (TODO: REMOVE)
 #include "pub/http/Client.h"        // For pub::http::Client
+#include "pub/http/Global.h"        // For pub::http::Global, ...
 #include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Request.h"       // For pub::http::Request
@@ -68,11 +69,8 @@ enum
 
 ,  BUFFER_SIZE= 8'096               // Input buffer size (Header collector)
 ,  POST_LIMIT= 1'048'576            // POST/PUT size limit
+,  USE_TIMING_RECORD= false         // Use TimingRecord?
 }; // enum
-
-//----------------------------------------------------------------------------
-// Macros
-//----------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------
 // Constants
@@ -87,10 +85,6 @@ static constexpr CC*   HTTP_SIZE= Options::HTTP_HEADER_LENGTH;
 // External data areas
 //----------------------------------------------------------------------------
 statistic::Active      Stream::obj_count; // Stream object count
-
-//----------------------------------------------------------------------------
-// Internal data areas
-//----------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------
 // Constants
@@ -320,6 +314,9 @@ void
 {  if( HCDM )
      debugh("ClientStream(%p)!(%p)\n", this, owner);
 
+   if( USE_TIMING_RECORD )
+     record= new TimingRecord();
+
    Trace::trace(".NEW", "CSTR", this);
    INS_DEBUG_OBJ("ClientStream");
 // http1();                         // TODO: HANDLE HTTP2, etc
@@ -328,6 +325,9 @@ void
    ClientStream::~ClientStream( void ) // Destructor
 {  if( HCDM )
      debugh("ClientStream(%p)~\n", this);
+
+   delete record;
+
    Trace::trace(".DEL", "CSTR", this);
    REM_DEBUG_OBJ("ClientStream");
 }
@@ -380,14 +380,8 @@ bool                                // Return code: TRUE if complete
 {  if( HCDM )
      debugh("ClientStream(%p)::read(*,%zd)\n", this, ioda.get_used());
 
-#if 1
-   bool cc= response->read(ioda);
-   if( cc )
-     end();
-   return cc;
-#else
+   set_record(TimingRecord::IX_RSP_READ);
    return response->read(ioda);
-#endif
 }
 
 //----------------------------------------------------------------------------
@@ -412,6 +406,7 @@ void
    ClientStream::write( void )      // Write data (completed)
 {  if( HCDM ) debugh("ClientStream(%p)::write\n", this);
 
+   set_record(TimingRecord::IX_REQ_WRITE);
    std::shared_ptr<Client> client= get_client();
    int rc= -1;                      // Default, rejected
    if( client )
@@ -419,10 +414,25 @@ void
 
    if( rc )
      utility::not_coded_yet(__LINE__, __FILE__);
+}
 
-#if 0 // Will need to end if client write fails too.
-   end();
-#endif
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientStream::end
+//
+// Purpose-
+//       Terminate the ClientStream
+//
+//----------------------------------------------------------------------------
+void
+   ClientStream::end( void )        // Terminate the ClientStream
+{
+   Stream::end();
+
+   set_record(TimingRecord::IX_CLI_END);
+   if( record )
+     Global::global->update(*record);
 }
 
 //----------------------------------------------------------------------------
@@ -465,6 +475,16 @@ void
 {  if( HCDM )
      debugh("ServerStream(%p)!(%p)\n", this, owner);
    Trace::trace(".NEW", "SSTR", this);
+
+   if( USE_TIMING_RECORD ) {
+     ClientConnectionPair key(owner->get_host_addr(), owner->get_peer_addr());
+     Global::const_iterator it= Global::global->map.find(key);
+     if( it != Global::global->map.end() ) {
+       record= it->second;
+       set_record(TimingRecord::IX_SRV_CREATE);
+     }
+   }
+
    INS_DEBUG_OBJ("ServerStream");
 }
 
@@ -515,11 +535,14 @@ std::shared_ptr<ServerResponse>
 //----------------------------------------------------------------------------
 bool                                // Return code: TRUE if complete
    ServerStream::read(              // (Async) read data segment
-      Ioda&            ioda)        // I/O Data Area
+     Ioda&             ioda)        // I/O Data Area
 {  if( HCDM )
      debugh("ServerStream(%p)::read(*,%zd)\n", this, ioda.get_used());
 
-   return request->read(ioda);
+   bool cc= request->read(ioda);
+   if( cc )
+     set_record(TimingRecord::IX_SRV_END);
+   return cc;
 }
 
 //----------------------------------------------------------------------------
@@ -539,9 +562,9 @@ void
 {  if( HCDM )
      debugh("%4d ServerStream(%p)::write(%p,%zd)\n", line, this, addr, size);
 
-   std::shared_ptr<Server> server= get_server();
-   if( server )
-     server->write(addr, size);
+   Ioda ioda;
+   ioda.write(addr, size);
+   write(ioda);
 }
 
 void
@@ -566,6 +589,22 @@ void
 void
    ServerStream::write( void )      // Write data (completed)
 {  utility::should_not_occur(__LINE__, __FILE__); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ServerStream::end
+//
+// Purpose-
+//       Terminate the ServerStream
+//
+//----------------------------------------------------------------------------
+void
+   ServerStream::end( void )        // Terminate the ServerStream
+{
+   Stream::end();
+   set_record(TimingRecord::IX_SRV_END);
+}
 
 //----------------------------------------------------------------------------
 //

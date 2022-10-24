@@ -16,7 +16,7 @@
 //       HTTP Listen object.
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/23
 //
 // Implementation notes-
 //       The Listen object is the Server analog to a Client Agent.
@@ -37,9 +37,7 @@
 
 #include <pub/config.h>             // For _ATTRIBUTE_PRINTF macro
 #include <pub/Debug.h>              // For pub::Debug
-#include <pub/Named.h>              // For pub::Named, super class
 #include <pub/Socket.h>             // For pub::Socket
-#include <pub/Thread.h>             // For pub::Thread, super class
 
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Request.h"       // For pub::http::ServerRequest
@@ -51,7 +49,7 @@ namespace http {
 //----------------------------------------------------------------------------
 class Request;
 class Server;
-class ServerAgent;
+class ListenAgent;
 
 //----------------------------------------------------------------------------
 //
@@ -59,15 +57,15 @@ class ServerAgent;
 //       Listen
 //
 // Purpose-
-//       Define the Listen class. (A Named Thread)
+//       Define the Listen class. (The ServerAgent)
 //
 //----------------------------------------------------------------------------
-class Listen : public Named, public Thread { // Listen class
+class Listen {                      // Listen class
 //----------------------------------------------------------------------------
 // Listen::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-typedef Socket::sockaddr_u sockaddr_u;
+typedef Socket::sockaddr_u                    sockaddr_u;
 typedef std::function<void(void)>             f_close; // Callback handlers
 typedef std::function<void(ServerRequest&)>   f_request;
 
@@ -88,8 +86,7 @@ typedef Map_t::iterator
 //----------------------------------------------------------------------------
 protected:
 std::weak_ptr<Listen>  self;        // Self-reference
-std::weak_ptr<ServerAgent>
-                       agent;       // Our owning Agent
+ListenAgent*           agent;       // Our owning Agent
 
 Socket                 listen;      // The listen Socket
 Map_t                  map;         // The Server map
@@ -103,10 +100,6 @@ bool                   operational; // TRUE while Listen is operational
 // Callback handlers
 f_close                h_close;     // The close event handler
 f_request              h_request;   // The request event handler
-
-//----------------------------------------------------------------------------
-// Listen::Static attributes
-//----------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------
 // Listen::Protected methods
@@ -123,7 +116,7 @@ void
 //----------------------------------------------------------------------------
 public:
    Listen(                          // Constructor
-     ServerAgent*      agent,       // The creating ServerAgent
+     ListenAgent*      agent,       // The creating ListenAgent
      const sockaddr_u& addr,        // Target internet address
      socklen_t         size,        // sizeof(addr)
      const Options*    opts= nullptr); // Listen options
@@ -131,7 +124,7 @@ public:
 
 static std::shared_ptr<Listen>      // The Listener
    make(                            // Create Listener
-     ServerAgent*      agent,       // The creating ServerAgent
+     ListenAgent*      agent,       // The creating ListenAgent
      const sockaddr_u& addr,        // Target internet address
      socklen_t         size,        // sizeof(addr)
      const Options*    opts= nullptr); // Listen options
@@ -146,11 +139,14 @@ void
 //----------------------------------------------------------------------------
 // Listen::Accessor methods
 //----------------------------------------------------------------------------
-public:
 void
    do_request(                      // Drive the Request event handler
      ServerRequest*    request)     // For this ServerRequest
 {  h_request(*request); }
+
+ListenAgent*
+   get_agent( void ) const          // Get ListenAgent
+{  return agent; }
 
 int                                 // The socket handle (<0 if not connected)
    get_handle( void ) const         // Get socket handle
@@ -179,6 +175,27 @@ void
    opt_reset(const Options&);       // Reset listen options
 
 //----------------------------------------------------------------------------
+// Listen::Methods
+//----------------------------------------------------------------------------
+void
+   async(int);                      // Handle asynchronous polling event
+
+void
+   close( void );                   // Close the Listen
+
+void
+   disconnect(Server*);             // Disconnect Server
+
+_LIBPUB_PRINTF(2, 3)
+void
+   logf(                            // Write to log file
+     const char*       fmt,         // The PRINTF format string
+                       ...);        // The PRINTF argument list
+
+void
+   reset( void );                   // Reset the Listen, closing all Servers
+
+//----------------------------------------------------------------------------
 // Listen::Map control methods (mutex protected)
 //----------------------------------------------------------------------------
 protected:
@@ -195,28 +212,6 @@ std::shared_ptr<Server>             // The associated Server
 std::shared_ptr<Server>             // The associated Server
    map_remove(                      // Remove Server
      const sockaddr_u& id);         // For this connectionID
-
-//----------------------------------------------------------------------------
-// Listen::Methods
-//----------------------------------------------------------------------------
-public:
-void
-   close( void );                   // Close the Listen
-
-void
-   disconnect(Server*);             // Disconnect Server
-
-_LIBPUB_PRINTF(2, 3)
-void
-   logf(                            // Write to log file
-     const char*       fmt,         // The PRINTF format string
-                       ...);        // The PRINTF argument list
-
-void
-   reset( void );                   // Reset the Listen, closing all Servers
-
-virtual void
-   run( void );                     // Operate the Listen
 }; // class Listen
 }  // namespace http
 _LIBPUB_END_NAMESPACE

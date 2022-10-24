@@ -16,7 +16,7 @@
 //       Implement http/Response.h
 //
 // Last change date-
-//       2022/10/19
+//       2022/10/22
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -498,11 +498,8 @@ void
    if( !stream )
      utility::not_coded_yet(__LINE__, __FILE__);
    Ioda temp;
-   temp.put(mess);
+   temp += mess;
+   temp += std::move(ioda);
    stream->write(temp);
-
-// ioda.debug("ServerResponse.write");
-   if( ioda.get_used() > 0 )
-     stream->write(ioda);
 }
 }  // namespace _LIBPUB_NAMESPACE::http

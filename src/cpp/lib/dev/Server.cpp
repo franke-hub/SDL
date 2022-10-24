@@ -16,11 +16,12 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/23
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
 #include <cstring>                  // For memset
+#include <mutex>                    // For std::mutex, ..., base class
 #include <ostream>                  // For std::ostream
 #include <stdexcept>                // For std::out_of_range, ...
 #include <string>                   // For std::string
@@ -30,17 +31,18 @@
 #include <stdint.h>                 // For integer types
 
 #include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Dispatch.h>           // For namespace pub::dispatch objects
 #include <pub/Exception.h>          // For pub::Exception
-#include <pub/Named.h>              // For pub::Named, base class
-#include <pub/Thread.h>             // For pub::Thread, base class
 #include <pub/Select.h>             // For pub::Select
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For pub::utility::to_string, ...
 
+#include "pub/http/Agent.h"         // For pub::http::ListenAgent
 #include "pub/http/Exception.h"     // For pub::http::exceptions
+#include "pub/http/Global.h"        // For pub::http::Global
 #include "pub/http/Ioda.h"          // For pub::http::Ioda
-#include "pub/http/Listen.h"        // For pub::http::Listen
+#include "pub/http/Listen.h"        // For pub::http::Listen (owner)
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Server.h"        // For pub::http::Server, implemented
 #include "pub/http/Stream.h"        // For pub::http::Stream
@@ -75,6 +77,43 @@ enum
 // BUFFER_SIZE= 1'048'576           // Input buffer size
 ,  BUFFER_SIZE=     8'192           // Input buffer size
 }; // enum
+
+//----------------------------------------------------------------------------
+// Typedefs and enumerations
+//----------------------------------------------------------------------------
+enum FSM                            // Finite State Machine states
+{  FSM_RESET= 0                     // Reset - idle
+,  FSM_RD_DATA= POLLIN              // Waiting for read completion
+,  FSM_WR_DATA= POLLOUT             // Write data blocked
+}; // enum FSM
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       ServerItem
+//
+// Purpose-
+//       The Server DispatchItem
+//
+//----------------------------------------------------------------------------
+class ServerItem : public dispatch::Item { // Server DispatchItem
+public:
+Ioda                   ioda;        // The Input/Output Data Area
+
+   ServerItem( void )               // Default constructor
+:  dispatch::Item()
+{  if( HCDM && VERBOSE > 0 ) debugh("ServerItem(%p)!\n", this);
+
+   INS_DEBUG_OBJ("ServerItem");
+}
+
+virtual
+   ~ServerItem( void )              // Destructor
+{  if( HCDM && VERBOSE > 0 ) debugh("ServerItem(%p)~\n", this);
+
+   REM_DEBUG_OBJ("ServerItem");
+}
+}; // class ServerItem
 
 //----------------------------------------------------------------------------
 //
@@ -122,40 +161,64 @@ static void
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       Server::~Server
-//       Server::Server
+// Subroutine-
+//       s2v
 //
 // Purpose-
-//       Destructor
-//       Constructors
+//       Convert size_t  to void*
 //
 //----------------------------------------------------------------------------
+static inline void* s2v(size_t s) { return (void*)intptr_t(s); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Server::Server
+//       Server::~Server
+//       Server::make
+//
+// Purpose-
+//       Constructors
+//       Destructor
+//       Creator
+//
+//----------------------------------------------------------------------------
+   Server::Server(                  // Constructor
+     Listen*           listen,      // The creating Listener
+     Socket*           socket)      // The server Socket
+:  std::mutex()
+,  h_close([]() {})
+,  h_error([](const string&) {})
+,  listen(listen)
+,  size_inp(BUFFER_SIZE)
+,  size_out(BUFFER_SIZE)
+,  socket(socket)
+,  task_inp([this](dispatch::Item* item) { inp_task((ServerItem*)item); })
+,  task_out([this](dispatch::Item* item) { out_task((ServerItem*)item); })
+{  if( HCDM )
+     debugh("Server(%p)::Server(%p,%p)\n", this, listen, socket);
+
+   // Initialize asynchronous operation
+   socket->set_flags( socket->get_flags() | O_NONBLOCK );
+   socket->on_select([this](int revent) { async(revent); });
+   listen->get_agent()->select.insert(socket, POLLIN);
+
+   // Server construction complete
+   operational= true;
+   INS_DEBUG_OBJ("*Server*");
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Server::~Server( void )          // Destructor
 {  if( HCDM )
      debugh("Server(%p)::~Server\n", this);
 
    delete socket;
    socket= nullptr;
+   REM_DEBUG_OBJ("*Server*");
 }
 
-   Server::Server(                  // Constructor
-     Listen*           listen,      // The creating Listener
-     Socket*           socket)      // The server Socket
-:  Named("pub::http::Server"), Thread(), std::mutex()
-,  h_close([]() {})
-,  h_error([](const string&) {})
-,  listen(listen->get_self())
-,  size_inp(BUFFER_SIZE)
-,  size_out(BUFFER_SIZE)
-,  socket(socket)
-{  if( HCDM )
-     debugh("Server(%p)::Server(%p,%p)\n", this, listen, socket);
-
-   timeval tv{3, 500000};           // 3.5 second timeout
-   socket->set_option(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-}
-
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::shared_ptr<Server>             // The Server
    Server::make(                    // Create Server
      Listen*           listen,      // The creating Listener
@@ -185,7 +248,49 @@ void
          , get_peer_addr().to_string().c_str()
          , operational ? "" : "non-");
 
-   debugf("..listen(%p) socket(%p)\n", listen.lock().get(), socket);
+   debugf("..listen(%p) socket(%p)\n", listen, socket);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Server::async
+//
+// Purpose-
+//       Handle Asynchronous Polling Event
+//
+//----------------------------------------------------------------------------
+void
+   Server::async(                   // Handle Asynchronous Polling Event
+     int               revent)      // Polling revent
+{  if( HCDM )
+     debugh("Server(%p)::async(%.4x) fsm(%.4x)\n", this, revent, fsm);
+   Trace::trace(".SRV", ".APE", this, s2v((size_t(revent) << 16) | fsm));
+
+   if( !operational )
+     return;
+
+   // If a Socket error occurred
+   if( revent & (POLLERR | POLLNVAL) ) {
+     debugf("%4d HCDM Server revent(%.4x)\n", __LINE__, revent);
+     error("asynch error detected");
+     return;
+   }
+
+   // If Socket is readable
+   if( revent & (POLLIN | POLLPRI) ) {
+     read(__LINE__);
+     return;
+   }
+
+   // If Socket is writable
+   if( revent & POLLOUT ) {
+     write(__LINE__);
+     return;
+   }
+
+   // Handle unexpected event
+   debugf("%4d HCDM Server revent(%.4x)\n", __LINE__, revent);
 }
 
 //----------------------------------------------------------------------------
@@ -203,6 +308,9 @@ void
      debugh("Server(%p)::close\n", this);
 
    operational= false;
+   std::shared_ptr<Server> server= this->self.lock(); // Keep-alive until exit
+   listen->disconnect(this);        // Must be before close()
+
    socket->close();                 // Close the Server socket
 }
 
@@ -227,130 +335,53 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Server::join
+//       Server::inp_task
 //
 // Purpose-
-//       Wait for the Server Thread to complete
+//       Handle input (reader) item
 //
 //----------------------------------------------------------------------------
 void
-   Server::join( void )             // Wait for Server Thread to complete
+   Server::inp_task(                // Handle input data
+     ServerItem*       item)        // Input data item
 {  if( HCDM )
-     debugh("Server(%p)::join\n", this);
+     debugh("Server(%p)::inp_task(%p)\n", this, item);
 
-   Thread::join();                  // Wait for Server Thread completion
+   if( stream.get() == nullptr )
+     stream= ServerStream::make(this);
+   stream->set_record(TimingRecord::IX_SRV_READ);
+
+   if( stream->read(item->ioda) ) {
+     stream->end();
+     stream= nullptr;
+   }
+
+   item->post();
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Server::read
+//       Server::out_task
 //
 // Purpose-
-//       (Synchronously) read data segment
+//       Handle input (writer) item
 //
 //----------------------------------------------------------------------------
 void
-   Server::read(                    // Read data from Socket
-     int               line)        // Caller's line number
-{  if( HCDM ) debugh("%4d Server(%p)::read\n", line, this);
+   Server::out_task(                // Handle output data
+     ServerItem*       item)        // Output data item
+{  if( HCDM )
+     debugh("Server(%p)::out_task(%p)\n", this, item);
 
-   for(;;) {
-     Ioda ioda;
-     Mesg mesg; ioda.get_rd_mesg(mesg, size_inp);
+   {{{{
+     std::lock_guard<Server> lock(*this);
 
-     ssize_t L= socket->recvmsg((msghdr*)&mesg, 0);
-     iodm(line, "read", L);
-     if( L >= 0 ) {
-       if( L == 0 )
-         throw io_eof("Server");
+     ioda_out += std::move(item->ioda);
+   }}}}
 
-       ioda.set_used(L);
-       void* addr= mesg.msg_iov[0].iov_base;
-       ssize_t size= mesg.msg_iov[0].iov_len;
-       if( size > L )
-         size= L;
-       utility::iotrace(".S<<", addr, size);
-       iodm(line, "read", addr, size);
-       if( stream.get() == nullptr )
-         stream= ServerStream::make(this);
-
-       if( stream->read(ioda) )
-         break;
-       continue;
-     }
-
-     if( !IS_RETRY && !IS_BLOCK ) { // TODO: Remove !IS_BLOCK when async
-//int ERRNO= errno;
-//debugf("size_inp(%d) %d:%s\n", size_inp, ERRNO, strerror(ERRNO));
-//ioda.debug("I/O error"); // Invalid argument
-//mesg.debug("I/O error");
-//errno= ERRNO;
-       throw io_error(to_string("Server::read %d:%s", errno, strerror(errno)));
-     }
-   }
-
-   stream->end();
-   stream= nullptr;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Server::run
-//
-// Purpose-
-//       Operate the Server
-//
-//----------------------------------------------------------------------------
-void
-   Server::run( void )              // Operate the Server
-{  if( HCDM ) debugh("Server(%p)::run...\n", this);
-
-   operational= true;
-   try {
-     for(;;) {
-       read(__LINE__);
-       if( !operational )
-         break;
-     }
-   } catch(io_eof& X) {
-     if( IODM )
-       debugh("%4d %s %s\n", __LINE__, __FILE__, X.what());
-   } catch(io_exception& X) {
-     if( IODM )
-       errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
-     error(X.what());
-   } catch(stream_error& X) {
-     if( IODM )
-       errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
-     stream->reject(500);
-   } catch(std::length_error& X) {
-     if( IODM )
-       errorf("Server std::length_error(%s)\n", X.what());
-     stream->reject(413);
-   } catch(std::exception& X) {
-     errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
-     error(X.what());
-   } catch(const char* X) {
-     errorh("%4d %s catch(%s)\n", __LINE__, __FILE__, X);
-     error(X);
-   } catch(...) {
-     errorh("%4d %s catch(...)\n", __LINE__, __FILE__);
-     error("catch(...)");
-   }
-   operational= false;
-
-   std::shared_ptr<Server> server= this->self.lock(); // Keep-alive until exit
-   std::shared_ptr<Listen> listen= this->listen.lock();
-   if( listen)
-     listen->disconnect(this);      // Must be before close()
-
-   stream= nullptr;                 // (Destroy the Stream)
-   close();
-   h_close();                       // Drive the close listener
-
-   if( HCDM ) debugh("...Server(%p)::run\n", this);
+   write(__LINE__);
+   item->post();
 }
 
 //----------------------------------------------------------------------------
@@ -363,15 +394,103 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   Server::write(Ioda& ioda_out)   // Write to Server
+   Server::write(Ioda& ioda)       // Write to Server
 {  if( HCDM )
      debugh("Server(%p)::write(*,%'zd)\n", this, ioda_out.get_used());
+
+   if( ioda.get_used() ) {
+     ServerItem* item= new ServerItem();
+     item->ioda= std::move(ioda);
+     task_out.enqueue(item);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Server::read
+//
+// Purpose-
+//       Read data segments
+//
+//----------------------------------------------------------------------------
+void
+   Server::read(                    // Read data from Socket
+     int               line)        // Caller's line number
+{  if( HCDM ) debugh("%4d Server(%p)::read\n", line, this);
+
+   for(;;) {
+     Ioda ioda;
+     Mesg mesg; ioda.get_rd_mesg(mesg, size_inp);
+     ssize_t L= socket->recvmsg((msghdr*)&mesg, 0);
+     if( L >= 0 ) {
+       iodm(line, "read", L);
+       if( L == 0 ) {
+         if( VERBOSE > 1 )
+           error("Client disconnect");
+         return;
+       }
+
+       ioda.set_used(L);
+       void* addr= mesg.msg_iov[0].iov_base;
+       ssize_t size= mesg.msg_iov[0].iov_len;
+       if( size > L )
+         size= L;
+       utility::iotrace(".S<<", addr, size);
+       iodm(line, "read", addr, size);
+
+       ServerItem* item= new ServerItem();
+       item->ioda= std::move(ioda);
+       task_inp.enqueue(item);
+     } else {
+       if( IS_BLOCK )
+         return;
+       if( !IS_RETRY ) {
+         iodm(line, "read", L);
+         error("I/O error");
+         return;
+       }
+     }
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Server::write
+//
+// Purpose-
+//       Write data segments
+//
+// Implementation notes-
+//       This can be called from out_task and async.
+//       Since these are separate tasks, locking is required.
+//
+//----------------------------------------------------------------------------
+void
+   Server::write(                   // Write data into Socket
+     int               line)        // Caller's line number
+{  if( HCDM ) debugh("%4d Server(%p)::write\n", line, this);
+
+   std::lock_guard<Server> lock(*this);
+
+   if( ioda_out.get_used() == 0 ) {
+     if( fsm & FSM_WR_DATA ) {
+       fsm &= ~FSM_WR_DATA;
+       Select* select= socket->get_select();
+       if( select )
+         select->modify(socket, POLLIN);
+     }
+     return;
+   }
 
    size_t ioda_off= 0;
    for(;;) {
 //This helps when a trace read appears before the trace write
 //Trace::trace("HCDM", __LINE__, "SSocket->write");
      Mesg mesg; ioda_out.get_wr_mesg(mesg, size_out, ioda_off);
+     if( stream )
+       stream->set_record(TimingRecord::IX_SRV_WRITE);
      ssize_t L= socket->sendmsg((msghdr*)&mesg, 0);
      iodm(__LINE__, "sendmsg", L);
      if( L > 0 ) {
@@ -388,39 +507,30 @@ void
          continue;
        }
        ioda_out.reset();
+
+       if( fsm & FSM_WR_DATA ) {
+         fsm &= ~FSM_WR_DATA;
+         Select* select= socket->get_select();
+         if( select )
+           select->modify(socket, POLLIN);
+       }
        return;
      }
 
-//   if( !IS_RETRY )                // TODO: INSERT
-     if( !IS_RETRY && !IS_BLOCK )   // TODO: REMOVE
+     if( !IS_RETRY )
        break;
+     debugf("%4d %s HCDM write retry\n", __LINE__, __FILE__);
    }
 
-   if( !IS_BLOCK )
-     throw io_error(to_string("Server::write %d:%s", errno, strerror(errno)));
+   if( !IS_BLOCK ) {
+     debugf("%4d Server::write I/O error %d:%s", __LINE__
+           , errno, strerror(errno));
+     error("I/O error");
+   }
+   ioda_out.discard(ioda_off);
+
+   fsm |= FSM_WR_DATA;
    Select* select= socket->get_select();
    select->modify(socket, POLLIN | POLLOUT);
-}
-
-void
-   Server::write(                   // Write to Server
-     int               line,        // Caller line number
-     const void*       addr,        // Data address
-     size_t            size)        // Data length
-{  if( HCDM )
-     debugh("%4d Server(%p)::write(%p,%zd)\n", line, this, addr, size);
-
-Trace::trace("HCDM", __LINE__, "SSocket->write");
-   ssize_t L= socket->write(addr, size);
-   iodm(line, "socket.write", L);
-   if( L <= 0 ) {                 // If error or EOF
-     int ERRNO= errno;
-     debugh("%4d %s HCDM %d:%s\n", line, __FILE__, errno, strerror(errno));
-     string S= utility::
-         to_string("Server::write %d:%s", ERRNO, strerror(ERRNO));
-     throw io_error(S);
-   }
-   utility::iotrace(".S>>", addr, size);
-   iodm(line, "write", addr, size);
 }
 }  // namespace _LIBPUB_NAMESPACE::http

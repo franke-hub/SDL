@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/23
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
@@ -35,6 +35,7 @@
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Thread.h>             // For pub::Thread
 
+#include "pub/http/Global.h"        // For pub::http::Global, ...
 #include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Stream.h"        // For pub::http::Stream, ...
 
@@ -68,7 +69,7 @@ class Client : public std::mutex {  // Client class (lockable)
 public:
 typedef Ioda::Size     Size;
 
-typedef std::weak_ptr<ClientAgent>            agent_ptr;
+typedef ClientAgent*                          agent_ptr;
 typedef std::shared_ptr<ClientStream>         stream_ptr;
 typedef Socket::sockaddr_u                    sockaddr_u;
 typedef dispatch::LambdaDone                  LambdaDone;
@@ -112,6 +113,8 @@ LambdaTask             task_out;    // Writer task
 
 int                    fsm= 0;      // Finite State Machine
 bool                   operational= false; // TRUE while operational
+
+TimingRecord::clock_t  last_end= {}; // Last stream end time
 
 //----------------------------------------------------------------------------
 // Client::Constructors, Creator, destructor

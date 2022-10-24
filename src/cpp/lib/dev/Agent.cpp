@@ -16,7 +16,7 @@
 //       Implement http/Agent.h
 //
 // Last change date-
-//       2022/10/17
+//       2022/10/23
 //
 // Implementation notes-
 //       TODO: Create intermediate Connector object rather than a full Client.
@@ -120,14 +120,15 @@ static in_port_t                    // The port numbername
    ClientAgent::ClientAgent( void ) // Default constructor
 :  Named("pub::http::CAgent"), Thread()
 {  if( HCDM )
-     debugh("http::ClientAgent(%p)\n", this);
+     debugh("http::ClientAgent(%p)!\n", this);
 
    start();                         // Start polling
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    ClientAgent::~ClientAgent( void ) // Destructor
 {  if( HCDM )
-     debugh("http::~ClientAgent(%p)...\n", this);
+     debugh("http::ClientAgent(%p)~...\n", this);
 
    operational= false;
    reset();                         // Disconnect all Clients
@@ -135,7 +136,7 @@ static in_port_t                    // The port numbername
    join();                          // Wait for polling completion
 
    if( HCDM )
-     debugh("...http::~ClientAgent(%p)\n", this);
+     debugh("...http::ClientAgent(%p)~\n", this);
 }
 
 //----------------------------------------------------------------------------
@@ -162,6 +163,8 @@ void
            , H.c_str(), P.c_str());
      ++index;
    }
+
+   select.debug("ClientAgent");
 }
 
 //----------------------------------------------------------------------------
@@ -175,35 +178,35 @@ void
 //----------------------------------------------------------------------------
 std::shared_ptr<Client>             // The associated Client
    ClientAgent::connect(            // Create Client connection
-     string            host,        // The host:port name
+     string            peer,        // The peer:port name
      const Options*    opts)        // The associated Options
 {
    if( HCDM )
-     debugh("http::ClientAgent(%p)::connect(%s)\n", this, host.c_str());
+     debugh("http::ClientAgent(%p)::connect(%s)\n", this, peer.c_str());
 
    for(int index= 0; index < 2; ++index ) { // Try AF_INET, AF_INET6
-     sockaddr_storage host_id;
-     socklen_t host_sz= sizeof(host_id);
+     sockaddr_storage peer_addr;
+     socklen_t peer_sz= sizeof(peer_addr);
      int AF= index ? AF_INET6 : AF_INET;
-     int rc= Socket::name_to_addr(host, (sockaddr*)&host_id, &host_sz, AF);
+     int rc= Socket::name_to_addr(peer, (sockaddr*)&peer_addr, &peer_sz, AF);
      if( rc ) {                     // If error
        if( VERBOSE > 1 )
-         debugf("ClientAgent::connect(%s) failure %s\n", host.c_str()
+         debugf("ClientAgent::connect(%s) failure %s\n", peer.c_str()
                , index ? "ipv6" : "ipv4");
        continue;
      }
 
      // Create a new Client
-     sockaddr_u peer_addr;
-     peer_addr.copy(&host_id, host_sz);
+     sockaddr_u peer_id;
+     peer_id.copy(&peer_addr, peer_sz);
 
      std::shared_ptr<Client>
-     client= Client::make(this, peer_addr, host_sz, opts);
+     client= Client::make(this, peer_id, peer_sz, opts);
      if( client->get_handle() <= 0 ) // If connect failure
        continue;
 
      // Add client to map, returning the Client
-     map_insert(peer_addr, client->get_host_addr(), client);
+     map_insert(peer_id, client->get_host_addr(), client);
      return client;
    }
 
@@ -296,6 +299,8 @@ void
      if( socket ) {
        const struct pollfd* info= select.get_pollfd(socket);
        socket->do_select(info->revents);
+     } else if( HCDM ) {
+       debugh("ClientAgent idle poll\n");
      }
    }
 
@@ -322,7 +327,7 @@ void
 //----------------------------------------------------------------------------
 void
    ClientAgent::map_insert(         // Associate
-     const key_t&       key,        // This Server/Client pair with
+     const key_t&       key,        // This Client/Server pair with
      std::shared_ptr<Client>
                        client)      // This Client
 {
@@ -343,6 +348,7 @@ void
            , string(key).c_str());
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::shared_ptr<Client>             // The associated Client
    ClientAgent::map_locate(         // Locate Client
      const key_t&      key) const   // For this Client/Server pair
@@ -364,9 +370,10 @@ std::shared_ptr<Client>             // The associated Client
    return client;
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    ClientAgent::map_remove(         // Remove Client
-     const key_t&       key)        // For this sockaddr_u
+     const key_t&       key)        // For this Client/Server pair
 {
    std::shared_ptr<Client> client;  // Default, not found
 
@@ -390,38 +397,49 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerAgent::~ServerAgent
-//       ServerAgent::ServerAgent
+//       ListenAgent::ListenAgent
+//       ListenAgent::~ListenAgent
 //
 // Purpose-
-//       Destructor
 //       Constructors
+//       Destructor
 //
 //----------------------------------------------------------------------------
-   ServerAgent::~ServerAgent( void ) // Destructor
+   ListenAgent::ListenAgent( void ) // Default constructor
+:  Named("pub::http::LAgent"), Thread()
 {  if( HCDM )
-     debugh("http::~ServerAgent(%p)\n", this);
+     debugh("http::ListenAgent(%p)!\n", this);
 
-   reset();
+   start();
 }
 
-   ServerAgent::ServerAgent( void ) // Default constructor
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   ListenAgent::~ListenAgent( void ) // Destructor
 {  if( HCDM )
-     debugh("http::ServerAgent(%p)\n", this);
+     debugh("http::ListenAgent(%p)~...\n", this);
+
+   operational= false;
+   reset();                         // Disconnect all Listeners
+   select.tickle();                 // Drive polling completion
+   join();                          // Wait for polling completion
+
+   if( HCDM )
+     debugh("...http::ListenAgent(%p)~\n", this);
+   reset();
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerAgent::debug
+//       ListenAgent::debug
 //
 // Purpose-
 //       Debugging display
 //
 //----------------------------------------------------------------------------
 void
-   ServerAgent::debug(const char* info) const // Debugging display
-{  debugf("http::ServerAgent(%p)::debug(%s)\n", this, info);
+   ListenAgent::debug(const char* info) const // Debugging display
+{  debugf("http::ListenAgent(%p)::debug(%s)\n", this, info);
 
    int index= 0;                    // (Artificial) index
    for(const_iterator it= map.begin(); it != map.end(); ++it) {
@@ -430,18 +448,152 @@ void
      debugf("..[%2d] Listen(%p): %s\n", index, listen.get(), S.c_str());
      ++index;
    }
+
+   select.debug("ListenAgent");
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerAgent::get_server
-//       ServerAgent::map_insert
-//       ServerAgent::map_locate
-//       ServerAgent::map_remove
+//       ListenAgent::connect
 //
 // Purpose-
-//       Get Server connectionID
+//       Create Listen connection
+//
+//----------------------------------------------------------------------------
+std::shared_ptr<Listen>             // The associated server Listener
+   ListenAgent::connect(            // Create server Listener
+     std::string       host,        // The host:port name
+     sa_family_t       family,      // The address family
+     const Options*    opts)        // The associated Options
+{
+   if( HCDM )
+     debugh("http::ListenAgent(%p)::connect(%s)\n", this, host.c_str());
+
+   sockaddr_storage host_addr;
+   socklen_t host_sz= sizeof(host_addr);
+   int rc= Socket::name_to_addr(host, (sockaddr*)&host_addr, &host_sz, family);
+   if( rc ) {                       // If error
+     if( VERBOSE > 1 )
+       debugh("ListenAgent::connect(%s) connect failure\n", host.c_str());
+     errno= EINVAL;
+     return nullptr;
+   }
+
+   sockaddr_u host_id;
+   host_id.copy(&host_addr, host_sz);
+
+   // Reuse existing Listen
+   std::shared_ptr<Listen> listen= map_locate(host_id);
+   if( listen.get() )               // If already in map, use it
+     return listen;
+
+   // No existing Listen, create one
+   listen= Listen::make(this, host_id, host_sz, opts);
+   if( listen->get_handle() <= 0 ) { // If connect failure
+     errno= EINVAL;
+     return nullptr;
+   }
+
+   map_insert(host_id, listen);      // Add Listen to map
+   return listen;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ListenAgent::disconnect
+//
+// Purpose-
+//       Remove Server Listener
+//
+//----------------------------------------------------------------------------
+void
+   ListenAgent::disconnect(         // Remove Server Listener
+     Listen*           listen)      // For this Listener
+{  if( HCDM )
+     debugh("ListenAgent(%p)::disconnect(%p)\n", this, listen);
+
+   {{{{
+     std::lock_guard<decltype(mutex)> lock(mutex);
+
+     map.erase(listen->get_host_addr()); // Remove Listener from map
+   }}}}
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ListenAgent::reset
+//
+// Purpose-
+//       Reset the ListenAgent
+//
+//----------------------------------------------------------------------------
+void
+   ListenAgent::reset( void )       // Reset the ListenAgent
+{  if( HCDM ) debugh("ListenAgent(%p)::reset\n", this);
+
+   std::list<std::weak_ptr<Listen>> list;
+
+   if( HCDM )
+     debugh("%4d ListenAgent HCDM copying the Listen list...\n", __LINE__);
+   {{{{                             // Copy the Listen list
+     std::lock_guard<decltype(mutex)> lock(mutex);
+
+     for(auto it : map ) {
+       std::shared_ptr<Listen> listen= it.second;
+       list.emplace_back(listen);
+     }
+   }}}}
+
+   if( HCDM )
+     debugh("%4d ListenAgent HCDM deleting Listens...\n", __LINE__);
+   for(auto it : list) {
+     std::shared_ptr<Listen> listen= it.lock();
+     if( listen )
+       listen->reset();
+   }
+
+   if( HCDM )
+     debugf("...All Listens deleted\n");
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ListenAgent::run
+//
+// Purpose-
+//       Run the ListenAgent socket selector
+//
+//----------------------------------------------------------------------------
+void
+   ListenAgent::run( void )        // Run the ListenAgent socket selector
+{  if( HCDM ) debugh("%4d ListenAgent(%p)::run...\n", __LINE__, this);
+
+   while( operational ) {
+     Socket* socket= select.select(POLL_TIMEOUT);
+     if( socket ) {
+       const struct pollfd* info= select.get_pollfd(socket);
+       socket->do_select(info->revents);
+     } else if( HCDM ) {
+       debugh("ListenAgent idle poll\n");
+     }
+   }
+
+   if( HCDM )
+     debugh("%4d ...ListenAgent(%p)::run\n", __LINE__, this);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ListenAgent::map_insert
+//       ListenAgent::map_locate
+//       ListenAgent::map_remove
+//
+// Purpose-
 //       Insert sockaddr_u::Listen* map entry
 //       Locate Listen* from sockaddr_u
 //       Remove sockaddr_u::Listen* map entry
@@ -450,41 +602,13 @@ void
 //       Protected by mutex
 //
 //----------------------------------------------------------------------------
-int                                 // Return code, 0 expected
-   ServerAgent::get_server(         // Get Server connectionID
-     string            host_,       // *INP* The host name (for interface)
-     string            port_,       // *INP* The port number or service name
-     sockaddr_u&       sock_addr,   // *OUT* The sockaddr_u
-     socklen_t&        sock_size,   // *OUT* The sockaddr length
-     sa_family_t       family)      // The address family
-{
-   sock_addr.reset();               // Initialize resultant
-   sock_size= 0;
-
-   if( host_ == "" )                // If defaulted host
-     host_= Socket::gethostname();
-   string nps= host_; nps += ':'; nps += port_;
-   sockaddr_storage peeraddr;
-   socklen_t peersize= sizeof(peeraddr);
-   int rc= Socket::name_to_addr(nps, (sockaddr*)&peeraddr, &peersize, family);
-   if( rc ) {                       // If error
-     debugh("ClientAgent::connect(%s) invalid host:port\n", nps.c_str());
-     connect_error= rc;
-     return -1;
-   }
-
-   sock_addr.copy((sockaddr*)&peeraddr, peersize);
-   sock_size= peersize;
-   return 0;
-}
-
 std::shared_ptr<Listen>             // The associated Listen
-   ServerAgent::map_insert(         // Associate
+   ListenAgent::map_insert(         // Associate
      const sockaddr_u& id,          // This sockaddr_u with
      std::shared_ptr<Listen>
                        listen)      // This Listen
 {  if( HCDM )
-     debugh("http::ServerAgent(%p)::insert(%s)\n", this
+     debugh("http::ListenAgent(%p)::insert(%s)\n", this
            , id.to_string().c_str());
 
    {{{{
@@ -498,14 +622,15 @@ std::shared_ptr<Listen>             // The associated Listen
    }}}}
 
    if( HCDM )
-     debugh("%p= ServerAgent(%p)::insert(%s)\n", listen.get(), this
+     debugh("%p= ListenAgent(%p)::insert(%s)\n", listen.get(), this
            , id.to_string().c_str());
 
    return listen;
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::shared_ptr<Listen>             // The associated Listen
-   ServerAgent::map_locate(         // Locate Listen
+   ListenAgent::map_locate(         // Locate Listen
      const sockaddr_u& id) const    // For this sockaddr_u
 {
    std::shared_ptr<Listen> listen;  // Default, not found
@@ -520,14 +645,15 @@ std::shared_ptr<Listen>             // The associated Listen
 
    if( HCDM ) {
      string S= id.to_string();
-     debugh("%p= ServerAgent(%p)::locate(%s)\n", listen.get(), this, S.c_str());
+     debugh("%p= ListenAgent(%p)::locate(%s)\n", listen.get(), this, S.c_str());
    }
 
    return listen;
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::shared_ptr<Listen>             // The associated Listen
-   ServerAgent::map_remove(         // Remove Listen
+   ListenAgent::map_remove(         // Remove Listen
      const sockaddr_u& id)          // For this sockaddr_u
 {
    std::shared_ptr<Listen> listen;  // Default, not found
@@ -544,124 +670,9 @@ std::shared_ptr<Listen>             // The associated Listen
 
    if( HCDM ) {
      string S= id.to_string();
-     debugh("%p= ServerAgent(%p)::remove(%s)\n", listen.get(), this, S.c_str());
+     debugh("%p= ListenAgent(%p)::remove(%s)\n", listen.get(), this, S.c_str());
    }
 
    return listen;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ServerAgent::connect
-//
-// Purpose-
-//       Create Listen connection
-//
-//----------------------------------------------------------------------------
-std::shared_ptr<Listen>             // The associated server Listener
-   ServerAgent::connect(            // Create server Listener
-     string            host_,       // The host name (for interface)
-     string            port_,       // The port number or name (HTTP, ...)
-     sa_family_t       family,      // The address family
-     const Options*    opts)        // The associated Options
-{
-   const char* port= port_.c_str();
-   if( HCDM )
-     debugh("http::ServerAgent(%p)::connect(%s:%d)\n", this, port, family);
-
-   sockaddr_u id;                   // (Set by get_server)
-   socklen_t  sz;                   // (Set by get_server)
-   int rc= get_server(host_, port_, id, sz, family);
-   if( rc )                         // If unknown host/port
-     return nullptr;                // Return, error reported by get_server
-
-   std::shared_ptr<Listen> listen= map_locate(id);
-   if( listen.get() )               // If already in map, use it
-     return listen;
-
-   // No existing Listen, create one
-   listen= Listen::make(this, id, sz, opts);
-   if( listen->get_handle() <= 0 )  // If connect failure
-     return nullptr;                // Return, error reported by Listen
-
-   map_insert(id, listen);          // Add Listen to map
-
-   return listen;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ServerAgent::disconnect
-//
-// Purpose-
-//       Remove Server Listener
-//
-//----------------------------------------------------------------------------
-void
-   ServerAgent::disconnect(         // Remove Server Listener
-     Listen*           listen)      // For this Listener
-{  if( HCDM )
-     debugh("ServerAgent(%p)::disconnect(%p)\n", this, listen);
-
-   map.erase(listen->get_host_addr()); // Remove Listener from map
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ServerAgent::reset
-//
-// Purpose-
-//       Reset the ServerAgent
-//
-//----------------------------------------------------------------------------
-void
-   ServerAgent::reset( void )       // Reset the ServerAgent
-{  if( HCDM ) debugh("ServerAgent(%p)::reset\n", this);
-
-   std::list<std::weak_ptr<Listen>> list;
-
-   if( HCDM )
-     debugh("%4d ServerAgent HCDM copying the Listen list...\n", __LINE__);
-   {{{{                             // Copy the Listen list
-     std::lock_guard<decltype(mutex)> lock(mutex);
-
-     for(auto it : map ) {
-       std::shared_ptr<Listen> listen= it.second;
-       list.emplace_back(listen);
-     }
-   }}}}
-
-   if( HCDM )
-     debugh("%4d ServerAgent HCDM deleting Listens...\n", __LINE__);
-   for(auto it : list) {
-     std::shared_ptr<Listen> listen= it.lock();
-     if( listen )
-       listen->reset();
-   }
-
-   if( HCDM )
-     debugf("...All Listens deleted\n");
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ServerAgent::run
-//
-// Purpose-
-//       Run the ServerAgent socket selector
-//
-//----------------------------------------------------------------------------
-void
-   ServerAgent::run( void )        // Run the ClientAgent socket selector
-{  if( HCDM ) debugh("ServerAgent(%p)::run\n", this);
-// debugf("[%s]=%p ServerAgent\n", get_id_string().c_str(), this);
-
-   while( operational ) {
-     throw "SHOULD NOT OCCUR"; // NOT CODED YET
-   }
 }
 }  // namespace _LIBPUB_NAMESPACE::::http

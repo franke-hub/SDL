@@ -16,7 +16,7 @@
 //       Implement http/Request.h
 //
 // Last change date-
-//       2022/10/19
+//       2022/10/23
 //
 // Implementation notes-
 //       TODO: Consider moving ClientRequest::write to Client::write
@@ -409,7 +409,8 @@ bool                                // Return code, TRUE when complete
 
    ioda += std::move(data);
 
-   std::shared_ptr<Server> server= get_stream()->get_server();
+   std::shared_ptr<ServerStream> stream= get_stream();
+   std::shared_ptr<Server> server= stream->get_server();
    if( server.get() == nullptr )
      return true;
 
@@ -528,11 +529,9 @@ debugf("Request name(%s) value(%s)\n", name.c_str(), value.c_str());
    }
 
    // Drive Listen::on_request
-   std::shared_ptr<Listen> listen= server->get_listen();
-   if( !listen )
-     throw "SHOULD NOT OCCUR";    // We have the Listener's Server*, after all
-
-   listen->do_request(this);
+   stream->set_record(TimingRecord::IX_SRV_REQ_DO);
+   server->get_listen()->do_request(this);
+   stream->set_record(TimingRecord::IX_SRV_REQ_DONE);
    return true;
 }
 }  // namespace _LIBPUB_NAMESPACE::http

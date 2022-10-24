@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2022/10/16
+##       2022/10/23
 ##
 ##############################################################################
 
@@ -37,6 +37,7 @@ LIBOBJ := $(patsubst $(OBJDIR)/T_Stream.o,,$(LIBOBJ))
 LIBOBJ := $(patsubst $(OBJDIR)/TestIoda.o,,$(LIBOBJ))
 
 LLIBS  += -L. -llocal
+CLIBS  += -lrt
 
 ##############################################################################
 ## Set default target
@@ -147,6 +148,7 @@ pristine.dir: ;
 	-@rm -f private.pem >/dev/null 2>/dev/null
 	-@rm -f public.pem  >/dev/null 2>/dev/null
 	-@rm -f log/*       >/dev/null 2>/dev/null
+	-@rm -f trace.mem   >/dev/null 2>/dev/null
 
 clean : clean.dir
 clean.dir: ;

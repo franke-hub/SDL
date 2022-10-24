@@ -16,7 +16,7 @@
 //       HTTP Response information.
 //
 // Last change date-
-//       2022/10/19
+//       2022/10/23
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_RESPONSE_H_INCLUDED
@@ -71,7 +71,6 @@ std::weak_ptr<Response>self;        // Self reference
 std::shared_ptr<Stream>stream;      // Associated Stream
 
 Ioda                   ioda;        // Response data area accumulator
-//size_t                 ioda_off;    // Response data area offset
 int                    code= 0;     // Response code
 int                    fsm= 0;      // Finite State Machine
 

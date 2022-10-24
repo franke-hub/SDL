@@ -16,14 +16,13 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2022/10/17
+//       2022/10/23
 //
 // Implementation notes-
-//       TODO: Add polling flag in select, used for timeouts.
-//
-// Implementation notes-
-//       Throughput: W: 5584.4/sec  L: 518.6/sec protocol1a (http1)
-//       Throughput: W: 4088.7/sec  L: 307.5/sec protocol1b (*removed*)
+//       Throughput: W: 4,088.7/sec  L:   307.5/sec protocol1b (*removed*)
+//       Throughput: W: 5,584.4/sec  L:   518.6/sec protocol1a (http1)
+//       Throughput: W: --stress=1   L: --stress=10 --runtime=5
+//       Throughput: W: 5,955.8/sec  L: 58,269.4/sec (http1) asynchronous
 //
 //----------------------------------------------------------------------------
 #define OPENSSL_API_COMPAT 30000    // Deprecate OSSL functions < 3.0.0
@@ -41,6 +40,7 @@
 #include <arpa/inet.h>              // For inet_ntop
 #include <openssl/err.h>            // For openssl error handling
 #include <openssl/ssl.h>            // For openssl core library
+#include <time.h>                   // For clock_gettime
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Dispatch.h>           // For pub::Dispatch objects
@@ -53,6 +53,7 @@
 
 #include "pub/http/Agent.h"         // For pub::http::ClientAgent (owner)
 #include "pub/http/Client.h"        // For pub::http::Client, implementated
+#include "pub/http/Global.h"        // For pub::http::Global, ...
 #include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Exception.h"     // For pub::http::exceptions
 #include "pub/http/Options.h"       // For pub::http::Options
@@ -132,14 +133,14 @@ static constexpr CC*   HTTP_S2=   Options::HTTP_PROTOCOL_S2; // HTTPS/2
 //----------------------------------------------------------------------------
 class ClientItem : public dispatch::Item { // Client DispatchItem
 public:
-typedef std::shared_ptr<ClientStream>         client_ptr;
+typedef std::shared_ptr<ClientStream>         stream_ptr;
 
-client_ptr             stream;      // The associated ClientStream
+stream_ptr             stream;      // The associated ClientStream
 Ioda                   ioda;        // The Input/Output Data Area
 
    ClientItem(                      // Constructor
-     client_ptr        S)           // The ClientStream
-:  dispatch::Item(), stream(S->get_self())
+     stream_ptr        S)           // The ClientStream
+:  dispatch::Item(), stream(S)
 {  if( HCDM && VERBOSE > 0 ) debugh("ClientItem(%p)!\n", this);
 
    INS_DEBUG_OBJ("ClientItem");
@@ -275,15 +276,12 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       i2v
 //       s2v
 //
 // Purpose-
-//       Convert integer to void*
 //       Convert size_t  to void*
 //
 //----------------------------------------------------------------------------
-static inline void* i2v(int i)    { return (void*)intptr_t(i); }
 static inline void* s2v(size_t s) { return (void*)intptr_t(s); }
 
 //----------------------------------------------------------------------------
@@ -324,7 +322,7 @@ static SSL_CTX*
      const Options*    opts)        // Client Options
 :  std::mutex()
 ,  h_close([]() {})
-,  agent(owner->get_self())
+,  agent(owner)
 ,  proto_id(HTTP_H1)
 ,  sem_rd(0), sem_wr(1)
 ,  size_inp(BUFFER_SIZE)
@@ -458,7 +456,7 @@ void
          , info, operational, fsm);
 
    debugf("..agent(%p) context(%p) proto_id(%s) sem_rd(%u) sem_wr(%u)\n"
-         , agent.lock().get(), context, proto_id
+         , agent, context, proto_id
          , sem_rd.get_count(), sem_wr.get_count());
    socket->debug("Client.socket");
 }
@@ -477,7 +475,9 @@ void
      int               revent)      // Polling revent
 {  if( HCDM )
      debugh("Client(%p)::async(%.4x) fsm(%.4x)\n", this, revent, fsm);
-   Trace::trace(".CLI", ".APE", this, s2v((size_t(revent) << 32) | fsm));
+   Trace::trace(".CLI", ".APE", this, s2v((size_t(revent) << 16) | fsm));
+
+   stream->set_record(TimingRecord::IX_CLI_ASYNC);
 
    // If a Socket error occurred
    if( revent & (POLLERR | POLLNVAL) ) {
@@ -531,10 +531,7 @@ void
    wait();                          // Flush the work queue
    // Note: Must call agent->disconnect before socket->close.
    // The Socket's peer_addr is needed for the Agent's map lookup.
-   std::shared_ptr<ClientAgent> agent= this->agent.lock();
-   if( agent ) {                    // Report close to Agent
-     agent->disconnect(this);
-   }
+   agent->disconnect(this);
    socket->close();                 // Close the Socket (immediate halt)
    h_close();                       // Drive the close handler
 }
@@ -573,6 +570,7 @@ void
    h_iptask= [this](ClientItem* item) // Input task
    { if( HCDM ) debugh("Client(%p)::h_iptask(%p)\n", this, item);
 
+     stream->set_record(TimingRecord::IX_DEQ_RESP);
      if( item->stream->read(item->ioda) ) // If operation complete
        sem_rd.post();
      item->post();                  // (Omitted line found using Diagnostic.h)
@@ -585,6 +583,7 @@ void
      // debugh("%4d %s HCDM\n", __LINE__, __FILE__);
      stream_item= item;
      stream= item->stream;
+     stream->set_record(TimingRecord::IX_DEQ_WRITE);
      try {
        // Format the request buffer
        std::shared_ptr<ClientRequest> request= stream->get_request();
@@ -649,6 +648,7 @@ void
        if( content_length )
          fsm |= FSM_WR_DATA;
        h_writer();
+//     stream->set_record(TimingRecord::IX_CLI_WAIT);
        sem_rd.wait();               // Wait for response
      } catch(Exception& X) {
        errorh("%4d %s %s\n", __LINE__, __FILE__, ((std::string)X).c_str());
@@ -673,6 +673,9 @@ void
      }
 
      // Stream processing is complete
+     TimingRecord::record(&last_end);
+     stream->set_record(TimingRecord::IX_RSP_POST);
+     stream->end();
      stream= nullptr;
      stream_item= nullptr;
      item->post();
@@ -769,6 +772,14 @@ std::shared_ptr<ClientRequest>      // The associated ClientRequest
    std::shared_ptr<ClientStream> stream= ClientStream::make(this, opts);
    std::shared_ptr<ClientRequest> request= stream->get_request();
 
+   TimingRecord* record= stream->get_record();
+   if( record ) {
+     ClientConnectionPair key(socket->get_peer_addr(), socket->get_host_addr());
+     Global::global->map[key]= record;
+
+     stream->set_record(TimingRecord::IX_ON_END, last_end);
+     stream->set_record(TimingRecord::IX_CLI_CREATE);
+   }
    return request;
 }
 
@@ -798,6 +809,7 @@ void
    for(;;) {
 // This helps when a trace read appears before the trace write
 // Trace::trace("HCDM", __LINE__, "CSocket->read");
+     stream->set_record(TimingRecord::IX_CLI_READ);
      ssize_t L= socket->recvmsg((msghdr*)&mesg, 0);
      iodm(line, "read", L);
      if( L > 0 ) {
@@ -810,11 +822,13 @@ void
        iodm(line, "read", addr, size);
        ClientItem* item= new ClientItem(stream);
        item->ioda= std::move(ioda);
+       stream->set_record(TimingRecord::IX_ENQ_RESP);
        task_inp.enqueue(item);
        return;
      }
      if( !IS_RETRY )
        throw io_error(to_string("Client::read %d:%s", errno, strerror(errno)));
+     debugf("%4d %s HCDM read retry\n", __LINE__, __FILE__);
    }
 }
 
@@ -835,6 +849,7 @@ ssize_t                             // Written length
    for(;;) {
 Trace::trace("HCDM", __LINE__, "CSocket->write");
      Mesg mesg; ioda_out.get_wr_mesg(mesg, size_out, ioda_off);
+     stream->set_record(TimingRecord::IX_CLI_WRITE);
      ssize_t L= socket->sendmsg((msghdr*)&mesg, 0);
      iodm(line, "sendmsg", L);
      if( L > 0 ) {
@@ -855,6 +870,7 @@ Trace::trace("HCDM", __LINE__, "CSocket->write");
 
      if( !IS_RETRY )
        break;
+     debugf("%4d %s HCDM write retry\n", __LINE__, __FILE__);
    }
 
    if( !IS_BLOCK )
@@ -890,6 +906,7 @@ Trace::trace(".CNQ", 0, temp);      // (Client eNQueue)
    int rc= ClientItem::CC_PURGE;    // Default, not sent
    if( socket->get_handle() >= 0 ) {
      ClientItem* item= new ClientItem(S->get_self());
+     S->set_record(TimingRecord::IX_ENQ_WRITE);
      task_out.enqueue(item);
      rc= 0;
    }

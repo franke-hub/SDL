@@ -16,7 +16,7 @@
 //       HTTP Server object.
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/23
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_SERVER_H_INCLUDED
@@ -28,9 +28,8 @@
 #include <mutex>                    // For std::mutex, super class
 #include <string>                   // For std::string
 
-#include <pub/Named.h>              // For pub::Named, super class
+#include <pub/Dispatch.h>           // For namespace pub::dispatch objects
 #include <pub/Socket.h>             // For pub::Socket
-#include <pub/Thread.h>             // For pub::Thread, super class
 
 #include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Options.h"       // For pub::http::Options
@@ -43,6 +42,7 @@ namespace http {
 // Forward references
 //----------------------------------------------------------------------------
 class Listen;
+class ServerItem;                   // (Internal)
 
 //----------------------------------------------------------------------------
 //
@@ -53,7 +53,7 @@ class Listen;
 //       Define the Server class.
 //
 //----------------------------------------------------------------------------
-class Server : public Named, public Thread, public std::mutex { // Server class
+class Server : public std::mutex {  // Server class (lockable)
 //----------------------------------------------------------------------------
 // Server::Typedefs and enumerations
 //----------------------------------------------------------------------------
@@ -61,6 +61,8 @@ public:
 typedef Ioda::Mesg                            Mesg;
 typedef Ioda::Size                            Size;
 typedef Socket::sockaddr_u                    sockaddr_u;
+typedef dispatch::LambdaTask                  LambdaTask;
+
 typedef std::shared_ptr<ServerStream>         stream_ptr;
 typedef std::string                           string;
 
@@ -77,7 +79,7 @@ f_error                h_error;     // The error event handler
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::weak_ptr<Server>  self;        // Self reference
-std::weak_ptr<Listen>  listen;      // Our owning Listener
+Listen*                listen;      // Our owning Listener
 
 Ioda                   ioda_out;    // The output data area
 Size                   size_inp;    // The input data area length
@@ -85,8 +87,10 @@ Size                   size_out;    // The output data area length
 Socket*                socket= nullptr; // The connection Socket
 stream_ptr             stream;      // The current Stream
 StreamSet              stream_set;  // Our set of Streams
+LambdaTask             task_inp;    // Reader task
+LambdaTask             task_out;    // Writer task
 
-int                    fsm= 0;      // Finite State Machine (TODO: USED?)
+int                    fsm= 0;      // Finite State Machine state
 bool                   operational= false; // TRUE while operational
 
 //----------------------------------------------------------------------------
@@ -94,15 +98,14 @@ bool                   operational= false; // TRUE while operational
 //----------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------
-// Server::Constructors, Creator, destructor
+// Server::Constructors, destructor, creator
 //----------------------------------------------------------------------------
 public:
    Server(Listen*, Socket*);        // Constructor
+   ~Server( void );                 // Destructor
 
 static std::shared_ptr<Server>
    make(Listen*, Socket*);          // Creator
-
-   ~Server( void );                 // Destructor
 
 //----------------------------------------------------------------------------
 // Server::Accessor methods
@@ -113,9 +116,9 @@ int                                 // The socket handle
    get_handle( void ) const         // Get socket handle
 {  return socket->get_handle(); }
 
-std::shared_ptr<Listen>             // The Listener
+Listen*                             // The Listener
    get_listen( void ) const         // Get Listener
-{  return listen.lock(); }
+{  return listen; }
 
 const sockaddr_u&                   // The Server's internet address
    get_host_addr( void ) const      // Get Server's internet address
@@ -145,32 +148,28 @@ void
 // Server::Methods
 //----------------------------------------------------------------------------
 void
+   async(int);                      // Handle asynchronous event
+
+void
    close( void );                   // Close the server
 
 void
    error(const char*);              // Handle connection error
 
-virtual void
-   join( void );                    // Wait for Server completion
+void
+   inp_task(ServerItem*);           // Input (reader) task handler
 
-virtual void
-   run( void );                     // Operate the server
+void
+   out_task(ServerItem*);           // Output (writer) task handler
 
 void write(Ioda&);                  // Write to Socket
 
 //----------------------------------------------------------------------------
 // Server::Protected methods
 //----------------------------------------------------------------------------
-// protected:
-void read(int);                     // Handle read (line number)
-
-void read( void )                   // Handle read
-{  read(0); }
-
-void write(int, const void*, size_t); // Write to Socket
-
-void write(const void* addr, size_t size) // Write to Socket
-{  write(0, addr, size); }
+protected:
+void read(int line= 0);             // Handle read (line number)
+void write(int line= 0);            // Handle write (line number)
 }; // class Server
 
 //----------------------------------------------------------------------------
@@ -186,6 +185,7 @@ class ServerApp {
 //----------------------------------------------------------------------------
 // ServerApp::Attributes
 //----------------------------------------------------------------------------
+// NOT CODED YET
 
 //----------------------------------------------------------------------------
 // ServerApp::Constructor, destructor
@@ -197,7 +197,7 @@ public:
 //----------------------------------------------------------------------------
 // ServerApp::Methods
 //----------------------------------------------------------------------------
-}; // class ClientApp
+}; // class ServerApp
 }  // namespace http
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_HTTP_SERVER_H_INCLUDED

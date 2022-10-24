@@ -16,7 +16,7 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2022/10/17
+//       2022/10/23
 //
 // Implementation notes-
 //       TODO: Create ClientListen and ServerListen, used by ClientAgent.
@@ -46,9 +46,10 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Socket.h>             // For pub::Socket
+#include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For pub::utility::to_string(), ...
 
-#include "pub/http/Agent.h"         // For pub::http::ServerAgent, owner
+#include "pub/http/Agent.h"         // For pub::http::ListenAgent, owner
 #include "pub/http/Listen.h"        // For pub::http::Listen, implemented
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Request.h"       // For pub::http::Request
@@ -66,6 +67,7 @@ namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 ,  DEFAULT_PORT= 8080               // Default port number
 }; // enum
@@ -101,12 +103,11 @@ static void
 //
 //----------------------------------------------------------------------------
    Listen::Listen(                  // Default constructor
-     ServerAgent*      agent,       // The creating ServerAgent
+     ListenAgent*      owner,       // The creating ListenAgent
      const sockaddr_u& addr,        // Target internet address
      socklen_t         size,        // sizeof(addr)
      const Options*    opts_)       // Listener Options
-:  Named("pub::http::Listen"), Thread()
-,  agent(agent ? agent->get_self() : nullptr)
+:  agent(owner)
 ,  listen(), map(), mutex(), log(LOG_FILE)
 ,  operational(false)
 ,  h_close([](void) { })
@@ -131,11 +132,22 @@ static void
    int optval= true;                // (Needed *before* the bind)
    listen.set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
-   rc= listen.bind(&addr.sa, size); // Initialize the server
+   rc= listen.bind(&addr.sa, size); // Initialize the Listen socket
    if( rc ) {                       // If failure
      report_error(__LINE__, "bind");
      return;
    }
+
+   rc= listen.listen();
+   if( rc != 0 ) {
+     report_error(__LINE__, "listen");
+     return;
+   }
+
+   // Initialize asynchronous operation
+   listen.set_flags( listen.get_flags() | O_NONBLOCK );
+   listen.on_select([this](int revent) { async(revent); });
+   owner->select.insert(&listen, POLLIN);
 
    // We are operational
    log.set_file_mode("ab");
@@ -143,7 +155,7 @@ static void
      logf("Server: http://%s\n", addr.to_string().c_str());
 
    operational= true;
-   start();
+   INS_DEBUG_OBJ("*Listen*");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -155,12 +167,13 @@ static void
      debugf("\n\n%d %s >>>>>>>> UNEXPECTED <<<<<<<<\n\n", __LINE__, __FILE__);
      reset();
    }
+   REM_DEBUG_OBJ("*Listen*");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::shared_ptr<Listen>
    Listen::make(                    // Create Listener
-     ServerAgent*      agent,       // The creating ServerAgent
+     ListenAgent*      agent,       // The creating ListenAgent
      const sockaddr_u& addr,        // Target internet address
      socklen_t         size,        // sizeof(addr)
      const Options*    opts)        // Listener Options
@@ -234,6 +247,59 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Listen::async
+//
+// Purpose-
+//       Handle asynchronous polling event
+//
+//----------------------------------------------------------------------------
+void
+   Listen::async(                   // Handle Asynchronous Polling Event
+     int               revent)      // Polling revent
+{  if( HCDM )
+     debugh("Listen(%p)::async(%.4x)\n", this, revent);
+
+   if( !operational )
+     return;
+
+   if( revent & (POLLERR | POLLNVAL) ) {
+     debugf("%4d HCDM Listen revent(%.4x)\n", __LINE__, revent);
+     return;
+   }
+
+   Socket* socket= listen.accept();
+   if( socket == nullptr ) {
+     debugh("%4d %s accept error ignored: %d:%s\n", __LINE__, __FILE__
+           , errno, strerror(errno));
+     return;
+   }
+
+   // Validate the socket family
+   const sockaddr_u& id= socket->get_peer_addr(); // ConnectionID
+   if( !Socket::is_valid(id.su_af) ) { // If invalid socket family
+debugf("%4d host(%s) peer(%s)\n", __LINE__, socket->get_host_addr().to_string().c_str(), socket->get_peer_addr().to_string().c_str());
+     trace(__LINE__, "sa_family(%d)", id.su_af);
+     delete socket;
+     return;
+   }
+
+   // Add server to map
+   // Implementation note: additional locking is not required because
+   // new Server objects are only created here.
+   std::shared_ptr<Server> server= Server::make(this, socket);
+   std::shared_ptr<Server> insert= map_insert(id, server);
+   if( server.get() != insert.get() ) { // If duplicate entry
+     string S= id.to_string();
+     debugh("%4d %s DUPLICATED %s\n", __LINE__, __FILE__, S.c_str());
+     insert->close();           // Terminate the existing server
+     map_remove(id);            // Remove the inserted server from the map
+     server= nullptr;           // Disallow the new connection
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Listen::close
 //
 // Purpose-
@@ -247,10 +313,8 @@ void
 
    operational= false;
 
-   // Disconnect from the Agent (Must be before close)
-   std::shared_ptr<ServerAgent> agent= this->agent.lock();
-   if( agent )
-     agent->disconnect(this);
+   // Disconnect from the Agent (Must be before socket close)
+   agent->disconnect(this);
 
    // Make a dummy Listen connection
    Socket socket;
@@ -262,7 +326,7 @@ void
    // Close the Listen Socket
    if( rc == 0 )
      rc= listen.close();            // Close the Listener Socket
-   if( rc )
+   if( rc && VERBOSE > 1 )
      report_error(__LINE__, "close");
    h_close();                       // Drive the close handler
 
@@ -286,6 +350,99 @@ void
      debugh("Listen(%p)::disconnect(%p)\n", this, server );
 
    map.erase(server->get_peer_addr()); // Remove element from map
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Listen::logf
+//
+// Purpose-
+//       Write to log file
+//
+//----------------------------------------------------------------------------
+void
+   Listen::logf(                    // Write to log file
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // The PRINTF argument list
+{
+   va_list             argptr;      // Argument list pointer
+
+   va_start(argptr, fmt);           // Initialize va_ functions
+   log.vtracef(fmt, argptr);
+   va_end(argptr);                  // Close va_ functions
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Listen::opt_append
+//       Listen::opt_reset
+//
+// Purpose-
+//       Append Options
+//       Reset Options
+//
+//----------------------------------------------------------------------------
+void
+   Listen::opt_append(              // Append options
+     const Options&    opts)
+{  if( HCDM ) {
+     debugh("Listen(%p)::set_options(%p)\n", this, &opts);
+     opts.debug("Listen");
+   }
+
+   this->opts.append(opts);
+}
+
+void
+   Listen::opt_reset(               // Reset options
+     const Options&    opts)
+{  if( HCDM ) {
+     debugh("Listen(%p)::opt_reset(%p)\n", this, &opts);
+     opts.debug("Listen");
+   }
+
+   this->opts= opts;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Listen::reset
+//
+// Purpose-
+//       Reset the Listen, closing all Servers
+//
+//----------------------------------------------------------------------------
+void
+   Listen::reset( void )            // Reset the Listen, closing all Servers
+{  if( HCDM )
+     debugh("Listen(%p)::reset\n", this);
+
+   std::list<std::weak_ptr<Server>> list;
+
+   if( HCDM )
+     debugh("%4d Listen HCDM copying the Server list...\n", __LINE__);
+   {{{{                             // Copy the Server list
+     std::lock_guard<decltype(mutex)> lock(mutex);
+
+     for(auto it : map ) {
+       std::shared_ptr<Server> server= it.second;
+       list.emplace_back(server);
+     }
+   }}}}
+
+   if( HCDM )
+     debugh("%4d Listen HCDM deleting Servers...\n", __LINE__);
+   for(auto it : list) {
+     std::shared_ptr<Server> server= it.lock();
+     if( server ) {
+       server->close();
+     }
+   }
+   if( HCDM )
+     debugf("...All Servers deleted\n");
 }
 
 //----------------------------------------------------------------------------
@@ -378,163 +535,5 @@ std::shared_ptr<Server>             // The associated Server
    }
 
    return server;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Listen::logf
-//
-// Purpose-
-//       Write to log file
-//
-//----------------------------------------------------------------------------
-void
-   Listen::logf(                    // Write to log file
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // The PRINTF argument list
-{
-   va_list             argptr;      // Argument list pointer
-
-   va_start(argptr, fmt);           // Initialize va_ functions
-   log.vtracef(fmt, argptr);
-   va_end(argptr);                  // Close va_ functions
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Listen::opt_append
-//       Listen::opt_reset
-//
-// Purpose-
-//       Append Options
-//       Reset Options
-//
-//----------------------------------------------------------------------------
-void
-   Listen::opt_append(              // Append options
-     const Options&    opts)
-{  if( HCDM ) {
-     debugh("Listen(%p)::set_options(%p)\n", this, &opts);
-     opts.debug("Listen");
-   }
-
-   this->opts.append(opts);
-}
-
-void
-   Listen::opt_reset(               // Reset options
-     const Options&    opts)
-{  if( HCDM ) {
-     debugh("Listen(%p)::opt_reset(%p)\n", this, &opts);
-     opts.debug("Listen");
-   }
-
-   this->opts= opts;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Listen::reset
-//
-// Purpose-
-//       Reset the Listener, closing all Servers
-//
-//----------------------------------------------------------------------------
-void
-   Listen::reset( void )            // Reset the Listener, closing all Servers
-{  if( HCDM )
-     debugh("Listen(%p)::reset\n", this);
-
-   std::list<std::weak_ptr<Server>> list;
-
-   if( HCDM )
-     debugh("%4d Listen HCDM copying the Server list...\n", __LINE__);
-   {{{{                             // Copy the Server list
-     std::lock_guard<decltype(mutex)> lock(mutex);
-
-     for(auto it : map ) {
-       std::shared_ptr<Server> server= it.second;
-       list.emplace_back(server);
-     }
-   }}}}
-
-   if( HCDM )
-     debugh("%4d ServerAgent HCDM deleting Servers...\n", __LINE__);
-   for(auto it : list) {
-     std::shared_ptr<Server> server= it.lock();
-     if( server ) {
-       server->close();
-       server->join();
-     }
-   }
-
-   if( HCDM )
-     debugf("...All Servers deleted\n");
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Listen::run
-//
-// Purpose-
-//       Operate the Listener
-//
-//----------------------------------------------------------------------------
-void
-   Listen::run( void )              // Operate the Listener
-{  if( HCDM )
-     debugh("Listen(%p)::run\n", this);
-
-   int rc= listen.listen();
-   if( rc != 0 ) {
-     trace(__LINE__, "%d= listen, Listen terminated", rc);
-     return;
-   }
-
-   // Listen for new connections
-   while(operational) {
-     Socket* socket= listen.accept();
-     if( socket ) {
-       if( !operational ) {
-         delete socket;
-         break;
-       }
-
-       // Create Server
-       const sockaddr_u& id= socket->get_peer_addr(); // ConnectionID
-       if( !Socket::is_valid(id.su_af) ) { // If invalid socket family
-debugf("%4d host(%s) peer(%s)\n", __LINE__, socket->get_host_addr().to_string().c_str(), socket->get_peer_addr().to_string().c_str());
-
-         trace(__LINE__, "sa_family(%d)", id.su_af);
-         delete socket;
-         continue;
-       }
-
-       // Add server to map
-       // Implementation note: additional locking is not required because
-       // new Server objects are only created in this Listen thread.
-       std::shared_ptr<Server> server= Server::make(this, socket);
-       std::shared_ptr<Server> insert= map_insert(id, server);
-       if( server.get() != insert.get() ) { // If duplicate entry
-         string S= id.to_string();
-         debugh("%4d %s DUPLICATED %s\n", __LINE__, __FILE__, S.c_str());
-         map_remove(id);            // Disconnect the existing server
-         insert->close();           // Terminate the existing server
-         server= nullptr;           // Disallow the new connection
-       } else {
-         server->start();
-       }
-     } else if( operational) {      // If spurious failure
-       debugh("%4d %s listen(%d:%s) ignored\n", __LINE__, __FILE__
-             , errno, strerror(errno));
-     }
-   }
-
-   // Non-operational
-   reset();
 }
 }  // namespace _LIBPUB_NAMESPACE::http
