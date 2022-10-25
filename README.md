@@ -62,13 +62,3 @@ In particular, java web applications cannot use links when running
 in Cygwin, so we use a direct path to /home/data/web/database/
 instead.
 
-#### Further reading-
-[Development Journal](https://github.com/franke-hub/Cornucopia/trunk/src/doc/Journal/Journal.md)
-
-[DEV library](https://github.com/franke-hub/Cornucopia/trunk/src/lib/dev/README.md)
-
-[PUB library](https://github.com/franke-hub/Cornucopia/trunk/src/lib/pub/README.md)
-
-Relative link test:
-[PUB library](/src/lib/pub/README.md)
-
