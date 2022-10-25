@@ -1,10 +1,10 @@
-#### Copyright (C) 2020-2021 Frank Eskesen.
+#### Copyright (C) 2020-2022 Frank Eskesen.
 
 This file is free content, distributed under the MIT license.
 (See accompanying file LICENSE.MIT or the original contained
 within https://opensource.org/licenses/MIT)
 
-Last change date: 2021/01/25
+Last change date: 2022/10/25
 
 #### Content overview
 This package contains multiple language examples.
@@ -19,10 +19,29 @@ a makefile dependency list.
 
 The project Wiki contains complete build instructions.
 
+#### Licensing
+This is an open source project, consisting of free content distributed under
+multiple open source licenses.
+
+Most source code is distributed under the GNU Public License.
+Most include headers are distributed under the Lesser GPL.
+Some exceptions exist.
+For example, ~/src/cpp/inc/pub/memory.h essentially uses and adds nothing to
+the Boost atomic_shared_ptr and is distributed under the BOOST license.
+
+Documentation, such as this file, and control files (e.g. make files) are
+normally distributed using the MIT license.
+The Creative Commons license is used (at least) for Lilypond (music) files.
+Code intended to be used as skeleton code samples or cut and paste fragments
+generally use the un-license, given to the public domain.
+
+All content is distributed AS-IS, without purpose or warranty of any kind;
+not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
 #### The installation subdirectories
 - bat: The bash script library
 - src: Source files
-- src/cpp: C++ source files, including four libraries
+- src/cpp: C++ source files, including five libraries
 - src/java: Java language source files, including a minimal library.
 - src/mcs: C# source files, including a library
 - src/py: Python source files, including a library
@@ -42,3 +61,14 @@ are used at times similarly to links to /home/data/usr/.
 In particular, java web applications cannot use links when running
 in Cygwin, so we use a direct path to /home/data/web/database/
 instead.
+
+#### Further reading-
+[Development Journal](https://github.com/franke-hub/Cornucopia/trunk/src/doc/Journal/Journal.md)
+
+[DEV library](https://github.com/franke-hub/Cornucopia/trunk/src/lib/dev/README.md)
+
+[PUB library](https://github.com/franke-hub/Cornucopia/trunk/src/lib/pub/README.md)
+
+Relative link test:
+[PUB library](/src/lib/pub/README.md)
+
