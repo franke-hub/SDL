@@ -35,7 +35,7 @@ These are http address from the browser. They work from the source markdown.
 
 Alternatives:
 
-[/src/doc/Journal/Journal.md](/src/doc/Journal/Journal.md])
+[/src/doc/Journal/Journal.md](/src/doc/Journal/Journal.md)
 
 [../Journal/Journal.md](../Journal/Journal.md)
 
