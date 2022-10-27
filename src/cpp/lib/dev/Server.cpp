@@ -40,7 +40,6 @@
 
 #include "pub/http/Agent.h"         // For pub::http::ListenAgent
 #include "pub/http/Exception.h"     // For pub::http::exceptions
-#include "pub/http/Global.h"        // For pub::http::Global
 #include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Listen.h"        // For pub::http::Listen (owner)
 #include "pub/http/Options.h"       // For pub::http::Options
@@ -349,7 +348,6 @@ void
 
    if( stream.get() == nullptr )
      stream= ServerStream::make(this);
-   stream->set_record(TimingRecord::IX_SRV_READ);
 
    if( stream->read(item->ioda) ) {
      stream->end();
@@ -422,7 +420,7 @@ void
    for(;;) {
      Ioda ioda;
      Mesg mesg; ioda.get_rd_mesg(mesg, size_inp);
-     ssize_t L= socket->recvmsg((msghdr*)&mesg, 0);
+     ssize_t L= socket->recvmsg(&mesg, 0);
      if( L >= 0 ) {
        iodm(line, "read", L);
        if( L == 0 ) {
@@ -489,9 +487,7 @@ void
 //This helps when a trace read appears before the trace write
 //Trace::trace("HCDM", __LINE__, "SSocket->write");
      Mesg mesg; ioda_out.get_wr_mesg(mesg, size_out, ioda_off);
-     if( stream )
-       stream->set_record(TimingRecord::IX_SRV_WRITE);
-     ssize_t L= socket->sendmsg((msghdr*)&mesg, 0);
+     ssize_t L= socket->sendmsg(&mesg, 0);
      iodm(__LINE__, "sendmsg", L);
      if( L > 0 ) {
        void* addr= mesg.msg_iov[0].iov_base;

@@ -16,7 +16,7 @@
 //       Implement http/Request.h
 //
 // Last change date-
-//       2022/10/23
+//       2022/10/27
 //
 // Implementation notes-
 //       TODO: Consider moving ClientRequest::write to Client::write
@@ -529,9 +529,7 @@ debugf("Request name(%s) value(%s)\n", name.c_str(), value.c_str());
    }
 
    // Drive Listen::on_request
-   stream->set_record(TimingRecord::IX_SRV_REQ_DO);
    server->get_listen()->do_request(this);
-   stream->set_record(TimingRecord::IX_SRV_REQ_DONE);
    return true;
 }
 }  // namespace _LIBPUB_NAMESPACE::http

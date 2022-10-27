@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2022/10/23
+//       2022/10/27
 //
 // Arguments-
 //       With no arguments, --client --server defaulted
@@ -328,6 +328,9 @@ static inline int                   // Error count
 
    size_of("Client",        sizeof(PUB::http::Client));
    size_of("ClientAgent",   sizeof(PUB::http::ClientAgent));
+   size_of("Ioda",          sizeof(PUB::http::Ioda));
+   size_of("Ioda::Mesg",    sizeof(PUB::http::Ioda::Mesg));
+   size_of("Ioda::Page",    sizeof(PUB::http::Ioda::Page));
    size_of("Listen",        sizeof(PUB::http::Listen));
    size_of("ListenAgent",   sizeof(PUB::http::ListenAgent));
    size_of("Options",       sizeof(PUB::http::Options));
@@ -336,7 +339,7 @@ static inline int                   // Error count
    size_of("Server",        sizeof(PUB::http::Server));
    size_of("Stream",        sizeof(PUB::http::Stream));
 
-   if( true  ) {                    // Bringup internal tests
+   if( false ) {                    // Bringup internal tests
      printf("\npage200(\"BODY\")\n%s", page200("BODY").c_str());
      printf("\npage403(\"/FILE\")\n%s", page403("/FILE").c_str());
      printf("\npage404(\"/FILE\")\n%s", page404("/FILE").c_str());
@@ -524,8 +527,6 @@ extern int
    // Run the tests (with try wrapper)
    //-------------------------------------------------------------------------
    try {
-     Global global;                 // Define the Global area
-
      if( opt_bringup )
        error_count += test_bringup();
 

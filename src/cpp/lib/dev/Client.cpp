@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2022/10/23
+//       2022/10/27
 //
 // Implementation notes-
 //       Throughput: W: 4,088.7/sec  L:   307.5/sec protocol1b (*removed*)
@@ -53,7 +53,6 @@
 
 #include "pub/http/Agent.h"         // For pub::http::ClientAgent (owner)
 #include "pub/http/Client.h"        // For pub::http::Client, implementated
-#include "pub/http/Global.h"        // For pub::http::Global, ...
 #include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Exception.h"     // For pub::http::exceptions
 #include "pub/http/Options.h"       // For pub::http::Options
@@ -98,7 +97,6 @@ enum
 // Typedefs and enumerations
 //----------------------------------------------------------------------------
 typedef Ioda::Mesg     Mesg;
-typedef Ioda::Size     Size;
 
 enum FSM                            // Finite State Machine states
 {  FSM_RESET= 0                     // Reset - idle
@@ -477,8 +475,6 @@ void
      debugh("Client(%p)::async(%.4x) fsm(%.4x)\n", this, revent, fsm);
    Trace::trace(".CLI", ".APE", this, s2v((size_t(revent) << 16) | fsm));
 
-   stream->set_record(TimingRecord::IX_CLI_ASYNC);
-
    // If a Socket error occurred
    if( revent & (POLLERR | POLLNVAL) ) {
      debugf("%4d HCDM Client revent(%.4x) fsm(%.4x)\n", __LINE__, revent, fsm);
@@ -570,7 +566,6 @@ void
    h_iptask= [this](ClientItem* item) // Input task
    { if( HCDM ) debugh("Client(%p)::h_iptask(%p)\n", this, item);
 
-     stream->set_record(TimingRecord::IX_DEQ_RESP);
      if( item->stream->read(item->ioda) ) // If operation complete
        sem_rd.post();
      item->post();                  // (Omitted line found using Diagnostic.h)
@@ -583,7 +578,6 @@ void
      // debugh("%4d %s HCDM\n", __LINE__, __FILE__);
      stream_item= item;
      stream= item->stream;
-     stream->set_record(TimingRecord::IX_DEQ_WRITE);
      try {
        // Format the request buffer
        std::shared_ptr<ClientRequest> request= stream->get_request();
@@ -648,7 +642,6 @@ void
        if( content_length )
          fsm |= FSM_WR_DATA;
        h_writer();
-//     stream->set_record(TimingRecord::IX_CLI_WAIT);
        sem_rd.wait();               // Wait for response
      } catch(Exception& X) {
        errorh("%4d %s %s\n", __LINE__, __FILE__, ((std::string)X).c_str());
@@ -673,8 +666,6 @@ void
      }
 
      // Stream processing is complete
-     TimingRecord::record(&last_end);
-     stream->set_record(TimingRecord::IX_RSP_POST);
      stream->end();
      stream= nullptr;
      stream_item= nullptr;
@@ -771,15 +762,6 @@ std::shared_ptr<ClientRequest>      // The associated ClientRequest
 
    std::shared_ptr<ClientStream> stream= ClientStream::make(this, opts);
    std::shared_ptr<ClientRequest> request= stream->get_request();
-
-   TimingRecord* record= stream->get_record();
-   if( record ) {
-     ClientConnectionPair key(socket->get_peer_addr(), socket->get_host_addr());
-     Global::global->map[key]= record;
-
-     stream->set_record(TimingRecord::IX_ON_END, last_end);
-     stream->set_record(TimingRecord::IX_CLI_CREATE);
-   }
    return request;
 }
 
@@ -809,8 +791,7 @@ void
    for(;;) {
 // This helps when a trace read appears before the trace write
 // Trace::trace("HCDM", __LINE__, "CSocket->read");
-     stream->set_record(TimingRecord::IX_CLI_READ);
-     ssize_t L= socket->recvmsg((msghdr*)&mesg, 0);
+     ssize_t L= socket->recvmsg(&mesg, 0);
      iodm(line, "read", L);
      if( L > 0 ) {
        ioda.set_used(L);
@@ -822,7 +803,6 @@ void
        iodm(line, "read", addr, size);
        ClientItem* item= new ClientItem(stream);
        item->ioda= std::move(ioda);
-       stream->set_record(TimingRecord::IX_ENQ_RESP);
        task_inp.enqueue(item);
        return;
      }
@@ -849,8 +829,7 @@ ssize_t                             // Written length
    for(;;) {
 Trace::trace("HCDM", __LINE__, "CSocket->write");
      Mesg mesg; ioda_out.get_wr_mesg(mesg, size_out, ioda_off);
-     stream->set_record(TimingRecord::IX_CLI_WRITE);
-     ssize_t L= socket->sendmsg((msghdr*)&mesg, 0);
+     ssize_t L= socket->sendmsg(&mesg, 0);
      iodm(line, "sendmsg", L);
      if( L > 0 ) {
        void* addr= mesg.msg_iov[0].iov_base;
@@ -906,7 +885,6 @@ Trace::trace(".CNQ", 0, temp);      // (Client eNQueue)
    int rc= ClientItem::CC_PURGE;    // Default, not sent
    if( socket->get_handle() >= 0 ) {
      ClientItem* item= new ClientItem(S->get_self());
-     S->set_record(TimingRecord::IX_ENQ_WRITE);
      task_out.enqueue(item);
      rc= 0;
    }

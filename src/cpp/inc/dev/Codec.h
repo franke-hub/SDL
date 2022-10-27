@@ -16,7 +16,7 @@
 //       Encoders and decoders.
 //
 // Last change date-
-//       2022/10/16
+//       2022/10/26
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CODEC_H_INCLUDED
@@ -25,7 +25,7 @@
 #include <functional>               // For std::function
 #include <string>                   // For std::string, size_t
 
-#include "pub/Buffer.h"             // For pub::Buffer TODO: remove dependency
+#include "dev/Ioda.h"               // For pub::http:Ioda
 #include "dev/bits/devconfig.h"     // For HTTP config controls
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
@@ -45,14 +45,14 @@ class Codec {                       // Encoder/decoder base class
 //----------------------------------------------------------------------------
 public:
 typedef std::string    string;      // Using std::string
-typedef std::function<void(int)>              f_error; // Error handler
+typedef std::function<void(int)>    f_error; // Error handler
 
 //----------------------------------------------------------------------------
 // Codec::Attributes
 //----------------------------------------------------------------------------
 protected:
 size_t                 row;         // Current decode/encode input line
-size_t                 col;         // Current decode/encode input  column
+size_t                 col;         // Current decode/encode input column
 f_error                h_error;     // Error handler
 
 //----------------------------------------------------------------------------
@@ -75,32 +75,30 @@ size_t get_col( void ) const        // Get column number
 //----------------------------------------------------------------------------
 // Codec::Methods
 //----------------------------------------------------------------------------
+virtual Ioda                        // Decoded I/O data area
+   decode(                          // Decode
+     const Ioda&       inp);        // This input data area
+
 virtual string                      // Decoded string
    decode(                          // Decode
      const string&     inp);        // This string
 
-virtual Buffer                      // Decoded Buffer
-   decode(                          // Decode
-     const Buffer&     inp)         // This input Buffer
-{  return inp; }                    // Base class: not encoded
+virtual Ioda                        // Encoded I/O data area
+   encode(                          // Encode
+     const Ioda&       inp);        // This input data area
 
 virtual string                      // Encoded string
    encode(                          // Encode
      const string&     inp);        // This string
-
-virtual Buffer                      // Encoded Buffer
-   encode(                          // Encode
-     const Buffer&     inp)         // This input Buffer
-{  return inp; }                    // Base class: not encoded
 
 void
    on_error(const f_error& f)       // Set error handler
 {  h_error= f; }
 
 protected:
-virtual int                         // The next character
+int                                 // The next character
    read(                            // Read next character from
-     BufferReader&     inp);        // This input BufferReader
+     IodaReader&       inp);        // This input IodaReader
 }; // class Codec
 
 //----------------------------------------------------------------------------
@@ -153,18 +151,18 @@ virtual
 //----------------------------------------------------------------------------
 // Codec64::Methods
 //----------------------------------------------------------------------------
-virtual Buffer                      // Output Buffer
+virtual Ioda                        // Decoded I/O data area
    decode(                          // Decode
-     const Buffer&     inp);        // This input Buffer
-
-virtual Buffer                      // Output length
-   encode(                          // Encode
-     const Buffer&     inp);        // This input Buffer
+     const Ioda&       inp);        // This input data area
 
 virtual string                      // Decoded string
    decode(                          // Decode
      const string&     inp)         // This string
 {  return Codec::decode(inp); }
+
+virtual Ioda                        // Encoded I/O data area
+   encode(                          // Encode
+     const Ioda&       inp);        // This input data area
 
 virtual string                      // Encoded string
    encode(                          // Encode
@@ -173,8 +171,8 @@ virtual string                      // Encoded string
 
 protected:
 int                                 // The next decode character
-   decode_read(                     // Read the next encoded character
-     BufferReader&     inp);        // From this BufferReader
+   d_read(                          // Read the next encoded character
+     IodaReader&       inp);        // From this IodaReader
 }; // class Codec64
 }  // namespace http
 _LIBPUB_END_NAMESPACE

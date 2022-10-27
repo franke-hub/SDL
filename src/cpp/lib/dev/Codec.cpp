@@ -16,7 +16,7 @@
 //       Implement http/Codec.h
 //
 // Last change date-
-//       2022/09/11
+//       2022/10/26
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::runtime_error
@@ -67,6 +67,26 @@ static constexpr char  rfc2045[65]= "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Codec:decode(const Ioda&)
+//
+// Purpose-
+//       Implement base class that does nothing.
+//
+//----------------------------------------------------------------------------
+Ioda                                // The decoded I/O data area
+   Codec::decode(                   // Decode
+     const Ioda&       ida)         // This input data area
+{  if( HCDM )
+     debugf("Codec(%p)::decode((Ioda&)%s\n", this, ((string)ida).c_str());
+
+   Ioda oda;
+   oda.copy(ida);
+   return oda;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Codec:decode(std::string)
 //
 // Purpose-
@@ -79,9 +99,29 @@ std::string                         // The decoded string
 {  if( HCDM )
      debugf("Codec(%p)::decode((string)%s)\n", this, visify(S).c_str());
 
-   Buffer inp(S.length());
-   inp.append(S);
+   Ioda inp;
+   inp += S;
    return (string)decode(inp);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Codec:encode(const Ioda&)
+//
+// Purpose-
+//       Implement base class that does nothing.
+//
+//----------------------------------------------------------------------------
+Ioda                                // The decoded I/O data area
+   Codec::encode(                   // Encode
+     const Ioda&       ida)         // This input data area
+{  if( HCDM )
+     debugf("Codec(%p)::encode((Ioda&)%s\n", this, ((string)ida).c_str());
+
+   Ioda oda;
+   oda.copy(ida);
+   return oda;
 }
 
 //----------------------------------------------------------------------------
@@ -99,8 +139,8 @@ std::string                         // The encoded string
 {  if( HCDM )
      debugf("Codec(%p)::encode((string)%s)\n", this, visify(S).c_str());
 
-   Buffer inp(S.length());
-   inp.append(S);
+   Ioda inp;
+   inp += S;
    return (string)encode(inp);
 }
 
@@ -115,9 +155,9 @@ std::string                         // The encoded string
 //----------------------------------------------------------------------------
 int                                 // The next input character
    Codec::read(                     // Read the next character from
-     BufferReader&     rbuff)       // This input Buffer
+     IodaReader&       reader)      // This input Ioda
 {
-   int C= rbuff.get();
+   int C= reader.get();
 
    if( C == EOF )
      return EOF;
@@ -202,14 +242,16 @@ int                                 // The next input character
 //       RFC2045 decoder does not require terminating PAD_CHARs.
 //
 //----------------------------------------------------------------------------
-Buffer                              // Decoded Buffer
+Ioda                                // Decoded I/O data area
    Codec64::decode(                 // Decode
-     const Buffer&     ibuff)       // This input Buffer
-{  if( HCDM ) debugf("Codec64::decode(Buffer)\n");
+     const Ioda&       ida)         // This input data area
+{  if( HCDM )
+     debugf("Codec64(%p)::decode((Ioda&)%s\n", this
+           , visify((string)ida).c_str());
 
    int                 iset[4];     // The next 4 character input set
-   Buffer              obuff;       // The output Buffer
-   BufferReader        rbuff(ibuff); // The BufferReader
+   Ioda                oda;         // The output I/O data area
+   IodaReader          reader(ida); // The IodaReader
    uint32_t            oword;       // Working output word
    bool                tchar= false; // Encountered terminating character
 
@@ -220,26 +262,26 @@ Buffer                              // Decoded Buffer
 
    // DECODE -----------------------------------------------------------------
    for(;;) {                        // Decode the data
-     iset[0]= decode_read(rbuff);   // Load the next 4 character input set
+     iset[0]= d_read(reader);       // Load the next 4 character input set
      if( iset[0] == EOF )           // If end of file and empty input set
        break;
      if( tchar ) {                  // If character after PAD_CHAR
-       h_error((int)EC_TERMPAD);         // Report once, ignore remaining text
+       h_error((int)EC_TERMPAD);    // Report once, ignore remaining text
        break;
      }
 
-     iset[1]= decode_read(rbuff);
+     iset[1]= d_read(reader);
      if( iset[1] == EOF || iset[1] == PAD_CHAR ) {
        // At least two characters are required in a terminating input set
        h_error(EC_TERMSEQ);         // Report once, ignore remaining text
        break;
      }
 
-     iset[2]= decode_read(rbuff);
+     iset[2]= d_read(reader);
      if( iset[2] == EOF || iset[2] == PAD_CHAR ) {
        tchar= true;
        if( iset[2] == PAD_CHAR ) {
-         iset[3]= decode_read(rbuff);
+         iset[3]= d_read(reader);
          if( iset[3] != PAD_CHAR )  // Sequence xx=x is invalid. (xx== needed)
            h_error(EC_TERMSEQ);
        }
@@ -247,11 +289,11 @@ Buffer                              // Decoded Buffer
        oword= (oword << 6) | de_tab[iset[1]];
        if( oword & 0x000f )         // (Cannot specify unused bits)
          h_error(EC_TERMSEQ);
-       obuff.put(oword >> 4);
+       oda.put(oword >> 4);
        continue;                    // (Check for characters after end)
      }
 
-     iset[3]= decode_read(rbuff);
+     iset[3]= d_read(reader);
      if( iset[3] == EOF || iset[3] == PAD_CHAR ) {
        tchar= true;
        oword=                de_tab[iset[0]];
@@ -260,8 +302,8 @@ Buffer                              // Decoded Buffer
        if( oword & 0x0003 )         // (Cannot specify unused bits)
          h_error(EC_TERMSEQ);
 
-       obuff.put((oword >> 10));
-       obuff.put((oword >>  2) & 0x00ff);
+       oda.put((oword >> 10));
+       oda.put((oword >>  2) & 0x00ff);
        continue;                    // (Check for characters after end)
      }
 
@@ -269,13 +311,13 @@ Buffer                              // Decoded Buffer
      oword= (oword << 6) | de_tab[iset[1]];
      oword= (oword << 6) | de_tab[iset[2]];
      oword= (oword << 6) | de_tab[iset[3]];
-     obuff.put(oword >> 16 );
+     oda.put(oword >> 16 );
      oword &= 0x0000ffff;
-     obuff.put(oword >>  8 );
-     obuff.put(oword  & 0x00ff);
+     oda.put(oword >>  8 );
+     oda.put(oword  & 0x00ff);
    }
 
-   return obuff;
+   return oda;
 }
 
 //----------------------------------------------------------------------------
@@ -287,13 +329,15 @@ Buffer                              // Decoded Buffer
 //       Base64 encoder
 //
 //----------------------------------------------------------------------------
-Buffer                              // Encoded Buffer
+Ioda                                // Encoded I/O data area
    Codec64::encode(                 // Encode
-     const Buffer&     ibuff)       // This input Buffer
-{  if( HCDM ) debugf("Codec64::encode(Buffer)\n");
+     const Ioda&       ida)         // This input data area
+{  if( HCDM )
+     debugf("Codec64(%p)::encode((Ioda&)%s\n", this
+           , visify((string)ida).c_str());
 
-   Buffer              obuff;       // The output Buffer
-   BufferReader        rbuff(ibuff); // The BufferReader
+   Ioda                oda;         // The output data area
+   IodaReader          reader(ida); // The IodaReader
    uint32_t            oword;       // Working output word
    int                 iset[3];     // The next 3 character input set
 
@@ -308,72 +352,72 @@ Buffer                              // Encoded Buffer
    // ENCODE -----------------------------------------------------------------
    for(;;) {                        // Encode the data
      // TODO: Handle termination sequence according to RFC
-     iset[0]= read(rbuff);
+     iset[0]= read(reader);
      if( iset[0] == EOF )
        break;
 
-     iset[1]= read(rbuff);
+     iset[1]= read(reader);
      if( iset[1] == EOF ) {
        oword= iset[0];
-       obuff.put(en_tab[(oword >>  2) & 0x003F]);
-       obuff.put(en_tab[(oword <<  4) & 0x003F]);
-       obuff.put((int)PAD_CHAR);
-       obuff.put((int)PAD_CHAR);
+       oda.put(en_tab[(oword >>  2) & 0x003F]);
+       oda.put(en_tab[(oword <<  4) & 0x003F]);
+       oda.put((int)PAD_CHAR);
+       oda.put((int)PAD_CHAR);
        out_col += 4;
        break;
      }
 
-     iset[2]= read(rbuff);
+     iset[2]= read(reader);
      if( iset[2] == EOF ) {
        oword= (iset[0] << 8) | iset[1];
-       obuff.put(en_tab[(oword >> 10) & 0x003F]);
-       obuff.put(en_tab[(oword >>  4) & 0x003F]);
-       obuff.put(en_tab[(oword <<  2) & 0x003F]);
-       obuff.put((int)PAD_CHAR);
+       oda.put(en_tab[(oword >> 10) & 0x003F]);
+       oda.put(en_tab[(oword >>  4) & 0x003F]);
+       oda.put(en_tab[(oword <<  2) & 0x003F]);
+       oda.put((int)PAD_CHAR);
        out_col += 4;
        break;
      }
 
      oword= (iset[0] << 16) | (iset[1] << 8) | iset[2];
-     obuff.put(en_tab[(oword >> 18) & 0x003F]);
-     obuff.put(en_tab[(oword >> 12) & 0x003F]);
-     obuff.put(en_tab[(oword >>  6) & 0x003F]);
-     obuff.put(en_tab[(oword >>  0) & 0x003F]);
+     oda.put(en_tab[(oword >> 18) & 0x003F]);
+     oda.put(en_tab[(oword >> 12) & 0x003F]);
+     oda.put(en_tab[(oword >>  6) & 0x003F]);
+     oda.put(en_tab[(oword >>  0) & 0x003F]);
      out_col += 4;
      if( out_col >= 76 ) {
        out_col= 0;
        ++out_row;
-       obuff.append("\r\n");
+       oda += "\r\n";
      }
    }
 
    if( out_col ) {
      out_col= 0;
      ++out_row;
-     obuff.append("\r\n");
+     oda += "\r\n";
    }
 
    col= out_col;
    row= out_row;
 
-   return obuff;
+   return oda;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Codec64:decode_read
+//       Codec64:d_read
 //
 // Purpose-
-//       Read the next character to decode, tracking row and column
+//       Read next character to decode, checking for errors
 //
 //----------------------------------------------------------------------------
 int                                 // The next character to decode
-   Codec64::decode_read(            // Read the next decode character from
-     BufferReader&     rbuff)       // This input Buffer
+   Codec64::d_read(                 // Read the next decode character from
+     IodaReader&       reader)      // This input IodaReader
 {
    for(;;) {                        // Read the next valid character
-     int C= Codec::read(rbuff);
+     int C= Codec::read(reader);
 
      // Check for overlength line
      if( col > 76 ) {

@@ -16,14 +16,17 @@
 //       HTTP I/O data area.
 //
 // Last change date-
-//       2022/10/19
+//       2022/10/27
 //
 // Implementation notes-
 //       The I/O data area contains a scatter/gather I/O area used both as an
 //       I/O buffer and for passing data between components.
-//       It's intended to minimize overhead for these operations.
+//       It minimizes overhead for these operations.
 //
-//       The uint32_t contains the combined length operator[] cache values.
+//       In order to avoid accidental copying, the Ioda copy constructor, copy
+//       assignment operator and copy append operator (+=) have been deleted.
+//       Use the copy (assignment) method where copying rather than moving is
+//       intended.
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_IODA_H_INCLUDED
@@ -101,10 +104,8 @@ size_t size( void ) const;          // Get total data length
 // Ioda::Page, address of I/O data page
 //----------------------------------------------------------------------------
 struct Page : public List<Page>::Link { // Ioda page list link
-typedef uint32_t       Size;        // (Limited) size type
-
 char*                  data;        // Data address
-Size                   used;        // Number of bytes used
+size_t                 used;        // Number of bytes used
 
 //----------------------------------------------------------------------------
 // Page::debug
@@ -115,11 +116,7 @@ void debug(const char* info= "") const; // Debugging display
 //============================================================================
 // Ioda::Typedefs, enumerations, and constants
 //----------------------------------------------------------------------------
-typedef uint32_t       Size;        // (Limited) size type
 typedef std::string    string;
-
-static constexpr Size  LOG2_SIZE= 12;   // Log2(PAGE_SIZE)
-static constexpr Size  PAGE_SIZE= 4096; // The Iota::Page data size
 
 //----------------------------------------------------------------------------
 // Ioda::Attributes
@@ -177,6 +174,8 @@ void set_used(size_t);              // Set the used data length
 //----------------------------------------------------------------------------
 // Ioda::I/O methods
 //----------------------------------------------------------------------------
+void copy(const Ioda&);             // Copy Ioda, replacing any content.
+
 void put(int);                      // Write character
 
 void put(const string& S)           // Write string
@@ -209,7 +208,6 @@ class IodaReader {                  // Ioda data reader
 // IodaReader::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-typedef Ioda::Size     Size;        // (Limited) data length
 typedef std::string    string;
 
 //----------------------------------------------------------------------------

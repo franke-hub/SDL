@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2022/09/11
+//       2022/10/27
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For std::free
@@ -29,7 +29,6 @@
 #include <stddef.h>                 // For offsetof
 
 #include "pub/TEST.H"               // For error counting
-#include "pub/Buffer.h"             // For pub::Buffer
 #include "pub/Debug.h"              // For namespace pub::debugging
 #include "pub/Exception.h"          // For pub::Exception
 #include "pub/Latch.h"              // See test_Latch
@@ -773,21 +772,6 @@ static inline int
      debugf("\ntest_dirty\n");
 
    int error_count= 0;              // Error counter
-
-   BufferBorrow borrow(nullptr, 0); // A static buffer
-   borrow._addr()= (char*)0x80010203;
-   borrow._size()= 0x04050607;
-   borrow._used()= 0x08090a0b;
-   borrow._seen()= 0x0c0d0e0f;
-
-   error_count += VERIFY( borrow._addr() == (char*)0x80010203 );
-   error_count += VERIFY( borrow._size() == 0x04050607 );
-   error_count += VERIFY( borrow._used() == 0x08090a0b );
-   error_count += VERIFY( borrow._seen() == 0x0c0d0e0f );
-
-   if( opt_verbose )
-     debugf("addr(%p) size(%.8zx) used(%.8zx) seen(%.8zx)\n"
-           , borrow._addr(), borrow._size(), borrow._used(), borrow._seen());
 
    return error_count;
 }

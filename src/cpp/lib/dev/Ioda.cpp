@@ -16,7 +16,7 @@
 //       Implement http/Ioda.h
 //
 // Last change date-
-//       2022/10/23
+//       2022/10/27
 //
 //----------------------------------------------------------------------------
 // #define NDEBUG                   // TODO: USE (to disable asserts)
@@ -56,6 +56,9 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
+,  LOG2_SIZE= 12                    // Log2(PAGE_SIZE)
+,  PAGE_SIZE= 4096                  // The Iota::Page data size
+
 ,  USE_VERIFY= true                 // Use internal consistency checking?
 }; // enum
 
@@ -64,9 +67,6 @@ enum
 //----------------------------------------------------------------------------
 typedef Ioda::Mesg     Mesg;
 typedef Ioda::Page     Page;
-typedef Ioda::Size     Size;
-
-static constexpr Size  PAGE_SIZE= Ioda::PAGE_SIZE;
 
 //----------------------------------------------------------------------------
 //
@@ -257,7 +257,7 @@ void
    Ioda::Page::debug(const char* info) const // Debugging display
 {
    intptr_t data= intptr_t(this->data);
-   debugf("Ioda::Page(%p)::debug(%s) {%.10zx.%.4x}\n", this, info, data, used);
+   debugf("Ioda::Page(%p)::debug(%s) {%.10zx.%.4zx}\n", this, info, data, used);
 }
 
 //============================================================================
@@ -413,12 +413,12 @@ void
      if( page->used > 16 ) {
        string S(page->data, 16);
        S= visify(S);
-       debugf("..[%2zd] %p {%p,%4d} '%s'...\n", index++, page
+       debugf("..[%2zd] %p {%p,%4zd} '%s'...\n", index++, page
               , page->data, page->used, S.c_str());
      } else {
        string S(page->data, page->used);
        S= visify(S);
-       debugf("..[%2zd] %p {%p,%4d} '%s'\n", index++, page
+       debugf("..[%2zd] %p {%p,%4zd} '%s'\n", index++, page
               , page->data, page->used, S.c_str());
      }
 
@@ -452,7 +452,7 @@ void
      msg.msg_iov= nullptr;
    }
 
-   Size count= 0;
+   size_t count= 0;
    for(Page* page= list.get_head(); page; page= page->get_next())
      ++count;
 
@@ -463,7 +463,7 @@ void
        throw bad_alloc();
      msg.msg_iov= iov;
 
-     Size recv= 0;
+     size_t recv= 0;
      for(Page* page= list.get_head(); page; page= page->get_next()) {
        assert( count-- > 0 );
        iov->iov_base= page->data;
@@ -517,8 +517,8 @@ void
    }
    assert( head != nullptr );
 
-   Size count= 1;                   // Count the used pages
-   Size sent= head->used - skip;
+   size_t count= 1;                 // Count the used pages
+   size_t sent= head->used - skip;
    for(Page* page= head->get_next(); page; page= page->get_next()) {
      if( sent > size )
        break;
@@ -605,6 +605,32 @@ void
    }
 
    // (We get here in the unusal case where the Ioda is completely full)
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Ioda::copy
+//
+// Purpose-
+//       Copy (replace content with) Ioda
+//
+//----------------------------------------------------------------------------
+void
+   Ioda::copy(const Ioda& copy)     // Copy source Ioda
+{  if( HCDM )
+     debugh("Ioda(%p)::copy(%p)\n", this, &copy);
+
+
+   if( copy.used == 0 ) {           // If degnerate case, nothing to copy
+     reset(copy.size);
+     return;
+   }
+
+   // Copy page by page
+   reset();                         // (Replace)
+   for(Page* page= copy.list.get_head(); page; page= page->get_next())
+     write(page->data, page->used);
 }
 
 //----------------------------------------------------------------------------
