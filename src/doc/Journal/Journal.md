@@ -7,7 +7,7 @@
 //       Development journal
 //
 // Last change date-
-//       2022/10/24
+//       2022/10/26
 //
 -------------------------------------------------------------------------- -->
 
@@ -401,5 +401,15 @@ I'm temporarily leaving the timing code (in ~/src/cpp/lib/dev/Global.cpp and
 The Global code will be moved to ~/src/cpp/lib/.OBSOLETE/dev rather than
 simply discarded but the recording hooks will be removed.
 If you're interested in these later, use gitk to look at today's version.
+
+### 2022/10/26 Next steps
+
+- Harden pub library code (static deconstruction.)
+- Drive dev library code error paths
+- Cleanup
+  - Remove pub/Buffer (it's been replaced by dev/Ioda)
+  - Remove dev/Global (moving code to .OBSOLETE subdirectory)
+  - General dev library code inspection.
+- Investigate Cygwin performance anomalies running ~/obj/dev/Test/T_Stream
 
 ----

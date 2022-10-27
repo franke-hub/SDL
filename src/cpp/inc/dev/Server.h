@@ -16,7 +16,7 @@
 //       HTTP Server object.
 //
 // Last change date-
-//       2022/10/23
+//       2022/10/26
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_SERVER_H_INCLUDED
@@ -59,7 +59,6 @@ class Server : public std::mutex {  // Server class (lockable)
 //----------------------------------------------------------------------------
 public:
 typedef Ioda::Mesg                            Mesg;
-typedef Ioda::Size                            Size;
 typedef Socket::sockaddr_u                    sockaddr_u;
 typedef dispatch::LambdaTask                  LambdaTask;
 
@@ -82,8 +81,8 @@ std::weak_ptr<Server>  self;        // Self reference
 Listen*                listen;      // Our owning Listener
 
 Ioda                   ioda_out;    // The output data area
-Size                   size_inp;    // The input data area length
-Size                   size_out;    // The output data area length
+size_t                 size_inp;    // The input data area length
+size_t                 size_out;    // The output data area length
 Socket*                socket= nullptr; // The connection Socket
 stream_ptr             stream;      // The current Stream
 StreamSet              stream_set;  // Our set of Streams

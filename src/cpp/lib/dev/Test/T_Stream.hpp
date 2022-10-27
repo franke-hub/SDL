@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2022/10/24
+//       2022/10/27
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -44,7 +44,6 @@
 
 #include "pub/http/Agent.h"         // For pub::http::ClientAgent, ListenAgent
 #include "pub/http/Client.h"        // For pub::http::Client
-#include "pub/http/Global.h"        // For pub::http::Global
 #include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Listen.h"        // For pub::http::Listen
 #include "pub/http/Options.h"       // For pub::http::Options
@@ -389,7 +388,7 @@ std::atomic_size_t     cur_op_count= 0; // The number of running requests
 Event                  ready;       // Thread ready event
 Event                  ended;       // Thread ended event
 
-static std::atomic_int global_serial; // Global serial number
+static std::atomic_int client_serial; // Global serial number
 int                    serial= -1;  // Serial number
 
 // Callback handlers
@@ -407,7 +406,7 @@ std::function<void(void)>
 //       Destructor
 //
 //----------------------------------------------------------------------------
-   ClientThread( void ) : serial(global_serial++) {}
+   ClientThread( void ) : serial(client_serial++) {}
    ~ClientThread( void ) = default;
 
 //----------------------------------------------------------------------------
@@ -894,7 +893,7 @@ int                                 // Return code, 0 expected
 }
 }; // class ClientThread
 
-std::atomic_int        ClientThread::global_serial= 0; // Global serial number
+std::atomic_int        ClientThread::client_serial= 0; // Global serial number
 
 //----------------------------------------------------------------------------
 //

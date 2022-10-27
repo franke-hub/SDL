@@ -15,7 +15,7 @@
 //       PUB library description
 //
 // Last change date-
-//       2022/10/25
+//       2022/10/26
 //
 -------------------------------------------------------------------------- -->
 
@@ -48,6 +48,45 @@ When an interface changes, we attempt to also modify every usage within the
 distribution to match the updated interface.
 We do not recompile every distributed source module whenever a new trunk
 is distributed. We do recompile every library source module.
+
+----
+
+### Design philosophy
+- "It seemed like a good idea at the time"
+Most code in this distribution was written to solve a particular problem,
+either directly or indirectly in library code where a problem was likely
+to arise again and again.
+There is no separation of design and development.
+Code is just written, designed on the fly.
+Library code is written with the philosophy of get it working first, then get
+error paths working, then (if needed) optimize.
+
+- Static objects
+The library contains static objects, and we have run into some of the known
+problems that causes.
+Some problems remain, and are next on the project "to do" list.
+While static object construction is a well recognized problem, there is also an
+analogous problem with static object deconstruction, especially with library
+functions.
+The basic question that needs to be answered is: When do we stop servicing
+library functions?
+The only good answer is, when we stop getting library function calls.
+Since we can't tell when that might be, we have to carry on as best we can
+even after our static object destructors are invoked.
+
+Consider the Debug functions.
+It's critical to keep these functions operational so that problems that occur
+during static object deconstruction can be properly recorded.
+This code needs to be hardened.
+
+Other library functions need to be kept at least semi-operational.
+They should work as well as possible as long as possible, but never segfault.
+(I'm talking about you, Trace.cpp, who used a map after it was deconstructed.
+The segfault was in std::map code but the problem was in Trace.cpp.)
+
+However, once we reach static object deconstruction there's no point in
+worrying about memory leaks any more.
+We can rely on process termination cleanup to clean up what we can't.
 
 ----
 

@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2022/10/23
+//       2022/10/27
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
@@ -35,7 +35,6 @@
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Thread.h>             // For pub::Thread
 
-#include "pub/http/Global.h"        // For pub::http::Global, ...
 #include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Stream.h"        // For pub::http::Stream, ...
 
@@ -67,8 +66,6 @@ class Client : public std::mutex {  // Client class (lockable)
 // Client::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-typedef Ioda::Size     Size;
-
 typedef ClientAgent*                          agent_ptr;
 typedef std::shared_ptr<ClientStream>         stream_ptr;
 typedef Socket::sockaddr_u                    sockaddr_u;
@@ -102,8 +99,8 @@ size_t                 ioda_off;    // The output buffer offset
 const char*            proto_id;    // The Client's protocol/version
 Semaphore              sem_rd;      // Used to complete HTTP/1 read operations
 Semaphore              sem_wr;      // Used to limit HTTP/1 write operations
-Size                   size_inp;    // The input buffer length
-Size                   size_out;    // The output buffer length
+size_t                 size_inp;    // The input buffer length
+size_t                 size_out;    // The output buffer length
 Socket*                socket= nullptr; // Connection Socket
 stream_ptr             stream;      // The active stream
 ClientItem*            stream_item; // The active ClientItem
@@ -113,8 +110,6 @@ LambdaTask             task_out;    // Writer task
 
 int                    fsm= 0;      // Finite State Machine
 bool                   operational= false; // TRUE while operational
-
-TimingRecord::clock_t  last_end= {}; // Last stream end time
 
 //----------------------------------------------------------------------------
 // Client::Constructors, Creator, destructor
