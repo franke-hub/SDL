@@ -16,7 +16,7 @@
 //       Event (wait/post) implementation.                                                   ts.
 //
 // Last change date-
-//       2022/09/02
+//       2022/11/14
 //
 // Implementation note-
 //       An Event is not (currently) an Object.
@@ -66,11 +66,17 @@ inline
 Event& operator=(const Event&) = delete; // Disallowed assignment operator
 
 //----------------------------------------------------------------------------
+// Event::Accessor methods
+//----------------------------------------------------------------------------
+bool                                // TRUE iff posted
+   is_post( void ) const            // Is Event in posted state?
+{  return code != 0; }
+
+//----------------------------------------------------------------------------
 // Event::Methods
 //----------------------------------------------------------------------------
-public:
 void
-   post(                            // Indicate event ready
+   post(                            // Post event completion
      uint32_t          code= 0)     // (31 bit) completion code
 {  std::unique_lock<decltype(mutex)> lock(mutex);
 
@@ -84,10 +90,6 @@ void
 
    code= 0;
 }
-
-bool                                // TRUE iff posted
-   test( void )                     // Has Event been posted?
-{  return code != 0; }
 
 int32_t                             // The event code (Always positive)
    wait( void )                     // Wait for Event

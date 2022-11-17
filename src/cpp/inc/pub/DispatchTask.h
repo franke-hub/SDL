@@ -16,7 +16,7 @@
 //       Standard Dispatch Task object.
 //
 // Last change date-
-//       2022/09/02
+//       2022/11/14
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCHTASK_H_INCLUDED
@@ -69,7 +69,6 @@ virtual
 //----------------------------------------------------------------------------
 // Task::Methods
 //----------------------------------------------------------------------------
-public:
 inline bool                         // TRUE iff Task has no enqueued work
    is_idle( void ) const            // Is this Task idle?
 {
@@ -115,7 +114,7 @@ virtual void                        // (IMPLEMENT this method)
 //       dispatch::LambdaTask
 //
 // Purpose-
-//       A Dispatch Task where the function is constructor-defined
+//       A Dispatch Task using a std::function
 //
 // Sample usage (which performs the default action)-
 //       LambdaTask task([this](Item* item) {
@@ -132,10 +131,21 @@ protected:
 function_t             callback;    // The Work item handler
 
 public:
-virtual
-   ~LambdaTask( void ) = default;   // Destructor
+   LambdaTask( void )               // Default constructor
+:  Task(), callback([](Item*) {}) {}
+
    LambdaTask(function_t f)         // Lambda constructor
 :  Task(), callback(f) {}
+
+virtual
+   ~LambdaTask( void ) = default;   // Destructor
+
+//----------------------------------------------------------------------------
+// LambdaTask::Methods
+//----------------------------------------------------------------------------
+void
+   on_work(function_t f)
+{  callback= f; }
 
 protected:
 virtual void                        // (Callback constructor-defined)

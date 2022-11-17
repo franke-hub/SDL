@@ -16,7 +16,7 @@
 //       Primitive mechanisms for granting access to a resource.
 //
 // Last change date-
-//       2022/09/02
+//       2022/11/11
 //
 // Implementation notes-
 //       Internal logic for these mechanisms are further described in
@@ -208,7 +208,8 @@ void
 //       The implementation deadlocks during an attempt to hold both latches.
 //
 //============================================================================
-static_assert( sizeof(uintptr_t) == 8 || sizeof(uintptr_t) == 4 );
+static_assert( sizeof(uintptr_t) == 8 || sizeof(uintptr_t) == 4
+             , "Unexpected sizeof(uintptr_t) [code update required]" );
 
 struct SHR_latch {                  // SHR_latch descriptor
 //----------------------------------------------------------------------------
@@ -301,8 +302,7 @@ void
 void
    lock( void )                     // Obtain the XCL_latch
 {
-   for(uint32_t spinCount= 1;;spinCount++)
-   {
+   for(uint32_t spinCount= 1;;spinCount++) {
      if( try_lock() )
         break;
 
@@ -338,8 +338,7 @@ bool                                // TRUE iff successful
 
    // Reserve the Latch for exclusive use
    uintptr_t oldValue= share.count.load();
-   for(;;)
-   {
+   for(;;) {
      if( oldValue & HBIT )          // If already reserved
        return false;                // (Only one reservation allowed)
 
@@ -351,8 +350,7 @@ bool                                // TRUE iff successful
    thread= std::this_thread::get_id(); // We have the reservation
 
    // Wait for all shares to unlock.
-   for(uint32_t spinCount= 1; oldValue != HBIT; spinCount++)
-   {
+   for(uint32_t spinCount= 1; oldValue != HBIT; spinCount++) {
      if( spinCount & 0x00000007 )
        std::this_thread::yield();
      else

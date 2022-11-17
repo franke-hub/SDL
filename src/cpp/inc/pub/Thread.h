@@ -16,10 +16,7 @@
 //       Define the Thread control object.
 //
 // Last change date-
-//       2022/10/16
-//
-// Implementation notes-
-//       TODO: Use pthread instead of std::thread
+//       2022/11/08
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_THREAD_H_INCLUDED
@@ -40,8 +37,12 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //       A standard Thread representation.
 //
 // Implementation notes-
-//       Invoking the Thread destructor DOES NOT terminate thread execution,
-//       but does remove the Thread from the active map.
+//       Invoking the Thread destructor for a running Thread:
+//         detaches the Thread (if it wasn't already detached,) and causes
+//         Thread::current() to return nullptr for that Thread.
+//         Note that, once deleted, a deleted Thread must not be accessed.
+//       Invoking detach for a running thread detaches the thread, but
+//         Thread::current() still returns the Thread*.
 //
 //----------------------------------------------------------------------------
 class Thread {                      // The Thread object
@@ -52,19 +53,21 @@ public:
 typedef std::string    string;
 typedef std::thread    thread_t;
 typedef thread_t::id   id_t;
-static const id_t      null_id;
 
 //----------------------------------------------------------------------------
 // Thread::Attributes
 //----------------------------------------------------------------------------
 protected:
 id_t                   id;          // The thread id
-thread_t               thread;      // The thread (while active)
+thread_t               thread;      // The std::thread (while active)
+void*                  _tls= nullptr; // (Internal)
+
+public:
+static const id_t      null_id;     // The thread id of a non-executing thread
 
 //----------------------------------------------------------------------------
 // Thread::Constructors/Destructors
 //----------------------------------------------------------------------------
-public:
    Thread( void );
 
 virtual
@@ -83,7 +86,7 @@ virtual void
 
 static void
    static_debug(                    // Thread(*) debugging display
-      const char*      info=nullptr); // Caller information (also adds detail)
+      const char*      info=nullptr); // Caller information
 
 //----------------------------------------------------------------------------
 // Thread::Accessor methods
@@ -98,8 +101,7 @@ std::thread::native_handle_type     // The Thread handle
 
 static string                       // Associated string
    get_id_string(                   // Represent id as a string
-     const id_t&         id)        // The thread id
-{  return utility::to_string(id); }
+     const id_t&         id);       // The thread id
 
 std::string                         // Associated string
    get_id_string( void ) const      // Represent id as a string
@@ -139,6 +141,14 @@ virtual void
 
 void
    start( void );                   // Start this Thread
+
+//----------------------------------------------------------------------------
+// Thread::Internal methods
+//----------------------------------------------------------------------------
+protected:
+static void
+   drive(                           // Drive (start)
+     Thread*           thread);     // This Thread
 }; // class Thread
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_THREAD_H_INCLUDED

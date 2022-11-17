@@ -13,10 +13,10 @@
 //       Select.h
 //
 // Purpose-
-//       Socket selector
+//       Socket polling controller/selector.
 //
 // Last change date-
-//       2022/10/16
+//       2022/11/17
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SELECT_H_INCLUDED
@@ -31,7 +31,9 @@
 #include <sys/poll.h>               // For struct pollfd, ...
 #include <sys/socket.h>             // For socket methods
 
-#include "pub/Latch.h"              // For pub::SHR_latch, pub::XCL_latch
+#include <pub/Dispatch.h>           // For pub::dispatch::Item
+#include <pub/Latch.h>              // For pub::SHR_latch, pub::XCL_latch
+#include <pub/List.h>               // For pub::AI_list<>
 #include "pub/Socket.h"             // For pub::Socket
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
@@ -46,7 +48,7 @@ struct control_op;                  // (Internal) control operation
 //       Select
 //
 // Purpose-
-//       Socket selector
+//       Socket polling controller/selector
 //
 // Implementation notes-
 //       Thread safe.
@@ -65,18 +67,17 @@ class Select {                      // Socket selector
 // Select::Typdefs and enumerations
 //----------------------------------------------------------------------------
 public:
-enum                                // Implementation controls
-{  USE_SELECT_FUNCTION= true        // Use (test) socket->selected method?
-}; // Implementation controls
+typedef dispatch::Item Item;
 
 //----------------------------------------------------------------------------
 // Select::Attributes
 //----------------------------------------------------------------------------
-RecursiveLatch         ctl_latch;       // Control operation latch
-mutable SHR_latch      shr_latch;       // Shared latch
+mutable SHR_latch      shr_latch;   // Shared latch
 mutable XCL_latch      xcl_latch= shr_latch; // Exclusive latch
 
 protected:
+AI_list<Item>          todo_list;   // Work item list
+
 Socket*                reader= nullptr; // Internal reader socket
 Socket*                writer= nullptr; // Internal writer socket
 
@@ -136,9 +137,6 @@ const Socket*                       // The associated Socket*
    return sarray[fd];
 }
 
-void
-   control( void );                 // Drain control operation queue
-
 int                                 // Return code, 0 expected
    insert(                          // Insert a Socket onto the list
      Socket*           socket,      // The associated Socket
@@ -164,13 +162,16 @@ Socket*                             // The next selected Socket, or nullptr
      const sigset_t*   signals);    // Signal set
 
 void
-   tickle( void );                  // Complete the current select()
+   shutdown( void );                // Insure polling complete
 
 //============================================================================
 protected:
 void
    control(                         // Send control operation
      const control_op& op);         // The control operation
+
+void
+   control( void );                 // Drain control operation queue
 
 inline void
    resize(                          // Resize the Select

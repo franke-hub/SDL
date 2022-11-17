@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2022/10/16
+//       2022/11/11
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -34,6 +34,7 @@
 #include <time.h>                   // For clock_gettime, ...
 
 #include <pub/Debug.h>              // For Debug object (see dump())
+#include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
 #include "pub/utility.h"            // For utility functions, implemented
 
@@ -42,11 +43,6 @@ using namespace PUB;
 using namespace PUB::debugging;
 
 namespace _LIBPUB_NAMESPACE::utility {
-//----------------------------------------------------------------------------
-// Internal data areas
-//----------------------------------------------------------------------------
-static std::thread::id null_id;     // The non-executing thread id
-
 //----------------------------------------------------------------------------
 // Volatile data and functions used to avoid compiler optimizations
 //----------------------------------------------------------------------------
@@ -61,6 +57,8 @@ bool is_null(void* V) { return V == nullptr; } // Allows is_null(this)
 //----------------------------------------------------------------------------
 f_exception            on_exception= [](std::string what)
 {
+   std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
+
    debugf("utility::on_exception(%s)\n", what.c_str());
    if( Trace::table ) {
      Trace::trace(".BUG", 0, what.c_str());
@@ -705,20 +703,7 @@ std::string                         // Resultant
 std::string                         // Resultant
    to_string(                       // Create string from std::thread::id
      const std::thread::id& id)     // The std::thread::id
-{
-   if( sizeof(id) == 8 ) {
-     char buff[24];
-     sprintf(buff, "0x%.14zx", *(size_t*)(&id));
-     return buff;
-   }
-
-   if( id == null_id )
-     return "null_id";
-
-   std::stringstream ss;
-   ss << id;
-   return ss.str();
-}
+{  return Thread::get_id_string(id); }
 
 std::string                         // Resultant string
    to_string(                       // Get id string

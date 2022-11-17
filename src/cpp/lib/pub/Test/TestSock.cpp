@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2022/09/02
+//       2022/11/11
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -908,7 +908,6 @@ virtual void
    else if( USE_RPOLL == USE_POLL_SELECT ) {
      packet.on_select([ppfd](int revents) {ppfd->revents= (short)revents;});
      select.insert(&packet, POLLIN);
-     select.control();
    }
 
    operational= true;
@@ -1458,7 +1457,6 @@ virtual void
    if( USE_APOLL == USE_POLL_SELECT ) {
      listen->on_select([ppfd](int revents) {ppfd->revents= (short)revents;});
      select.insert(listen, POLLIN);
-     select.control();
    }
 
    operational= true;

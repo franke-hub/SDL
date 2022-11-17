@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2022/10/05
+//       2022/11/15
 //
 //----------------------------------------------------------------------------
 #include "Dispatch.h"               // For namespace pub::dispatch definitions
@@ -40,7 +40,7 @@ Timers*                Disp::timers= nullptr;
 void
    Disp::debug( void )              // Debugging display
 {
-   traceh("dispatch::debug()\n");
+   debugh("dispatch::debug()\n");
    WorkerPool::debug();
 }
 
@@ -123,7 +123,7 @@ void
 void
    Item::debug(const char* info) const // Debugging display
 {
-   tracef("Item(%p)::debug(%s) fc(%d) cc(%d) done(%p)\n"
+   debugf("Item(%p)::debug(%s) fc(%d) cc(%d) done(%p)\n"
          , this, info, fc, cc, done);
 }
 
@@ -155,21 +155,17 @@ void
 void
    Task::debug(const char* info) const        // Debugging display
 {
-   tracef("Task(%p)::debug(%s)\n", this, info);
+   debugf("Task(%p)::debug(%s)\n", this, info);
    Item* item= itemList.get_tail();
-   tracef("..itemList %p\n", item);
-   while( item && (void*)item != __detail::__end ) {
-     Item* cast= dynamic_cast<Item*>(item);
-//tracef("%4d TASK cast(%p)->%p item(%p)\n", __LINE__, cast, cast->get_prev(), item);
-     if( cast ) {
-//tracef("%4d TASK Item(%p)->%p IS an Item\n", __LINE__, cast, cast->get_prev());
-//cast->debug();
-//tracef("%4d HCDM\n", __LINE__);
-       item= cast->get_prev();      // (TODO: NOTE: Can't use cast->_prev)
-     } else {
-       tracef("Item(%p)->?? Not an Item\n", item);
-       item= nullptr;
+   debugf("..itemList tail(%p)\n", item);
+   while( item ) {
+     if( (void*)item == __detail::__end ) {
+       debugf("....%p (dummy head item)\n", item);
+       break;
      }
+
+     debugf("....%p -> %p\n", item, item->get_prev());
+     item= item->get_prev();
    }
 }
 

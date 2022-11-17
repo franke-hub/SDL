@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2022/10/27
+//       2022/11/09
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For std::free
@@ -33,6 +33,7 @@
 #include "pub/Exception.h"          // For pub::Exception
 #include "pub/Latch.h"              // See test_Latch
 #include "pub/Signals.h"            // See test_Signals
+#include "pub/Thread.h"             // For pub::Thread
 #include "pub/Trace.h"              // See test_Trace
 #include "pub/utility.h"            // For pub::utility
 #include "pub/Wrapper.h"            // For pub::Wrapper
@@ -484,6 +485,11 @@ static inline int
    error_count += MUST_EQ(errno, ERANGE);
    if( opt_hcdm )
      printf("%4d %d\n", __LINE__, errno);
+
+   std::thread::id tid= std::this_thread::get_id();
+   error_count += VERIFY(utility::to_string(tid)==Thread::get_id_string(tid));
+   if( opt_verbose )
+     printf("std::thread::id(%s)\n", Thread::get_id_string(tid).c_str());
 
 static constexpr const char* const lazy=
        "The quick Brown fox jumps over the lazy dog.";

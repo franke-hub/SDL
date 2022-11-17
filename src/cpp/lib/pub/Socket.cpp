@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/09/26
+//       2022/11/14
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -161,6 +161,9 @@ Socket::sockaddr_u&
 //
 // Purpose-
 //       Copy (replace) content from source
+//
+// Implementation note-
+//       Provides non-accidental copy function.
 //
 //----------------------------------------------------------------------------
 void
@@ -362,7 +365,7 @@ void
 {
    debugf("Socket(%p)::debug(%s) handle(%d)\n", this, info, handle);
 
-   debugf("..selector(%p) handle(%d) family(%d) type(%d)\n", selector
+   debugf("..select(%p) handle(%d) family(%d) type(%d)\n", select.load()
          , handle, family, type);
    debugf("..host_addr: %s\n", host_addr.to_string().c_str());
    debugf("..peer_addr: %s\n", peer_addr.to_string().c_str());
@@ -579,16 +582,10 @@ int                                 // Return code, 0 OK
 
    int rc= 0;
    if( handle >= 0 ) {
-     Select* select= this->selector;
-     if( select ) {                 // If Select controlled
-       std::lock_guard<decltype(select->ctl_latch)> lock(select->ctl_latch);
-
-       // We may have been blocked by close() running on another thread.
-       // If so, selector->remove() will have set selector == nullptr.
-       if( this->selector == select ) {
-         on_select([](int) {});     // Reset default (NOP) select handler
-         select->remove(this);
-       }
+     Select* select= this->select.load();
+     if( select ) {                 // If Select active
+       on_select([](int) {});       // Reset default (NOP) select handler
+       select->remove(this);        // (Ignoring errors)
      }
 
      // Reset host_addr/peer_addr, host_size/peer_size, and handle

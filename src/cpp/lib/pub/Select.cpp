@@ -13,16 +13,10 @@
 //       Select.cpp
 //
 // Purpose-
-//       Select method implementations.
+//       Select.h method implementations.
 //
 // Last change date-
-//       2022/10/23
-//
-// Implementation notes-
-//       TODO: rename this. Maybe: Asynch, Poller, something better
-//       TODO: Add polling-timeout flag
-//       TODO: Add queue to control function. Instead of waiting, control(op)
-//           allocates and inserts a queue element that control() examines.
+//       2022/11/17
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -52,7 +46,9 @@
 
 #include <pub/utility.h>            // For to_string(), ...
 #include <pub/Debug.h>              // For debugging
+#include <pub/Dispatch.h>           // For pub::dispatch objects
 #include <pub/Event.h>              // For pub::Event
+#include <pub/List.h>               // For pub::AI_list<>
 #include "pub/Select.h"             // For pub::Select, implemented
 #include "pub/Socket.h"             // For pub::Socket
 #include <pub/Thread.h>             // For pub::Thread
@@ -64,21 +60,22 @@ namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#define HCDM false                  // Hard Core Debug Mode?
+#define USE_DEBUGGING false         // Use DEBUGGING macro?
 enum
-{  xxxx= false                      // Hard Core Debug Mode?
+{  HCDM= false                      // Hard Core Debug Mode?
 ,  IODM= false                      // I/O Debug Mode?
 ,  IOEM= true                       // I/O error Debug Mode?
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 ,  USE_AF= AF_INET                  // Use this address family
 ,  USE_CHECKING= true               // Use internal cross-checking?
+,  USE_SELECT_FUNCTION= false       // Use (test) socket->selected method?
 }; // enum
 
 //----------------------------------------------------------------------------
 // Macros
 //----------------------------------------------------------------------------
-#if HCDM                            // Bringup debugging TODO: REMOVE
+#if USE_DEBUGGING                   // Bringup debugging TODO: REMOVE
 #  define DEBUGGING(x) {int ERRNO= errno; x; errno= ERRNO;}
 #else
 #  define DEBUGGING(x)
@@ -252,7 +249,7 @@ DEBUGGING( debugh("Select(%p)::Connector(%p)\nRemoved listener %s\n", select, th
 //       control_op
 //
 // Purpose-
-//       Select internal operators
+//       Control operation descriptor
 //
 //----------------------------------------------------------------------------
 enum OP                             // Select operation codes
@@ -267,7 +264,28 @@ char                   op;          // Operation code
 char                   _0001;       // (Reserved for alignment)
 uint16_t               events;      // Event mask
 int32_t                fd;          // Socket file descriptor handle
+const Socket*          socket;      // The associated Socket
 }; // struct control_op
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       SelectItem
+//
+// Purpose-
+//       Our list work item
+//
+// Implementation notes-
+//       Although we use pub::dispatch::Item and pub::dispatch::Done, we don't
+//       use pub::dispatch::Task. Instead of driving a task, we write (one
+//       byte) using our writer->reader socket. This completes the current or
+//       (if polling is inactive,) the next polling operation. We handle all
+//       enqueued work items at this time.
+//
+//----------------------------------------------------------------------------
+struct SelectItem : public dispatch::Item { // Queue item
+control_op             op;          // The control operation
+}; // struct SelectItem
 
 //----------------------------------------------------------------------------
 //
@@ -337,7 +355,7 @@ DEBUGGING( debugf("\n\n"); )
    pollfd->revents= 0;
    sindex[fd]= 0;
    sarray[fd]= reader;
-   reader->selector= this;
+   reader->select= this;
    ++used;
 
 DEBUGGING( debugf("\n\n"); )
@@ -350,6 +368,7 @@ DEBUGGING( reader->debug("READER BRINGUP TEST"); )
    }
 }
 
+//- - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - -
    Select::~Select( void )
 {  if( HCDM )
      debugf("Select(%p)::~Select\n", this);
@@ -366,7 +385,7 @@ DEBUGGING( reader->debug("READER BRINGUP TEST"); )
 
      sarray[fd]= nullptr;
      sindex[fd]= -1;
-     reader->selector= nullptr;
+     reader->select= nullptr;
      --used;
    }
 
@@ -415,7 +434,7 @@ DEBUGGING( reader->debug("READER BRINGUP TEST"); )
          errorf(FMT, __LINE__, this, socket, fd);
          sno_handled(__LINE__);     // See ** USER DEBUGGING NOTE **, above
          debug("Additional debugging information");
-         socket->selector= nullptr;
+         socket->select= nullptr;
        } else if( USE_CHECKING ) {
          sno_handled(__LINE__);     // (socket[fd] == nullptr)
        }
@@ -454,6 +473,10 @@ DEBUGGING( reader->debug("READER BRINGUP TEST"); )
 //       Socket**       sarray;     // Array of Socket's, indexed by fd
 //       int*           sindex;     // File descriptor to pollfd index
 //
+//       Socket close operations, which queue a remove operation, may complete
+//       before the remove operation is processed leaving the Socket* invalid.
+//       Accessing a Socket* can result in a SEGFAULT, so we don't do it.
+//
 //----------------------------------------------------------------------------
 int                                 // Number of detected errors
    Select::debug(                   // Debugging display
@@ -478,10 +501,6 @@ int                                 // Number of detected errors
      if( socket == nullptr ) {
        ++error_count;
        debugf("....[%3d] ERROR: NO ASSOCIATED SOCKET\n", px);
-     } else if( socket->handle != pollfd[px].fd ) {
-       ++error_count;
-       debugf("....[%3d] ERROR: SOCKET.HANDLE(%3d) FD(%3d) MISMATCH\n", px
-             , socket->handle, fd);
      }
      if( px != sindex[fd] ) {
        ++error_count;
@@ -493,19 +512,24 @@ int                                 // Number of detected errors
    debugf("..sarray\n");
    for(int sx= 0; sx<size; ++sx) {
      Socket* socket= sarray[sx];
-     if( socket ) {
-       debugf("....[%3d] %p->(%3d)\n", sx, socket, socket->handle);
-       if( sx != socket->handle ) {
-         ++error_count;
-         debugf("....[%3d] ERROR: SOCKET HANDLE MISMATCH\n", sx);
-       }
-     }
+     if( socket )
+       debugf("....[%3d] %p\n", sx, socket);
    }
 
    debugf("..sindex\n");
    for(int fd= 0; fd<size; ++fd) {
      if( sindex[fd] >= 0 )
        debugf("....[%3d] -> [%3d]\n", fd, sindex[fd]);
+   }
+
+   SelectItem* item= (SelectItem*)todo_list.get_tail();
+   debugf("..dolist(%p) [tail..head]\n", item);
+   while( item ) {
+     Item* next= item->get_prev();
+     control_op& op= item->op;
+     debugf("....%p->%p {%c,%.4x,%2d,%p}\n", item, next
+           , op.op, op.events, op.fd, op.socket);
+     item= (SelectItem*)next;
    }
 
    return error_count;
@@ -519,38 +543,27 @@ int                                 // Number of detected errors
 // Purpose-
 //       Enqueue a control operations
 //
-// Implentation notes-
-//       TODO: instead of waiting, enqueue a work element that's checked
-//       by control. (Ops need to be handled in order. How do we synchronize?)
-//       Maybe add a sequence number to the op.
-//
 //----------------------------------------------------------------------------
 void
    Select::control(                 // Transmit control operation
      const control_op& op)          // The operation to send
 {  if( HCDM )
-     debugh("Select(%p)::control({%c,,0x%.4x,%d})\n", this
-           , op.op, op.events, op.fd);
+     debugh("Select(%p)::control({%c,,0x%.4x,%d,%p})\n", this
+           , op.op, op.events, op.fd, op.socket);
 
-DEBUGGING( debugh("WR control {%c, %.4x, %d}\n", op.op, op.events, op.fd); )
-   for(uint32_t spinCount= 1;;spinCount++) { // Retry until successful
-     ssize_t L= writer->write(&op, sizeof(op));
-     if( L == sizeof(op) )
-       return;                      // (Operation queued)
-     int ERRNO= errno;              // (Preserve errno)
-DEBUGGING( debugh("%zd= writer->write() %d%s\n", L, ERRNO, strerror(ERRNO)); )
+   SelectItem* item= new SelectItem();
+   item->op= op;
+   Item* tail= todo_list.fifo(item);
 
-     if( !IS_BLOCK && !IS_RETRY ) { // If unexpected error
-       debugh("Select(%p)::control({%c,,0x%.4x,%d}) %d:%s\n", this
-             , op.op, op.events, op.fd, ERRNO, strerror(ERRNO));
+   if( tail == nullptr ) {
+     ssize_t L= writer->write(&op.op, 1);
+     while( L < 0 && IS_RETRY )
+       L= writer->write(&op.op, 1);
+     if( L < 0 && !IS_BLOCK ) {
+       debugf("Select(%p)::control write error: %d:%s\n", this
+             , errno, strerror(errno));
        sno_exception(__LINE__);
      }
-
-     // All we can do is wait. We use progressively longer wait intervals.
-     if( spinCount & 0x0000000f )
-       std::this_thread::yield();
-     else
-       std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
    }
 }
 
@@ -564,6 +577,7 @@ DEBUGGING( debugh("%zd= writer->write() %d%s\n", L, ERRNO, strerror(ERRNO)); )
 //
 // Implementation notes-
 //       Callers MUST NOT hold shr_latch OR xcl_latch: Obtains xcl_latch
+//       (It cannot be called from Socket::do_select)
 //
 //----------------------------------------------------------------------------
 void
@@ -571,54 +585,61 @@ void
 {  if( HCDM )
      debugh("Select(%p)::control\n", this);
 
-   ssize_t             L;           // Input read length
-   control_op          op;          // Input data area
-
-   std::lock_guard<decltype(ctl_latch)> ctl_lock(ctl_latch);
    std::unique_lock<decltype(xcl_latch)> lock(xcl_latch);
 
-   for(;;) {
-     L= reader->read(&op, sizeof(op));
-DEBUGGING( debugh("%zd= read() %d:%s\n", L, errno, strerror(errno)); )
-     if( L != sizeof(op) )
-       break;
-DEBUGGING( debugh("RD control {%c, %.4x, %d}\n", op.op, op.events, op.fd); )
+   char buffer[8];                  // (Only one byte should be used)
+   ssize_t L= reader->read(buffer, sizeof(buffer));
+   while( L < 0 && IS_RETRY )
+     L= reader->read(buffer, sizeof(buffer));
 
-     if( op.op == OP_TICKLE ) {
-       Trace::trace(".SEL", ".NOP");
-       continue;
-     }
+   if( L < 0 && !IS_BLOCK ) {
+     debugf("Select(%p)::control read error: %d:%s\n", this
+           , errno, strerror(errno));
+     sno_exception(__LINE__);
+   }
+   pollfd[0].revents= 0;            // (No control operations enqueued)
 
-     // File descriptor and socket->handle consistency checks
+   // Process queued operations
+   for(auto it= todo_list.begin(); it != todo_list.end(); ++it) {
+     SelectItem* item= static_cast<SelectItem*>(it.get());
+     control_op& op= item->op;
+
+     const Socket* socket= op.socket;
      int fd= op.fd;
      if( fd < 0 )
        sno_exception(__LINE__);
 
-     Socket* socket= nullptr;
-     if( fd < size )
-       socket= sarray[fd];
-     if( socket == nullptr ) {      // If socket not assigned
-       lock.unlock();               // (Debug requires shared lock)
-       debug("HCDM");
-       sno_exception(__LINE__);     // Internal error, not user error
-     }
-
-     if( fd != socket->handle ) {   // If socket/handle mismatch
-       lock.unlock();               // (Debug requires shared lock)
-       debug("HCDM");
-       sno_exception(__LINE__);     // Internal error, not user error
+     if( op.op == OP_MODIFY || op.op == OP_REMOVE ) {
+       if( fd >= size || sarray[fd] != socket ) {
+         lock.unlock();             // (Debug requires shared lock)
+         debug("HCDM");
+         sno_exception(__LINE__);   // Internal error, not user error
+       }
      }
 
      switch( op.op ) {
        case OP_INSERT: {
          Trace::trace(".SEL", ".INS", i2v(fd), socket);
+
+         if( fd >= size )
+           resize(fd);
+
+         if( USE_CHECKING && sarray[fd] ) {
+           // Internal error: another socket's already using the file descriptor
+           debugh("Select(%p)::insert(%p) sarray[%d](%p)\n", this
+                 , socket, fd, sarray[fd]);
+           lock.unlock();           // (Debug requires shared lock)
+           debug("HCDM");
+           sno_exception(__LINE__);
+         }
+
+         // Perform the insert
          struct pollfd* pollfd= this->pollfd + used;
          pollfd->fd= fd;
          pollfd->events= op.events;
          pollfd->revents= 0;
          sindex[fd]= used;
-         sarray[fd]= socket;
-         socket->selector= this;
+         sarray[fd]= const_cast<Socket*>(socket);
 
          ++used;
 //       left= next= 0;             // Not needed, revents == 0
@@ -648,29 +669,22 @@ DEBUGGING( debugh("RD control {%c, %.4x, %d}\n", op.op, op.events, op.fd); )
            sindex[pollfd[i].fd]= i;
          }
 
-         socket->selector= nullptr;
          sarray[fd]= nullptr;
          sindex[fd]= -1;
          left= next= 0;
          break;
        }
+       case OP_TICKLE: {
+         Trace::trace(".SEL", ".NOP");
+         break;
+       }
        default:
          sno_exception(__LINE__);
      }
+
+     item->post();                  // (Uses dispatch post logic)
    }
 
-DEBUGGING(
-   debugh("Select::control %zd= read() %d:%s\n", L, errno, strerror(errno));
-)
-
-   if( L < 0 ) {
-     if( !IS_BLOCK && !IS_RETRY )
-       sno_handled(__LINE__);
-   } else {
-     sno_handled(__LINE__);
-   }
-
-   pollfd[0].revents= 0;            // (No control operations enqueued)
    do_again();
 }
 
@@ -683,7 +697,7 @@ DEBUGGING(
 //       Insert a Socket onto the Socket array
 //
 // Implementation notes-
-//       MUST NOT hold shr_latch OR xcl_latch: Conditionally invokes resize()
+//       Operation does not complete until next polling operation
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 expected
@@ -694,39 +708,26 @@ int                                 // Return code, 0 expected
      debugh("Select(%p)::insert(%p,0x%.4x) fd(%d)\n", this
            , socket, events, socket->handle);
 
-   std::lock_guard<decltype(ctl_latch)> lock(ctl_latch);
-
    int fd= socket->handle;
    if( fd < 0 ) {
      errno= EINVAL;
      return -1;
    }
 
-   if( socket->selector ) {
-     errorf("Select(%p)::insert(%p) already inserted(%p)\n", this
-           , socket, socket->selector);
-     errno= EINVAL;
-     return -1;
+   Select* old_value= nullptr;
+   for(;;) {
+     if( socket->select.compare_exchange_weak(old_value, this) )
+       break;
+     if( old_value != nullptr ) {
+       errorf("Select(%p)::insert(%p) but Select(%p) already inserted\n", this
+             , socket, old_value);
+       errno= EINVAL;
+       return -1;
+     }
    }
 
-   if( fd >= size )
-     resize(fd);
-
-   if( USE_CHECKING && sarray[fd] ) {
-     // Internal error: another socket's already using the file descriptor
-     debugh("Select(%p)::insert(%p, 0x%.4x) Socket(%p) fd(%d)\n", this
-           , socket, events, reader, reader->get_handle());
-     debug("ShouldNotOccur");
-     sno_exception(__LINE__);
-   }
-
-   sarray[fd]= socket;              // Partially update table
-   socket->selector= this;
-
-   control_op op= {OP_INSERT, 0, (uint16_t)events, fd};
+   control_op op= {OP_INSERT, 0, (uint16_t)events, fd, socket};
    control(op);                     // Enqueue the INSERT operation
-// Listen creates select which inserts, so we can't invoke control now.
-// control();                       // Process the INSERT operation
 
    return 0;
 }
@@ -739,6 +740,9 @@ int                                 // Return code, 0 expected
 // Purpose-
 //       Modify a Socket's events mask
 //
+// Implementation notes-
+//       Operation does not complete until next polling operation
+//
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 expected
    Select::modify(                  // Modify Socket
@@ -747,13 +751,13 @@ int                                 // Return code, 0 expected
 {  if( HCDM )
      debugh("Select(%p)::modify(%p,0x%.4x)\n", this, socket, events);
 
-   if( socket->selector != this ) { // If owned by a different selector
-     sno_handled(__LINE__);
-     return socket->selector->modify(socket, events);
+   if( socket->select != this ) {   // If Socket/Select mismatch
+     errno= EINVAL;
+     return -1;
    }
 
-   int fd= socket->handle;
-   control_op op= {OP_MODIFY, 0, (uint16_t)events, fd};
+   int fd= socket->get_handle();
+   control_op op= {OP_MODIFY, 0, (uint16_t)events, fd, socket};
    control(op);
 
    return 0;
@@ -767,6 +771,9 @@ int                                 // Return code, 0 expected
 // Purpose-
 //       Remove a Socket from the Socket array
 //
+// Implementation notes-
+//       Operation does not complete until next polling operation
+//
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 expected
    Select::remove(                  // Remove Socket
@@ -774,31 +781,25 @@ int                                 // Return code, 0 expected
 {  if( HCDM )
      debugh("Select(%p)::remove(%p) fd(%d)\n", this, socket, socket->handle);
 
-   std::lock_guard<decltype(ctl_latch)> lock(ctl_latch);
-
-   if( socket->selector == nullptr ) { // If Socket isn't owned by a selector
-     if( socket->handle < 0 ) {     // (Socket::close may have been blocked)
-       errno= EINVAL;
+   Select* old_value= this;
+   Select* new_value= nullptr;
+   for(;;) {
+     if( socket->select.compare_exchange_weak(old_value, new_value) )
+       break;
+     if( old_value != this ) {      // If Socket/Select mismatch
+       errno= EINVAL;               // (Possibly a duplicate close)
        return -1;
      }
-     if( IOEM ) {
-       errorf("%4d %s remove Socket(%p) selector(nullptr) fd(%d)\n"
-             , __LINE__, __FILE__, socket, socket->handle);
-       debug("Additional debugging information");
-       debug_backtrace();
-     }
-     errno= EINVAL;
+   }
+
+   int fd= socket->get_handle();
+   if( fd < 0 ) {                   // If Socket is closed
+     errno= EINVAL;                 // (Unexpected)
      return -1;
    }
 
-   if( socket->selector != this ) { // If owned by a different selector
-     sno_handled(__LINE__);
-     return socket->selector->remove(socket);
-   }
-
-   control_op op= {OP_REMOVE, 0, 0, socket->get_handle()};
+   control_op op= {OP_REMOVE, 0, 0, fd, socket};
    control(op);                     // Enqueue the REMOVE operation
-   control();                       // Process the REMOVE operation
 
    return 0;
 }
@@ -968,7 +969,7 @@ DEBUGGING( debugh("left(%d)\n", left); )
 //       Resize the internal tables
 //
 // Implementation note-
-//       Caller MUST NOT hold shr_latch or xcl_latch.
+//       Caller must hold xcl_latch.
 //       Uses 20 bytes per fd.
 //
 //----------------------------------------------------------------------------
@@ -977,8 +978,6 @@ inline void
      int               fd)          // For this file (positive) descriptor
 {  if( HCDM )
      debugf("Select(%p)::resize(%d)\n", this, fd);
-
-   std::lock_guard<decltype(xcl_latch)> lock(xcl_latch);
 
    int new_size= 0;
    if( fd < 32 )
@@ -1035,21 +1034,23 @@ inline void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Select::tickle
+//       Select::shutdown
 //
 // Purpose-
-//       Drive select completion
+//       Insure all enqueued operation complete.
+//
+// Implementation notes-
+//       Called after polling task is no longer operational but may or may
+//       not still be running.
 //
 //----------------------------------------------------------------------------
 void
-   Select::tickle( void )           // Drive select completion
+   Select::shutdown( void )         // Insure operation completion
 {  if( HCDM )
-     debugh("Select(%p)::tickle\n", this);
+     debugh("Select(%p)::shutdown\n", this);
 
-   std::lock_guard<decltype(ctl_latch)> lock(ctl_latch);
-
-   control_op op= {OP_TICKLE, 0, 0, 0};
-   control(op);                     // Enqueue the TICKLE operation
-   control();                       // Process the TICKLE operation
+   control_op op= {OP_TICKLE, 0, 0, 0, nullptr};
+   control(op);
+   control();                       // Chase any pending operations
 }
 } // namespace _LIBPUB_NAMESPACE

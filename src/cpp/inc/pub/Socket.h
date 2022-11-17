@@ -16,7 +16,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2022/09/23
+//       2022/11/14
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -32,6 +32,7 @@
 #ifndef _LIBPUB_SOCKET_H_INCLUDED
 #define _LIBPUB_SOCKET_H_INCLUDED
 
+#include <atomic>                   // For std::atomic
 #include <functional>               // For std::function
 #include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
@@ -50,7 +51,7 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
-class Select;                       // Socket selector controller
+class Select;                       // Socket select controller
 
 //----------------------------------------------------------------------------
 //
@@ -112,7 +113,10 @@ inline
 
 inline
    sockaddr_u(const sockaddr_u& src) // Copy constructor
-{  operator=(src); }
+{
+   su_align[0]= su_align[1]= su_align[2]= su_align[3]= 0;
+   operator=(src);
+}
 
 inline
    ~sockaddr_u( void )              // Destructor
@@ -139,7 +143,7 @@ std::string                         // The display string
 // Socket::Attributes
 //----------------------------------------------------------------------------
 protected:
-Select*                selector= nullptr; // The associated Selector
+std::atomic<Select*>   select= nullptr; // The associated Select
 f_select               h_select;    // Selection handler
 
 int                    handle= CLOSED; // The socket handle (handle)
@@ -257,7 +261,7 @@ socklen_t                           // The peer internet address length
 
 Select*                             // The Select
    get_select( void )               // Get Select
-{  return selector; }
+{  return select.load(); }
 
 const char*                         // The unix socket file name
    get_unix_name( void ) const;     // Get unix socket file name
