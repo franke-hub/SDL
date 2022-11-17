@@ -16,7 +16,7 @@
 //       Main::Task sequencing controls, including a trace table.
 //
 // Last change date-
-//       2022/03/11
+//       2022/11/13
 //
 // Implementation notes-
 //       Defines class Main and class Task.
@@ -179,7 +179,7 @@ static inline void
      const char*       name)        // This event name
 {
    const char* status= "wait";      // Default, wait status
-   if( event.test() )               // If posted
+   if( event.is_post() )            // If posted
      status= "post";
 
    debugh("%s %s\n", name, status);
