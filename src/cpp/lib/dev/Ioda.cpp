@@ -16,7 +16,7 @@
 //       Implement http/Ioda.h
 //
 // Last change date-
-//       2022/10/27
+//       2022/11/12
 //
 //----------------------------------------------------------------------------
 // #define NDEBUG                   // TODO: USE (to disable asserts)
@@ -86,16 +86,14 @@ static inline Page*
    Page* page= (Page*)malloc(sizeof(Page));
    if( page == nullptr )
      throw std::bad_alloc();
-   memset(page, 0, sizeof(Page));
 
    char* data= (char*)malloc(PAGE_SIZE);
    if( data == nullptr ) {
      free(page);
      throw std::bad_alloc();
    }
-
    page->data= data;
-// page->used= 0;
+   page->used= 0;
 
    if( HCDM )
      debugf("%p.(%p)= get_page()\n", page, page->data);
@@ -320,7 +318,8 @@ void
 //       Assignment operator
 //
 //----------------------------------------------------------------------------
-Ioda& Ioda::operator=(Ioda&& move)  // (Move) assignment operator
+Ioda&
+   Ioda::operator=(Ioda&& move)     // Assignment move operator
 {  if( HCDM )
      debugh("Ioda(%p)::operator=(Ioda&&(%p)\n", this, &move);
 
@@ -342,13 +341,25 @@ Ioda& Ioda::operator=(Ioda&& move)  // (Move) assignment operator
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Ioda::operator-=
+//
+// Purpose-
+//       Prepend operator
+//
+//----------------------------------------------------------------------------
+// (Reserved for expansion)
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Ioda::operator+=
 //
 // Purpose-
-//       Append method
+//       Append operator
 //
 //----------------------------------------------------------------------------
-Ioda& Ioda::operator+=(Ioda&& move) // Move append
+Ioda&
+   Ioda::operator+=(Ioda&& move)    // Move append
 {  if( HCDM )
      debugh("Ioda(%p)::operator+=(Ioda&&(%p)\n", this, &move);
 
@@ -376,10 +387,10 @@ Ioda& Ioda::operator+=(Ioda&& move) // Move append
 //       Ioda::operator std::string
 //
 // Purpose-
-//       Cast to std::string
+//       (std::string) cast operator
 //
 //----------------------------------------------------------------------------
-   Ioda::operator std::string( void ) const // Cast to std::string
+   Ioda::operator std::string( void ) const // (std::string) cast operator
 {  if( HCDM )
      debugh("Ioda(%p)::operator std::string\n", this);
 
@@ -621,7 +632,6 @@ void
 {  if( HCDM )
      debugh("Ioda(%p)::copy(%p)\n", this, &copy);
 
-
    if( copy.used == 0 ) {           // If degnerate case, nothing to copy
      reset(copy.size);
      return;
@@ -632,6 +642,61 @@ void
    for(Page* page= copy.list.get_head(); page; page= page->get_next())
      write(page->data, page->used);
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Ioda::discard
+//
+// Purpose-
+//       Discard leading data
+//
+//----------------------------------------------------------------------------
+#if 1 // Defer until stable
+void
+   Ioda::discard(                   // Discard leading data
+     size_t            slen)        // For this length
+{  Ioda ignore; split(ignore, slen); }
+#else // Deferred
+void
+   Ioda::discard(                   // Discard leading data
+     size_t            slen)        // For this length
+{  if( HCDM )
+     debugh("Ioda(%p)::discard(%'zd(\n", this, slen);
+
+   if( slen == 0 )                  // If discard none
+     return;
+   if( slen >= used ) {             // If discard all
+     reset();
+     return;
+   }
+
+   size_t lead= 0;                  // Current leading length
+   for(Page* page= list.get_head(); page; page= list.get_head()) {
+     if( (lead + page->used) >= slen ) { // If split point found
+       if( (lead + page->used) > slen ) { // If partial page delete
+         int page_used= int(slen - lead); // The used byte count
+         int page_left= page->used - page_used; // The remaining byte count
+
+         page->used= page_used;
+         memcpy(page->data, page->data+page_used, page_left);
+         copy->used= page_left;
+       }
+
+       used -= slen;
+       return;
+     }
+
+     lead += page->used;
+     list.remove(page);
+     put_page(page);
+   }
+
+debugf("lead(%'zd) slen(%'zd) size(%'zd) used(%'zd)\n", lead, slen, size, used);
+debug("should not occur");
+   should_not_occur(__LINE__);        // Inconsistent with !(slen >= used)
+}
+#endif
 
 //----------------------------------------------------------------------------
 //
@@ -712,7 +777,7 @@ void
 {  if( HCDM )
      debugh("Ioda(%p)::split(%p,%'zd(\n", this, &ioda, slen);
 
-   ioda.reset();                    // Default, empty resultant
+   ioda.reset();                    // Empty the resultant
    if( slen == 0 )                  // If empty split
      return;
    if( slen >= used ) {             // If split at or after end
@@ -727,9 +792,6 @@ void
        if( (lead + page->used) == slen ) { // If split at page boundary
          list.remove(head, page);
          ioda.list.insert(nullptr, head, page);
-
-//       ioda.used= slen;           // (Common path)
-//       used -= slen;              // (Common path)
        } else {
          int page_used= int(slen - lead); // The used byte count
          int page_left= page->used - page_used; // The remaining byte count
@@ -742,9 +804,6 @@ void
          memcpy(copy->data, page->data+page_used, page_left); // Copy remainder
          copy->used= page_left;       // Setting its length
          list.lifo(copy);             // Add it to the head of the list
-
-//       ioda.used= slen;             // (Common path)
-//       used -= slen;                // (Common path)
        }
 
        ioda.used= slen;               // (Common path)
@@ -757,7 +816,7 @@ void
 
 debugf("lead(%'zd) slen(%'zd) size(%'zd) used(%'zd)\n", lead, slen, size, used);
 debug("should not occur");
-   should_not_occur(__LINE__);        // Inconsistent with slen >= used
+   should_not_occur(__LINE__);        // Inconsistent with !(slen >= used)
 }
 
 //----------------------------------------------------------------------------
@@ -882,7 +941,8 @@ int
 //       Examine next character
 //
 //----------------------------------------------------------------------------
-int IodaReader::bksp( void )
+int
+   IodaReader::bksp( void )
 {
    if( offset == 0 )
      return EOF;
@@ -891,7 +951,8 @@ int IodaReader::bksp( void )
    return index(offset);
 }
 
-int IodaReader::get ( void )
+int
+   IodaReader::get( void )
 {
    if( offset >= ioda.get_used() )
      return EOF;
@@ -899,7 +960,8 @@ int IodaReader::get ( void )
    return index(offset++);
 }
 
-int IodaReader::peek( void ) const
+int
+   IodaReader::peek( void ) const
 {
    if( offset >= ioda.get_used() )
      return EOF;
@@ -916,7 +978,8 @@ int IodaReader::peek( void ) const
 //       Get next line
 //
 //----------------------------------------------------------------------------
-string IodaReader::get_line( void )
+string
+   IodaReader::get_line( void )
 {
    if( offset >= ioda.get_used() )
      return "";
@@ -957,7 +1020,8 @@ string IodaReader::get_line( void )
 //       Single and double quotes are treated as ordinary characters.
 //
 //----------------------------------------------------------------------------
-string IodaReader::get_token(string delim)
+string
+   IodaReader::get_token(string delim)
 {
    if( offset >= ioda.get_used() )
      return "";

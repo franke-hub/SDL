@@ -16,7 +16,7 @@
 //       HTTP Server object.
 //
 // Last change date-
-//       2022/10/26
+//       2022/11/17
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_SERVER_H_INCLUDED
@@ -29,6 +29,7 @@
 #include <string>                   // For std::string
 
 #include <pub/Dispatch.h>           // For namespace pub::dispatch objects
+#include <pub/Event.h>              // For pub::Event
 #include <pub/Socket.h>             // For pub::Socket
 
 #include "pub/http/Ioda.h"          // For pub::http::Ioda
@@ -62,21 +63,14 @@ typedef Ioda::Mesg                            Mesg;
 typedef Socket::sockaddr_u                    sockaddr_u;
 typedef dispatch::LambdaTask                  LambdaTask;
 
+typedef std::shared_ptr<Server>               server_ptr;
 typedef std::shared_ptr<ServerStream>         stream_ptr;
 typedef std::string                           string;
-
-typedef std::function<void(void)>             f_close;
-typedef std::function<void(const string&)>    f_error;
 
 //----------------------------------------------------------------------------
 // Server::Attributes
 //----------------------------------------------------------------------------
 protected:
-// Callback handlers - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-f_close                h_close;     // The close event handler
-f_error                h_error;     // The error event handler
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::weak_ptr<Server>  self;        // Self reference
 Listen*                listen;      // Our owning Listener
 
@@ -89,12 +83,8 @@ StreamSet              stream_set;  // Our set of Streams
 LambdaTask             task_inp;    // Reader task
 LambdaTask             task_out;    // Writer task
 
-int                    fsm= 0;      // Finite State Machine state
+int                    events= 0;   // Current polling events
 bool                   operational= false; // TRUE while operational
-
-//----------------------------------------------------------------------------
-// Server::Static attributes
-//----------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------
 // Server::Constructors, destructor, creator
@@ -127,21 +117,19 @@ const sockaddr_u&                   // The Client's internet address
    get_peer_addr( void ) const      // Get Client's internet address
 {  return socket->get_peer_addr(); }
 
-std::shared_ptr<Server>             // Self-reference
+server_ptr                          // Self-reference
    get_self( void ) const           // Get self-reference
 {  return self.lock(); }
 
-std::shared_ptr<Stream>             // The associated Stream
+stream_ptr                          // The associated Stream
    get_stream(uint32_t id) const    // Locate the Stream given Stream::ident
-{  return stream_set.get_stream(id); }
+{  (void)id; return stream; }       // (TODO: Code stream_set)
 
 void
-   on_close(const f_close& f)       // Set close event handler
-{  h_close= f; }
-
-void
-   on_error(const f_error& f)       // Set error event handler
-{  h_error= f; }
+   set_stream(                      // Add Stream to stream_set for
+     uint32_t          id,          // This stream id and
+     stream_ptr        stream)      // This Stream
+{  (void)id; this->stream= stream; } // (TODO: Code stream_set)
 
 //----------------------------------------------------------------------------
 // Server::Methods
@@ -150,18 +138,22 @@ void
    async(int);                      // Handle asynchronous event
 
 void
-   close( void );                   // Close the server
+   close( void );                   // Close the Server
 
 void
    error(const char*);              // Handle connection error
 
 void
-   inp_task(ServerItem*);           // Input (reader) task handler
+   inp_task(dispatch::Item*);       // Input (reader) task handler
 
 void
-   out_task(ServerItem*);           // Output (writer) task handler
+   out_task(dispatch::Item*);       // Output (writer) task handler
 
-void write(Ioda&);                  // Write to Socket
+void
+   wait( void );                    // Wait until idle
+
+void
+   write(Ioda&);                     // Write to Socket
 
 //----------------------------------------------------------------------------
 // Server::Protected methods

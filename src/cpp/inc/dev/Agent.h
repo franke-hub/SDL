@@ -16,7 +16,7 @@
 //       HTTP Agent objects: ClientAgent and ListenAgent.
 //
 // Last change date-
-//       2022/10/23
+//       2022/11/14
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_AGENT_H_INCLUDED
@@ -63,8 +63,8 @@ class ListenAgent;
 struct ClientConnectionPair {       // The ClientAgent map key
 typedef Socket::sockaddr_u          sockaddr_u;
 
-sockaddr_u             peer;        // The Server's internet address
-sockaddr_u             host;        // The Client's internet address
+sockaddr_u             peer= {};    // The Server's internet address
+sockaddr_u             host= {};    // The Client's internet address
 
    ClientConnectionPair(            // Constructor
      const sockaddr_u& peer,        // The Server's internet address
@@ -101,6 +101,7 @@ bool operator<(const ClientConnectionPair& rhs) const
 //       The Agent owns the ClientAgent and the ListenAgent
 //
 // Implementation notes-
+//       Currently an *UNUSED* placeholder
 //       Agent::shutdown is used for an orderly shutdown.
 //
 //----------------------------------------------------------------------------
@@ -260,6 +261,18 @@ void
    run( void );                     // Run the ClientAgent socket selector
 
 //----------------------------------------------------------------------------
+//
+// Method-
+//       ClientAgent::stop
+//
+// Purpose-
+//       Terminate the ClientAgent
+//
+//----------------------------------------------------------------------------
+void
+   stop( void );                    // Terminate the ClientAgent
+
+//----------------------------------------------------------------------------
 // ClientAgent::Map control methods (mutex protected)
 //----------------------------------------------------------------------------
 protected:
@@ -408,6 +421,18 @@ void
 //----------------------------------------------------------------------------
 void
    run( void );                     // Run the ListenAgent socket selector
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ListenAgent::stop
+//
+// Purpose-
+//       Terminate the ListenAgent
+//
+//----------------------------------------------------------------------------
+void
+   stop( void );                    // Terminate the ListenAgent
 
 //----------------------------------------------------------------------------
 // ListenAgent::Map control methods (mutex protected)

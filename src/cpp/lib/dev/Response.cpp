@@ -16,7 +16,7 @@
 //       Implement http/Response.h
 //
 // Last change date-
-//       2022/10/22
+//       2022/11/16
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -56,6 +56,8 @@ namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
+// IODM= false                      // I/O Debug Mode?
+// VERBOSITY= 1                     // Verbosity, higher is more verbose
 
 ,  RESP_LIMIT= 1'048'576            // Response size limit
 }; // enum
@@ -92,8 +94,7 @@ static constexpr CC*   HTTP_HEAD=  Options::HTTP_METHOD_HEAD;
 //
 //----------------------------------------------------------------------------
    Response::Response( void )       // Default constructor
-:  Options()
-,  h_ioda([](Ioda&) { })
+:  h_ioda([](Ioda&) { })
 ,  h_end([]( void ) { })
 ,  h_error([](string) { })
 {  if( HCDM ) debugh("Response(%p)!\n", this);
@@ -106,9 +107,6 @@ static constexpr CC*   HTTP_HEAD=  Options::HTTP_METHOD_HEAD;
 {  if( HCDM ) debugh("Response(%p)~\n", this);
 
    obj_count.dec();
-
-   if( stream )
-     stream->use_count(__LINE__, __FILE__, "--Response~");
    REM_DEBUG_OBJ("Response");
 }
 
@@ -124,6 +122,8 @@ static constexpr CC*   HTTP_HEAD=  Options::HTTP_METHOD_HEAD;
 void
    Response::debug(const char* info) const // Debugging display
 {  debugh("Response(%p)::debug(%s)\n", this, info);
+
+   opts.debug(info);
 }
 
 //----------------------------------------------------------------------------
@@ -138,62 +138,6 @@ std::shared_ptr<Request>
 
    return nullptr;
 }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Response::end
-//
-// Purpose-
-//       Terminate the Response
-//
-//----------------------------------------------------------------------------
-void
-   Response::end( void )            // Terminate the Response
-{  if( HCDM ) debugh("Response(%p)::end\n", this);
-
-   h_end();                         // Drive Response::on_end
-   stream= nullptr;                 // Remove Stream reference
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Response::reject
-//
-// Purpose-
-//       Reject the Response
-//
-//----------------------------------------------------------------------------
-void
-   Response::reject(int code)       // Reject the Response
-{  if( HCDM ) debugh("Response(%p)::reject(%d)\n", this, code);
-
-   stream->reject(code);
-   stream->close();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Response::read
-//       Response::write
-//
-// Purpose-
-//       Virtual methods; only implemented in ClientResponse
-//       Virtual methods; only implemented in ServerResponse
-//
-//----------------------------------------------------------------------------
-bool Response::read(Ioda&)          // (ClientResponse only)
-{  utility::should_not_occur(__LINE__, __FILE__); return false; }
-
-void
-   Response::write(const void*, const size_t) // (ServerResponse only)
-{  utility::should_not_occur(__LINE__, __FILE__); }
-
-void
-   Response::write()                // (ServerResponse only)
-{  utility::should_not_occur(__LINE__, __FILE__); }
 
 //----------------------------------------------------------------------------
 //
@@ -227,23 +171,27 @@ std::shared_ptr<ClientResponse>     // The ClientResponse
    if( !client )
      utility::should_not_occur(__LINE__, __FILE__); // TODO: Verify correctness
 
-   std::shared_ptr<ClientResponse> Q= std::make_shared<ClientResponse>();
-   Q->self= Q;                      // Set self-reference
-   Q->stream= owner->get_self();    // Set ourClientStream
+   std::shared_ptr<ClientResponse> S= std::make_shared<ClientResponse>();
+   S->self= S;                      // Set self-reference
+   S->stream= owner->get_self();    // Set ourClientStream
 ///debugh("%4d %s shared_ptr<ClientStream>(%p)->(%p)\n", __LINE__, __FILE__, &Q->stream, Q->stream.get()); // TODO: REMOVE
 
-   // Extract options
+   // Copy options
    if( opts )
-     Q->append(*opts);
+     S->opts= *opts;
 
    if( HCDM )
-     debugh("%p= http::ClientResponse::make(%p)\n", Q.get(), owner);
-   return Q;
+     debugh("%p= http::ClientResponse::make(%p)\n", S.get(), owner);
+   return S;
 }
 
 //----------------------------------------------------------------------------
 // ClientResponse::Accessor methods
 //----------------------------------------------------------------------------
+std::shared_ptr<Client>
+   ClientResponse::get_client( void ) const
+{  return get_stream()->get_client(); }
+
 std::shared_ptr<ClientRequest>
    ClientResponse::get_request( void ) const
 {
@@ -257,7 +205,40 @@ std::shared_ptr<ClientRequest>
 std::shared_ptr<ClientStream>
    ClientResponse::get_stream( void ) const
 {  return std::dynamic_pointer_cast<ClientStream>(stream); }
-//{  return std::dynamic_pointer_cast<ClientStream>(stream.lock()); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientResponse::end
+//
+// Purpose-
+//       Response complete
+//
+//----------------------------------------------------------------------------
+void
+   ClientResponse::end( void )      // Response complete
+{  if( HCDM ) debugh("ClientResponse(%p)::end\n", this);
+
+   h_end();                         // Drive Response::on_end
+   stream= nullptr;                 // Remove Stream reference
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//      ClientResponse::reject
+//
+// Purpose-
+//       Reject the Response
+//
+//----------------------------------------------------------------------------
+void
+   ClientResponse::reject(string mess) // Reject the Response
+{  if( HCDM ) debugh("Response(%p)::reject(%s)\n", this, mess.c_str());
+
+   h_error(mess);
+   get_stream()->end();
+}
 
 //----------------------------------------------------------------------------
 //
@@ -326,9 +307,13 @@ bool                                // TRUE if read complete
      string message= reader.get_token("\r\n");
 
      // Start-Line validity checks
-     if( protocol == "" || status == "" || message == "" ) {
+     if( protocol == "" || status == "" || message == ""
+         || protocol[0] == ' ' || status[0] == ' ' || message[0] == ' ' ) {
 debugh("%4d Response: protocol(%s) status(%s) message(%s)\n", __LINE__, protocol.c_str(), status.c_str(), message.c_str()); // TODO: REMOVE
-       throw stream_error("Invalid Start-Line");
+       std::shared_ptr<Client> client= get_client();
+       if( client )
+         client->error("Invalid Start-Line");
+       return true;
      }
      code= atoi(status.c_str());    // TODO: IMPROVE ROBUSTNESS
 
@@ -380,7 +365,7 @@ utility::on_exception("Invalid Header-Line format");
    if( value ) {
      ssize_t content_length= atol(value);
      if( content_length < 0 || content_length > RESP_LIMIT ) {
-       reject(413);
+       reject("Invalid content length");
        return true;
      }
      std::shared_ptr<ClientRequest> Q= get_request();
@@ -424,25 +409,31 @@ std::shared_ptr<ServerResponse>     // The ServerResponse
      const Options*    opts)        // And these Options
 {
    std::shared_ptr<Server> server= owner->get_server();
-   if( !server )
-     utility::should_not_occur(__LINE__, __FILE__); // TODO: Verify correctness
+   if( !server ) {
+     debugf("%4d %s HCDM (unexpected)\n", __LINE__, __FILE__);
+     return nullptr;
+   }
 
-   std::shared_ptr<ServerResponse> Q= std::make_shared<ServerResponse>();
-   Q->self= Q;                      // Set self-reference
-   Q->stream= owner->get_self();    // Set our ServerStream
+   std::shared_ptr<ServerResponse> S= std::make_shared<ServerResponse>();
+   S->self= S;                      // Set self-reference
+   S->stream= owner->get_self();    // Set our ServerStream
 
-   // Extract options
+   // Copy options
    if( opts )
-     Q->append(*opts);
+     S->opts= *opts;
 
    if( HCDM )
-     debugh("%p= http::ServerResponse::make()\n", Q.get());
-   return Q;
+     debugh("%p= http::ServerResponse::make()\n", S.get());
+   return S;
 }
 
 //----------------------------------------------------------------------------
 // ServerResponse::Accessor methods
 //----------------------------------------------------------------------------
+std::shared_ptr<Server>
+   ServerResponse::get_server( void ) const
+{  return get_stream()->get_server(); }
+
 std::shared_ptr<ServerRequest>
    ServerResponse::get_request( void ) const
 {
@@ -456,7 +447,23 @@ std::shared_ptr<ServerRequest>
 std::shared_ptr<ServerStream>
    ServerResponse::get_stream( void ) const
 {  return std::dynamic_pointer_cast<ServerStream>(stream); }
-//{  return std::dynamic_pointer_cast<ServerStream>(stream.lock()); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ServerResponse::end
+//
+// Purpose-
+//       Response complete
+//
+//----------------------------------------------------------------------------
+void
+   ServerResponse::end( void )      // Response complete
+{  if( HCDM ) debugh("ServerResponse(%p)::end\n", this);
+
+   h_end();                         // Drive Response::on_end
+   stream= nullptr;                 // Remove Stream reference
+}
 
 //----------------------------------------------------------------------------
 //
@@ -468,6 +475,30 @@ std::shared_ptr<ServerStream>
 //
 //----------------------------------------------------------------------------
 void
+   ServerResponse::write( void )     // Write Response
+{  if( HCDM ) debugh("ServerResponse(%p)::write\n", this);
+
+   std::shared_ptr<Request> Q= get_request();
+   if( !Q )
+     return;
+
+   string mess= to_string("%s %d %s\r\n", Q->proto_id.c_str(), code
+                         , Stream::get_text(code));
+   for(Options::const_iterator it= opts.begin(); it != opts.end(); ++it)
+     mess += to_string("%s: %s\r\n", it->first.c_str(), it->second.c_str());
+   mess += "\r\n";
+
+   std::shared_ptr<ServerStream> stream= get_stream();
+   if( !stream )
+     return;
+   Ioda temp;
+   temp += mess;
+   temp += std::move(ioda);
+   stream->write(temp);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void
    ServerResponse::write(           // Transmit
      const void*       addr,        // Data address
      size_t            size)        // Data length
@@ -475,31 +506,5 @@ void
      debugh("ServerResponse(%p)::write({%p,%zd})\n", this, addr, size);
 
    ioda.write(addr, size);          // Append to Data
-// debugf("%4d ServerResponse::write(%p,%zd)\n", __LINE__, addr, size);
-// dump(addr, size);
-}
-
-void
-   ServerResponse::write( void )     // Write Response
-{  if( HCDM ) debugh("ServerResponse(%p)::write\n", this);
-
-   std::shared_ptr<Request> Q= get_request();
-   if( !Q )
-     utility::not_coded_yet(__LINE__, __FILE__);
-
-   string mess= to_string("%s %d %s\r\n", Q->proto_id.c_str(), code
-                         , Stream::get_text(code));
-   Options& opts= (Options&)*this;
-   for(Options::const_iterator it= opts.begin(); it != opts.end(); ++it)
-     mess += to_string("%s: %s\r\n", it->first.c_str(), it->second.c_str());
-   mess += "\r\n";
-
-   std::shared_ptr<ServerStream> stream= get_stream();
-   if( !stream )
-     utility::not_coded_yet(__LINE__, __FILE__);
-   Ioda temp;
-   temp += mess;
-   temp += std::move(ioda);
-   stream->write(temp);
 }
 }  // namespace _LIBPUB_NAMESPACE::http

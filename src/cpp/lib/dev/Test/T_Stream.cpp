@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2022/10/27
+//       2022/11/17
 //
 // Arguments-
 //       With no arguments, --client --server defaulted
@@ -416,6 +416,16 @@ static void                         // Exit if error detected
              }
              break;
 
+           case OPT_MAJOR:
+             if( optarg )
+               opt_major= parm_int();
+             break;
+
+           case OPT_MINOR:
+             if( optarg )
+               opt_minor= parm_int();
+             break;
+
            case OPT_VERBOSE:
              if( optarg )
                opt_verbose= parm_int();
@@ -520,6 +530,8 @@ extern int
      debugf("\n");
      debugf("%5d: MAX_REQUEST_COUNT\n", MAX_REQUEST_COUNT);
      debugf("%5s: Protocol (unencrypted)\n", "HTTP1");
+     debugf("%5d: --major\n", opt_major);
+     debugf("%5d: --minor\n", opt_minor);
      debugf("\n\n");
    }
 
@@ -554,12 +566,7 @@ extern int
        server->ended.wait();
        delete server;
      }
-   }
-
-   //-------------------------------------------------------------------------
-   // Handle exceptions
-   //-------------------------------------------------------------------------
-   catch(PUB::Exception& X) {
+   } catch(PUB::Exception& X) { // - - - - - - - - - - - - - - - - - - - - - -
      ++error_count;
      debugf("%4d T_Stream: %s\n", __LINE__, ((string)X).c_str());
    } catch(std::exception& X) {
@@ -587,5 +594,5 @@ extern int
    }
 
    term();                          // Terminate
-   return error_count.load();
+   return error_count.load() != 0;
 }

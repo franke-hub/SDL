@@ -16,7 +16,7 @@
 //       HTTP I/O data area.
 //
 // Last change date-
-//       2022/10/27
+//       2022/11/12
 //
 // Implementation notes-
 //       The I/O data area contains a scatter/gather I/O area used both as an
@@ -140,15 +140,22 @@ public:
 //----------------------------------------------------------------------------
 // Ioda::Operators
 //----------------------------------------------------------------------------
-Ioda& operator=(const Ioda&) = delete; // (Copy) assignment
-Ioda& operator=(Ioda&&);            // (Move) assignment
+Ioda&
+   operator=(const Ioda&) = delete; // (Copy) assignment
+Ioda&
+   operator=(Ioda&&);               // (Move) assignment
 
-Ioda& operator+=(const Ioda&) = delete; // Append Ioda (copy)
-Ioda& operator+=(Ioda&&);           // Append Ioda (move)
-Ioda& operator+=(const string& S)   // Append std::string
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Ioda&
+   operator+=(const Ioda&) = delete; // Append Ioda (copy)
+Ioda&
+   operator+=(Ioda&&);              // Append Ioda (move)
+Ioda&
+   operator+=(const string& S)      // Append std::string
 {  write(S.c_str(), S.size()); return *this; }
 
-explicit operator string( void ) const; // (Cast) std::string operator
+explicit
+   operator string( void ) const;   // (std::string) cast operator
 
 //----------------------------------------------------------------------------
 // Ioda::Accessor methods
@@ -166,32 +173,42 @@ void
      size_t            len= 0,      // Of this (maximum) length
      size_t            off=0) const; // Starting at this offset
 
-size_t get_used( void ) const       // Get used data length
+size_t
+   get_used( void ) const           // Get used data length
 {  return used; }
 
-void set_used(size_t);              // Set the used data length
+void
+   set_used(size_t);                // Set the used data length
 
 //----------------------------------------------------------------------------
 // Ioda::I/O methods
 //----------------------------------------------------------------------------
-void copy(const Ioda&);             // Copy Ioda, replacing any content.
+void
+   put(int);                        // Write character
 
-void put(int);                      // Write character
-
-void put(const string& S)           // Write string
+void
+   put(const string& S)             // Write string
 {  write(S.c_str(), S.size()); }
 
-void reset( void );                 // Reset (empty) the Ioda
-void reset(size_t);                 // Reset the Ioda as input buffer
-
-void write(const void*, size_t);    // Write buffer
+void
+   write(const void*, size_t);      // Write buffer
 
 //----------------------------------------------------------------------------
 // Ioda::Methods
 //----------------------------------------------------------------------------
-void discard(size_t offset)         // Discard leading data
-{  Ioda ignore; split(ignore, offset); } // TODO: code separately
-void split(Ioda& out, size_t offset); // Split leading data
+void
+   copy(const Ioda&);               // Copy Ioda, replacing any content.
+
+void
+   discard(size_t);                 // Discard leading data
+
+void
+   reset( void );                    // Reset (empty) the Ioda
+void
+   reset(size_t);                    // Reset the Ioda (into input buffer)
+
+void
+   split(Ioda& result, size_t size); // Split leading data
 }; // class Ioda
 
 //============================================================================

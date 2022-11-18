@@ -16,7 +16,7 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2022/10/23
+//       2022/11/16
 //
 // Implementation notes-
 //       TODO: Create ClientListen and ServerListen, used by ClientAgent.
@@ -44,6 +44,7 @@
 #include <sys/socket.h>             // For socket functions
 
 #include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Dispatch.h>           // For pub::namespace pub::dispatch
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Trace.h>              // For pub::Trace
@@ -112,7 +113,7 @@ static void
 ,  operational(false)
 ,  h_close([](void) { })
 ,  h_request([](ServerRequest& Q) {
-     std::shared_ptr<Stream> stream= Q.get_stream();
+     std::shared_ptr<ServerStream> stream= Q.get_stream();
      stream->reject(501);           // (No request handler available)
    })
 {  if( HCDM )
@@ -205,6 +206,9 @@ void
      std::shared_ptr<Server> server= it->second;
      string S= server->get_peer_addr().to_string();
      debugf("..[%2d] Server(%p): %s\n", index, server.get(), S.c_str());
+     if( index )
+       debugf("\n");
+     server->debug(info);
      ++index;
    }
 }
@@ -311,27 +315,25 @@ void
 {  if( HCDM )
      debugh("Listen(%p)::close\n", this);
 
-   operational= false;
+   // Terminate the Listen
+   {{{{
+     std::lock_guard<decltype(mutex)> lock(mutex); // Borrow our map mutex
 
-   // Disconnect from the Agent (Must be before socket close)
-   agent->disconnect(this);
+     if( operational ) {
+       operational= false;
 
-   // Make a dummy Listen connection
-   Socket socket;
-   int
-   rc= socket.open(AF_INET, SOCK_STREAM, 0);
-   if( rc == 0 )
-     rc= socket.connect((sockaddr*)&listen.get_host_addr(), sizeof(sockaddr_u));
+       agent->disconnect(this);     // Remove our map entry
+     }
+   }}}}
+
+   reset();                         // Close all servers (asynchronously)
 
    // Close the Listen Socket
-   if( rc == 0 )
-     rc= listen.close();            // Close the Listener Socket
+   int rc= listen.close();
    if( rc && VERBOSE > 1 )
      report_error(__LINE__, "close");
-   h_close();                       // Drive the close handler
 
-   // Close all Servers
-   reset();
+   h_close();                       // Drive the close handler
 }
 
 //----------------------------------------------------------------------------
@@ -412,7 +414,7 @@ void
 //       Listen::reset
 //
 // Purpose-
-//       Reset the Listen, closing all Servers
+//       Reset the Listen, asynchronously closing all Servers
 //
 //----------------------------------------------------------------------------
 void
@@ -434,15 +436,14 @@ void
    }}}}
 
    if( HCDM )
-     debugh("%4d Listen HCDM deleting Servers...\n", __LINE__);
+     debugh("%4d Listen HCDM closing Servers...\n", __LINE__);
    for(auto it : list) {
      std::shared_ptr<Server> server= it.lock();
-     if( server ) {
-       server->close();
-     }
+     if( server )
+       server->close();             // (Asynchronously) close the server
    }
    if( HCDM )
-     debugf("...All Servers deleted\n");
+     debugf("...All Servers closed\n");
 }
 
 //----------------------------------------------------------------------------

@@ -16,11 +16,11 @@
 //       Implement http/Agent.h
 //
 // Last change date-
-//       2022/10/23
+//       2022/11/17
 //
 // Implementation notes-
-//       TODO: Create intermediate Connector object rather than a full Client.
-//       TODO: Create ClientListen, ServerListen for management.
+//       TODO?: Create intermediate Connector object rather than a full Client.
+//       TODO?: Create ClientListen, ServerListen for management.
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::shared_ptr
@@ -40,6 +40,7 @@
 #include <arpa/inet.h>              // For inet_ntop()
 
 #include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Dispatch.h>           // For pub::dispatch::Wait
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Socket.h>             // For pub::Socket::sockaddr_u
 
@@ -132,7 +133,7 @@ static in_port_t                    // The port numbername
 
    operational= false;
    reset();                         // Disconnect all Clients
-   select.tickle();                 // Drive polling completion
+   stop();                          // Terminate polling
    join();                          // Wait for polling completion
 
    if( HCDM )
@@ -270,7 +271,7 @@ void
    }}}}
 
    if( HCDM )
-     debugh("%4d ClientAgent HCDM deleting Clients...\n", __LINE__);
+     debugh("%4d ClientAgent HCDM closing Clients...\n", __LINE__);
    for(auto it : list) {
      std::shared_ptr<Client> client= it.lock();
      if( client && client->is_operational() )
@@ -278,7 +279,7 @@ void
    }
 
    if( HCDM )
-     debugf("...All Clients deleted\n");
+     debugf("...All Clients closed\n");
 }
 
 //----------------------------------------------------------------------------
@@ -295,17 +296,48 @@ void
 {  if( HCDM ) debugh("%4d ClientAgent(%p)::run...\n", __LINE__, this);
 
    while( operational ) {
-     Socket* socket= select.select(POLL_TIMEOUT);
-     if( socket ) {
-       const struct pollfd* info= select.get_pollfd(socket);
-       socket->do_select(info->revents);
-     } else if( HCDM ) {
-       debugh("ClientAgent idle poll\n");
+     try {
+       Socket* socket= select.select(POLL_TIMEOUT);
+       if( socket ) {
+         const struct pollfd* info= select.get_pollfd(socket);
+         socket->do_select(info->revents);
+       } else if( HCDM ) {
+         debugh("ClientAgent idle poll\n");
+//     } else {
+//       debugh("ClientAgent idle poll\n");
+       }
+     } catch(std::exception& X) {
+       errorh("%4d %s exception: %s\n", __LINE__, __FILE__, X.what());
+       debug("Exception");
+debugf("%4d %s HCDM continuing\n", __LINE__, __FILE__);
+     } catch(...) {
+       errorh("%4d %s catch(...)\n", __LINE__, __FILE__);
+       debug("Exception");
+debugf("%4d %s HCDM continuing\n", __LINE__, __FILE__);
      }
    }
 
    if( HCDM )
      debugh("%4d ...ClientAgent(%p)::run\n", __LINE__, this);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientAgent::stop
+//
+// Purpose-
+//       Terminate ClientAgent run() loop
+//
+//----------------------------------------------------------------------------
+void
+   ClientAgent::stop( void )        // Terminate ClientAgent socket selector
+{  if( HCDM ) debugh("%4d ClientAgent(%p)::stop...\n", __LINE__, this);
+
+   operational= false;
+   select.shutdown();
+
+   if( HCDM ) debugh("%4d ...ClientAgent(%p)::stop\n", __LINE__, this);
 }
 
 //----------------------------------------------------------------------------
@@ -420,7 +452,7 @@ void
 
    operational= false;
    reset();                         // Disconnect all Listeners
-   select.tickle();                 // Drive polling completion
+   stop();                          // Terminate polling
    join();                          // Wait for polling completion
 
    if( HCDM )
@@ -446,6 +478,9 @@ void
      std::shared_ptr<Listen> listen= it->second;
      string S= listen->get_host_addr().to_string();
      debugf("..[%2d] Listen(%p): %s\n", index, listen.get(), S.c_str());
+     if( index )
+       debugf("\n");
+     listen->debug(info);
      ++index;
    }
 
@@ -548,7 +583,7 @@ void
    }}}}
 
    if( HCDM )
-     debugh("%4d ListenAgent HCDM deleting Listens...\n", __LINE__);
+     debugh("%4d ListenAgent HCDM resetting Listens...\n", __LINE__);
    for(auto it : list) {
      std::shared_ptr<Listen> listen= it.lock();
      if( listen )
@@ -556,7 +591,7 @@ void
    }
 
    if( HCDM )
-     debugf("...All Listens deleted\n");
+     debugf("...All Listens reset\n");
 }
 
 //----------------------------------------------------------------------------
@@ -573,17 +608,48 @@ void
 {  if( HCDM ) debugh("%4d ListenAgent(%p)::run...\n", __LINE__, this);
 
    while( operational ) {
-     Socket* socket= select.select(POLL_TIMEOUT);
-     if( socket ) {
-       const struct pollfd* info= select.get_pollfd(socket);
-       socket->do_select(info->revents);
-     } else if( HCDM ) {
-       debugh("ListenAgent idle poll\n");
+     try {
+       Socket* socket= select.select(POLL_TIMEOUT);
+       if( socket ) {
+         const struct pollfd* info= select.get_pollfd(socket);
+         socket->do_select(info->revents);
+       } else if( HCDM ) {
+         debugh("ListenAgent idle poll\n");
+//     } else {
+//       debugh("ListenAgent idle poll\n");
+       }
+     } catch(std::exception& X) {
+       errorh("%4d %s exception: %s\n", __LINE__, __FILE__, X.what());
+       debug("Exception");
+debugf("%4d %s HCDM continuing\n", __LINE__, __FILE__);
+     } catch(...) {
+       errorh("%4d %s catch(...)\n", __LINE__, __FILE__);
+       debug("Exception");
+debugf("%4d %s HCDM continuing\n", __LINE__, __FILE__);
      }
    }
 
    if( HCDM )
      debugh("%4d ...ListenAgent(%p)::run\n", __LINE__, this);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ListenAgent::stop
+//
+// Purpose-
+//       Terminate ListenAgent run() loop
+//
+//----------------------------------------------------------------------------
+void
+   ListenAgent::stop( void )        // Terminate ListenAgent socket selector
+{  if( HCDM ) debugh("%4d ListenAgent(%p)::stop...\n", __LINE__, this);
+
+   operational= false;
+   select.shutdown();
+
+   if( HCDM ) debugh("%4d ...ListenAgent(%p)::stop\n", __LINE__, this);
 }
 
 //----------------------------------------------------------------------------

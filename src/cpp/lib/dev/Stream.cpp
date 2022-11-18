@@ -16,13 +16,7 @@
 //       Implement http/Stream.h
 //
 // Last change date-
-//       2022/10/27
-//
-// TODO:
-//       Add ServerStream::make method, shared_ptr reference to Server
-//       Add Server::make method, containing weak_ptr self reference.
-//       All self shared_ptr become weak_ptr????????
-//         Think this through.
+//       2022/11/16
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -63,7 +57,7 @@ namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
-,  IODM= false                      // Input/Output Debug Mode?
+// IODM= false                      // Input/Output Debug Mode?
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 ,  BUFFER_SIZE= 8'096               // Input buffer size (Header collector)
@@ -115,8 +109,7 @@ static struct{int code; const char* text;}
 //
 //----------------------------------------------------------------------------
    Stream::Stream( void )           // Default constructor
-:  h_close([]() {})
-,  h_end([]() {})
+:  h_end([]() {})
 ,  h_error([](const string&) {})
 {  if( HCDM ) debugh("Stream(%p)!\n", this);
 
@@ -146,7 +139,8 @@ void
    Stream::debug(const char* info) const  // Debugging display
 {  debugf("Stream(%p)::debug(%s)\n", this, info);
 
-   // NEEDS WORK, but unused so far
+   debugf("..self(%p) request(%p) response(%p)\n"
+         , get_self().get(), request.get(), response.get());
 }
 
 //----------------------------------------------------------------------------
@@ -194,102 +188,6 @@ void
 
    debugf("%2zd use_count Stream(%#12zx) %4d %s %s\n", self.use_count()
          , intptr_t(this), line, file, info);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Stream::I/O methods
-//
-// Purpose-
-//       Pure virtual method which MUST be overridden.
-//
-//----------------------------------------------------------------------------
-bool                                // Return code: TRUE if complete
-   Stream::read(Ioda&)              // (Async) read data segment
-{  utility::should_not_occur(__LINE__, __FILE__); return true; }
-
-void
-   Stream::write(Ioda&)             // Write data segment to stream
-{  utility::should_not_occur(__LINE__, __FILE__); }
-
-void
-   Stream::write( void )            // Write data complete
-{  utility::should_not_occur(__LINE__, __FILE__); }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Stream::close
-//
-// Purpose-
-//       Close the Stream
-//
-//----------------------------------------------------------------------------
-void
-   Stream::close( void )            // Close the Stream
-{  if( HCDM )
-     debugh("ServerStream(%p)::close\n", this);
-
-   utility::not_coded_yet(__LINE__, __FILE__);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Stream::end
-//
-// Purpose-
-//       Terminate the Stream
-//
-//----------------------------------------------------------------------------
-void
-   Stream::end( void )              // Terminate the Stream
-{  if( HCDM ) debugh("Stream(%p)::end\n", this);
-
-   if( utility::is_null(this) ) {   // TODO: REMOVE
-     utility::on_exception("Stream::end");
-     return;
-   }
-
-   std::shared_ptr<Stream> stream= get_self();
-   if( response )                   // (Can be nullptr if end already called)
-     response->end();               // Complete the Response
-   if( request )
-     request->end();                // Complete the Request
-
-   h_end();                         // Drive Stream::on_end
-   response= nullptr;               // Remove Response reference
-   request= nullptr;                // Remove Request reference
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Stream::reject
-//
-// Purpose-
-//       Reject a Request (Implemented in subclass)
-//
-//----------------------------------------------------------------------------
-void
-   Stream::reject(int)              // Reject a Request
-{  utility::should_not_occur(__LINE__, __FILE__); }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Stream::reset
-//
-// Purpose-
-//       Reset the Stream for re-use
-//
-//----------------------------------------------------------------------------
-void
-   Stream::reset( void )            // Reset the Stream
-{  if( HCDM ) debugh("Stream(%p)::reset\n", this);
-
-   fsm= F_IDLE;
 }
 
 //----------------------------------------------------------------------------
@@ -358,6 +256,35 @@ std::shared_ptr<ClientResponse>
 //----------------------------------------------------------------------------
 //
 // Method-
+//       ClientStream::end
+//
+// Purpose-
+//       Terminate the ClientStream
+//
+//----------------------------------------------------------------------------
+void
+   ClientStream::end( void )        // Terminate the ClientStream
+{  if( HCDM ) debugh("ClientStream(%p)::end\n", this);
+
+   if( utility::is_null(this) ) {   // TODO: REMOVE
+     utility::on_exception("Stream::end");
+     return;
+   }
+
+   std::shared_ptr<Stream> stream= get_self(); // Stream keep-alive
+   if( response )                   // (Can be nullptr if end already called)
+     get_response()->end();         // Complete the Response
+   if( request )
+     get_request()->end();          // Complete the Request
+
+   h_end();                         // Drive Stream::on_end
+   response= nullptr;               // Remove Response reference
+   request= nullptr;                // Remove Request reference
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       ClientStream::read (Asynchronous) I/O Method
 //
 // Purpose-
@@ -370,10 +297,12 @@ std::shared_ptr<ClientResponse>
 bool                                // Return code: TRUE if complete
    ClientStream::read(              // (Async) read data segment
      Ioda&             ioda)        // I/O Data Area
-{  if( HCDM )
-     debugh("ClientStream(%p)::read(*,%zd)\n", this, ioda.get_used());
+{
+   bool cc= get_response()->read(ioda);
+   if( HCDM )
+     debugh("%d= ClientStream(%p)::read(*,%zd)\n", cc, this, ioda.get_used());
 
-   return response->read(ioda);
+   return cc;
 }
 
 //----------------------------------------------------------------------------
@@ -405,41 +334,6 @@ void
 
    if( rc )
      utility::not_coded_yet(__LINE__, __FILE__);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ClientStream::end
-//
-// Purpose-
-//       Terminate the ClientStream
-//
-//----------------------------------------------------------------------------
-void
-   ClientStream::end( void )        // Terminate the ClientStream
-{
-   Stream::end();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ClientStream::reject
-//
-// Purpose-
-//       Reject a Request
-//
-//----------------------------------------------------------------------------
-void
-   ClientStream::reject(            // Reject a Request, driving Response
-     int               code)        // The rejection status code
-{  if( HCDM )
-     debugh("\nClientStream(%p)::reject(%d) %s\n\n", this, code, get_text(code));
-
-   response->set_code(code);
-   response->get_ioda().reset();
-   end();
 }
 
 //----------------------------------------------------------------------------
@@ -488,6 +382,9 @@ std::shared_ptr<ServerStream>       // The ServerStream
      debugh("%p= ServerStream::make(%p)\n", S.get(), owner);
 ///debugh("%4d %s shared_ptr<ServerStream.self>(%p)->(%p)\n", __LINE__, __FILE__, &S->self, S->self.lock().get()); // TODO: REMOVE
 
+   if( S->request.get() == nullptr || S->response.get() == nullptr )
+     S= nullptr;
+
    return S;
 }
 
@@ -505,6 +402,35 @@ std::shared_ptr<ServerResponse>
 //----------------------------------------------------------------------------
 //
 // Method-
+//       ServerStream::end
+//
+// Purpose-
+//       Terminate the ServerStream
+//
+//----------------------------------------------------------------------------
+void
+   ServerStream::end( void )        // Terminate the ServerStream
+{  if( HCDM ) debugh("ServerStream(%p)::end\n", this);
+
+   if( utility::is_null(this) ) {   // TODO: REMOVE
+     utility::on_exception("Stream::end");
+     return;
+   }
+
+   std::shared_ptr<Stream> stream= get_self(); // Stream keep-alive
+   if( response )                   // (Can be nullptr if end already called)
+     get_response()->end();         // Complete the Response
+   if( request )
+     get_request()->end();          // Complete the Request
+
+   h_end();                         // Drive Stream::on_end
+   response= nullptr;               // Remove Response reference
+   request= nullptr;                // Remove Request reference
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       ServerStream::read (Asynchronous) I/O Method
 //
 // Purpose-
@@ -517,7 +443,7 @@ bool                                // Return code: TRUE if complete
 {  if( HCDM )
      debugh("ServerStream(%p)::read(*,%zd)\n", this, ioda.get_used());
 
-   return request->read(ioda);
+   return get_request()->read(ioda);
 }
 
 //----------------------------------------------------------------------------
@@ -568,21 +494,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       ServerStream::end
-//
-// Purpose-
-//       Terminate the ServerStream
-//
-//----------------------------------------------------------------------------
-void
-   ServerStream::end( void )        // Terminate the ServerStream
-{
-   Stream::end();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       ServerStream::reject
 //
 // Purpose-
@@ -601,7 +512,6 @@ void
    response->set_code(code);
    response->get_ioda().reset();
    write(buff, L);
-// write();
    end();
 }
 

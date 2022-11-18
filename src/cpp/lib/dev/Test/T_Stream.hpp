@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2022/10/27
+//       2022/11/17
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -34,6 +34,7 @@
 
 #include <pub/TEST.H>               // For VERIFY macro
 #include <pub/Debug.h>              // For debugging classes and functions
+#include <pub/Dispatch.h>           // For namespace pub::dispatch
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Statistic.h>          // For pub::Statistic
@@ -138,10 +139,13 @@ static const char*     opt_debug= nullptr; // --debug
 static int             opt_verbose= VERBOSE; // --verbose
 static int             opt_bringup= false; // Run bringup test?
 static int             opt_client= USE_CLIENT; // Run basic client test?
+static int             opt_major= -1; // Major test id TODO: REMOVE
+static int             opt_minor= -1; // Minor test id TODO: REMOVE
 static double          opt_runtime= USE_RUNTIME; // Stress test run time, in seconds
 static int             opt_server= USE_SERVER; // Run server?
 static int             opt_ssl= false;  // Run SSL client/server?
 static int             opt_stress= USE_STRESS; // Run client stress test?
+
 static int             opt_trace= USE_TRACE; // Create trace file?
 static int             opt_verify= USE_VERIFY; // Verify file data?
 static int             opt_worker= USE_WORKER; // Create server threads?
@@ -158,6 +162,8 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 ,  {"client",  no_argument,       &opt_client,  true} // --client
 ,  {"host",    required_argument, nullptr,      0}    // --host <string>
 ,  {"port",    required_argument, nullptr,      0}    // --port <string>
+,  {"major",   optional_argument, &opt_major,   0}    // --major
+,  {"minor",   optional_argument, &opt_minor,   0}    // --minor
 ,  {"runtime", required_argument, nullptr,      0}    // --runtime <string>
 ,  {"server",  optional_argument, &opt_server,  true} // --server
 ,  {"ssl",     no_argument,       &opt_ssl,  true}    // --stress
@@ -183,6 +189,8 @@ enum OPT_INDEX                      // Must match OPTS[]
 ,  OPT_CLIENT
 ,  OPT_HOST
 ,  OPT_PORT
+,  OPT_MAJOR
+,  OPT_MINOR
 ,  OPT_RUNTIME
 ,  OPT_SERVER
 ,  OPT_SSL
@@ -195,6 +203,23 @@ enum OPT_INDEX                      // Must match OPTS[]
 ,  OPT_NO_WORKER
 ,  OPT_SIZE
 };
+
+//----------------------------------------------------------------------------
+// Global constructor/destructor (For hard core debugging)
+//----------------------------------------------------------------------------
+static struct Global {
+   Global( void )
+{
+   if( HCDM )
+     printf("%4d %s Global!\n", __LINE__, __FILE__);
+}
+
+   ~Global( void )
+{
+   if( HCDM )
+     printf("%4d %s Global~\n", __LINE__, __FILE__);
+}
+} global_constructor_destructor;
 
 //----------------------------------------------------------------------------
 //
@@ -387,6 +412,7 @@ std::shared_ptr<Client>client;      // The Client
 std::atomic_size_t     cur_op_count= 0; // The number of running requests
 Event                  ready;       // Thread ready event
 Event                  ended;       // Thread ended event
+Event                  send_end;    // Send completion event (for run_one)
 
 static std::atomic_int client_serial; // Global serial number
 int                    serial= -1;  // Serial number
@@ -412,6 +438,25 @@ std::function<void(void)>
 //----------------------------------------------------------------------------
 //
 // Method-
+//       ClientThread::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+void
+   debug(const char* info= "")      // Debugging display
+{  debugf("ClientThread(%p)::debug(%s)\n", this, info);
+
+   debugf("..[%d] cur_op_count(%'zd)\n", serial, cur_op_count.load());
+   debugf("..ready(%d) ended(%d) send_end(%d)\n"
+         , ready.is_post(), ended.is_post(), send_end.is_post());
+   if( client ) client->debug("ClientThread");
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       ClientThread::close
 //
 // Purpose-
@@ -423,7 +468,11 @@ void
 {  if( opt_hcdm && opt_verbose )
      debugh("[%2d] ClientThread::close\n", serial);
 
-   client->close();
+   if( client ) {
+     client->close();
+     client->wait();
+     client= nullptr;
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -442,12 +491,16 @@ void
 {  if( opt_hcdm && opt_verbose )
      debugh("[%2d] do_POST(%s,%s)\n", serial, path.c_str(), data.c_str());
 
-   std::shared_ptr<Request> Q= client->request();
+   std::shared_ptr<ClientStream> stream= client->make_stream();
+   if( stream.get() == nullptr )
+     return;
+
+   std::shared_ptr<ClientRequest> Q= stream->get_request();
    Q->method= HTTP_POST;
    Q->path= path;
 
-   std::shared_ptr<Response> response= Q->get_response();
-   do_RESP(response);
+   std::shared_ptr<ClientResponse> S= stream->get_response();
+   do_RESP(S);
 
    if( opt_iodm ) {
      debugf("do_POST(%s,%s)\n", path.c_str(), data.c_str());
@@ -506,7 +559,7 @@ void
    S->on_end([this, weak]( void ) {
      std::shared_ptr<Response> S= weak.lock();
      if( opt_hcdm && opt_verbose )
-       debugh("[%2d] on_end Response(%p)\n", serial, S.get());
+       debugh("[%2d] S.on_end Response(%p)\n", serial, S.get());
      if( S ) {
        std::shared_ptr<Request> Q= S->get_request();
        if( opt_iodm ) {
@@ -565,18 +618,22 @@ void
 
    ++cur_op_count;
 
-   std::shared_ptr<Request> Q= client->request();
-   if( Q.get() == nullptr )
-     return;                        // TODO: ? ADD ERROR RECOVERY HERE ?
+   std::shared_ptr<ClientStream> stream= client->make_stream();
+   if( stream.get() == nullptr ) {
+     debugf("%4d %s Should Not Occur\n", __LINE__, __FILE__);
+     return;
+   }
+
+   std::shared_ptr<ClientRequest> Q= stream->get_request();
    Q->method= meth;
    Q->path= path;
 
-   std::shared_ptr<Response> S= Q->get_response();
+   std::shared_ptr<ClientResponse> S= stream->get_response();
    do_RESP(S);
 
    Q->on_end([this]() {
      if( opt_hcdm && opt_verbose )
-       traceh("on_end current(%zd) total(%zd) running(%d)\n"
+       traceh("Q.on_end current(%zd) total(%zd) running(%d)\n"
              , cur_op_count.load(), send_op_count.load(), running);
      if( running )                  // (Only count running send completions)
        ++send_op_count;
@@ -611,15 +668,56 @@ void
 // Options opts;                    // TODO: Options TBD
    client= client_agent->connect(host + ":" + port); // Create the client
 
-   if( client ) {
-     client->on_close([this]( void ) {
-       if( opt_hcdm )
-         debugh("[%2d] on_close Client(%p)\n", serial, client.get());
-     });
-   } else {
+   if( !client ) {
      debugf("Unable to connect %s:%s\n", host.c_str(), port.c_str());
      exit(EXIT_FAILURE);
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ClientThread::run_one
+//
+// Purpose-
+//       Process a complete client connection.
+//
+//----------------------------------------------------------------------------
+virtual void
+   run_one( void )                  // Process a complete operation
+{  if( opt_hcdm && opt_verbose )
+     debugh("[%2d] ClientThread::run_one...\n", serial);
+
+   // Initialize
+   send_end.reset();
+   do_NEXT= [this](void) {
+     if( !send_end.is_post() )
+       send_end.post();
+   };
+
+   try {                            // Run the stress test
+     get_client();
+     do_SEND(HTTP_GET, test_url);
+     send_end.wait();
+     if( opt_minor == 0 ) {
+       client->close();
+       client= nullptr;
+     } else {
+       client->close();
+       client->wait();
+       client= nullptr;
+     }
+   } catch(Exception& X) {
+     ++error_count;
+     debugf("%4d Exception: %s\n", __LINE__, X.to_string().c_str());
+   } catch(std::exception& X) {
+     ++error_count;
+     debugf("%4d std::Exception what(%s)\n", __LINE__, X.what());
+   }
+
+   if( opt_hcdm && opt_verbose )
+     debugf("...[%2d] ClientThread.run_one\n", serial);
+   Trace::trace(".TXT", __LINE__, "TS.run_one exit");
 }
 
 //----------------------------------------------------------------------------
@@ -636,7 +734,32 @@ virtual void
 {  if( opt_hcdm && opt_verbose )
      debugh("[%2d] ClientThread::run...\n", serial);
 
-   // Initialize
+// debugf("%4d %s HCDM\n", __LINE__, __FILE__);
+   //-------------------------------------------------------------------------
+   // Client per connection version - in test -- -- -- -- -- -- -- -- -- -- --
+   if( opt_major >= 0 ) {           // Use run_one()
+     ended.reset();                 // Indicate not complete
+     ready.post();                  // Indicate ready
+     test_start.wait();             // Wait for start signal
+
+     try {
+       while( running && error_count == 0 )
+         run_one();
+     } catch(Exception& X) {
+       ++error_count;
+       debugf("%4d Exception: %s\n", __LINE__, X.to_string().c_str());
+     } catch(std::exception& X) {
+       ++error_count;
+       debugf("%4d std::Exception what(%s)\n", __LINE__, X.what());
+     } catch(...) {
+       ++error_count;
+       debugf("%4d catch(...)\n", __LINE__);
+     }
+     return;
+   }
+
+   //-------------------------------------------------------------------------
+   // Single client version (DEFAULT)
    get_client();
    do_NEXT= [this](void) {
      if( opt_hcdm && opt_verbose )
@@ -675,6 +798,9 @@ virtual void
    } catch(std::exception& X) {
      ++error_count;
      debugf("%4d std::Exception what(%s)\n", __LINE__, X.what());
+   } catch(...) {
+     ++error_count;
+     debugf("%4d catch(...)\n", __LINE__);
    }
 
    client->wait();                  // Wait for operations to complete
@@ -683,7 +809,8 @@ virtual void
 
    if( opt_hcdm && opt_verbose )
      debugf("...[%2d] ClientThread.run\n", serial);
-   Trace::trace(".TXT", __LINE__, "TS.stress exit");
+
+   Trace::trace(".TXT", __LINE__, "CT.run exit");
 }
 
 //----------------------------------------------------------------------------
@@ -785,8 +912,9 @@ static void
    test_client( void )              // Client functional test
 {  debugf("\nClientThread.test_client...\n");
 
-   // Initialize
+// debugf("%4d %s HCDM\n", __LINE__, __FILE__);
    error_count= 0;
+
    ClientThread client;
    client.do_NEXT= [](void) {
      if( opt_hcdm && opt_verbose ) debugf("test_client.do_NEXT NOP\n");
@@ -844,8 +972,42 @@ static void
 static void
    test_stress( void )              // Stress test
 {  debugf("\nClientThread.test_stress... (%.1f seconds)\n", opt_runtime);
+
+// debugf("%4d %s HCDM\n", __LINE__, __FILE__);
    error_count= 0;
 
+   //-------------------------------------------------------------------------
+   // Client per connection version - in test -- -- -- -- -- -- -- -- -- -- --
+   if( opt_major == 0 ) {           // run_one() bringup
+     ClientThread ct;
+
+     running= true;
+     for(int i= 0; i<opt_stress; ++i) {
+       ct.run_one();
+     }
+     running= false;
+
+     double op_count= double(send_op_count.load());
+     debugf("%'16.3f operations\n", op_count);
+     debugf("%'16.3f operations/second\n", op_count/opt_runtime);
+
+//debugf("\n"); client_agent->debug("ended (client)");
+     client_agent->reset();
+//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
+     client_agent->stop();
+//debugf("\n"); client_agent->debug("reset (client)");
+
+//debugf("\n"); listen_agent->debug("ended (server)");
+     listen_agent->reset();
+//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
+     listen_agent->stop();
+//debugf("\n"); listen_agent->debug("reset (server)");
+
+     return;
+   }
+
+   //-------------------------------------------------------------------------
+   // Single client version (DEFAULT)
    ClientThread* client[opt_stress];
    for(int i= 0; i<opt_stress; i++) {
      client[i]= new ClientThread();
@@ -853,8 +1015,7 @@ static void
    }
 
    if( opt_verbose )
-     debugf("--%s_stress test: Started\n", opt_ssl ? "ssl" : "std");
-
+     debugh("--%s_stress test: Started\n", opt_ssl ? "ssl" : "std");
    test_ended.reset();
    TimerThread timer_thread;
    timer_thread.start();
@@ -864,15 +1025,33 @@ static void
    debugf("--%s_stream test: %s\n", opt_ssl ? "ssl" : "std"
          , error_count ? "FAILED" : "Complete");
 
-   for(int i= 0; i<opt_stress; i++) {
-     client[i]->close();
-     client[i]->join();
-     delete client[i];
-   }
-
    double op_count= double(send_op_count.load());
    debugf("%'16.3f operations\n", op_count);
    debugf("%'16.3f operations/second\n", op_count/opt_runtime);
+
+   for(int i= 0; i<opt_stress; i++) {
+     client[i]->wait();
+   }
+
+//debugf("\n"); client_agent->debug("ended (client)");
+   client_agent->reset();
+//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
+   client_agent->stop();
+//debugf("\n"); client_agent->debug("reset (client)");
+
+//debugf("\n"); listen_agent->debug("ended (server)");
+   listen_agent->reset();
+//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
+   listen_agent->stop();
+//debugf("\n"); listen_agent->debug("reset (server)");
+
+   for(int i= 0; i<opt_stress; i++) {
+     client[i]->close();
+//client[i]->debug("test_stress");
+     client[i]->join();
+     delete client[i];
+   }
+//debugf("%4d %s All clients closed\n", __LINE__, __FILE__);
 }
 
 //----------------------------------------------------------------------------
@@ -884,12 +1063,12 @@ static void
 //       Wait for all outstanding requests to complete
 //
 //----------------------------------------------------------------------------
-int                                 // Return code, 0 expected
+void
    wait( void )                     // Wait for outstanding request completion
 {  if( opt_hcdm && opt_verbose )
      debugh("[%2d] wait ClientThread\n", serial);
 
-   return client->wait();
+   client->wait();
 }
 }; // class ClientThread
 
@@ -904,8 +1083,7 @@ std::atomic_int        ClientThread::client_serial= 0; // Global serial number
 //       The T_Stream listener Thread
 //
 // Implementation notes-
-//       The ServerThread actually runs completely asynchronously.
-//       This thread is never started, and listen creates its own thread.
+//       The ServerThread is not a Thread. It's driven asynchronously.
 //
 //----------------------------------------------------------------------------
 class ServerThread {                // The listener Thread
@@ -944,7 +1122,6 @@ public:
    listen->on_close([this]( void ) {
      if( opt_hcdm && opt_verbose )
        debugf("ServerThread(%p)::on_close\n", this);
-     ended.post(0);
    });
 
    listen->on_request([this](ServerRequest& Q) {
@@ -1052,7 +1229,7 @@ void
 {  if( opt_hcdm && opt_verbose )
      debugf("ServerThread(%p)::do_HTML(%d)\n", this, code);
 
-   Response& S= *Q.get_response();
+   ServerResponse& S= *Q.get_response();
    S.set_code(code);                // Set response code
    log_request(Q, S);
 

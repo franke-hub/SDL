@@ -16,7 +16,7 @@
 //       HTTP Stream object.
 //
 // Last change date-
-//       2022/10/27
+//       2022/11/14
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_STREAM_H_INCLUDED
@@ -68,7 +68,6 @@ typedef std::string                 string;
 typedef uint32_t                    uint31_t; // (High order bit used as flag)
 
 // Callback handler types
-typedef std::function<void(void)>             f_close;
 typedef std::function<void(void)>             f_end;
 typedef std::function<void(const string&)>    f_error;
 
@@ -91,7 +90,6 @@ request_ptr            request;     // Associated Request
 response_ptr           response;    // Associated Response
 
 // Callback handlers
-f_close                h_close;     // The close event handler
 f_end                  h_end;       // The Stream completion handler
 f_error                h_error;     // The error event handler
 
@@ -116,7 +114,8 @@ virtual
 //----------------------------------------------------------------------------
 // Stream::debug
 //----------------------------------------------------------------------------
-virtual void debug(const char* info= "") const; // Debugging display
+virtual void
+   debug(const char* info= "") const; // Debugging display
 
 //----------------------------------------------------------------------------
 // Stream::Accessor methods
@@ -151,10 +150,6 @@ void
 
 // TODO: These may not be needed, substituting virtual methods instead.
 void
-   on_close(const f_close& f)       // Set close event handler
-{  h_close= f; }
-
-void
    on_end(const f_end& f)           // Set completion handler
 {  h_end= f; }
 
@@ -164,34 +159,6 @@ void
 
 void
    use_count(int, const char*, const char* info= "") const; // Display use count
-
-//----------------------------------------------------------------------------
-// Stream::I/O methods, MUST be overridden by subclass.
-// Clients synchronously write request and asynchronously read response data
-// Servers asynchronously read request and synchronously write response data
-//----------------------------------------------------------------------------
-virtual bool                        // Return code: TRUE if complete
-   read(Ioda&) = 0;                 // (Async) read data segment from stream
-
-virtual void
-   write(Ioda&) = 0;                // Write I/O data area to stream
-virtual void
-   write( void ) = 0;               // Write completed
-
-//----------------------------------------------------------------------------
-// Stream::Methods
-//----------------------------------------------------------------------------
-void
-   close( void );                   // Close the Stream
-
-virtual void
-   end( void );                     // End the Stream
-
-virtual void
-   reject(int);                     // Reject a Request
-
-void
-   reset( void );                   // Reset the Stream
 }; // class Stream
 
 //----------------------------------------------------------------------------
@@ -229,7 +196,7 @@ void
    http2( void );                    // HTTP/2 protocol handler
 
 //----------------------------------------------------------------------------
-// ClientStream::Destructor, constructors, creators
+// ClientStream::Constructors, destructor , creators
 //----------------------------------------------------------------------------
 public:
    ClientStream(Client*);           // Constructor
@@ -260,23 +227,20 @@ std::shared_ptr<ClientStream>
 //----------------------------------------------------------------------------
 // ClientStream::I/O methods
 //----------------------------------------------------------------------------
-virtual bool                        // Return code: TRUE if complete
+bool                                // Return code: TRUE if complete
    read(Ioda&);                     // (Async) read Response segment
 
-virtual void
-   write(Ioda&);                    // Write Request segment to stream
-virtual void
+void
    write( void );                   // Write transmission complete
+
+void
+   write(Ioda&);                    // Write Request segment to stream
 
 //----------------------------------------------------------------------------
 // ClientStream::Methods
 //----------------------------------------------------------------------------
-virtual void
-   end( void );                     // End the Stream
-
-virtual void
-   reject(                          // Reject a Request, simulating Response
-     int               code);       // The rejection status code
+void
+   end( void );                     // End the ClientStream
 }; // class ClientStream
 
 //----------------------------------------------------------------------------
@@ -325,28 +289,29 @@ std::shared_ptr<Server>
 //----------------------------------------------------------------------------
 // ServerStream::I/O methods
 //----------------------------------------------------------------------------
-virtual bool                        // Return code: TRUE if complete
+bool                                // Return code: TRUE if complete
    read(Ioda&);                     // (Async) read request segment
 
+void
+   write( void );                   // Write Response complete
 
-void write(int, const void*, size_t); // Write to Socket
+void
+   write(int, const void*, size_t); // Write to Socket (line, address, length)
 
-void write(const void* addr, size_t size) // Write to Socket
+void
+   write(const void* addr, size_t size) // Write to Socket
 {  write(0, addr, size); }
 
-virtual void
+void
    write(Ioda&);                    // Write Response segment to Server
-
-virtual void
-   write( void );                   // Write Response complete
 
 //----------------------------------------------------------------------------
 // ServerStream::Methods
 //----------------------------------------------------------------------------
-virtual void
-   end( void );                     // End the Stream
+void
+   end( void );                     // End the ClientStream
 
-virtual void
+void
    reject(                          // Reject a Request, writing Response
      int               code);       // The rejection status code
 }; // class ServerStream

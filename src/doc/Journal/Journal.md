@@ -412,4 +412,27 @@ If you're interested in these later, use gitk to look at today's version.
   - General dev library code inspection.
 - Investigate Cygwin performance anomalies running ~/obj/dev/Test/T_Stream
 
+### 2022/11/17 Maint commit
+
+Some problems in Socket and Select were corrected. Thread now uses thread
+local storage and no longer needs to use std::map.
+
+In Socket, the sockaddr_u copy constructor didn't initialize before invoking
+operator=. The reset() function can then be looking at garbage.
+
+In Select, remove can be processed after the associated Socket's deleted.
+We can't actually look at a Socket while processing a Remove (or any other
+operation) since a Remove operation could have been enqueued. We revised
+Select so that no operations (except shutdown) invoke control directly.
+
+I wanted to update the dev library to connect for each operation similarly
+to TestSock. This has proven to be more difficult than expected. The commit
+has code to test this change, but it's not driven by default.
+
+While some error paths have been tested, the dev library is still fragile.
+While the standard stress test usually works, it's not at 100 percent.
+The new connection per operation code is not just fragile, it's broken.
+Static debugging doesn't find the stress test problems and gdb isn't always
+helpful. More memory trace debugging is required.
+
 ----

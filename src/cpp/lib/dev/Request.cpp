@@ -16,7 +16,7 @@
 //       Implement http/Request.h
 //
 // Last change date-
-//       2022/10/27
+//       2022/11/16
 //
 // Implementation notes-
 //       TODO: Consider moving ClientRequest::write to Client::write
@@ -64,6 +64,8 @@ namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
+// IODM= false                      // I/O Debug Mode?
+// VERBOSITY= 1                     // Verbosity, higher is more verbose
 
 ,  POST_LIMIT= 1'048'576            // POST/PUT size limit
 }; // enum
@@ -86,8 +88,8 @@ statistic::Active      Request::obj_count; // Request object count
 typedef const char CC;
 static constexpr CC*   HTTP_SIZE= Options::HTTP_HEADER_LENGTH;
 
-static constexpr CC*   HTTP_POST=  Options::HTTP_METHOD_POST;
-static constexpr CC*   HTTP_PUT=   Options::HTTP_METHOD_PUT;
+static constexpr CC*   HTTP_POST= Options::HTTP_METHOD_POST;
+static constexpr CC*   HTTP_PUT=  Options::HTTP_METHOD_PUT;
 
 //----------------------------------------------------------------------------
 //
@@ -101,8 +103,7 @@ static constexpr CC*   HTTP_PUT=   Options::HTTP_METHOD_PUT;
 //
 //----------------------------------------------------------------------------
    Request::Request( void )         // Default constructor
-:  Options()
-,  h_ioda([](Ioda&) { })
+:  h_ioda([](Ioda&) { })
 ,  h_end([]( void ) { })
 ,  h_error([](string) { })
 {  if( HCDM ) debugh("http::Request(%p)!\n", this);
@@ -129,7 +130,7 @@ void
    Request::debug(const char* info) const // Debugging display
 {  debugh("Request(%p)::debug(%s)\n", this, info);
 
-   Options::debug(info);
+   opts.debug(info);
 }
 
 //----------------------------------------------------------------------------
@@ -144,63 +145,6 @@ std::shared_ptr<Response>
 
    return nullptr;
 }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Request::end
-//
-// Purpose-
-//       Terminate the Request
-//
-//----------------------------------------------------------------------------
-void
-   Request::end( void )             // Terminate the Request
-{  if( HCDM ) debugh("Request(%p)::end\n", this);
-
-   h_end();                         // Drive Request::on_end
-   stream= nullptr;                 // Remove Stream reference
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Request::reject
-//
-// Purpose-
-//       Reject the Request
-//
-//----------------------------------------------------------------------------
-void
-   Request::reject(int code)        // Reject the Request
-{  if( HCDM ) debugh("Request(%p)::reject(%d)\n", this, code);
-
-   stream->reject(code);
-   stream->close();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Request::read
-//       Request::write
-//
-// Purpose-
-//       Virtual methods; only implemented in ServerRequest
-//       Virtual methods; only implemented in ClientRequest
-//
-//----------------------------------------------------------------------------
-bool                                // Return code, TRUE when complete
-   Request::read(Ioda&)             // (ServerRequest only)
-{  utility::should_not_occur(__LINE__, __FILE__); return true; }
-
-void
-   Request::write(const void*, const size_t) // (ClientRequest only)
-{  utility::should_not_occur(__LINE__, __FILE__); }
-
-void
-   Request::write()                // (ClientRequest only)
-{  utility::should_not_occur(__LINE__, __FILE__); }
 
 //----------------------------------------------------------------------------
 //
@@ -239,15 +183,12 @@ std::shared_ptr<ClientRequest>      // The ClientRequest
    Q->self= Q;                      // Set self-reference
    Q->stream= owner->get_self();    // Set ourClientStream
 
-   // Extract options
-   typedef Options::const_iterator iterator;
+   // Extract/copy options
    Q->method= ".";                  // (Default, invalid method)
    Q->path= ".";                    // (Default, invalid path)
    Q->proto_id= client->get_proto_id();
-   if( opts ) {
-     for(iterator i= opts->begin(); i != opts->end(); ++i)
-       Q->insert(i->first, i->second);
-   }
+   if( opts )
+     Q->opts= *opts;
 
    if( HCDM )
      debugh("%p= http::ClientRequest::make(%p)\n", Q.get(), owner);
@@ -257,21 +198,17 @@ std::shared_ptr<ClientRequest>      // The ClientRequest
 //----------------------------------------------------------------------------
 // ClientRequest::Accessor methods
 //----------------------------------------------------------------------------
+std::shared_ptr<Client>
+   ClientRequest::get_client( void ) const
+{  return get_stream()->get_client(); }
+
 std::shared_ptr<ClientResponse>
    ClientRequest::get_response( void ) const
-{
-   std::shared_ptr<ClientStream> stream= get_stream();
-   if( stream )
-     return stream->get_response();
-
-   return nullptr;
-}
+{  return get_stream()->get_response(); }
 
 std::shared_ptr<ClientStream>
    ClientRequest::get_stream( void ) const
-{
-   return std::dynamic_pointer_cast<ClientStream>(stream);
-}
+{  return std::dynamic_pointer_cast<ClientStream>(stream); }
 
 //----------------------------------------------------------------------------
 //
@@ -299,19 +236,19 @@ void
 //
 //----------------------------------------------------------------------------
 void
+   ClientRequest::write( void )     // Write Request
+{  if( HCDM ) debugh("ClientRequest(%p)::write\n", this);
+
+   get_stream()->write();
+}
+
+void
    ClientRequest::write(            // Write POST/PUT data
      const void*       addr,        // Data address
      size_t            size)        // Data length
 {  if( HCDM ) debugh("ClientRequest(%p)::write(%p,%zd)\n", this, addr, size);
 
    ioda.write(addr, size);
-}
-
-void
-   ClientRequest::write( void )     // Write Request
-{  if( HCDM ) debugh("ClientRequest(%p)::write\n", this);
-
-   stream->write();
 }
 
 //----------------------------------------------------------------------------
@@ -345,15 +282,19 @@ std::shared_ptr<ServerRequest>      // The ServerRequest
      const Options*    opts)        // With these Options
 {
    std::shared_ptr<Server> server= owner->get_server();
-   if( !server )
-     utility::should_not_occur(__LINE__, __FILE__); // TODO: Verify should not occur
+   if( !server ) {
+debugf("%4d %s HCDM\n", __LINE__, __FILE__);
+     return nullptr;
+//   utility::should_not_occur(__LINE__, __FILE__); // TODO: Verify should not occur
+   }
 
    std::shared_ptr<ServerRequest> Q= std::make_shared<ServerRequest>();
    Q->self= Q;                      // Set self-reference
    Q->stream= owner->get_self();    // Set our ServerStream
 
-   // Extract options
-   (void)opts; // TODO: NOT CODED YET
+   // Copy options
+   if( opts )
+     Q->opts= *opts;
 
    if( HCDM )
      debugh("%p= http::Request::make()\n", Q.get());
@@ -363,11 +304,17 @@ std::shared_ptr<ServerRequest>      // The ServerRequest
 //----------------------------------------------------------------------------
 // ServerRequest::Accessor methods
 //----------------------------------------------------------------------------
+std::shared_ptr<ServerResponse>
+   ServerRequest::get_response( void ) const
+{  return get_stream()->get_response(); }
+
+std::shared_ptr<Server>
+   ServerRequest::get_server( void ) const
+{  return get_stream()->get_server(); }
+
 std::shared_ptr<ServerStream>
    ServerRequest::get_stream( void ) const
-{
-   return std::dynamic_pointer_cast<ServerStream>(stream);
-}
+{  return std::dynamic_pointer_cast<ServerStream>(stream); }
 
 //----------------------------------------------------------------------------
 //
@@ -463,7 +410,10 @@ bool                                // Return code, TRUE when complete
      if( method == "" || path == "" || proto_id == ""
          || method[0] == ' ' || path[0] == ' ' || proto_id[0] == ' ' ) {
 debugh("\nmethod(%s) path(%s) proto_id(%s)\n", method.c_str(), path.c_str(), proto_id.c_str()); // TODO: REMOVE
-       throw stream_error("Invalid Start-Line");
+       std::shared_ptr<Server> server= get_server();
+       if( server )
+         server->error("Invalid Start-Line");
+       return true;
      }
 
      // Parse Header lines
@@ -531,5 +481,21 @@ debugf("Request name(%s) value(%s)\n", name.c_str(), value.c_str());
    // Drive Listen::on_request
    server->get_listen()->do_request(this);
    return true;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       ServerRequest::reject
+//
+// Purpose-
+//       Reject the ServerRequest
+//
+//----------------------------------------------------------------------------
+void
+   ServerRequest::reject(int code)  // Reject the ServerRequest
+{  if( HCDM ) debugh("ServerRequest(%p)::reject(%d)\n", this, code);
+
+   get_stream()->reject(code);
 }
 }  // namespace _LIBPUB_NAMESPACE::http

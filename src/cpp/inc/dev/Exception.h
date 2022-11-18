@@ -16,7 +16,7 @@
 //       HTTP exceptions
 //
 // Last change date-
-//       2022/10/16
+//       2022/11/14
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_EXCEPTION_H_INCLUDED
@@ -37,7 +37,6 @@ namespace http {
 //         http::io_exception
 //           http::io_eof
 //           http::io_error
-//         http::stream_error
 //
 // Purpose-
 //       Define HTTP exceptions
@@ -73,10 +72,6 @@ public: using io_exception::io_exception;
 class io_error : public io_exception {
 public: using io_exception::io_exception;
 }; // class io_error
-
-class stream_error : public exception {
-public: using exception::exception;
-}; // class stream_error
 }  // namespace http
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB__HTTPEXCEPTION_H_INCLUDED

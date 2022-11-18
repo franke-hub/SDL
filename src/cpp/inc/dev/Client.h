@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2022/10/27
+//       2022/11/17
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
@@ -66,30 +66,27 @@ class Client : public std::mutex {  // Client class (lockable)
 // Client::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
+typedef std::function<void(dispatch::Item*)>  f_iotask; // (Internal)
+typedef std::function<void(void)>             f_reader; // (Internal)
+typedef std::function<void(void)>             f_writer; // (Internal)
+
 typedef ClientAgent*                          agent_ptr;
 typedef std::shared_ptr<ClientStream>         stream_ptr;
 typedef Socket::sockaddr_u                    sockaddr_u;
 typedef dispatch::LambdaDone                  LambdaDone;
 typedef dispatch::LambdaTask                  LambdaTask;
 
-// Callback handlers
-typedef std::function<void(void)>             f_close;
-typedef std::function<void(ClientItem*)>      f_iotask; // (Internal)
-typedef std::function<void(void)>             f_reader; // (Internal)
-typedef std::function<void(void)>             f_writer; // (Internal)
-
 //----------------------------------------------------------------------------
 // Client::Attributes
 //----------------------------------------------------------------------------
 protected:
-// Callback handlers ---------------------------------------------------------
-f_close                h_close;     // The close event handler
-f_iotask               h_iptask;    // The (input) I/O handler
-f_iotask               h_optask;    // The (output) I/O handler
+// Callback handlers - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 f_reader               h_reader;    // The (reader) protocol handler
 f_writer               h_writer;    // The (writer) protocol handler
-//----------------------------------------------------------------------------
+f_iotask               inp_task;    // The input (reader) task
+f_iotask               out_task;    // The output (writer) task
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::weak_ptr<Client>  self;        // Self-reference
 agent_ptr              agent;       // Our owning Agent
 
@@ -97,8 +94,7 @@ SSL_CTX*               context= nullptr; // SSL context
 Ioda                   ioda_out;    // The output buffer
 size_t                 ioda_off;    // The output buffer offset
 const char*            proto_id;    // The Client's protocol/version
-Semaphore              sem_rd;      // Used to complete HTTP/1 read operations
-Semaphore              sem_wr;      // Used to limit HTTP/1 write operations
+Event                  rd_complete; // HTTP/1 operation completed event
 size_t                 size_inp;    // The input buffer length
 size_t                 size_out;    // The output buffer length
 Socket*                socket= nullptr; // Connection Socket
@@ -108,7 +104,7 @@ StreamSet              stream_set;  // Our set of Streams
 LambdaTask             task_inp;    // Reader task
 LambdaTask             task_out;    // Writer task
 
-int                    fsm= 0;      // Finite State Machine
+int                    events= 0;   // Current polling event FSM
 bool                   operational= false; // TRUE while operational
 
 //----------------------------------------------------------------------------
@@ -166,32 +162,28 @@ std::shared_ptr<Stream>             // The associated Stream
    get_stream(uint32_t id) const    // Locate the Stream given Stream::ident
 {  return stream_set.get_stream(id); }
 
-void
-   on_close(const f_close& f)       // Set close event handler
-{  h_close= f; }
-
 //----------------------------------------------------------------------------
 // Client::Methods
 //----------------------------------------------------------------------------
 void
    async(                           // Handle asynchronous polling event
-     int               revent);     // Polling revent
+     int               revents);    // Polling revents
 
 void
-   close( void );                   // Close the client
+   close( void );                   // Close the Client
 
 void
    error(const char*);              // Handle connection error
 
-std::shared_ptr<ClientRequest>      // The ClientRequest
-   request(                         // Create a ClientRequest
+std::shared_ptr<ClientStream>       // The ClientStream
+   make_stream(                     // Create a ClientStream
      const Options*    opts= nullptr); // The associated Options
+
+void
+   wait( void );                    // Wait until idle
 
 int                                 // Return code, 0 expected
    write(ClientStream*);            // Write ClientStream Request
-
-int                                 // Return code, 0 expected
-   wait( void );                    // Wait for current Requests to complete
 
 //----------------------------------------------------------------------------
 // Client::Protected methods
@@ -200,13 +192,8 @@ protected:
 void    http1( void );              // Use HTTP/0, HTTP/1 protocol handlers
 void    http2( void );              // Use HTTP/2 protocol handlers
 
-void    read(int);                  // Read from Socket (caller __LINE__)
-void    read( void )                // Read from Socket
-{  return read(0); }
-
-ssize_t write(int);                // Write into Socket (caller __LINE__)
-ssize_t write()                    // Write into Socket
-{  return write(0); }
+void    read(int line= 0);          // Read from Socket (caller __LINE__)
+ssize_t write(int line= 0);         // Write into Socket (caller __LINE__)
 }; // class Client
 
 //----------------------------------------------------------------------------

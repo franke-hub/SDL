@@ -16,7 +16,7 @@
 //       HTTP Request.
 //
 // Last change date-
-//       2022/10/19
+//       2022/11/16
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_REQUEST_H_INCLUDED
@@ -55,7 +55,7 @@ class Stream;
 //       HTTP request
 //
 //----------------------------------------------------------------------------
-class Request : public Options {    // Http request
+class Request {                     // Http request
 //----------------------------------------------------------------------------
 // Request::Typedefs and enumerations
 //----------------------------------------------------------------------------
@@ -78,16 +78,18 @@ string                 path;        // Request path
 string                 proto_id;    // Request protocol/version
 
 protected:
-std::weak_ptr<Request> self;        // Self reference
-std::shared_ptr<Stream>stream;      // Associated Stream
-
-Ioda                   ioda;        // I/O Data Area
-int                    fsm= 0;      // Finite State Machine
-
 // Callback handlers
 f_ioda                 h_ioda;      // The Request data handler
 f_end                  h_end;       // The Request completion handler
 f_error                h_error;     // The Request connection error handler
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+std::weak_ptr<Request> self;        // Self reference
+std::shared_ptr<Stream>stream;      // Associated Stream
+Options                opts;        // Options
+
+Ioda                   ioda;        // I/O Data Area
+int                    fsm= 0;      // Finite State Machine
 
 //----------------------------------------------------------------------------
 // Request::Destructor/Constructors
@@ -100,16 +102,18 @@ virtual
 //----------------------------------------------------------------------------
 // Request::debug
 //----------------------------------------------------------------------------
-void debug(const char*) const;      // Debugging display
-void debug( void ) const            // Debugging display
-{  debug(""); }
+void debug(const char* info="") const; // Debugging display
 
 //----------------------------------------------------------------------------
 // Request::Accessor methods
 //----------------------------------------------------------------------------
-Ioda&                               // The associated Ioda
-   get_ioda( void )                 // Get associated Ioda
+Ioda&
+   get_ioda( void )
 {  return ioda; }
+
+Options&
+   get_opts( void )
+{  return opts; }
 
 std::shared_ptr<Response>
    get_response( void ) const;
@@ -134,28 +138,27 @@ void
    on_error(const f_error& f)       // Set connection error handler
 {  h_error= f; }
 
-//----------------------------------------------------------------------------
-// Request::Methods
-//----------------------------------------------------------------------------
-virtual void end( void );           // Complete the request
+// Options accessors - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool                                // (Indicates Option replaced)
+   insert(                          // Insert
+     const string&     name,        // Option name
+     const string&     value)       // Option value
+{  return opts.insert(name, value); }
 
-void reject(int);                   // Reject the request
+const char*                         // The Option value
+   locate(                          // Get Option value
+     const char*       name) const  // For this Option name
+{  return opts.locate(name); }
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Request::read
-//       Request::write
-//
-// Purpose-
-//       Virtual method; only implemented in ServerRequest
-//       Virtual methods; only implemented in ClientRequest
-//
-//----------------------------------------------------------------------------
-virtual bool read(Ioda&);           // (Async) read Request data
+bool                                // (Indicates Option removed)
+   remove(                          // Remove
+     const char*       name)        // This Option name
+{  return opts.remove(name); }
 
-virtual void write(const void*, size_t); // (Write Client Request data)
-virtual void write();               // (Client Request complete)
+bool                                // (Indicates Option removed)
+   remove(                          // Remove
+     const string&     name)        // This Option name
+{  return opts.remove(name.c_str()); }
 }; // class Request
 
 //----------------------------------------------------------------------------
@@ -168,11 +171,6 @@ virtual void write();               // (Client Request complete)
 //
 //----------------------------------------------------------------------------
 class ClientRequest : public Request { // ClientRequest class
-//----------------------------------------------------------------------------
-// ClientRequest::Attributes
-//----------------------------------------------------------------------------
-protected:
-
 //----------------------------------------------------------------------------
 // ClientRequest::Destructor/Constructors
 //----------------------------------------------------------------------------
@@ -189,6 +187,9 @@ static std::shared_ptr<ClientRequest> // The ClientRequest
 //----------------------------------------------------------------------------
 // ClientRequest::Accessor methods
 //----------------------------------------------------------------------------
+std::shared_ptr<Client>
+   get_client( void ) const;
+
 std::shared_ptr<ClientResponse>
    get_response( void ) const;
 
@@ -202,10 +203,13 @@ std::shared_ptr<ClientStream>
 //----------------------------------------------------------------------------
 // ClientRequest::Methods
 //----------------------------------------------------------------------------
-virtual void end( void );           // Complete the ClientRequest
+void
+   end( void );                     // Complete the ClientRequest
 
-virtual void write(const void*, size_t); // (Write Client Request data)
-virtual void write();               // (Client Request complete)
+void
+   write();                         // (Client Request complete)
+void
+   write(const void*, size_t);      // (Write Client Request data)
 }; // class ClientRequest
 
 //----------------------------------------------------------------------------
@@ -218,12 +222,6 @@ virtual void write();               // (Client Request complete)
 //
 //----------------------------------------------------------------------------
 class ServerRequest : public Request { // ServerRequest class
-//----------------------------------------------------------------------------
-// ServerRequest::Attributes
-//----------------------------------------------------------------------------
-protected:
-//size_t                 ioda_off;    // I/O Data Area read offset
-
 //----------------------------------------------------------------------------
 // ServerRequest::Destructor/Constructors
 //----------------------------------------------------------------------------
@@ -244,16 +242,26 @@ std::shared_ptr<ServerRequest>
    get_request( void ) const
 {  return std::dynamic_pointer_cast<ServerRequest>(self.lock()); }
 
+std::shared_ptr<ServerResponse>
+   get_response( void ) const;
+
+std::shared_ptr<Server>
+   get_server( void ) const;
+
 std::shared_ptr<ServerStream>
    get_stream( void ) const;
 
 //----------------------------------------------------------------------------
 // ServerRequest::Methods
 //----------------------------------------------------------------------------
-virtual void
+void
    end( void );                     // Complete the ServerRequest
 
-virtual bool read(Ioda&);           // (Async) read Request data
+bool
+   read(Ioda&);                     // (Async) read Request data
+
+void
+   reject(int);                     // Reject the ServerRequest
 }; // class ServerRequest
 }  // namespace http
 _LIBPUB_END_NAMESPACE

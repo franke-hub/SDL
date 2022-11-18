@@ -16,11 +16,11 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2022/10/27
+//       2022/11/17
 //
 // Implementation notes-
-//       Throughput: W: 4,088.7/sec  L:   307.5/sec protocol1b (*removed*)
-//       Throughput: W: 5,584.4/sec  L:   518.6/sec protocol1a (http1)
+//       Throughput: W: 4,088.7/sec  L:    307.5/sec protocol1b (*removed*)
+//       Throughput: W: 5,584.4/sec  L:    518.6/sec protocol1a (http1)
 //       Throughput: W: --stress=1   L: --stress=10 --runtime=5
 //       Throughput: W: 5,955.8/sec  L: 58,269.4/sec (http1) asynchronous
 //
@@ -106,19 +106,31 @@ enum FSM                            // Finite State Machine states
 }; // enum FSM
 
 // Imported Options
-typedef const char CC;
+typedef const char     CC;
 static constexpr CC*   HTTP_SIZE= Options::HTTP_HEADER_LENGTH;
 
 static constexpr CC*   HTTP_POST= Options::HTTP_METHOD_POST;
 static constexpr CC*   HTTP_PUT=  Options::HTTP_METHOD_PUT;
 
 static constexpr CC*   OPT_PROTO= Options::HTTP_OPT_PROTOCOL; // Protocol type
-static constexpr CC*   HTTP_H0=   Options::HTTP_PROTOCOL_H0; // HTTP/1.0
-static constexpr CC*   HTTP_H1=   Options::HTTP_PROTOCOL_H1; // HTTP/1.1
-static constexpr CC*   HTTP_H2=   Options::HTTP_PROTOCOL_H2; // HTTP/2
-static constexpr CC*   HTTP_S0=   Options::HTTP_PROTOCOL_S0; // HTTPS/1.0
-static constexpr CC*   HTTP_S1=   Options::HTTP_PROTOCOL_S1; // HTTPS/1.1
-static constexpr CC*   HTTP_S2=   Options::HTTP_PROTOCOL_S2; // HTTPS/2
+
+//----------------------------------------------------------------------------
+// Constant data
+//----------------------------------------------------------------------------
+enum HTTP_PROTO
+{  HTTP_H1                          // HTTP/1.1
+,  HTTP_H2                          // HTTP/2
+,  HTTP_S1                          // HTTPS/1.1
+,  HTTP_S2                          // HTTPS/2
+,  HTTP_PROTO_LENGTH
+}; // enum HTTP_PROTO
+
+static const char*     proto[HTTP_PROTO_LENGTH]=
+{  Options::HTTP_PROTOCOL_H1        // HTTP/1.1
+,  Options::HTTP_PROTOCOL_H2        // HTTP/2
+,  Options::HTTP_PROTOCOL_S1        // HTTPS/1.1
+,  Options::HTTP_PROTOCOL_S2        // HTTPS/2
+}; // proto[]
 
 //----------------------------------------------------------------------------
 //
@@ -138,7 +150,7 @@ Ioda                   ioda;        // The Input/Output Data Area
 
    ClientItem(                      // Constructor
      stream_ptr        S)           // The ClientStream
-:  dispatch::Item(), stream(S)
+:  dispatch::Item(), stream(S), ioda()
 {  if( HCDM && VERBOSE > 0 ) debugh("ClientItem(%p)!\n", this);
 
    INS_DEBUG_OBJ("ClientItem");
@@ -149,6 +161,12 @@ virtual
 {  if( HCDM && VERBOSE > 0 ) debugh("ClientItem(%p)~\n", this);
 
    REM_DEBUG_OBJ("ClientItem");
+}
+
+virtual void
+   debug(const char* info) const    // TODO: REMOVE
+{  debugf("ClientItem(%p)::debug(%s) stream(%p)\n", this, info, stream.get());
+   debugf("..done(%p)\n", done);
 }
 }; // class ClientItem
 
@@ -319,20 +337,12 @@ static SSL_CTX*
      socklen_t         size,        // Target internet address length
      const Options*    opts)        // Client Options
 :  std::mutex()
-,  h_close([]() {})
 ,  agent(owner)
-,  proto_id(HTTP_H1)
-,  sem_rd(0), sem_wr(1)
+,  proto_id(proto[HTTP_H1])
 ,  size_inp(BUFFER_SIZE)
 ,  size_out(BUFFER_SIZE)
-,  task_inp([this](dispatch::Item* item)
-   { if( HCDM ) debugh("Client(%p)::task_inp(%p)\n", this, item);
-     h_iptask((ClientItem*)item);
-   })
-,  task_out([this](dispatch::Item* item)
-   { if( HCDM ) debugh("Client(%p)::task_out(%p)\n", this, item);
-     h_optask((ClientItem*)item);
-   })
+,  task_inp([this](dispatch::Item* item) { inp_task(item); })
+,  task_out([this](dispatch::Item* item) { out_task(item); })
 {  if( HCDM )
      debugh("Client(%p)!(%p)\n>> %s\n", this, owner
            , addr.to_string().c_str());
@@ -342,22 +352,29 @@ static SSL_CTX*
 
    // Handle Options
    bool encrypt= false;             // Default, not encrypted
+   int proto_ix= HTTP_H1;
    if( opts ) {
      const char* type= opts->locate(OPT_PROTO); // Get specified protocol
      if( type ) {                   // If protocol specified
-       if( strcmp(type, HTTP_H2) == 0 || strcmp(type, HTTP_S2) == 0 ) {
-         proto_id= HTTP_H2;
-         if( strcmp(type, HTTP_S2) == 0 )
-           encrypt= true;
-       } else if( strcmp(type, HTTP_S1) == 0 ) {
-         encrypt= true;
-       } else if( strcmp(type, HTTP_H1) != 0 ) {
-         string S= to_string("Client::Client %s='%s'", OPT_PROTO, type);
-         throw std::runtime_error(S); // Protocol specified, but invalid
+       int proto_ix= -1;
+       for(int i= 0; i<HTTP_PROTO_LENGTH; ++i) {
+         if( strcmp(type, proto[i]) == 0 ) {
+           proto_ix= i;
+           break;
+         }
        }
+
+       if( proto_ix < 0 ) {         // If invalid protocol specified
+         string S= to_string("Client::Client %s='%s'", OPT_PROTO, type);
+         throw std::runtime_error(S);
+       }
+
+       proto_id= proto[proto_ix];
+       if( proto_ix == HTTP_S1 || proto_ix == HTTP_S2 )
+         encrypt= true;
      }
    }
-   if( proto_id == HTTP_H1 )  {
+   if( proto_ix == HTTP_H1 )  {
      http1();
    } else {
      http2();
@@ -366,8 +383,7 @@ static SSL_CTX*
    // Create connection
    if( !encrypt ) {
      socket= new Socket();
-     int
-     rc= socket->open(addr.su_af, SOCK_STREAM, PF_UNSPEC);
+     int rc= socket->open(addr.su_af, SOCK_STREAM, PF_UNSPEC);
      if( IODM )
        traceh("%4d Client %d= open(%d,%d,%d)\n", __LINE__, rc
              , addr.su_af, SOCK_STREAM, PF_UNSPEC);
@@ -400,7 +416,7 @@ static SSL_CTX*
 
    // Initialize asynchronous operation
    socket->set_flags( socket->get_flags() | O_NONBLOCK );
-   socket->on_select([this](int revent) { async(revent); });
+   socket->on_select([this](int revents) { async(revents); });
    owner->select.insert(socket, POLLIN);
 
    // Client construction complete.
@@ -413,9 +429,11 @@ static SSL_CTX*
 {  if( HCDM )
      debugh("Client(%p)~\n", this);
 
-   // Disconnect the Client
-   on_close([]() {});               // Disconnect the close handler
-   close();                         // Close the Client, disconnecting it
+   // Close the socket, insuring task completion
+   if( operational ) {
+     close();
+     wait();
+   }
 
    // Release allocated storage
    if( context )                    // If context exists
@@ -450,12 +468,14 @@ std::shared_ptr<Client>             // (New) Client
 //----------------------------------------------------------------------------
 void
    Client::debug(const char* info) const  // Debugging display
-{  debugf("Client(%p)::debug(%s) operational(%d) fsm(%.2x)\n", this
-         , info, operational, fsm);
+{  debugf("Client(%p)::debug(%s) operational(%d) events(0x%.2x)\n", this
+         , info, operational, events);
 
-   debugf("..agent(%p) context(%p) proto_id(%s) sem_rd(%u) sem_wr(%u)\n"
-         , agent, context, proto_id
-         , sem_rd.get_count(), sem_wr.get_count());
+   debugf("..agent(%p) context(%p) proto_id(%s) rd_complete(%u)\n"
+         , agent, context, proto_id, rd_complete.is_post());
+   debugf("..size_inp(%'zd) size_out(%'zd)\n", size_inp, size_out);
+   debugf("task_inp:\n"); task_inp.debug(info);
+   debugf("task_out:\n"); task_out.debug(info);
    socket->debug("Client.socket");
 }
 
@@ -470,32 +490,32 @@ void
 //----------------------------------------------------------------------------
 void
    Client::async(                   // Handle Asynchronous Polling Event
-     int               revent)      // Polling revent
+     int               revents)     // Polling revents
 {  if( HCDM )
-     debugh("Client(%p)::async(%.4x) fsm(%.4x)\n", this, revent, fsm);
-   Trace::trace(".CLI", ".APE", this, s2v((size_t(revent) << 16) | fsm));
+     debugh("Client(%p)::async(%.4x) events(%.4x)\n", this, revents, events);
+   Trace::trace(".CLI", ".APE", this, s2v((size_t(revents) << 16) | events));
+
+   if( !operational )               // Ignore event if non-operational
+     return;
 
    // If a Socket error occurred
-   if( revent & (POLLERR | POLLNVAL) ) {
-     debugf("%4d HCDM Client revent(%.4x) fsm(%.4x)\n", __LINE__, revent, fsm);
+   if( revents & (POLLERR | POLLNVAL) ) {
+     debugf("%4d HCDM Client revents(%.4x)\n", __LINE__, revents);
      error("async error detected");
      return;
    }
 
    // If Socket is readable
-   if( revent & (POLLIN | POLLPRI) ) {
-     if( fsm & FSM_RD_DATA ) {
+   if( revents & (POLLIN | POLLPRI) ) {
+     if( events & FSM_RD_DATA )
        h_reader();
-     } else {
-//     traceh("%4d HCDM Client revent(%.4x) fsm(%.4x)\n", __LINE__
-//           , revent, fsm);
-     }
+
      return;
    }
 
    // If Socket is writable
-   if( revent & POLLOUT ) {
-     if( fsm & (FSM_WR_HEAD | FSM_WR_DATA) ) {
+   if( revents & POLLOUT ) {
+     if( events & (FSM_WR_HEAD | FSM_WR_DATA) ) {
        h_writer();
      } else {
        Select* select= socket->get_select();
@@ -504,9 +524,10 @@ void
      return;
    }
 
-   // If unexpected event TODO: Add recovery, considering revent, fsm
-   // TODO: Might need to keep track of event in FSM
-   debugf("%4d HCDM Client revent(%.4x) fsm(%.4x)\n", __LINE__, revent, fsm);
+   // If unexpected event TODO: Add recovery, considering revents, events
+   // TODO: Might need to keep track of event in events
+   debugf("%4d HCDM Client revents(%.4x) events(%.4x)\n", __LINE__
+         , revents, events);
 }
 
 //----------------------------------------------------------------------------
@@ -517,19 +538,30 @@ void
 // Purpose-
 //       Close the Client
 //
+// Implementation notes-
+//       If wait != nullptr, the close is synchronous.
+//
 //----------------------------------------------------------------------------
 void
    Client::close( void )            // Close the Client
-{  if( HCDM ) debugh("Client(%p)::close\n", this);
+{  if( HCDM ) debugh("Client(%p)::close() %d\n", this, operational);
    Trace::trace(".CLI", ".CLS", this);
 
-   operational= false;              // Indicate non-operational
-   wait();                          // Flush the work queue
-   // Note: Must call agent->disconnect before socket->close.
-   // The Socket's peer_addr is needed for the Agent's map lookup.
-   agent->disconnect(this);
-   socket->close();                 // Close the Socket (immediate halt)
-   h_close();                       // Drive the close handler
+   // The Agent might contain the last active shared_ptr<Client>
+   std::shared_ptr<Client> client= get_self(); // Keep-alive
+
+   {{{{
+     std::lock_guard<Client> lock(*this);
+
+     if( operational ) {
+       operational= false;
+       agent->disconnect(this);     // (Only called once)
+       socket->close();             // (Only called once)
+     }
+   }}}}
+
+   if( !rd_complete.is_post() )     // Post out_task wait
+     rd_complete.post(dispatch::Item::CC_PURGE);
 }
 
 //----------------------------------------------------------------------------
@@ -546,45 +578,161 @@ void
      const char*       info)        // Diagnostic information
 {  errorh("Client(%p)::error(%s)\n", this, info);
 
-   // TODO: PRELIMINARY
    close();
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Client::make_stream
+//
+// Purpose-
+//       Create Client Stream
+//
+//---------------------------------------------------------------------------
+std::shared_ptr<ClientStream>       // The ClientStream
+   Client::make_stream(             // Create a ClientStream
+     const Options*    opts)        // The associated Options
+{  if( HCDM ) debugh("Client(%p)::make_stream(%p)\n", this, opts);
+
+   if( socket->get_handle() <= 0 )  // If non-operational
+     return nullptr;                // Cannot create Request
+
+   std::shared_ptr<ClientStream> stream= ClientStream::make(this, opts);
+   return stream;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Client::wait
+//
+// Purpose-
+//       Wait until idle
+//
+//----------------------------------------------------------------------------
+void
+   Client::wait( void )             // Wait for current Requests to complete
+{  if( HCDM ) debugh("Client(%p)::wait\n", this);
+
+   dispatch::Wait wait;
+   dispatch::Item item(item.FC_CHASE, &wait);
+   if( task_out.is_busy() ) {
+     task_out.enqueue(&item);
+     wait.wait();
+   }
+
+   if( task_inp.is_busy() ) {
+     wait.reset();
+     task_inp.enqueue(&item);
+     wait.wait();
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Client::write
+//
+// Purpose-
+//       Write a ClientStream Request
+//
+//----------------------------------------------------------------------------
+int                                 // Return code, 0 expected
+   Client::write(                   // Write using
+     ClientStream*     S)           // This ClientStream
+{  if( HCDM ) debugh("Client(%p)::write(Stream* %p)\n", this, S);
+{{{{
+char temp[16];
+memset(temp, 0, sizeof(temp));
+std::shared_ptr<Request> Q= S->get_request();
+snprintf(temp, sizeof(temp), "%s %s %s\r\n", Q->method.c_str(), Q->path.c_str()
+        , Q->proto_id.c_str());
+Trace::trace(".CNQ", 0, temp);      // (Client eNQueue)
+}}}}
+
+   int rc= ClientItem::CC_PURGE;    // Default, not sent
+   if( operational ) {
+     ClientItem* item= new ClientItem(S->get_self());
+     task_out.enqueue(item);
+     rc= 0;
+   }
+
+   return rc;
+}
+
+//----------------------------------------------------------------------------
+//
+// Protected method-
 //       Client::http1
 //
 // Purpose-
-//       Initialize the HTTP/1.0 and HTTP/1.1 write protocol handlers
+//       Initialize the HTTP/1.0 and HTTP/1.1 protocol handlers
 //
 //----------------------------------------------------------------------------
 void
    Client::http1( void )            // Initialize the HTTP/1 protocol handlers
 {
-   // h_iptask - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   h_iptask= [this](ClientItem* item) // Input task
-   { if( HCDM ) debugh("Client(%p)::h_iptask(%p)\n", this, item);
+   // debugh("%4d %s HCDM\n", __LINE__, __FILE__);
 
-     if( item->stream->read(item->ioda) ) // If operation complete
-       sem_rd.post();
-     item->post();                  // (Omitted line found using Diagnostic.h)
-   }; // h_iptask=
+   // inp_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   inp_task= [this](dispatch::Item* it) // Input task
+   { if( HCDM ) debugh("Client(%p)::inp_task(%p)\n", this, it);
 
-   // h_optask - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   h_optask= [this](ClientItem* item) // Output task
-   { if( HCDM ) debugh("Client(%p)::h_optask(%p)\n", this, item);
+#if 1
+     if( !operational ) {
+       it->post(it->CC_PURGE);
+       return;
+     }
+#else
+     if( !operational ) {           // Handle non-operational state
+       if( !rd_complete.is_post() ) // Drive waiting out_task
+         rd_complete.post(dispatch::Item::CC_PURGE);
 
-     // debugh("%4d %s HCDM\n", __LINE__, __FILE__);
+       if( it->fc == 0 ) {          // I/O operations fail
+         it->post(it->CC_PURGE);
+         return;
+       }
+
+       task_out.enqueue(it);
+       return;
+     }
+#endif
+
+     ClientItem* item= (ClientItem*)it;
+     if( item->stream->read(item->ioda) ) // If response complete
+       rd_complete.post();          // Indicate HTTP/1 operation complete
+     item->post();
+   }; // inp_task
+
+   // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   out_task= [this](dispatch::Item* it) // Output task
+   { if( HCDM ) debugh("Client(%p)::out_task(%p)\n", this, it);
+
+#if 1
+     if( !operational ) {
+       it->post(it->CC_PURGE);
+       return;
+     }
+#else
+     if( !operational ) {           // Handle non-operational state
+       if( it->fc == 0 ) {          // I/O operations fail
+         it->post(it->CC_PURGE);
+         return;
+       }
+
+       it->post();
+       return;
+     }
+#endif
+
+     ClientItem* item= (ClientItem*)it;
      stream_item= item;
      stream= item->stream;
      try {
        // Format the request buffer
        std::shared_ptr<ClientRequest> request= stream->get_request();
        Request& Q= *request.get();    // (Q protected by request)
-
-       if( socket->get_handle() <= 0 ) // If connection broken
-         throw stream_error("disconnected");
 
        // TODO: VERIFY method, path, and proto_id (avoiding connection error)
        ioda_off= 0;
@@ -597,8 +745,7 @@ void
        ioda_out.put("\r\n");
 
        // Set Content-Length
-       Options& opts= Q;
-       opts.remove(HTTP_SIZE);
+       Q.remove(HTTP_SIZE);
        Ioda& ioda= Q.get_ioda();
        size_t content_length= ioda.get_used();
 // debugh("Method(%s) Content_Length(%zd)\n", Q.method.c_str(), content_length); // TODO: REMOVE
@@ -607,17 +754,17 @@ void
            if( VERBOSE )
              fprintf(stderr, "Method(%s) does not permit content\n"
                     , Q.method.c_str());
-           stream->reject(400);     // Bad request
-           throw stream_error("content-length disallowed");
+           item->post(-400);
+           return;
          }
        } else if( Q.method == "POST" || Q.method == "PUT" ) {
-         // ??TODO: MOVE TO SERVER??
-         stream->reject(411);       // Length required
-         throw stream_error("content-length required");
+         item->post(-411);
+         return;
        }
 
        // Unpack header items
        typedef Options::const_iterator iterator;
+       Options& opts= Q.get_opts();
        for(iterator i= opts.begin(); i != opts.end(); ++i) {
          ioda_out.put(i->first);
          ioda_out.put(':');
@@ -633,24 +780,18 @@ void
          ioda_out.put("\r\n");
        }
        ioda_out.put("\r\n");      // Add header delimiter
-// ioda_out.debug("h_optask");
 
        // Write the request headers
-// assert( fsm == 0 );
-// assert( sem_rd.get_count() == 0 );
-       fsm= FSM_WR_HEAD;            // Update state
+       events= FSM_WR_HEAD;       // Update state
        if( content_length )
-         fsm |= FSM_WR_DATA;
+         events |= FSM_WR_DATA;
        h_writer();
-       sem_rd.wait();               // Wait for response
+       rd_complete.wait();          // Wait for HTTP/1 operation completion
+       rd_complete.reset();
      } catch(Exception& X) {
        errorh("%4d %s %s\n", __LINE__, __FILE__, ((std::string)X).c_str());
        error(X.what());
      } catch(io_exception& X) {
-       if( IODM )
-         errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
-       error(X.what());
-     } catch(stream_error& X) {
        if( IODM )
          errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
        error(X.what());
@@ -670,16 +811,16 @@ void
      stream= nullptr;
      stream_item= nullptr;
      item->post();
-   }; // h_optask=
+   }; // out_task
 
    // h_reader - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    h_reader= [this](void)           // (Asynchronous) input data available
    { if( HCDM ) debugh("Client(%p)::h_reader\n", this);
 
-     if( (fsm & FSM_RD_DATA) == 0 ) { // If unexpected data
+     if( (events & FSM_RD_DATA) == 0 ) { // If unexpected data
        // This SHOULD NOT OCCUR.
        // We set FSM_RD_DATA *BEFORE* writing the last piece of data.
-       debugf("%4d Client::h_reader fsm(%.2x)\n", __LINE__, fsm);
+       debugf("%4d Client::h_reader events(%.2x)\n", __LINE__, events);
        return;
      }
 
@@ -692,22 +833,22 @@ void
    { if( HCDM ) debugh("Client(%p)::h_writer\n", this);
 
      std::shared_ptr<ClientStream> stream= stream_item->stream;
-     if( fsm & FSM_WR_HEAD ) {      // Write the request header?
-       if( (fsm & FSM_WR_DATA) == 0 )
-         fsm |= FSM_RD_DATA;
+     if( events & FSM_WR_HEAD ) {      // Write the request header?
+       if( (events & FSM_WR_DATA) == 0 )
+         events |= FSM_RD_DATA;
 
        ssize_t L= write(__LINE__);
        if( L <= 0 ) {               // If blocked (else io_error exception)
-         fsm &= ~FSM_RD_DATA;       // (write() updated select event)
+         events &= ~FSM_RD_DATA;    // (write() updated select event)
          return;
        }
 
        // Implementation note: if there's no data, the server could have
        // alreaday received the request and sent the response.
-       fsm &= ~FSM_WR_HEAD;
-       if( fsm & FSM_WR_DATA ) {    // If there's data to be sent
+       events &= ~FSM_WR_HEAD;
+       if( events & FSM_WR_DATA ) { // If there's data to be sent
          std::shared_ptr<ClientRequest> request= stream->get_request();
-         Request& Q= *request.get();  // (Q protected by request)
+         Request& Q= *request.get(); // (Q protected by request)
          ioda_out= std::move(Q.get_ioda());
        } else {
          ioda_out.reset();
@@ -715,22 +856,22 @@ void
        ioda_off= 0;
      }
 
-     if( fsm & FSM_WR_DATA ) {      // Write the request data?
-       fsm |= FSM_RD_DATA;
+     if( events & FSM_WR_DATA ) {   // Write the request data?
+       events |= FSM_RD_DATA;
        ssize_t L= write(__LINE__);
        if( L <= 0 ) {               // If blocked (else io_error exception)
-         fsm &= ~FSM_RD_DATA;       // (write() updated select event)
+         events &= ~FSM_RD_DATA;    // (write() updated select event)
          return;
        }
 
-       fsm &= ~FSM_WR_DATA;
+       events &= ~FSM_WR_DATA;
      }
    }; // h_writer=
 }
 
 //----------------------------------------------------------------------------
 //
-// Method-
+// Protected method-
 //       Client::http2
 //
 // Purpose-
@@ -745,36 +886,13 @@ void
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       Client::request
-//
-// Purpose-
-//       Create Client Request
-//
-//---------------------------------------------------------------------------
-std::shared_ptr<ClientRequest>      // The associated ClientRequest
-   Client::request(                 // Create a Request
-     const Options*    opts)        // The associated Options
-{  if( HCDM ) debugh("Client(%p)::request\n", this);
-
-   if( socket->get_handle() <= 0 )  // If non-operational
-     return nullptr;                // Cannot create Request
-
-   std::shared_ptr<ClientStream> stream= ClientStream::make(this, opts);
-   std::shared_ptr<ClientRequest> request= stream->get_request();
-   return request;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
+// Protected method-
 //       Client::read
 //
 // Purpose-
 //       Read ClientResponse data
 //
 // Implementation notes:
-//       An exception is thrown on any error condition.
 //       Only called from async; IS_BLOCK is an eror condition.
 //       TODO: Consider multiple reads, moving get_rd_mesg inside for loop.
 //
@@ -788,10 +906,11 @@ void
    Mesg mesg;
    ioda.get_rd_mesg(mesg, size_inp);
 
+   ssize_t L;
    for(;;) {
 // This helps when a trace read appears before the trace write
 // Trace::trace("HCDM", __LINE__, "CSocket->read");
-     ssize_t L= socket->recvmsg(&mesg, 0);
+     L= socket->recvmsg(&mesg, 0);
      iodm(line, "read", L);
      if( L > 0 ) {
        ioda.set_used(L);
@@ -807,14 +926,21 @@ void
        return;
      }
      if( !IS_RETRY )
-       throw io_error(to_string("Client::read %d:%s", errno, strerror(errno)));
+       break;
      debugf("%4d %s HCDM read retry\n", __LINE__, __FILE__);
    }
+
+   // Handle I/O error
+   if( L == 0 || (L < 0 && errno == ECONNRESET) ) { // If connection reset
+     close();
+     return;
+   }
+   throw io_error(to_string("Client::read %d:%s", errno, strerror(errno)));
 }
 
 //----------------------------------------------------------------------------
 //
-// Method-
+// Protected method-
 //       Client::write
 //
 // Purpose-
@@ -858,59 +984,5 @@ Trace::trace("HCDM", __LINE__, "CSocket->write");
    if( select )
      select->modify(socket, POLLIN | POLLOUT);
    return -1;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Client::write
-//
-// Purpose-
-//       Write a ClientStream Request
-//
-//----------------------------------------------------------------------------
-int                                 // Return code, 0 expected
-   Client::write(                   // Write ClientStream Request
-     ClientStream*     S)           // Via this ClientStream
-{  if( HCDM ) debugh("Client(%p)::write(Stream* %p)\n", this, S);
-{{{{
-char temp[16];
-memset(temp, 0, sizeof(temp));
-std::shared_ptr<Request> Q= S->get_request();
-snprintf(temp, sizeof(temp), "%s %s %s\r\n", Q->method.c_str(), Q->path.c_str()
-        , Q->proto_id.c_str());
-Trace::trace(".CNQ", 0, temp);      // (Client eNQueue)
-}}}}
-
-   int rc= ClientItem::CC_PURGE;    // Default, not sent
-   if( socket->get_handle() >= 0 ) {
-     ClientItem* item= new ClientItem(S->get_self());
-     task_out.enqueue(item);
-     rc= 0;
-   }
-
-   return rc;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Client::wait
-//
-// Purpose-
-//       Wait for all current outstanding Requests to complete
-//
-//----------------------------------------------------------------------------
-int                                 // Return code, 0 expected
-   Client::wait( void )             // Wait for current Requests to complete
-{  if( HCDM ) debugh("Client(%p)::wait\n", this);
-
-   dispatch::Wait done;             // Dispatch wait object
-   dispatch::Item item(dispatch::Item::FC_CHASE, &done);
-   task_out.enqueue(&item);
-// Trace::trace(".CLI", __LINE__, "wait...");
-   done.wait();
-// Trace::trace(".CLI", __LINE__, "...wait");
-   return item.cc;
 }
 }  // namespace _LIBPUB_NAMESPACE::http
