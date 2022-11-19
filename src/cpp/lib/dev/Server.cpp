@@ -16,7 +16,7 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2022/11/17
+//       2022/11/18
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -158,6 +158,19 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       a2v
+//
+// Purpose-
+//       Convert asynchronous event information to void*
+//
+//----------------------------------------------------------------------------
+static inline void*
+   a2v(int events, int revents, int fd)
+{  return (void*)(intptr_t(events)  << 48 | intptr_t(revents) << 32 | fd); }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       s2v
 //
 // Purpose-
@@ -275,7 +288,7 @@ void
      int               revents)     // Polling revents
 {  if( HCDM )
      debugh("Server(%p)::async(%.4x) events(%.4x)\n", this, revents, events);
-   Trace::trace(".SRV", ".APE", this, s2v((size_t(revents) << 16) | events));
+   Trace::trace(".SRV", ".APE", this, a2v(events, revents, get_handle()));
 
    if( !operational )               // Ignore event if non-operational
      return;

@@ -16,7 +16,7 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2022/11/16
+//       2022/11/18
 //
 // Implementation notes-
 //       TODO: Create ClientListen and ServerListen, used by ClientAgent.
@@ -74,6 +74,19 @@ enum
 }; // enum
 
 static constexpr const char* LOG_FILE= "log/HttpServer.log";
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       a2v
+//
+// Purpose-
+//       Convert asynchronous event information to void*
+//
+//----------------------------------------------------------------------------
+static inline void*
+   a2v(int revents, int fd)
+{  return (void*)(intptr_t(revents) << 32 | fd); }
 
 //----------------------------------------------------------------------------
 //
@@ -147,7 +160,7 @@ static void
 
    // Initialize asynchronous operation
    listen.set_flags( listen.get_flags() | O_NONBLOCK );
-   listen.on_select([this](int revent) { async(revent); });
+   listen.on_select([this](int revents) { async(revents); });
    owner->select.insert(&listen, POLLIN);
 
    // We are operational
@@ -259,15 +272,16 @@ void
 //----------------------------------------------------------------------------
 void
    Listen::async(                   // Handle Asynchronous Polling Event
-     int               revent)      // Polling revent
+     int               revents)     // Polling revents
 {  if( HCDM )
-     debugh("Listen(%p)::async(%.4x)\n", this, revent);
+     debugh("Listen(%p)::async(%.4x)\n", this, revents);
+   Trace::trace(".LIS", ".APE", this, a2v(revents, get_handle()));
 
    if( !operational )
      return;
 
-   if( revent & (POLLERR | POLLNVAL) ) {
-     debugf("%4d HCDM Listen revent(%.4x)\n", __LINE__, revent);
+   if( revents & (POLLERR | POLLNVAL) ) {
+     debugf("%4d HCDM Listen revents(%.4x)\n", __LINE__, revents);
      return;
    }
 

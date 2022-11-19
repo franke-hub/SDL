@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2022/11/17
+//       2022/11/18
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -1068,7 +1068,8 @@ void
 {  if( opt_hcdm && opt_verbose )
      debugh("[%2d] wait ClientThread\n", serial);
 
-   client->wait();
+   if( client )
+     client->wait();
 }
 }; // class ClientThread
 
