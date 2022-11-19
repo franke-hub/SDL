@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2022/10/03
+//       2022/11/18
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -340,6 +340,10 @@ inline uint32_t                     // Offset of record
      void*             record)      // This record
 {  return uint32_t((char*)record - (char*)this); }
 
+static inline void
+   stop( void )                     // Stop tracing (if table present)
+{  if( table ) table->deactivate(); }
+
 // storage_if: Static storage allocator (with status checking)
 _LIBPUB_FLATTEN
 _LIBPUB_HOT
@@ -354,7 +358,7 @@ static inline void*                 // The storage, nullptr if inactive
 
 //----------------------------------------------------------------------------
 //
-// Method-
+// Static method-
 //       trace
 //
 // Purpose-
