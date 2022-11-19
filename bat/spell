@@ -16,13 +16,15 @@
 ##       Spell checker.
 ##
 ## Last change date-
-##       2022/02/10
+##       2022/11/18
 ##
 ## Usage-
 ##       spell word ...
 ##
 ##############################################################################
-if [ -x /bin/hunspell ] ; then
+
+type hunspell >/dev/null 2>/dev/null
+if [[ $? == 0 ]] ; then
   for i in "$@"
   do
     errors=`echo $i | hunspell -l -d en_US,local`
