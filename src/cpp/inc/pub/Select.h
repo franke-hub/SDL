@@ -16,7 +16,7 @@
 //       Socket polling controller/selector.
 //
 // Last change date-
-//       2022/11/17
+//       2022/11/18
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SELECT_H_INCLUDED
@@ -82,13 +82,13 @@ Socket*                reader= nullptr; // Internal reader socket
 Socket*                writer= nullptr; // Internal writer socket
 
 struct pollfd*         pollfd= nullptr; // Array of pollfd's
-Socket**               sarray= nullptr; // Array of Socket's
-int*                   sindex= nullptr; // File descriptor to pollfd index
+int*                   fdpndx= nullptr; // File descriptor to pollfd index
+Socket**               fdsock= nullptr; // File descriptor to socket table
 
-std::atomic_int        left= 0;     // Number of remaining selections
-int                    next= 0;     // The next selection index
-int                    size= 0;     // Number of result elements available
-int                    used= 0;     // Number of result elements used
+std::atomic_int        left= 0;     // Number of remaining poll selections
+int                    next= 0;     // The next poll selection index
+int                    size= 0;     // Number of available file descriptors
+int                    used= 0;     // Number of pollfd elements used
 
 //----------------------------------------------------------------------------
 // Select::Constructor/Destructor
@@ -115,7 +115,7 @@ const struct pollfd*                // The associated pollfd
      return nullptr;
    }
 
-   fd= sindex[fd];
+   fd= fdpndx[fd];
    if( fd < 0 || fd >= size ) {     // (Not mapped, most likely user error)
      errno= EINVAL;
      return nullptr;
@@ -134,7 +134,7 @@ const Socket*                       // The associated Socket*
      return nullptr;
    }
 
-   return sarray[fd];
+   return fdsock[fd];
 }
 
 int                                 // Return code, 0 expected

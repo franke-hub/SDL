@@ -16,7 +16,7 @@
 //       Select.h method implementations.
 //
 // Last change date-
-//       2022/11/17
+//       2022/11/18
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -353,8 +353,8 @@ DEBUGGING( debugf("\n\n"); )
    pollfd->fd= fd;
    pollfd->events= POLLIN;
    pollfd->revents= 0;
-   sindex[fd]= 0;
-   sarray[fd]= reader;
+   fdpndx[fd]= 0;
+   fdsock[fd]= reader;
    reader->select= this;
    ++used;
 
@@ -379,12 +379,12 @@ DEBUGGING( reader->debug("READER BRINGUP TEST"); )
    // Manually remove our reader socket from our tables
    if( reader ) {                   // If we have a reader socket
      int fd= reader->get_handle();  // Get the poll index
-     int px= sindex[fd];
+     int px= fdpndx[fd];
      for(int i= px; i<(used-1); ++i)
        pollfd[i]= pollfd[i+1];
 
-     sarray[fd]= nullptr;
-     sindex[fd]= -1;
+     fdpndx[fd]= -1;
+     fdsock[fd]= nullptr;
      reader->select= nullptr;
      --used;
    }
@@ -427,7 +427,7 @@ DEBUGGING( reader->debug("READER BRINGUP TEST"); )
    for(int px= 0; px < used; ++px) {
      int fd= pollfd[px].fd;
      if( fd >= 0 && fd < size ) {
-       Socket* socket= sarray[fd];
+       Socket* socket= fdsock[fd];
        if( socket ) {
          #define FMT "%4d Select(%p) Socket(%p) fd(%d) User error: " \
                      "Dangling reference\n"
@@ -444,14 +444,14 @@ DEBUGGING( reader->debug("READER BRINGUP TEST"); )
    }
 
    free(pollfd);
-   free(sarray);
-   free(sindex);
+   free(fdpndx);
+   free(fdsock);
    delete reader;
    delete writer;
 
    pollfd= nullptr;
-   sarray= nullptr;
-   sindex= nullptr;
+   fdpndx= nullptr;
+   fdsock= nullptr;
    reader= nullptr;
    writer= nullptr;
    size= 0;
@@ -469,10 +469,6 @@ DEBUGGING( reader->debug("READER BRINGUP TEST"); )
 //       This may be called with or without the shr_latch held, but not with
 //       the xcl_latch held.
 //
-//       struct pollfd* pollfd;     // Array of pollfd's 0..used
-//       Socket**       sarray;     // Array of Socket's, indexed by fd
-//       int*           sindex;     // File descriptor to pollfd index
-//
 //       Socket close operations, which queue a remove operation, may complete
 //       before the remove operation is processed leaving the Socket* invalid.
 //       Accessing a Socket* can result in a SEGFAULT, so we don't do it.
@@ -489,37 +485,37 @@ int                                 // Number of detected errors
    debugf("Select(%p)::debug(%s)\n", this, info);
    debugf("..reader(%p) handle(%d)\n", reader, reader->get_handle());
    debugf("..writer(%p) handle(%d)\n", writer, writer->get_handle());
-   debugf("..pollfd(%p) sarray(%p) sindex(%p)\n", pollfd, sarray, sindex);
+   debugf("..pollfd(%p) fdpndx(%p) fdsock(%p)\n", pollfd, fdpndx, fdsock);
    debugf("..left(%u) next(%u) size(%u) used(%u)\n"
          , left.load(), next, size, used);
    debugf("..pollfd %d\n", used);
    for(int px= 0; px<used; ++px) {
      int fd= pollfd[px].fd;
-     const Socket* socket= sarray[fd];
+     const Socket* socket= fdsock[fd];
      debugf("....[%3d] fd[%3d] pollfd{%.4x,%.4x} socket(%p)\n", px, fd
            , pollfd[px].events, pollfd[px].revents, socket);
      if( socket == nullptr ) {
        ++error_count;
        debugf("....[%3d] ERROR: NO ASSOCIATED SOCKET\n", px);
      }
-     if( px != sindex[fd] ) {
+     if( px != fdpndx[fd] ) {
        ++error_count;
-       debugf("....[%3d] ERROR: SINDEX[%3d] MISMATCH(%3d)\n", px, fd
-              , sindex[fd]);
+       debugf("....[%3d] ERROR: fdpndx[%3d] fd[%3d]\n", px, fd
+              , fdpndx[fd]);
      }
    }
 
-   debugf("..sarray\n");
-   for(int sx= 0; sx<size; ++sx) {
-     Socket* socket= sarray[sx];
-     if( socket )
-       debugf("....[%3d] %p\n", sx, socket);
+   debugf("..fdpndx\n");
+   for(int fd= 0; fd<size; ++fd) {
+     if( fdpndx[fd] >= 0 )
+       debugf("....[%3d] -> [%3d]\n", fd, fdpndx[fd]);
    }
 
-   debugf("..sindex\n");
-   for(int fd= 0; fd<size; ++fd) {
-     if( sindex[fd] >= 0 )
-       debugf("....[%3d] -> [%3d]\n", fd, sindex[fd]);
+   debugf("..fdsock\n");
+   for(int sx= 0; sx<size; ++sx) {
+     Socket* socket= fdsock[sx];
+     if( socket )
+       debugf("....[%3d] %p\n", sx, socket);
    }
 
    SelectItem* item= (SelectItem*)todo_list.get_tail();
@@ -550,6 +546,9 @@ void
 {  if( HCDM )
      debugh("Select(%p)::control({%c,,0x%.4x,%d,%p})\n", this
            , op.op, op.events, op.fd, op.socket);
+   Trace::Record* R= Trace::trace(".SEL", ">CTL", op.socket);
+   if( R )
+     memcpy(R->value + sizeof(op.socket), &op, sizeof(op.socket));
 
    SelectItem* item= new SelectItem();
    item->op= op;
@@ -586,6 +585,7 @@ void
      debugh("Select(%p)::control\n", this);
 
    std::unique_lock<decltype(xcl_latch)> lock(xcl_latch);
+// Trace::trace(".SEL", "=XCL", this); // TODO: REMOVE
 
    char buffer[8];                  // (Only one byte should be used)
    ssize_t L= reader->read(buffer, sizeof(buffer));
@@ -610,7 +610,7 @@ void
        sno_exception(__LINE__);
 
      if( op.op == OP_MODIFY || op.op == OP_REMOVE ) {
-       if( fd >= size || sarray[fd] != socket ) {
+       if( fd >= size || fdsock[fd] != socket ) {
          lock.unlock();             // (Debug requires shared lock)
          debug("HCDM");
          sno_exception(__LINE__);   // Internal error, not user error
@@ -619,15 +619,15 @@ void
 
      switch( op.op ) {
        case OP_INSERT: {
-         Trace::trace(".SEL", ".INS", i2v(fd), socket);
+         Trace::trace(".SEL", "=INS", socket, i2v(fd));
 
          if( fd >= size )
            resize(fd);
 
-         if( USE_CHECKING && sarray[fd] ) {
+         if( USE_CHECKING && fdsock[fd] ) {
            // Internal error: another socket's already using the file descriptor
-           debugh("Select(%p)::insert(%p) sarray[%d](%p)\n", this
-                 , socket, fd, sarray[fd]);
+           debugh("Select(%p)::insert(%p) fdsock[%d](%p)\n", this
+                 , socket, fd, fdsock[fd]);
            lock.unlock();           // (Debug requires shared lock)
            debug("HCDM");
            sno_exception(__LINE__);
@@ -638,8 +638,8 @@ void
          pollfd->fd= fd;
          pollfd->events= op.events;
          pollfd->revents= 0;
-         sindex[fd]= used;
-         sarray[fd]= const_cast<Socket*>(socket);
+         fdpndx[fd]= used;
+         fdsock[fd]= const_cast<Socket*>(socket);
 
          ++used;
 //       left= next= 0;             // Not needed, revents == 0
@@ -647,8 +647,8 @@ void
          break;
        }
        case OP_MODIFY: {
-         Trace::trace(".SEL", ".MOD", i2v(fd), socket);
-         int px= sindex[fd];
+         Trace::trace(".SEL", "=MOD", socket, i2v(fd));
+         int px= fdpndx[fd];
          pollfd[px].events= op.events;
          pollfd[px].revents= 0;
 
@@ -656,8 +656,8 @@ void
          break;
        }
        case OP_REMOVE: {
-         Trace::trace(".SEL", ".REM", i2v(fd), socket);
-         int px= sindex[fd];      // Get the poll index
+         Trace::trace(".SEL", "=REM", socket, i2v(fd));
+         int px= fdpndx[fd];        // Get the poll index
          if( USE_CHECKING && (px <= 0 || px >= size) ) { // If invalid fd
            debug("HCDM");
            sno_exception(__LINE__); // Internal error, not user error
@@ -666,16 +666,16 @@ void
          --used;
          for(int i= px; i<used; ++i) {
            pollfd[i]= pollfd[i+1];
-           sindex[pollfd[i].fd]= i;
+           fdpndx[pollfd[i].fd]= i;
          }
 
-         sarray[fd]= nullptr;
-         sindex[fd]= -1;
+         fdsock[fd]= nullptr;
+         fdpndx[fd]= -1;
          left= next= 0;
          break;
        }
        case OP_TICKLE: {
-         Trace::trace(".SEL", ".NOP");
+         Trace::trace(".SEL", "=NOP");
          break;
        }
        default:
@@ -793,13 +793,32 @@ int                                 // Return code, 0 expected
    }
 
    int fd= socket->get_handle();
-   if( fd < 0 ) {                   // If Socket is closed
+   if( fd < 0 || fd >= size ) {     // If Socket is closed or invalid handle
+     Trace::stop();                 // Terminate tracing
+     debugf("%4d %s *UNEXPECTED* %d\n", __LINE__, __FILE__, fd);
      errno= EINVAL;                 // (Unexpected)
      return -1;
    }
 
+   // Since the operation won't complete until the next poll,
+   // insure that no event is pending for any current poll
+   std::lock_guard<decltype(shr_latch)> lock(shr_latch);
+
+   // The enqueue needs to be done while holding the shr_latch so that
+   // we can be sure that fdpndx[fd] refers to the removed socket.
    control_op op= {OP_REMOVE, 0, 0, fd, socket};
    control(op);                     // Enqueue the REMOVE operation
+
+   int px= fdpndx[fd];
+   if( px > 0 && px < used ) {      // (Test shouldn't be needed)
+     pollfd[px].revents= 0;         // Don't report events
+     pollfd[px].events= 0;          // Don't poll for new events
+   } else {
+     Trace::stop();                 // Terminate tracing
+     debugf("%4d %s *UNEXPECTED* %d %d\n", __LINE__, __FILE__, fd, px);
+   }
+
+   Trace::trace(".SEL", "HCDM", this, i2v(__LINE__));
 
    return 0;
 }
@@ -830,7 +849,7 @@ Socket*                             // The next selected Socket, or nullptr
 
      left= poll(pollfd, used, timeout);
    }}}}
-   Trace::trace(".SEL", "POLL", i2v(left));
+// Trace::trace(".SEL", "POLL", this, i2v(left));
 DEBUGGING(
    debugh("%4d Select left(%d)= poll(%d)\n", __LINE__, left.load(), used);
 )
@@ -862,7 +881,7 @@ Socket*                             // The next selected Socket, or nullptr
 
      left= ppoll(pollfd, used, timeout, signals);
    }}}}
-   Trace::trace(".SEL", "POLL", i2v(left));
+// Trace::trace(".SEL", "POLL", this, i2v(left));
 DEBUGGING(
    debugh("%4d Select left(%d)= poll(%d)\n", __LINE__, left.load(), used);
 )
@@ -884,13 +903,12 @@ DEBUGGING(
 Socket*                             // The next selected Socket
    Select::select( void )           // Select the next remaining Socket
 {
-   if( pollfd[0].revents ) {        // Handle control operations
+   if( pollfd[0].revents || todo_list.get_tail() ) {
      control();
-     if( --left <= 0 )
-       return do_again();
+     left= 0;
+     return do_again();
    }
 
-   Trace::trace(".SEL", ".SEL", i2v(left));
    std::lock_guard<decltype(shr_latch)> lock(shr_latch);
 
    /**************************************************************************
@@ -915,8 +933,11 @@ Socket*                             // The next selected Socket
        struct pollfd* poll= pollfd + px;
        if( poll->revents != 0 ) {
          --left;
-         Socket* socket= sarray[poll->fd];
-         socket->do_select(poll->revents);
+         int fd= poll->fd;
+         Socket* socket= fdsock[fd];
+         int revents= poll->revents;
+         Trace::trace(".SEL", "=RUN", socket, i2v(intptr_t(revents)<<32 | fd));
+         socket->do_select(revents);
        }
      }
 
@@ -934,20 +955,28 @@ DEBUGGING( debugh("left(%d)\n", left); )
    } else {                         // Original: Use select socket
      // Handle ready events
      for(int px= next; px<used; ++px) {
-       if( pollfd[px].revents != 0 ) {
+       struct pollfd* poll= pollfd + px;
+       int revents= poll->revents;
+       if( revents != 0 ) {
          --left;
          next= px + 1;
          int fd= pollfd[px].fd;
-         return sarray[fd];
+         Trace::trace(".SEL", "=SEL", fdsock[fd]
+                     , i2v(intptr_t(revents)<<32 | fd));
+         return fdsock[fd];
        }
      }
 
      for(int px= 1; px<next; ++px) {
-       if( pollfd[px].revents != 0 ) {
+       struct pollfd* poll= pollfd + px;
+       int revents= poll->revents;
+       if( revents != 0 ) {
          --left;
          next= px + 1;
          int fd= pollfd[px].fd;
-         return sarray[fd];
+         Trace::trace(".SEL", "=SEL", fdsock[fd]
+                     , i2v(intptr_t(revents)<<32 | fd));
+         return fdsock[fd];
        }
      }
 
@@ -1011,23 +1040,23 @@ inline void
 
    struct pollfd*
    new_pollfd= (struct pollfd*)realloc(pollfd, new_size * sizeof(pollfd));
-   Socket** new_sarray= (Socket**)realloc(sarray, new_size * sizeof(Socket*));
-   int* new_sindex= (int*)realloc(sindex, new_size * sizeof(int));
-   if( new_pollfd == nullptr||new_sarray == nullptr||new_sindex == nullptr ) {
+   int* new_fdpndx= (int*)realloc(fdpndx, new_size * sizeof(int));
+   Socket** new_fdsock= (Socket**)realloc(fdsock, new_size * sizeof(Socket*));
+   if( new_pollfd == nullptr||new_fdsock == nullptr||new_fdpndx == nullptr ) {
      free(new_pollfd);
-     free(new_sarray);
-     free(new_sindex);
+     free(new_fdpndx);
+     free(new_fdsock);
      throw std::bad_alloc();
    }
 
    int diff= new_size - size;
    memset(new_pollfd + size, 0x00, diff * sizeof(pollfd));
-   memset(new_sarray + size, 0x00, diff * sizeof(Socket*));
-   memset(new_sindex + size, 0xff, diff * sizeof(int));
+   memset(new_fdpndx + size, 0xff, diff * sizeof(int));
+   memset(new_fdsock + size, 0x00, diff * sizeof(Socket*));
 
    pollfd= new_pollfd;
-   sarray= new_sarray;
-   sindex= new_sindex;
+   fdpndx= new_fdpndx;
+   fdsock= new_fdsock;
    size= new_size;
 }
 
