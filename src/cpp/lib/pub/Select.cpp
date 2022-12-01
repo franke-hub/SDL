@@ -16,7 +16,7 @@
 //       Select.h method implementations.
 //
 // Last change date-
-//       2022/11/18
+//       2022/11/23
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -70,6 +70,7 @@ enum
 ,  USE_AF= AF_INET                  // Use this address family
 ,  USE_CHECKING= true               // Use internal cross-checking?
 ,  USE_SELECT_FUNCTION= false       // Use (test) socket->selected method?
+,  USE_XTRACE= true                 // Use extended trace?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -349,10 +350,10 @@ DEBUGGING( debugf("\n\n"); )
    int fd= reader->get_handle();
    resize(fd);
 
-   struct pollfd* pollfd= this->pollfd + 0; // (The first pollfd)
-   pollfd->fd= fd;
-   pollfd->events= POLLIN;
-   pollfd->revents= 0;
+   struct pollfd* poll= this->pollfd + 0; // (The first pollfd)
+   poll->fd= fd;
+   poll->events= POLLIN;
+   poll->revents= 0;
    fdpndx[fd]= 0;
    fdsock[fd]= reader;
    reader->select= this;
@@ -546,9 +547,12 @@ void
 {  if( HCDM )
      debugh("Select(%p)::control({%c,,0x%.4x,%d,%p})\n", this
            , op.op, op.events, op.fd, op.socket);
-   Trace::Record* R= Trace::trace(".SEL", ">CTL", op.socket);
-   if( R )
-     memcpy(R->value + sizeof(op.socket), &op, sizeof(op.socket));
+
+   if( USE_XTRACE ) {
+     Trace::Record* R= Trace::trace(".SEL", ">CTL", op.socket);
+     if( R )
+       memcpy(R->value + sizeof(op.socket), &op, sizeof(op.socket));
+   }
 
    SelectItem* item= new SelectItem();
    item->op= op;
@@ -585,7 +589,7 @@ void
      debugh("Select(%p)::control\n", this);
 
    std::unique_lock<decltype(xcl_latch)> lock(xcl_latch);
-// Trace::trace(".SEL", "=XCL", this); // TODO: REMOVE
+   if( USE_XTRACE ) Trace::trace(".SEL", "=XCL", this); // TODO: REMOVE
 
    char buffer[8];                  // (Only one byte should be used)
    ssize_t L= reader->read(buffer, sizeof(buffer));
@@ -634,25 +638,26 @@ void
          }
 
          // Perform the insert
-         struct pollfd* pollfd= this->pollfd + used;
-         pollfd->fd= fd;
-         pollfd->events= op.events;
-         pollfd->revents= 0;
+         struct pollfd* poll= this->pollfd + used;
+         poll->fd= fd;
+         poll->events= op.events;
+         poll->revents= 0;
          fdpndx[fd]= used;
          fdsock[fd]= const_cast<Socket*>(socket);
 
          ++used;
 //       left= next= 0;             // Not needed, revents == 0
-//       left= next= 0;             // Not needed, revents == 0
          break;
        }
        case OP_MODIFY: {
-         Trace::trace(".SEL", "=MOD", socket, i2v(fd));
+         if( USE_XTRACE )
+           Trace::trace(".SEL", "=MOD", socket, i2v(fd));
          int px= fdpndx[fd];
-         pollfd[px].events= op.events;
-         pollfd[px].revents= 0;
-
-//       left= next= 0;             // Not needed, revents == 0
+         struct pollfd* poll= this->pollfd + px;
+         poll->events= op.events;
+         if( poll->revents )
+           --left;
+         poll->revents= 0;
          break;
        }
        case OP_REMOVE: {
@@ -814,11 +819,14 @@ int                                 // Return code, 0 expected
      pollfd[px].revents= 0;         // Don't report events
      pollfd[px].events= 0;          // Don't poll for new events
    } else {
+     Trace::trace(".SEL", ".BUG", this, i2v(intptr_t(fd)<<32 | __LINE__));
      Trace::stop();                 // Terminate tracing
      debugf("%4d %s *UNEXPECTED* %d %d\n", __LINE__, __FILE__, fd, px);
+     debug("unexpected");
    }
 
-   Trace::trace(".SEL", "HCDM", this, i2v(__LINE__));
+   if( USE_XTRACE )                 // TODO: REMOVE (this trace)
+     Trace::trace(".SEL", ".INF", this, i2v(intptr_t(fd)<<32 | __LINE__));
 
    return 0;
 }
@@ -849,7 +857,8 @@ Socket*                             // The next selected Socket, or nullptr
 
      left= poll(pollfd, used, timeout);
    }}}}
-// Trace::trace(".SEL", "POLL", this, i2v(left));
+   if( USE_XTRACE )
+     Trace::trace(".SEL", "POLL", this, i2v(left));
 DEBUGGING(
    debugh("%4d Select left(%d)= poll(%d)\n", __LINE__, left.load(), used);
 )
@@ -881,7 +890,8 @@ Socket*                             // The next selected Socket, or nullptr
 
      left= ppoll(pollfd, used, timeout, signals);
    }}}}
-// Trace::trace(".SEL", "POLL", this, i2v(left));
+   if( USE_XTRACE )
+     Trace::trace(".SEL", "POLL", this, i2v(left));
 DEBUGGING(
    debugh("%4d Select left(%d)= poll(%d)\n", __LINE__, left.load(), used);
 )
@@ -904,9 +914,11 @@ Socket*                             // The next selected Socket
    Select::select( void )           // Select the next remaining Socket
 {
    if( pollfd[0].revents || todo_list.get_tail() ) {
+     if( pollfd[0].revents )
+       --left;
      control();
-     left= 0;
-     return do_again();
+     if( left == 0 )
+       return do_again();
    }
 
    std::lock_guard<decltype(shr_latch)> lock(shr_latch);
@@ -930,53 +942,46 @@ Socket*                             // The next selected Socket
    **************************************************************************/
    if( USE_SELECT_FUNCTION ) {      // Test mechanism
      for(int px= 1; px<used; ++px) {
-       struct pollfd* poll= pollfd + px;
-       if( poll->revents != 0 ) {
+       if( pollfd[0].revents || todo_list.get_tail() )
+         break;
+       struct pollfd* poll= this->pollfd + px;
+       int revents= poll->revents;
+       if( revents ) {
          --left;
          int fd= poll->fd;
          Socket* socket= fdsock[fd];
-         int revents= poll->revents;
          Trace::trace(".SEL", "=RUN", socket, i2v(intptr_t(revents)<<32 | fd));
          socket->do_select(revents);
        }
      }
 
-#if 0 // TODO: DEBUG THIS.
-     if( left > 0 ) {
-DEBUGGING( debugh("left(%d)\n", left); )
-       sno_handled(__LINE__);
-       left= 0;
-     }
-#else
      left= 0;
-#endif
-
      return do_again();
    } else {                         // Original: Use select socket
      // Handle ready events
      for(int px= next; px<used; ++px) {
-       struct pollfd* poll= pollfd + px;
+       struct pollfd* poll= this->pollfd + px;
        int revents= poll->revents;
-       if( revents != 0 ) {
+       if( revents ) {
          --left;
          next= px + 1;
-         int fd= pollfd[px].fd;
-         Trace::trace(".SEL", "=SEL", fdsock[fd]
-                     , i2v(intptr_t(revents)<<32 | fd));
-         return fdsock[fd];
+         int fd= poll->fd;
+         Socket* socket= fdsock[fd];
+         Trace::trace(".SEL", "=SEL", socket, i2v(intptr_t(revents)<<32 | fd));
+         return socket;
        }
      }
 
      for(int px= 1; px<next; ++px) {
-       struct pollfd* poll= pollfd + px;
+       struct pollfd* poll= this->pollfd + px;
        int revents= poll->revents;
        if( revents != 0 ) {
          --left;
          next= px + 1;
-         int fd= pollfd[px].fd;
-         Trace::trace(".SEL", "=SEL", fdsock[fd]
-                     , i2v(intptr_t(revents)<<32 | fd));
-         return fdsock[fd];
+         int fd= poll->fd;
+         Socket* socket= fdsock[fd];
+         Trace::trace(".SEL", "=SEL", socket, i2v(intptr_t(revents)<<32 | fd));
+         return socket;
        }
      }
 

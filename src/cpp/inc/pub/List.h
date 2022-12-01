@@ -16,7 +16,7 @@
 //       Describe the List objects.
 //
 // Last change date-
-//       2022/10/03
+//       2022/11/27
 //
 // Implementation notes-
 //       Unlike std::List<T>, pub::List<T> elements *are* links.
@@ -100,6 +100,9 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //
 // Purpose-
 //       Typed AI_list object, where T is of class AI_list<T>::Link.
+//
+// Implementation notes-
+//       See begin()..end() usage warning.
 //
 //----------------------------------------------------------------------------
 /*****************************************************************************
@@ -193,6 +196,23 @@ template<class T>
        //       inserted while the iteration is in progress are logically
        //       part of that iteration. If no new links were inserted, the
        //       AI_list becomes empty and the iterator == end().
+       //
+       // Usage warning-
+       //       A multi-thread timing anomaly can and does occur: When using
+       //       `for(auto it= list.begin(); it != list.end(); ++it)`, while
+       //       between processing `++it` and `it != list.end()`, the iterator
+       //       is in a "limbo" state. The iterator is associated with and
+       //       will eventually reference the list, but cannot guarantee that
+       //       the list still exists without application assistance.
+       //
+       //       This timing anomaly occurs when a thread's time slice ends
+       //       while the iterator is in that "limbo" state processing the
+       //       final AI_list element before list deletion.
+       //
+       //       Users may need to add code in a list's destructor to insure
+       //       that all iterators have been processed. For sample code, see
+       //       ~/src/cpp/lib/pub/Dispatch.cpp (methods dispatch::Task::~Task()
+       //       and dispatch::Task::work().)
        //
        //---------------------------------------------------------------------
        iterator begin() noexcept { return iterator(this); }

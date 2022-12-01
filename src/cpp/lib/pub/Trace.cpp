@@ -16,20 +16,23 @@
 //       Trace object methods.
 //
 // Last change date-
-//       2022/09/02
+//       2022/11/22
 //
 //----------------------------------------------------------------------------
+#ifndef _GNU_SOURCE                 // For sched_getcpu
+#define _GNU_SOURCE
+#endif
+
 #include <atomic>                   // For std::atomic
-#include <chrono>                   // For SCDM( std::chrono )
 #include <time.h>                   // For clock_gettime
 #include <mutex>                    // For std::lock_guard
 #include <new>                      // For std::bad_alloc
+#include <sched.h>                  // For sched_getcpu
 #include <string.h>                 // For memcpy, strncpy
 #include <unistd.h>                 // For sysconf
 #include <arpa/inet.h>              // For htonl
 
 #include <pub/Debug.h>              // For debugging
-#include <pub/Thread.h>             // For SCDM( Thread::current() )
 #include "pub/Trace.h"              // For pub::Trace, implemented
 #include <pub/utility.h>            // For pub::utility::dump
 
@@ -38,20 +41,11 @@ using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
 namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Compile-time options
-//
-// Special Case Debug Mode-
-//   SCDM > 0 enables the special case logic in allocate(), which counts the
-//   compare_exchange retries in spins.
-//   When spins > SCDM, nullptr is returned to the caller, and we replace the
-//   allocated record a .TAF (Trace Allocation Failure) record. Additionally,
-//   if USE_DEACTIVATE, we invoke deactivate() (to terminate tracing.)
-//   (USE_DEACTIVATE has no effect unless SCDM is enabled.)
 //----------------------------------------------------------------------------
 enum // Compile-time options. We rely on optimization to elide unused code.
 {  CHECK= false                     // Check for should not occur conditions?
 ,  HCDM= false                      // Hard Core Debug Mode?
-,  SCDM= 0                          // Special Case Debug Mode, spin limit
-,  USE_DEACTIVATE= false            // SCDM(Deactivate trace option)
+// VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // Compile-time options
 
 //----------------------------------------------------------------------------
@@ -60,18 +54,20 @@ enum // Compile-time options. We rely on optimization to elide unused code.
 Trace*                 Trace::table= nullptr; // The common Trace object
 
 //----------------------------------------------------------------------------
-// The SCDM_record, only used for Special Case Debug Mode
+//
+// Method-
+//       Trace::Record::set_cpuid
+//
+// Purpose-
+//       Replace ident[0] with cpu id
+//
+// Implementation notes-
+//       If and when _GNU_SOURCE isn't required, move this to Trace.h
+//
 //----------------------------------------------------------------------------
-static const char*     SCDM_id= ".TAF"; // Trace Allocation Failure
-static const char*     SCDM_name= "Trace.c"; // 8 characters, counting '\0'
-
-struct SCDM_record {                // Special Case Trace::Record
-char                   ident[4];    // (Same as Trace::Record)
-uint32_t               spins;       // The number of retries
-uint64_t               clock;       // (Same as Trace::Record)
-Thread*                thread;      // The Thread identifier
-char                   name[8];     // This module's name
-}; // struct SCDM_record
+void
+   Trace::Record::set_cpuid( void ) // Replace ident[0] with cpu id
+{  ident[0]= sched_getcpu(); }
 
 //----------------------------------------------------------------------------
 //
@@ -182,8 +178,7 @@ void
            , table->wrap);
 
    #define TF utility::to_ascii     // TF: True or False
-   debugf("..CHECK(%s) HCDM(%s) SCDM(%d) USE_DEACTIVATE(%s)\n"
-          , TF(CHECK), TF(HCDM), SCDM, TF(USE_DEACTIVATE) );
+   debugf("..CHECK(%s) HCDM(%s)\n", TF(CHECK), TF(HCDM));
    #undef TF
 }
 
@@ -198,7 +193,6 @@ void
 // Implementation note-
 //       Performance critical path.
 //       A nullptr resultant only occurs as a result of an application error
-//       (or when using SCDM, Special Case Debug Mode.)
 //
 //----------------------------------------------------------------------------
 _LIBPUB_HOT
@@ -224,10 +218,8 @@ void*                               // Resultant
        throw std::bad_alloc();      // Parameter error
 // } // if( CHECK )
 
-   uint32_t spins= 0;               // Loop retry counter (for SCDM)
    oldV= next.load();
-   for(;;)
-   {
+   for(;;) {
      last= 0;                       // Indicate not wrapped
      newV= oldV + size;             // Arithmetic overflow is a user error
      if( CHECK ) {                  // Check for arithmetic overflow?
@@ -240,8 +232,7 @@ void*                               // Resultant
      }
 
      result= (char*)this + oldV;
-     if ( newV > this->size )       // If wrap
-     {
+     if ( newV > this->size ) {     // If wrap
        last= oldV;
        result= (char*)this + zero;
        newV= size + zero;
@@ -249,23 +240,6 @@ void*                               // Resultant
 
      if( next.compare_exchange_weak(oldV, newV) )
        break;
-
-     if( SCDM ) spins++;          // (Compile-time option)
-   }
-
-   // Special Case Debug Mode ================================================
-   if( SCDM > 0 ) {               // If enabled
-     if( spins > SCDM ) {         // If excessive retries
-       if( USE_DEACTIVATE )       // (Optionally)
-         deactivate();            // Terminate tracing
-
-       SCDM_record* record= (SCDM_record*)result;
-       record->thread= Thread::current();
-       strcpy(record->name, SCDM_name);
-       ((Record*)record)->trace(SCDM_id, spins);
-
-       result= nullptr;           // We do not return this record
-     }
    }
 
    if( HCDM ) {
@@ -279,16 +253,13 @@ void*                               // Resultant
      wrap++;                        // Update the wrap count
      this->last= last;              // Last valid location
 
-     if( HCDM ) {
-       // Clean up any last empty area
-       // (Candidate for normal use. Doen't occur often, if at all.)
-       // This cleanup makes the last trace entry in the trace table slightly
-       // easier to look at, and doesn't occur in the normal case.
-       if( last < this->size ) {      // If zombie data exists
-         char* atlast= (char*)this + last;
-         memset(atlast, 0, this->size - last);
-         memcpy(atlast, ".END", 4);
-       }
+     // Clean up any unused space between last and this->size (zombie data)
+     // This cleanup makes the last trace entry in the trace table slightly
+     // easier to look at, and doesn't occur in the normal case.
+     if( last < this->size ) {      // If zombie data exists
+       char* atlast= (char*)this + last;
+       memset(atlast, 0, this->size - last);
+       memcpy(atlast, ".END", 4);
      }
    }
 

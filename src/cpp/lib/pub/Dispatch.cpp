@@ -16,17 +16,43 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2022/11/15
+//       2022/11/27
 //
 //----------------------------------------------------------------------------
-#include "Dispatch.h"               // For namespace pub::dispatch definitions
+#include <assert.h>                 // For assert
+#include <mutex>                    // For std::lock_guard
+
+#include <pub/Clock.h>              // DispatchTTL completion time
+#include <pub/Debug.h>              // For debugging
+#include "pub/Dispatch.h"           // For dispatch objects, implemented
+#include <pub/Latch.h>              // For pub::Latch, mutex substitute
+#include <pub/List.h>               // For pub::AI_list
+#include <pub/Named.h>              // For pub::Named, Timers is a Named Thread
+#include <pub/Semaphore.h>          // For pub::Semaphore, Timers event
+#include <pub/Thread.h>             // For pub::Thread, Timers is a Named Thread
+#include <pub/Trace.h>              // For pub::Trace
+#include <pub/Worker.h>             // For pub::Worker
+
+using namespace _LIBPUB_NAMESPACE::debugging; // Enable debugging functions
 
 namespace _LIBPUB_NAMESPACE::dispatch {
+//----------------------------------------------------------------------------
+// Constants for parameterization
+//----------------------------------------------------------------------------
+enum
+{  HCDM= false                      // Hard Core Debug Mode?
+// VERBOSE= 0                       // Verbosity, higher is more verbose
+
+,  USE_XTRACE= true                 // Use extended tracing?
+}; // enum
+
 //----------------------------------------------------------------------------
 // dispatch::Static attributes
 //----------------------------------------------------------------------------
 Latch                  Disp::mutex; // Termination mutex
 Timers*                Disp::timers= nullptr;
+
+#include "Dispatch.h"               // For Timers, DispatchTTL
 
 //----------------------------------------------------------------------------
 //
@@ -87,7 +113,7 @@ void*                               // Cancellation token
    return timers->delay(seconds, workItem);
 }
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Method-
 //       dispatch::Disp::wait
@@ -100,8 +126,7 @@ void
    Disp::wait( void )               // Wait for all work to complete
 {  if( HCDM ) traceh("Dispatch(*)::wait()...\n");
 
-   if( timers != nullptr )
-   {
+   if( timers != nullptr ) {
      timers->stop();
      timers->join();
      delete timers;
@@ -141,6 +166,27 @@ void
      Item*             item)        // This work Item
 {  if( HCDM ) traceh("Done(%p)::done(%p) PVM\n", this, item);
    delete item;
+}
+
+//============================================================================
+//
+// Method-
+//       dispatch::Task::~Task
+//
+// Purpose-
+//       Destructor.
+//
+//----------------------------------------------------------------------------
+   Task::~Task( void )                        // Destructor
+{
+   Wait wait;
+   Item item(Item::FC_UNDEF, &wait);
+
+   Item* tail= itemList.fifo(&item); // Insert work Item
+   if( tail != nullptr )            // If the list wasn't empty
+     wait.wait();                   // Wait for completion
+// else
+//   itemList.reset();              // Nothing to do (not needed)
 }
 
 //----------------------------------------------------------------------------
@@ -186,29 +232,48 @@ void
 // if( itemList.is_empty() )        // If nothing to do (should not occur)
 //   return;                        // Do it quickly
 
+   if( USE_XTRACE )
+     Trace::trace(".DSP", "WORK", this, itemList.get_tail());
+
    for(auto it= itemList.begin(); it != itemList.end(); ++it) {
-     if( it->fc < 0 )
-     {
-       int cc= Item::CC_NORMAL;
-       switch(it->fc)
-       {
-         case Item::FC_CHASE:
-           break;
+     if( USE_XTRACE )
+       Trace::trace(".DSP", "ITER", this, it.get());
 
-         case Item::FC_TRACE:
-           traceh("Task(%p):trace(%p)\n", this, it.get());
-           break;
+     if( it->fc < 0 ) {
+       if( it->fc == Item::FC_UNDEF ) {
+         // We use UNDEF to insure that a TASK has no work pending.
+         // We therefore need to insure that all other work completes and
+         // it == itemList.end().
+         // In the usual case, all that's needed is the first `++i`.
+         // In the unusual case, the UNDEF is posted out of sequence.
+         auto post_it= it;
 
-         default:
-           cc= Item::CC_ERROR_FC;
-           break;
+         while(++it != itemList.end() ) {
+           // This code is not normally executed; the ++it ends the itemList
+           Trace::trace(".DSP", "XTRA", this); // (Unexpected)
+           if( it >= 0 ) {
+             work(it.get());
+           } else {
+             if( it->fc == Item::FC_CHASE ) {
+               it->post(Item::CC_NORMAL);
+             } else {
+               it->post(Item::CC_ERROR_FC);
+             }
+           }
+         }
+
+         post_it->post(Item::CC_ERROR_FC); // (~Task doesn't care)
+         break;
+       } else {
+         it->post(Item::CC_ERROR_FC);
        }
-
-       it->post(cc);
      }
      else
        work(it.get());
    }
+
+   if( USE_XTRACE )
+     Trace::trace(".DSP", "IDLE", this);
 }
 
 //----------------------------------------------------------------------------
@@ -223,7 +288,7 @@ void
 void
    Task::work(                      // Process
      Item*             item)        // This work Item
-{  if( HCDM ) traceh("Task(%p)::work(%p) PVM\n", this, item);
+{  debugh("Task(%p)::work(%p) PVM\n", this, item);
    item->post();
 }
 }  // namespace _LIBPUB_NAMESPACE::dispatch

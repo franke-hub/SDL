@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2022/11/17
+//       2022/11/27
 //
 // Arguments-
 //       With no arguments, --client --server defaulted
@@ -323,6 +323,9 @@ static void
 static inline int                   // Error count
    test_bringup( void )             // Bringup test
 {
+   typedef PUB::http::Client        Client;
+   typedef PUB::http::Server        Server;
+
    debugf("\ntest_bringup\n");
    int error_count= 0;
 
@@ -338,6 +341,14 @@ static inline int                   // Error count
    size_of("Response",      sizeof(PUB::http::Response));
    size_of("Server",        sizeof(PUB::http::Server));
    size_of("Stream",        sizeof(PUB::http::Stream));
+
+#pragma GCC diagnostic ignored "-Winvalid-offsetof"
+   printf("\n");
+   printf("%.4zx Client::task_inp\n", offsetof(Client, task_inp));
+   printf("%.4zx Client::task_out\n", offsetof(Client, task_out));
+
+   printf("%.4zx Server::task_inp\n", offsetof(Server, task_inp));
+   printf("%.4zx Server::task_out\n", offsetof(Server, task_out));
 
    if( false ) {                    // Bringup internal tests
      printf("\npage200(\"BODY\")\n%s", page200("BODY").c_str());
@@ -473,6 +484,12 @@ static void                         // Exit if error detected
      opt_client= true;
      opt_server= true;
    }
+
+   for(int i= optind; i < argc; ++i) {
+     debugf("Unexpected parameter: %s\n", argv[i]);
+     opt_help= true;
+   }
+
 
    // Return sequence
    if( opt_help )

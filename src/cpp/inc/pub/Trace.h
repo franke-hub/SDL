@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2022/11/18
+//       2022/11/22
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -32,21 +32,24 @@
 //
 // Implementation notes-
 //       Applications are responsible for trace table allocation and release.
-//       The Trace object is contained within the trace table. The entire
-//       trace table is initialized using make().
+//       The Trace object is contained within the trace table.
+//       The entire trace table is initialized using Trace::make().
 //
 // Sample usage-
 //       using _LIBPUB_NAMESPACE;
 //       void* storage= malloc(desired_size); // Unaligned is OK. make trims
 //       Trace::table= Trace::make(storage, desired_size);
 //
+//       : For a defined (standard) Trace Record
+//       Trace::trace(".xxx", "yyyy", this, that); // this && that are (void*)
+//       :
+//       : or, for a non-standard Trace Record:
 //       struct Record : public Trace::Record { // Your Record
 //         : // Your data goes here
 //       };
-//       :
 //       Record* record= (Record*)Trace::storage_if(sizeof(Record));
 //       if( record ) {             // If trace is active
-//         : // Initialize your data
+//         : // Initialize your Record
 //         record->trace(".xxx");   // Set the trace identifier + clock
 //       }
 //       :
@@ -84,7 +87,7 @@ enum                                // Generic enum
 ,  TABLE_SIZE_MAX= 0x000FFFFF00UL   // Maximum allowed table size
 ,  TABLE_SIZE_MIN= 0x0000010000UL   // Minimum allowed table size
 
-,  USE_BIG_ENDIAN= true             // Slower but trace easier to read
+,  USE_BIG_ENDIAN= true             // A bit slower but trace easier to read
 ,  WSIZE=          sizeof(void*)
 }; // enum
 
@@ -138,6 +141,9 @@ inline void
    }
 }
 
+void
+   set_cpuid( void );               // Replace ident[0] with CPU ID
+
 _LIBPUB_FLATTEN
 _LIBPUB_HOT
 inline void
@@ -145,6 +151,7 @@ inline void
      const char*       ident)       // This char[4] trace type identifier
 {  set_clock();                     // Set the clock
    memcpy(this->ident, ident, sizeof(this->ident));
+   set_cpuid();                     // Replace ident[0] with cpu id
 }
 
 _LIBPUB_FLATTEN
@@ -362,7 +369,11 @@ static inline void*                 // The storage, nullptr if inactive
 //       trace
 //
 // Purpose-
-//       Trace::Record helpers
+//       These are the "standard" (i.e. defined) Trace::trace methods.
+//
+// Implementation note-
+//       These static methods allocate and initialize Trace Records, doing
+//       (almost) nothing if Trace::table==nullptr.
 //
 //----------------------------------------------------------------------------
 _LIBPUB_FLATTEN

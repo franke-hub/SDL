@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2022/11/18
+//       2022/11/27
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -24,6 +24,7 @@
 
 #include <atomic>                   // For std::atomic
 #include <memory>                   // For std::shared_ptr
+#include <cstddef>                  // For offsetof
 #include <cstdint>                  // For UINT16_MAX
 #include <ctime>                    // For time, ...
 #include <fcntl.h>                  // For open, O_*, ...
@@ -220,6 +221,17 @@ static struct Global {
      printf("%4d %s Global~\n", __LINE__, __FILE__);
 }
 } global_constructor_destructor;
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       i2v
+//
+// Purpose-
+//       Convert intptr_t  to void*
+//
+//----------------------------------------------------------------------------
+static inline void* i2v(intptr_t i) { return (void*)i; }
 
 //----------------------------------------------------------------------------
 //
@@ -717,7 +729,7 @@ virtual void
 
    if( opt_hcdm && opt_verbose )
      debugf("...[%2d] ClientThread.run_one\n", serial);
-   Trace::trace(".TXT", __LINE__, "TS.run_one exit");
+   Trace::trace(".TXT", serial, "TS.run_one exit");
 }
 
 //----------------------------------------------------------------------------
@@ -1022,14 +1034,24 @@ static void
    timer_thread.join();
    test_ended.post();
 
-   debugf("--%s_stream test: %s\n", opt_ssl ? "ssl" : "std"
+   debugh("--%s_stream test: %s\n", opt_ssl ? "ssl" : "std"
          , error_count ? "FAILED" : "Complete");
 
    double op_count= double(send_op_count.load());
    debugf("%'16.3f operations\n", op_count);
    debugf("%'16.3f operations/second\n", op_count/opt_runtime);
 
-   for(int i= 0; i<opt_stress; i++) {
+   Trace::Record* R= Trace::trace(128-32);
+   if( R ) {
+     for(int i= 0; i<128; ++i) {
+       ((char*)R)[i]= (char)(i % 32);
+     }
+     strcpy(R->value, "Stress test completed");
+     R->trace("....");
+   }
+
+   for(int32_t i= 0; i<opt_stress; i++) {
+     Trace::trace(".TST", "WAIT", client[i], i2v(i));
      client[i]->wait();
    }
 

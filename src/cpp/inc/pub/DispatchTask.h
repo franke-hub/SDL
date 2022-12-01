@@ -16,7 +16,7 @@
 //       Standard Dispatch Task object.
 //
 // Last change date-
-//       2022/11/14
+//       2022/11/27
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCHTASK_H_INCLUDED
@@ -55,13 +55,14 @@ protected:
 AI_list<Item>          itemList;    // The Work item list
 
 //----------------------------------------------------------------------------
-// Task::Constructors
+// Task::Constructor/Destructor
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~Task( void ) {}                 // Destructor
    Task( void )                     // Default constructor
 :  Worker(), itemList() {}
+
+virtual
+   ~Task( void );                   // Destructor
 
    Task(const Task&) = delete;      // Disallowed copy constructor
    Task& operator=(const Task&) = delete; // Disallowed assignment operator

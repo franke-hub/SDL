@@ -31,7 +31,7 @@
 
 #include <pub/Debug.h>              // For pub::debugging
 #include "pub/Fileman.h"            // For pub::fileman, implemented
-#include "pub/List.h"               // For pub::List
+#include <pub/List.h>               // For pub::List
 #include <pub/utility.h>            // For pub::utility::dump
 
 using namespace _LIBPUB_NAMESPACE::debugging;

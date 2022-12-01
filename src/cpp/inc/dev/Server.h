@@ -71,6 +71,7 @@ typedef std::string                           string;
 // Server::Attributes
 //----------------------------------------------------------------------------
 protected:
+public:                             // TODO: REMOVE
 std::weak_ptr<Server>  self;        // Self reference
 Listen*                listen;      // Our owning Listener
 

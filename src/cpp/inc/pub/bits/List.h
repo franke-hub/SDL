@@ -16,7 +16,7 @@
 //       ../List.h template definitions and internal base classes.
 //
 // Last change date-
-//       2022/09/02
+//       2022/11/27
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_LIST_H_INCLUDED
@@ -140,7 +140,7 @@ template<typename T>
      _AI_iter(_List* list) noexcept
      :  _list(list)
      {
-       T* tail= _list->reset((void*)__detail::__end);
+       T* tail= _list->reset(&__detail::__end);
        while( tail )
        {
          T* prev= tail->get_prev();
@@ -209,7 +209,7 @@ template<typename T>
        void _next() noexcept
        {
          _link= nullptr;
-         pointer tail= _list->reset((void*)__detail::__end);
+         pointer tail= _list->reset(&__detail::__end);
          if( tail )
          {
            do
@@ -218,7 +218,7 @@ template<typename T>
              tail->_prev= _todo;
              _todo= tail;
              tail= prev;
-           } while( (void*)tail != __detail::__end );
+           } while( (void*)tail != &__detail::__end );
            _link= _todo;
            if( _todo )
              _todo= _todo->get_prev();

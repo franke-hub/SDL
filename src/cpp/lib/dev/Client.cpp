@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2022/11/18
+//       2022/11/27
 //
 // Implementation notes-
 //       Throughput: W: 4,088.7/sec  L:    307.5/sec protocol1b (*removed*)
@@ -91,6 +91,8 @@ enum
 
 // BUFFER_SIZE= 1'048'576           // Input buffer size
 ,  BUFFER_SIZE=     8'192           // Input buffer size
+
+,  USE_XTRACE= true                 // Use extended trace? // TODO: false
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -153,12 +155,18 @@ Ioda                   ioda;        // The Input/Output Data Area
 :  dispatch::Item(), stream(S), ioda()
 {  if( HCDM && VERBOSE > 0 ) debugh("ClientItem(%p)!\n", this);
 
+   if( USE_XTRACE )
+     Trace::trace(".NEW", "CITM", this);
+
    INS_DEBUG_OBJ("ClientItem");
 }
 
 virtual
    ~ClientItem( void )              // Destructor
 {  if( HCDM && VERBOSE > 0 ) debugh("ClientItem(%p)~\n", this);
+
+   if( USE_XTRACE )
+     Trace::trace(".DEL", "CITM", this);
 
    REM_DEBUG_OBJ("ClientItem");
 }
@@ -305,13 +313,13 @@ static inline void*
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       s2v
+//       i2v
 //
 // Purpose-
-//       Convert size_t  to void*
+//       Convert intptr_t  to void*
 //
 //----------------------------------------------------------------------------
-static inline void* s2v(size_t s) { return (void*)intptr_t(s); }
+static inline void* i2v(intptr_t i) { return (void*)i; }
 
 //----------------------------------------------------------------------------
 //
@@ -354,11 +362,14 @@ static SSL_CTX*
 ,  proto_id(proto[HTTP_H1])
 ,  size_inp(BUFFER_SIZE)
 ,  size_out(BUFFER_SIZE)
-,  task_inp([this](dispatch::Item* item) { inp_task(item); })
-,  task_out([this](dispatch::Item* item) { out_task(item); })
+,  task_inp([this](dispatch::Item* it) { inp_task(it); })
+,  task_out([this](dispatch::Item* it) { out_task(it); })
 {  if( HCDM )
      debugh("Client(%p)!(%p)\n>> %s\n", this, owner
            , addr.to_string().c_str());
+
+   if( USE_XTRACE )
+     Trace::trace(".NEW", "HCLI", this, stream.get());
 
    // Internal consistency check
 // assert( size_t(size) <= sizeof(sockaddr_u)); // (Checked in Socket::connect)
@@ -442,11 +453,12 @@ static SSL_CTX*
 {  if( HCDM )
      debugh("Client(%p)~\n", this);
 
+   if( USE_XTRACE )
+     Trace::trace(".DEL", "HCLI", this, stream.get());
+
    // Close the socket, insuring task completion
-   if( operational ) {
-     close();
-     wait();
-   }
+   close();                         // Not needed, but we do it anyway
+// wait();                          // Not needed, already in ~Task()
 
    // Release allocated storage
    if( context )                    // If context exists
@@ -549,16 +561,13 @@ void
 //       Client::close
 //
 // Purpose-
-//       Close the Client
-//
-// Implementation notes-
-//       If wait != nullptr, the close is synchronous.
+//       Close the Client, making it inoperative.
 //
 //----------------------------------------------------------------------------
 void
    Client::close( void )            // Close the Client
 {  if( HCDM ) debugh("Client(%p)::close() %d\n", this, operational);
-   Trace::trace(".CLI", ".CLS", this);
+   Trace::trace(".CLI", ".CLS", this, i2v(get_handle()));
 
    // The Agent might contain the last active shared_ptr<Client>
    std::shared_ptr<Client> client= get_self(); // Keep-alive
@@ -630,16 +639,16 @@ void
 
    dispatch::Wait wait;
    dispatch::Item item(item.FC_CHASE, &wait);
-   if( task_out.is_busy() ) {
-     task_out.enqueue(&item);
-     wait.wait();
-   }
+   if( USE_XTRACE )
+     Trace::trace(".ENQ", "WOUT", this, &item);
+   task_out.enqueue(&item);
+   wait.wait();
+   wait.reset();
 
-   if( task_inp.is_busy() ) {
-     wait.reset();
-     task_inp.enqueue(&item);
-     wait.wait();
-   }
+   if( USE_XTRACE )
+     Trace::trace(".ENQ", "WINP", this, &item);
+   task_inp.enqueue(&item);
+   wait.wait();
 }
 
 //----------------------------------------------------------------------------
@@ -655,18 +664,15 @@ int                                 // Return code, 0 expected
    Client::write(                   // Write using
      ClientStream*     S)           // This ClientStream
 {  if( HCDM ) debugh("Client(%p)::write(Stream* %p)\n", this, S);
-{{{{
-char temp[16];
-memset(temp, 0, sizeof(temp));
-std::shared_ptr<Request> Q= S->get_request();
-snprintf(temp, sizeof(temp), "%s %s %s\r\n", Q->method.c_str(), Q->path.c_str()
-        , Q->proto_id.c_str());
-Trace::trace(".CNQ", 0, temp);      // (Client eNQueue)
-}}}}
 
    int rc= ClientItem::CC_PURGE;    // Default, not sent
+   ClientItem* item= new ClientItem(S->get_self());
+
+   std::lock_guard<Client> lock(*this);
+
    if( operational ) {
-     ClientItem* item= new ClientItem(S->get_self());
+     if( USE_XTRACE )
+       Trace::trace(".ENQ", "COUT", this, item);
      task_out.enqueue(item);
      rc= 0;
    }
@@ -691,28 +697,15 @@ void
    // inp_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    inp_task= [this](dispatch::Item* it) // Input task
    { if( HCDM ) debugh("Client(%p)::inp_task(%p)\n", this, it);
+     if( USE_XTRACE )
+       Trace::trace(".DEQ", "CINP", this, it);
 
-#if 1
      if( !operational ) {
        it->post(it->CC_PURGE);
        return;
      }
-#else
-     if( !operational ) {           // Handle non-operational state
-       if( !rd_complete.is_post() ) // Drive waiting out_task
-         rd_complete.post(dispatch::Item::CC_PURGE);
 
-       if( it->fc == 0 ) {          // I/O operations fail
-         it->post(it->CC_PURGE);
-         return;
-       }
-
-       task_out.enqueue(it);
-       return;
-     }
-#endif
-
-     ClientItem* item= (ClientItem*)it;
+     ClientItem* item= static_cast<ClientItem*>(it);
      if( item->stream->read(item->ioda) ) // If response complete
        rd_complete.post();          // Indicate HTTP/1 operation complete
      item->post();
@@ -721,25 +714,15 @@ void
    // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    out_task= [this](dispatch::Item* it) // Output task
    { if( HCDM ) debugh("Client(%p)::out_task(%p)\n", this, it);
+     if( USE_XTRACE )
+       Trace::trace(".DEQ", "COUT", this, it);
 
-#if 1
      if( !operational ) {
        it->post(it->CC_PURGE);
        return;
      }
-#else
-     if( !operational ) {           // Handle non-operational state
-       if( it->fc == 0 ) {          // I/O operations fail
-         it->post(it->CC_PURGE);
-         return;
-       }
 
-       it->post();
-       return;
-     }
-#endif
-
-     ClientItem* item= (ClientItem*)it;
+     ClientItem* item= static_cast<ClientItem*>(it);
      stream_item= item;
      stream= item->stream;
      try {
@@ -921,8 +904,6 @@ void
 
    ssize_t L;
    for(;;) {
-// This helps when a trace read appears before the trace write
-// Trace::trace("HCDM", __LINE__, "CSocket->read");
      L= socket->recvmsg(&mesg, 0);
      iodm(line, "read", L);
      if( L > 0 ) {
@@ -935,6 +916,8 @@ void
        iodm(line, "read", addr, size);
        ClientItem* item= new ClientItem(stream);
        item->ioda= std::move(ioda);
+       if( USE_XTRACE )
+         Trace::trace(".ENQ", "CINP", this, item);
        task_inp.enqueue(item);
        return;
      }
@@ -966,7 +949,10 @@ ssize_t                             // Written length
 {  if( HCDM ) debugh("%4d Client(%p)::write\n", line, this);
 
    for(;;) {
-Trace::trace("HCDM", __LINE__, "CSocket->write");
+     // This helps when a trace read appears before the trace write
+     if( USE_XTRACE )
+       Trace::trace(".INF", __LINE__, "CSocket->write");
+
      Mesg mesg; ioda_out.get_wr_mesg(mesg, size_out, ioda_off);
      ssize_t L= socket->sendmsg(&mesg, 0);
      iodm(line, "sendmsg", L);

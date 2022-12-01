@@ -80,6 +80,7 @@ typedef dispatch::LambdaTask                  LambdaTask;
 // Client::Attributes
 //----------------------------------------------------------------------------
 protected:
+public:                             // TODO: REMOVE
 // Callback handlers - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 f_reader               h_reader;    // The (reader) protocol handler
 f_writer               h_writer;    // The (writer) protocol handler

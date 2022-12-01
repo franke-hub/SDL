@@ -16,32 +16,13 @@
 //       Work dispatcher, including local definitions.
 //
 // Last change date-
-//       2022/09/02
+//       2022/11/22
+//
+// Implementation note-
+//       *ONLY* included from Dispatch.cpp (in namespace pub::dispatch)
 //
 //----------------------------------------------------------------------------
-#include <assert.h>                 // For assert
-#include <mutex>                    // For std::lock_guard
 
-#include <pub/Clock.h>              // DispatchTTL completion time
-#include <pub/Debug.h>              // For debugging
-#include "pub/Dispatch.h"           // For dispatch objects, implemented
-#include "pub/Latch.h"              // dispatch::Timers mutex substitute
-#include <pub/List.h>               // dispatch::Task itemList
-#include <pub/Named.h>              // dispatch::Timers is a Named Thread
-#include <pub/Semaphore.h>          // dispatch::Timers event
-#include <pub/Thread.h>             // dispatch::Timers is a Named Thread
-#include <pub/Worker.h>             // dispatch::Task base class
-
-using namespace _LIBPUB_NAMESPACE::debugging; // Enable debugging functions
-
-//----------------------------------------------------------------------------
-// Constants for parameterization
-//----------------------------------------------------------------------------
-enum
-{  HCDM= false                      // Hard Core Debug Mode?
-}; // enum
-
-namespace _LIBPUB_NAMESPACE::dispatch {
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -219,4 +200,3 @@ virtual void
    event.post();
 }
 }; // class Timers
-}  // namespace _LIBPUB_NAMESPACE::dispatch

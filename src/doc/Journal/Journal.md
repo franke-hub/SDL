@@ -7,7 +7,7 @@
 //       Development journal
 //
 // Last change date-
-//       2022/10/26
+//       2022/12/01
 //
 -------------------------------------------------------------------------- -->
 
@@ -434,5 +434,36 @@ While the standard stress test usually works, it's not at 100 percent.
 The new connection per operation code is not just fragile, it's broken.
 Static debugging doesn't find the stress test problems and gdb isn't always
 helpful. More memory trace debugging is required.
+
+### 2022/11/19 Trunk/maint commit (push)
+
+The associated code was published yesterday, 11/18, largely fixing the worst
+(but not all of) the dev library problems.
+
+The major problem was in ~/src/lib/pub/Select::remove(). A socket remove would
+be enqueued and almost immediately deleted. If a poll was also outstanding, the
+Select's socket could point at freed storage.
+
+Current problem: T_Stream --server --stress=16 --major=1
+Linux:  SEGFAULT
+Cygwin: Test completes. Termination iffy.
+
+### 2022/11/27
+
+When Dispatch.cpp was changed to use begin..end logic, it didn't account for
+a FC_CHASE timing problem: if after posting the CHASE the next iteration
+(which removes AI_list's dummy tail element) was delayed, it was possible for
+that iteration to complete *after* the dispatch Task was deleted. This would
+result in accessing either deleted or re-allocated storage.
+
+Current problem: T_Stream --server --stress=16 --major=1
+Linux:  Completes normally, 8.5 Kop/sec
+Cygwin: Test completes, 250 ops/sec. Termination iffy.
+        Termination requires ctrl-delete, sometimes process tree end required.
+
+### 2022/12/01 Trunk/maint commit
+
+The Cygwin bug hasn't been found yet, but the Dispatch.cpp bug fix needs to
+be committed.
 
 ----

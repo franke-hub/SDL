@@ -16,7 +16,7 @@
 //       Standard Dispatch work Item object.
 //
 // Last change date-
-//       2022/10/05
+//       2022/11/27
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCHITEM_H_INCLUDED
@@ -59,7 +59,7 @@ enum CC                             // Completion codes
 enum FC                             // Function codes
 {  FC_VALID= 0                      // All user function codes are positive
 ,  FC_CHASE= -1                     // Chase (Handled by Dispatcher)
-,  FC_TRACE= -2                     // Trace (Handled by Dispatcher)
+,  FC_UNDEF= -2                     // Undefined/invalid function code
 }; // enum FC
 
 //----------------------------------------------------------------------------

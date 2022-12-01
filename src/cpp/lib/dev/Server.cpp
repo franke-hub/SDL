@@ -16,7 +16,7 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2022/11/18
+//       2022/11/27
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -77,6 +77,8 @@ enum
 
 // BUFFER_SIZE= 1'048'576           // Input buffer size
 ,  BUFFER_SIZE=     8'192           // Input buffer size
+
+,  USE_XTRACE= true                 // Use extended trace? // TODO: false
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -96,12 +98,18 @@ Ioda                   ioda;        // The Input/Output Data Area
 :  dispatch::Item(), ioda()
 {  if( HCDM && VERBOSE > 0 ) debugh("ServerItem(%p)!\n", this);
 
+   if( USE_XTRACE )
+     Trace::trace(".NEW", "SITM", this);
+
    INS_DEBUG_OBJ("ServerItem");
 }
 
 virtual
    ~ServerItem( void )              // Destructor
 {  if( HCDM && VERBOSE > 0 ) debugh("ServerItem(%p)~\n", this);
+
+   if( USE_XTRACE )
+     Trace::trace(".DEL", "SITM", this);
 
    REM_DEBUG_OBJ("ServerItem");
 }
@@ -170,17 +178,6 @@ static inline void*
 
 //----------------------------------------------------------------------------
 //
-// Subroutine-
-//       s2v
-//
-// Purpose-
-//       Convert size_t  to void*
-//
-//----------------------------------------------------------------------------
-static inline void* s2v(size_t s) { return (void*)intptr_t(s); }
-
-//----------------------------------------------------------------------------
-//
 // Method-
 //       Server::Server
 //       Server::~Server
@@ -200,10 +197,13 @@ static inline void* s2v(size_t s) { return (void*)intptr_t(s); }
 ,  size_inp(BUFFER_SIZE)
 ,  size_out(BUFFER_SIZE)
 ,  socket(socket)
-,  task_inp([this](dispatch::Item* item) { inp_task(item); })
-,  task_out([this](dispatch::Item* item) { out_task(item); })
+,  task_inp([this](dispatch::Item* it) { inp_task(it); })
+,  task_out([this](dispatch::Item* it) { out_task(it); })
 {  if( HCDM )
      debugh("Server(%p)::Server(%p,%p)\n", this, listen, socket);
+
+   if( USE_XTRACE )
+     Trace::trace(".NEW", "HSRV", this);
 
    // Initialize asynchronous operation
    socket->set_flags( socket->get_flags() | O_NONBLOCK );
@@ -226,11 +226,12 @@ static inline void* s2v(size_t s) { return (void*)intptr_t(s); }
 {  if( HCDM )
      debugh("Server(%p)::~Server\n", this);
 
+   if( USE_XTRACE )
+     Trace::trace(".DEL", "HSRV", this);
+
    // Close the socket, insuring task completion
-   if( operational ) {
-     close();
-     wait();
-   }
+   close();                         // Not needed, but we do it anyway
+// wait();                          // Not needed, already in ~Task()
 
    delete socket;
    socket= nullptr;
@@ -379,25 +380,15 @@ void
      dispatch::Item*   it)          // Input data item
 {  if( HCDM )
      debugh("Server(%p)::inp_task(%p) fc(%d)\n", this, it, it->fc);
+   if( USE_XTRACE )
+     Trace::trace(".DEQ", "SINP", this, it);
 
-#if 1
-     if( !operational ) {
-       it->post(it->CC_PURGE);
-       return;
-     }
-#else
-   if( !operational ) {             // Handle non-operational state
-     if( it->fc == 0 ) {          // I/O operations fail
-       it->post(it->CC_PURGE);
-       return;
-     }
-
-     task_out.enqueue(it);
+   if( !operational ) {
+     it->post(it->CC_PURGE);
      return;
    }
-#endif
 
-   ServerItem* item= (ServerItem*)it;
+   ServerItem* item= static_cast<ServerItem*>(it);
    if( stream.get() == nullptr )
      stream= ServerStream::make(this);
 
@@ -422,31 +413,16 @@ void
    Server::out_task(                // Handle output data
      dispatch::Item*   it)          // Output data item
 {  if( HCDM ) debugh("Server(%p)::out_task(%p)\n", this, it);
+   if( USE_XTRACE )
+     Trace::trace(".DEQ", "SOUT", this, it);
 
-#if 1
-     if( !operational ) {
-       it->post(it->CC_PURGE);
-       return;
-     }
-#else
-   if( !operational ) {             // If not operational
-     if( it->fc == 0 ) {            // I/O operations fail
-       it->post(it->CC_PURGE);
-       return;
-     }
-
-     it->post();
+   if( !operational ) {
+     it->post(it->CC_PURGE);
      return;
    }
-#endif
 
-   ServerItem* item= (ServerItem*)it;
-   {{{{
-     std::lock_guard<Server> lock(*this);
-
-     ioda_out += std::move(item->ioda);
-   }}}}
-
+   ServerItem* item= static_cast<ServerItem*>(it);
+   ioda_out += std::move(item->ioda);
    write(__LINE__);
    item->post();
 }
@@ -466,16 +442,12 @@ void
 
    dispatch::Wait wait;
    dispatch::Item item(item.FC_CHASE, &wait);
-   if( task_out.is_busy() ) {
-     task_out.enqueue(&item);
-     wait.wait();
-   }
+   task_out.enqueue(&item);
+   wait.wait();
+   wait.reset();
 
-   if( task_inp.is_busy() ) {
-     wait.reset();
-     task_inp.enqueue(&item);
-     wait.wait();
-   }
+   task_inp.enqueue(&item);
+   wait.wait();
 }
 
 //----------------------------------------------------------------------------
@@ -495,6 +467,8 @@ void
    if( ioda.get_used() ) {
      ServerItem* item= new ServerItem();
      item->ioda= std::move(ioda);
+     if( USE_XTRACE )
+       Trace::trace(".ENQ", "SOUT", this, item);
      task_out.enqueue(item);
    }
 }
@@ -536,6 +510,8 @@ void
 
        ServerItem* item= new ServerItem();
        item->ioda= std::move(ioda);
+       if( USE_XTRACE )
+         Trace::trace(".ENQ", "SINP", this, item);
        task_inp.enqueue(item);
      } else {
        if( IS_BLOCK )
@@ -592,8 +568,10 @@ void
 
    size_t ioda_off= 0;
    for(;;) {
-//This helps when a trace read appears before the trace write
-//Trace::trace("HCDM", __LINE__, "SSocket->write");
+     // This helps when a trace read appears before the trace write
+     if( USE_XTRACE )
+       Trace::trace(".INF", __LINE__, "SSocket->write");
+
      Mesg mesg; ioda_out.get_wr_mesg(mesg, size_out, ioda_off);
      ssize_t L= socket->sendmsg(&mesg, 0);
      iodm(__LINE__, "sendmsg", L);
