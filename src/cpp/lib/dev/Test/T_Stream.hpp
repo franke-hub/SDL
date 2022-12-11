@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2022/11/27
+//       2022/12/10
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -79,6 +79,7 @@ enum
 ,  USE_LOGGER= false                // Option: Use logger
 ,  USE_SIGNAL= false                // Option: Use signal handler
 ,  USE_TIMING_RECORD= false         // Option: Use timing record
+,  USE_XTRACE= false                // Use extended trace?
 }; // generic enum
 
 enum                                // Default option values
@@ -729,7 +730,8 @@ virtual void
 
    if( opt_hcdm && opt_verbose )
      debugf("...[%2d] ClientThread.run_one\n", serial);
-   Trace::trace(".TXT", serial, "TS.run_one exit");
+   if( USE_XTRACE )
+     Trace::trace(".TXT", serial, "TS.run_one exit");
 }
 
 //----------------------------------------------------------------------------
@@ -822,7 +824,8 @@ virtual void
    if( opt_hcdm && opt_verbose )
      debugf("...[%2d] ClientThread.run\n", serial);
 
-   Trace::trace(".TXT", __LINE__, "CT.run exit");
+   if( USE_XTRACE )
+     Trace::trace(".TXT", __LINE__, "CT.run exit");
 }
 
 //----------------------------------------------------------------------------
@@ -1041,31 +1044,31 @@ static void
    debugf("%'16.3f operations\n", op_count);
    debugf("%'16.3f operations/second\n", op_count/opt_runtime);
 
-   Trace::Record* R= Trace::trace(128-32);
+   Trace::Record* R= Trace::trace(64);
    if( R ) {
-     for(int i= 0; i<128; ++i) {
+     for(int i= 0; i<64; ++i)
        ((char*)R)[i]= (char)(i % 32);
-     }
-     strcpy(R->value, "Stress test completed");
-     R->trace("....");
+     strcpy(R->value, ">>Stress test<<");
+     R->trace(".END");
    }
 
    for(int32_t i= 0; i<opt_stress; i++) {
-     Trace::trace(".TST", "WAIT", client[i], i2v(i));
+     if( USE_XTRACE )
+       Trace::trace(".TST", "WAIT", client[i], i2v(i));
      client[i]->wait();
    }
 
 //debugf("\n"); client_agent->debug("ended (client)");
-   client_agent->reset();
-//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
    client_agent->stop();
 //debugf("\n"); client_agent->debug("reset (client)");
+   client_agent->reset();
+//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
 
 //debugf("\n"); listen_agent->debug("ended (server)");
-   listen_agent->reset();
-//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
    listen_agent->stop();
 //debugf("\n"); listen_agent->debug("reset (server)");
+   listen_agent->reset();
+//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
 
    for(int i= 0; i<opt_stress; i++) {
      client[i]->close();

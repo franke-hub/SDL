@@ -16,7 +16,7 @@
 //       Implement http/Agent.h
 //
 // Last change date-
-//       2022/11/17
+//       2022/12/10
 //
 // Implementation notes-
 //       TODO?: Create intermediate Connector object rather than a full Client.
@@ -43,6 +43,7 @@
 #include <pub/Dispatch.h>           // For pub::dispatch::Wait
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Socket.h>             // For pub::Socket::sockaddr_u
+#include <pub/Trace.h>              // For pub::Trace
 
 #include "pub/http/Agent.h"         // For pub::http::Agent, implemented
 #include "pub/http/Client.h"        // For pub::http::Client
@@ -153,7 +154,7 @@ void
    ClientAgent::debug(const char* info) const // Debugging display
 {  debugf("http::ClientAgent(%p)::debug(%s)\n", this, info);
 
-   std::lock_guard<decltype(mutex)> lock(mutex);
+   std::lock_guard<decltype(mutex)> mlock(mutex);
 
    int index= 0;                    // (Artificial) index
    for(const_iterator it= map.begin(); it != map.end(); ++it) {
@@ -165,7 +166,9 @@ void
      ++index;
    }
 
-   select.debug("ClientAgent");
+   const Select* select= &this->select;
+   std::lock_guard<Select> slock(*const_cast<Select*>(select));
+   this->select.debug("ClientAgent");
 }
 
 //----------------------------------------------------------------------------
@@ -181,11 +184,13 @@ std::shared_ptr<Client>             // The associated Client
    ClientAgent::connect(            // Create Client connection
      string            peer,        // The peer:port name
      const Options*    opts)        // The associated Options
-{
-   if( HCDM )
+{   if( HCDM )
      debugh("http::ClientAgent(%p)::connect(%s)\n", this, peer.c_str());
 
-   for(int index= 0; index < 2; ++index ) { // Try AF_INET, AF_INET6
+   // Create a new Client
+   std::shared_ptr<Client> client= Client::make(this);
+
+   for(int index= 0; index < 2; ++index ) { // Try AF_INET, then AF_INET6
      sockaddr_storage peer_addr;
      socklen_t peer_sz= sizeof(peer_addr);
      int AF= index ? AF_INET6 : AF_INET;
@@ -197,18 +202,11 @@ std::shared_ptr<Client>             // The associated Client
        continue;
      }
 
-     // Create a new Client
-     sockaddr_u peer_id;
-     peer_id.copy(&peer_addr, peer_sz);
-
-     std::shared_ptr<Client>
-     client= Client::make(this, peer_id, peer_sz, opts);
-     if( client->get_handle() <= 0 ) // If connect failure
-       continue;
-
-     // Add client to map, returning the Client
-     map_insert(peer_id, client->get_host_addr(), client);
-     return client;
+     // Connect to Server
+     if( client->connect((sockaddr*)&peer_addr, peer_sz, opts) ) {
+       map_insert(client->get_peer_addr(), client->get_host_addr(), client);
+       return client;
+     }
    }
 
    // Unable to connect
@@ -231,12 +229,8 @@ void
 {  if( HCDM )
      debugh("ClientAgent(%p)::disconnect(%p)\n", this, client);
 
-   {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex);
-
-     key_t key(client->get_peer_addr(), client->get_host_addr());
-     map.erase(key);                // Remove Client from map
-   }}}}
+   key_t key(client->get_peer_addr(), client->get_host_addr());
+   map_remove(key);
 }
 
 //----------------------------------------------------------------------------
@@ -299,21 +293,17 @@ void
      try {
        Socket* socket= select.select(POLL_TIMEOUT);
        if( socket ) {
-         const struct pollfd* info= select.get_pollfd(socket);
-         socket->do_select(info->revents);
+         const struct pollfd* poll= select.get_pollfd(socket);
+         socket->do_select(poll->revents);
        } else if( HCDM ) {
          debugh("ClientAgent idle poll\n");
-//     } else {
-//       debugh("ClientAgent idle poll\n");
        }
      } catch(std::exception& X) {
        errorh("%4d %s exception: %s\n", __LINE__, __FILE__, X.what());
-       debug("Exception");
-debugf("%4d %s HCDM continuing\n", __LINE__, __FILE__);
+       debug("Exception (handled)");
      } catch(...) {
        errorh("%4d %s catch(...)\n", __LINE__, __FILE__);
-       debug("Exception");
-debugf("%4d %s HCDM continuing\n", __LINE__, __FILE__);
+       debug("Exception (handled)");
      }
    }
 
@@ -335,7 +325,7 @@ void
 {  if( HCDM ) debugh("%4d ClientAgent(%p)::stop...\n", __LINE__, this);
 
    operational= false;
-   select.shutdown();
+   select.flush();
 
    if( HCDM ) debugh("%4d ...ClientAgent(%p)::stop\n", __LINE__, this);
 }
@@ -412,14 +402,10 @@ void
    {{{{
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-     iterator it= map.find(key);
-     if( it == map.end() ) {        // If not found
+     size_t n= map.erase(key);      // Remove Client/Server pair from the map
+     if( n == 0 )
        debugh("ClientAgent(%p)::map_remove(%s) not found\n", this
              , string(key).c_str());
-       return;
-     }
-
-     map.erase(it);                 // Remove it from the map
    }}}}
 
    if( HCDM )
@@ -484,7 +470,9 @@ void
      ++index;
    }
 
-   select.debug("ListenAgent");
+   const Select* select= &this->select;
+   std::lock_guard<Select> slock(*const_cast<Select*>(select));
+   this->select.debug("ListenAgent");
 }
 
 //----------------------------------------------------------------------------
@@ -611,21 +599,17 @@ void
      try {
        Socket* socket= select.select(POLL_TIMEOUT);
        if( socket ) {
-         const struct pollfd* info= select.get_pollfd(socket);
-         socket->do_select(info->revents);
+         const struct pollfd* poll= select.get_pollfd(socket);
+         socket->do_select(poll->revents);
        } else if( HCDM ) {
          debugh("ListenAgent idle poll\n");
-//     } else {
-//       debugh("ListenAgent idle poll\n");
        }
      } catch(std::exception& X) {
        errorh("%4d %s exception: %s\n", __LINE__, __FILE__, X.what());
-       debug("Exception");
-debugf("%4d %s HCDM continuing\n", __LINE__, __FILE__);
+       debug("Exception (handled)");
      } catch(...) {
        errorh("%4d %s catch(...)\n", __LINE__, __FILE__);
-       debug("Exception");
-debugf("%4d %s HCDM continuing\n", __LINE__, __FILE__);
+       debug("Exception (handled)");
      }
    }
 
@@ -647,7 +631,7 @@ void
 {  if( HCDM ) debugh("%4d ListenAgent(%p)::stop...\n", __LINE__, this);
 
    operational= false;
-   select.shutdown();
+   select.flush();
 
    if( HCDM ) debugh("%4d ...ListenAgent(%p)::stop\n", __LINE__, this);
 }

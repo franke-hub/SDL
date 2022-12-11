@@ -62,6 +62,7 @@ enum
 
 ,  BUFFER_SIZE= 8'096               // Input buffer size (Header collector)
 ,  POST_LIMIT= 1'048'576            // POST/PUT size limit
+,  USE_XTRACE= false                // Use extended trace?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -113,7 +114,8 @@ static struct{int code; const char* text;}
 ,  h_error([](const string&) {})
 {  if( HCDM ) debugh("Stream(%p)!\n", this);
 
-   Trace::trace(".NEW", ".STR", this); // (Trace ClientStream, ServerStream)
+   if( USE_XTRACE )
+     Trace::trace(".NEW", ".STR", this); // (Trace ClientStream, ServerStream)
    obj_count.inc();
    INS_DEBUG_OBJ("Stream");
 }
@@ -121,7 +123,8 @@ static struct{int code; const char* text;}
    Stream::~Stream( void )          // Destructor
 {  if( HCDM ) debugh("Stream(%p)~\n", this);
 
-   Trace::trace(".DEL", ".STR", this); // (Trace ~ClientStream, ~ServerStream)
+   if( USE_XTRACE )
+     Trace::trace(".DEL", ".STR", this); // (Trace ~ClientStream, ~ServerStream)
    obj_count.dec();
    REM_DEBUG_OBJ("Stream");
 }
@@ -210,7 +213,8 @@ void
 {  if( HCDM )
      debugh("ClientStream(%p)!(%p)\n", this, owner);
 
-   Trace::trace(".NEW", "CSTR", this);
+   if( USE_XTRACE )
+     Trace::trace(".NEW", "CSTR", this);
    INS_DEBUG_OBJ("ClientStream");
 // http1();                         // TODO: HANDLE HTTP2, etc
 }
@@ -219,7 +223,8 @@ void
 {  if( HCDM )
      debugh("ClientStream(%p)~\n", this);
 
-   Trace::trace(".DEL", "CSTR", this);
+   if( USE_XTRACE )
+     Trace::trace(".DEL", "CSTR", this);
    REM_DEBUG_OBJ("ClientStream");
 }
 
@@ -355,7 +360,8 @@ void
 ,  server(owner->get_self())
 {  if( HCDM )
      debugh("ServerStream(%p)!(%p)\n", this, owner);
-   Trace::trace(".NEW", "SSTR", this);
+   if( USE_XTRACE )
+     Trace::trace(".NEW", "SSTR", this);
 
    INS_DEBUG_OBJ("ServerStream");
 }
@@ -363,7 +369,9 @@ void
    ServerStream::~ServerStream( void ) // Destructor
 {  if( HCDM )
      debugh("ServerStream(%p)~\n", this);
-   Trace::trace(".DEL", "SSTR", this);
+   if( USE_XTRACE )
+     Trace::trace(".DEL", "SSTR", this);
+
    REM_DEBUG_OBJ("ServerStream");
 }
 

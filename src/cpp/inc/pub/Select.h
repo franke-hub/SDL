@@ -16,7 +16,7 @@
 //       Socket polling controller/selector.
 //
 // Last change date-
-//       2022/11/18
+//       2022/12/09
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SELECT_H_INCLUDED
@@ -98,6 +98,21 @@ public:
    ~Select();
 
 //----------------------------------------------------------------------------
+// Select::Implement lockable
+//----------------------------------------------------------------------------
+void
+   lock( void )
+{  return shr_latch.lock(); }
+
+bool
+   try_lock( void )
+{  return shr_latch.try_lock(); }
+
+void
+   unlock( void )
+{  return shr_latch.unlock(); }
+
+//----------------------------------------------------------------------------
 // Select::methods
 //----------------------------------------------------------------------------
 int                                 // Number of detected errors
@@ -137,6 +152,9 @@ const Socket*                       // The associated Socket*
    return fdsock[fd];
 }
 
+void
+   flush( void );                   // Flush enqueued operations
+
 int                                 // Return code, 0 expected
    insert(                          // Insert a Socket onto the list
      Socket*           socket,      // The associated Socket
@@ -144,7 +162,7 @@ int                                 // Return code, 0 expected
 
 int                                 // Return code, 0 expected
    modify(                          // Replace the Socket's poll events mask
-     const Socket*     socket,      // The associated Socket
+     Socket*           socket,      // The associated Socket
      int               events);     // The associated poll events
 
 int                                 // Return code, 0 expected
@@ -161,16 +179,13 @@ Socket*                             // The next selected Socket, or nullptr
                        timeout,     // Timeout, infinite if omitted
      const sigset_t*   signals);    // Signal set
 
-void
-   shutdown( void );                // Insure polling complete
-
 //============================================================================
 protected:
 void
    control(                         // Send control operation
      const control_op& op);         // The control operation
 
-void
+bool                                // TRUE if retry required
    control( void );                 // Drain control operation queue
 
 inline void

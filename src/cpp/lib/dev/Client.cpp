@@ -16,13 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2022/11/27
-//
-// Implementation notes-
-//       Throughput: W: 4,088.7/sec  L:    307.5/sec protocol1b (*removed*)
-//       Throughput: W: 5,584.4/sec  L:    518.6/sec protocol1a (http1)
-//       Throughput: W: --stress=1   L: --stress=10 --runtime=5
-//       Throughput: W: 5,955.8/sec  L: 58,269.4/sec (http1) asynchronous
+//       2022/12/10
 //
 //----------------------------------------------------------------------------
 #define OPENSSL_API_COMPAT 30000    // Deprecate OSSL functions < 3.0.0
@@ -92,7 +86,7 @@ enum
 // BUFFER_SIZE= 1'048'576           // Input buffer size
 ,  BUFFER_SIZE=     8'192           // Input buffer size
 
-,  USE_XTRACE= true                 // Use extended trace? // TODO: false
+,  USE_XTRACE= false                // Use extended trace?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -239,7 +233,7 @@ static int                          // Actual password length
 //       Initialize SSL
 //
 //----------------------------------------------------------------------------
-static void
+static inline void
    initialize_SSL( void )           // Initialize SSL
 {
 static std::mutex      mutex;       // Latch protecting initialized
@@ -330,7 +324,7 @@ static inline void* i2v(intptr_t i) { return (void*)i; }
 //       Create a client SSL_CTX
 //
 //----------------------------------------------------------------------------
-static SSL_CTX*
+static inline SSL_CTX*
    new_client_CTX( void )           // Create a client SSL_CTX
 {
    const SSL_METHOD* method= TLS_client_method();
@@ -353,10 +347,7 @@ static SSL_CTX*
 //
 //----------------------------------------------------------------------------
    Client::Client(                  // Constructor
-     ClientAgent*      owner,       // Our ClientAgent
-     const sockaddr_u& addr,        // Target internet address
-     socklen_t         size,        // Target internet address length
-     const Options*    opts)        // Client Options
+     ClientAgent*      owner)       // Our ClientAgent
 :  std::mutex()
 ,  agent(owner)
 ,  proto_id(proto[HTTP_H1])
@@ -365,86 +356,10 @@ static SSL_CTX*
 ,  task_inp([this](dispatch::Item* it) { inp_task(it); })
 ,  task_out([this](dispatch::Item* it) { out_task(it); })
 {  if( HCDM )
-     debugh("Client(%p)!(%p)\n>> %s\n", this, owner
-           , addr.to_string().c_str());
+     debugh("Client(%p)!(%p)\n", this, owner);
 
    if( USE_XTRACE )
-     Trace::trace(".NEW", "HCLI", this, stream.get());
-
-   // Internal consistency check
-// assert( size_t(size) <= sizeof(sockaddr_u)); // (Checked in Socket::connect)
-
-   // Handle Options
-   bool encrypt= false;             // Default, not encrypted
-   int proto_ix= HTTP_H1;
-   if( opts ) {
-     const char* type= opts->locate(OPT_PROTO); // Get specified protocol
-     if( type ) {                   // If protocol specified
-       int proto_ix= -1;
-       for(int i= 0; i<HTTP_PROTO_LENGTH; ++i) {
-         if( strcmp(type, proto[i]) == 0 ) {
-           proto_ix= i;
-           break;
-         }
-       }
-
-       if( proto_ix < 0 ) {         // If invalid protocol specified
-         string S= to_string("Client::Client %s='%s'", OPT_PROTO, type);
-         throw std::runtime_error(S);
-       }
-
-       proto_id= proto[proto_ix];
-       if( proto_ix == HTTP_S1 || proto_ix == HTTP_S2 )
-         encrypt= true;
-     }
-   }
-   if( proto_ix == HTTP_H1 )  {
-     http1();
-   } else {
-     http2();
-   }
-
-   // Create connection
-   if( !encrypt ) {
-     socket= new Socket();
-     int rc= socket->open(addr.su_af, SOCK_STREAM, PF_UNSPEC);
-     if( IODM )
-       traceh("%4d Client %d= open(%d,%d,%d)\n", __LINE__, rc
-             , addr.su_af, SOCK_STREAM, PF_UNSPEC);
-     if( rc ) {                       // If unable to open
-       utility::report_error(__LINE__, __FILE__, "open");
-       return;
-     }
-
-     rc= socket->connect((const sockaddr*)&addr, size); // Connect
-     int ERRNO= errno;
-     if( IODM )
-       traceh("%4d Client %d= connect(%s)\n", __LINE__, rc
-             , addr.to_string().c_str());
-     if( rc ) {                       // If unable to connect
-       if( HCDM ) {
-         errno= ERRNO;
-         utility::report_error(__LINE__, __FILE__, "connect");
-       }
-       socket->close();
-       return;
-     }
-     if( HCDM ) {
-       debugf("Client(%p): %s connected\n", this, addr.to_string().c_str());
-     }
-   } else {                         // If SSL
-     initialize_SSL();              // Initialize SSL
-     context= new_client_CTX();
-     // NOT CODED YET
-   }
-
-   // Initialize asynchronous operation
-   socket->set_flags( socket->get_flags() | O_NONBLOCK );
-   socket->on_select([this](int revents) { async(revents); });
-   owner->select.insert(socket, POLLIN);
-
-   // Client construction complete.
-   operational= true;
+     Trace::trace(".NEW", "HCLI", this);
    INS_DEBUG_OBJ("*Client*");
 }
 
@@ -456,27 +371,21 @@ static SSL_CTX*
    if( USE_XTRACE )
      Trace::trace(".DEL", "HCLI", this, stream.get());
 
-   // Close the socket, insuring task completion
-   close();                         // Not needed, but we do it anyway
-// wait();                          // Not needed, already in ~Task()
-
    // Release allocated storage
+   delete socket;                   // (Invokes Socket::close, Select::flush)
+   socket= nullptr;
+
    if( context )                    // If context exists
      SSL_CTX_free(context);
-   delete socket;
    REM_DEBUG_OBJ("*Client*");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::shared_ptr<Client>             // (New) Client
    Client::make(                    // Creator
-     ClientAgent*      owner,       // Our ClientAgent
-     const sockaddr_u& addr,        // Target internet address
-     socklen_t         size,        // Target internet address length
-     const Options*    opts)        // Client Options
+     ClientAgent*      owner)       // Our ClientAgent
 {
-   std::shared_ptr<Client> client=
-       std::make_shared<Client>(owner, addr, size, opts);
+   std::shared_ptr<Client> client= std::make_shared<Client>(owner);
 
    client->self= client;
    return client;
@@ -518,7 +427,8 @@ void
      int               revents)     // Polling revents
 {  if( HCDM )
      debugh("Client(%p)::async(%.4x) events(%.4x)\n", this, revents, events);
-   Trace::trace(".CLI", ".APE", this, a2v(events, revents, get_handle()));
+   if( USE_XTRACE )
+     Trace::trace(".CLI", ".APE", this, a2v(events, revents, get_handle()));
 
    if( !operational )               // Ignore event if non-operational
      return;
@@ -567,7 +477,8 @@ void
 void
    Client::close( void )            // Close the Client
 {  if( HCDM ) debugh("Client(%p)::close() %d\n", this, operational);
-   Trace::trace(".CLI", ".CLS", this, i2v(get_handle()));
+   if( USE_XTRACE )
+     Trace::trace(".CLI", ".CLS", this, i2v(get_handle()));
 
    // The Agent might contain the last active shared_ptr<Client>
    std::shared_ptr<Client> client= get_self(); // Keep-alive
@@ -584,6 +495,107 @@ void
 
    if( !rd_complete.is_post() )     // Post out_task wait
      rd_complete.post(dispatch::Item::CC_PURGE);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Client::connect
+//
+// Purpose-
+//       Connect to server
+//
+//----------------------------------------------------------------------------
+Socket*                             // Resultant Socket (nullptr if failure)
+   Client::connect(                 // Connect to Server
+     const sockaddr*   addr,        // Server internet address
+     socklen_t         size,        // Server internet address length
+     const Options*    opts)        // Client Options
+{
+   // Handle Options
+   bool encrypt= false;             // Default, not encrypted
+   int proto_ix= HTTP_H1;
+   if( opts ) {
+     const char* type= opts->locate(OPT_PROTO); // Get specified protocol
+     if( type ) {                   // If protocol specified
+       int proto_ix= -1;
+       for(int i= 0; i<HTTP_PROTO_LENGTH; ++i) {
+         if( strcmp(type, proto[i]) == 0 ) {
+           proto_ix= i;
+           break;
+         }
+       }
+
+       if( proto_ix < 0 ) {         // If invalid protocol specified
+         errno= EINVAL;             // Invalid argument
+         return nullptr;
+       }
+
+       proto_id= proto[proto_ix];
+       if( proto_ix == HTTP_S1 || proto_ix == HTTP_S2 )
+         encrypt= true;
+     }
+   }
+   if( proto_ix == HTTP_H1 )  {
+     http1();
+   } else {
+     http2();
+   }
+
+   // Create connection
+   if( !encrypt ) {
+     socket= new Socket();
+     int rc= socket->open(addr->sa_family, SOCK_STREAM, PF_UNSPEC);
+     if( IODM ) {
+       int ERRNO= errno;
+       traceh("%4d Client %d= open(%d,%d,%d)\n", __LINE__, rc
+             , addr->sa_family, SOCK_STREAM, PF_UNSPEC);
+       errno= ERRNO;
+     }
+     if( rc ) {                       // If unable to open
+       utility::report_error(__LINE__, __FILE__, "open");
+       return nullptr;
+     }
+
+     const sockaddr_u* addr_u= (sockaddr_u*)addr;
+     rc= socket->connect(addr, size); // Connect
+     if( IODM ) {
+       int ERRNO= errno;
+       traceh("%4d Client %d= connect(%s)\n", __LINE__, rc
+             , addr_u->to_string().c_str());
+       errno= ERRNO;
+     }
+     if( rc ) {                       // If unable to connect
+       if( HCDM )
+         utility::report_error(__LINE__, __FILE__, "connect");
+
+       delete socket;
+       socket= nullptr;
+       return nullptr;
+     }
+     if( HCDM )
+       debugf("Client(%p): %s connected\n", this, addr_u->to_string().c_str());
+   } else {                         // If SSL
+//   initialize_SSL();              // Initialize SSL
+//   context= new_client_CTX();
+     delete socket;
+     socket= nullptr;
+
+     // NOT CODED YET
+     errno= EINVAL;
+     return nullptr;
+   }
+
+   // Initialize asynchronous operation
+   socket->set_flags( socket->get_flags() | O_NONBLOCK );
+   socket->on_select([this](int revents) { async(revents); });
+   agent->select.insert(socket, POLLIN);
+
+   // Client construction complete.
+   if( USE_XTRACE )
+     Trace::trace(".CLI", "CONN", this, socket); // Connection trace
+   operational= true;
+   return socket;
 }
 
 //----------------------------------------------------------------------------
@@ -912,7 +924,8 @@ void
        ssize_t size= mesg.msg_iov[0].iov_len;
        if( size > L )
          size= L;
-       utility::iotrace(".C<<", addr, size);
+       if( USE_XTRACE )
+         utility::iotrace(".C<<", addr, size);
        iodm(line, "read", addr, size);
        ClientItem* item= new ClientItem(stream);
        item->ioda= std::move(ioda);
@@ -961,7 +974,9 @@ ssize_t                             // Written length
        ssize_t size= mesg.msg_iov[0].iov_len;
        if( size > L )
          size= L;
-       utility::iotrace(".C>>", addr, size);
+       if( USE_XTRACE )
+         utility::iotrace(".C>>", addr, size);
+
        iodm(line, "sendmsg", addr, size);
 
        size_t want= ioda_out.get_used() - ioda_off;

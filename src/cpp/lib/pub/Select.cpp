@@ -16,7 +16,7 @@
 //       Select.h method implementations.
 //
 // Last change date-
-//       2022/11/23
+//       2022/12/10
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -60,7 +60,6 @@ namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#define USE_DEBUGGING false         // Use DEBUGGING macro?
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  IODM= false                      // I/O Debug Mode?
@@ -69,19 +68,14 @@ enum
 
 ,  USE_AF= AF_INET                  // Use this address family
 ,  USE_CHECKING= true               // Use internal cross-checking?
-,  USE_SELECT_FUNCTION= false       // Use (test) socket->selected method?
-,  USE_XTRACE= true                 // Use extended trace?
+,  USE_DO_SELECT= true              // Use internal socket->select method?
+,  USE_TRACE= false                 // Use standard trace?
+,  USE_XTRACE= false                // Use extended trace?
 }; // enum
 
 //----------------------------------------------------------------------------
 // Macros
 //----------------------------------------------------------------------------
-#if USE_DEBUGGING                   // Bringup debugging TODO: REMOVE
-#  define DEBUGGING(x) {int ERRNO= errno; x; errno= ERRNO;}
-#else
-#  define DEBUGGING(x)
-#endif
-
 #if EAGAIN == EWOULDBLOCK
 #  define IS_BLOCK (errno == EAGAIN )
 #else
@@ -159,6 +153,46 @@ static int
    return 0;
 }
 
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       trace_sel
+//
+// Purpose-
+//       Internal Select trace
+//
+//----------------------------------------------------------------------------
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+static inline void
+   trace_sel(                       // Internal Select trace
+     Select*           select,      // The Select
+     Socket*           socket,      // The Socket
+     int               events,      // pollfd.events
+     int               revents,     // pollfd.events
+     int               fd)          // The file descriptor
+{
+   if( USE_TRACE ) {
+     Trace::Record* R= Trace::trace(sizeof(Trace::Record) + 32);
+     if( R ) {
+       uintptr_t one= uintptr_t(socket);
+       uintptr_t two= uintptr_t( uintptr_t(events) << 48
+                               | uintptr_t(revents) << 32 | fd);
+       char* const C2= (char*)&(((void const**)R->value)[2]);
+       char* const C3= (char*)&(((void const**)R->value)[3]);
+       for(unsigned i= sizeof(void*); i>0; --i) {
+         C2[i - 1]= char(one);
+         C3[i - 1]= char(two);
+         one >>= 8;
+         two >>= 8;
+       }
+       ((void const**)R->value)[4]= 0;
+       ((void const**)R->value)[5]= 0;
+       R->trace(".SEL", "=SEL", select);
+     }
+   }
+}
+
 namespace select::detail {
 //----------------------------------------------------------------------------
 //
@@ -166,7 +200,7 @@ namespace select::detail {
 //       select::detail::Connector
 //
 // Purpose-
-//       Temporary task: Create the reader socket
+//       Only used in a temporary task to create the reader socket
 //
 //----------------------------------------------------------------------------
 class Connector : public Thread {   // Connector Thread
@@ -197,7 +231,6 @@ int                    operational= false; // TRUE iff listener active
    target= INET_HOST;
    if( USE_AF == AF_UNIX )
      target= UNIX_BASE + std::to_string(++serial);
-DEBUGGING( debugf("%4d Select target(%s)\n", __LINE__, target.c_str()); )
    rc= listen.bind(target);        // Set connection target
    if( rc ) {
      debugf("Select(%p)::Connector(%p): bind(%s) failed\n", select, this
@@ -206,7 +239,6 @@ DEBUGGING( debugf("%4d Select target(%s)\n", __LINE__, target.c_str()); )
    }
    if( USE_AF == AF_INET )
      target= target + std::to_string(listen.get_host_port());
-DEBUGGING( debugf("%4d Select target(%s)\n", __LINE__, target.c_str()); )
 
    rc= listen.listen();            // Indicate listener socket
    if( rc ) {
@@ -227,19 +259,16 @@ DEBUGGING( debugf("%4d Select target(%s)\n", __LINE__, target.c_str()); )
 
 // Method run ----------------------------------------------------------------
 void
-   run( void )                      // Operate the Thread
+   run( void )                      // Accept the Reader connection
 {
-DEBUGGING( debugh("Select(%p)::Connector(%p)\nCreated listener %s\n", select, this, target.c_str()); )
    // Create reader socket
    while( reader == nullptr && operational ) {
      reader= listen.accept();
    }
-DEBUGGING( debugh("%4d Select HCDM reader(%p)\n", __LINE__, reader); )
 
    listen.close();
    if( USE_AF == AF_UNIX )
      unlink(target.c_str());
-DEBUGGING( debugh("Select(%p)::Connector(%p)\nRemoved listener %s\n", select, this, target.c_str()); )
 }
 }; // class Connector
 }  // namespace select::detail
@@ -254,18 +283,18 @@ DEBUGGING( debugh("Select(%p)::Connector(%p)\nRemoved listener %s\n", select, th
 //
 //----------------------------------------------------------------------------
 enum OP                             // Select operation codes
-{ OP_INSERT= 'I'
+{ OP_FOLLOW= 'F'
+, OP_INSERT= 'I'
 , OP_MODIFY= 'M'
 , OP_REMOVE= 'R'
-, OP_TICKLE= 'T'
 }; // enum OP
 
 struct control_op {                 // Control operation
+Socket*                socket;      // The associated Socket
 char                   op;          // Operation code
 char                   _0001;       // (Reserved for alignment)
 uint16_t               events;      // Event mask
 int32_t                fd;          // Socket file descriptor handle
-const Socket*          socket;      // The associated Socket
 }; // struct control_op
 
 //----------------------------------------------------------------------------
@@ -310,7 +339,6 @@ control_op             op;          // The control operation
    select::detail::Connector connector= this;
    if( connector.operational == false )
      sno_exception(__LINE__);
-DEBUGGING( debugf("Select(%p)::Connector(%p) target(%s)\n", this, &connector, connector.target.c_str()); )
 
    writer= new Socket();            // Create the writer Socket
    writer->open(USE_AF, SOCK_STREAM);
@@ -319,7 +347,6 @@ DEBUGGING( debugf("Select(%p)::Connector(%p) target(%s)\n", this, &connector, co
    int optval= true;
    writer->set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
-DEBUGGING( debugf("%4d Select HCDM\n", __LINE__); )
    int rc= writer->connect(connector.target);
    if( rc ) {
      debugf("%4d Select(%p) target(%s) connect error %d:%s\n", __LINE__, this
@@ -327,10 +354,6 @@ DEBUGGING( debugf("%4d Select HCDM\n", __LINE__); )
      sno_exception(__LINE__);
    }
    connector.join();
-DEBUGGING(
-   debugf("%4d Select HCDM rc(%d) writer(%p) reader(%p)\n", __LINE__, rc
-         , writer, connector.reader);
-)
 
    rc= writer->set_flags( writer->get_flags() | O_NONBLOCK );
    if( rc ) {
@@ -338,14 +361,11 @@ DEBUGGING(
            , this, connector.target.c_str(), errno, strerror(errno));
      sno_exception(__LINE__);
    }
-DEBUGGING( debugf("\n\n"); )
-DEBUGGING( writer->debug("WRITER BRINGUP TEST"); )
 
    reader= connector.reader;
    if( reader == nullptr )
      sno_exception(__LINE__);
 
-DEBUGGING( debugf("\n\n"); )
    // Manually insert the reader socket into our tables
    int fd= reader->get_handle();
    resize(fd);
@@ -359,8 +379,6 @@ DEBUGGING( debugf("\n\n"); )
    reader->select= this;
    ++used;
 
-DEBUGGING( debugf("\n\n"); )
-DEBUGGING( reader->debug("READER BRINGUP TEST"); )
    rc= reader->set_flags( reader->get_flags() | O_NONBLOCK );
    if( rc ) {
      debugf("%4d Select(%p)::Select(%s) set_flags error %d:%s\n", __LINE__
@@ -467,8 +485,7 @@ DEBUGGING( reader->debug("READER BRINGUP TEST"); )
 //       Debugging display
 //
 // Implementation note-
-//       This may be called with or without the shr_latch held, but not with
-//       the xcl_latch held.
+//       Caller must hold either the shr_latch or the xcl_latch.
 //
 //       Socket close operations, which queue a remove operation, may complete
 //       before the remove operation is processed leaving the Socket* invalid.
@@ -479,8 +496,6 @@ int                                 // Number of detected errors
    Select::debug(                   // Debugging display
      const char*       info) const  // Caller information
 {
-   std::lock_guard<decltype(shr_latch)> lock(shr_latch);
-
    int error_count= 0;
 
    debugf("Select(%p)::debug(%s)\n", this, info);
@@ -493,30 +508,35 @@ int                                 // Number of detected errors
    for(int px= 0; px<used; ++px) {
      int fd= pollfd[px].fd;
      const Socket* socket= fdsock[fd];
-     debugf("....[%3d] fd[%3d] pollfd{%.4x,%.4x} socket(%p)\n", px, fd
+     debugf("....[%4d] fd[%.4x] pollfd{%.4x,%.4x} socket(%p)\n", px, fd
            , pollfd[px].events, pollfd[px].revents, socket);
      if( socket == nullptr ) {
        ++error_count;
-       debugf("....[%3d] ERROR: NO ASSOCIATED SOCKET\n", px);
+       debugf("....[%4d] ERROR: NO ASSOCIATED SOCKET\n", px);
      }
      if( px != fdpndx[fd] ) {
        ++error_count;
-       debugf("....[%3d] ERROR: fdpndx[%3d] fd[%3d]\n", px, fd
-              , fdpndx[fd]);
+       debugf("....[%4d] fd[%.4x] ERROR: [%4d] != fdpndx[%.4x]\n", px, fd
+              , px, fdpndx[fd]);
      }
    }
 
    debugf("..fdpndx\n");
    for(int fd= 0; fd<size; ++fd) {
      if( fdpndx[fd] >= 0 )
-       debugf("....[%3d] -> [%3d]\n", fd, fdpndx[fd]);
+       debugf("....[%.4x] px[%4d]\n", fd, fdpndx[fd]);
    }
 
    debugf("..fdsock\n");
    for(int sx= 0; sx<size; ++sx) {
      Socket* socket= fdsock[sx];
-     if( socket )
-       debugf("....[%3d] %p\n", sx, socket);
+     if( socket ) {
+       if( socket->get_handle() == sx )
+         debugf("....[%.4x] %p\n", sx, socket);
+       else
+         debugf("....[%.4x] %p->[%.4x] *ERROR*\n", sx, socket
+               , socket->get_handle());
+     }
    }
 
    SelectItem* item= (SelectItem*)todo_list.get_tail();
@@ -524,8 +544,9 @@ int                                 // Number of detected errors
    while( item ) {
      Item* next= item->get_prev();
      control_op& op= item->op;
-     debugf("....%p->%p {%c,%.4x,%2d,%p}\n", item, next
-           , op.op, op.events, op.fd, op.socket);
+     debugf("....%.12zx->%.12zx {%p,%c,%.4x,%.4x}\n"
+           , intptr_t(item), intptr_t(next)
+           , op.socket, op.op, op.events, op.fd);
      item= (SelectItem*)next;
    }
 
@@ -545,14 +566,12 @@ void
    Select::control(                 // Transmit control operation
      const control_op& op)          // The operation to send
 {  if( HCDM )
-     debugh("Select(%p)::control({%c,,0x%.4x,%d,%p})\n", this
-           , op.op, op.events, op.fd, op.socket);
+     debugh("Select(%p)::control({%p,%c,%.4x,%.4x})\n", this
+           , op.socket, op.op, op.events, op.fd);
 
-   if( USE_XTRACE ) {
-     Trace::Record* R= Trace::trace(".SEL", ">CTL", op.socket);
-     if( R )
-       memcpy(R->value + sizeof(op.socket), &op, sizeof(op.socket));
-   }
+   if( USE_XTRACE )
+     Trace::trace(".SEL", ">CTL", op.socket
+                 , i2v(intptr_t(op.op)<<56 | intptr_t(op.events)<<32 | op.fd));
 
    SelectItem* item= new SelectItem();
    item->op= op;
@@ -582,14 +601,25 @@ void
 //       Callers MUST NOT hold shr_latch OR xcl_latch: Obtains xcl_latch
 //       (It cannot be called from Socket::do_select)
 //
+//       Any REMOVE operation sets retry_required= true.
+//
 //----------------------------------------------------------------------------
-void
+bool                                // Returns retry_required
    Select::control( void )          // Read and handle queued operations
 {  if( HCDM )
      debugh("Select(%p)::control\n", this);
 
+   bool retry_required= false;      // Default, retry not required
+
    std::unique_lock<decltype(xcl_latch)> lock(xcl_latch);
-   if( USE_XTRACE ) Trace::trace(".SEL", "=XCL", this); // TODO: REMOVE
+   if( USE_XTRACE )
+     Trace::trace(".SEL", "=XCL", this);
+
+   if( pollfd[0].revents == 0 && todo_list.get_tail() == nullptr ) {
+     if( USE_XTRACE )
+       Trace::trace(".SEL", "NADA", this);
+     return false;                  // Nothing pending
+   }
 
    char buffer[8];                  // (Only one byte should be used)
    ssize_t L= reader->read(buffer, sizeof(buffer));
@@ -601,38 +631,39 @@ void
            , errno, strerror(errno));
      sno_exception(__LINE__);
    }
-   pollfd[0].revents= 0;            // (No control operations enqueued)
+
+   if( pollfd[0].revents ) {
+     --left;
+     pollfd[0].revents= 0;
+   }
 
    // Process queued operations
    for(auto it= todo_list.begin(); it != todo_list.end(); ++it) {
      SelectItem* item= static_cast<SelectItem*>(it.get());
      control_op& op= item->op;
 
-     const Socket* socket= op.socket;
+     Socket* socket= op.socket;
      int fd= op.fd;
-     if( fd < 0 )
+     if( fd < 0 || (op.op != OP_INSERT && fd >= size) )
        sno_exception(__LINE__);
 
-     if( op.op == OP_MODIFY || op.op == OP_REMOVE ) {
-       if( fd >= size || fdsock[fd] != socket ) {
-         lock.unlock();             // (Debug requires shared lock)
-         debug("HCDM");
-         sno_exception(__LINE__);   // Internal error, not user error
-       }
-     }
-
      switch( op.op ) {
+       case OP_FOLLOW: {
+         if( USE_TRACE )
+           Trace::trace(".SEL", "=NOP");
+         break;
+       }
        case OP_INSERT: {
-         Trace::trace(".SEL", "=INS", socket, i2v(fd));
+         if( USE_TRACE )
+           Trace::trace(".SEL", "=INS", socket, i2v(fd));
 
          if( fd >= size )
            resize(fd);
 
-         if( USE_CHECKING && fdsock[fd] ) {
-           // Internal error: another socket's already using the file descriptor
+         if( fdsock[fd] ) {
+           // Error: another socket's already using the file descriptor
            debugh("Select(%p)::insert(%p) fdsock[%d](%p)\n", this
                  , socket, fd, fdsock[fd]);
-           lock.unlock();           // (Debug requires shared lock)
            debug("HCDM");
            sno_exception(__LINE__);
          }
@@ -650,37 +681,56 @@ void
          break;
        }
        case OP_MODIFY: {
-         if( USE_XTRACE )
+         if( USE_TRACE )
            Trace::trace(".SEL", "=MOD", socket, i2v(fd));
+
          int px= fdpndx[fd];
-         struct pollfd* poll= this->pollfd + px;
-         poll->events= op.events;
-         if( poll->revents )
-           --left;
-         poll->revents= 0;
+         if( px >= 0 && px < used && fdsock[fd] == socket ) {
+           struct pollfd* poll= this->pollfd + px;
+           poll->events= op.events;
+           if( poll->revents )
+             --left;
+           poll->revents= 0;
+           break;
+         }
+
+         // Consistency check failed
+         debugh("Select(%p)::modify(%p) fdsock[%d](%p) px(%d) used(%d)\n"
+               , this, socket, fd, fdsock[fd], px, used);
+         debug("HCDM");
+         sno_exception(__LINE__);
          break;
        }
        case OP_REMOVE: {
-         Trace::trace(".SEL", "=REM", socket, i2v(fd));
-         int px= fdpndx[fd];        // Get the poll index
-         if( USE_CHECKING && (px <= 0 || px >= size) ) { // If invalid fd
-           debug("HCDM");
-           sno_exception(__LINE__); // Internal error, not user error
+         if( USE_TRACE )
+           Trace::trace(".SEL", "=REM", socket, i2v(fd));
+
+         if( fdsock[fd] != socket ) // If duplicate remove
+           break;
+
+         int px= fdpndx[fd];
+         if( px > 0 && px < used ) {
+           --used;
+           for(int i= px; i<used; ++i) {
+             pollfd[i]= pollfd[i+1];
+             fdpndx[pollfd[i].fd]= i;
+           }
+
+           socket->select= nullptr;
+           fdsock[fd]= nullptr;
+           fdpndx[fd]= -1;
+           if( px == next )
+             --next;
+           left= 0;
+           retry_required= true;
+           break;
          }
 
-         --used;
-         for(int i= px; i<used; ++i) {
-           pollfd[i]= pollfd[i+1];
-           fdpndx[pollfd[i].fd]= i;
-         }
-
-         fdsock[fd]= nullptr;
-         fdpndx[fd]= -1;
-         left= next= 0;
-         break;
-       }
-       case OP_TICKLE: {
-         Trace::trace(".SEL", "=NOP");
+         // Consistency check failed
+         debugh("Select(%p)::remove(%p) fdsock[%d](%p) px(%d) used(%d)\n"
+               , this, socket, fd, fdsock[fd], px, used);
+         debug("HCDM");
+         sno_exception(__LINE__);
          break;
        }
        default:
@@ -690,7 +740,30 @@ void
      item->post();                  // (Uses dispatch post logic)
    }
 
-   do_again();
+   return retry_required;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Select::flush
+//
+// Purpose-
+//       Insure all enqueued operations have completed.
+//
+// Implementation notes-
+//       May be used whether or not polling is active, but
+//       *MUST NOT* be called from a Socket asynchronous event handler.
+//
+//----------------------------------------------------------------------------
+void
+   Select::flush( void )            // Insure operation completion
+{  if( HCDM )
+     debugh("Select(%p)::shutdown\n", this);
+
+   control_op op= {nullptr, OP_FOLLOW, 0, 0, 0};
+   control(op);
+   control();                       // Chase any pending operations
 }
 
 //----------------------------------------------------------------------------
@@ -711,27 +784,23 @@ int                                 // Return code, 0 expected
      int               events)      // The associated poll events
 {  if( HCDM )
      debugh("Select(%p)::insert(%p,0x%.4x) fd(%d)\n", this
-           , socket, events, socket->handle);
+           , socket, events, socket->get_handle());
 
-   int fd= socket->handle;
+   int fd= socket->get_handle();
    if( fd < 0 ) {
      errno= EINVAL;
      return -1;
    }
 
    Select* old_value= nullptr;
-   for(;;) {
-     if( socket->select.compare_exchange_weak(old_value, this) )
-       break;
-     if( old_value != nullptr ) {
-       errorf("Select(%p)::insert(%p) but Select(%p) already inserted\n", this
-             , socket, old_value);
-       errno= EINVAL;
-       return -1;
-     }
+   if( !socket->select.compare_exchange_strong(old_value, this) ) {
+     errorf("Select(%p)::insert(%p) but Select(%p) already inserted\n", this
+           , socket, old_value);
+     errno= EINVAL;
+     return -1;
    }
 
-   control_op op= {OP_INSERT, 0, (uint16_t)events, fd, socket};
+   control_op op= {socket, OP_INSERT, 0, (uint16_t)events, fd};
    control(op);                     // Enqueue the INSERT operation
 
    return 0;
@@ -751,7 +820,7 @@ int                                 // Return code, 0 expected
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 expected
    Select::modify(                  // Modify Socket
-     const Socket*     socket,      // The associated Socket
+     Socket*           socket,      // The associated Socket
      int               events)      // The associated poll events
 {  if( HCDM )
      debugh("Select(%p)::modify(%p,0x%.4x)\n", this, socket, events);
@@ -762,7 +831,12 @@ int                                 // Return code, 0 expected
    }
 
    int fd= socket->get_handle();
-   control_op op= {OP_MODIFY, 0, (uint16_t)events, fd, socket};
+   if( fd < 0 || fd >= size || fdsock[fd] != socket ) { // If inconsistent
+     errno= EINVAL;
+     return -1;
+   }
+
+   control_op op= {socket, OP_MODIFY, 0, (uint16_t)events, fd};
    control(op);
 
    return 0;
@@ -786,47 +860,41 @@ int                                 // Return code, 0 expected
 {  if( HCDM )
      debugh("Select(%p)::remove(%p) fd(%d)\n", this, socket, socket->handle);
 
-   Select* old_value= this;
-   Select* new_value= nullptr;
-   for(;;) {
-     if( socket->select.compare_exchange_weak(old_value, new_value) )
-       break;
-     if( old_value != this ) {      // If Socket/Select mismatch
-       errno= EINVAL;               // (Possibly a duplicate close)
-       return -1;
-     }
+   int fd= socket->get_handle();
+   if( fd < 0 || socket->select != this ) { // If socket is closed or invalid
+     errno= EINVAL;
+     return -1;
    }
 
-   int fd= socket->get_handle();
-   if( fd < 0 || fd >= size ) {     // If Socket is closed or invalid handle
-     Trace::stop();                 // Terminate tracing
+   if( fd >= size ) {               // If Socket handle out of range
      debugf("%4d %s *UNEXPECTED* %d\n", __LINE__, __FILE__, fd);
      errno= EINVAL;                 // (Unexpected)
      return -1;
    }
 
-   // Since the operation won't complete until the next poll,
-   // insure that no event is pending for any current poll
-   std::lock_guard<decltype(shr_latch)> lock(shr_latch);
-
    // The enqueue needs to be done while holding the shr_latch so that
    // we can be sure that fdpndx[fd] refers to the removed socket.
-   control_op op= {OP_REMOVE, 0, 0, fd, socket};
-   control(op);                     // Enqueue the REMOVE operation
+   std::lock_guard<decltype(shr_latch)> lock(shr_latch);
 
    int px= fdpndx[fd];
-   if( px > 0 && px < used ) {      // (Test shouldn't be needed)
-     pollfd[px].revents= 0;         // Don't report events
-     pollfd[px].events= 0;          // Don't poll for new events
-   } else {
-     Trace::trace(".SEL", ".BUG", this, i2v(intptr_t(fd)<<32 | __LINE__));
+   if( fdsock[fd] != socket || px < 0 || px >= used ) {
+#if 1 // We need to debug this
+     Trace::trace(".SEL", "RBUG", this, i2v(intptr_t(fd)<<32 | __LINE__));
      Trace::stop();                 // Terminate tracing
      debugf("%4d %s *UNEXPECTED* %d %d\n", __LINE__, __FILE__, fd, px);
      debug("unexpected");
+     sno_exception(__LINE__);
+#else
+     errno= EINVAL;
+     return -1;
+#endif
    }
 
-   if( USE_XTRACE )                 // TODO: REMOVE (this trace)
-     Trace::trace(".SEL", ".INF", this, i2v(intptr_t(fd)<<32 | __LINE__));
+   pollfd[px].revents= 0;           // Don't report events
+   pollfd[px].events= 0;            // Don't poll for new events
+
+   control_op op= {socket, OP_REMOVE, 0, 0, fd};
+   control(op);                     // Enqueue the REMOVE operation
 
    return 0;
 }
@@ -846,23 +914,40 @@ Socket*                             // The next selected Socket, or nullptr
 {  if( HCDM && VERBOSE > 1 )
      debugh("Select(%p)::select(%d)\n", this, timeout);
 
-   if( left > 0 )                   // Handle incomplete selection
+   control();                       // Handle pending operations
+   if( left > 0 )
      return select();
 
    {{{{
-     std::unique_lock<decltype(shr_latch)> lock(shr_latch);
+     std::lock_guard<decltype(shr_latch)> lock(shr_latch);
+
+     if( todo_list.get_tail() )     // If control() pending
+       return nullptr;
 
      for(int px= 0; px<used; ++px)
        pollfd[px].revents= 0;
 
-     left= poll(pollfd, used, timeout);
+     for(;;) {
+       left= poll(pollfd, used, timeout);
+       if( left >= 0 || !IS_RETRY )
+         break;
+     }
+
+     if( left < 0 ) {
+       if( USE_TRACE ) {
+         Trace::trace(".SEL", "PERR", this, i2v(errno));
+         Trace::stop();
+       }
+       debugf("Select(%p)::select poll error %d:%s\n", this
+             , errno, strerror(errno));
+       debug("poll error");
+       sno_exception(__LINE__);
+     }
    }}}}
+
    if( USE_XTRACE )
      Trace::trace(".SEL", "POLL", this, i2v(left));
-DEBUGGING(
-   debugh("%4d Select left(%d)= poll(%d)\n", __LINE__, left.load(), used);
-)
-   if( left )                       // Handle initial selection
+   if( left > 0 )                   // Handle initial selection
      return select();
 
    return do_again();
@@ -879,23 +964,41 @@ Socket*                             // The next selected Socket, or nullptr
      debugh("Select(%p)::select({%'ld,%'ld},%p)\n", this
            , timeout->tv_sec, timeout->tv_nsec, signals);
 
-   if( left )                       // Handle incomplete selection
+   if( control() )                  // Handle pending operations
+     return do_again();
+   if( left > 0 )
      return select();
 
    {{{{
-     std::unique_lock<decltype(shr_latch)> lock(shr_latch);
+     std::lock_guard<decltype(shr_latch)> lock(shr_latch);
+
+     if( todo_list.get_tail() )     // If control() pending
+       return nullptr;
 
      for(int px= 0; px<used; ++px)
        pollfd[px].revents= 0;
 
-     left= ppoll(pollfd, used, timeout, signals);
+     for(;;) {
+       left= ppoll(pollfd, used, timeout, signals);
+       if( left >= 0 || !IS_RETRY )
+         break;
+     }
+
+     if( left < 0 ) {
+       if( USE_TRACE ) {
+         Trace::trace(".SEL", "PERR", this, i2v(errno));
+         Trace::stop();
+       }
+       debugf("Select(%p)::select ppoll error %d:%s\n", this
+             , errno, strerror(errno));
+       debug("ppoll error");
+       sno_exception(__LINE__);
+     }
    }}}}
+
    if( USE_XTRACE )
      Trace::trace(".SEL", "POLL", this, i2v(left));
-DEBUGGING(
-   debugh("%4d Select left(%d)= poll(%d)\n", __LINE__, left.load(), used);
-)
-   if( left )                       // Handle initial selection
+   if( left > 0 )                   // Handle initial selection
      return select();
 
    return do_again();
@@ -913,85 +1016,67 @@ DEBUGGING(
 Socket*                             // The next selected Socket
    Select::select( void )           // Select the next remaining Socket
 {
-   if( pollfd[0].revents || todo_list.get_tail() ) {
-     if( pollfd[0].revents )
-       --left;
-     control();
-     if( left == 0 )
-       return do_again();
-   }
+   std::unique_lock<decltype(shr_latch)> lock(shr_latch);
 
-   std::lock_guard<decltype(shr_latch)> lock(shr_latch);
+   if( todo_list.get_tail() || left == 0 )
+     return nullptr;                // If control pending or remove completed
 
    /**************************************************************************
    There are two mechanisms for handling polling events. The choice is
-   determined by the USE_SELECT_FUNCTION definition.
+   determined by the USE_DO_SELECT definition (in enum above.)
 
-   With USE_SELECT_FUNCTION == true:
+   With USE_DO_SELECT == true:
      All events are driven from this method with the shr_latch held.
      This method always returns nullptr.
 
-   With USE_SELECT_FUNCTION == false:
-     Sockets are returned one by one to the polling driver, and it can drive
-     event handlers with no lock held.
+   With USE_DO_SELECT == false:
+     Sockets are returned one by one to the polling driver with no lock held.
      This method only returns nullptr when all events have been handled.
 
    It hasn't been determined which method is better.
    We may need two select functions to allow the caller to select the
    mechanism rather than semi-hard coding the choice here.
    **************************************************************************/
-   if( USE_SELECT_FUNCTION ) {      // Test mechanism
-     for(int px= 1; px<used; ++px) {
-       if( pollfd[0].revents || todo_list.get_tail() )
-         break;
-       struct pollfd* poll= this->pollfd + px;
-       int revents= poll->revents;
-       if( revents ) {
-         --left;
-         int fd= poll->fd;
-         Socket* socket= fdsock[fd];
-         Trace::trace(".SEL", "=RUN", socket, i2v(intptr_t(revents)<<32 | fd));
+   for(int px= next; px<used; ++px) {
+     struct pollfd* poll= this->pollfd + px;
+     int revents= poll->revents;
+     if( revents ) {
+       --left;
+       next= px + 1;
+       int fd= poll->fd;
+       Socket* socket= fdsock[fd];
+       trace_sel(this, socket, poll->events, revents, fd);
+       if( USE_DO_SELECT ) {      // Use internal do_select mechanism?
+         lock.unlock();           // (Don't hold shr_latch in do_select)
          socket->do_select(revents);
-       }
-     }
-
-     left= 0;
-     return do_again();
-   } else {                         // Original: Use select socket
-     // Handle ready events
-     for(int px= next; px<used; ++px) {
-       struct pollfd* poll= this->pollfd + px;
-       int revents= poll->revents;
-       if( revents ) {
-         --left;
-         next= px + 1;
-         int fd= poll->fd;
-         Socket* socket= fdsock[fd];
-         Trace::trace(".SEL", "=SEL", socket, i2v(intptr_t(revents)<<32 | fd));
+         return nullptr;
+       } else {
          return socket;
        }
      }
-
-     for(int px= 1; px<next; ++px) {
-       struct pollfd* poll= this->pollfd + px;
-       int revents= poll->revents;
-       if( revents != 0 ) {
-         --left;
-         next= px + 1;
-         int fd= poll->fd;
-         Socket* socket= fdsock[fd];
-         Trace::trace(".SEL", "=SEL", socket, i2v(intptr_t(revents)<<32 | fd));
-         return socket;
-       }
-     }
-
-     // ERROR: The number of elements set < number of elements found
-     // ** THIS IS AN INTERNAL LOGIC ERROR, NOT AN APPLICATION ERROR **
-     errorf("%4d Select internal error, info(%d)\n", __LINE__, left.load());
-     sno_handled(__LINE__);
-     left= 0;
-     return do_again();
    }
+
+   for(int px= 1; px<next; ++px) {
+     struct pollfd* poll= this->pollfd + px;
+     int revents= poll->revents;
+     if( revents != 0 ) {
+       --left;
+       next= px + 1;
+       int fd= poll->fd;
+       Socket* socket= fdsock[fd];
+       trace_sel(this, socket, poll->events, revents, fd);
+       if( USE_DO_SELECT ) {      // Use internal do_select mechanism?
+         lock.unlock();           // (Don't hold shr_latch in do_select)
+         socket->do_select(revents);
+         return nullptr;
+       } else {
+         return socket;
+       }
+     }
+   }
+
+   left= 0;
+   return do_again();
 }
 
 //----------------------------------------------------------------------------
@@ -1063,28 +1148,5 @@ inline void
    fdpndx= new_fdpndx;
    fdsock= new_fdsock;
    size= new_size;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Select::shutdown
-//
-// Purpose-
-//       Insure all enqueued operation complete.
-//
-// Implementation notes-
-//       Called after polling task is no longer operational but may or may
-//       not still be running.
-//
-//----------------------------------------------------------------------------
-void
-   Select::shutdown( void )         // Insure operation completion
-{  if( HCDM )
-     debugh("Select(%p)::shutdown\n", this);
-
-   control_op op= {OP_TICKLE, 0, 0, 0, nullptr};
-   control(op);
-   control();                       // Chase any pending operations
 }
 } // namespace _LIBPUB_NAMESPACE

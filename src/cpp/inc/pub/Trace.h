@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2022/11/22
+//       2022/12/05
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -185,6 +185,8 @@ inline void
      const char*       ident,       // This char[4] trace type identifier
      const char*       unit)        // This char[4] trace subtype identifier
 {  memcpy(&this->unit, unit, sizeof(this->unit));
+   ((void const**)value)[0]= 0;
+   ((void const**)value)[1]= 0;
 
    trace(ident);
 }
@@ -357,8 +359,8 @@ _LIBPUB_HOT
 static inline void*                 // The storage, nullptr if inactive
    storage_if(                      // Conditionally allocate storage
      uint32_t          size)        // of this length
-{  if( table )
-     return table->allocate_if(size);
+{  if( table && table->is_active() )
+     return table->allocate(size);
    else
      return nullptr;
 }
@@ -380,9 +382,8 @@ _LIBPUB_FLATTEN
 _LIBPUB_HOT
 static inline Record*               // The trace record (uninitialized)
    trace(                           // Get trace record
-     unsigned          size= 0)     // Of this extra size
-{  size += unsigned(sizeof(Record));
-   Record* record= (Record*)storage_if(size);
+     unsigned          size= sizeof(Record)) // Of this size
+{  Record* record= (Record*)storage_if(size);
    return record;
 }
 
@@ -417,7 +418,7 @@ static inline Record*
    trace(                           // Simple trace event
      const char*       ident,       // Trace identifier
      uint32_t          code,        // Trace code
-     const char*       info)        // Trace info (15 characters max)
+     const char*       info)        // Trace info (16 characters max used)
 {  Record* record= trace();
    if( record ) {
      Buffer<16> buff(info);

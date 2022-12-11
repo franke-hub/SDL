@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2022/11/17
+//       2022/12/04
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
@@ -113,17 +113,11 @@ bool                   operational= false; // TRUE while operational
 //----------------------------------------------------------------------------
 public:
    Client(                          // Constructor
-     ClientAgent*      owner,       // Our agent
-     const sockaddr_u& addr,        // Target internet address
-     socklen_t         size,        // Target internet address length
-     const Options*    opts= nullptr); // Client Options
+     ClientAgent*      owner);      // Our Agent
 
 static std::shared_ptr<Client>      // The Client
    make(                            // Create Client
-     ClientAgent*      owner,       // Our agent
-     const sockaddr_u& addr,        // Target internet address
-     socklen_t         size,        // Target internet address length
-     const Options*    opts= nullptr); // Client Options
+     ClientAgent*      owner);      // Our Agent
 
    ~Client( void );                 // Destructor
 
@@ -136,7 +130,7 @@ void debug(const char* info= "") const; // Debugging display
 // Client::Accessor methods
 //----------------------------------------------------------------------------
 bool
-   is_operational( void ) const        // Is the Client operational
+   is_operational( void ) const     // Is the Client operational
 {  return operational; }
 
 int                                 // The socket handle (<0 if not connected)
@@ -172,6 +166,12 @@ void
 
 void
    close( void );                   // Close the Client
+
+Socket*                             // The connected Socket
+   connect(                         // Connect using
+     const sockaddr*   addr,        // This target internet address
+     socklen_t         size,        // This target internet address length
+     const Options*    opts= nullptr); // Connection Options
 
 void
    error(const char*);              // Handle connection error

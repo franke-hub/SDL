@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2022/11/27
+//       2022/12/10
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -43,7 +43,7 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 // VERBOSE= 0                       // Verbosity, higher is more verbose
 
-,  USE_XTRACE= true                 // Use extended tracing?
+,  USE_XTRACE= false                // Use extended tracing?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -250,7 +250,8 @@ void
 
          while(++it != itemList.end() ) {
            // This code is not normally executed; the ++it ends the itemList
-           Trace::trace(".DSP", "XTRA", this); // (Unexpected)
+           if( USE_XTRACE )
+             Trace::trace(".DSP", "XTRA", this); // (Unexpected)
            if( it >= 0 ) {
              work(it.get());
            } else {

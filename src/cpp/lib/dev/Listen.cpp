@@ -16,7 +16,7 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2022/11/18
+//       2022/12/10
 //
 // Implementation notes-
 //       TODO: Create ClientListen and ServerListen, used by ClientAgent.
@@ -71,6 +71,7 @@ enum
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 ,  DEFAULT_PORT= 8080               // Default port number
+,  USE_XTRACE= false                // Use extended trace?
 }; // enum
 
 static constexpr const char* LOG_FILE= "log/HttpServer.log";
@@ -275,7 +276,8 @@ void
      int               revents)     // Polling revents
 {  if( HCDM )
      debugh("Listen(%p)::async(%.4x)\n", this, revents);
-   Trace::trace(".LIS", ".APE", this, a2v(revents, get_handle()));
+   if( USE_XTRACE )
+     Trace::trace(".LIS", ".APE", this, a2v(revents, get_handle()));
 
    if( !operational )
      return;

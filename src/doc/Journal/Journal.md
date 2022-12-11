@@ -466,4 +466,23 @@ Cygwin: Test completes, 250 ops/sec. Termination iffy.
 The Cygwin bug hasn't been found yet, but the Dispatch.cpp bug fix needs to
 be committed.
 
+### 2022/12/10 Trunk/maint commit
+
+Linux and Cygwin are both stable.
+However, the added synchronization controls have significantly reduced
+throughput on both Linux and Cygwin when running the single http operation per
+client test.
+
+Synchronization controls added:
+Socket.cpp:
+- Added a mutex in close to prevent the socket from being deleted during
+Select::remove. Without this, a second close called from ~Socket could
+complete and Select could reference deallocated storage.
+- Added a Select::flush call in close to insure Select wouldn't get invalid
+socket handles when polling. Alternatively, we could simply ignore EBADF
+polling errors.
+
+Select.cpp:
+- Check for pending control operation more frequently.
+
 ----

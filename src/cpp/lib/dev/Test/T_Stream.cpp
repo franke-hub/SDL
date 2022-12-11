@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2022/11/27
+//       2022/12/10
 //
 // Arguments-
 //       With no arguments, --client --server defaulted
@@ -163,25 +163,23 @@ static void
    else if( id == SIGUSR2 ) text= "SIGUSR2";
    errorf("\n\nsig_handler(%d) %s\n\n", id, text);
 
-   if( Trace::table ) {
-     Trace::trace(".SIG", __LINE__, text);
-     Trace::table->flag[Trace::X_HALT]= true;
-   }
-
    switch(id) {                     // Handle the signal
-     case SIGINT:                   // (Console CTRL-C)
-       // TODO: NOT CODED YET
-       break;
-
      case SIGSEGV:                  // (Program fault)
+       Trace::trace(".BUG", __LINE__, "SIGSEGV");
+       Trace::stop();
+
        debug_set_mode(Debug::MODE_INTENSIVE);
        debug_backtrace();           // Attempt diagnosis (recursion aborts)
        debugf("..terminated..\n");
        exit(EXIT_FAILURE);
        break;
 
-     default:                       // (SIGUSR1 || SIGUSR2)
-       break;                       // (No configured action)
+     case SIGINT:                   // (No configured action)
+     case SIGUSR1:                  // (No configured action)
+     case SIGUSR2:                  // (No configured action)
+     default:
+       Trace::trace(".SIG", __LINE__, text);
+       break;
    }
 
    recursion--;
@@ -206,7 +204,7 @@ static int                          // Return code, 0 expected
      opt_verbose= 1;
 
    if( USE_SIGNAL ) {
-     sys1_handler= signal(SIGINT,  sig_handler);
+//   sys1_handler= signal(SIGINT,  sig_handler);
      sys2_handler= signal(SIGSEGV, sig_handler);
      usr1_handler= signal(SIGUSR1, sig_handler);
      usr2_handler= signal(SIGUSR2, sig_handler);
@@ -541,6 +539,7 @@ extern int
        debugf("%5s: stress: %d\n", torf(opt_stress), opt_stress);
      else
        debugf("%5s: stress\n", torf(opt_stress));
+     debugf("%5s: trace\n", torf(opt_trace));
      debugf("%5s: worker\n", torf(opt_worker));
 
      // Debugging, experimentation

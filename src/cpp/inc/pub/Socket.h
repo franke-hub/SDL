@@ -16,7 +16,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2022/11/14
+//       2022/12/06
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -36,7 +36,6 @@
 #include <functional>               // For std::function
 #include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
-#include <errno.h>                  // For EINVAL
 #include <fcntl.h>                  // For fcntl
 #include <unistd.h>                 // For gethostname
 #include <netinet/in.h>             // For struct sockaddr_ definitions
@@ -122,7 +121,8 @@ inline
    ~sockaddr_u( void )              // Destructor
 {  reset(); }
 
-sockaddr_u& operator=(const sockaddr_u&); // Assignment operator
+sockaddr_u&
+   operator=(const sockaddr_u&);    // Assignment operator
 
 void
    copy(const sockaddr*, socklen_t); // Replacement copy from sockaddr
@@ -143,6 +143,7 @@ std::string                         // The display string
 // Socket::Attributes
 //----------------------------------------------------------------------------
 protected:
+std::mutex             mutex;       // Open/close mutex
 std::atomic<Select*>   select= nullptr; // The associated Select
 f_select               h_select;    // Selection handler
 

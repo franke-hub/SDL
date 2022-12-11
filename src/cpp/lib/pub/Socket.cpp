@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/11/14
+//       2022/12/09
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -29,8 +29,9 @@
 #include <stdexcept>                // For std::runtime_error
 
 #include <assert.h>                 // For assert
-#include <errno.h>                  // For errno
+#include <errno.h>                  // For errno, ...
 #include <fcntl.h>                  // For fcntl
+#include <mutex>                    // For std::mutex, std::lock_guard
 #include <netdb.h>                  // For addrinfo, ...
 #include <poll.h>                   // For poll, ...
 #include <stdarg.h>                 // For va_* functions
@@ -47,7 +48,7 @@
 
 #include <pub/utility.h>            // For to_string(), ...
 #include <pub/Debug.h>              // For debugging
-#include <pub/Must.h>               // For pub::Must::malloc
+#include <pub/Must.h>               // For pub::must::malloc
 
 #include "pub/Select.h"             // For pub::Select
 #include "pub/Socket.h"             // For pub::Socket, implemented
@@ -55,11 +56,6 @@
 using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
 
 namespace _LIBPUB_NAMESPACE {
-//----------------------------------------------------------------------------
-// Forward references
-//----------------------------------------------------------------------------
-[[noreturn]] static void sno_exception(int line);
-
 //----------------------------------------------------------------------------
 // Typedefs (used by internal subroutines)
 //----------------------------------------------------------------------------
@@ -264,26 +260,7 @@ std::string
    return result;
 }
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Socket::copy
-//
-// Purpose-
-//       Copy host_addr/size and peer_addr_size
-//
-//----------------------------------------------------------------------------
-void
-   Socket::copy(                    // Copy host_addr/size and peer_addr/size
-     const Socket&     source)      // From this source Socket
-{
-   host_size= source.host_size;
-   host_addr= source.host_addr;
-   peer_size= source.peer_size;
-   peer_addr= source.peer_addr;
-}
-
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Method-
 //       Socket::Socket
@@ -346,6 +323,25 @@ Socket&                             // (Always *this)
 
    copy(source);
    return *this;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::copy
+//
+// Purpose-
+//       Copy host_addr/size and peer_addr_size
+//
+//----------------------------------------------------------------------------
+void
+   Socket::copy(                    // Copy host_addr/size and peer_addr/size
+     const Socket&     source)      // From this source Socket
+{
+   host_size= source.host_size;
+   host_addr= source.host_addr;
+   peer_size= source.peer_size;
+   peer_addr= source.peer_addr;
 }
 
 //----------------------------------------------------------------------------
@@ -580,12 +576,14 @@ int                                 // Return code, 0 OK
 {  if( HCDM )
      debugh("Socket(%p)::close() handle(%d)\n", this, handle);
 
+   std::lock_guard<decltype(mutex)> lock(mutex);
+
    int rc= 0;
    if( handle >= 0 ) {
      Select* select= this->select.load();
      if( select ) {                 // If Select active
-       on_select([](int) {});       // Reset default (NOP) select handler
-       select->remove(this);        // (Ignoring errors)
+       select->remove(this);        // ENQ remove, ignoring errors
+       select->flush();             // Insure REMOVE completes
      }
 
      // Reset host_addr/peer_addr, host_size/peer_size, and handle
@@ -777,6 +775,8 @@ int                                 // Return code, 0 OK
      int               protocol)    // Socket protocol (IGNORED)
 {  if( HCDM )
      debugh("Socket(%p)::open(%d,%d,%d)\n", this, family, type, protocol);
+
+   std::lock_guard<decltype(mutex)> lock(mutex);
 
    if( handle >= 0 )
      throw SocketException("Socket already open"); // This is a usage error
@@ -993,137 +993,7 @@ ssize_t                             // Number of bytes sent
    return L;
 }
 
-#if 0
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Socket::sockaddr_u::copy
-//
-// Purpose-
-//       Replace content from source
-//
-//----------------------------------------------------------------------------
-void
-   Socket::sockaddr_u::copy(        // Replace this sockaddr_u
-     const sockaddr_u& source)      // From this sockaddr_u
-{
-   reset();                         // Release allocated storage
-
-   *this= source;
-   if( source.su_af == AF_UNIX ) {
-     socklen_t size= source.su_x.x_socksize;
-     assert( size_t(size) <= sizeof(sockaddr_un) );
-     if( source.su_x.x_sockaddr == &source.sa ) {
-       assert( size_t(size) <  (offsetof(sockaddr_x, x_socksize) - 1) );
-       su_x.x_sockaddr= &this->sa;
-     } else {
-       assert( size_t(size) >= (offsetof(sockaddr_x, x_socksize) - 1) );
-       su_x.x_sockaddr= (sockaddr*)must::malloc(size+1);
-       memcpy(su_x.x_sockaddr, source.su_x.x_sockaddr, size+1);
-     }
-   }
-}
-
-void
-   Socket::sockaddr_u::copy(        // Replace this sockaddr_u
-     const sockaddr*   addr,        // From this sockaddr
-     socklen_t         size)        // Of this length
-{
-   reset();                         // Release allocated storage
-
-   if( addr->sa_family == AF_UNIX ) {
-     char* copy= (char*)this;
-     if( size_t(size) >= (offsetof(sockaddr_x, x_socksize) - 1) ) {
-       assert( size_t(size) <= sizeof(sockaddr_un) );
-       if( size_t(size) < offsetof(sockaddr_un, sun_path) )
-         size= offsetof(sockaddr_un, sun_path);
-       copy= (char*)must::malloc(size+1); // (+1 for trailing '\0')
-     }
-
-     memcpy(copy, addr, size);
-     copy[size]= '\0';
-     su_x.x_family= AF_UNIX;
-     su_x.x_socksize= size;
-     su_x.x_sockaddr= (sockaddr*)copy;
-   } else {
-     if( size_t(size) > sizeof(sockaddr_u) ) {
-       errorf("socket length(%d) > maximum(%d)\n", size, max_sock);
-       sno_exception(__LINE__);
-     }
-
-     memcpy(this, addr, size);
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Socket::sockaddr_u::reset
-//
-// Purpose-
-//       Reset the sockaddr_u, zeroing it
-//
-//----------------------------------------------------------------------------
-void
-   Socket::sockaddr_u::reset( void ) // Reset the sockaddr_u
-{
-   if( su_af == AF_UNIX && su_x.x_sockaddr != &this->sa )
-     free(su_x.x_sockaddr);
-
-   su_align[0]= su_align[1]= su_align[2]= su_align[3]= 0;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Socket::sockaddr_u::to_string
-//
-// Purpose-
-//       Convert (sockaddr_u) to string
-//
-// Implementation notes-
-//       Families AF_INET, AF_INET6, and IF_UNIX are currently supported.
-//       Others can be added if desired.
-//
-//----------------------------------------------------------------------------
-std::string
-   Socket::sockaddr_u::to_string( void ) const // Convert to string
-{
-   std::string         result= "<inet_ntop error>"; // Default resultant
-
-   const char*         buff= nullptr; // inet_ntop resultant
-   char                work[256];   // (Address string buffer)
-
-   errno= 0;
-   switch( su_af )
-   {
-     case AF_INET:                  // If IPv4
-       buff= inet_ntop(AF_INET, &su_i4.sin_addr, work, sizeof(work));
-       if( buff )
-         result= utility::to_string("%s:%d", buff, ntohs(su_i4.sin_port));
-       break;
-
-     case AF_INET6:                 // If IPv6
-       buff= inet_ntop(AF_INET6, &su_i6.sin6_addr, work, sizeof(work));
-       if( buff )
-         result= utility::to_string("[%s]:%d", buff, ntohs(su_i6.sin6_port));
-       break;
-
-     case AF_UNIX: {{{{             // If AF_UNIX
-       sockaddr_un* un= (sockaddr_un*)this->su_x.x_sockaddr;
-       result= std::string(un->sun_path); // (Trailing '\0' always present)
-       break;
-     }}}}
-     default:                       // If invalid address family
-       result= utility::to_string("<sa_family_t(%d)>", su_af);
-       errno= EINVAL;
-   }
-
-   return result;
-}
-#endif
-
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Method-
 //       SSL_socket::SSL_socket

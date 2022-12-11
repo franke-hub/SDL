@@ -16,7 +16,7 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2022/11/27
+//       2022/12/10
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -78,7 +78,7 @@ enum
 // BUFFER_SIZE= 1'048'576           // Input buffer size
 ,  BUFFER_SIZE=     8'192           // Input buffer size
 
-,  USE_XTRACE= true                 // Use extended trace? // TODO: false
+,  USE_XTRACE= false                // Use extended trace?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -178,6 +178,17 @@ static inline void*
 
 //----------------------------------------------------------------------------
 //
+// Subroutine-
+//       i2v
+//
+// Purpose-
+//       Convert intptr_t  to void*
+//
+//----------------------------------------------------------------------------
+static inline void* i2v(intptr_t i) { return (void*)i; }
+
+//----------------------------------------------------------------------------
+//
 // Method-
 //       Server::Server
 //       Server::~Server
@@ -203,7 +214,7 @@ static inline void*
      debugh("Server(%p)::Server(%p,%p)\n", this, listen, socket);
 
    if( USE_XTRACE )
-     Trace::trace(".NEW", "HSRV", this);
+     Trace::trace(".NEW", "HSRV", this, socket);
 
    // Initialize asynchronous operation
    socket->set_flags( socket->get_flags() | O_NONBLOCK );
@@ -230,10 +241,7 @@ static inline void*
      Trace::trace(".DEL", "HSRV", this);
 
    // Close the socket, insuring task completion
-   close();                         // Not needed, but we do it anyway
-// wait();                          // Not needed, already in ~Task()
-
-   delete socket;
+   delete socket;                   // (Invokes Socket::close, Select::flush)
    socket= nullptr;
    REM_DEBUG_OBJ("*Server*");
 }
@@ -289,7 +297,8 @@ void
      int               revents)     // Polling revents
 {  if( HCDM )
      debugh("Server(%p)::async(%.4x) events(%.4x)\n", this, revents, events);
-   Trace::trace(".SRV", ".APE", this, a2v(events, revents, get_handle()));
+   if( USE_XTRACE )
+     Trace::trace(".SRV", ".APE", this, a2v(events, revents, get_handle()));
 
    if( !operational )               // Ignore event if non-operational
      return;
@@ -333,10 +342,12 @@ void
    Server::close( void )            // Terminate the Server
 {  if( HCDM )
      debugh("Server(%p)::close() %d\n", this, operational);
-   Trace::trace(".CLI", ".CLS", this);
+   if( USE_XTRACE )
+     Trace::trace(".SRV", ".CLS", this, i2v(get_handle()));
 
-   // The Listenter might contain the last active shared_ptr<Server>
-   std::shared_ptr<Server> server= get_self(); // Keep-alive
+   // The Listener might contain the last active shared_ptr<Server>
+   // and we reference this->socket after the disconnect.
+   std::shared_ptr<Server> keep_alive= get_self();
 
    {{{{
      std::lock_guard<Server> lock(*this);
@@ -492,12 +503,8 @@ void
      Ioda ioda;
      Mesg mesg; ioda.get_rd_mesg(mesg, size_inp);
      L= socket->recvmsg(&mesg, 0);
-     if( L >= 0 ) {
+     if( L > 0 ) {
        iodm(line, "read", L);
-       if( L == 0 ) {
-         close();
-         return;
-       }
        ioda.set_used(L);
 
        // Trace read
@@ -505,7 +512,8 @@ void
        ssize_t size= mesg.msg_iov[0].iov_len;
        if( size > L )
          size= L;
-       utility::iotrace(".S<<", addr, size);
+       if( USE_XTRACE )
+         utility::iotrace(".S<<", addr, size);
        iodm(line, "read", addr, size);
 
        ServerItem* item= new ServerItem();
@@ -521,7 +529,7 @@ void
      }
    }
 
-   // Handle I/O error
+   // Handle disconnect or I/O error
    if( L == 0 || (L < 0 && errno == ECONNRESET) ) { // If connection reset
      close();
      return;
@@ -580,7 +588,8 @@ void
        ssize_t size= mesg.msg_iov[0].iov_len;
        if( size > L )
          size= L;
-       utility::iotrace(".S>>", addr, size);
+       if( USE_XTRACE )
+         utility::iotrace(".S>>", addr, size);
        iodm(__LINE__, "sendmsg", addr, size);
 
        size_t want= ioda_out.get_used() - ioda_off;
