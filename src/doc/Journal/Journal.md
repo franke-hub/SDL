@@ -485,4 +485,14 @@ polling errors.
 Select.cpp:
 - Check for pending control operation more frequently.
 
+#### 2022/12/13
+
+The pub/(Select/Socket) and dev/(Client/Server/Listener) have possible
+multi-threading issues. Since Select doesn't call Socket::do_select with any
+latching. This is currently needed because Socket::close invokes Select::flush
+which gets Select's xcl_latch. However, this means that
+it's possible for the Socket state to change between the time that
+the latch is released and the (Client/Server/Listener)'s asynch methods are
+invoked. At best, this is a fragile interface.
+
 ----

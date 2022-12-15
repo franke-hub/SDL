@@ -166,7 +166,7 @@ std::string                         // Associated string
 //       Get the current thread
 //
 // Implementation notes-
-//       Behaviour is undefined when using Thread::current in a pthread.
+//       Behavior is undefined when using Thread::current in a pthread.
 //
 //----------------------------------------------------------------------------
 Thread*                             // The current Thread

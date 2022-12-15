@@ -15,12 +15,15 @@
 ##       Development status, history, and reminders.
 ##
 ## Last change date-
-##       2022/10/16
+##       2022/12/12
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
+2022/12/12 Select.cpp and Socket.cpp need more work.
+         Multithreading timing holes still exist.
+
 2022/10/16 Added Diagnostic.h, for tracking hard to debug problems.
 
 2019/03/15 See ~/src/cpp/HTTP/.README for additional information.
@@ -59,12 +62,16 @@
 
 ##############################################################################
 ## FIXED:
-2020/01/07 lib/pub/Debug.cpp
+2022/11/17 Socket.cpp
+         Needed to initialize the sockaddr_u in copy constructor before
+         invoking operator=.
+
+2020/01/07 Debug.cpp
          It's possible for the debug object to change between Debug::get()
          and the time that the object is used. The debug lock is required
          for all methods that use get().
 
-2019/03/15 lib/pub/Socket.cpp
+2019/03/15 Socket.cpp
          SampleSSL.cpp Error handling for unusable socket gets a segment
          exception in Cygwin but not in Linux. (Bug in gcc 7.4.0, not 8.3.1)
 
@@ -73,6 +80,16 @@
          static inline std::string to_string(const char*, va_list) {}
          The va_list method is called if there is a single char* parameter,
          causing a segment exception when it is used.
+
+##############################################################################
+## CHANGED:
+2022/11/17 Thread.cpp simplified
+         Now uses thread local storage rather than a map to maintain current
+         Thread information. However, static_debug can no longer display the
+         Thread list. (There isn't one.)
+
+2022/11/15 Dispatch.cpp improved
+         Task destructor now insures all Task list items have been processed.
 
 ##############################################################################
 ## CLOSED: 2018/12/29 CYGWIN BUG
@@ -95,6 +112,4 @@
          Test_Thr runs much longer when noisy_delay larger.
          This seems to somehow slow down thread creation.
          Does not occur in Linux.
-
-## CLOSED:
 

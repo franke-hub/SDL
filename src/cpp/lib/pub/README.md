@@ -77,7 +77,7 @@ even after our static object destructors are invoked.
 Consider the Debug functions.
 It's critical to keep these functions operational so that problems that occur
 during static object deconstruction can be properly recorded.
-This code needs to be hardened.
+This code needed to be and has been hardened.
 
 Other library functions need to be kept at least semi-operational.
 They should work as well as possible as long as possible, but never segfault.

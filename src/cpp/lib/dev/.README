@@ -15,7 +15,7 @@
 ##       README: List of usage notes, bugs, fixes, etc.
 ##
 ## Last change date-
-##       2022/10/24
+##       2022/12/12
 ##
 ##############################################################################
 
@@ -121,36 +121,60 @@ std::string to_string( void ) const; // Convert to display string
 
 ##############################################################################
 ## STATUS: (Current status; Significant checkpoints)
-2021/11/01 Started
+2022/12/10 Asychronous Client/Server I/O working well.
+           Timing exposures still exist. Some redesign is needed.
+2022/10/23 Asychronous Client/Server I/O working, but with known bugs.
+2022/10/15 Asychronous Client I/O working. Server Client I/O is synchronous.
+2022/09/25 Asychronous Client I/O working (with one client)
+2022/08/31 PROTOCOL1A (since renamed to HTTP1) working with updated Socket.
+2022/07/22 PROTOCOL1B (since renamed to PROTOCOL1A) working.
+2022/07/16 Moved source into distribution library.
 2022/06/18 Resumed active development
            ~/src/cpp/lib/pub/Test/TestSock.cpp working
-2022/07/16 Moved source into distribution library.
-2022/07/22 PROTOCOL1B (since renamed to PROTOCOL1A) working.
-2022/08/31 PROTOCOL1A (since renamed to HTTP1) working with updated Socket.
-2022/09/25 Asychronous Client I/O working (with one client)
-2022/10/15 Asychronous Client I/O working. Server Client I/O is synchronous.
-2022/10/23 Asychronous Client/Server I/O working well, but with known bugs.
+2021/11/01 Deferred: building ~/src/cpp/lib/pub/Test/TestSock.cpp to learn
+           more about SSL sockets and sockets in general.
+2021/11/01 Started
 
 ##############################################################################
 ## BUGS: (Open bugs)
+2022/12/12 Known timing issue (Server.cpp, Client.cpp, Listen.cpp)
+         pub/Select.cpp must call pub/Socket::do_select without any lock
+         held since Server.cpp can call Socket::close which then calls
+         Select::remove and Select::flush which then gets Select's xcl_latch.
+         This is fragile since another Socket::close may already be pending,
+         and the Socket possibly be deleted.
+         While it *might* work today as long as the Socket is no longer
+         referenced, it might not work tomorrow.
+
+2022/12/12 Listen.cpp
+         Running T_Stream --server --stress --major=1 --runtime=30, Listen's
+         accept fails with errno indicating "Too many open sockets".
+
+2022/12/12 Performance issue
+         Throughput is pathetic running T_Stream --server --stress --major=1.
+
+2022/10/24 Cygwin performance issue:
+         Cygwin stress test works best with --stress=1 (one client.)
+         When more than one client is used, throughput decreases.
+
+##############################################################################
+## FIXED: (Fixed bugs)
+2022/12/12 No longer occurs
 2022/10/24 Linux stress test completes but doesn't terminate properly
          when more than ~10 client threads are used.
 
+2022/12/12 No longer occurs
 2022/10/24 Intermittent termination error: "609 S/Select.cpp Should not
          occur (but did)". The associated debug shows a closed socket
          handle still active in the pollfd and sarray tables.
 
-2022/10/24 Cygwin stress test works best with --stress=1 (one client.) When
-         when more than one client is used, throughput decreases.
-
-##############################################################################
-## FIXED: (Fixed bugs)
+2022/11/17 Fix commited
 2022/10/23 Ioda operator+=(Ioda&&) inserted at head rather than at tail
          TODO: Maybe make that operator-=(string&), since that might've been
          used instead in ServerResponse::write(). (Use all operator -='s)
 
-2022/10/16 Linux throughput performance is pathetic.
 2022/10/24 Fixed using Server polling
+2022/10/16 Linux throughput performance is pathetic.
          It wasn't so much polling that fixed the problem, it was the extra
          threading used in the Server.
 

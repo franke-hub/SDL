@@ -1,0 +1,51 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2022 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       regression
+##
+## Purpose-
+##       Run regression tests.
+##
+## Last change date-
+##       2022/10/27
+##
+##############################################################################
+
+set -x
+make
+
+T_Option
+[[ $? != 0 ]] && { echo "Test failed"; exit 1; }
+sleep 5
+
+T_Quick --verbose
+[[ $? != 0 ]] && { echo "Test failed"; exit 1; }
+sleep 5
+
+TestIoda
+[[ $? != 0 ]] && { echo "Test failed"; exit 1; }
+sleep 5
+
+T_Stream --server --client --verbose
+[[ $? != 0 ]] && { echo "Test failed"; exit 1; }
+sleep 5
+
+T_Stream --server --stream --verbose
+[[ $? != 0 ]] && { echo "Test failed"; exit 1; }
+sleep 5
+
+T_Stream --server --stream=1 --verbose
+[[ $? != 0 ]] && { echo "Test failed"; exit 1; }
+sleep 5
+
+T_Stream --server --stream=10 --verbose
+[[ $? != 0 ]] && { echo "Test failed"; exit 1; }

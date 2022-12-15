@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2022/12/10
+//       2022/12/11
 //
 // Arguments-
 //       With no arguments, --client --server defaulted
@@ -575,6 +575,10 @@ extern int
          ClientThread::test_stress();
          ClientThread::statistics();
        }
+     } else if( opt_server ) {
+       TimerThread timer_thread;
+       timer_thread.start();
+       timer_thread.join();
      }
 
      if( server ) {
