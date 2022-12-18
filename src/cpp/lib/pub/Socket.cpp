@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/12/09
+//       2022/12/16
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -576,16 +576,16 @@ int                                 // Return code, 0 OK
 {  if( HCDM )
      debugh("Socket(%p)::close() handle(%d)\n", this, handle);
 
-   std::lock_guard<decltype(mutex)> lock(mutex);
+// std::lock_guard<decltype(mutex)> lock(mutex);
+
+   Select* select= this->select.load();
+   if( select ) {                   // If Select active
+     select->remove(this);          // ENQ remove, ignoring errors
+     select->flush();               // Insure REMOVE completes
+   }
 
    int rc= 0;
    if( handle >= 0 ) {
-     Select* select= this->select.load();
-     if( select ) {                 // If Select active
-       select->remove(this);        // ENQ remove, ignoring errors
-       select->flush();             // Insure REMOVE completes
-     }
-
      // Reset host_addr/peer_addr, host_size/peer_size, and handle
      host_addr.reset();
      peer_addr.reset();
@@ -776,7 +776,7 @@ int                                 // Return code, 0 OK
 {  if( HCDM )
      debugh("Socket(%p)::open(%d,%d,%d)\n", this, family, type, protocol);
 
-   std::lock_guard<decltype(mutex)> lock(mutex);
+// std::lock_guard<decltype(mutex)> lock(mutex);
 
    if( handle >= 0 )
      throw SocketException("Socket already open"); // This is a usage error

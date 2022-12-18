@@ -15,12 +15,18 @@
 ##       README: List of usage notes, bugs, fixes, etc.
 ##
 ## Last change date-
-##       2022/12/12
+##       2022/12/18
 ##
 ##############################################################################
 
 ##############################################################################
-## SOCKET INFO: (Generic information)
+## STATUS:
+2022/12/18 HTTP1 Stable
+         While no known multithreading timing holes exist, associated fixes
+         have significantly reduced throughput.
+
+##############################################################################
+## SOCKET INFO: (Coding reference information)
 typedef __uint32_t     in_addr_t;   // netinet/in.h => cygwin/in.h
 typedef __uint16_t     in_port_t;   // netinet/in.h => cygwin/in.h
 
@@ -120,9 +126,12 @@ std::string to_string( void ) const; // Convert to display string
 }; // union sockaddr_u
 
 ##############################################################################
-## STATUS: (Current status; Significant checkpoints)
+## STATUS: (History)
+2022/12/18 HTTP1 Stable
+         While no known multithreading timing holes exist, associated fixes
+         have significantly reduced throughput.
 2022/12/10 Asychronous Client/Server I/O working well.
-           Timing exposures still exist. Some redesign is needed.
+         Timing exposures still exist. Some redesign is needed.
 2022/10/23 Asychronous Client/Server I/O working, but with known bugs.
 2022/10/15 Asychronous Client I/O working. Server Client I/O is synchronous.
 2022/09/25 Asychronous Client I/O working (with one client)
@@ -130,22 +139,13 @@ std::string to_string( void ) const; // Convert to display string
 2022/07/22 PROTOCOL1B (since renamed to PROTOCOL1A) working.
 2022/07/16 Moved source into distribution library.
 2022/06/18 Resumed active development
-           ~/src/cpp/lib/pub/Test/TestSock.cpp working
+         ~/src/cpp/lib/pub/Test/TestSock.cpp working
 2021/11/01 Deferred: building ~/src/cpp/lib/pub/Test/TestSock.cpp to learn
-           more about SSL sockets and sockets in general.
+         more about SSL sockets and sockets in general.
 2021/11/01 Started
 
 ##############################################################################
 ## BUGS: (Open bugs)
-2022/12/12 Known timing issue (Server.cpp, Client.cpp, Listen.cpp)
-         pub/Select.cpp must call pub/Socket::do_select without any lock
-         held since Server.cpp can call Socket::close which then calls
-         Select::remove and Select::flush which then gets Select's xcl_latch.
-         This is fragile since another Socket::close may already be pending,
-         and the Socket possibly be deleted.
-         While it *might* work today as long as the Socket is no longer
-         referenced, it might not work tomorrow.
-
 2022/12/12 Listen.cpp
          Running T_Stream --server --stress --major=1 --runtime=30, Listen's
          accept fails with errno indicating "Too many open sockets".
@@ -159,24 +159,25 @@ std::string to_string( void ) const; // Convert to display string
 
 ##############################################################################
 ## FIXED: (Fixed bugs)
-2022/12/12 No longer occurs
-2022/10/24 Linux stress test completes but doesn't terminate properly
+2022/12/18 Server.cpp, Client.cpp, Listen.cpp: Possible timing issue
+         Fixes were also required in ../pub/Select.cpp, ../pub/Socket.cpp.
+         Select.cpp now calls Socket::do_select with its shr_latch held.
+         Client.cpp, Listen.cpp, and Server.cpp no longerdirectly call close()
+         from the asynch() method. They offload that work to their input task.
+
+2022/12/12 Linux stress test completes but doesn't terminate properly
          when more than ~10 client threads are used.
 
-2022/12/12 No longer occurs
-2022/10/24 Intermittent termination error: "609 S/Select.cpp Should not
+2022/12/12 Intermittent termination error: "609 S/Select.cpp Should not
          occur (but did)". The associated debug shows a closed socket
          handle still active in the pollfd and sarray tables.
 
-2022/11/17 Fix commited
-2022/10/23 Ioda operator+=(Ioda&&) inserted at head rather than at tail
+2022/11/17 Ioda operator+=(Ioda&&) inserted at head rather than at tail
          TODO: Maybe make that operator-=(string&), since that might've been
          used instead in ServerResponse::write(). (Use all operator -='s)
 
-2022/10/24 Fixed using Server polling
-2022/10/16 Linux throughput performance is pathetic.
-         It wasn't so much polling that fixed the problem, it was the extra
-         threading used in the Server.
+2022/10/24 Linux throughput performance is pathetic.
+         Adding more Server threading fixed the problem.
 
 ##############################################################################
 ## CLOSED: (Bugs closed without fixing)
@@ -187,14 +188,15 @@ std::string to_string( void ) const; // Convert to display string
 2022/02/16 TODO? Don't wait for content-length
 2022/02/16 TODO? Allow next HTTP1 write before response
 
-           TODO? Move connect logic outside of Client.
-                 Pass resulting connection to Client constructor.
-
-2022/10/24 Need to stress test Select more. Maybe we should create a new
-         Client/Server for each ClientStream. (Must consider async.)
-
 ##############################################################################
 ## DONE:
+2022/12/18 Client connect operation moved from constructor.
+         If IPV4 connect fails, we can retry with IPV6 connect.
+
+2022/11/17 Need to stress test Select more.
+         To test a Client/Server for each operation use:
+           T_Stream --server --stress --major=1
+
 2022/10/24 Rename ServerAgent to ListenAgent
          Server, ServerRequest/Response keep their current names
 

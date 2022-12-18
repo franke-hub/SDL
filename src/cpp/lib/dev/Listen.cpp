@@ -16,7 +16,7 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2022/12/10
+//       2022/12/16
 //
 // Implementation notes-
 //       TODO: Create ClientListen and ServerListen, used by ClientAgent.
@@ -71,7 +71,7 @@ enum
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 ,  DEFAULT_PORT= 8080               // Default port number
-,  USE_XTRACE= false                // Use extended trace?
+,  USE_XTRACE= true                 // Use extended trace?
 }; // enum
 
 static constexpr const char* LOG_FILE= "log/HttpServer.log";
@@ -124,7 +124,6 @@ static void
      const Options*    opts_)       // Listener Options
 :  agent(owner)
 ,  listen(), map(), mutex(), log(LOG_FILE)
-,  operational(false)
 ,  h_close([](void) { })
 ,  h_request([](ServerRequest& Q) {
      std::shared_ptr<ServerStream> stream= Q.get_stream();
@@ -169,7 +168,7 @@ static void
    debugf("Server: http://%s\n", addr.to_string().c_str());
      logf("Server: http://%s\n", addr.to_string().c_str());
 
-   operational= true;
+   fsm= FSM_READY;
    INS_DEBUG_OBJ("*Listen*");
 }
 
@@ -178,8 +177,11 @@ static void
 {  if( HCDM )
      debugh("Listen(%p)::~Listen\n", this);
 
+   agent->select.flush();           // Complete any pending close
+
    if( map.begin() != map.end() ) { // TODO: ?REMOVE? (Do we need this logic?)
      debugf("\n\n%d %s >>>>>>>> UNEXPECTED <<<<<<<<\n\n", __LINE__, __FILE__);
+     debug("~Listen");
      reset();
    }
    REM_DEBUG_OBJ("*Listen*");
@@ -213,7 +215,7 @@ std::shared_ptr<Listen>
 //----------------------------------------------------------------------------
 void
    Listen::debug(const char* info) const // Debugging display
-{  debugf("Listen(%p)::debug(%s) operational(%d)\n", this, info, operational);
+{  debugf("Listen(%p)::debug(%s) fsm(%d)\n", this, info, fsm);
 
    int index= 0;                    // (Artificial) index
    for(const_iterator it= map.begin(); it != map.end(); ++it) {
@@ -279,7 +281,7 @@ void
    if( USE_XTRACE )
      Trace::trace(".LIS", ".APE", this, a2v(revents, get_handle()));
 
-   if( !operational )
+   if( fsm != FSM_READY )
      return;
 
    if( revents & (POLLERR | POLLNVAL) ) {
@@ -311,7 +313,7 @@ debugf("%4d host(%s) peer(%s)\n", __LINE__, socket->get_host_addr().to_string().
    if( server.get() != insert.get() ) { // If duplicate entry
      string S= id.to_string();
      debugh("%4d %s DUPLICATED %s\n", __LINE__, __FILE__, S.c_str());
-     insert->close();           // Terminate the existing server
+     insert->close_enq();       // Terminate the existing server
      map_remove(id);            // Remove the inserted server from the map
      server= nullptr;           // Disallow the new connection
    }
@@ -335,14 +337,14 @@ void
    {{{{
      std::lock_guard<decltype(mutex)> lock(mutex); // Borrow our map mutex
 
-     if( operational ) {
-       operational= false;
+     if( fsm != FSM_RESET ) {
+       fsm= FSM_RESET;
 
        agent->disconnect(this);     // Remove our map entry
      }
    }}}}
 
-   reset();                         // Close all servers (asynchronously)
+   reset();                         // Close all servers
 
    // Close the Listen Socket
    int rc= listen.close();
@@ -430,7 +432,7 @@ void
 //       Listen::reset
 //
 // Purpose-
-//       Reset the Listen, asynchronously closing all Servers
+//       Reset the Listen, closing all Servers
 //
 //----------------------------------------------------------------------------
 void
@@ -456,7 +458,7 @@ void
    for(auto it : list) {
      std::shared_ptr<Server> server= it.lock();
      if( server )
-       server->close();             // (Asynchronously) close the server
+       server->close();             // (Synchronously) close the server
    }
    if( HCDM )
      debugf("...All Servers closed\n");

@@ -16,7 +16,7 @@
 //       HTTP Listen object.
 //
 // Last change date-
-//       2022/10/23
+//       2022/12/16
 //
 // Implementation notes-
 //       The Listen object is the Server analog to a Client Agent.
@@ -81,6 +81,12 @@ typedef Map_t::const_iterator
 typedef Map_t::iterator
                        iterator;    // The Server Map const iterator type
 
+enum FSM                            // Finite State Machine states
+{  FSM_RESET= 0                     // Reset - closed
+,  FSM_READY= 1                     // Operational
+,  FSM_CLOSE= 2                     // Close in progress
+}; // enum FSM
+
 //----------------------------------------------------------------------------
 // Listen::Attributes
 //----------------------------------------------------------------------------
@@ -95,7 +101,7 @@ std::mutex             mutex;       // The Server map mutex
 Debug                  log;         // The logger object
 Options                opts;        // The Listen Options
 
-bool                   operational; // TRUE while Listen is operational
+int                    fsm= FSM_RESET; // Finite State Machine state
 
 // Callback handlers
 f_close                h_close;     // The close event handler

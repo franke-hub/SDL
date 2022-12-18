@@ -414,17 +414,6 @@ If you're interested in these later, use gitk to look at today's version.
 
 ### 2022/11/17 Maint commit
 
-Some problems in Socket and Select were corrected. Thread now uses thread
-local storage and no longer needs to use std::map.
-
-In Socket, the sockaddr_u copy constructor didn't initialize before invoking
-operator=. The reset() function can then be looking at garbage.
-
-In Select, remove can be processed after the associated Socket's deleted.
-We can't actually look at a Socket while processing a Remove (or any other
-operation) since a Remove operation could have been enqueued. We revised
-Select so that no operations (except shutdown) invoke control directly.
-
 I wanted to update the dev library to connect for each operation similarly
 to TestSock. This has proven to be more difficult than expected. The commit
 has code to test this change, but it's not driven by default.
@@ -444,55 +433,9 @@ The major problem was in ~/src/lib/pub/Select::remove(). A socket remove would
 be enqueued and almost immediately deleted. If a poll was also outstanding, the
 Select's socket could point at freed storage.
 
-Current problem: T_Stream --server --stress=16 --major=1
-Linux:  SEGFAULT
-Cygwin: Test completes. Termination iffy.
+### 2022/12/18
 
-### 2022/11/27
-
-When Dispatch.cpp was changed to use begin..end logic, it didn't account for
-a FC_CHASE timing problem: if after posting the CHASE the next iteration
-(which removes AI_list's dummy tail element) was delayed, it was possible for
-that iteration to complete *after* the dispatch Task was deleted. This would
-result in accessing either deleted or re-allocated storage.
-
-Current problem: T_Stream --server --stress=16 --major=1
-Linux:  Completes normally, 8.5 Kop/sec
-Cygwin: Test completes, 250 ops/sec. Termination iffy.
-        Termination requires ctrl-delete, sometimes process tree end required.
-
-### 2022/12/01 Trunk/maint commit
-
-The Cygwin bug hasn't been found yet, but the Dispatch.cpp bug fix needs to
-be committed.
-
-### 2022/12/10 Trunk/maint commit
-
-Linux and Cygwin are both stable.
-However, the added synchronization controls have significantly reduced
-throughput on both Linux and Cygwin when running the single http operation per
-client test.
-
-Synchronization controls added:
-Socket.cpp:
-- Added a mutex in close to prevent the socket from being deleted during
-Select::remove. Without this, a second close called from ~Socket could
-complete and Select could reference deallocated storage.
-- Added a Select::flush call in close to insure Select wouldn't get invalid
-socket handles when polling. Alternatively, we could simply ignore EBADF
-polling errors.
-
-Select.cpp:
-- Check for pending control operation more frequently.
-
-#### 2022/12/13
-
-The pub/(Select/Socket) and dev/(Client/Server/Listener) have possible
-multi-threading issues. Since Select doesn't call Socket::do_select with any
-latching. This is currently needed because Socket::close invokes Select::flush
-which gets Select's xcl_latch. However, this means that
-it's possible for the Socket state to change between the time that
-the latch is released and the (Client/Server/Listener)'s asynch methods are
-invoked. At best, this is a fragile interface.
+Library change information moved to ~/src/cpp/lib/pub/ and ~/src/cpp/lib/dev as
+appropriate. We'll use this Journal for status of a more general nature.
 
 ----

@@ -16,7 +16,7 @@
 //       HTTP Server object.
 //
 // Last change date-
-//       2022/11/17
+//       2022/12/16
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_SERVER_H_INCLUDED
@@ -67,6 +67,12 @@ typedef std::shared_ptr<Server>               server_ptr;
 typedef std::shared_ptr<ServerStream>         stream_ptr;
 typedef std::string                           string;
 
+enum FSM                            // Finite State Machine states
+{  FSM_RESET= 0                     // Reset - closed
+,  FSM_READY= 1                     // Operational
+,  FSM_CLOSE= 2                     // Close in progress
+}; // enum FSM
+
 //----------------------------------------------------------------------------
 // Server::Attributes
 //----------------------------------------------------------------------------
@@ -85,7 +91,7 @@ LambdaTask             task_inp;    // Reader task
 LambdaTask             task_out;    // Writer task
 
 int                    events= 0;   // Current polling events
-bool                   operational= false; // TRUE while operational
+int                    fsm= FSM_RESET; // Finite State Machine state
 
 //----------------------------------------------------------------------------
 // Server::Constructors, destructor, creator
@@ -140,6 +146,9 @@ void
 
 void
    close( void );                   // Close the Server
+
+void
+   close_enq( void );               // Schedule Server close
 
 void
    error(const char*);              // Handle connection error

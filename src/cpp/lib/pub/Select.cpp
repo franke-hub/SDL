@@ -16,7 +16,7 @@
 //       Select.h method implementations.
 //
 // Last change date-
-//       2022/12/10
+//       2022/12/16
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -69,8 +69,8 @@ enum
 ,  USE_AF= AF_INET                  // Use this address family
 ,  USE_CHECKING= true               // Use internal cross-checking?
 ,  USE_DO_SELECT= true              // Use internal socket->select method?
-,  USE_TRACE= false                 // Use standard trace?
-,  USE_XTRACE= false                // Use extended trace?
+,  USE_TRACE= true                  // Use standard trace?
+,  USE_XTRACE= true                 // Use extended trace?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -91,22 +91,6 @@ static constexpr const char* UNIX_BASE= "/tmp/pub_";  // UNIX base file name
 static constexpr const char* INET_HOST= "localhost:"; // INET base host name
 
 static std::atomic_int serial= 0;   // Connector serial number
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       do_again
-//
-// Purpose-
-//       Handle do again condition
-//
-//----------------------------------------------------------------------------
-static Socket*                      // (Always nullptr)
-   do_again( void )                 // Handle do again condition
-{
-   errno= EAGAIN;
-   return nullptr;
-}
 
 //----------------------------------------------------------------------------
 //
@@ -502,8 +486,7 @@ int                                 // Number of detected errors
    debugf("..reader(%p) handle(%d)\n", reader, reader->get_handle());
    debugf("..writer(%p) handle(%d)\n", writer, writer->get_handle());
    debugf("..pollfd(%p) fdpndx(%p) fdsock(%p)\n", pollfd, fdpndx, fdsock);
-   debugf("..left(%u) next(%u) size(%u) used(%u)\n"
-         , left.load(), next, size, used);
+   debugf("..ipix(%u) next(%u) size(%u) used(%u)\n", ipix, next, size, used);
    debugf("..pollfd %d\n", used);
    for(int px= 0; px<used; ++px) {
      int fd= pollfd[px].fd;
@@ -601,25 +584,13 @@ void
 //       Callers MUST NOT hold shr_latch OR xcl_latch: Obtains xcl_latch
 //       (It cannot be called from Socket::do_select)
 //
-//       Any REMOVE operation sets retry_required= true.
-//
 //----------------------------------------------------------------------------
-bool                                // Returns retry_required
+void
    Select::control( void )          // Read and handle queued operations
 {  if( HCDM )
      debugh("Select(%p)::control\n", this);
 
-   bool retry_required= false;      // Default, retry not required
-
    std::unique_lock<decltype(xcl_latch)> lock(xcl_latch);
-   if( USE_XTRACE )
-     Trace::trace(".SEL", "=XCL", this);
-
-   if( pollfd[0].revents == 0 && todo_list.get_tail() == nullptr ) {
-     if( USE_XTRACE )
-       Trace::trace(".SEL", "NADA", this);
-     return false;                  // Nothing pending
-   }
 
    char buffer[8];                  // (Only one byte should be used)
    ssize_t L= reader->read(buffer, sizeof(buffer));
@@ -632,10 +603,8 @@ bool                                // Returns retry_required
      sno_exception(__LINE__);
    }
 
-   if( pollfd[0].revents ) {
-     --left;
+   if( pollfd[0].revents )
      pollfd[0].revents= 0;
-   }
 
    // Process queued operations
    for(auto it= todo_list.begin(); it != todo_list.end(); ++it) {
@@ -644,18 +613,19 @@ bool                                // Returns retry_required
 
      Socket* socket= op.socket;
      int fd= op.fd;
-     if( fd < 0 || (op.op != OP_INSERT && fd >= size) )
-       sno_exception(__LINE__);
 
      switch( op.op ) {
        case OP_FOLLOW: {
          if( USE_TRACE )
-           Trace::trace(".SEL", "=NOP");
+           Trace::trace(".SEL", "=FOL");
          break;
        }
        case OP_INSERT: {
          if( USE_TRACE )
            Trace::trace(".SEL", "=INS", socket, i2v(fd));
+
+         if( fd < 0 )
+           sno_exception(__LINE__); // This is an INTERNAL ERROR
 
          if( fd >= size )
            resize(fd);
@@ -665,7 +635,7 @@ bool                                // Returns retry_required
            debugh("Select(%p)::insert(%p) fdsock[%d](%p)\n", this
                  , socket, fd, fdsock[fd]);
            debug("HCDM");
-           sno_exception(__LINE__);
+           sno_exception(__LINE__); // This is a USER ERROR
          }
 
          // Perform the insert
@@ -677,19 +647,19 @@ bool                                // Returns retry_required
          fdsock[fd]= const_cast<Socket*>(socket);
 
          ++used;
-//       left= next= 0;             // Not needed, revents == 0
          break;
        }
        case OP_MODIFY: {
          if( USE_TRACE )
            Trace::trace(".SEL", "=MOD", socket, i2v(fd));
 
+         if( fd < 0 || fd >= size )
+           sno_exception(__LINE__); // This is an INTERNAL ERROR
+
          int px= fdpndx[fd];
          if( px >= 0 && px < used && fdsock[fd] == socket ) {
            struct pollfd* poll= this->pollfd + px;
            poll->events= op.events;
-           if( poll->revents )
-             --left;
            poll->revents= 0;
            break;
          }
@@ -705,6 +675,9 @@ bool                                // Returns retry_required
          if( USE_TRACE )
            Trace::trace(".SEL", "=REM", socket, i2v(fd));
 
+         if( fd < 0 || fd >= size )
+           sno_exception(__LINE__); // This is an INTERNAL ERROR
+
          if( fdsock[fd] != socket ) // If duplicate remove
            break;
 
@@ -719,10 +692,10 @@ bool                                // Returns retry_required
            socket->select= nullptr;
            fdsock[fd]= nullptr;
            fdpndx[fd]= -1;
+           if( px <= ipix )
+             --ipix;
            if( px == next )
              --next;
-           left= 0;
-           retry_required= true;
            break;
          }
 
@@ -739,8 +712,6 @@ bool                                // Returns retry_required
 
      item->post();                  // (Uses dispatch post logic)
    }
-
-   return retry_required;
 }
 
 //----------------------------------------------------------------------------
@@ -914,26 +885,32 @@ Socket*                             // The next selected Socket, or nullptr
 {  if( HCDM && VERBOSE > 1 )
      debugh("Select(%p)::select(%d)\n", this, timeout);
 
-   control();                       // Handle pending operations
-   if( left > 0 )
-     return select();
+   // Handle pending control operations
+   if( todo_list.get_tail() != nullptr || pollfd[0].revents ) {
+     control();
+   }
+
+   Socket* socket= select();
+   if( socket )
+     return socket;
 
    {{{{
      std::lock_guard<decltype(shr_latch)> lock(shr_latch);
 
-     if( todo_list.get_tail() )     // If control() pending
-       return nullptr;
-
+     // POLL operation
      for(int px= 0; px<used; ++px)
        pollfd[px].revents= 0;
 
-     for(;;) {
-       left= poll(pollfd, used, timeout);
-       if( left >= 0 || !IS_RETRY )
-         break;
+     int rc= poll(pollfd, used, timeout);
+     while( rc < 0 && IS_RETRY )
+       rc= poll(pollfd, used, timeout);
+
+     if( rc == 0 ) {                // If poll timeout
+       ipix= 0;
+       return nullptr;
      }
 
-     if( left < 0 ) {
+     if( rc < 0 ) {                 // If poll I/O error (should not occur)
        if( USE_TRACE ) {
          Trace::trace(".SEL", "PERR", this, i2v(errno));
          Trace::stop();
@@ -943,14 +920,16 @@ Socket*                             // The next selected Socket, or nullptr
        debug("poll error");
        sno_exception(__LINE__);
      }
+
+     if( next == 0 )
+       next= 1;
+     ipix= next;
+
+     if( USE_XTRACE )
+       Trace::trace(".SEL", "POLL", this, i2v(intptr_t(next)<<32 | rc));
    }}}}
 
-   if( USE_XTRACE )
-     Trace::trace(".SEL", "POLL", this, i2v(left));
-   if( left > 0 )                   // Handle initial selection
-     return select();
-
-   return do_again();
+   return select();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -964,27 +943,32 @@ Socket*                             // The next selected Socket, or nullptr
      debugh("Select(%p)::select({%'ld,%'ld},%p)\n", this
            , timeout->tv_sec, timeout->tv_nsec, signals);
 
-   if( control() )                  // Handle pending operations
-     return do_again();
-   if( left > 0 )
-     return select();
+   // Handle pending control operations
+   if( todo_list.get_tail() != nullptr || pollfd[0].revents ) {
+     control();
+   }
+
+   Socket* socket= select();
+   if( socket )
+     return socket;
 
    {{{{
      std::lock_guard<decltype(shr_latch)> lock(shr_latch);
 
-     if( todo_list.get_tail() )     // If control() pending
-       return nullptr;
-
+     // POLL operation
      for(int px= 0; px<used; ++px)
        pollfd[px].revents= 0;
 
-     for(;;) {
-       left= ppoll(pollfd, used, timeout, signals);
-       if( left >= 0 || !IS_RETRY )
-         break;
+     int rc= ppoll(pollfd, used, timeout, signals);
+     while( rc < 0 && IS_RETRY )
+       rc= ppoll(pollfd, used, timeout, signals);
+
+     if( rc == 0 ) {                  // If poll timeout
+       ipix= 0;
+       return nullptr;
      }
 
-     if( left < 0 ) {
+     if( rc < 0 ) {                   // If poll I/O error (should not occur)
        if( USE_TRACE ) {
          Trace::trace(".SEL", "PERR", this, i2v(errno));
          Trace::stop();
@@ -994,14 +978,16 @@ Socket*                             // The next selected Socket, or nullptr
        debug("ppoll error");
        sno_exception(__LINE__);
      }
+
+     if( next == 0 )
+       next= 1;
+     ipix= next;
+
+     if( USE_XTRACE )
+       Trace::trace(".SEL", "POLL", this, i2v(intptr_t(next)<<32 | rc));
    }}}}
 
-   if( USE_XTRACE )
-     Trace::trace(".SEL", "POLL", this, i2v(left));
-   if( left > 0 )                   // Handle initial selection
-     return select();
-
-   return do_again();
+   return select();
 }
 
 //----------------------------------------------------------------------------
@@ -1018,8 +1004,11 @@ Socket*                             // The next selected Socket
 {
    std::unique_lock<decltype(shr_latch)> lock(shr_latch);
 
-   if( todo_list.get_tail() || left == 0 )
-     return nullptr;                // If control pending or remove completed
+   if( ipix == 0 )
+     return nullptr;                // Poll complete
+
+   if( todo_list.get_tail() != nullptr || pollfd[0].revents )
+     return nullptr;                // Control operation pending
 
    /**************************************************************************
    There are two mechanisms for handling polling events. The choice is
@@ -1037,31 +1026,34 @@ Socket*                             // The next selected Socket
    We may need two select functions to allow the caller to select the
    mechanism rather than semi-hard coding the choice here.
    **************************************************************************/
-   for(int px= next; px<used; ++px) {
-     struct pollfd* poll= this->pollfd + px;
-     int revents= poll->revents;
-     if( revents ) {
-       --left;
-       next= px + 1;
-       int fd= poll->fd;
-       Socket* socket= fdsock[fd];
-       trace_sel(this, socket, poll->events, revents, fd);
-       if( USE_DO_SELECT ) {      // Use internal do_select mechanism?
-         lock.unlock();           // (Don't hold shr_latch in do_select)
-         socket->do_select(revents);
-         return nullptr;
-       } else {
-         return socket;
+   if( next >= ipix ) {
+     for(int px= next; px<used; ++px) {
+       struct pollfd* poll= this->pollfd + px;
+       int revents= poll->revents;
+       if( revents ) {
+         next= px + 1;
+         int fd= poll->fd;
+         Socket* socket= fdsock[fd];
+         trace_sel(this, socket, poll->events, revents, fd);
+         if( USE_DO_SELECT ) {      // Use internal do_select mechanism?
+//         lock.unlock();           // (Don't hold shr_latch in do_select)
+           socket->do_select(revents);
+           return nullptr;
+         } else {
+           return socket;
+         }
        }
      }
+     next= 1;
    }
 
-   for(int px= 1; px<next; ++px) {
+   for(int px= next; px<ipix; ++px) {
      struct pollfd* poll= this->pollfd + px;
      int revents= poll->revents;
      if( revents != 0 ) {
-       --left;
        next= px + 1;
+       if( next == ipix )
+         ipix= 0;
        int fd= poll->fd;
        Socket* socket= fdsock[fd];
        trace_sel(this, socket, poll->events, revents, fd);
@@ -1075,8 +1067,8 @@ Socket*                             // The next selected Socket
      }
    }
 
-   left= 0;
-   return do_again();
+   ipix= 0;
+   return nullptr;
 }
 
 //----------------------------------------------------------------------------

@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2022/12/04
+//       2022/12/16
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
@@ -76,6 +76,12 @@ typedef Socket::sockaddr_u                    sockaddr_u;
 typedef dispatch::LambdaDone                  LambdaDone;
 typedef dispatch::LambdaTask                  LambdaTask;
 
+enum FSM                            // Finite State Machine states
+{  FSM_RESET= 0                     // Reset - closed
+,  FSM_READY= 1                     // Operational
+,  FSM_CLOSE= 2                     // Close in progress
+}; // enum FSM
+
 //----------------------------------------------------------------------------
 // Client::Attributes
 //----------------------------------------------------------------------------
@@ -105,8 +111,8 @@ StreamSet              stream_set;  // Our set of Streams
 LambdaTask             task_inp;    // Reader task
 LambdaTask             task_out;    // Writer task
 
-int                    events= 0;   // Current polling event FSM
-bool                   operational= false; // TRUE while operational
+int                    events= 0;   // Current polling events
+int                    fsm= FSM_RESET; // Finite State Machine state
 
 //----------------------------------------------------------------------------
 // Client::Constructors, Creator, destructor
@@ -130,8 +136,8 @@ void debug(const char* info= "") const; // Debugging display
 // Client::Accessor methods
 //----------------------------------------------------------------------------
 bool
-   is_operational( void ) const     // Is the Client operational
-{  return operational; }
+   is_operational( void ) const     // Is the Client operational?
+{  return fsm == FSM_READY; }
 
 int                                 // The socket handle (<0 if not connected)
    get_handle( void ) const         // Get socket handle
@@ -166,6 +172,9 @@ void
 
 void
    close( void );                   // Close the Client
+
+void
+   close_enq( void );               // Schedule Client close
 
 Socket*                             // The connected Socket
    connect(                         // Connect using

@@ -1,0 +1,27 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2022 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       ~/bat/bat-CA/.openssl.cnf
+##
+## Purpose-
+##       Run this script to obtain the distribution openssl.cnf
+##
+## Last change date-
+##       2022/12/18
+##
+## Usage-
+##       .openssl.cnf
+##
+##############################################################################
+
+curl https://raw.githubusercontent.com/openssl/openssl/master/apps/openssl.cnf\
+     >openssl.cnf

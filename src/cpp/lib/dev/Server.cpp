@@ -16,7 +16,7 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2022/12/10
+//       2022/12/16
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -78,7 +78,7 @@ enum
 // BUFFER_SIZE= 1'048'576           // Input buffer size
 ,  BUFFER_SIZE=     8'192           // Input buffer size
 
-,  USE_XTRACE= false                // Use extended trace?
+,  USE_XTRACE= true                 // Use extended trace?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -228,7 +228,7 @@ static inline void* i2v(intptr_t i) { return (void*)i; }
    socket->set_option(SOL_SOCKET, SO_LINGER, &optval, sizeof(optval));
 
    // Server construction complete
-   operational= true;
+   fsm= FSM_READY;
    INS_DEBUG_OBJ("*Server*");
 }
 
@@ -241,6 +241,10 @@ static inline void* i2v(intptr_t i) { return (void*)i; }
      Trace::trace(".DEL", "HSRV", this);
 
    // Close the socket, insuring task completion
+   Select* select= socket->get_select();
+   if( select )
+     select->flush();
+
    delete socket;                   // (Invokes Socket::close, Select::flush)
    socket= nullptr;
    REM_DEBUG_OBJ("*Server*");
@@ -272,15 +276,14 @@ std::shared_ptr<Server>             // The Server
 //----------------------------------------------------------------------------
 void
    Server::debug(const char* info) const  // Debugging display
-{  debugf("Server(%p)::debug(%s) %s %soperational\n", this, info
-         , get_peer_addr().to_string().c_str()
-         , operational ? "" : "non-");
+{  debugf("Server(%p)::debug(%s) fsm(%d) %s\n", this, info
+         , fsm, get_peer_addr().to_string().c_str());
 
    debugf("..listen(%p) socket(%p)\n", listen, socket);
    debugf("..size_inp(%'zd) size_out(%'zd)\n", size_inp, size_out);
    debugf("task_inp:\n"); task_inp.debug(info);
    debugf("task_out:\n"); task_out.debug(info);
-   socket->debug("Server.socket");
+   socket->debug("Server::debug");
 }
 
 //----------------------------------------------------------------------------
@@ -296,11 +299,12 @@ void
    Server::async(                   // Handle Asynchronous Polling Event
      int               revents)     // Polling revents
 {  if( HCDM )
-     debugh("Server(%p)::async(%.4x) events(%.4x)\n", this, revents, events);
+     debugh("Server(%p)::async(%.4x) events(%.4x) fsm(%d)\n", this
+           , revents, events, fsm);
    if( USE_XTRACE )
-     Trace::trace(".SRV", ".APE", this, a2v(events, revents, get_handle()));
+     Trace::trace(".SRV", ".APE", this, a2v(fsm, revents, get_handle()));
 
-   if( !operational )               // Ignore event if non-operational
+   if( fsm != FSM_READY )           // Ignore event if non-operational
      return;
 
    // If a Socket error occurred
@@ -341,7 +345,7 @@ void
 void
    Server::close( void )            // Terminate the Server
 {  if( HCDM )
-     debugh("Server(%p)::close() %d\n", this, operational);
+     debugh("Server(%p)::close() fsm(%d)\n", this, fsm);
    if( USE_XTRACE )
      Trace::trace(".SRV", ".CLS", this, i2v(get_handle()));
 
@@ -352,12 +356,39 @@ void
    {{{{
      std::lock_guard<Server> lock(*this);
 
-     if( operational ) {
-       operational= false;
+     if( fsm != FSM_RESET ) {
+       fsm= FSM_RESET;
        listen->disconnect(this);    // (Only called once)
        socket->close();             // (Only called once)
      }
    }}}}
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Server::close_enq
+//
+// Purpose-
+//       Schedule a close operation
+//
+//----------------------------------------------------------------------------
+void
+   Server::close_enq( void )        // Schedule Server close
+{  if( HCDM )
+     debugh("Server(%p)::close_enq() fsm(%d)\n", this, fsm);
+   if( USE_XTRACE )
+     Trace::trace(".SRV", "QCLS", this, i2v(get_handle()));
+
+   if( fsm == FSM_READY ) {
+     fsm= FSM_CLOSE;                // Close in progress
+     Select* select= socket->get_select();
+     if( select )
+       select->modify(socket, 0);   // Remove from poll list
+
+     dispatch::Item* item= new dispatch::Item(FSM_CLOSE);
+     task_inp.enqueue(item);
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -374,7 +405,7 @@ void
      const char*       info)        // Diagnostic information
 {  errorh("Server(%p)::error(%s)\n", this, info);
 
-   close();                         // Close the Server
+   close_enq();                     // Schedule Server close
 }
 
 //----------------------------------------------------------------------------
@@ -394,7 +425,7 @@ void
    if( USE_XTRACE )
      Trace::trace(".DEQ", "SINP", this, it);
 
-   if( !operational ) {
+   if( fsm != FSM_READY ) {
      it->post(it->CC_PURGE);
      return;
    }
@@ -427,7 +458,7 @@ void
    if( USE_XTRACE )
      Trace::trace(".DEQ", "SOUT", this, it);
 
-   if( !operational ) {
+   if( fsm != FSM_READY ) {
      it->post(it->CC_PURGE);
      return;
    }
@@ -531,7 +562,7 @@ void
 
    // Handle disconnect or I/O error
    if( L == 0 || (L < 0 && errno == ECONNRESET) ) { // If connection reset
-     close();
+     close_enq();
      return;
    }
 
@@ -559,7 +590,7 @@ void
 
    std::lock_guard<Server> lock(*this);
 
-   if( !operational ) {
+   if( fsm != FSM_READY ) {
      ioda_out.reset();
      return;
    }

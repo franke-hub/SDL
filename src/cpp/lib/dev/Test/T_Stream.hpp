@@ -966,10 +966,15 @@ static void
 
    client.do_SEND(HTTP_GET, "/last.html"); // The last request
    client.wait();                   // Wait for Client to complete
-   Thread::sleep(0.125);            // Delay to allow Server completion
 
    Trace::trace(".TXT", __LINE__, "TC.client close");
-   client.close();                  // Close the Client
+   client.close();                  // Close the ClientThread
+
+   client_agent->stop();
+   client_agent->reset();
+   listen_agent->stop();
+   listen_agent->reset();
+
    WorkerPool::reset();
    debugf("...Driver.test_client\n");
    Trace::trace(".TXT", __LINE__, "TC.client exit");
@@ -1006,17 +1011,10 @@ static void
      debugf("%'16.3f operations\n", op_count);
      debugf("%'16.3f operations/second\n", op_count/opt_runtime);
 
-//debugf("\n"); client_agent->debug("ended (client)");
-     client_agent->reset();
-//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
      client_agent->stop();
-//debugf("\n"); client_agent->debug("reset (client)");
-
-//debugf("\n"); listen_agent->debug("ended (server)");
-     listen_agent->reset();
-//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
+     client_agent->reset();
      listen_agent->stop();
-//debugf("\n"); listen_agent->debug("reset (server)");
+     listen_agent->reset();
 
      return;
    }
@@ -1058,21 +1056,13 @@ static void
      client[i]->wait();
    }
 
-//debugf("\n"); client_agent->debug("ended (client)");
    client_agent->stop();
-//debugf("\n"); client_agent->debug("reset (client)");
    client_agent->reset();
-//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
-
-//debugf("\n"); listen_agent->debug("ended (server)");
    listen_agent->stop();
-//debugf("\n"); listen_agent->debug("reset (server)");
    listen_agent->reset();
-//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
 
    for(int i= 0; i<opt_stress; i++) {
      client[i]->close();
-//client[i]->debug("test_stress");
      client[i]->join();
      delete client[i];
    }

@@ -16,7 +16,7 @@
 //       Internal use utilities, included separately
 //
 // Last change date-
-//       2022/10/16
+//       2022/12/16
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_UTILITY_H_INCLUDED
@@ -42,12 +42,14 @@ static inline void
    iotrace(                         // I/O internal trace
      const char*       ident,       // Trace identifier
      const void*       addr,        // Data address
-     size_t            size)        // Data length
+     ssize_t           size)        // Data length
 {
-   Trace::Record* record= Trace::trace();
-   if( record) {
-     Trace::Buffer<16> buff(addr, size);
-     record->trace(ident, (uint32_t)size, buff.temp);
+   if( size > 0 ) {
+     Trace::Record* record= Trace::trace();
+     if( record ) {
+       Trace::Buffer<16> buff(addr, size);
+       record->trace(ident, (uint32_t)size, buff.temp);
+     }
    }
 }
 

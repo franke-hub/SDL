@@ -15,14 +15,16 @@
 ##       Development status, history, and reminders.
 ##
 ## Last change date-
-##       2022/12/12
+##       2022/12/18
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
-2022/12/12 Select.cpp and Socket.cpp need more work.
-         Multithreading timing holes still exist.
+2022/12/18 Stable
+         However, Select.cpp and Socket.cpp probably need more work.
+         While no known multithreading timing holes exist, associated fixes
+         have significantly reduced throughput.
 
 2022/10/16 Added Diagnostic.h, for tracking hard to debug problems.
 
@@ -39,9 +41,6 @@
 
 2020/08/22 BlockAllocator needs performance review.
          (Linux malloc/free somehow *BEATS* BlockAllocator's performance.)
-
-2020/08/21 utility::dump does not always properly handle misaligned address
-         (Too much ~~~~ at the beginning, to little at the end of the dump)
 
 ##############################################################################
 ## TODO:
@@ -62,9 +61,22 @@
 
 ##############################################################################
 ## FIXED:
+2022/12/18 Select.cpp, Socket.cpp
+         All known timing holes have been corrected. Select invokes
+         Socket::do_select with its shr_latch held.
+
+2022/12/18 Utility.cpp
+         Method dump didn't always properly handle misaligned address.
+         (Too many ~~~~s at the beginning, to few at the end of the dump)
+         (This was fixed much earlier but not removed from the BUGS list.)
+
+2022/11/27 Dispatch.cpp improved
+         Task destructor now insures all Task list items have been processed,
+         fixing a possible user use after delete error.
+
 2022/11/17 Socket.cpp
-         Needed to initialize the sockaddr_u in copy constructor before
-         invoking operator=.
+         Sockaddr_u's copy constructor Needed to initialize the sockaddr_u in
+         its copy constructor before invoking operator=.
 
 2020/01/07 Debug.cpp
          It's possible for the debug object to change between Debug::get()
@@ -83,13 +95,16 @@
 
 ##############################################################################
 ## CHANGED:
+2022/12/10 Select.cpp
+         Method tickle() [which was shutdown()] renamed again to flush().
+
 2022/11/17 Thread.cpp simplified
          Now uses thread local storage rather than a map to maintain current
          Thread information. However, static_debug can no longer display the
          Thread list. (There isn't one.)
 
-2022/11/15 Dispatch.cpp improved
-         Task destructor now insures all Task list items have been processed.
+2022/11/17 Select.cpp
+         No operations except shutdown() directly invoke control().
 
 ##############################################################################
 ## CLOSED: 2018/12/29 CYGWIN BUG

@@ -16,7 +16,7 @@
 //       Socket polling controller/selector.
 //
 // Last change date-
-//       2022/12/09
+//       2022/12/16
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SELECT_H_INCLUDED
@@ -85,7 +85,7 @@ struct pollfd*         pollfd= nullptr; // Array of pollfd's
 int*                   fdpndx= nullptr; // File descriptor to pollfd index
 Socket**               fdsock= nullptr; // File descriptor to socket table
 
-std::atomic_int        left= 0;     // Number of remaining poll selections
+int                    ipix= 0;     // The initial poll selection index
 int                    next= 0;     // The next poll selection index
 int                    size= 0;     // Number of available file descriptors
 int                    used= 0;     // Number of pollfd elements used
@@ -185,7 +185,7 @@ void
    control(                         // Send control operation
      const control_op& op);         // The control operation
 
-bool                                // TRUE if retry required
+void
    control( void );                 // Drain control operation queue
 
 inline void

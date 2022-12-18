@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2022/12/10
+//       2022/12/16
 //
 //----------------------------------------------------------------------------
 #define OPENSSL_API_COMPAT 30000    // Deprecate OSSL functions < 3.0.0
@@ -86,7 +86,7 @@ enum
 // BUFFER_SIZE= 1'048'576           // Input buffer size
 ,  BUFFER_SIZE=     8'192           // Input buffer size
 
-,  USE_XTRACE= false                // Use extended trace?
+,  USE_XTRACE= true                 // Use extended trace?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -94,12 +94,12 @@ enum
 //----------------------------------------------------------------------------
 typedef Ioda::Mesg     Mesg;
 
-enum FSM                            // Finite State Machine states
-{  FSM_RESET= 0                     // Reset - idle
-,  FSM_RD_DATA= POLLIN              // Waiting for read completion
-,  FSM_WR_DATA= POLLOUT             // Write (data) blocked
-,  FSM_WR_HEAD= POLLOUT << 1        // Write (header) blocked
-}; // enum FSM
+enum EVT                            // Event states
+{  EVT_RESET= 0                     // Reset - idle
+,  EVT_RD_DATA= POLLIN              // Waiting for read completion
+,  EVT_WR_DATA= POLLOUT             // Write (data) blocked
+,  EVT_WR_HEAD= POLLOUT << 1        // Write (header) blocked
+}; // enum EVT
 
 // Imported Options
 typedef const char     CC;
@@ -372,7 +372,11 @@ static inline SSL_CTX*
      Trace::trace(".DEL", "HCLI", this, stream.get());
 
    // Release allocated storage
-   delete socket;                   // (Invokes Socket::close, Select::flush)
+   Select* select= socket->get_select();
+   if( select )
+     select->flush();
+
+   delete socket;
    socket= nullptr;
 
    if( context )                    // If context exists
@@ -402,8 +406,8 @@ std::shared_ptr<Client>             // (New) Client
 //----------------------------------------------------------------------------
 void
    Client::debug(const char* info) const  // Debugging display
-{  debugf("Client(%p)::debug(%s) operational(%d) events(0x%.2x)\n", this
-         , info, operational, events);
+{  debugf("Client(%p)::debug(%s) fsm(%d) events(0x%.2x)\n", this
+         , info, fsm, events);
 
    debugf("..agent(%p) context(%p) proto_id(%s) rd_complete(%u)\n"
          , agent, context, proto_id, rd_complete.is_post());
@@ -430,7 +434,7 @@ void
    if( USE_XTRACE )
      Trace::trace(".CLI", ".APE", this, a2v(events, revents, get_handle()));
 
-   if( !operational )               // Ignore event if non-operational
+   if( fsm != FSM_READY )           // Ignore event if non-operational
      return;
 
    // If a Socket error occurred
@@ -442,7 +446,7 @@ void
 
    // If Socket is readable
    if( revents & (POLLIN | POLLPRI) ) {
-     if( events & FSM_RD_DATA )
+     if( events & EVT_RD_DATA )
        h_reader();
 
      return;
@@ -450,7 +454,7 @@ void
 
    // If Socket is writable
    if( revents & POLLOUT ) {
-     if( events & (FSM_WR_HEAD | FSM_WR_DATA) ) {
+     if( events & (EVT_WR_HEAD | EVT_WR_DATA) ) {
        h_writer();
      } else {
        Select* select= socket->get_select();
@@ -476,18 +480,19 @@ void
 //----------------------------------------------------------------------------
 void
    Client::close( void )            // Close the Client
-{  if( HCDM ) debugh("Client(%p)::close() %d\n", this, operational);
+{  if( HCDM ) debugh("Client(%p)::close() fsm(%d)\n", this, fsm);
    if( USE_XTRACE )
      Trace::trace(".CLI", ".CLS", this, i2v(get_handle()));
 
    // The Agent might contain the last active shared_ptr<Client>
+   // and we reference this->socket after the disconnect.
    std::shared_ptr<Client> client= get_self(); // Keep-alive
 
    {{{{
      std::lock_guard<Client> lock(*this);
 
-     if( operational ) {
-       operational= false;
+     if( fsm != FSM_RESET ) {
+       fsm= FSM_RESET;
        agent->disconnect(this);     // (Only called once)
        socket->close();             // (Only called once)
      }
@@ -495,6 +500,33 @@ void
 
    if( !rd_complete.is_post() )     // Post out_task wait
      rd_complete.post(dispatch::Item::CC_PURGE);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Client::close_enq
+//
+// Purpose-
+//       Schedule a close operation
+//
+//----------------------------------------------------------------------------
+void
+   Client::close_enq( void )        // Schedule Client close
+{  // if( HCDM )
+     debugh("Client(%p)::close_enq() fsm(%d)\n", this, fsm);
+   if( USE_XTRACE )
+     Trace::trace(".CLI", "CLSQ", this, i2v(get_handle()));
+
+   if( fsm == FSM_READY ) {
+     fsm= FSM_CLOSE;                // Close in progress
+     Select* select= socket->get_select();
+     if( select )
+       select->modify(socket, 0);   // Remove from poll list
+
+     dispatch::Item* item= new dispatch::Item(FSM_CLOSE);
+     task_inp.enqueue(item);
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -594,7 +626,7 @@ Socket*                             // Resultant Socket (nullptr if failure)
    // Client construction complete.
    if( USE_XTRACE )
      Trace::trace(".CLI", "CONN", this, socket); // Connection trace
-   operational= true;
+   fsm= FSM_READY;
    return socket;
 }
 
@@ -612,7 +644,7 @@ void
      const char*       info)        // Diagnostic information
 {  errorh("Client(%p)::error(%s)\n", this, info);
 
-   close();
+   close_enq();
 }
 
 //----------------------------------------------------------------------------
@@ -682,7 +714,7 @@ int                                 // Return code, 0 expected
 
    std::lock_guard<Client> lock(*this);
 
-   if( operational ) {
+   if( fsm == FSM_READY ) {
      if( USE_XTRACE )
        Trace::trace(".ENQ", "COUT", this, item);
      task_out.enqueue(item);
@@ -712,7 +744,10 @@ void
      if( USE_XTRACE )
        Trace::trace(".DEQ", "CINP", this, it);
 
-     if( !operational ) {
+     if( fsm != FSM_READY ) {
+       if( it->fc == FSM_CLOSE )
+         close();
+
        it->post(it->CC_PURGE);
        return;
      }
@@ -729,7 +764,7 @@ void
      if( USE_XTRACE )
        Trace::trace(".DEQ", "COUT", this, it);
 
-     if( !operational ) {
+     if( fsm != FSM_READY ) {
        it->post(it->CC_PURGE);
        return;
      }
@@ -790,26 +825,31 @@ void
        ioda_out.put("\r\n");      // Add header delimiter
 
        // Write the request headers
-       events= FSM_WR_HEAD;       // Update state
+       events= EVT_WR_HEAD;       // Update state
        if( content_length )
-         events |= FSM_WR_DATA;
+         events |= EVT_WR_DATA;
        h_writer();
        rd_complete.wait();          // Wait for HTTP/1 operation completion
        rd_complete.reset();
-     } catch(Exception& X) {
-       errorh("%4d %s %s\n", __LINE__, __FILE__, ((std::string)X).c_str());
-       error(X.what());
      } catch(io_exception& X) {
+       close_enq();
        if( IODM )
          errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
        error(X.what());
+     } catch(Exception& X) {
+       close_enq();
+       errorh("%4d %s %s\n", __LINE__, __FILE__, ((std::string)X).c_str());
+       error(X.what());
      } catch(std::exception& X) {
+       close_enq();
        errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
        error(X.what());
      } catch(const char* X) {
+       close_enq();
        errorh("%4d %s catch(%s)\n", __LINE__, __FILE__, X);
        error(X);
      } catch(...) {
+       close_enq();
        errorh("%4d %s catch(...)\n", __LINE__, __FILE__);
        error("catch(...)");
      }
@@ -825,9 +865,9 @@ void
    h_reader= [this](void)           // (Asynchronous) input data available
    { if( HCDM ) debugh("Client(%p)::h_reader\n", this);
 
-     if( (events & FSM_RD_DATA) == 0 ) { // If unexpected data
+     if( (events & EVT_RD_DATA) == 0 ) { // If unexpected data
        // This SHOULD NOT OCCUR.
-       // We set FSM_RD_DATA *BEFORE* writing the last piece of data.
+       // We set EVT_RD_DATA *BEFORE* writing the last piece of data.
        debugf("%4d Client::h_reader events(%.2x)\n", __LINE__, events);
        return;
      }
@@ -841,20 +881,20 @@ void
    { if( HCDM ) debugh("Client(%p)::h_writer\n", this);
 
      std::shared_ptr<ClientStream> stream= stream_item->stream;
-     if( events & FSM_WR_HEAD ) {      // Write the request header?
-       if( (events & FSM_WR_DATA) == 0 )
-         events |= FSM_RD_DATA;
+     if( events & EVT_WR_HEAD ) {      // Write the request header?
+       if( (events & EVT_WR_DATA) == 0 )
+         events |= EVT_RD_DATA;
 
        ssize_t L= write(__LINE__);
        if( L <= 0 ) {               // If blocked (else io_error exception)
-         events &= ~FSM_RD_DATA;    // (write() updated select event)
+         events &= ~EVT_RD_DATA;    // (write() updated select event)
          return;
        }
 
        // Implementation note: if there's no data, the server could have
        // alreaday received the request and sent the response.
-       events &= ~FSM_WR_HEAD;
-       if( events & FSM_WR_DATA ) { // If there's data to be sent
+       events &= ~EVT_WR_HEAD;
+       if( events & EVT_WR_DATA ) { // If there's data to be sent
          std::shared_ptr<ClientRequest> request= stream->get_request();
          Request& Q= *request.get(); // (Q protected by request)
          ioda_out= std::move(Q.get_ioda());
@@ -864,15 +904,15 @@ void
        ioda_off= 0;
      }
 
-     if( events & FSM_WR_DATA ) {   // Write the request data?
-       events |= FSM_RD_DATA;
+     if( events & EVT_WR_DATA ) {   // Write the request data?
+       events |= EVT_RD_DATA;
        ssize_t L= write(__LINE__);
        if( L <= 0 ) {               // If blocked (else io_error exception)
-         events &= ~FSM_RD_DATA;    // (write() updated select event)
+         events &= ~EVT_RD_DATA;    // (write() updated select event)
          return;
        }
 
-       events &= ~FSM_WR_DATA;
+       events &= ~EVT_WR_DATA;
      }
    }; // h_writer=
 }
@@ -934,6 +974,8 @@ void
        task_inp.enqueue(item);
        return;
      }
+     if( IS_BLOCK )
+       return;
      if( !IS_RETRY )
        break;
      debugf("%4d %s HCDM read retry\n", __LINE__, __FILE__);
@@ -941,7 +983,7 @@ void
 
    // Handle I/O error
    if( L == 0 || (L < 0 && errno == ECONNRESET) ) { // If connection reset
-     close();
+     close_enq();                   // Schedule Client close
      return;
    }
    throw io_error(to_string("Client::read %d:%s", errno, strerror(errno)));
