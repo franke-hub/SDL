@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2022/03/07
+//       2022/12/20
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -63,10 +63,10 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 // Internal data areas and constants
 //----------------------------------------------------------------------------
-static sem_t*          edit_lock= nullptr; // Global semaphore
+// tic sem_t*          edit_lock= nullptr; // Global semaphore
 
 // Constants
-static const char*     const SEM_ID= "/e743e3ac-6816-4878-81a2-b47c9bbc2d37";
+// tic const char*     const SEM_ID= "/e743e3ac-6816-4878-81a2-b47c9bbc2d37";
 
 //----------------------------------------------------------------------------
 // Options
@@ -113,6 +113,7 @@ static int                          // Return code (0 OK)
 //   int               argc,        // Argument count (Unused)
 //   char*             argv[])      // Argument array (Unused)
 {
+#if 0
    //-------------------------------------------------------------------------
    // Insure that no other Editor instance is running
    if( opt_force )                  // (Error recovery)
@@ -124,6 +125,7 @@ static int                          // Return code (0 OK)
      fprintf(stderr, "Editor already running, use --force to override\n");
      exit(EXIT_FAILURE);
    }
+#endif
 
    //-------------------------------------------------------------------------
    // Initialize globals
@@ -138,7 +140,7 @@ static int                          // Return code (0 OK)
    config::opt_test= opt_test;
    config::opt_verbose= opt_verbose;
 
-   return 0;                        // Placeholder
+   return 0;
 }
 
 //----------------------------------------------------------------------------
@@ -153,10 +155,12 @@ static int                          // Return code (0 OK)
 static void
    term( void )                     // Terminate
 {
+#if 0
    if( edit_lock != SEM_FAILED ) {
      sem_close(edit_lock);
      sem_unlink(SEM_ID);
    }
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -347,6 +351,10 @@ extern int                          // Return code
 
    rc= init(argc, argv);            // Initialize
    if( rc ) return rc;              // Return if invalid
+
+   rc= fork();                      // Run in background
+   if( rc )                         // If parent
+     return 0;
 
    Config config(argc, argv);       // Configure
    if( opt_hcdm || opt_verbose >= 0 ) {

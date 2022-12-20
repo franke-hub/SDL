@@ -15,47 +15,46 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2022/08/25
+##       2022/12/20
 ##
 ## Implementation notes-
-##       This is an EXPERIMENTAL project in BETA state.
-##       External and internal interfaces are subject to change.
-##
-##       Find usage and implementation information in "Editor.md"
+##       See ".USAGE.md" for usage and implementation information.
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS: 2022/08/25
-2022/08/25 Redo/Undo on modified line yields inconsistent REDO (crash)
-           FIX: Commit current line before processing redo.
-
-2022/08/25 Disallow change command for read-only files.
+2022/12/20 Immediate fork() on entry with parent task returning.
 
 ##############################################################################
 ## CHANGE LOG:
+2022/08/25 Redo/Undo on modified line yields inconsistent REDO (crash)
+         FIX: Commit current line before processing redo.
+
+2022/08/25 Disallow change command for read-only files.
+
 2022/08/01 MINOR: Looking at trace the EdView temporary copied line was being
-           traced during delete but not when allocated.
-           EdView and EdFile.EdLine now avoid line delete tracing for that
-           temporary line.
+         traced during delete but not when allocated.
+         EdView and EdFile.EdLine now avoid line delete tracing for that
+         temporary line.
 
 2022/03/15 Use Trace::trace functions rather than Config::trace.
-           Use ~/.config/editxcb/ rather than ~/.config/uuid/.../ for debug
-           and trace output.
+         Use ~/.config/editxcb/ rather than ~/.config/uuid/.../ for debug
+         and trace output.
 
 2022/03/29 Use Ctrl-Esc to enter ESC character, just like Ctrl-Tab.
-           Problem: Ctrl-Esc and Alt-Tab are Windows control sequences, so
-           we don't have a clean and common mechanism.
-           Solution: Use sequence `Alt-\` to indicate that the next character
-           is to be "escaped". Added support for Alt-\ + (\b, \t, or \e).
+         Problem: Ctrl-Esc and Alt-Tab are Windows control sequences, so
+         we don't have a clean and common mechanism.
+         Solution: Use sequence `Alt-\` to indicate that the next character
+         is to be "escaped". Added support for Alt-\ + (\b, \t, or \e).
 
 2022/02/23 Synchronization commit. Added .README TODOs (only.)
 
 2021/12/21 Usability: Added "list" command to display the command list
-           Usability: Hitting F4 again removes the "No Files Changed" message
+         Usability: Hitting F4 again removes the "No Files Changed" message
 
 2021/10/01 Fix: EdView.draw_active uses EdText.draw_line for display.
-           (EdHist.draw_active writes line directly.)
+         (EdHist.draw_active writes line directly.)
 
 2021/09/08 Mark display update works improperly when line changed.
 
@@ -197,15 +196,17 @@
 
 ##############################################################################
 ## TODO:
+2022/12/20 Rename EdText => EdDraw and clean up separation from EdInps.
+         Consider making the EdText method calls in EdInps inline similar to
+         editor::draw->method() in EdInps.h.
+
 2022/04/11 Implement system clipboard.
 
 2022/04/11 Run detab command in background. Use one undo/redo for the entire
-           detab. Find first/last detab lines; Those bound the detab.
-
-2022/02/22 Run as a thread so that exitxcb has same window appearance as xterm
+         detab. Find first/last detab lines; Those bound the detab.
 
 2022/02/18 Add DIR command, DIR load, Copy block to history
-           Special handling for these DIR/BUFFER files
+         Special handling for these DIR/BUFFER files
 
 2021/07/03 Clone view (named view://filename)
          Clone a file for split viewing. The view is read-only.
@@ -239,6 +240,11 @@
          If directory, load R/O file list, selectable files/directories
 
 2020/07/28 Background file loader. Synch with EdText
+
+##############################################################################
+## DONE:
+2022/02/22 Run as a thread so that exitxcb has same window appearance as xterm
+2022/12/20 Only needed fork() in Edit.cpp
 
 ##############################################################################
 ## DEFERRED:
