@@ -16,7 +16,7 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2022/12/16
+//       2022/12/19
 //
 // Implementation notes-
 //       TODO: Create ClientListen and ServerListen, used by ClientAgent.
@@ -299,7 +299,6 @@ void
    // Validate the socket family
    const sockaddr_u& id= socket->get_peer_addr(); // ConnectionID
    if( !Socket::is_valid(id.su_af) ) { // If invalid socket family
-debugf("%4d host(%s) peer(%s)\n", __LINE__, socket->get_host_addr().to_string().c_str(), socket->get_peer_addr().to_string().c_str());
      trace(__LINE__, "sa_family(%d)", id.su_af);
      delete socket;
      return;
