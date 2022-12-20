@@ -61,21 +61,13 @@ enum // Compilation controls
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
-// Internal data areas and constants
-//----------------------------------------------------------------------------
-// tic sem_t*          edit_lock= nullptr; // Global semaphore
-
-// Constants
-// tic const char*     const SEM_ID= "/e743e3ac-6816-4878-81a2-b47c9bbc2d37";
-
-//----------------------------------------------------------------------------
 // Options
 //----------------------------------------------------------------------------
 static int             opt_help= false; // --help (or error)
 static int             opt_hcdm= false; // Hard Core Debug Mode
 static int             opt_index;   // Option index
 
-static int             opt_force= false; // Force editor start?
+static int             opt_bg= true; // Run editor in background?
 static const char*     opt_test= nullptr; // The test, if specified
 static int             opt_verbose= -1; // Verbosity
 
@@ -84,7 +76,7 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 {  {"help",    no_argument,       &opt_help,    true} // --help
 ,  {"hcdm",    no_argument,       &opt_hcdm,    true} // --hcdm
 
-,  {"force",   no_argument,       &opt_force,   true} // --force
+,  {"fg",      no_argument,       &opt_bg,      false} // --fg
 ,  {"test",    required_argument, nullptr,      0} // --test {required}
 ,  {"verbose", optional_argument, &opt_verbose, 0} // --verbose {optional}
 ,  {0, 0, 0, 0}                     // (End of option list)
@@ -94,7 +86,7 @@ enum OPT_INDEX                      // Must match OPTS[]
 {  OPT_HELP
 ,  OPT_HCDM
 
-,  OPT_FORCE
+,  OPT_FG
 ,  OPT_TEST
 ,  OPT_VERBOSE
 };
@@ -113,24 +105,9 @@ static int                          // Return code (0 OK)
 //   int               argc,        // Argument count (Unused)
 //   char*             argv[])      // Argument array (Unused)
 {
-#if 0
-   //-------------------------------------------------------------------------
-   // Insure that no other Editor instance is running
-   if( opt_force )                  // (Error recovery)
-     sem_unlink(SEM_ID);            // (Allow exclusive create)
-
-// edit_lock= sem_open(SEM_ID, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0);
-   edit_lock= sem_open(SEM_ID, O_CREAT, S_IRUSR | S_IWUSR, 0);
-   if( edit_lock == SEM_FAILED ) {  // If cannot create semaphore
-     fprintf(stderr, "Editor already running, use --force to override\n");
-     exit(EXIT_FAILURE);
-   }
-#endif
-
    //-------------------------------------------------------------------------
    // Initialize globals
    setlocale(LC_NUMERIC, "");       // Allows printf("%'d\n", 123456789);
-// fprintf(stderr, "%4d Edit::init(%'d) ?commas?\n", __LINE__, 123456789);
 
    gui::opt_hcdm= opt_hcdm;         // Expose options
    gui::opt_test= opt_test;
@@ -155,12 +132,7 @@ static int                          // Return code (0 OK)
 static void
    term( void )                     // Terminate
 {
-#if 0
-   if( edit_lock != SEM_FAILED ) {
-     sem_close(edit_lock);
-     sem_unlink(SEM_ID);
-   }
-#endif
+   // Place holder
 }
 
 //----------------------------------------------------------------------------
@@ -181,6 +153,7 @@ static int                          // Return code (Always 1)
                    "  --help\tThis help message\n"
                    "  --hcdm\tHard Core Debug Mode\n"
 
+                   "  --fg\t\tRun editor in foreground\n"
                    "  --verbose\t{=n} Verbosity, default 0\n"
                    , __FILE__
           );
@@ -273,7 +246,7 @@ static int                          // Return code (0 if OK)
          {
            case OPT_HELP:           // These options handled by getopt
            case OPT_HCDM:
-           case OPT_FORCE:
+           case OPT_FG:
              break;
 
            case OPT_TEST:
@@ -352,15 +325,17 @@ extern int                          // Return code
    rc= init(argc, argv);            // Initialize
    if( rc ) return rc;              // Return if invalid
 
-   rc= fork();                      // Run in background
-   if( rc )                         // If parent
-     return 0;
+   if( opt_bg ) {                   // If run in background
+     rc= fork();
+     if( rc )
+       return 0;
+   }
 
    Config config(argc, argv);       // Configure
    if( opt_hcdm || opt_verbose >= 0 ) {
      Config::errorf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
-     Config::errorf("--hcdm(%d) --verbose(%d) --force(%d)\n"
-                   , opt_hcdm, opt_verbose, opt_force);
+     Config::errorf("--hcdm(%d) --verbose(%d) --fg(%d)\n"
+                   , opt_hcdm, opt_verbose, !opt_bg);
    }
 
    //-------------------------------------------------------------------------
