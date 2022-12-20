@@ -16,12 +16,19 @@
 ##       Update apt.all-versions and apt.installed files
 ##
 ## Last change date-
-##       2019/10/07
+##       2019/12/18
 ##
 ## Usage-
-##       apt.status
+##       apt.status {anything}
 ##
 ##############################################################################
-apt list --all-versions >apt.all-versions
-apt list --installed >apt.installed
+
+if [[ "$1" == "" ]] ; then
+   apt list --all-versions >apt.all-versions
+   apt list --installed >apt.installed
+else
+## Any parameter invokes commands directly, allowing gpg key acceptance
+   apt list --all-versions
+   apt list --installed
+fi
 
