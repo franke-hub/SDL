@@ -16,7 +16,7 @@
 ##       Set up EDITOR environment variable (heuristic.)
 ##
 ## Last change date-
-##       2021/10/04
+##       2022/12/28
 ##
 ## Usage-
 ##       . setupEDIT
@@ -30,8 +30,8 @@
 ##############################################################################
 ## Heuristic: set EDITOR environment variable
 if [[ -z "$DISPLAY" ]] ; then       ## If no DISPLAY environment variable
-    export EDITOR=$HOME/bin/editor  ## (Must) use ncurses editor
+   export EDITOR=$HOME/bin/editor   ## (Must) use ncurses editor
 elif [[ -z "$EDITOR" ]] ; then      ## If not already specified
-    export EDITOR=$HOME/bin/editxcb ## Use XCB editor
+   export EDITOR="$HOME/bin/editxcb --fg" ## Use XCB editor
 fi
 unset CYGWIN
