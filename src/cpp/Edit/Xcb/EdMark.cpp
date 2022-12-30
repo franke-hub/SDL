@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2022/03/15
+//       2022/12/29
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -27,7 +27,7 @@
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile, EdLine, EdRedo
 #include "EdMark.h"                 // For EdMark (Implementation class)
-#include "EdText.h"                 // For EdText
+#include "EdTerm.h"                 // For EdTerm
 #include "EdView.h"                 // For EdView
 
 using namespace pub::debugging;     // For debugging
@@ -317,8 +317,8 @@ const char*                         // Error message, nullptr expected
          line->text= editor::allocate(text);
        if( from == editor::data->cursor) // If modifying the cursor line
          repC= line;                // (Replace it after insertion)
-       if( from == editor::text->head ) // If modifying the head screen line
-         editor::text->head= line;  // (Replace it now)
+       if( from == editor::term->head ) // If modifying the head screen line
+         editor::term->head= line;  // (Replace it now)
        if( line == copy.tail )
          break;
        from= from->get_next();
@@ -337,10 +337,10 @@ const char*                         // Error message, nullptr expected
      if( mark_file->csr_line->flags & EdLine::F_MARK )
        mark_file->activate(mark_head->get_prev());
      else {
-       EdLine* head= editor::text->head; // (The top screen data line)
+       EdLine* head= editor::term->head; // (The top screen data line)
        for(EdLine* line= mark_head; line; line= line->get_next()) {
          if( line == head ) {
-           editor::text->head= mark_head->get_prev();
+           editor::term->head= mark_head->get_prev();
            break;
          }
          if( line == mark_tail )

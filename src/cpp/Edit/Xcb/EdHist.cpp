@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2022/04/11
+//       2022/12/29
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -34,7 +34,7 @@
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For namespace editor
 #include "EdHist.h"                 // For EdHist
-#include "EdText.h"                 // For EdText
+#include "EdTerm.h"                 // For EdTerm
 
 using namespace config;             // For opt_* variables
 using namespace pub::debugging;     // For debugging
@@ -47,7 +47,7 @@ enum // Compilation controls
 ,  USE_BRINGUP= false               // Extra bringup diagnostics?
 }; // Compilation controls
 
-static const int       MAX_HISTORY= 32; // Maximum history size
+static const int       MAX_HISTORY= 128; // Maximum number of history lines
 
 //----------------------------------------------------------------------------
 //
@@ -117,8 +117,8 @@ xcb_gcontext_t                       // The current graphic context
 {
    using namespace editor;
    if( file->changed || file->damaged || data->active.get_changed() )
-     return text->gc_chg;
-   return text->gc_sts;
+     return term->gc_chg;
+   return term->gc_sts;
 }
 
 //----------------------------------------------------------------------------
@@ -134,7 +134,7 @@ void
    EdHist::activate( void )         // Activate the history view
 {  if( HCDM || opt_hcdm ) traceh("EdHist(%p)::actiate\n", this);
 
-   editor::text->undo_cursor();
+   editor::term->undo_cursor();
    col_zero= col= 0;                // Start in column 0
    cursor= nullptr;
    active.reset("");
@@ -153,12 +153,12 @@ void
 void
    EdHist::draw_active( void )      // Redraw the active line
 {
-   EdText* text= editor::text;
-   active.index(col_zero+text->col_size); // Blank fill
-   text->putxy(get_gc(), text->get_xy(0, row), active.get_buffer(col_zero));
+   EdTerm* term= editor::term;
+   active.index(col_zero+term->col_size); // Blank fill
+   term->putxy(get_gc(), term->get_xy(0, row), active.get_buffer(col_zero));
    if( editor::view == this )
-     text->draw_cursor();
-   text->flush();
+     term->draw_cursor();
+   term->flush();
 }
 
 //----------------------------------------------------------------------------
@@ -189,7 +189,7 @@ void
    int C= *((const unsigned char*)buffer);
    if( C == '\0' ) {                // Empty line: ignore
 //   editor::data->activate();      // (Use ESC to exit history view)
-//   editor::text->draw_info();
+//   editor::term->draw_head();
      return;
    }
 
@@ -225,7 +225,7 @@ void
    active.reset(text);              // Reset the (mutated) buffer
    cursor= nullptr;                 // Reset the cursor
 
-   editor::text->draw_info();
+   editor::term->draw_head();
 }
 
 //----------------------------------------------------------------------------
@@ -240,7 +240,7 @@ void
 const char*                         // Get the active buffer
    EdHist::get_buffer( void )       // Get the active buffer
 {
-   active.index(col_zero + 256);    // Blank fill
+   active.index(col_zero + 1024);   // Blank fill
    const char* text= active.get_buffer(col_zero);
    return text;
 }
@@ -282,5 +282,5 @@ void
 
    col_zero= col= 0;
    active.reset(cursor->text);
-   editor::text->draw_info();
+   editor::term->draw_head();
 }

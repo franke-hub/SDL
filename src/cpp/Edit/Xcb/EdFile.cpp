@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2022/08/23
+//       2022/12/29
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -43,7 +43,7 @@
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile, EdLine, EdRedo
 #include "EdMark.h"                 // For EdMark
-#include "EdText.h"                 // For EdText
+#include "EdTerm.h"                 // For EdTerm
 #include "EdView.h"                 // For EdView
 
 using namespace config;             // For config::opt_*
@@ -280,7 +280,7 @@ static void
    }
 
    editor::file->mode= mode;        // Update the mode
-   editor::text->draw_info();       // And redraw
+   editor::term->draw_head();       // And redraw
 }
 
 //============================================================================
@@ -390,7 +390,7 @@ size_t                              // The row number
 //       Debugging display.
 //
 // Implementation notes-
-//       If the file is active, text->synch_file updates the state and commits
+//       If the file is active, term->synch_file updates the state and commits
 //       the active line
 //
 //----------------------------------------------------------------------------
@@ -406,7 +406,7 @@ void
          , info ? info : "", get_name().c_str());
 
    if( this == editor::file )       // If this is the active file
-     editor::text->synch_file(this); // Get current text state
+     editor::term->synch_file(this); // Get current terminal state
    debugf("..mode(%d) changed(%s) damaged(%s) protect(%s)\n"
          , mode, TF(changed), TF(damaged), TF(protect));
    debugf("..top_line(%p) csr_line(%p)\n", top_line, csr_line);
@@ -452,7 +452,7 @@ void
      EdLine*           line)        // This line
 {
    if( this == editor::file ) {     // If the file is active
-     editor::text->activate(line);
+     editor::term->activate(line);
    } else {                         // If the file is off-screen
      top_line= csr_line= line;
      col_zero= col= row= 0;
@@ -661,7 +661,7 @@ void
      S += ": Click here to continue";
    mess_list.fifo(new EdMess(S, type_));
    if( editor::file == this )       // (Only if this file is active)
-     editor::text->draw_info();     // (Otherwise, message is deferred)
+     editor::term->draw_head();     // (Otherwise, message is deferred)
 }
 
 int                                 // TRUE if message removed or remain
@@ -752,8 +752,8 @@ void
 
    changed= true;                   // File changed
    editor::mark->handle_redo(this, redo);
-   editor::text->activate(line);
-   editor::text->draw();
+   editor::term->activate(line);
+   editor::term->draw();
    undo_list.lifo(redo);            // Move REDO to UNDO list
    if( redo->head_insert )          // If lines inserted
      chg_mode(redo->head_insert, redo->tail_insert);
@@ -799,8 +799,8 @@ void
    }
 
    editor::mark->handle_undo(this, undo);
-   editor::text->activate(line);
-   editor::text->draw();
+   editor::term->activate(line);
+   editor::term->draw();
    redo_list.lifo(undo);            // Move UNDO to REDO list
    if( undo->head_remove )          // If lines removed
      chg_mode(undo->head_remove, undo->tail_remove);

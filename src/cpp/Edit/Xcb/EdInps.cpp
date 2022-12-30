@@ -13,10 +13,10 @@
 //       EdInps.cpp
 //
 // Purpose-
-//       Editor: Implement EdText.h keyboard and mouse event handlers.
+//       Editor: Implement EdTerm.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2022/04/09
+//       2022/12/29
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -287,14 +287,14 @@ static int                          // Return code, TRUE if error message
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::key_alt
+//       EdTerm::key_alt
 //
 // Purpose-
 //       Handle alt-key event
 //
 //----------------------------------------------------------------------------
 void
-   EdText::key_alt(                 // Handle this
+   EdTerm::key_alt(                 // Handle this
      xcb_keysym_t      key)         // Alt_Key input event
 {
    EdView* const data= editor::data;
@@ -364,7 +364,7 @@ void
        if( file == mark_file )
          draw();
        else
-         draw_info();               // (Remove "No Mark" message)
+         draw_head();               // (Remove "No Mark" message)
        break;
      }
      case '\\': {                   // Escape
@@ -373,21 +373,21 @@ void
      }
      default:
        editor::put_message("Invalid key");
-       draw_info();
+       draw_head();
    }
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::key_ctl
+//       EdTerm::key_ctl
 //
 // Purpose-
 //       Handle ctl-key event
 //
 //----------------------------------------------------------------------------
 void
-   EdText::key_ctl(                 // Handle this
+   EdTerm::key_ctl(                 // Handle this
      xcb_keysym_t      key)         // Ctrl_Key input event
 {
    EdView* const data= editor::data;
@@ -421,14 +421,14 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::key_input
+//       EdTerm::key_input
 //
 // Purpose-
 //       Handle keypress event
 //
 //----------------------------------------------------------------------------
 void
-   EdText::key_input(               // Handle this
+   EdTerm::key_input(               // Handle this
      xcb_keysym_t      key,         // Key input event
      int               state)       // Alt/Ctl/Shift state mask
 {
@@ -440,7 +440,7 @@ void
    const char* key_name= key_to_name(key);
    Trace::trace(".KEY", (state<<16) | (key & 0x0000ffff), key_name);
    if( opt_hcdm ) {
-     debugh("EdText(%p)::key_input(0x%.4x,%.4x) '%s'\n", this
+     debugh("EdTerm(%p)::key_input(0x%.4x,%.4x) '%s'\n", this
            , key, state, key_name);
    }
 
@@ -472,7 +472,7 @@ void
    // Handle input key
    file->rem_message_type();        // Remove informational message
    if( file->mess_list.get_head() ) { // If any message remains
-     draw_info();
+     draw_head();
      return;
    }
 
@@ -507,7 +507,7 @@ void
        view->active.replace_char(column, key);
        move_cursor_H(column + 1);
      }
-     draw_info();
+     draw_head();
      draw_cursor();
      flush();
 
@@ -569,7 +569,7 @@ void
        view->active.remove_char(column);
        view->active.append_text(" ");
        view->draw_active();
-       draw_info();
+       draw_head();
        break;
      }
      case XK_Escape: {              // Escape: Invert the view
@@ -578,7 +578,7 @@ void
      }
      case XK_Insert: {              // Insert key
        keystate ^= KS_INS;          // Invert the insert state
-       draw_info();
+       draw_head();
        break;
      }
      case XK_Return: {
@@ -633,7 +633,7 @@ void
      }
      case XK_F4: {                  // Test changed
        if( status & SF_NFC_MESSAGE )
-         draw_info();
+         draw_head();
        else {
          if( editor::un_changed() ) {
            editor::put_message("No files changed");
@@ -686,7 +686,7 @@ void
      case XK_F11: {                 // Undo
        if( data->active.undo() ) {
          data->draw_active();
-         draw_info();
+         draw_head();
        } else
          file->undo();
        break;
@@ -706,7 +706,7 @@ void
          view->col_zero= 0;
          draw();
        } else
-         draw_info();
+         draw_head();
 
        draw_cursor();
        flush();
@@ -752,10 +752,10 @@ void
 }
 
 //============================================================================
-// EdText::Event handlers
+// EdTerm::Event handlers
 //============================================================================
 void
-   EdText::button_press(            // Handle this
+   EdTerm::button_press(            // Handle this
      xcb_button_press_event_t* event) // Button press event
 {
    EdView* const data= editor::data;
@@ -777,21 +777,21 @@ void
 
    switch( E.detail ) {
      case gui::BT_LEFT: {           // Left button
-       if( button_row < USER_TOP ) { // If on command/history line
+       if( button_row < USER_TOP ) { // If on top of screen
          if( !file->rem_message() ) { // If not message removed
            if( view == hist )       // If history active
              move_cursor_H(hist->col_zero + get_col(E.event_x)); // Update column
            else
              hist->activate();
          }
-         draw_info();
+         draw_head();
          break;
        }
 
        // Button press is on data screen
        if( view == hist ) {         // If history active
          data->activate();
-         draw_info();
+         draw_head();
        }
 
        if( button_row != data->row ) { // If row changed
@@ -803,9 +803,9 @@ void
        break;
      }
      case gui::BT_RIGHT: {          // Right button
-       if( button_row < USER_TOP ) {
+       if( button_row < USER_TOP ) { // If on top of screen
          if( file->rem_message() ) { // If message removed
-           draw_info();
+           draw_head();
            break;
          }
 
@@ -837,7 +837,7 @@ void
 }
 
 void
-   EdText::client_message(          // Handle this
+   EdTerm::client_message(          // Handle this
      xcb_client_message_event_t* E) // Client message event
 {
    if( opt_hcdm )
@@ -848,29 +848,29 @@ void
 }
 
 void
-   EdText::configure_notify(        // Handle this
+   EdTerm::configure_notify(        // Handle this
      xcb_configure_notify_event_t* E) // Configure notify event
 {
    if( opt_hcdm )
-     debugh("EdText(%p)::configure_notify(%d,%d)\n", this
+     debugh("EdTerm(%p)::configure_notify(%d,%d)\n", this
            , E->width, E->height);
 
    resize(E->width, E->height);
 }
 
 void
-   EdText::expose(                  // Handle this
+   EdTerm::expose(                  // Handle this
      xcb_expose_event_t* E)         // Expose event
 {
    if( opt_hcdm )
-     debugh("EdText(%p)::expose(%d) %d [%d,%d,%d,%d]\n", this
+     debugh("EdTerm(%p)::expose(%d) %d [%d,%d,%d,%d]\n", this
            , E->window, E->count, E->x, E->y, E->width, E->height);
 
    draw();
 }
 
 void
-   EdText::focus_in(                // Handle this
+   EdTerm::focus_in(                // Handle this
      xcb_focus_in_event_t* E)       // Focus-in event
 {
    if( opt_hcdm && opt_verbose >= 0 )
@@ -883,7 +883,7 @@ void
 }
 
 void
-   EdText::focus_out(               // Handle this
+   EdTerm::focus_out(               // Handle this
      xcb_focus_out_event_t* E)      // Focus-out event
 {
    if( opt_hcdm && opt_verbose >= 0 )
@@ -895,7 +895,7 @@ void
 }
 
 void
-   EdText::motion_notify(           // Handle this
+   EdTerm::motion_notify(           // Handle this
      xcb_motion_notify_event_t* E)  // Motion notify event
 {
    if( opt_hcdm && opt_verbose >= 0 )

@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2022/09/11
+//       2022/12/29
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -37,7 +37,7 @@ class EdFile;                       // Editor file descriptor
 class EdHist;                       // Editor history view
 class EdMark;                       // Editor mark controller
 class EdPool;                       // Editor pool allocators
-class EdText;                       // Editor text Window
+class EdTerm;                       // Editor terminal controller
 class EdView;                       // Editor view
 
 //----------------------------------------------------------------------------
@@ -116,7 +116,7 @@ namespace editor {                  // The Editor namespace
 //----------------------------------------------------------------------------
 // editor::Global attributes
 //----------------------------------------------------------------------------
-extern EdText*         text;        // The Text Window
+extern EdTerm*         term;        // The Terminal controller
 
 extern pub::List<EdFile> file_list; // The list of EdFiles
 extern EdFile*         file;        // The current File object

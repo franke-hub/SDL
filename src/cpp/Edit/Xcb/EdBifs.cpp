@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2022/09/15
+//       2022/12/29
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -30,7 +30,7 @@
 #include "EdFile.h"                 // For EdFile, EdLine
 #include "EdHist.h"                 // For EdHist
 #include "EdMark.h"                 // For EdMark
-#include "EdText.h"                 // For EdText
+#include "EdTerm.h"                 // For EdTerm
 
 using namespace pub::debugging;     // For debugging
 using namespace config;             // For opt_* controls
@@ -269,9 +269,9 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_bot(char*)               // Bottom command
 {
-   using namespace editor;          // For editor::data, hist, text
+   using namespace editor;          // For editor::data, hist, term
    data->col_zero= data->col= 0;
-   text->activate(file->line_list.get_tail());
+   term->activate(file->line_list.get_tail());
    hist->activate();                // (Remain in command mode)
    return nullptr;
 }
@@ -343,8 +343,8 @@ static const char*                  // Error message, nullptr expected
      editor::file->debug("lines");
    else if( strcasecmp(parm, "mark") == 0 )
      editor::mark->debug("command");
-   else if( strcasecmp(parm, "text") == 0 )
-     editor::text->debug("command");
+   else if( strcasecmp(parm, "term") == 0 )
+     editor::term->debug("command");
    else if( strcasecmp(parm, "view") == 0 ) {
      editor::data->debug("command");
      editor::hist->debug("command");
@@ -361,7 +361,7 @@ static const char*                  // Error message, nullptr expected
 {
    EdView* data= editor::data;
    EdFile* file= editor::file;
-   EdLine* top= editor::text->head; // Save the head line
+   EdLine* top= editor::term->head; // Save the head line
    EdLine* cur= data->cursor;       // Save the cursor line
 
    if( file->protect )              // Do not modify protected files
@@ -397,14 +397,14 @@ static const char*                  // Error message, nullptr expected
        if( line == cur )
          cur= data->cursor;
        if( line == top )
-         editor::text->head= data->cursor;
+         editor::term->head= data->cursor;
      }
    }
 
    // Reset the active line and redraw (whether or not needed)
    data->cursor= cur;
    data->active.reset(cur->text);
-   editor::text->draw();
+   editor::term->draw();
 
    return nullptr;
 }
@@ -426,8 +426,8 @@ static const char*                  // Error message, nullptr expected
    }
 
    if( editor::file != editor::last ) {
-     editor::text->activate(editor::last);
-     editor::text->draw();
+     editor::term->activate(editor::last);
+     editor::term->draw();
    }
    editor::hist->activate();
 
@@ -542,8 +542,8 @@ static const char*                  // Error message, nullptr expected
    }
 
    editor::data->activate();
-   editor::text->move_cursor_H(0);
-   editor::text->activate(editor::file->get_line(number));
+   editor::term->move_cursor_H(0);
+   editor::term->activate(editor::file->get_line(number));
 
    return nullptr;
 }
@@ -651,9 +651,9 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_top(char*)               // Top command
 {
-   using namespace editor;          // For editor::data, hist, text
+   using namespace editor;          // For editor::data, hist, term
    data->col_zero= data->col= 0;
-   text->activate(file->line_list.get_head());
+   term->activate(file->line_list.get_head());
    hist->activate();                // (Remain in command mode)
    return nullptr;
 }
@@ -675,8 +675,8 @@ static const char*                  // Error message, nullptr expected
    }
 
    if( editor::file != editor::last ) {
-     editor::text->activate(editor::last);
-     editor::text->draw();
+     editor::term->activate(editor::last);
+     editor::term->draw();
    }
    editor::hist->activate();
 

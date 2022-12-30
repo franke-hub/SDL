@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2022/09/11
+//       2022/12/29
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -50,7 +50,7 @@
 #include "EdMark.h"                 // For EdMark
 #include "EdMisc.h"                 // For EdMisc TODO: REMOVE
 #include "EdPool.h"                 // For EdPool
-#include "EdText.h"                 // For EdText
+#include "EdTerm.h"                 // For EdTerm
 #include "EdView.h"                 // For EdView
 
 using namespace config;             // For namespace config (opt_*)
@@ -71,7 +71,7 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-EdText*                editor::text= nullptr; // The Text Window
+EdTerm*                editor::term= nullptr; // The terminal controller
 
 pub::List<EdFile>      editor::file_list; // The list of EdFiles
 EdFile*                editor::file= nullptr; // The current File
@@ -173,8 +173,8 @@ static const char*                  // Return message, nullptr if OK
        const char* C= A.resize(column - 1);
        const char* M= last_strstr(C, S);
        if( M != nullptr ) {
-         text->move_cursor_H(M - C);
-         text->draw_info();
+         term->move_cursor_H(M - C);
+         term->draw_head();
          return nullptr;
        }
      }
@@ -186,8 +186,8 @@ static const char*                  // Return message, nullptr if OK
      if( (line->flags & EdLine::F_PROT) == 0 ) {
        const char* M= last_strstr(line->text, S);
        if( M != nullptr ) {
-         text->activate(line);
-         text->move_cursor_H(M - line->text);
+         term->activate(line);
+         term->move_cursor_H(M - line->text);
          return nullptr;
        }
      }
@@ -201,8 +201,8 @@ static const char*                  // Return message, nullptr if OK
        if( (line->flags & EdLine::F_PROT) == 0 ) {
          const char* M= last_strstr(line->text, S);
          if( M != nullptr ) {
-           text->activate(line);
-           text->move_cursor_H(M - line->text);
+           term->activate(line);
+           term->move_cursor_H(M - line->text);
            put_message("Wrapped");
            return nullptr;
          }
@@ -238,7 +238,7 @@ static const char*                  // Return message, nullptr if OK
    // Allocate editor namespace objects
    actalt= new Active();            // An Active work area
    active= new Active();            // An Active work area
-   text= new EdText();              // Text (window) handler
+   term= new EdTerm();              // Terminal controller
    data= new EdView();              // Data view
    hist= new EdHist();              // History view
    mark= new EdMark();              // Mark handler
@@ -256,69 +256,9 @@ static const char*                  // Return message, nullptr if OK
    if( file_list.get_head() == nullptr ) // Always have something
      insert_file(nullptr);          // Even if it's an empty file
 
-   // Select-a-Config ========================================================
-   if( opt_test ) {                 // If optional test selected
-     std::string test= opt_test;    // The test name (For string == function)
-     if( test == "miscwindow" ) { // EdText overlayed with EdMisc
-       // Result: EdMisc over EdText window, as expected
-       //   Device->EdText->EdMisc
-       window= new EdMisc(text, "Misc00", 64, 64);
-       device->insert(text);
-
-     } else if( test == "textwindow" ) { // EdText (only)
-       device->insert(text);
-
-     } else if( test == "bot-only" ) { // EdText visible
-       // Result: EdMisc only appears after screen enlarged
-       //   Device->Row->(EdText,EdMisc)
-       gui::RowLayout* row= new gui::RowLayout(device, "Row");
-       window= new EdMisc(nullptr, "Bottom", 64, 64);
-       row->insert( text );
-       row->insert( window );
-
-     } else if( test == "top-only" ) { // (small horizontal window)
-       // Result: No window visible
-       //   Device->Row->(Top,EdText)
-       gui::RowLayout* row= new gui::RowLayout(device, "Row");
-       window= new EdMisc(nullptr, "Top", 64, 14);
-       row->insert( window );
-       row->insert( text );         // Not visible
-
-     } else if( test == "left-only" ) { // (small vertial window)
-       // Result: No window visible
-       //   Device->Col->(EdMisc,EdText)
-       //   (CLOSE Window checkstop: Bad Window when closing window)
-       gui::ColLayout* col= new gui::ColLayout(device, "Col");
-       window= new EdMisc(nullptr, "Left", 14, 64);
-       col->insert(window);         // Apparently visible
-       col->insert(text);           // Not visible
-
-     } else if( test == "layout" ) { // (small horizontal window)
-       // Result: EdText does not appear even after screen enlarged
-       //   (No expose events. EdText parent "Left")
-       //   Device->Row->(Top,Col->(Left,EdText),Bottom)
-       //   (CLOSE Window OK, No EdText so no Ctrl-Q)
-       gui::RowLayout* row= new gui::RowLayout(device, "Row");
-       window= new EdMisc(nullptr, "Top", 64, 14);
-       row->insert( window );
-
-       gui::ColLayout* col= new gui::ColLayout(row, "Col"); // (Row->insert(col))
-       if( false ) row->insert( col ); // (Tests duplicate insert)
-       col->insert( new EdMisc(nullptr, "Left", 14, 64) );
-       col->insert( text );
-
-       row->insert( new EdMisc(nullptr, "Bottom", 64, 14));
-
-     } else {
-       errorf("Test(%s) not available\n", opt_test);
-       exit(EXIT_FAILURE);
-     }
-
-     errorf("Test(%s) selected\n", opt_test);
-   } else {                         // Default: textwindow ==================
-     device->insert(text);
-   }
-   // Select-a-Config ========================================================
+   //-------------------------------------------------------------------------
+   // Activate the terminal
+   device->insert(term);
 }
 
 //----------------------------------------------------------------------------
@@ -348,7 +288,7 @@ static const char*                  // Return message, nullptr if OK
    // Delete allocated objects
    delete actalt;
    delete active;
-   delete text;
+   delete term;
    delete data;
    delete hist;
    delete mark;
@@ -369,7 +309,7 @@ void
      const char*       info)        // Associated info
 {
    debugf("Editor::debug(%s)\n", info ? info : "");
-   debugf("..device(%p) window(%p) text(%p)\n", device, window, text);
+   debugf("..device(%p) window(%p) term(%p)\n", device, window, term);
    debugf("..mark(%p) data(%p) hist(%p) view(%p)\n", mark, data, hist, view);
    debugf("..locate[%s] change[%s]\n"
          , locate_string.c_str(), change_string.c_str());
@@ -575,7 +515,7 @@ const char*                         // Return message, nullptr if OK
    size_t column= data->col_zero + data->col; // The current column
    size_t length= locate_string.length();
    data->active.replace_text(column, length, change_string.c_str());
-   text->draw();                    // (Only active line redraw required)
+   term->draw();                    // (Only active line redraw required)
    return nullptr;
 }
 
@@ -606,8 +546,8 @@ const char*                         // Return message, nullptr if OK
      if( memcmp(line->text, S, L) == 0 ) {
        if( line->get_next() ) {     // If not "end of file" line
          data->activate();
-         text->activate(line);
-         text->move_cursor_H(0);
+         term->activate(line);
+         term->move_cursor_H(0);
          return nullptr;
        }
      }
@@ -620,8 +560,8 @@ const char*                         // Return message, nullptr if OK
      for(line= line->get_next(); line; line= line->get_next()) {
        if( memcmp(line->text, S, L) == 0 && line->get_next() ) {
          data->activate();
-         text->activate(line);
-         text->move_cursor_H(0);
+         term->activate(line);
+         term->move_cursor_H(0);
          put_message("Wrapped");
          return nullptr;
        }
@@ -679,7 +619,7 @@ const char*                         // Error message, nullptr expected
    file->redo_insert(redo);
    mark->handle_redo(file, redo);
    file->activate(tail);            // (Activate the newly inserted line)
-   text->draw();                    // And redraw
+   term->draw();                    // And redraw
 
    return nullptr;
 }
@@ -731,7 +671,7 @@ const char*                         // Return message, nullptr expected
    mark->handle_redo(file, redo);
    data->active.reset(line->text);
    file->activate(line);
-   text->draw();
+   term->draw();
 
    return nullptr;
 }
@@ -766,8 +706,8 @@ const char*                         // Return message, nullptr if OK
      if( M != nullptr ) {
        data->activate();
        column += M - C;
-       text->move_cursor_H(column);
-       text->draw_info();
+       term->move_cursor_H(column);
+       term->draw_head();
        return nullptr;
      }
    }
@@ -779,8 +719,8 @@ const char*                         // Return message, nullptr if OK
        const char* M= edit_strstr(line->text, S);
        if( M != nullptr ) {
          data->activate();
-         text->activate(line);
-         text->move_cursor_H(M - line->text);
+         term->activate(line);
+         term->move_cursor_H(M - line->text);
          return nullptr;
        }
      }
@@ -795,8 +735,8 @@ const char*                         // Return message, nullptr if OK
          const char* M= edit_strstr(line->text, S);
          if( M != nullptr ) {
            data->activate();
-           text->activate(line);
-           text->move_cursor_H(M - line->text);
+           term->activate(line);
+           term->move_cursor_H(M - line->text);
            put_message("Wrapped");
            return nullptr;
          }
@@ -897,8 +837,8 @@ const char*                         // Error message, nullptr expecte3d
    head->text= allocate(H.truncate()); // Set head line text
 
    A.reset(head->text);             // (Discards the working buffer content)
-   text->activate(head);
-   text->draw();
+   term->activate(head);
+   term->draw();
 
    return nullptr;
 }
@@ -917,10 +857,10 @@ void
 {
    if( view == hist ) {
      data->activate();
-     text->draw_cursor();
-     text->flush();
+     term->draw_cursor();
+     term->flush();
    } else {
-     text->undo_cursor();
+     term->undo_cursor();
      hist->activate();
    }
 }
@@ -1061,8 +1001,8 @@ void
      delete file;                   // And delete it
      editor::file= nullptr;         // (Don't reference it any more)
 
-     text->activate(next);
-     text->draw();
+     term->activate(next);
+     term->draw();
    }
 }
 
@@ -1087,9 +1027,9 @@ bool                                // TRUE if editor in unchanged state
 
    for(EdFile* file= file_list.get_head(); file; file= file->get_next()) {
      if( file->changed && !file->damaged ) { // If changed and changeable
-       text->activate(file);
+       term->activate(file);
        put_message("File changed");
-       text->draw();
+       term->draw();
        return false;
      }
    }
@@ -1111,12 +1051,12 @@ void
    device->configure();
 
    // Set initial file
-   text->activate(file_list.get_head());
+   term->activate(file_list.get_head());
 
    // Start the Device
    device->draw();
-   text->show();                    // (Set position fails unless visible)
-   text->grab_mouse();              // (Also sets position)
-   text->flush();
+   term->show();                    // (Set position fails unless visible)
+   term->grab_mouse();              // (Also sets position)
+   term->flush();
    device->run();
 }

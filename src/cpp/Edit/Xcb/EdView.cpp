@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2022/08/01
+//       2022/12/29
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -30,7 +30,7 @@
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile, EdLine
 #include "EdMark.h"                 // For EdMark
-#include "EdText.h"                 // For EdText
+#include "EdTerm.h"                 // For EdTerm
 #include "EdView.h"                 // For EdView (Implementation class)
 
 using namespace config;             // For opt_* variables
@@ -104,15 +104,15 @@ void
 void
    EdView::draw_active( void )      // Redraw the active line
 {
-   EdText* text= editor::text;
-   active.index(col_zero+text->col_size); // Blank fill
+   EdTerm* term= editor::term;
+   active.index(col_zero+term->col_size); // Blank fill
    EdLine line= *cursor;            // (Copy the cursor flags)
    line.flags |= EdLine::F_AUTO;    // (Do not trace ~EdLine)
    line.text= active.get_buffer();
-   text->draw_line(row, &line);
+   term->draw_line(row, &line);
    if( editor::view == this )
-     text->draw_cursor();
-   text->flush();
+     term->draw_cursor();
+   term->flush();
 }
 
 //----------------------------------------------------------------------------
@@ -145,14 +145,14 @@ xcb_gcontext_t                       // The current graphic context
 //       EdView::activate
 //
 // Purpose-
-//       Activate thie EdView
+//       Activate this EdView
 //
 //----------------------------------------------------------------------------
 void
    EdView::activate( void )         // Activate this EdView
 {
    editor::view= this;
-   editor::text->draw_info();       // (History or Status line)
+   editor::term->draw_head();       // (History or Status line)
 }
 
 //----------------------------------------------------------------------------
@@ -164,7 +164,7 @@ void
 //       Commit the Active data line
 //
 // Implementation notes-
-//       This is the EdText commit, overridden in EdHist (to do nothing)
+//       This is the EdTerm commit, overridden in EdHist (to do nothing)
 //
 //----------------------------------------------------------------------------
 void
@@ -228,38 +228,38 @@ void
    EdView::move_cursor_V(           // Move cursor vertically
      int             n)             // The relative row (Down positive)
 {
-   EdText* text= editor::text;
+   EdTerm* term= editor::term;
 
-   text->undo_cursor();
+   term->undo_cursor();
    commit();                        // Commit the active line
 
    int rc= 1;                       // Default, no draw
    if( n > 0 ) {                    // Move down
      while( n-- ) {
-       if( text->row_used > row )
+       if( term->row_used > row )
          row++;
        else {
-         EdLine* line= (EdLine*)text->head->get_next();
+         EdLine* line= (EdLine*)term->head->get_next();
          if( line ) {
-           text->head= line;
-           text->row_used--;
+           term->head= line;
+           term->row_used--;
            row_zero++;
            rc= 0;
          } else {
            break;
          }
-         if( text->tail->get_next() == nullptr )
+         if( term->tail->get_next() == nullptr )
            row--;
        }
      }
    } else if( n < 0 ) {             // Move up
      while( n++ ) {
-       if( row > text->USER_TOP )
+       if( row > term->USER_TOP )
          row--;
        else {
-         EdLine* line= (EdLine*)text->head->get_prev();
+         EdLine* line= (EdLine*)term->head->get_prev();
          if( line ) {
-           text->head= line;
+           term->head= line;
            row_zero--;
            rc= 0;
          } else {
@@ -269,9 +269,9 @@ void
      }
    }
 
-   text->synch_active();
+   term->synch_active();
    if( rc == 0 )
-     text->draw();
+     term->draw();
    else
-     text->draw_info();
+     term->draw_head();
 }

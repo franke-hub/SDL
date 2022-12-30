@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       EdText.cpp
+//       EdTerm.cpp
 //
 // Purpose-
-//       Editor: Implement EdText.h
+//       Editor: Implement EdTerm.h screen handler.
 //
 // Last change date-
-//       2022/03/15
+//       2022/12/29
 //
 // Implementation notes-
 //       EdInps.cpp implements keyboard and mouse event handlers.
@@ -90,19 +90,19 @@ static inline unsigned              // The truncated value
 }
 
 //----------------------------------------------------------------------------
-// EdText::Constructor
+// EdTerm::Constructor
 //----------------------------------------------------------------------------
-   EdText::EdText(                  // Constructor
+   EdTerm::EdTerm(                  // Constructor
      Widget*           parent,      // Parent Widget
      const char*       name)        // Widget name
-:  Window(parent, name ? name : "EdText")
+:  Window(parent, name ? name : "EdTerm")
 ,  active(*editor::active), font(*config::font)
 {
    if( opt_hcdm )
-     debugh("EdText(%p)::EdText\n", this);
+     debugh("EdTerm(%p)::EdTerm\n", this);
 
    // Handle EdMark::ChangeEvent (lambda function)
-   // Purpose: Repair EdText::head (if it changed)
+   // Purpose: Repair EdTerm::head (if it changed)
    using Event= EdMark::ChangeEvent;
    changeEvent_connector= EdMark::change_signal.connect([this](Event& event) {
      EdFile* file= event.file;
@@ -123,7 +123,7 @@ static inline unsigned              // The truncated value
        // This should not occur. The top line, the only one with a nullptr
        // get_prev(), should never be within a redo_remove list. This indicates
        // that something has gone very wrong and can't be auto-corrected.
-       Editor::alertf("%4d EdText: internal error\n", __LINE__);
+       Editor::alertf("%4d EdTerm: internal error\n", __LINE__);
      }
 
      /// If the removal occurs in the current file prior to the head line,
@@ -163,12 +163,12 @@ static inline unsigned              // The truncated value
 }
 
 //----------------------------------------------------------------------------
-// EdText::Destructor
+// EdTerm::Destructor
 //----------------------------------------------------------------------------
-   EdText::~EdText( void )          // Destructor
+   EdTerm::~EdTerm( void )          // Destructor
 {
    if( opt_hcdm )
-     debugh("EdText(%p)::~EdText\n", this);
+     debugh("EdTerm(%p)::~EdTerm\n", this);
 
    if( flipGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, flipGC) );
    if( fontGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, fontGC) );
@@ -183,17 +183,17 @@ static inline unsigned              // The truncated value
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::debug
+//       EdTerm::debug
 //
 // Purpose-
 //       Debugging display
 //
 //----------------------------------------------------------------------------
 void
-   EdText::debug(                   // Debugging display
+   EdTerm::debug(                   // Debugging display
      const char*       info) const  // Associated info
 {
-   debugf("EdText(%p)::debug(%s) Named(%s)\n", this, info ? info : ""
+   debugf("EdTerm(%p)::debug(%s) Named(%s)\n", this, info ? info : ""
          , get_name().c_str());
 
    debugf("..head(%p) tail(%p) col_size(%u) row_size(%u) row_used(%u)\n"
@@ -210,11 +210,11 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::get_col
-//       EdText::get_row
-//       EdText::get_x
-//       EdText::get_y
-//       EdText::get_xy
+//       EdTerm::get_col
+//       EdTerm::get_row
+//       EdTerm::get_x
+//       EdTerm::get_y
+//       EdTerm::get_xy
 //
 // Purpose-
 //       Convert pixel x position to (screen) column
@@ -225,27 +225,27 @@ void
 //
 //----------------------------------------------------------------------------
 int                                 // The column
-   EdText::get_col(                 // Get column
+   EdTerm::get_col(                 // Get column
      int               x) const     // For this x pixel position
 {  return x/font.length.width; }
 
 int                                 // The row
-   EdText::get_row(                 // Get row
+   EdTerm::get_row(                 // Get row
      int               y) const     // For this y pixel position
 {  return y/font.length.height; }
 
 int                                 // The offset in Pixels
-   EdText::get_x(                   // Get offset in Pixels
+   EdTerm::get_x(                   // Get offset in Pixels
      int               col) const   // For this column
 {  return col * font.length.width + 1; }
 
 int                                 // The offset in Pixels
-   EdText::get_y(                   // Get offset in Pixels
+   EdTerm::get_y(                   // Get offset in Pixels
      int               row) const   // For this row
 {  return row * font.length.height + 1; }
 
 xcb_point_t                         // The offset in Pixels
-   EdText::get_xy(                  // Get offset in Pixels
+   EdTerm::get_xy(                  // Get offset in Pixels
      int               col,         // And this column
      int               row) const   // For this row
 {  return {gui::PT_t(get_x(col)), gui::PT_t(get_y(row))}; }
@@ -253,14 +253,14 @@ xcb_point_t                         // The offset in Pixels
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::get_text
+//       EdTerm::get_text
 //
 // Purpose-
 //       Return the line text, which differs for the cursor line
 //
 //----------------------------------------------------------------------------
 const char*                         // The text
-   EdText::get_text(                // Get text
+   EdTerm::get_text(                // Get text
      const EdLine*     line) const  // For this EdLine
 {
    EdView* data= editor::data;
@@ -275,20 +275,20 @@ const char*                         // The text
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::putxy
+//       EdTerm::putxy
 //
 // Purpose-
 //       Draw text at [left,top] point
 //
 //----------------------------------------------------------------------------
 void
-   EdText::putxy(                   // Draw text
+   EdTerm::putxy(                   // Draw text
      xcb_gcontext_t    fontGC,      // The target graphic context
      unsigned          left,        // Left (X) offset
      unsigned          top,         // Top  (Y) offset
      const char*       text)        // Using this text
 {  if( opt_hcdm && opt_verbose > 1 )
-     debugh("EdText(%p)::putxy(%u,[%d,%d],'%s')\n", this
+     debugh("EdTerm(%p)::putxy(%u,[%d,%d],'%s')\n", this
            , fontGC, left, top, text);
 
    enum{ DIM= 256 };                // xcb_image_text_16 maximum length
@@ -324,7 +324,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::activate
+//       EdTerm::activate
 //
 // Purpose-
 //       Set the current file
@@ -332,11 +332,11 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   EdText::activate(                // Activate
+   EdTerm::activate(                // Activate
      EdFile*           act_file)    // This file
 {
    if( opt_hcdm )
-     debugh("EdText(%p)::activate(%s)\n", this
+     debugh("EdTerm(%p)::activate(%s)\n", this
            , act_file ? act_file->get_name().c_str() : "nullptr");
 
    EdView* const data= editor::data;
@@ -383,7 +383,7 @@ void
 }
 
 void
-   EdText::activate(                // Activate
+   EdTerm::activate(                // Activate
      EdLine*           act_line)    // This line
 {
    EdView* const data= editor::data;
@@ -405,7 +405,7 @@ void
      if( line == act_line ) {
        data->row= r;
        draw_cursor();
-       draw_info();
+       draw_head();
        return;
      }
 
@@ -463,7 +463,7 @@ void
    }
 
    // Line is not in file (SHOULD NOT OCCUR)
-   Editor::alertf("%4d EdText file(%p) line(%p)", __LINE__
+   Editor::alertf("%4d EdTerm file(%p) line(%p)", __LINE__
                  , file, act_line);
    data->cursor= line= file->line_list.get_head();
    data->col_zero= data->col= 0;
@@ -475,17 +475,17 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::configure
+//       EdTerm::configure
 //
 // Purpose-
 //       Configure the Window
 //
 //----------------------------------------------------------------------------
 void
-   EdText::configure( void )        // Configure the Window
+   EdTerm::configure( void )        // Configure the Window
 {
    if( opt_hcdm )
-     debugh("EdText(%p)::configure\n", this);
+     debugh("EdTerm(%p)::configure\n", this);
 
    Window::configure();             // Create the Window
    flush();
@@ -522,20 +522,20 @@ void
 //----------------------------------------------------------------------------
 //
 // Methods-
-//       EdText::draw_cursor (set == true)
-//       EdText::undo_cursor (set == false)
+//       EdTerm::draw_cursor (set == true)
+//       EdTerm::undo_cursor (set == false)
 //
 // Purpose-
 //       Set or clear the screen cursor character
 //
 //----------------------------------------------------------------------------
 void
-   EdText::draw_cursor(bool set)    // Set/clear the character cursor
+   EdTerm::draw_cursor(bool set)    // Set/clear the character cursor
 {
    EdView* const view= editor::view;
 
    if( opt_hcdm && opt_verbose > 1 )
-     debugh("EdText(%p)::cursor_%s cursor[%u,%u]\n", this
+     debugh("EdTerm(%p)::cursor_%s cursor[%u,%u]\n", this
            , set ? "S" : "C", view->col, view->row);
 
 // if( editor::file->mess_list.get_head() ) // If message line present
@@ -557,28 +557,30 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::draw_info
-//       EdText::draw_history
-//       EdText::draw_message
-//       EdText::draw_status
+//       EdTerm::draw_head
+//       EdTerm::draw_history
+//       EdTerm::draw_message
+//       EdTerm::draw_status
 //
 // Purpose-
-//       Draw the information line: draw_message, draw_history, or draw_status
+//       Draw the heading: draw_message, draw_history, or draw_status
 //         Draw the history line
 //         Draw the message line
 //         Draw the status line
 //
 //----------------------------------------------------------------------------
 void
-   EdText::draw_info( void )        // Redraw the information line
+   EdTerm::draw_head( void )        // Redraw the heading lines
 {
-   if( draw_message() ) return;
-   if( draw_history() ) return;
+   if( draw_message() )
+     return;
+   if( draw_history() )
+     return;
    draw_status();
 }
 
 bool                                // Return code, TRUE if handled
-   EdText::draw_history( void )     // Redraw the history line
+   EdTerm::draw_history( void )     // Redraw the history line
 {
    EdHist* const hist= editor::hist;
    EdView* const view= editor::view;
@@ -596,12 +598,12 @@ bool                                // Return code, TRUE if handled
 }
 
 bool                                // Return code, TRUE if handled
-   EdText::draw_message( void )     // Message line
+   EdTerm::draw_message( void )     // Message line
 {
    EdMess* mess= editor::file->mess_list.get_head();
    if( mess == nullptr ) return false;
 
-   char buffer[256];                // Message buffer
+   char buffer[1024];               // Message buffer
    memset(buffer, ' ', sizeof(buffer));
    buffer[sizeof(buffer) - 1]= '\0';
    strcpy(buffer, mess->mess.c_str());
@@ -639,7 +641,7 @@ static void
 }
 
 void
-   EdText::draw_status( void )      // Redraw the status line
+   EdTerm::draw_status( void )      // Redraw the status line
 {
    EdView* const data= editor::data;
    EdFile* const file= editor::file;
@@ -688,17 +690,17 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::draw
+//       EdTerm::draw
 //
 // Purpose-
 //       Draw the entire screen, data and info
 //
 //----------------------------------------------------------------------------
 void
-   EdText::draw( void )             // Redraw the Window
+   EdTerm::draw( void )             // Redraw the Window
 {
    if( opt_hcdm )
-     debugh("EdText(%p)::draw\n", this);
+     debugh("EdTerm(%p)::draw\n", this);
 
    Trace::trace(".DRW", " all", head, tail);
    // Clear the drawable window
@@ -727,13 +729,13 @@ void
        debugf("%4d LAST xy(%d,%d)\n", __LINE__, 0, row_used);
    }
 
-   draw_info();                     // Draw the information line
+   draw_head();                     // Draw the heading lines
    draw_cursor();
    flush();
 }
 
 void
-   EdText::draw_line(               // Draw one data line
+   EdTerm::draw_line(               // Draw one data line
      unsigned          row,         // The (absolute) row number
      const EdLine*     line)        // The line to draw
 {
@@ -788,9 +790,9 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::grab_mouse
-//       EdText::hide_mouse
-//       EdText::show_mouse
+//       EdTerm::grab_mouse
+//       EdTerm::hide_mouse
+//       EdTerm::show_mouse
 //
 // Purpose-
 //       Grab the mouse cursor
@@ -802,7 +804,7 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   EdText::grab_mouse( void )       // Grab the mouse cursor
+   EdTerm::grab_mouse( void )       // Grab the mouse cursor
 {
    using gui::WH_t;
 
@@ -824,7 +826,7 @@ void
        y_origin= r->y;
        free(r);
      } else
-       debugf("%4d EdText xcb_get_geometry error\n", __LINE__);
+       debugf("%4d EdTerm xcb_get_geometry error\n", __LINE__);
    }
 
    x_origin += rect.width/2;
@@ -836,7 +838,7 @@ void
 }
 
 void
-   EdText::hide_mouse( void )       // Hide the mouse cursor
+   EdTerm::hide_mouse( void )       // Hide the mouse cursor
 {
    if( motion.state != CS_HIDDEN ) { // If not already hidden
      NOQUEUE("xcb_hide_cursor", xcb_xfixes_hide_cursor(c, widget_id) );
@@ -846,7 +848,7 @@ void
 }
 
 void
-   EdText::show_mouse( void )       // Show the mouse cursor
+   EdTerm::show_mouse( void )       // Show the mouse cursor
 {
    if( motion.state != CS_VISIBLE ) { // If not already visible
      NOQUEUE("xcb_show_cursor", xcb_xfixes_show_cursor(c, widget_id) );
@@ -858,14 +860,14 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::move_cursor_H
+//       EdTerm::move_cursor_H
 //
 // Purpose-
 //       Move cursor horizontally
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 if draw performed
-   EdText::move_cursor_H(           // Move cursor horizontally
+   EdTerm::move_cursor_H(           // Move cursor horizontally
      size_t            column)      // The (absolute) column number
 {
    int rc= 1;                       // Default, draw not performed
@@ -894,12 +896,12 @@ int                                 // Return code, 0 if draw performed
 
    if( rc ) {                       // If full redraw not needed
      draw_cursor();                 // Just set cursor
-     draw_info();                   // Update status line
+     draw_head();                   // Update status line
    } else {                         // If full redraw needed
-     if( view == editor::data )     // If data view, draw_info included
+     if( view == editor::data )     // If data view, draw_head included
        draw();
      else
-       draw_info();
+       draw_head();
    }
 
    return rc;
@@ -908,14 +910,14 @@ int                                 // Return code, 0 if draw performed
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::move_screen_V
+//       EdTerm::move_screen_V
 //
 // Purpose-
 //       Move screen vertically
 //
 //----------------------------------------------------------------------------
 void
-   EdText::move_screen_V(           // Move screen vertically
+   EdTerm::move_screen_V(           // Move screen vertically
      int               rows)        // The row count (down is positive)
 {
    EdView* data= editor::data;
@@ -948,19 +950,19 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::resize
+//       EdTerm::resize
 //
 // Purpose-
 //       Resize the window
 //
 //----------------------------------------------------------------------------
 void
-   EdText::resize(                  // Resize the Window
+   EdTerm::resize(                  // Resize the Window
      unsigned          x,           // New width
      unsigned          y)           // New height
 {
    if( opt_hcdm )
-     debugh("EdText(%p)::resize(%d,%d)\n", this, x, y);
+     debugh("EdTerm(%p)::resize(%d,%d)\n", this, x, y);
 
    if( x < min_size.width )  x= min_size.width;
    if( y < min_size.height ) y= min_size.height;
@@ -997,14 +999,14 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::synch_active
+//       EdTerm::synch_active
 //
 // Purpose-
 //       Set the Active (cursor) line from the current row.
 //
 //----------------------------------------------------------------------------
 void
-   EdText::synch_active( void )     // Set the Active (cursor) line
+   EdTerm::synch_active( void )     // Set the Active (cursor) line
 {
    EdView* const data= editor::data;
    if( data->row < USER_TOP )       // (File initial value == 0)
@@ -1044,14 +1046,14 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdText::synch_file
+//       EdTerm::synch_file
 //
 // Purpose-
 //       Save the current state in the active file
 //
 //----------------------------------------------------------------------------
 void
-   EdText::synch_file(              // Synchronize the active file
+   EdTerm::synch_file(              // Synchronize the active file
      EdFile*           file) const  // (Note that file is not const)
 {
    EdView* const data= editor::data;

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -13,10 +13,10 @@
 //       EdView.h
 //
 // Purpose-
-//       Editor: TextWindow view
+//       Editor: Editor data view
 //
 // Last change date-
-//       2021/10/01
+//       2022/12/29
 //
 //----------------------------------------------------------------------------
 #ifndef EDVIEW_H_INCLUDED
@@ -29,7 +29,7 @@
 #include "Active.h"                 // For Active
 #include "Editor.h"                 // For Editor
 #include "EdFile.h"                 // For EdFile, EdLine
-#include "EdText.h"                 // For EdText
+#include "EdTerm.h"                 // For EdTerm
 
 //----------------------------------------------------------------------------
 //
@@ -37,10 +37,10 @@
 //       EdView
 //
 // Purpose-
-//       TextWindow view.
+//       Editor data view.
 //
 //----------------------------------------------------------------------------
-class EdView {                      // Editor TextWindow view
+class EdView {                      // Editor data view
 //----------------------------------------------------------------------------
 // EdView::Attributes
 //----------------------------------------------------------------------------
@@ -151,7 +151,7 @@ virtual void
 //       Commit the Active data line
 //
 // Implementation notes-
-//       This is the EdText commit, overridden in EdHist
+//       This is the EdTerm commit, overridden in EdHist
 //
 //----------------------------------------------------------------------------
 virtual void

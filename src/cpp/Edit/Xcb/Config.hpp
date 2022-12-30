@@ -16,7 +16,7 @@
 //       Editor: Config.cpp extension: debugging listeners
 //
 // Last change date-
-//       2022/08/25
+//       2022/12/29
 //
 // Implementation note-
 //       Only included from Config.cpp
@@ -25,7 +25,7 @@
 #include "EdFile.h"                 // For EdRedo, EdLine
 #include "EdHist.h"                 // For EdHist
 #include "EdMark.h"                 // For EdMark
-#include "EdText.h"                 // For EdText
+#include "EdTerm.h"                 // For EdTerm
 #include "EdView.h"                 // For EdView
 
 //----------------------------------------------------------------------------
@@ -138,7 +138,7 @@ static pub::signals::Connector<const char*> config_debug=
    debugf("\n");
    editor::file->debug("lines");
    debugf("\n");
-   editor::text->debug(info);
+   editor::term->debug(info);
    debugf("\n");
    config::font->debug(info);
    debugf("\n");

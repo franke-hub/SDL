@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2022/08/10
+//       2022/12/29
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -87,7 +87,6 @@ static const key_t     SHM_TOKEN= key_t(0x81a2b47c9bbc2dFE);
 // External data areas
 //----------------------------------------------------------------------------
 // Debugging controls- From command line -------------------------------------
-const char*            config::opt_test= nullptr;  // Bringup test?
 int                    config::opt_hcdm= false;    // Hard Core Debug Mode?
 int                    config::opt_verbose= false; // Debug verbosity
 

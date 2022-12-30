@@ -68,27 +68,24 @@ static int             opt_hcdm= false; // Hard Core Debug Mode
 static int             opt_index;   // Option index
 
 static int             opt_bg= true; // Run editor in background?
-static const char*     opt_test= nullptr; // The test, if specified
 static int             opt_verbose= -1; // Verbosity
 
 static const char*     OSTR= ":";   // The getopt_long optstring parameter
 static struct option   OPTS[]=      // The getopt_long longopts parameter
 {  {"help",    no_argument,       &opt_help,    true} // --help
 ,  {"hcdm",    no_argument,       &opt_hcdm,    true} // --hcdm
+,  {"verbose", optional_argument, &opt_verbose, 0} // --verbose {optional}
 
 ,  {"fg",      no_argument,       &opt_bg,      false} // --fg
-,  {"test",    required_argument, nullptr,      0} // --test {required}
-,  {"verbose", optional_argument, &opt_verbose, 0} // --verbose {optional}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
 enum OPT_INDEX                      // Must match OPTS[]
 {  OPT_HELP
 ,  OPT_HCDM
+,  OPT_VERBOSE
 
 ,  OPT_FG
-,  OPT_TEST
-,  OPT_VERBOSE
 };
 
 //----------------------------------------------------------------------------
@@ -110,11 +107,9 @@ static int                          // Return code (0 OK)
    setlocale(LC_NUMERIC, "");       // Allows printf("%'d\n", 123456789);
 
    gui::opt_hcdm= opt_hcdm;         // Expose options
-   gui::opt_test= opt_test;
    gui::opt_verbose= opt_verbose;
 
    config::opt_hcdm= opt_hcdm;
-   config::opt_test= opt_test;
    config::opt_verbose= opt_verbose;
 
    return 0;
@@ -247,10 +242,6 @@ static int                          // Return code (0 if OK)
            case OPT_HELP:           // These options handled by getopt
            case OPT_HCDM:
            case OPT_FG:
-             break;
-
-           case OPT_TEST:
-             opt_test= optarg;
              break;
 
            case OPT_VERBOSE:

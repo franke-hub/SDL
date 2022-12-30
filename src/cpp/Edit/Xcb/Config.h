@@ -16,7 +16,7 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2022/04/08
+//       2022/12/29
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
@@ -142,7 +142,6 @@ namespace config {                  // The Config namespace
 //----------------------------------------------------------------------------
 // Debugging controls
 extern int             opt_hcdm;    // Hard Core Debug Mode?
-extern const char*     opt_test;    // Bringup test?
 extern int             opt_verbose; // Debugging verbosity
 
 // GUI objects --------------------------------------------------------------
