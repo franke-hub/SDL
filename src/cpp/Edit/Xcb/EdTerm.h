@@ -16,7 +16,7 @@
 //       Editor: Terminal (screen, keyboard, and mouse) controller
 //
 // Last change date-
-//       2022/12/29
+//       2022/12/30
 //
 //----------------------------------------------------------------------------
 #ifndef EDTERM_H_INCLUDED
@@ -74,10 +74,11 @@ int                    x;           // Last X position
 int                    y;           // Last Y position
 }; // struct Motion
 
-enum STATUS_FLAGS                   // (Boolean flags)
-{  SF_RESET= 0                      // Reset, no flags set
-,  SF_FOCUS                         // TRUE when we have focus
-,  SF_NFC_MESSAGE                   // TRUE when "No Files Changed" message
+enum STATUS_FLAGS                   // (Bit flags)
+{  SF_RESET=           0x0000       // Reset, no flags set
+,  SF_FOCUS=           0x0001       // SET when we have focus
+,  SF_MESSAGE=         0x0002       // SET when *any* message
+,  SF_NFC_MESSAGE=     0x0004       // SET when "No Files Changed" message
 }; // enum KEYBOARD_STATE
 
 //----------------------------------------------------------------------------
@@ -111,7 +112,7 @@ xcb_atom_t             wm_close= 0; // WM_CLOSE atom
 // Configuration controls
 unsigned               MINI_C=40;   // Minimum columns (Width)
 unsigned               MINI_R=10;   // Minimum rows    (Height)
-unsigned               USER_TOP= 1; // Number of reserved TOP lines
+unsigned               USER_TOP= 2; // Number of reserved TOP lines
 unsigned               USER_BOT= 0; // Number of reserved BOTTOM lines
 
 //----------------------------------------------------------------------------
@@ -193,7 +194,7 @@ void
 // Public method-
 //       EdTerm::draw
 //       EdTerm::draw_line
-//       EdTerm::draw_head
+//       EdTerm::draw_top
 //       EdTerm::draw_history
 //       EdTerm::draw_message
 //       EdTerm::draw_status
@@ -201,7 +202,7 @@ void
 // Purpose-
 //       Draw the entire screen, data and info
 //       Draw one data line
-//       Draw the heading lines: draw_message, draw_history, or draw_status
+//       Draw the top lines: draw_status, then draw_message or draw_history
 //         Draw the history line
 //         Draw the message line
 //         Draw the status line
@@ -216,13 +217,13 @@ void
      const EdLine*     line);       // The line to draw
 
 void
-   draw_head( void );               // Redraw the heading (top) lines
+   draw_top( void );                // Redraw the top (heading) lines
 
-bool                                // Return code, TRUE if handled
+void
    draw_history( void );            // Redraw the history line
 
 bool                                // Return code, TRUE if handled
-   draw_message( void );            // Message line
+   draw_message( void );            // Redraw the message line if present
 
 void
    draw_status( void );             // Redraw the status line
@@ -348,36 +349,53 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdTerm::putcr
+//
+// Purpose-
+//       Draw text at [col,row] position
+//
+//----------------------------------------------------------------------------
+void
+   putcr(                           // Draw text
+     xcb_gcontext_t    fontGC,      // Using this graphic context
+     unsigned          col,         // At this left (column) offset
+     unsigned          row,         // At this top  (row) offset
+     const char*       text)        // Using this text
+{  putxy(fontGC, get_x(col), get_y(row), text); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdTerm::putxy
 //
 // Purpose-
-//       Draw text at position
+//       Draw text at [x,y] pixel position
 //
 //----------------------------------------------------------------------------
 void
    putxy(                           // Draw text
      xcb_gcontext_t    fontGC,      // Using this graphic context
-     unsigned          left,        // At this left (X) offset
-     unsigned          top,         // At this top  (Y) offset
+     unsigned          left,        // At this left (X) offset in Pixels
+     unsigned          top,         // At this top  (Y) offset in Pixels
      const char*       text);       // Using this text
 
 void
    putxy(                           // Draw text (using default draw and GC)
-     unsigned          left,        // Left (X) offset
-     unsigned          top,         // Top  (Y) offset
+     unsigned          left,        // Left (X) offset in Pixels
+     unsigned          top,         // Top  (Y) offset in Pixels
      const char*       text)        // Using this text
 {  putxy(fontGC, left, top, text); }
 
 void
    putxy(                           // Draw text
-     xcb_point_t       xy,          // At this offset
+     xcb_point_t       xy,          // At this offset in Pixels
      const char*       text)        // Using this text
 {  putxy(unsigned(xy.x), unsigned(xy.y), text); }
 
 void
    putxy(                           // Draw text
      xcb_gcontext_t    fontGC,      // Using this graphic context
-     xcb_point_t       xy,          // At this offset
+     xcb_point_t       xy,          // At this offset in Pixels
      const char*       text)        // Using this text
 {  putxy(fontGC, unsigned(xy.x), unsigned(xy.y), text); }
 

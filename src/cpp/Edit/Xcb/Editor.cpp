@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2022/12/29
+//       2022/12/30
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -174,7 +174,7 @@ static const char*                  // Return message, nullptr if OK
        const char* M= last_strstr(C, S);
        if( M != nullptr ) {
          term->move_cursor_H(M - C);
-         term->draw_head();
+         term->draw_top();
          return nullptr;
        }
      }
@@ -707,7 +707,7 @@ const char*                         // Return message, nullptr if OK
        data->activate();
        column += M - C;
        term->move_cursor_H(column);
-       term->draw_head();
+       term->draw_top();
        return nullptr;
      }
    }

@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2022/12/29
+//       2022/12/30
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -280,7 +280,7 @@ static void
    }
 
    editor::file->mode= mode;        // Update the mode
-   editor::term->draw_head();       // And redraw
+   editor::term->draw_top();        // And redraw the top lines
 }
 
 //============================================================================
@@ -661,7 +661,7 @@ void
      S += ": Click here to continue";
    mess_list.fifo(new EdMess(S, type_));
    if( editor::file == this )       // (Only if this file is active)
-     editor::term->draw_head();     // (Otherwise, message is deferred)
+     editor::term->draw_top();      // (Otherwise, message is deferred)
 }
 
 int                                 // TRUE if message removed or remain

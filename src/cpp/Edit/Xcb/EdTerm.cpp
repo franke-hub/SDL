@@ -16,7 +16,7 @@
 //       Editor: Implement EdTerm.h screen handler.
 //
 // Last change date-
-//       2022/12/29
+//       2022/12/30
 //
 // Implementation notes-
 //       EdInps.cpp implements keyboard and mouse event handlers.
@@ -55,6 +55,8 @@ using pub::Trace;                   // For pub::Trace
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  USE_BRINGUP= false               // Use bringup debugging?
+
+,  HM_ROW= 1                        // History/Message line row
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
@@ -393,7 +395,7 @@ void
    Trace::trace(".ACT", "line", data->cursor, act_line); // (Old, new)
 
    // Activate
-   undo_cursor();                   // Clear the character cursor
+   undo_cursor();                   // Clear the current cursor
    data->commit();                  // Commit any active line
    data->active.reset(act_line->text); // Activate the new line
    data->cursor= act_line;          // "
@@ -405,7 +407,7 @@ void
      if( line == act_line ) {
        data->row= r;
        draw_cursor();
-       draw_head();
+       draw_top();
        return;
      }
 
@@ -538,9 +540,6 @@ void
      debugh("EdTerm(%p)::cursor_%s cursor[%u,%u]\n", this
            , set ? "S" : "C", view->col, view->row);
 
-// if( editor::file->mess_list.get_head() ) // If message line present
-//   return;                        // (Do nothing)
-
    char buffer[8];                  // The cursor encoding buffer
    size_t column= view->get_column(); // The current column
    const utf8_t* data= (const utf8_t*)view->active.get_buffer(column);
@@ -551,57 +550,74 @@ void
    buffer[pub::Utf8::length(code)]= '\0';
 
    xcb_gcontext_t gc= set ? view->gc_flip : view->get_gc();
-   putxy(gc, get_xy(view->col, view->row), buffer);
+   putcr(gc, view->col, view->row, buffer);
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::draw_head
+//       EdTerm::draw_top
 //       EdTerm::draw_history
 //       EdTerm::draw_message
 //       EdTerm::draw_status
 //
 // Purpose-
-//       Draw the heading: draw_message, draw_history, or draw_status
+//       Draw the top lines: draw_status, then draw_message or draw_history
 //         Draw the history line
 //         Draw the message line
 //         Draw the status line
 //
 //----------------------------------------------------------------------------
 void
-   EdTerm::draw_head( void )        // Redraw the heading lines
+   EdTerm::draw_top( void )         // Redraw the top lines
 {
+   draw_status();
    if( draw_message() )
      return;
-   if( draw_history() )
-     return;
-   draw_status();
+   draw_history();
 }
 
-bool                                // Return code, TRUE if handled
+void
    EdTerm::draw_history( void )     // Redraw the history line
 {
    EdHist* const hist= editor::hist;
    EdView* const view= editor::view;
 
-   if( view != hist )               // If history not active
-     return false;
+   if( opt_hcdm )
+     debugh("EdTerm(%p)::draw_history view(%s)\n", this
+           , view == hist ? "hist" : "data");
+
+   if( view != hist ) {             // If history not active
+     hist->active.reset();
+     hist->active.index(1024);
+     const char* buffer= hist->active.get_buffer();
+     putcr(hist->get_gc(), 0, HM_ROW, buffer);
+     flush();
+     return;
+   }
 
    if( HCDM )
      Trace::trace(".DRW", "hist", hist->cursor);
    const char* buffer= hist->get_buffer();
-   putxy(hist->get_gc(), 1, 1, buffer);
+   putcr(hist->get_gc(), 0, HM_ROW, buffer);
    draw_cursor();
    flush();
-   return true;
 }
 
 bool                                // Return code, TRUE if handled
    EdTerm::draw_message( void )     // Message line
 {
    EdMess* mess= editor::file->mess_list.get_head();
-   if( mess == nullptr ) return false;
+   if( mess == nullptr )
+     return false;
+
+   if( opt_hcdm )
+     debugh("EdTerm(%p)::draw_message view(%s)\n", this
+           , editor::view == editor::hist ? "hist" : "data");
+
+   status |= SF_MESSAGE;            // Message present
+   if( editor::view == editor::hist )
+     undo_cursor();
 
    char buffer[1024];               // Message buffer
    memset(buffer, ' ', sizeof(buffer));
@@ -611,7 +627,7 @@ bool                                // Return code, TRUE if handled
 
    if( HCDM )
      Trace::trace(".DRW", " msg");
-   putxy(gc_msg, 1, 1, buffer);
+   putcr(gc_msg, 0, HM_ROW, buffer);
    flush();
    return true;
 }
@@ -646,7 +662,11 @@ void
    EdView* const data= editor::data;
    EdFile* const file= editor::file;
 
-   char buffer[256];                // Status line buffer
+   if( opt_hcdm )
+     debugh("EdTerm(%p)::draw_status view(%s)\n", this
+           , editor::view == editor::hist ? "hist" : "data");
+
+   char buffer[1024];               // Status line buffer
    memset(buffer, ' ', sizeof(buffer)); // (Blank fill)
    buffer[sizeof(buffer)-1]= '\0';
    // Offset:      012345678901234567890123456789012345678901234567890123456
@@ -729,7 +749,7 @@ void
        debugf("%4d LAST xy(%d,%d)\n", __LINE__, 0, row_used);
    }
 
-   draw_head();                     // Draw the heading lines
+   draw_top();                      // Draw the top (heading) lines
    draw_cursor();
    flush();
 }
@@ -896,12 +916,12 @@ int                                 // Return code, 0 if draw performed
 
    if( rc ) {                       // If full redraw not needed
      draw_cursor();                 // Just set cursor
-     draw_head();                   // Update status line
+     draw_status();                 // Update status line
    } else {                         // If full redraw needed
-     if( view == editor::data )     // If data view, draw_head included
+     if( view == editor::data )     // If data view, draw_top included
        draw();
      else
-       draw_head();
+       draw_history();
    }
 
    return rc;

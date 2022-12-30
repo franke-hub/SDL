@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       EdInps.cpp
+//       EdTinp.cpp
 //
 // Purpose-
 //       Editor: Implement EdTerm.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2022/12/29
+//       2022/12/30
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -219,7 +219,7 @@ static bool
 {
    bool is_key= false;
    if( (key >= 0x0020 && key < 0x007F) // If standard text key
-       || key == '\b' || key == '\t' || key == '\x1B' ) // or extended text key
+       || key == '\b' || key == '\t' || key == '\x1B' ) // or escaped key
      is_key= true;
    return is_key;
 }
@@ -364,7 +364,7 @@ void
        if( file == mark_file )
          draw();
        else
-         draw_head();               // (Remove "No Mark" message)
+         draw_top();                // (Remove "No Mark" message)
        break;
      }
      case '\\': {                   // Escape
@@ -373,7 +373,7 @@ void
      }
      default:
        editor::put_message("Invalid key");
-       draw_head();
+       draw_top();
    }
 }
 
@@ -439,10 +439,9 @@ void
    // Diagnostics
    const char* key_name= key_to_name(key);
    Trace::trace(".KEY", (state<<16) | (key & 0x0000ffff), key_name);
-   if( opt_hcdm ) {
+   if( opt_hcdm )
      debugh("EdTerm(%p)::key_input(0x%.4x,%.4x) '%s'\n", this
            , key, state, key_name);
-   }
 
    // Convert Keypad keys to standard keys
    if( key >= KP_MIN && key <= KP_MAX ) {
@@ -469,13 +468,17 @@ void
        return;                      // (Disallowed)
    }
 
-   // Handle input key
+   // Handle message completion
    file->rem_message_type();        // Remove informational message
-   if( file->mess_list.get_head() ) { // If any message remains
-     draw_head();
-     return;
+   if( draw_message() )             // If another message is present
+     return;                        // (Return, ignoring the current key)
+
+   if( status & (SF_MESSAGE | SF_NFC_MESSAGE) ) { // If a message completed
+     status &= ~SF_MESSAGE;
+     draw_history();
    }
 
+   // Handle input key
    size_t column= view->get_column(); // The cursor column
    if( is_text_key(key) ) {         // If text key
      int mask= state & (gui::KS_ALT | gui::KS_CTRL);
@@ -507,7 +510,7 @@ void
        view->active.replace_char(column, key);
        move_cursor_H(column + 1);
      }
-     draw_head();
+     draw_top();
      draw_cursor();
      flush();
 
@@ -569,7 +572,7 @@ void
        view->active.remove_char(column);
        view->active.append_text(" ");
        view->draw_active();
-       draw_head();
+       draw_top();
        break;
      }
      case XK_Escape: {              // Escape: Invert the view
@@ -578,7 +581,7 @@ void
      }
      case XK_Insert: {              // Insert key
        keystate ^= KS_INS;          // Invert the insert state
-       draw_head();
+       draw_top();
        break;
      }
      case XK_Return: {
@@ -632,9 +635,9 @@ void
        break;
      }
      case XK_F4: {                  // Test changed
-       if( status & SF_NFC_MESSAGE )
-         draw_head();
-       else {
+       if( status & SF_NFC_MESSAGE ) { // (Duplicate F4 removes message)
+         draw_history();
+       } else {
          if( editor::un_changed() ) {
            editor::put_message("No files changed");
            status |= SF_NFC_MESSAGE;
@@ -686,7 +689,7 @@ void
      case XK_F11: {                 // Undo
        if( data->active.undo() ) {
          data->draw_active();
-         draw_head();
+         draw_top();
        } else
          file->undo();
        break;
@@ -706,7 +709,7 @@ void
          view->col_zero= 0;
          draw();
        } else
-         draw_head();
+         draw_top();
 
        draw_cursor();
        flush();
@@ -784,14 +787,14 @@ void
            else
              hist->activate();
          }
-         draw_head();
+         draw_top();
          break;
        }
 
        // Button press is on data screen
        if( view == hist ) {         // If history active
          data->activate();
-         draw_head();
+         draw_top();
        }
 
        if( button_row != data->row ) { // If row changed
@@ -805,7 +808,7 @@ void
      case gui::BT_RIGHT: {          // Right button
        if( button_row < USER_TOP ) { // If on top of screen
          if( file->rem_message() ) { // If message removed
-           draw_head();
+           draw_top();
            break;
          }
 

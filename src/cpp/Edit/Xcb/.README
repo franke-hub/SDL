@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2022/12/29
+##       2022/12/30
 ##
 ## Implementation notes-
 ##       See ".USAGE.md" for usage and implementation information.
@@ -24,10 +24,14 @@
 
 ##############################################################################
 ## STATUS: 2022/12/29
-2022/12/29 Renamed EdText to EdTerm, also changing this file.
+2022/12/30 The history/message line now separate from the status line.
+         The status line is always present.
+         Renamed EdInps.cpp => EdTinp.cpp.
 
 ##############################################################################
 ## CHANGE LOG:
+2022/12/29 Renamed EdText to EdTerm, also changing this file.
+
 2022/12/20 Default running detached from command line.
          This can be overridden using the '--fg' parameter.
 

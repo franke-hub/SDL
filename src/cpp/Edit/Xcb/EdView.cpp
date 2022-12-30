@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2022/12/29
+//       2022/12/30
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -151,8 +151,8 @@ xcb_gcontext_t                       // The current graphic context
 void
    EdView::activate( void )         // Activate this EdView
 {
-   editor::view= this;
-   editor::term->draw_head();       // (History or Status line)
+   editor::view= this;              // (EdHist or EdView)
+   editor::term->draw_top();        // (History or Status line)
 }
 
 //----------------------------------------------------------------------------
@@ -273,5 +273,5 @@ void
    if( rc == 0 )
      term->draw();
    else
-     term->draw_head();
+     term->draw_status();
 }

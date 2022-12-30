@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2022/12/29
+//       2022/12/30
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -62,6 +62,7 @@ static const int       MAX_HISTORY= 128; // Maximum number of history lines
 :  EdView(), hist_list()
 {  if( HCDM || opt_hcdm ) traceh("EdHist(%p)::EdHist\n", this);
    hist_list.fifo(new EdLine());    // Initial line
+   row= 1;
 }
 
 //----------------------------------------------------------------------------
@@ -189,7 +190,7 @@ void
    int C= *((const unsigned char*)buffer);
    if( C == '\0' ) {                // Empty line: ignore
 //   editor::data->activate();      // (Use ESC to exit history view)
-//   editor::term->draw_head();
+//   editor::term->draw_top();
      return;
    }
 
@@ -225,7 +226,7 @@ void
    active.reset(text);              // Reset the (mutated) buffer
    cursor= nullptr;                 // Reset the cursor
 
-   editor::term->draw_head();
+   editor::term->draw_top();
 }
 
 //----------------------------------------------------------------------------
@@ -282,5 +283,5 @@ void
 
    col_zero= col= 0;
    active.reset(cursor->text);
-   editor::term->draw_head();
+   editor::term->draw_top();
 }
