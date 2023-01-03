@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2022/12/29
+//       2023/01/01
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
@@ -109,22 +109,6 @@ static void
    failure(                         // Write error message and exit
      const char*       fmt,         // The PRINTF format string
                        ...);        // PRINTF argruments
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       Config::trace
-//
-// Purpose-
-//       REDO/UNDO trace event
-//
-//----------------------------------------------------------------------------
-static void
-   trace(                           // Trace undo/redo operation
-     const char*       ident,       // Trace identifier
-     EdRedo*           redo,        // The UNDO/REDO
-     EdFile*           file,        // The UNDO/REDO file
-     EdLine*           line= nullptr); // The UNDO/REDO cursor line
 }; // class Config
 
 //----------------------------------------------------------------------------
@@ -187,6 +171,5 @@ extern pub::signals::Signal<const char*> // The DebugEvent signal
 // Static string constants
 //----------------------------------------------------------------------------
 static constexpr const char* const AUTOFILE= "*AUTOSAVE*."; // Name prefix
-static constexpr const char* const UUID= "e743e3ac-6816-4878-81a2-b47c9bbc2d37";
 }  // namespace config
 #endif // CONFIG_H_INCLUDED

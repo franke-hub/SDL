@@ -16,7 +16,7 @@
 //       Editor: Terminal (screen, keyboard, and mouse) controller
 //
 // Last change date-
-//       2022/12/30
+//       2022/12/31
 //
 //----------------------------------------------------------------------------
 #ifndef EDTERM_H_INCLUDED
@@ -385,19 +385,6 @@ void
      unsigned          top,         // Top  (Y) offset in Pixels
      const char*       text)        // Using this text
 {  putxy(fontGC, left, top, text); }
-
-void
-   putxy(                           // Draw text
-     xcb_point_t       xy,          // At this offset in Pixels
-     const char*       text)        // Using this text
-{  putxy(unsigned(xy.x), unsigned(xy.y), text); }
-
-void
-   putxy(                           // Draw text
-     xcb_gcontext_t    fontGC,      // Using this graphic context
-     xcb_point_t       xy,          // At this offset in Pixels
-     const char*       text)        // Using this text
-{  putxy(fontGC, unsigned(xy.x), unsigned(xy.y), text); }
 
 //----------------------------------------------------------------------------
 //

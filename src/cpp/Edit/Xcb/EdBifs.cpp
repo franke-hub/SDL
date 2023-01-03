@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2022/12/29
+//       2023/01/02
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -269,7 +269,7 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_bot(char*)               // Bottom command
 {
-   using namespace editor;          // For editor::data, hist, term
+   using namespace editor;          // For editor::(data, hist, term)
    data->col_zero= data->col= 0;
    term->activate(file->line_list.get_tail());
    hist->activate();                // (Remain in command mode)
@@ -425,10 +425,8 @@ static const char*                  // Error message, nullptr expected
      editor::insert_file( i().c_str() );
    }
 
-   if( editor::file != editor::last ) {
+   if( editor::file != editor::last )
      editor::term->activate(editor::last);
-     editor::term->draw();
-   }
    editor::hist->activate();
 
    return nullptr;
@@ -651,7 +649,7 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_top(char*)               // Top command
 {
-   using namespace editor;          // For editor::data, hist, term
+   using namespace editor;          // For editor::(data, hist, term)
    data->col_zero= data->col= 0;
    term->activate(file->line_list.get_head());
    hist->activate();                // (Remain in command mode)
@@ -674,10 +672,8 @@ static const char*                  // Error message, nullptr expected
      editor::insert_file(i().c_str(), true);
    }
 
-   if( editor::file != editor::last ) {
+   if( editor::file != editor::last )
      editor::term->activate(editor::last);
-     editor::term->draw();
-   }
    editor::hist->activate();
 
    return nullptr;

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2022/12/30
+//       2023/01/02
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -545,7 +545,6 @@ const char*                         // Return message, nullptr if OK
    for(line= line->get_next(); line; line= line->get_next() ) {
      if( memcmp(line->text, S, L) == 0 ) {
        if( line->get_next() ) {     // If not "end of file" line
-         data->activate();
          term->activate(line);
          term->move_cursor_H(0);
          return nullptr;
@@ -559,7 +558,6 @@ const char*                         // Return message, nullptr if OK
      line= file->line_list.get_head(); // (The "top of file" line, skipped)
      for(line= line->get_next(); line; line= line->get_next()) {
        if( memcmp(line->text, S, L) == 0 && line->get_next() ) {
-         data->activate();
          term->activate(line);
          term->move_cursor_H(0);
          put_message("Wrapped");
@@ -741,8 +739,6 @@ const char*                         // Return message, nullptr if OK
            return nullptr;
          }
        }
-//     if( line == data->cursor )   // Not usually needed
-//       break;                     // (Completely omitted in prev_locate)
      }
    }
 
@@ -987,23 +983,23 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   editor::remove_file( void )      // Remove active file from the file list
+   editor::remove_file( void )      // Remove the active file from the list
 {
    EdFile* next= file->get_prev();
    if( next == nullptr ) {
      next= file->get_next();
-     if( next == nullptr )          // If no more files
-       device->operational= false;  // No need to stay around
+     if( next == nullptr )          // If no other files are in the list
+       device->operational= false;  // Terminate the Editor
    }
 
-   if( next ) {                     // (If next == nullptr, leave file)
-     file_list.remove(file, file);  // Remove the file from the file list
-     delete file;                   // And delete it
-     editor::file= nullptr;         // (Don't reference it any more)
+   if( next ) {                     // If another file remains in the list
+     file_list.remove(file, file);  // Remove the active file from the list
+     delete file;                   // (Delete it)
+     editor::file= nullptr;         // (And don't reference it any more)
 
-     term->activate(next);
-     term->draw();
-   }
+     term->activate(next);          // (Activate it)
+     term->draw();                  // (And draw it)
+   } // The last file removed remains on the file_list (It's still referenced)
 }
 
 //----------------------------------------------------------------------------

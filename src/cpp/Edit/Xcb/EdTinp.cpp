@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdTerm.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2022/12/30
+//       2023/01/02
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -439,7 +439,7 @@ void
    // Diagnostics
    const char* key_name= key_to_name(key);
    Trace::trace(".KEY", (state<<16) | (key & 0x0000ffff), key_name);
-   if( opt_hcdm )
+   if( opt_hcdm && opt_verbose > 0 )
      debugh("EdTerm(%p)::key_input(0x%.4x,%.4x) '%s'\n", this
            , key, state, key_name);
 
@@ -468,13 +468,13 @@ void
        return;                      // (Disallowed)
    }
 
-   // Handle message completion
-   file->rem_message_type();        // Remove informational message
+   // Handle message completion, removing informational messages.
+   file->rem_message_type();        // Remove current informational message
    if( draw_message() )             // If another message is present
      return;                        // (Return, ignoring the current key)
 
    if( status & (SF_MESSAGE | SF_NFC_MESSAGE) ) { // If a message completed
-     status &= ~SF_MESSAGE;
+     status &= ~SF_MESSAGE;         // (SF_NFC_MESSAGE status removed later)
      draw_history();
    }
 
@@ -659,10 +659,8 @@ void
        EdFile* file= editor::file->get_prev();
        if( file == nullptr )
          file= editor::file_list.get_tail();
-       if( file != editor::file ) {
+       if( file != editor::file )
          activate(file);
-         draw();
-       }
        break;
      }
      case XK_F8: {                  // Next file
@@ -670,10 +668,8 @@ void
        EdFile* file= editor::file->get_next();
        if( file == nullptr )
          file= editor::file_list.get_head();
-       if( file != editor::file ) {
+       if( file != editor::file )
          activate(file);
-         draw();
-       }
        break;
      }
      case XK_F9: {                  // NOT ASSIGNED
@@ -769,7 +765,7 @@ void
    // Use E.detail and gui::Types::BUTTON_TYPE to determine button
    // E.root_x/y is position on root window; E.event_x/y is position on window
    xcb_button_release_event_t& E= *event;
-   if( opt_hcdm )
+   if( opt_hcdm && opt_verbose > 0 )
      debugh("button:   %.2x root[%d,%d] event[%d,%d] state(0x%.4x)"
            " ss(%u) rec(%u,%u,%u)\n"
            , E.detail, E.root_x, E.root_y, E.event_x, E.event_y, E.state
@@ -781,7 +777,7 @@ void
    switch( E.detail ) {
      case gui::BT_LEFT: {           // Left button
        if( button_row < USER_TOP ) { // If on top of screen
-         if( !file->rem_message() ) { // If not message removed
+         if( !file->rem_message() ) { // If no message removed or remains
            if( view == hist )       // If history active
              move_cursor_H(hist->col_zero + get_col(E.event_x)); // Update column
            else
@@ -875,25 +871,32 @@ void
 void
    EdTerm::focus_in(                // Handle this
      xcb_focus_in_event_t* E)       // Focus-in event
-{
-   if( opt_hcdm && opt_verbose >= 0 )
+{  using namespace editor;
+
+   if( opt_hcdm && opt_verbose > 0 )
      debugh("gain focus: detail(%d) event(%d) mode(%d)\n"
            , E->detail, E->event, E->mode);
 
-   draw_cursor();
-   flush();
+   if( !(view == hist && file->mess_list.get_head()) ) {
+     draw_cursor();
+     flush();
+   }
    status |= SF_FOCUS;
 }
 
 void
    EdTerm::focus_out(               // Handle this
      xcb_focus_out_event_t* E)      // Focus-out event
-{
-   if( opt_hcdm && opt_verbose >= 0 )
+{  using namespace editor;
+
+   if( opt_hcdm && opt_verbose > 0 )
      debugh("lost focus: detail(%d) event(%d) mode(%d)\n"
            , E->detail, E->event, E->mode);
 
-   undo_cursor();
+   if( !(view == hist && file->mess_list.get_head()) ) {
+     undo_cursor();
+     flush();
+   }
    status &= ~(SF_FOCUS);
 }
 
@@ -901,17 +904,17 @@ void
    EdTerm::motion_notify(           // Handle this
      xcb_motion_notify_event_t* E)  // Motion notify event
 {
-   if( opt_hcdm && opt_verbose >= 0 )
+   if( opt_hcdm && opt_verbose > 1 )
      debugh("motion: time(%u) detail(%d) event(%d) xy(%d,%d)\n"
            , E->time, E->detail, E->event, E->event_x, E->event_y);
 
-   // printf("."); fflush(stdout);  // See when called
    if( E->event_x != motion.x || E->event_y != motion.y ) {
      show_mouse();
    } else {
      if( (E->time - motion.time) < 1000 ) // If less than 1 second idle
        return;                      // Ignore
-     { if( config::USE_MOUSE_HIDE ) hide_mouse(); }
+     if( config::USE_MOUSE_HIDE )
+       hide_mouse();
    }
 
    motion.time= E->time;

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2022/09/11
+//       2023/01/01
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -211,8 +211,7 @@ void
 void
    Active::expand(                  // Expand the buffer
      Length            length)      // To this length (+1)
-{
-   if( opt_hcdm )
+{  if( opt_hcdm )
      debugh("Active(%p)::expand(%zd) [%zd,%zd]\n", this, length, buffer_used, buffer_size);
 
    if( length >= buffer_size ) {    // If expansion required
@@ -312,7 +311,7 @@ void
      Column            column,      // The current column
      int               code)        // The insert character
 {
-   if( code == 0 )                  // Don't insert a null character
+   if( code == 0 )                  // Don't insert null characters
      return;
    if( !pub::Utf::is_unicode(code) ) // Subtitute UNI_REPLACEMENT if invalid
      code= pub::Utf::UNI_REPLACEMENT;
@@ -365,7 +364,7 @@ void
      Column            column,      // At this column
      int               code)        // With this character
 {
-   if( code == 0 )                  // Don't insert a null character
+   if( code == 0 )                  // Don't insert null characters
      return;
    if( !pub::Utf::is_unicode(code) ) // Subtitute UNI_REPLACEMENT if invalid
      code= pub::Utf::UNI_REPLACEMENT;

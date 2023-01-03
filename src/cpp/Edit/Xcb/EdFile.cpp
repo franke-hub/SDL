@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2022/12/30
+//       2023/01/01
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -281,6 +281,62 @@ static void
 
    editor::file->mode= mode;        // Update the mode
    editor::term->draw_top();        // And redraw the top lines
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       trace_redo
+//
+// Purpose-
+//       Trace utilities
+//
+//----------------------------------------------------------------------------
+static void
+   trace_redo(                      // Trace redo/undo operation
+     const char*       ident,       // Trace identifier
+     EdRedo*           redo,        // The REDO/UNDO
+     EdFile*           file,        // The REDO/UNDO file
+     EdLine*           line)        // The REDO/UNDO cursor line
+{
+   typedef pub::Trace::Record Record;
+   Record* record= Trace::trace(sizeof(Record) + 32);
+   if( record ) {
+     memset(record, 0, sizeof(Record) + 32);
+     struct unit {
+       uint16_t lh_col;
+       uint16_t rh_col;
+     }* U= (unit*)(&record->unit);
+     U->lh_col= htons((uint16_t)redo->lh_col);
+     U->rh_col= htons((uint16_t)redo->rh_col);
+
+     uintptr_t V0= uintptr_t(file);
+     uintptr_t V1= uintptr_t(line);
+     uintptr_t R0= uintptr_t(redo->head_insert);
+     uintptr_t R1= uintptr_t(redo->tail_insert);
+     uintptr_t R2= uintptr_t(redo->head_remove);
+     uintptr_t R3= uintptr_t(redo->tail_remove);
+
+#pragma GCC diagnostic push         // GCC regression START
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+     for(unsigned i= 8; i>0; i--) {
+       record->value[ 0 + i - 1]= char(V0);
+       record->value[ 8 + i - 1]= char(V1);
+       ((char*)(record->value))[16 + i - 1]= char(R0);
+       ((char*)(record->value))[24 + i - 1]= char(R1);
+       ((char*)(record->value))[32 + i - 1]= char(R2);
+       ((char*)(record->value))[40 + i - 1]= char(R3);
+
+       V0 >>= 8;
+       V1 >>= 8;
+       R0 >>= 8;
+       R1 >>= 8;
+       R2 >>= 8;
+       R3 >>= 8;
+     }
+     record->trace(ident);
+   }
+#pragma GCC diagnostic pop          // GCC regression END
 }
 
 //============================================================================
@@ -664,7 +720,7 @@ void
      editor::term->draw_top();      // (Otherwise, message is deferred)
 }
 
-int                                 // TRUE if message removed or remain
+int                                 // TRUE if a message removed or remains
    EdFile::rem_message( void )      // Remove current EdMess
 {
    EdMess* mess= mess_list.remq();
@@ -672,16 +728,13 @@ int                                 // TRUE if message removed or remain
    return bool(mess) || bool(mess_list.get_head());
 }
 
-int                                 // TRUE if message removed or remain
+int                                 // TRUE if a message removed or remains
    EdFile::rem_message_type(        // Remove current EdMess
      int                type_)      // If at this level or lower
 {
    EdMess* mess= mess_list.get_head();
-   if( mess && type_ >= mess->type ) {
-     mess_list.remq();
-     delete mess;
-     return true;
-   }
+   if( mess && type_ >= mess->type )
+     return rem_message();
 
    return bool(mess);
 }
@@ -734,7 +787,7 @@ void
    }
 
    // Perform redo action
-   Config::trace(".RDO", redo, this, editor::data->cursor);
+   trace_redo(".RDO", redo, this, editor::data->cursor);
    assert_redo(redo, this);         // (Only active when USE_BRINGUP == true)
 
    EdLine* line= nullptr;           // Activation line
@@ -782,7 +835,7 @@ void
    }
 
    // Perform undo action
-   Config::trace(".UDO", undo, this, editor::data->cursor);
+   trace_redo(".UDO", undo, this, editor::data->cursor);
    assert_undo(undo, this);         // (Only active when USE_BRINGUP == true)
 
    if( undo_list.get_head() == nullptr ) // If nothing left to undo
@@ -853,7 +906,7 @@ void
    EdFile::redo_insert(             // Insert
      EdRedo*           redo)        // This REDO onto the UNDO list
 {
-   Config::trace(".IDO", redo, this, editor::data->cursor);
+   trace_redo(".IDO", redo, this, editor::data->cursor);
    assert_undo(redo, this);         // (Only active when USE_BRINGUP == true)
    redo_delete();                   // Delete the current REDO list
 
@@ -1110,14 +1163,14 @@ int                                 // Return code, 0 OK
    EdLine::EdLine(                  // Constructor
      const char*       text)        // Line text
 :  ::pub::List<EdLine>::Link(), text(text ? text : "")
-{  if( HCDM || (opt_hcdm && opt_verbose > 2) )
+{  if( HCDM || (opt_hcdm && opt_verbose > 1) )
      traceh("EdLine(%p)::EdLine\n", this);
 
    Trace::trace(".NEW", "line", this);
 }
 
    EdLine::~EdLine( void )          // Destructor
-{  if( HCDM || (opt_hcdm && opt_verbose > 2) )
+{  if( HCDM || (opt_hcdm && opt_verbose > 1) )
      traceh("EdLine(%p)::~EdLine\n", this);
 
    if( (flags & F_AUTO) == 0 )      // Do not trace temporary lines
@@ -1155,7 +1208,7 @@ bool
    EdLine::is_within(               // Is this line within range head..tail?
      const EdLine*     head,        // First line in range
      const EdLine*     tail) const  // Final line in range
-{  if( HCDM || (opt_hcdm && opt_verbose > 2) )
+{  if( HCDM || (opt_hcdm && opt_verbose > 1) )
      debugh("EdLine(%p)::is_within(%p,%p)\n", this, head, tail);
 
    for(const EdLine* line= head; line; line= line->get_next() ) {

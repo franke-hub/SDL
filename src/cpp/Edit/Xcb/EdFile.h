@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2022/08/01
+//       2022/12/31
 //
 // Implementation objects-
 //       EdLine: Editor EdFile line descriptor
@@ -401,7 +401,7 @@ void
      const char*       mess_,       // Message text
      int               type_= EdMess::T_INFO); // Message mode
 
-int                                 // TRUE if message removed or remain
+int                                 // TRUE if message removed or remains
    rem_message( void );             // Remove current EdMess
 
 int                                 // TRUE if message removed or remain

@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2022/12/30
+//       2022/12/31
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -128,7 +128,7 @@ xcb_gcontext_t                       // The current graphic context
 //       EdHist::activate
 //
 // Purpose-
-//       Activate the history view
+//       Activate the history/message view
 //
 //----------------------------------------------------------------------------
 void
@@ -148,7 +148,7 @@ void
 //       EdHist::draw_active
 //
 // Purpose-
-//       Redraw the active (history) line
+//       Redraw the active (history/message) line
 //
 //----------------------------------------------------------------------------
 void
@@ -156,7 +156,7 @@ void
 {
    EdTerm* term= editor::term;
    active.index(col_zero+term->col_size); // Blank fill
-   term->putxy(get_gc(), term->get_xy(0, row), active.get_buffer(col_zero));
+   term->putcr(get_gc(), 0, row, active.get_buffer(col_zero));
    if( editor::view == this )
      term->draw_cursor();
    term->flush();

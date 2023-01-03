@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdTerm.h screen handler.
 //
 // Last change date-
-//       2022/12/30
+//       2023/01/02
 //
 // Implementation notes-
 //       EdInps.cpp implements keyboard and mouse event handlers.
@@ -289,7 +289,7 @@ void
      unsigned          left,        // Left (X) offset
      unsigned          top,         // Top  (Y) offset
      const char*       text)        // Using this text
-{  if( opt_hcdm && opt_verbose > 1 )
+{  if( opt_hcdm && opt_verbose > 0 )
      debugh("EdTerm(%p)::putxy(%u,[%d,%d],'%s')\n", this
            , fontGC, left, top, text);
 
@@ -326,11 +326,10 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::activate
+//       EdTerm::activate(EdFile*)
 //
 // Purpose-
-//       Set the current file
-//       Set the current line
+//       Activate, then draw a file at its current position.
 //
 //----------------------------------------------------------------------------
 void
@@ -378,12 +377,21 @@ void
      }
      set_main_name(buffer);
 
-     // Synchronize
+     // Synchronize, then draw the screen
      synch_active();
-     flush();
+     draw();
    }
 }
 
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdTerm::activate(EdLine*)
+//
+// Purpose-
+//       Move the cursor to the specified line, redrawing as required
+//
+//----------------------------------------------------------------------------
 void
    EdTerm::activate(                // Activate
      EdLine*           act_line)    // This line
@@ -511,8 +519,7 @@ void
    // Set up WM_DELETE_WINDOW protocol handler
    protocol= name_to_atom("WM_PROTOCOLS", true);
    wm_close= name_to_atom("WM_DELETE_WINDOW");
-   enqueue(__LINE__, "xcb_change_property"
-          , xcb_change_property_checked
+   ENQUEUE("xcb_change_property", xcb_change_property_checked
           ( c, XCB_PROP_MODE_REPLACE, widget_id
           , protocol, 4, 32, 1, &wm_close) );
    if( opt_hcdm )
@@ -536,9 +543,9 @@ void
 {
    EdView* const view= editor::view;
 
-   if( opt_hcdm && opt_verbose > 1 )
-     debugh("EdTerm(%p)::cursor_%s cursor[%u,%u]\n", this
-           , set ? "S" : "C", view->col, view->row);
+   if( opt_hcdm && opt_verbose > 0 )
+     debugh("EdTerm(%p)::%s_cursor cr[%u,%u]\n", this
+           , set ? "draw" : "undo", view->col, view->row);
 
    char buffer[8];                  // The cursor encoding buffer
    size_t column= view->get_column(); // The current column
@@ -710,50 +717,14 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdTerm::draw_line
 //       EdTerm::draw
 //
 // Purpose-
-//       Draw the entire screen, data and info
+//       Draw one line
+//       Draw the entire screen, both data and info
 //
 //----------------------------------------------------------------------------
-void
-   EdTerm::draw( void )             // Redraw the Window
-{
-   if( opt_hcdm )
-     debugh("EdTerm(%p)::draw\n", this);
-
-   Trace::trace(".DRW", " all", head, tail);
-   // Clear the drawable window
-   NOQUEUE("xcb_clear_area", xcb_clear_area
-          ( c, 0, widget_id, 0, 0, rect.width, rect.height) );
-
-   // Display the text (if any)
-   tail= this->head;
-   if( tail ) {
-     EdLine* line= tail;
-     row_used= USER_TOP;
-
-     const unsigned max_used= row_size - USER_BOT;
-     while( row_used < max_used ) {
-       if( line == nullptr )
-         break;
-
-       draw_line(row_used, line);
-       row_used++;
-       tail= line;
-       line= line->get_next();
-     }
-
-     row_used -= USER_TOP;
-     if( opt_hcdm )
-       debugf("%4d LAST xy(%d,%d)\n", __LINE__, 0, row_used);
-   }
-
-   draw_top();                      // Draw the top (heading) lines
-   draw_cursor();
-   flush();
-}
-
 void
    EdTerm::draw_line(               // Draw one data line
      unsigned          row,         // The (absolute) row number
@@ -805,6 +776,46 @@ void
    } else {
      putxy(fontGC, 1, y, text);
    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void
+   EdTerm::draw( void )             // Redraw the Window
+{
+   if( opt_hcdm )
+     debugh("EdTerm(%p)::draw\n", this);
+
+   Trace::trace(".DRW", " all", head, tail);
+   // Clear the drawable window
+   NOQUEUE("xcb_clear_area", xcb_clear_area
+          ( c, 0, widget_id, 0, 0, rect.width, rect.height) );
+
+   // Display the text (if any)
+   tail= this->head;
+   if( tail ) {
+     EdLine* line= tail;
+     row_used= USER_TOP;
+
+     const unsigned max_used= row_size - USER_BOT;
+     while( row_used < max_used ) {
+       if( line == nullptr )
+         break;
+
+       draw_line(row_used, line);
+       row_used++;
+       tail= line;
+       line= line->get_next();
+     }
+
+     row_used -= USER_TOP;
+     if( opt_hcdm )
+       debugf("%4d LAST xy(%d,%d)\n", __LINE__, 0, row_used);
+   }
+
+   draw_top();                      // Draw top (status, hist/message) lines
+   if( editor::view == editor::data )
+     draw_cursor();
+   flush();
 }
 
 //----------------------------------------------------------------------------
@@ -1027,8 +1038,8 @@ void
 //----------------------------------------------------------------------------
 void
    EdTerm::synch_active( void )     // Set the Active (cursor) line
-{
-   EdView* const data= editor::data;
+{  using namespace editor;
+
    if( data->row < USER_TOP )       // (File initial value == 0)
      data->row= USER_TOP;
 
@@ -1060,7 +1071,8 @@ void
    Trace::trace(".CSR", match_type, data->cursor, line); // (Old, new)
    data->cursor= line;
    data->active.reset(line->text);
-   draw_cursor();
+   if( !(view == hist && file->mess_list.get_head()) )
+     draw_cursor();
 }
 
 //----------------------------------------------------------------------------

@@ -13,10 +13,10 @@
 //       EdHist.h
 //
 // Purpose-
-//       Editor: History EdView
+//       Editor: history/message EdView
 //
 // Last change date-
-//       2021/10/01
+//       2021/12/31
 //
 //----------------------------------------------------------------------------
 #ifndef EDHIST_H_INCLUDED

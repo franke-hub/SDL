@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2022/12/29
+//       2023/01/01
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -57,10 +57,10 @@ using pub::Trace;                   // For pub::Trace
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
+
 ,  PROT_RW= (PROT_READ | PROT_WRITE)
 ,  DIR_MODE= (S_IRWXU | S_IRGRP|S_IXGRP | S_IROTH|S_IXOTH)
 ,  TRACE_SIZE= 0x00100000           // Trace table size (1,048,576)
-,  USE_BRINGUP= false               // Extra bringup diagnostics?
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
@@ -87,8 +87,8 @@ static const key_t     SHM_TOKEN= key_t(0x81a2b47c9bbc2dFE);
 // External data areas
 //----------------------------------------------------------------------------
 // Debugging controls- From command line -------------------------------------
-int                    config::opt_hcdm= false;    // Hard Core Debug Mode?
-int                    config::opt_verbose= false; // Debug verbosity
+int                    config::opt_hcdm= false; // Hard Core Debug Mode?
+int                    config::opt_verbose= 0;  // Verbosity, larger == more
 
 // Screen colors ----- From configuration file -------------------------------
 uint32_t               config::mark_bg=    0x00C0F0FF; // Text BG (marked)
@@ -144,7 +144,7 @@ static const char*     Edit_conf=
    "Exec=View ; Edit in read-only mode\n"
    "Exec=Edit ; Edit in read-write mode\n"
    "Purpose=Graphic text editor\n"
-   "Version=0.0\n"
+   "Version=1.0.0\n"
    "\n"
    "[Options]\n"
    ";; See sample: ~/src/cpp/Edit/Xcb/.SAMPLE/Edit.conf\n"
@@ -305,10 +305,11 @@ void
    Config::debug(                   // Debugging display
      const char*       info)        // Informational text
 {
+static int             recursion= 0; // Recursion count
+
    if( info == nullptr )
      info= "";
 
-   static int recursion= 0;
    debugf("Config::debug(%s) %d\n", info, recursion);
    if( recursion ) return;
 
@@ -360,62 +361,6 @@ void
    errorf("\n");
 
    exit(EXIT_FAILURE);
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       Config::trace
-//
-// Purpose-
-//       Trace utilities
-//
-//----------------------------------------------------------------------------
-void
-   Config::trace(                   // Trace undo/redo operation
-     const char*       ident,       // Trace identifier
-     EdRedo*           redo,        // The UNDO/REDO
-     EdFile*           file,        // The UNDO/REDO file
-     EdLine*           line)        // The UNDO/REDO cursor line
-{
-   typedef pub::Trace::Record Record;
-   Record* record= Trace::trace(32);
-   if( record ) {
-     memset(record->value, 0, sizeof(record->value) + 32);
-     struct unit {
-       uint16_t lh_col;
-       uint16_t rh_col;
-     }* U= (unit*)(&record->unit);
-     U->lh_col= htons((uint16_t)redo->lh_col);
-     U->rh_col= htons((uint16_t)redo->rh_col);
-
-     uintptr_t V0= uintptr_t(file);
-     uintptr_t V1= uintptr_t(line);
-     uintptr_t R0= uintptr_t(redo->head_insert);
-     uintptr_t R1= uintptr_t(redo->tail_insert);
-     uintptr_t R2= uintptr_t(redo->head_remove);
-     uintptr_t R3= uintptr_t(redo->tail_remove);
-
-#pragma GCC diagnostic push         // GCC regression START
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
-     for(unsigned i= 8; i>0; i--) {
-       record->value[ 0 + i - 1]= char(V0);
-       record->value[ 8 + i - 1]= char(V1);
-       ((char*)(record->value))[16 + i - 1]= char(R0);
-       ((char*)(record->value))[24 + i - 1]= char(R1);
-       ((char*)(record->value))[32 + i - 1]= char(R2);
-       ((char*)(record->value))[40 + i - 1]= char(R3);
-
-       V0 >>= 8;
-       V1 >>= 8;
-       R0 >>= 8;
-       R1 >>= 8;
-       R2 >>= 8;
-       R3 >>= 8;
-     }
-     record->trace(ident);
-   }
-#pragma GCC diagnostic pop          // GCC regression END
 }
 
 //----------------------------------------------------------------------------

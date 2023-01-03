@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2022/12/20
+//       2023/01/02
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -57,24 +57,25 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= false               // Extra bringup diagnostics?
+,  VERBOSE= 0                       // Verbosity, larger is more verbose
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
 // Options
 //----------------------------------------------------------------------------
-static int             opt_help= false; // --help (or error)
-static int             opt_hcdm= false; // Hard Core Debug Mode
 static int             opt_index;   // Option index
 
+static int             opt_help= false; // --help (or error)
+static int             opt_hcdm= HCDM;  // Hard Core Debug Mode?
+static int             opt_verbose= VERBOSE; // Verbosity
+
 static int             opt_bg= true; // Run editor in background?
-static int             opt_verbose= -1; // Verbosity
 
 static const char*     OSTR= ":";   // The getopt_long optstring parameter
 static struct option   OPTS[]=      // The getopt_long longopts parameter
 {  {"help",    no_argument,       &opt_help,    true} // --help
 ,  {"hcdm",    no_argument,       &opt_hcdm,    true} // --hcdm
-,  {"verbose", optional_argument, &opt_verbose, 0} // --verbose {optional}
+,  {"verbose", optional_argument, &opt_verbose, 1} // --verbose {optional}
 
 ,  {"fg",      no_argument,       &opt_bg,      false} // --fg
 ,  {0, 0, 0, 0}                     // (End of option list)
@@ -104,13 +105,15 @@ static int                          // Return code (0 OK)
 {
    //-------------------------------------------------------------------------
    // Initialize globals
-   setlocale(LC_NUMERIC, "");       // Allows printf("%'d\n", 123456789);
-
    gui::opt_hcdm= opt_hcdm;         // Expose options
-   gui::opt_verbose= opt_verbose;
+   gui::opt_verbose= opt_verbose - 1;
 
    config::opt_hcdm= opt_hcdm;
    config::opt_verbose= opt_verbose;
+
+   //-------------------------------------------------------------------------
+   // Initialize numeric locale
+   setlocale(LC_NUMERIC, "");       // Allows printf("%'d\n", 123456789);
 
    return 0;
 }
@@ -147,9 +150,9 @@ static int                          // Return code (Always 1)
                    "Options:\n"
                    "  --help\tThis help message\n"
                    "  --hcdm\tHard Core Debug Mode\n"
+                   "  --verbose\t{=n} Verbosity, default 1\n"
 
                    "  --fg\t\tRun editor in foreground\n"
-                   "  --verbose\t{=n} Verbosity, default 0\n"
                    , __FILE__
           );
 
@@ -231,14 +234,11 @@ static int                          // Return code (0 if OK)
    // Parameter analysis
    //-------------------------------------------------------------------------
    int C;                           // The option character
-   while( (C= getopt_long(argc, argv, OSTR, OPTS, &opt_index)) != -1 )
-   {
-     switch( C )
-     {
+   while( (C= getopt_long(argc, argv, OSTR, OPTS, &opt_index)) != -1 ) {
+     switch( C ) {
        case 0:
        {{{{
-         switch( opt_index )
-         {
+         switch( opt_index ) {
            case OPT_HELP:           // These options handled by getopt
            case OPT_HCDM:
            case OPT_FG:
@@ -250,8 +250,7 @@ static int                          // Return code (0 if OK)
              break;
 
            default:
-             fprintf(stderr, "%4d Unexpected opt_index(%d)\n", __LINE__,
-                             opt_index);
+             fprintf(stderr, "Unexpected opt_index(%d)\n", opt_index);
              break;
          }
          break;
@@ -259,29 +258,32 @@ static int                          // Return code (0 if OK)
 
        case ':':
          opt_help= true;
-         if( optopt == 0 )
-           fprintf(stderr, "%4d Option requires an argument '%s'.\n", __LINE__,
-                           argv[optind-1]);
-         else
-           fprintf(stderr, "%4d Option requires an argument '-%c'.\n", __LINE__,
-                           optopt);
+         if( optopt == 0 ) {
+           if( strchr(argv[optind-1], '=') )
+             fprintf(stderr, "Option '%s' argument disallowed.\n"
+                          , argv[optind-1]);
+           else
+             fprintf(stderr, "Option '%s' requires an argument.\n"
+                           , argv[optind-1]);
+         } else {
+           fprintf(stderr, "Option '-%c' requires an argument.\n", optopt);
+         }
          break;
 
        case '?':
          opt_help= true;
          if( optopt == 0 )
-           fprintf(stderr, "%4d Unknown option '%s'.\n", __LINE__,
-                           argv[optind-1]);
+           fprintf(stderr, "Unknown option '%s'.\n", argv[optind-1]);
          else if( isprint(optopt) )
-           fprintf(stderr, "%4d Unknown option '-%c'.\n", __LINE__, optopt);
+           fprintf(stderr, "Unknown option '-%c'.\n", optopt);
          else
-           fprintf(stderr, "%4d Unknown option character '0x%x'.\n", __LINE__,
-                           (optopt & 0x00ff));
+           fprintf(stderr, "Unknown option character '0x%.2x'.\n"
+                         , (optopt & 0x00ff));
          break;
 
        default:
-         fprintf(stderr, "%4d ShouldNotOccur ('%c',0x%x).\n", __LINE__,
-                         C, (C & 0x00ff));
+         fprintf(stderr, "%4d ShouldNotOccur ('%c',0x%.2x).\n", __LINE__
+                       , C, (C & 0x00ff));
          break;
      }
    }
@@ -322,20 +324,20 @@ extern int                          // Return code
        return 0;
    }
 
-   Config config(argc, argv);       // Configure
-   if( opt_hcdm || opt_verbose >= 0 ) {
-     Config::errorf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
-     Config::errorf("--hcdm(%d) --verbose(%d) --fg(%d)\n"
-                   , opt_hcdm, opt_verbose, !opt_bg);
-   }
-
    //-------------------------------------------------------------------------
-   // Mainline code: Load files
+   // Operate the Editor
    //-------------------------------------------------------------------------
    try {
-     Editor editor(optind, argc, argv);
-     editor::start();
-     editor::join();
+     Config config(argc, argv);     // Configure
+     if( opt_hcdm || opt_verbose > 0 ) {
+       Config::errorf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
+       Config::errorf("--hcdm(%d) --verbose(%d) --fg(%d)\n"
+                     , opt_hcdm, opt_verbose, !opt_bg);
+     }
+
+     Editor editor(optind, argc, argv); // Load the initial file set
+     editor::start();               // Initial screen draw, XCB polling loop
+     editor::join();                // Polling loop complete
    } catch(pub::Exception& X) {
      debugf("%s\n", std::string(X).c_str());
    } catch(std::exception& X) {
@@ -350,7 +352,7 @@ extern int                          // Return code
    // Terminate
    //-------------------------------------------------------------------------
    term();                          // Termination cleanup
-   if( USE_BRINGUP || opt_hcdm || opt_verbose >= 0 )
+   if( opt_hcdm && opt_verbose > 0 )
      printf("Edit completed\n");
 
    return rc;
