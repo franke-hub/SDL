@@ -7,13 +7,13 @@
 //       Development journal
 //
 // Last change date-
-//       2022/12/01
+//       2023/01/11
 //
 -------------------------------------------------------------------------- -->
 
 # ~/src/doc/Journal/Journal.md
 
-Copyright (C) 2022 Frank Eskesen.
+Copyright (C) 2022-2023 Frank Eskesen.
 
 This file is free content, distributed under the MIT license.
 (See accompanying file LICENSE.MIT or the original contained
@@ -437,5 +437,14 @@ Select's socket could point at freed storage.
 
 Library change information moved to ~/src/cpp/lib/pub/ and ~/src/cpp/lib/dev as
 appropriate. We'll use this Journal for status of a more general nature.
+
+### 2022/01/11
+
+Paused working on HTTP client/server for a bit, instead updating editxcb so
+that the status line wasn't hidden by the history line.
+After completing that update, also updated ~/src/cpp/Util/worder.cpp splitting
+off worder.hpp which improves and isolates the Dictionary function.
+While it's true that the Dictionary was on the back burner, updating it added
+significant testing time for the updated editxcb.
 
 ----
