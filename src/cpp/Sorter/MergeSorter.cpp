@@ -17,8 +17,8 @@
 // Last change date-
 //       2007/01/01
 //
-// Notes-
-//       An extremely efficient sorter that uses a temporary array.
+// Implementation notes-
+//       10000 Timing: 6.76 (#2) Uses a duplicate array.
 //
 //----------------------------------------------------------------------------
 #include <assert.h>

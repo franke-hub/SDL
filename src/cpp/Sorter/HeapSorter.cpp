@@ -17,9 +17,8 @@
 // Last change date-
 //       2007/01/01
 //
-// Notes-
-//       A very quick, very efficient sorter.
-//       Excellent for very large arrays
+// Implementation notes-
+//       10000 Timing: 7.15 (#3) Good for large arrays.
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>

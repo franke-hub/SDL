@@ -17,8 +17,8 @@
 // Last change date-
 //       2007/01/01
 //
-// Notes-
-//       The simplest, but slowest, sorter.
+// Implementation notes-
+//       10000 Timing: 622.09 (#5) CPU intensive sorter, simple but slow.
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>

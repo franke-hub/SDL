@@ -15,13 +15,14 @@
 //       Sort tester.
 //
 // Last change date-
-//       2007/01/01
+//       2023/01/11
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <com/Interval.h>
 #include <com/Random.h>
 
 #include "Object.h"
@@ -40,7 +41,7 @@
 #define HCDM                        // If defined, Hard Core Debug Mode
 #endif
 
-#define MAX_COUNT              2048 // Largest sort size
+#define MAX_COUNT             4'096 // Largest sort size
 
 //----------------------------------------------------------------------------
 // External references
@@ -163,26 +164,18 @@ static int                          // Error counter
    verify(                          // Sort and test.
      Sorter*           sorter)      // Sorter
 {
-   time_t              start;       // Test start time
-   time_t              finish;      // Test completion time
-
-   int                 i;
-
-   start= time(NULL);
-   for(i= count; i>=0; i--)
-   {
+   Interval interval;
+   for(int i= count; i>=0; i--) {
      memset(unsorted, 0, count*sizeof(Object*));
-     if( verify(i, sorter) > 0 )
-     {
+     if( verify(i, sorter) > 0 ) {
        fprintf(stderr, "Sort(%s) error\n", sorter->getClassName());
        return 1;
      }
    }
-   finish= time(NULL);
+   double time= interval.stop();
 
    #ifdef HCDM
-     printf("OK Sort(%s) %d seconds\n",
-            sorter->getClassName(), (int)(finish-start));
+     printf("OK %6.2f seconds Sort(%s)\n", time, sorter->getClassName());
    #endif
    return 0;
 }

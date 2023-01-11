@@ -30,7 +30,7 @@
 #define __SOURCE__       "OBJECT  " // Source file
 
 #ifndef HCDM
-#define HCDM                        // If defined, Hard Core Debug Mode
+#undef  HCDM                        // If defined, Hard Core Debug Mode
 #endif
 
 //----------------------------------------------------------------------------

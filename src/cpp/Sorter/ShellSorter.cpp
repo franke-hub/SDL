@@ -17,9 +17,8 @@
 // Last change date-
 //       2007/01/01
 //
-// Notes-
-//       An OK but stack intensive sorter.
-//       Because of memory usage, not good for very large arrays
+// Implementation notes-
+//       10000 Timing: 59.55 (#4) Not good for very large arrays.
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
