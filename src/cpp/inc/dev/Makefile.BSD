@@ -1,0 +1,35 @@
+##############################################################################
+##
+##       Copyright (c) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       (Include this Makefile to add PUB library controls and dependencies.)
+##
+## Last change date-
+##       2023/01/12
+##
+## Implementation notes-
+##       This version is intended to be included from CYGWIN/LINUX makefiles.
+##
+##############################################################################
+
+################################### Controls
+LLIBS  += -L$(LIBDIR) -ldev ####### DEV library
+CLIBS  += -lboost_stacktrace_addr2line
+CLIBS  += -lcrypto
+CLIBS  += -lpthread
+CLIBS  += -lssl
+
+##############################################################################
+## Dependencies
+$(MAKEXE): $(LIBDIR)/libdev.a
+

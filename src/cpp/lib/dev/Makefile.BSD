@@ -1,0 +1,82 @@
+##############################################################################
+##
+##       Copyright (c) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile customization.
+##
+## Last change date-
+##       2023/01/12
+##
+##############################################################################
+
+##############################################################################
+## Local options (-fPIC, but not on CYGWIN)
+ifneq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+COPTS  += -fPIC ################### Generate position independent code
+endif
+
+##############################################################################
+## Set targets
+ifeq "" "$(MAKRUN)"
+MAKRUN := dll
+MAKRUN := lib
+endif
+
+ifeq "" "$(DEFAULT)"
+DEFAULT := $(MAKRUN)
+endif
+
+.PHONY: default dll lib all
+default: $(DEFAULT)
+dll: libdev.so.1.0
+lib: libdev.a
+all: dll lib
+
+##############################################################################
+## TARGET: libdev.so.1.0, libdev.so, libdev.dll
+## DEVLIB := ############################ DEV libraries
+## DEVLIB += -lX11 $(shell pkg-config --libs xcb xcb-xfixes xcb-image)
+## DEVLIB += -lssl -lcrypto -lboost_stacktrace_addr2line ## DEV libraries
+
+libdev.so.1.0: $(MAKOBJ)
+	$(CC) -shared -o $@ $^ -LL -lcom ## $(DEVLIB)
+	touch $@
+
+libdev.so: libdev.so.1.0
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+libdev.dll: libdev.so.1.0
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+##############################################################################
+## TARGET: libdev.a
+libdev.a: $(MAKOBJ)
+	$(AR) $@ $^
+	touch $@
+
+##############################################################################
+## Dependencies
+ifneq "" "$(DEPENDS)"
+Makeproj.dep: $(wildcard $(INCDIR)/dev/*)
+Makeproj.dep: $(wildcard $(SRCDIR)/*)
+Makeproj.dep: $(wildcard $(SRCDIR)/dev/OS/USR/*) ## (non-existent)
+Makeproj.dep: $(wildcard $(SRCDIR)/dev/OS/BSD/*) ## (non-existent)
+endif
+
+##############################################################################
+## Cleanup
+.PHONY: dev.clean.bsd
+clean: dev.clean.bsd
+dev.clean.bsd: ;
+	-@rm libdev.a >/dev/null 2>/dev/null
+	-@rm libdev.so* libdev.dll >/dev/null 2>/dev/null

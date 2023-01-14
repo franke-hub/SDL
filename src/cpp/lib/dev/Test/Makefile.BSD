@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2022 Frank Eskesen.
+##       Copyright (c) 2022-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,29 +15,19 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2022/10/23
+##       2023/01/12
 ##
 ##############################################################################
 
 ##############################################################################
-## Local library/executable lists
-LIBOBJ := $(MAKOBJ) ################## Default, all files are library files
-LIBOBJ := $(patsubst $(OBJDIR)/Dirty.o,,$(LIBOBJ)) ## (Not distributed)
-LIBOBJ := $(patsubst $(OBJDIR)/Thing.o,,$(LIBOBJ)) ## (Not distributed)
-LIBOBJ := $(patsubst $(OBJDIR)/Include.o,,$(LIBOBJ)) ## (Built on demand)
-
-MAKEXE := ############################
-MAKEXE += T_Option
-MAKEXE += T_Quick
-MAKEXE += T_Stream
-MAKEXE += TestIoda
-LIBOBJ := $(patsubst $(OBJDIR)/T_Option.o,,$(LIBOBJ))
-LIBOBJ := $(patsubst $(OBJDIR)/T_Quick.o,,$(LIBOBJ))
-LIBOBJ := $(patsubst $(OBJDIR)/T_Stream.o,,$(LIBOBJ))
-LIBOBJ := $(patsubst $(OBJDIR)/TestIoda.o,,$(LIBOBJ))
-
-LLIBS  += -L. -llocal
+## Required libraries
 CLIBS  += -lrt
+
+##############################################################################
+## Executables only built on demand
+MAKEXE := $(patsubst $(OBJDIR)/Dirty,,$(MAKEXE))   ## Not distributed
+MAKEXE := $(patsubst $(OBJDIR)/Include,,$(MAKEXE)) ## For include file test
+MAKEXE := $(patsubst $(OBJDIR)/Thing,,$(MAKEXE))   ## Not distributed
 
 ##############################################################################
 ## Set default target
@@ -46,15 +36,11 @@ DEFAULT:= make.dir
 endif
 
 .PHONY: default
-default: $(MAKEXE)
+default: $(DEFAULT)
 
 all: default
 
-##############################################################################
-## TARGET: liblocal.a
-liblocal.a: $(LIBOBJ)
-	$(AR) $@ $^
-	touch $@
+make.dir: $(MAKEXE) cert.dir        ## Default: build executable, certificates
 
 ##############################################################################
 ## Targets: do, include, list, quick
@@ -100,8 +86,9 @@ test: T_Option T_Stream
 ioda: TestIoda
 	TestIoda
 
+##############################################################################
 ## Dirty contains a set of quick and dirty tests, and is not distributed.
-Dirty: Dirty.o Thing.o liblocal.a
+Dirty: Dirty.o Thing.o
 	$(LD) -o Dirty Dirty.o Thing.o $(CLOAD) $(CLIBS)
 
 dirty: Dirty
@@ -133,9 +120,8 @@ verify: ;
 
 ##############################################################################
 ## Dependency controls
+include $(INCDIR)/dev/Makefile.BSD  ## DEV library controls
 include $(INCDIR)/pub/Makefile.BSD  ## PUB library controls
-
-$(MAKEXE): liblocal.a cert.dir      ## Execs depend on local library, certs
 
 Include: $(INCDIR)/pub/http/*       ## Include test depends on include
 
@@ -154,5 +140,4 @@ clean : clean.dir
 clean.dir: ;
 	-@rm -f Dirty       >/dev/null 2>/dev/null
 	-@rm -f Include     >/dev/null 2>/dev/null
-	-@rm -f liblocal.a  >/dev/null 2>/dev/null
 

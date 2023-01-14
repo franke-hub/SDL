@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2033 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2022/12/11
+//       2023/01/14
 //
 // Arguments-
 //       With no arguments, --client --server defaulted
@@ -416,7 +416,6 @@ static void                         // Exit if error detected
              opt_runtime= atof(optarg);
              break;
 
-           case OPT_STREAM:
            case OPT_STRESS:
              if( optarg ) {
                opt_stress= parm_int();

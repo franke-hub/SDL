@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2033 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2022/12/10
+//       2023/01/14
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -84,7 +84,7 @@ enum
 
 enum                                // Default option values
 {  DEFAULT_OPTIONS                  // (Dummy)
-,  OPT_THREAD= 4                    // Stress test client thread count
+,  OPT_THREAD= 4                    // Stress test default thread count
 
 ,  USE_CLIENT= false                // --client
 ,  USE_SERVER= false                // --server
@@ -169,7 +169,6 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 ,  {"runtime", required_argument, nullptr,      0}    // --runtime <string>
 ,  {"server",  optional_argument, &opt_server,  true} // --server
 ,  {"ssl",     no_argument,       &opt_ssl,  true}    // --stress
-,  {"stream",  optional_argument, &opt_stress,  OPT_THREAD} // --stream (alias)
 ,  {"stress",  optional_argument, &opt_stress,  OPT_THREAD} // --stress
 ,  {"trace",   no_argument,       &opt_trace,   true} // --trace
 ,  {"verify",  no_argument,       &opt_verify,  true} // --verify
@@ -196,7 +195,6 @@ enum OPT_INDEX                      // Must match OPTS[]
 ,  OPT_RUNTIME
 ,  OPT_SERVER
 ,  OPT_SSL
-,  OPT_STREAM
 ,  OPT_STRESS
 ,  OPT_TRACE
 ,  OPT_VERIFY

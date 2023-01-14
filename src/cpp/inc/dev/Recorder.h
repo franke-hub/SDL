@@ -13,10 +13,18 @@
 //       dev/Recorder.h
 //
 // Purpose-
-//       Profiling event recorder
+//       Statistical event recorder
 //
 // Last change date-
 //       2022/10/19
+//
+// Implementation notes-
+//       Records contain statistical information that can be displayed by the
+//       Recorder or reset. The Recorder provides mechanisms for controlling
+//       a list of these Records. It's used when performance testing to track
+//       events that might be of interest, wherever they may be.
+//       These recording tests are normally been used for experimentation and
+//       are generally unused in production code.
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_RECORDER_H_INCLUDED

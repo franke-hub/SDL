@@ -1,0 +1,86 @@
+##############################################################################
+##
+##       Copyright (c) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.DIR
+##
+## Purpose-
+##       Subdirectory build control: included from ../Makefile.*
+##
+## Last change date-
+##       2023/01/12
+##
+##############################################################################
+
+##############################################################################
+## TARGET: prerequisites
+PREREQ := $(wildcard $(INCDIR)/dev/*)
+PREREQ += $(wildcard $(SRCDIR)/dev/*)
+
+##############################################################################
+## TARGET: dev/libdev.a
+$(OBJDIR)/dev/libdev.a: $(PREREQ) libpub.a
+	(cd $(OBJDIR)/dev/; export MAKRUN=lib; $(MAKE))
+	touch $@
+
+libdev.a: $(OBJDIR)/dev/libdev.a
+	@echo trace11 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+build.bsd.lib: libdev.a
+
+##############################################################################
+## TARGET: dev/libdev.so.1.0
+$(OBJDIR)/dev/libdev.so.1.0: $(PREREQ) libpub.so
+	(cd $(OBJDIR)/dev/; export MAKRUN=dll; $(MAKE))
+	touch $@
+
+libdev.so.1.0: $(OBJDIR)/dev/libdev.so.1.0
+	@echo trace12 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+~/bin/libdev.so.1.0: libdev.so
+	cp -Lpf $< $@
+	rebase -b 0x240000000 $@
+	touch $@
+
+libdev.dll: $(OBJDIR)/dev/libdev.so.1.0
+	@echo trace13 ln -s $< $@
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+~/bin/libdev.dll: libdev.dll
+	cp -Lpf $< $@
+	rebase -b 0x240000000 $@
+	touch $@
+
+.SECONDARY: libdev.so.1.0 /usr/local/lib/libdev.so.1.0
+build.cygwin.dll: libdev.dll libdev.so ~/bin/libdev.so
+build.linux.so: libdev.so /usr/local/lib/libdev.so
+
+##############################################################################
+## TARGET: dev.depend
+.PHONY: dev.depend
+depend: dev.depend
+dev.depend: ;
+	(cd $(OBJDIR)/dev/; $(MAKE) depend)
+
+##############################################################################
+## Cleanup
+.PHONY: dev.pristine
+pristine.bsd: dev.pristine
+dev.pristine: ;
+	(cd $(OBJDIR)/dev/; $(MAKE) pristine)
+
+.PHONY: dev.clean.bsd
+clean.bsd: dev.clean.bsd
+dev.clean.bsd: ;
+	-@rm -f libdev.a >/dev/null 2>/dev/null
+	-@rm -f libdev.so* libdev.dll >/dev/null 2>/dev/null
+
