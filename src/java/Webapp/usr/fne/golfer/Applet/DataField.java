@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2008-2020 Frank Eskesen.
+//       Copyright (C) 2008-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define golf data Field.
 //
 // Last change date-
-//       2020/01/15
+//       2023/01/15
 //
 //----------------------------------------------------------------------------
 import java.awt.*;
@@ -259,9 +259,10 @@ public InputVerifier                // The change() InputVerifier
 
      public boolean
         shouldYieldFocus(
-          JComponent        comp)
+          JComponent        out,
+          JComponent        inp)
      {
-        boolean valid= super.shouldYieldFocus(comp);
+        boolean valid= super.shouldYieldFocus(out, inp);
         if( !valid )
           getToolkit().beep();
         else
