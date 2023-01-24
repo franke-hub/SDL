@@ -4,7 +4,7 @@ This file is free content, distributed under the MIT license.
 (See accompanying file LICENSE.MIT or the original contained
 within https://opensource.org/licenses/MIT)
 
-Last change date: 2022/10/25
+Last change date: 2023/01/23
 
 #### Content overview
 This package contains multiple language examples.
@@ -52,6 +52,11 @@ The usr subdirectory contains files that are not distributed.
 It's used for local machine to machine copying.
 
 #### Implementation notes-
+The trunk branch is relatively well tested, but the maint branch is more up to
+date.
+The maint branch is occasionally used for distribution testing, checking that
+required files are present.
+
 This distribution is kept locally in /home/data/home/.
 In addition to this public distribution, the /home/data/. directory contains
 information shared between multiple machines.
