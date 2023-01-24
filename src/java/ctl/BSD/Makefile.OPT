@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2010 Frank Eskesen.
+##       Copyright (C) 2010-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -20,6 +20,8 @@ JRUN   := java##################### Java execute
 ## Initialize defaults (JDEFS, JINCL, JOPTS)
 JDEFS  +=########################## Java defines
 JOPTS  +=########################## Java options
+JOPTS  += -Xlint:deprecation
+JOPTS  += -Xlint:unchecked
 
 ##############################################################################
 ## CLASSPATH

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <!-- ===================================================================== -->
-<!--     Copyright (C) 2008 Frank Eskesen.                                 -->
+<!--     Copyright (C) 2008-2023 Frank Eskesen.                            -->
 <!--                                                                       -->
 <!--     This file is free content, distributed under the GNU General      -->
 <!--     Public License, version 3.0.                                      -->
@@ -48,6 +48,25 @@
    <servlet-mapping>
      <servlet-name>Events</servlet-name>
      <url-pattern>/Events</url-pattern>
+   </servlet-mapping>
+
+   <servlet>
+     <servlet-name>Invoke</servlet-name>
+     <servlet-class>usr.fne.golfer.InvokeServlet</servlet-class>
+     <init-param>
+       <param-name>property-path</param-name>
+       <param-value>profile</param-value>
+     </init-param>
+     <init-param>
+       <param-name>property-file</param-name>
+       <param-value>golfer.pro</param-value>
+     </init-param>
+     <load-on-startup>30</load-on-startup>
+   </servlet>
+
+   <servlet-mapping>
+     <servlet-name>Invoke</servlet-name>
+     <url-pattern>/Invoke</url-pattern>
    </servlet-mapping>
 
    <servlet>

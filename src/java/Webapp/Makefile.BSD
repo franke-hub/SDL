@@ -25,6 +25,7 @@ include Makefile.setup
 
 ##############################################################################
 ## APPLICATIONS
+include $(SRCDIR)/usr/fne/applet/Makefile.DIR
 include $(SRCDIR)/usr/fne/common/Makefile.DIR
 include $(SRCDIR)/usr/fne/golfer/Makefile.DIR
 include $(SRCDIR)/usr/fne/newsreader/Makefile.DIR
@@ -33,4 +34,6 @@ include $(SRCDIR)/usr/fne/newsreader/Makefile.DIR
 ##############################################################################
 ## Deployment
 .PHONY: install
-
+install: ;                          ## Included files define dependencies
+	@echo ""                           ## (All dependencies complete)
+	@echo "*** Install complete ***"

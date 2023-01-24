@@ -592,3 +592,17 @@ function viewStats(eventsID)
 
    reset();
 }
+
+//----------------------------------------------------------------------------
+// viewSwing (Bringup)
+//
+// View Swing app information.
+//----------------------------------------------------------------------------
+function viewSwing(eventsID)
+{
+   var url= 'Invoke?EventsStat'
+          + ',events-nick=' + eventsID
+   window.open(url);
+
+   reset();
+}

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2010-2017 Frank Eskesen.
+//       Copyright (C) 2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       AppletServlet.java
+//       InvokeServlet.java
 //
 // Purpose-
-//       Applet HttpServlet, invokes specified Applet.
+//       Invoke HttpServlet, invokes specified Program.
 //
 // Last change date-
-//       2017/01/01
+//       2023/01/16
 //
 //----------------------------------------------------------------------------
 // package usr.fne.golfer;
@@ -24,8 +24,10 @@
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.Class;
 import java.net.URLDecoder;
-import java.util.Enumeration;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -41,21 +43,33 @@ import javax.servlet.ServletInputStream;
 import javax.servlet.ServletRequest;
 
 import usr.fne.common.LoggingService;
+import usr.fne.common.Program;
 import usr.fne.common.QuotedTokenizer;
+
+class ProgramMap
+{
+public static Map<String, Program> map;
+
+static
+{
+   map= new HashMap<>();
+// map.put("SwingTest", new usr.fne.applet.SwingTest());
+} // static
+} // static class ProgramMap
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       AppletServlet
+//       InvokeServlet
 //
 // Purpose-
 //       Applet HttpServlet.
 //
 //----------------------------------------------------------------------------
-public class AppletServlet extends HttpServlet implements LoggingService
+public class InvokeServlet extends HttpServlet implements LoggingService
 {
 //----------------------------------------------------------------------------
-// AppletServlet.Attributes
+// InvokeServlet.Attributes
 //----------------------------------------------------------------------------
 boolean                debug;       // Debugging control
 int                    verbose;     // Verbosity control
@@ -64,12 +78,14 @@ ServletConfig          config;      // ServletConfig
 ServletContext         context;     // ServletContext
 DbServer               dbServer;    // Our database local server
 
-static final String    versionID= "VID 2017/03/23 14:00";
+static ProgramMap      programMap= new ProgramMap();
+
+static final String    versionID= "VID 2023/01/16 12:00";
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       AppletServlet.UTILITIES
+//       InvokeServlet.UTILITIES
 //
 // Purpose-
 //       Utility functions.
@@ -152,7 +168,7 @@ protected static String             // Resultant
 //----------------------------------------------------------------------------
 //
 // Method-
-//       AppletServlet.log
+//       InvokeServlet.log
 //
 // Purpose-
 //       Write a message to the log.
@@ -184,23 +200,23 @@ public void
 {
    if( context == null || verbose > 1 )
    {
-     System.out.println("AppletServlet: " + message);
+     System.out.println("InvokeServlet: " + message);
      if( e != null )
        e.printStackTrace();
    }
    else
    {
      if( e != null )
-       context.log("AppletServlet: " + message, e);
+       context.log("InvokeServlet: " + message, e);
      else
-       context.log("AppletServlet: " + message);
+       context.log("InvokeServlet: " + message);
    }
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       AppletServlet.init
+//       InvokeServlet.init
 //
 // Purpose-
 //       Called when the Servlet is first started for one-time initialization.
@@ -272,7 +288,7 @@ public void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       AppletServlet.doGet
+//       InvokeServlet.doGet
 //
 // Purpose-
 //       Called for each HTTP GET request.
@@ -295,7 +311,7 @@ public void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       AppletServlet.doPost
+//       InvokeServlet.doPost
 //
 // Purpose-
 //       Called for each HTTP POST request.
@@ -314,7 +330,7 @@ public void
    PrintWriter out = res.getWriter();
 
    out.println("<HTML>");
-   out.println("<HEAD><TITLE>AppletServlet POST</TITLE></HEAD>");
+   out.println("<HEAD><TITLE>InvokeServlet POST</TITLE></HEAD>");
    out.println("<BODY>POST NOT EXPECTED</BODY>");
    out.println("</HTML>");
 }
@@ -322,7 +338,7 @@ public void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       AppletServlet.destroy
+//       InvokeServlet.destroy
 //
 // Purpose-
 //       Clean up when Servlet is stopped.
@@ -342,7 +358,7 @@ public void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       AppletServlet.putError
+//       InvokeServlet.putError
 //
 // Purpose-
 //       Generate error response.
@@ -364,7 +380,7 @@ public void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       AppletServlet.query
+//       InvokeServlet.query
 //
 // Purpose-
 //       Handle a query.
@@ -378,83 +394,56 @@ protected void
 {
    String q= req.getQueryString();
    if( debug ) log("query("+q+")");
+log("query("+q+")");
+// System.out.println("InvokeServlet.query("+q+")");
 
    PrintWriter out = res.getWriter();
    String BOGUS= "<br> Malformed request: query: '" + q + "'";
 
    //=========================================================================
-   // Applet.jnlp?classname,title,parm=value,parm=value,...
+   // Invoke?className{,parm=value...}
    int index= q.indexOf(',');
    if( index < 0 || index == (q.length() - 1) )
    {
-     putError(out, BOGUS);
+     putError(out, BOGUS + ",missing ClassName");
      return;
    }
    String invoke= q.substring(0, index);
-
    q= q.substring(index+1);
-   index= q.indexOf(',');
-   if( index < 0 )
-     index= q.length();
-   String title= q.substring(0, index);
-   title= java.net.URLDecoder.decode(title, "UTF-8");
 
-   Vector<String> param= new Vector<String>();
-   if( index < q.length() )
+   ArrayList<String> parm= new ArrayList<String>();
+   while(q.length() > 0)
    {
+     index= q.indexOf(',');
+     if( index < 0 )
+       index= q.length();
+     String v= q.substring(0, index);
+
+     parm.add(v);
+
+     if( index >= q.length() )
+       break;
      q= q.substring(index+1);
-     for(;;)
-     {
-       index= q.indexOf(',');
-       if( index < 0 )
-         index= q.length();
-
-       String s= q.substring(0, index);
-       int x= s.indexOf('=');
-       if( x < 0 )
-       {
-         putError(out, BOGUS);
-         return;
-       }
-
-       param.add(s);
-       if( index >= q.length() )
-         break;
-
-       q= q.substring(index+1);
-     }
    }
 
    //-------------------------------------------------------------------------
-   // We now have enough information to generate the response
+   // We now have enough information to invoke the class
    //-------------------------------------------------------------------------
-   res.setContentType("application/x-java-jnlp-file");
-   out.println("<?xml version='1.0' encoding='utf-8'?>");
-   out.println("<jnlp spec='1.0+' codebase='http://localhost:8080/golfer'>");
-   out.println(" <information>");
-   out.println("  <title>" + title + "</title>");
-   out.println("  <vendor>Frank Eskesen</vendor>");
-   out.println("  <description>" + title + "</description>");
-   out.println(" </information>");
-   out.println(" <security><all-permissions/></security>");
-   out.println(" <resources>");
-   out.println("  <j2se version='1.7+'/>");
-   out.println("  <jar href='applet.jar'/>");
-   out.println("  <jar href='jars/common.jar'/>");
-   out.println(" </resources>");
-   out.println(" <applet-desc main-class='" + invoke + "' name='" + title + "'" +
-                " height='90%' width='98%'>");
-
-   for(int i= 0; i<param.size(); i++)
+   String[] args= parm.toArray(new String[0]);
+   Program program= programMap.map.get(invoke);
+log("Program: " + program);
+// program= new usr.fne.applet.SwingTest();
+log("Program: " + program);
+   if( program == null )
    {
-     String s= param.elementAt(i);
-     int    x= s.indexOf('=');
-     String n= s.substring(0,x);
-     String v= s.substring(x+1);
-     out.println("  <param name='" + n+ "' value='" + v + "'/>");
+     putError(out, BOGUS + ", invalid program: " + invoke);
+     return;
    }
-   out.println(" </applet-desc>");
-   out.println("</jnlp>");
+
+log("before run");
+   program.run(args);
+log("after run");
+   putError(out, "DONE");
 }
-} // Class AppletServlet
+} // Class InvokeServlet
 

@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2008-2023 Frank Eskesen.
+##       Copyright (c) 2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -20,18 +20,24 @@
 ##############################################################################
 
 ##############################################################################
-## TARGET: common.jar
-common.jar : $(OBJDIR)/usr/fne/common/make.dir
-	$(JAR) -cvf common.jar $(OBJDIR)/usr/fne/common/*.class
+## TARGET: applet.jar
+## Use this version when package usr.fne.applet used by applet classes
+## applet.jar : $(OBJDIR)/usr/fne/applet/make.dir
+## 	$(JAR) -cvf applet.jar $(OBJDIR)/usr/fne/applet/*.class
 
-$(OBJDIR)/usr/fne/common/make.dir: $(wildcard $(SRCDIR)/usr/fne/common/*.java)
-	(cd $(OBJDIR)/usr/fne/common; $(MAKE))
+applet.jar : $(OBJDIR)/usr/fne/applet/make.dir
+	cp -u $(OBJDIR)/usr/fne/applet/applet.jar .
+
+$(OBJDIR)/usr/fne/applet/make.dir: $(wildcard $(SRCDIR)/usr/fne/applet/*.java)
+	(cd $(OBJDIR)/usr/fne/applet; $(MAKE))
+
+applet.jar: common.jar
 
 ##############################################################################
 ## Cleanup
-pristine : common.pristine
-.PHONY: common.pristine
-common.pristine : ;
-	(cd usr/fne/common; $(MAKE) pristine)
-	-@rm common.jar
+pristine : applet.pristine
+.PHONY: applet.pristine
+applet.pristine : ;
+	(cd usr/fne/applet; $(MAKE) pristine)
+	-@rm applet.jar
 

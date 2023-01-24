@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2008-2018 Frank Eskesen.
+##       Copyright (c) 2008-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       Included by ../../../../Makefile.BSD
 ##
 ## Last change date-
-##       2018/01/01
+##       2023/01/18
 ##
 ##############################################################################
 
@@ -24,11 +24,8 @@
 golfer.jar: $(OBJDIR)/usr/fne/golfer/make.dir
 	$(JAR) -cvf golfer.jar $(OBJDIR)/usr/fne/golfer/*.class
 
-$(OBJDIR)/usr/fne/golfer/make.dir: $(wildcard $(SRCDIR)/usr/fne/golfer/*.java)
+$(OBJDIR)/usr/fne/golfer/make.dir: $(wildcard SRCHOME/usr/fne/golfer/*.java)
 	(cd $(OBJDIR)/usr/fne/golfer; $(MAKE))
-
-$(OBJDIR)/usr/fne/golfer/Applet/applet.jar: $(wildcard $(SRCDIR)/usr/fne/golfer/Applet/*.java)
-	(cd $(OBJDIR)/usr/fne/golfer/Applet; $(MAKE))
 
 ##############################################################################
 ## Dependencies
@@ -36,19 +33,17 @@ golfer.jar: common.jar
 
 ##############################################################################
 ## APPLICATION: golfer
-all: golfer
-install: golfer.install
+install: golfer-installer
 
-.PHONY: golfer
-golfer: common.jar
-golfer: $(SRCDIR)/install/golfer/index.html
-golfer: $(SRCDIR)/install/golfer/web.xml
-golfer: $(SRCDIR)/install/golfer/profile/golfer.pro
-golfer: golfer.jar
-golfer: $(OBJDIR)/usr/fne/golfer/Applet/applet.jar
+.PHONY: install-golfer
+install-golfer: test golfer.keytool
+install-golfer: $(SRCDIR)/install/golfer/index.html
+install-golfer: $(SRCDIR)/install/golfer/web.xml
+install-golfer: $(SRCDIR)/install/golfer/profile/golfer.pro
+install-golfer: common.jar golfer.jar applet.jar
 
-.PHONY: golfer.install
-golfer.install: test golfer golfer.keytool
+.PHONY: golfer-installer
+golfer-installer: install-golfer
 	-rm -R -f $(DEPLOYDIR)/webapps/golfer
 	mkdir $(DEPLOYDIR)/webapps/golfer
 	mkdir $(DEPLOYDIR)/webapps/golfer/jars
@@ -59,24 +54,28 @@ golfer.install: test golfer golfer.keytool
 	cp -p $(SRCDIR)/install/golfer/*.js   $(DEPLOYDIR)/webapps/golfer/.
 	cp -p $(SRCDIR)/install/golfer/*.xml  $(DEPLOYDIR)/webapps/golfer/WEB-INF/.
 	cp -p $(SRCDIR)/install/golfer/profile/*.pro   $(DEPLOYDIR)/webapps/golfer/profile/.
+	cp -p $(OBJDIR)/applet.jar $(DEPLOYDIR)/webapps/golfer/WEB-INF/lib/.
 	cp -p $(OBJDIR)/common.jar $(DEPLOYDIR)/webapps/golfer/WEB-INF/lib/.
 	cp -p $(OBJDIR)/golfer.jar $(DEPLOYDIR)/webapps/golfer/WEB-INF/lib/.
-	cp -p $(OBJDIR)/usr/fne/golfer/Applet/applet.jar $(DEPLOYDIR)/webapps/golfer/.
+	cp -p $(OBJDIR)/applet.jar $(DEPLOYDIR)/webapps/golfer/jars/.
 	cp -p $(OBJDIR)/common.jar $(DEPLOYDIR)/webapps/golfer/jars/.
+	cp -p $(OBJDIR)/applet.jar $(DEPLOYDIR)/webapps/golfer/.
 	jarsigner -tsa http://timestamp.digicert.com -storepass password "$(shell cygpath --path --windows "$(DEPLOYDIR)/webapps/golfer/applet.jar")" mydomain
+	jarsigner -tsa http://timestamp.digicert.com -storepass password "$(shell cygpath --path --windows "$(DEPLOYDIR)/webapps/golfer/jars/applet.jar")" mydomain
 	jarsigner -tsa http://timestamp.digicert.com -storepass password "$(shell cygpath --path --windows "$(DEPLOYDIR)/webapps/golfer/jars/common.jar")" mydomain
+	jarsigner -tsa http://timestamp.digicert.com -storepass password "$(shell cygpath --path --windows "$(DEPLOYDIR)/webapps/golfer/WEB-INF/lib/applet.jar")" mydomain
 	jarsigner -tsa http://timestamp.digicert.com -storepass password "$(shell cygpath --path --windows "$(DEPLOYDIR)/webapps/golfer/WEB-INF/lib/common.jar")" mydomain
 	jarsigner -tsa http://timestamp.digicert.com -storepass password "$(shell cygpath --path --windows "$(DEPLOYDIR)/webapps/golfer/WEB-INF/lib/golfer.jar")" mydomain
 
 .PHONY: golfer.keytool
-golfer.keytool: /C/Users/eskesen/.keystore
-/C/Users/eskesen/.keystore: ;
+golfer.keytool: $(HOME)/.keystore
+$(HOME)/.keystore: ;
 	keytool -genkey -alias mydomain -keyalg RSA -storepass password -validity 3600
 
 ## If keystore expired, run "make keystore.reset", then "make install"
 .PHONY: keystore.reset
 keystore.reset: ;
-	-@rm /C/Users/eskesen/.keystore
+	@echo rm $(HOME)/.keystore
 
 ##############################################################################
 ## Cleanup
@@ -84,6 +83,5 @@ pristine: golfer.pristine
 .PHONY: golfer.pristine
 golfer.pristine: ;
 	(cd usr/fne/golfer; $(MAKE) pristine)
-	(cd usr/fne/golfer/Applet; $(MAKE) pristine)
 	-@rm golfer.jar
 
