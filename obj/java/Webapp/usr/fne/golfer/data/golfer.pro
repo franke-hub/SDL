@@ -12,7 +12,7 @@
 # Property: GolferServlet.database-path
 #  Content: The path to the GolferServlet database
 #  Default: .
-database-path=data
+database-path=/home/data/web/database/golfer
 
 ##############################################################################
 # Property: GolferServlet.database-name
