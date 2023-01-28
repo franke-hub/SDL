@@ -15,15 +15,15 @@
 ##       Makefile, BSD version. (Cygwin, Unix)
 ##
 ## Last change date-
-##       2023/01/18
+##       2023/01/24
 ##
 ##############################################################################
 
 ##############################################################################
 ## Local controls
 export CLASSPATH=.:OBJHOME:OBJHOME/common.jar
-export SOURCEDIR=$(SRCDIR)
-export OBJECTDIR=$(OBJDIR)
+export SOURCEDIR=SRCHOME
+export OBJECTDIR=OBJHOME
 
 ##############################################################################
 ## Set default target
@@ -31,7 +31,7 @@ make.dir: $(MAKOBJ)
 	touch $@
 
 run.server: DbServer.class DbRemote.class DbCommon.class
-	$(JRUN) -classpath "$(shell cygpath --path --windows "$(CLASSPATH)")" DbServer
+	$(JRUN) -classpath "$(shell cygpath --path --windows "$(CLASSPATH)")" usr.fne.golfer.DbServer
 
 ##############################################################################
 ## Dependencies (in order, using implied dependencies.)

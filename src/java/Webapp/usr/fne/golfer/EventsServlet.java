@@ -19,7 +19,7 @@
 //       2013/01/01
 //
 //----------------------------------------------------------------------------
-// package usr.fne.golfer;
+package usr.fne.golfer;
 
 import java.io.FileInputStream;
 import java.io.IOException;

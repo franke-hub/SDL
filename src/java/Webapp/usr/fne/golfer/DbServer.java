@@ -25,7 +25,7 @@
 //       dbServer.reset()
 //
 //----------------------------------------------------------------------------
-// package usr.fne.golfer;
+package usr.fne.golfer;
 
 import java.io.*;
 import java.net.*;

@@ -15,7 +15,7 @@
 ##       Included by ../../../../Makefile.BSD
 ##
 ## Last change date-
-##       2023/01/18
+##       2023/01/24
 ##
 ##############################################################################
 
@@ -24,7 +24,7 @@
 golfer.jar: $(OBJDIR)/usr/fne/golfer/make.dir
 	$(JAR) -cvf golfer.jar $(OBJDIR)/usr/fne/golfer/*.class
 
-$(OBJDIR)/usr/fne/golfer/make.dir: $(wildcard SRCHOME/usr/fne/golfer/*.java)
+$(OBJDIR)/usr/fne/golfer/make.dir: $(wildcard $(SRCDIR)/usr/fne/golfer/*.java)
 	(cd $(OBJDIR)/usr/fne/golfer; $(MAKE))
 
 ##############################################################################
