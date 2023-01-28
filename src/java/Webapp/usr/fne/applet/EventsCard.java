@@ -16,7 +16,7 @@
 //       Scorecard data entry for event on date.
 //
 // Last change date-
-//       2023/01/21
+//       2023/01/28
 //
 //----------------------------------------------------------------------------
 import java.awt.*;
@@ -65,6 +65,7 @@ public
 {
    super();
    appletName= "EventsCard";        // Set applet name
+   setTitle(appletName);
    owner= this;
 }
 
@@ -294,12 +295,11 @@ public Object
 
      //-----------------------------------------------------------------------
      // Base panels
-     courseShow.genPanel();
+     courseItem.genPanel();
      courseHdcp.genPanel();
      courseHole.genPanel();
      coursePars.genPanel();
      courseTbox.genPanel();
-     eventsShow.genPanel().getField(0).setBackground(Color.GREEN.brighter());
      DataField[] df= courseHole.getPanel().getField();
      df[HOLE_ESC].setText("ESC");
      df[HOLE_HCP].setText("Hdcp");
@@ -328,8 +328,8 @@ public Object
 
        team.ldcpPanel= (HolePanel)courseLdcp.genPanel();
        team.highlight(courseLdcp);
-       team.teamPanel= new ItemPanel(showDate(eventsDate) + " -- " + team.time);
-       team.teamPanel.getField(0).setBackground(Color.GREEN.brighter());
+       // team.teamPanel= new ItemPanel(showDate(eventsDate) + " -- " + team.time);
+       // team.teamPanel.getField(0).setBackground(Color.GREEN.brighter());
      }
 
      postPanel.setOperational(true);
@@ -364,13 +364,7 @@ public void done( )
    else
    {
      content.removeAll();
-
      content.setLayout(new GridLayout(0,1));
-     content.add(eventsShow.getPanel());
-     content.add(courseShow.getPanel());
-     content.add(courseHole.getPanel());
-     content.add(courseTbox.getPanel());
-     content.add(coursePars.getPanel());
 
      // The TEAM panels
      for(int i= 0; i<teamVector.size(); i++)
@@ -379,12 +373,22 @@ public void done( )
 
        if( i != 0 )
        {
-         content.add(new ItemPanel());
-         content.add(courseHole.genPanel()); // By request
-         content.add(courseTbox.genPanel());
-         content.add(coursePars.genPanel());
+         content.add(new ItemPanel()); // Spacer
        }
-       content.add(team.teamPanel);
+
+       String S= showDate(eventsDate) + " " + team.time
+               + " -- " + courseShow + " -- "
+               + courseTbox.stringMR + "/" + courseTbox.stringMS;
+       courseItem= new GenericItemInfo(S);
+       courseItem.genPanel();
+       courseHole.genPanel();
+       courseTbox.genPanel();
+       coursePars.genPanel();
+
+       content.add(courseItem.getPanel());
+       content.add(courseHole.getPanel());
+       content.add(courseTbox.getPanel());
+       content.add(coursePars.getPanel());
 
        for(int j= 0; j<team.player_data.length; j++)
          content.add(team.player_card[j].getPanel());

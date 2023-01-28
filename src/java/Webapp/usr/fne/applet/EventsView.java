@@ -16,7 +16,7 @@
 //       View results for event on date.
 //
 // Last change date-
-//       2023/01/19
+//       2023/01/28
 //
 //----------------------------------------------------------------------------
 import java.awt.*;
@@ -41,15 +41,15 @@ public class EventsView extends CommonJFrame {
 //----------------------------------------------------------------------------
 // EventsView.Attributes
 //----------------------------------------------------------------------------
-GenericItemInfo        courseShow;  // The course information
+GenericItemInfo        courseItem;  // The course information container
 CourseHdcpInfo         courseHdcp;  // The course handicap information
 CourseHoleInfo         courseHole;  // The course hole number information
 CourseLdCpInfo         courseLdcp;  // The course LD/CP info
 CourseParsInfo         coursePars;  // The course par information
 CourseTboxInfo         courseTbox;  // The course teebox information
-GenericItemInfo        eventsShow;  // The events information
 
 String                 courseID;    // Course ID
+String                 courseShow;  // The course display name
 String                 eventsID;    // Events ID
 String                 eventsNN;    // Events nickname
 String                 eventsDate;  // Events date
@@ -192,19 +192,22 @@ public void
    courseID= array[0];
    teeboxID= array[1];
 
-   courseShow= new GenericItemInfo(dbGet(CMD_COURSE_SHOW, courseID));
+   String S;
    courseHdcp= new CourseHdcpInfo(format, dbGet(CMD_COURSE_HDCP, courseID));
    courseHole= new CourseHoleInfo(format, dbGet(CMD_COURSE_HOLE, courseID));
-   CourseLongInfo longInfo= new CourseLongInfo(format, dbGet(CMD_COURSE_LONG, courseID));
-   CourseNearInfo nearInfo= new CourseNearInfo(format, dbGet(CMD_COURSE_NEAR, courseID));
+   S= dbGet(CMD_COURSE_LONG, courseID);
+   CourseLongInfo longInfo= new CourseLongInfo(format, S);
+   S= dbGet(CMD_COURSE_NEAR, courseID);
+   CourseNearInfo nearInfo= new CourseNearInfo(format, S);
    courseLdcp= new CourseLdCpInfo(format, longInfo, nearInfo);
    coursePars= new CourseParsInfo(format, dbGet(CMD_COURSE_PARS, courseID));
-   courseTbox= new CourseTboxInfo(format, courseID, courseShow.toString(), teeboxID,
-                                 dbGet(CMD_COURSE_TBOX, concat(courseID, teeboxID)));
+   courseShow= dbGet(CMD_COURSE_SHOW, courseID);
+   S= dbGet(CMD_COURSE_TBOX, concat(courseID, teeboxID));
+   courseTbox= new CourseTboxInfo(format, courseID, courseShow, teeboxID, S);
 
-   courseShow.item= showDate(eventsDate) + " -- " + courseShow.item
-                  + " -- " + courseTbox.stringMR + "/" + courseTbox.stringMS;
-   eventsShow= new GenericItemInfo(dbGet(CMD_EVENTS_SHOW, eventsID));
+   S= showDate(eventsDate) + " -- " + courseShow + " -- "
+    + courseTbox.stringMR + "/" + courseTbox.stringMS;
+   courseItem= new GenericItemInfo(S);
 
    // Extract the TEAM data
    teamVector= new Vector<EventsTeamInfo>();
@@ -323,12 +326,11 @@ public Object
 
      //-----------------------------------------------------------------------
      // Base panels
-     courseShow.genPanel();
+     courseItem.genPanel();
      courseHdcp.genPanel();
      courseHole.genPanel();
      coursePars.genPanel();
      courseTbox.genPanel();
-     eventsShow.genPanel().getField(0).setBackground(Color.GREEN.brighter());
      DataField[] df= courseHole.getPanel().getField();
      df[HOLE_ESC].setText("ESC");
      df[HOLE_HCP].setText("Hdcp");
@@ -400,8 +402,7 @@ public void done( )
      content.removeAll();
 
      content.setLayout(new GridLayout(0,1));
-     content.add(eventsShow.getPanel());
-     content.add(courseShow.getPanel());
+     content.add(courseItem.getPanel());
      content.add(courseHole.getPanel());
      content.add(courseTbox.getPanel());
      content.add(coursePars.getPanel());
