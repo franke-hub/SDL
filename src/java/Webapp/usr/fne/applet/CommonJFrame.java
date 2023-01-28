@@ -16,7 +16,7 @@
 //       Common JFrame GUI, replaces CommonJApplet
 //
 // Last change date-
-//       2023/01/19
+//       2023/01/27
 //
 //----------------------------------------------------------------------------
 import java.applet.Applet;          // JApplet extends this
@@ -147,10 +147,14 @@ static final String[]  empty= null; // Differentiates String and String[] null
 //
 //----------------------------------------------------------------------------
 protected
+   CommonJFrame( )                  // Default constructor
+{  super(); }
+
+protected
    CommonJFrame(                    // Constructor
      String            string)      // The applet name
 {
-   super();
+   super(string);
    appletName= string;              // Set applet name
 
    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -220,223 +224,6 @@ public void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       CommonJFrame.getParameter
-//
-// Purpose-
-//       Extract parameter
-//
-//----------------------------------------------------------------------------
-public String                       // Tye parameter value (null if undefined)
-   getParameter(                    // Get parameter value
-     String            parm)        // For this parameter name
-{
-   return arguments.get(parm);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonJFrame.init
-//
-// Purpose-
-//       Initialize. (Overridden in subclass.)
-//
-//----------------------------------------------------------------------------
-public void
-   init()
-{  }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonJFrame.run
-//
-// Purpose-
-//       Implement Program interface
-//
-//----------------------------------------------------------------------------
-public void
-   run(
-     String[]          args)
-{
-   arguments= new HashMap<>();
-   for(int i= 0; i<args.length; ++i) {
-     int x= args[i].indexOf('=');
-     if( x > 0 ) {
-       String n= args[i].substring(0,x);
-       String v= args[i].substring(x+1);
-       arguments.put(n,v);
-     }
-   }
-
-   init();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       CommonJFrame.UTILITIES
-//
-// Purpose-
-//       Utility functions.
-//
-//----------------------------------------------------------------------------
-public void
-   setERROR(                        // Set the error message
-     String            string)      // The message String
-{
-   errorString= string;
-   error(string);
-}
-
-public String                       // The database item
-   dbGet(                           // Get database item
-       String          type,        // The item type
-       String          item)        // The item name
-{
-   boolean onReset= dbReady();
-   String result= client.get(type, item);
-   dbReset(onReset);
-
-   return result;
-}
-
-public String                       // The database item
-   dbNext(                          // Get next database item
-       String          type,        // The item type
-       String          item)        // The item name
-{
-   boolean onReset= dbReady();
-   String result= client.next(type, item);
-   dbReset(onReset);
-
-   return result;
-}
-
-public String                       // The prior data
-   dbPut(                           // Put database item
-       String          type,        // The item type
-       String          item,        // The item name
-       String          data)        // The item data
-{
-   String result= null;
-
-   if( DEBUG_IODM )
-   {
-     debug("DBPUT(" + type + ") item(" + item + ") data(" + data + ")");
-     String key= type + client.SEP + item;
-     client.cache.put(key.toUpperCase(), data);
-   }
-   else
-   {
-     try {
-       boolean onReset= dbReady();
-       result= client.put(type, item, data);
-       dbReset(onReset);
-     } catch(Exception e) {
-       debug("DBPUT(" + type + ") item(" + item + ") Exception: " + e);
-     }
-   }
-
-   return result;
-}
-
-public boolean                      // TRUE iff was made ready
-   dbReady( )                       // Ready the client
-{
-   boolean result= client.ready(hostName);
-   if( result )
-     debug("" + result + "= dbReady()");
-
-   return result;
-}
-
-
-public String                       // The prior data
-   dbRemove(                        // Remove database item
-       String          type,        // The item type
-       String          item)        // The item name
-{
-   String result= null;
-
-   if( DEBUG_IODM )
-   {
-     debug("DBREMOVE(" + type + ") item(" + item + ")");
-     String key= type + client.SEP + item;
-     client.cache.put(key.toUpperCase(), null);
-   }
-   else
-   {
-     try {
-       boolean onReset= dbReady();
-       result= client.remove(type, item);
-       dbReset(onReset);
-     } catch(Exception e) {
-       debug("DBREMOVE(" + type + ") item(" + item + ") Exception: " + e);
-     }
-   }
-
-   return result;
-}
-
-public void
-   dbReset(                         // Reset the client
-     boolean           ready)       // Result from ready
-{
-   if( ready )
-   {
-     debug("dbReset(" + ready + ")");
-     client.reset();
-   }
-}
-
-public void
-   dbReset( )                       // Reset the client
-{
-   dbReset(true);
-}
-
-public String[]                     // The result String
-   dbRetrieve(                      // Retrieve database information
-     String            command,     // Database command
-     String            item,        // Database item
-     String            qual)        // Qualifier (may be NULL)
-{
-   String[]            result= null;
-   String              string= null;
-
-   boolean onReset= dbReady();
-
-   if( qual != null )
-   {
-     string= client.get(command, concat(item, qual));
-     if( string != null )
-       result= tokenize(string);
-   }
-
-   if( result == null )
-   {
-     string= client.get(command, item);
-     if( string != null )
-       result= tokenize(string);
-   }
-
-   dbReset(onReset);
-
-   return result;
-}
-
-public String[]                     // The result String
-   dbRetrieve(                      // Retrieve database information
-     String            command,     // Database command
-     String            item)        // Database item
-{
-   return dbRetrieve(command, item, null);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       CommonJFrame.createGUI
 //
 // Purpose-
@@ -463,6 +250,33 @@ protected void
    content.add(loaderPanel);
 // setVisible(true);
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonJFrame.getParameter
+//
+// Purpose-
+//       Extract parameter
+//
+//----------------------------------------------------------------------------
+public String                       // Tye parameter value (null if undefined)
+   getParameter(                    // Get parameter value
+     String            parm)        // For this parameter name
+{  return arguments.get(parm); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonJFrame.init
+//
+// Purpose-
+//       Initialize. (Overridden in subclass.)
+//
+//----------------------------------------------------------------------------
+public void
+   init()
+{  }
 
 //----------------------------------------------------------------------------
 //
@@ -543,8 +357,7 @@ protected void
 //----------------------------------------------------------------------------
 protected void
    loadAppletParameters( )          // Load JApplet parameters
-{
-}
+{  }
 
 //----------------------------------------------------------------------------
 //
@@ -728,7 +541,6 @@ public PlayerPostInfo[]             // Resultant PlayerPostInfo[]
    loadPlayerPostInfo(              // Load PlayerPostInfo
      String            playerNN,    // For this PLAYER_NN
      String            untilDate)   // Up until this date
-
 {
    Vector<CourseTboxInfo> tboxVector= new Vector<CourseTboxInfo>();
    Vector<PlayerPostInfo> postVector= new Vector<PlayerPostInfo>(); // Result Vector
@@ -897,6 +709,32 @@ public PlayerPostInfo[]             // Resultant PlayerPostInfo[]
 //----------------------------------------------------------------------------
 //
 // Method-
+//       CommonJFrame.run
+//
+// Purpose-
+//       Implement Program interface
+//
+//----------------------------------------------------------------------------
+public void
+   run(
+     String[]          args)
+{
+   arguments= new HashMap<>();
+   for(int i= 0; i<args.length; ++i) {
+     int x= args[i].indexOf('=');
+     if( x > 0 ) {
+       String n= args[i].substring(0,x);
+       String v= args[i].substring(x+1);
+       arguments.put(n,v);
+     }
+   }
+
+   init();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       CommonJFrame.start
 //
 // Purpose-
@@ -910,9 +748,7 @@ public PlayerPostInfo[]             // Resultant PlayerPostInfo[]
 //----------------------------------------------------------------------------
 public void
    start()
-{
-   debug("start()");
-}
+{  debug("start()"); }
 
 //----------------------------------------------------------------------------
 //
@@ -931,8 +767,164 @@ public void
 //----------------------------------------------------------------------------
 public void
    stop()
+{  debug("stop()"); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       CommonJFrame.UTILITIES
+//
+// Purpose-
+//       Utility functions.
+//
+//----------------------------------------------------------------------------
+public String                       // The database item
+   dbGet(                           // Get database item
+       String          type,        // The item type
+       String          item)        // The item name
 {
-   debug("stop()");
+   boolean onReset= dbReady();
+   String result= client.get(type, item);
+   dbReset(onReset);
+
+   return result;
+}
+
+public String                       // The database item
+   dbNext(                          // Get next database item
+       String          type,        // The item type
+       String          item)        // The item name
+{
+   boolean onReset= dbReady();
+   String result= client.next(type, item);
+   dbReset(onReset);
+
+   return result;
+}
+
+public String                       // The prior data
+   dbPut(                           // Put database item
+       String          type,        // The item type
+       String          item,        // The item name
+       String          data)        // The item data
+{
+   String result= null;
+
+   if( DEBUG_IODM )
+   {
+     debug("DBPUT(" + type + ") item(" + item + ") data(" + data + ")");
+     String key= type + client.SEP + item;
+     client.cache.put(key.toUpperCase(), data);
+   }
+   else
+   {
+     try {
+       boolean onReset= dbReady();
+       result= client.put(type, item, data);
+       dbReset(onReset);
+     } catch(Exception e) {
+       debug("DBPUT(" + type + ") item(" + item + ") Exception: " + e);
+     }
+   }
+
+   return result;
+}
+
+public boolean                      // TRUE iff was made ready
+   dbReady( )                       // Ready the client
+{
+   boolean result= client.ready(hostName);
+   if( result )
+     debug("" + result + "= dbReady()");
+
+   return result;
+}
+
+
+public String                       // The prior data
+   dbRemove(                        // Remove database item
+       String          type,        // The item type
+       String          item)        // The item name
+{
+   String result= null;
+
+   if( DEBUG_IODM )
+   {
+     debug("DBREMOVE(" + type + ") item(" + item + ")");
+     String key= type + client.SEP + item;
+     client.cache.put(key.toUpperCase(), null);
+   }
+   else
+   {
+     try {
+       boolean onReset= dbReady();
+       result= client.remove(type, item);
+       dbReset(onReset);
+     } catch(Exception e) {
+       debug("DBREMOVE(" + type + ") item(" + item + ") Exception: " + e);
+     }
+   }
+
+   return result;
+}
+
+public void
+   dbReset(                         // Reset the client
+     boolean           ready)       // Result from ready
+{
+   if( ready )
+   {
+     debug("dbReset(" + ready + ")");
+     client.reset();
+   }
+}
+
+public void
+   dbReset( )                       // Reset the client
+{  dbReset(true); }
+
+public String[]                     // The result String
+   dbRetrieve(                      // Retrieve database information
+     String            command,     // Database command
+     String            item,        // Database item
+     String            qual)        // Qualifier (may be NULL)
+{
+   String[]            result= null;
+   String              string= null;
+
+   boolean onReset= dbReady();
+
+   if( qual != null )
+   {
+     string= client.get(command, concat(item, qual));
+     if( string != null )
+       result= tokenize(string);
+   }
+
+   if( result == null )
+   {
+     string= client.get(command, item);
+     if( string != null )
+       result= tokenize(string);
+   }
+
+   dbReset(onReset);
+
+   return result;
+}
+
+public String[]                     // The result String
+   dbRetrieve(                      // Retrieve database information
+     String            command,     // Database command
+     String            item)        // Database item
+{  return dbRetrieve(command, item, null); }
+
+public void
+   setERROR(                        // Set the error message
+     String            string)      // The message String
+{
+   errorString= string;
+   error(string);
 }
 
 //----------------------------------------------------------------------------
@@ -981,83 +973,6 @@ public void
    }
 
    wait_complete= false;            // Clear for next time
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       StaticJApplet.UTILITIES
-//
-// Purpose-
-//       Utility functions.
-//
-//----------------------------------------------------------------------------
-public static int                   // The concatenator index
-   catcon(                          // Inverse concatenate
-     String            item,        // The item
-     int               index)       // The item index
-{
-   return DbStatic.catcon(item, index);
-}
-
-public static int                   // The concatenator index
-   catcon(                          // Inverse concatenate
-     String            item)        // The item
-{
-   return DbStatic.catcon(item);
-}
-
-public static String                // The concatenated String
-   concat(                          // Concatenate
-     String            item,        // The item
-     String            qual)        // The qualifier
-{
-   return DbStatic.concat(item, qual);
-}
-
-public static double                // ABSOLUTE(inp)
-   fabs(                            // Return absolute value
-     double            inp)         // For this value
-{
-   if( inp < 0 )
-     inp= (-inp);
-
-   return inp;
-}
-
-public static int
-   max(int L, int R)
-{
-   if( L > R )
-     R= L;
-   return R;
-}
-
-public static int
-   min(int L, int R)
-{
-   if( L < R )
-     R= L;
-   return R;
-}
-
-public static String                // Resultant
-   stripQuotes(                     // Strip quotes
-     String            string)      // From this String
-{
-   return DbStatic.stripQuotes(string);
-}
-
-public static String[]              // Resultant
-   tokenize(                        // Tokenize
-     String            string)      // This String
-{
-   String[] result= null;
-
-   if( string != null )
-     result= DbStatic.tokenize(string);
-
-   return result;
 }
 
 //----------------------------------------------------------------------------
@@ -1217,5 +1132,80 @@ public static String                // Date (Format YYYY/MM/DD)
      tail= date.substring(10);
 
    return head.substring(6) + "/" + head.substring(0,5) + tail;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       StaticJApplet.UTILITIES
+//
+// Purpose-
+//       Utility functions.
+//
+//----------------------------------------------------------------------------
+public static int                   // The concatenator index
+   catcon(                          // Inverse concatenate
+     String            item,        // The item
+     int               index)       // The item index
+{
+   return DbStatic.catcon(item, index);
+}
+
+public static int                   // The concatenator index
+   catcon(                          // Inverse concatenate
+     String            item)        // The item
+{
+   return DbStatic.catcon(item);
+}
+
+public static String                // The concatenated String
+   concat(                          // Concatenate
+     String            item,        // The item
+     String            qual)        // The qualifier
+{
+   return DbStatic.concat(item, qual);
+}
+
+public static double                // ABSOLUTE(inp)
+   fabs(                            // Return absolute value
+     double            inp)         // For this value
+{
+   if( inp < 0 )
+     inp= (-inp);
+
+   return inp;
+}
+
+public static int
+   max(int L, int R)
+{
+   if( L > R )
+     R= L;
+   return R;
+}
+
+public static int
+   min(int L, int R)
+{
+   if( L < R )
+     R= L;
+   return R;
+}
+
+public static String                // Resultant
+   stripQuotes(                     // Strip quotes
+     String            string)      // From this String
+{  return DbStatic.stripQuotes(string); }
+
+public static String[]              // Resultant
+   tokenize(                        // Tokenize
+     String            string)      // This String
+{
+   String[] result= null;
+
+   if( string != null )
+     result= DbStatic.tokenize(string);
+
+   return result;
 }
 } // class CommonJFrame
