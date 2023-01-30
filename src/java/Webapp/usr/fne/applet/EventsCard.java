@@ -16,7 +16,7 @@
 //       Scorecard data entry for event on date.
 //
 // Last change date-
-//       2023/01/28
+//       2023/01/30
 //
 //----------------------------------------------------------------------------
 import java.awt.*;
@@ -295,21 +295,7 @@ public Object
 
      //-----------------------------------------------------------------------
      // Base panels
-     courseItem.genPanel();
-     courseHdcp.genPanel();
-     courseHole.genPanel();
-     coursePars.genPanel();
-     courseTbox.genPanel();
-     DataField[] df= courseHole.getPanel().getField();
-     df[HOLE_ESC].setText("ESC");
-     df[HOLE_HCP].setText("Hdcp");
-     df[HOLE_NET].setText("Net");
-     df[HOLE_LDO].setText("LD out");
-     df[HOLE_CPO].setText("CP out");
-     df[HOLE_LDI].setText("LD in");
-     df[HOLE_CPI].setText("CP in");
-     df[HOLE_FWH].setText("FWH");
-     df[HOLE_GIR].setText("GIR");
+     initBasePanels();
 
      // Generate the TEAM panels
      head= null;
@@ -376,15 +362,12 @@ public void done( )
          content.add(new ItemPanel()); // Spacer
        }
 
+       // We add team time to courseItem
        String S= showDate(eventsDate) + " " + team.time
                + " -- " + courseShow + " -- "
                + courseTbox.stringMR + "/" + courseTbox.stringMS;
        courseItem= new GenericItemInfo(S);
-       courseItem.genPanel();
-       courseHole.genPanel();
-       courseTbox.genPanel();
-       coursePars.genPanel();
-
+       initBasePanels();
        content.add(courseItem.getPanel());
        content.add(courseHole.getPanel());
        content.add(courseTbox.getPanel());

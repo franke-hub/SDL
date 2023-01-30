@@ -16,7 +16,7 @@
 //       View results for event on date.
 //
 // Last change date-
-//       2023/01/28
+//       2023/01/30
 //
 //----------------------------------------------------------------------------
 import java.awt.*;
@@ -133,6 +133,40 @@ public void
    initCommon();
    new Loader().execute();
    waitUntilDone();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EventsView.initBasePanels
+//
+// Purpose-
+//       Initialize the base panels.
+//
+//----------------------------------------------------------------------------
+public void
+   initBasePanels()
+{
+   courseItem.genPanel();
+   courseHdcp.genPanel();
+   courseHole.genPanel();
+   coursePars.genPanel();
+   courseTbox.genPanel();
+   DataField[] df= courseHole.getPanel().getField();
+   df[HOLE_ESC].setText("ESC");
+   df[HOLE_HCP].setText("Hdcp");
+   df[HOLE_NET].setText("Net");
+   df[HOLE_LDO].setText("LD out");
+   df[HOLE_CPO].setText("CP out");
+   df[HOLE_LDI].setText("LD in");
+   df[HOLE_CPI].setText("CP in");
+   if( df.length > HOLE_GIR )
+   {
+     df[HOLE_FWH].setText("FWH");
+     df[HOLE_GIR].setText("GIR");
+   }
+   if( df.length > HOLE_SKIN )
+     df[HOLE_SKIN].setText("Skins");
 }
 
 //----------------------------------------------------------------------------
@@ -326,6 +360,8 @@ public Object
 
      //-----------------------------------------------------------------------
      // Base panels
+     initBasePanels();
+
      courseItem.genPanel();
      courseHdcp.genPanel();
      courseHole.genPanel();
