@@ -1,0 +1,45 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       main
+##
+## Purpose-
+##       Run golfer program
+##
+## Last change date-
+##       2023/01/28
+##
+##############################################################################
+
+##############################################################################
+## Set environment
+if [[ -z "$CLASSPATH" ]] ; then
+  dir=$PWD
+  cd ~/web
+  . setupJAVA
+  cd $PWD
+fi
+
+##############################################################################
+## Make sure program is up to date
+make
+rc=$?
+[[ $rc != 0 ]] && exit $rc
+
+##############################################################################
+## Run the Main program until interrupted
+while [[ "0" == "0" ]]
+do
+  make do >/dev/null
+  echo "sleep 3"
+  sleep 3
+done
