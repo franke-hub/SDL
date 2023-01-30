@@ -25,9 +25,6 @@ export CLASSPATH=.:OBJHOME:OBJHOME/common.jar
 export SOURCEDIR=$(SRCDIR)
 export OBJECTDIR=$(OBJDIR)
 
-## MAKOBJ := $(patsubst ./Main.class,,$(MAKOBJ))
-## MAKSRC := $(patsubst S/Main.java,,$(MAKSRC))
-
 ##############################################################################
 ## Targets
 make.dir: $(MAKOBJ)
@@ -179,6 +176,7 @@ PlayerAdd.class: PlayerEdit.class
 Main.class: CourseAdd.class  CourseEdit.class CourseView.class
 Main.class: EventsAdd.class  EventsCard.class EventsEdit.class EventsStat.class
 Main.class: EventsTeam.class EventsView.class
+Main.class: MenuPanel.class
 Main.class: PlayerCard.class PlayerEdit.class PlayerHdcp.class PlayerPost.class
 Main.class: PlayerStat.class PlayerView.class
 Main.class: DefaultsEdit.class
