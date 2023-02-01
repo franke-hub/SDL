@@ -1,0 +1,56 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       web-installer
+##
+## Purpose-
+##       Install /home/data/web TOMCAT installation files
+##
+## Last change date-
+##       2023/02/01
+##
+## Usage-
+##       This script is invoked from Makefile.BSD, which is called by
+##         ~/obj/java/Webapp: make web-installer
+##
+##############################################################################
+
+SOURCE_DIR=$( cd -P "$( dirname "$0" )" >/dev/null 2>&1 && pwd )
+TARGET_DIR=/home/data
+
+##############################################################################
+## Prerequisite tests
+if [[ ! -d "$TARGET_DIR" ]] ; then
+  echo "$TARGET_DIR directory does not exist. Cannot continue"
+  exit 1
+fi
+
+if [[ -a "$TARGET_DIR/web" ]] ; then
+  echo "$TARGET_DIR/web already exists. Cannot continue"
+  exit 1
+fi
+
+if [[ ! -a "$SOURCE_DIR/install/web-data.zip" ]] ; then
+  echo "$SOURCE_DIR/install/web-data.zip missing. Cannot continue"
+  exit 1
+fi
+
+if [[ ! -f "$SOURCE_DIR/install/web-data.zip" ]] ; then
+  echo "$SOURCE_DIR/install/web-data.zip not a regular file. Cannot continue"
+  exit 1
+fi
+
+##############################################################################
+## Unzip the installation files
+set -x
+cd $TARGET_DIR
+unzip $SOURCE_DIR/install/web-data.zip

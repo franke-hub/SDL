@@ -33,7 +33,28 @@ include $(SRCDIR)/usr/fne/newsreader/Makefile.DIR
 
 ##############################################################################
 ## Deployment
-.PHONY: install
+.PHONY: database install
+install: database
+database: /home/data/web
+
+## If any of these are missing, the default database is improperly installed
+database: /home/data/web/database
+database: /home/data/web/database/golfer
+database: /home/data/web/database/golfer/GOLFER.DB
+database: /home/data/web/tomcat
+
+.PHONY: web-installer
+web-installer: S/web-installer
+	$<
+
+/home/data/web: ;
+	@echo "Missing subdirectory: /home/data/web/"
+	@echo "To install it, which includes the default databases and Tomcat:"
+	@echo "  1) create /home/data"
+	@echo "  2) cd ~/obj/java/Webapp"
+	@echo "  3) make database-installer"
+	@false
+
 install: ;                          ## Included files define dependencies
 	@echo ""                           ## (All dependencies complete)
 	@echo "*** Install complete ***"

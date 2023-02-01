@@ -32,10 +32,19 @@ fresh: clear
 ##############################################################################
 ## Test directive
 .PHONY: test
+test: $(DEPLOYDIR)
 test: $(DEPLOYDIR)/bin
 test: $(DEPLOYDIR)/logs
 test: $(DEPLOYDIR)/temp
 test: $(DEPLOYDIR)/webapps
+
+$(DEPLOYDIR): ;
+	@echo "Missing subdirectory: $(DEPLOYDIR)"
+	@echo "To install it, which includes the default databases and Tomcat:"
+	@echo "  1) create /home/data"
+	@echo "  2) cd ~/obj/java/Webapp"
+	@echo "  3) make web-installer"
+	@false
 
 ##############################################################################
 ## Echo (makefile debugging)

@@ -15,7 +15,7 @@
 ##       Included by ../../../../Makefile.BSD
 ##
 ## Last change date-
-##       2023/01/24
+##       2023/02/01
 ##
 ##############################################################################
 
@@ -67,15 +67,17 @@ golfer-installer: install-golfer
 	jarsigner -tsa http://timestamp.digicert.com -storepass password "$(shell cygpath --path --windows "$(DEPLOYDIR)/webapps/golfer/WEB-INF/lib/common.jar")" mydomain
 	jarsigner -tsa http://timestamp.digicert.com -storepass password "$(shell cygpath --path --windows "$(DEPLOYDIR)/webapps/golfer/WEB-INF/lib/golfer.jar")" mydomain
 
+##############################################################################
+## KEYSTORE: $(HOME)/.keystore
+## If keystore expired, run "make keystore.reset", then "make install"
 .PHONY: golfer.keytool
 golfer.keytool: $(HOME)/.keystore
 $(HOME)/.keystore: ;
 	keytool -genkey -alias mydomain -keyalg RSA -storepass password -validity 3600
 
-## If keystore expired, run "make keystore.reset", then "make install"
 .PHONY: keystore.reset
 keystore.reset: ;
-	@echo rm $(HOME)/.keystore
+	echo rm $(HOME)/.keystore
 
 ##############################################################################
 ## Cleanup
