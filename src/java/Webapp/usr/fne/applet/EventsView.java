@@ -16,7 +16,7 @@
 //       View results for event on date.
 //
 // Last change date-
-//       2023/01/30
+//       2023/02/01
 //
 //----------------------------------------------------------------------------
 import java.awt.*;
@@ -235,7 +235,7 @@ public void
    CourseNearInfo nearInfo= new CourseNearInfo(format, S);
    courseLdcp= new CourseLdCpInfo(format, longInfo, nearInfo);
    coursePars= new CourseParsInfo(format, dbGet(CMD_COURSE_PARS, courseID));
-   courseShow= dbGet(CMD_COURSE_SHOW, courseID);
+   courseShow= stripQuotes(dbGet(CMD_COURSE_SHOW, courseID));
    S= dbGet(CMD_COURSE_TBOX, concat(courseID, teeboxID));
    courseTbox= new CourseTboxInfo(format, courseID, courseShow, teeboxID, S);
 
