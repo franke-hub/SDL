@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2009-2013 Stack Overflow (users/17172/coobird)
+//       Copyright (C) 2009-2013 Stack Overflow (users/17172/coobird).
 //
 //       This file is free content, distributed under cc by-sa version 4.0,
 //       with attribution required.

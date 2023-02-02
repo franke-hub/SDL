@@ -3,7 +3,7 @@
 //       Copyright (C) 2022 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
-//       (See accompanying file LICENSE.MIT or the original contained
+//       (See the accompanying file LICENSE.MIT or the original contained
 //       within https://opensource.org/licenses/MIT)
 //
 //----------------------------------------------------------------------------
@@ -19,12 +19,12 @@
 //
 -------------------------------------------------------------------------- -->
 
-# ~/src/lib/gui/.README.md
+# ~/src/lib/gui/README.md
 
 Copyright (C) 2022 Frank Eskesen.
 
 This file is free content, distributed under the MIT license.
-(See accompanying file LICENSE.MIT or the original contained
+(See the accompanying file LICENSE.MIT or the original contained
 within https://opensource.org/licenses/MIT)
 
 ----

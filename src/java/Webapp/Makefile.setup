@@ -1,4 +1,12 @@
 ##############################################################################
+##
+##       Copyright (C) 2008-2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
 ## Makefile.setup -- Deployment environmental control
 ##############################################################################
 
