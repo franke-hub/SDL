@@ -1,5 +1,13 @@
 <!-- -------------------------------------------------------------------------
 //
+//       Copyright (C) 2022-2023 Frank Eskesen.
+//
+//       This file is free content, distributed under the MIT license.
+//       (See the accompanying file LICENSE.MIT or the original contained
+//       within https://opensource.org/licenses/MIT)
+//
+//----------------------------------------------------------------------------
+//
 // Title-
 //       Journal.md
 //
@@ -7,7 +15,7 @@
 //       Development journal
 //
 // Last change date-
-//       2023/01/11
+//       2023/02/02
 //
 -------------------------------------------------------------------------- -->
 
@@ -140,7 +148,7 @@ client threads, then throughput slowly decreased.
 
 Because if you do, your VFT (Virtual Function Table) becomes inconsistent.
 The virtual function table is an array of virtual functions that the compiler
-considers invarient, whether or not it actually is.
+considers invariant, whether or not it actually is.
 
 Socket.h
 ```
@@ -320,7 +328,7 @@ a transmission blocks.
 
 ### 2022/10/16
 
-Commit: Client uses asychronous polling. Also includes Diagnostic.h and
+Commit: Client uses asynchronous polling. Also includes Diagnostic.h and
 Recorder.h commits.
 
 We now use Ioda (Input/Output Data Area) rather than Data for buffering.
@@ -361,7 +369,7 @@ tested.
 
 ### 2022/10/24 Trunk commit ~/src/cpp/lib/dev HTTP/1 operational
 
-Commit: Both Client and Server use asychronous polling.
+Commit: Both Client and Server use asynchronous polling.
 
 The HTTP server remains in development. Known bugs exist, and only HTTP/1
 without encryption is currently supported.
@@ -446,5 +454,24 @@ After completing that update, also updated ~/src/cpp/Util/worder.cpp splitting
 off worder.hpp which improves and isolates the Dictionary function.
 While it's true that the Dictionary was on the back burner, updating it added
 significant testing time for the updated editxcb.
+
+### 2022/02/02
+
+The java-based golfer programs (in ~/src/java/Webapp/usr/fne/golfer/* and
+~/src/java/Webapp/usr/fne/applet/*) were updated.
+The installation procedure was improved but probably not to the point where
+it could be used without additional documentation.
+
+These programs needed to be updated because all graphic programs were derived
+from JApplet, and we could no longer find a browser that supported applets.
+They are now derived from JFrame.
+
+This took longer than expected because these programs hadn't been updated in
+quite a while and many of the language nuances needed to be re-learned and
+some new ones were discovered.
+
+The rest of February and the beginning of March have been mostly reserved for
+non-programming activities.
+Grandkids are turning 8 and 10, and the golfer application will get some use.
 
 ----
