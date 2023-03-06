@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2023/01/12
+##       2022/03/06
 ##
 ##############################################################################
 
@@ -41,6 +41,7 @@ default: $(DEFAULT)
 all: default
 
 make.dir: $(MAKEXE) cert.dir        ## Default: build executable, certificates
+	touch make.dir
 
 ##############################################################################
 ## Targets: do, include, list, quick
@@ -62,7 +63,7 @@ quick: T_Quick
 	T_Quick --all --verbose
 
 ## TEMPORARY: TODO: REMOVE ###################################################
-.PHONY: client dirty option server stress test
+.PHONY: client dirty option server stress time
 client: T_Stream
 	T_Stream --server --client
 
@@ -75,12 +76,13 @@ server: T_Stream
 stress: T_Stream
 	T_Stream --server --stress --verbose
 
-test: T_Option T_Stream
-	T_Option
-	@echo ""
-	T_Stream --server --client
-	@echo ""
-	T_Stream --server --stress --time 10
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+time: T_Stream
+	T_Stream --server --stress=1 --verbose --runtime 5
+else
+time: T_Stream
+	T_Stream --server --stress --verbose --runtime 5
+endif
 
 .PHONY: ioda
 ioda: TestIoda
@@ -124,6 +126,12 @@ include $(INCDIR)/dev/Makefile.BSD  ## DEV library controls
 include $(INCDIR)/pub/Makefile.BSD  ## PUB library controls
 
 Include: $(INCDIR)/pub/http/*       ## Include test depends on include
+
+###################################### Build dev library
+../libdev.a: $(INCDIR)/dev/* $(SRCDIR)/../*
+	(cd ..; $(MAKE))
+
+$(MAKEXE): ../libdev.a
 
 ##############################################################################
 ## Makefile cleanup

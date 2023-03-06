@@ -1,0 +1,33 @@
+1678127342.312 HCDM: MODE_INTENSIVE
+S/T_Stream.cpp Mar  6 2023 10:17:18 (Compiled)
+S/T_Stream.cpp Mar  6 2023 13:29:02 (Started)
+
+Settings:
+  5.0: runtime
+ true: server: rainbow
+false: hcdm
+false: iodm
+    1: verbose
+false: client
+false: ssl
+ true: stress: 10
+false: trace
+ true: worker
+
+    4: MAX_REQUEST_COUNT
+HTTP1: Protocol (unencrypted)
+   -1: --major
+   -1: --minor
+
+
+Server: http://192.168.1.239:8080
+
+ClientThread.test_stress... (5.0 seconds)
+1678127342.320 <@000000000000> --std_stress test: Started
+1678127347.320 <@000000000000> --std_stream test: Complete
+     475,391.000 operations
+      95,078.200 operations/second
+         950,882 { 0, 0,69} Stream counts
+         950,862 { 0, 0,48} Request counts
+         950,862 { 0, 0,48} Response counts
+NO errors detected

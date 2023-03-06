@@ -1,0 +1,30 @@
+1666636336.932 HCDM: MODE_INTENSIVE
+S/T_Stream.cpp Oct 24 2022 13:01:49 (Compiled)
+S/T_Stream.cpp Oct 24 2022 14:32:16 (Started)
+
+Settings:
+  5.0: runtime
+ true: server: bigblue
+false: hcdm
+false: iodm
+    1: verbose
+false: client
+false: ssl
+ true: stress: 1
+ true: worker
+
+    4: MAX_REQUEST_COUNT
+HTTP1: Protocol (unencrypted)
+
+
+Server: http://192.168.1.240:8080
+
+ClientThread.test_stress... (5.0 seconds)
+--std_stress test: Started
+--std_stream test: Complete
+      29,779.000 operations
+       5,955.800 operations/second
+          59,566 { 0, 0, 5} Stream counts
+          59,566 { 0, 0, 5} Request counts
+          59,566 { 0, 0, 5} Response counts
+NO errors detected

@@ -16,7 +16,7 @@
 //       HTTP Server object.
 //
 // Last change date-
-//       2022/12/16
+//       2023/03/06
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_SERVER_H_INCLUDED
@@ -59,6 +59,10 @@ class Server : public std::mutex {  // Server class (lockable)
 // Server::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
+typedef std::function<void(dispatch::Item*)>  f_iotask; // (Internal)
+typedef std::function<void(void)>             f_reader; // (Internal)
+typedef std::function<void(void)>             f_writer; // (Internal)
+
 typedef Ioda::Mesg                            Mesg;
 typedef Socket::sockaddr_u                    sockaddr_u;
 typedef dispatch::LambdaTask                  LambdaTask;
@@ -78,10 +82,19 @@ enum FSM                            // Finite State Machine states
 //----------------------------------------------------------------------------
 protected:
 public:                             // TODO: REMOVE
+// Callback handlers - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+f_reader               h_reader;    // The (reader) protocol handler
+f_writer               h_writer;    // The (writer) protocol handler
+f_iotask               inp_task;    // The input (reader) task
+f_iotask               out_task;    // The output (writer) task
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 std::weak_ptr<Server>  self;        // Self reference
 Listen*                listen;      // Our owning Listener
 
 Ioda                   ioda_out;    // The output data area
+const char*            proto_id;    // The Server's protocol/version
+Stream                 root;        // Stream[0]
 size_t                 size_inp;    // The input data area length
 size_t                 size_out;    // The output data area length
 Socket*                socket= nullptr; // The connection Socket
@@ -154,12 +167,6 @@ void
    error(const char*);              // Handle connection error
 
 void
-   inp_task(dispatch::Item*);       // Input (reader) task handler
-
-void
-   out_task(dispatch::Item*);       // Output (writer) task handler
-
-void
    wait( void );                    // Wait until idle
 
 void
@@ -169,6 +176,9 @@ void
 // Server::Protected methods
 //----------------------------------------------------------------------------
 protected:
+void http1( void );                 // Use HTTP/0, HTTP/1 protocol handlers
+void http2( void );                 // Use HTTP/2 protocol handlers
+
 void read(int line= 0);             // Handle read (line number)
 void write(int line= 0);            // Handle write (line number)
 }; // class Server

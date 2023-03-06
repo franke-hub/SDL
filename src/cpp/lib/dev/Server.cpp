@@ -16,7 +16,7 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2022/12/16
+//       2022/03/06
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -80,6 +80,28 @@ enum
 
 ,  USE_XTRACE= true                 // Use extended trace?
 }; // enum
+
+// Imported Options
+typedef const char     CC;
+static constexpr CC*   OPT_PROTO= Options::HTTP_OPT_PROTOCOL; // Protocol type
+
+//----------------------------------------------------------------------------
+// Constant data
+//----------------------------------------------------------------------------
+enum HTTP_PROTO
+{  HTTP_H1                          // HTTP/1.1
+,  HTTP_H2                          // HTTP/2
+,  HTTP_S1                          // HTTPS/1.1
+,  HTTP_S2                          // HTTPS/2
+,  HTTP_PROTO_LENGTH
+}; // enum HTTP_PROTO
+
+static const char*     proto[HTTP_PROTO_LENGTH]=
+{  Options::HTTP_PROTOCOL_H1        // HTTP/1.1
+,  Options::HTTP_PROTOCOL_H2        // HTTP/2
+,  Options::HTTP_PROTOCOL_S1        // HTTPS/1.1
+,  Options::HTTP_PROTOCOL_S2        // HTTPS/2
+}; // proto[]
 
 //----------------------------------------------------------------------------
 //
@@ -208,6 +230,7 @@ static inline void* i2v(intptr_t i) { return (void*)i; }
 ,  size_inp(BUFFER_SIZE)
 ,  size_out(BUFFER_SIZE)
 ,  socket(socket)
+,  stream_set(&root)
 ,  task_inp([this](dispatch::Item* it) { inp_task(it); })
 ,  task_out([this](dispatch::Item* it) { out_task(it); })
 {  if( HCDM )
@@ -215,6 +238,31 @@ static inline void* i2v(intptr_t i) { return (void*)i; }
 
    if( USE_XTRACE )
      Trace::trace(".NEW", "HSRV", this, socket);
+
+   // Initialize protocol
+   int proto_ix= HTTP_H1;
+   const char* ptype= listen->get_option(OPT_PROTO); // Get specified protocol
+   if( ptype ) {                    // If protocol specified
+     int proto_ix= -1;
+     for(int i= 0; i<HTTP_PROTO_LENGTH; ++i) {
+       if( strcmp(ptype, proto[i]) == 0 ) {
+         proto_ix= i;
+         break;
+       }
+     }
+
+     if( proto_ix < 0 ) {         // If invalid protocol specified
+       errorh("Server(%p) invalid protocol '%s'\n", this, ptype);
+       errorf("Prococol '%s' selected\n", proto[HTTP_H1]);
+     } else {
+       proto_id= proto[proto_ix];
+     }
+   }
+   if( proto_ix == HTTP_H1 )  {
+     http1();
+   } else {
+     http2();
+   }
 
    // Initialize asynchronous operation
    socket->set_flags( socket->get_flags() | O_NONBLOCK );
@@ -316,17 +364,17 @@ void
 
    // If Socket is readable
    if( revents & (POLLIN | POLLPRI) ) {
-     read(__LINE__);
+     h_reader();
      return;
    }
 
    // If Socket is writable
    if( revents & POLLOUT ) {
-     write(__LINE__);
+     h_writer();
      return;
    }
 
-   // Handle unexpected event
+   // If unexpected event TODO: Add recovery, considering revents
    debugf("%4d HCDM Server revents(%.4x)\n", __LINE__, revents);
 }
 
@@ -411,67 +459,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Server::inp_task
-//
-// Purpose-
-//       Handle input (reader) item
-//
-//----------------------------------------------------------------------------
-void
-   Server::inp_task(                // Handle input data
-     dispatch::Item*   it)          // Input data item
-{  if( HCDM )
-     debugh("Server(%p)::inp_task(%p) fc(%d)\n", this, it, it->fc);
-   if( USE_XTRACE )
-     Trace::trace(".DEQ", "SINP", this, it);
-
-   if( fsm != FSM_READY ) {
-     it->post(it->CC_PURGE);
-     return;
-   }
-
-   ServerItem* item= static_cast<ServerItem*>(it);
-   if( stream.get() == nullptr )
-     stream= ServerStream::make(this);
-
-   if( stream && stream->read(item->ioda) ) {
-     stream->end();
-     stream= nullptr;
-   }
-
-   item->post();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Server::out_task
-//
-// Purpose-
-//       Handle input (writer) item
-//
-//----------------------------------------------------------------------------
-void
-   Server::out_task(                // Handle output data
-     dispatch::Item*   it)          // Output data item
-{  if( HCDM ) debugh("Server(%p)::out_task(%p)\n", this, it);
-   if( USE_XTRACE )
-     Trace::trace(".DEQ", "SOUT", this, it);
-
-   if( fsm != FSM_READY ) {
-     it->post(it->CC_PURGE);
-     return;
-   }
-
-   ServerItem* item= static_cast<ServerItem*>(it);
-   ioda_out += std::move(item->ioda);
-   write(__LINE__);
-   item->post();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       Server::wait
 //
 // Purpose-
@@ -513,6 +500,155 @@ void
        Trace::trace(".ENQ", "SOUT", this, item);
      task_out.enqueue(item);
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Protected method-
+//       Server::http1
+//
+// Purpose-
+//       Initialize the HTTP/1.0 and HTTP/1.1 protocol handlers
+//
+//----------------------------------------------------------------------------
+void
+   Server::http1( void )            // Initialize the HTTP/1 protocol handlers
+{
+   // debugh("%4d %s HCDM1n", __LINE__, __FILE__);
+
+   // inp_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   inp_task= [this](dispatch::Item* it) // Input task
+   { if( HCDM ) debugh("Server(%p)::inp_task(%p)\n", this, it);
+     if( USE_XTRACE )
+       Trace::trace(".DEQ", "SINP", this, it);
+
+     if( fsm != FSM_READY ) {
+//     Client paste
+//     if( it->fc == FSM_CLOSE )
+//       close();
+
+       it->post(it->CC_PURGE);
+       return;
+     }
+
+     ServerItem* item= static_cast<ServerItem*>(it);
+     if( stream.get() == nullptr )
+       stream= ServerStream::make(this);
+
+     if( stream && stream->read(item->ioda) ) {
+       stream->end();
+       stream= nullptr;
+     }
+
+     item->post();
+   }; // inp_task
+
+   // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   out_task= [this](dispatch::Item* it) // Output task
+   { if( HCDM ) debugh("Server(%p)::out_task(%p)\n", this, it);
+     if( USE_XTRACE )
+       Trace::trace(".DEQ", "SOUT", this, it);
+
+     if( fsm != FSM_READY ) {
+       it->post(it->CC_PURGE);
+       return;
+     }
+
+     ServerItem* item= static_cast<ServerItem*>(it);
+     ioda_out += std::move(item->ioda);
+     write(__LINE__);
+     item->post();
+   }; // out_task
+
+   // h_reader - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   h_reader= [this](void)           // (Asynchronous) input data available
+   { if( HCDM ) debugh("Server(%p)::h_reader\n", this);
+
+     // Read the request, passing it to Stream
+     read(__LINE__);                // (Exception if error)
+   }; // h_reader=
+
+   // h_writer - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   h_writer= [this](void)           // The output writer
+   { if( HCDM ) debugh("Server(%p)::h_writer\n", this);
+
+     write(__LINE__);               // (Exception if error)
+   }; // h_writer=
+}
+
+//----------------------------------------------------------------------------
+//
+// Protected method-
+//       Server::http2
+//
+// Purpose-
+//       Initialize the HTTP/2 protocol handlers
+//
+//----------------------------------------------------------------------------
+void
+   Server::http2( void )            // Initialize the HTTP/2 protocol handler
+{
+   throw std::runtime_error("NOT READY YET"); // Duplicates http1()
+   // debugh("%4d %s HCDM2\n", __LINE__, __FILE__);
+
+   // inp_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   inp_task= [this](dispatch::Item* it) // Input task
+   { if( HCDM ) debugh("Server(%p)::inp_task(%p)\n", this, it);
+     if( USE_XTRACE )
+       Trace::trace(".DEQ", "SINP", this, it);
+
+     if( fsm != FSM_READY ) {
+//     Client paste
+//     if( it->fc == FSM_CLOSE )
+//       close();
+
+       it->post(it->CC_PURGE);
+       return;
+     }
+
+     ServerItem* item= static_cast<ServerItem*>(it);
+     if( stream.get() == nullptr )
+       stream= ServerStream::make(this);
+
+     if( stream && stream->read(item->ioda) ) {
+       stream->end();
+       stream= nullptr;
+     }
+
+     item->post();
+   }; // inp_task
+
+   // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   out_task= [this](dispatch::Item* it) // Output task
+   { if( HCDM ) debugh("Server(%p)::out_task(%p)\n", this, it);
+     if( USE_XTRACE )
+       Trace::trace(".DEQ", "SOUT", this, it);
+
+     if( fsm != FSM_READY ) {
+       it->post(it->CC_PURGE);
+       return;
+     }
+
+     ServerItem* item= static_cast<ServerItem*>(it);
+     ioda_out += std::move(item->ioda);
+     write(__LINE__);
+     item->post();
+   }; // out_task
+
+   // h_reader - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   h_reader= [this](void)           // (Asynchronous) input data available
+   { if( HCDM ) debugh("Server(%p)::h_reader\n", this);
+
+     // Read the request, passing it to Stream
+     read(__LINE__);                // (Exception if error)
+   }; // h_reader=
+
+   // h_writer - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   h_writer= [this](void)           // The output writer
+   { if( HCDM ) debugh("Server(%p)::h_writer\n", this);
+
+     write(__LINE__);               // (Exception if error)
+   }; // h_writer=
 }
 
 //----------------------------------------------------------------------------
@@ -579,7 +715,7 @@ void
 //       Write data segments
 //
 // Implementation notes-
-//       This can be called from out_task and async.
+//       This can be called from out_task via enqueue or asynch.
 //       Since these are separate tasks, locking is required.
 //
 //----------------------------------------------------------------------------

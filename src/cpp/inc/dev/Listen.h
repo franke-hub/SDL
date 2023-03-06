@@ -16,7 +16,7 @@
 //       HTTP Listen object.
 //
 // Last change date-
-//       2022/12/16
+//       2023/03/06
 //
 // Implementation notes-
 //       The Listen object is the Server analog to a Client Agent.
@@ -79,7 +79,7 @@ typedef std::map<sockaddr_u, std::shared_ptr<Server>, op_lt>
 typedef Map_t::const_iterator
                        const_iterator; // The Server Map const iterator type
 typedef Map_t::iterator
-                       iterator;    // The Server Map const iterator type
+                       iterator;    // The Server Map iterator type
 
 enum FSM                            // Finite State Machine states
 {  FSM_RESET= 0                     // Reset - closed
@@ -165,6 +165,11 @@ std::shared_ptr<Listen>
 const sockaddr_u&                   // The connectionID
    get_host_addr( void ) const      // Get connectionID
 {  return listen.get_host_addr(); }
+
+const char*                         // The Option value
+   get_option(                      // Get Option value
+     const char*       name) const  // For this Option name
+{  return opts.locate(name); }
 
 void
    on_close(const f_close& f)       // Set close event handler

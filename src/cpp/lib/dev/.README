@@ -15,15 +15,13 @@
 ##       README: List of usage notes, bugs, fixes, etc.
 ##
 ## Last change date-
-##       2022/12/18
+##       2023/03/06
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
-2022/12/18 HTTP1 Stable
-         While no known multithreading timing holes exist, associated fixes
-         have significantly reduced throughput.
+2022/03/06 HTTP1 Stable, improved throughput
 
 ##############################################################################
 ## SOCKET INFO: (Coding reference information)
@@ -127,9 +125,10 @@ std::string to_string( void ) const; // Convert to display string
 
 ##############################################################################
 ## STATUS: (History)
+2022/03/06 HTTP1 Stable, improved throughput
+
 2022/12/18 HTTP1 Stable
-         While no known multithreading timing holes exist, associated fixes
-         have significantly reduced throughput.
+         No known multithreading timing holes exist.
 2022/12/10 Asychronous Client/Server I/O working well.
          Timing exposures still exist. Some redesign is needed.
 2022/10/23 Asychronous Client/Server I/O working, but with known bugs.

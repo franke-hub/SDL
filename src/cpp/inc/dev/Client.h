@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2022/12/16
+//       2023/03/06
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
@@ -102,6 +102,7 @@ Ioda                   ioda_out;    // The output buffer
 size_t                 ioda_off;    // The output buffer offset
 const char*            proto_id;    // The Client's protocol/version
 Event                  rd_complete; // HTTP/1 operation completed event
+Stream                 root;        // Stream[0]
 size_t                 size_inp;    // The input buffer length
 size_t                 size_out;    // The output buffer length
 Socket*                socket= nullptr; // Connection Socket

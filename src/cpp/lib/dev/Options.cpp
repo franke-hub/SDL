@@ -16,7 +16,7 @@
 //       Implement http/Options.h
 //
 // Last change date-
-//       2022/09/05
+//       2022/03/06
 //
 //----------------------------------------------------------------------------
 #include <algorithm>                // For std::swap
@@ -47,9 +47,10 @@ namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-enum
-{  HCDM= false                      // Hard Core Debug Mode?
-}; // enum
+// enum (NOT USED)
+// {  HCDM= false                      // Hard Core Debug Mode?
+// ,  VERBOSE= 0                       // Verbosity, higher is more verbose
+// }; // enum
 
 static const Options::const_iterator
                        static_end;  // A static Options::end()
@@ -57,29 +58,33 @@ static const Options::const_iterator
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Options::~Options
 //       Options::Options
+//       Options::~Options
 //
 // Purpose-
-//       Destructor
 //       Constructors
+//       Destructor
 //
 //----------------------------------------------------------------------------
-   Options::~Options( void )
-{  reset(); }
-
    Options::Options( void )
-:  opts() {}
+:  opts()
+{  }
 
    Options::Options(const Options& from)
-:  opts() { append(from); }
+:  opts()
+{  append(from); }
 
    Options::Options(Options&& from)
-{  if( from.opts.get_head() ) {
+:  opts()
+{
+   if( from.opts.get_head() ) {
      opts.insert(nullptr, from.opts.get_head(), from.opts.get_tail());
      from.reset();
    }
 }
+
+   Options::~Options( void )
+{  reset(); }
 
 //----------------------------------------------------------------------------
 //
@@ -91,11 +96,13 @@ static const Options::const_iterator
 //
 //----------------------------------------------------------------------------
 Options&                            // (Always *this)
-   Options::operator=(const Options& from) // Assignment copy operator
+   Options::operator=(              // Assignment copy operator
+     const Options&    from)        // (Copy from)
 {  opts.reset(); append(from); return *this; }
 
 Options&                            // (Always *this)
-   Options::operator=(Options&& from) // Assignment move operator
+   Options::operator=(              // Assignment move operator
+     Options&&         from)        // (Move from)
 {  opts.reset(); append(from); from.reset(); return *this; }
 
 //----------------------------------------------------------------------------
@@ -149,8 +156,10 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   Options::append(const Options& opts) // Append Options
-{  for(const_iterator it= opts.begin(); it != opts.end(); ++it)
+   Options::append(                 // Append Options
+     const Options&    opts)        // (The source Options)
+{
+   for(const_iterator it= opts.begin(); it != opts.end(); ++it)
      insert(it->first, it->second);
 }
 
@@ -328,6 +337,7 @@ const Options::Option&
    Options::const_iterator::operator*( void ) const
 {  if( item == nullptr )
      throw std::runtime_error("end()::operator*()");
+
    return *item;
 }
 
@@ -335,6 +345,7 @@ const Options::Option*
    Options::const_iterator::operator->( void ) const
 {  if( item == nullptr )
      throw std::runtime_error("end()::operator->()");
+
    return item;
 }
 
@@ -350,16 +361,18 @@ const Options::Option*
 //
 //----------------------------------------------------------------------------
 Options::const_iterator&
-   Options::const_iterator::operator++( void ) // Prefix operator++
+   Options::const_iterator::operator++( void ) // Prefix ++operator
 {  if( item == nullptr )
      throw std::runtime_error("end()::operator++()");
+
    item= item->get_next();
    return *this;
 }
 
 Options::const_iterator
    Options::const_iterator::operator++( int ) // Postfix operator++
-{  const_iterator temp= *this;
+{
+   const_iterator temp= *this;
    if( item )
      item= item->get_next();
    return temp;

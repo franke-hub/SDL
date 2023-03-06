@@ -16,7 +16,7 @@
 //       Test http::Options.h
 //
 // Last change date-
-//       2022/09/02
+//       2022/03/06
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -39,7 +39,7 @@ typedef Options::const_iterator const_iterator;
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
-,  VERBOSE= 1                       // Verbosity: Higher is more verbose
+,  VERBOSE= 1                       // Verbosity, higher is more verbose
 };
 
 //----------------------------------------------------------------------------

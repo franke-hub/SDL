@@ -16,7 +16,7 @@
 //       HTTP Stream object.
 //
 // Last change date-
-//       2022/11/14
+//       2023/03/06
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_STREAM_H_INCLUDED
@@ -42,11 +42,142 @@ class Client;
 class ClientRequest;
 class ClientResponse;
 class Options;
+class Request;
+class Response;
 class Server;
 class ServerRequest;
 class ServerResponse;
-class Request;
-class Response;
+class Stream;
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       StreamSet
+//
+// Purpose-
+//       Control a set of Stream objects.
+//
+// Implementation notes-
+//       Note: StreamSet::Node is Stream's base class.
+//       Although Stream objects are usually referenced using std::shared_ptr,
+//       we use Node* to maintain the StreamSet Node tree.
+//       We can do this because Stream guarantees that we will *always* have a
+//       corresponding std::shared_ptr in the the StreamSet map any item in
+//       the Node tree.
+//
+//----------------------------------------------------------------------------
+class StreamSet {                   // A set of Stream objects
+//----------------------------------------------------------------------------
+// StreamSet::Node
+//----------------------------------------------------------------------------
+public:
+struct Node {                       // StreamSet Node
+// Node::Attributes
+Node*                  parent= nullptr; // The parent Node
+Node*                  peer= nullptr;   // The next peer Node
+Node*                  child= nullptr;  // The head child Node
+
+// Node::Constructors/destructor
+   Node( void ) = default;          // Default constructor
+   Node(                            // Construct and insert this Node
+     Node*             parent)      // As a child of this parent Node
+{  parent->insert(this); }
+
+   ~Node( void );                   // Destructor
+
+// Node::Methods
+void
+   insert(                          // Insert (at head of the child list)
+     Node*             child);      // This child (Stream) Node
+
+void
+   remove(                          // Remove
+     Node*             child);      // This  child (Stream) Node
+
+void
+   remove( void );                  // Remove THIS (Stream) Node from its parent
+}; // struct StreamSet::Node
+
+//----------------------------------------------------------------------------
+// StreamSet::Typedefs and enumerations
+//----------------------------------------------------------------------------
+protected:
+typedef int32_t                     stream_id;
+typedef std::shared_ptr<Stream>     stream_ptr;
+typedef std::unordered_map<stream_id, stream_ptr>       map_t;
+typedef map_t::const_iterator       const_iterator;
+
+//----------------------------------------------------------------------------
+// StreamSet::Attributes
+//----------------------------------------------------------------------------
+mutable std::mutex     mutex;       // The SteamSet mutex
+map_t                  map;         // The (Stream) Node map
+Node*                  root= nullptr; // The root Node
+
+stream_id              ident= 0;    // The current Stream identifier
+
+//----------------------------------------------------------------------------
+// StreamSet::Destructor, constructors, operators
+//----------------------------------------------------------------------------
+public:
+   StreamSet(                       // Constructor
+     Node*             node)        // The (user-owned) root Node
+{  root= node; }
+
+   StreamSet(const StreamSet&) = delete; // Disallowed copy constructor
+
+StreamSet&
+   operator=(const StreamSet&) = delete; // Disallowed assignment operator
+
+   ~StreamSet( void );              // Destructor
+
+//----------------------------------------------------------------------------
+// StreamSet::debug
+//----------------------------------------------------------------------------
+void debug(const char* info="") const; // Debugging display
+
+//----------------------------------------------------------------------------
+// StreamSet::Accessor methods
+//----------------------------------------------------------------------------
+stream_id                           // The next available Stream identifier
+   assign_stream_id(                // Assign a Stream identifier
+     int               addend= 2);  // After incrementing it by this value
+
+Node*                               // The root Node
+   get_root( void ) const           // Get root Node
+{  return const_cast<Node*>(root); }
+
+stream_ptr                          // The associated Stream
+   get_stream(stream_id) const;     // Locate the Stream given Stream::ident
+
+//----------------------------------------------------------------------------
+// StreamSet::Lockable
+//----------------------------------------------------------------------------
+void
+   lock( void ) const               // Obtain the StreamSet lock
+{  mutex.lock(); }                  // (mutex is mutable)
+
+void
+   unlock( void ) const             // Release the StreamSet lock
+{  mutex.unlock(); }                // (mutex is mutable)
+
+//----------------------------------------------------------------------------
+// StreamSet::methods
+//----------------------------------------------------------------------------
+void
+   change(                          // Change a Stream's parent
+     Stream*           parent,      // The new parent Stream
+     Stream*           child);      // The child Stream to move
+
+void
+   insert(                          // Insert Stream
+     Stream*           parent,      // The parent Stream
+     Stream*           child);      // The child Stream to insert
+
+void
+   remove(                          // Remove Stream
+     Stream*           stream);     // The Stream to remove
+}; // class StreamSet
 
 //----------------------------------------------------------------------------
 //
@@ -57,7 +188,7 @@ class Response;
 //       Define the Stream base class.
 //
 //----------------------------------------------------------------------------
-class Stream {                      // Stream base class
+class Stream : public StreamSet::Node { // Stream base class
 //----------------------------------------------------------------------------
 // Stream::Typedefs and enumerations
 //----------------------------------------------------------------------------
@@ -86,8 +217,8 @@ enum FSM                            // Finite State Machine states
 //----------------------------------------------------------------------------
 protected:
 std::weak_ptr<Stream>  self;        // Self reference
-request_ptr            request;     // Associated Request
-response_ptr           response;    // Associated Response
+request_ptr            request;     // The associated Request
+response_ptr           response;    // The associated Response
 
 // Callback handlers
 f_end                  h_end;       // The Stream completion handler
@@ -105,11 +236,12 @@ static statistic::Active
                        obj_count;   // Stream object counter
 
 //----------------------------------------------------------------------------
-// Stream::Destructor, constructors
+// Stream::Constructors, destructor
 //----------------------------------------------------------------------------
+   Stream( void );                  // Default constructor
+
 virtual
    ~Stream( void );                 // Destructor
-   Stream( void );                  // Default constructor
 
 //----------------------------------------------------------------------------
 // Stream::debug
@@ -315,83 +447,6 @@ void
    reject(                          // Reject a Request, writing Response
      int               code);       // The rejection status code
 }; // class ServerStream
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       StreamSet
-//
-// Purpose-
-//       Control a set of Stream objects.
-//
-//----------------------------------------------------------------------------
-class StreamSet {                   // A set of Stream objects
-protected:
-struct Node {                       // A Stream Node
-Node*                  parent= nullptr; // The parent Node
-Node*                  peer= nullptr;   // The next peer Node
-Node*                  child= nullptr;  // The first child Node
-std::shared_ptr<Stream>stream;      // The associated Stream
-}; // Node
-
-//----------------------------------------------------------------------------
-// StreamSet::Attributes
-//----------------------------------------------------------------------------
-mutable std::mutex     mutex;       // The SteamSet mutex
-void*                  cache= nullptr; // A opaque Node cache
-Node                   root;        // The root Node
-
-uint32_t               ident= 0;    // The next available Stream identifier
-
-//----------------------------------------------------------------------------
-// StreamSet::Destructor, constructors, operators
-//----------------------------------------------------------------------------
-public:
-   ~StreamSet( void ) = default;    // Destructor
-   StreamSet( void ) = default;     // Constructor
-
-   StreamSet(const StreamSet&) = delete; // Disallowed copy constructor
-StreamSet&
-   operator=(const StreamSet&) = delete; // Disallowed assignment operator
-
-//----------------------------------------------------------------------------
-// StreamSet::debug
-//----------------------------------------------------------------------------
-void debug(const char* info="") const; // Debugging display
-
-//----------------------------------------------------------------------------
-// StreamSet::Accessor methods
-//----------------------------------------------------------------------------
-uint32_t                            // The next available Stream identifier
-   assign( void );                  // Assign a Stream identifier
-
-Node*                               // The root Node*
-   get_root( void ) const           // Get root Node*
-{  return const_cast<Node*>(&root); }
-
-std::shared_ptr<Stream>             // The associated Stream
-   get_stream(uint32_t) const;      // Locate the Stream given Stream::ident
-
-//----------------------------------------------------------------------------
-// StreamSet::methods
-//----------------------------------------------------------------------------
-void
-   change(                          // Change a Stream's parent
-     Node*             parent,      // The new parent Stream
-     std::shared_ptr<Stream>
-                       stream);     // The Stream to move
-
-void
-   insert(                          // Insert Stream
-     Node*             parent,      // The parent Stream
-     std::shared_ptr<Stream>
-                       stream);     // The Stream to insert
-
-void
-   remove(                          // Remove Stream
-     std::shared_ptr<Stream>
-                       stream);     // The Stream to remove
-}; // class StreamSet
-}  // namespace http
+}  // namespace htp
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_HTTP_STREAM_H_INCLUDED

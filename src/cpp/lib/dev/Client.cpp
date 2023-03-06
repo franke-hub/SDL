@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2022/12/16
+//       2022/03/06
 //
 //----------------------------------------------------------------------------
 #define OPENSSL_API_COMPAT 30000    // Deprecate OSSL functions < 3.0.0
@@ -353,6 +353,7 @@ static inline SSL_CTX*
 ,  proto_id(proto[HTTP_H1])
 ,  size_inp(BUFFER_SIZE)
 ,  size_out(BUFFER_SIZE)
+,  stream_set(&root)
 ,  task_inp([this](dispatch::Item* it) { inp_task(it); })
 ,  task_out([this](dispatch::Item* it) { out_task(it); })
 {  if( HCDM )
@@ -372,12 +373,14 @@ static inline SSL_CTX*
      Trace::trace(".DEL", "HCLI", this, stream.get());
 
    // Release allocated storage
-   Select* select= socket->get_select();
-   if( select )
-     select->flush();
+   if( socket ) {
+     Select* select= socket->get_select();
+     if( select )
+       select->flush();
 
-   delete socket;
-   socket= nullptr;
+     delete socket;
+     socket= nullptr;
+   }
 
    if( context )                    // If context exists
      SSL_CTX_free(context);
@@ -732,11 +735,17 @@ int                                 // Return code, 0 expected
 // Purpose-
 //       Initialize the HTTP/1.0 and HTTP/1.1 protocol handlers
 //
+// Implementation notes-
+//       Defines: inp_task  (Handles responses)
+//       Defines: out_task  (Handles requests)
+//       Defines: h_reader  (Handles asynchronous data available)
+//       Defines: h_writer  (Data writer, synchronous and asynchronous)
+//
 //----------------------------------------------------------------------------
 void
    Client::http1( void )            // Initialize the HTTP/1 protocol handlers
 {
-   // debugh("%4d %s HCDM\n", __LINE__, __FILE__);
+   // debugh("%4d %s HCDM1\n", __LINE__, __FILE__);
 
    // inp_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    inp_task= [this](dispatch::Item* it) // Input task
@@ -929,7 +938,186 @@ void
 void
    Client::http2( void )            // Initialize the HTTP/2 protocol handler
 {
-   throw std::runtime_error("NOT CODED YET");
+   throw std::runtime_error("NOT READY YET"); // Duplicates http1()
+   // debugh("%4d %s HCDM2\n", __LINE__, __FILE__);
+
+   // inp_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   inp_task= [this](dispatch::Item* it) // Input task
+   { if( HCDM ) debugh("Client(%p)::inp_task(%p)\n", this, it);
+     if( USE_XTRACE )
+       Trace::trace(".DEQ", "CINP", this, it);
+
+     if( fsm != FSM_READY ) {
+       if( it->fc == FSM_CLOSE )
+         close();
+
+       it->post(it->CC_PURGE);
+       return;
+     }
+
+     ClientItem* item= static_cast<ClientItem*>(it);
+     if( item->stream->read(item->ioda) ) // If response complete
+       rd_complete.post();          // Indicate HTTP/1 operation complete
+     item->post();
+   }; // inp_task
+
+   // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   out_task= [this](dispatch::Item* it) // Output task
+   { if( HCDM ) debugh("Client(%p)::out_task(%p)\n", this, it);
+     if( USE_XTRACE )
+       Trace::trace(".DEQ", "COUT", this, it);
+
+     if( fsm != FSM_READY ) {
+       it->post(it->CC_PURGE);
+       return;
+     }
+
+     ClientItem* item= static_cast<ClientItem*>(it);
+     stream_item= item;
+     stream= item->stream;
+     try {
+       // Format the request buffer
+       std::shared_ptr<ClientRequest> request= stream->get_request();
+       Request& Q= *request.get();    // (Q protected by request)
+
+       // TODO: VERIFY method, path, and proto_id (avoiding connection error)
+       ioda_off= 0;
+       ioda_out.reset();
+       ioda_out.put(Q.method);
+       ioda_out.put(' ');
+       ioda_out.put(Q.path);
+       ioda_out.put(' ');
+       ioda_out.put(Q.proto_id);
+       ioda_out.put("\r\n");
+
+       // Set Content-Length
+       Q.remove(HTTP_SIZE);
+       Ioda& ioda= Q.get_ioda();
+       size_t content_length= ioda.get_used();
+// debugh("Method(%s) Content_Length(%zd)\n", Q.method.c_str(), content_length); // TODO: REMOVE
+       if(content_length != 0 ) {
+         if( Q.method != HTTP_POST && Q.method != HTTP_PUT ) {
+           if( VERBOSE )
+             fprintf(stderr, "Method(%s) does not permit content\n"
+                    , Q.method.c_str());
+           item->post(-400);
+           return;
+         }
+       } else if( Q.method == "POST" || Q.method == "PUT" ) {
+         item->post(-411);
+         return;
+       }
+
+       // Unpack header items
+       typedef Options::const_iterator iterator;
+       Options& opts= Q.get_opts();
+       for(iterator i= opts.begin(); i != opts.end(); ++i) {
+         ioda_out.put(i->first);
+         ioda_out.put(':');
+         ioda_out.put(i->second);
+         ioda_out.put("\r\n");
+       }
+
+       // Add Content-Length (if required)
+       if( content_length ) {
+         ioda_out.put(HTTP_SIZE);
+         ioda_out.put(':');
+         ioda_out.put(std::to_string(content_length));
+         ioda_out.put("\r\n");
+       }
+       ioda_out.put("\r\n");      // Add header delimiter
+
+       // Write the request headers
+       events= EVT_WR_HEAD;       // Update state
+       if( content_length )
+         events |= EVT_WR_DATA;
+       h_writer();
+       rd_complete.wait();          // Wait for HTTP/1 operation completion
+       rd_complete.reset();
+     } catch(io_exception& X) {
+       close_enq();
+       if( IODM )
+         errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
+       error(X.what());
+     } catch(Exception& X) {
+       close_enq();
+       errorh("%4d %s %s\n", __LINE__, __FILE__, ((std::string)X).c_str());
+       error(X.what());
+     } catch(std::exception& X) {
+       close_enq();
+       errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
+       error(X.what());
+     } catch(const char* X) {
+       close_enq();
+       errorh("%4d %s catch(%s)\n", __LINE__, __FILE__, X);
+       error(X);
+     } catch(...) {
+       close_enq();
+       errorh("%4d %s catch(...)\n", __LINE__, __FILE__);
+       error("catch(...)");
+     }
+
+     // Stream processing is complete
+     stream->end();
+     stream= nullptr;
+     stream_item= nullptr;
+     item->post();
+   }; // out_task
+
+   // h_reader - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   h_reader= [this](void)           // (Asynchronous) input data available
+   { if( HCDM ) debugh("Client(%p)::h_reader\n", this);
+
+     if( (events & EVT_RD_DATA) == 0 ) { // If unexpected data
+       // This SHOULD NOT OCCUR.
+       // We set EVT_RD_DATA *BEFORE* writing the last piece of data.
+       debugf("%4d Client::h_reader events(%.2x)\n", __LINE__, events);
+       return;
+     }
+
+     // Read the response, passing it to Stream
+     read(__LINE__);                // (Exception if error)
+   }; // h_reader=
+
+   // h_writer - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   h_writer= [this](void)           // The output writer
+   { if( HCDM ) debugh("Client(%p)::h_writer\n", this);
+
+     std::shared_ptr<ClientStream> stream= stream_item->stream;
+     if( events & EVT_WR_HEAD ) {      // Write the request header?
+       if( (events & EVT_WR_DATA) == 0 )
+         events |= EVT_RD_DATA;
+
+       ssize_t L= write(__LINE__);
+       if( L <= 0 ) {               // If blocked (else io_error exception)
+         events &= ~EVT_RD_DATA;    // (write() updated select event)
+         return;
+       }
+
+       // Implementation note: if there's no data, the server could have
+       // alreaday received the request and sent the response.
+       events &= ~EVT_WR_HEAD;
+       if( events & EVT_WR_DATA ) { // If there's data to be sent
+         std::shared_ptr<ClientRequest> request= stream->get_request();
+         Request& Q= *request.get(); // (Q protected by request)
+         ioda_out= std::move(Q.get_ioda());
+       } else {
+         ioda_out.reset();
+       }
+       ioda_off= 0;
+     }
+
+     if( events & EVT_WR_DATA ) {   // Write the request data?
+       events |= EVT_RD_DATA;
+       ssize_t L= write(__LINE__);
+       if( L <= 0 ) {               // If blocked (else io_error exception)
+         events &= ~EVT_RD_DATA;    // (write() updated select event)
+         return;
+       }
+
+       events &= ~EVT_WR_DATA;
+     }
+   }; // h_writer=
 }
 
 //----------------------------------------------------------------------------

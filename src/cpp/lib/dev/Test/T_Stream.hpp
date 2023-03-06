@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2023/01/14
+//       2022/03/06
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -68,7 +68,7 @@ using namespace std;                // For std classes
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  IODM= false                      // Input/Output Debug Mode?
-,  VERBOSE= 1                       // Verbosity: Higher is more verbose
+,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 ,  DIR_MODE= (S_IRWXU | S_IRGRP|S_IXGRP | S_IROTH|S_IXOTH) // Directory mode
 ,  MAX_REQUEST_COUNT= 4             // Maximum running request count

@@ -16,7 +16,7 @@
 //       HTTP Options.
 //
 // Last change date-
-//       2022/10/16
+//       2023/03/06
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_OPTIONS_H_INCLUDED
@@ -138,13 +138,14 @@ protected:
 List<Option>           opts;        // The Option list
 
 //----------------------------------------------------------------------------
-// Options::Destructor/Constructor
+// Options::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
-   ~Options( void );                // Destructor
    Options( void );                 // Default constructor
    Options(const Options& from);    // Copy constructor
    Options(Options&& from);         // Move constructor
+
+   ~Options( void );                // Destructor
 
 //----------------------------------------------------------------------------
 // Options::Operators

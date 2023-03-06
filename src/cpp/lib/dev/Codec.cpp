@@ -16,7 +16,7 @@
 //       Implement http/Codec.h
 //
 // Last change date-
-//       2022/10/26
+//       2022/03/06
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::runtime_error
@@ -36,7 +36,7 @@ namespace _LIBPUB_NAMESPACE::http {  // Implementation namespace
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
-,  VERBOSE= 1                       // Verbosity, range 0..5
+,  VERBOSE= 1                       // Verbosity, higher is more verbose
 }; // enum
 
 enum OPTIONS64                      // Codec64 options

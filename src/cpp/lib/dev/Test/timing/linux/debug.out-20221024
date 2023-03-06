@@ -1,0 +1,37 @@
+1666636399.926 HCDM: MODE_INTENSIVE
+S/T_Stream.cpp Oct 24 2022 10:15:38 (Compiled)
+S/T_Stream.cpp Oct 24 2022 14:33:19 (Started)
+
+Settings:
+  5.0: runtime
+ true: server: rainbow
+false: hcdm
+false: iodm
+    2: verbose
+false: client
+false: ssl
+ true: stress: 10
+ true: worker
+
+    4: MAX_REQUEST_COUNT
+HTTP1: Protocol (unencrypted)
+
+
+Listen: http://192.168.1.239:8080
+
+ClientThread.test_stress... (5.0 seconds)
+--std_stress test: Started
+--std_stream test: Complete
+     291,347.000 operations
+      58,269.400 operations/second
+         582,774 { 0, 0,48} Stream counts
+         582,774 { 0, 0,47} Request counts
+         582,774 { 0, 0,47} Response counts
+
+WorkerPool::debug()
+              25 max_running
+              25 max_pooled
+               0 running
+              25 pooled
+         874,065 workers
+NO errors detected
