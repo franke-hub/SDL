@@ -16,7 +16,7 @@
 //       Command line interface
 //
 // Last change date-
-//       2023/01/28
+//       2023/03/01
 //
 //----------------------------------------------------------------------------
 import java.awt.*;
@@ -456,6 +456,31 @@ public void
 //----------------------------------------------------------------------------
 //
 // Class-
+//       Main.InvokeEventsEdit
+//
+// Purpose-
+//       Invoke EventsEdit(events-nick), update event scorecard
+//
+//----------------------------------------------------------------------------
+class InvokeEventsEdit implements ActionListener
+{
+public void
+   actionPerformed(                 // Handle event date selected
+     ActionEvent       e)           // The ActionEvent
+{
+   debug("InvokeEventsEdit.actionPerformed");
+
+   prog= new EventsEdit();
+   parg= new String[2];
+   parg[0]= "events-nick=" + eventsID;
+   parg[1]= "events-date=" + sortDate(e.getActionCommand());
+   waitingDone();
+}
+} // class InvokeEventsEdit
+
+//----------------------------------------------------------------------------
+//
+// Class-
 //       Main.InvokeEventsStat
 //
 // Purpose-
@@ -501,6 +526,38 @@ public void
    waitingDone();
 }
 } // class InvokeEventsView
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       Main.InvokePlayerHdcp
+//
+// Purpose-
+//       Invoke PlayerHdcp(player-nick), view player handicap
+//
+//----------------------------------------------------------------------------
+class InvokePlayerHdcp implements ActionListener
+{
+String                 playerNick;  // The Associated Player
+
+   InvokePlayerHdcp(                // Constructor
+     String            s)           // The player nickname
+{  playerNick= s; }
+
+public void
+   actionPerformed(                 // Handle event date selected
+     ActionEvent       e)           // The ActionEvent
+{
+   debug("InvokePlayerHdcp.actionPerformed");
+
+   prog= new PlayerHdcp();
+   parg= new String[3];
+   parg[0]= "player-nick=" + playerNick;
+   parg[1]= "events-nick=" + eventsID;
+   parg[2]= "MAX_DISPLAY=" + "20";
+   waitingDone();
+}
+} // class PlayerHdcp
 
 //----------------------------------------------------------------------------
 //
@@ -611,15 +668,14 @@ public Object
 
        QuotedTokenizer t= new QuotedTokenizer(text);
        String type= t.nextToken();
-       String item= t.nextToken();
 
        if( !type.equals(CMD) )
          break;
 
+       String item= t.nextToken();
        NEXT= item;
        vector.add(item);
      }
-
      String courseList[]= vector.toArray(new String[0]);
      String courseShow[]= new String[courseList.length];
      for(int i= 0; i<courseList.length; ++i)
@@ -674,6 +730,48 @@ public Object
      for(int i= 0; i<eventsDate.length; ++i)
        mdyyyyDate[i]= showDate(eventsDate[i]);
 
+     // Get all players: (PLAYER.NICK P0001 frank) (PLAYER.SHOW P0001 Frank)
+     vector= new Vector<String>();
+     CMD=  CMD_PLAYER_NICK;
+     NEXT= "00000";
+     for(;;)
+     {
+       String text= dbNext(CMD, NEXT);
+       if( text == null )
+         break;
+
+       QuotedTokenizer t= new QuotedTokenizer(text);
+       String type= t.nextToken();
+
+       if( !type.equals(CMD) )
+         break;
+
+       String item= t.nextToken();
+       NEXT= item;
+       vector.add(item);
+     }
+     String playerList[]= vector.toArray(new String[0]);
+     String playerShow[]= new String[playerList.length];
+     for(int i= 0; i<playerList.length; ++i)
+       playerShow[i]= stripQuotes(dbGet(CMD_PLAYER_SHOW, playerList[i]));
+
+     // Sort the playerShow array with playerList correlation
+     for(int i= 0; i<playerList.length; ++i)
+     {
+       for(int j= i+1; j<playerList.length; ++j)
+       {
+         if( playerShow[j].compareTo(playerShow[i]) < 0 )
+         {
+           String tempList= playerList[i];
+           String tempShow= playerShow[i];
+           playerList[i]= playerList[j];
+           playerShow[i]= playerShow[j];
+           playerList[j]= tempList;
+           playerShow[j]= tempShow;
+         }
+       }
+     }
+
      //-----------------------------------------------------------------------
      // Generate panels
      panel= new JPanel[4];
@@ -698,10 +796,37 @@ public Object
 
      //-----------------------------------------------------------------------
      // Panel 1, Program menu selectors
-     MenuPanel p1= new MenuPanel(3);
+     MenuPanel p1= new MenuPanel(2);
+
+     // EventsCard(events-nick, events-date)
+     ActionListener invoke= new InvokeEventsCard();
+     jm= p1.getArray(0);
+     jm.setText("   Edit Score Card  ");
+     for(int i= 0; i<mdyyyyDate.length; ++i) {
+       JMenuItem mi= new JMenuItem(mdyyyyDate[i]);
+       mi.addActionListener(invoke);
+       jm.add(mi);
+     }
+
+     // EventsView(events-nick, events-date)
+     invoke= new InvokeEventsView();
+     jm= p1.getArray(1);
+     jm.setText(" View Net Scorecard ");
+     for(int i= 0; i<mdyyyyDate.length; ++i) {
+       JMenuItem mi= new JMenuItem(mdyyyyDate[i]);
+       mi.addActionListener(invoke);
+       jm.add(mi);
+     }
+
+     p1.setLayout(new FlowLayout());
+     panel[1]= p1;
+
+     //-----------------------------------------------------------------------
+     // Panel 2, Program menu selectors
+     MenuPanel p2= new MenuPanel(2);
 
      // CourseEdit(course-nick)
-     jm= p1.getArray(0);
+     jm= p2.getArray(0);
      jm.setText("     Edit Course    ");
      for(int i= 0; i<courseShow.length; ++i) {
        JMenuItem mi= new JMenuItem(stripQuotes(courseShow[i]));
@@ -709,49 +834,32 @@ public Object
        jm.add(mi);
      }
 
-     // EventsCard(events-nick, events-date)
-     ActionListener invoke= new InvokeEventsCard();
-     jm= p1.getArray(1);
-     jm.setText("   Edit Score Card  ");
-     for(int i= 0; i<mdyyyyDate.length; ++i) {
-       JMenuItem mi= new JMenuItem(mdyyyyDate[i]);
-       mi.addActionListener(invoke);
+     // PlayerHdcp(player-nick)
+     jm= p2.getArray(1);
+     jm.setText("     Player Hdcp    ");
+     for(int i= 0; i<playerShow.length; ++i) {
+       JMenuItem mi= new JMenuItem(stripQuotes(playerShow[i]));
+       mi.addActionListener(new InvokePlayerHdcp(playerList[i]));
        jm.add(mi);
      }
-     p1.setLayout(new FlowLayout());
-     panel[1]= p1;
 
-     // EventsView(events-nick, events-date)
-     invoke= new InvokeEventsView();
-     jm= p1.getArray(2);
-     jm.setText(" View Net Scorecard ");
-     for(int i= 0; i<mdyyyyDate.length; ++i) {
-       JMenuItem mi= new JMenuItem(mdyyyyDate[i]);
-       mi.addActionListener(invoke);
-       jm.add(mi);
-     }
-     p1.setLayout(new FlowLayout());
-     panel[1]= p1;
-
-     //-----------------------------------------------------------------------
-     // Panel 2, Button selectors
-     ButtonPanel p2= new ButtonPanel(1);
-
-     // EventsStat(events-nick)
-     JButton jb= p2.getArray(0);
-     jb.setText("  Event Statistics   ");
-     jb.addActionListener(new InvokeEventsStat());
      p2.setLayout(new FlowLayout());
      panel[2]= p2;
 
      //-----------------------------------------------------------------------
-     // Panel 3, Undefined
-     DataPanel p3= new DataPanel(2);
-     DataField df[]= p3.getField();
-     df[0].setColumns(20);
-     df[0].setText("TBD3a");
-     df[1].setColumns(20);
-     df[1].setText("TBD3b");
+     // Panel 3, Button selectors
+     ButtonPanel p3= new ButtonPanel(2);
+
+     // EventsStat(events-nick)
+     JButton jb= p3.getArray(0);
+     jb.setText("  Event Statistics   ");
+     jb.addActionListener(new InvokeEventsStat());
+
+     // EventsEdit(events-nick)
+     jb= p3.getArray(1);
+     jb.setText("     Edit Event     ");
+     jb.addActionListener(new InvokeEventsEdit());
+
      p3.setLayout(new FlowLayout());
      panel[3]= p3;
    } catch( Exception e ) {
