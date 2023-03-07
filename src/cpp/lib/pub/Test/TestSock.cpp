@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022 Frank Eskesen.
+//       Copyright (c) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2022/11/18
+//       2023/03/07
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -372,6 +372,9 @@ static bool
    if( pfd.revents & (POLLHUP | POLLRDHUP) )
      return true;                   // (Peer socket was closed)
 
+   if( !running )                   // (Test case completed)
+     return true;
+
    return false;
 }
 
@@ -384,6 +387,9 @@ static bool
 
    if( pfd->revents & (POLLHUP | POLLRDHUP) )
      return true;                   // (Peer socket was closed)
+
+   if( !running )                   // (Test case completed)
+     return true;
 
    return false;
 }
@@ -1492,6 +1498,11 @@ virtual void
            }
            if( pfd.revents == 0 ) {
              if( !if_closed(select, listen) ) {
+               if( !if_retry() ) {
+                 int ERRNO= errno;
+                 debugf("%4d %s errno(%d)\n", __LINE__, __FILE__, ERRNO);
+                 errno= ERRNO;
+               }
                error_count += VERIFY( if_retry() );
                ++ssr_again;
              }
