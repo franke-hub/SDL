@@ -15,7 +15,7 @@
 //       Development journal
 //
 // Last change date-
-//       2023/02/02
+//       2023/03/05
 //
 -------------------------------------------------------------------------- -->
 
@@ -473,5 +473,14 @@ some new ones were discovered.
 The rest of February and the beginning of March have been mostly reserved for
 non-programming activities.
 Grandkids are turning 8 and 10, and the golfer application will get some use.
+
+### 2023/04/05
+
+March was mostly spent getting and recovering from a severe cold.
+(Testing ruled out Covid, Flu-A, Flu-B or RSV.)
+
+Testing ~/src/cpp/lib/pub/Test/TestDisp.cpp showed a significant but unexpected
+Linux throughput performance improvement. (Windows performance didn't change.)
+This was most likely due to changes in the Linux kernel and runtime library.
 
 ----

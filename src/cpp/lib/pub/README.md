@@ -15,13 +15,13 @@
 //       PUB library description
 //
 // Last change date-
-//       2022/10/26
+//       2023/04/05
 //
 -------------------------------------------------------------------------- -->
 
 # ~/src/lib/pub/README.md
 
-Copyright (C) 2022 Frank Eskesen.
+Copyright (C) 2022-2023 Frank Eskesen.
 
 This file is free content, distributed under the MIT license.
 (See the accompanying file LICENSE.MIT or the original contained
@@ -48,6 +48,17 @@ When an interface changes, we attempt to also modify every usage within the
 distribution to match the updated interface.
 We do not recompile every distributed source module whenever a new trunk
 is distributed. We do recompile every library source module.
+
+----
+
+## 2023/04/05
+The ~/src/cpp/lib/pub/Test/TestDisp.cpp timing testcase has an unexpected and
+large throughput performance improvement. No pub library code change explains
+this improvement, so it's assumed that Linux kernel/library changes are
+responsible. (This is good, since there was also no explanation of the
+Linux throughput decrease between 3/2020 and 3/2023.)
+
+See: ~/src/cpp/lib/pub/Test/.TIMING
 
 ----
 

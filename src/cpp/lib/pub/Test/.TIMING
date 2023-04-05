@@ -15,7 +15,7 @@
 ##       Timing test results.
 ##
 ## Last change date-
-##       2022/04/22
+##       2023/04/05
 ##
 ## Implementation/Usage note-
 ##       Only three tests are run. Small differences are irrelevant.
@@ -25,6 +25,18 @@
 ##############################################################################
 ## TestDisp --timing (Reported elapsed time in seconds)
 ##############################################################################
+## 2023/04/05 (No changes, using begin/end)
+##                WIN      UIX
+##       Min:   9.746    9.440
+##       Mid:   9.869    9.562
+##       Max:  10.005    9.668
+##
+## 2022/07/15 (No changes, using begin/end)
+##                WIN      UIX
+##       Min:   9.406   21.756
+##       Mid:   9.467   21.854
+##       Max:   9.694   21.878
+##
 ## 2022/03/23 (Preliminary AI_list)
 ##                WIN      UIX (begin/end)
 ##       Min:   9.561   21.119

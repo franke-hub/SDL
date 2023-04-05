@@ -15,20 +15,16 @@
 ##       Development status, history, and reminders.
 ##
 ## Last change date-
-##       2022/12/18
+##       2023/04/05
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
-2022/12/18 Stable
-         However, Select.cpp and Socket.cpp probably need more work.
-         While no known multithreading timing holes exist, associated fixes
-         have significantly reduced throughput.
-
-2022/10/16 Added Diagnostic.h, for tracking hard to debug problems.
-
-2019/03/15 See ~/src/cpp/HTTP/.README for additional information.
+2023/04/05 (No significant changes since 2022/12/18)
+         However, Test/TestDisp.cpp Linux timings have significantly improved.
+         Conjecture: Linux kernel/library fixes improved multithreading
+         performance.
 
 ##############################################################################
 ## FEATURES:
@@ -41,6 +37,17 @@
 
 2020/08/22 BlockAllocator needs performance review.
          (Linux malloc/free somehow *BEATS* BlockAllocator's performance.)
+
+##############################################################################
+## DONE:
+2022/12/18 Stable
+         However, Select.cpp and Socket.cpp probably need more work.
+         While no known multithreading timing holes exist, associated fixes
+         have significantly reduced dev library throughput.
+
+2022/10/16 Added Diagnostic.h, for tracking hard to debug problems.
+
+2019/03/15 See ~/src/cpp/HTTP/.README for additional information.
 
 ##############################################################################
 ## TODO:
