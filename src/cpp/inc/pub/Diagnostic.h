@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022 Frank Eskesen.
+//       Copyright (c) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Debugging diagnostics.
 //
 // Last change date-
-//       2022/10/16
+//       2023/04/15
 //
 // Available diagnostics:
 //       pub::diag::Pristine: Used to catch "wild stores" clobbering objects.
@@ -141,6 +141,11 @@ namespace pub_diag {
 //       This file must be included *AFTER* all system include files but
 //       *BEFORE* any shared_ptr, make_shared, or weak_ptr declarations.
 //
+//       When enabled, the shared pointer debugging display is automatic
+//       (See Diagnostic.cpp, GlobalDestructor.)
+//       std::pub_diag::Debug_ptr::debug("caller-info"), defined below, can
+//       also be invoked at any time.
+//
 // Sample usage-
 //       Add a control file included by all file where tracking is desired:
 //          #define USE_DEBUG_PTR   // (Swap lines to disable/enable)
@@ -215,17 +220,17 @@ static void
 
 static void
    insert(                          // Add an object to the C_map
-     void*             that,        // The object's address
+     const void*       that,        // The object's address
      std::string       name);       // The object's name
 
 static void
    remove(                          // Remove an object from the C_map
-     void*             that);       // The object's address
+     const void*       that);       // The object's address
 
 static void
    update(                          // Update the reference map
-     void*             self,        // The object's address
-     void*             that);       // The referenced address
+     const void*       self,        // The object's address
+     const void*       that);       // The referenced address
 }; // class debug_ptr<void>
 
 //----------------------------------------------------------------------------
@@ -304,7 +309,7 @@ T* get( void ) const                // Get shared_ptr content
 {  return ptr.get(); }
 
 void reset( void ) noexcept         // Reset the shared_ptr
-{  ptr.reset(); update(this, ptr.get()); }
+{  update(this, nullptr); ptr.reset(); }
 
 size_t use_count( void ) const noexcept // Get the (approximate) use count
 {  return ptr.use_count(); }

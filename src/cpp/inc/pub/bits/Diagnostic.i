@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Diagnostic activation control
 //
 // Last change date-
-//       2022/10/16
+//       2023/04/15
 //
 // Implementation notes-
 //       This file is useful to debug failure to delete shared_ptr objects.
@@ -26,6 +26,10 @@
 //       For each object that contains shared_ptr objects, add
 //         INS_DEBUG_OBJ(name) // In constructor
 //         REM_DEBUG_OBJ(name) // In destructor (name ignored)
+//
+//       When a constructor isn't used, add
+//         INS_DEBUG_MAP(name, that) // When created
+//         REM_DEBUG_MAP(name, that) // When destroyed
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_DIAGNOSTIC_I_INCLUDED
@@ -40,9 +44,13 @@
 
 #  define INS_DEBUG_OBJ(x) { std::pub_diag::Debug_ptr::insert(this, x); }
 #  define REM_DEBUG_OBJ(x) { std::pub_diag::Debug_ptr::remove(this); }
+#  define INS_DEBUG_MAP(x, that) { std::pub_diag::Debug_ptr::insert(that, x); }
+#  define REM_DEBUG_MAP(x, that) { std::pub_diag::Debug_ptr::remove(that); }
 
 #else // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #  define INS_DEBUG_OBJ(x)
 #  define REM_DEBUG_OBJ(x)
+#  define INS_DEBUG_MAP(x, that)
+#  define REM_DEBUG_MAP(x, that)
 #endif //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #endif // _LIBPUB_BITS_DIAGNOSTIC_I_INCLUDED

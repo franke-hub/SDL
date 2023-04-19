@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Diagnostic.h.
 //
 // Last change date-
-//       2022/10/16
+//       2023/04/15
 //
 // Implementation notes-
 //       Depending on global initialization ordering, static shared_ptr
@@ -166,22 +166,17 @@ static void
 //       map_term
 //
 // Purpose-
-//       Terminate mapping (If maps are empty)
+//       Terminate mapping
 //
 //----------------------------------------------------------------------------
 static void
    map_term( void )
 {  std::lock_guard<decltype(mutex)> lock(mutex);
 
-   if( c_map && r_map ) {
-     if( c_map->size() || r_map->size() )
-       return;
-
-     delete c_map;
-     delete r_map;
-     c_map= nullptr;
-     r_map= nullptr;
-   }
+   delete c_map;
+   delete r_map;
+   c_map= nullptr;
+   r_map= nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -230,7 +225,7 @@ void
    }
 
    // Display by address, intermixing containers and references
-   addr_t c_last= 0;
+   addr_t c_last= addr_t(-1);
    auto cx= c_map->begin();
    addr_t c_addr= addr_t(-1);
    if( cx != c_map->end() )
@@ -241,8 +236,8 @@ void
    if( rx != r_map->end() )
      r_addr= rx->first;
 
-   while( cx != c_map->end() && rx != r_map->end() ) {
-     if( r_addr >= c_addr ) {
+   while( cx != c_map->end() || rx != r_map->end() ) {
+     if( r_addr >= c_addr || rx == r_map->end() ) {
        debugf("\n%#14zx %s\n", c_addr, cx->second.c_str());
        c_last= c_addr;
        c_addr= -1;
@@ -278,7 +273,7 @@ void
 //----------------------------------------------------------------------------
 void
    Debug_ptr::insert(
-     void*             self,        // The object's address
+     const void*       self,        // The object's address
      std::string       name)        // The object's name
 {  std::lock_guard<decltype(mutex)> lock(mutex);
 
@@ -297,7 +292,7 @@ void
 //
 //----------------------------------------------------------------------------
    Debug_ptr::remove(               // Remove an object from the container map
-     void*             self)        // The object's address
+     const void*       self)        // The object's address
 {  std::lock_guard<decltype(mutex)> lock(mutex);
 
    if( c_map )                      // Remove the index
@@ -317,12 +312,15 @@ void
 //----------------------------------------------------------------------------
 void
    Debug_ptr::update(               // Update the reference map
-     void*             self,        // The debug_ptr's address
-     void*             that)        // The referenced address
+     const void*       self,        // The debug_ptr's address
+     const void*       that)        // The referenced address
 {  std::lock_guard<decltype(mutex)> lock(mutex);
 
    map_init();
-   (*r_map)[addr_t(self)]= addr_t(that); // Insert/update the reference
+   if( that )
+     (*r_map)[addr_t(self)]= addr_t(that); // Insert/update the reference
+   else
+     r_map->erase(addr_t(self));    // Remove the reference (if present)
 }
 }  // namespace pub_diag
 }  // namespace std
