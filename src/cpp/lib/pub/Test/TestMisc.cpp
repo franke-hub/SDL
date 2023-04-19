@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2022 Frank Eskesen.
+//       Copyright (c) 2018-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2022/10/22
+//       2023/04/15
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -33,6 +33,11 @@
 #include "pub/Statistic.h"          // For pub::Statistic
 #include "pub/Tokenizer.h"          // For pub::Tokenizer
 #include "pub/Wrapper.h"            // For pub::Wrapper
+
+// Hardware/software specific tests
+#if defined(_HW_X86) && defined(__GNUC__)
+#  include "pub/Hardware.h"         // For namespace pub::Hardware
+#endif
 
 // Namespace accessors
 #define PUB _LIBPUB_NAMESPACE
@@ -62,6 +67,75 @@ static inline int                   // Number of errors encountered
 
    return error_count;
 }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_Hardware
+//
+// Purpose-
+//       Test Hardware.h
+//
+//----------------------------------------------------------------------------
+#if defined(_HW_X86) && defined(__GNUC__)
+// Forward references
+void* test_Hardware_subroutine( void );
+int   test_Hardware( void );
+
+[[gnu::noinline]]
+void*
+   test_Hardware_subroutine( void )
+{  return pub::Hardware::getLR(); }
+
+int                                 // Number of errors encountered
+   test_Hardware( void )            // Test Hardware.h
+{
+   int                 error_count= 0; // Number of errors encountered
+
+   if( opt_verbose )
+     debugf("\ntest_Hardware\n");
+
+   intptr_t one= (intptr_t)test_Hardware_subroutine();
+   intptr_t two= (intptr_t)test_Hardware_subroutine();
+   error_count += VERIFY(two > one && (two-one) < 64);
+   if( opt_verbose )
+     debugf("one(0x%.16zx) two(0x%.16zx) getLR\n", one, two);
+
+   one= (intptr_t)pub::Hardware::getSP();
+   two= (intptr_t)pub::Hardware::getSP();
+   error_count += VERIFY(two == one);
+   if( opt_verbose )
+     debugf("one(0x%.16zx) two(0x%.16zx) getSP\n", one, two);
+
+   intptr_t max= 0;
+   intptr_t min= 1'000'000'000'000;
+   one= pub::Hardware::getTSC();
+   intptr_t old= one;
+   for(int i= 0; i<64; ++i) {
+     two= pub::Hardware::getTSC();
+     error_count += VERIFY(two >= one);
+     intptr_t del= two - old;
+     if( del < min )
+       min= del;
+     if( del > max )
+       max= del;
+     old= two;
+   }
+   error_count += VERIFY(two > one);
+   if( opt_verbose )
+     debugf("one(0x%.16zx) two(0x%.16zx) min(%zd) max(%zd) getTSC\n"
+           , one, two, min, max);
+
+   return error_count;
+}
+#else
+static inline int                   // Number of errors encountered
+   test_Hardware( void )            // Test Hardware.h
+{
+   debugf("test_Hardware skipped: GNU compiler, x86 architecture required\n");
+   return 0;
+}
+#endif
 
 //----------------------------------------------------------------------------
 //
@@ -285,6 +359,7 @@ extern int                          // Return code
    {
      int error_count= 0;
 
+     error_count += test_Hardware(); // Test Hardware.h
      error_count += test_Properties(); // Test Properties.h
      error_count += test_Statistic(); // Test Statistic.h
      error_count += test_Tokenizer(); // Test Tokenizer.h
