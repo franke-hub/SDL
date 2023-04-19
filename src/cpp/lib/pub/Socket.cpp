@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2022 Frank Eskesen.
+//       Copyright (C) 2019-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2022/12/16
+//       2023/04/17
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -31,7 +31,6 @@
 #include <assert.h>                 // For assert
 #include <errno.h>                  // For errno, ...
 #include <fcntl.h>                  // For fcntl
-#include <mutex>                    // For std::mutex, std::lock_guard
 #include <netdb.h>                  // For addrinfo, ...
 #include <poll.h>                   // For poll, ...
 #include <stdarg.h>                 // For va_* functions

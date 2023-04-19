@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2022 Frank Eskesen.
+//       Copyright (C) 2019-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Select.h method implementations.
 //
 // Last change date-
-//       2022/12/16
+//       2023/04/17
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -246,9 +246,8 @@ void
    run( void )                      // Accept the Reader connection
 {
    // Create reader socket
-   while( reader == nullptr && operational ) {
+   while( reader == nullptr && operational )
      reader= listen.accept();
-   }
 
    listen.close();
    if( USE_AF == AF_UNIX )
@@ -267,7 +266,7 @@ void
 //
 //----------------------------------------------------------------------------
 enum OP                             // Select operation codes
-{ OP_FOLLOW= 'F'
+{ OP_FLUSH=  'F'
 , OP_INSERT= 'I'
 , OP_MODIFY= 'M'
 , OP_REMOVE= 'R'
@@ -544,6 +543,12 @@ int                                 // Number of detected errors
 // Purpose-
 //       Enqueue a control operations
 //
+// Implementation notes-
+//       Since adding an item to the queue and writing to complete the
+//       polling operation are separate operations, it's possible for
+//       writer->write or reader->read to block. In either case, this is
+//       treated as if the operation completed sucessfully.
+//
 //----------------------------------------------------------------------------
 void
    Select::control(                 // Transmit control operation
@@ -562,12 +567,17 @@ void
 
    if( tail == nullptr ) {
      ssize_t L= writer->write(&op.op, 1);
-     while( L < 0 && IS_RETRY )
+     while( L < 0 ) {
+       if( IS_BLOCK )
+         break;
+
+       if( !IS_RETRY ) {
+         debugf("Select(%p)::control write error: %d:%s\n", this
+               , errno, strerror(errno));
+         sno_exception(__LINE__);
+       }
+
        L= writer->write(&op.op, 1);
-     if( L < 0 && !IS_BLOCK ) {
-       debugf("Select(%p)::control write error: %d:%s\n", this
-             , errno, strerror(errno));
-       sno_exception(__LINE__);
      }
    }
 }
@@ -581,8 +591,12 @@ void
 //       Read and handle all queued control operations
 //
 // Implementation notes-
-//       Callers MUST NOT hold shr_latch OR xcl_latch: Obtains xcl_latch
-//       (It cannot be called from Socket::do_select)
+//       See implementation note in control(const control_op&), above.
+//
+//       Obtains xcl_latch. Callers MUST NOT hold shr_latch OR xcl_latch.
+//       It cannot be called from any Socket::on_select function since they
+//       may be called with the shr_latch held. Note that Socket::close
+//       invokes this method indirectly when it invokes select->flush.
 //
 //----------------------------------------------------------------------------
 void
@@ -594,19 +608,23 @@ void
 
    char buffer[8];                  // (Only one byte should be used)
    ssize_t L= reader->read(buffer, sizeof(buffer));
-   while( L < 0 && IS_RETRY )
-     L= reader->read(buffer, sizeof(buffer));
+   while( L < 0 ) {
+     if( IS_BLOCK )
+       break;
 
-   if( L < 0 && !IS_BLOCK ) {
-     debugf("Select(%p)::control read error: %d:%s\n", this
-           , errno, strerror(errno));
-     sno_exception(__LINE__);
+     if( !IS_RETRY ) {
+       debugf("Select(%p)::control read error: %d:%s\n", this
+             , errno, strerror(errno));
+       sno_exception(__LINE__);
+     }
+
+     L= reader->read(buffer, sizeof(buffer));
    }
 
    if( pollfd[0].revents )
      pollfd[0].revents= 0;
 
-   // Process queued operations
+   // Process (all) queued operations
    for(auto it= todo_list.begin(); it != todo_list.end(); ++it) {
      SelectItem* item= static_cast<SelectItem*>(it.get());
      control_op& op= item->op;
@@ -615,9 +633,9 @@ void
      int fd= op.fd;
 
      switch( op.op ) {
-       case OP_FOLLOW: {
+       case OP_FLUSH: {
          if( USE_TRACE )
-           Trace::trace(".SEL", "=FOL");
+           Trace::trace(".SEL", "=FSH");
          break;
        }
        case OP_INSERT: {
@@ -732,7 +750,7 @@ void
 {  if( HCDM )
      debugh("Select(%p)::shutdown\n", this);
 
-   control_op op= {nullptr, OP_FOLLOW, 0, 0, 0};
+   control_op op= {nullptr, OP_FLUSH, 0, 0, 0};
    control(op);
    control();                       // Chase any pending operations
 }
@@ -886,9 +904,8 @@ Socket*                             // The next selected Socket, or nullptr
      debugh("Select(%p)::select(%d)\n", this, timeout);
 
    // Handle pending control operations
-   if( todo_list.get_tail() != nullptr || pollfd[0].revents ) {
+   if( todo_list.get_tail() != nullptr || pollfd[0].revents )
      control();
-   }
 
    Socket* socket= select();
    if( socket )
@@ -944,9 +961,8 @@ Socket*                             // The next selected Socket, or nullptr
            , timeout->tv_sec, timeout->tv_nsec, signals);
 
    // Handle pending control operations
-   if( todo_list.get_tail() != nullptr || pollfd[0].revents ) {
+   if( todo_list.get_tail() != nullptr || pollfd[0].revents )
      control();
-   }
 
    Socket* socket= select();
    if( socket )
@@ -1001,12 +1017,18 @@ Socket*                             // The next selected Socket, or nullptr
 //----------------------------------------------------------------------------
 Socket*                             // The next selected Socket
    Select::select( void )           // Select the next remaining Socket
-{
+{  if( HCDM )
+     debugh("%4d Select(%p) do_select, USE_DO_SELECT(%s)\n", __LINE__, this
+           , USE_DO_SELECT ? "true"  : "false");
+
    std::unique_lock<decltype(shr_latch)> lock(shr_latch);
 
    if( ipix == 0 )
      return nullptr;                // Poll complete
 
+   // Note that we only check for pending control operations once even when
+   // USE_DO_SELECT == true. Socket on_select functions are supposed to be low
+   // overhead so even multiple instances shouldn't significant much delay.
    if( todo_list.get_tail() != nullptr || pollfd[0].revents )
      return nullptr;                // Control operation pending
 
@@ -1015,7 +1037,7 @@ Socket*                             // The next selected Socket
    determined by the USE_DO_SELECT definition (in enum above.)
 
    With USE_DO_SELECT == true:
-     All events are driven from this method with the shr_latch held.
+     All pending events are driven from this method with the shr_latch held.
      This method always returns nullptr.
 
    With USE_DO_SELECT == false:
@@ -1036,9 +1058,8 @@ Socket*                             // The next selected Socket
          Socket* socket= fdsock[fd];
          trace_sel(this, socket, poll->events, revents, fd);
          if( USE_DO_SELECT ) {      // Use internal do_select mechanism?
-//         lock.unlock();           // (Don't hold shr_latch in do_select)
-           socket->do_select(revents);
-           return nullptr;
+           socket->do_select(revents); // (Holding shr_latch)
+           // return nullptr;       // (Process *all* events, not just one)
          } else {
            return socket;
          }
@@ -1058,9 +1079,8 @@ Socket*                             // The next selected Socket
        Socket* socket= fdsock[fd];
        trace_sel(this, socket, poll->events, revents, fd);
        if( USE_DO_SELECT ) {      // Use internal do_select mechanism?
-         lock.unlock();           // (Don't hold shr_latch in do_select)
-         socket->do_select(revents);
-         return nullptr;
+         socket->do_select(revents); // (Holding shr_latch)
+         // return nullptr;       // (Process *all* events, not just one)
        } else {
          return socket;
        }
