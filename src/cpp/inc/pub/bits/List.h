@@ -93,7 +93,7 @@ namespace __detail
    };
 
    /// A dummy end of list value, used internally.
-   extern const void*  __end;
+   extern const void* __end;
 } // namespace __detail
 
 //----------------------------------------------------------------------------

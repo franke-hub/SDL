@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2022 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Describe the List objects.
 //
 // Last change date-
-//       2022/11/27
+//       2023/04/23
 //
 // Implementation notes-
 //       Unlike std::List<T>, pub::List<T> elements *are* links.
@@ -159,26 +159,6 @@ template<class T>
        //---------------------------------------------------------------------
        //
        // Method-
-       //       AI_list<T>::debug
-       //
-       // Purpose-
-       //       Debugging display
-       //
-       // Implementation notes-
-       //       Only the consumer thread can safely use this debugging method.
-       //
-       //---------------------------------------------------------------------
-       void debug(const char* info= "")
-       {
-         pointer tail= _tail.load();
-         debugf("AI_List(%p)::debug(%s) _tail(%p) __end(%p,%p)\n", this
-               , info, tail, __detail::__end, &__detail::__end);
-         _AI_iter<T>::debug(tail);
-       }
-
-       //---------------------------------------------------------------------
-       //
-       // Method-
        //       AI_list<T>::begin
        //       AI_list<T>::end
        //
@@ -264,7 +244,13 @@ template<class T>
        //---------------------------------------------------------------------
        pointer                      // -> Tail Link
          get_tail( void ) const     // Get tail link
-       { return _tail.load(); }
+       {
+         pointer tail= _tail.load();
+         if( (void*)tail == &__detail::__end )
+           return nullptr;
+
+         return tail;
+       }
 
        //---------------------------------------------------------------------
        //
@@ -299,16 +285,15 @@ template<class T>
        //       AI_list<T>::is_empty
        //
        // Purpose-
-       //       (Instantaneous) test for empty list.
+       //       Test whether any link is present in this List.
        //
        // Implementation notes-
-       //       Only the consumer thread can safely use this method. Testing
-       //       for an empty List isn't useful when active producers exist.
+       //       Only the consumer thread can safely use this method.
        //
        //---------------------------------------------------------------------
-       bool                         // TRUE if the List is empty
-         is_empty( void ) const     // Is the List empty?
-       { return _tail.load() == nullptr; }
+       bool                         // TRUE if no elements are present in list
+         is_empty( void ) const     // Is the list empty?
+       { return get_tail() == nullptr; }
 
        //---------------------------------------------------------------------
        //
@@ -329,7 +314,7 @@ template<class T>
           if( link )
           {
             pointer prev= _tail.load();
-            while( prev != nullptr && (void*)prev != __detail::__end )
+            while( prev != nullptr && (void*)prev != &__detail::__end )
             {
               if( prev == link )
                 return true;
@@ -354,7 +339,7 @@ template<class T>
        //       The returned Links are (reverse) ordered from tail to head.
        //
        //---------------------------------------------------------------------
-       pointer                      // -> The set of removed Links
+       pointer                      // The set of removed Links
          reset( void )              // Reset (empty) the List
        {
           pointer link= _tail.load();
@@ -407,15 +392,15 @@ template<class T>
            }
          @endcode
        **/
-       pointer
+       pointer                      // The set of removed Links
          reset(                     // Reset (empty) the List
-           void* tail) noexcept     // Replacing it with this pseudo-link
+           const void* tail) noexcept // Replacing it with this pseudo-link
        {
           pointer link= _tail.load(); // Get the current tail
           if( link == nullptr )     // If the List is currently empty
             return nullptr;         // Do not replace it
 
-          // Attempt replacement with empty pseudo-Link
+          // If re-replacing the tail with the dummy pseudo-link
           while( (void*)link == tail )
           {
             if( _tail.compare_exchange_weak(link, nullptr) )

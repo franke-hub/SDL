@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2007-2022 Frank Eskesen.
+//       Copyright (C) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       List object methods.
 //
 // Last change date-
-//       2022/09/02
+//       2023/04/23
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -49,10 +49,12 @@ enum
 //       TODO: UPDATE
 //       This dummy end-of-list pseudo-link is the oldest link on every
 //       AI_list with an active iterator. Newer elements point to it, but
-//       it doesn't point anywhere. Its value is never referenced.
+//       its value is never referenced.
 //
 //----------------------------------------------------------------------------
-const void*            __detail::__end= &__detail::__end;
+//const void*            __detail::__end= &__detail::__end;
+const void*            __detail::__end= nullptr;
+
 
 //----------------------------------------------------------------------------
 //
