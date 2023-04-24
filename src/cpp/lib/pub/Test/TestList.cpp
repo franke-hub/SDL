@@ -271,7 +271,7 @@ static int
 
    for(int i=0; i<DIM; i++)
      error_count += VERIFY( !ai_list.is_on_list(&ai_data[i]) );
-   error_count += VERIFY( ai_list.is_coherent()) ;
+   error_count += VERIFY( ai_list.is_coherent());
    error_count += VERIFY( ai_list.is_empty() );
    return error_count;
 }

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2022 Frank Eskesen.
+//       Copyright (C) 2018-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2022/11/08
+//       2023/04/21
 //
 // Implementation note-
 //       The global Thread synchronization mutex is used to insure that:
@@ -274,18 +274,21 @@ void
 void
    Thread::start( void )            // Start this Thread
 {
+   _tls= new tls(this);             // (Deleted in drive() on thread return)
+
    for(;;) {                        // (Retry if resource unavailable)
      try {
-       _tls= new tls(this);         // (Deleted in drive() as tl_current)
-
        std::lock_guard<decltype(mutex)> lock(mutex);
 
        std::thread t(Thread::drive, this);
        thread= std::move(t);
        break;
      } catch(const std::system_error& X) {
-       if( X.code() != std::errc::resource_unavailable_try_again )
+       if( X.code() != std::errc::resource_unavailable_try_again ) {
+         delete (tls*)_tls;
+         _tls= nullptr;
          throw;
+       }
 
        sleep(0.001);                // One millisecond delay before retry
      }

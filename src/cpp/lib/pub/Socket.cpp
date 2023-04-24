@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2023/04/17
+//       2023/04/21
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -360,10 +360,10 @@ void
 {
    debugf("Socket(%p)::debug(%s) handle(%d)\n", this, info, handle);
 
-   debugf("..select(%p) handle(%d) family(%d) type(%d)\n", select.load()
-         , handle, family, type);
-   debugf("..host_addr: %s\n", host_addr.to_string().c_str());
-   debugf("..peer_addr: %s\n", peer_addr.to_string().c_str());
+   debugf("..%s::%s\n", host_addr.to_string().c_str()
+         , peer_addr.to_string().c_str());
+   debugf("..family(%d) type(%d) select(%p)\n"
+         , family, type, select.load());
    debugf("..host_size(%d), peer_size(%d)\n", host_size, peer_size);
 }
 

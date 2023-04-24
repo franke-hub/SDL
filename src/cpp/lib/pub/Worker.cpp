@@ -99,7 +99,33 @@ virtual
    WorkerThread(                    // Constructor
      Worker*           worker= nullptr) // Associated Worker
 :  Thread(), operational(true), sem(), worker(worker)
-{  start(); }
+{
+   if( false ) {                    // TODO: REMOVE
+     // DIAGNOSTIC: Check for excess threads, report once
+     //   MAX_THREADS limits the number of WorkerThreads in the re-use pool.
+     //   The number of running WorkerThreads is not limited.
+     //   This check was added because WorkerThreads were created in error
+     //   in some sort of loop. The debugf is a convienent gdb breakpoint.
+     size_t was_running= running.load();
+     if( was_running > MAX_THREADS ) {
+       if( true ) {                 // Report every occurance
+         debugf("%4d %s INFO: %zd threads running\n", __LINE__, __FILE__
+               , was_running);
+       } else {                     // Report once
+         static atomic_uint reported= 0;
+         unsigned int was_reported= reported.load();
+         while( was_reported == 0 ) {
+           if( reported.compare_exchange_weak(was_reported, 1) ) {
+             debugf("%4d %s INFO: %zd threads running\n", __LINE__, __FILE__
+                   , was_running);
+           }
+         }
+       }
+     }
+   }
+
+   start();
+}
 
 //----------------------------------------------------------------------------
 // WorkerThread::Accessors

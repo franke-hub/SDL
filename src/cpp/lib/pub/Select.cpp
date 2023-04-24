@@ -16,7 +16,7 @@
 //       Select.h method implementations.
 //
 // Last change date-
-//       2023/04/17
+//       2023/04/23
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -849,6 +849,10 @@ int                                 // Return code, 0 expected
 {  if( HCDM )
      debugh("Select(%p)::remove(%p) fd(%d)\n", this, socket, socket->handle);
 
+   // The error checks and the enqueue needs to be done while holding the
+   // shr_latch to insure that fdpndx[fd] refers to the removed socket.
+   std::lock_guard<decltype(shr_latch)> lock(shr_latch);
+
    int fd= socket->get_handle();
    if( fd < 0 || socket->select != this ) { // If socket is closed or invalid
      errno= EINVAL;
@@ -856,23 +860,20 @@ int                                 // Return code, 0 expected
    }
 
    if( fd >= size ) {               // If Socket handle out of range
-     debugf("%4d %s *UNEXPECTED* %d\n", __LINE__, __FILE__, fd);
+     debugf("%4d %s *UNEXPECTED* %.4x\n", __LINE__, __FILE__, fd);
      errno= EINVAL;                 // (Unexpected)
      return -1;
    }
-
-   // The enqueue needs to be done while holding the shr_latch so that
-   // we can be sure that fdpndx[fd] refers to the removed socket.
-   std::lock_guard<decltype(shr_latch)> lock(shr_latch);
 
    int px= fdpndx[fd];
    if( fdsock[fd] != socket || px < 0 || px >= used ) {
 #if 1 // We need to debug this
      Trace::trace(".SEL", "RBUG", this, i2v(intptr_t(fd)<<32 | __LINE__));
      Trace::stop();                 // Terminate tracing
-     debugf("%4d %s *UNEXPECTED* %d %d\n", __LINE__, __FILE__, fd, px);
+     debugf("%4d %s *UNEXPECTED* %p [%.4x] %d\n", __LINE__, __FILE__
+           , socket, fd, px);
      debug("unexpected");
-     sno_exception(__LINE__);
+     // sno_exception(__LINE__);
 #else
      errno= EINVAL;
      return -1;
@@ -1061,7 +1062,7 @@ Socket*                             // The next selected Socket
            socket->do_select(revents); // (Holding shr_latch)
            // return nullptr;       // (Process *all* events, not just one)
          } else {
-           return socket;
+           return socket;           // (Caller will do_select w/o shr_latch)
          }
        }
      }
