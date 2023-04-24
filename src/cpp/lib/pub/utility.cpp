@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2022/11/11
+//       2023/04/22
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -51,22 +51,6 @@ volatile int           unit= 1;     // By convention, always 1
 volatile int           zero= 0;     // By convention, always 0
 int  nop( void ) { return 0; }      // Returns zero. Don't tell the compiler!
 bool is_null(void* V) { return V == nullptr; } // Allows is_null(this)
-
-//----------------------------------------------------------------------------
-// (Replacable) global exception diagnostic
-//----------------------------------------------------------------------------
-f_exception            on_exception= [](std::string what)
-{
-   std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
-
-   debugf("utility::on_exception(%s)\n", what.c_str());
-   if( Trace::table ) {
-     Trace::trace(".BUG", 0, what.c_str());
-     Trace::table->flag[Trace::X_HALT]= true;
-   }
-
-   debug_backtrace();
-}; // on_exception
 
 //----------------------------------------------------------------------------
 //
@@ -484,6 +468,30 @@ char*                               // Next whitespace or '\0' character
      inp++;
 
    return const_cast<char*>(inp);
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       utility::on_exception
+//
+// Purpose-
+//       Display exception error diagnostic messages
+//
+//----------------------------------------------------------------------------
+void
+   on_exception(                    // Exception error diagnostic
+     std::string       what)        // Error message
+{
+   Trace::trace(".BUG", 0, what.c_str());
+
+   {{{{
+     // This lock keeps the error message and backtrace together
+     std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
+
+     debugf("utility::on_exception(%s)\n", what.c_str());
+     debug_backtrace();
+   }}}}
 }
 
 //----------------------------------------------------------------------------

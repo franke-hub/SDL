@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2022 Frank Eskesen.
+//       Copyright (c) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Utility functions.
 //
 // Last change date-
-//       2022/10/16
+//       2023/04/22
 //
 // Implementation notes-
 //       ato* routines:
@@ -52,11 +52,6 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 namespace utility {
 //----------------------------------------------------------------------------
-// Typedefs and enumerations
-//----------------------------------------------------------------------------
-typedef std::function<void(const std::string&)>         f_exception;
-
-//----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
 // Volatile data (For avoiding compiler optimizations)
@@ -68,8 +63,6 @@ extern volatile int    zero;        // By convention, always 0
 extern bool is_null(void*);         // Allows is_null(this)
 extern int  nop( void );            // Returns zero. Don't tell the compiler!
 
-// General (user-replaceable) exception handler
-extern f_exception     on_exception; // General exception handler
 
 //----------------------------------------------------------------------------
 //
@@ -191,6 +184,19 @@ void                                // Dump formatter (trace and stdout)
 char*                               // Resultant
    find_space(                      // Find next space character
      const char*       inp);        // Input string
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       utility::on_exception
+//
+// Purpose-
+//       Exception error diagnostic message display
+//
+//----------------------------------------------------------------------------
+void
+   on_exception(                    // Exception error diagnostic
+     std::string       what);       // Error message
 
 //----------------------------------------------------------------------------
 //
