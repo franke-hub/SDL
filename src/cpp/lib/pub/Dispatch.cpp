@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2022 Frank Eskesen.
+//       Copyright (C) 2018-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2022/12/10
+//       2023/04/23
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -26,7 +26,7 @@
 #include <pub/Debug.h>              // For debugging
 #include "pub/Dispatch.h"           // For dispatch objects, implemented
 #include <pub/Latch.h>              // For pub::Latch, mutex substitute
-#include <pub/List.h>               // For pub::AI_list
+#include "pub/List.h"               // For pub::AI_list
 #include <pub/Named.h>              // For pub::Named, Timers is a Named Thread
 #include <pub/Semaphore.h>          // For pub::Semaphore, Timers event
 #include <pub/Thread.h>             // For pub::Thread, Timers is a Named Thread
@@ -43,7 +43,7 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 // VERBOSE= 0                       // Verbosity, higher is more verbose
 
-,  USE_XTRACE= false                // Use extended tracing?
+,  USE_XTRACE= true                 // Use extended tracing?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -90,6 +90,21 @@ void
 
    timers->cancel(token);
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       dispatch::Disp::enqueue
+//
+// Purpose-
+//       Insert an item onto a Task's todo list.
+//
+//----------------------------------------------------------------------------
+void
+   Disp::enqueue(                   // Enqueue
+     Task*             task,        // Onto this Task
+     Item*             item)        // This work Item
+{  task->enqueue(item); }
 
 //----------------------------------------------------------------------------
 //
@@ -176,17 +191,22 @@ void
 // Purpose-
 //       Destructor.
 //
+// Implementation notes-
+//       This is a destructor. Locking is not required.
+//
 //----------------------------------------------------------------------------
-   Task::~Task( void )                        // Destructor
+   Task::~Task( void )              // Destructor
 {
-   Wait wait;
-   Item item(Item::FC_UNDEF, &wait);
-
-   Item* tail= itemList.fifo(&item); // Insert work Item
-   if( tail != nullptr )            // If the list wasn't empty
+   if( itemList.get_tail() ) {      // If the list isn't empty
+     Wait wait;
+     Item item(Item::FC_UNDEF, &wait);
+     itemList.fifo(&item); // Insert work Item
+     if( USE_XTRACE )
+       Trace::trace(".DSP", __LINE__, "~Task: wait...");
      wait.wait();                   // Wait for completion
-// else
-//   itemList.reset();              // Nothing to do (not needed)
+     if( USE_XTRACE )
+       Trace::trace(".DSP", __LINE__, "~Task: ...wait");
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -205,15 +225,42 @@ void
    Item* item= itemList.get_tail();
    debugf("..itemList tail(%p)\n", item);
    while( item ) {
-     if( (void*)item == __detail::__end ) {
-       debugf("....%p (dummy head item)\n", item);
+     if( (void*)item == (void*)&__detail::__end ) {
+       debugf(">>%p (dummy head item)\n", item);
        break;
      }
 
-     debugf("....%p -> %p\n", item, item->get_prev());
+     debugf(">>%p -> %p %d %d %p\n", item, item->get_prev()
+           , item->fc, item->cc, item->done);
      item= item->get_prev();
    }
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       dispatch::Task::enqueue
+//
+// Purpose-
+//       Insert an item onto a Task's todo list.
+//
+// Implementation notes-
+//       For debugging only. REMOVE #if in Dispatch.h when not used.
+//
+//----------------------------------------------------------------------------
+#if true                            // (DEBUGGING: Used to trace enqueue)
+void
+   Task::enqueue(                   // Enqueue
+     Item*             item)        // This work Item
+{
+//debugf("Task(%p) enqueue(%p)\n", this, item);
+//item->debug("Task::enqueue");
+
+   Item* tail= itemList.fifo(item); // Insert work Item
+   if( tail == nullptr )            // If the list was empty
+     WorkerPool::work(this);        // Schedule this Task
+}
+#endif
 
 //----------------------------------------------------------------------------
 //
@@ -229,7 +276,7 @@ void
 {  if( HCDM ) traceh("Task(%p)::work()\n", this);
 
 // Since this shouldn't occur and is handled properly if it does, skip it
-// if( itemList.is_empty() )        // If nothing to do (should not occur)
+// if( itemList.get_tail() == nullptr ) // If nothing to do (should not occur)
 //   return;                        // Do it quickly
 
    if( USE_XTRACE )
@@ -240,7 +287,10 @@ void
        Trace::trace(".DSP", "ITER", this, it.get());
 
      if( it->fc < 0 ) {
+//debugf("%4d FC(%d)\n", __LINE__, it->fc);
        if( it->fc == Item::FC_UNDEF ) {
+//debugf("%4d deq FC_UNDEF\n", __LINE__);
+//Trace::trace(".DSP", __LINE__, "DEQ FC_UNDEF");
          // We use UNDEF to insure that a TASK has no work pending.
          // We therefore need to insure that all other work completes and
          // it == itemList.end().
@@ -249,6 +299,8 @@ void
          auto post_it= it;
 
          while(++it != itemList.end() ) {
+//debugf("%4d deq next FC_UNDEF, unexpected\n", __LINE__);
+//Trace::trace(".DSP", __LINE__, "DEQ NEXT UNDEF");
            // This code is not normally executed; the ++it ends the itemList
            if( USE_XTRACE )
              Trace::trace(".DSP", "XTRA", this); // (Unexpected)
@@ -263,9 +315,16 @@ void
            }
          }
 
-         post_it->post(Item::CC_ERROR_FC); // (~Task doesn't care)
+//debugf("%4d post FC_UNDEF\n", __LINE__);
+//Trace::trace(".DSP", __LINE__, "POST FC_UNDEF");
+         post_it->post(Item::CC_ERROR_FC); // (~Task ignores return code)
          break;
+       } else if( it->fc == Item::FC_CHASE ) {
+//debugf("%4d post FC_CHASE\n", __LINE__);
+//Trace::trace(".DSP", __LINE__, "DEQ FC_CHASE");
+         it->post(Item::CC_NORMAL);
        } else {
+//debugf("%4d post CC_ERROR\n", __LINE__);
          it->post(Item::CC_ERROR_FC);
        }
      }
@@ -283,13 +342,13 @@ void
 //       dispatch::Task::work
 //
 // Purpose-
-//       Implement pure virtual method
+//       Implement Pure Virtual Method, should never be called.
 //
 //----------------------------------------------------------------------------
 void
    Task::work(                      // Process
      Item*             item)        // This work Item
-{  debugh("Task(%p)::work(%p) PVM\n", this, item);
+{  debugh("%4d dispatch::Task(%p)::work(%p) PVM\n", __LINE__, this, item);
    item->post();
 }
 }  // namespace _LIBPUB_NAMESPACE::dispatch
