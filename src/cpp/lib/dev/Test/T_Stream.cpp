@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2023/01/14
+//       2023/04/22
 //
 // Arguments-
 //       With no arguments, --client --server defaulted
@@ -24,20 +24,257 @@
 //       --client   Basic test
 //       --stress   Stress test
 //
-//       --server   Run server
+//       --server   Run server using this host and default port (default)
+//         =:port   Run server using this host and specified port
+//         =host    Use server at specified host and default port
+//         =host:port Use server at specified host and port
 //
-//       --host n   Override connection host
-//       --port n   Override default port number
+// Stress test controls-
+//       --major=1  One connection/operation stress test
+//       --major=2  One connection/operation short test
+//       --minor=1  With --major > 0, do not wait for client completion
 //
+//----------------------------------------------------------------------------
+
+#include <atomic>                   // For std::atomic
+#include <memory>                   // For std::shared_ptr
+#include <cstddef>                  // For offsetof
+#include <cstdint>                  // For UINT16_MAX
+#include <ctime>                    // For time, ...
+#include <fcntl.h>                  // For open, O_*, ...
+#include <getopt.h>                 // For getopt_long()
+#include <unistd.h>                 // For close, ...
+#include <sys/mman.h>               // For mmap, ...
+#include <sys/signal.h>             // For signal, ...
+
+#include <pub/TEST.H>               // For VERIFY macro
+#include <pub/Clock.h>              // For pub::Clock
+#include <pub/Debug.h>              // For debugging classes and functions
+#include <pub/Dispatch.h>           // For namespace pub::dispatch
+#include <pub/Exception.h>          // For pub::Exception
+#include <pub/Event.h>              // For pub::Event
+#include <pub/Statistic.h>          // For pub::Statistic
+#include <pub/Thread.h>             // For pub::Thread
+#include <pub/Trace.h>              // For pub::Trace
+#include <pub/utility.h>            // For pub::utility::to_string, visify
+#include <pub/Worker.h>             // For pub::WorkerPool
+
+#include "pub/http/Agent.h"         // For pub::http::ClientAgent, ListenAgent
+#include "pub/http/Client.h"        // For pub::http::Client
+#include "pub/http/Ioda.h"          // For pub::http::Ioda
+#include "pub/http/Listen.h"        // For pub::http::Listen
+#include "pub/http/Options.h"       // For pub::http::Options
+#include "pub/http/Recorder.h"      // For pub::Recorder
+#include "pub/http/Request.h"       // For pub::http::Request
+#include "pub/http/Response.h"      // For pub::http::Response
+#include "pub/http/Server.h"        // For pub::http::Server
+#include "pub/http/Stream.h"        // For pub::http::Stream
+
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB;                // For pub classes
+using namespace PUB::debugging;     // For pub debugging functions
+using namespace PUB::http;          // For pub::http classes
+using PUB::utility::visify;         // (Import)
+using namespace std;                // For std classes
+
+//----------------------------------------------------------------------------
+// Constants for parameterization
+//----------------------------------------------------------------------------
+enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  IODM= false                      // Input/Output Debug Mode?
+,  VERBOSE= 1                       // Verbosity, higher is more verbose
+
+,  DIR_MODE= (S_IRWXU | S_IRGRP|S_IXGRP | S_IROTH|S_IXOTH) // Directory mode
+,  MAX_REQUEST_COUNT= 4             // Maximum running request count
+,  MAX_RESPONSE_SIZE= 0x00100000    // Maximum response data length
+,  PROT_RW= (PROT_READ | PROT_WRITE) // Read/write access mode
+,  TRACE_SIZE= 0x00100000           // Default trace table size (1M)
+,  USE_INTENSIVE= true              // Option: Use intensive debug mode
+,  USE_LOGGER= false                // Option: Use logger
+,  USE_SIGNAL= false                // Option: Use signal handler
+,  USE_TIMING_RECORD= false         // Option: Use timing record
+,  USE_XTRACE= false                // Use extended trace?
+}; // generic enum
+
+enum                                // Default option values
+{  DEFAULT_OPTIONS                  // (Dummy)
+,  OPT_THREAD= 4                    // Stress test default thread count
+
+,  USE_CLIENT= false                // --client
+,  USE_STRESS= 0                    // --stress
+,  USE_TRACE=  false                // --trace
+,  USE_VERIFY= false                // --verify
+,  USE_WORKER= true                 // --worker (Server threads)
+}; // default options
+
+static constexpr const double USE_RUNTIME= 2.0; // --runtime
+
+// Imported Options
+typedef const char CC;
+static constexpr CC*   HTTP_GET=  Options::HTTP_METHOD_GET;
+static constexpr CC*   HTTP_HEAD= Options::HTTP_METHOD_HEAD;
+static constexpr CC*   HTTP_POST= Options::HTTP_METHOD_POST;
+static constexpr CC*   HTTP_PUT=  Options::HTTP_METHOD_PUT;
+
+static constexpr CC*   HTTP_SIZE= Options::HTTP_HEADER_LENGTH;
+static constexpr CC*   HTTP_TYPE= Options::HTTP_HEADER_TYPE;
+
+static constexpr CC*   cert_file= "public.pem";  // The public certificate file
+static constexpr CC*   priv_file= "private.pem"; // The private key file
+
+//----------------------------------------------------------------------------
+// Internal data areas
+//----------------------------------------------------------------------------
+static Debug*          debug= nullptr; // Our Debug object
+static string          host= Socket::gethostname(); // The connection host
+static string          port= ":8080"; // The connection port
+static string          test_url= "/"; // The stress test URL
+static void*           trace_table= nullptr; // The internal trace area
+
+static ClientAgent*    client_agent= nullptr; // Our ClientAgent
+static ListenAgent*    listen_agent= nullptr; // Our ListenAgent
+
+// Test controls
+typedef std::atomic_size_t          atomic_count_t;
+static atomic_count_t  error_count= 0; // Error counter
+static atomic_count_t  send_op_count= 0; // The total send complete count
+static Event           test_ended;  // The test ended Event
+static Event           test_start;  // The start test Event
+static int             running= false; // Test running indicator
+
+//----------------------------------------------------------------------------
+// Options
+//----------------------------------------------------------------------------
+static int             opt_help= false; // --help (or error)
+static int             opt_hcdm= HCDM;  // --hcdm (Hard Core Debug Mode)
+static int             opt_iodm= IODM;  // --iodm (I/O Debug Mode)
+static int             opt_index;   // Option index
+
+static const char*     opt_debug= nullptr; // --debug
+static int             opt_verbose= VERBOSE; // --verbose
+static int             opt_bringup= false; // Run bringup test?
+static int             opt_client= USE_CLIENT; // Run basic client test?
+static int             opt_major= 0; // Major test id TODO: REMOVE
+static int             opt_minor= 0; // Minor test id TODO: REMOVE
+static double          opt_runtime= USE_RUNTIME; // Stress test run time, in seconds
+static int             opt_ssl= false;  // Run SSL client/server?
+static int             opt_stress= USE_STRESS; // Run client stress test?
+
+static int             opt_trace= USE_TRACE; // Create trace file?
+static int             opt_verify= USE_VERIFY; // Verify file data?
+static int             opt_worker= USE_WORKER; // Create server threads?
+static int             use_remote_server= false;
+
+static const char*     OSTR= ":";   // The getopt_long optstring parameter
+static struct option   OPTS[]=      // The getopt_long longopts parameter
+{  {"help",    no_argument,       &opt_help,    true} // --help
+,  {"hcdm",    no_argument,       &opt_hcdm,    true} // --hcdm
+,  {"iodm",    no_argument,       &opt_iodm,    true} // --iodm
+
+,  {"debug",   required_argument, nullptr,      0} // --debug <string>
+,  {"verbose", optional_argument, &opt_verbose, 1} // --verbose {optional}
+,  {"bringup", no_argument,       &opt_bringup, true} // --bringup
+,  {"client",  no_argument,       &opt_client,  true} // --client
+,  {"major",   optional_argument, &opt_major,   1}    // --major
+,  {"minor",   optional_argument, &opt_minor,   1}    // --minor
+,  {"runtime", required_argument, nullptr,      0}    // --runtime <string>
+,  {"server",  optional_argument, nullptr,      0}    // --server
+,  {"ssl",     no_argument,       &opt_ssl,  true}    // --stress
+,  {"stress",  optional_argument, &opt_stress,  OPT_THREAD} // --stress
+,  {"trace",   no_argument,       &opt_trace,   true} // --trace
+,  {"verify",  no_argument,       &opt_verify,  true} // --verify
+,  {"worker",  no_argument,       &opt_worker,  true} // --worker
+
+// This option can be used if USE_WORKER defaulted true
+,  {"no-worker", no_argument,     &opt_worker,  false} // --no-worker
+,  {0, 0, 0, 0}                     // (End of option list)
+};
+
+enum OPT_INDEX                      // Must match OPTS[]
+{  OPT_HELP
+,  OPT_HCDM
+,  OPT_IODM
+
+,  OPT_DEBUG
+,  OPT_VERBOSE
+,  OPT_BRINGUP
+,  OPT_CLIENT
+,  OPT_MAJOR
+,  OPT_MINOR
+,  OPT_RUNTIME
+,  OPT_SERVER
+,  OPT_SSL
+,  OPT_STRESS
+,  OPT_TRACE
+,  OPT_VERIFY
+,  OPT_WORKER
+
+,  OPT_NO_WORKER
+,  OPT_SIZE
+};
+
+//----------------------------------------------------------------------------
+// T_Stream.hpp: Definition and implementation of test classes
 //----------------------------------------------------------------------------
 #include "T_Stream.hpp"             // Prerequisite includes, etc
 
+//----------------------------------------------------------------------------
+// Global constructor/destructor (For hard core debugging)
+//----------------------------------------------------------------------------
+static struct Global {
+   Global( void )
+{
+   if( HCDM )
+     printf("%4d %s Global!\n", __LINE__, __FILE__);
+}
+
+   ~Global( void )
+{
+   if( HCDM )
+     printf("%4d %s Global~\n", __LINE__, __FILE__);
+}
+} global_constructor_destructor;
+
+//----------------------------------------------------------------------------
 // Signal handlers
+//----------------------------------------------------------------------------
 typedef void (*sig_handler_t)(int);
 static sig_handler_t   sys1_handler= nullptr; // System SIGINT  signal handler
 static sig_handler_t   sys2_handler= nullptr; // System SIGSEGV signal handler
 static sig_handler_t   usr1_handler= nullptr; // System SIGUSR1 signal handler
 static sig_handler_t   usr2_handler= nullptr; // System SIGUSR2 signal handler
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       major_name
+//       minor_name
+//
+// Purpose-
+//       Give test controls a readable format
+//
+//----------------------------------------------------------------------------
+static const char*                  // The test descriptor name
+   major_name( void )               // Get test descriptor name
+{
+   if( opt_major <= 0 )
+     return "";
+
+   if( opt_major > 1 )
+     return ": One connection/operation, short test";
+
+   return ": One connection/operation, stress test";
+}
+
+static const char*                  // The test modifier name
+   minor_name( void )               // Get test modifier name
+{
+   if( opt_major <= 0 || opt_minor <= 0 )
+     return "";
+
+   return ": Do not wait for for Client close";
+}
 
 //----------------------------------------------------------------------------
 //
@@ -121,9 +358,8 @@ static void
                    "  --bringup\tRun bringup test\n"
                    "  --client\tRun client basic test\n"
                    "  --stress\t{=n} Run client stress test\n"
-                   "  --host\tSet host name\n"
-                   "  --port\tSet port number\n"
                    "  --runtime\tSet test run time (seconds)\n"
+                   "  --server\t{=host{:port}|=:port} Specify server\n"
                    "  --ssl\tUse SSL sockets\n"
                    "  --trace\tActivate internal trace\n"
                    "  --server\tRun server\n"
@@ -184,6 +420,20 @@ static void
 
    recursion--;
 }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       torf
+//
+// Purpose-
+//       Return "true" or "false"
+//
+//----------------------------------------------------------------------------
+static const char*                  // "true" or "false"
+   torf(                            // True or False?
+     int               cc)          // For this condition
+{  return cc ? "true" : "false"; }
 
 //----------------------------------------------------------------------------
 //
@@ -387,7 +637,6 @@ static void                         // Exit if error detected
            case OPT_IODM:
            case OPT_BRINGUP:
            case OPT_CLIENT:
-           case OPT_SERVER:
            case OPT_TRACE:
            case OPT_VERIFY:
            case OPT_WORKER:
@@ -399,21 +648,24 @@ static void                         // Exit if error detected
              opt_debug= optarg;
              break;
 
-           case OPT_HOST:
-             host= optarg;
-             break;
-
-           case OPT_PORT: {
-             int opt_port= parm_int();
-             if( opt_port > 0 && opt_port <= UINT16_MAX )
-               port= std::to_string(opt_port);
-             else
-               fprintf(stderr, "Invalid port(%s)\n", optarg);
-             }
-             break;
-
            case OPT_RUNTIME:
              opt_runtime= atof(optarg);
+             break;
+
+           case OPT_SERVER:
+             if( optarg ) {
+               const char* C= strchr(optarg, ':'); // Find port delimiter
+               if( C ) {            // If port delimiter specified
+                 if( C != optarg ) {  // If host also specified
+                   use_remote_server= true;
+                   host= string(optarg, (C-optarg)); // Specify host
+                 }
+                 port= C;           // Specify port
+               } else {
+                 use_remote_server= true;
+                 host= optarg;
+               }
+             }
              break;
 
            case OPT_STRESS:
@@ -477,16 +729,21 @@ static void                         // Exit if error detected
    }
 
    // Parameter verification
-   if( !opt_bringup && !opt_client && !opt_server && !opt_stress ) {
+   if( !opt_bringup && !opt_client && !opt_stress && use_remote_server )
      opt_client= true;
-     opt_server= true;
-   }
 
    for(int i= optind; i < argc; ++i) {
      debugf("Unexpected parameter: %s\n", argv[i]);
      opt_help= true;
    }
 
+   // If modified stress test, opt_stress should be specified
+   if( opt_major > 0 && opt_stress == 0 )
+     opt_stress= 2;
+
+   // If short test, opt_runtime is not relevant
+   if( opt_major > 1 )
+     opt_runtime= 0;
 
    // Return sequence
    if( opt_help )
@@ -510,7 +767,6 @@ extern int
    //-------------------------------------------------------------------------
    // Initialize
    //-------------------------------------------------------------------------
-   host= Socket::gethostname();     // Use the default host name
    parm(argc, argv);                // Argument analysis (Exit if error)
    init();                          // Initialize
 
@@ -527,7 +783,8 @@ extern int
      debugf("\n");
      debugf("Settings:\n");
      debugf("%5.1f: runtime\n",  opt_runtime);
-     debugf("%5s: server: %s\n", torf(bool(opt_server)), host.c_str());
+     debugf("%5s: server: %s%s\n", use_remote_server ? "using" : "local"
+           , host.c_str(), port.c_str());
      debugf("%5s: hcdm\n",   torf(opt_hcdm));
      debugf("%5s: iodm\n",   torf(opt_iodm));
      debugf("%5d: verbose\n",opt_verbose);
@@ -535,7 +792,7 @@ extern int
      debugf("%5s: client\n", torf(opt_client));
      debugf("%5s: ssl\n",    torf(opt_ssl));
      if( opt_stress )
-       debugf("%5s: stress: %d\n", torf(opt_stress), opt_stress);
+       debugf("%5s: stress=%d\n", torf(opt_stress), opt_stress);
      else
        debugf("%5s: stress\n", torf(opt_stress));
      debugf("%5s: trace\n", torf(opt_trace));
@@ -545,8 +802,8 @@ extern int
      debugf("\n");
      debugf("%5d: MAX_REQUEST_COUNT\n", MAX_REQUEST_COUNT);
      debugf("%5s: Protocol (unencrypted)\n", "HTTP1");
-     debugf("%5d: --major\n", opt_major);
-     debugf("%5d: --minor\n", opt_minor);
+     debugf("%5d: --major%s\n", opt_major, major_name());
+     debugf("%5d: --minor%s\n", opt_minor, minor_name());
      debugf("\n\n");
    }
 
@@ -558,7 +815,7 @@ extern int
        error_count += test_bringup();
 
      ServerThread* server= nullptr;
-     if( opt_server ) {
+     if( !use_remote_server ) {
        server= new ServerThread();
        server->ready.wait();
      }
@@ -574,7 +831,7 @@ extern int
          ClientThread::test_stress();
          ClientThread::statistics();
        }
-     } else if( opt_server ) {
+     } else if( server ) {
        TimerThread timer_thread;
        timer_thread.start();
        timer_thread.join();

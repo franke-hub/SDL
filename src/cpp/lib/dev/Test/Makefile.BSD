@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2022/03/06
+##       2023/04/24
 ##
 ##############################################################################
 
@@ -47,7 +47,7 @@ make.dir: $(MAKEXE) cert.dir        ## Default: build executable, certificates
 ## Targets: do, include, list, quick
 .PHONY: do
 do: T_Stream
-	T_Stream
+	T_Stream --server --stress=1 --major=2
 
 .PHONY: include                     ## Include is only compiled on demand
 include: Include
@@ -146,6 +146,7 @@ pristine.dir: ;
 
 clean : clean.dir
 clean.dir: ;
+	-@rm -f make.dir    >/dev/null 2>/dev/null
 	-@rm -f Dirty       >/dev/null 2>/dev/null
 	-@rm -f Include     >/dev/null 2>/dev/null
 

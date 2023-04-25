@@ -16,221 +16,11 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2022/03/06
+//       2023/04/22
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
 #define T_STREAM_HPP_INCLUDED
-
-#include <atomic>                   // For std::atomic
-#include <memory>                   // For std::shared_ptr
-#include <cstddef>                  // For offsetof
-#include <cstdint>                  // For UINT16_MAX
-#include <ctime>                    // For time, ...
-#include <fcntl.h>                  // For open, O_*, ...
-#include <getopt.h>                 // For getopt_long()
-#include <unistd.h>                 // For close, ...
-#include <sys/mman.h>               // For mmap, ...
-#include <sys/signal.h>             // For signal, ...
-
-#include <pub/TEST.H>               // For VERIFY macro
-#include <pub/Debug.h>              // For debugging classes and functions
-#include <pub/Dispatch.h>           // For namespace pub::dispatch
-#include <pub/Exception.h>          // For pub::Exception
-#include <pub/Event.h>              // For pub::Event
-#include <pub/Statistic.h>          // For pub::Statistic
-#include <pub/Thread.h>             // For pub::Thread
-#include <pub/Trace.h>              // For pub::Trace
-#include <pub/utility.h>            // For pub::utility::to_string, visify
-#include <pub/Worker.h>             // For pub::WorkerPool::reset
-
-#include "pub/http/Agent.h"         // For pub::http::ClientAgent, ListenAgent
-#include "pub/http/Client.h"        // For pub::http::Client
-#include "pub/http/Ioda.h"          // For pub::http::Ioda
-#include "pub/http/Listen.h"        // For pub::http::Listen
-#include "pub/http/Options.h"       // For pub::http::Options
-#include "pub/http/Recorder.h"      // For pub::Recorder
-#include "pub/http/Request.h"       // For pub::http::Request
-#include "pub/http/Response.h"      // For pub::http::Response
-#include "pub/http/Server.h"        // For pub::http::Server
-#include "pub/http/Stream.h"        // For pub::http::Stream
-
-#define PUB _LIBPUB_NAMESPACE
-using namespace PUB;                // For pub classes
-using namespace PUB::debugging;     // For pub debugging functions
-using namespace PUB::http;          // For pub::http classes
-using PUB::utility::visify;         // (Import)
-using namespace std;                // For std classes
-
-//----------------------------------------------------------------------------
-// Constants for parameterization
-//----------------------------------------------------------------------------
-enum
-{  HCDM= false                      // Hard Core Debug Mode?
-,  IODM= false                      // Input/Output Debug Mode?
-,  VERBOSE= 1                       // Verbosity, higher is more verbose
-
-,  DIR_MODE= (S_IRWXU | S_IRGRP|S_IXGRP | S_IROTH|S_IXOTH) // Directory mode
-,  MAX_REQUEST_COUNT= 4             // Maximum running request count
-,  MAX_RESPONSE_SIZE= 0x00100000    // Maximum response data length
-,  PROT_RW= (PROT_READ | PROT_WRITE) // Read/write access mode
-,  TRACE_SIZE= 0x00100000           // Default trace table size (1M)
-,  USE_INTENSIVE= true              // Option: Use intensive debug mode
-,  USE_LOGGER= false                // Option: Use logger
-,  USE_SIGNAL= false                // Option: Use signal handler
-,  USE_TIMING_RECORD= false         // Option: Use timing record
-,  USE_XTRACE= false                // Use extended trace?
-}; // generic enum
-
-enum                                // Default option values
-{  DEFAULT_OPTIONS                  // (Dummy)
-,  OPT_THREAD= 4                    // Stress test default thread count
-
-,  USE_CLIENT= false                // --client
-,  USE_SERVER= false                // --server
-,  USE_STRESS= 0                    // --stress
-,  USE_TRACE=  false                // --trace
-,  USE_VERIFY= false                // --verify
-,  USE_WORKER= true                 // --worker (Server threads)
-}; // default options
-
-static constexpr const double USE_RUNTIME= 2.0; // --runtime
-
-// Imported Options
-typedef const char CC;
-static constexpr CC*   HTTP_GET=  Options::HTTP_METHOD_GET;
-static constexpr CC*   HTTP_HEAD= Options::HTTP_METHOD_HEAD;
-static constexpr CC*   HTTP_POST= Options::HTTP_METHOD_POST;
-static constexpr CC*   HTTP_PUT=  Options::HTTP_METHOD_PUT;
-
-static constexpr CC*   HTTP_SIZE= Options::HTTP_HEADER_LENGTH;
-static constexpr CC*   HTTP_TYPE= Options::HTTP_HEADER_TYPE;
-
-static constexpr CC*   cert_file= "public.pem";  // The public certificate file
-static constexpr CC*   priv_file= "private.pem"; // The private key file
-
-//----------------------------------------------------------------------------
-// Internal data areas
-//----------------------------------------------------------------------------
-static Debug*          debug= nullptr; // Our Debug object
-static string          host= "localhost"; // The connection host
-static string          port= "8080"; // The connection port
-static string          test_url= "/"; // The stress test URL
-static void*           trace_table= nullptr; // The internal trace area
-
-static ClientAgent*    client_agent= nullptr; // Our ClientAgent
-static ListenAgent*    listen_agent= nullptr; // Our ListenAgent
-
-// Test controls
-typedef std::atomic_size_t          atomic_count_t;
-static atomic_count_t  error_count= 0; // Error counter
-static atomic_count_t  send_op_count= 0; // The total send complete count
-static Event           test_ended;  // The test ended Event
-static Event           test_start;  // The start test Event
-static int             running= false; // Test running indicator
-
-//----------------------------------------------------------------------------
-// Options
-//----------------------------------------------------------------------------
-static int             opt_help= false; // --help (or error)
-static int             opt_hcdm= HCDM;  // --hcdm (Hard Core Debug Mode)
-static int             opt_iodm= IODM;  // --iodm (I/O Debug Mode)
-static int             opt_index;   // Option index
-
-static const char*     opt_debug= nullptr; // --debug
-static int             opt_verbose= VERBOSE; // --verbose
-static int             opt_bringup= false; // Run bringup test?
-static int             opt_client= USE_CLIENT; // Run basic client test?
-static int             opt_major= -1; // Major test id TODO: REMOVE
-static int             opt_minor= -1; // Minor test id TODO: REMOVE
-static double          opt_runtime= USE_RUNTIME; // Stress test run time, in seconds
-static int             opt_server= USE_SERVER; // Run server?
-static int             opt_ssl= false;  // Run SSL client/server?
-static int             opt_stress= USE_STRESS; // Run client stress test?
-
-static int             opt_trace= USE_TRACE; // Create trace file?
-static int             opt_verify= USE_VERIFY; // Verify file data?
-static int             opt_worker= USE_WORKER; // Create server threads?
-
-static const char*     OSTR= ":";   // The getopt_long optstring parameter
-static struct option   OPTS[]=      // The getopt_long longopts parameter
-{  {"help",    no_argument,       &opt_help,    true} // --help
-,  {"hcdm",    no_argument,       &opt_hcdm,    true} // --hcdm
-,  {"iodm",    no_argument,       &opt_iodm,    true} // --iodm
-
-,  {"debug",   required_argument, nullptr,      0} // --debug <string>
-,  {"verbose", optional_argument, &opt_verbose, 1} // --verbose {optional}
-,  {"bringup", no_argument,       &opt_bringup,  true} // --bringup
-,  {"client",  no_argument,       &opt_client,  true} // --client
-,  {"host",    required_argument, nullptr,      0}    // --host <string>
-,  {"port",    required_argument, nullptr,      0}    // --port <string>
-,  {"major",   optional_argument, &opt_major,   0}    // --major
-,  {"minor",   optional_argument, &opt_minor,   0}    // --minor
-,  {"runtime", required_argument, nullptr,      0}    // --runtime <string>
-,  {"server",  optional_argument, &opt_server,  true} // --server
-,  {"ssl",     no_argument,       &opt_ssl,  true}    // --stress
-,  {"stress",  optional_argument, &opt_stress,  OPT_THREAD} // --stress
-,  {"trace",   no_argument,       &opt_trace,   true} // --trace
-,  {"verify",  no_argument,       &opt_verify,  true} // --verify
-,  {"worker",  no_argument,       &opt_worker,  true} // --worker
-
-// This option can be used if USE_WORKER defaulted true
-,  {"no-worker", no_argument,     &opt_worker,  false} // --no-worker
-,  {0, 0, 0, 0}                     // (End of option list)
-};
-
-enum OPT_INDEX                      // Must match OPTS[]
-{  OPT_HELP
-,  OPT_HCDM
-,  OPT_IODM
-
-,  OPT_DEBUG
-,  OPT_VERBOSE
-,  OPT_BRINGUP
-,  OPT_CLIENT
-,  OPT_HOST
-,  OPT_PORT
-,  OPT_MAJOR
-,  OPT_MINOR
-,  OPT_RUNTIME
-,  OPT_SERVER
-,  OPT_SSL
-,  OPT_STRESS
-,  OPT_TRACE
-,  OPT_VERIFY
-,  OPT_WORKER
-
-,  OPT_NO_WORKER
-,  OPT_SIZE
-};
-
-//----------------------------------------------------------------------------
-// Global constructor/destructor (For hard core debugging)
-//----------------------------------------------------------------------------
-static struct Global {
-   Global( void )
-{
-   if( HCDM )
-     printf("%4d %s Global!\n", __LINE__, __FILE__);
-}
-
-   ~Global( void )
-{
-   if( HCDM )
-     printf("%4d %s Global~\n", __LINE__, __FILE__);
-}
-} global_constructor_destructor;
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       i2v
-//
-// Purpose-
-//       Convert intptr_t  to void*
-//
-//----------------------------------------------------------------------------
-static inline void* i2v(intptr_t i) { return (void*)i; }
 
 //----------------------------------------------------------------------------
 //
@@ -364,20 +154,6 @@ static void
 
 //----------------------------------------------------------------------------
 //
-// Subroutine-
-//       torf
-//
-// Purpose-
-//       Return "true" or "false"
-//
-//----------------------------------------------------------------------------
-static const char*                  // "true" or "false"
-   torf(                            // True or False?
-     int               cc)          // For this condition
-{  return cc ? "true" : "false"; }
-
-//----------------------------------------------------------------------------
-//
 // Class-
 //       TimerThread
 //
@@ -416,7 +192,7 @@ virtual void
 //       the ClientThread simplifies initialization.
 //
 //----------------------------------------------------------------------------
-class ClientThread : public Thread { // The client Thread
+class ClientThread : public Named, public Thread { // The client Thread
 public:
 std::shared_ptr<Client>client;      // The Client
 
@@ -443,8 +219,13 @@ std::function<void(void)>
 //       Destructor
 //
 //----------------------------------------------------------------------------
-   ClientThread( void ) : serial(client_serial++) {}
-   ~ClientThread( void ) = default;
+   ClientThread( void )
+:  Named("ClientThread"), Thread()
+,  serial(client_serial++)
+{  INS_DEBUG_OBJ("ClientThread"); }
+
+   ~ClientThread( void )
+{  REM_DEBUG_OBJ("ClientThread"); }
 
 //----------------------------------------------------------------------------
 //
@@ -677,10 +458,10 @@ void
    get_client( void )               // Activate the client
 {
 // Options opts;                    // TODO: Options TBD
-   client= client_agent->connect(host + ":" + port); // Create the client
+   client= client_agent->connect(host + port); // Create the client
 
    if( !client ) {
-     debugf("Unable to connect %s:%s\n", host.c_str(), port.c_str());
+     debugf("Unable to connect %s%s\n", host.c_str(), port.c_str());
      exit(EXIT_FAILURE);
    }
 }
@@ -710,14 +491,10 @@ virtual void
      get_client();
      do_SEND(HTTP_GET, test_url);
      send_end.wait();
-     if( opt_minor == 0 ) {
-       client->close();
-       client= nullptr;
-     } else {
-       client->close();
+     client->close();
+     if( opt_minor > 0 )
        client->wait();
-       client= nullptr;
-     }
+     client= nullptr;
    } catch(Exception& X) {
      ++error_count;
      debugf("%4d Exception: %s\n", __LINE__, X.to_string().c_str());
@@ -749,7 +526,7 @@ virtual void
 // debugf("%4d %s HCDM\n", __LINE__, __FILE__);
    //-------------------------------------------------------------------------
    // Client per connection version - in test -- -- -- -- -- -- -- -- -- -- --
-   if( opt_major >= 0 ) {           // Use run_one()
+   if( opt_major > 0 ) {            // Use run_one()
      ended.reset();                 // Indicate not complete
      ready.post();                  // Indicate ready
      test_start.wait();             // Wait for start signal
@@ -879,15 +656,15 @@ static void
      }); // reporter.report
    }
 
-   if( opt_verbose > 1 ) {
+   error_count += VERIFY( Stream::obj_count.current.load() == 0 );
+   error_count += VERIFY( Request::obj_count.current.load() == 0 );
+   error_count += VERIFY( Response::obj_count.current.load() == 0 );
+
+   if( opt_verbose ) {
      debugf("\n");
      WorkerPool::debug();
      WorkerPool::reset();
    }
-
-   error_count += VERIFY( Stream::obj_count.current.load() == 0 );
-   error_count += VERIFY( Request::obj_count.current.load() == 0 );
-   error_count += VERIFY( Response::obj_count.current.load() == 0 );
    // Verify object counters (TODO: REMOVE) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    // Reset the statistics
@@ -973,7 +750,6 @@ static void
    listen_agent->stop();
    listen_agent->reset();
 
-   WorkerPool::reset();
    debugf("...Driver.test_client\n");
    Trace::trace(".TXT", __LINE__, "TC.client exit");
 }
@@ -995,30 +771,42 @@ static void
    error_count= 0;
 
    //-------------------------------------------------------------------------
-   // Client per connection version - in test -- -- -- -- -- -- -- -- -- -- --
-   if( opt_major == 0 ) {           // run_one() bringup
+   // Client per connection version - BRINGUP -- -- -- -- -- -- -- -- -- -- --
+   if( opt_major > 1 ) {            // run_one() bringup
+     // Run the the client per connection test opt_stress times
      ClientThread ct;
 
      running= true;
+     opt_runtime= Clock::now();
      for(int i= 0; i<opt_stress; ++i) {
        ct.run_one();
      }
+     opt_runtime= Clock::now() - opt_runtime;
      running= false;
 
      double op_count= double(send_op_count.load());
      debugf("%'16.3f operations\n", op_count);
+     debugf("%'16.3f milliseconds\n", opt_runtime * 1000.0);
      debugf("%'16.3f operations/second\n", op_count/opt_runtime);
+//debugf("\n\n");
+//std::pub_diag::Debug_ptr::debug("Test complete");
 
      client_agent->stop();
      client_agent->reset();
      listen_agent->stop();
      listen_agent->reset();
+//debugf("\nClient/Listen reset complete ******************************\n\n\n");
+//client_agent->debug("Test complete");
+//listen_agent->debug("Test complete");
+//debugf("\n\n");
+//std::pub_diag::Debug_ptr::debug("Test complete");
+//debugf("\nTest diagnostics complete *********************************\n\n\n");
 
      return;
    }
 
    //-------------------------------------------------------------------------
-   // Single client version (DEFAULT)
+   // Client thread version (DEFAULT, run stress test for opt_runtime seconds)
    ClientThread* client[opt_stress];
    for(int i= 0; i<opt_stress; i++) {
      client[i]= new ClientThread();
@@ -1026,15 +814,16 @@ static void
    }
 
    if( opt_verbose )
-     debugh("--%s_stress test: Started\n", opt_ssl ? "ssl" : "std");
+     debugh("--%s_stream test: Started\n", opt_ssl ? "ssl" : "std");
    test_ended.reset();
    TimerThread timer_thread;
    timer_thread.start();
    timer_thread.join();
    test_ended.post();
 
-   debugh("--%s_stream test: %s\n", opt_ssl ? "ssl" : "std"
-         , error_count ? "FAILED" : "Complete");
+   if( opt_verbose || error_count )
+     debugh("--%s_stream test: %s\n", opt_ssl ? "ssl" : "std"
+           , error_count ? "FAILED" : "Complete");
 
    double op_count= double(send_op_count.load());
    debugf("%'16.3f operations\n", op_count);
@@ -1048,21 +837,28 @@ static void
      R->trace(".END");
    }
 
-   for(int32_t i= 0; i<opt_stress; i++) {
+//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
+   for(int i= 0; i<opt_stress; i++) {
      if( USE_XTRACE )
-       Trace::trace(".TST", "WAIT", client[i], i2v(i));
+       Trace::trace(".TST", "WAIT", client[i], (void*)intptr_t(i));
+//debugf("%4d %s HCDM client %d\n", __LINE__, __FILE__, i);
      client[i]->wait();
    }
 
+//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
    client_agent->stop();
    client_agent->reset();
    listen_agent->stop();
    listen_agent->reset();
+//client_agent->debug("Test complete");
+//listen_agent->debug("Test complete");
 
+debugf("%4d %s HCDM\n", __LINE__, __FILE__);
    for(int i= 0; i<opt_stress; i++) {
      client[i]->close();
      client[i]->join();
      delete client[i];
+debugf("%4d [%2d] client complete\n", __LINE__, i);
    }
 //debugf("%4d %s All clients closed\n", __LINE__, __FILE__);
 }
@@ -1129,8 +925,13 @@ public:
    opts.insert("key",  priv_file);  // The private key file
    opts.insert("http1", "true");    // HTTP1 allowed
 
-   std::string host= ":"; host += port;
-   listen= listen_agent->connect(host, AF_INET, &opts); // Create Listener
+   listen= listen_agent->connect(port, AF_INET, &opts); // Create Listener
+   if( listen == nullptr ) {
+     int ERRNO= errno;
+     debugf("T_Stream: cannot connect port(%s) %d:%s\n"
+           , port.substr(1, string::npos).c_str(), errno, strerror(ERRNO));
+     throw std::runtime_error(strerror(ERRNO));
+   }
 
    // Initialize the Listen handlers
    listen->on_close([this]( void ) {
@@ -1164,6 +965,8 @@ public:
    ended.reset();
    ready.post();
    operational= true;
+
+   INS_DEBUG_OBJ("ServerThread");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1171,6 +974,8 @@ public:
 {
    listen->on_close([]( void ) {});
    listen->on_request([](ServerRequest&) {});
+
+   REM_DEBUG_OBJ("ServerThread");
 }
 
 //----------------------------------------------------------------------------
