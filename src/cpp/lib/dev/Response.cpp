@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,13 +16,12 @@
 //       Implement http/Response.h
 //
 // Last change date-
-//       2022/11/16
+//       2023/04/16
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
 #include <cstring>                  // For memset
 #include <mutex>                    // For std::lock_guard TODO: REMOVE
-#include <ostream>                  // For std::ostream
 #include <stdexcept>                // For std::out_of_range, ...
 #include <string>                   // For std::string
 
@@ -160,6 +159,7 @@ std::shared_ptr<Request>
 
    ClientResponse::~ClientResponse( void ) // Destructor
 {  if( HCDM ) debugh("http::ClientResponse(%p)~\n", this);
+   REM_DEBUG_OBJ("ClientResponse");
 }
 
 std::shared_ptr<ClientResponse>     // The ClientResponse

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,13 +16,12 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2022/03/06
+//       2023/04/23
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
 #include <cstring>                  // For memset
 #include <mutex>                    // For std::mutex, ..., base class
-#include <ostream>                  // For std::ostream
 #include <stdexcept>                // For std::out_of_range, ...
 #include <string>                   // For std::string
 
@@ -78,6 +77,7 @@ enum
 // BUFFER_SIZE= 1'048'576           // Input buffer size
 ,  BUFFER_SIZE=     8'192           // Input buffer size
 
+,  USE_READ_ONCE= true              // Read once?
 ,  USE_XTRACE= true                 // Use extended trace?
 }; // enum
 
@@ -118,8 +118,7 @@ Ioda                   ioda;        // The Input/Output Data Area
 
    ServerItem( void )               // Default constructor
 :  dispatch::Item(), ioda()
-{  if( HCDM && VERBOSE > 0 ) debugh("ServerItem(%p)!\n", this);
-
+{  if( HCDM && VERBOSE > 2 ) debugh("ServerItem(%p)!\n", this);
    if( USE_XTRACE )
      Trace::trace(".NEW", "SITM", this);
 
@@ -128,8 +127,7 @@ Ioda                   ioda;        // The Input/Output Data Area
 
 virtual
    ~ServerItem( void )              // Destructor
-{  if( HCDM && VERBOSE > 0 ) debugh("ServerItem(%p)~\n", this);
-
+{  if( HCDM && VERBOSE > 2 ) debugh("ServerItem(%p)~\n", this);
    if( USE_XTRACE )
      Trace::trace(".DEL", "SITM", this);
 
@@ -138,8 +136,56 @@ virtual
 
 virtual void
    debug(const char* info) const    // TODO: REMOVE
-{  debugf("ServerItem(%p)::debug(%s)\n", this, info); }
+{  debugf("ServerItem(%p)::debug(%s)\n", this, info);
+   debugf("..fc(%d) cc(%d) done(%p)\n", fc, cc, done);
+}
 }; // class ServerItem
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       Server_ptr
+//
+// Purpose-
+//       Stack std::shared_ptr<Server> container.
+//
+//----------------------------------------------------------------------------
+struct Server_ptr {
+typedef std::shared_ptr<Server>     Server_ptr_t;
+
+Server_ptr_t           ptr;         // The actual std::shared_ptr<Server>
+
+   Server_ptr( void )               // Default constructor
+:  ptr()
+{  INS_DEBUG_OBJ("Server_ptr"); }
+
+   Server_ptr(const Server_ptr_t& copy) // Copy constructor
+:  ptr(copy)
+{  INS_DEBUG_OBJ("Server_ptr"); }
+
+   Server_ptr(Server_ptr_t&& move)  // Move constructor
+:  ptr(move)
+{  INS_DEBUG_OBJ("Server_ptr"); }
+
+   ~Server_ptr( void )              // Destructor
+{  REM_DEBUG_OBJ("Server_ptr"); }
+
+Server_ptr&
+   operator=(const nullptr_t& null) // Null assignment
+{  ptr= null; return *this; }
+
+Server_ptr&
+   operator=(const Server_ptr_t& copy) // Copy assignment
+{  ptr= copy; return *this; }
+
+Server_ptr&
+   operator=(Server_ptr_t&& move)   // Move assignment
+{  ptr= move; return *this; }
+
+   operator Server_ptr_t( void ) { return ptr; } // Cast operator
+
+void reset( void ) { ptr.reset(); }
+}; // struct Server_ptr
 
 //----------------------------------------------------------------------------
 //
@@ -233,9 +279,8 @@ static inline void* i2v(intptr_t i) { return (void*)i; }
 ,  stream_set(&root)
 ,  task_inp([this](dispatch::Item* it) { inp_task(it); })
 ,  task_out([this](dispatch::Item* it) { out_task(it); })
-{  if( HCDM )
-     debugh("Server(%p)::Server(%p,%p)\n", this, listen, socket);
-
+{  if( HCDM || VERBOSE > 1 )
+     debugh("Server(%p)!(%p,%p)\n", this, listen, socket);
    if( USE_XTRACE )
      Trace::trace(".NEW", "HSRV", this, socket);
 
@@ -264,37 +309,37 @@ static inline void* i2v(intptr_t i) { return (void*)i; }
      http2();
    }
 
-   // Initialize asynchronous operation
-   socket->set_flags( socket->get_flags() | O_NONBLOCK );
-   socket->on_select([this](int revents) { async(revents); });
-   listen->get_agent()->select.insert(socket, POLLIN);
-
    // Allow immediate port re-use on close
    struct linger optval;
    optval.l_onoff= 1;
    optval.l_linger= 0;
    socket->set_option(SOL_SOCKET, SO_LINGER, &optval, sizeof(optval));
 
-   // Server construction complete
+   // Initialize asynchronous operation
    fsm= FSM_READY;
+   events= POLLIN;
+   socket->set_flags( socket->get_flags() | O_NONBLOCK );
+   socket->on_select([this](int revents) { async(revents); });
+   listen->get_agent()->select.insert(socket, POLLIN);
+
    INS_DEBUG_OBJ("*Server*");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Server::~Server( void )          // Destructor
-{  if( HCDM )
-     debugh("Server(%p)::~Server\n", this);
-
+{  if( HCDM || VERBOSE > 1 ) debugh("Server(%p)~\n", this);
    if( USE_XTRACE )
-     Trace::trace(".DEL", "HSRV", this);
+     Trace::trace(".DEL", "HSRV", this, stream.get());
 
-   // Close the socket, insuring task completion
-   Select* select= socket->get_select();
-   if( select )
-     select->flush();
+   // Close and delete the socket
+   close();
+   delete socket;
 
-   delete socket;                   // (Invokes Socket::close, Select::flush)
-   socket= nullptr;
+// HCDM: destructor does not complete
+//task_inp.debug("task_inp");
+//task_out.debug("task_out");
+
+//std::pub_diag::Debug_ptr::debug("~Server");
    REM_DEBUG_OBJ("*Server*");
 }
 
@@ -303,11 +348,11 @@ std::shared_ptr<Server>             // The Server
    Server::make(                    // Create Server
      Listen*           listen,      // The creating Listener
      Socket*           socket)      // The server Socket
-{  if( HCDM )
-     debugh("Server::make(%p,%p)\n", listen, socket);
+{  if( HCDM ) debugh("Server::make(%p,%p)\n", listen, socket);
 
    std::shared_ptr<Server> server=
       std::make_shared<Server>(listen, socket);
+//debugf("%4d Server make %p\n", __LINE__, &server);
 
    server->self= server;
    return server;
@@ -329,9 +374,9 @@ void
 
    debugf("..listen(%p) socket(%p)\n", listen, socket);
    debugf("..size_inp(%'zd) size_out(%'zd)\n", size_inp, size_out);
+   socket->debug("Server::debug");
    debugf("task_inp:\n"); task_inp.debug(info);
    debugf("task_out:\n"); task_out.debug(info);
-   socket->debug("Server::debug");
 }
 
 //----------------------------------------------------------------------------
@@ -358,7 +403,7 @@ void
    // If a Socket error occurred
    if( revents & (POLLERR | POLLNVAL) ) {
      debugf("%4d HCDM Server revents(%.4x)\n", __LINE__, revents);
-     error("asynch error detected");
+     error("async error detected");
      return;
    }
 
@@ -386,30 +431,36 @@ void
 // Purpose-
 //       Terminate the Server
 //
-// Implementation notes-
-//       If wait != nullptr, the close is synchronous.
-//
 //----------------------------------------------------------------------------
 void
    Server::close( void )            // Terminate the Server
-{  if( HCDM )
-     debugh("Server(%p)::close() fsm(%d)\n", this, fsm);
+{  if( HCDM ) debugh("Server(%p)::close() fsm(%d)\n", this, fsm);
    if( USE_XTRACE )
      Trace::trace(".SRV", ".CLS", this, i2v(get_handle()));
 
    // The Listener might contain the last active shared_ptr<Server>
    // and we reference this->socket after the disconnect.
-   std::shared_ptr<Server> keep_alive= get_self();
+   std::shared_ptr<Server> keep_alive(get_self());
+//Server_ptr keep_alive(get_self());
+//debugh("%4d Server(%d) keep_alive %p\n", __LINE__, socket->get_handle(), &keep_alive);
+//std::pub_diag::Debug_ptr::debug("Server keep_alive");
 
    {{{{
      std::lock_guard<Server> lock(*this);
+//debugh("Server(%p)::close() fsm(%d)\n", this, fsm);
 
      if( fsm != FSM_RESET ) {
        fsm= FSM_RESET;
+//debugh("Server(%p) RESET\n", this);
        listen->disconnect(this);    // (Only called once)
        socket->close();             // (Only called once)
      }
    }}}}
+
+//debugh("%4d Server HCDM\n", __LINE__);
+//keep_alive.reset();
+//debugh("%4d Server HCDM\n", __LINE__);
+// std::pub_diag::Debug_ptr::debug("keep alive reset");
 }
 
 //----------------------------------------------------------------------------
@@ -423,13 +474,13 @@ void
 //----------------------------------------------------------------------------
 void
    Server::close_enq( void )        // Schedule Server close
-{  if( HCDM )
-     debugh("Server(%p)::close_enq() fsm(%d)\n", this, fsm);
+{  if( HCDM ) debugh("Server(%p)::close_enq() fsm(%d)\n", this, fsm);
    if( USE_XTRACE )
      Trace::trace(".SRV", "QCLS", this, i2v(get_handle()));
 
    if( fsm == FSM_READY ) {
      fsm= FSM_CLOSE;                // Close in progress
+//debugh("%4d HCDM Server(%4d) close_enq\n", __LINE__, socket->get_handle());
      Select* select= socket->get_select();
      if( select )
        select->modify(socket, 0);   // Remove from poll list
@@ -490,8 +541,7 @@ void
 //----------------------------------------------------------------------------
 void
    Server::write(Ioda& ioda)       // Write to Server
-{  if( HCDM )
-     debugh("Server(%p)::write(*,%'zd)\n", this, ioda.get_used());
+{  if( HCDM ) debugh("Server(%p)::write(*,%'zd)\n", this, ioda.get_used());
 
    if( ioda.get_used() ) {
      ServerItem* item= new ServerItem();
@@ -523,9 +573,8 @@ void
        Trace::trace(".DEQ", "SINP", this, it);
 
      if( fsm != FSM_READY ) {
-//     Client paste
-//     if( it->fc == FSM_CLOSE )
-//       close();
+       if( it->fc == FSM_CLOSE )
+         close();
 
        it->post(it->CC_PURGE);
        return;
@@ -542,6 +591,7 @@ void
 
      item->post();
    }; // inp_task
+//debugf("%4d Server inp_task(%p)\n", __LINE__, &inp_task);
 
    // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    out_task= [this](dispatch::Item* it) // Output task
@@ -559,6 +609,7 @@ void
      write(__LINE__);
      item->post();
    }; // out_task
+//debugf("%4d Server out_task(%p)\n", __LINE__, &out_task);
 
    // h_reader - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    h_reader= [this](void)           // (Asynchronous) input data available
@@ -567,6 +618,7 @@ void
      // Read the request, passing it to Stream
      read(__LINE__);                // (Exception if error)
    }; // h_reader=
+//debugf("%4d Server h_reader(%p)\n", __LINE__, &h_reader);
 
    // h_writer - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    h_writer= [this](void)           // The output writer
@@ -574,6 +626,7 @@ void
 
      write(__LINE__);               // (Exception if error)
    }; // h_writer=
+//debugf("%4d Server h_writer(%p)\n", __LINE__, &h_reader);
 }
 
 //----------------------------------------------------------------------------
@@ -598,9 +651,8 @@ void
        Trace::trace(".DEQ", "SINP", this, it);
 
      if( fsm != FSM_READY ) {
-//     Client paste
-//     if( it->fc == FSM_CLOSE )
-//       close();
+       if( it->fc == FSM_CLOSE )
+         close();
 
        it->post(it->CC_PURGE);
        return;
@@ -657,7 +709,7 @@ void
 //       Server::read
 //
 // Purpose-
-//       Read data segments
+//       Read Server request
 //
 //----------------------------------------------------------------------------
 void
@@ -668,13 +720,25 @@ void
    ssize_t L;
    for(;;) {
      Ioda ioda;
-     Mesg mesg; ioda.get_rd_mesg(mesg, size_inp);
+     Mesg mesg;
+     ioda.get_rd_mesg(mesg, size_inp);
      L= socket->recvmsg(&mesg, 0);
+     iodm(line, "read", L);
+//{    // TODO: REMOVE ** DEBUGGING **
+//   int ERRNO= errno;
+//
+//   if( L <= 0 )                     // If I/O error
+//     debugh("%4d Server %zd= %s() %d:%s\n", line, L, "read"
+//           , errno, strerror(errno));
+//   else
+//     debugh("%4d Server %zd= %s()\n", line, L, "read");
+//
+//   errno= ERRNO;
+//}
      if( L > 0 ) {
-       iodm(line, "read", L);
        ioda.set_used(L);
 
-       // Trace read
+       // Trace read operation
        void* addr= mesg.msg_iov[0].iov_base;
        ssize_t size= mesg.msg_iov[0].iov_len;
        if( size > L )
@@ -683,27 +747,40 @@ void
          utility::iotrace(".S<<", addr, size);
        iodm(line, "read", addr, size);
 
+       // Enqueue IODA to input task
        ServerItem* item= new ServerItem();
        item->ioda= std::move(ioda);
        if( USE_XTRACE )
          Trace::trace(".ENQ", "SINP", this, item);
        task_inp.enqueue(item);
+       if( USE_READ_ONCE )
+         return;
      } else {
-       if( IS_BLOCK )
+       if( L == 0 )
+         break;
+       if( !USE_READ_ONCE && IS_BLOCK )
          return;
        if( !IS_RETRY )
          break;
+       debugf("%4d %s HCDM read retry\n", __LINE__, __FILE__);
      }
    }
 
-   // Handle disconnect or I/O error
+   // Handle disconnect
+if( L < 0 && IS_BLOCK ) {
+  debugf("Server IS_BLOCK ignored\n");
+  return;
+}
+
    if( L == 0 || (L < 0 && errno == ECONNRESET) ) { // If connection reset
-     close_enq();
+     close_enq();                   // Schedule Client close
      return;
    }
 
-   iodm(line, "read", L);
-   error("I/O error");
+   // Report I/O error
+   string S= to_string("Server::read %d:%s", errno, strerror(errno));
+   error(S.c_str());
+   throw io_error(S);
 }
 
 //----------------------------------------------------------------------------

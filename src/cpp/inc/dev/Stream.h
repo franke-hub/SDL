@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       HTTP Stream object.
 //
 // Last change date-
-//       2023/03/06
+//       2023/04/14
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_STREAM_H_INCLUDED
@@ -62,7 +62,7 @@ class Stream;
 //       Although Stream objects are usually referenced using std::shared_ptr,
 //       we use Node* to maintain the StreamSet Node tree.
 //       We can do this because Stream guarantees that we will *always* have a
-//       corresponding std::shared_ptr in the the StreamSet map any item in
+//       corresponding std::shared_ptr in the the StreamSet map for an item in
 //       the Node tree.
 //
 //----------------------------------------------------------------------------
@@ -121,8 +121,7 @@ stream_id              ident= 0;    // The current Stream identifier
 //----------------------------------------------------------------------------
 public:
    StreamSet(                       // Constructor
-     Node*             node)        // The (user-owned) root Node
-{  root= node; }
+     Node*             node);       // The (user-owned) root Node
 
    StreamSet(const StreamSet&) = delete; // Disallowed copy constructor
 

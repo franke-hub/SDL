@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,13 +16,12 @@
 //       Implement http/Stream.h
 //
 // Last change date-
-//       2022/03/06
+//       2023/04/16
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
 #include <atomic>                   // For std::atomic
 #include <cstring>                  // For memset
-#include <ostream>                  // For std::ostream
 #include <stdexcept>                // For std::runtime_error, ...
 #include <string>                   // For std::string
 
@@ -193,14 +192,28 @@ void
 //============================================================================
 //
 // Method-
+//       StreamSet::StreamSet
 //       StreamSet::~StreamSet
 //
 // Purpose-
+//       Constructor
 //       Destructor
 //
 //----------------------------------------------------------------------------
+   StreamSet::StreamSet(            // Constructor
+     Node*             node)        // The (user-owned) root Node
+{  if( HCDM || VERBOSE > 1 ) debugf("StreamSet(%p)!\n", this);
+   root= node;
+
+   INS_DEBUG_OBJ("StreamSet");
+}
+
    StreamSet::~StreamSet( void )    // Destructor
-{  assert( root->child == nullptr ); }  // The StreamSet must be empty
+{  if( HCDM || VERBOSE > 1 ) debugf("StreamSet(%p)~\n", this);
+   assert( root->child == nullptr ); // The StreamSet must be empty
+
+   REM_DEBUG_OBJ("StreamSet");
+}
 
 //----------------------------------------------------------------------------
 //
@@ -332,21 +345,15 @@ void
    Stream::Stream( void )           // Default constructor
 :  h_end([]() {})
 ,  h_error([](const string&) {})
-{  if( HCDM ) debugh("Stream(%p)!\n", this);
+{  if( HCDM || VERBOSE > 2 ) debugh("Stream(%p)!\n", this);
 
-   if( USE_XTRACE )
-     Trace::trace(".NEW", ".STR", this); // (Trace ClientStream, ServerStream)
    obj_count.inc();
-   INS_DEBUG_OBJ("Stream");
 }
 
    Stream::~Stream( void )          // Destructor
-{  if( HCDM ) debugh("Stream(%p)~\n", this);
+{  if( HCDM || VERBOSE > 2 ) debugh("Stream(%p)~\n", this);
 
-   if( USE_XTRACE )
-     Trace::trace(".DEL", ".STR", this); // (Trace ~ClientStream, ~ServerStream)
    obj_count.dec();
-   REM_DEBUG_OBJ("Stream");
 }
 
 //----------------------------------------------------------------------------
@@ -430,21 +437,19 @@ void
      Client*           owner)       // Associated Client
 :  Stream()
 ,  client(owner->get_self())
-{  if( HCDM )
-     debugh("ClientStream(%p)!(%p)\n", this, owner);
-
+{  if( HCDM || VERBOSE > 1 ) debugh("ClientStream(%p)!(%p)\n", this, owner);
    if( USE_XTRACE )
      Trace::trace(".NEW", "CSTR", this);
-   INS_DEBUG_OBJ("ClientStream");
+
 // http1();                         // TODO: HANDLE HTTP2, etc
+   INS_DEBUG_OBJ("ClientStream");
 }
 
    ClientStream::~ClientStream( void ) // Destructor
-{  if( HCDM )
-     debugh("ClientStream(%p)~\n", this);
-
+{  if( HCDM || VERBOSE > 1 ) debugh("ClientStream(%p)~\n", this);
    if( USE_XTRACE )
      Trace::trace(".DEL", "CSTR", this);
+
    REM_DEBUG_OBJ("ClientStream");
 }
 
@@ -557,8 +562,11 @@ void
    if( client )
      rc= client->write(this);
 
-   if( rc )
-     utility::not_coded_yet(__LINE__, __FILE__);
+   if( rc ) {
+     debugh("%4d ClientStream(%p)::write failure\n", __LINE__, this);
+     h_error("Client write failure");
+     end();
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -578,8 +586,7 @@ void
      Server*           owner)       // Associated Server
 :  Stream()
 ,  server(owner->get_self())
-{  if( HCDM )
-     debugh("ServerStream(%p)!(%p)\n", this, owner);
+{  if( HCDM || VERBOSE > 1 ) debugh("ServerStream(%p)!(%p)\n", this, owner);
    if( USE_XTRACE )
      Trace::trace(".NEW", "SSTR", this);
 
@@ -587,8 +594,7 @@ void
 }
 
    ServerStream::~ServerStream( void ) // Destructor
-{  if( HCDM )
-     debugh("ServerStream(%p)~\n", this);
+{  if( HCDM || VERBOSE > 1 ) debugh("ServerStream(%p)~\n", this);
    if( USE_XTRACE )
      Trace::trace(".DEL", "SSTR", this);
 
@@ -645,6 +651,7 @@ void
      return;
    }
 
+INS_DEBUG_OBJ("SS.end");
    std::shared_ptr<Stream> stream= get_self(); // Stream keep-alive
    if( response )                   // (Can be nullptr if end already called)
      get_response()->end();         // Complete the Response
@@ -654,6 +661,7 @@ void
    h_end();                         // Drive Stream::on_end
    response= nullptr;               // Remove Response reference
    request= nullptr;                // Remove Request reference
+REM_DEBUG_OBJ("SS.end");
 }
 
 //----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See the accompanying file LICENSE.MIT or the original contained
@@ -15,13 +15,13 @@
 //       DEV library description
 //
 // Last change date-
-//       2022/10/25
+//       2023/04/24
 //
 -------------------------------------------------------------------------- -->
 
 # ~/src/lib/dev/README.md
 
-Copyright (C) 2022 Frank Eskesen.
+Copyright (C) 2022-2023 Frank Eskesen.
 
 This file is free content, distributed under the MIT license.
 (See the accompanying file LICENSE.MIT or the original contained
@@ -33,8 +33,9 @@ This README describes the DEV (development) library.
 This library is a development test library, intended as a placeholder for
 partially developed code intended for eventual inclusion in the PUB library.
 
-This library is currently built and tested from ~/obj/cpp/lib/dev/Test. It is
-not updated using make from  ~/obj/cpp/lib/.
+This library is currently built in ~/obj/cpp/lib/dev and tested from
+~/obj/cpp/lib/dev/Test/.
+The dev library may also updated by using make from ~/obj/cpp/lib/.
 
 ----
 
@@ -55,21 +56,28 @@ this library.
 
 The Client (in Client.cpp), Listen (in Listen.cpp), and Server (in Server.cpp)
 all operate asynchronously, driven from polling loops.
-The ClientAgent and ListenAgent (both in Agent.cpp) contain polling loops.
-The ClientAgent drives all connected Clients.
-The ListenAgent drives both the Listen and Server.
+The polling loops reside in Agent.cpp (objects ClientAgent and ListenAgent.)
+
+The ClientAgent polling loop drives the Client objects and
+the ListenAgent polling loop drives both the Listen and Server objects.
 
 This is the first operational distribution release with reasonable throughput.
-While the HTTP/1 protocol is operational, it's still fragile. Known bugs exist.
-See ~/src/cpp/lib/dev/.README for detailed status information.
+While the HTTP/1 protocol is operational, it's still somewhat fragile.
+Known bugs exist.
+(See ~/src/cpp/lib/dev/.README for detailed status information.)
 
-While there are implementation hooks that provide client and server functions,
-they currently have close to zero overhead. That is, they don't do much.
-That said, the throughput performance is pretty good.
 On a Fedora Linux machine running both client and server code, we're able to
-process well over 50,000 I/O operations per second.
-While these are HTTP/1 (unencrypted) request/response operations, connections
-are only made once.
-We currently only measure requests and response operations, not connects.
+complete well over 50,000 request/response operations per second.
+
+However, we only count HTTP/1 (unencrypted) request/response operations.
+Each Client creates a connection at the beginning of the test sequence and
+reuses that connection thereafter.
+
+Fixes were added to correct request/response opertions when each
+sequence requireds a connect operation.
+(This is done using T_Stream's --major=1 option.)
+
+While these fixes allow simple unit testing and short stress testing
+(with improved performance;) however, it's unstable when stress tested.
 
 ----

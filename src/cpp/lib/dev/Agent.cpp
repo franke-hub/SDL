@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,11 +16,7 @@
 //       Implement http/Agent.h
 //
 // Last change date-
-//       2022/12/10
-//
-// Implementation notes-
-//       TODO?: Create intermediate Connector object rather than a full Client.
-//       TODO?: Create ClientListen, ServerListen for management.
+//       2023/04/16
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::shared_ptr
@@ -29,7 +25,6 @@
 #include <cstring>                  // For memset
 #include <map>                      // For std::map
 #include <memory>                   // For std::shared_ptr
-#include <ostream>                  // For std::ostream
 #include <stdexcept>                // For std::out_of_range, ...
 #include <string>                   // For std::string
 
@@ -64,7 +59,7 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
-,  POLL_TIMEOUT= 5000               // Select timeout, in milliseconds
+,  POLL_TIMEOUT= 1000               // Select timeout, in milliseconds
 ,  USE_VERIFY= true                 // Use verification checking
 }; // enum
 
@@ -122,15 +117,16 @@ static in_port_t                    // The port numbername
    ClientAgent::ClientAgent( void ) // Default constructor
 :  Named("pub::http::CAgent"), Thread()
 {  if( HCDM )
-     debugh("http::ClientAgent(%p)!\n", this);
+     debugh("http::CAgent(%p)!\n", this);
 
    start();                         // Start polling
+   INS_DEBUG_OBJ("CAgent");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    ClientAgent::~ClientAgent( void ) // Destructor
 {  if( HCDM )
-     debugh("http::ClientAgent(%p)~...\n", this);
+     debugh("http::CAgent(%p)~...\n", this);
 
    operational= false;
    reset();                         // Disconnect all Clients
@@ -138,7 +134,8 @@ static in_port_t                    // The port numbername
    join();                          // Wait for polling completion
 
    if( HCDM )
-     debugh("...http::ClientAgent(%p)~\n", this);
+     debugh("...http::CAgent(%p)~\n", this);
+   REM_DEBUG_OBJ("CAgent");
 }
 
 //----------------------------------------------------------------------------
@@ -152,23 +149,35 @@ static in_port_t                    // The port numbername
 //----------------------------------------------------------------------------
 void
    ClientAgent::debug(const char* info) const // Debugging display
-{  debugf("http::ClientAgent(%p)::debug(%s)\n", this, info);
+{  debugf("\nhttp::CAgent(%p)::debug(%s)\n", this, info);
 
    std::lock_guard<decltype(mutex)> mlock(mutex);
 
+   // ClientAgent information
    int index= 0;                    // (Artificial) index
+   debugf("..[%2zd] Clients\n", map.size());
    for(const_iterator it= map.begin(); it != map.end(); ++it) {
+     if( index )
+       debugf("\n");
      std::shared_ptr<Client> client= it->second;
-     string H= client->get_host_addr().to_string();
-     string P= client->get_peer_addr().to_string();
-     debugf("..[%2d] Client(%p): %s :: %s\n", index, client.get()
-           , H.c_str(), P.c_str());
+     debugf(">>[%2d] Client(%p)\n", index, client.get());
+     client->debug(info);
      ++index;
+     debugf("--------------------------------\n");
    }
 
+   // Select information
    const Select* select= &this->select;
-   std::lock_guard<Select> slock(*const_cast<Select*>(select));
-   this->select.debug("ClientAgent");
+   if( select ) {
+     debugf("\n");
+     std::lock_guard<Select> slock(*const_cast<Select*>(select));
+     select->debug("CAgent");
+   } else {
+     debugf("..select(nullptr) ** SHOULD NOT OCCUR **\n");
+   }
+
+   debugf("--------------------------------\n");
+   debugf("\n");
 }
 
 //----------------------------------------------------------------------------
@@ -184,8 +193,8 @@ std::shared_ptr<Client>             // The associated Client
    ClientAgent::connect(            // Create Client connection
      string            peer,        // The peer:port name
      const Options*    opts)        // The associated Options
-{   if( HCDM )
-     debugh("http::ClientAgent(%p)::connect(%s)\n", this, peer.c_str());
+{  if( HCDM )
+     debugh("http::CAgent(%p)::connect(%s)\n", this, peer.c_str());
 
    // Create a new Client
    std::shared_ptr<Client> client= Client::make(this);
@@ -197,13 +206,15 @@ std::shared_ptr<Client>             // The associated Client
      int rc= Socket::name_to_addr(peer, (sockaddr*)&peer_addr, &peer_sz, AF);
      if( rc ) {                     // If error
        if( VERBOSE > 1 )
-         debugf("ClientAgent::connect(%s) failure %s\n", peer.c_str()
+         debugf("CAgent::connect(%s) failure %s\n", peer.c_str()
                , index ? "ipv6" : "ipv4");
        continue;
      }
 
      // Connect to Server
      if( client->connect((sockaddr*)&peer_addr, peer_sz, opts) ) {
+       if( HCDM )
+         debugh("CAgent(%p)::connect(%p)\n", this, client.get());
        map_insert(client->get_peer_addr(), client->get_host_addr(), client);
        return client;
      }
@@ -227,7 +238,7 @@ void
    ClientAgent::disconnect(         // Remove Client connection
      Client*           client)      // For this Client
 {  if( HCDM )
-     debugh("ClientAgent(%p)::disconnect(%p)\n", this, client);
+     debugh("CAgent(%p)::disconn(%p)\n", this, client);
 
    key_t key(client->get_peer_addr(), client->get_host_addr());
    map_remove(key);
@@ -249,26 +260,25 @@ void
 //----------------------------------------------------------------------------
 void
    ClientAgent::reset( void )       // Reset the ClientAgent
-{  if( HCDM ) debugh("ClientAgent(%p)::reset\n", this);
+{  if( HCDM )
+     debugh("CAgent(%p)::reset\n", this);
 
-   std::list<std::weak_ptr<Client>> list;
+   std::list<std::shared_ptr<Client>> list;
 
    if( HCDM )
-     debugh("%4d ClientAgent HCDM copying the Client list...\n", __LINE__);
+     debugh("%4d CAgent HCDM copying the Client list...\n", __LINE__);
    {{{{                             // Copy the Client list
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-     for(auto it : map ) {
-       std::shared_ptr<Client> client= it.second;
-       list.emplace_back(client);
+     for(const_iterator it= map.begin(); it != map.end(); ++it ) {
+       list.emplace_back(it->second);
      }
    }}}}
 
    if( HCDM )
-     debugh("%4d ClientAgent HCDM closing Clients...\n", __LINE__);
-   for(auto it : list) {
-     std::shared_ptr<Client> client= it.lock();
-     if( client && client->is_operational() )
+     debugh("%4d CAgent HCDM closing Clients...\n", __LINE__);
+   for(auto client : list) {
+     if( client->is_operational() )
        client->close();
    }
 
@@ -287,7 +297,7 @@ void
 //----------------------------------------------------------------------------
 void
    ClientAgent::run( void )        // Run the ClientAgent socket selector
-{  if( HCDM ) debugh("%4d ClientAgent(%p)::run...\n", __LINE__, this);
+{  if( HCDM ) debugh("%4d CAgent(%p)::run...\n", __LINE__, this);
 
    while( operational ) {
      try {
@@ -296,7 +306,7 @@ void
          const struct pollfd* poll= select.get_pollfd(socket);
          socket->do_select(poll->revents);
        } else if( HCDM ) {
-         debugh("ClientAgent idle poll\n");
+         debugh("CAgent idle poll\n");
        }
      } catch(std::exception& X) {
        errorh("%4d %s exception: %s\n", __LINE__, __FILE__, X.what());
@@ -308,7 +318,7 @@ void
    }
 
    if( HCDM )
-     debugh("%4d ...ClientAgent(%p)::run\n", __LINE__, this);
+     debugh("%4d ...CAgent(%p)::run\n", __LINE__, this);
 }
 
 //----------------------------------------------------------------------------
@@ -322,12 +332,12 @@ void
 //----------------------------------------------------------------------------
 void
    ClientAgent::stop( void )        // Terminate ClientAgent socket selector
-{  if( HCDM ) debugh("%4d ClientAgent(%p)::stop...\n", __LINE__, this);
+{  if( HCDM ) debugh("%4d CAgent(%p)::stop...\n", __LINE__, this);
 
    operational= false;
    select.flush();
 
-   if( HCDM ) debugh("%4d ...ClientAgent(%p)::stop\n", __LINE__, this);
+   if( HCDM ) debugh("%4d ...CAgent(%p)::stop\n", __LINE__, this);
 }
 
 //----------------------------------------------------------------------------
@@ -349,25 +359,28 @@ void
 //----------------------------------------------------------------------------
 void
    ClientAgent::map_insert(         // Associate
-     const key_t&       key,        // This Client/Server pair with
+     const key_t&      key,         // This Client/Server pair with
      std::shared_ptr<Client>
                        client)      // This Client
 {
    {{{{
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-     const_iterator it= map.find(key); // Locate the Client
-     if( it != map.end() ) {        // If found
-       debugh("ClientAgent::map_insert(%s) duplicate\n", string(key).c_str());
-       throw std::runtime_error("usage error");
+     // Check for duplicate
+     const_iterator it= map.find(key);
+     if( it != map.end() ) {
+       debugh("CAgent::insert(%s) duplicate\n", string(key).c_str());
+       return;
      }
 
-     map[key]= client;               // Insert the entry
+     // Insert the entry
+     map[key]= client;
+     it= map.find(key);
+     INS_DEBUG_MAP("CAgent.MAP", &it->second);
    }}}}
 
    if( HCDM )
-     debugh("%p= ClientAgent(%p)::map_insert(%s)\n", client.get(), this
-           , string(key).c_str());
+     debugh("CAgent(%p)::insert(%s)\n", this ,string(key).c_str());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -386,7 +399,7 @@ std::shared_ptr<Client>             // The associated Client
    }}}}
 
    if( HCDM )
-     debugh("%p= ClientAgent(%p)::map_locate(%s)\n", client.get(), this
+     debugh("%p= CAgent(%p)::locate(%s)\n", client.get(), this
            , string(key).c_str());
 
    return client;
@@ -402,14 +415,19 @@ void
    {{{{
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-     size_t n= map.erase(key);      // Remove Client/Server pair from the map
-     if( n == 0 )
-       debugh("ClientAgent(%p)::map_remove(%s) not found\n", this
+     iterator it= map.find(key);    // Locate the entry
+     if( it == map.end() ) {        // If not found
+       debugh("CAgent(%p)::remove(%s) not found\n", this
              , string(key).c_str());
+       return;
+     }
+
+     REM_DEBUG_MAP("CAgent.MAP", &it->second);
+     map.erase(it);                 // Remove Client/Server pair from the map
    }}}}
 
    if( HCDM )
-     debugh("ClientAgent(%p)::map_remove(%s)\n", this, string(key).c_str());
+     debugh("CAgent(%p)::remove(%s)\n", this, string(key).c_str());
 }
 
 //----------------------------------------------------------------------------
@@ -426,15 +444,16 @@ void
    ListenAgent::ListenAgent( void ) // Default constructor
 :  Named("pub::http::LAgent"), Thread()
 {  if( HCDM )
-     debugh("http::ListenAgent(%p)!\n", this);
+     debugh("http::LAgent(%p)!\n", this);
 
    start();
+   INS_DEBUG_OBJ("LAgent");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    ListenAgent::~ListenAgent( void ) // Destructor
 {  if( HCDM )
-     debugh("http::ListenAgent(%p)~...\n", this);
+     debugh("http::LAgent(%p)~...\n", this);
 
    operational= false;
    reset();                         // Disconnect all Listeners
@@ -442,8 +461,8 @@ void
    join();                          // Wait for polling completion
 
    if( HCDM )
-     debugh("...http::ListenAgent(%p)~\n", this);
-   reset();
+     debugh("...http::LAgent(%p)~\n", this);
+   REM_DEBUG_OBJ("LAgent");
 }
 
 //----------------------------------------------------------------------------
@@ -457,22 +476,36 @@ void
 //----------------------------------------------------------------------------
 void
    ListenAgent::debug(const char* info) const // Debugging display
-{  debugf("http::ListenAgent(%p)::debug(%s)\n", this, info);
+{  debugf("\nhttp::LAgent(%p)::debug(%s)\n", this, info);
 
+   std::lock_guard<decltype(mutex)> mlock(mutex);
+
+   // ListenAgent information
    int index= 0;                    // (Artificial) index
+   debugf("\n..[%2zd] Listeners\n", map.size());
    for(const_iterator it= map.begin(); it != map.end(); ++it) {
-     std::shared_ptr<Listen> listen= it->second;
-     string S= listen->get_host_addr().to_string();
-     debugf("..[%2d] Listen(%p): %s\n", index, listen.get(), S.c_str());
      if( index )
        debugf("\n");
+     std::shared_ptr<Listen> listen= it->second;
+     string S= listen->get_host_addr().to_string();
+     debugf(">>[%2d] Listen(%p): %s\n", index, listen.get(), S.c_str());
      listen->debug(info);
+     debugf("<<[%2d] Listen(%p): %s\n", index, listen.get(), S.c_str());
      ++index;
+     debugf("--------------------------------\n");
    }
 
+   // Select information
    const Select* select= &this->select;
-   std::lock_guard<Select> slock(*const_cast<Select*>(select));
-   this->select.debug("ListenAgent");
+   if( select ) {
+     debugf("\n");
+     std::lock_guard<Select> slock(*const_cast<Select*>(select));
+     select->debug("LAgent");
+   } else {
+     debugf("..select(nullptr) ** SHOULD NOT OCCUR **\n");
+   }
+   debugf("--------------------------------\n");
+   debugf("\n");
 }
 
 //----------------------------------------------------------------------------
@@ -491,14 +524,14 @@ std::shared_ptr<Listen>             // The associated server Listener
      const Options*    opts)        // The associated Options
 {
    if( HCDM )
-     debugh("http::ListenAgent(%p)::connect(%s)\n", this, host.c_str());
+     debugh("http::LAgent(%p)::connect(%s)\n", this, host.c_str());
 
    sockaddr_storage host_addr;
    socklen_t host_sz= sizeof(host_addr);
    int rc= Socket::name_to_addr(host, (sockaddr*)&host_addr, &host_sz, family);
    if( rc ) {                       // If error
      if( VERBOSE > 1 )
-       debugh("ListenAgent::connect(%s) connect failure\n", host.c_str());
+       debugh("LAgent::connect(%s) connect failure\n", host.c_str());
      errno= EINVAL;
      return nullptr;
    }
@@ -535,7 +568,7 @@ void
    ListenAgent::disconnect(         // Remove Server Listener
      Listen*           listen)      // For this Listener
 {  if( HCDM )
-     debugh("ListenAgent(%p)::disconnect(%p)\n", this, listen);
+     debugh("LAgent(%p)::disconnect(%p)\n", this, listen);
 
    {{{{
      std::lock_guard<decltype(mutex)> lock(mutex);
@@ -555,27 +588,27 @@ void
 //----------------------------------------------------------------------------
 void
    ListenAgent::reset( void )       // Reset the ListenAgent
-{  if( HCDM ) debugh("ListenAgent(%p)::reset\n", this);
+{  if( HCDM )
+     debugh("LAgent(%p)::reset\n", this);
 
-   std::list<std::weak_ptr<Listen>> list;
+   std::list<std::shared_ptr<Listen>> list;
 
    if( HCDM )
-     debugh("%4d ListenAgent HCDM copying the Listen list...\n", __LINE__);
+     debugh("%4d LAgent HCDM copying the Listen list...\n", __LINE__);
    {{{{                             // Copy the Listen list
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-     for(auto it : map ) {
-       std::shared_ptr<Listen> listen= it.second;
-       list.emplace_back(listen);
+     for(const_iterator it= map.begin(); it != map.end(); ++it ) {
+       REM_DEBUG_MAP("LAgent.MAP", &it->second);
+       list.emplace_back(it->second);
      }
+     map.clear();
    }}}}
 
    if( HCDM )
-     debugh("%4d ListenAgent HCDM resetting Listens...\n", __LINE__);
-   for(auto it : list) {
-     std::shared_ptr<Listen> listen= it.lock();
-     if( listen )
-       listen->reset();
+     debugh("%4d LAgent HCDM resetting Listens...\n", __LINE__);
+   for(auto listen : list) {
+     listen->reset();
    }
 
    if( HCDM )
@@ -593,7 +626,7 @@ void
 //----------------------------------------------------------------------------
 void
    ListenAgent::run( void )        // Run the ListenAgent socket selector
-{  if( HCDM ) debugh("%4d ListenAgent(%p)::run...\n", __LINE__, this);
+{  if( HCDM ) debugh("%4d LAgent(%p)::run...\n", __LINE__, this);
 
    while( operational ) {
      try {
@@ -602,7 +635,7 @@ void
          const struct pollfd* poll= select.get_pollfd(socket);
          socket->do_select(poll->revents);
        } else if( HCDM ) {
-         debugh("ListenAgent idle poll\n");
+         debugh("LAgent idle poll\n");
        }
      } catch(std::exception& X) {
        errorh("%4d %s exception: %s\n", __LINE__, __FILE__, X.what());
@@ -614,7 +647,7 @@ void
    }
 
    if( HCDM )
-     debugh("%4d ...ListenAgent(%p)::run\n", __LINE__, this);
+     debugh("%4d ...LAgent(%p)::run\n", __LINE__, this);
 }
 
 //----------------------------------------------------------------------------
@@ -628,12 +661,12 @@ void
 //----------------------------------------------------------------------------
 void
    ListenAgent::stop( void )        // Terminate ListenAgent socket selector
-{  if( HCDM ) debugh("%4d ListenAgent(%p)::stop...\n", __LINE__, this);
+{  if( HCDM ) debugh("%4d LAgent(%p)::stop...\n", __LINE__, this);
 
    operational= false;
    select.flush();
 
-   if( HCDM ) debugh("%4d ...ListenAgent(%p)::stop\n", __LINE__, this);
+   if( HCDM ) debugh("%4d ...LAgent(%p)::stop\n", __LINE__, this);
 }
 
 //----------------------------------------------------------------------------
@@ -652,30 +685,32 @@ void
 //       Protected by mutex
 //
 //----------------------------------------------------------------------------
-std::shared_ptr<Listen>             // The associated Listen
+void
    ListenAgent::map_insert(         // Associate
-     const sockaddr_u& id,          // This sockaddr_u with
+     const sockaddr_u& key,         // This sockaddr_u with
      std::shared_ptr<Listen>
                        listen)      // This Listen
-{  if( HCDM )
-     debugh("http::ListenAgent(%p)::insert(%s)\n", this
-           , id.to_string().c_str());
-
+{
    {{{{
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-     const_iterator it= map.find(id);
-     if( it != map.end() )          // If found
-       return it->second;           // (Duplicate entry)
+     // Check for duplicate
+     const_iterator it= map.find(key);
+     if( it != map.end() ) {
+       debugh("LAgent::map_insert(%s) duplicate\n"
+             , key.to_string().c_str());
+       return;
+     }
 
-     map[id]= listen;               // Insert the entry
+     // Insert the entry
+     map[key]= listen;
+     it= map.find(key);
+     INS_DEBUG_MAP("LAgent.MAP", &it->second);
    }}}}
 
    if( HCDM )
-     debugh("%p= ListenAgent(%p)::insert(%s)\n", listen.get(), this
-           , id.to_string().c_str());
-
-   return listen;
+     debugh("LAgent(%p)::insert(%s) %p\n", this, key.to_string().c_str()
+           , listen.get());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -695,34 +730,32 @@ std::shared_ptr<Listen>             // The associated Listen
 
    if( HCDM ) {
      string S= id.to_string();
-     debugh("%p= ListenAgent(%p)::locate(%s)\n", listen.get(), this, S.c_str());
+     debugh("%p= LAgent(%p)::locate(%s)\n", listen.get(), this, S.c_str());
    }
 
    return listen;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-std::shared_ptr<Listen>             // The associated Listen
+void
    ListenAgent::map_remove(         // Remove Listen
      const sockaddr_u& id)          // For this sockaddr_u
 {
-   std::shared_ptr<Listen> listen;  // Default, not found
-
    {{{{
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-     iterator it= map.find(id);
-     if( it != map.end() ) {        // If found
-       listen= it->second;          // (Return removed Listen)
-       map.erase(it);               // Remove it from the map
+     iterator it= map.find(id);     // Locate the entry
+     if( it == map.end() ) {        // If not found
+       debugh("LAgent(%p)::map_remove(%s) not found\n", this
+             , id.to_string().c_str());
+       return;
      }
+
+     REM_DEBUG_MAP("LAgent.MAP", &it->second);
+     map.erase(it);
    }}}}
 
-   if( HCDM ) {
-     string S= id.to_string();
-     debugh("%p= ListenAgent(%p)::remove(%s)\n", listen.get(), this, S.c_str());
-   }
-
-   return listen;
+   if( HCDM )
+     debugh("LAgent(%p)::remove(%s)\n", this, id.to_string().c_str());
 }
 }  // namespace _LIBPUB_NAMESPACE::::http

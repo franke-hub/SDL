@@ -23,8 +23,6 @@
 #include <memory>                   // For std::shared_ptr
 #include <new>                      // For std::bad_alloc
 #include <cstring>                  // For memset
-#include <ostream>                  // For std::ostream
-#include <stdexcept>                // For std::out_of_range, ...
 #include <stdexcept>                // For std::runtime_error
 #include <string>                   // For std::string
 

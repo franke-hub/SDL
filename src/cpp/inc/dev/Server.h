@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       HTTP Server object.
 //
 // Last change date-
-//       2023/03/06
+//       2023/04/17
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_SERVER_H_INCLUDED
@@ -94,7 +94,7 @@ Listen*                listen;      // Our owning Listener
 
 Ioda                   ioda_out;    // The output data area
 const char*            proto_id;    // The Server's protocol/version
-Stream                 root;        // Stream[0]
+StreamSet::Node        root;        // Stream[0]
 size_t                 size_inp;    // The input data area length
 size_t                 size_out;    // The output data area length
 Socket*                socket= nullptr; // The connection Socket
@@ -107,14 +107,15 @@ int                    events= 0;   // Current polling events
 int                    fsm= FSM_RESET; // Finite State Machine state
 
 //----------------------------------------------------------------------------
-// Server::Constructors, destructor, creator
+// Server::Constructor, creator, destructor
 //----------------------------------------------------------------------------
 public:
    Server(Listen*, Socket*);        // Constructor
-   ~Server( void );                 // Destructor
 
 static std::shared_ptr<Server>
    make(Listen*, Socket*);          // Creator
+
+   ~Server( void );                 // Destructor
 
 //----------------------------------------------------------------------------
 // Server::Accessor methods

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       HTTP Agent objects: ClientAgent and ListenAgent.
 //
 // Last change date-
-//       2022/11/14
+//       2023/04/16
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_AGENT_H_INCLUDED
@@ -168,7 +168,7 @@ typedef std::map<key_t, client_ptr, op_lt>
 typedef Map_t::const_iterator
                        const_iterator; // The Client Map const iterator type
 typedef Map_t::iterator
-                       iterator;    // The Client Map const iterator type
+                       iterator;    // The Client Map iterator type
 
 //----------------------------------------------------------------------------
 // ClientAgent::Attributes
@@ -438,7 +438,7 @@ void
 // ListenAgent::Map control methods (mutex protected)
 //----------------------------------------------------------------------------
 protected:
-std::shared_ptr<Listen>             // The associated Listen
+void
    map_insert(                      // Associate
      const sockaddr_u& id,          // This connectionID with
      std::shared_ptr<Listen>
@@ -450,7 +450,7 @@ std::shared_ptr<Listen>             // The associated Listen
      const sockaddr_u& id) const;   // For this connectionID
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-std::shared_ptr<Listen>             // The removed Listen
+void
    map_remove(                      // Remove Listen
      const sockaddr_u& id);         // For this connectionID
 }; // class ListenAgent

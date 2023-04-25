@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2023/03/06
+//       2023/04/16
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
@@ -102,7 +102,7 @@ Ioda                   ioda_out;    // The output buffer
 size_t                 ioda_off;    // The output buffer offset
 const char*            proto_id;    // The Client's protocol/version
 Event                  rd_complete; // HTTP/1 operation completed event
-Stream                 root;        // Stream[0]
+StreamSet::Node        root;        // Stream[0]
 size_t                 size_inp;    // The input buffer length
 size_t                 size_out;    // The output buffer length
 Socket*                socket= nullptr; // Connection Socket
@@ -116,7 +116,7 @@ int                    events= 0;   // Current polling events
 int                    fsm= FSM_RESET; // Finite State Machine state
 
 //----------------------------------------------------------------------------
-// Client::Constructors, Creator, destructor
+// Client::Constructor, creator, destructor
 //----------------------------------------------------------------------------
 public:
    Client(                          // Constructor

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       HTTP Listen object.
 //
 // Last change date-
-//       2023/03/06
+//       2023/04/16
 //
 // Implementation notes-
 //       The Listen object is the Server analog to a Client Agent.
@@ -210,7 +210,7 @@ void
 // Listen::Map control methods (mutex protected)
 //----------------------------------------------------------------------------
 protected:
-std::shared_ptr<Server>             // The associated Server
+void
    map_insert(                      // Associate
      const sockaddr_u& id,          // This connectionID with
      std::shared_ptr<Server>
@@ -220,7 +220,7 @@ std::shared_ptr<Server>             // The associated Server
    map_locate(                      // Locate Server
      const sockaddr_u& id);         // For this connectionID
 
-std::shared_ptr<Server>             // The associated Server
+void
    map_remove(                      // Remove Server
      const sockaddr_u& id);         // For this connectionID
 }; // class Listen

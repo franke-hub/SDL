@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2022 Frank Eskesen.
+##       Copyright (C) 2022-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,13 +15,20 @@
 ##       README: List of usage notes, bugs, fixes, etc.
 ##
 ## Last change date-
-##       2023/03/06
+##       2023/04/24
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
-2022/03/06 HTTP1 Stable, improved throughput
+2023/04/24 T_Stream --major=1: improved throughput, but unstable
+
+## BUGS:
+2023/04/24 T_Stream --major=1 unstable running heavy stress testing
+         T_Stream --major=1 --stress --runtime=8 OK, but
+         T_Stream --major=1 --stress=16 --runtime=120 fails, storage clobber.
+         T_Stream --major=1 --stress=4 --runtime=120 can fail,
+           T_Stream's ClientThread (usually) doesn't terminate properly.
 
 ##############################################################################
 ## SOCKET INFO: (Coding reference information)
@@ -125,6 +132,9 @@ std::string to_string( void ) const; // Convert to display string
 
 ##############################################################################
 ## STATUS: (History)
+2022/04/12 HTTP1 Stable, improved throughput
+         Unable to reproduce Cygwin performance anomaly.
+
 2022/03/06 HTTP1 Stable, improved throughput
 
 2022/12/18 HTTP1 Stable
@@ -145,23 +155,20 @@ std::string to_string( void ) const; // Convert to display string
 
 ##############################################################################
 ## BUGS: (Open bugs)
-2022/12/12 Listen.cpp
-         Running T_Stream --server --stress --major=1 --runtime=30, Listen's
-         accept fails with errno indicating "Too many open sockets".
-
-2022/12/12 Performance issue
-         Throughput is pathetic running T_Stream --server --stress --major=1.
-
-2022/10/24 Cygwin performance issue:
-         Cygwin stress test works best with --stress=1 (one client.)
-         When more than one client is used, throughput decreases.
+2023/04/24 T_Stream --major=1 unstable running heavy stress testing
 
 ##############################################################################
 ## FIXED: (Fixed bugs)
+2022/12/12 Performance issue
+         Throughput is pathetic running T_Stream --server --stress --major=1.
+         (The --major=1 option disallows connection reuse, i.e.
+         each request requires a new connection.)
+2023/04/24 (Partial fix: performance improved, but stress testing iffy.)
+
 2022/12/18 Server.cpp, Client.cpp, Listen.cpp: Possible timing issue
          Fixes were also required in ../pub/Select.cpp, ../pub/Socket.cpp.
          Select.cpp now calls Socket::do_select with its shr_latch held.
-         Client.cpp, Listen.cpp, and Server.cpp no longerdirectly call close()
+         Client.cpp, Listen.cpp, and Server.cpp no longer call close()
          from the asynch() method. They offload that work to their input task.
 
 2022/12/12 Linux stress test completes but doesn't terminate properly
@@ -180,7 +187,10 @@ std::string to_string( void ) const; // Convert to display string
 
 ##############################################################################
 ## CLOSED: (Bugs closed without fixing)
-2022/10/24 (None)
+2022/10/24 Cygwin performance issue:
+         Cygwin stress test works best with --stress=1 (one client.)
+         When more than one client is used, throughput decreases.
+2023/04/12 (CANNOT REPRODUCE)
 
 ##############################################################################
 ## TODO: (Deferred)

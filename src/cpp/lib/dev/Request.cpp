@@ -27,7 +27,6 @@
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
 #include <cstring>                  // For memset
-#include <ostream>                  // For std::ostream
 #include <stdexcept>                // For std::out_of_range, ...
 #include <string>                   // For std::string
 

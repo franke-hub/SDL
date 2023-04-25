@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2022/03/06
+//       2023/04/23
 //
 //----------------------------------------------------------------------------
 #define OPENSSL_API_COMPAT 30000    // Deprecate OSSL functions < 3.0.0
@@ -27,7 +27,6 @@
 #include <cstdio>                   // For fprintf
 #include <cstring>                  // For memcmp, memset
 #include <new>                      // For std::bad_alloc
-#include <ostream>                  // For std::ostream
 #include <stdexcept>                // For std::runtime_error, ...
 #include <string>                   // For std::string
 
@@ -86,6 +85,7 @@ enum
 // BUFFER_SIZE= 1'048'576           // Input buffer size
 ,  BUFFER_SIZE=     8'192           // Input buffer size
 
+,  USE_READ_ONCE= true              // Read once?
 ,  USE_XTRACE= true                 // Use extended trace?
 }; // enum
 
@@ -168,9 +168,53 @@ virtual
 virtual void
    debug(const char* info) const    // TODO: REMOVE
 {  debugf("ClientItem(%p)::debug(%s) stream(%p)\n", this, info, stream.get());
-   debugf("..done(%p)\n", done);
+   debugf("..fc(%d) cc(%d) done(%p)\n", fc, cc, done);
 }
 }; // class ClientItem
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       Client_ptr
+//
+// Purpose-
+//       Stack std::shared_ptr<Client> container.
+//
+//----------------------------------------------------------------------------
+struct Client_ptr {
+typedef std::shared_ptr<Client>     Client_ptr_t;
+
+Client_ptr_t           ptr;         // The actual std::shared_ptr<Client>
+
+   Client_ptr( void )               // Default constructor
+:  ptr()
+{  INS_DEBUG_OBJ("Client_ptr"); }
+
+   Client_ptr(const Client_ptr_t& copy) // Copy constructor
+:  ptr(copy)
+{  INS_DEBUG_OBJ("Client_ptr"); }
+
+   Client_ptr(Client_ptr_t&& move)  // Move constructor
+:  ptr(move)
+{  INS_DEBUG_OBJ("Client_ptr"); }
+
+   ~Client_ptr( void )              // Destructor
+{  REM_DEBUG_OBJ("Client_ptr"); }
+
+Client_ptr&
+   operator=(const nullptr_t& null) // Null assignment
+{  ptr= null; return *this; }
+
+Client_ptr&
+   operator=(const Client_ptr_t& copy) // Copy assignment
+{  ptr= copy; return *this; }
+
+Client_ptr&
+   operator=(Client_ptr_t&& move)   // Move assignment
+{  ptr= move; return *this; }
+
+   operator Client_ptr_t( void ) { return ptr; } // Cast operator
+}; // struct Client_ptr
 
 //----------------------------------------------------------------------------
 //
@@ -356,23 +400,20 @@ static inline SSL_CTX*
 ,  stream_set(&root)
 ,  task_inp([this](dispatch::Item* it) { inp_task(it); })
 ,  task_out([this](dispatch::Item* it) { out_task(it); })
-{  if( HCDM )
-     debugh("Client(%p)!(%p)\n", this, owner);
-
+{  if( HCDM || VERBOSE > 1 ) debugh("Client(%p)!(%p)\n", this, owner);
    if( USE_XTRACE )
      Trace::trace(".NEW", "HCLI", this);
+
    INS_DEBUG_OBJ("*Client*");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Client::~Client( void )          // Destructor
-{  if( HCDM )
-     debugh("Client(%p)~\n", this);
-
+{  if( HCDM || VERBOSE > 1 ) debugh("Client(%p)~\n", this);
    if( USE_XTRACE )
      Trace::trace(".DEL", "HCLI", this, stream.get());
 
-   // Release allocated storage
+   // Delete the socket
    if( socket ) {
      Select* select= socket->get_select();
      if( select )
@@ -391,8 +432,10 @@ static inline SSL_CTX*
 std::shared_ptr<Client>             // (New) Client
    Client::make(                    // Creator
      ClientAgent*      owner)       // Our ClientAgent
-{
+{  if( HCDM ) debugh("Client::make(%p)\n", owner);
+
    std::shared_ptr<Client> client= std::make_shared<Client>(owner);
+//debugf("%4d Client make %p\n", __LINE__, &client);
 
    client->self= client;
    return client;
@@ -409,15 +452,15 @@ std::shared_ptr<Client>             // (New) Client
 //----------------------------------------------------------------------------
 void
    Client::debug(const char* info) const  // Debugging display
-{  debugf("Client(%p)::debug(%s) fsm(%d) events(0x%.2x)\n", this
-         , info, fsm, events);
+{  debugf("Client(%p)::debug(%s) fsm(%d) events(0x%.2x)\n"
+         , this, info, fsm, events);
 
    debugf("..agent(%p) context(%p) proto_id(%s) rd_complete(%u)\n"
          , agent, context, proto_id, rd_complete.is_post());
    debugf("..size_inp(%'zd) size_out(%'zd)\n", size_inp, size_out);
+   socket->debug("Client.socket");
    debugf("task_inp:\n"); task_inp.debug(info);
    debugf("task_out:\n"); task_out.debug(info);
-   socket->debug("Client.socket");
 }
 
 //----------------------------------------------------------------------------
@@ -489,7 +532,10 @@ void
 
    // The Agent might contain the last active shared_ptr<Client>
    // and we reference this->socket after the disconnect.
-   std::shared_ptr<Client> client= get_self(); // Keep-alive
+   std::shared_ptr<Client> keep_alive(get_self());
+//Client_ptr keep_alive(get_self());
+//debugh("%4d Client(%d) keep_alive %p\n", __LINE__, socket->get_handle(), &keep_alive);
+//std::pub_diag::Debug_ptr::debug("Client keep_alive");
 
    {{{{
      std::lock_guard<Client> lock(*this);
@@ -516,8 +562,7 @@ void
 //----------------------------------------------------------------------------
 void
    Client::close_enq( void )        // Schedule Client close
-{  // if( HCDM )
-     debugh("Client(%p)::close_enq() fsm(%d)\n", this, fsm);
+{  if( HCDM ) debugh("Client(%p)::close_enq() fsm(%d)\n", this, fsm);
    if( USE_XTRACE )
      Trace::trace(".CLI", "CLSQ", this, i2v(get_handle()));
 
@@ -571,11 +616,13 @@ Socket*                             // Resultant Socket (nullptr if failure)
          encrypt= true;
      }
    }
+//std::pub_diag::Debug_ptr::debug("before Client http1");
    if( proto_ix == HTTP_H1 )  {
      http1();
    } else {
      http2();
    }
+//std::pub_diag::Debug_ptr::debug("after Client http1");
 
    // Create connection
    if( !encrypt ) {
@@ -622,6 +669,7 @@ Socket*                             // Resultant Socket (nullptr if failure)
    }
 
    // Initialize asynchronous operation
+   fsm= FSM_READY;
    socket->set_flags( socket->get_flags() | O_NONBLOCK );
    socket->on_select([this](int revents) { async(revents); });
    agent->select.insert(socket, POLLIN);
@@ -629,7 +677,6 @@ Socket*                             // Resultant Socket (nullptr if failure)
    // Client construction complete.
    if( USE_XTRACE )
      Trace::trace(".CLI", "CONN", this, socket); // Connection trace
-   fsm= FSM_READY;
    return socket;
 }
 
@@ -766,6 +813,7 @@ void
        rd_complete.post();          // Indicate HTTP/1 operation complete
      item->post();
    }; // inp_task
+//debugf("%4d Client inp_task(%p)\n", __LINE__, &inp_task);
 
    // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    out_task= [this](dispatch::Item* it) // Output task
@@ -803,7 +851,7 @@ void
 // debugh("Method(%s) Content_Length(%zd)\n", Q.method.c_str(), content_length); // TODO: REMOVE
        if(content_length != 0 ) {
          if( Q.method != HTTP_POST && Q.method != HTTP_PUT ) {
-           if( VERBOSE )
+           if( VERBOSE > 0 )
              fprintf(stderr, "Method(%s) does not permit content\n"
                     , Q.method.c_str());
            item->post(-400);
@@ -869,6 +917,7 @@ void
      stream_item= nullptr;
      item->post();
    }; // out_task
+//debugf("%4d Client out_task(%p)\n", __LINE__, &out_task);
 
    // h_reader - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    h_reader= [this](void)           // (Asynchronous) input data available
@@ -884,6 +933,7 @@ void
      // Read the response, passing it to Stream
      read(__LINE__);                // (Exception if error)
    }; // h_reader=
+//debugf("%4d Client h_reader(%p)\n", __LINE__, &h_reader);
 
    // h_writer - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    h_writer= [this](void)           // The output writer
@@ -924,6 +974,7 @@ void
        events &= ~EVT_WR_DATA;
      }
    }; // h_writer=
+//debugf("%4d Client h_writer(%p)\n", __LINE__, &h_reader);
 }
 
 //----------------------------------------------------------------------------
@@ -997,7 +1048,7 @@ void
 // debugh("Method(%s) Content_Length(%zd)\n", Q.method.c_str(), content_length); // TODO: REMOVE
        if(content_length != 0 ) {
          if( Q.method != HTTP_POST && Q.method != HTTP_PUT ) {
-           if( VERBOSE )
+           if( VERBOSE > 0 )
              fprintf(stderr, "Method(%s) does not permit content\n"
                     , Q.method.c_str());
            item->post(-400);
@@ -1126,11 +1177,7 @@ void
 //       Client::read
 //
 // Purpose-
-//       Read ClientResponse data
-//
-// Implementation notes:
-//       Only called from async; IS_BLOCK is an eror condition.
-//       TODO: Consider multiple reads, moving get_rd_mesg inside for loop.
+//       Read Client response
 //
 //----------------------------------------------------------------------------
 void
@@ -1138,16 +1185,17 @@ void
      int               line)        // Caller's line number
 {  if( HCDM ) debugh("%4d Client(%p)::read\n", line, this);
 
-   Ioda ioda;
-   Mesg mesg;
-   ioda.get_rd_mesg(mesg, size_inp);
-
    ssize_t L;
    for(;;) {
+     Ioda ioda;
+     Mesg mesg;
+     ioda.get_rd_mesg(mesg, size_inp);
      L= socket->recvmsg(&mesg, 0);
      iodm(line, "read", L);
      if( L > 0 ) {
        ioda.set_used(L);
+
+       // Trace read operation
        void* addr= mesg.msg_iov[0].iov_base;
        ssize_t size= mesg.msg_iov[0].iov_len;
        if( size > L )
@@ -1155,26 +1203,41 @@ void
        if( USE_XTRACE )
          utility::iotrace(".C<<", addr, size);
        iodm(line, "read", addr, size);
+
+       // Enqueue IODA to input task
        ClientItem* item= new ClientItem(stream);
        item->ioda= std::move(ioda);
        if( USE_XTRACE )
          Trace::trace(".ENQ", "CINP", this, item);
        task_inp.enqueue(item);
-       return;
+       if( USE_READ_ONCE )
+         return;
+     } else {
+       if( L == 0 )
+         break;
+       if( !USE_READ_ONCE && IS_BLOCK )
+         return;
+       if( !IS_RETRY )
+         break;
+       debugf("%4d %s HCDM read retry\n", __LINE__, __FILE__);
      }
-     if( IS_BLOCK )
-       return;
-     if( !IS_RETRY )
-       break;
-     debugf("%4d %s HCDM read retry\n", __LINE__, __FILE__);
    }
 
-   // Handle I/O error
+   // Handle disconnect
+if( L < 0 && IS_BLOCK ) {
+  debugf("Client IS_BLOCK ignored\n");
+  return;
+}
+
    if( L == 0 || (L < 0 && errno == ECONNRESET) ) { // If connection reset
      close_enq();                   // Schedule Client close
      return;
    }
-   throw io_error(to_string("Client::read %d:%s", errno, strerror(errno)));
+
+   // Report I/O error
+   string S= to_string("Client::read %d:%s", errno, strerror(errno));
+   error(S.c_str());
+   throw io_error(S);
 }
 
 //----------------------------------------------------------------------------

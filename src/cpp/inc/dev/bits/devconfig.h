@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022 Frank Eskesen.
+//       Copyright (c) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,17 +16,16 @@
 //       Configuration control macros.
 //
 // Last change date-
-//       2022/10/16
+//       2023/04/18
 //
 //----------------------------------------------------------------------------
-#ifndef _LIBPUB_HTTP_DEVCONFIG_H_INCLUDED
-#define _LIBPUB_HTTP_DEVCONFIG_H_INCLUDED
+#ifndef _LIBPUB_HTTP_BITS_DEVCONFIG_H_INCLUDED
+#define _LIBPUB_HTTP_BITS_DEVCONFIG_H_INCLUDED
 
-#if true                            // Debugging mode?
-#define USE_DEBUG_PTR               // (Swap lines to disable/enable)
-#undef  USE_DEBUG_PTR               // (Swap lines to enable/disable)
-
+// When defined, USE_DEBUG_PTR activates shared_ptr debugging diagnostics.
+// (Swap the next two lines to select or remove its definition.)
+#define USE_DEBUG_PTR
+#undef  USE_DEBUG_PTR
 #include "pub/bits/Diagnostic.i"
-#endif
 
-#endif // _LIBPUB_HTTP_DEVCONFIG_H_INCLUDED
+#endif // _LIBPUB_HTTP_BITS_DEVCONFIG_H_INCLUDED
