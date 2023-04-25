@@ -15,16 +15,14 @@
 ##       Development status, history, and reminders.
 ##
 ## Last change date-
-##       2023/04/05
+##       2023/04/24
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
-2023/04/05 (No significant changes since 2022/12/18)
-         However, Test/TestDisp.cpp Linux timings have significantly improved.
-         Conjecture: Linux kernel/library fixes improved multithreading
-         performance.
+2023/04/24 Stable.
+         Corrected a possible timing bug in Select.cpp
 
 ##############################################################################
 ## FEATURES:
@@ -40,6 +38,11 @@
 
 ##############################################################################
 ## DONE:
+2023/04/05 Stable. No significant changes.
+         However, Test/TestDisp.cpp Linux timings have significantly improved.
+         Conjecture: Linux kernel/library fixes improved multithreading
+         performance.
+
 2022/12/18 Stable
          However, Select.cpp and Socket.cpp probably need more work.
          While no known multithreading timing holes exist, associated fixes
