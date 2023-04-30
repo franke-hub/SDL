@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2023/03/07
+//       2023/04/29
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -48,10 +48,6 @@ using namespace PUB;                // For pub:: classes
 using namespace PUB::debugging;     // For debugging functions
 using namespace PUB::utility;       // For utility functions
 using std::atomic;
-
-#define debugf         PUB::debugging::debugf
-#define opt_hcdm       PUB::Wrapper::opt_hcdm
-#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Ignore undefined flags (These flags are/were undefined on Cygwin)

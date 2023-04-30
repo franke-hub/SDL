@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022 Frank Eskesen.
+//       Copyright (c) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test pub/Wrapper.h
 //
 // Last change date-
-//       2022/09/02
+//       2023/04/29
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::runtime_error
@@ -38,9 +38,6 @@
 using namespace PUB;                // For pub objects
 using namespace PUB::debugging;     // For debugging subroutines
 using PUB::Wrapper;                 // For pub::Wrapper class
-
-#define opt_hcdm       PUB::Wrapper::opt_hcdm
-#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

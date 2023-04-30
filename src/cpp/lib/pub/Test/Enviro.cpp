@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2022 Frank Eskesen.
+//       Copyright (c) 2018-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Display environmental control variables.
 //
 // Last change date-
-//       2022/09/02
+//       2023/04/29
 //
 //----------------------------------------------------------------------------
 #define _FILE_OFFSET_BITS 64        // (Required for LINUX)
@@ -70,8 +70,6 @@ using namespace std;
 using namespace PUB;
 using namespace PUB::debugging;
 using PUB::Wrapper;                 // For pub::Wrapper class
-
-#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2023/04/22
+//       2023/04/27
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -198,7 +198,6 @@ std::shared_ptr<Client>client;      // The Client
 
 std::atomic_size_t     cur_op_count= 0; // The number of running requests
 Event                  ready;       // Thread ready event
-Event                  ended;       // Thread ended event
 Event                  send_end;    // Send completion event (for run_one)
 
 static std::atomic_int client_serial; // Global serial number
@@ -241,8 +240,8 @@ void
 {  debugf("ClientThread(%p)::debug(%s)\n", this, info);
 
    debugf("..[%d] cur_op_count(%'zd)\n", serial, cur_op_count.load());
-   debugf("..ready(%d) ended(%d) send_end(%d)\n"
-         , ready.is_post(), ended.is_post(), send_end.is_post());
+   debugf("..ready(%d) send_end(%d)\n"
+         , ready.is_post(), send_end.is_post());
    if( client ) client->debug("ClientThread");
 }
 
@@ -284,6 +283,7 @@ void
      debugh("[%2d] do_POST(%s,%s)\n", serial, path.c_str(), data.c_str());
 
    std::shared_ptr<ClientStream> stream= client->make_stream();
+   error_count += VERIFY( stream.get() != nullptr);
    if( stream.get() == nullptr )
      return;
 
@@ -296,10 +296,9 @@ void
 
    if( opt_iodm ) {
      debugf("do_POST(%s,%s)\n", path.c_str(), data.c_str());
-//   (Options not set)
-//   Options& opts= (Options&)*Q.get();
-//   for(Options::const_iterator it= opts.begin(); it != opts.end(); ++it)
-//      debugf("%s: %s\n", it->first.c_str(), it->second.c_str());
+     Options& opts= Q->get_opts();
+     for(Options::const_iterator it= opts.begin(); it != opts.end(); ++it)
+       debugf("%s: %s\n", it->first.c_str(), it->second.c_str());
    }
 
    Q->write(data.c_str(), data.size()); // Write the POST data
@@ -411,8 +410,9 @@ void
    ++cur_op_count;
 
    std::shared_ptr<ClientStream> stream= client->make_stream();
+   error_count += VERIFY( stream.get() != nullptr);
    if( stream.get() == nullptr ) {
-     debugf("%4d %s Should Not Occur\n", __LINE__, __FILE__);
+     send_end.post();
      return;
    }
 
@@ -527,7 +527,6 @@ virtual void
    //-------------------------------------------------------------------------
    // Client per connection version - in test -- -- -- -- -- -- -- -- -- -- --
    if( opt_major > 0 ) {            // Use run_one()
-     ended.reset();                 // Indicate not complete
      ready.post();                  // Indicate ready
      test_start.wait();             // Wait for start signal
 
@@ -544,6 +543,9 @@ virtual void
        ++error_count;
        debugf("%4d catch(...)\n", __LINE__);
      }
+
+     ready.reset();                 // Not ready
+
      return;
    }
 
@@ -574,7 +576,6 @@ virtual void
               , cur_op_count.load());
    };
 
-   ended.reset();                   // Indicate not complete
    ready.post();                    // Indicate ready
    test_start.wait();               // Wait for start signal
 
@@ -594,7 +595,6 @@ virtual void
 
    client->wait();                  // Wait for operations to complete
    ready.reset();                   // Not ready
-   ended.post();                    // Indicate complete
 
    if( opt_hcdm && opt_verbose )
      debugf("...[%2d] ClientThread.run\n", serial);
@@ -615,7 +615,6 @@ virtual void
 virtual void
    start( void )                    // Start the ClientThread
 {
-   ended.reset();
    ready.reset();
    Thread::start();
    ready.wait();
@@ -926,7 +925,7 @@ public:
    opts.insert("http1", "true");    // HTTP1 allowed
 
    listen= listen_agent->connect(port, AF_INET, &opts); // Create Listener
-   if( listen == nullptr ) {
+   if( listen.get() == nullptr ) {
      int ERRNO= errno;
      debugf("T_Stream: cannot connect port(%s) %d:%s\n"
            , port.substr(1, string::npos).c_str(), errno, strerror(ERRNO));

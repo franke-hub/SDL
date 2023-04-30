@@ -24,8 +24,8 @@
 
 // When defined, USE_DEBUG_PTR activates shared_ptr debugging diagnostics.
 // (Swap the next two lines to select or remove its definition.)
-#define USE_DEBUG_PTR
 #undef  USE_DEBUG_PTR
+#define USE_DEBUG_PTR
 #include "pub/bits/Diagnostic.i"
 
 #endif // _LIBPUB_HTTP_BITS_DEVCONFIG_H_INCLUDED

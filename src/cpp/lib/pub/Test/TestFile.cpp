@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2022 Frank Eskesen.
+//       Copyright (c) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Fileman.h (parts untested by ~/src/cpp/Fileman)
 //
 // Last change date-
-//       2022/09/02
+//       2023/04/29
 //
 //----------------------------------------------------------------------------
 //#include <stdio.h>
@@ -35,9 +35,6 @@
 using namespace PUB::debugging;     // For debugging functions
 using namespace PUB::fileman;
 using PUB::Wrapper;
-
-#define opt_hcdm       PUB::Wrapper::opt_hcdm
-#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 //

@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2023/04/21
+//       2023/04/26
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -626,6 +626,9 @@ int                                 // Return code (0 OK)
      rc= ::getsockname(handle, (sockaddr*)&hostaddr, &hostsize);
      if( rc == 0 )
        host_addr.copy((sockaddr*)&hostaddr, hostsize);
+     else
+       debugf("%4d %d= getsockname(...) %d:%s\n", __LINE__, rc
+             , errno, strerror(errno));
 
      if( HCDM )
        debugf("%4d HCDM %d= getsockname(%s,%d) %d:%s\n", __LINE__, rc

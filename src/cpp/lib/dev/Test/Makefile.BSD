@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2023/04/24
+##       2023/04/27
 ##
 ##############################################################################
 
@@ -143,6 +143,7 @@ pristine.dir: ;
 	-@rm -f public.pem  >/dev/null 2>/dev/null
 	-@rm -f log/*       >/dev/null 2>/dev/null
 	-@rm -f trace.mem   >/dev/null 2>/dev/null
+	-@rm -f *.out       >/dev/null 2>/dev/null
 
 clean : clean.dir
 clean.dir: ;

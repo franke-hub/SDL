@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Wrapper.h generic program wrapper.
 //
 // Last change date-
-//       2022/09/02
+//       2023/04/29
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -43,7 +43,6 @@
 using namespace pub;                // For pub:: classes
 using std::string;
 
-namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -55,9 +54,10 @@ enum
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-int                    Wrapper::opt_hcdm= HCDM; // Hard Core Debug Mode
-int                    Wrapper::opt_verbose= VERBOSE; // Verbosity
+int                    opt_hcdm= HCDM; // Hard Core Debug Mode
+int                    opt_verbose= VERBOSE; // Verbosity
 
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Options
 //----------------------------------------------------------------------------
@@ -65,9 +65,9 @@ static int             opt_help= false; // --help (or error)
 
 static const char*     ostr= ":";   // The getopt_long optstring parameter
 static struct option   opts[]=      // The getopt_long parameter: longopts
-{  {"help",    no_argument,       &opt_help,             true}
-,  {"hcdm",    no_argument,       &Wrapper::opt_hcdm,    true}
-,  {"verbose", optional_argument, &Wrapper::opt_verbose,    1}
+{  {"help",    no_argument,       &opt_help,    true}
+,  {"hcdm",    no_argument,       &opt_hcdm,    true}
+,  {"verbose", optional_argument, &opt_verbose,    1}
 ,  {0, 0, 0, 0}                     // (End of Wrapper internal option list)
 };
 

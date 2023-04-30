@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021-2022 Frank Eskesen.
+//       Copyright (c) 2021-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test the Number object.
 //
 // Last change date-
-//       2022/09/02
+//       2023/04/29
 //
 //----------------------------------------------------------------------------
 #include <inttypes.h>               // For PRId64, PRIx64 printf format macros
@@ -36,9 +36,6 @@ using namespace PUB;                // For Number
 using namespace PUB::debugging;     // For debugging functions
 using PUB::Wrapper;                 // For pub::Wrapper class
 using namespace std;
-
-#define opt_hcdm       PUB::Wrapper::opt_hcdm
-#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2022 Frank Eskesen.
+//       Copyright (c) 2018-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Thread function.
 //
 // Last change date-
-//       2022/09/02
+//       2023/04/29
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -48,9 +48,6 @@ using PUB::Semaphore;
 using PUB::Thread;
 using PUB::Wrapper;
 using namespace PUB::debugging;
-
-#define opt_hcdm       PUB::Wrapper::opt_hcdm
-#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

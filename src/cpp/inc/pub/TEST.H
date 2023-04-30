@@ -62,7 +62,7 @@ static inline int                   // Error count
 
    if( !valid ) {
      result= 1;
-     _PUB::debugging::debugf("%4d: Error: VERIFY(%s)\n", line, expr);
+     _PUB::debugging::debugf("%4d Error: VERIFY(%s)\n", line, expr);
    }
 
    return result;
@@ -82,7 +82,7 @@ static inline int                   // Error count
      int               line,        // Calling line number
      const char*       text)        // Expression
 {
-   _PUB::debugging::debugf("%4d: Error: MUST_NOT(%s)\n", line, text);
+   _PUB::debugging::debugf("%4d Error: MUST_NOT(%s)\n", line, text);
    return 1;
 }
 
@@ -106,7 +106,7 @@ static inline int                   // Error count
 
    if( want != have ) {
      result= 1;
-     _PUB::debugging::debugf("%4d: Error: MUST_EQ(%s) have(%ld) want(%ld)\n"
+     _PUB::debugging::debugf("%4d Error: MUST_EQ(%s) have(%ld) want(%ld)\n"
                             , line, expr, have, want);
    }
 
@@ -126,7 +126,7 @@ static inline int                   // Error count
 
    if( want != have ) {
      result= 1;
-     _PUB::debugging::debugf("%4d: Error: MUST_EQ(%s) have(%s) want(%s)\n"
+     _PUB::debugging::debugf("%4d Error: MUST_EQ(%s) have(%s) want(%s)\n"
          , line, expr, _PUB::utility::to_string(have).c_str()
          , _PUB::utility::to_string(want).c_str());
    }

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement http/Options.h
 //
 // Last change date-
-//       2022/03/06
+//       2023/04/26
 //
 //----------------------------------------------------------------------------
 #include <algorithm>                // For std::swap
@@ -49,9 +49,6 @@ namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
 // {  HCDM= false                      // Hard Core Debug Mode?
 // ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 // }; // enum
-
-static const Options::const_iterator
-                       static_end;  // A static Options::end()
 
 //----------------------------------------------------------------------------
 //
@@ -222,22 +219,10 @@ const string                        // The Option value
      const string&     value) const // And this default value
 {
    const char* item= name.c_str();
-#if 1  // (TEST ++ITERATOR)
-   for(const_iterator it= begin(); it != static_end; ++it) {
+   for(const_iterator it= begin(); it != end(); ++it) {
      if( strcasecmp(item, it->first.c_str()) == 0 )
        return it->second.c_str();
    }
-#elif 1 // (TEST ITERATOR++)
-   for(const_iterator it= begin(); it != end(); it++) {
-     if( strcasecmp(item, it->first.c_str()) == 0 )
-       return it->second.c_str();
-   }
-#else
-   for(Option* opt= opts.get_head(); opt; opt= opt->get_next()) {
-     if( strcasecmp(item, opt->first.c_str()) == 0 )
-       return opt->second.c_str();
-   }
-#endif
 
    return value;
 }
@@ -304,6 +289,20 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Options::const_iterator::operator=
+//
+// Purpose-
+//       Assignment operator
+//
+//----------------------------------------------------------------------------
+Options::const_iterator&
+   Options::const_iterator::operator=(
+     const const_iterator& from)
+{  item= from.item; return *this;  }
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Options::const_iterator::operator==
 //       Options::const_iterator::operator!=
 //
@@ -360,10 +359,9 @@ const Options::Option*
 //----------------------------------------------------------------------------
 Options::const_iterator&
    Options::const_iterator::operator++( void ) // Prefix ++operator
-{  if( item == nullptr )
-     throw std::runtime_error("end()::operator++()");
+{  if( item )
+     item= item->get_next();
 
-   item= item->get_next();
    return *this;
 }
 

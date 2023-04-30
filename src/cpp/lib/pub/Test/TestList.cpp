@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2007-2022 Frank Eskesen.
+//       Copyright (C) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       List tests.
 //
 // Last change date-
-//       2022/09/02
+//       2023/04/29
 //
 //----------------------------------------------------------------------------
 #include <new>
@@ -39,9 +39,6 @@ using PUB::DHSL_list;
 using PUB::SHSL_list;
 using PUB::List;
 using PUB::Wrapper;
-
-#define opt_hcdm       PUB::Wrapper::opt_hcdm
-#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

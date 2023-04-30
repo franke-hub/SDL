@@ -202,7 +202,7 @@ std::shared_ptr<Client>             // The associated Client
    for(int index= 0; index < 2; ++index ) { // Try AF_INET, then AF_INET6
      sockaddr_storage peer_addr;
      socklen_t peer_sz= sizeof(peer_addr);
-     int AF= index ? AF_INET6 : AF_INET;
+     int AF= (index == 1) ? AF_INET6 : AF_INET;
      int rc= Socket::name_to_addr(peer, (sockaddr*)&peer_addr, &peer_sz, AF);
      if( rc ) {                     // If error
        if( VERBOSE > 1 )

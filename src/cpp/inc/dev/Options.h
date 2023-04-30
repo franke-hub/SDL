@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       HTTP Options.
 //
 // Last change date-
-//       2023/03/06
+//       2023/04/26
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_OPTIONS_H_INCLUDED
@@ -98,6 +98,9 @@ public:
    const_iterator(const const_iterator&); // Copy constructor
    const_iterator(const List<Option>&); // Constructor
 
+const_iterator&
+     operator=(const const_iterator&); // Assignment operator
+
 bool operator==(const const_iterator&) const; // Operator ==
 bool operator!=(const const_iterator&) const; // Operator !=
 
@@ -108,28 +111,6 @@ const_iterator  operator++( int );  // Postfix operator
 
 void swap(const_iterator&);         // (Swappable)
 }; // class const_iterator
-
-//----------------------------------------------------------------------------
-// Options::iterator
-//----------------------------------------------------------------------------
-class iterator : public std::forward_iterator_tag {
-Option*                item= nullptr; // The current Option
-public:
-   ~iterator( void ) = default;     // Destructor
-   iterator( void ) = default;      // Default (end) constructor
-   iterator(const const_iterator&); // Copy constructor
-   iterator(const List<Option>&);   // Constructor
-
-bool operator==(const const_iterator&) const; // Operator ==
-bool operator!=(const const_iterator&) const; // Operator !=
-
-Option& operator*( void ) const;    // Dereference operator
-Option* operator->( void ) const;   // Dereference operator
-iterator& operator++( void );       // Prefix operator
-iterator  operator++( int );        // Postfix operator
-
-void swap(iterator&);               // (Swappable)
-}; // class iterator
 
 //----------------------------------------------------------------------------
 // Options::Attributes

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       TestIoda.h
 //
 // Last change date-
-//       2022/10/19
+//       2023/04/29
 //
 // Implementation notes-
 //       Usability study.
@@ -31,7 +31,7 @@
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/utility.h>            // For pub::utilities
-// #include <pub/Wrapper.h>            // For pub::Wrapper
+#include <pub/Wrapper.h>            // For pub::Wrapper
 
 #include "pub/http/Ioda.h"          // For pub::http::Ioda, ... (Tested)
 
@@ -58,8 +58,15 @@ enum
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-int                    opt_hcdm= HCDM; // Hard Core Debug Mode
-int                    opt_verbose= VERBOSE; // Verbosity
+// Extended options
+static int             opt_dirty= false; // --dirty
+static int             opt_size= false;  // --size
+static int             opt_unit= true;   // (Always TRUE)
+static struct option   opts[]=      // The getopt_long parameter: longopts
+{  {"dirty",  no_argument,        &opt_dirty,       true} // --dirty
+,  {"size",   no_argument,        &opt_size,        true} // --size
+,  {0, 0, 0, 0}                     // (End of option list)
+};
 
 //----------------------------------------------------------------------------
 //
@@ -116,7 +123,31 @@ static inline int
    return error_count;
 }
 
-//============================================================================
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_size
+//
+// Purpose-
+//       Display class and structure size
+//
+//----------------------------------------------------------------------------
+static inline int
+   test_size( void )                // Test object sizes
+{
+   if( opt_verbose )
+     debugf("\ntest_sizes:\n");
+   int error_count= 0;
+
+   SIZEOF(Ioda);
+   SIZEOF(Ioda::Page);
+   SIZEOF(Ioda::Mesg);
+   SIZEOF(IodaReader);
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
 //
 // Subroutine-
 //       test_unit
@@ -339,30 +370,6 @@ static const size_t sizes[SIZES_DIM]=
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       test_size
-//
-// Purpose-
-//       Display class and structure size
-//
-//----------------------------------------------------------------------------
-static inline int
-   test_size( void )                // Test object sizes
-{
-   if( opt_verbose )
-     debugf("\ntest_sizes:\n");
-   int error_count= 0;
-
-   SIZEOF(Ioda);
-   SIZEOF(Ioda::Page);
-   SIZEOF(Ioda::Mesg);
-   SIZEOF(IodaReader);
-
-   return error_count;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
 //       main
 //
 // Purpose-
@@ -370,40 +377,53 @@ static inline int
 //
 //----------------------------------------------------------------------------
 extern int                          // Return code
-   main(int, char**)                // Mainline code
-//   int             argc,          // Argument count
-//   char*           argv[])        // Argument array
+   main(                            // Mainline code
+     int             argc,          // Argument count
+     char*           argv[])        // Argument array
 {
-   int error_count= 0;              // Error count
+   Wrapper  tc= opts;               // The test case wrapper
+   Wrapper* tr= &tc;                // A test case wrapper pointer
 
    setlocale(LC_NUMERIC, "");       // Enables printf("%'d\n", 123'456'789)
 
-   try {
-     if( opt_hcdm )
-       debug_set_mode(Debug::MODE_INTENSIVE);
+   tc.on_info([]()
+   {
+     fprintf(stderr, "  --dirty\tRun dirty test\n");
+     fprintf(stderr, "  --size\tRun object size test\n");
+   });
 
-     error_count += test_size();
-     error_count += test_unit();
-//   error_count += test_dirty();
-   } catch(PUB::Exception& X) {
-     error_count++;
-     debugf("%4d %s\n", __LINE__, ((string)X).c_str());
-   } catch(std::exception& X) {
-     error_count++;
-     debugf("%4d std::exception(%s)\n", __LINE__, X.what());
-   } catch(...) {
-     error_count++;
-     debugf("%4d catch(...)\n", __LINE__);
-   }
+   tc.on_main([tr](int, char**)
+   {
+     int error_count= 0;            // Error count
 
-   if( error_count == 0 )
-     debugf("NO errors detected\n");
-   else if( error_count == 1 )
-     debugf("1 error detected\n");
-   else {
-     debugf("%d errors detected\n", error_count);
-     error_count= 1;
-   }
+     try {
+       if( opt_verbose )
+         debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
 
-   return error_count;
+       if( opt_size  ) error_count= test_size();
+       if( opt_unit  ) error_count= test_unit();
+       if( opt_dirty ) error_count += test_dirty();
+     } catch(const char* x) {
+       debugf("FAILED: Exception: const char*(%s)\n", x);
+       ++error_count;
+     } catch(std::exception& x) {
+       debugf("FAILED: Exception: exception(%s)\n", x.what());
+       ++error_count;
+     } catch(...) {
+       debugf("FAILED: Exception: ...\n");
+       ++error_count;
+     }
+
+     if( opt_verbose || error_count ) {
+       debugf("\n");
+       tr->report_errors(error_count);
+     }
+     return int(error_count != 0);
+   });
+
+   //-----------------------------------------------------------------------
+   // Run the tests
+   opt_hcdm= HCDM;
+   opt_verbose= VERBOSE;
+   return tc.run(argc, argv);
 }

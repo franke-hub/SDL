@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022 Frank Eskesen.
+//       Copyright (c) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2022/10/19
+//       2023/04/29
 //
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
@@ -41,9 +41,6 @@ using PUB::utility::dump;
 using PUB::utility::visify;
 using PUB::Wrapper;
 using std::string;
-
-#define opt_hcdm       PUB::Wrapper::opt_hcdm
-#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

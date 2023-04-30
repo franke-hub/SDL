@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022 Frank Eskesen.
+//       Copyright (c) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Generic program wrapper.
 //
 // Last change date-
-//       2022/09/02
+//       2023/04/29
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_WRAPPER_H_INCLUDED
@@ -28,17 +28,17 @@
 
 #include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
+//----------------------------------------------------------------------------
+// Built-in options (External, in default namespace)
+//----------------------------------------------------------------------------
+extern int             opt_hcdm;    // Hard Core Debug Mode? [default: false]
+extern int             opt_verbose; // Debugging verbosity   [default: 0]
+
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
 class Debug;                        // _LIBPUB_NAMESPACE::Debug
-
-//----------------------------------------------------------------------------
-// Options (External)
-//----------------------------------------------------------------------------
-extern int             opt_hcdm;    // Hard Core Debug Mode? [default: false]
-extern int             opt_verbose; // Debugging verbosity   [default: 0]
 
 //----------------------------------------------------------------------------
 //
@@ -76,8 +76,6 @@ class Wrapper                       // Generic program wrapper
      int               opt_index= 0; // The current option index
 
    public:
-     static int        opt_hcdm;    // Hard Core Debug Mode?
-     static int        opt_verbose; // Verbosity, higher is more verbose
      std::string       program;     // The program name
 
      ~Wrapper();                    // Destructor

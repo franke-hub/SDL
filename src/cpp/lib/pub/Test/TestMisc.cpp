@@ -16,7 +16,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2023/04/15
+//       2023/04/29
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -45,8 +45,6 @@ using namespace PUB::debugging;
 using Exception= PUB::Exception;
 using IndexException= PUB::IndexException;
 using PUB::Wrapper;                 // For pub::Wrapper class
-
-#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 //
@@ -78,16 +76,7 @@ static inline int                   // Number of errors encountered
 //
 //----------------------------------------------------------------------------
 #if defined(_HW_X86) && defined(__GNUC__)
-// Forward references
-void* test_Hardware_subroutine( void );
-int   test_Hardware( void );
-
-[[gnu::noinline]]
-void*
-   test_Hardware_subroutine( void )
-{  return pub::Hardware::getLR(); }
-
-int                                 // Number of errors encountered
+static inline int                   // Number of errors encountered
    test_Hardware( void )            // Test Hardware.h
 {
    int                 error_count= 0; // Number of errors encountered
@@ -95,8 +84,8 @@ int                                 // Number of errors encountered
    if( opt_verbose )
      debugf("\ntest_Hardware\n");
 
-   intptr_t one= (intptr_t)test_Hardware_subroutine();
-   intptr_t two= (intptr_t)test_Hardware_subroutine();
+   intptr_t one= (intptr_t)pub::Hardware::getLR();
+   intptr_t two= (intptr_t)pub::Hardware::getLR();
    error_count += VERIFY(two > one && (two-one) < 64);
    if( opt_verbose )
      debugf("one(0x%.16zx) two(0x%.16zx) getLR\n", one, two);

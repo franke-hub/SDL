@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Lock.h
 //
 // Last change date-
-//       2022/09/02
+//       2023/04/29
 //
 //----------------------------------------------------------------------------
 #include "pub/Lock.h"               // The test object
@@ -44,9 +44,6 @@
 using PUB::Debug;                   // For Debug object
 using namespace PUB::debugging;     // For debugging functions
 using PUB::Wrapper;                 // For PUB::Wrapper class
-
-#define opt_hcdm       PUB::Wrapper::opt_hcdm
-#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Compile-time options

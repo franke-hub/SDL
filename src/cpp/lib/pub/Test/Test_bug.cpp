@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2022 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test debugging methods.
 //
 // Last change date-
-//       2022/09/02
+//       2023/04/29
 //
 //----------------------------------------------------------------------------
 #include <errno.h>                  // For errno
@@ -28,9 +28,6 @@
 using PUB::Debug;
 using namespace PUB::debugging;
 using PUB::Wrapper;                 // For pub::Wrapper class
-
-#define opt_hcdm       PUB::Wrapper::opt_hcdm
-#define opt_verbose    PUB::Wrapper::opt_verbose
 
 //----------------------------------------------------------------------------
 // Extended options

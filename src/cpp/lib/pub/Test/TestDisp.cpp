@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2022 Frank Eskesen.
+//       Copyright (c) 2018-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,9 +16,9 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2022/09/02
+//       2023/04/29
 //
-// Arguments: (For testtime only)
+// Arguments: (For test_timing only)
 //       TestDisp --timing          // (Only run timing test)
 //       [1] 10240 Number of outer loops
 //       [2]   160 Number of elements queued per loop
@@ -44,21 +44,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <pub/TEST.H>               // For test functions and macros
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/Dispatch.h"           // For pub::dispatch objects, tested
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Interval.h>           // For pub::Interval
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
-
 #include "pub/Wrapper.h"            // For class Wrapper
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB;
 using namespace PUB::debugging;
-
-#define opt_hcdm       PUB::Wrapper::opt_hcdm
-#define opt_verbose    PUB::Wrapper::opt_verbose
+using PUB::Wrapper;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -72,169 +70,32 @@ enum
 }; // enum
 
 //----------------------------------------------------------------------------
+// Internal classes and subroutines
+//----------------------------------------------------------------------------
+#include "TestDisp.hpp"
+
+//----------------------------------------------------------------------------
+// External data areas
+//----------------------------------------------------------------------------
+std::atomic<uint64_t>  RondesvousTask::rondesvous= 0; // Rondesvous bit map
+
+//----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static std::atomic<uint64_t>
-                       rondesvous;  // Rondesvous bit map
 static void*           table= nullptr; // The Trace table
 
 // Extended options
+static int             opt_error= false; // --error TODO: REMOVE
+static int             opt_stress= false; // --stress
 static int             opt_timing= false; // --timing
 static int             opt_trace= 0; // --trace
 static struct option   opts[]=      // The getopt_long parameter: longopts
-{  {"timing",  no_argument,       &opt_timing,      true} // --timing
+{  {"stress",  no_argument,       &opt_stress,      true} // --stress
+,  {"timing",  no_argument,       &opt_timing,      true} // --timing
 ,  {"trace",   optional_argument, &opt_trace, 0x00400000} // --trace
+,  {"error",   no_argument,       &opt_error,       true} // --error
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       PassAlongTask
-//       PassAlongLambdaTask
-//
-// Purpose-
-//       Pass work to next Task in list.
-//
-//----------------------------------------------------------------------------
-class PassAlongTask : public dispatch::Task {
-public:
-dispatch::Task*        next;        // Next Task in list
-
-virtual
-   ~PassAlongTask( void )
-{  if( HCDM ) debugf("~PassAlongTask(%p)\n", this); }
-
-   PassAlongTask(
-     dispatch::Task*   next_)
-:  dispatch::Task()
-,  next(next_)
-{  if( HCDM ) debugf("PassAlongTask(%p)\n", this); }
-
-virtual void
-   work(
-     dispatch::Item*   item)
-{
-   if( HCDM )
-     debugf("PassAlongTask(%p)::work(%p) next(%p)\n", this, item, next);
-
-   if( USE_TRACE )
-     Trace::trace(".PAT", " PAT", item, next);
-
-   if( next )
-     next->enqueue(item);           // Give the work to the next Task
-   else
-     item->post();
-}
-}; // class PassAlongTask
-
-class PassAlongLambdaTask : public dispatch::LambdaTask {
-protected:
-dispatch::Task*        next;        // Next Task in list
-
-public:
-virtual
-   ~PassAlongLambdaTask( void )
-{
-   if( HCDM && opt_verbose > 1 )
-     debugf("~PassAlongLambdaTask(%p)\n", this);
-}
-
-   PassAlongLambdaTask(
-     dispatch::Task*   next_)
-:  LambdaTask([this](dispatch::Item* item)
-{
-   if( HCDM && opt_verbose > 1 )
-     debugf("PassAlongLambdaTask(%p)::work(%p) next(%p)\n", this, item, next);
-
-   if( USE_TRACE )
-     Trace::trace("WORK", ".PAL", item, next);
-
-   next->enqueue(item);
-})
-,  next(next_)
-{
-   if( HCDM && opt_verbose > 1 )
-     debugf("PassAlongLambdaTask(%p)\n", this);
-}
-}; // class PassAlongLambdaTask
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       RondesvousTask
-//
-// Purpose-
-//       Report work item received, drive Done callback.
-//
-//----------------------------------------------------------------------------
-class RondesvousTask : public dispatch::Task {
-protected:
-int                    index;       // Rondesvous identifier
-
-public:
-virtual
-   ~RondesvousTask( void )
-{  if( HCDM ) debugf("~RondesvousTask(%p) %2d\n", this, index); }
-
-   RondesvousTask(
-     int               index)
-:  dispatch::Task()
-,  index(index)
-{  if( HCDM ) debugf("RondesvousTask(%p) %2d\n", this, index); }
-
-virtual void
-   work(
-     dispatch::Item*   item)
-{
-   uint64_t bitmap= ((uint64_t)1)<<index;
-
-   uint64_t oldValue= rondesvous.load();
-   for(;;)
-   {
-     uint64_t newValue= oldValue | bitmap;
-     if( rondesvous.compare_exchange_strong(oldValue, newValue) )
-       break;
-   }
-
-// debugf("%2d %.16" PRIx64 " %.16" PRIx64 "\n", index, bitmap, newValue);
-   item->post();
-}
-}; // class RondesvousTask
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       ::throwf
-//
-// Purpose-
-//       Write a diagnostic error message and throw an exception.
-//
-//----------------------------------------------------------------------------
-[[noreturn]]
-ATTRIB_PRINTF(2,3)
-static void
-   throwf(                          // Abort with error message
-     int               line,        // Line number
-     const char*       fmt,         // Error message
-                       ...);        // PRINTF arguments
-
-[[noreturn]]
-ATTRIB_PRINTF(2,3)
-static void
-   throwf(                          // Abort with error message
-     int               line,        // Line number
-     const char*       fmt,         // Error message
-                       ...)         // PRINTF arguments
-{
-   va_list             argptr;      // Argument list pointer
-
-   fprintf(stderr, "%4d %s: ABORT: ", line, __FILE__);
-
-   va_start(argptr, fmt);           // Initialize va_ functions
-   vthrowf(fmt, argptr);
-   va_end(argptr);                  // Close va_ functions
-}
 
 //----------------------------------------------------------------------------
 //
@@ -255,10 +116,10 @@ static inline int
 {
    int                 error_count= 1; // Error count
 
-   if( HCDM ) debugf("%4d test0000\n", __LINE__);
+   if( opt_verbose ) debugf("%4d test0000\n", __LINE__);
 
    // Basic function test ====================================================
-   if( HCDM ) debugf("\n%4d Basic function test\n", __LINE__);
+   if( opt_verbose ) debugf("\n%4d Basic function test\n", __LINE__);
    dispatch::Item     item;         // Our work Item
    dispatch::Wait     wait;         // Our Wait object
    class Test0000Task : public dispatch::Task {
@@ -275,10 +136,10 @@ static inline int
 
    item.done= &wait;                // Set Wait object
    task.enqueue(&item);             // Drive work
-   if( HCDM ) debugf("%4d waiting...\n", __LINE__);
+   if( opt_verbose ) debugf("%4d waiting...\n", __LINE__);
    wait.wait();                     // Wait for work completion
    task.reset();
-   if( HCDM ) debugf("%4d ...running\n", __LINE__);
+   if( opt_verbose ) debugf("%4d ...running\n", __LINE__);
 
    if( error_count != 0 )
      throwf(__LINE__, "result(%d) non-zero", error_count);
@@ -286,7 +147,7 @@ static inline int
      throwf(__LINE__, "cc(%d) non-zero", item.cc);
 
    // Lambda function test ===================================================
-   if( HCDM ) debugf("\n%4d Lambda function test\n", __LINE__);
+   if( opt_verbose ) debugf("\n%4d Lambda function test\n", __LINE__);
    int not_done= true;
    int not_task= true;
    PUB::Event event;                // Our completion item
@@ -305,9 +166,9 @@ static inline int
    item.cc= -1;                     // Set error result
    item.done= &l_done;
    l_task.enqueue(&item);           // Drive work
-   if( HCDM ) debugf("%4d waiting...\n", __LINE__);
+   if( opt_hcdm && opt_verbose ) debugf("%4d waiting...\n", __LINE__);
    event.wait();                    // Wait for event
-   if( HCDM ) debugf("%4d ...running\n", __LINE__);
+   if( opt_hcdm && opt_verbose ) debugf("%4d ...running\n", __LINE__);
 
    if( item.cc != 0 )
      throwf(__LINE__, "cc(%d) non-zero", item.cc);
@@ -317,7 +178,7 @@ static inline int
      throwf(__LINE__, "not_done (l_done.done not driven)");
 
    // Verify delay and cancel ================================================
-   if( HCDM ) debugf("\n%4d delay/cancel function tests\n", __LINE__);
+   if( opt_verbose ) debugf("\n%4d delay/cancel function tests\n", __LINE__);
    wait.reset();
    item.done= &wait;                // Set Wait object
    Interval interval;
@@ -363,10 +224,10 @@ static inline int
    dispatch::Item*     ITEM[64];    // Rondesvous Item array
    dispatch::Wait      WAIT[64];    // Rondesvous Wait array
 
-   if( HCDM ) debugf("\n%4d test0001\n", __LINE__);
+   if( opt_verbose ) debugf("\n%4d test0001\n", __LINE__);
 
    // Initialize
-   rondesvous.store(0);
+   RondesvousTask::rondesvous.store(0);
    for(int i= 0; i<64; i++)
    {
      TASK[i]= new RondesvousTask(i);
@@ -381,7 +242,7 @@ static inline int
    for(int i= 0; i<64; i++)
      WAIT[i].wait();
 
-   int64_t value= rondesvous.load();
+   int64_t value= RondesvousTask::rondesvous.load();
    if( value != (-1) )
      throwf(__LINE__, "Work incomplete %" PRIx64, value);
 
@@ -402,14 +263,60 @@ static inline int
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       testtime
+//       test_error
 //
 // Purpose-
-//       Bringup test: Timing/stress test.
+//       Error test TODO: REMOVE
+//
+//----------------------------------------------------------------------------
+static inline int
+   test_error(int, char**)          // Error test TODO: REMOVE
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
+{
+   if( opt_verbose ) debugf("\n%4d test_error\n", __LINE__);
+   int                 error_count= 0; // Error count
+
+   if( opt_hcdm )
+     throw std::runtime_error("test runtime_error");
+
+   error_count += VERIFY( "test_error always fails" == nullptr );
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_stress
+//
+// Purpose-
+//       Stress test
+//
+//----------------------------------------------------------------------------
+static inline int
+   test_stress(int, char**)         // Stress test
+//   int               argc,        // Argument count
+//   char*             argv[])      // Argument array
+{
+   if( opt_verbose ) debugf("\n%4d test_stress\n", __LINE__);
+
+   debugf("test_stress NOT CODED YET\n"); // TODO: CODE
+
+   return 0;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_timing
+//
+// Purpose-
+//       Timing/stress test.
 //
 //----------------------------------------------------------------------------
 static int
-   testtime(                        // Mainline code
+   test_timing(                     // Mainline code
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
@@ -418,7 +325,7 @@ static int
    dispatch::Item**    ITEM;        // The Item array
    dispatch::Wait**    WAIT;        // The Wait array
 
-   if( HCDM ) debugf("%4d testtime\n", __LINE__);
+   if( opt_verbose ) debugf("\n%4d test_timing\n", __LINE__);
 
    // Set defaults
    int LOOPS= 10240;                // Number of major iterations
@@ -559,55 +466,57 @@ extern int
    Wrapper  tc= opts;               // The test case wrapper
    Wrapper* tr= &tc;                // A test case wrapper pointer
 
-   try {
-     tc.on_info([]()
-     {
-       fprintf(stderr, "  --timing\tRun timing test\n");
-       if( USE_TRACE )
-         fprintf(stderr,
-                "  --trace\t{=size} Create internal trace file './trace.mem'\n"
-                );
-     });
+   tc.on_info([]()
+   {
+     fprintf(stderr, "  --stress\tRun stress test\n");
+     fprintf(stderr, "  --timing\tRun timing test\n");
+     if( USE_TRACE )
+       fprintf(stderr,
+              "  --trace\t{=size} Create internal trace file './trace.mem'\n"
+              );
+   });
 
-     tc.on_parm([tr](std::string P, const char* V)
-     {
-       if( P == "trace" ) {
-         if( V )
-           opt_trace= tr->ptoi(V);
-       }
+   tc.on_parm([tr](std::string P, const char* V)
+   {
+     if( P == "trace" ) {
+       if( V )
+         opt_trace= tr->ptoi(V);
+     }
 
-       return 0;
-     });
+     return 0;
+   });
 
-     tc.on_init([tr](int, char**)
-     {
-       debug_set_head(Debug::HEAD_THREAD); // Include thread in heading
-       if( HCDM )
-         debug_set_mode(Debug::MODE_INTENSIVE);
+   tc.on_init([tr](int, char**)
+   {
+     debug_set_head(Debug::HEAD_THREAD); // Include thread in heading
+     if( opt_hcdm )
+       debug_set_mode(Debug::MODE_INTENSIVE);
 
-       if( USE_TRACE && opt_trace )
-         table= tr->init_trace("./trace.mem", opt_trace);
+     if( USE_TRACE && opt_trace )
+       table= tr->init_trace("./trace.mem", opt_trace);
 
-       return 0;
-     });
+     return 0;
+   });
 
-     tc.on_term([tr]()
-     {
-       if( table )
-         tr->term_trace(table, opt_trace);
-     });
+   tc.on_term([tr]()
+   {
+     if( table )
+       tr->term_trace(table, opt_trace);
+   });
 
-     tc.on_main([tr](int argc, char* argv[])
-     {
-       if( opt_verbose < VERBOSE )
-         opt_verbose= VERBOSE;
-
+   tc.on_main([tr](int argc, char* argv[])
+   {
+     int error_count= 0;
+     try {
        if( opt_verbose )
          debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
 
-       int error_count= 0;
        if( opt_timing ) {
-         error_count= testtime(argc, argv);
+         error_count= test_timing(argc, argv);
+       } else if( opt_stress ) {
+         error_count= test_stress(argc, argv);
+       } else if( opt_error ) {     // TODO: REMOVE
+         error_count += test_error(argc, argv); // TODO: REMOVE
        } else {
          static const char* static_argv[]= { "100", "100", "100" };
          argv= (char**)static_argv;
@@ -616,27 +525,29 @@ extern int
 
          if( true  ) error_count += test0000(argc, argv);
          if( true  ) error_count += test0001(argc, argv);
-         if( true  ) error_count += testtime(argc, argv);
+         if( true  ) error_count += test_timing(argc, argv);
        }
+     } catch(const char* x) {
+       debugf("FAILED: Exception: const char*(%s)\n", x);
+       ++error_count;
+     } catch(std::exception& x) {
+       debugf("FAILED: Exception: exception(%s)\n", x.what());
+       ++error_count;
+     } catch(...) {
+       debugf("FAILED: Exception: ...\n");
+       ++error_count;
+     }
 
-       if( opt_verbose ) {
-         debugf("\n");
-         tr->report_errors(error_count);
-       }
-       return error_count != 0;
-     });
+     if( opt_verbose || error_count ) {
+       debugf("\n");
+       tr->report_errors(error_count);
+     }
+     return int(error_count != 0);
+   });
 
-     //-----------------------------------------------------------------------
-     // Run the test
-     return tc.run(argc, argv);
-
-   } catch(const char* x) {
-     debugf("Exception const char*(%s)\n", x);
-   } catch(std::exception& x) {
-     debugf("Exception exception(%s)\n", x.what());
-   } catch(...) {
-     debugf("Exception ...\n");
-   }
-
-   return 2;
+   //-----------------------------------------------------------------------
+   // Run the test
+   opt_hcdm= HCDM;
+   opt_verbose= VERBOSE;
+   return tc.run(argc, argv);
 }
