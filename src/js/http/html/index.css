@@ -1,6 +1,13 @@
-﻿
-/* index.css 2021/04/28 Copyright (C) 2021 Frank N. Eskesen */
-/* License: Public domain. Use at your own risk. No attribution required. */
+/*----------------------------------------------------------------------------
+**
+**       Copyright (C) 2021 Frank Eskesen.
+**
+**       This file is free content, distributed under the "un-license,"
+**       explicitly released into the Public Domain.
+**       (See accompanying file LICENSE.UNLICENSE or the original
+**       contained within http://unlicense.org)
+**
+----------------------------------------------------------------------------*/
 * {
   background-color: #f0ffff
 }

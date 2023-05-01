@@ -3,7 +3,7 @@
 //       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
-//       (See the accompanying file LICENSE.MIT or the original contained
+//       (See accompanying file LICENSE.MIT or the original contained
 //       within https://opensource.org/licenses/MIT)
 //
 //----------------------------------------------------------------------------
@@ -141,7 +141,7 @@ of successful round-trip completions more than doubles. Presumably this is
 because one client can be sending while the other is receiving and the server
 isn't overloaded. With three client threads throughput decreases.
   - For StreamClient more clients resulted in more throughput up to a point.
-After that point there was no appreciable difference for a large range of 
+After that point there was no appreciable difference for a large range of
 client threads, then throughput slowly decreased.
 
 ### 2022/06/03 Don't make this stupid mistake

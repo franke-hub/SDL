@@ -74,7 +74,7 @@ Problem: It's possible for an accept operation to block. There are multiple
 possible causes for this. (One of them is as a result of a client being unable
 to connect because of the "Address already in use" problem described above.)
 This blocked accept condition leaves a server in an unusable and unstoppable
-state *when a client and server reside on the same machine*. The server is 
+state *when a client and server reside on the same machine*. The server is
 unable to immediately complete a connect operation to complete its blocked
 accept, because that connection's refused too.
 

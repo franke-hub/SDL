@@ -1,9 +1,9 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (c) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
-//       (See the accompanying file LICENSE.MIT or the original contained
+//       (See accompanying file LICENSE.MIT or the original contained
 //       within https://opensource.org/licenses/MIT)
 //
 //----------------------------------------------------------------------------
