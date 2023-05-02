@@ -16,7 +16,7 @@
 //       System hardware interfaces.
 //
 // Last change date-
-//       2023/04/15
+//       2023/05/02
 //
 // Implementation notes-
 //       Currently only implemented for X86 architecture and GNU compiler.
@@ -32,7 +32,7 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 // Namespace pub::Hardware, system hardware accessor namespace
 //----------------------------------------------------------------------------
-namespace Hardware {                // System hardware accessor namespace
+struct Hardware {                   // System hardware accessor functions
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -42,7 +42,7 @@ namespace Hardware {                // System hardware accessor namespace
 //       Return the link register (return address).
 //
 //----------------------------------------------------------------------------
-static inline void*                 // The caller's return address
+static void*                        // The caller's return address
    getLR( void );                   // Get link register
 
 //----------------------------------------------------------------------------
@@ -54,7 +54,7 @@ static inline void*                 // The caller's return address
 //       Return the stack pointer.
 //
 //----------------------------------------------------------------------------
-static inline void*                 // The stack pointer
+static void*                        // The stack pointer
    getSP( void );                   // Get stack pointer
 
 //----------------------------------------------------------------------------
@@ -71,15 +71,8 @@ static inline void*                 // The stack pointer
 //       Note: On some processors some of the low order bits may not change.
 //
 //----------------------------------------------------------------------------
-static inline uint64_t              // The timestamp counter
+static uint64_t                     // The timestamp counter
    getTSC( void );                  // Get timestamp counter
-} // namespace Hardware
+}; // struct Hardware
 _LIBPUB_END_NAMESPACE
-
-#if defined(_HW_X86) && defined(__GNUC__)
-#  include "bits/Hardware.i"        // (The implementation)
-#else
-#  error "Not implemented"          // Requires X86 and GNU compiler
-#endif
-
 #endif // _LIBPUB_HARDWARE_H_INCLUDED

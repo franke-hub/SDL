@@ -10,52 +10,55 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       Hardware.i
+//       Hardware.cpp
 //
 // Purpose-
 //       System hardware interfaces implementation.
 //
 // Last change date-
-//       2023/04/15
+//       2023/05/02
 //
 // Implementation notes-
-//       This file is only meant to be included by ../Hardware.h
+//       Hardware is a struct rather than a namespace so that Hardware::getLR
+//       calls are not optimized away.
 //
 //----------------------------------------------------------------------------
-#ifndef _LIBPUB_HARDWARE_BITS_I_INCLUDED
-#define _LIBPUB_HARDWARE_BITS_I_INCLUDED
+
+#include <atomic>                   // For atomic_uint64_t
+#include "pub/Hardware.h"
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
-//
-// Namespace-
-//       Hardware
-//
-// Purpose-
-//       System hardware accessor namespace
-//
+// Hardware::getLR: get the caller's return address
 //----------------------------------------------------------------------------
-namespace Hardware {                // System hardware accessor namespace
-//----------------------------------------------------------------------------
-// getLR: get the caller's return address
-//----------------------------------------------------------------------------
-static inline void*                 // The caller's return address
-   getLR( void )                    // Get link register
+#if !defined(__GNUC__)              // GNU compiler required
+void* Hardware::getLR( void ) { return nullptr; }
+#else
+void*                               // The caller's return address
+   Hardware::getLR( void )          // Get link register
 {  return __builtin_extract_return_addr(__builtin_return_address(0)); }
+#endif
 
 //----------------------------------------------------------------------------
 // getSP: get the current stack pointer
 //----------------------------------------------------------------------------
-static inline void*                 // The stack pointer
-   getSP( void )                    // Get stack pointer
+#if !defined(__GNUC__)              // GNU compiler required
+void* Hardware::getSP( void ) { return nullptr; }
+#else
+void*                               // The stack pointer
+   Hardware::getSP( void )          // Get stack pointer
 {  return __builtin_frame_address(0); }
-//{  return *((void**)__builtin_frame_address(0)); }
+#endif
 
 //----------------------------------------------------------------------------
 // getTSC: get the current time stamp counter
 //----------------------------------------------------------------------------
-static inline uint64_t              // The time stamp counter
-   getTSC( void )                   // Get time stamp counter
+#if !defined(__GNUC__) || !defined(_HW_X86) // GNU compiler, x86 required
+uint64_t Hardware::getTSC( void )
+{  static atomic_uint64_t tsc= 0; return ++tsc; }
+#else
+uint64_t                            // The time stamp counter
+   Hardware::getTSC( void )         // Get time stamp counter
 {
    uint64_t            result;      // Resultant
 
@@ -81,6 +84,5 @@ static inline uint64_t              // The time stamp counter
 
    return result;
 }
-} // namespace Hardware
+#endif
 _LIBPUB_END_NAMESPACE
-#endif // _LIBPUB_HARDWARE_BITS_I_INCLUDED

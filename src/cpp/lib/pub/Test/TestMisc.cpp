@@ -16,7 +16,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2023/04/29
+//       2023/05/02
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -29,15 +29,11 @@
 
 // The tested includes
 #include "pub/TEST.H"               // For VERIFY, ...
+#include "pub/Hardware.h"           // For pub::Hardware
 #include "pub/Properties.h"         // For pub::Properties
 #include "pub/Statistic.h"          // For pub::Statistic
 #include "pub/Tokenizer.h"          // For pub::Tokenizer
 #include "pub/Wrapper.h"            // For pub::Wrapper
-
-// Hardware/software specific tests
-#if defined(_HW_X86) && defined(__GNUC__)
-#  include "pub/Hardware.h"         // For namespace pub::Hardware
-#endif
 
 // Namespace accessors
 #define PUB _LIBPUB_NAMESPACE
@@ -74,8 +70,11 @@ static inline int                   // Number of errors encountered
 // Purpose-
 //       Test Hardware.h
 //
+// Implementation note-
+//       Hardware.h is only (correctly) implemented for GNU x86
+//
 //----------------------------------------------------------------------------
-#if defined(_HW_X86) && defined(__GNUC__)
+#if defined(__GNUC__) && defined(_HW_X86)
 static inline int                   // Number of errors encountered
    test_Hardware( void )            // Test Hardware.h
 {
