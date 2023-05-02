@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021 Frank Eskesen.
+//       Copyright (c) 2021-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,12 +16,13 @@
 //       Stress and timing test, comparing Ref/Object and std::shared_ptr
 //
 // Last change date-
-//       2021/08/06
+//       2023/05/02
 //
 // Usage-
 //       Stress {iterations {threads {things}}}
 //
 //----------------------------------------------------------------------------
+#include <array>
 #include <chrono>
 #include <condition_variable>
 #include <iostream>
