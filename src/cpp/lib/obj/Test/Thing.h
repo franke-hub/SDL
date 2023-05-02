@@ -1,11 +1,11 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2021 Frank Eskesen.
+//       Copyright (c) 2018-2023 Frank Eskesen.
 //
-//       This file is free content, distributed under the Lesser GNU
-//       General Public License, version 3.0.
-//       (See accompanying file LICENSE.LGPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
@@ -16,14 +16,17 @@
 //       Self-checking Object (with link)
 //
 // Last change date-
-//       2021/08/06
+//       2023/05/01
 //
 //----------------------------------------------------------------------------
 #ifndef THING_H_INCLUDED
 #define THING_H_INCLUDED
 
 #include <cstddef>                   // For size_t
+#include <memory>                    // For std::shared_ptr, ...
 #include <stdint.h>                  // For uint32_t
+
+#include <obj/Object.h>              // For obj::Object
 
 //----------------------------------------------------------------------------
 // Compile-time controls
@@ -35,13 +38,10 @@
 // Typed dependencies
 //----------------------------------------------------------------------------
 #ifdef USE_THING_OBJ                 // If using Object Thing
-  #include <obj/Object.h>
   #define MAKE_THING(ARGS) new Thing(ARGS)
   #define THING_BASE Thing_base, public obj::Object
   #define THING_PTR  obj::Ref_t<Thing>
 #else                                // If using basic Thing
-  #include <memory>
-  class Thing;                       // (Forward reference)
   #define MAKE_THING(ARGS) std::make_shared<Thing>(ARGS)
   #define THING_BASE Thing_base
   #define THING_PTR  std::shared_ptr<Thing>

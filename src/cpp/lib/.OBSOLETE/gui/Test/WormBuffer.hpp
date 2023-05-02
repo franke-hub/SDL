@@ -2,15 +2,15 @@
 //
 //       Copyright (c) 2010 Frank Eskesen.
 //
-//       This file is free content, distributed under the Lesser GNU
-//       General Public License, version 3.0.
-//       (See accompanying file LICENSE.LGPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
 // Title-
-//       WormBuffer.h
+//       WormBuffer.hpp
 //
 // Purpose-
 //       Graphical User Interface: WormBuffer
@@ -19,8 +19,8 @@
 //       2010/01/01
 //
 //----------------------------------------------------------------------------
-#ifndef GUI_WORMBUFFER_H_INCLUDED
-#define GUI_WORMBUFFER_H_INCLUDED
+#ifndef GUI_WORMBUFFER_HPP_INCLUDED
+#define GUI_WORMBUFFER_HPP_INCLUDED
 
 #ifndef LIST_H_INCLUDED
 #include <com/List.h>
@@ -194,4 +194,4 @@ void
      GUI::Bounds*      bounds);     // In this Bounds
 }; // class Worm
 
-#endif // GUI_WORMBUFFER_H_INCLUDED
+#endif // GUI_WORMBUFFER_HPP_INCLUDED

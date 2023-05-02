@@ -96,7 +96,6 @@ typedef Tokenizer::Iterator Iterator;
 
 #include <pub/ifmacro.h>            // For IFHCDM
 
-#define ALLOW_HTML_EXT false        // Allow html copyrights?
 #define OPT_EXTENSIONS -101         // Get list of file extensions
 
 //----------------------------------------------------------------------------
@@ -461,12 +460,10 @@ static void
        printf("%s: %6d\n", code_table[i].name, code_count[i]);
      }
 
-if( ALLOW_HTML_EXT ) {
      printf("\nHtml format copyrights:\n");
      for(int i= 0; i < COPY_TYPES; ++i ) {
        printf("%s: %6d\n", html_table[i].name, html_count[i]);
      }
-}
 
      printf("\nLily format copyrights:\n");
      for(int i= 0; i < COPY_TYPES; ++i ) {
@@ -499,13 +496,13 @@ static void
    fprintf(stderr,"Copyright <options>\n");
    fprintf(stderr,"Options:\n"
                    "  -x\t\tAuto-correct mode\n"
-                   "  --format\tCheck file format\n"
+                   "  --format\tVerify unix file format\n"
                    "  --multi\tAllow multiple errors/changes\n"
                    "  --verify\tVerify copyright text\n"
                    "  --verbose\t{=n} Verbosity, 1 if =n unspecified\n"
           );
 
-   exit(2);
+   exit(1);
 }
 
 //----------------------------------------------------------------------------
@@ -1006,7 +1003,7 @@ static void
      }
 
      if( !opt_multi )
-       exit(1);
+       exit(0);
    }
 }
 
@@ -1030,7 +1027,10 @@ static int                          // The copyright year, -1 if invalid
    Iterator            tok_iter= tok_line.begin();
 
    // Verify copyright line
-   string comment= (tok_iter++)();  // Get/skip leading comment characters
+   // The copyright line contains either a two character token or two blanks
+   string comment= "  ";
+   if( text[0] != ' ' )             // If a leading token exists
+     comment= (tok_iter++)();       // Get/skip leading comment token
    if( tok_iter() != "Copyright" ) { // If missing copyright statement
      printf("File(%s) (c) Malformed(%s)\n", full.c_str(), text.c_str());
      return -1;
@@ -1114,7 +1114,7 @@ static int                          // The copyright year, -1 if invalid
        printf("File(%s) Copyright line correctable\n", full.c_str());
      }
      if( !opt_multi )
-       exit(1);
+       exit(0);
     }
 
    return c_year;
@@ -1148,12 +1148,12 @@ static void
    } else if( is_code(file) ) {
      count= code_count;
      table= code_table;
-   } else if( is_lily(file) ) {
-     count= lily_count;
-     table= lily_table;
    } else if( is_html(file) ) {
      count= html_count;
      table= html_table;
+   } else if( is_lily(file) ) {
+     count= lily_count;
+     table= lily_table;
    }
 
    for(int i= 0; table[i].name; i++) {
@@ -1164,8 +1164,16 @@ static void
        if( !rhs )
          break;
 
-       if( strcmp(lhs->text+2, rhs->text+2) != 0 )
+       // Account for possible empty lines
+       // If a line is not empty, it must contain at least 2 characters
+       if( *lhs->text == '\0' ) {
+         if(*rhs->text != '\0' )    // LHS empty but RHS not empty
+           break;
+       } else if( *rhs->text == '\0' ) { // LHS not empty but RHS empty
          break;
+       } else if( strcmp(lhs->text+2, rhs->text+2) != 0 ) {
+         break;
+       }
 
        lhs= lhs->get_next();
        rhs= rhs->get_next();
@@ -1181,11 +1189,11 @@ static void
 
    printf("File(%s) Copyright invalid\n", data.full().c_str());
    if( !opt_multi )
-     exit(1);
+     exit(0);
 }
 
 //----------------------------------------------------------------------------
-//
+//                                  `
 // Subroutine-
 //       handle_bash
 //
@@ -1308,7 +1316,17 @@ static void
 static void
    handle_html(                     // Handle an html file
      Data&             data)        // The content
-{  (void)data; // TODO: NOT CODED YET
+{
+   Line* line= get_copyline(data);
+   if( line == nullptr )
+     return;
+
+   int c_year= verify_copy(data, line);
+   if( c_year > 0 )
+     verify_date_last(data, c_year);
+
+   if( opt_verify )
+     verify_info(data);
 }
 
 //----------------------------------------------------------------------------
@@ -1418,7 +1436,6 @@ static void
              exit(0);
          }
        }
-
 
        string name(file->name);
        Data data(path, name);

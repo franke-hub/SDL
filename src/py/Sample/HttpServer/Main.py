@@ -32,7 +32,7 @@ import socket
 import socketserver
 import threading
 
-_PORT = 7777
+_PORT = 8080
 _VERBOSE = 0
 
 def encode(s):

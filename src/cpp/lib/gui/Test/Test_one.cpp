@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2021 Frank Eskesen.
+//       Copyright (C) 2021-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Testcase: One simple window
 //
 // Last change date-
-//       2021/01/24
+//       2023/05/01
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -42,6 +42,7 @@
 #include <gui/Device.h>             // For gui::Device
 #include <gui/Window.h>             // For gui::Window
 #include <pub/Debug.h>              // For Debug object
+#include <pub/Exception.h>          // For pub::Exception
 
 #include <Config.h>                 // For namespace config
 #include <Tester.h>                 // For Tester (window)

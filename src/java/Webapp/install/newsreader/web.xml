@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- ===================================================================== -->
-<!--     Copyright (C) 2008 Frank Eskesen.                                 -->
-<!--                                                                       -->
-<!--     This file is free content, distributed under the GNU General      -->
-<!--     Public License, version 3.0.                                      -->
-<!--     (See accompanying file LICENSE.GPL-3.0 or the original            -->
-<!--     contained within https://www.gnu.org/licenses/gpl-3.0.en.html)    -->
-<!-- ===================================================================== -->
+<!--
+
+         Copyright (C) 2008 Frank Eskesen.
+
+         This file is free content, distributed under the GNU General
+         Public License, version 3.0.
+         (See accompanying file LICENSE.GPL-3.0 or the original
+         contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+
+-->
 <!DOCTYPE web-app
     PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
     "http://java.sun.com/dtd/web-app_2_3.dtd">

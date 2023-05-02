@@ -2,10 +2,10 @@
 //
 //       Copyright (C) 2020-2021 Frank Eskesen.
 //
-//       This file is free content, distributed under the GNU General
-//       Public License, version 3.0.
-//       (See accompanying file LICENSE.GPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+//       This file is free content, distributed under the Lesser GNU
+//       General Public License, version 3.0.
+//       (See accompanying file LICENSE.LGPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //

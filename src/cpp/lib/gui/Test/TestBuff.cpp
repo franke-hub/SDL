@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2021 Frank Eskesen.
+//       Copyright (C) 2021-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Testcase: Test ~/src/cpp/inc/gui/Buffer.h
 //
 // Last change date-
-//       2021/02/01
+//       2023/05/01
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -44,6 +44,7 @@
 #include <gui/Keysym.h>             // For X11 keysymdef.h macros
 #include <gui/Window.h>             // For gui::Window
 #include <pub/Debug.h>              // For Debug object
+#include <pub/Exception.h>          // For pub::Exception
 #include <pub/utility.h>            // For utility::dump
 
 #include <Config.h>                 // For namespace config

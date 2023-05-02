@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2021 Frank Eskesen.
+//       Copyright (C) 2021-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Gravitational simulator.
 //
 // Last change date-
-//       2021/02/09
+//       2023/05/01
 //
 // Data points-
 //       https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html
@@ -69,7 +69,8 @@
 #include <gui/Global.h>             // For gui::opt_* controls
 #include <gui/Keysym.h>             // For X11 keysymdef.h macros
 #include <gui/Window.h>             // For gui::Window
-#include <pub/Debug.h>              // For Debug object
+#include <pub/Debug.h>              // For namespace pub::Debug
+#include <pub/Exception.h>          // For pub::Exception
 
 #include "Config.h"                 // For namespace config
 #include "Gravity.h"                // For Gravity objects

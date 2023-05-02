@@ -1,17 +1,14 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- --------------------------------------------------------------------- -->
-<!--                                                                       -->
-<!-- Copyright:                                                            -->
-<!--     NONE: This sample is in the public domain.                        -->
-<!--                                                                       -->
-<!-- Title:                                                                -->
-<!--     HttpServer.xml                                                    -->
-<!--                                                                       -->
-<!-- Purpose:                                                              -->
-<!--     Define HTTP handlers (BRINGUP)                                    -->
-<!--                                                                       -->
-<!-- --------------------------------------------------------------------- -->
+<!--
 
+         Copyright (C) 2018 Frank Eskesen.
+
+         This file is free content, distributed under the "un-license,"
+         explicitly released into the Public Domain.
+         (See accompanying file LICENSE.UNLICENSE or the original
+         contained within http://unlicense.org)
+
+-->
 <web-app>
   <servlet name="File Server">
     <mapping url="/html" lib="./libFileServer.so.1.0"/>
