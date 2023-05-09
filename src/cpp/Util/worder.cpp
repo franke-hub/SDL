@@ -16,7 +16,7 @@
 //       Search for word match.
 //
 // Last change date-
-//       2023/01/11
+//       2023/05/07
 //
 // Implementation notes-
 //       worder table:+++-= abort:==--+ ... (ABATE)
@@ -58,8 +58,8 @@ static int             count= 0;    // Number of letters in target word
 static int             opt_debug= 0; // --debug
 
 enum
-{  DIM_ALPH= 'z' - 'a' + 1          // Big enough for the 'a'..'z' alphabet
-,  DIM_CHAR= 128                    // Big enough for any ASCII char
+{  DIM_ALPH= 128                    // Big enough for any ASCII character
+,  DIM_CHAR= 128                    // Big enough for any ASCII character
 ,  DIM_WORD= 128                    // Big enough for any word
 };
 
@@ -93,21 +93,23 @@ static void
    debugf("'\n");
 
    debugf("\nLetter table:\n");
-   for(int cx= 0; cx < DIM_ALPH; ++cx) {
+   for(int C= 0; C < DIM_ALPH; ++C) {
+     if( (C < 'a' || C > 'z') && C != '@' )
+       continue;
      string S= "Unknown";
-     int maxi= maxis[cx];
+     int maxi= maxis[C];
      if( maxi == 0 ) {
        S= "Does not occur";
        S= "Occurs 0 times";
      } else {
-       int mini= minis[cx];
+       int mini= minis[C];
        if( mini == maxi )
          S= pub::utility::to_string("Occurs %d time%s", mini
                                    , mini == 1 ? "" : "s");
        else
          S= pub::utility::to_string("Occurs %d..%d times", mini, maxi);
      }
-     debugf("[%c] %s\n", cx + 'a', S.c_str());
+     debugf("[%c] %s\n", C, S.c_str());
    }
 
    debugf("\n%s %s %s\n", __FILE__, __DATE__, __TIME__);
@@ -134,12 +136,14 @@ static void
      "  --debug\tDebugging display\n"
      "\n"
      "Rule: LLLLL?????\n"
-     "  Where 'L' is any lower case character between 'a' and 'z', and\n"
-     "  '?' is either '-', '+', or '=', and\n"
-     "    '-' indicates letter doesn't appear at this position in a word\n"
+     "  Where 'L' is '@' or any lower case character between 'a' and 'z'\n"
+     "    ('@' does not appear in any word), and\n"
+     "  '?' is either '-', '+', '=', or '%%', and\n"
+     "    '-' indicates the letter doesn't appear at this position in a word\n"
      "        and, if it's not a duplicate, doesn't appear in any word\n"
-     "    '+' indicates letter appears at some position in a word\n"
-     "    '=' indicates letter appears at this position in a word\n"
+     "    '+' indicates the letter appears at another position in a word\n"
+     "    '=' indicates the letter appears at this position in a word\n"
+     "    '%%' indicates the letter appears at any position in a word\n"
      "\n"
      "Example: worder steam--++- brake--=-+\n"
    );
@@ -193,15 +197,16 @@ static void
    count /= 2;
 
    // Since we know the count, initialize the maxis array
-   for(int cx= 0; cx < DIM_ALPH; ++cx)
-     maxis[cx]= count;
+   for(int C= 0; C < DIM_ALPH; ++C)
+     maxis[C]= count;
 
    //=========================================================================
    for(int argi= argn; argi < argc; ++argi) { // For each parameter
      char* parm= argv[argi];
      bool valid= true;
-     for(int wx= 0; wx < count; ++wx) { // Only lower case latin letters valid
-       if( parm[wx] < 'a' || parm[wx] > 'z' ) {
+     // Valid letters 'a' through'z' or '.' (an invalid character)
+     for(int wx= 0; wx < count; ++wx) {
+       if( (parm[wx] < 'a' || parm[wx] > 'z') && parm[wx] != '@' ) {
          valid= false;
          break;
        }
@@ -211,13 +216,16 @@ static void
        printf("%4d STOP: %s\n", __LINE__, parm);
 
      char* desc= parm + count;
-     for(int wx= 0; wx < count; ++wx) { // Only '-', '+', and '=' are valid
-       if( desc[wx] != '-' && desc[wx] != '+' && desc[wx] != '=' )
+     for(int wx= 0; wx < count; ++wx) { // Valid codes:
+       if(    desc[wx] != '-'       // '-' Not present
+           && desc[wx] != '+'       // '+' Present, but not at this location
+           && desc[wx] != '='       // '=' Present at this location
+           && desc[wx] != '%' )     // '%' Present at some location
          valid= false;
      }
 
      if( desc[count] )              // Descriptor must have correct length
-       valid= false;
+         valid= false;
 
      if( !valid ) {
        fprintf(stderr, "Malformed parameter '%s'\n", parm);
@@ -225,33 +233,30 @@ static void
      }
 
      // Initialize letter occurrance counters
-     int hits[DIM_ALPH]= {};        // By letter, number of '='/'+' occurances
+     int hits[DIM_ALPH]= {};        // By letter, number of '=,+,%' occurances
      int miss[DIM_ALPH]= {};        // By letter, number of missed occurances
      for(int wx= 0; wx<count; ++wx) {
        int C= parm[wx];
-       int cx= C - 'a';
        int D= desc[wx];
-       if( D == '=' || D == '+' )
-         ++hits[cx];
+       if( D == '=' || D == '+' || D == '%' )
+         ++hits[C];
        else /* D == '-' */
-         ++miss[cx];
+         ++miss[C];
      }
 
      // Cross-check parameters, updating remaining letter occurance count
      for(int wx= 0; wx<count; ++wx) {
        int C= parm[wx];
-       int cx= C - 'a';
-
        int D= desc[wx];
        if( D == '-' ) { //----------------------------------------------------
          // If character can't appear here
-         if( minis[cx] > hits[cx] ) {
+         if( minis[C] > hits[C] ) {
            fprintf(stderr, "Argument '%s'[%d] is '%c' but '%c' must be in "
                            "word at least %d time%s\n"
-                  , parm, wx+1, D, C, minis[cx], minis[cx] == 1 ? "" : "s");
+                  , parm, wx+1, D, C, minis[C], minis[C] == 1 ? "" : "s");
            info();
          }
-         notat[wx][cx]= true;       // Letter can't appear at this position
+         notat[wx][C]= true;        // Letter can't appear at this position
 
        } else if( D == '+' ) { //---------------------------------------------
          // If character appears elsewhere in word
@@ -261,7 +266,7 @@ static void
                   , parm, wx+1, parm[wx], known[wx]);
            info();
          }
-         notat[wx][cx]= true;       // It appears elsewhere, not here
+         notat[wx][C]= true;        // It appears elsewhere, not here
 
        } else if( D == '=' ) { //---------------------------------------------
          // If character match found
@@ -278,13 +283,12 @@ static void
      // Calculate minimum and maximum number of letter occurrances in word
      for(int wx= 0; wx<count; ++wx) {
        int C= parm[wx];
-       int cx= C - 'a';
-       int H= hits[cx];
-       if( minis[cx] < H )
-         minis[cx]= H;              // Set new minimum
+       int H= hits[C];
+       if( minis[C] < H )
+         minis[C]= H;               // Set new minimum
 
-       if( miss[cx] && maxis[cx] > H )
-         maxis[cx]= H;              // Set new maximum
+       if( miss[C] && maxis[C] > H )
+         maxis[C]= H;               // Set new maximum
      }
    }
 
@@ -337,8 +341,7 @@ int                                 // Main return code
      bool valid= true;
      for(int wx= 0; wx<count; ++wx) { // For each character
        int C= text[wx];
-       int cx= C - 'a';
-       if( maxis[cx] == 0 ) {       // If word contains disallowed characters
+       if( maxis[C] == 0 ) {        // If word contains disallowed characters
          valid= false;
          break;
        }
@@ -370,20 +373,19 @@ int                                 // Main return code
      char hits[DIM_CHAR]= {};       // The character hit count
      for(int wx= 0; wx < count; ++wx) { // Get repetition count by character
        int C= text[wx];
-       int cx= C - 'a';
-       if( notat[wx][cx] ) {
+       if( notat[wx][C] ) {
          valid= false;
          break;
        }
 
-       ++hits[cx];
+       ++hits[C];
      }
      if( !valid )
        continue;
 
      // Verify repetition counts for all characters, not just those in the word
-     for(int cx= 0; cx < DIM_ALPH; ++cx) {
-       if( hits[cx] > maxis[cx] || hits[cx] < minis[cx] ) {
+     for(int C= 0; C < DIM_ALPH; ++C) {
+       if( hits[C] > maxis[C] || hits[C] < minis[C] ) {
          valid= false;
          break;
        }
