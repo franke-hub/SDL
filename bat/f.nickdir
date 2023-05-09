@@ -1,7 +1,7 @@
 ##
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (c) 2012-2022 Frank Eskesen.
+##       Copyright (c) 2012-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Extract nickname for subdirectory
 ##
 ## Last change date-
-##       2022/07/21
+##       2023/05/09
 ##
 ## Usage-
 ##       cd `nickdir alias_name`
@@ -35,6 +35,7 @@ case $1 in
   list)
     echo      aiml=`nickdir aiml`
     echo     clone=`nickdir clone`
+    echo       com=`nickdir com`
     echo       cpp=`nickdir cpp`
     echo       ctl=`nickdir ctl`
     echo       dev=`nickdir dev`
@@ -74,26 +75,6 @@ case $1 in
 
   ############################################################################
   ## C++ source directories
-  src | src/cpp)
-    __FULLDIR="$HOME/src/cpp"
-    ;;
-
-  src/cpp/*)
-    __FULLDIR="$HOME/$1"
-    ;;
-
-  src/com | src/dev | src/gui | src/obj | src/pub)
-    __FULLDIR="$HOME/src/cpp/lib/${1:4}"
-    ;;
-
-  src/com/* | src/dev/* | src/gui/* | src/obj/* | src/pub/*)
-    __FULLDIR="$HOME/src/cpp/lib/${1:4}"
-    ;;
-
-  src/*)
-    __FULLDIR="$HOME/src/cpp/${1:4}"
-    ;;
-
   ctl)
     __FULLDIR="$HOME/src/cpp/ctl/BSD"
     ;;
@@ -110,22 +91,48 @@ case $1 in
     __FULLDIR="$HOME/src/cpp/$1"
     ;;
 
+  src | src/cpp)
+    __FULLDIR="$HOME/src/cpp"
+    ;;
+
+  src/cpp/*)
+    __FULLDIR="$HOME/$1"
+    ;;
+
+  src/com | src/dev | src/gui | src/obj | src/pub)
+    __FULLDIR="$HOME/src/cpp/lib/${1:4}"
+    ;;
+
+  src/com/* | src/dev/* | src/gui/* | src/obj/* | src/pub/*)
+    __FULLDIR="$HOME/src/cpp/lib/${1:4}"
+    ;;
+
+  src/edit | src/Edit)
+    __FULLDIR="$HOME/src/cpp/Edit"
+    ;;
+
+  src/xcb | src/Xcb)
+    __FULLDIR="$HOME/src/cpp/Edit/Xcb"
+    ;;
+
+  src/*)
+    __FULLDIR="$HOME/src/cpp/${1:4}"
+    ;;
+
   ############################################################################
   ## C++ object directories
+  [c,C]lone | [e,E]dit | [f,F]orth | [s,S]ample | [w,W]ilbur)
+    eval __i=`echo ${1:0:1} | tr "[a-z]" "[A-Z]"`
+    __FULLDIR="$HOME/obj/cpp/${__i}${1:1}"
+    unset __i
+    ;;
+
+  com)
+    __FULLDIR="$HOME/obj/cpp/lib/com"
+    ;;
+
   cpp)
     __FULLDIR="$HOME/obj/cpp"
-    ;;
-
-  obj/cpp | obj/doc | obj/java | obj/js | obj/mcs | obj/py)
-    __FULLDIR="$HOME/$1"
-    ;;
-
-  obj/cpp/* | obj/doc/* | obj/java/* | obj/js/* | obj/mcs/* | obj/py/*)
-    __FULLDIR="$HOME/$1"
-    ;;
-
-  obj/* | cpp/*)
-    __FULLDIR="$HOME/obj/cpp/${1:4}"
     ;;
 
   dev)
@@ -144,14 +151,6 @@ case $1 in
     __FULLDIR="$HOME/obj/cpp/dll/${1:4}"
     ;;
 
-  lib)
-    __FULLDIR="$HOME/obj/cpp/lib"
-    ;;
-
-  lib/*)
-    __FULLDIR="$HOME/obj/cpp/lib/${1:4}"
-    ;;
-
   gui)
     __FULLDIR="$HOME/obj/cpp/lib/gui"
     ;;
@@ -160,18 +159,36 @@ case $1 in
     __FULLDIR="$HOME/obj/cpp/lib/gui/${1:4}"
     ;;
 
+  lib)
+    __FULLDIR="$HOME/obj/cpp/lib"
+    ;;
+
+  lib/*)
+    __FULLDIR="$HOME/obj/cpp/lib/${1:4}"
+    ;;
+
+  obj)
+    __FULLDIR="$HOME/obj/cpp/lib/obj"
+    ;;
+
+  obj/cpp | obj/doc | obj/java | obj/js | obj/mcs | obj/py)
+    __FULLDIR="$HOME/$1"
+    ;;
+
+  obj/cpp/* | obj/doc/* | obj/java/* | obj/js/* | obj/mcs/* | obj/py/*)
+    __FULLDIR="$HOME/$1"
+    ;;
+
+  obj/* | cpp/*)
+    __FULLDIR="$HOME/obj/cpp/${1:4}"
+    ;;
+
   pub)
     __FULLDIR="$HOME/obj/cpp/lib/pub"
     ;;
 
   pub/*)
     __FULLDIR="$HOME/obj/cpp/lib/pub/${1:4}"
-    ;;
-
-  [c,C]lone | [e,E]dit | [f,F]orth | [s,S]ample | [w,W]ilbur)
-    eval __i=`echo ${1:0:1} | tr "[a-z]" "[A-Z]"`
-    __FULLDIR="$HOME/obj/cpp/${__i}${1:1}"
-    unset __i
     ;;
 
   xcb | Xcb | XCB)
@@ -187,6 +204,10 @@ case $1 in
 
   ############################################################################
   ## Java object directories
+  golf | java.golf)
+    __FULLDIR="$HOME/obj/java/Webapp/usr/fne/golfer"
+    ;;
+
   java)
     __FULLDIR="$HOME/obj/java"
     ;;
@@ -197,10 +218,6 @@ case $1 in
 
   java.fne | java.web)
     __FULLDIR="$HOME/obj/java/Webapp/usr/fne"
-    ;;
-
-  golf | java.golf)
-    __FULLDIR="$HOME/obj/java/Webapp/usr/fne/golfer"
     ;;
 
   ############################################################################
@@ -225,16 +242,16 @@ case $1 in
 
   ############################################################################
   ## Python object directories
+  aiml | AIML)
+    __FULLDIR="$HOME/obj/py/aiml"
+    ;;
+
   py)
     __FULLDIR="$HOME/obj/py"
     ;;
 
   py/*)
     __FULLDIR="$HOME/obj/py/${1:3}"
-    ;;
-
-  aiml | AIML)
-    __FULLDIR="$HOME/obj/py/aiml"
     ;;
 
   ############################################################################
