@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,11 +16,12 @@
 //       Object implementation methods.
 //
 // Last change date-
-//       2014/01/01
+//       2023/05/12
 //
 //----------------------------------------------------------------------------
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdint.h>                  // For uintptr_t
 #include <stdlib.h>
 
 #include <com/Atomic.h>

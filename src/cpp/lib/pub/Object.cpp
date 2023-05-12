@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2022 Frank Eskesen.
+//       Copyright (C) 2018-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,11 +16,12 @@
 //       Object method implementations.
 //
 // Last change date-
-//       2022/09/02
+//       2023/05/12
 //
 //----------------------------------------------------------------------------
 #include <typeinfo>                 // For typeid, used in get_class_name
 #include <boost/core/demangle.hpp>  // Used in get_class_name
+#include <stdint.h>                 // For uintptr_t
 #include <stdio.h>                  // For sprintf
 
 #include "pub/Object.h"             // For pub::Object, implemented

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021-2022 Frank Eskesen.
+//       Copyright (c) 2021-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,12 +16,13 @@
 //       UTF utilities
 //
 // Last change date-
-//       2022/09/02
+//       2023/05/12
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_UTF_H_INCLUDED
 #define _LIBPUB_UTF_H_INCLUDED
 
+#include <cstdint>                  // For uint8_t, ...
 #include <iterator>                 // For std::forward_iterator_tag
 
 #include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros

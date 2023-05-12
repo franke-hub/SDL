@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       GUI Widget descriptor
 //
 // Last change date-
-//       2021/01/22
+//       2023/05/12
 //
 //----------------------------------------------------------------------------
 #ifndef GUI_WIDGET_H_INCLUDED
@@ -28,6 +28,13 @@
 #include "gui/Types.h"              // For gui type definitions
 
 namespace gui {
+//----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+struct config_t;                    // Layout::config_t
+class Device;                       // Device class
+class Window;                       // Window class
+
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -121,6 +128,14 @@ virtual void
 // Widget::Methods
 //----------------------------------------------------------------------------
 public:
+virtual void                        // (Configure phase I)
+   configure(Device*, Window*)      // Configure the Pixmap
+{  }                                // (Ignored unless overridden)
+
+virtual void                        // (Configure phase II)
+   configure(config_t&)             // Configure the Layout
+{  }                                // (Ignored unless overridden)
+
 virtual void                        // (Configure phase III)
    configure( void )                // Configure the Widget (create object)
 {  }                                // (Ignored unless overridden)

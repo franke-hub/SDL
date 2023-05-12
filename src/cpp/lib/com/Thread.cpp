@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Thread object methods.
 //
 // Last change date-
-//       2020/10/03
+//       2023/05/12
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -58,6 +58,9 @@
 //
 //----------------------------------------------------------------------------
 class _SystemThread : public Thread { // _SystemThread descriptor
+using Thread::cancel;               // (Avoids compiler error messages)
+using Thread::wait;                 // (Avoids compiler error messages)
+
 public:
 virtual
    ~_SystemThread( void );          // Destructor

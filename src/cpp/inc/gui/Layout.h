@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       XCB Layout Widget descriptor
 //
 // Last change date-
-//       2021/01/22
+//       2023/05/12
 //
 //----------------------------------------------------------------------------
 #ifndef GUI_LAYOUT_H_INCLUDED
@@ -45,10 +45,12 @@ class Window;
 //
 //----------------------------------------------------------------------------
 class Layout : public Widget {      // Layout widget
+public:
+using Widget::configure;
+
 //----------------------------------------------------------------------------
 // Layout::config_t
 //----------------------------------------------------------------------------
-public:
 struct config_t {                   // Parameters to Layout::configure
 xcb_rectangle_t        rect= {0,0,0,0}; // Current rectangle
 XY_size_t              cur_disp= {0,0}; // Current (origin 0) X/Y displacement
