@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2023/01/02
+//       2023/05/05
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -753,11 +753,15 @@ const char*                         // Return message, nullptr if OK
 // Purpose-
 //       (Safely) remove a file from the file list.
 //
+// Implementation notes-
+//       Called after the active line has been committed, so
+//       data->active.get_changed() always returns nullptr.
+//
 //----------------------------------------------------------------------------
 const char*                         // Error message, nullptr expected
    editor::do_quit( void )          // Safely remove a file from the file list
 {
-   if( file->changed )
+   if( !file->damaged && file->is_changed() )
      return "File changed";
 
    remove_file();
@@ -1008,7 +1012,7 @@ void
 //       editor::un_changed
 //
 // Purpose-
-//       If any file has changed, activate it
+//       If any (undamaged) file has changed, activate it
 //
 //----------------------------------------------------------------------------
 bool                                // TRUE if editor in unchanged state
@@ -1016,13 +1020,13 @@ bool                                // TRUE if editor in unchanged state
 {
    data->commit();                  // Commit the active line
 
-   if( file->changed ) {            // If this file has changed
+   if( !file->damaged && file->is_changed() ) {
      put_message("File changed");
      return false;                  // (It's already active)
    }
 
    for(EdFile* file= file_list.get_head(); file; file= file->get_next()) {
-     if( file->changed && !file->damaged ) { // If changed and changeable
+     if( !file->damaged && file->is_changed() ) {
        term->activate(file);
        put_message("File changed");
        term->draw();

@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2023/01/01
+//       2023/05/12
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -437,6 +437,11 @@ size_t                              // The row number
    return row;
 }
 
+bool                                // TRUE if file is changed or damaged
+   EdFile::is_changed( void ) const // Is file changed or damaged?
+{  return changed||chdetab||damaged || editor::data->active.get_changed(); }
+
+
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -463,8 +468,8 @@ void
 
    if( this == editor::file )       // If this is the active file
      editor::term->synch_file(this); // Get current terminal state
-   debugf("..mode(%d) changed(%s) damaged(%s) protect(%s)\n"
-         , mode, TF(changed), TF(damaged), TF(protect));
+   debugf("..mode(%d) changed(%s) chdetab(%s) damaged(%s) protect(%s)\n"
+         , mode, TF(changed), TF(chdetab), TF(damaged), TF(protect));
    debugf("..top_line(%p) csr_line(%p)\n", top_line, csr_line);
    debugf("..col_zero(%zd) col(%d) row_zero(%zd) row(%d) rows(%zd)\n"
          , col_zero, col, row_zero, row, rows);
@@ -708,11 +713,15 @@ void
    if( mess_ == nullptr )           // Ignore if no message
      return;
 
-   EdMess* mess= mess_list.get_head();
-   if( mess && type_ < mess->type ) // Ignore less important message
-     return;
-
    std::string S(mess_);            // Message string
+   EdMess* mess= mess_list.get_head();
+   if( mess ) {                     // If a message is already present
+     if( type_ < mess->type )       // Ignore less important message
+       return;
+     if( type_ == mess->type && S == mess->mess ) // Ignore duplicate message
+       return;
+   }
+
    if( type_ == EdMess::T_MESS )    // If action message
      S += ": Click here to continue";
    mess_list.fifo(new EdMess(S, type_));
@@ -865,7 +874,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdFile::redo_delete        // (Only used by EdFile.cpp)
+//       EdFile::redo_delete
 //
 // Purpose-
 //       Delete the REDO list
@@ -950,7 +959,7 @@ void
 //       EdFile::reset
 //
 // Purpose-
-//       Reset the undo/redo lists
+//       Reset the file state and changed/damaged flags.
 //
 //----------------------------------------------------------------------------
 void
@@ -960,21 +969,10 @@ void
    redo_delete();
 
    // Delete the entire UNDO list, also deleting all remove lines
-   for(EdRedo* undo= undo_list.remq(); undo; undo= undo_list.remq() ) {
-     EdLine* line= undo->head_remove;
-     while( line ) {
-       EdLine* next= line->get_next();
-       delete line;
-
-       if( line == undo->tail_remove )
-         break;
-       line= next;
-     }
-
-     delete undo;
-   }
+   undo_delete();
 
    changed= false;
+   chdetab= false;
    damaged= false;
 }
 
@@ -1040,6 +1038,34 @@ void
 
    redo_insert(redo);               // Insert the redo
    activate(head);                  // (The old cursor's gone)
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::undo_delete
+//
+// Purpose-
+//       Delete the UNDO list
+//
+//----------------------------------------------------------------------------
+void
+   EdFile::undo_delete( void )      // Delete the UNDO list
+{
+   // Delete the entire UNDO list, also deleting all remove lines
+   for(EdRedo* undo= undo_list.remq(); undo; undo= undo_list.remq() ) {
+     EdLine* line= undo->head_remove;
+     while( line ) {
+       EdLine* next= line->get_next();
+       delete line;
+
+       if( line == undo->tail_remove )
+         break;
+       line= next;
+     }
+
+     delete undo;
+   }
 }
 
 //----------------------------------------------------------------------------

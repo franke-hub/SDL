@@ -16,7 +16,7 @@
 //       Editor: Implement EdTerm.h screen handler.
 //
 // Last change date-
-//       2023/01/02
+//       2023/05/12
 //
 // Implementation notes-
 //       EdInps.cpp implements keyboard and mouse event handlers.
@@ -140,7 +140,9 @@ static inline unsigned              // The truncated value
    fg= config::text_fg;
 
    // Layout
-   col_size= config::geom.width;   row_size= config::geom.height;   unsigned mini_c= MINI_C;
+   col_size= config::geom.width;
+   row_size= config::geom.height;
+   unsigned mini_c= MINI_C;
    unsigned mini_r= MINI_R;
    if( mini_c > col_size ) mini_c= col_size;
    if( mini_r > row_size ) mini_r= row_size;
@@ -175,6 +177,8 @@ static inline unsigned              // The truncated value
    if( flipGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, flipGC) );
    if( fontGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, fontGC) );
    if( markGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, markGC) );
+   if( bg_chg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, bg_chg) );
+   if( bg_sts ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, bg_sts) );
    if( gc_chg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_chg) );
    if( gc_msg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_msg) );
    if( gc_sts ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_sts) );
@@ -310,7 +314,7 @@ void
 
      utf32_t code= *it;             // Next encoding
      outpix += font.length.width;   // Ending pixel (+1)
-     if( outpix > rect.width || code == 0 ) // If at end of encoding
+     if( outpix >= rect.width || code == 0 ) // If at end of encoding
        break;
 
      pub::Utf16::encode(code, (utf16_t*)out + outlen);
@@ -504,6 +508,8 @@ void
    fontGC= font.makeGC(fg, bg);          // (The default)
    flipGC= font.makeGC(bg, fg);          // (Inverted)
    markGC= font.makeGC(mark_fg,    mark_bg);
+   bg_chg= font.makeGC(change_bg,  change_bg);
+   bg_sts= font.makeGC(status_bg,  status_bg);
    gc_chg= font.makeGC(change_fg,  change_bg);
    gc_msg= font.makeGC(message_fg, message_bg);
    gc_sts= font.makeGC(status_fg,  status_bg);
@@ -578,6 +584,15 @@ void
 void
    EdTerm::draw_top( void )         // Redraw the top lines
 {
+   // Draw the background
+   xcb_rectangle_t fill= {};
+   fill.width=  rect.width+1;
+   fill.height= (decltype(fill.height))(2*font.length.height + 1);
+   xcb_gcontext_t gc= editor::file->is_changed() ? bg_chg : bg_sts;
+   NOQUEUE("xcb_poly_fill_rectangle", xcb_poly_fill_rectangle
+          ( c, widget_id, gc, 1, &fill) );
+
+   // Draw the status and message/history lines
    draw_status();
    if( draw_message() )
      return;
@@ -596,7 +611,7 @@ void
 
    if( view != hist ) {             // If history not active
      hist->active.reset();
-     hist->active.index(1024);
+     hist->active.index(col_size + 1);
      const char* buffer= hist->active.get_buffer();
      putcr(hist->get_gc(), 0, HM_ROW, buffer);
      flush();
@@ -707,10 +722,7 @@ void
 
    if( HCDM )
      Trace::trace(".DRW", " sts", (void*)draw_col, (void*)draw_row);
-   xcb_gcontext_t gc= gc_sts;       // Set background/foreground GC
-   if( file->changed || file->damaged || data->active.get_changed() )
-     gc= gc_chg;
-   putxy(gc, 1, 1, buffer);
+   putxy(editor::hist->get_gc(), 1, 1, buffer);
    flush();
 }
 
@@ -796,7 +808,9 @@ void
      EdLine* line= tail;
      row_used= USER_TOP;
 
-     const unsigned max_used= row_size - USER_BOT;
+     unsigned max_used= row_size - USER_BOT;
+     if( get_y(max_used-1) > rect.height )
+       --max_used;
      while( row_used < max_used ) {
        if( line == nullptr )
          break;
@@ -986,6 +1000,9 @@ void
 // Purpose-
 //       Resize the window
 //
+// Implementation notes-
+//       *ONLY* called from configure_notify
+//
 //----------------------------------------------------------------------------
 void
    EdTerm::resize(                  // Resize the Window
@@ -993,38 +1010,45 @@ void
      unsigned          y)           // New height
 {
    if( opt_hcdm )
-     debugh("EdTerm(%p)::resize(%d,%d)\n", this, x, y);
+     debugh("EdTerm(%p)::resize(%u,%u)\n", this, x, y);
 
-   if( x < min_size.width )  x= min_size.width;
-   if( y < min_size.height ) y= min_size.height;
-   if( true  ) {                    // Truncate  size (+ 1 pixel border)
-     x= trunc(x, font.length.width) + 2;
-     y= trunc(y, font.length.height) + 2;
-   }
-
-   // If size unchanged, do nothing
-   gui::WH_size_t size= get_size();
-   if( size.width == x && size.height == y ) // If unchanged
-     return;                        // Nothing to do
-
-   // Reconfigure the window
-   set_size(x, y);
-   rect.width= (decltype(rect.width))x;
-   rect.height= (decltype(rect.height))y;
-   col_size= x / font.length.width;
-   row_size= y / font.length.height;
-
-
-   // Diagnostics
    if( opt_hcdm ) {
      gui::WH_size_t size= get_size();
-     debugf("%4d [%d x %d]= chg_size <= [%d x %d]\n",  __LINE__
-           , size.width, size.height, rect.width, rect.height);
-     rect.width=  size.width;
-     rect.height= size.height;
+     debugf("%4d [%d x %d]= get_size\n",  __LINE__, size.width, size.height);
    }
 
-// draw(); // Not required: Expose events generated by set_size()
+   // Accept whatever size the window manager gives us.
+   rect.width= (decltype(rect.width))x;
+   rect.height= (decltype(rect.height))y;
+
+   // We adjust the column and row count so we only draw complete characters.
+   unsigned prior_col= col_size;
+   unsigned prior_row= row_size;
+   col_size= (x - 2) / font.length.width;
+   row_size= (y - 2) / font.length.height;
+
+   // Some window managers don't an expose event when the window shrinks, so
+   // we generate a fake expose. That expose removes partial characters.
+   if( col_size > prior_col || row_size > prior_row ) // If bigger
+     return;                        // (An expose event will be generated)
+   if( col_size < prior_col || row_size < prior_row ) { // If smaller
+     EdView* data= editor::data;
+     if( row_size < prior_row ) {
+       while( (data->row + 1)*font.length.height >= unsigned(rect.height-2) )
+         --data->row;
+       synch_active();
+     }
+
+     if( col_size <= data->col ) {
+       while( (data->col + 1)*font.length.width >= unsigned(rect.width-2) )
+         --data->col;
+       move_cursor_H(data->col);
+     }
+
+     xcb_expose_event_t E= {};      // (Fake expose event)
+     expose(&E);                    // (Removes partial characters)
+   }
+   return;
 }
 
 //----------------------------------------------------------------------------

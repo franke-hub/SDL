@@ -16,7 +16,7 @@
 //       Editor: Implement EdTerm.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2023/01/02
+//       2023/05/12
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -585,8 +585,12 @@ void
        break;
      }
      case XK_Return: {
-       move_cursor_H(0);
-       view->enter_key();
+       if( state & gui::KS_CTRL) {  // If Ctrl-Enter
+         editor::put_message( editor::do_insert() ); // Insert line
+       } else {
+         move_cursor_H(0);
+         view->enter_key();
+       }
        break;
      }
      case XK_Tab: {
@@ -851,10 +855,12 @@ void
      xcb_configure_notify_event_t* E) // Configure notify event
 {
    if( opt_hcdm )
-     debugh("EdTerm(%p)::configure_notify(%d,%d)\n", this
-           , E->width, E->height);
+     debugh("configure_notify(%d,%d) window(%x)\n"
+           , E->width, E->height, E->window);
 
-   resize(E->width, E->height);
+   // (Ignore anything other than a window size change, e.g. window movement)
+   if( rect.width != E->width || rect.height != E->height )
+     resize(E->width, E->height);
 }
 
 void
@@ -862,7 +868,7 @@ void
      xcb_expose_event_t* E)         // Expose event
 {
    if( opt_hcdm )
-     debugh("EdTerm(%p)::expose(%d) %d [%d,%d,%d,%d]\n", this
+     debugh("expose(%x) %d [%d,%d,%d,%d]\n"
            , E->window, E->count, E->x, E->y, E->width, E->height);
 
    draw();
@@ -920,4 +926,14 @@ void
    motion.time= E->time;
    motion.x= E->event_x;
    motion.y= E->event_y;
+}
+
+// EdTerm::property_notify does nothing. It's only used to record the call.
+void
+   EdTerm::property_notify(         // Handle this
+     xcb_property_notify_event_t* E) // Property notify event
+{
+   if( opt_hcdm )
+     debugh("property_notify: window(%x) atom(%x,%s) state(%d)\n"
+           , E->window, E->atom, atom_to_name(E->atom).c_str(), state);
 }

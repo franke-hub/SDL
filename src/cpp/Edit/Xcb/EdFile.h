@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2022/12/31
+//       2023/05/12
 //
 // Implementation objects-
 //       EdLine: Editor EdFile line descriptor
@@ -255,6 +255,7 @@ size_t                 rows= 0;     // The number of file rows
 
 int                    mode= M_NONE; // The file mode
 bool                   changed= false; // File is changed
+bool                   chdetab= false; // File is changed by DETAB command
 bool                   damaged= false; // File is damaged
 bool                   protect= false; // File is protected
 
@@ -303,10 +304,8 @@ size_t                              // The row number
    get_row(                         // Get row number
      const EdLine*     cursor) const; // For this line
 
-static size_t                       // The row count
-   get_rows(                        // Get row count
-     const EdLine*     head,        // From this line
-     const EdLine*     tail);       // *To* this line
+bool                                // TRUE if file is changed or damaged
+   is_changed( void ) const;        // Is file changed or damaged?
 
 //----------------------------------------------------------------------------
 //
@@ -428,7 +427,7 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdFile::redo_delete        // (Only used by EdFile.cpp)
+//       EdFile::redo_delete
 //
 // Purpose-
 //       Delete the REDO list
@@ -496,6 +495,18 @@ void
 void
    set_mode(                        // Set the file mode
      int               mode);       // To this mode
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::undo_delete
+//
+// Purpose-
+//       Delete the UNDO list
+//
+//----------------------------------------------------------------------------
+void
+   undo_delete( void );             // Delete the UNDO list
 
 //----------------------------------------------------------------------------
 //

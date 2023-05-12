@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Global data areas and utilities
 //
 // Last change date-
-//       2021/02/09
+//       2023/05/09
 //
 //----------------------------------------------------------------------------
 #ifndef GUI_GLOBAL_H_INCLUDED
@@ -35,6 +35,9 @@ namespace gui {
 // Macros
 //----------------------------------------------------------------------------
 // ENQUEUE/NOQUEUE may be used with Pixmaps or Windows
+//   See Window.cpp: Pixmap::enqueue, Pixmap::noqueue
+//   ENQUEUE (checked) operations are checked by flush
+//   NOQUEUE operation error responses are handled by the polling loop
 #define ENQUEUE(name, op) enqueue(__LINE__, name, op)
 #define NOQUEUE(name, op) noqueue(__LINE__, name, op)
 

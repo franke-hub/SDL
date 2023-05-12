@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2022/12/31
+//       2022/05/12
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -117,7 +117,7 @@ xcb_gcontext_t                       // The current graphic context
    EdHist::get_gc( void )            // Get current graphic context
 {
    using namespace editor;
-   if( file->changed || file->damaged || data->active.get_changed() )
+   if( file->is_changed() )
      return term->gc_chg;
    return term->gc_sts;
 }

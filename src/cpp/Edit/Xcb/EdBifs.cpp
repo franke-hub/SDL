@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2023/01/02
+//       2023/05/12
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -122,11 +122,13 @@ static const char* command_list(char*);
 static const char* command_locate(char*);
 // static const char* command_margins(char*);
 static const char* command_quit(char*);
+// static const char* command_redo(char*);
 static const char* command_save(char*);
 static const char* command_set(char*);
 static const char* command_sort(char*);
 // static const char* command_tabs(char*);
 static const char* command_top(char*);
+// static const char* command_undo(char*);
 static const char* command_view(char*);
 
 static const Command_desc
@@ -148,12 +150,14 @@ static const Command_desc
 ,  {command_list,   "LIST",    "List commands"}
 // {command_margins,"MARGINS", "Set margins"}
 ,  {command_quit,   "QUIT",    "(Unconditionally) close file"}
+// {command_redo,   "REDO",    "REDO an UNDO"}
 ,  {command_save,   "SAVE",    "Write file"}
 ,  {command_set,    "SET",     "Set option= value"}
 ,  {command_sort,   "SORT",    "{-f} Sort file list"
                                " (using fully-qualified name)"}
 // {command_tabs,   "TABS",    "Set tabs"}
 ,  {command_top,    "TOP",     "Top of File"}
+// {command_undo,   "UNDO",    "UNDO a change"}
 ,  {command_view,   "V",       "Alias for VIEW"}
 ,  {command_view,   "VIEW",    "Edit file(s) in read/only mode"}
 
@@ -367,7 +371,17 @@ static const char*                  // Error message, nullptr expected
    if( file->protect )              // Do not modify protected files
      return "Read/only";
 
+   if( file->changed ) {            // If the file is changed
+     // Convert the file from changed to chdetab state.
+     file->redo_delete();
+     file->undo_delete();
+     file->changed= false;
+     file->chdetab= true;
+   }
+
    for(EdLine* line= file->line_list.get_head(); line; line= line->get_next()) {
+     if( line->flags & EdLine::F_PROT ) // If the line is protected
+       continue;                    // (Skip line; don't remove tabs)
      Active* active= nullptr;
      const char* text= line->text;  // Using the text line
      const char* tabs= strchr(text, '\t'); // Locate the first tab
@@ -393,7 +407,9 @@ static const char*                  // Error message, nullptr expected
 
      if( active ) {               // If tabs found
        active->append_text(text); // Append trailing text
-       data->commit();
+       active->append_text(" ");  // (Indicate changed)
+       data->commit_only();       // (Commit without REDO/UNDO)
+       file->chdetab= true;       // (File changed by DETAB command)
        if( line == cur )
          cur= data->cursor;
        if( line == top )
@@ -553,6 +569,16 @@ static const char*                  // Error message, nullptr expected
    return nullptr;
 }
 
+#if 0 // Works, but not needed with F11 key fix
+static const char*                  // Error message, nullptr expected
+   command_redo(char*)              // REDO an UNDO command
+{
+   editor::data->commit();
+   editor::file->redo();
+   return nullptr;
+}
+#endif
+
 static const char*                  // Error message, nullptr expected
    command_reverse(                 // Reverse locate command
      char*             parm)        // (Mutable) parameter string
@@ -655,6 +681,19 @@ static const char*                  // Error message, nullptr expected
    hist->activate();                // (Remain in command mode)
    return nullptr;
 }
+
+#if 0 // Works, but not needed with F11 key fix
+static const char*                  // Error message, nullptr expected
+   command_undo(char*)              // UNDO last file change
+{
+   if( editor::data->active.undo() ) {
+     editor::data->draw_active();
+     editor::term->draw_top();
+   } else
+     editor::file->undo();
+   return nullptr;
+}
+#endif
 
 static const char*                  // Error message, nullptr expected
    command_view(                    // View command

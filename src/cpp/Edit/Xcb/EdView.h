@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Editor data view
 //
 // Last change date-
-//       2022/12/29
+//       2023/05/05
 //
 //----------------------------------------------------------------------------
 #ifndef EDVIEW_H_INCLUDED
@@ -83,18 +83,6 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdView::draw_active
-//
-// Purpose-
-//       Redraw the active (data) line
-//
-//----------------------------------------------------------------------------
-virtual void
-   draw_active( void );             // Redraw the active line
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       EdView::get_column
 //
 // Purpose-
@@ -151,11 +139,35 @@ virtual void
 //       Commit the Active data line
 //
 // Implementation notes-
-//       This is the EdTerm commit, overridden in EdHist
+//       This is the data view commit. It's overridden in EdHist
 //
 //----------------------------------------------------------------------------
 virtual void
    commit( void );                  // Commit the Active line
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdView::commit_only
+//
+// Purpose-
+//       Commit the Active data line (without REDO)
+//
+//----------------------------------------------------------------------------
+void
+   commit_only( void );             // Commit the Active line without REDO
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdView::draw_active
+//
+// Purpose-
+//       Redraw the active (data) line
+//
+//----------------------------------------------------------------------------
+virtual void
+   draw_active( void );             // Redraw the active line
 
 //----------------------------------------------------------------------------
 //

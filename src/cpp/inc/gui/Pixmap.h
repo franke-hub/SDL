@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       XCB based Pixmap
 //
 // Last change date-
-//       2021/01/22
+//       2023/05/08
 //
 //----------------------------------------------------------------------------
 #ifndef GUI_PIXMAP_H_INCLUDED

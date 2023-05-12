@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -13,10 +13,10 @@
 //       gui/Window.cpp
 //
 // Purpose-
-//       Implement gui/Window.h
+//       Implement gui/Window.h and gui/Pixmap.h
 //
 // Last change date-
-//       2021/01/27
+//       2023/05/09
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -200,13 +200,15 @@ WH_size_t                           // The current Pixmap size
 // Purpose-
 //       Set current width and height
 //
+// Implementation notes-
+//       Window::set_size overrides this method.
+//
 //----------------------------------------------------------------------------
 void
    Pixmap::set_size(                // Set Pixmap size
      int               x,           // New width
      int               y)           // New height
-{
-   if( opt_hcdm )
+{  if( opt_hcdm )
      traceh("Pixmap::set_size(%d,%d)\n", x, y);
 
    rect.width=  uint16_t(x);
@@ -228,9 +230,11 @@ void
 //
 // Method-
 //       Pixmap::enqueue
+//       Pixmap::noqueue
 //
 // Purpose-
-//       Add operation to pending queue
+//       Add operation cookie to pending queue
+//       Ignore operation cookie. Handle (error) response in the reply loop.
 //
 //----------------------------------------------------------------------------
 void
@@ -253,7 +257,7 @@ void
    pending.op=     op;
 }
 
-// noqueue does nothing (but trace). Any response is handled in the reply loop.
+// Ignore operation cookie, handling (error) responses in the reply loop.
 void                                // Response handled in reply loop
    Pixmap::noqueue(                 // Drive operation
      int               line,        // Source line number
@@ -491,7 +495,7 @@ void
      free(reply);
    }
 
-// flush();                         // TODO: REMOVE (NOT NEEDED)
+// flush();                         // (NOT NEEDED)
 }
 
 //----------------------------------------------------------------------------
@@ -523,6 +527,9 @@ void
      int               y)           // New height
 {  if( opt_hcdm )
      debugh("Window::set_size(%d,%d)\n", x, y);
+
+   rect.width=  uint16_t(x);
+   rect.height= uint16_t(y);
 
    int16_t mask= XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
    int32_t parm[2]= { x, y };

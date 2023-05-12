@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,9 +16,11 @@
 //       XCB based Window
 //
 // Last change date-
-//       2021/01/22
+//       2023/05/08
 //
 // Implementation notes-
+//       class Window : public (Pixmap : Layout : Widget : Named)
+//
 //       The window field addresses the PARENT window. (Widget already has a
 //       parent field. A parent Widget is not necessarily the parent Window.)
 //

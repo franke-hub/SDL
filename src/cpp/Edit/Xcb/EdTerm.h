@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Terminal (screen, keyboard, and mouse) controller
 //
 // Last change date-
-//       2022/12/31
+//       2023/05/08
 //
 //----------------------------------------------------------------------------
 #ifndef EDTERM_H_INCLUDED
@@ -101,6 +101,8 @@ uint32_t               keystate= KS_INS; // Keyboard state
 xcb_gcontext_t         fontGC= 0;   // The standard graphic context
 xcb_gcontext_t         flipGC= 0;   // The inverted graphic context
 xcb_gcontext_t         markGC= 0;   // The selected graphic context
+xcb_gcontext_t         bg_chg= 0;   // Graphic background: status, changed file
+xcb_gcontext_t         bg_sts= 0;   // Graphic background: status, default
 xcb_gcontext_t         gc_chg= 0;   // Graphic context: status, changed file
 xcb_gcontext_t         gc_msg= 0;   // Graphic context: message line
 xcb_gcontext_t         gc_sts= 0;   // Graphic context: status, default
@@ -465,5 +467,9 @@ virtual void
 virtual void
    motion_notify(                   // Handle this
      xcb_motion_notify_event_t* E); // Motion notify event
+
+virtual void
+   property_notify(                 // Handle this
+     xcb_property_notify_event_t* E); // Property notify event
 }; // class EdTerm
 #endif // EDTERM_H_INCLUDED

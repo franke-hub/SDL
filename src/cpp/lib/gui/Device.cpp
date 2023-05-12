@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement gui/Device.h
 //
 // Last change date-
-//       2022/08/23
+//       2023/05/11
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -99,15 +99,6 @@ static const char*                  // The widget name or "<nullptr>"
    }
    if( s == nullptr )
      checkstop(__LINE__, "xcb_get_screen");
-
-   // Bringup: List atoms (only) =============================================
-   if( false ) {                                                            //
-     debugf("\nATOMS:\n");                                                  //
-     for(xcb_atom_t atom= 1; atom<512; atom++) {                            //
-       debugf("[%3d] '%s'\n", atom, atom_to_name(atom).c_str());            //
-     }                                                                      //
-     operational= false;                                                    //
-   } //=======================================================================
 
    // Pixmap configuration
    device= this;
