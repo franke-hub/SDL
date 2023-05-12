@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2022 Frank Eskesen.
+//       Copyright (C) 2018-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       Dispatch.h
+//       Dispatch.hpp
 //
 // Purpose-
 //       Work dispatcher, including local definitions.
 //
 // Last change date-
-//       2022/11/22
+//       2023/05/03
 //
 // Implementation note-
 //       *ONLY* included from Dispatch.cpp (in namespace pub::dispatch)

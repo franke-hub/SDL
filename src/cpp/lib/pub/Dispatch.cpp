@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2023/04/23
+//       2023/05/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -52,7 +52,7 @@ enum
 Latch                  Disp::mutex; // Termination mutex
 Timers*                Disp::timers= nullptr;
 
-#include "Dispatch.h"               // For Timers, DispatchTTL
+#include "Dispatch.hpp"             // For Timers, DispatchTTL
 
 //----------------------------------------------------------------------------
 //

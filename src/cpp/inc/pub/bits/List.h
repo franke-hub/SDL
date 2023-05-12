@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022 Frank Eskesen.
+//       Copyright (c) 2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       ../List.h template definitions and internal base classes.
 //
 // Last change date-
-//       2022/11/27
+//       2023/05/04
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_LIST_H_INCLUDED
@@ -201,6 +201,40 @@ template<typename T>
      friend bool
      operator!=(const _Self& lhs, const _Self& rhs) noexcept
      { return lhs._link != rhs._link; }
+
+     //-----------------------------------------------------------------------
+     //
+     // Method-
+     //       AI_list<T>::is_on_iter
+     //
+     // Purpose-
+     //       Test whether link is present in this AI_iter
+     //
+     // Implementation notes-
+     //       Only the consumer thread can safely use this method.
+     //
+     //-----------------------------------------------------------------------
+     bool                           // TRUE if link is contained
+       is_on_iter(                  // Is link contained?
+         pointer       link) const  // -> Link
+     {
+        if( link )
+        {
+          if( link == _link )       // Is this the current link?
+            return true;
+
+          pointer prev= _todo;
+          while( prev != nullptr )
+          {
+            if( prev == link )
+              return true;
+
+            prev= prev->get_prev();
+          }
+        }
+
+        return false;
+     }
 
      protected:
        /**

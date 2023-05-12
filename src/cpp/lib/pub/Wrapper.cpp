@@ -16,7 +16,7 @@
 //       Implement Wrapper.h generic program wrapper.
 //
 // Last change date-
-//       2023/04/29
+//       2023/05/04
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -264,13 +264,34 @@ int                                 // The integer value
    Wrapper::atoi(                   // Extract and verify integer value
      const char*       inp)         // From this string
 {
+   long value= atol(inp);
+   if( errno == 0 && (value < INT_MIN || value > INT_MAX) )
+     errno= ERANGE;
+
+   return value;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Wrapper::atol
+//
+// Purpose-
+//       Convert string to long integer, *always* setting errno.
+//
+// Implementation note-
+//       Leading or trailing blanks are NOT allowed.
+//
+//----------------------------------------------------------------------------
+long                                // The long integer value
+   Wrapper::atol(                   // Extract and verify long integer value
+     const char*       inp)         // From this string
+{
    errno= 0;
    char* strend;                    // Ending character
    long value= strtol(inp, &strend, 0);
    if( strend == inp || *inp == ' ' || *strend != '\0' )
      errno= EINVAL;
-   else if( value < INT_MIN || value > INT_MAX )
-     errno= ERANGE;
 
    return value;
 }
@@ -362,9 +383,9 @@ void*                               // The (initialized) trace file
      const char*       file,        // The trace file name
      int               size)        // The trace file size
 {
-   if( size > Trace::TABLE_SIZE_MAX )
+   if( size_t(size) > size_t(Trace::TABLE_SIZE_MAX) )
      size= Trace::TABLE_SIZE_MAX;
-   else if( size < Trace::TABLE_SIZE_MIN )
+   else if( size_t(size) < size_t(Trace::TABLE_SIZE_MIN) )
      size= Trace::TABLE_SIZE_MIN;
 
    int mode= O_RDWR | O_CREAT;
@@ -715,9 +736,9 @@ void
      void*             table,        // Output from init_trace
      int               size)         // The trace table size
 {
-   if( size > Trace::TABLE_SIZE_MAX )
+   if( size_t(size) > size_t(Trace::TABLE_SIZE_MAX) )
      size= Trace::TABLE_SIZE_MAX;
-   else if( size < Trace::TABLE_SIZE_MIN )
+   else if( size_t(size) < size_t(Trace::TABLE_SIZE_MIN) )
      size= Trace::TABLE_SIZE_MIN;
 
    if( table ) {

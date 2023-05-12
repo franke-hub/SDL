@@ -16,7 +16,7 @@
 //       Generic program wrapper.
 //
 // Last change date-
-//       2023/04/29
+//       2023/05/04
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_WRAPPER_H_INCLUDED
@@ -187,6 +187,17 @@ class Wrapper                       // Generic program wrapper
            ERANGE: Value outside of integer range.
      ************************************************************************/
      static int atoi(const char* V); // Convert V to integer
+
+     /************************************************************************
+       @brief Convert string to long integer.
+       @param V The string to convert. Non-numeric characters are invalid.
+       @returns The integer representation of `V`
+       @retval errno\
+                0: Normal, no error detected.\
+           EINVAL: Invalid character or empty string.\
+           ERANGE: Value outside of integer range.
+     ************************************************************************/
+     static long atol(const char* V); // Convert V to long integer
 
      /************************************************************************
        @brief Create debugging output file

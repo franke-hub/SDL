@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2022 Frank Eskesen.
+//       Copyright (c) 2019-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2022/12/05
+//       2023/05/04
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -84,12 +84,15 @@ public:
 //----------------------------------------------------------------------------
 enum                                // Generic enum
 {  ALIGNMENT= 32                    // Table and Record alignment
-,  TABLE_SIZE_MAX= 0x000FFFFF00UL   // Maximum allowed table size
-,  TABLE_SIZE_MIN= 0x0000010000UL   // Minimum allowed table size
+// TABLE_SIZE_MAX= 0x0'FFFF'FF00UL // Maximum allowed table size
+// TABLE_SIZE_MIN= 0x0'0001'0000UL // Minimum allowed table size
 
 ,  USE_BIG_ENDIAN= true             // A bit slower but trace easier to read
 ,  WSIZE=          sizeof(void*)
 }; // enum
+
+static constexpr size_t TABLE_SIZE_MAX= 0x0'FFFF'FF00UL; // Maximum table size
+static constexpr size_t TABLE_SIZE_MIN= 0x0'0001'0000UL; // Minimum table size
 
 enum FLAG_X                         // Flag[] indexes
 {  X_HALT= 0                        // The HALT flag. If non-zero, halt
