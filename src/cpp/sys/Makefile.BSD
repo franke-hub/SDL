@@ -1,0 +1,94 @@
+##############################################################################
+##
+##       Copyright (C) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## ~/src/cpp/sys/Makefile.BSD
+##############################################################################
+
+##############################################################################
+## Set default paths
+BINDIR = ~/bin##################### Binary directory
+MAKDIR = M######################### Makefile directory
+OBJDIR = .######################### Object directory
+SRCDIR = S######################### Source directory
+
+##############################################################################
+## Include compiler option control file
+ifeq "" "$(COMPILER)"
+COMPILER := GCC
+endif
+
+INCSRC :=Makefile.$(COMPILER)###### Compiler Control file
+ifeq "$(findstring $(OBJDIR)/$(INCSRC),$(wildcard $(OBJDIR)/Makefile.*))" "$(OBJDIR)/$(INCSRC)"
+INCSRC := $(OBJDIR)/$(INCSRC)
+else
+INCSRC := $(MAKDIR)/$(INCSRC)
+endif
+include $(INCSRC)
+
+##############################################################################
+## Include standard option control file
+INCSRC :=Makefile.OPT############## Default Control file
+ifeq "$(findstring $(OBJDIR)/$(INCSRC),$(wildcard $(OBJDIR)/Makefile.*))" "$(OBJDIR)/$(INCSRC)"
+INCSRC := $(OBJDIR)/$(INCSRC)
+else
+INCSRC := $(MAKDIR)/$(INCSRC)
+endif
+include $(INCSRC)
+
+##############################################################################
+## Set default rules
+vpath
+
+.SUFFIXES:
+.SUFFIXES: .o
+## Make% : ;
+## make% : ;
+
+% : %.o
+	$(LD) -o $@ $< $(CLOAD) $(CLIBS)
+
+%.o : $(SRCDIR)/%.cpp
+	$(CC) -o $@ -c $<  $(CFLAGS)
+
+##############################################################################
+## Default source, executable and object files
+MAKSRC := $(wildcard $(SRCDIR)/*.cpp)
+MAKEXE := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%,$(MAKSRC))
+MAKOBJ := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(MAKSRC))
+
+##############################################################################
+## Set default targets
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## Target: install
+.PHONY: install
+install: default
+	strip filecomp makeproj
+	cp -idp filecomp makeproj $(HOME)/bin/.
+
+## TODO: Implement rdconfig/wrconfig
+## strip rdconfig wrconfig
+## cp -idp rdconfig wrconfig $(HOME)/bin/.
+
+##############################################################################
+## TARGET: pristine, clean
+.PHONY: pristine clean
+pristine: clean
+	-@rm *.lst *.o *.stackdump         >/dev/null 2>/dev/null
+
+clean: ;
+	-@rm $(MAKEXE)                     >/dev/null 2>/dev/null
+	-@rm *.map                         >/dev/null 2>/dev/null
+	-@rm core errs                     >/dev/null 2>/dev/null

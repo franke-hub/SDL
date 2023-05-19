@@ -1,0 +1,59 @@
+##############################################################################
+##
+##       Copyright (C) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/cpp/sys/.README
+##
+## Purpose-
+##       Development status, history, and reminders.
+##
+## Last change date-
+##       2023/05/19
+##
+##############################################################################
+
+##############################################################################
+## IMPLEMENTATION NOTES:
+This subdirectory contains modules that should be included in the user's
+binary (~/bin) directory.
+These modules should only include system-provided include files.
+They should NOT include distribution include files. This allows these programs
+to be used in building and testing the distribution and generally to operate
+across system releases without needing compilation.
+
+##############################################################################
+## STATUS:
+2023/05/19 Created.
+
+##############################################################################
+## BUGS:
+2023/05/19 None.
+
+##############################################################################
+## CLOSED:
+2023/05/19 None.
+
+##############################################################################
+## FIXED:
+2023/05/19 makeproj.cpp
+         Now handles '#include' with whitespace, e.g. '  #  include'
+
+2023/05/19 filecomp.cpp
+         Removed pub library dependencies, essentially by minimally copying
+         the associated functions into filecomp.hpp.
+
+##############################################################################
+## TODO:
+2022/05/19 Implement rdconfig and wrconfig
+
+##############################################################################
+## DONE:
+2022/05/19 Moved ~/src/cpp/Tools/Makeproj/* here, renaming Makeproj to makeproj
+2022/05/19 Moved ~/src/cpp/Tools/Compare/* here, removing pub dependencies
