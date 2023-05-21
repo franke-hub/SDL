@@ -16,7 +16,7 @@
 //       Editor: Implement EdTerm.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2023/05/12
+//       2023/05/17
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -547,6 +547,7 @@ void
        move_cursor_H(column);
        view->active.append_text(" ");
        view->draw_active();
+       draw_top();
        break;
      }
      case XK_Break:

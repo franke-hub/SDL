@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2023/05/12
+##       2023/05/17
 ##
 ## Implementation notes-
 ##       See ".USAGE.md" for usage and implementation information.
@@ -24,6 +24,10 @@
 
 ##############################################################################
 ## STATUS: 2023/05/12
+2023/05/17 Backspace needs to call draw_top handle top background.
+
+##############################################################################
+## CHANGE LOG:
 2023/05/12 Fixed: Unable to control windows size update on GNOME.
          We no longer truncate the window size to exactly fit columns/rows.
          Instead, we do not display incomplete columns or rows.
@@ -33,8 +37,6 @@
 
 2023/05/12 Remove background pixel boundary from settings/history line.
 
-##############################################################################
-## CHANGE LOG:
 2023/05/05 Don't add duplicate messages to the message list.
          Added Ctrl-Enter (synonym for Alt-I: insert line)
          Added UNDO/REDO commands.
