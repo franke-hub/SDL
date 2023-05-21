@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2023/04/16
+//       2023/05/18
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
@@ -108,7 +108,7 @@ size_t                 size_out;    // The output buffer length
 Socket*                socket= nullptr; // Connection Socket
 stream_ptr             stream;      // The active stream
 ClientItem*            stream_item; // The active ClientItem
-StreamSet              stream_set;  // Our set of Streams
+// StreamSet              stream_set;  // Our set of Streams
 LambdaTask             task_inp;    // Reader task
 LambdaTask             task_out;    // Writer task
 
@@ -160,9 +160,11 @@ std::shared_ptr<Client>
    get_self( void ) const           // Get self-reference
 {  return self.lock(); }
 
+#if 0  // Not ready yet
 std::shared_ptr<Stream>             // The associated Stream
    get_stream(uint32_t id) const    // Locate the Stream given Stream::ident
 {  return stream_set.get_stream(id); }
+#endif
 
 //----------------------------------------------------------------------------
 // Client::Methods

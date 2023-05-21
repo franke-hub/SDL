@@ -16,7 +16,7 @@
 //       HTTP Server object.
 //
 // Last change date-
-//       2023/04/17
+//       2023/05/18
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_SERVER_H_INCLUDED
@@ -99,7 +99,7 @@ size_t                 size_inp;    // The input data area length
 size_t                 size_out;    // The output data area length
 Socket*                socket= nullptr; // The connection Socket
 stream_ptr             stream;      // The current Stream
-StreamSet              stream_set;  // Our set of Streams
+// StreamSet              stream_set;  // Our set of Streams
 LambdaTask             task_inp;    // Reader task
 LambdaTask             task_out;    // Writer task
 
