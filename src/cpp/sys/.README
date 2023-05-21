@@ -43,7 +43,9 @@ across system releases without needing compilation.
 ##############################################################################
 ## FIXED:
 2023/05/19 makeproj.cpp
-         Now handles '#include' with whitespace, e.g. '  #  include'
+         Now handles '#include' with whitespace, e.g. '  #  include' in source
+         and include files. Project file directives do not currently provide
+         this flexibility.
 
 2023/05/19 filecomp.cpp
          Removed pub library dependencies, essentially by minimally copying
@@ -51,7 +53,10 @@ across system releases without needing compilation.
 
 ##############################################################################
 ## TODO:
+---------- Priority LOW: makeproj and filecomp are nominally operational
 2022/05/19 Implement rdconfig and wrconfig
+2022/05/20 Implement ./Test subdirectory
+         Test makeproj and filecomp (installed versions)
 
 ##############################################################################
 ## DONE:

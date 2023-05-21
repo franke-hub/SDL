@@ -71,6 +71,7 @@ static char*           file_name;   // Compared file name
 //----------------------------------------------------------------------------
 // Options
 //----------------------------------------------------------------------------
+static int             opt_check= false; // --self-check
 static int             opt_hcdm= HCDM; // Hard Core Debug Mode
 static int             opt_help= false; // --help (or error)
 static int             opt_index;   // Option index
@@ -81,6 +82,7 @@ static struct option   OPTS[]=      // The getopt_long parameter: longopts
 {  {"help",    no_argument,       &opt_help,      true}
 ,  {"hcdm",    no_argument,       &opt_hcdm,      true}
 ,  {"verbose", optional_argument, &opt_verbose,      1}
+// {"self-check",    no_argument, &opt_check,     true} // NOT IMPLEMENTED
 
 ,  {0, 0, 0, 0}                     // (End of Wrapper internal option list)
 };
@@ -89,6 +91,7 @@ enum OPT_INDEX                      // Must match OPTS[]
 {  OPT_HELP
 ,  OPT_HCDM
 ,  OPT_VERBOSE
+// OPT_CHECK
 
 ,  OPT_SIZE
 };
@@ -120,10 +123,9 @@ static int                          // Return code, 0 if files compare equal
        break;
 
      if( wild_line == nullptr || file_line == nullptr ) {
-       fprintf(stderr, "Wildfile(%s)::Testfile(%s) line(%zd) mismatch\n"
-                     , wild_line ? wild_line->get_text() : "EOF"
-                     , file_line ? file_line->get_text() : "EOF"
-                     , line);
+       fprintf(stderr, "[%4zd] '%s'::'%s' mismatch\n", line
+                     , wild_line ? wild_line->get_text() : "<EOF>"
+                     , file_line ? file_line->get_text() : "<EOF>");
        return 1;
      }
 
@@ -154,7 +156,7 @@ static int                          // Return code, 0 if files compare equal
      }
 
      if( wildchar::strcmp(W, F) != 0 ) {
-       fprintf(stderr, "%zd '%s'::'%s' mismatch\n", line, W, F);
+       fprintf(stderr, "[%4zd] '%s'::'%s' mismatch\n", line, W, F);
        return 1;
      }
      wild_line= wild_line->get_next();
@@ -163,6 +165,39 @@ static int                          // Return code, 0 if files compare equal
 
    // Files compare equal
    return 0;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       self_check
+//
+// Purpose-
+//       Print the files.
+//
+//----------------------------------------------------------------------------
+static inline void                  // (Possibly unused)
+   self_check( void )               // Display the files
+{
+   Data wild(wild_name);
+   Data file(file_name);
+
+   // Print the files
+   printf("\nFile(%s)\n", wild_name);
+   int number= 0;
+   Line* line= wild.get_head();
+   while( line ) {
+     printf("[%4d] '%s'\n", ++number, line->get_text());
+     line= line->get_next();
+   }
+
+   printf("\nFile(%s)\n", file_name);
+   number= 0;
+   line= file.get_head();
+   while( line ) {
+     printf("[%4d] '%s'\n", ++number, line->get_text());
+     line= line->get_next();
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -280,6 +315,7 @@ static int                          // Return code (0 if OK)
          switch( opt_index ) {
            case OPT_HELP:           // These options handled by getopt
            case OPT_HCDM:
+////////   case OPT_CHECK:
              break;
 
            case OPT_VERBOSE:
@@ -374,7 +410,10 @@ int                                 // Return code
    // Compare the files
    //-------------------------------------------------------------------------
    try {
-     rc= compare();
+     if( opt_check )
+       self_check();
+     else
+       rc= compare();
      if( opt_verbose || rc != 0 ) {
        if( rc == 0 )
          printf("PASS: Files '%s' and '%s' compare equal\n"
