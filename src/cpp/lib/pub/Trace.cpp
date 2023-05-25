@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2022 Frank Eskesen.
+//       Copyright (C) 2019-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Trace object methods.
 //
 // Last change date-
-//       2022/11/22
+//       2023/05/22
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE                 // For sched_getcpu
@@ -289,5 +289,41 @@ void
    tracef("..next(0x%.8x) size(0x%.8x) zero(0x%.2x) last(0x%.8x) wrap(%lu)\n"
          , next.load(), size, zero, last, wrap);
    utility::dump(debug->get_FILE(), this, size, nullptr);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Trace::start
+//
+// Purpose-
+//       Resume tracing (if the trace table is present.)
+//
+//----------------------------------------------------------------------------
+void
+   Trace::start( void )             // Resume tracing
+{
+   if( table ) {
+     table->deactivate();
+     Trace::trace(".SYS", "<go>");
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Trace::stop
+//
+// Purpose-
+//       Suspend tracing (if the trace table is present.)
+//
+//----------------------------------------------------------------------------
+void
+   Trace::stop( void )              // Suspend tracing
+{
+   if( table ) {
+     Trace::trace(".SYS", "stop");
+     table->deactivate();
+   }
 }
 }  // namespace _LIBPUB_NAMESPACE

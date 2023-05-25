@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -10,25 +10,25 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       dev/Recorder.h
+//       pub/Reporter.h
 //
 // Purpose-
-//       Statistical event recorder
+//       Statistical event reporter
 //
 // Last change date-
-//       2022/10/19
+//       2023/05/24
 //
 // Implementation notes-
 //       Records contain statistical information that can be displayed by the
-//       Recorder or reset. The Recorder provides mechanisms for controlling
+//       Reporter or reset. The Reporter provides mechanisms for controlling
 //       a list of these Records. It's used when performance testing to track
 //       events that might be of interest, wherever they may be.
-//       These recording tests are normally been used for experimentation and
-//       are generally unused in production code.
+//       Recording tests are normally used for experimentation and are not
+//       generally used in production code.
 //
 //----------------------------------------------------------------------------
-#ifndef _LIBPUB_RECORDER_H_INCLUDED
-#define _LIBPUB_RECORDER_H_INCLUDED
+#ifndef _LIBPUB_REPORTER_H_INCLUDED
+#define _LIBPUB_REPORTER_H_INCLUDED
 
 #include <functional>               // For std::function
 #include <mutex>                    // For std::mutex
@@ -36,21 +36,19 @@
 
 #include <pub/List.h>               // For pub::List
 
-#include "dev/bits/devconfig.h"     // For HTTP config controls
-
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Class-
-//       Recorder
+//       Reporter
 //
 // Purpose-
-//       (Globally lockable) event recorder
+//       (Globally lockable) event reporter
 //
 //----------------------------------------------------------------------------
-class Recorder {                    // Event recorder
+class Reporter {                    // Event reporter
 //----------------------------------------------------------------------------
-// Recorder::Record
+// Reporter::Record
 //----------------------------------------------------------------------------
 public:
 struct Record {
@@ -69,7 +67,7 @@ void on_reset(const f_reset& f)     // Set reset function
 }; // class Record
 
 //----------------------------------------------------------------------------
-// Recorder::RecordItem
+// Reporter::RecordItem
 //----------------------------------------------------------------------------
 struct RecordItem : public List<RecordItem>::Link {
 Record*                record;      // The associated Record
@@ -78,7 +76,7 @@ Record*                record;      // The associated Record
 }; // struct RecordItem
 
 //----------------------------------------------------------------------------
-// Recorder::typedefs and enumerations
+// Reporter::typedefs and enumerations
 //----------------------------------------------------------------------------
 typedef std::function<void(Record&)>
                        f_reporter;  // The reporter function
@@ -87,52 +85,52 @@ typedef std::string    string;      // Import std::string
 typedef std::mutex     mutex_t;     // The mutex type
 
 //----------------------------------------------------------------------------
-// Recorder::Attributes
+// Reporter::Attributes
 //----------------------------------------------------------------------------
 protected:
-static Recorder*       common;      // -> The Common Recorder instance
-static mutex_t         mutex;       // -> The global Recorder mutex
+static Reporter*       common;      // -> The Common Reporter instance
+static mutex_t         mutex;       // -> The global Reporter mutex
 
 List<RecordItem>       list;        // The RecordItem list
 
 //----------------------------------------------------------------------------
-// Recorder::Constructors/Denstructor
+// Reporter::Constructors/Denstructor
 //----------------------------------------------------------------------------
 public:
-   Recorder( void );                // Default constructor
-   ~Recorder( void );               // Destructor
+   Reporter( void );                // Default constructor
+   ~Reporter( void );               // Destructor
 
 //----------------------------------------------------------------------------
-// Recorder::debug
+// Reporter::debug
 //----------------------------------------------------------------------------
 void debug(const char* info= "") const; // Debugging display
 
 //----------------------------------------------------------------------------
-// Recorder::Accessor methods
+// Reporter::Accessor methods
 //----------------------------------------------------------------------------
-static mutex_t&                     // The global Recorder mutex
-   get_mutex( void )                // Get global Recorder mutex
+static mutex_t&                     // The global Reporter mutex
+   get_mutex( void )                // Get global Reporter mutex
 {  return mutex; }
 
-static Recorder*                    // -> The common Recorder instance
-   get( void );                     // Get the common Recorder instance
+static Reporter*                    // -> The common Reporter instance
+   get( void );                     // Get the common Reporter instance
 
-static Recorder*                    // (The old common Recorder instance)
+static Reporter*                    // (The old common Reporter instance)
    set(                             // Set
-     Recorder*         debug);      // This new common Recorder instance)
+     Reporter*         debug);      // This new common Reporter instance)
 
-static Recorder*                    // (The current common Recorder instance)
-   show( void )                     // Get the current common Recorder instance
+static Reporter*                    // (The current common Reporter instance)
+   show( void )                     // Get the current common Reporter instance
 {  return common; }                 // Without trying to create it
 
 //----------------------------------------------------------------------------
-// Recorder::Methods
+// Reporter::Methods
 //----------------------------------------------------------------------------
-void insert(Record*);               // Insert Record* into List, NO duplicates
+void insert(Record*);               // Insert Record* into List
 void remove(Record*);               // Remove Record* from List
 
 void report(f_reporter);            // Generate report
 void reset( void );                 // Reset recording data
-}; // class Recorder
+}; // class Reporter
 _LIBPUB_END_NAMESPACE
-#endif // _LIBPUB_RECORDER_H_INCLUDED
+#endif // _LIBPUB_REPORTER_H_INCLUDED

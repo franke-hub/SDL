@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2023/04/29
+//       2023/05/24
 //
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
@@ -27,10 +27,8 @@
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/utility.h>            // For pub::utility::dump/visify
-#include <pub/Statistic.h>          // For pub::Statistic
 #include <pub/Wrapper.h>            // For pub::Wrapper
 
-#include "pub/http/Recorder.h"      // For pub::Recorder TODO: <pub/Recorder>
 #include "pub/http/Codec.h"         // For pub::http::Codec, tested
 
 #define PUB _LIBPUB_NAMESPACE
@@ -55,47 +53,11 @@ enum
 //----------------------------------------------------------------------------
 static int             opt_case= false; // (Only set if --hcdm --all)
 static int             opt_codec= true; // (Unconditionally true)
-static int             opt_recorder= true; // (Unconditionally true)
 
 static struct option   opts[]=      // Options
 {  {"all",     optional_argument, nullptr,         0}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
-
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       SampleRecord
-//
-// Purpose-
-//       Sample record, for pub::Recorder test
-//
-//----------------------------------------------------------------------------
-struct SampleRecord : public pub::Recorder::Record {
-pub::statistic::Active stat;        // A named, reported statistic
-
-   SampleRecord(std::string name= "unnamed")
-{
-   this->name= name;
-
-   on_report([this]() {
-//   printf("on_report(%s)\n", this->name.c_str());
-     char buffer[128];              // (More than large enough)
-     sprintf(buffer, "{%8zd,%8zd,%8zd,%8zd}: "
-            , stat.counter.load(), stat.current.load()
-            , stat.maximum.load(), stat.minimum.load());
-     return std::string(buffer) + this->name;
-   }); // on_report
-
-   on_reset([this]() {
-     printf("on_reset(%s)\n", this->name.c_str());
-     stat.counter.store(0);
-     stat.current.store(0);
-     stat.maximum.store(0);
-     stat.minimum.store(0);
-   }); // on_reset
-}  // (constructor)
-}; // struct SampleRecord
 
 //----------------------------------------------------------------------------
 //
@@ -154,60 +116,6 @@ static inline int
      }
 
      inp += "X";
-   }
-
-   return error_count;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       test_recorder
-//
-// Purpose-
-//       Test ~/src/cpp/inc/pub/http/Recorder.h
-//
-//----------------------------------------------------------------------------
-static inline int
-   test_recorder( void )
-{
-   typedef pub::Recorder    Recorder;
-   typedef Recorder::Record Record;
-
-   if( opt_verbose )
-     debugf("\ntest_recorder:\n");
-
-   int error_count= 0;              // Error counter
-
-   Recorder recorder;
-   Recorder::set(&recorder);
-   SampleRecord one("one");
-   SampleRecord two("two");
-
-   recorder.insert(&one);
-   Recorder::get()->insert(&two);   // Using the global Recorder
-
-   // Do something that updates one.stat and two.stat
-   one.stat.inc(); one.stat.inc(); one.stat.inc(); one.stat.dec();
-   two.stat.inc(); two.stat.inc();
-
-   // Verify the report (Requires opt_verbose)
-   if( opt_verbose ) {
-     recorder.report([](Record& record) {
-       std::cout << record.h_report() << "\n";
-     }); // reporter.report
-
-     std::cout << "\nRESET\n";
-     Recorder::get()->reset();
-     recorder.report([](Record& record) {
-       std::cout << record.h_report() << "\n";
-     }); // reporter.report
-
-     std::cout << "\nREMOVE\n";
-     Recorder::get()->remove(&two); // Using the global Recorder
-     recorder.report([](Record& record) {
-       std::cout << record.h_report() << "\n";
-     }); // reporter.report
    }
 
    return error_count;
@@ -291,7 +199,6 @@ extern int                          // Return code
 
      if( opt_case )    error_count += test_case();
      if( opt_codec )   error_count += test_codec();
-     if( opt_recorder) error_count += test_recorder();
 //   if( true )        error_count += test_dirty();
 
      if( opt_verbose ) {

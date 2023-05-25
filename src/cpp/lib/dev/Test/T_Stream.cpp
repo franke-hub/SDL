@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2023/04/22
+//       2023/05/24
 //
 // Arguments-
 //       With no arguments, --client --server defaulted
@@ -53,18 +53,19 @@
 #include <pub/Dispatch.h>           // For namespace pub::dispatch
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Event.h>              // For pub::Event
+#include <pub/Reporter.h>           // For pub::Reporter
 #include <pub/Statistic.h>          // For pub::Statistic
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For pub::utility::to_string, visify
 #include <pub/Worker.h>             // For pub::WorkerPool
+#include <pub/Wrapper.h>            // For pub::Wrapper::atol, ...
 
 #include "pub/http/Agent.h"         // For pub::http::ClientAgent, ListenAgent
 #include "pub/http/Client.h"        // For pub::http::Client
 #include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Listen.h"        // For pub::http::Listen
 #include "pub/http/Options.h"       // For pub::http::Options
-#include "pub/http/Recorder.h"      // For pub::Recorder
 #include "pub/http/Request.h"       // For pub::http::Request
 #include "pub/http/Response.h"      // For pub::http::Response
 #include "pub/http/Server.h"        // For pub::http::Server
@@ -92,9 +93,9 @@ enum
 ,  TRACE_SIZE= 0x00100000           // Default trace table size (1M)
 ,  USE_INTENSIVE= true              // Option: Use intensive debug mode
 ,  USE_LOGGER= false                // Option: Use logger
+,  USE_REPORTER= true               // Option: Use Reporter
 ,  USE_SIGNAL= false                // Option: Use signal handler
-,  USE_TIMING_RECORD= false         // Option: Use timing record
-,  USE_XTRACE= false                // Use extended trace?
+,  USE_ITRACE= true                 // Use internal trace?
 }; // generic enum
 
 enum                                // Default option values
@@ -103,7 +104,7 @@ enum                                // Default option values
 
 ,  USE_CLIENT= false                // --client
 ,  USE_STRESS= 0                    // --stress
-,  USE_TRACE=  false                // --trace
+,  USE_TRACE=  0                    // --trace
 ,  USE_VERIFY= false                // --verify
 ,  USE_WORKER= true                 // --worker (Server threads)
 }; // default options
@@ -147,12 +148,11 @@ static int             running= false; // Test running indicator
 // Options
 //----------------------------------------------------------------------------
 static int             opt_help= false; // --help (or error)
-static int             opt_hcdm= HCDM;  // --hcdm (Hard Core Debug Mode)
+extern int             opt_hcdm;    // (Defined by Wrapper.h)
 static int             opt_iodm= IODM;  // --iodm (I/O Debug Mode)
 static int             opt_index;   // Option index
 
 static const char*     opt_debug= nullptr; // --debug
-static int             opt_verbose= VERBOSE; // --verbose
 static int             opt_bringup= false; // Run bringup test?
 static int             opt_client= USE_CLIENT; // Run basic client test?
 static int             opt_major= 0; // Major test id TODO: REMOVE
@@ -160,8 +160,8 @@ static int             opt_minor= 0; // Minor test id TODO: REMOVE
 static double          opt_runtime= USE_RUNTIME; // Stress test run time, in seconds
 static int             opt_ssl= false;  // Run SSL client/server?
 static int             opt_stress= USE_STRESS; // Run client stress test?
-
-static int             opt_trace= USE_TRACE; // Create trace file?
+static size_t          opt_trace= USE_TRACE; // Create trace file?
+extern int             opt_verbose; // (Defined by Wrapper.h)
 static int             opt_verify= USE_VERIFY; // Verify file data?
 static int             opt_worker= USE_WORKER; // Create server threads?
 static int             use_remote_server= false;
@@ -182,7 +182,7 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 ,  {"server",  optional_argument, nullptr,      0}    // --server
 ,  {"ssl",     no_argument,       &opt_ssl,  true}    // --stress
 ,  {"stress",  optional_argument, &opt_stress,  OPT_THREAD} // --stress
-,  {"trace",   no_argument,       &opt_trace,   true} // --trace
+,  {"trace",   optional_argument, nullptr,      0}    // --trace
 ,  {"verify",  no_argument,       &opt_verify,  true} // --verify
 ,  {"worker",  no_argument,       &opt_worker,  true} // --worker
 
@@ -235,6 +235,11 @@ static struct Global {
      printf("%4d %s Global~\n", __LINE__, __FILE__);
 }
 } global_constructor_destructor;
+
+//----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+static void term( void );           // Terminate
 
 //----------------------------------------------------------------------------
 // Signal handlers
@@ -407,6 +412,7 @@ static void
        debug_set_mode(Debug::MODE_INTENSIVE);
        debug_backtrace();           // Attempt diagnosis (recursion aborts)
        debugf("..terminated..\n");
+       term();
        exit(EXIT_FAILURE);
        break;
 
@@ -482,22 +488,22 @@ static int                          // Return code, 0 expected
        return 1;
      }
 
-     int rc= ftruncate(fd, TRACE_SIZE); // (Expand to TRACE_SIZE)
+     int rc= ftruncate(fd, opt_trace); // (Expand to opt_trace size)
      if( rc ) {
-       fprintf(stderr, "%4d ftruncate(%s,%.8x) %s\n", __LINE__
-                     , S.c_str(), TRACE_SIZE, strerror(errno));
+       fprintf(stderr, "%4d ftruncate(%s,%.8zx) %s\n", __LINE__
+                     , S.c_str(), opt_trace, strerror(errno));
        return 1;
      }
 
-     trace_table= mmap(nullptr, TRACE_SIZE, PROT_RW, MAP_SHARED, fd, 0);
+     trace_table= mmap(nullptr, opt_trace, PROT_RW, MAP_SHARED, fd, 0);
      if( trace_table == MAP_FAILED ) { // If no can do
-       fprintf(stderr, "%4d mmap(%s,%.8x) %s\n", __LINE__
-                     , S.c_str(), TRACE_SIZE, strerror(errno));
+       fprintf(stderr, "%4d mmap(%s,%.8zx) %s\n", __LINE__
+                     , S.c_str(), opt_trace, strerror(errno));
        trace_table= nullptr;
        return 1;
      }
 
-     Trace::table= PUB::Trace::make(trace_table, TRACE_SIZE);
+     Trace::table= PUB::Trace::make(trace_table, opt_trace);
      close(fd);                     // Descriptor not needed once mapped
 
      Trace::trace(".INI", 0, "TRACE STARTED") ;
@@ -541,7 +547,7 @@ static void
    Trace::trace(".XIT", 0, "TRACE STOPPED") ;
    if( trace_table ) {
      Trace::table= nullptr;
-     munmap(trace_table, TRACE_SIZE);
+     munmap(trace_table, opt_trace);
      trace_table= nullptr;
    }
 
@@ -566,7 +572,7 @@ static void
    size_of(                         // Display size of object
      const char*       name,        // Object name
      size_t            size)        // Object size
-{ printf("%4zd = sizeof(%s)\n", size, name); }
+{  debugf("%4zd = sizeof(%s)\n", size, name); }
 
 static inline int                   // Error count
    test_bringup( void )             // Bringup test
@@ -591,20 +597,21 @@ static inline int                   // Error count
    size_of("Stream",        sizeof(PUB::http::Stream));
 
 #pragma GCC diagnostic ignored "-Winvalid-offsetof"
-   printf("\n");
-   printf("%.4zx Client::task_inp\n", offsetof(Client, task_inp));
-   printf("%.4zx Client::task_out\n", offsetof(Client, task_out));
+   debugf("\n");
+   debugf("%.4zx Client::task_inp\n", offsetof(Client, task_inp));
+   debugf("%.4zx Client::task_out\n", offsetof(Client, task_out));
 
-   printf("%.4zx Server::task_inp\n", offsetof(Server, task_inp));
-   printf("%.4zx Server::task_out\n", offsetof(Server, task_out));
+   debugf("%.4zx Server::task_inp\n", offsetof(Server, task_inp));
+   debugf("%.4zx Server::task_out\n", offsetof(Server, task_out));
 
    if( false ) {                    // Bringup internal tests
-     printf("\npage200(\"BODY\")\n%s", page200("BODY").c_str());
-     printf("\npage403(\"/FILE\")\n%s", page403("/FILE").c_str());
-     printf("\npage404(\"/FILE\")\n%s", page404("/FILE").c_str());
-     printf("\npage405(\"METH\")\n%s", page405("METH").c_str());
-     printf("\npage500(\"OOPS\")\n%s", page500("OOPS").c_str());
+     debugf("\npage200(\"BODY\")\n%s", page200("BODY").c_str());
+     debugf("\npage403(\"/FILE\")\n%s", page403("/FILE").c_str());
+     debugf("\npage404(\"/FILE\")\n%s", page404("/FILE").c_str());
+     debugf("\npage405(\"METH\")\n%s", page405("METH").c_str());
+     debugf("\npage500(\"OOPS\")\n%s", page500("OOPS").c_str());
    }
+   debugf("\n");
 
    return error_count;
 }
@@ -637,7 +644,6 @@ static void                         // Exit if error detected
            case OPT_IODM:
            case OPT_BRINGUP:
            case OPT_CLIENT:
-           case OPT_TRACE:
            case OPT_VERIFY:
            case OPT_WORKER:
 
@@ -646,6 +652,16 @@ static void                         // Exit if error detected
 
            case OPT_DEBUG:
              opt_debug= optarg;
+             break;
+
+           case OPT_MAJOR:
+             if( optarg )
+               opt_major= parm_int();
+             break;
+
+           case OPT_MINOR:
+             if( optarg )
+               opt_minor= parm_int();
              break;
 
            case OPT_RUNTIME:
@@ -676,14 +692,14 @@ static void                         // Exit if error detected
              }
              break;
 
-           case OPT_MAJOR:
+           case OPT_TRACE:
+             opt_trace= TRACE_SIZE;
              if( optarg )
-               opt_major= parm_int();
-             break;
-
-           case OPT_MINOR:
-             if( optarg )
-               opt_minor= parm_int();
+               opt_trace= Wrapper::atol(optarg);
+             if( opt_trace < Trace::TABLE_SIZE_MIN )
+               opt_trace= Trace::TABLE_SIZE_MIN;
+             else if( opt_trace > Trace::TABLE_SIZE_MAX )
+               opt_trace= Trace::TABLE_SIZE_MAX;
              break;
 
            case OPT_VERBOSE:
@@ -795,7 +811,7 @@ extern int
        debugf("%5s: stress=%d\n", torf(opt_stress), opt_stress);
      else
        debugf("%5s: stress\n", torf(opt_stress));
-     debugf("%5s: trace\n", torf(opt_trace));
+     debugf("%5s: trace 0x%.8zx\n", torf(opt_trace), opt_trace);
      debugf("%5s: worker\n", torf(opt_worker));
 
      // Debugging, experimentation

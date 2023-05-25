@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2023/05/03
+//       2023/05/25
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -33,6 +33,12 @@
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/Worker.h>             // For pub::Worker
 
+// DEBUGGING: TODO REMOVE- - - - - - - - - - - - - - - - - - - - - - - - - - -
+#include <stdio.h>                  // For sprintf
+#include <pub/Reporter.h>           // For pub::Reporter
+#include <pub/Statistic.h>          // For pub::Statistic
+// DEBUGGING: TODO REMOVE- - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 using namespace _LIBPUB_NAMESPACE::debugging; // Enable debugging functions
 
 namespace _LIBPUB_NAMESPACE::dispatch {
@@ -41,9 +47,9 @@ namespace _LIBPUB_NAMESPACE::dispatch {
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
-// VERBOSE= 0                       // Verbosity, higher is more verbose
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
-,  USE_XTRACE= true                 // Use extended tracing?
+,  USE_ITRACE= true                 // Use internal tracing?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -53,6 +59,57 @@ Latch                  Disp::mutex; // Termination mutex
 Timers*                Disp::timers= nullptr;
 
 #include "Dispatch.hpp"             // For Timers, DispatchTTL
+
+//----------------------------------------------------------------------------
+// dispatch::DEBUGGING TODO:REMOVE
+//----------------------------------------------------------------------------
+static statistic::Active
+                       undef_wait;  // FC_UNDEF wait counter
+static Reporter::Record
+                       undef_record; // Active FC_UNDEF counter
+
+static struct StaticGlobal {
+   StaticGlobal(void)               // Constructor
+{
+   undef_record.name= "Dispatch:undef";
+   undef_record.on_report([]() {
+     char buffer[128];
+     statistic::Active& stat= undef_wait;
+     sprintf(buffer, "{%8zd, %8zd, %8zd, %8zd}: "
+            , stat.counter.load(), stat.current.load()
+            , stat.maximum.load(), stat.minimum.load());
+     return std::string(buffer) + undef_record.name;
+   });
+
+   undef_record.on_reset([]() {
+     statistic::Active& stat= undef_wait;
+     stat.counter.store(0);
+     stat.current.store(0);
+     stat.maximum.store(0);
+     stat.minimum.store(0);
+   });
+
+   Reporter::get()->insert(&undef_record);
+}  // StaticGlobal
+}  staticGlobal;
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       checkstop
+//
+// Purpose-
+//       Force a segfault
+//
+//----------------------------------------------------------------------------
+static inline void
+   checkstop(                       // SEGFAULT
+     const char*       info)        // Caller information
+{
+   debugf("CHECKSTOP(%s)\n", info);
+   Reporter::Record* R= nullptr;
+   debugf("Name(%s)\n", R->name.c_str());
+}
 
 //----------------------------------------------------------------------------
 //
@@ -197,15 +254,21 @@ void
 //----------------------------------------------------------------------------
    Task::~Task( void )              // Destructor
 {
-   if( itemList.get_tail() ) {      // If the list isn't empty
+   Item* tail= itemList.get_tail();
+   if( tail ) {                     // If the list isn't empty
      Wait wait;
      Item item(Item::FC_UNDEF, &wait);
-     itemList.fifo(&item); // Insert work Item
-     if( USE_XTRACE )
-       Trace::trace(".DSP", __LINE__, "~Task: wait...");
-     wait.wait();                   // Wait for completion
-     if( USE_XTRACE )
-       Trace::trace(".DSP", __LINE__, "~Task: ...wait");
+     enqueue(&item);
+
+     if( USE_ITRACE )
+       Trace::trace(".DSP", "wait", this, tail);
+
+     undef_wait.inc();
+     wait.wait();
+     undef_wait.dec();
+
+     if( USE_ITRACE )
+       Trace::trace(".DSP", "wend", this, tail);
    }
 }
 
@@ -253,8 +316,8 @@ void
    Task::enqueue(                   // Enqueue
      Item*             item)        // This work Item
 {
-//debugf("Task(%p) enqueue(%p)\n", this, item);
-//item->debug("Task::enqueue");
+   if( USE_ITRACE )
+     Trace::trace(".DSP", ".ENQ", this, item);
 
    Item* tail= itemList.fifo(item); // Insert work Item
    if( tail == nullptr )            // If the list was empty
@@ -270,61 +333,30 @@ void
 // Purpose-
 //       Process all available Items
 //
+// Implementation notes-
+//       FC_UNDEF is used in ~Task to chase any enqueued operation.
+//
 //----------------------------------------------------------------------------
 void
    Task::work( void )               // Worker interface
 {  if( HCDM ) traceh("Task(%p)::work()\n", this);
 
-// Since this shouldn't occur and is handled properly if it does, skip it
-// if( itemList.get_tail() == nullptr ) // If nothing to do (should not occur)
-//   return;                        // Do it quickly
-
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".DSP", "WORK", this, itemList.get_tail());
 
+   Item* undef= nullptr;            // Any FC_UNDEF work item
    for(auto it= itemList.begin(); it != itemList.end(); ++it) {
-     if( USE_XTRACE )
-       Trace::trace(".DSP", "ITER", this, it.get());
+     if( USE_ITRACE )
+       Trace::trace(".DSP", ".DEQ", this, it.get());
 
      if( it->fc < 0 ) {
-//debugf("%4d FC(%d)\n", __LINE__, it->fc);
        if( it->fc == Item::FC_UNDEF ) {
-//debugf("%4d deq FC_UNDEF\n", __LINE__);
-//Trace::trace(".DSP", __LINE__, "DEQ FC_UNDEF");
-         // We use UNDEF to insure that a TASK has no work pending.
-         // We therefore need to insure that all other work completes and
-         // it == itemList.end().
-         // In the usual case, all that's needed is the first `++i`.
-         // In the unusual case, the UNDEF is posted out of sequence.
-         auto post_it= it;
-
-         while(++it != itemList.end() ) {
-//debugf("%4d deq next FC_UNDEF, unexpected\n", __LINE__);
-//Trace::trace(".DSP", __LINE__, "DEQ NEXT UNDEF");
-           // This code is not normally executed; the ++it ends the itemList
-           if( USE_XTRACE )
-             Trace::trace(".DSP", "XTRA", this); // (Unexpected)
-           if( it >= 0 ) {
-             work(it.get());
-           } else {
-             if( it->fc == Item::FC_CHASE ) {
-               it->post(Item::CC_NORMAL);
-             } else {
-               it->post(Item::CC_ERROR_FC);
-             }
-           }
-         }
-
-//debugf("%4d post FC_UNDEF\n", __LINE__);
-//Trace::trace(".DSP", __LINE__, "POST FC_UNDEF");
-         post_it->post(Item::CC_ERROR_FC); // (~Task ignores return code)
-         break;
+         if( undef )                // If duplicate FC_UNDEF
+           checkstop("duplicate FC_UNDEF");
+         undef= it.get();
        } else if( it->fc == Item::FC_CHASE ) {
-//debugf("%4d post FC_CHASE\n", __LINE__);
-//Trace::trace(".DSP", __LINE__, "DEQ FC_CHASE");
          it->post(Item::CC_NORMAL);
        } else {
-//debugf("%4d post CC_ERROR\n", __LINE__);
          it->post(Item::CC_ERROR_FC);
        }
      }
@@ -332,7 +364,11 @@ void
        work(it.get());
    }
 
-   if( USE_XTRACE )
+   // Iteration complete (No itemList reference remain)
+   if( undef )
+     undef->post(Item::CC_ERROR_FC); // (~Task ignores return code)
+
+   if( USE_ITRACE )
      Trace::trace(".DSP", "IDLE", this);
 }
 

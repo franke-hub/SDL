@@ -16,11 +16,25 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2023/04/27
+//       2023/05/24
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
 #define T_STREAM_HPP_INCLUDED
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       i2v
+//
+// Purpose-
+//       Integer to void, shorthand for (void*)(intptr_t(i))
+//
+//----------------------------------------------------------------------------
+static void*                        // The void*
+   i2v(                             // Convert intptr_t to void*
+     intptr_t          i)           // The intptr_t
+{  return (void*)i; }
 
 //----------------------------------------------------------------------------
 //
@@ -505,8 +519,8 @@ virtual void
 
    if( opt_hcdm && opt_verbose )
      debugf("...[%2d] ClientThread.run_one\n", serial);
-   if( USE_XTRACE )
-     Trace::trace(".TXT", serial, "TS.run_one exit");
+   if( USE_ITRACE )
+     Trace::trace(".RUN", "_one", this, i2v(serial));
 }
 
 //----------------------------------------------------------------------------
@@ -599,7 +613,7 @@ virtual void
    if( opt_hcdm && opt_verbose )
      debugf("...[%2d] ClientThread.run\n", serial);
 
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".TXT", __LINE__, "CT.run exit");
 }
 
@@ -648,9 +662,9 @@ static void
    debugf("%'16ld {%2ld,%2ld,%2ld} Response counts\n", stat->counter.load()
          , stat->minimum.load(), stat->current.load(), stat->maximum.load());
 
-   if( USE_TIMING_RECORD ) {
+   if( USE_REPORTER ) {
      debugf("\n\n");
-     Recorder::get()->report([](Recorder::Record& record) {
+     Reporter::get()->report([](Reporter::Record& record) {
        debugf("%s\n", record.h_report().c_str());
      }); // reporter.report
    }
@@ -685,7 +699,7 @@ static void
    stat->current.store(0);
    stat->maximum.store(0);
 
-   Recorder::get()->reset();
+   Reporter::get()->reset();
 }
 
 //----------------------------------------------------------------------------
@@ -828,6 +842,16 @@ static void
    debugf("%'16.3f operations\n", op_count);
    debugf("%'16.3f operations/second\n", op_count/opt_runtime);
 
+#if true //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+     debugf("\n\n");
+     Reporter::get()->report([](Reporter::Record& record) {
+       debugf("%s\n", record.h_report().c_str());
+     }); // reporter.report
+
+     debugf("\n");
+     WorkerPool::debug();
+#endif //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
    Trace::Record* R= Trace::trace(64);
    if( R ) {
      for(int i= 0; i<64; ++i)
@@ -835,10 +859,11 @@ static void
      strcpy(R->value, ">>Stress test<<");
      R->trace(".END");
    }
+//debugf("\n"); std::pub_diag::Debug_ptr::debug("Test complete");
 
 //debugf("%4d %s HCDM\n", __LINE__, __FILE__);
    for(int i= 0; i<opt_stress; i++) {
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".TST", "WAIT", client[i], (void*)intptr_t(i));
 //debugf("%4d %s HCDM client %d\n", __LINE__, __FILE__, i);
      client[i]->wait();

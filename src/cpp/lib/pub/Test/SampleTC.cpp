@@ -15,7 +15,7 @@
 //       Sample test case
 //
 // Last change date-
-//       2023/04/29
+//       2023/05/03
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::runtime exception
@@ -157,7 +157,10 @@ extern int                          // Return code
      if( opt_throw )
        error_count += test_throw();
 
-     tr->report_errors(error_count);
+     if( error_count || opt_verbose ) {
+       debugf("\n");
+       tr->report_errors(error_count);
+     }
      return error_count != 0;
    });
 

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Compile bringup
 //
 // Last change date-
-//       2022/10/05
+//       2023/05/24
 //
 //----------------------------------------------------------------------------
 #if true
@@ -37,8 +37,6 @@
   #define IT "pub/http/Listen.h"
 #elif true
   #define IT "pub/http/Options.h"
-#elif true
-  #define IT "pub/http/Recorder.h"
 #elif true
   #define IT "pub/http/Request.h"
 #elif true

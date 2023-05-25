@@ -16,7 +16,7 @@
 //       Implement http/Stream.h
 //
 // Last change date-
-//       2023/04/16
+//       2023/05/18
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -62,7 +62,7 @@ enum
 
 ,  BUFFER_SIZE= 8'096               // Input buffer size (Header collector)
 ,  POST_LIMIT= 1'048'576            // POST/PUT size limit
-,  USE_XTRACE= false                // Use extended trace?
+,  USE_ITRACE= true                 // Use internal trace?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -203,16 +203,18 @@ void
    StreamSet::StreamSet(            // Constructor
      Node*             node)        // The (user-owned) root Node
 {  if( HCDM || VERBOSE > 1 ) debugf("StreamSet(%p)!\n", this);
+
    root= node;
 
-   INS_DEBUG_OBJ("StreamSet");
+// INS_DEBUG_OBJ("StreamSet");
 }
 
    StreamSet::~StreamSet( void )    // Destructor
 {  if( HCDM || VERBOSE > 1 ) debugf("StreamSet(%p)~\n", this);
+
    assert( root->child == nullptr ); // The StreamSet must be empty
 
-   REM_DEBUG_OBJ("StreamSet");
+// REM_DEBUG_OBJ("StreamSet");
 }
 
 //----------------------------------------------------------------------------
@@ -438,7 +440,7 @@ void
 :  Stream()
 ,  client(owner->get_self())
 {  if( HCDM || VERBOSE > 1 ) debugh("ClientStream(%p)!(%p)\n", this, owner);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".NEW", "CSTR", this);
 
 // http1();                         // TODO: HANDLE HTTP2, etc
@@ -447,7 +449,7 @@ void
 
    ClientStream::~ClientStream( void ) // Destructor
 {  if( HCDM || VERBOSE > 1 ) debugh("ClientStream(%p)~\n", this);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".DEL", "CSTR", this);
 
    REM_DEBUG_OBJ("ClientStream");
@@ -587,7 +589,7 @@ void
 :  Stream()
 ,  server(owner->get_self())
 {  if( HCDM || VERBOSE > 1 ) debugh("ServerStream(%p)!(%p)\n", this, owner);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".NEW", "SSTR", this);
 
    INS_DEBUG_OBJ("ServerStream");
@@ -595,7 +597,7 @@ void
 
    ServerStream::~ServerStream( void ) // Destructor
 {  if( HCDM || VERBOSE > 1 ) debugh("ServerStream(%p)~\n", this);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".DEL", "SSTR", this);
 
    REM_DEBUG_OBJ("ServerStream");

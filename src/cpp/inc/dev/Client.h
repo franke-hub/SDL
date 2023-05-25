@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2023/05/18
+//       2023/05/23
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
@@ -114,6 +114,8 @@ LambdaTask             task_out;    // Writer task
 
 int                    events= 0;   // Current polling events
 int                    fsm= FSM_RESET; // Finite State Machine state
+int                    serialno= 0; // Client serial number
+int                    sequence= 0; // ClientItem sequence number
 
 //----------------------------------------------------------------------------
 // Client::Constructor, creator, destructor

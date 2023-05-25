@@ -16,7 +16,7 @@
 //       Select.h method implementations.
 //
 // Last change date-
-//       2023/04/23
+//       2023/05/18
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -70,7 +70,7 @@ enum
 ,  USE_CHECKING= true               // Use internal cross-checking?
 ,  USE_DO_SELECT= true              // Use internal socket->select method?
 ,  USE_TRACE= true                  // Use standard trace?
-,  USE_XTRACE= true                 // Use extended trace?
+,  USE_ITRACE= true                 // Use internal trace?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -557,7 +557,7 @@ void
      debugh("Select(%p)::control({%p,%c,%.4x,%.4x})\n", this
            , op.socket, op.op, op.events, op.fd);
 
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".SEL", ">CTL", op.socket
                  , i2v(intptr_t(op.op)<<56 | intptr_t(op.events)<<32 | op.fd));
 
@@ -943,7 +943,7 @@ Socket*                             // The next selected Socket, or nullptr
        next= 1;
      ipix= next;
 
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".SEL", "POLL", this, i2v(intptr_t(next)<<32 | rc));
    }}}}
 
@@ -1000,7 +1000,7 @@ Socket*                             // The next selected Socket, or nullptr
        next= 1;
      ipix= next;
 
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".SEL", "POLL", this, i2v(intptr_t(next)<<32 | rc));
    }}}}
 

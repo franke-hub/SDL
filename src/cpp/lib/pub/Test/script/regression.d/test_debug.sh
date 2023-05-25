@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2022 Frank Eskesen.
+##       Copyright (C) 2022-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Debug.h regression set
 ##
 ## Last change date-
-##       2022/04/22
+##       2023/05/19
 ##
 ##############################################################################
 
@@ -25,12 +25,12 @@
 function info
 {
   echo "Cannot test Debug.h, $HOME/bin/filecomp not installed"
-  echo "Install filecomp using '~/obj/cpp/Tools/Compare/make install'"
+  echo "Install filecomp using 'cd ~/obj/cpp/sys; make install'"
   exit 1
 }
 
 ##############################################################################
-## Prerequisite: Tools/Compare/filecomp.cpp installed
+## Prerequisite: `filecomp` installed
 locate=`whence filecomp`
 if [[ $? != 0 ]] ; then
   if [[ ! -x "$HOME/bin/filecomp" ]] ; then

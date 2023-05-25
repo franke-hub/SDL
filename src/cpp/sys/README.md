@@ -12,7 +12,7 @@
 //       ~/src/cpp/sys/README.md
 //
 // Purpose-
-//       Subdirector description and change log
+//       Subdirectory description and change log
 //
 // Last change date-
 //       2023/05/19
@@ -32,7 +32,7 @@ This README describes the `~/src/cpp/sys/.` subdirectory.
 
 This subdirectory is intended to contain programs that need to be in the
 user's `~/bin/.` subdirectory.
-These programs are generally prequisites for building and testing other .cpp
+These programs are generally prerequisite for building and testing other .cpp
 programs included in the distribution.
 As such, they must not utilize any of the distribution libraries.
 (This also implies that they usually won't need to be recompiled when the

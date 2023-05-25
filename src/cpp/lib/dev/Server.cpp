@@ -16,7 +16,7 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2023/04/23
+//       2023/05/25
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -78,7 +78,7 @@ enum
 ,  BUFFER_SIZE=     8'192           // Input buffer size
 
 ,  USE_READ_ONCE= true              // Read once?
-,  USE_XTRACE= true                 // Use extended trace?
+,  USE_ITRACE= true                 // Use internal trace?
 }; // enum
 
 // Imported Options
@@ -104,6 +104,11 @@ static const char*     proto[HTTP_PROTO_LENGTH]=
 }; // proto[]
 
 //----------------------------------------------------------------------------
+// Internal data areas
+//----------------------------------------------------------------------------
+static std::atomic_int _serialno= 2; // Serial number
+
+//----------------------------------------------------------------------------
 //
 // Class-
 //       ServerItem
@@ -114,12 +119,19 @@ static const char*     proto[HTTP_PROTO_LENGTH]=
 //----------------------------------------------------------------------------
 class ServerItem : public dispatch::Item {
 public:
-Ioda                   ioda;        // The Input/Output Data Area
+typedef std::shared_ptr<Server>     server_ptr;
 
-   ServerItem( void )               // Default constructor
+Ioda                   ioda;        // The Input/Output Data Area
+server_ptr             server;      // The associated Server
+int                    serialno;    // Server serial number
+int                    sequence;    // ServerItem sequence number
+
+   ServerItem(                      // Constructor
+     server_ptr        S)           // The Server
 :  dispatch::Item(), ioda()
+,  server(S), serialno(S->serialno), sequence(++S->sequence)
 {  if( HCDM && VERBOSE > 2 ) debugh("ServerItem(%p)!\n", this);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".NEW", "SITM", this);
 
    INS_DEBUG_OBJ("ServerItem");
@@ -128,7 +140,7 @@ Ioda                   ioda;        // The Input/Output Data Area
 virtual
    ~ServerItem( void )              // Destructor
 {  if( HCDM && VERBOSE > 2 ) debugh("ServerItem(%p)~\n", this);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".DEL", "SITM", this);
 
    REM_DEBUG_OBJ("ServerItem");
@@ -136,56 +148,12 @@ virtual
 
 virtual void
    debug(const char* info) const    // TODO: REMOVE
-{  debugf("ServerItem(%p)::debug(%s)\n", this, info);
+{  debugf("ServerItem(%p)::debug(%s) server(%p)\n", this, info, server.get());
+
+   debugf("..serialno(%d) sequence(%d)\n", serialno, sequence);
    debugf("..fc(%d) cc(%d) done(%p)\n", fc, cc, done);
 }
 }; // class ServerItem
-
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       Server_ptr
-//
-// Purpose-
-//       Stack std::shared_ptr<Server> container.
-//
-//----------------------------------------------------------------------------
-struct Server_ptr {
-typedef std::shared_ptr<Server>     Server_ptr_t;
-
-Server_ptr_t           ptr;         // The actual std::shared_ptr<Server>
-
-   Server_ptr( void )               // Default constructor
-:  ptr()
-{  INS_DEBUG_OBJ("Server_ptr"); }
-
-   Server_ptr(const Server_ptr_t& copy) // Copy constructor
-:  ptr(copy)
-{  INS_DEBUG_OBJ("Server_ptr"); }
-
-   Server_ptr(Server_ptr_t&& move)  // Move constructor
-:  ptr(move)
-{  INS_DEBUG_OBJ("Server_ptr"); }
-
-   ~Server_ptr( void )              // Destructor
-{  REM_DEBUG_OBJ("Server_ptr"); }
-
-Server_ptr&
-   operator=(const nullptr_t& null) // Null assignment
-{  ptr= null; return *this; }
-
-Server_ptr&
-   operator=(const Server_ptr_t& copy) // Copy assignment
-{  ptr= copy; return *this; }
-
-Server_ptr&
-   operator=(Server_ptr_t&& move)   // Move assignment
-{  ptr= move; return *this; }
-
-   operator Server_ptr_t( void ) { return ptr; } // Cast operator
-
-void reset( void ) { ptr.reset(); }
-}; // struct Server_ptr
 
 //----------------------------------------------------------------------------
 //
@@ -276,13 +244,15 @@ static inline void* i2v(intptr_t i) { return (void*)i; }
 ,  size_inp(BUFFER_SIZE)
 ,  size_out(BUFFER_SIZE)
 ,  socket(socket)
-,  stream_set(&root)
+// stream_set(&root)
 ,  task_inp([this](dispatch::Item* it) { inp_task(it); })
 ,  task_out([this](dispatch::Item* it) { out_task(it); })
 {  if( HCDM || VERBOSE > 1 )
      debugh("Server(%p)!(%p,%p)\n", this, listen, socket);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".NEW", "HSRV", this, socket);
+
+   serialno= (_serialno += 10);
 
    // Initialize protocol
    int proto_ix= HTTP_H1;
@@ -328,7 +298,7 @@ static inline void* i2v(intptr_t i) { return (void*)i; }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Server::~Server( void )          // Destructor
 {  if( HCDM || VERBOSE > 1 ) debugh("Server(%p)~\n", this);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".DEL", "HSRV", this, stream.get());
 
    // Close and delete the socket
@@ -372,6 +342,7 @@ void
 {  debugf("Server(%p)::debug(%s) fsm(%d) %s\n", this, info
          , fsm, get_peer_addr().to_string().c_str());
 
+   debugf("..serialno(%d), sequence(%d)\n", serialno, sequence);
    debugf("..listen(%p) socket(%p)\n", listen, socket);
    debugf("..size_inp(%'zd) size_out(%'zd)\n", size_inp, size_out);
    socket->debug("Server::debug");
@@ -394,7 +365,7 @@ void
 {  if( HCDM )
      debugh("Server(%p)::async(%.4x) events(%.4x) fsm(%d)\n", this
            , revents, events, fsm);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".SRV", ".APE", this, a2v(fsm, revents, get_handle()));
 
    if( fsm != FSM_READY )           // Ignore event if non-operational
@@ -435,13 +406,12 @@ void
 void
    Server::close( void )            // Terminate the Server
 {  if( HCDM ) debugh("Server(%p)::close() fsm(%d)\n", this, fsm);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".SRV", ".CLS", this, i2v(get_handle()));
 
    // The Listener might contain the last active shared_ptr<Server>
    // and we reference this->socket after the disconnect.
    std::shared_ptr<Server> keep_alive(get_self());
-//Server_ptr keep_alive(get_self());
 //debugh("%4d Server(%d) keep_alive %p\n", __LINE__, socket->get_handle(), &keep_alive);
 //std::pub_diag::Debug_ptr::debug("Server keep_alive");
 
@@ -475,7 +445,7 @@ void
 void
    Server::close_enq( void )        // Schedule Server close
 {  if( HCDM ) debugh("Server(%p)::close_enq() fsm(%d)\n", this, fsm);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".SRV", "QCLS", this, i2v(get_handle()));
 
    if( fsm == FSM_READY ) {
@@ -544,9 +514,9 @@ void
 {  if( HCDM ) debugh("Server(%p)::write(*,%'zd)\n", this, ioda.get_used());
 
    if( ioda.get_used() ) {
-     ServerItem* item= new ServerItem();
+     ServerItem* item= new ServerItem(get_self());
      item->ioda= std::move(ioda);
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".ENQ", "SOUT", this, item);
      task_out.enqueue(item);
    }
@@ -569,7 +539,7 @@ void
    // inp_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    inp_task= [this](dispatch::Item* it) // Input task
    { if( HCDM ) debugh("Server(%p)::inp_task(%p)\n", this, it);
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".DEQ", "SINP", this, it);
 
      if( fsm != FSM_READY ) {
@@ -581,6 +551,9 @@ void
      }
 
      ServerItem* item= static_cast<ServerItem*>(it);
+     if( item->serialno != serialno )
+       utility::checkstop(__LINE__, __FILE__, "inp_task");
+
      if( stream.get() == nullptr )
        stream= ServerStream::make(this);
 
@@ -596,7 +569,7 @@ void
    // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    out_task= [this](dispatch::Item* it) // Output task
    { if( HCDM ) debugh("Server(%p)::out_task(%p)\n", this, it);
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".DEQ", "SOUT", this, it);
 
      if( fsm != FSM_READY ) {
@@ -605,6 +578,9 @@ void
      }
 
      ServerItem* item= static_cast<ServerItem*>(it);
+     if( item->serialno != serialno )
+       utility::checkstop(__LINE__, __FILE__, "out_task");
+
      ioda_out += std::move(item->ioda);
      write(__LINE__);
      item->post();
@@ -647,7 +623,7 @@ void
    // inp_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    inp_task= [this](dispatch::Item* it) // Input task
    { if( HCDM ) debugh("Server(%p)::inp_task(%p)\n", this, it);
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".DEQ", "SINP", this, it);
 
      if( fsm != FSM_READY ) {
@@ -659,6 +635,9 @@ void
      }
 
      ServerItem* item= static_cast<ServerItem*>(it);
+     if( item->serialno != serialno )
+       utility::checkstop(__LINE__, __FILE__, "inp_task");
+
      if( stream.get() == nullptr )
        stream= ServerStream::make(this);
 
@@ -673,7 +652,7 @@ void
    // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    out_task= [this](dispatch::Item* it) // Output task
    { if( HCDM ) debugh("Server(%p)::out_task(%p)\n", this, it);
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".DEQ", "SOUT", this, it);
 
      if( fsm != FSM_READY ) {
@@ -682,6 +661,9 @@ void
      }
 
      ServerItem* item= static_cast<ServerItem*>(it);
+     if( item->serialno != serialno )
+       utility::checkstop(__LINE__, __FILE__, "out_task");
+
      ioda_out += std::move(item->ioda);
      write(__LINE__);
      item->post();
@@ -743,14 +725,14 @@ void
        ssize_t size= mesg.msg_iov[0].iov_len;
        if( size > L )
          size= L;
-       if( USE_XTRACE )
+       if( USE_ITRACE )
          utility::iotrace(".S<<", addr, size);
        iodm(line, "read", addr, size);
 
        // Enqueue IODA to input task
-       ServerItem* item= new ServerItem();
+       ServerItem* item= new ServerItem(get_self());
        item->ioda= std::move(ioda);
-       if( USE_XTRACE )
+       if( USE_ITRACE )
          Trace::trace(".ENQ", "SINP", this, item);
        task_inp.enqueue(item);
        if( USE_READ_ONCE )
@@ -821,7 +803,7 @@ void
    size_t ioda_off= 0;
    for(;;) {
      // This helps when a trace read appears before the trace write
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".INF", __LINE__, "SSocket->write");
 
      Mesg mesg; ioda_out.get_wr_mesg(mesg, size_out, ioda_off);
@@ -832,7 +814,7 @@ void
        ssize_t size= mesg.msg_iov[0].iov_len;
        if( size > L )
          size= L;
-       if( USE_XTRACE )
+       if( USE_ITRACE )
          utility::iotrace(".S>>", addr, size);
        iodm(__LINE__, "sendmsg", addr, size);
 

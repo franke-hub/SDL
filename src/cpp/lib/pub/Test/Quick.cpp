@@ -16,11 +16,12 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2023/04/29
+//       2023/05/24
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For std::free
 #include <ctype.h>                  // For isprint()
+#include <iostream>                 // For cout
 #include <string>                   // For std::string
 #include <thread>                   // For std::thread::id
 
@@ -32,7 +33,9 @@
 #include "pub/Debug.h"              // For namespace pub::debugging
 #include "pub/Exception.h"          // For pub::Exception
 #include "pub/Latch.h"              // See test_Latch
+#include "pub/Reporter.h"           // For pub::Reporter
 #include "pub/Signals.h"            // See test_Signals
+#include "pub/Statistic.h"          // For pub::Statistic
 #include "pub/Thread.h"             // For pub::Thread
 #include "pub/Trace.h"              // See test_Trace
 #include "pub/utility.h"            // For pub::utility
@@ -69,6 +72,7 @@ static int             opt_case= false; // (Only set if --all)
 static int             opt_dump= false; // --dump
 static int             opt_latch= false; // --latch
 static int             opt_misc= false; // --misc
+static int             opt_reporter= true; // (Unconditionally true)
 static int             opt_signals= false; // --signals
 static int             opt_trace= false; // --trace
 
@@ -81,6 +85,41 @@ static struct option   opts[]=      // Options
 ,  {"trace",   no_argument,       &opt_trace,   true}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       SampleRecord
+//
+// Purpose-
+//       Sample record, for pub::Reporter test
+//
+//----------------------------------------------------------------------------
+struct SampleRecord : public pub::Reporter::Record {
+pub::statistic::Active stat;        // A named, reported statistic
+
+   SampleRecord(std::string name= "unnamed")
+{
+   this->name= name;
+
+   on_report([this]() {
+//   printf("on_report(%s)\n", this->name.c_str());
+     char buffer[128];              // (More than large enough)
+     sprintf(buffer, "{%8zd,%8zd,%8zd,%8zd}: "
+            , stat.counter.load(), stat.current.load()
+            , stat.maximum.load(), stat.minimum.load());
+     return std::string(buffer) + this->name;
+   }); // on_report
+
+   on_reset([this]() {
+     printf("on_reset(%s)\n", this->name.c_str());
+     stat.counter.store(0);
+     stat.current.store(0);
+     stat.maximum.store(0);
+     stat.minimum.store(0);
+   }); // on_reset
+}  // (constructor)
+}; // struct SampleRecord
 
 //----------------------------------------------------------------------------
 //
@@ -532,6 +571,60 @@ static constexpr const char* const good=
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       test_Reporter
+//
+// Purpose-
+//       Test ~/src/cpp/inc/pub/Reporter.h
+//
+//----------------------------------------------------------------------------
+static inline int
+   test_Reporter( void )
+{
+   typedef pub::Reporter    Reporter;
+   typedef Reporter::Record Record;
+
+   if( opt_verbose )
+     debugf("\ntest_Reporter:\n");
+
+   int error_count= 0;              // Error counter
+
+   Reporter reporter;
+   Reporter::set(&reporter);
+   SampleRecord one("one");
+   SampleRecord two("two");
+
+   reporter.insert(&one);
+   Reporter::get()->insert(&two);   // Using the global Reporter
+
+   // Do something that updates one.stat and two.stat
+   one.stat.inc(); one.stat.inc(); one.stat.inc(); one.stat.dec();
+   two.stat.inc(); two.stat.inc();
+
+   // Verify the report (Requires opt_verbose)
+   if( opt_verbose ) {
+     reporter.report([](Record& record) {
+       std::cout << record.h_report() << "\n";
+     }); // reporter.report
+
+     std::cout << "\nRESET\n";
+     Reporter::get()->reset();
+     reporter.report([](Record& record) {
+       std::cout << record.h_report() << "\n";
+     }); // reporter.report
+
+     std::cout << "\nREMOVE\n";
+     Reporter::get()->remove(&two); // Using the global Reporter
+     reporter.report([](Record& record) {
+       std::cout << record.h_report() << "\n";
+     }); // reporter.report
+   }
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       test_Signals
 //
 // Purpose-
@@ -927,6 +1020,33 @@ static inline int
    )
 
    //-------------------------------------------------------------------------
+   // Check all Trace::trace methods
+   memset(table_addr, 'T', table_size); // Refresh the trace table
+   trace= Trace::make(table_addr, table_size);
+   Trace::table= trace;
+
+   Trace::Record* R= Trace::trace(32);
+   strcpy((char*)R, "Ain't this a dandy little trace record?");
+
+   // Note: The unit field isn't set, so the 'rd?\0' from "record?" remains.
+   Trace::trace(".CPU");            // (First byte reserved for CPU ID)
+
+   Trace::trace(".ONE", 0xC0DEC0DE);
+   Trace::trace(".TWO", "Code");
+   Trace::trace("INFO", 0x0732, "This is trace info"); // (Truncated)
+   Trace::trace("UNIT", "unit");
+   Trace::trace(".one", ".W01", (void*)0x76543210'ffff0000L);
+   Trace::trace(".two", ".W02", (void*)0x76543211'ffff0001L
+                              , (void*)0x76543212'ffff0002L);
+   Trace::trace("MORE", "more", (void*)0x7654321A'ffff000AL
+                              , (void*)0x7654321B'ffff000BL
+                              , (void*)0x7654321C'ffff000CL
+                              , (void*)0x7654321D'ffff000DL
+                              , (void*)0x7654321E'ffff000EL
+                              , (void*)0x7654321F'ffff000FL);
+   trace->dump();
+
+   //-------------------------------------------------------------------------
    // Deactivation error tests
    trace->deactivate();
    record= (Record*)Trace::storage_if(sizeof(Record));
@@ -1030,6 +1150,7 @@ extern int                          // Return code
      if( opt_dump )    error_count += test_dump();
      if( opt_latch )   error_count += test_Latch();
      if( opt_misc )    error_count += test_Misc();
+     if( opt_reporter) error_count += test_Reporter();
      if( opt_signals ) error_count += test_Signals();
      if( opt_trace )   error_count += test_Trace();
 //   if( true )        error_count += test_dirty(); // Optional bringup test

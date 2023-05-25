@@ -16,7 +16,7 @@
 //       ../List.h template definitions and internal base classes.
 //
 // Last change date-
-//       2023/05/04
+//       2023/05/24
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_LIST_H_INCLUDED
@@ -29,7 +29,7 @@
 
 #define USE_BASE_SORT false         // Use List<void>::sort : List<T>::sort
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include <pub/utility.h>            // For pub::utility::checkstop
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 template<class T> class AI_list;    // Atomic Insert list
@@ -43,7 +43,7 @@ namespace __detail
    /// Compile-time constants
    enum
    { HCDM= false                    // Hard Core Debug Mode?
-   , MAX_COHERENT= 1000000000       // Maximum coherent List element count
+   , MAX_COHERENT= 1'000'000'000    // Maximum coherent List element count
    }; // generic enum
 
    /// Exceptions
@@ -127,14 +127,14 @@ template<typename T>
      typedef AI_list<T>                       _List;
      typedef _AI_iter<T>                      _Self;
 
+     pointer      _left= nullptr;   // The remaining _Links
      pointer      _link= nullptr;   // The current T*
      _List* const _list= nullptr;   // The associated List<T>*
-     pointer      _todo= nullptr;   // The remaining _Links
 
      _AI_iter() noexcept = default;
 
      _AI_iter(const _AI_iter& that) noexcept
-     :  _link(that._link), _list(that._list), _todo(that._todo) {}
+     : _left(that._left), _link(that._link), _list(that._list) {}
 
      explicit
      _AI_iter(_List* list) noexcept
@@ -144,13 +144,13 @@ template<typename T>
        while( tail )
        {
          T* prev= tail->get_prev();
-         tail->_prev= _todo;
-         _todo= tail;
+         tail->_prev= _left;
+         _left= tail;
          tail= prev;
        }
-       _link= _todo;
-       if( _todo )
-         _todo= _todo->get_prev();
+       _link= _left;
+       if( _left )
+         _left= _left->get_prev();
      }
 
      pointer
@@ -177,11 +177,27 @@ template<typename T>
      _Self&
      operator++() noexcept
      {
-       if( _todo ) {
-         _link= _todo;
-         _todo= _todo->get_prev();
+       if( _left ) {
+         _link= _left;
+         _left= _left->get_prev();
        } else {
-         _next();
+         _link= nullptr;
+         pointer tail= _list->reset(&__detail::__end);
+         if( tail )
+         {
+           do
+           {
+             pointer prev= tail->get_prev();
+             if( prev == nullptr )
+               utility::checkstop(__LINE__, __FILE__, "prev == nullptr");
+             tail->_prev= _left;
+             _left= tail;
+             tail= prev;
+           } while( (void*)tail != &__detail::__end );
+           _link= _left;
+           if( _left )
+             _left= _left->get_prev();
+         }
        }
        return *this;
      }
@@ -223,7 +239,7 @@ template<typename T>
           if( link == _link )       // Is this the current link?
             return true;
 
-          pointer prev= _todo;
+          pointer prev= _left;
           while( prev != nullptr )
           {
             if( prev == link )
@@ -235,29 +251,6 @@ template<typename T>
 
         return false;
      }
-
-     protected:
-       /**
-         @pre _todo == nullptr
-       **/
-       void _next() noexcept
-       {
-         _link= nullptr;
-         pointer tail= _list->reset(&__detail::__end);
-         if( tail )
-         {
-           do
-           {
-             pointer prev= tail->get_prev();
-             tail->_prev= _todo;
-             _todo= tail;
-             tail= prev;
-           } while( (void*)tail != &__detail::__end );
-           _link= _todo;
-           if( _todo )
-             _todo= _todo->get_prev();
-         }
-       }
    }; // struct AI_iter<T>
 
 //----------------------------------------------------------------------------

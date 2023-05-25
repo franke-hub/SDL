@@ -15,14 +15,17 @@
 ##       Development status, history, and reminders.
 ##
 ## Last change date-
-##       2023/04/24
+##       2023/05/25
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
-2023/04/24 Stable.
-         Corrected a possible timing bug in Select.cpp
+2023/05/25 Dispatch.cpp issue #2 test fix implemented
+         This problem occured when ../dev/Test/T_Stream.cpp runs a stress test.
+         Testing issues remain: the FC_UNDEF request does not complete. That
+         means that dispatch::Task destructors don't complete and therefore
+         Client and Server destructors don't complete. This needs a-fixin'.
 
 ##############################################################################
 ## FEATURES:
@@ -71,6 +74,8 @@
 
 ##############################################################################
 ## FIXED:
+2023/04/24 Corrected a possible timing bug in Select.cpp
+
 2022/12/18 Select.cpp, Socket.cpp
          All known timing holes have been corrected. Select invokes
          Socket::do_select with its shr_latch held.

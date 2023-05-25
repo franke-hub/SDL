@@ -16,7 +16,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2023/05/02
+//       2023/05/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -352,7 +352,7 @@ extern int                          // Return code
      error_count += test_Statistic(); // Test Statistic.h
      error_count += test_Tokenizer(); // Test Tokenizer.h
 
-     if( opt_verbose ) {
+     if( error_count || opt_verbose ) {
        debugf("\n");
        tr->report_errors(error_count);
      }

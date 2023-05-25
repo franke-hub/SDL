@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       Recorder.cpp
+//       Reporter.cpp
 //
 // Purpose-
-//       Implement http/Recorder.h
+//       Implement Reporter.h
 //
 // Last change date-
-//       2022/09/15
+//       2022/05/25
 //
 //----------------------------------------------------------------------------
 #include <stdint.h>                 // For integer types
@@ -24,7 +24,7 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
 
-#include "pub/http/Recorder.h"      // For pub::Recorder, implemented
+#include "pub/Reporter.h"           // For pub::Reporter, implemented
 
 using namespace _LIBPUB_NAMESPACE;
 using namespace _LIBPUB_NAMESPACE::debugging;
@@ -42,36 +42,36 @@ enum
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-Recorder*              Recorder::common= nullptr;
-Recorder::mutex_t      Recorder::mutex;
+Reporter*              Reporter::common= nullptr;
+Reporter::mutex_t      Reporter::mutex;
 
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static Recorder*       internal= nullptr; // The auto-allocated Recorder
+static Reporter*       internal= nullptr; // The auto-allocated Reporter
 
-static struct GlobalDestructor {    // On unload, remove Recorder::global
+static struct GlobalDestructor {
 inline
    ~GlobalDestructor( void )
-{  Recorder::set(nullptr); }        // Cleans up Recorder::common & internal
+{  Reporter::set(nullptr); }        // Cleans up Reporter::common & internal
 }  globalDestructor;
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Recorder::Recorder
-//       Recorder::~Recorder
+//       Reporter::Reporter
+//       Reporter::~Reporter
 //
 // Purpose-
 //       Constructors
 //       Destructor
 //
 //----------------------------------------------------------------------------
-   Recorder::Recorder( void )
-{  if( HCDM && VERBOSE > 0 ) debugf("Recorder(%p)::Recorder\n", this); }
+   Reporter::Reporter( void )
+{  if( HCDM && VERBOSE > 0 ) debugf("Reporter(%p)::Reporter\n", this); }
 
-   Recorder::~Recorder( void )
-{  if( HCDM && VERBOSE > 0 ) debugf("Recorder(%p)::~Recorder\n", this);
+   Reporter::~Reporter( void )
+{  if( HCDM && VERBOSE > 0 ) debugf("Reporter(%p)::~Reporter\n", this);
 
    for(;;) {
      RecordItem* item= list.remq();
@@ -85,15 +85,15 @@ inline
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Recorder::debug
+//       Reporter::debug
 //
 // Purpose-
 //       Debugging display
 //
 //----------------------------------------------------------------------------
 void
-   Recorder::debug(const char* info) const  // Debugging display
-{  debugf("Recorder(%p)::debug(%s)\n", this, info);
+   Reporter::debug(const char* info) const  // Debugging display
+{  debugf("Reporter(%p)::debug(%s)\n", this, info);
 
    size_t index= 0;
    for(RecordItem* item= list.get_head(); item; item= item->get_next()) {
@@ -105,22 +105,22 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Recorder::get
+//       Reporter::get
 //
 // Function-
-//       Extract the current default Recorder.
+//       Extract the current default Reporter.
 //
 //----------------------------------------------------------------------------
-Recorder*                           // -> Current default Recorder
-   Recorder::get( void )            // Get the current default Recorder
+Reporter*                           // -> Current default Reporter
+   Reporter::get( void )            // Get the current default Reporter
 {
-   Recorder* result= Recorder::common;
+   Reporter* result= Reporter::common;
    if( result == nullptr ) {
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-     result= Recorder::common;
+     result= Reporter::common;
      if( result == nullptr ) {
-       result= internal= Recorder::common= new Recorder();
+       result= internal= Reporter::common= new Reporter();
      }
    }
 
@@ -130,45 +130,45 @@ Recorder*                           // -> Current default Recorder
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Recorder::set
+//       Reporter::set
 //
 // Function-
-//       Update the default Recorder
+//       Update the default Reporter
 //
 //----------------------------------------------------------------------------
-Recorder*                           // The removed Recorder object
-   Recorder::set(                   // Set
-     Recorder*         insert)      // This new default Recorder
+Reporter*                           // The removed Reporter object
+   Reporter::set(                   // Set
+     Reporter*         insert)      // This new default Reporter
 {
    std::lock_guard<decltype(mutex)> lock(mutex);
 
-   Recorder* removed = Recorder::common;
+   Reporter* removed = Reporter::common;
    if( removed == internal ) {
      delete internal;
      removed= internal= nullptr;
    }
 
-   Recorder::common= insert;
+   Reporter::common= insert;
    return removed;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Recorder::insert
+//       Reporter::insert
 //
 // Purpose-
 //       Insert record
 //
 //----------------------------------------------------------------------------
 void
-   Recorder::insert(                // Insert
+   Reporter::insert(                // Insert
      Record*           record)      // This record
 {  if( HCDM && VERBOSE > 0 )
-     debugf("Recorder(%p)::insert(%p) %s\n", this
+     debugf("Reporter(%p)::insert(%p) %s\n", this
            , record, record->name.c_str());
 
-   // NO DUPLICATE CHECK
+   // NOTE: DUPLICATE CHECK NOT IMPLEMENTED
    std::lock_guard<decltype(mutex)> lock(mutex);
    RecordItem* item= new RecordItem(record);
    list.fifo(item);
@@ -177,17 +177,17 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Recorder::remove
+//       Reporter::remove
 //
 // Purpose-
 //       Remove record
 //
 //----------------------------------------------------------------------------
 void
-   Recorder::remove(                // Remove
+   Reporter::remove(                // Remove
      Record*           record)      // This record
 {  if( HCDM && VERBOSE > 0 )
-     debugf("Recorder(%p)::remove(%p) %s\n", this
+     debugf("Reporter(%p)::remove(%p) %s\n", this
            , record, record->name.c_str());
 
    std::lock_guard<decltype(mutex)> lock(mutex);
@@ -203,16 +203,16 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Recorder::report
+//       Reporter::report
 //
 // Purpose-
 //       Generate report
 //
 //----------------------------------------------------------------------------
 void
-   Recorder::report(                // Generate report
+   Reporter::report(                // Generate report
      f_reporter        reporter)    // Using this reporter
-{  if( HCDM && VERBOSE > 0 ) debugf("Recorder(%p)::report\n", this);
+{  if( HCDM && VERBOSE > 0 ) debugf("Reporter(%p)::report\n", this);
 
    std::lock_guard<decltype(mutex)> lock(mutex);
    for(RecordItem* item= list.get_head(); item; item= item->get_next()) {
@@ -223,15 +223,15 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Recorder::reset
+//       Reporter::reset
 //
 // Purpose-
 //       Reset all Records
 //
 //----------------------------------------------------------------------------
 void
-   Recorder::reset( void )          // Reset all Records
-{  if( HCDM && VERBOSE > 0 ) debugf("Recorder(%p)::reset\n", this);
+   Reporter::reset( void )          // Reset all Records
+{  if( HCDM && VERBOSE > 0 ) debugf("Reporter(%p)::reset\n", this);
 
    std::lock_guard<decltype(mutex)> lock(mutex);
    for(RecordItem* item= list.get_head(); item; item= item->get_next()) {

@@ -16,7 +16,7 @@
 //       Describe the List objects.
 //
 // Last change date-
-//       2023/04/23
+//       2023/05/24
 //
 // Implementation notes-
 //       Unlike std::List<T>, pub::List<T> elements *are* links.
@@ -245,11 +245,7 @@ template<class T>
        pointer                      // -> Tail Link
          get_tail( void ) const     // Get tail link
        {
-         pointer tail= _tail.load();
-         if( (void*)tail == &__detail::__end )
-           return nullptr;
-
-         return tail;
+         return _tail.load();
        }
 
        //---------------------------------------------------------------------
@@ -270,7 +266,7 @@ template<class T>
           pointer link= _tail.load(); // The newest Link
           for(int count= 0; count < __detail::MAX_COHERENT; count++)
           {
-            if( link == nullptr )
+            if( link == nullptr || (void*)link == &__detail::__end )
               return true;
 
             link= link->get_prev();
@@ -293,7 +289,9 @@ template<class T>
        //---------------------------------------------------------------------
        bool                         // TRUE if no elements are present in list
          is_empty( void ) const     // Is the list empty?
-       { return get_tail() == nullptr; }
+       {
+         return _tail.load() == nullptr;
+       }
 
        //---------------------------------------------------------------------
        //

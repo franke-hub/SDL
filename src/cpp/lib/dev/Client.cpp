@@ -16,11 +16,12 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2023/04/23
+//       2023/05/25
 //
 //----------------------------------------------------------------------------
 #define OPENSSL_API_COMPAT 30000    // Deprecate OSSL functions < 3.0.0
 
+#include <atomic>                   // For std::atomic<int>
 #include <cassert>                  // For assert
 #include <cerrno>                   // For errno
 #include <cinttypes>                // For integer types
@@ -86,7 +87,7 @@ enum
 ,  BUFFER_SIZE=     8'192           // Input buffer size
 
 ,  USE_READ_ONCE= true              // Read once?
-,  USE_XTRACE= true                 // Use extended trace?
+,  USE_ITRACE= true                 // Use internal trace?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -129,6 +130,11 @@ static const char*     proto[HTTP_PROTO_LENGTH]=
 }; // proto[]
 
 //----------------------------------------------------------------------------
+// Internal data areas
+//----------------------------------------------------------------------------
+static std::atomic_int _serialno= 1; // Serial number
+
+//----------------------------------------------------------------------------
 //
 // Class-
 //       ClientItem
@@ -139,17 +145,23 @@ static const char*     proto[HTTP_PROTO_LENGTH]=
 //----------------------------------------------------------------------------
 class ClientItem : public dispatch::Item { // Client DispatchItem
 public:
+typedef std::shared_ptr<Client>               client_ptr;
 typedef std::shared_ptr<ClientStream>         stream_ptr;
 
+client_ptr             client;      // The associated Client
+int                    serialno;    // Client serial number
+int                    sequence;    // ClientItem sequence number
 stream_ptr             stream;      // The associated ClientStream
 Ioda                   ioda;        // The Input/Output Data Area
 
    ClientItem(                      // Constructor
+     client_ptr        C,           // The Client
      stream_ptr        S)           // The ClientStream
-:  dispatch::Item(), stream(S), ioda()
+:  dispatch::Item(), client(C), serialno(C->serialno), sequence(++C->sequence)
+,  stream(S), ioda()
 {  if( HCDM && VERBOSE > 0 ) debugh("ClientItem(%p)!\n", this);
 
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".NEW", "CITM", this);
 
    INS_DEBUG_OBJ("ClientItem");
@@ -159,62 +171,21 @@ virtual
    ~ClientItem( void )              // Destructor
 {  if( HCDM && VERBOSE > 0 ) debugh("ClientItem(%p)~\n", this);
 
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".DEL", "CITM", this);
 
    REM_DEBUG_OBJ("ClientItem");
 }
 
 virtual void
-   debug(const char* info) const    // TODO: REMOVE
-{  debugf("ClientItem(%p)::debug(%s) stream(%p)\n", this, info, stream.get());
+   debug(const char* info) const
+{  debugf("ClientItem(%p)::debug(%s) client(%p) stream(%p)\n", this, info
+         , client.get(), stream.get());
+
+   debugf("..serialno(%d) sequence(%d)\n", serialno, sequence);
    debugf("..fc(%d) cc(%d) done(%p)\n", fc, cc, done);
 }
 }; // class ClientItem
-
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       Client_ptr
-//
-// Purpose-
-//       Stack std::shared_ptr<Client> container.
-//
-//----------------------------------------------------------------------------
-struct Client_ptr {
-typedef std::shared_ptr<Client>     Client_ptr_t;
-
-Client_ptr_t           ptr;         // The actual std::shared_ptr<Client>
-
-   Client_ptr( void )               // Default constructor
-:  ptr()
-{  INS_DEBUG_OBJ("Client_ptr"); }
-
-   Client_ptr(const Client_ptr_t& copy) // Copy constructor
-:  ptr(copy)
-{  INS_DEBUG_OBJ("Client_ptr"); }
-
-   Client_ptr(Client_ptr_t&& move)  // Move constructor
-:  ptr(move)
-{  INS_DEBUG_OBJ("Client_ptr"); }
-
-   ~Client_ptr( void )              // Destructor
-{  REM_DEBUG_OBJ("Client_ptr"); }
-
-Client_ptr&
-   operator=(const nullptr_t& null) // Null assignment
-{  ptr= null; return *this; }
-
-Client_ptr&
-   operator=(const Client_ptr_t& copy) // Copy assignment
-{  ptr= copy; return *this; }
-
-Client_ptr&
-   operator=(Client_ptr_t&& move)   // Move assignment
-{  ptr= move; return *this; }
-
-   operator Client_ptr_t( void ) { return ptr; } // Cast operator
-}; // struct Client_ptr
 
 //----------------------------------------------------------------------------
 //
@@ -397,12 +368,14 @@ static inline SSL_CTX*
 ,  proto_id(proto[HTTP_H1])
 ,  size_inp(BUFFER_SIZE)
 ,  size_out(BUFFER_SIZE)
-,  stream_set(&root)
+// stream_set(&root)
 ,  task_inp([this](dispatch::Item* it) { inp_task(it); })
 ,  task_out([this](dispatch::Item* it) { out_task(it); })
 {  if( HCDM || VERBOSE > 1 ) debugh("Client(%p)!(%p)\n", this, owner);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".NEW", "HCLI", this);
+
+   serialno= (_serialno += 10);
 
    INS_DEBUG_OBJ("*Client*");
 }
@@ -410,7 +383,7 @@ static inline SSL_CTX*
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Client::~Client( void )          // Destructor
 {  if( HCDM || VERBOSE > 1 ) debugh("Client(%p)~\n", this);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".DEL", "HCLI", this, stream.get());
 
    // Delete the socket
@@ -455,6 +428,7 @@ void
 {  debugf("Client(%p)::debug(%s) fsm(%d) events(0x%.2x)\n"
          , this, info, fsm, events);
 
+   debugf("..serialno(%d), sequence(%d)\n", serialno, sequence);
    debugf("..agent(%p) context(%p) proto_id(%s) rd_complete(%u)\n"
          , agent, context, proto_id, rd_complete.is_post());
    debugf("..size_inp(%'zd) size_out(%'zd)\n", size_inp, size_out);
@@ -477,7 +451,7 @@ void
      int               revents)     // Polling revents
 {  if( HCDM )
      debugh("Client(%p)::async(%.4x) events(%.4x)\n", this, revents, events);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".CLI", ".APE", this, a2v(events, revents, get_handle()));
 
    if( fsm != FSM_READY )           // Ignore event if non-operational
@@ -527,13 +501,12 @@ void
 void
    Client::close( void )            // Close the Client
 {  if( HCDM ) debugh("Client(%p)::close() fsm(%d)\n", this, fsm);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".CLI", ".CLS", this, i2v(get_handle()));
 
    // The Agent might contain the last active shared_ptr<Client>
    // and we reference this->socket after the disconnect.
    std::shared_ptr<Client> keep_alive(get_self());
-//Client_ptr keep_alive(get_self());
 //debugh("%4d Client(%d) keep_alive %p\n", __LINE__, socket->get_handle(), &keep_alive);
 //std::pub_diag::Debug_ptr::debug("Client keep_alive");
 
@@ -563,7 +536,7 @@ void
 void
    Client::close_enq( void )        // Schedule Client close
 {  if( HCDM ) debugh("Client(%p)::close_enq() fsm(%d)\n", this, fsm);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".CLI", "CLSQ", this, i2v(get_handle()));
 
    if( fsm == FSM_READY ) {
@@ -674,9 +647,11 @@ Socket*                             // Resultant Socket (nullptr if failure)
    socket->on_select([this](int revents) { async(revents); });
    agent->select.insert(socket, POLLIN);
 
-   // Client construction complete.
-   if( USE_XTRACE )
-     Trace::trace(".CLI", "CONN", this, socket); // Connection trace
+   // Client connected.
+   if( USE_ITRACE )
+     Trace::trace(".CLI", "CONN", this, nullptr
+                 , socket, i2v(socket->get_handle()));
+
    return socket;
 }
 
@@ -733,13 +708,13 @@ void
 
    dispatch::Wait wait;
    dispatch::Item item(item.FC_CHASE, &wait);
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".ENQ", "WOUT", this, &item);
    task_out.enqueue(&item);
    wait.wait();
    wait.reset();
 
-   if( USE_XTRACE )
+   if( USE_ITRACE )
      Trace::trace(".ENQ", "WINP", this, &item);
    task_inp.enqueue(&item);
    wait.wait();
@@ -760,12 +735,12 @@ int                                 // Return code, 0 expected
 {  if( HCDM ) debugh("Client(%p)::write(Stream* %p)\n", this, S);
 
    int rc= ClientItem::CC_PURGE;    // Default, not sent
-   ClientItem* item= new ClientItem(S->get_self());
+   ClientItem* item= new ClientItem(get_self(), S->get_self());
 
    std::lock_guard<Client> lock(*this);
 
    if( fsm == FSM_READY ) {
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".ENQ", "COUT", this, item);
      task_out.enqueue(item);
      rc= 0;
@@ -797,7 +772,7 @@ void
    // inp_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    inp_task= [this](dispatch::Item* it) // Input task
    { if( HCDM ) debugh("Client(%p)::inp_task(%p)\n", this, it);
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".DEQ", "CINP", this, it);
 
      if( fsm != FSM_READY ) {
@@ -809,8 +784,13 @@ void
      }
 
      ClientItem* item= static_cast<ClientItem*>(it);
-     if( item->stream->read(item->ioda) ) // If response complete
+     if( item->serialno != serialno )
+       utility::checkstop(__LINE__, __FILE__, "inp_task");
+
+     if( item->stream->read(item->ioda) ) { // If response complete
+Trace::trace(".CLI", "post", this, item->stream.get());
        rd_complete.post();          // Indicate HTTP/1 operation complete
+     }
      item->post();
    }; // inp_task
 //debugf("%4d Client inp_task(%p)\n", __LINE__, &inp_task);
@@ -818,7 +798,7 @@ void
    // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    out_task= [this](dispatch::Item* it) // Output task
    { if( HCDM ) debugh("Client(%p)::out_task(%p)\n", this, it);
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".DEQ", "COUT", this, it);
 
      if( fsm != FSM_READY ) {
@@ -827,6 +807,9 @@ void
      }
 
      ClientItem* item= static_cast<ClientItem*>(it);
+     if( item->serialno != serialno )
+       utility::checkstop(__LINE__, __FILE__, "out_task");
+
      stream_item= item;
      stream= item->stream;
      try {
@@ -886,7 +869,9 @@ void
        if( content_length )
          events |= EVT_WR_DATA;
        h_writer();
+Trace::trace(".CLI", "wait", this, stream.get());
        rd_complete.wait();          // Wait for HTTP/1 operation completion
+Trace::trace(".CLI", "wend", this, stream.get());
        rd_complete.reset();
      } catch(io_exception& X) {
        close_enq();
@@ -916,6 +901,9 @@ void
      stream= nullptr;
      stream_item= nullptr;
      item->post();
+
+     if( USE_ITRACE )
+       Trace::trace(".XIT", "COUT", this, it);
    }; // out_task
 //debugf("%4d Client out_task(%p)\n", __LINE__, &out_task);
 
@@ -995,7 +983,7 @@ void
    // inp_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    inp_task= [this](dispatch::Item* it) // Input task
    { if( HCDM ) debugh("Client(%p)::inp_task(%p)\n", this, it);
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".DEQ", "CINP", this, it);
 
      if( fsm != FSM_READY ) {
@@ -1007,15 +995,20 @@ void
      }
 
      ClientItem* item= static_cast<ClientItem*>(it);
-     if( item->stream->read(item->ioda) ) // If response complete
+     if( item->serialno != serialno )
+       utility::checkstop(__LINE__, __FILE__, "inp_task");
+
+     if( item->stream->read(item->ioda) ) { // If response complete
+Trace::trace(".CLI", "post", this, stream.get());
        rd_complete.post();          // Indicate HTTP/1 operation complete
+     }
      item->post();
    }; // inp_task
 
    // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    out_task= [this](dispatch::Item* it) // Output task
    { if( HCDM ) debugh("Client(%p)::out_task(%p)\n", this, it);
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".DEQ", "COUT", this, it);
 
      if( fsm != FSM_READY ) {
@@ -1024,6 +1017,9 @@ void
      }
 
      ClientItem* item= static_cast<ClientItem*>(it);
+     if( item->serialno != serialno )
+       utility::checkstop(__LINE__, __FILE__, "out_task");
+
      stream_item= item;
      stream= item->stream;
      try {
@@ -1200,14 +1196,14 @@ void
        ssize_t size= mesg.msg_iov[0].iov_len;
        if( size > L )
          size= L;
-       if( USE_XTRACE )
+       if( USE_ITRACE )
          utility::iotrace(".C<<", addr, size);
        iodm(line, "read", addr, size);
 
        // Enqueue IODA to input task
-       ClientItem* item= new ClientItem(stream);
+       ClientItem* item= new ClientItem(get_self(), stream);
        item->ioda= std::move(ioda);
-       if( USE_XTRACE )
+       if( USE_ITRACE )
          Trace::trace(".ENQ", "CINP", this, item);
        task_inp.enqueue(item);
        if( USE_READ_ONCE )
@@ -1256,7 +1252,7 @@ ssize_t                             // Written length
 
    for(;;) {
      // This helps when a trace read appears before the trace write
-     if( USE_XTRACE )
+     if( USE_ITRACE )
        Trace::trace(".INF", __LINE__, "CSocket->write");
 
      Mesg mesg; ioda_out.get_wr_mesg(mesg, size_out, ioda_off);
@@ -1267,7 +1263,7 @@ ssize_t                             // Written length
        ssize_t size= mesg.msg_iov[0].iov_len;
        if( size > L )
          size= L;
-       if( USE_XTRACE )
+       if( USE_ITRACE )
          utility::iotrace(".C>>", addr, size);
 
        iodm(line, "sendmsg", addr, size);

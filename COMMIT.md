@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2023/02/01
+//       2023/05/25
 //
 //------------------------------------------------------------------------ -->
 
@@ -26,6 +26,26 @@ Copyright (C) 2023 Frank Eskesen.
 This file is free content, distributed under the MIT license.
 (See the accompanying file LICENSE.MIT or the original contained
 within https://opensource.org/licenses/MIT)
+
+#### 05/25/2023 maint commit
+This is a synchronization commit with debugging hooks left in the code.
+Most of these hooks need to be removed before a trunk commit.
+
+Issue #2 has been corrected, but dispatch::Task::~Task still has issues.
+The FC_UNDEF wait request doesn't complete, so the destructor doesn't complete
+and the Client and Server destructors don't complete. (Client and Server
+objects contain dispatch::Task objects.)
+
+Isolating the the problem to the dispatch::Task destructor proved exceedingly
+difficult and compounded by the FC_UNDEF wait request (lack of) completion
+issue. Minor ancillary code base modifications were made while waiting for
+some flash of inspiration for ways to debug the problem.
+
+This commit synchronizes the local and remote maint branch. This makes it
+easier to focus on the FC_UNDEF processing issue.
+
+#### 05/19/2023 maint commit
+Distribution test: Moved prerequisite build programs to ~/src/cpp/sys/.
 
 #### 02/01/2023 trunk commit
 Branch trunk merged with maint.

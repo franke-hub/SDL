@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Internal use utilities, included separately
 //
 // Last change date-
-//       2022/12/16
+//       2023/05/25
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_UTILITY_H_INCLUDED
@@ -27,6 +27,22 @@
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 namespace utility {
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       utility::checkstop
+//
+// Purpose-
+//       Termination error handling and reporting.
+//
+//----------------------------------------------------------------------------
+[[noreturn]]
+void
+   checkstop(                       // Halt tracing, throw std::runtime_error
+     int               line,        // Source line number
+     const char*       file,        // Source file name
+     const char*       mess);       // Error messsage
+
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -62,6 +78,7 @@ static inline void
 //       Throw std::runtime_error("NOT CODED YET");
 //
 //----------------------------------------------------------------------------
+[[noreturn]]
 void
    not_coded_yet(                   // Throw "NOT CODED YET" error
      int               line,        // Source file line
@@ -91,6 +108,7 @@ void
 //       Throw std::runtime_error("SHOULD NOT OCCUR");
 //
 //----------------------------------------------------------------------------
+[[noreturn]]
 void
    should_not_occur(                // Throw "SHOULD NOT OCCUR" error
      int               line,        // Source file line

@@ -16,7 +16,7 @@
 //       Trace table storage allocator.
 //
 // Last change date-
-//       2023/05/04
+//       2023/05/24
 //
 // Usage notes-
 //       The Trace object allocates storage sequentially from itself, wrapping
@@ -122,7 +122,7 @@ struct Record {                     // A standard (POD) trace record
 char                   ident[4];    // The trace type identifier
 uint32_t               unit;        // The trace unit identifier
 uint64_t               clock;       // The UTC epoch clock, in nanoseconds
-char                   value[16];   // Data values (For smallest Record)
+char                   value[2*sizeof(void*)]; // Data values (2 void*'s)
 
 _LIBPUB_FLATTEN
 _LIBPUB_HOT
@@ -200,17 +200,17 @@ inline void
    trace(                           // Initialize with
      const char*       ident,       // This char[4] trace type identifier
      const char*       unit,        // This char[4] trace subtype identifier
-     const void*       one)         // Word one
+     const void*       W0)          // Word[0]
 {  memcpy(&this->unit, unit, sizeof(this->unit));
 
    if( USE_BIG_ENDIAN ) {           // Use big_endian conversion?
-     uintptr_t uone= uintptr_t(one);
+     uintptr_t V0= uintptr_t(W0);
      for(unsigned i= WSIZE; i>0; i--) {
-       value[i      -1]= char(uone);
-       uone >>= 8;
+       value[i+0*WSIZE-1]= char(V0);
+       V0 >>= 8;
      }
    } else {
-     ((void const**)value)[0]= one;
+     ((void const**)value)[0]= W0;
    }
    ((void const**)value)[1]= 0;
 
@@ -223,25 +223,72 @@ inline void
    trace(                           // Initialize with
      const char*       ident,       // This char[4] trace type identifier
      const char*       unit,        // This char[4] trace subtype identifier
-     const void*       one,         // Word one
-     const void*       two)         // Word two
+     const void*       W0,          // Word[0]
+     const void*       W1)          // Word[1]
 {  memcpy(&this->unit, unit, sizeof(this->unit));
 
    if( USE_BIG_ENDIAN ) {           // Use big_endian conversion?
-     uintptr_t uone= uintptr_t(one);
-     uintptr_t utwo= uintptr_t(two);
+     uintptr_t V0= uintptr_t(W0);
+     uintptr_t V1= uintptr_t(W1);
      for(unsigned i= WSIZE; i>0; i--) {
-       value[i      -1]= char(uone);
-       value[i+WSIZE-1]= char(utwo);
-       uone >>= 8;
-       utwo >>= 8;
+       value[i+0*WSIZE-1]= char(V0);
+       value[i+1*WSIZE-1]= char(V1);
+       V0 >>= 8;
+       V1 >>= 8;
      }
    } else {
-     ((void const**)value)[0]= one;
-     ((void const**)value)[1]= two;
+     ((void const**)value)[0]= W0;
+     ((void const**)value)[1]= W1;
    }
 
    trace(ident);
+}
+
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+inline void                         // Expanded record
+   trace(                           // Initialize with
+     const char*       ident,       // This char[4] trace type identifier
+     const char*       unit,        // This char[4] trace subtype identifier
+     const void*       W0,          // Word[0]
+     const void*       W1,          // Word[1]
+     const void*       W2,          // Word[2]
+     const void*       W3= nullptr, // Word[3]
+     const void*       W4= nullptr, // Word[4]
+     const void*       W5= nullptr) // Word[5]
+{  memcpy(&this->unit, unit, sizeof(this->unit));
+
+   struct XR {                      // Extended Record
+     char              ident[4];    // The trace type identifier
+     uint32_t          unit;        // The trace unit identifier
+     uint64_t          clock;       // The UTC epoch clock, in nanoseconds
+     char              value[6*sizeof(void*)]; // Data values (6 void*'s)
+   }; // struct XR
+
+   struct XR* that= (struct XR*)this; // Extended Record
+   if( USE_BIG_ENDIAN ) {           // Use big_endian conversion?
+     uintptr_t V2= uintptr_t(W2);
+     uintptr_t V3= uintptr_t(W3);
+     uintptr_t V4= uintptr_t(W4);
+     uintptr_t V5= uintptr_t(W5);
+     for(unsigned i= WSIZE; i>0; i--) {
+       that->value[i+2*WSIZE-1]= char(V2);
+       that->value[i+3*WSIZE-1]= char(V3);
+       that->value[i+4*WSIZE-1]= char(V4);
+       that->value[i+5*WSIZE-1]= char(V5);
+       V2 >>= 8;
+       V3 >>= 8;
+       V4 >>= 8;
+       V5 >>= 8;
+     }
+   } else {
+     ((void const**)that->value)[2]= W2;
+     ((void const**)that->value)[3]= W3;
+     ((void const**)that->value)[4]= W4;
+     ((void const**)that->value)[5]= W5;
+   }
+
+   trace(ident, unit, W0, W1);
 }
 }; // struct Record
 
@@ -337,9 +384,9 @@ void*                               // -> Trace record
      uint32_t          size)        // of this length
 {  if( is_active() ) return allocate(size); else return nullptr; }
 
-// deactivate: Globally deactivate this Trace object
+// deactivate: Deactivate this Trace object
 inline void
-   deactivate( void )               // Halt tracing
+   deactivate( void )               // Suspend tracing
 {  flag[X_HALT]= true; }            // is_active() now returns false
 
 // dump: Create an unformatted hex dump file using Debug::tracef
@@ -352,9 +399,16 @@ inline uint32_t                     // Offset of record
      void*             record)      // This record
 {  return uint32_t((char*)record - (char*)this); }
 
-static inline void
-   stop( void )                     // Stop tracing (if table present)
-{  if( table ) table->deactivate(); }
+// reactivate: Reactivate this Trace object
+inline void
+   reactivate( void )               // Resume tracing
+{  flag[X_HALT]= false; }           // is_active() now returns true
+
+static void
+   start( void );                   // Start tracing (if table present)
+
+static void
+   stop( void );                    // Stop tracing (if table present)
 
 // storage_if: Static storage allocator (with status checking)
 _LIBPUB_FLATTEN
@@ -448,10 +502,10 @@ static inline Record*
    trace(                           // Simple trace event
      const char*       ident,       // Trace identifier
      const char*       unit,        // Trace sub-identifier
-     const void*       one)         // Word one
+     const void*       W0)          // Word[0]
 {  Record* record= trace();
    if( record )
-     record->trace(ident, unit, one);
+     record->trace(ident, unit, W0);
    return record;
 }
 
@@ -461,11 +515,29 @@ static inline Record*
    trace(                           // Simple trace event
      const char*       ident,       // Trace identifier
      const char*       unit,        // Trace sub-identifier
-     const void*       one,         // Word one
-     const void*       two)         // Word two
+     const void*       W0,          // Word[0]
+     const void*       W1)          // Word[1]
 {  Record* record= trace();
    if( record )
-     record->trace(ident, unit, one, two);
+     record->trace(ident, unit, W0, W1);
+   return record;
+}
+
+_LIBPUB_FLATTEN
+_LIBPUB_HOT
+static inline Record*               // Expanded record
+   trace(                           // Initialize with
+     const char*       ident,       // This char[4] trace type identifier
+     const char*       unit,        // This char[4] trace subtype identifier
+     const void*       W0,          // Word[0]
+     const void*       W1,          // Word[1]
+     const void*       W2,          // Word[2]
+     const void*       W3= nullptr, // Word[3]
+     const void*       W4= nullptr, // Word[4]
+     const void*       W5= nullptr) // Word[5]
+{  Record* record= trace(sizeof(Record) + 4*sizeof(void*));
+   if( record )
+     record->trace(ident, unit, W0, W1, W2, W3, W4, W5);
    return record;
 }
 }; // class Trace

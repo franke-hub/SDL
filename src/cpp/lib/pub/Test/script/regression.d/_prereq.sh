@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2022 Frank Eskesen.
+##       Copyright (C) 2022-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Verify test prequisites
 ##
 ## Last change date-
-##       2022/04/24
+##       2023/05/19
 ##
 ##############################################################################
 
@@ -25,7 +25,7 @@
 type -p filecomp >/dev/null 2>/dev/null
 if [[ $? != 0 ]] ; then
   echo -e "\n\nInstalling missing prerequite: filecomp (into ~/bin)\n"
-  pushd ~/obj/cpp/Tools/Compare >/dev/null
+  pushd ~/obj/cpp/sys >/dev/null
   make install
   popd >/dev/null
 

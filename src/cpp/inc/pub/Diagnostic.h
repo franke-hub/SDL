@@ -16,7 +16,7 @@
 //       Debugging diagnostics.
 //
 // Last change date-
-//       2023/04/15
+//       2023/05/18
 //
 // Available diagnostics:
 //       pub::diag::Pristine: Used to catch "wild stores" clobbering objects.
@@ -33,7 +33,6 @@
 #include <map>                      // For std::map
 #include <memory>                   // For std::shared_ptr, ...
 #include <string>                   // For std::string
-#include <stdio.h>                  // For printf (debugging) TODO: REMOVE
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB macros
 
@@ -338,10 +337,7 @@ debug_ptr& operator=(debug_ptr&& move) // Move assignment
 }
 
 debug_ptr& operator=(std::nullptr_t) // Null assignment
-{  ptr= nullptr;
-   update(this, ptr.get());          // (Move into accounting)
-   return *this;
-}
+{  reset(); return *this; }
 
 // Casting operators - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    explicit operator shared_ptr<T>() const

@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2023/04/22
+//       2023/05/25
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -798,6 +798,31 @@ std::string                         // The visual representation
    }
 
    return out.str();
+}
+
+//----------------------------------------------------------------------------
+//
+// (Bits) subroutine-
+//       utility::checkstop
+//
+// Purpose-
+//       Halt tracing, throw std::runtime_error
+//
+// Implementation notes-
+//       In a multi-threaded environment other threads continue running even
+//       after an exception is thrown. Stopping the internal trace when a
+//       terminating error occurs helps simplify debugging.
+//
+//----------------------------------------------------------------------------
+void
+   checkstop(                       // Halt tracing, throw std::runtime_error
+     int               line,        // Source line number
+     const char*       file,        // Source file name
+     const char*       mess)        // Error messsage
+{
+   debugh("%4d %s %s\n", line, file, mess);
+   Trace::stop();
+   throw std::runtime_error(mess);
 }
 
 //----------------------------------------------------------------------------

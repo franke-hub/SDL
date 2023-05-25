@@ -159,6 +159,10 @@ std::string to_string( void ) const; // Convert to display string
 
 ##############################################################################
 ## FIXED: (Fixed bugs)
+2023/05/18 Client deleted while active.
+         Added shared_ptr<Client> to ClientItem.
+         --major stress runs longer but still doesn't complete sucessfully.
+
 2022/12/12 Performance issue
          Throughput is pathetic running T_Stream --server --stress --major=1.
          (The --major=1 option disallows connection reuse, i.e.
