@@ -16,7 +16,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2023/04/30
+//       2023/05/24
 //
 // Verifications-
 //       File permissions. (Auto-correctable)
@@ -987,7 +987,7 @@ static void
        if( f_year != t_year )
          n_year= pub::utility::to_string("%4d-%4d", f_year, t_year);
 
-       comment + " ";
+       comment += " ";
        if( comment.length() < 9 )
          comment += string(9 - comment.length(), ' ');
        comment += "Copyright (c) " + n_year + " " + owner;
