@@ -15,20 +15,32 @@
 ##       README: List of usage notes, bugs, fixes, etc.
 ##
 ## Last change date-
-##       2023/04/24
+##       2023/05/28
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
-2023/04/24 T_Stream --major=1: improved throughput, but unstable
+2023/05/28 FIXED: Issue #3
+         BUG: T_Stream --major=1 unstable running heavy stress testing
+         Client and Server inp_task close procesing deadlocks because
+         inp_task invokes close which removes the last shared_ptr<Server>
+         reference. Even adding a keep_alive shared_ptr in task_inp doesn't
+         help enough because the Client/Server destructor is invoked under
+         task_inp control *before* dispatcher processing for the close
+         operation completes.
+         This results in a deadlock since in dispatch::Task::~Task a wait
+         operation is enqueued and waited for while task_inp is running.
 
-## BUGS:
-2023/04/24 T_Stream --major=1 unstable running heavy stress testing
-         T_Stream --major=1 --stress --runtime=8 OK, but
-         T_Stream --major=1 --stress=16 --runtime=120 fails, storage clobber.
-         T_Stream --major=1 --stress=4 --runtime=120 can fail,
-           T_Stream's ClientThread (usually) doesn't terminate properly.
+         FIX: In inp_task, we transfer posting of the CLOSE work item onto
+         an internal Dispatcher task created just for this purpose. When that
+         Task posts (and deletes) the CLOSE work item, the last Client/Server
+         reference is removed and the Task destructor runs under that task,
+         removing the deadlock.
+
+         We similarly also defer posting out_task work items. This is needed
+         on Linux, but it's not clear why. (We know the deadlock occurs, but
+         don't know the exact interaction that causes it.)
 
 ##############################################################################
 ## SOCKET INFO: (Coding reference information)

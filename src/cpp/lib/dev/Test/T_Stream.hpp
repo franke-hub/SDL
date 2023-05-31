@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2023/05/24
+//       2023/05/30
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -843,6 +843,7 @@ static void
    debugf("%'16.3f operations/second\n", op_count/opt_runtime);
 
 #if true //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+Thread::sleep(0.25);
      debugf("\n\n");
      Reporter::get()->report([](Reporter::Record& record) {
        debugf("%s\n", record.h_report().c_str());

@@ -16,7 +16,7 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2023/05/25
+//       2023/05/28
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -311,6 +311,9 @@ static inline void* i2v(intptr_t i) { return (void*)i; }
 
 //std::pub_diag::Debug_ptr::debug("~Server");
    REM_DEBUG_OBJ("*Server*");
+
+   // Implementation note:
+   // After return, C++ invokes task_inp and task_out destructors
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -402,6 +405,9 @@ void
 // Purpose-
 //       Terminate the Server
 //
+// Implementation notes (Issue #3)-
+//       See task_inp close() method call.
+//
 //----------------------------------------------------------------------------
 void
    Server::close( void )            // Terminate the Server
@@ -409,9 +415,10 @@ void
    if( USE_ITRACE )
      Trace::trace(".SRV", ".CLS", this, i2v(get_handle()));
 
+// TODO: REMOVE DEBUGGING STATEMENTS
    // The Listener might contain the last active shared_ptr<Server>
    // and we reference this->socket after the disconnect.
-   std::shared_ptr<Server> keep_alive(get_self());
+//std::shared_ptr<Server> keep_alive(get_self());
 //debugh("%4d Server(%d) keep_alive %p\n", __LINE__, socket->get_handle(), &keep_alive);
 //std::pub_diag::Debug_ptr::debug("Server keep_alive");
 
@@ -422,6 +429,8 @@ void
      if( fsm != FSM_RESET ) {
        fsm= FSM_RESET;
 //debugh("Server(%p) RESET\n", this);
+       // Note: Listen::disconnect uses socket->get_peer_addr(), therefore
+       // listen->disconnet() must precede socket->close()
        listen->disconnect(this);    // (Only called once)
        socket->close();             // (Only called once)
      }
@@ -455,7 +464,8 @@ void
      if( select )
        select->modify(socket, 0);   // Remove from poll list
 
-     dispatch::Item* item= new dispatch::Item(FSM_CLOSE);
+     ServerItem* item= new ServerItem(get_self());
+     item->fc= FSM_CLOSE;
      task_inp.enqueue(item);
    }
 }
@@ -542,17 +552,23 @@ void
      if( USE_ITRACE )
        Trace::trace(".DEQ", "SINP", this, it);
 
-     if( fsm != FSM_READY ) {
-       if( it->fc == FSM_CLOSE )
-         close();
-
-       it->post(it->CC_PURGE);
-       return;
-     }
-
      ServerItem* item= static_cast<ServerItem*>(it);
      if( item->serialno != serialno )
        utility::checkstop(__LINE__, __FILE__, "inp_task");
+
+     if( fsm != FSM_READY ) {
+       // Issue #3: close operation deadlock:
+       // We need to post the work item (which contains a shared_ptr<Server>)
+       // under a different Task so that Server (and Task) destruction
+       // won't occur under inp_task control (or before close completes.)
+       if( item->fc == FSM_CLOSE )
+         close();
+
+       item->cc= item->CC_PURGE;
+       dispatch::Disp::defer(item); // (Post using a different task)
+Trace::trace(".XIT", "SREJ", this, item);
+       return;
+     }
 
      if( stream.get() == nullptr )
        stream= ServerStream::make(this);
@@ -563,6 +579,7 @@ void
      }
 
      item->post();
+Trace::trace(".XIT", "SINP", this, it);
    }; // inp_task
 //debugf("%4d Server inp_task(%p)\n", __LINE__, &inp_task);
 
@@ -572,18 +589,20 @@ void
      if( USE_ITRACE )
        Trace::trace(".DEQ", "SOUT", this, it);
 
-     if( fsm != FSM_READY ) {
-       it->post(it->CC_PURGE);
-       return;
-     }
-
      ServerItem* item= static_cast<ServerItem*>(it);
      if( item->serialno != serialno )
        utility::checkstop(__LINE__, __FILE__, "out_task");
 
+     if( fsm != FSM_READY ) {
+       item->post(item->CC_PURGE);
+Trace::trace(".XIT", "SREJ", this, item);
+       return;
+     }
+
      ioda_out += std::move(item->ioda);
      write(__LINE__);
      item->post();
+Trace::trace(".XIT", "SOUT", this, it);
    }; // out_task
 //debugf("%4d Server out_task(%p)\n", __LINE__, &out_task);
 
@@ -617,72 +636,7 @@ void
 void
    Server::http2( void )            // Initialize the HTTP/2 protocol handler
 {
-   throw std::runtime_error("NOT READY YET"); // Duplicates http1()
-   // debugh("%4d %s HCDM2\n", __LINE__, __FILE__);
-
-   // inp_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   inp_task= [this](dispatch::Item* it) // Input task
-   { if( HCDM ) debugh("Server(%p)::inp_task(%p)\n", this, it);
-     if( USE_ITRACE )
-       Trace::trace(".DEQ", "SINP", this, it);
-
-     if( fsm != FSM_READY ) {
-       if( it->fc == FSM_CLOSE )
-         close();
-
-       it->post(it->CC_PURGE);
-       return;
-     }
-
-     ServerItem* item= static_cast<ServerItem*>(it);
-     if( item->serialno != serialno )
-       utility::checkstop(__LINE__, __FILE__, "inp_task");
-
-     if( stream.get() == nullptr )
-       stream= ServerStream::make(this);
-
-     if( stream && stream->read(item->ioda) ) {
-       stream->end();
-       stream= nullptr;
-     }
-
-     item->post();
-   }; // inp_task
-
-   // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   out_task= [this](dispatch::Item* it) // Output task
-   { if( HCDM ) debugh("Server(%p)::out_task(%p)\n", this, it);
-     if( USE_ITRACE )
-       Trace::trace(".DEQ", "SOUT", this, it);
-
-     if( fsm != FSM_READY ) {
-       it->post(it->CC_PURGE);
-       return;
-     }
-
-     ServerItem* item= static_cast<ServerItem*>(it);
-     if( item->serialno != serialno )
-       utility::checkstop(__LINE__, __FILE__, "out_task");
-
-     ioda_out += std::move(item->ioda);
-     write(__LINE__);
-     item->post();
-   }; // out_task
-
-   // h_reader - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   h_reader= [this](void)           // (Asynchronous) input data available
-   { if( HCDM ) debugh("Server(%p)::h_reader\n", this);
-
-     // Read the request, passing it to Stream
-     read(__LINE__);                // (Exception if error)
-   }; // h_reader=
-
-   // h_writer - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   h_writer= [this](void)           // The output writer
-   { if( HCDM ) debugh("Server(%p)::h_writer\n", this);
-
-     write(__LINE__);               // (Exception if error)
-   }; // h_writer=
+   throw std::runtime_error("NOT READY YET");
 }
 
 //----------------------------------------------------------------------------
@@ -783,7 +737,9 @@ void
      int               line)        // Caller's line number
 {  if( HCDM ) debugh("%4d Server(%p)::write\n", line, this);
 
+Trace::trace(".SRV", "rite", this, i2v(line));
    std::lock_guard<Server> lock(*this);
+Trace::trace(".SRV", "lock", this, i2v(line));
 
    if( fsm != FSM_READY ) {
      ioda_out.reset();

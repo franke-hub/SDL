@@ -16,7 +16,10 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2023/05/25
+//       2023/05/30
+//
+// Implmentation note-
+//       TODO: Test _read() disconnect (close processing)
 //
 //----------------------------------------------------------------------------
 #define OPENSSL_API_COMPAT 30000    // Deprecate OSSL functions < 3.0.0
@@ -74,6 +77,11 @@ namespace _LIBPUB_NAMESPACE::http {  // Implementation namespace
 #endif
 
 #define IS_RETRY (errno == EINTR)
+
+//----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+static inline void* i2v(intptr_t);
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -148,6 +156,10 @@ public:
 typedef std::shared_ptr<Client>               client_ptr;
 typedef std::shared_ptr<ClientStream>         stream_ptr;
 
+enum                                // Function codes
+{  FC_CLOSE= 2                      // CLOSE
+};
+
 client_ptr             client;      // The associated Client
 int                    serialno;    // Client serial number
 int                    sequence;    // ClientItem sequence number
@@ -172,7 +184,7 @@ virtual
 {  if( HCDM && VERBOSE > 0 ) debugh("ClientItem(%p)~\n", this);
 
    if( USE_ITRACE )
-     Trace::trace(".DEL", "CITM", this);
+     Trace::trace(".DEL", "CITM", this, i2v(fc));
 
    REM_DEBUG_OBJ("ClientItem");
 }
@@ -378,6 +390,9 @@ static inline SSL_CTX*
    serialno= (_serialno += 10);
 
    INS_DEBUG_OBJ("*Client*");
+
+   // Implementation note:
+   // After return, C++ invokes task_inp and task_out destructors
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -495,47 +510,12 @@ void
 //       Client::close
 //
 // Purpose-
-//       Close the Client, making it inoperative.
-//
-//----------------------------------------------------------------------------
-void
-   Client::close( void )            // Close the Client
-{  if( HCDM ) debugh("Client(%p)::close() fsm(%d)\n", this, fsm);
-   if( USE_ITRACE )
-     Trace::trace(".CLI", ".CLS", this, i2v(get_handle()));
-
-   // The Agent might contain the last active shared_ptr<Client>
-   // and we reference this->socket after the disconnect.
-   std::shared_ptr<Client> keep_alive(get_self());
-//debugh("%4d Client(%d) keep_alive %p\n", __LINE__, socket->get_handle(), &keep_alive);
-//std::pub_diag::Debug_ptr::debug("Client keep_alive");
-
-   {{{{
-     std::lock_guard<Client> lock(*this);
-
-     if( fsm != FSM_RESET ) {
-       fsm= FSM_RESET;
-       agent->disconnect(this);     // (Only called once)
-       socket->close();             // (Only called once)
-     }
-   }}}}
-
-   if( !rd_complete.is_post() )     // Post out_task wait
-     rd_complete.post(dispatch::Item::CC_PURGE);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Client::close_enq
-//
-// Purpose-
 //       Schedule a close operation
 //
 //----------------------------------------------------------------------------
 void
-   Client::close_enq( void )        // Schedule Client close
-{  if( HCDM ) debugh("Client(%p)::close_enq() fsm(%d)\n", this, fsm);
+   Client::close( void )            // Schedule Client close
+{  if( HCDM ) debugh("Client(%p)::close() fsm(%d)\n", this, fsm);
    if( USE_ITRACE )
      Trace::trace(".CLI", "CLSQ", this, i2v(get_handle()));
 
@@ -545,7 +525,9 @@ void
      if( select )
        select->modify(socket, 0);   // Remove from poll list
 
-     dispatch::Item* item= new dispatch::Item(FSM_CLOSE);
+     ClientItem* item= new ClientItem(get_self(), stream);
+     item->fc= item->FC_CLOSE;
+Trace::trace(".CLI", "QCLS", this, item);
      task_inp.enqueue(item);
    }
 }
@@ -589,13 +571,11 @@ Socket*                             // Resultant Socket (nullptr if failure)
          encrypt= true;
      }
    }
-//std::pub_diag::Debug_ptr::debug("before Client http1");
    if( proto_ix == HTTP_H1 )  {
-     http1();
+     _http1();
    } else {
-     http2();
+     _http2();
    }
-//std::pub_diag::Debug_ptr::debug("after Client http1");
 
    // Create connection
    if( !encrypt ) {
@@ -669,7 +649,7 @@ void
      const char*       info)        // Diagnostic information
 {  errorh("Client(%p)::error(%s)\n", this, info);
 
-   close_enq();
+   close();
 }
 
 //----------------------------------------------------------------------------
@@ -735,11 +715,11 @@ int                                 // Return code, 0 expected
 {  if( HCDM ) debugh("Client(%p)::write(Stream* %p)\n", this, S);
 
    int rc= ClientItem::CC_PURGE;    // Default, not sent
-   ClientItem* item= new ClientItem(get_self(), S->get_self());
 
    std::lock_guard<Client> lock(*this);
 
    if( fsm == FSM_READY ) {
+     ClientItem* item= new ClientItem(get_self(), S->get_self());
      if( USE_ITRACE )
        Trace::trace(".ENQ", "COUT", this, item);
      task_out.enqueue(item);
@@ -752,7 +732,45 @@ int                                 // Return code, 0 expected
 //----------------------------------------------------------------------------
 //
 // Protected method-
-//       Client::http1
+//       Client::_close
+//
+// Purpose-
+//       Close the Client, making it inoperative.
+//
+//----------------------------------------------------------------------------
+void
+   Client::_close( void )           // Close the Client
+{  if( HCDM ) debugh("Client(%p)::_close() fsm(%d)\n", this, fsm);
+   if( USE_ITRACE )
+     Trace::trace(".CLI", ".CLS", this, i2v(get_handle()));
+
+// TODO: REMOVE DEBUGGING STATEMENTS
+   // The Agent might contain the last active shared_ptr<Client>
+   // and we reference this->socket after the disconnect.
+//std::shared_ptr<Client> keep_alive(get_self());
+//debugh("%4d Client(%d) keep_alive %p\n", __LINE__, socket->get_handle(), &keep_alive);
+//std::pub_diag::Debug_ptr::debug("Client keep_alive");
+
+   {{{{
+     std::lock_guard<Client> lock(*this);
+
+     if( fsm != FSM_RESET ) {
+       fsm= FSM_RESET;
+       // Note: Agent::disconnect uses socket->get_peer_addr(), therefore
+       // agent->disconnect() must precede socket->close()
+       agent->disconnect(this);     // (Only called once)
+       socket->close();             // (Only called once)
+     }
+   }}}}
+
+   if( !rd_complete.is_post() )     // Post out_task wait
+     rd_complete.post(dispatch::Item::CC_PURGE);
+}
+
+//----------------------------------------------------------------------------
+//
+// Protected method-
+//       Client::_http1
 //
 // Purpose-
 //       Initialize the HTTP/1.0 and HTTP/1.1 protocol handlers
@@ -765,7 +783,7 @@ int                                 // Return code, 0 expected
 //
 //----------------------------------------------------------------------------
 void
-   Client::http1( void )            // Initialize the HTTP/1 protocol handlers
+   Client::_http1( void )           // Initialize the HTTP/1 protocol handlers
 {
    // debugh("%4d %s HCDM1\n", __LINE__, __FILE__);
 
@@ -775,23 +793,30 @@ void
      if( USE_ITRACE )
        Trace::trace(".DEQ", "CINP", this, it);
 
-     if( fsm != FSM_READY ) {
-       if( it->fc == FSM_CLOSE )
-         close();
-
-       it->post(it->CC_PURGE);
-       return;
-     }
-
      ClientItem* item= static_cast<ClientItem*>(it);
      if( item->serialno != serialno )
        utility::checkstop(__LINE__, __FILE__, "inp_task");
+
+     if( fsm != FSM_READY ) {
+       // Issue #3: close operation deadlock:
+       // We need to post the work item (which contains a shared_ptr<Client>)
+       // under a different Task so that Client (and Task) destruction
+       // won't occur under inp_task control (or before close completes.)
+       if( item->fc == item->FC_CLOSE )
+         _close();
+
+       item->cc= item->CC_PURGE;
+       dispatch::Disp::defer(item); // (Post using a different task)
+Trace::trace(".XIT", "CREJ", this, item);
+       return;
+     }
 
      if( item->stream->read(item->ioda) ) { // If response complete
 Trace::trace(".CLI", "post", this, item->stream.get());
        rd_complete.post();          // Indicate HTTP/1 operation complete
      }
      item->post();
+Trace::trace(".XIT", "CINP", this, item);
    }; // inp_task
 //debugf("%4d Client inp_task(%p)\n", __LINE__, &inp_task);
 
@@ -801,14 +826,15 @@ Trace::trace(".CLI", "post", this, item->stream.get());
      if( USE_ITRACE )
        Trace::trace(".DEQ", "COUT", this, it);
 
-     if( fsm != FSM_READY ) {
-       it->post(it->CC_PURGE);
-       return;
-     }
-
      ClientItem* item= static_cast<ClientItem*>(it);
      if( item->serialno != serialno )
        utility::checkstop(__LINE__, __FILE__, "out_task");
+
+     if( fsm != FSM_READY ) {
+       item->post(item->CC_PURGE);
+Trace::trace(".XIT", "SREJ", this, item);
+       return;
+     }
 
      stream_item= item;
      stream= item->stream;
@@ -874,24 +900,24 @@ Trace::trace(".CLI", "wait", this, stream.get());
 Trace::trace(".CLI", "wend", this, stream.get());
        rd_complete.reset();
      } catch(io_exception& X) {
-       close_enq();
+       close();
        if( IODM )
          errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
        error(X.what());
      } catch(Exception& X) {
-       close_enq();
+       close();
        errorh("%4d %s %s\n", __LINE__, __FILE__, ((std::string)X).c_str());
        error(X.what());
      } catch(std::exception& X) {
-       close_enq();
+       close();
        errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
        error(X.what());
      } catch(const char* X) {
-       close_enq();
+       close();
        errorh("%4d %s catch(%s)\n", __LINE__, __FILE__, X);
        error(X);
      } catch(...) {
-       close_enq();
+       close();
        errorh("%4d %s catch(...)\n", __LINE__, __FILE__);
        error("catch(...)");
      }
@@ -900,7 +926,9 @@ Trace::trace(".CLI", "wend", this, stream.get());
      stream->end();
      stream= nullptr;
      stream_item= nullptr;
-     item->post();
+
+     // It's clear that this is needed, but not clear exactly why.
+     dispatch::Disp::defer(item);   // (Post using a different task)
 
      if( USE_ITRACE )
        Trace::trace(".XIT", "COUT", this, it);
@@ -919,7 +947,7 @@ Trace::trace(".CLI", "wend", this, stream.get());
      }
 
      // Read the response, passing it to Stream
-     read(__LINE__);                // (Exception if error)
+     _read(__LINE__);               // (Exception if error)
    }; // h_reader=
 //debugf("%4d Client h_reader(%p)\n", __LINE__, &h_reader);
 
@@ -932,9 +960,9 @@ Trace::trace(".CLI", "wend", this, stream.get());
        if( (events & EVT_WR_DATA) == 0 )
          events |= EVT_RD_DATA;
 
-       ssize_t L= write(__LINE__);
+       ssize_t L= _write(__LINE__);
        if( L <= 0 ) {               // If blocked (else io_error exception)
-         events &= ~EVT_RD_DATA;    // (write() updated select event)
+         events &= ~EVT_RD_DATA;    // (_write() updated select event)
          return;
        }
 
@@ -953,9 +981,9 @@ Trace::trace(".CLI", "wend", this, stream.get());
 
      if( events & EVT_WR_DATA ) {   // Write the request data?
        events |= EVT_RD_DATA;
-       ssize_t L= write(__LINE__);
+       ssize_t L= _write(__LINE__);
        if( L <= 0 ) {               // If blocked (else io_error exception)
-         events &= ~EVT_RD_DATA;    // (write() updated select event)
+         events &= ~EVT_RD_DATA;    // (_write() updated select event)
          return;
        }
 
@@ -968,218 +996,31 @@ Trace::trace(".CLI", "wend", this, stream.get());
 //----------------------------------------------------------------------------
 //
 // Protected method-
-//       Client::http2
+//       Client::_http2
 //
 // Purpose-
 //       Initialize the HTTP/2 protocol handlers
 //
 //----------------------------------------------------------------------------
 void
-   Client::http2( void )            // Initialize the HTTP/2 protocol handler
+   Client::_http2( void )           // Initialize the HTTP/2 protocol handler
 {
-   throw std::runtime_error("NOT READY YET"); // Duplicates http1()
-   // debugh("%4d %s HCDM2\n", __LINE__, __FILE__);
-
-   // inp_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   inp_task= [this](dispatch::Item* it) // Input task
-   { if( HCDM ) debugh("Client(%p)::inp_task(%p)\n", this, it);
-     if( USE_ITRACE )
-       Trace::trace(".DEQ", "CINP", this, it);
-
-     if( fsm != FSM_READY ) {
-       if( it->fc == FSM_CLOSE )
-         close();
-
-       it->post(it->CC_PURGE);
-       return;
-     }
-
-     ClientItem* item= static_cast<ClientItem*>(it);
-     if( item->serialno != serialno )
-       utility::checkstop(__LINE__, __FILE__, "inp_task");
-
-     if( item->stream->read(item->ioda) ) { // If response complete
-Trace::trace(".CLI", "post", this, stream.get());
-       rd_complete.post();          // Indicate HTTP/1 operation complete
-     }
-     item->post();
-   }; // inp_task
-
-   // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   out_task= [this](dispatch::Item* it) // Output task
-   { if( HCDM ) debugh("Client(%p)::out_task(%p)\n", this, it);
-     if( USE_ITRACE )
-       Trace::trace(".DEQ", "COUT", this, it);
-
-     if( fsm != FSM_READY ) {
-       it->post(it->CC_PURGE);
-       return;
-     }
-
-     ClientItem* item= static_cast<ClientItem*>(it);
-     if( item->serialno != serialno )
-       utility::checkstop(__LINE__, __FILE__, "out_task");
-
-     stream_item= item;
-     stream= item->stream;
-     try {
-       // Format the request buffer
-       std::shared_ptr<ClientRequest> request= stream->get_request();
-       Request& Q= *request.get();    // (Q protected by request)
-
-       // TODO: VERIFY method, path, and proto_id (avoiding connection error)
-       ioda_off= 0;
-       ioda_out.reset();
-       ioda_out.put(Q.method);
-       ioda_out.put(' ');
-       ioda_out.put(Q.path);
-       ioda_out.put(' ');
-       ioda_out.put(Q.proto_id);
-       ioda_out.put("\r\n");
-
-       // Set Content-Length
-       Q.remove(HTTP_SIZE);
-       Ioda& ioda= Q.get_ioda();
-       size_t content_length= ioda.get_used();
-// debugh("Method(%s) Content_Length(%zd)\n", Q.method.c_str(), content_length); // TODO: REMOVE
-       if(content_length != 0 ) {
-         if( Q.method != HTTP_POST && Q.method != HTTP_PUT ) {
-           if( VERBOSE > 0 )
-             fprintf(stderr, "Method(%s) does not permit content\n"
-                    , Q.method.c_str());
-           item->post(-400);
-           return;
-         }
-       } else if( Q.method == "POST" || Q.method == "PUT" ) {
-         item->post(-411);
-         return;
-       }
-
-       // Unpack header items
-       typedef Options::const_iterator iterator;
-       Options& opts= Q.get_opts();
-       for(iterator i= opts.begin(); i != opts.end(); ++i) {
-         ioda_out.put(i->first);
-         ioda_out.put(':');
-         ioda_out.put(i->second);
-         ioda_out.put("\r\n");
-       }
-
-       // Add Content-Length (if required)
-       if( content_length ) {
-         ioda_out.put(HTTP_SIZE);
-         ioda_out.put(':');
-         ioda_out.put(std::to_string(content_length));
-         ioda_out.put("\r\n");
-       }
-       ioda_out.put("\r\n");      // Add header delimiter
-
-       // Write the request headers
-       events= EVT_WR_HEAD;       // Update state
-       if( content_length )
-         events |= EVT_WR_DATA;
-       h_writer();
-       rd_complete.wait();          // Wait for HTTP/1 operation completion
-       rd_complete.reset();
-     } catch(io_exception& X) {
-       close_enq();
-       if( IODM )
-         errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
-       error(X.what());
-     } catch(Exception& X) {
-       close_enq();
-       errorh("%4d %s %s\n", __LINE__, __FILE__, ((std::string)X).c_str());
-       error(X.what());
-     } catch(std::exception& X) {
-       close_enq();
-       errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
-       error(X.what());
-     } catch(const char* X) {
-       close_enq();
-       errorh("%4d %s catch(%s)\n", __LINE__, __FILE__, X);
-       error(X);
-     } catch(...) {
-       close_enq();
-       errorh("%4d %s catch(...)\n", __LINE__, __FILE__);
-       error("catch(...)");
-     }
-
-     // Stream processing is complete
-     stream->end();
-     stream= nullptr;
-     stream_item= nullptr;
-     item->post();
-   }; // out_task
-
-   // h_reader - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   h_reader= [this](void)           // (Asynchronous) input data available
-   { if( HCDM ) debugh("Client(%p)::h_reader\n", this);
-
-     if( (events & EVT_RD_DATA) == 0 ) { // If unexpected data
-       // This SHOULD NOT OCCUR.
-       // We set EVT_RD_DATA *BEFORE* writing the last piece of data.
-       debugf("%4d Client::h_reader events(%.2x)\n", __LINE__, events);
-       return;
-     }
-
-     // Read the response, passing it to Stream
-     read(__LINE__);                // (Exception if error)
-   }; // h_reader=
-
-   // h_writer - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   h_writer= [this](void)           // The output writer
-   { if( HCDM ) debugh("Client(%p)::h_writer\n", this);
-
-     std::shared_ptr<ClientStream> stream= stream_item->stream;
-     if( events & EVT_WR_HEAD ) {      // Write the request header?
-       if( (events & EVT_WR_DATA) == 0 )
-         events |= EVT_RD_DATA;
-
-       ssize_t L= write(__LINE__);
-       if( L <= 0 ) {               // If blocked (else io_error exception)
-         events &= ~EVT_RD_DATA;    // (write() updated select event)
-         return;
-       }
-
-       // Implementation note: if there's no data, the server could have
-       // alreaday received the request and sent the response.
-       events &= ~EVT_WR_HEAD;
-       if( events & EVT_WR_DATA ) { // If there's data to be sent
-         std::shared_ptr<ClientRequest> request= stream->get_request();
-         Request& Q= *request.get(); // (Q protected by request)
-         ioda_out= std::move(Q.get_ioda());
-       } else {
-         ioda_out.reset();
-       }
-       ioda_off= 0;
-     }
-
-     if( events & EVT_WR_DATA ) {   // Write the request data?
-       events |= EVT_RD_DATA;
-       ssize_t L= write(__LINE__);
-       if( L <= 0 ) {               // If blocked (else io_error exception)
-         events &= ~EVT_RD_DATA;    // (write() updated select event)
-         return;
-       }
-
-       events &= ~EVT_WR_DATA;
-     }
-   }; // h_writer=
+   throw std::runtime_error("NOT READY YET");
 }
 
 //----------------------------------------------------------------------------
 //
 // Protected method-
-//       Client::read
+//       Client::_read
 //
 // Purpose-
 //       Read Client response
 //
 //----------------------------------------------------------------------------
 void
-   Client::read(                    // Read data from Socket
+   Client::_read(                   // Read data from Socket
      int               line)        // Caller's line number
-{  if( HCDM ) debugh("%4d Client(%p)::read\n", line, this);
+{  if( HCDM ) debugh("%4d Client(%p)::_read\n", line, this);
 
    ssize_t L;
    for(;;) {
@@ -1226,7 +1067,7 @@ if( L < 0 && IS_BLOCK ) {
 }
 
    if( L == 0 || (L < 0 && errno == ECONNRESET) ) { // If connection reset
-     close_enq();                   // Schedule Client close
+     close();                       // Schedule Client close
      return;
    }
 
@@ -1239,16 +1080,16 @@ if( L < 0 && IS_BLOCK ) {
 //----------------------------------------------------------------------------
 //
 // Protected method-
-//       Client::write
+//       Client::_write
 //
 // Purpose-
 //       (Synchronously) transmit data
 //
 //----------------------------------------------------------------------------
 ssize_t                             // Written length
-   Client::write(                   // Write to Server
+   Client::_write(                  // Write to Server
      int               line)        // Caller line number
-{  if( HCDM ) debugh("%4d Client(%p)::write\n", line, this);
+{  if( HCDM ) debugh("%4d Client(%p)::_write\n", line, this);
 
    for(;;) {
      // This helps when a trace read appears before the trace write

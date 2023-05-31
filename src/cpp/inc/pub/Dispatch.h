@@ -16,7 +16,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2023/05/25
+//       2023/05/28
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCH_H_INCLUDED
@@ -89,6 +89,16 @@ static void*                        // Cancellation token
    delay(                           // Delay for
      double            seconds,     // This many seconds, then
      Item*             item);       // Complete this work Item
+
+//----------------------------------------------------------------------------
+// Disp::defer()
+//
+// Pass the work Item to a different task for completion.
+// The completion code must be set before invoking this function.
+//----------------------------------------------------------------------------
+static void
+   defer(                           // Defer post for
+     Item*             item);       // This work Item
 
 //----------------------------------------------------------------------------
 // Disp::enqueue()

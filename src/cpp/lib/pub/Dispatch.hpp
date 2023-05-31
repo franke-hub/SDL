@@ -16,12 +16,46 @@
 //       Work dispatcher, including local definitions.
 //
 // Last change date-
-//       2023/05/03
+//       2023/05/28
 //
 // Implementation note-
 //       *ONLY* included from Dispatch.cpp (in namespace pub::dispatch)
 //
 //----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       Defer_task
+//
+// Purpose-
+//       Used for completion posting on a different Thread
+//
+//----------------------------------------------------------------------------
+static class Defer_task : public Task {
+//----------------------------------------------------------------------------
+// Defer_task::Constructor/destructor
+//----------------------------------------------------------------------------
+public:
+   Defer_task( void ) = default;    // Constructor
+
+virtual
+   ~Defer_task( void ) = default;   // Destructor
+
+//----------------------------------------------------------------------------
+// Defer_task::Methods
+//----------------------------------------------------------------------------
+protected:
+virtual void                        // (IMPLEMENT this method)
+   work(                            // Process
+     Item*             item)        // This work Item
+{
+   defer_wait.inc();
+   item->post(item->cc);            // Post it, completion code already set
+   defer_wait.dec();
+}
+
+} defer_Task; // Internal Defer_task
 
 //----------------------------------------------------------------------------
 //

@@ -16,10 +16,10 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2023/05/24
+//       2023/05/29
 //
 // Arguments-
-//       With no arguments, --client --server defaulted
+//       With no arguments, --client defaulted
 //       --bringup  Bringup test (Display object sizes)
 //       --client   Basic test
 //       --stress   Stress test

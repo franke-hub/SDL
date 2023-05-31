@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2023/05/23
+//       2023/05/30
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
@@ -176,10 +176,7 @@ void
      int               revents);    // Polling revents
 
 void
-   close( void );                   // Close the Client
-
-void
-   close_enq( void );               // Schedule Client close
+   close( void );                   // Schedule Client close
 
 Socket*                             // The connected Socket
    connect(                         // Connect using
@@ -204,11 +201,13 @@ int                                 // Return code, 0 expected
 // Client::Protected methods
 //----------------------------------------------------------------------------
 protected:
-void    http1( void );              // Use HTTP/0, HTTP/1 protocol handlers
-void    http2( void );              // Use HTTP/2 protocol handlers
+void    _close( void );             // Close the Client
 
-void    read(int line= 0);          // Read from Socket (caller __LINE__)
-ssize_t write(int line= 0);         // Write into Socket (caller __LINE__)
+void    _http1( void );             // Use HTTP/0, HTTP/1 protocol handlers
+void    _http2( void );             // Use HTTP/2 protocol handlers
+
+void    _read(int line= 0);         // Read from Socket (caller __LINE__)
+ssize_t _write(int line= 0);        // Write into Socket (caller __LINE__)
 }; // class Client
 
 //----------------------------------------------------------------------------
