@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2023/05/30
+//       2023/06/02
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -339,46 +339,46 @@ void
    std::weak_ptr<Response> weak= S; // (Passed to lambda functions)
 
    S->on_error([this, weak](const std::string& mess) {
-     std::shared_ptr<Response> S= weak.lock();
+     std::shared_ptr<Response> L= weak.lock();
      if( opt_hcdm && opt_verbose )
        debugh("[%2d] on_error(%s) Response(%p)\n", serial
-             , mess.c_str(), S.get());
-     if( S ) {
-       std::shared_ptr<Request> Q= S->get_request();
+             , mess.c_str(), L.get());
+     if( L ) {
+       std::shared_ptr<Request> Q= L->get_request();
        debugh("Request(%p) %s %s error %s\n", Q.get(), Q->method.c_str()
              , Q->path.c_str(), mess.c_str());
      }
    });
 
    S->on_ioda([this, weak](Ioda& data) {
-     std::shared_ptr<Response> S= weak.lock();
+     std::shared_ptr<Response> L= weak.lock();
      if( opt_hcdm && opt_verbose )
-       debugh("[%2d] on_ioda(%p) Response(%p)\n", serial, &data, S.get());
-     if( S ) {
-       Ioda& ioda= S->get_ioda();
+       debugh("[%2d] on_ioda(%p) Response(%p)\n", serial, &data, L.get());
+     if( L ) {
+       Ioda& ioda= L->get_ioda();
        if( ioda.get_used() <= MAX_RESPONSE_SIZE )
          ioda += std::move(data);
      }
    });
 
    S->on_end([this, weak]( void ) {
-     std::shared_ptr<Response> S= weak.lock();
+     std::shared_ptr<Response> L= weak.lock();
      if( opt_hcdm && opt_verbose )
-       debugh("[%2d] S.on_end Response(%p)\n", serial, S.get());
-     if( S ) {
-       std::shared_ptr<Request> Q= S->get_request();
+       debugh("[%2d] on_end Response(%p)\n", serial, L.get());
+     if( L ) {
+       std::shared_ptr<Request> Q= L->get_request();
        if( opt_iodm ) {
-         debugh("Response code %d\n", S->get_code());
-         Options& opts= (Options&)*S.get();
+         debugh("Response code %d\n", L->get_code());
+         Options& opts= (Options&)*L.get();
          for(Options::const_iterator it= opts.begin(); it != opts.end(); ++it)
             debugf("%s: %s\n", it->first.c_str(), it->second.c_str());
        }
-       if( S->get_code() == 200 ) {
+       if( L->get_code() == 200 ) {
          if( opt_verify && Q->method == HTTP_GET ) {
            std::string path= Q->path;
            if( path == "/" )
              path= "/index.html";
-           std::string have_string= (std::string)S->get_ioda();
+           std::string have_string= (std::string)L->get_ioda();
            std::string want_string= page200(path);
            if( want_string != have_string ) {
              ++error_count;
@@ -391,12 +391,12 @@ void
          }
 
          if( opt_iodm ) {
-           Ioda& ioda= S->get_ioda();
+           Ioda& ioda= L->get_ioda();
            std::string data_string= (std::string)ioda;
            if( ioda.get_used() > MAX_RESPONSE_SIZE )
              data_string=
              utility::to_string("<<Response data error: length(%ld) > %d>>"
-                             , ioda.get_used(), MAX_RESPONSE_SIZE);
+                               , ioda.get_used(), MAX_RESPONSE_SIZE);
            data_string= visify(data_string);
            debugh("Data: \n%s\n", data_string.c_str());
          }
@@ -441,8 +441,16 @@ void
      if( opt_hcdm && opt_verbose )
        traceh("Q.on_end current(%zd) total(%zd) running(%d)\n"
              , cur_op_count.load(), send_op_count.load(), running);
-     if( running )                  // (Only count running send completions)
-       ++send_op_count;
+     if( running ) {                // (Only count running send completions)
+       size_t test_op_count= ++send_op_count;
+       if( USE_REPORT && USE_REPORT_ITERATION > 2
+           && (test_op_count % USE_REPORT_ITERATION) == 0 ) {
+         debugf("\n\n");
+         Reporter::get()->report([](Reporter::Record& record) {
+           debugf("%s\n", record.h_report().c_str());
+         }); // reporter.report
+       }
+     }
 
      --cur_op_count;
      do_NEXT();
@@ -649,36 +657,39 @@ virtual void
 static void
    statistics( void )               // Display statistics
 {
-   // Verify object counters (TODO: REMOVE) vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-   statistic::Active* stat= &Stream::obj_count;
-   debugf("%'16ld {%2ld,%2ld,%2ld} Stream counts\n", stat->counter.load()
-         , stat->minimum.load(), stat->current.load(), stat->maximum.load());
+   statistic::Active* stat= nullptr;
 
-   stat= &Request::obj_count;
-   debugf("%'16ld {%2ld,%2ld,%2ld} Request counts\n", stat->counter.load()
-         , stat->minimum.load(), stat->current.load(), stat->maximum.load());
+   if( false ) { // Verify object counters vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+     stat= &Stream::obj_count;
+     debugf("%'16ld {%2ld,%2ld,%2ld} Stream counts\n", stat->counter.load()
+           , stat->minimum.load(), stat->current.load(), stat->maximum.load());
 
-   stat= &Response::obj_count;
-   debugf("%'16ld {%2ld,%2ld,%2ld} Response counts\n", stat->counter.load()
-         , stat->minimum.load(), stat->current.load(), stat->maximum.load());
+     stat= &Request::obj_count;
+     debugf("%'16ld {%2ld,%2ld,%2ld} Request counts\n", stat->counter.load()
+           , stat->minimum.load(), stat->current.load(), stat->maximum.load());
 
-   if( USE_REPORTER ) {
-     debugf("\n\n");
-     Reporter::get()->report([](Reporter::Record& record) {
-       debugf("%s\n", record.h_report().c_str());
-     }); // reporter.report
-   }
+     stat= &Response::obj_count;
+     debugf("%'16ld {%2ld,%2ld,%2ld} Response counts\n", stat->counter.load()
+           , stat->minimum.load(), stat->current.load(), stat->maximum.load());
 
+     if( USE_REPORT ) {
+       debugf("\n\n");
+       Reporter::get()->report([](Reporter::Record& record) {
+         debugf("%s\n", record.h_report().c_str());
+       }); // reporter.report
+     }
+
+     if( opt_verbose > 1 ) {
+       debugf("\n");
+       WorkerPool::debug();
+       WorkerPool::reset();
+     }
+   } // Verify object counters ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   // Verify the error counters
    error_count += VERIFY( Stream::obj_count.current.load() == 0 );
    error_count += VERIFY( Request::obj_count.current.load() == 0 );
    error_count += VERIFY( Response::obj_count.current.load() == 0 );
-
-   if( opt_verbose ) {
-     debugf("\n");
-     WorkerPool::debug();
-     WorkerPool::reset();
-   }
-   // Verify object counters (TODO: REMOVE) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    // Reset the statistics
    stat= &Stream::obj_count;
@@ -842,7 +853,7 @@ static void
    debugf("%'16.3f operations\n", op_count);
    debugf("%'16.3f operations/second\n", op_count/opt_runtime);
 
-#if true //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+#if false //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 Thread::sleep(0.25);
      debugf("\n\n");
      Reporter::get()->report([](Reporter::Record& record) {
@@ -860,32 +871,23 @@ Thread::sleep(0.25);
      strcpy(R->value, ">>Stress test<<");
      R->trace(".END");
    }
-//debugf("\n"); std::pub_diag::Debug_ptr::debug("Test complete");
 
-//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
    for(int i= 0; i<opt_stress; i++) {
      if( USE_ITRACE )
        Trace::trace(".TST", "WAIT", client[i], (void*)intptr_t(i));
-//debugf("%4d %s HCDM client %d\n", __LINE__, __FILE__, i);
      client[i]->wait();
    }
 
-//debugf("%4d %s HCDM\n", __LINE__, __FILE__);
    client_agent->stop();
    client_agent->reset();
    listen_agent->stop();
    listen_agent->reset();
-//client_agent->debug("Test complete");
-//listen_agent->debug("Test complete");
 
-debugf("%4d %s HCDM\n", __LINE__, __FILE__);
    for(int i= 0; i<opt_stress; i++) {
      client[i]->close();
      client[i]->join();
      delete client[i];
-debugf("%4d [%2d] client complete\n", __LINE__, i);
    }
-//debugf("%4d %s All clients closed\n", __LINE__, __FILE__);
 }
 
 //----------------------------------------------------------------------------

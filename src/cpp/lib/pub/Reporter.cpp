@@ -16,15 +16,17 @@
 //       Implement Reporter.h
 //
 // Last change date-
-//       2022/05/25
+//       2022/06/02
 //
 //----------------------------------------------------------------------------
+#include <string>                   // For std::string
 #include <stdint.h>                 // For integer types
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
 
 #include "pub/Reporter.h"           // For pub::Reporter, implemented
+#include "pub/Statistic.h"          // For pub::Statistic, implemented
 
 using namespace _LIBPUB_NAMESPACE;
 using namespace _LIBPUB_NAMESPACE::debugging;
@@ -238,4 +240,79 @@ void
      item->record->h_reset();
    }
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Active_record::Active_record
+//
+// Purpose-
+//       Constructors
+//
+//----------------------------------------------------------------------------
+   Active_record::Active_record( void ) // Default constructor
+:  Reporter::Record()
+{  initialize(); }
+
+   Active_record::Active_record(    // Constructor
+     std::string       name)        // The reference name
+:  Reporter::Record()
+{
+   this->name= name;
+   initialize();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Active_record::initialize
+//
+// Purpose-
+//       Initialize the report and reset handlers
+//
+//----------------------------------------------------------------------------
+void
+   Active_record::initialize( void ) // Initialize the Record handlers
+{
+   on_report([this]() {
+     char buffer[128];
+     sprintf(buffer, "%'16zd {%'6zd; %'6zd; %'6zd}: "
+            , stat.counter.load(), stat.current.load()
+            , stat.minimum.load(), stat.maximum.load());
+     return std::string(buffer) + name;
+   });
+
+   on_reset([this]() {
+     stat.counter.store(0);
+     stat.current.store(0);
+     stat.maximum.store(0);
+     stat.minimum.store(0);
+   });
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Active_record::insert
+//
+// Purpose-
+//       Insert this Active_record onto the default Reporter
+//
+//----------------------------------------------------------------------------
+void
+   Active_record::insert( void )     // Insert this onto the default Reporter
+{  Reporter::get()->insert(this); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Active_record::remove
+//
+// Purpose-
+//       Remove this Active_record from the default Reporter
+//
+//----------------------------------------------------------------------------
+void
+   Active_record::remove( void )     // Remove this from the default Reporter
+{  Reporter::get()->remove(this); }
 }  // namespace _LIBPUB_NAMESPACE

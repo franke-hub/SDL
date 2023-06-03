@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2023/05/29
+//       2023/06/02
 //
 // Arguments-
 //       With no arguments, --client defaulted
@@ -32,7 +32,7 @@
 // Stress test controls-
 //       --major=1  One connection/operation stress test
 //       --major=2  One connection/operation short test
-//       --minor=1  With --major > 0, do not wait for client completion
+//       --minor=1  With --major > 0, wait for client completion
 //
 //----------------------------------------------------------------------------
 
@@ -92,10 +92,11 @@ enum
 ,  PROT_RW= (PROT_READ | PROT_WRITE) // Read/write access mode
 ,  TRACE_SIZE= 0x00100000           // Default trace table size (1M)
 ,  USE_INTENSIVE= true              // Option: Use intensive debug mode
-,  USE_LOGGER= false                // Option: Use logger
-,  USE_REPORTER= true               // Option: Use Reporter
-,  USE_SIGNAL= false                // Option: Use signal handler
 ,  USE_ITRACE= true                 // Use internal trace?
+,  USE_LOGGER= false                // Option: Use logger
+,  USE_REPORT= false                // Option: Use event Reporter
+,  USE_REPORT_ITERATION= 0          // Option: Event Reporter iteration count
+,  USE_SIGNAL= false                // Option: Use signal handler
 }; // generic enum
 
 enum                                // Default option values
@@ -278,7 +279,7 @@ static const char*                  // The test modifier name
    if( opt_major <= 0 || opt_minor <= 0 )
      return "";
 
-   return ": Do not wait for for Client close";
+   return ": Wait after Client close";
 }
 
 //----------------------------------------------------------------------------

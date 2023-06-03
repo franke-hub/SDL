@@ -16,7 +16,7 @@
 //       Select.h method implementations.
 //
 // Last change date-
-//       2023/05/18
+//       2023/06/03
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -69,8 +69,7 @@ enum
 ,  USE_AF= AF_INET                  // Use this address family
 ,  USE_CHECKING= true               // Use internal cross-checking?
 ,  USE_DO_SELECT= true              // Use internal socket->select method?
-,  USE_TRACE= true                  // Use standard trace?
-,  USE_ITRACE= true                 // Use internal trace?
+,  USE_ITRACE= false                // Use internal trace?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -156,7 +155,7 @@ static inline void
      int               revents,     // pollfd.events
      int               fd)          // The file descriptor
 {
-   if( USE_TRACE ) {
+   if( USE_ITRACE ) {
      Trace::Record* R= Trace::trace(sizeof(Trace::Record) + 32);
      if( R ) {
        uintptr_t one= uintptr_t(socket);
@@ -634,12 +633,12 @@ void
 
      switch( op.op ) {
        case OP_FLUSH: {
-         if( USE_TRACE )
+         if( USE_ITRACE )
            Trace::trace(".SEL", "=FSH");
          break;
        }
        case OP_INSERT: {
-         if( USE_TRACE )
+         if( USE_ITRACE )
            Trace::trace(".SEL", "=INS", socket, i2v(fd));
 
          if( fd < 0 )
@@ -668,7 +667,7 @@ void
          break;
        }
        case OP_MODIFY: {
-         if( USE_TRACE )
+         if( USE_ITRACE )
            Trace::trace(".SEL", "=MOD", socket, i2v(fd));
 
          if( fd < 0 || fd >= size )
@@ -690,7 +689,7 @@ void
          break;
        }
        case OP_REMOVE: {
-         if( USE_TRACE )
+         if( USE_ITRACE )
            Trace::trace(".SEL", "=REM", socket, i2v(fd));
 
          if( fd < 0 || fd >= size )
@@ -929,7 +928,7 @@ Socket*                             // The next selected Socket, or nullptr
      }
 
      if( rc < 0 ) {                 // If poll I/O error (should not occur)
-       if( USE_TRACE ) {
+       if( USE_ITRACE ) {
          Trace::trace(".SEL", "PERR", this, i2v(errno));
          Trace::stop();
        }
@@ -986,7 +985,7 @@ Socket*                             // The next selected Socket, or nullptr
      }
 
      if( rc < 0 ) {                   // If poll I/O error (should not occur)
-       if( USE_TRACE ) {
+       if( USE_ITRACE ) {
          Trace::trace(".SEL", "PERR", this, i2v(errno));
          Trace::stop();
        }

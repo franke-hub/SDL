@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2023/04/29
+//       2023/06/03
 //
 // Arguments: (For test_timing only)
 //       TestDisp --timing          // (Only run timing test)
@@ -66,7 +66,7 @@ enum
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  USE_PASSALONG_LAMBDA= false      // Use some PassAlongLambdaTasks?
-,  USE_TRACE= false                 // Enable tracing?
+,  USE_ITRACE= false                // Enable internal tracing?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -374,7 +374,7 @@ static int
    }
 
    // Debugging display
-   if( USE_TRACE || (opt_hcdm && opt_verbose > 1) ) {
+   if( USE_ITRACE || (opt_hcdm && opt_verbose > 1) ) {
      debugf("TASKS: %d\n", TASKS);
      for(int i= 0; i<TASKS; ++i ) {
        debugf("[%3d] %p->%p\n", i, TASK[i], ((PassAlongTask*)TASK[i])->next);
@@ -394,7 +394,7 @@ static int
    for(int loop= 0; loop < LOOPS; loop++)
    {
      for(int multi= 0; multi < MULTI; multi++) {
-       if( USE_TRACE )
+       if( USE_ITRACE )
          Trace::trace(".ENQ", ">>>>", (void*)intptr_t(multi), ITEM[multi]);
 
        TASK[TASKS-1]->enqueue(ITEM[multi]);
@@ -402,7 +402,7 @@ static int
 
      for(int multi= 0; multi < MULTI; multi++)
      {
-       if( USE_TRACE )
+       if( USE_ITRACE )
          Trace::trace(".DEQ", "<<<<", (void*)intptr_t(multi), ITEM[multi]);
 
        WAIT[multi]->wait();
@@ -470,7 +470,7 @@ extern int
    {
      fprintf(stderr, "  --stress\tRun stress test\n");
      fprintf(stderr, "  --timing\tRun timing test\n");
-     if( USE_TRACE )
+     if( USE_ITRACE )
        fprintf(stderr,
               "  --trace\t{=size} Create internal trace file './trace.mem'\n"
               );
@@ -492,7 +492,7 @@ extern int
      if( opt_hcdm )
        debug_set_mode(Debug::MODE_INTENSIVE);
 
-     if( USE_TRACE && opt_trace )
+     if( USE_ITRACE && opt_trace )
        table= tr->init_trace("./trace.mem", opt_trace);
 
      return 0;

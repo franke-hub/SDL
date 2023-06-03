@@ -16,7 +16,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2023/05/28
+//       2023/06/03
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCH_H_INCLUDED
@@ -282,7 +282,7 @@ virtual void
 void
    enqueue(                         // Enqueue
      Item*             item)        // This work Item
-#if false                           // TRUE for (preferred) inline version
+#if true                            // TRUE for (preferred) inline version
 {
    Item* tail= itemList.fifo(item); // Insert work Item
    if( tail == nullptr )            // If the list was empty

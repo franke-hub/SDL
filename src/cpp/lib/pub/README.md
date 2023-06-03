@@ -15,7 +15,7 @@
 //       PUB library description
 //
 // Last change date-
-//       2023/04/05
+//       2023/06/03
 //
 -------------------------------------------------------------------------- -->
 
@@ -51,14 +51,51 @@ is distributed. We do recompile every library source module.
 
 ----
 
-## 2023/04/05
-The ~/src/cpp/lib/pub/Test/TestDisp.cpp timing testcase has an unexpected and
-large throughput performance improvement. No pub library code change explains
-this improvement, so it's assumed that Linux kernel/library changes are
-responsible. (This is good, since there was also no explanation of the
-Linux throughput decrease between 3/2020 and 3/2023.)
+## 2023/06/03 Issue #2 Task reference after deletion
+For performance reasons, the AI_list object iterator empties the List replacing
+it with a dummy List item. This leaves a timing exposure in Dispatch.cpp
+while processing the iterator: If, after processing all work and updating the
+iterator (i.e. ++iterator == itemList.end()) but before the actual comparison
+is made, Dispatch.cpp's timeslice ends.
 
-See: ~/src/cpp/lib/pub/Test/.TIMING
+A problem occurs because Dispatch.cpp's iterator still refers to the List and
+there's nothing stopping the List from being deleted before Dispatch.cpp's
+timeslice resumes. Obviously this is bad.
+
+This problem was fixed by adding a check in the Dispatch.cpp in
+dispatch::Task::~Task which, if there is pending work on the Task
+we wait for that work to complete. This is done by enqueing a CHASE work
+element on the task and waiting for the Dispatcher to post it. (The Dispatcher
+uses special handling for CHASE work elements and only posts the last one
+found after all other work elements have been processed and its iterations are
+complete.)
+
+This fixes issue #2. Unfortunately, it causes issue #3.
+
+## 2023/06/03 Issue #3 Task deletion deadlock.
+A dispatch::Task is processing some work that can cause the deletion of
+that Task by the posting of that work. (This is not uncommon.) But, if
+that task deletion condition occurs and the Task has not yet returned
+control to the Dispatcher, a deadlock occurs. The Dispatcher is still
+processing the work element and now it's going to wait for another work
+on the same Task to complete. The Dispatcher guarantees serial work element
+processing.
+
+We fix this problem by adding a special Dispatcher Task which has no other
+function than posting the work items it receives. Now, if it's *possible*
+for the posting of a work element to cause the deletion of a Task we can
+(and must) transfer it to that other task for posting. No deadlock.
+Note that once work that can cause deletion of the running Task is given to
+another task it can run immediately, even before the original task returns
+to the Dispatcher.
+
+As an aside, you may be wondering why this deadlock didn't *always* occur.
+The test work item had a shared_ptr to an object containing Tasks that
+processed these work items. Usually the work item's shared_ptr wasn't the
+last reference to the task container. It took unusual timing circumstances
+to occur. However, unusual timing circumstances do occur. And, the more
+unusual the circumstance the harder it is to find amongst all the other
+normal noise. The bigger the haystack the harder it is to find the pin in it.
 
 ----
 
@@ -299,5 +336,16 @@ distribution's development.
 
 [1] Migrated from the COM (common) library and improved by the PUB (public)
 implementation.
+
+----
+
+## 2023/04/05
+The ~/src/cpp/lib/pub/Test/TestDisp.cpp timing testcase has an unexpected and
+large throughput performance improvement. No pub library code change explains
+this improvement, so it's assumed that Linux kernel/library changes are
+responsible. (This is good, since there was also no explanation of the
+Linux throughput decrease between 3/2020 and 3/2023.)
+
+See: ~/src/cpp/lib/pub/Test/.TIMING
 
 ----

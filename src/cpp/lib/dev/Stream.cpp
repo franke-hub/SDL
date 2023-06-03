@@ -16,7 +16,7 @@
 //       Implement http/Stream.h
 //
 // Last change date-
-//       2023/05/18
+//       2023/06/02
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -32,7 +32,7 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Dispatch.h>           // For namespace pub::dispatch
 #include <pub/Exception.h>          // For pub::Exception
-#include <pub/Statistic.h>          // For pub::Statistic
+#include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For pub::to_string, ...
 
@@ -63,6 +63,7 @@ enum
 ,  BUFFER_SIZE= 8'096               // Input buffer size (Header collector)
 ,  POST_LIMIT= 1'048'576            // POST/PUT size limit
 ,  USE_ITRACE= true                 // Use internal trace?
+,  USE_REPORT= false                // Use event Reporter?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -78,6 +79,29 @@ static constexpr CC*   HTTP_SIZE= Options::HTTP_HEADER_LENGTH;
 // External data areas
 //----------------------------------------------------------------------------
 statistic::Active      Stream::obj_count; // Stream object count
+
+//----------------------------------------------------------------------------
+// Event reporting
+//----------------------------------------------------------------------------
+static Active_record   stream_count("Stream"); // Stream counter
+
+namespace {
+static struct StaticGlobal {
+   StaticGlobal(void)               // Constructor
+{
+   if( USE_REPORT ) {
+     stream_count.insert();
+   }
+}
+
+   ~StaticGlobal(void)              // Destructor
+{
+   if( USE_REPORT ) {
+     stream_count.remove();
+   }
+}
+}  staticGlobal;
+}  // Anonymous namespace
 
 //----------------------------------------------------------------------------
 // Constants
@@ -350,12 +374,18 @@ void
 {  if( HCDM || VERBOSE > 2 ) debugh("Stream(%p)!\n", this);
 
    obj_count.inc();
+
+   if( USE_REPORT )
+     stream_count.inc();
 }
 
    Stream::~Stream( void )          // Destructor
 {  if( HCDM || VERBOSE > 2 ) debugh("Stream(%p)~\n", this);
 
    obj_count.dec();
+
+   if( USE_REPORT )
+     stream_count.dec();
 }
 
 //----------------------------------------------------------------------------

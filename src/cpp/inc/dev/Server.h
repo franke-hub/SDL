@@ -16,7 +16,7 @@
 //       HTTP Server object.
 //
 // Last change date-
-//       2023/05/23
+//       2023/06/02
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_SERVER_H_INCLUDED
@@ -173,17 +173,17 @@ void
    wait( void );                    // Wait until idle
 
 void
-   write(Ioda&);                     // Write to Socket
+   write(Ioda&);                    // Write to Socket
 
 //----------------------------------------------------------------------------
 // Server::Protected methods
 //----------------------------------------------------------------------------
 protected:
-void http1( void );                 // Use HTTP/0, HTTP/1 protocol handlers
-void http2( void );                 // Use HTTP/2 protocol handlers
+void _http1( void );                // Use HTTP/0, HTTP/1 protocol handlers
+void _http2( void );                // Use HTTP/2 protocol handlers
 
-void read(int line= 0);             // Handle read (line number)
-void write(int line= 0);            // Handle write (line number)
+void _read(int line= 0);            // Handle read (line number)
+void _write(int line= 0);           // Handle write (line number)
 }; // class Server
 
 //----------------------------------------------------------------------------

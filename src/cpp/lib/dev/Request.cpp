@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement http/Request.h
 //
 // Last change date-
-//       2022/11/16
+//       2023/06/02
 //
 // Implementation notes-
 //       TODO: Consider moving ClientRequest::write to Client::write
@@ -37,7 +37,7 @@
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
-#include <pub/Statistic.h>          // For pub::Statistic
+#include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/utility.h>            // For pub::to_string, ...
 
 #include "pub/http/Client.h"        // For pub::http::Client
@@ -67,6 +67,7 @@ enum
 // VERBOSITY= 1                     // Verbosity, higher is more verbose
 
 ,  POST_LIMIT= 1'048'576            // POST/PUT size limit
+,  USE_REPORT= false                // Use event Reporter?
 }; // enum
 
 enum FSM                            // Finite State Machine states
@@ -79,6 +80,29 @@ enum FSM                            // Finite State Machine states
 // External data areas
 //----------------------------------------------------------------------------
 statistic::Active      Request::obj_count; // Request object count
+
+//----------------------------------------------------------------------------
+// Event reporting
+//----------------------------------------------------------------------------
+static Active_record   request_count("Request"); // Request counter
+
+namespace {
+static struct StaticGlobal {
+   StaticGlobal(void)               // Constructor
+{
+   if( USE_REPORT ) {
+     request_count.insert();
+   }
+}
+
+   ~StaticGlobal(void)              // Destructor
+{
+   if( USE_REPORT ) {
+     request_count.remove();
+   }
+}
+}  staticGlobal;
+}  // Anonymous namespace
 
 //----------------------------------------------------------------------------
 // Constants
@@ -108,12 +132,18 @@ static constexpr CC*   HTTP_PUT=  Options::HTTP_METHOD_PUT;
 {  if( HCDM ) debugh("http::Request(%p)!\n", this);
 
    obj_count.inc();
+
+   if( USE_REPORT )
+     request_count.inc();
 }
 
    Request::~Request( void )        // Destructor
 {  if( HCDM ) debugh("http::Request(%p)~\n", this);
 
    obj_count.dec();
+
+   if( USE_REPORT )
+     request_count.dec();
 }
 
 //----------------------------------------------------------------------------
@@ -282,7 +312,6 @@ std::shared_ptr<ServerRequest>      // The ServerRequest
 {
    std::shared_ptr<Server> server= owner->get_server();
    if( !server ) {
-debugf("%4d %s HCDM\n", __LINE__, __FILE__);
      return nullptr;
 //   utility::should_not_occur(__LINE__, __FILE__); // TODO: Verify should not occur
    }
@@ -375,7 +404,6 @@ bool                                // Return code, TRUE when complete
      }
 
      // Insure header completion
-// debugh("%4d %s HCDM: ", __LINE__, __FILE__); reader.debug(); // TODO: REMOVE
      for(;;) {
        int C= reader.get();
        if( C == '\n' ) {

@@ -54,7 +54,7 @@ virtual void
    if( opt_hcdm )
      debugf("PassAlongTask(%p)::work(%p) next(%p)\n", this, item, next);
 
-   if( USE_TRACE )
+   if( USE_ITRACE )
      Trace::trace(".PAT", " PAT", item, next);
 
    if( next )
@@ -83,7 +83,7 @@ virtual
    if( opt_hcdm && opt_verbose > 1 )
      debugf("PassAlongLambdaTask(%p)::work(%p) next(%p)\n", this, item, next);
 
-   if( USE_TRACE )
+   if( USE_ITRACE )
      Trace::trace("WORK", ".PAL", item, next);
 
    next->enqueue(item);

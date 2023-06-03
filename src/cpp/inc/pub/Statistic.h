@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021-2022 Frank Eskesen.
+//       Copyright (c) 2021-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Statistics counters.
 //
 // Last change date-
-//       2022/10/19
+//       2023/06/02
 //
 // Usage notes-
 //       The minimum value is the minimum value after a maximum's detected.
@@ -26,16 +26,17 @@
 #define _LIBPUB_STATISTIC_H_INCLUDED
 
 #include <atomic>                   // For std::atomic_uint64_t, ...
+#include <string>                   // For std::string
 #include <stdint.h>                 // For uint64_t
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include <pub/Reporter.h>           // For pub::Reporter
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 namespace statistic {
 //----------------------------------------------------------------------------
 //
 // Struct-
-//       Active
+//       pub::statistic::Active
 //
 // Purpose-
 //       Track objects or events.
@@ -84,7 +85,7 @@ int64_t                             // Current value
 }
 
 int64_t                             // Current value
-   dec( void )                      // Increment value
+   dec( void )                      // Decrement value
 {
    // Decrement the current value
    int64_t old_value= current.load(); // The current value
@@ -103,5 +104,49 @@ int64_t                             // Current value
 }
 }; // struct Active
 }  // namespace statistic
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       pub::Active_record
+//
+// Purpose-
+//       Contain and manage a pub::statistic::Active
+//
+// Implementation notes-
+//       Implemented in Reporter.cpp
+//
+//----------------------------------------------------------------------------
+struct Active_record : public Reporter::Record { // Active display
+statistic::Active      stat;        // The statistic
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Constructors/destructor
+   Active_record( void );           // Default constructor
+
+   Active_record(                   // Constructor
+     std::string       name);       // The statistic's name
+
+   ~Active_record( void ) = default; // Destructor
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Methods
+inline int64_t                      // Current value
+   dec( void )                      // Decrement value
+{  return stat.dec(); }
+
+inline int64_t                      // Current value
+   inc( void )                      // Increment value
+{  return stat.inc(); }
+
+void
+   initialize( void );              // Initialize the report/reset handlers
+
+void
+   insert( void );                  // Insert this Record onto the Reporter
+
+void
+   remove( void );                  // Remove this Record from the Reporter
+}; // Active_record
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_STATISTIC_H_INCLUDED

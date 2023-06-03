@@ -16,7 +16,7 @@
 //       Implement http/Response.h
 //
 // Last change date-
-//       2023/04/16
+//       2023/06/02
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -31,7 +31,7 @@
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
-#include <pub/Statistic.h>          // For pub::Statistic
+#include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/utility.h>            // For pub::to_string, ...
 
 #include "pub/http/Client.h"        // For pub::http::Client
@@ -59,6 +59,7 @@ enum
 // VERBOSITY= 1                     // Verbosity, higher is more verbose
 
 ,  RESP_LIMIT= 1'048'576            // Response size limit
+,  USE_REPORT= false                // Use event Reporter?
 }; // enum
 
 enum FSM                            // Finite State Machine states
@@ -71,6 +72,29 @@ enum FSM                            // Finite State Machine states
 // External data areas
 //----------------------------------------------------------------------------
 statistic::Active      Response::obj_count; // Response object count
+
+//----------------------------------------------------------------------------
+// Event reporting
+//----------------------------------------------------------------------------
+static Active_record   response_count("Response"); // Response counter
+
+namespace {
+static struct StaticGlobal {
+   StaticGlobal(void)               // Constructor
+{
+   if( USE_REPORT ) {
+     response_count.insert();
+   }
+}  // StaticGlobal
+
+   ~StaticGlobal(void)              // Destructor
+{
+   if( USE_REPORT ) {
+     response_count.remove();
+   }
+}  // StaticGlobal
+}  staticGlobal;
+}  // Anonymous namespace
 
 //----------------------------------------------------------------------------
 // Constants
@@ -99,6 +123,10 @@ static constexpr CC*   HTTP_HEAD=  Options::HTTP_METHOD_HEAD;
 {  if( HCDM ) debugh("Response(%p)!\n", this);
 
    obj_count.inc();
+
+   if( USE_REPORT )
+     response_count.inc();
+
    INS_DEBUG_OBJ("Response");
 }
 
@@ -106,6 +134,10 @@ static constexpr CC*   HTTP_HEAD=  Options::HTTP_METHOD_HEAD;
 {  if( HCDM ) debugh("Response(%p)~\n", this);
 
    obj_count.dec();
+
+   if( USE_REPORT )
+     response_count.dec();
+
    REM_DEBUG_OBJ("Response");
 }
 
@@ -276,7 +308,6 @@ bool                                // TRUE if read complete
      }
 
      // Insure header completion
-// debugh("%4d %s HCDM\n", __LINE__, __FILE__); // reader.debug(); // TODO: REMOVE
      for(;;) {
        int C= reader.get();
        if( C == '\n' ) {
@@ -375,7 +406,6 @@ utility::on_exception("Invalid Header-Line format");
      }
    }
 
-// traceh("%4d %s HCDM (ClientResponse::read complete)\n", __LINE__, __FILE__);
    return true;
 }
 

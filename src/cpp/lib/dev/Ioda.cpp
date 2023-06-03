@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement http/Ioda.h
 //
 // Last change date-
-//       2022/11/12
+//       2023/06/02
 //
 //----------------------------------------------------------------------------
 // #define NDEBUG                   // TODO: USE (to disable asserts)
@@ -33,6 +33,7 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/List.h>               // For pub::List
+#include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/utility.h>            // For pub::to_string
 
 #include "pub/http/Ioda.h"          // For pub::http::Ioda, implemented
@@ -59,8 +60,41 @@ enum
 ,  LOG2_SIZE= 12                    // Log2(PAGE_SIZE)
 ,  PAGE_SIZE= 4096                  // The Iota::Page data size
 
+,  USE_REPORT= false                // Use event Reporter?
 ,  USE_VERIFY= true                 // Use internal consistency checking?
 }; // enum
+
+//----------------------------------------------------------------------------
+// Event reporting
+//----------------------------------------------------------------------------
+static Active_record   data_count("IODA Data"); // Data counter
+static Active_record   ioda_count("IODA"); // IODA counter
+static Active_record   page_count("IODA Page"); // Page counter
+static Active_record   ivec_count("IODA IOvec"); // IOvec counter
+
+namespace {
+static struct StaticGlobal {
+   StaticGlobal(void)               // Constructor
+{
+   if( USE_REPORT ) {
+     data_count.insert();
+     ioda_count.insert();
+     page_count.insert();
+     ivec_count.insert();
+   }
+}
+
+   ~StaticGlobal(void)              // Destructor
+{
+   if( USE_REPORT ) {
+     data_count.remove();
+     ioda_count.remove();
+     page_count.remove();
+     ivec_count.remove();
+   }
+}
+}  staticGlobal;
+}  // Anonymous namespace
 
 //----------------------------------------------------------------------------
 // Typedefs, enumerations, and constants
@@ -86,6 +120,8 @@ static inline Page*
    Page* page= (Page*)malloc(sizeof(Page));
    if( page == nullptr )
      throw std::bad_alloc();
+   if( USE_REPORT )
+     page_count.inc();
 
    char* data= (char*)malloc(PAGE_SIZE);
    if( data == nullptr ) {
@@ -94,6 +130,8 @@ static inline Page*
    }
    page->data= data;
    page->used= 0;
+   if( USE_REPORT )
+     data_count.inc();
 
    if( HCDM )
      debugf("%p.(%p)= get_page()\n", page, page->data);
@@ -116,6 +154,11 @@ static inline void
 
    free(page->data);
    free(page);
+
+   if( USE_REPORT ) {
+     data_count.dec();
+     page_count.dec();
+   }
 }
 
 //---------------------------------------------------------------------------
@@ -170,6 +213,9 @@ static void should_not_occur(int line)
      debugh("Ioda(%p)::Mesg~ {%p,%'zd)\n", this, msg_iov, size_t(msg_iovlen));
 
    free(msg_iov);
+
+   if( USE_REPORT )
+     ivec_count.dec();
 }
 
 //----------------------------------------------------------------------------
@@ -273,6 +319,9 @@ void
 :  list()
 {  if( HCDM )
      debugh("Ioda(%p)::Ioda\n", this);
+
+   if( USE_REPORT )
+     ioda_count.inc();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -291,6 +340,9 @@ void
    used= move.used;
    move.size= 0;
    move.used= 0;
+
+   if( USE_REPORT )
+     ioda_count.inc();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -300,13 +352,20 @@ void
      debugh("Ioda(%p)::Ioda(%'zd)\n", this, s);
 
    reset(s);
+
+   if( USE_REPORT )
+     ioda_count.inc();
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Ioda::~Ioda( void )              // Destructor
 {  if( HCDM )
      debugh("Ioda(%p)::~Ioda\n", this);
 
    reset();
+
+   if( USE_REPORT )
+     ioda_count.dec();
 }
 
 //----------------------------------------------------------------------------
@@ -461,6 +520,9 @@ void
    if( msg.msg_iov ) {              // Delete any current content
      free(msg.msg_iov);
      msg.msg_iov= nullptr;
+
+     if( USE_REPORT )
+       ivec_count.dec();
    }
 
    size_t count= 0;
@@ -473,6 +535,8 @@ void
      if( iov == nullptr )
        throw bad_alloc();
      msg.msg_iov= iov;
+     if( USE_REPORT )
+       ivec_count.inc();
 
      size_t recv= 0;
      for(Page* page= list.get_head(); page; page= page->get_next()) {
@@ -514,6 +578,8 @@ void
    if( msg.msg_iov ) {              // Delete any current content
      free(msg.msg_iov);
      msg.msg_iov= nullptr;
+     if( USE_REPORT )
+       ivec_count.dec();
    }
 
    Page* head= nullptr;             // The first data page
@@ -545,6 +611,8 @@ void
    if( iov == nullptr )
      throw bad_alloc();
    msg.msg_iov= iov;
+   if( USE_REPORT )
+     ivec_count.inc();
 
    // Handle the first page
    sent= head->used - skip;

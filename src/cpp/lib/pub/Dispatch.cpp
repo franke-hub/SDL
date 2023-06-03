@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2023/05/28
+//       2023/06/03
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -29,6 +29,7 @@
 #include "pub/List.h"               // For pub::AI_list
 #include <pub/Named.h>              // For pub::Named, Timers is a Named Thread
 #include <pub/Semaphore.h>          // For pub::Semaphore, Timers event
+#include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/Thread.h>             // For pub::Thread, Timers is a Named Thread
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/Worker.h>             // For pub::Worker
@@ -36,7 +37,6 @@
 // DEBUGGING: TODO REMOVE- - - - - - - - - - - - - - - - - - - - - - - - - - -
 #include <stdio.h>                  // For sprintf
 #include <pub/Reporter.h>           // For pub::Reporter
-#include <pub/Statistic.h>          // For pub::Statistic
 // DEBUGGING: TODO REMOVE- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 using namespace _LIBPUB_NAMESPACE::debugging; // Enable debugging functions
@@ -49,8 +49,8 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
-,  USE_ITRACE= true                 // Use internal tracing?
-,  USE_REPORT= true                 // Use event Reporter?
+,  USE_ITRACE= false                // Use internal tracing?
+,  USE_REPORT= false                // Use event Reporter?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -59,64 +59,31 @@ enum
 Latch                  Disp::mutex; // Termination mutex
 Timers*                Disp::timers= nullptr;
 
-
 //----------------------------------------------------------------------------
-// dispatch::DEBUGGING TODO:REMOVE
+// Event reporting
 //----------------------------------------------------------------------------
-static statistic::Active
-                       chase_wait;  // FC_CHASE wait counter
-static Reporter::Record
-                       chase_record; // FC_CHASE record
-static statistic::Active
-                       defer_wait;  // Defer task wait counter
-static Reporter::Record
-                       defer_record; // Defer task record
+static Active_record   chase_wait("Dispatch:chase"); // FC_CHASE wait counter
+static Active_record   defer_wait("Dispatch:defer"); // Defer task wait counter
 
+namespace {
 static struct StaticGlobal {
    StaticGlobal(void)               // Constructor
 {
    if( USE_REPORT ) {               // Use event Reporter?
-     chase_record.name= "Dispatch:chase";
-     chase_record.on_report([]() {
-       char buffer[128];
-       statistic::Active& stat= chase_wait;
-       sprintf(buffer, "{%8zd, %8zd, %8zd, %8zd}: "
-              , stat.counter.load(), stat.current.load()
-              , stat.maximum.load(), stat.minimum.load());
-       return std::string(buffer) + chase_record.name;
-     });
-
-     chase_record.on_reset([]() {
-       statistic::Active& stat= chase_wait;
-       stat.counter.store(0);
-       stat.current.store(0);
-       stat.maximum.store(0);
-       stat.minimum.store(0);
-     });
-
-     defer_record.name= "Dispatch:defer";
-     defer_record.on_report([]() {
-       char buffer[128];
-       statistic::Active& stat= defer_wait;
-       sprintf(buffer, "{%8zd, %8zd, %8zd, %8zd}: "
-              , stat.counter.load(), stat.current.load()
-              , stat.maximum.load(), stat.minimum.load());
-       return std::string(buffer) + defer_record.name;
-     });
-
-     defer_record.on_reset([]() {
-       statistic::Active& stat= defer_wait;
-       stat.counter.store(0);
-       stat.current.store(0);
-       stat.maximum.store(0);
-       stat.minimum.store(0);
-     });
+     chase_wait.insert();
+     defer_wait.insert();
    }
+}  // StaticGlobal
 
-   Reporter::get()->insert(&chase_record);
-   Reporter::get()->insert(&defer_record);
+   ~StaticGlobal(void)              // Destructor
+{
+   if( USE_REPORT ) {               // Use event Reporter?
+     chase_wait.remove();
+     defer_wait.remove();
+   }
 }  // StaticGlobal
 }  staticGlobal;
+}  // Anonymous namespace
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #include "Dispatch.hpp"             // For Timers, DispatchTTL
@@ -365,7 +332,7 @@ void
 //       For debugging only. REMOVE #if in Dispatch.h when not used.
 //
 //----------------------------------------------------------------------------
-#if true                            // (DEBUGGING: Used to trace enqueue)
+#if false                           // (DEBUGGING: Used to trace enqueue)
 void
    Task::enqueue(                   // Enqueue
      Item*             item)        // This work Item

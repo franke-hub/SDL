@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2023/05/30
+//       2023/06/03
 //
 // Implmentation note-
 //       TODO: Test _read() disconnect (close processing)
@@ -44,6 +44,7 @@
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Named.h>              // For pub::Named
+#include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For namespace pub::utility
@@ -94,8 +95,9 @@ enum
 // BUFFER_SIZE= 1'048'576           // Input buffer size
 ,  BUFFER_SIZE=     8'192           // Input buffer size
 
-,  USE_READ_ONCE= true              // Read once?
 ,  USE_ITRACE= true                 // Use internal trace?
+,  USE_READ_ONCE= true              // Read once?
+,  USE_REPORT= false                // Use event Reporter?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -143,6 +145,35 @@ static const char*     proto[HTTP_PROTO_LENGTH]=
 static std::atomic_int _serialno= 1; // Serial number
 
 //----------------------------------------------------------------------------
+// Event reporting
+//----------------------------------------------------------------------------
+static Active_record   client_count("Client"); // Client counter
+static Active_record   item_count("ClientItem"); // ClientItem counter
+static Active_record   socket_count("ClientSocket"); // Client Socket counter
+
+namespace {
+static struct StaticGlobal {
+   StaticGlobal(void)               // Constructor
+{
+   if( USE_REPORT ) {
+     client_count.insert();
+     item_count.insert();
+     socket_count.insert();
+   }
+}
+
+   ~StaticGlobal(void)              // Destructor
+{
+   if( USE_REPORT ) {
+     client_count.remove();
+     item_count.remove();
+     socket_count.remove();
+   }
+}
+}  staticGlobal;
+}  // Anonymous namespace
+
+//----------------------------------------------------------------------------
 //
 // Class-
 //       ClientItem
@@ -176,6 +207,9 @@ Ioda                   ioda;        // The Input/Output Data Area
    if( USE_ITRACE )
      Trace::trace(".NEW", "CITM", this);
 
+   if( USE_REPORT )
+     item_count.inc();
+
    INS_DEBUG_OBJ("ClientItem");
 }
 
@@ -185,6 +219,9 @@ virtual
 
    if( USE_ITRACE )
      Trace::trace(".DEL", "CITM", this, i2v(fc));
+
+   if( USE_REPORT )
+     item_count.dec();
 
    REM_DEBUG_OBJ("ClientItem");
 }
@@ -389,10 +426,10 @@ static inline SSL_CTX*
 
    serialno= (_serialno += 10);
 
-   INS_DEBUG_OBJ("*Client*");
+   if( USE_REPORT )
+     client_count.inc();
 
-   // Implementation note:
-   // After return, C++ invokes task_inp and task_out destructors
+   INS_DEBUG_OBJ("*Client*");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -409,11 +446,21 @@ static inline SSL_CTX*
 
      delete socket;
      socket= nullptr;
+
+     if( USE_REPORT )
+       socket_count.dec();
    }
 
    if( context )                    // If context exists
      SSL_CTX_free(context);
+
+   if( USE_REPORT )
+     client_count.dec();
+
    REM_DEBUG_OBJ("*Client*");
+
+   // Implementation note:
+   // After return, C++ invokes task_inp and task_out destructors
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -510,12 +557,43 @@ void
 //       Client::close
 //
 // Purpose-
+//       Close the Client, making it inoperative.
+//
+//----------------------------------------------------------------------------
+void
+   Client::close( void )            // Close the Client
+{  if( HCDM ) debugh("Client(%p)::close() fsm(%d)\n", this, fsm);
+   if( USE_ITRACE )
+     Trace::trace(".CLI", ".CLS", this, i2v(get_handle()));
+
+   {{{{
+     std::lock_guard<Client> lock(*this);
+
+     if( fsm != FSM_RESET ) {
+       fsm= FSM_RESET;
+       // Note: Agent::disconnect uses socket->get_peer_addr(), therefore
+       // agent->disconnect() must precede socket->close()
+       agent->disconnect(this);     // (Only called once)
+       socket->close();             // (Only called once)
+     }
+   }}}}
+
+   if( !rd_complete.is_post() )     // Post out_task wait
+     rd_complete.post(dispatch::Item::CC_PURGE);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Client::close_enq
+//
+// Purpose-
 //       Schedule a close operation
 //
 //----------------------------------------------------------------------------
 void
-   Client::close( void )            // Schedule Client close
-{  if( HCDM ) debugh("Client(%p)::close() fsm(%d)\n", this, fsm);
+   Client::close_enq( void )        // Schedule Client close
+{  if( HCDM ) debugh("Client(%p)::close_enq() fsm(%d)\n", this, fsm);
    if( USE_ITRACE )
      Trace::trace(".CLI", "CLSQ", this, i2v(get_handle()));
 
@@ -527,7 +605,6 @@ void
 
      ClientItem* item= new ClientItem(get_self(), stream);
      item->fc= item->FC_CLOSE;
-Trace::trace(".CLI", "QCLS", this, item);
      task_inp.enqueue(item);
    }
 }
@@ -580,6 +657,9 @@ Socket*                             // Resultant Socket (nullptr if failure)
    // Create connection
    if( !encrypt ) {
      socket= new Socket();
+     if( USE_REPORT )
+       socket_count.inc();
+
      int rc= socket->open(addr->sa_family, SOCK_STREAM, PF_UNSPEC);
      if( IODM ) {
        int ERRNO= errno;
@@ -605,6 +685,8 @@ Socket*                             // Resultant Socket (nullptr if failure)
          utility::report_error(__LINE__, __FILE__, "connect");
 
        delete socket;
+       if( USE_REPORT )
+         socket_count.dec();
        socket= nullptr;
        return nullptr;
      }
@@ -614,6 +696,8 @@ Socket*                             // Resultant Socket (nullptr if failure)
 //   initialize_SSL();              // Initialize SSL
 //   context= new_client_CTX();
      delete socket;
+     if( USE_REPORT )
+       socket_count.dec();
      socket= nullptr;
 
      // NOT CODED YET
@@ -649,7 +733,7 @@ void
      const char*       info)        // Diagnostic information
 {  errorh("Client(%p)::error(%s)\n", this, info);
 
-   close();
+   close_enq();
 }
 
 //----------------------------------------------------------------------------
@@ -732,44 +816,6 @@ int                                 // Return code, 0 expected
 //----------------------------------------------------------------------------
 //
 // Protected method-
-//       Client::_close
-//
-// Purpose-
-//       Close the Client, making it inoperative.
-//
-//----------------------------------------------------------------------------
-void
-   Client::_close( void )           // Close the Client
-{  if( HCDM ) debugh("Client(%p)::_close() fsm(%d)\n", this, fsm);
-   if( USE_ITRACE )
-     Trace::trace(".CLI", ".CLS", this, i2v(get_handle()));
-
-// TODO: REMOVE DEBUGGING STATEMENTS
-   // The Agent might contain the last active shared_ptr<Client>
-   // and we reference this->socket after the disconnect.
-//std::shared_ptr<Client> keep_alive(get_self());
-//debugh("%4d Client(%d) keep_alive %p\n", __LINE__, socket->get_handle(), &keep_alive);
-//std::pub_diag::Debug_ptr::debug("Client keep_alive");
-
-   {{{{
-     std::lock_guard<Client> lock(*this);
-
-     if( fsm != FSM_RESET ) {
-       fsm= FSM_RESET;
-       // Note: Agent::disconnect uses socket->get_peer_addr(), therefore
-       // agent->disconnect() must precede socket->close()
-       agent->disconnect(this);     // (Only called once)
-       socket->close();             // (Only called once)
-     }
-   }}}}
-
-   if( !rd_complete.is_post() )     // Post out_task wait
-     rd_complete.post(dispatch::Item::CC_PURGE);
-}
-
-//----------------------------------------------------------------------------
-//
-// Protected method-
 //       Client::_http1
 //
 // Purpose-
@@ -800,25 +846,22 @@ void
      if( fsm != FSM_READY ) {
        // Issue #3: close operation deadlock:
        // We need to post the work item (which contains a shared_ptr<Client>)
-       // under a different Task so that Client (and Task) destruction
-       // won't occur under inp_task control (or before close completes.)
+       // under a different Task so that Client (and inp_task) destruction
+       // won't occur under inp_task control.
        if( item->fc == item->FC_CLOSE )
-         _close();
+         close();
 
        item->cc= item->CC_PURGE;
-       dispatch::Disp::defer(item); // (Post using a different task)
-Trace::trace(".XIT", "CREJ", this, item);
+       dispatch::Disp::defer(item);
        return;
      }
 
      if( item->stream->read(item->ioda) ) { // If response complete
-Trace::trace(".CLI", "post", this, item->stream.get());
        rd_complete.post();          // Indicate HTTP/1 operation complete
      }
-     item->post();
-Trace::trace(".XIT", "CINP", this, item);
-   }; // inp_task
-//debugf("%4d Client inp_task(%p)\n", __LINE__, &inp_task);
+
+     dispatch::Disp::defer(item);
+   }; // inp_task=
 
    // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    out_task= [this](dispatch::Item* it) // Output task
@@ -831,8 +874,8 @@ Trace::trace(".XIT", "CINP", this, item);
        utility::checkstop(__LINE__, __FILE__, "out_task");
 
      if( fsm != FSM_READY ) {
-       item->post(item->CC_PURGE);
-Trace::trace(".XIT", "SREJ", this, item);
+       item->cc= item->CC_PURGE;
+       dispatch::Disp::defer(item);
        return;
      }
 
@@ -857,7 +900,6 @@ Trace::trace(".XIT", "SREJ", this, item);
        Q.remove(HTTP_SIZE);
        Ioda& ioda= Q.get_ioda();
        size_t content_length= ioda.get_used();
-// debugh("Method(%s) Content_Length(%zd)\n", Q.method.c_str(), content_length); // TODO: REMOVE
        if(content_length != 0 ) {
          if( Q.method != HTTP_POST && Q.method != HTTP_PUT ) {
            if( VERBOSE > 0 )
@@ -895,29 +937,27 @@ Trace::trace(".XIT", "SREJ", this, item);
        if( content_length )
          events |= EVT_WR_DATA;
        h_writer();
-Trace::trace(".CLI", "wait", this, stream.get());
        rd_complete.wait();          // Wait for HTTP/1 operation completion
-Trace::trace(".CLI", "wend", this, stream.get());
        rd_complete.reset();
      } catch(io_exception& X) {
-       close();
+       close_enq();
        if( IODM )
          errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
        error(X.what());
      } catch(Exception& X) {
-       close();
+       close_enq();
        errorh("%4d %s %s\n", __LINE__, __FILE__, ((std::string)X).c_str());
        error(X.what());
      } catch(std::exception& X) {
-       close();
+       close_enq();
        errorh("%4d %s %s\n", __LINE__, __FILE__, X.what());
        error(X.what());
      } catch(const char* X) {
-       close();
+       close_enq();
        errorh("%4d %s catch(%s)\n", __LINE__, __FILE__, X);
        error(X);
      } catch(...) {
-       close();
+       close_enq();
        errorh("%4d %s catch(...)\n", __LINE__, __FILE__);
        error("catch(...)");
      }
@@ -927,13 +967,16 @@ Trace::trace(".CLI", "wend", this, stream.get());
      stream= nullptr;
      stream_item= nullptr;
 
-     // It's clear that this is needed, but not clear exactly why.
-     dispatch::Disp::defer(item);   // (Post using a different task)
-
      if( USE_ITRACE )
        Trace::trace(".XIT", "COUT", this, it);
-   }; // out_task
-//debugf("%4d Client out_task(%p)\n", __LINE__, &out_task);
+
+     // Issue #3: write deadlock:
+     // The output task can be delayed here until the Client is closed.
+     // We need to post the work item (which contains a shared_ptr<Client>)
+     // under a different Task so that Client (and out_task) destruction
+     // won't occur under out_task control.
+     dispatch::Disp::defer(item);
+   }; // out_task=
 
    // h_reader - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    h_reader= [this](void)           // (Asynchronous) input data available
@@ -949,7 +992,6 @@ Trace::trace(".CLI", "wend", this, stream.get());
      // Read the response, passing it to Stream
      _read(__LINE__);               // (Exception if error)
    }; // h_reader=
-//debugf("%4d Client h_reader(%p)\n", __LINE__, &h_reader);
 
    // h_writer - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    h_writer= [this](void)           // The output writer
@@ -990,7 +1032,6 @@ Trace::trace(".CLI", "wend", this, stream.get());
        events &= ~EVT_WR_DATA;
      }
    }; // h_writer=
-//debugf("%4d Client h_writer(%p)\n", __LINE__, &h_reader);
 }
 
 //----------------------------------------------------------------------------

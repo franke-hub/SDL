@@ -16,7 +16,7 @@
 //       Implement http/Agent.h
 //
 // Last change date-
-//       2023/04/16
+//       2023/06/02
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::shared_ptr
@@ -271,6 +271,7 @@ void
      std::lock_guard<decltype(mutex)> lock(mutex);
 
      for(const_iterator it= map.begin(); it != map.end(); ++it ) {
+       REM_DEBUG_MAP("CAgent.MAP", it->second.get());
        list.emplace_back(it->second);
      }
    }}}}
@@ -376,7 +377,7 @@ void
      // Insert the entry
      map[key]= client;
      it= map.find(key);
-     INS_DEBUG_MAP("CAgent.MAP", &it->second);
+     INS_DEBUG_MAP("CAgent.MAP", it->second.get());
    }}}}
 
    if( HCDM )
@@ -422,7 +423,7 @@ void
        return;
      }
 
-     REM_DEBUG_MAP("CAgent.MAP", &it->second);
+     REM_DEBUG_MAP("CAgent.MAP", it->second.get());
      map.erase(it);                 // Remove Client/Server pair from the map
    }}}}
 
@@ -599,7 +600,7 @@ void
      std::lock_guard<decltype(mutex)> lock(mutex);
 
      for(const_iterator it= map.begin(); it != map.end(); ++it ) {
-       REM_DEBUG_MAP("LAgent.MAP", &it->second);
+       REM_DEBUG_MAP("LAgent.MAP", it->second.get());
        list.emplace_back(it->second);
      }
      map.clear();
@@ -705,7 +706,7 @@ void
      // Insert the entry
      map[key]= listen;
      it= map.find(key);
-     INS_DEBUG_MAP("LAgent.MAP", &it->second);
+     INS_DEBUG_MAP("LAgent.MAP", it->second.get());
    }}}}
 
    if( HCDM )
@@ -751,7 +752,7 @@ void
        return;
      }
 
-     REM_DEBUG_MAP("LAgent.MAP", &it->second);
+     REM_DEBUG_MAP("LAgent.MAP", it->second.get());
      map.erase(it);
    }}}}
 

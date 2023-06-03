@@ -16,7 +16,7 @@
 //       Statistical event reporter
 //
 // Last change date-
-//       2023/05/24
+//       2023/06/02
 //
 // Implementation notes-
 //       Records contain statistical information that can be displayed by the
