@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2023/06/02
+//       2023/06/03
 //
 // Arguments-
 //       With no arguments, --client defaulted
@@ -38,6 +38,7 @@
 
 #include <atomic>                   // For std::atomic
 #include <memory>                   // For std::shared_ptr
+#include <mutex>                    // For mutex, std::lock_guard
 #include <cstddef>                  // For offsetof
 #include <cstdint>                  // For UINT16_MAX
 #include <ctime>                    // For time, ...
@@ -877,6 +878,7 @@ extern int
 // Testing complete
 //----------------------------------------------------------------------------
    Thread::sleep(0.5);              // (Delay to allow cleanup)
+   debugf("\n");
    if( error_count == 0 )
      debugf("NO errors detected\n");
    else if( error_count == 1 )

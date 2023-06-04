@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2023/06/02
+//       2023/06/03
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -211,6 +211,8 @@ public:
 std::shared_ptr<Client>client;      // The Client
 
 std::atomic_size_t     cur_op_count= 0; // The number of running requests
+std::mutex             mutex;       // Protects client
+
 Event                  ready;       // Thread ready event
 Event                  send_end;    // Send completion event (for run_one)
 
@@ -273,9 +275,11 @@ void
 {  if( opt_hcdm && opt_verbose )
      debugh("[%2d] ClientThread::close\n", serial);
 
+   std::lock_guard<decltype(mutex)> lock(mutex);
    if( client ) {
      client->close();
-     client->wait();
+     if( opt_minor > 0 )
+       client->wait();
      client= nullptr;
    }
 }
@@ -513,10 +517,7 @@ virtual void
      get_client();
      do_SEND(HTTP_GET, test_url);
      send_end.wait();
-     client->close();
-     if( opt_minor > 0 )
-       client->wait();
-     client= nullptr;
+     close();
    } catch(Exception& X) {
      ++error_count;
      debugf("%4d Exception: %s\n", __LINE__, X.to_string().c_str());
@@ -650,9 +651,6 @@ virtual void
 // Purpose-
 //       Statistics display
 //
-// Implementation notes-
-//       Currently intended for bringup
-//
 //----------------------------------------------------------------------------
 static void
    statistics( void )               // Display statistics
@@ -672,13 +670,6 @@ static void
      debugf("%'16ld {%2ld,%2ld,%2ld} Response counts\n", stat->counter.load()
            , stat->minimum.load(), stat->current.load(), stat->maximum.load());
 
-     if( USE_REPORT ) {
-       debugf("\n\n");
-       Reporter::get()->report([](Reporter::Record& record) {
-         debugf("%s\n", record.h_report().c_str());
-       }); // reporter.report
-     }
-
      if( opt_verbose > 1 ) {
        debugf("\n");
        WorkerPool::debug();
@@ -690,6 +681,15 @@ static void
    error_count += VERIFY( Stream::obj_count.current.load() == 0 );
    error_count += VERIFY( Request::obj_count.current.load() == 0 );
    error_count += VERIFY( Response::obj_count.current.load() == 0 );
+
+   // Display reports
+   if( USE_REPORT ) {
+     debugf("\n");
+     Reporter::get()->report([](Reporter::Record& record) {
+       debugf("%s\n", record.h_report().c_str());
+     }); // reporter.report
+     debugf("\n");
+   }
 
    // Reset the statistics
    stat= &Stream::obj_count;
@@ -904,6 +904,7 @@ void
 {  if( opt_hcdm && opt_verbose )
      debugh("[%2d] wait ClientThread\n", serial);
 
+   std::lock_guard<decltype(mutex)> lock(mutex);
    if( client )
      client->wait();
 }
