@@ -13,63 +13,88 @@
 ##       regression
 ##
 ## Purpose-
-##       Run regression tests.
+##       Regression tests
 ##
 ## Last change date-
-##       2023/01/14
+##       2023/06/04
+##
+## Implementation notes-
+##       Run this script from ~/src/cpp/obj/dev/Test, the test subdirectory.
 ##
 ##############################################################################
 
 ##############################################################################
-## Insure that the library is up to date
-pushd ../. >/dev/null
-echo ""
-pwd
-make
-rc=$?
-popd >/dev/null
-[[ $rc != 0 ]] && { echo "Library build failed"; exit 1; }
+## Environment
+DDIR=S/script/regression.d
 
 ##############################################################################
-## Insure that test executables are up to date
-echo ""
-pwd
-make
-[[ $? != 0 ]] && { echo "Test build failed"; exit 1; }
+## Parameter analysis
+make=1
+parm=
+setx=0
+for arg in "$@"
+do
+  case $arg in
+    --nomake)
+      make=0
+      shift
+      ;;
+
+    --*)
+      parm="$arg $parm"
+      shift
+      ;;
+
+    -x)
+      setx=1
+      shift
+      ;;
+
+    -*)
+      echo "Parameter '$arg' ignored"
+      shift
+      ;;
+
+    *)
+      break
+      ;;
+  esac
+done
+
+test_set="$@"
+if [ "$1" == "" ] ; then
+  test_set=`ls $DDIR`
+fi
 
 ##############################################################################
-## Run the tests
-echo ""
-echo "T_Stream --server --client --verbose **********************************"
-T_Stream --server --client --verbose
-[[ $? != 0 ]] && { echo "Test failed"; exit 1; }
+## Make sure all prerequisites are present and up to date
+if [[ $make != 0 ]] ; then
+  if [[ ! -x $DDIR/.prereq.sh ]] ; then
+    echo "Missing file: $DDIR/.prereq.sh"
+    exit 1
+  fi
 
-echo ""
-echo T_Stream --server --stress --verbose "**********************************"
-T_Stream --server --stress --verbose
-[[ $? != 0 ]] && { echo "Test failed"; exit 1; }
+  $DDIR/.prereq.sh
+  rc=$?
+  [[ $rc != 0 ]] && exit $rc
+fi
 
-echo ""
-echo "T_Stream --server --stress=1 --verbose ********************************"
-T_Stream --server --stress=1 --verbose
-[[ $? != 0 ]] && { echo "Test failed"; exit 1; }
+##############################################################################
+## Run the regression tests
+[ $setx != 0 ] && set -x
+for test in $test_set
+do
+  [[ ! -a "$DDIR/$test" ]] && { echo "FAIL: '$DDIR/$test' missing"; exit 1; }
+  if [[ -x "$DDIR/$test" && ! -d "$DDIR/$test" ]] ; then
+    $DDIR/$test $parm
+    rc=$?
+    if [[ $rc == 0 ]] ; then
+      echo "PASS: $test"
+    else
+      echo "FAIL: $test, rc $rc"
+      exit $rc
+    fi
+  fi
+done
 
-echo ""
-echo "T_Stream --server --stress=10 --verbose *******************************"
-T_Stream --server --stress=10 --verbose
-[[ $? != 0 ]] && { echo "Test failed"; exit 1; }
-
-echo ""
-echo "T_Option **************************************************************"
-T_Option
-[[ $? != 0 ]] && { echo "Test failed"; exit 1; }
-
-echo ""
-echo "T_Quick --verbose *****************************************************"
-T_Quick --verbose
-[[ $? != 0 ]] && { echo "Test failed"; exit 1; }
-
-echo ""
-echo "TestIoda **************************************************************"
-TestIoda
-[[ $? != 0 ]] && { echo "Test failed"; exit 1; }
+echo "PASS: ** ALL TESTS **"

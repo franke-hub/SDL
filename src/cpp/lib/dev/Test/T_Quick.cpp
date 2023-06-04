@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2023/05/24
+//       2023/06/04
 //
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
@@ -53,9 +53,11 @@ enum
 //----------------------------------------------------------------------------
 static int             opt_case= false; // (Only set if --hcdm --all)
 static int             opt_codec= true; // (Unconditionally true)
+static int             opt_dirty= false; // --dirty
 
 static struct option   opts[]=      // Options
 {  {"all",     optional_argument, nullptr,         0}
+,  {"dirty",   no_argument      , &opt_dirty,   true}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
@@ -199,7 +201,7 @@ extern int                          // Return code
 
      if( opt_case )    error_count += test_case();
      if( opt_codec )   error_count += test_codec();
-//   if( true )        error_count += test_dirty();
+     if( opt_dirty )   error_count += test_dirty();
 
      if( opt_verbose ) {
        debugf("\n");

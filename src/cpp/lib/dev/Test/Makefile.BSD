@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2023/04/27
+##       2023/06/04
 ##
 ##############################################################################
 
@@ -127,11 +127,7 @@ include $(INCDIR)/pub/Makefile.BSD  ## PUB library controls
 
 Include: $(INCDIR)/pub/http/*       ## Include test depends on include
 
-###################################### Build dev library
-../libdev.a: $(INCDIR)/dev/* $(SRCDIR)/../*
-	(cd ..; $(MAKE))
-
-$(MAKEXE): ../libdev.a
+$(MAKEXE): $(LIBDIR)/libdev.a $(LIBDIR)/libpub.a
 
 ##############################################################################
 ## Makefile cleanup

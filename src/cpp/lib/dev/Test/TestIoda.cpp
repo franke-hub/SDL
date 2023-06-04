@@ -51,8 +51,8 @@ typedef Ioda::Page        Page;
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= true                       // Hard Core Debug Mode?
-,  VERBOSE= 2                       // Verbosity, higher is more verbose
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -168,35 +168,46 @@ static inline int
    assert( line.size() == 48 );     // (Total size 24,000)
 
    //-------------------------------------------------------------------------
-   debugf("\nIoda::put(string)\n");
+   if( opt_verbose )
+     debugf("\nIoda::put(string)\n");
    Ioda from;
    for(int i= 0; i<LINES; ++i)
      from.put(line);
-   from.debug("from 24,000");
+   if( opt_verbose )
+     from.debug("from 24,000");
    string full= (string)from;
    assert( full.size() == 24'000 ); // (Total size 24,000)
 
    //-------------------------------------------------------------------------
-   debugf("\noperator +=\n");
+   if( opt_verbose )
+     debugf("\noperator +=\n");
    Ioda into;
-   into.debug("into");
+   if( opt_verbose )
+     into.debug("into");
    into += std::move(from);
-   from.debug("from 0");
-   into.debug("into 24,000");
+   if( opt_verbose ) {
+     from.debug("from 0");
+     into.debug("into 24,000");
+   }
 
    //-------------------------------------------------------------------------
-   debugf("\nIoda::get_mesg\n");
+   if( opt_verbose )
+     debugf("\nIoda::get_mesg\n");
    Ioda read; Mesg mesg;
    read.get_rd_mesg(mesg, 20'000);
-   mesg.debug("rd_mesg 0x4e20");
+   if( opt_verbose )
+     mesg.debug("rd_mesg 0x4e20");
 
    read.set_used(5'000);
-   debugf("..set_used should have deleted 3 rd_mesg buffers\n");
+   if( opt_verbose )
+     debugf("..set_used should have deleted 3 rd_mesg buffers\n");
    read.get_wr_mesg(mesg);
-   mesg.debug("wr_mesg 0x1338");
+   if( opt_verbose )
+     mesg.debug("wr_mesg 0x1338");
 
    into.get_wr_mesg(mesg, 6'000);
-   mesg.debug("wr_mesg 0x1770");
+   if( opt_verbose )
+     mesg.debug("wr_mesg 0x1770");
 
 enum { SIZES_DIM= 25 };
 static const size_t sizes[SIZES_DIM]=
@@ -228,7 +239,8 @@ static const size_t sizes[SIZES_DIM]=
    };        // 25 SIZES_DIM
 
    //-------------------------------------------------------------------------
-   debugf("\nIoda::split\n");
+   if( opt_verbose )
+     debugf("\nIoda::split\n");
    for(size_t sx= 0; sx < SIZES_DIM; ++sx) {
      size_t size= sizes[sx];
      if( opt_verbose > 1 )
@@ -322,7 +334,8 @@ static const size_t sizes[SIZES_DIM]=
    }
 
    //-------------------------------------------------------------------------
-   debugf("\nIodaReader\n");
+   if( opt_verbose )
+     debugf("\nIodaReader\n");
    IodaReader reader(into);
    int L= (int)line.size();
    line= line.substr(0, L-4);
@@ -362,7 +375,8 @@ static const size_t sizes[SIZES_DIM]=
    error_count += VERIFY( reader.get_token("\r\n") == " over the lazy dog." );
 
    //-------------------------------------------------------------------------
-   debugf("\nDestructors\n");
+   if( opt_verbose )
+     debugf("\nDestructors\n");
 
    return error_count;
 }

@@ -54,8 +54,6 @@ liblocal.a: $(LIBOBJ)
 	$(AR) $@ $^
 	touch $@
 
-$(MAKEXE): liblocal.a
-
 ##############################################################################
 ## Run the Dirty program
 .PHONY: dirty
