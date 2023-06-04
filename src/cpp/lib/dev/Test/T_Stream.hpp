@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2023/06/03
+//       2023/06/04
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -657,38 +657,38 @@ static void
 {
    statistic::Active* stat= nullptr;
 
-   if( false ) { // Verify object counters vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+   // Display the object counters
+   if( opt_verbose ) {
+     debugf("\n");
      stat= &Stream::obj_count;
-     debugf("%'16ld {%2ld,%2ld,%2ld} Stream counts\n", stat->counter.load()
+     debugf("%'16ld {%3ld,%3ld,%3ld} Stream counts\n", stat->counter.load()
            , stat->minimum.load(), stat->current.load(), stat->maximum.load());
 
      stat= &Request::obj_count;
-     debugf("%'16ld {%2ld,%2ld,%2ld} Request counts\n", stat->counter.load()
+     debugf("%'16ld {%3ld,%3ld,%3ld} Request counts\n", stat->counter.load()
            , stat->minimum.load(), stat->current.load(), stat->maximum.load());
 
      stat= &Response::obj_count;
-     debugf("%'16ld {%2ld,%2ld,%2ld} Response counts\n", stat->counter.load()
+     debugf("%'16ld {%3ld,%3ld,%3ld} Response counts\n", stat->counter.load()
            , stat->minimum.load(), stat->current.load(), stat->maximum.load());
+   }
 
-     if( opt_verbose > 1 ) {
-       debugf("\n");
-       WorkerPool::debug();
-       WorkerPool::reset();
-     }
-   } // Verify object counters ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-   // Verify the error counters
+   // Verify the object counters
    error_count += VERIFY( Stream::obj_count.current.load() == 0 );
    error_count += VERIFY( Request::obj_count.current.load() == 0 );
    error_count += VERIFY( Response::obj_count.current.load() == 0 );
 
-   // Display reports
-   if( USE_REPORT ) {
-     debugf("\n");
+   // Display Reporter records
+   if( opt_verbose ) {
      Reporter::get()->report([](Reporter::Record& record) {
        debugf("%s\n", record.h_report().c_str());
      }); // reporter.report
+   }
+
+   // Display WorkerPool statistics
+   if( opt_verbose > 1 ) {
      debugf("\n");
+     WorkerPool::debug();
    }
 
    // Reset the statistics
@@ -711,6 +711,7 @@ static void
    stat->maximum.store(0);
 
    Reporter::get()->reset();
+   WorkerPool::reset();
 }
 
 //----------------------------------------------------------------------------
@@ -852,17 +853,6 @@ static void
    double op_count= double(send_op_count.load());
    debugf("%'16.3f operations\n", op_count);
    debugf("%'16.3f operations/second\n", op_count/opt_runtime);
-
-#if false //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-Thread::sleep(0.25);
-     debugf("\n\n");
-     Reporter::get()->report([](Reporter::Record& record) {
-       debugf("%s\n", record.h_report().c_str());
-     }); // reporter.report
-
-     debugf("\n");
-     WorkerPool::debug();
-#endif //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    Trace::Record* R= Trace::trace(64);
    if( R ) {

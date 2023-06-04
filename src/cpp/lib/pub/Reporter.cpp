@@ -216,8 +216,15 @@ void
      f_reporter        reporter)    // Using this reporter
 {  if( HCDM && VERBOSE > 0 ) debugf("Reporter(%p)::report\n", this);
 
+   bool once= true;
+
    std::lock_guard<decltype(mutex)> lock(mutex);
    for(RecordItem* item= list.get_head(); item; item= item->get_next()) {
+     if( once ) {
+       once= false;
+       debugf("\nReporter::report()\n");
+     }
+
      reporter(*(item->record));
    }
 }
