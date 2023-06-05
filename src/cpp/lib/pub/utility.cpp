@@ -16,7 +16,7 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2023/05/25
+//       2023/06/04
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -473,30 +473,6 @@ char*                               // Next whitespace or '\0' character
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       utility::on_exception
-//
-// Purpose-
-//       Display exception error diagnostic messages
-//
-//----------------------------------------------------------------------------
-void
-   on_exception(                    // Exception error diagnostic
-     std::string       what)        // Error message
-{
-   Trace::trace(".BUG", 0, what.c_str());
-
-   {{{{
-     // This lock keeps the error message and backtrace together
-     std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
-
-     debugf("utility::on_exception(%s)\n", what.c_str());
-     debug_backtrace();
-   }}}}
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
 //       utility::skip_space
 //
 // Purpose-
@@ -820,7 +796,7 @@ void
      const char*       file,        // Source file name
      const char*       mess)        // Error messsage
 {
-   debugh("%4d %s %s\n", line, file, mess);
+   debugh("%4d %s CHECKSTOP: %s\n", line, file, mess);
    Trace::stop();
    throw std::runtime_error(mess);
 }
@@ -839,8 +815,32 @@ void
      int               line,        // Source file line
      const char*       file)        // Source file name
 {
-   debugh("%4d %s HCDM: %s\n", line, file, "NOT CODED YET");
+   debugh("%4d %s NOT_CODED_YET\n", line, file);
    throw std::runtime_error("NOT CODED YET");
+}
+
+//----------------------------------------------------------------------------
+//
+// (Bits) subroutine-
+//       utility::report_exception
+//
+// Purpose-
+//       Report (recoverable) exception information, including backtrace
+//
+//----------------------------------------------------------------------------
+void
+   report_exception(                // Exception error diagnostic
+     std::string       what)        // Error message
+{
+   Trace::trace(".BUG", 0, what.c_str());
+
+   {{{{
+     // This lock keeps the error message and backtrace together
+     std::lock_guard<decltype(*Debug::get())> lock(*Debug::get());
+
+     debugf("utility::report_exception(%s)\n", what.c_str());
+     debug_backtrace();
+   }}}}
 }
 
 //----------------------------------------------------------------------------
@@ -849,11 +849,11 @@ void
 //      utility::report_error
 //
 // Purpose-
-//       Display system error message, preserving errno
+//       Display I/O error message, preserving errno
 //
 //----------------------------------------------------------------------------
 void
-   report_error(                    // Display system error message
+   report_error(                    // Display I/O error message
      int               line,        // Source file line
      const char*       file,        // Source file name
      const char*       op)          // Operation name
@@ -867,18 +867,17 @@ void
 //----------------------------------------------------------------------------
 //
 // (Bits) subroutine-
-//       utility::should_not_occur
+//       utility::report_unexpected
 //
 // Purpose-
-//       Display "SHOULD NOT OCCUR"  message
+//       Report recoverable "should not occur" condition
 //
 //----------------------------------------------------------------------------
 void
-   should_not_occur(                // Handle "SHOULD NOT OCCUR" condition
+   report_unexpected(               // Recoverable "should not occur" condition
      int               line,        // Source file line
      const char*       file)        // Source file name
 {
-   debugh("%4d %s HCDM: %s\n", line, file, "SHOULD NOT OCCUR");
-   throw std::runtime_error("SHOULD NOT OCCUR");
+   debugh("\n%4d %s HCDM: %s\n\n", line, file, "SHOULD NOT OCCUR");
 }
 }  // namespace _LIBPUB_NAMESPACE::utility

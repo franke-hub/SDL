@@ -162,12 +162,6 @@ std::shared_ptr<Client>
    get_self( void ) const           // Get self-reference
 {  return self.lock(); }
 
-#if 0  // Not ready yet
-std::shared_ptr<Stream>             // The associated Stream
-   get_stream(uint32_t id) const    // Locate the Stream given Stream::ident
-{  return stream_set.get_stream(id); }
-#endif
-
 //----------------------------------------------------------------------------
 // Client::Methods
 //----------------------------------------------------------------------------

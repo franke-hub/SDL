@@ -16,7 +16,7 @@
 //       Implement http/Ioda.h
 //
 // Last change date-
-//       2023/06/02
+//       2023/06/04
 //
 //----------------------------------------------------------------------------
 // #define NDEBUG                   // TODO: USE (to disable asserts)
@@ -164,17 +164,14 @@ static inline void
 //---------------------------------------------------------------------------
 //
 // Subroutine-
-//       should_not_occur
+//       checkstop
 //
 // Purpose-
 //       A should not occur condition occurred.
 //
 //----------------------------------------------------------------------------
-static void should_not_occur(int line)
-{
-   debugf("%d %s Should not occur\n", line, __FILE__);
-   throw runtime_error("Should not occur");
-}
+static void checkstop(int line)
+{  utility::checkstop(line, __FILE__, "Should not occur"); }
 
 //============================================================================
 //
@@ -761,8 +758,7 @@ void
    }
 
 debugf("lead(%'zd) slen(%'zd) size(%'zd) used(%'zd)\n", lead, slen, size, used);
-debug("should not occur");
-   should_not_occur(__LINE__);        // Inconsistent with !(slen >= used)
+   checkstop(__LINE__);             // Inconsistent with !(slen >= used)
 }
 #endif
 
@@ -864,18 +860,18 @@ void
          int page_used= int(slen - lead); // The used byte count
          int page_left= page->used - page_used; // The remaining byte count
 
-         list.remove(head, page);     // Remove the pages
+         list.remove(head, page);   // Remove the pages
          ioda.list.insert(nullptr, head, page); // Give them to the resultant
-         page->used= page_used;       // Trimming the last page
+         page->used= page_used;     // Trimming the last page
 
-         Page* copy= get_page();      // Duplicate common page
+         Page* copy= get_page();    // Duplicate common page
          memcpy(copy->data, page->data+page_used, page_left); // Copy remainder
-         copy->used= page_left;       // Setting its length
-         list.lifo(copy);             // Add it to the head of the list
+         copy->used= page_left;     // Setting its length
+         list.lifo(copy);           // Add it to the head of the list
        }
 
-       ioda.used= slen;               // (Common path)
-       used -= slen;                  // (Common path)
+       ioda.used= slen;             // (Common path)
+       used -= slen;                // (Common path)
        return;
      }
 
@@ -883,8 +879,7 @@ void
    }
 
 debugf("lead(%'zd) slen(%'zd) size(%'zd) used(%'zd)\n", lead, slen, size, used);
-debug("should not occur");
-   should_not_occur(__LINE__);        // Inconsistent with !(slen >= used)
+   checkstop(__LINE__);             // Inconsistent with !(slen >= used)
 }
 
 //----------------------------------------------------------------------------
@@ -976,13 +971,13 @@ int
      ix_off0= 0;
      ix_page= ioda.list.get_head(); // Start at zero
      if( ix_page == nullptr )       // (Must have some used if index < used)
-       should_not_occur(__LINE__);
+       checkstop(__LINE__);
    }
 
    while( index < ix_off0 ) {       // Reverse search
      ix_page= ix_page->get_prev();
      if( ix_page == nullptr )       // (Implies index < get_head()->used)
-       should_not_occur(__LINE__);
+       checkstop(__LINE__);
      ix_off0 -= ix_page->used;
    }
 
@@ -990,7 +985,7 @@ int
      ix_off0 += ix_page->used;
      ix_page= ix_page->get_next();
      if( ix_page == nullptr )       // (Implies ioda.used < Sigma(page->used))
-       should_not_occur(__LINE__);
+       checkstop(__LINE__);
    }
 
    return ix_page->data[index - ix_off0];

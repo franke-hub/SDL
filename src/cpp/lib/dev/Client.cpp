@@ -62,7 +62,6 @@
 using namespace PUB;
 using namespace PUB::debugging;
 using PUB::utility::is_null;
-using PUB::utility::on_exception;
 using PUB::utility::to_string;
 using PUB::utility::visify;
 using std::string;
@@ -308,7 +307,6 @@ static bool            initialized= false; // TRUE when initialized
    if( !initialized ) {
      SSL_library_init();
      SSL_load_error_strings();
-//   ERR_load_BIO_strings();        // Deprecated in OSSL version 3.0
      OpenSSL_add_all_algorithms();
 
      initialized= true;
@@ -446,7 +444,6 @@ static inline SSL_CTX*
 
      delete socket;
      socket= nullptr;
-
      if( USE_REPORT )
        socket_count.dec();
    }
@@ -470,8 +467,6 @@ std::shared_ptr<Client>             // (New) Client
 {  if( HCDM ) debugh("Client::make(%p)\n", owner);
 
    std::shared_ptr<Client> client= std::make_shared<Client>(owner);
-//debugf("%4d Client make %p\n", __LINE__, &client);
-
    client->self= client;
    return client;
 }
@@ -693,8 +688,8 @@ Socket*                             // Resultant Socket (nullptr if failure)
      if( HCDM )
        debugf("Client(%p): %s connected\n", this, addr_u->to_string().c_str());
    } else {                         // If SSL
-//   initialize_SSL();              // Initialize SSL
-//   context= new_client_CTX();
+     initialize_SSL();              // Initialize SSL
+     context= new_client_CTX();
      delete socket;
      if( USE_REPORT )
        socket_count.dec();
@@ -821,6 +816,12 @@ int                                 // Return code, 0 expected
 // Purpose-
 //       Initialize the HTTP/1.0 and HTTP/1.1 protocol handlers
 //
+// Implementation notes (Issue #3: close operation deadlock)-
+//       We can't post ClientItems (which contain a shared_ptr<Client>)
+//       anywhere in inp/out_task because Client destruction might occur.
+//       If it does, the incomplete inp/out_task blocks the FC_CHASE wait
+//       operation that dispatch::Task::~Task would require.
+//
 // Implementation notes-
 //       Defines: inp_task  (Handles responses)
 //       Defines: out_task  (Handles requests)
@@ -831,8 +832,6 @@ int                                 // Return code, 0 expected
 void
    Client::_http1( void )           // Initialize the HTTP/1 protocol handlers
 {
-   // debugh("%4d %s HCDM1\n", __LINE__, __FILE__);
-
    // inp_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    inp_task= [this](dispatch::Item* it) // Input task
    { if( HCDM ) debugh("Client(%p)::inp_task(%p)\n", this, it);
@@ -844,10 +843,6 @@ void
        utility::checkstop(__LINE__, __FILE__, "inp_task");
 
      if( fsm != FSM_READY ) {
-       // Issue #3: close operation deadlock:
-       // We need to post the work item (which contains a shared_ptr<Client>)
-       // under a different Task so that Client (and inp_task) destruction
-       // won't occur under inp_task control.
        if( item->fc == item->FC_CLOSE )
          close();
 
@@ -969,12 +964,6 @@ void
 
      if( USE_ITRACE )
        Trace::trace(".XIT", "COUT", this, it);
-
-     // Issue #3: write deadlock:
-     // The output task can be delayed here until the Client is closed.
-     // We need to post the work item (which contains a shared_ptr<Client>)
-     // under a different Task so that Client (and out_task) destruction
-     // won't occur under out_task control.
      dispatch::Disp::defer(item);
    }; // out_task=
 

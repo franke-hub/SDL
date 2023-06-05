@@ -16,7 +16,7 @@
 //       Implement http/Stream.h
 //
 // Last change date-
-//       2023/06/02
+//       2023/06/04
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -36,7 +36,6 @@
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For pub::to_string, ...
 
-#include "pub/http/bits/devconfig.h" // Must be first http include (TODO: REMOVE)
 #include "pub/http/Client.h"        // For pub::http::Client
 #include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Options.h"       // For pub::http::Options
@@ -57,8 +56,7 @@ namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
-// IODM= false                      // Input/Output Debug Mode?
-,  VERBOSE= 1                       // Verbosity, higher is more verbose
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  BUFFER_SIZE= 8'096               // Input buffer size (Header collector)
 ,  POST_LIMIT= 1'048'576            // POST/PUT size limit
@@ -122,242 +120,7 @@ static struct{int code; const char* text;}
 ,  {  0, nullptr}                   // Delimiter
 };
 
-//============================================================================
-//
-// Method-
-//       StreamSet::Node::~Node
-//
-// Purpose-
-//       Destructor
-//
-// Implementation notes-
-//       It is an error to delete a Node that has a parent or child.
-//
 //----------------------------------------------------------------------------
-   StreamSet::Node::~Node( void )
-{
-   assert( parent == nullptr && child == nullptr );
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       StreamSet::Node::insert
-//
-// Purpose-
-//       Insert a child Node
-//
-// Implementation notes-
-//       REQUIRES: The StreamSet must be locked
-//       The inserted Node's child list is NOT inspected or modified.
-//
-//----------------------------------------------------------------------------
-void
-   StreamSet::Node::insert(         // Insert (at beginning of child list)
-     Node*             node)        // This Node
-{
-   assert( node->parent == nullptr ); // Must not already be on a list
-   node->parent= this;
-   node->peer= child;
-   child= node;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       StreamSet::Node::remove
-//
-// Purpose-
-//       Remove a child Node
-//
-// Implementation notes-
-//       REQUIRES: The StreamSet must be locked
-//       The removed Node's child list is NOT inspected or modified.
-//
-//----------------------------------------------------------------------------
-void
-   StreamSet::Node::remove(         // Remove (from the child list)
-     Node*             node)        // This Node
-{
-   assert( node->parent == this );  // Must be our child Node
-
-   node->parent= nullptr;           // Consider it already removed
-   if( child == node ) {            // If removing the first child
-     child= node->peer;             // Remove it from the list
-     node->peer= nullptr;           // (Not strictly necessary)
-     return;
-   }
-
-   Node* prev= child;
-   while( prev ) {                  // Search the child list
-     if( prev->peer == node ) {     // If prev->(Node to be removed)
-       prev->peer= node->peer;      // Remove the Node from the list
-       node->peer= nullptr;         // (Not strictly necessary)
-       return;
-     }
-
-     prev= prev->peer;              // Follow the list
-   }
-
-   // SHOULD NOT OCCUR: The Node to be removed wasn't on the list
-   debugf("StreamSet::Node(%p)::remove(%p), but it's not on the child list\n"
-         , this, node);
-   node->peer= nullptr;             // (Even now, not strictly necessary)
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void
-   StreamSet::Node::remove( void )  // Remove THIS node from its parent
-{
-   assert( parent != nullptr );     // (It must actually *have* a parent)
-   parent->remove(this);
-}
-
-//============================================================================
-//
-// Method-
-//       StreamSet::StreamSet
-//       StreamSet::~StreamSet
-//
-// Purpose-
-//       Constructor
-//       Destructor
-//
-//----------------------------------------------------------------------------
-   StreamSet::StreamSet(            // Constructor
-     Node*             node)        // The (user-owned) root Node
-{  if( HCDM || VERBOSE > 1 ) debugf("StreamSet(%p)!\n", this);
-
-   root= node;
-
-// INS_DEBUG_OBJ("StreamSet");
-}
-
-   StreamSet::~StreamSet( void )    // Destructor
-{  if( HCDM || VERBOSE > 1 ) debugf("StreamSet(%p)~\n", this);
-
-   assert( root->child == nullptr ); // The StreamSet must be empty
-
-// REM_DEBUG_OBJ("StreamSet");
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       StreamSet::get_stream
-//
-// Purpose-
-//       Locate Stream by identifier
-//
-//----------------------------------------------------------------------------
-StreamSet::stream_ptr               // The associated Stream
-   StreamSet::get_stream(           // Locate the Stream given Stream::ident
-     stream_id         id) const    // For this Stream identifier
-{  std::lock_guard<decltype(mutex)> lock(mutex);
-
-   const_iterator it= map.find(id);
-   if( it != map.end() )
-     return it->second;
-
-   return nullptr;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       StreamSet::debug
-//
-// Purpose-
-//       Debugging display
-//
-//----------------------------------------------------------------------------
-void
-   StreamSet::debug(const char* info) const  // Debugging display
-{  debugh("StreamSet(%p)::debug(%s)\n", this, info);
-
-   debugf("root->parent(%p) ", root->parent);
-   debugf("root->child(%p) ",  root->child);
-   debugf("root->peer(%p) ",   root->peer);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       StreamSet::assign_stream_id
-//
-// Purpose-
-//       Assign a Stream identifier
-//
-//----------------------------------------------------------------------------
-StreamSet::stream_id                // The next available Stream identifier
-   StreamSet::assign_stream_id(     // Assign a Stream identifier
-     int               addend)      // After incrementing it by this value
-{
-   std::atomic<stream_id>* ident_ptr= (std::atomic<stream_id>*)&ident;
-   stream_id old_value= ident_ptr->load();
-   for(;;) {
-     stream_id new_value= old_value + addend;
-     if( new_value < 0 )            // If 31-bit arithmetic overflow
-       return -1;                   // We're out of identifiers
-     if( ident_ptr->compare_exchange_strong(old_value, new_value) )
-       return new_value;
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       StreamSet::change
-//
-// Purpose-
-//       Locate Stream by identifier
-//
-//----------------------------------------------------------------------------
-void
-   StreamSet::change(               // Change a Stream's parent
-     Stream*           parent,      // The new parent Stream
-     Stream*           stream)      // The Stream to move
-{  std::lock_guard<StreamSet> lock(*this);
-
-   (void)parent; (void)stream;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       StreamSet::insert
-//
-// Purpose-
-//       Locate Stream by identifier
-//
-//----------------------------------------------------------------------------
-void
-   StreamSet::insert(               // Insert Stream
-     Stream*           parent,      // The parent Stream
-     Stream*           stream)      // The Stream to insert
-{  std::lock_guard<StreamSet> lock(*this);
-
-   parent->insert(stream);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       StreamSet::remove
-//
-// Purpose-
-//       Locate Stream by identifier
-//
-//----------------------------------------------------------------------------
-void
-   StreamSet::remove(               // Remove Stream
-     Stream*           stream)      // The Stream to remove
-{  std::lock_guard<StreamSet> lock(*this);
-
-   stream->remove();
-}
-
-//============================================================================
 //
 // Method-
 //       Stream::Stream
@@ -371,7 +134,7 @@ void
    Stream::Stream( void )           // Default constructor
 :  h_end([]() {})
 ,  h_error([](const string&) {})
-{  if( HCDM || VERBOSE > 2 ) debugh("Stream(%p)!\n", this);
+{  if( HCDM || VERBOSE > 1 ) debugh("Stream(%p)!\n", this);
 
    obj_count.inc();
 
@@ -380,7 +143,7 @@ void
 }
 
    Stream::~Stream( void )          // Destructor
-{  if( HCDM || VERBOSE > 2 ) debugh("Stream(%p)~\n", this);
+{  if( HCDM || VERBOSE > 1 ) debugh("Stream(%p)~\n", this);
 
    obj_count.dec();
 
@@ -429,32 +192,6 @@ const char*                         // The status text
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Stream::use_count
-//
-// Purpose-
-//       Display the use count
-//
-// Implemenation notes-
-//       Call *after* incrementing or *before* decrementing.
-//       std::shared_ptr<Stream> S->use_count(__LINE__, __FILE__, "info");
-//
-//----------------------------------------------------------------------------
-void
-   Stream::use_count(               // Display the use count
-     int               line,        // Caller's line number
-     const char*       file,        // Caller's file name
-     const char*       info) const  // Caller's information
-{
-   static std::mutex mutex;
-   std::lock_guard<std::mutex> lock(mutex);
-
-   debugf("%2zd use_count Stream(%#12zx) %4d %s %s\n", self.use_count()
-         , intptr_t(this), line, file, info);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       ClientStream::ClientStream
 //       ClientStream::~ClientStream
 //       ClientStream::make
@@ -469,16 +206,15 @@ void
      Client*           owner)       // Associated Client
 :  Stream()
 ,  client(owner->get_self())
-{  if( HCDM || VERBOSE > 1 ) debugh("ClientStream(%p)!(%p)\n", this, owner);
+{  if( HCDM || VERBOSE > 0 ) debugh("ClientStream(%p)!(%p)\n", this, owner);
    if( USE_ITRACE )
      Trace::trace(".NEW", "CSTR", this);
 
-// http1();                         // TODO: HANDLE HTTP2, etc
    INS_DEBUG_OBJ("ClientStream");
 }
 
    ClientStream::~ClientStream( void ) // Destructor
-{  if( HCDM || VERBOSE > 1 ) debugh("ClientStream(%p)~\n", this);
+{  if( HCDM || VERBOSE > 0 ) debugh("ClientStream(%p)~\n", this);
    if( USE_ITRACE )
      Trace::trace(".DEL", "CSTR", this);
 
@@ -494,12 +230,9 @@ std::shared_ptr<ClientStream>       // The ClientStream
    S->self= S;
    S->request=  ClientRequest::make(S.get(), opts);
    S->response= ClientResponse::make(S.get());
-///debugh("%4d %s shared_ptr<ClientRequest>(%p)->(%p)\n", __LINE__, __FILE__, &S->request, S->request.get()); // TODO: REMOVE
-///debugh("%4d %s shared_ptr<ClientResponse>(%p)->(%p)\n", __LINE__, __FILE__, &S->response, S->response.get()); // TODO: REMOVE
 
    if( HCDM )
      debugh("%p= ClientStream::make(%p,%p)\n", S.get(), owner, opts);
-///debugh("%4d %s shared_ptr<ClientStream.self>(%p)->(%p)\n", __LINE__, __FILE__, &S->self, S->self.lock().get()); // TODO: REMOVE
 
    return S;
 }
@@ -527,11 +260,6 @@ std::shared_ptr<ClientResponse>
 void
    ClientStream::end( void )        // Terminate the ClientStream
 {  if( HCDM ) debugh("ClientStream(%p)::end\n", this);
-
-   if( utility::is_null(this) ) {   // TODO: REMOVE
-     utility::on_exception("Stream::end");
-     return;
-   }
 
    std::shared_ptr<Stream> stream= get_self(); // Stream keep-alive
    if( response )                   // (Can be nullptr if end already called)
@@ -577,15 +305,6 @@ bool                                // Return code: TRUE if complete
 //
 //----------------------------------------------------------------------------
 void
-   ClientStream::write(             // Write data segment to stream
-     Ioda&             ioda)        // I/O Data Area
-{  if( HCDM )
-     debugh("ClientStream(%p)::write(*,%zd)\n", this, ioda.get_used());
-
-   utility::should_not_occur(__LINE__, __FILE__);
-}
-
-void
    ClientStream::write( void )      // Write data (completed)
 {  if( HCDM ) debugh("ClientStream(%p)::write\n", this);
 
@@ -600,6 +319,10 @@ void
      end();
    }
 }
+
+void
+   ClientStream::write(Ioda&)       // Write data segment to stream
+{  utility::checkstop(__LINE__, __FILE__, "Should not occur"); }
 
 //----------------------------------------------------------------------------
 //
@@ -618,7 +341,7 @@ void
      Server*           owner)       // Associated Server
 :  Stream()
 ,  server(owner->get_self())
-{  if( HCDM || VERBOSE > 1 ) debugh("ServerStream(%p)!(%p)\n", this, owner);
+{  if( HCDM || VERBOSE > 0 ) debugh("ServerStream(%p)!(%p)\n", this, owner);
    if( USE_ITRACE )
      Trace::trace(".NEW", "SSTR", this);
 
@@ -626,7 +349,7 @@ void
 }
 
    ServerStream::~ServerStream( void ) // Destructor
-{  if( HCDM || VERBOSE > 1 ) debugh("ServerStream(%p)~\n", this);
+{  if( HCDM || VERBOSE > 0 ) debugh("ServerStream(%p)~\n", this);
    if( USE_ITRACE )
      Trace::trace(".DEL", "SSTR", this);
 
@@ -641,12 +364,9 @@ std::shared_ptr<ServerStream>       // The ServerStream
    S->self= S;
    S->request=  ServerRequest::make(S.get());
    S->response= ServerResponse::make(S.get());
-///debugh("%4d %s shared_ptr<ServerRequest>(%p)->(%p)\n", __LINE__, __FILE__, &S->request, S->request.get()); // TODO: REMOVE
-///debugh("%4d %s shared_ptr<ServerResponse>(%p)->(%p)\n", __LINE__, __FILE__, &S->response, S->response.get()); // TODO: REMOVE
 
    if( HCDM )
      debugh("%p= ServerStream::make(%p)\n", S.get(), owner);
-///debugh("%4d %s shared_ptr<ServerStream.self>(%p)->(%p)\n", __LINE__, __FILE__, &S->self, S->self.lock().get()); // TODO: REMOVE
 
    if( S->request.get() == nullptr || S->response.get() == nullptr )
      S= nullptr;
@@ -677,11 +397,6 @@ std::shared_ptr<ServerResponse>
 void
    ServerStream::end( void )        // Terminate the ServerStream
 {  if( HCDM ) debugh("ServerStream(%p)::end\n", this);
-
-   if( utility::is_null(this) ) {   // TODO: REMOVE
-     utility::on_exception("Stream::end");
-     return;
-   }
 
 INS_DEBUG_OBJ("SS.end");
    std::shared_ptr<Stream> stream= get_self(); // Stream keep-alive
@@ -737,6 +452,10 @@ void
 }
 
 void
+   ServerStream::write( void )      // Write data (completed)
+{  utility::checkstop(__LINE__, __FILE__, "Should not occur"); }
+
+void
    ServerStream::write(Ioda& ioda) // Write data segment to stream
 {
    std::shared_ptr<Server> server= get_server();
@@ -745,19 +464,6 @@ void
    else
      ioda.reset();
 }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ServerStream::write (I/O Method)
-//
-// Purpose-
-//       Response complete, write data.
-//
-//----------------------------------------------------------------------------
-void
-   ServerStream::write( void )      // Write data (completed)
-{  utility::should_not_occur(__LINE__, __FILE__); }
 
 //----------------------------------------------------------------------------
 //
@@ -774,7 +480,7 @@ void
 {  if( HCDM )
      debugh("\nServerStream(%p)::reject(%d) %s\n\n", this, code, get_text(code));
 
-   char buff[128];                  // TODO: FIX PROTOCOL
+   char buff[128];
    size_t L= sprintf(buff, "HTTP/1.1 %.3d %s\r\n\r\n", code, get_text(code));
 
    response->set_code(code);

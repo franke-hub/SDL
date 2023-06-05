@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2022 Frank Eskesen.
+//       Copyright (C) 2019-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2022/10/09
+//       2023/06/04
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -28,7 +28,7 @@
 #include <pub/Semaphore.h>          // For pub::Semaphore
 #include <pub/Thread.h>             // For pub::Thread
 #include "pub/Worker.h"             // For pub:: Worker, implemented
-#include <pub/utility.h>            // For pub::utility::on_exception
+#include <pub/utility.h>            // For pub::utility::report_exception
 
 using namespace _LIBPUB_NAMESPACE::debugging; // For debugging methods
 using std::atomic_uint;
@@ -209,13 +209,13 @@ void
          worker->work();
        } catch(Exception& X) {
          debugging::debugh("WorkerException: %s\n", X.to_string().c_str());
-         utility::on_exception(X.to_string());
+         utility::report_exception(X.to_string());
        } catch(std::exception& X) {
          debugging::debugh("WorkerException: what(%s)\n", X.what());
-         utility::on_exception(X.what());
+         utility::report_exception(X.what());
        } catch(...) {
          debugging::debugh("WorkerException: ...\n");
-         utility::on_exception("...");
+         utility::report_exception("...");
        }
      }
      worker= nullptr;

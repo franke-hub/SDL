@@ -16,7 +16,7 @@
 //       TestIoda.h
 //
 // Last change date-
-//       2023/04/29
+//       2023/06/04
 //
 // Implementation notes-
 //       Usability study.

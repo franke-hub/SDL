@@ -16,12 +16,11 @@
 //       Implement http/Response.h
 //
 // Last change date-
-//       2023/06/02
+//       2023/06/04
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
 #include <cstring>                  // For memset
-#include <mutex>                    // For std::lock_guard TODO: REMOVE
 #include <stdexcept>                // For std::out_of_range, ...
 #include <string>                   // For std::string
 
@@ -37,7 +36,6 @@
 #include "pub/http/Client.h"        // For pub::http::Client
 #include "pub/http/Exception.h"     // For pub::http:exceptions
 #include "pub/http/Ioda.h"          // For pub::http:Ioda
-#include "pub/http/Request.h"       // For pub::http::Request // TODO: NEEDED?
 #include "pub/http/Response.h"      // For pub::http::Response, implemented
 #include "pub/http/Server.h"        // For pub::http::Server
 #include "pub/http/Stream.h"        // For pub::http::Stream
@@ -45,7 +43,6 @@
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB;
 using namespace PUB::debugging;
-using PUB::utility::dump;          // TODO: REMOVE
 using PUB::utility::to_string;
 using std::string;
 
@@ -99,7 +96,6 @@ static struct StaticGlobal {
 //----------------------------------------------------------------------------
 // Constants
 //----------------------------------------------------------------------------
-// Imported Options TODO: REMOVE UNUSED
 typedef const char CC;
 static constexpr CC*   HTTP_SIZE= Options::HTTP_HEADER_LENGTH;
 
@@ -199,14 +195,9 @@ std::shared_ptr<ClientResponse>     // The ClientResponse
      ClientStream*     owner,       // For this ClientStream
      const Options*    opts)        // With these Options
 {
-   std::shared_ptr<Client> client= owner->get_client();
-   if( !client )
-     utility::should_not_occur(__LINE__, __FILE__); // TODO: Verify correctness
-
    std::shared_ptr<ClientResponse> S= std::make_shared<ClientResponse>();
    S->self= S;                      // Set self-reference
    S->stream= owner->get_self();    // Set ourClientStream
-///debugh("%4d %s shared_ptr<ClientStream>(%p)->(%p)\n", __LINE__, __FILE__, &Q->stream, Q->stream.get()); // TODO: REMOVE
 
    // Copy options
    if( opts )
@@ -340,7 +331,8 @@ bool                                // TRUE if read complete
      // Start-Line validity checks
      if( protocol == "" || status == "" || message == ""
          || protocol[0] == ' ' || status[0] == ' ' || message[0] == ' ' ) {
-debugh("%4d Response: protocol(%s) status(%s) message(%s)\n", __LINE__, protocol.c_str(), status.c_str(), message.c_str()); // TODO: REMOVE
+       debugh("%4d Response: protocol(%s) status(%s) message(%s)\n", __LINE__
+             , protocol.c_str(), status.c_str(), message.c_str());
        std::shared_ptr<Client> client= get_client();
        if( client )
          client->error("Invalid Start-Line");
@@ -375,8 +367,8 @@ debugh("%4d Response: protocol(%s) status(%s) message(%s)\n", __LINE__, protocol
          throw std::runtime_error("Header-Line obs-fold: {'\\r','\\n',WS}");
 
        if( name == ""||value == "" || isspace(name[0])||isspace(value[0]) ) {
-debugf("Response name(%s) value(%s)\n", name.c_str(), value.c_str());
-utility::on_exception("Invalid Header-Line format");
+         debugf("Response name(%s) value(%s)\n", name.c_str(), value.c_str());
+         utility::report_exception("Invalid Header-Line format");
          throw std::runtime_error("Invalid Header-Line format");
        }
        insert(name, value);
@@ -521,10 +513,10 @@ void
    std::shared_ptr<ServerStream> stream= get_stream();
    if( !stream )
      return;
-   Ioda temp;
-   temp += mess;
-   temp += std::move(ioda);
-   stream->write(temp);
+   Ioda _ioda;
+   _ioda += mess;
+   _ioda += std::move(ioda);
+   stream->write(_ioda);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

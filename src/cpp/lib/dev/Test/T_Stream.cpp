@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2023/06/03
+//       2023/06/04
 //
 // Arguments-
 //       With no arguments, --client defaulted

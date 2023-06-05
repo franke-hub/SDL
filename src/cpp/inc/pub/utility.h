@@ -188,19 +188,6 @@ char*                               // Resultant
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       utility::on_exception
-//
-// Purpose-
-//       Exception error diagnostic message display
-//
-//----------------------------------------------------------------------------
-void
-   on_exception(                    // Exception error diagnostic
-     std::string       what);       // Error message
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
 //       utility::skip_space
 //
 // Purpose-

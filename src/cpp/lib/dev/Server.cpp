@@ -16,7 +16,7 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2023/06/03
+//       2023/06/04
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -185,7 +185,7 @@ virtual
 }
 
 virtual void
-   debug(const char* info) const    // TODO: REMOVE
+   debug(const char* info) const
 {  debugf("ServerItem(%p)::debug(%s) server(%p)\n", this, info, server.get());
 
    debugf("..serialno(%d) sequence(%d)\n", serialno, sequence);
@@ -564,6 +564,12 @@ void
 // Purpose-
 //       Initialize the HTTP/1.0 and HTTP/1.1 protocol handlers
 //
+// Implementation notes (Issue #3: close operation deadlock)-
+//       We can't post ServerItems (which contain a shared_ptr<Server>)
+//       anywhere in inp/out_task because Server destruction might occur.
+//       If it does, the incomplete inp/out_task blocks the FC_CHASE wait
+//       operation that dispatch::Task::~Task would require.
+//
 //----------------------------------------------------------------------------
 void
    Server::_http1( void )           // Initialize the HTTP/1 protocol handlers
@@ -584,10 +590,6 @@ void
        if( item->fc == item->FC_CLOSE )
          close();
 
-       // Issue #3: close operation deadlock:
-       // We need to post the work item (which contains a shared_ptr<Server>)
-       // under a different Task so that Server (and inp_task) destruction
-       // won't occur under inp_task control.
        item->cc= item->CC_PURGE;
        dispatch::Disp::defer(item);
        return;
@@ -625,12 +627,6 @@ void
 
      if( USE_ITRACE )
        Trace::trace(".XIT", "SOUT", this, it);
-
-     // Issue #3: write deadlock:
-     // The output task can be delayed here until the Server is closed.
-     // We need to post the work item (which contains a shared_ptr<Server>)
-     // under a different Task so that Server (and out_task) destruction
-     // won't occur under out_task control.
      dispatch::Disp::defer(item);
    }; // out_task=
 

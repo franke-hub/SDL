@@ -658,7 +658,7 @@ static void
    statistic::Active* stat= nullptr;
 
    // Display the object counters
-   if( opt_verbose ) {
+   if( opt_verbose > 1 ) {
      debugf("\n");
      stat= &Stream::obj_count;
      debugf("%'16ld {%3ld,%3ld,%3ld} Stream counts\n", stat->counter.load()
@@ -679,7 +679,7 @@ static void
    error_count += VERIFY( Response::obj_count.current.load() == 0 );
 
    // Display Reporter records
-   if( opt_verbose ) {
+   if( opt_verbose > 1 ) {
      Reporter::get()->report([](Reporter::Record& record) {
        debugf("%s\n", record.h_report().c_str());
      }); // reporter.report
@@ -1017,7 +1017,7 @@ void
      return;
    }
 
-   // TODO: SCAFFOLDED <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   // SCAFFOLDED <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
    if( path == "/403-test" )
      do_HTML(Q, 403, page403(path));
    else if( path == "/404-test" )

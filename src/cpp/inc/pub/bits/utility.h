@@ -16,7 +16,7 @@
 //       Internal use utilities, included separately
 //
 // Last change date-
-//       2023/05/25
+//       2023/06/04
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_UTILITY_H_INCLUDED
@@ -33,7 +33,7 @@ namespace utility {
 //       utility::checkstop
 //
 // Purpose-
-//       Termination error handling and reporting.
+//       Termination error reporting, throws std::runtime_error.
 //
 //----------------------------------------------------------------------------
 [[noreturn]]
@@ -102,15 +102,27 @@ void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//      utility::should_not_occur
+//       utility::report_exception
 //
 // Purpose-
-//       Throw std::runtime_error("SHOULD NOT OCCUR");
+//       Report (recoverable) exception information, including backtrace
 //
 //----------------------------------------------------------------------------
-[[noreturn]]
 void
-   should_not_occur(                // Throw "SHOULD NOT OCCUR" error
+   report_exception(                // Report (recoverable exception
+     std::string       what);       // Error message
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//      utility::report_unexpected
+//
+// Purpose-
+//       Report "should not occur" recoverable error
+//
+//----------------------------------------------------------------------------
+void
+   report_unexpected(               // Recoverable "should not occur" message
      int               line,        // Source file line
      const char*       file);       // Source file name
 }  // namespace utility

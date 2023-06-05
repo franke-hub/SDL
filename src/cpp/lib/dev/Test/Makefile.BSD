@@ -62,32 +62,6 @@ list: ;
 quick: T_Quick
 	T_Quick --all --verbose
 
-## TEMPORARY: TODO: REMOVE ###################################################
-.PHONY: client dirty option server stress time
-client: T_Stream
-	T_Stream --server --client
-
-option: T_Option
-	T_Option
-
-server: T_Stream
-	T_Stream --server
-
-stress: T_Stream
-	T_Stream --server --stress --verbose
-
-ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-time: T_Stream
-	T_Stream --server --stress=1 --verbose --runtime 5
-else
-time: T_Stream
-	T_Stream --server --stress --verbose --runtime 5
-endif
-
-.PHONY: ioda
-ioda: TestIoda
-	TestIoda
-
 ##############################################################################
 ## Dirty contains a set of quick and dirty tests, and is not distributed.
 Dirty: Dirty.o Thing.o

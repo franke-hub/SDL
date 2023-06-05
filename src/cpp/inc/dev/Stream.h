@@ -16,7 +16,7 @@
 //       HTTP Stream object.
 //
 // Last change date-
-//       2023/04/14
+//       2023/06/04
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_STREAM_H_INCLUDED
@@ -32,6 +32,7 @@
 #include <pub/Statistic.h>          // For pub::Statistic
 
 #include "pub/http/Ioda.h"          // For pub::http::Ioda, ...
+#include "pub/http/StreamSet.h"     // For pub::StreamSet::Node, base class
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 namespace http {
@@ -47,136 +48,6 @@ class Response;
 class Server;
 class ServerRequest;
 class ServerResponse;
-class Stream;
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       StreamSet
-//
-// Purpose-
-//       Control a set of Stream objects.
-//
-// Implementation notes-
-//       Note: StreamSet::Node is Stream's base class.
-//       Although Stream objects are usually referenced using std::shared_ptr,
-//       we use Node* to maintain the StreamSet Node tree.
-//       We can do this because Stream guarantees that we will *always* have a
-//       corresponding std::shared_ptr in the the StreamSet map for an item in
-//       the Node tree.
-//
-//----------------------------------------------------------------------------
-class StreamSet {                   // A set of Stream objects
-//----------------------------------------------------------------------------
-// StreamSet::Node
-//----------------------------------------------------------------------------
-public:
-struct Node {                       // StreamSet Node
-// Node::Attributes
-Node*                  parent= nullptr; // The parent Node
-Node*                  peer= nullptr;   // The next peer Node
-Node*                  child= nullptr;  // The head child Node
-
-// Node::Constructors/destructor
-   Node( void ) = default;          // Default constructor
-   Node(                            // Construct and insert this Node
-     Node*             parent)      // As a child of this parent Node
-{  parent->insert(this); }
-
-   ~Node( void );                   // Destructor
-
-// Node::Methods
-void
-   insert(                          // Insert (at head of the child list)
-     Node*             child);      // This child (Stream) Node
-
-void
-   remove(                          // Remove
-     Node*             child);      // This  child (Stream) Node
-
-void
-   remove( void );                  // Remove THIS (Stream) Node from its parent
-}; // struct StreamSet::Node
-
-//----------------------------------------------------------------------------
-// StreamSet::Typedefs and enumerations
-//----------------------------------------------------------------------------
-protected:
-typedef int32_t                     stream_id;
-typedef std::shared_ptr<Stream>     stream_ptr;
-typedef std::unordered_map<stream_id, stream_ptr>       map_t;
-typedef map_t::const_iterator       const_iterator;
-
-//----------------------------------------------------------------------------
-// StreamSet::Attributes
-//----------------------------------------------------------------------------
-mutable std::mutex     mutex;       // The SteamSet mutex
-map_t                  map;         // The (Stream) Node map
-Node*                  root= nullptr; // The root Node
-
-stream_id              ident= 0;    // The current Stream identifier
-
-//----------------------------------------------------------------------------
-// StreamSet::Destructor, constructors, operators
-//----------------------------------------------------------------------------
-public:
-   StreamSet(                       // Constructor
-     Node*             node);       // The (user-owned) root Node
-
-   StreamSet(const StreamSet&) = delete; // Disallowed copy constructor
-
-StreamSet&
-   operator=(const StreamSet&) = delete; // Disallowed assignment operator
-
-   ~StreamSet( void );              // Destructor
-
-//----------------------------------------------------------------------------
-// StreamSet::debug
-//----------------------------------------------------------------------------
-void debug(const char* info="") const; // Debugging display
-
-//----------------------------------------------------------------------------
-// StreamSet::Accessor methods
-//----------------------------------------------------------------------------
-stream_id                           // The next available Stream identifier
-   assign_stream_id(                // Assign a Stream identifier
-     int               addend= 2);  // After incrementing it by this value
-
-Node*                               // The root Node
-   get_root( void ) const           // Get root Node
-{  return const_cast<Node*>(root); }
-
-stream_ptr                          // The associated Stream
-   get_stream(stream_id) const;     // Locate the Stream given Stream::ident
-
-//----------------------------------------------------------------------------
-// StreamSet::Lockable
-//----------------------------------------------------------------------------
-void
-   lock( void ) const               // Obtain the StreamSet lock
-{  mutex.lock(); }                  // (mutex is mutable)
-
-void
-   unlock( void ) const             // Release the StreamSet lock
-{  mutex.unlock(); }                // (mutex is mutable)
-
-//----------------------------------------------------------------------------
-// StreamSet::methods
-//----------------------------------------------------------------------------
-void
-   change(                          // Change a Stream's parent
-     Stream*           parent,      // The new parent Stream
-     Stream*           child);      // The child Stream to move
-
-void
-   insert(                          // Insert Stream
-     Stream*           parent,      // The parent Stream
-     Stream*           child);      // The child Stream to insert
-
-void
-   remove(                          // Remove Stream
-     Stream*           stream);     // The Stream to remove
-}; // class StreamSet
 
 //----------------------------------------------------------------------------
 //
@@ -224,7 +95,7 @@ f_end                  h_end;       // The Stream completion handler
 f_error                h_error;     // The error event handler
 
 // Controls
-uint32_t               fsm= 0;      // Finite State Machine state
+uint32_t               fsm= 0;      // Finite State Machine state (Placeholder)
 uint31_t               ident= 1;    // Stream identifier
 
 //----------------------------------------------------------------------------
@@ -251,10 +122,6 @@ virtual void
 //----------------------------------------------------------------------------
 // Stream::Accessor methods
 //----------------------------------------------------------------------------
-uint32_t                            // The state
-   get_fsm( void ) const            // Get state
-{  return fsm; }                    // TODO: VERIFY NEED
-
 uint31_t                            // The Stream identifier
    get_ident( void ) const          // Get Stream identifier
 {  return ident; }
@@ -279,7 +146,6 @@ void
      uint32_t          id)          // (The identifier value)
 {  ident= id; }
 
-// TODO: These may not be needed, substituting virtual methods instead.
 void
    on_end(const f_end& f)           // Set completion handler
 {  h_end= f; }
@@ -287,9 +153,6 @@ void
 void
    on_error(const f_error& f)       // Set error event handler
 {  h_error= f; }
-
-void
-   use_count(int, const char*, const char* info= "") const; // Display use count
 }; // class Stream
 
 //----------------------------------------------------------------------------
@@ -303,17 +166,9 @@ void
 //----------------------------------------------------------------------------
 class ClientStream : public Stream { // ClientStream descriptor
 //----------------------------------------------------------------------------
-// ClientStream::Typedefs and enumerations
-//----------------------------------------------------------------------------
-public:
-enum REJECT_CODE                    // Reject codes
-{  RC_NORMAL                        // Normal, no error
-,  RC_TBD= -1                       // To be determined
-};
-
-//----------------------------------------------------------------------------
 // ClientStream::Attributes
 //----------------------------------------------------------------------------
+public:
 protected:
 std::weak_ptr<Client>  client;      // Our Client
 
@@ -446,6 +301,6 @@ void
    reject(                          // Reject a Request, writing Response
      int               code);       // The rejection status code
 }; // class ServerStream
-}  // namespace htp
+}  // namespace http
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_HTTP_STREAM_H_INCLUDED

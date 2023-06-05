@@ -16,13 +16,7 @@
 //       Implement http/Request.h
 //
 // Last change date-
-//       2023/06/02
-//
-// Implementation notes-
-//       TODO: Consider moving ClientRequest::write to Client::write
-//             (Since it only buffers the data)
-//       TODO: Don't know status of the above, but we need to move write
-//             to Stream::write for both Clients and Servers.
+//       2023/06/04
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -107,7 +101,6 @@ static struct StaticGlobal {
 //----------------------------------------------------------------------------
 // Constants
 //----------------------------------------------------------------------------
-// Imported Options TODO: REMOVE UNUSED
 typedef const char CC;
 static constexpr CC*   HTTP_SIZE= Options::HTTP_HEADER_LENGTH;
 
@@ -205,8 +198,10 @@ std::shared_ptr<ClientRequest>      // The ClientRequest
      const Options*    opts)        // With these Options
 {
    std::shared_ptr<Client> client= owner->get_client();
-   if( !client )
-     utility::should_not_occur(__LINE__, __FILE__); // TODO: Verify should not occur
+   if( !client ) {
+     utility::report_unexpected(__LINE__, __FILE__);
+     return nullptr;
+   }
 
    std::shared_ptr<ClientRequest> Q= std::make_shared<ClientRequest>();
    Q->self= Q;                      // Set self-reference
@@ -312,8 +307,8 @@ std::shared_ptr<ServerRequest>      // The ServerRequest
 {
    std::shared_ptr<Server> server= owner->get_server();
    if( !server ) {
+     utility::report_unexpected(__LINE__, __FILE__);
      return nullptr;
-//   utility::should_not_occur(__LINE__, __FILE__); // TODO: Verify should not occur
    }
 
    std::shared_ptr<ServerRequest> Q= std::make_shared<ServerRequest>();
@@ -436,7 +431,8 @@ bool                                // Return code, TRUE when complete
      // Start-Line validity checks
      if( method == "" || path == "" || proto_id == ""
          || method[0] == ' ' || path[0] == ' ' || proto_id[0] == ' ' ) {
-debugh("\nmethod(%s) path(%s) proto_id(%s)\n", method.c_str(), path.c_str(), proto_id.c_str()); // TODO: REMOVE
+       debugh("method(%s) path(%s) proto_id(%s)\n"
+             , method.c_str(), path.c_str(), proto_id.c_str());
        std::shared_ptr<Server> server= get_server();
        if( server )
          server->error("Invalid Start-Line");
@@ -470,7 +466,7 @@ debugh("\nmethod(%s) path(%s) proto_id(%s)\n", method.c_str(), path.c_str(), pro
          throw std::runtime_error("Header-Line obs-fold: {'\\r','\\n',WS}");
 
        if( name == ""||value == "" || isspace(name[0])||isspace(value[0]) ) {
-debugf("Request name(%s) value(%s)\n", name.c_str(), value.c_str());
+         debugf("Request name(%s) value(%s)\n", name.c_str(), value.c_str());
          throw std::runtime_error("Invalid Header-Line format");
        }
        insert(name, value);

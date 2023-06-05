@@ -16,7 +16,7 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2023/05/18
+//       2023/06/04
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -52,7 +52,6 @@
 
 using namespace _LIBPUB_NAMESPACE;
 using namespace _LIBPUB_NAMESPACE::debugging;
-using _LIBPUB_NAMESPACE::utility::should_not_occur;
 using std::string;
 
 namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
@@ -170,8 +169,8 @@ static void
 
    agent->select.flush();           // Complete any pending close
 
-   if( map.begin() != map.end() ) { // TODO: ?REMOVE? (Do we need this logic?)
-     debugf("\n\n%d %s >>>>>>>> UNEXPECTED <<<<<<<<\n\n", __LINE__, __FILE__);
+   if( map.begin() != map.end() ) {
+     utility::report_unexpected(__LINE__, __FILE__);
      debug("~Listen");
      reset();
    }
@@ -308,8 +307,6 @@ void
    // Server objects are only created here, and async is single-threadedly
    // called from the ListenAgent polling loop.
    std::shared_ptr<Server> server= Server::make(this, socket);
-//debugf("%4d Listen Server::make %p\n", __LINE__, &server);
-//std::pub_diag::Debug_ptr::debug("After Listen Server::make");
    map_insert(su, server);
 }
 
@@ -363,11 +360,7 @@ void
 {  if( HCDM )
      debugh("Listen(%p)::disconnect(%p)\n", this, server );
 
-   {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex);
-
-     map.erase(server->get_peer_addr()); // Remove element from map
-   }}}}
+   map_remove(server->get_peer_addr()); // Remove element from map
 }
 
 //----------------------------------------------------------------------------
@@ -437,7 +430,6 @@ void
    Listen::reset( void )            // Reset the Listen, closing all Servers
 {  if( HCDM )
      debugh("Listen(%p)::reset\n", this);
-//debugh("%4d HCDM Listen.reset *******************************\n", __LINE__);
 
    std::list<std::weak_ptr<Server>> list;
 
@@ -477,7 +469,6 @@ void
 //
 // Implementation notes-
 //       Protected by mutex
-//       TODO: Make consistent: insert/locate/remove not always used.
 //
 //----------------------------------------------------------------------------
 void
