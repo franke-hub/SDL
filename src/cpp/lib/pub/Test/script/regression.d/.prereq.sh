@@ -10,13 +10,13 @@
 ##----------------------------------------------------------------------------
 ##
 ## Title-
-##       _prereq.sh
+##       .prereq.sh
 ##
 ## Function-
 ##       Verify test prequisites
 ##
 ## Last change date-
-##       2023/05/19
+##       2023/06/05
 ##
 ##############################################################################
 
@@ -37,4 +37,24 @@ if [[ $? != 0 ]] ; then
   fi
 fi
 
-exit 0
+##############################################################################
+## Prerequisite: libraries
+pushd ~/obj/cpp/lib/com >/dev/null
+echo make: $PWD
+make
+rc=$?
+if [[ $rc == 0 ]] ; then
+  cd ../pub
+  echo make: $PWD
+  make
+  rc=$?
+fi
+popd >/dev/null
+[[ $rc != 0 ]] && exit $rc
+
+##############################################################################
+## Prerequisite: test executables
+echo make: $PWD
+make all
+rc=$?
+exit $rc

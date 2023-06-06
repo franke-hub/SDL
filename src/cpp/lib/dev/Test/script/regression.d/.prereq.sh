@@ -16,7 +16,7 @@
 ##       Verify test prequisites
 ##
 ## Last change date-
-##       2023/06/04
+##       2023/06/05
 ##
 ##############################################################################
 
@@ -40,12 +40,12 @@ fi
 ##############################################################################
 ## Prerequisite: libraries
 pushd ~/obj/cpp/lib/pub >/dev/null
-echo $PWD
+echo make: $PWD
 make
 rc=$?
 if [[ $rc == 0 ]] ; then
   cd ../dev
-  echo $PWD
+  echo make: $PWD
   make
   rc=$?
 fi
@@ -54,7 +54,7 @@ popd >/dev/null
 
 ##############################################################################
 ## Prerequisite: test executables
-echo $PWD
+echo make: $PWD
 make all
 rc=$?
 exit $rc

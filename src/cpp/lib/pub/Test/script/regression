@@ -16,7 +16,7 @@
 ##       Regression tests
 ##
 ## Last change date-
-##       2023/05/19
+##       2023/06/05
 ##
 ## Implementation notes-
 ##       Run this script from ~/src/cpp/obj/pub/Test, the test subdirectory.
@@ -67,27 +67,16 @@ if [ "$1" == "" ] ; then
 fi
 
 ##############################################################################
-## Make sure the prerequisite files are present
-if [[ ! -x $DDIR/_prereq.sh ]] ; then
-  echo "Missing file: $DDIR/_prereq.sh"
-  exit 1
-fi
-
-$DDIR/_prereq.sh
-rc=$?
-[[ $rc != 0 ]] && exit $rc
-
-##############################################################################
-## Make sure the test library is up to date
+## Make sure all prerequisites are present and up to date
 if [[ $make != 0 ]] ; then
-  echo "Building tests..."
-  make all
-  rc=$?
-  if [[ $rc != 0 ]] ; then
-    echo "Test build failed"
-    exit $rc
+  if [[ ! -x $DDIR/.prereq.sh ]] ; then
+    echo "Missing file: $DDIR/.prereq.sh"
+    exit 1
   fi
-  echo ""
+
+  $DDIR/.prereq.sh
+  rc=$?
+  [[ $rc != 0 ]] && exit $rc
 fi
 
 ##############################################################################

@@ -10,40 +10,19 @@
 ##----------------------------------------------------------------------------
 ##
 ## Title-
-##       test_misc.sh
+##       .timing.sh
 ##
 ## Function-
-##       Run verbose tests
+##       Run multiple TestDisp timing tests
 ##
 ## Last change date-
-##       2023/06/05
+##       2023/06/09
 ##
 ##############################################################################
 
 ##############################################################################
-## Function cmd: Run test, success expected
-function cmd
-{
-  echo -e "\nTEST: $1 (started)"
-  "$@"
-  rc=$?
-  if [ $rc == 0 ] ; then
-    echo "PASS: $1"
-    sleep 5
-    return
-  fi
-
-  echo "FAIL: $1"
-  exit 1
-}
-
-##############################################################################
-## Run verbose tests
-cmd T_Quick  --verbose
-cmd TestIoda --verbose
-
-cmd T_Stream --verbose --bringup --client
-cmd T_Stream --verbose --server
-cmd T_Stream --verbose --stress
-cmd T_Stream --verbose --stress=1
-cmd T_Stream --verbose --stress=10
+## Run timing tests
+set -x
+time TestDisp --timing
+time TestDisp --timing
+time TestDisp --timing
