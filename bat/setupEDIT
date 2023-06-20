@@ -1,7 +1,7 @@
 ##
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (c) 2021-2022 Frank Eskesen.
+##       Copyright (c) 2021-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Set up EDITOR environment variable (heuristic.)
 ##
 ## Last change date-
-##       2022/12/28
+##       2023/06/07
 ##
 ## Usage-
 ##       . setupEDIT
@@ -29,7 +29,8 @@
 
 ##############################################################################
 ## Heuristic: set EDITOR environment variable
-if [[ -z "$DISPLAY" ]] ; then       ## If no DISPLAY environment variable
+isCYGWIN=`uname | grep CYGWIN`
+if [[ -n "$isCYGWIN" && -z "$DISPLAY" ]] ; then
    export EDITOR=$HOME/bin/editor   ## (Must) use ncurses editor
 elif [[ -z "$EDITOR" ]] ; then      ## If not already specified
    export EDITOR="$HOME/bin/editxcb --fg" ## Use XCB editor
