@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,19 +16,21 @@
 //       Text Screen control.
 //
 // Last change date-
-//       2020/10/03
+//       2023/06/19 (Editor Version 2, Release 2)
 //
 //----------------------------------------------------------------------------
 #ifndef HCDM                        // INLINE HDCM
 #undef  HCDM                        // If defined, Hard Core Debug Mode
 #endif
 
+#define  NCURSES_INTERNALS 1        // Uses WINDOW
+#include <curses.h>                 // Uses CURSES
 #include <ctype.h>                  // Used in debug traces
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define  NCURSES_INTERNALS 1        // Uses WINDOW
-#include <curses.h>                 // Uses CURSES
+#include <unistd.h>                 // For STDIN_FILENO
+#include <sys/ioctl.h>              // For ioctl, TIOCGWINSZ
 
 #include <com/Color.h>
 #include <com/Debug.h>
@@ -313,22 +315,31 @@ inline void
 inline void
    handleResizeEvent( void )        // Resize the buffer
 {
-   WINDOW&             W= *dspH;    // Working Window
-
-   unsigned            oldX;        // Old X-size
-   unsigned            oldY;        // Old Y-size
-
-   #if defined(HCDM) && TRUE
+   #if defined(HCDM)
      tracef("%8s= TextScreenAttr(%p)::handleResizeEvent()\n", "", this);
    #endif
 
    // Save the old buffer size
-   oldX= xSize;
-   oldY= ySize;
+   unsigned oldX= xSize;            // Old X-size
+   unsigned oldY= ySize;            // Old Y-size
 
-   // Extract the buffer information
-   xSize= W._maxx + 1;              // Use < rather than <=
-   ySize= W._maxy + 1;
+   // Get the new buffer size
+   #if defined(TIOCGSIZE)
+     struct ttysize ts;
+     ioctl(STDIN_FILENO, TIOCGSIZE, &ts);
+     xSize= ts.ts_cols;
+     ySize= ts.ts_lines;
+   #elif defined(TIOCGWINSZ)
+     struct winsize ws;
+     ioctl(STDIN_FILENO, TIOCGWINSZ, &ws);
+     xSize= ws.ws_col;
+     ySize= ws.ws_row;
+   #else
+     // Extract the buffer information
+     WINDOW& W= *dspH;              // Working Window
+     xSize= W._maxx + 1;            // Use < rather than <=
+     ySize= W._maxy + 1;
+   #endif
 
    //Just use the space visible in the window
    columns= xSize;
@@ -351,7 +362,7 @@ inline void
      buffer= (Color::Char*)must_malloc(sizeof(Color::Char)*ySize*xSize);
      memset(buffer, 0, sizeof(Color::Char)*ySize*xSize);
 
-     #ifdef HCDM
+     #if defined(HCDM)
        tracef("%p= TextScreenAttr(%p).buffer\n", buffer, this);
        tracef(">>  size(%4ld)\n", (long)sizeof(Color::Char)*ySize*xSize);
        tracef(">> xSize(%4d)\n", xSize);

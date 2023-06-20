@@ -57,12 +57,10 @@ void
    EdLine::debug(                   // Debugging display
      const char*       message) const // Display message
 {
-#ifdef HCDM
+   const void* v= &ctrl;
+   const int*  i= (const int*)v;
    tracef("%4d EdLine(%p)::debug(%s) %.2x '%s'\n", __LINE__, this, message,
-          *((int*)&ctrl), getText());
-#else                               // Parameter ignored unless HCDM
-   (void)message;
-#endif
+          *i, getText());
 }
 
 //----------------------------------------------------------------------------

@@ -70,7 +70,7 @@ void
    }
    else if( strlen(text) != textUsed )
    {
-     tracef("%4d Active(%p)::check, strlen(%d) textUsed(%d)\n", __LINE__,
+     tracef("%4d Active(%p)::check, strlen(%zd) textUsed(%d)\n", __LINE__,
             this, strlen(text), textUsed);
      throw "InternalLogicError";
    }
@@ -751,4 +751,3 @@ const char*                         // Return message (NULL OK)
 
    return fetch(ring, line);
 }
-

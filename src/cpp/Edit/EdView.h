@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2016 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Viewer.
 //
 // Last change date-
-//       2016/01/01 (Version 2, Release 1)
+//       2023/06/19 (Version 2, Release 2)
 //
 //----------------------------------------------------------------------------
 #ifndef EDVIEW_H_INCLUDED
@@ -138,6 +138,12 @@ EdLine*                             // The new current Line
 
 EdLine*                             // The new current Line
    screenUp( void );                // Move the view up one screen
+
+EdLine*                             // The new current Line
+   scrollDown( void );              // Scroll the data view down one row
+
+EdLine*                             // The new current Line
+   scrollUp( void );                // Scroll the data view up one row
 
 void
    synch( void );                   // Internal synchronization

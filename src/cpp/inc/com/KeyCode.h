@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2016 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Enumerate the extended keyboard character codes for the IBM PC.
 //
 // Last change date-
-//       2016/01/01 Mouse wheel key definitions.
+//       2023/06/19 (Editor version 2, release 2)
 //
 // See also-
 //       ASCII.h, ScanCode.h
@@ -312,6 +312,8 @@ enum                                // The extended WINDOWS character set
 ,  ALT_Delete=         0x01A3       // Alt-Delete
 ,  ALT_TAB=            0x01A5       // Alt-TAB
 ,  ALT_PAD_ENTER=      0x01A6       // Alt-Keypad enter
+
+,  SYS_RESIZE=         0x01F0       // Resize event
 
 ,  MOUSE_1=            0x0201       // Mouse button 1
 ,  MOUSE_2=            0x0202       // Mouse button 2

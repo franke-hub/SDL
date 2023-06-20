@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Status object methods.
 //
 // Last change date-
-//       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
+//       2023/06/19 (Version 2, Release 2)
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -39,8 +39,8 @@
 // Internal data areas
 //----------------------------------------------------------------------------
 static const char*       msgnone=
-    "F1=NOP1  2=Save  3=Quit  4=Buff  5=Find "
-    " 6=Chng  7=Prev  8=Next  9=Name 10=Undo ";
+    "F1=NOP1  2=Save  3=Quit  4=NOP4  5=Find "
+    " 6=Chng  7=Prev  8=Next  9=Name 10=Top  ";
 
 //----------------------------------------------------------------------------
 //
@@ -255,7 +255,7 @@ const char*                         // Return message (NULL)
        || insertKey != terminal->ifInsertKey()
        || rows != ring->rows
        || mode != ring->mode
-       || changed != ring->changed
+       || changed != isChanged()
        || damaged != ring->damaged )
      deferSts= TRUE;
 
@@ -329,7 +329,7 @@ const char*                         // Return message (NULL)
      attr= stsNorm;                 // Default, normal status
      if( ring->damaged )
        attr= stsErrs;
-     else if( ring->changed )
+     else if( isChanged() )
        attr= stsChng;
      for(unsigned i= 53; i<L; i++)
        buffer[i].setAttribute(attr[0], attr[1]);
@@ -382,11 +382,33 @@ const char*                         // Return message (NULL)
    row=        view->getRow();
    rows=       ring->rows;
    mode=       ring->mode;
-   changed=    ring->changed;
+   changed=    isChanged();
    damaged=    ring->damaged;
    insertKey=  terminal->ifInsertKey();
 
    return NULL;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Status::isChanged
+//
+// Purpose-
+//       Is the file in a changed state (including the active line)
+//
+//----------------------------------------------------------------------------
+int                                 // TRUE if file is in a changed state
+   Status::isChanged( void )        // Is the file in a changed state?
+{
+   EdRing*             ring= edit->dataActive->getRing();
+   EdView*             view= edit->dataView;
+
+   if( ring->changed )
+     return TRUE;
+   if( view->getActive()->getState() == Active::FSM_CHANGE )
+     return TRUE;
+   return FALSE;
 }
 
 //----------------------------------------------------------------------------
@@ -467,7 +489,7 @@ const char*                         // Return message (NULL OK)
    rowMsg= rows-1;
 
    result= NULL;
-   if( cols < 80 )
+   if( cols < 40 )
      result= "Not enough columns";
    else if( rows < 4 )
      result= "Not enough rows";
@@ -509,4 +531,3 @@ const char*                         // (The input format string)
 
    return fmt;
 }
-

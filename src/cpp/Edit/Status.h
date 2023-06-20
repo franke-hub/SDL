@@ -68,6 +68,9 @@ const char*                         // Return message (NULL)
 const char*                         // Return message (NULL)
    display( void );                 // Physically reshow all views
 
+int                                 // TRUE iff ring or active changed
+   isChanged( void );               // Is the file in a changed state?
+
 int                                 // Reply response character
    message(                         // Put message on status line
      MsgFsm            level,       // Message level

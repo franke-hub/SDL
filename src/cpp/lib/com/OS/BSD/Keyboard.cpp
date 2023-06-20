@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2016 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Keyboard control.
 //
 // Last change date-
-//       2016/01/01 Mouse wheel support.
+//       2023/06/20 (Editor Version 2, Release 2 support)
 //
 //----------------------------------------------------------------------------
 #include <stdlib.h>                 // For setenv()
@@ -109,6 +109,10 @@ inline int                          // TRUE if character available
 
 inline int                          // Keyboard character
    rd( void );                      // Read character from keyboard
+
+inline void
+   setInsertKey(                    // Set the insert key state
+     bool              insert);     // TRUE for insert state
 }; // class Attr
 
 //----------------------------------------------------------------------------
@@ -280,7 +284,7 @@ int                                 // Next KeyPress, or KeyCode::NUL
 
      case KEY_RESIZE:               // If resize event
        keyboard.event(Terminal::EventResize);
-       result= KeyCode::NUL;
+       result= KeyCode::SYS_RESIZE;
        break;
 
      case KEY_BTAB:
@@ -475,3 +479,21 @@ int                                 // Next available character
    return keyCode;
 }
 
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       Attr::setInsertKey
+//
+// Purpose-
+//       Set the insert state
+//
+//----------------------------------------------------------------------------
+void
+   Attr::setInsertKey(              // Set the insert key state
+     bool              insert)      // TRUE if insert state
+{
+   if( insert )
+     keyState |= INSLOCK;
+   else
+     keyState &= ~(INSLOCK);
+}

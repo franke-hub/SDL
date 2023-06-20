@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       EdView object methods.
 //
 // Last change date-
-//       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
+//       2023/06/19 (Version 2, Release 2)
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -145,7 +145,6 @@ void
    EdView::debug(                   // Debugging display
      const char*       message) const // Display message
 {
-#ifdef HCDM
    tracef("%4d EdView(%p)::debug(%s) %s vid(%d of %d)\n"
           "    firstLine(%p) firstRow(%d) curRow(%d) rows(%d,%d:%d)\n"
           "    firstCol(%d) curCol(%d) cols(%d) defer: row(%d) buf(%d)\n"
@@ -175,10 +174,6 @@ void
 
      line= (EdLine*)line->getNext();
    }
-#endif
-
-#else                               // Parameter ignored without HCDM
-   (void)message;
 #endif
 }
 
@@ -1090,6 +1085,70 @@ EdLine*                             // The new current Line
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdView::scrollDown
+//
+// Purpose-
+//       Scroll the data view down one row. The top line is set to next.
+//
+//----------------------------------------------------------------------------
+EdLine*                             // The new current Line
+   EdView::scrollDown( void )       // Scroll the data view down one row
+{
+   #ifdef HCDM
+     tracef("%4d EdView(%p)::scrollDown()\n", __LINE__, this);
+   #endif
+
+   if( firstLine->getNext() == NULL ) // If at end of file
+   {
+     edit->status->message(MSG_WARN, "At end of file");
+     return curLine;
+   }
+
+   firstLine= firstLine->getNext(); // Update firstLine
+   ++firstRow;
+
+   if( curLine->getNext() )         // If moving curLine
+     activate(curLine->getNext());
+
+   defer(RESHOW_BUF);
+   return curLine;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdView::scrollUp
+//
+// Purpose-
+//       Scroll the data view up one row. The top line is set to previous.
+//
+//----------------------------------------------------------------------------
+EdLine*                             // The new current Line
+   EdView::scrollUp( void )         // Scroll the data view up one row
+{
+   #ifdef HCDM
+     tracef("%4d EdView(%p)::scrollUp()\n", __LINE__, this);
+   #endif
+
+   if( firstLine->getPrev() == NULL ) // If at top of file
+   {
+     edit->status->message(MSG_WARN, "At top of file");
+     return curLine;
+   }
+
+   firstLine= firstLine->getPrev(); // Update firstLine
+   --firstRow;
+
+   if( curLine->getPrev() )         // If moving curLine
+     activate(curLine->getPrev());
+
+   defer(RESHOW_BUF);
+   return curLine;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdView::synch
 //
 // Purpose-
@@ -1329,4 +1388,3 @@ const char*                         // Return message (NULL)
 
    return NULL;
 }
-

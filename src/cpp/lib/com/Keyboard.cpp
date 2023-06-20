@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2016 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Keyboard control.
 //
 // Last change date-
-//       2016/01/01 Mouse wheel support.
+//       2023/06/20 (Editor Version 2, Release 2 support)
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>                  // Used in debug traces
@@ -314,3 +314,19 @@ int                                 // Next available character
    return result;
 }
 
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       Keyboard::setInsertKey
+//
+// Purpose-
+//       Set the insert key state
+//
+//----------------------------------------------------------------------------
+void
+   Keyboard::setInsertKey(          // Set the insert key state
+     bool              insert)      // TRUE if insert state
+{
+   Attr&               attr= *(Attr*)this->attr;
+   attr.setInsertKey(insert);
+}

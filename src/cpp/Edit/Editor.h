@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2018 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Compilation and prerequisite controls.
 //
 // Last change date-
-//       2018/01/01 (Version 2, Release 1)
+//       2023/06/20 (Version 2, Release 2)
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -163,6 +163,9 @@ const char*                         // Updated position pointer
    parser(                          // Command parser
      const char*       ptrchs,      // Current position
      char*             string);     // Output string
+
+const char*                         // Return message (NULL OK)
+   redo( void );                    // Redo last undo (NOT IMPLEMENTED)
 
 const char*                         // Return message (NULL OK)
    removeLine(                      // Remove lines from Ring

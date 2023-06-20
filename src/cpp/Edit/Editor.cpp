@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor object methods.
 //
 // Last change date-
-//       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
+//       2023/06/19 (Version 2, Release 2) - Keys similar to Xcb/Edit
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>
@@ -413,6 +413,7 @@ void
 
    // Initialization
    terminal->setAttribute(VGAColor::Grey, VGAColor::Black);
+   terminal->setInsertKey(true);
    terminal->clearScreen();         // Clear the screen
    dataActive->fetch(utilRing, dataView->activate(utilRing));
    histActive->fetch(histRing, histView->activate(histRing));
@@ -1035,6 +1036,21 @@ const char*                         // Return message (NULL OK)
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Editor::redo
+//
+// Purpose-
+//       Redo last undo.
+//
+//----------------------------------------------------------------------------
+const char*                         // Return message (NULL OK)
+   Editor::redo( void )             // Redo last undo
+{
+   return "REDO not implemented";
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Editor::removeLine
 //
 // Purpose-
@@ -1200,7 +1216,7 @@ void
    string= resize(cols, rows);
    if( string != NULL )
    {
-     online= FALSE;
+//   online= FALSE;
      warning(string);
    }
    defer(RESHOW_ALL);
@@ -1591,14 +1607,14 @@ void
            warning(active->fetch(workView->moveDown()));
            break;
 
-         case KeyCode::ESC:              // Escape
+         case KeyCode::ESC:         // Escape
            if( workView != histView )
              focus(histView);
            else
              focus(dataView);
            break;
 
-         case 127:                  // Ctrl-backspace
+         case KeyCode::CTL_BS:      // Ctrl-backspace
            warning(removeLine());
            break;
 
@@ -1673,10 +1689,10 @@ void
            warning(active->fetch(workView->moveUp()));
            break;
 
-//       case KeyCode::F01:         // F1
+         case KeyCode::F01:         // F1
 //         warning(deadkey);
-//         break;
-//
+           break;
+
          case KeyCode::F02:         // F2
            commit();
            warning(safeSave(dataView->getRing()));
@@ -1687,10 +1703,16 @@ void
            warning(safeExit(dataView->getRing()));
            break;
 
+#if 1
          case KeyCode::F04:         // F4
-           commit();
-           warning(activate(utilRing));
+//         warning(deadkey);
            break;
+#else
+//       case KeyCode::F04:         // F4
+//         commit();
+//         warning(activate(utilRing));
+//         break;
+#endif
 
          case KeyCode::F05:         // F5
 /////////  commit();                // Locate does this
@@ -1725,26 +1747,32 @@ void
            break;
 
          case KeyCode::F10:         // FA
-           warning(undo());
-           break;
-
-         case KeyCode::F11:         // FB
            dataView->screenTop();
            break;
 
-         case KeyCode::F12:         // FC (Next screen)
-           commit();
-           dataView->setActive(NULL);
-           dataView= (EdView*)dataView->getNext();
-           if( dataView == NULL )
-             dataView= (EdView*)histView->getNext();
-
-           // Resynchronize
-           dataView->setActive(dataActive);
-           dataActive->fetch(dataView->getRing(), dataView->getLine());
-           if( workView != histView )
-             workView= dataView;
+         case KeyCode::F11:         // FB
+           warning(undo());
            break;
+
+#if 1
+         case KeyCode::F12:         // FC
+           warning(redo());
+           break;
+#else
+//       case KeyCode::F12:         // FC (Next screen)
+//         commit();
+//         dataView->setActive(NULL);
+//         dataView= (EdView*)dataView->getNext();
+//         if( dataView == NULL )
+//           dataView= (EdView*)histView->getNext();
+//
+//         // Resynchronize
+//         dataView->setActive(dataActive);
+//         dataActive->fetch(dataView->getRing(), dataView->getLine());
+//         if( workView != histView )
+//           workView= dataView;
+//         break;
+#endif
 
          case KeyCode::ALT_B:       // Alt-b
            string= mark->mark(dataView->getRing(),
@@ -1827,6 +1855,10 @@ void
            warning(workView->column(tabLeft(column)));
            break;
 
+         case KeyCode::SYS_RESIZE:
+           resize();
+           break;
+
          case KeyCode::MOUSE_1:
          case KeyCode::MOUSE_2:
          case KeyCode::MOUSE_3:
@@ -1835,13 +1867,13 @@ void
          case KeyCode::MOUSE_WHEEL_DOWN:
            commit();
            for(int i=0; i<3; i++)
-             warning(dataActive->fetch(dataView->moveDown()));
+             warning(dataActive->fetch(dataView->scrollDown()));
            break;
 
          case KeyCode::MOUSE_WHEEL_UP:
            commit();
            for(int i=0; i<3; i++)
-             warning(dataActive->fetch(dataView->moveUp()));
+             warning(dataActive->fetch(dataView->scrollUp()));
            break;
 
          case KeyCode::MOUSE_WHEEL_LEFT:
@@ -1861,4 +1893,3 @@ void
      }
    }
 }
-

@@ -98,9 +98,7 @@ void
    EdLine*             firstLine;   // Detected firstLine
    EdLine*             line;        // Working Line
    EdLine*             prev;        // Working Line
-   int                 rowx;        // Row number
-
-   int                 i;
+   unsigned int        rowx;        // Row number
 
    curLine= NULL;
    firstLine= NULL;
@@ -179,7 +177,7 @@ void
      throw "InternalLogicError";
    }
 
-   for(i= 0; i<undoCount; i++)
+   for(unsigned i= 0; i<undoCount; i++)
    {
      line= undoArray[i];
      if( line == NULL )

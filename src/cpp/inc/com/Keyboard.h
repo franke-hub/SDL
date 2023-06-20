@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Keyboard control functions.
 //
 // Last change date-
-//       2007/01/01
+//       2023/06/20 (Editor Version 2, Release 2 support)
 //
 //----------------------------------------------------------------------------
 #ifndef KEYBOARD_H_INCLUDED
@@ -105,6 +105,20 @@ int                                 // TRUE if character available
 public:
 int                                 // Keyboard character
    rd( void );                      // Read character from keyboard
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Keyboard::setInsertKey
+//
+// Purpose-
+//       (Re)initialize the insert state
+//
+//----------------------------------------------------------------------------
+public:
+void
+   setInsertKey(                    // Set the insert key state
+     bool              insert);     // TRUE if insert state
 }; // class Keyboard
 
 #endif // KEYBOARD_H_INCLUDED
