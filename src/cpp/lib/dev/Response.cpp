@@ -16,7 +16,7 @@
 //       Implement http/Response.h
 //
 // Last change date-
-//       2023/06/04
+//       2023/06/27
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -35,6 +35,7 @@
 
 #include "pub/http/Client.h"        // For pub::http::Client
 #include "pub/http/Exception.h"     // For pub::http:exceptions
+#include "pub/http/HTTP.h"          // For pub::http:HTTP
 #include "pub/http/Ioda.h"          // For pub::http:Ioda
 #include "pub/http/Response.h"      // For pub::http::Response, implemented
 #include "pub/http/Server.h"        // For pub::http::Server
@@ -505,7 +506,7 @@ void
      return;
 
    string mess= to_string("%s %d %s\r\n", Q->proto_id.c_str(), code
-                         , Stream::get_text(code));
+                         , HTTP::status_text(code));
    for(Options::const_iterator it= opts.begin(); it != opts.end(); ++it)
      mess += to_string("%s: %s\r\n", it->first.c_str(), it->second.c_str());
    mess += "\r\n";

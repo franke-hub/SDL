@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2022 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Debugging control.
 //
 // Last change date-
-//       2022/09/02
+//       2023/06/21
 //
 // Implementation notes-
 //       A file name of ">" or "1>" writes the log to stdout.
@@ -133,13 +133,16 @@ static Debug*                       // (The current common Debug instance)
 //
 // Debug uses a (hidden) static RecursiveLatch to prevent thread interference
 // between operations that internally use multiple function calls.
-// The lock and unlock methods for that Latch are exposed.
+// The Lockable interface methods for that Latch are exposed.
 //
 // Note: this latch should only be held for short time periods.
 //
 //----------------------------------------------------------------------------
 static void
    lock( void );                    // Obtain the RecursiveLatch
+
+static bool                         // TRUE if the RecursiveLatch was obtained
+   try_lock( void );                // Attempt to obtain the RecursiveLatch
 
 static void
    unlock( void );                  // Release the RecursiveLatch

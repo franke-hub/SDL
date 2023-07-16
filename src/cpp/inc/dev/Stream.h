@@ -16,7 +16,7 @@
 //       HTTP Stream object.
 //
 // Last change date-
-//       2023/06/04
+//       2023/06/27
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_STREAM_H_INCLUDED
@@ -137,9 +137,6 @@ std::shared_ptr<Response>
 std::shared_ptr<Stream>
    get_self( void ) const           // Get self-reference
 {  return self.lock(); }
-
-static const char*                  // The status text
-   get_text(int code);              // Convert status code to text
 
 void
    set_ident(                       // Set Stream identifier

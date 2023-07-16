@@ -16,7 +16,7 @@
 ##       Regression tests
 ##
 ## Last change date-
-##       2023/06/05
+##       2023/07/07
 ##
 ## Implementation notes-
 ##       Run this script from ~/src/cpp/obj/pub/Test, the test subdirectory.
@@ -25,7 +25,11 @@
 
 ##############################################################################
 ## Environment
-DDIR=S/script/regression.d
+pushd ../../../../../. >/dev/null
+root=`pwd -P`
+export ROOT=`pwd -P`
+popd >/dev/null
+export DDIR=S/script/regression.d
 
 ##############################################################################
 ## Parameter analysis

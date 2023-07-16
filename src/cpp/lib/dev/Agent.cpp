@@ -16,7 +16,7 @@
 //       Implement http/Agent.h
 //
 // Last change date-
-//       2023/06/02
+//       2023/06/24
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::shared_ptr
@@ -60,8 +60,35 @@ enum
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  POLL_TIMEOUT= 1000               // Select timeout, in milliseconds
-,  USE_VERIFY= true                 // Use verification checking
+,  USE_REPORT= true                 // Use event Reporter?
+,  USE_VERIFY= true                 // Use verification checking?
 }; // enum
+
+//----------------------------------------------------------------------------
+// Event reporting
+//----------------------------------------------------------------------------
+static Active_record   client_count("Agent: Client"); // Client counter
+static Active_record   listen_count("Agent: Listen"); // Listen counter
+
+namespace {
+static struct StaticGlobal {
+   StaticGlobal(void)               // Constructor
+{
+   if( USE_REPORT ) {
+     client_count.insert();
+     listen_count.insert();
+   }
+}
+
+   ~StaticGlobal(void)              // Destructor
+{
+   if( USE_REPORT ) {
+     client_count.remove();
+     listen_count.remove();
+   }
+}
+}  staticGlobal;
+}  // Anonymous namespace
 
 //----------------------------------------------------------------------------
 //
@@ -215,6 +242,10 @@ std::shared_ptr<Client>             // The associated Client
      if( client->connect((sockaddr*)&peer_addr, peer_sz, opts) ) {
        if( HCDM )
          debugh("CAgent(%p)::connect(%p)\n", this, client.get());
+
+       if( USE_REPORT )
+         client_count.inc();
+
        map_insert(client->get_peer_addr(), client->get_host_addr(), client);
        return client;
      }
@@ -239,6 +270,9 @@ void
      Client*           client)      // For this Client
 {  if( HCDM )
      debugh("CAgent(%p)::disconn(%p)\n", this, client);
+
+   if( USE_REPORT )
+     client_count.dec();
 
    key_t key(client->get_peer_addr(), client->get_host_addr());
    map_remove(key);
@@ -552,6 +586,9 @@ std::shared_ptr<Listen>             // The associated server Listener
      return nullptr;
    }
 
+   if( USE_REPORT )
+     listen_count.inc();
+
    map_insert(host_id, listen);      // Add Listen to map
    return listen;
 }
@@ -573,6 +610,9 @@ void
 
    {{{{
      std::lock_guard<decltype(mutex)> lock(mutex);
+
+     if( USE_REPORT )
+       listen_count.dec();
 
      map.erase(listen->get_host_addr()); // Remove Listener from map
    }}}}

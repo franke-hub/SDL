@@ -1,0 +1,49 @@
+##############################################################################
+##
+##       Copyright (c) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2023/06/17
+##
+##############################################################################
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## Dependencies
+include $(INCDIR)/pub/Makefile.BSD  ## PUB library controls
+
+##############################################################################
+## Run the tests
+.PHONY: test
+test: $(MAKEXE)
+	Debug
+	@echo " "
+	Dispatch
+
+##############################################################################
+## Makefile cleanup
+clean : clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	-@rm liblocal.a >/dev/null 2>/dev/null
+

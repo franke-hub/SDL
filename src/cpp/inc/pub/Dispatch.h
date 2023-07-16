@@ -16,7 +16,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2023/06/03
+//       2023/06/20
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCH_H_INCLUDED
@@ -25,7 +25,7 @@
 #include <functional>               // For std::function
 
 #include <pub/Latch.h>              // For pub::Latch
-#include <pub/List.h>               // For pub::List, Item base class
+#include <pub/List.h>               // For pub::AI_list, for Item's base class
 #include <pub/Event.h>              // For pub::Wait
 #include <pub/Worker.h>             // For pub::Worker
 
@@ -91,16 +91,6 @@ static void*                        // Cancellation token
      Item*             item);       // Complete this work Item
 
 //----------------------------------------------------------------------------
-// Disp::defer()
-//
-// Pass the work Item to a different task for completion.
-// The completion code must be set before invoking this function.
-//----------------------------------------------------------------------------
-static void
-   defer(                           // Defer post for
-     Item*             item);       // This work Item
-
-//----------------------------------------------------------------------------
 // Disp::enqueue()
 //
 // Insert an Item onto a Task's todo list. Tasks handle one Item at a time,
@@ -112,13 +102,23 @@ static void
      Item*             item);       // This Item
 
 //----------------------------------------------------------------------------
-// Disp::wait()
+// Disp::post()
 //
-// Terminate Dispatcher processing, then wait for all associated work to
-// complete. No new work will be processed after this function is called.
+// Pass the work Item to a different task for completion.
 //----------------------------------------------------------------------------
 static void
-   wait( void );                    // Wait for all work to complete
+   post(                            // Post (using an internal Dispatch Task)
+     Item*             item,        // This work Item
+     int               _cc= 0);     // With this completion code
+
+//----------------------------------------------------------------------------
+// Disp::shutdown()
+//
+// Terminate Dispatcher delay processing. When this function is invoked, all
+// current delay() operations are posted with the CC_PURGE completion code.
+//----------------------------------------------------------------------------
+static void
+   shutdown( void );                // Terminate delay processing
 }; // class Disp
 
 //----------------------------------------------------------------------------
@@ -153,7 +153,7 @@ virtual void                        // OVERRIDE this method
 
 //----------------------------------------------------------------------------
 //
-// Class-
+// Struct-
 //       Item
 //
 // Purpose-
@@ -168,11 +168,10 @@ virtual void                        // OVERRIDE this method
 //         if done == nullptr, the Item is deleted.
 //
 //----------------------------------------------------------------------------
-class Item : public AI_list<Item>::Link { // A dispatcher work item
+struct Item : public AI_list<Item>::Link { // A dispatcher work item
 //----------------------------------------------------------------------------
 // Item::Enumerations and typedefs
 //----------------------------------------------------------------------------
-public:
 enum CC                             // Completion codes
 {  CC_NORMAL= 0                     // Normal (OK)
 ,  CC_PURGE= -1                     // Function purged
@@ -189,7 +188,6 @@ enum FC                             // Function codes
 //----------------------------------------------------------------------------
 // Item::Attributes
 //----------------------------------------------------------------------------
-public:
 int                    fc= FC_VALID;  // Function code
 int                    cc= CC_NORMAL; // Completion code
 Done*                  done= nullptr; // Completion callback
@@ -197,7 +195,6 @@ Done*                  done= nullptr; // Completion callback
 //----------------------------------------------------------------------------
 // Item::Constructors/destructor
 //----------------------------------------------------------------------------
-public:
    Item( void ) = default;          // Default constructor
 
    Item(                            // Constructor
@@ -225,16 +222,16 @@ virtual void
 
 void
    post(                            // Complete the Work Item
-     int               user_cc= 0)  // With this completion code
+     int               _cc= 0)      // With this completion code
 {
    if( done ) {
-     cc= user_cc;
+     cc= _cc;
      done->done(this);
    } else {
      delete this;
    }
 }
-}; // class Item
+}; // struct Item
 
 //----------------------------------------------------------------------------
 //
@@ -292,14 +289,9 @@ void
    ;                                // FALSE for outline (debugging) version
 #endif
 
-void
-   reset( void )                    // Reset the itemList
-{  itemList.reset(); }
-
-virtual void                        // The Worker interface
+virtual void                        // The Worker interface (DO NOT MODIFY)
    work( void );                    // Drain work from Task
 
-protected:
 virtual void                        // (IMPLEMENT this method)
    work(                            // Process
      Item*             item);       // This work Item
@@ -425,13 +417,16 @@ function_t             callback;    // The Work item handler
 
 public:
    LambdaTask( void )               // Default constructor
-:  Task(), callback([](Item*) {}) {}
+:  Task()
+,  callback([](Item* item) { item->post(); })
+{  }
 
    LambdaTask(function_t f)         // Lambda constructor
 :  Task(), callback(f) {}
 
 virtual
    ~LambdaTask( void ) = default;   // Destructor
+
 
 //----------------------------------------------------------------------------
 // LambdaTask::Methods

@@ -16,7 +16,7 @@
 //       Implement Reporter.h
 //
 // Last change date-
-//       2022/06/02
+//       2022/06/24
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -283,7 +283,7 @@ void
 {
    on_report([this]() {
      char buffer[128];
-     sprintf(buffer, "%'16zd {%'6zd; %'6zd; %'6zd}: "
+     sprintf(buffer, "%'16zd {%'6zd, %'6zd, %'6zd}: "
             , stat.counter.load(), stat.current.load()
             , stat.minimum.load(), stat.maximum.load());
      return std::string(buffer) + name;

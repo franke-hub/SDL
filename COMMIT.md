@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2023/05/25
+//       2023/07/16
 //
 //------------------------------------------------------------------------ -->
 
@@ -26,6 +26,17 @@ Copyright (C) 2023 Frank Eskesen.
 This file is free content, distributed under the MIT license.
 (See the accompanying file LICENSE.MIT or the original contained
 within https://opensource.org/licenses/MIT)
+
+#### 07/16/2023 maint/trunk commit
+
+This is primarily a documentation release.
+
+On Windows/Cygwin, when running certain DEV library stress tests the Windows
+resource manager shows continual but small virtual storage growth, which
+could/should indicate a memory leak.
+The equivalent Linux top command does not show any storage growth.
+Storage allocation and release trace hooks were added, but the memory leak
+is yet to be found.
 
 #### 05/25/2023 maint commit
 This is a synchronization commit with debugging hooks left in the code.

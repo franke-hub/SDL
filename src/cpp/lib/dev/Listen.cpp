@@ -64,9 +64,36 @@ enum
 
 ,  DEFAULT_PORT= 8080               // Default port number
 ,  USE_ITRACE= true                 // Use internal trace?
+,  USE_REPORT= true                 // Use event Reporter?
 }; // enum
 
 static constexpr const char* LOG_FILE= "log/HttpServer.log";
+
+//----------------------------------------------------------------------------
+// Event reporting
+//----------------------------------------------------------------------------
+static Active_record   listen_count("Listen: Listen"); // Listen counter
+static Active_record   server_count("Listen: Server"); // Server counter
+
+namespace {
+static struct StaticGlobal {
+   StaticGlobal(void)               // Constructor
+{
+   if( USE_REPORT ) {
+     listen_count.insert();
+     server_count.insert();
+   }
+}
+
+   ~StaticGlobal(void)              // Destructor
+{
+   if( USE_REPORT ) {
+     listen_count.remove();
+     server_count.remove();
+   }
+}
+}  staticGlobal;
+}  // Anonymous namespace
 
 //----------------------------------------------------------------------------
 //
@@ -159,6 +186,9 @@ static void
    debugf("Server: http://%s\n", addr.to_string().c_str());
      logf("Server: http://%s\n", addr.to_string().c_str());
 
+   if( USE_REPORT )
+     listen_count.inc();
+
    fsm= FSM_READY;
    INS_DEBUG_OBJ("*Listen*");
 }
@@ -174,6 +204,10 @@ static void
      debug("~Listen");
      reset();
    }
+
+   if( USE_REPORT )
+     listen_count.dec();
+
    REM_DEBUG_OBJ("*Listen*");
 }
 
@@ -488,6 +522,9 @@ void
        return;
      }
 
+     if( USE_REPORT )
+       server_count.inc();
+
      // Insert the entry
      map[key]= server;
    }}}}
@@ -533,6 +570,9 @@ void
              , id.to_string().c_str());
        return;
      }
+
+     if( USE_REPORT )
+       server_count.dec();
 
      map.erase(it);
    }}}}

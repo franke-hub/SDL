@@ -16,7 +16,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2023/06/04
+//       2023/06/30
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -55,7 +55,7 @@ class WorkerThread;                 // The Worker thread
 //----------------------------------------------------------------------------
 // Static attributes
 //----------------------------------------------------------------------------
-enum { MAX_THREADS= 128 };          // The built-in thread pool size
+enum { MAX_THREADS= 32 };           // The built-in thread pool size
 
 static Latch           mutex;       // Access mutex
 static WorkerThread*   pool[MAX_THREADS]; // The built-in thread pool

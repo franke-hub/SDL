@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2023/06/04
+//       2023/07/16
 //
 // Arguments-
 //       With no arguments, --client defaulted
@@ -600,11 +600,11 @@ static inline int                   // Error count
 
 #pragma GCC diagnostic ignored "-Winvalid-offsetof"
    debugf("\n");
-   debugf("%.4zx Client::task_inp\n", offsetof(Client, task_inp));
-   debugf("%.4zx Client::task_out\n", offsetof(Client, task_out));
+   debugf("%.4zx = offsetof(Client, task_inp)\n", offsetof(Client, task_inp));
+   debugf("%.4zx = offsetof(Client, task_out)\n", offsetof(Client, task_out));
 
-   debugf("%.4zx Server::task_inp\n", offsetof(Server, task_inp));
-   debugf("%.4zx Server::task_out\n", offsetof(Server, task_out));
+   debugf("%.4zx = offsetof(Server, task_inp)\n", offsetof(Server, task_inp));
+   debugf("%.4zx = offsetof(Server, task_out)\n", offsetof(Server, task_out));
 
    if( false ) {                    // Bringup internal tests
      debugf("\npage200(\"BODY\")\n%s", page200("BODY").c_str());

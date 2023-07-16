@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2023/06/03
+//       2023/06/20
 //
 // Implmentation note-
 //       TODO: Test _read() disconnect (close processing)
@@ -96,7 +96,7 @@ enum
 
 ,  USE_ITRACE= true                 // Use internal trace?
 ,  USE_READ_ONCE= true              // Read once?
-,  USE_REPORT= false                // Use event Reporter?
+,  USE_REPORT= true                 // Use event Reporter?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -846,8 +846,7 @@ void
        if( item->fc == item->FC_CLOSE )
          close();
 
-       item->cc= item->CC_PURGE;
-       dispatch::Disp::defer(item);
+       dispatch::Disp::post(item, item->CC_PURGE);
        return;
      }
 
@@ -855,7 +854,7 @@ void
        rd_complete.post();          // Indicate HTTP/1 operation complete
      }
 
-     dispatch::Disp::defer(item);
+     dispatch::Disp::post(item);
    }; // inp_task=
 
    // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -869,8 +868,7 @@ void
        utility::checkstop(__LINE__, __FILE__, "out_task");
 
      if( fsm != FSM_READY ) {
-       item->cc= item->CC_PURGE;
-       dispatch::Disp::defer(item);
+       dispatch::Disp::post(item, item->CC_PURGE);
        return;
      }
 
@@ -964,7 +962,7 @@ void
 
      if( USE_ITRACE )
        Trace::trace(".XIT", "COUT", this, it);
-     dispatch::Disp::defer(item);
+     dispatch::Disp::post(item);
    }; // out_task=
 
    // h_reader - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

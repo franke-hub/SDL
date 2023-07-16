@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2020-2022 Frank Eskesen.
+##       Copyright (C) 2020-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       Describe subdirectory content.
 ##
 ## Last change date-
-##       2022/04/27
+##       2023/07/16
 ##
 ## Implementation notes-
 ##       This distribution is kept locally in /home/data/home/. In addition
@@ -33,52 +33,62 @@
 ##       bat   Cygwin/Linux batch files, most using the bash script engine.
 ##       bin   Binary executable (placeholder.)
 ##       obj   Object subdirectory.
-##           Note: this subdirectory IS NOT included in the distribution.
-##           Normally you create it using: mkdir ~/obj; mkdir ~/obj/.git
-##           and populate it using: cd src; .README restore
 ##       src   Source files.
-##           src/obj contains the associated object git repository
 ##       usr   Imported files (content not distributed.)
 ##           Kept here for personal machine-to-machine backup.
 ##           (TODO: Provide a mechanism for auto-downloading external content.)
 ##
 ## Development tree installation-
-##       Create a link to this subdirectory
-##           (sudo) ln -s <this subdirectory> /home/data
+##       Create build subdirectory (These instructions assume it's "~/build")
+##           mkdir ~/build; cd ~/build
+##           ln -s <this subdirectory> home
+##           ln -s home/bat .
+##           ln -s home/src .
+##           ln -s home/usr .
+##           mkdir bin
+##           mkdir obj
+##           cd obj
+##           ln -s ../home/obj/.UPDATE .
+##           .UPDATE
 ##
-##       Create build subdirectory (These instructions assume it's: ~/.)
-##           ln -s /home/data/bat ~/.
-##           ln -s /home/data/src ~/.
-##           ln -s /home/data/usr ~/.
-##           mkdir ~/bin
-##           mkdir ~/obj; mkdir ~/obj/.git
-##           cd ~/src/obj
-##           ./.README restore
-##
-##       Make sure ~/bat and ~/bin are in your $PATH
-##           export PATH="$HOME/bat:~HOME/bin:$PATH"
+##       Make sure ~/build/bat and ~/build/bin are in your $PATH
+##           export PATH="$HOME/build/bat:$HOME/build/bin:$PATH"
 ##           (Normally placed somewhere in .bash_profile)
 ##
-##       Install prerequisite build binary
-##           cd ~/obj/cpp/Tools/Makeproj
-##           ./make
-##           strip makeproj; mv -i makeproj ~/bin
+##       Create build and test prerequisites
+##           cd ~/build/obj/cpp/sys
+##           make install
 ##
-##       Install C++ library
-##           cd ~/obj/cpp/lib
+##       Create C++ libraries
+##           cd ~/build/obj/cpp/lib
 ##           make
+##
+##       (Library installation/regression testing)
+##           cd ~/build/obj/cpp/lib/pub/Test
+##           regression
+##
+##           cd ~/build/obj/cpp/lib/dev/Test
+##           regression
+##
+##           (The other C++ libraries have Test subdirectories, but not
+##           regression test suites.)
+##
 ##
 ## Included C++ libraries-
 ##   src/cpp/inc-
 ##   src/cpp/lib (built in obj/cpp/lib)-
-##       This is a set of four sub-libraries: com, gui, obj, and pub.
+##       This is a set of five sub-libraries: com, dev, gui, obj, and pub.
 ##       For each library LIB, the interfaces are defined in src/cpp/inc/LIB;
 ##       outline code is in src/cpp/lib/LIB; and a set of regression tests
 ##       are in src/cpp/lib/LIB/Test.
 ##       The com library contains a large set of general-purpose functions.
 ##
-##       The gui library contains a small set of graphical user interface
-##       functions.
+##       The dev library currently contains a set of functions used to build
+##       an HTTP client and server. Once completely operational, these
+##       functions will be moved to the pub library.
+##
+##       The gui library contains a set of graphical user interface objects
+##       primarily used to support the Xcb editor.
 ##
 ##       The obj library contains a small set of objects. The Object class
 ##       defines an object to be deleted when its reference count becomes 0.
@@ -87,24 +97,15 @@
 ##
 ##       The pub library is the current function development library.
 ##
-##       The com, gui, and obj libraries operate on Linux, Cygwin, and
-##       Windows systems. The pub library is limited to Linux and Cygwin only.
-##       Most Linux testing is done using Red Hat Fedora, but Ubuntu is also
-##       used for regression testing. Cygwin is tested under Windows 10.
+##       The com and obj libraries operate on Linux, Cygwin, and Windows
+##       systems. The dev, gui, and pub libraries are limited to Linux and
+##       Cygwin only. Most Linux testing is done using Red Hat Fedora, but
+##       Ubuntu is also used for regression testing. Cygwin is tested using
+##       Windows 10.
 ##
 ##       Windows functionality is no longer developed or regression tested,
 ##       and the object subdirectory required to build using Windows is not
 ##       provided. (It exists but has not recently been regression tested.)
-##
-##       Of note: src/cpp/inc/pub/Worker.h
-##         Worker.h provides an efficient thread pool control mechanism.
-##
-##       Of note: src/cpp/inc/pub/Dispatch*.h
-##         The Dispatcher objects provide an efficient work flow control
-##         mechanism. While each Dispatcher Task processes one work Item at
-##         a time (in single threaded mode,) multiple Tasks can simultaneously
-##         enqueue work items. The atomic operations required for this
-##         functionality are provided by the library.
 ##
 ## C++ (interesting) packages-
 ##   ** ALL included packages require library package installation **
@@ -115,16 +116,11 @@
 ##
 ##   ~/obj/cpp/Edit
 ##       Source code editor using ncurses library. (Well tested.)
-##       In development: ~/obj/cpp/Xcb/Edit
-##           Source code editor using Xcb interfaces.
 ##
 ##   ~/obj/cpp/Edit/Xcb
-##       Migrating ~/obj/cpp/Edit to use xcb interfaces.
-##       (Watch the progress of an editor being developed.)
-##       This might get split into Editor and Xcb interface components,
-##       once completed.
-##       (Already contains some WORKING sample xcb interface usage I couldn't
-##       find anywhere else.)
+##       Source code editor using xcb interfaces.
+##       (Contains some WORKING sample xcb interface usage I couldn't find
+##       anywhere else.)
 ##
 ##   ~/obj/cpp/Fileman
 ##       Subdirectory file search, uses src/cpp/inc/pub/Fileman.h interfaces.
@@ -148,7 +144,7 @@
 ##
 ##   ~/obj/cpp/Sample
 ##       A set of pretty naive sample programs. These are mostly used to
-##       get a handle on how system interface usage.
+##       get a handle on system interface usage.
 ##
 ##   ~/obj/cpp/Sorter
 ##       A comparison of different sorting techniques.

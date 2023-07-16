@@ -660,17 +660,21 @@ static void
    // Display the object counters
    if( opt_verbose > 1 ) {
      debugf("\n");
+     debugf("           Total {   Cur,    Min,    Max}: Description\n");
      stat= &Stream::obj_count;
-     debugf("%'16ld {%3ld,%3ld,%3ld} Stream counts\n", stat->counter.load()
-           , stat->minimum.load(), stat->current.load(), stat->maximum.load());
+     debugf("%'16ld {%'6ld, %'6ld, %'6ld}: Stream counts\n"
+           , stat->counter.load(), stat->current.load()
+           , stat->minimum.load(), stat->maximum.load());
 
      stat= &Request::obj_count;
-     debugf("%'16ld {%3ld,%3ld,%3ld} Request counts\n", stat->counter.load()
-           , stat->minimum.load(), stat->current.load(), stat->maximum.load());
+     debugf("%'16ld {%'6ld, %'6ld, %'6ld}: Request counts\n"
+           , stat->counter.load(), stat->current.load()
+           , stat->minimum.load(), stat->maximum.load());
 
      stat= &Response::obj_count;
-     debugf("%'16ld {%3ld,%3ld,%3ld} Response counts\n", stat->counter.load()
-           , stat->minimum.load(), stat->current.load(), stat->maximum.load());
+     debugf("%'16ld {%'6ld, %'6ld, %'6ld}: Response counts\n"
+           , stat->counter.load(), stat->current.load()
+           , stat->minimum.load(), stat->maximum.load());
    }
 
    // Verify the object counters

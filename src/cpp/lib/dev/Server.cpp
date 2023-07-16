@@ -16,7 +16,7 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2023/06/04
+//       2023/06/24
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -80,7 +80,7 @@ enum
 
 ,  USE_ITRACE= true                 // Use internal trace?
 ,  USE_READ_ONCE= true              // Read once?
-,  USE_REPORT= false                // Use event Reporter?
+,  USE_REPORT= true                 // Use event Reporter?
 }; // enum
 
 // Imported Options
@@ -121,16 +121,16 @@ static struct StaticGlobal {
    StaticGlobal(void)               // Constructor
 {
    if( USE_REPORT ) {
-     item_count.insert();
      server_count.insert();
+     item_count.insert();
    }
 }
 
    ~StaticGlobal(void)              // Destructor
 {
    if( USE_REPORT ) {
-     item_count.remove();
      server_count.remove();
+     item_count.remove();
    }
 }
 }  staticGlobal;
@@ -590,8 +590,7 @@ void
        if( item->fc == item->FC_CLOSE )
          close();
 
-       item->cc= item->CC_PURGE;
-       dispatch::Disp::defer(item);
+       dispatch::Disp::post(item, item->CC_PURGE);
        return;
      }
 
@@ -603,7 +602,7 @@ void
        stream= nullptr;
      }
 
-     dispatch::Disp::defer(item);
+     dispatch::Disp::post(item);
    }; // inp_task=
 
    // out_task - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -617,8 +616,7 @@ void
        utility::checkstop(__LINE__, __FILE__, "out_task");
 
      if( fsm != FSM_READY ) {
-       item->post(item->CC_PURGE);
-       dispatch::Disp::defer(item);
+       dispatch::Disp::post(item, item->CC_PURGE);
        return;
      }
 
@@ -627,7 +625,7 @@ void
 
      if( USE_ITRACE )
        Trace::trace(".XIT", "SOUT", this, it);
-     dispatch::Disp::defer(item);
+     dispatch::Disp::post(item);
    }; // out_task=
 
    // h_reader - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

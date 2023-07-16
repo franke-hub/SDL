@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2023/05/03
+##       2023/06/16
 ##
 ##############################################################################
 
@@ -97,6 +97,7 @@ verify: cert.dir
 include $(INCDIR)/pub/Makefile.BSD  ## PUB library controls
 include $(INCDIR)/com/Makefile.BSD  ## Test_num.cpp requires Random
 
+$(MAKEXE): $(LIBDIR)/libpub.a       ## All execs depend on PUB library
 $(MAKEXE): liblocal.a               ## All execs depend on local library
 TestSock: cert.dir                  ## TestSock depends on certificates
 

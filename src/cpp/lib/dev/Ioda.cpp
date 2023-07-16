@@ -16,7 +16,7 @@
 //       Implement http/Ioda.h
 //
 // Last change date-
-//       2023/06/04
+//       2023/06/24
 //
 //----------------------------------------------------------------------------
 // #define NDEBUG                   // TODO: USE (to disable asserts)
@@ -60,7 +60,7 @@ enum
 ,  LOG2_SIZE= 12                    // Log2(PAGE_SIZE)
 ,  PAGE_SIZE= 4096                  // The Iota::Page data size
 
-,  USE_REPORT= false                // Use event Reporter?
+,  USE_REPORT= true                 // Use event Reporter?
 ,  USE_VERIFY= true                 // Use internal consistency checking?
 }; // enum
 
@@ -77,8 +77,8 @@ static struct StaticGlobal {
    StaticGlobal(void)               // Constructor
 {
    if( USE_REPORT ) {
-     data_count.insert();
      ioda_count.insert();
+     data_count.insert();
      page_count.insert();
      ivec_count.insert();
    }
@@ -209,10 +209,12 @@ static void checkstop(int line)
 {  if( HCDM )
      debugh("Ioda(%p)::Mesg~ {%p,%'zd)\n", this, msg_iov, size_t(msg_iovlen));
 
-   free(msg_iov);
+   if( msg_iov ) {
+     free(msg_iov);
 
-   if( USE_REPORT )
-     ivec_count.dec();
+     if( USE_REPORT )
+       ivec_count.dec();
+   }
 }
 
 //----------------------------------------------------------------------------

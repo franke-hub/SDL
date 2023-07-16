@@ -16,7 +16,7 @@
 //       Implement http/Stream.h
 //
 // Last change date-
-//       2023/06/04
+//       2023/06/27
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -37,6 +37,7 @@
 #include <pub/utility.h>            // For pub::to_string, ...
 
 #include "pub/http/Client.h"        // For pub::http::Client
+#include "pub/http/HTTP.h"          // For pub::http::HTTP
 #include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Request.h"       // For pub::http::Request
@@ -61,7 +62,7 @@ enum
 ,  BUFFER_SIZE= 8'096               // Input buffer size (Header collector)
 ,  POST_LIMIT= 1'048'576            // POST/PUT size limit
 ,  USE_ITRACE= true                 // Use internal trace?
-,  USE_REPORT= false                // Use event Reporter?
+,  USE_REPORT= true                 // Use event Reporter?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -100,25 +101,6 @@ static struct StaticGlobal {
 }
 }  staticGlobal;
 }  // Anonymous namespace
-
-//----------------------------------------------------------------------------
-// Constants
-//----------------------------------------------------------------------------
-static struct{int code; const char* text;}
-                       code_text[]=
-{  {  0, "UNKNOWN CODE"}
-,  {200, "OK"}
-,  {400, "BAD REQUEST"}
-,  {401, "NOT AUTHORIZED"}
-,  {403, "FORBIDDEN"}
-,  {404, "NOT FOUND"}
-,  {405, "METHOD NOT ALLOWED"}
-,  {411, "LENGTH REQUIRED"}
-,  {413, "PAYLOAD TOO LARGE"}
-,  {501, "INTERNAL SERVER ERROR"}
-,  {599, "CLIENT DISCONNECTED"}
-,  {  0, nullptr}                   // Delimiter
-};
 
 //----------------------------------------------------------------------------
 //
@@ -166,27 +148,6 @@ void
 
    debugf("..self(%p) request(%p) response(%p)\n"
          , get_self().get(), request.get(), response.get());
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Stream::get_text
-//
-// Purpose-
-//       Get text for status code
-//
-//----------------------------------------------------------------------------
-const char*                         // The status text
-   Stream::get_text(int code)       // Convert status code to text
-{
-   for(int i= 1; code_text[i].text; ++i) { // (code_text[0] is internal error)
-     if( code == code_text[i].code )
-       return code_text[i].text;
-   }
-
-   debugh("%4d %s code(%d) undefined\n", __LINE__, __FILE__, code);
-   return code_text[0].text;
 }
 
 //----------------------------------------------------------------------------
@@ -478,10 +439,12 @@ void
    ServerStream::reject(            // Reject a Request, writing Response
      int               code)        // The rejection status code
 {  if( HCDM )
-     debugh("\nServerStream(%p)::reject(%d) %s\n\n", this, code, get_text(code));
+     debugh("\nServerStream(%p)::reject(%d) %s\n\n", this, code
+           , HTTP::status_text(code));
 
    char buff[128];
-   size_t L= sprintf(buff, "HTTP/1.1 %.3d %s\r\n\r\n", code, get_text(code));
+   size_t L= sprintf(buff, "HTTP/1.1 %.3d %s\r\n\r\n", code
+                         , HTTP::status_text(code));
 
    response->set_code(code);
    response->get_ioda().reset();

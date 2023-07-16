@@ -16,7 +16,7 @@
 //       Editor: Implement EdTerm.h screen handler.
 //
 // Last change date-
-//       2023/05/12
+//       2023/07/12
 //
 // Implementation notes-
 //       EdInps.cpp implements keyboard and mouse event handlers.
@@ -586,7 +586,7 @@ void
 {
    // Draw the background
    xcb_rectangle_t fill= {};
-   fill.width=  rect.width+1;
+   fill.width=  (decltype(fill.height))(rect.width+1);
    fill.height= (decltype(fill.height))(2*font.length.height + 1);
    xcb_gcontext_t gc= editor::file->is_changed() ? bg_chg : bg_sts;
    NOQUEUE("xcb_poly_fill_rectangle", xcb_poly_fill_rectangle

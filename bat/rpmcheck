@@ -1,0 +1,28 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       rpmcheck
+##
+## Purpose-
+##       Check for .rpmnew and .rpmsave files.
+##
+## Last change date-
+##       2023/06/30
+##
+## Usage-
+##       rpmcheck
+##
+##############################################################################
+
+##############################################################################
+## Locate .rpmnew and .rpmsave files
+find / 2>/dev/null | grep -E "rpmnew$|rpmsave$"

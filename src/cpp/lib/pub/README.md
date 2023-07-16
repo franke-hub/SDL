@@ -83,8 +83,8 @@ processing.
 
 We fix this problem by adding a special Dispatcher Task which has no other
 function than posting the work items it receives. Now, if it's *possible*
-for the posting of a work element to cause the deletion of a Task we can
-(and must) transfer it to that other task for posting. No deadlock.
+for the posting of a work element to cause the deletion of a Task we
+transfer it to that other task for posting, avoiding deadlock.
 Note that once work that can cause deletion of the running Task is given to
 another task it can run immediately, even before the original task returns
 to the Dispatcher.
@@ -170,38 +170,24 @@ The debugging write functions all use the standard printf and vprintf
 interfaces.
 
 - debugf(const char*, ...) writes to stdout and the trace file.
-
 - debugh(const char*, ...) also writes to stdout and the trace file and
 includes a heading, described later.
-
 - errorf(const char*, ...) writes to stderr and the trace file.
-
 - errorh(const char*, ...) also writes to stderr and the trace file and
 includes a heading.
-
 - throwf(const char*, ...) writes to stderr and the trace file, then throws
-an exception. (The current implementation uses `throw "ShouldNotOccur";`, but
-this is subject to change.)
-
+an exception.
 - tracef(const char*, ...) writes (only) to the trace file.
-
 - traceh(const char*, ...) also writes the trace file and includes a heading.
-
 - vdebugf(const char*, va_list) writes to stdout and the trace file.
-
 - vdebugh(const char*, va_list) writes to stdout and the trace file, including
 a heading.
-
 - verrorf(const char*, va_list) writes to stderr and the trace file.
-
 - verrorh(const char*, va_list) writes to stderr and the trace file, including
 a heading.
-
 - vthrowf(const char*, va_list) writes to stderr and the trace file, then
 throws an an exception.
-
 - vtracef(const char*, va_list) writes to the trace file.
-
 - vtraceh(const char*, va_list) writes to the trace file, including a heading.
 
 The heading optionally includes the current time and current thread.
@@ -263,11 +249,8 @@ It's one of the distribution highlights.
 There are four dispatch control objects:
 
 - pub::dispatch::Task (A work processor)
-
 - pub::dispatch::Item (A work item)
-
 - pub::dispatch::Done (A work completion processor)
-
 - pub::dispatch::Disp (Controls timer work items and shutdown)
 
 A Task runs under control of a single thread, so it doesn't have multi-thread

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2007-2022 Frank Eskesen.
+//       Copyright (C) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,10 +16,11 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2022/10/10
+//       2023/06/17
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
+#include <stdexcept>                // For std::runtime_error
 #include <sstream>                  // For std::stringstream
 #include <thread>                   // For std::this_thread
 
@@ -27,6 +28,7 @@
 #include <errno.h>                  // For errno
 #include <inttypes.h>               // For PRIx64
 #include <stdarg.h>                 // For va_list, ...
+#include <string.h>                 // For strerrno
 #include <stdio.h>                  // For FILE I/O
 #include <time.h>                   // For clock_gettime, timespec, ...
 #include <unistd.h>                 // For isatty
@@ -270,7 +272,7 @@ void
 
    if( handle == nullptr )          // If still not active
    {
-     int ERRNO= errno;              // (Preserve errno)
+     int ERRNO= errno;              // On some systems, fopen sets errno= 0
      if( isSTDIO(file_name.c_str()) )
      {
        if( file_name[0] == '>' || file_name[0] == '1' )
@@ -283,8 +285,9 @@ void
        handle= fopen(file_name.c_str(), file_mode.c_str());// Open the trace file
        if( handle == nullptr )      // If the open failed
        {
-         fprintf(stderr, "DEBUG: Error: fopen(%s,%s) error\n",
-                         file_name.c_str(), file_mode.c_str());
+         fprintf(stderr, "DEBUG: Error: fopen(%s,%s) error %d:%s\n"
+                       , file_name.c_str(), file_mode.c_str()
+                       , errno, strerror(errno));
          handle= stderr;
        }
      }
@@ -312,8 +315,8 @@ void
    {
      int rc= fclose(handle);        // Close the file
      if( rc != 0 )                  // If error encountered
-       fprintf(stderr, "DEBUG: Error: file(%s), close error(%d)\n",
-                       file_name.c_str(), rc);
+       fprintf(stderr, "DEBUG: Error: file(%s), close error(%d) %d:%s\n"
+                     , file_name.c_str(), rc, errno, strerror(errno));
    }
 
    handle= nullptr;                 // Indicate closed
@@ -396,24 +399,23 @@ Debug*                              // The removed Debug object
 //
 // Method-
 //       Debug::lock
+//       Debug::try_lock
+//       Debug::unlock
 //
 // Purpose-
 //       Lock the static mutex
+//       Attempt to Lock the static mutex
+//       Unlock the static mutex
 //
 //----------------------------------------------------------------------------
 void
    Debug::lock( void )              // Lock the mutex
 {  mutex.lock(); }
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Debug::unlock
-//
-// Purpose-
-//       Unlock the static mutex
-//
-//----------------------------------------------------------------------------
+bool
+   Debug::try_lock( void )          // Attempt to lock the mutex
+{  return mutex.try_lock(); }
+
 void
    Debug::unlock( void )            // Unlock the mutex
 {  mutex.unlock(); }
@@ -430,7 +432,11 @@ void
 void
    Debug::flush( void )             // Flush trace file to disk
 {
+   int ERRNO= errno;                // On some systems, fopen sets errno= 0
    std::lock_guard<decltype(mutex)> lock(mutex);
+
+   fflush(stdout);
+   fflush(stderr);
 
    if( handle != nullptr )          // If trace is active
    {
@@ -440,17 +446,19 @@ void
      {
        int rc= fclose(handle);      // Close the trace file
        if( rc != 0 )                // If the close failed
-         fprintf(stderr, "DEBUG: Error: file(%s) close error\n", file_name.c_str());
+         fprintf(stderr, "DEBUG: Error: file(%s) close error %d:%s\n"
+                       , file_name.c_str(), errno, strerror(errno));
 
        handle= fopen(file_name.c_str(), "ab"); // Re-open the trace file
        if( handle == nullptr )      // If the re-open failed
        {
-         fprintf(stderr, "DEBUG: Error: file(%s) open(\"ab\") error\n"
-                       , file_name.c_str());
+         fprintf(stderr, "DEBUG: Error: file(%s) open(\"ab\") error %d:%s\n"
+                       , file_name.c_str(), errno, strerror(errno));
          handle= stderr;
        }
      }
    }
+   errno= ERRNO;
 }
 
 //----------------------------------------------------------------------------
@@ -854,9 +862,9 @@ void
 static char            buffer[512]; // Work buffer (Mutex protected)
    int L= vsnprintf(buffer, sizeof(buffer), fmt, argptr);
    if( L < 0 || size_t(L) >= sizeof(buffer) ) // If cannot properly format
-     throw fmt;                     // Just throw format string
+     throw std::runtime_error(fmt); // Just use the format string
 
-   throw buffer;
+   throw std::runtime_error(buffer);
 }
 
 //----------------------------------------------------------------------------

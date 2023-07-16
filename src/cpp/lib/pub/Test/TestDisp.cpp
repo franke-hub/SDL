@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2023/06/03
+//       2023/06/23
 //
 // Arguments: (For test_timing only)
 //       TestDisp --timing          // (Only run timing test)
@@ -138,7 +138,6 @@ static inline int
    task.enqueue(&item);             // Drive work
    if( opt_verbose ) debugf("%4d waiting...\n", __LINE__);
    wait.wait();                     // Wait for work completion
-   task.reset();
    if( opt_verbose ) debugf("%4d ...running\n", __LINE__);
 
    if( error_count != 0 )
@@ -249,7 +248,6 @@ static inline int
    // Terminate
    for(int i= 0; i<64; i++)
    {
-     TASK[i]->reset();
      delete(TASK[i]);
      TASK[i]= nullptr;
 
@@ -428,10 +426,8 @@ static int
    }
 
    // Cleanup
-   FINAL->reset();
    for(int i= 0; i<TASKS; i++)
    {
-     TASK[i]->reset();
      delete TASK[i];
    }
    delete FINAL;

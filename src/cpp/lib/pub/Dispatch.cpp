@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2023/06/03
+//       2023/06/20
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -106,7 +106,7 @@ static inline void
    debugf("Name(%s)\n", R->name.c_str());
 }
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Method-
 //       dispatch::Disp::debug
@@ -161,25 +161,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       dispatch::Disp::defer
-//
-// Purpose-
-//       Post a work Item running under a different Task
-//
-//----------------------------------------------------------------------------
-void
-   Disp::defer(                     // Defer posting for
-     Item*             item)        // This work Item
-{
-   if( USE_ITRACE )
-     Trace::trace(".DSP", "dfer", &defer_Task, item);
-
-   defer_Task.enqueue(item);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       dispatch::Disp::delay
 //
 // Purpose-
@@ -199,18 +180,39 @@ void*                               // Cancellation token
    return timers->delay(seconds, workItem);
 }
 
-//============================================================================
+//----------------------------------------------------------------------------
 //
 // Method-
-//       dispatch::Disp::wait
+//       dispatch::Disp::post
 //
 // Purpose-
-//       Wait for all work to complete.
+//       Post a work Item under a different Task
 //
 //----------------------------------------------------------------------------
 void
-   Disp::wait( void )               // Wait for all work to complete
-{  if( HCDM ) traceh("Dispatch(*)::wait()...\n");
+   Disp::post(                      // Alternate task post for
+     Item*             item,        // This work Item
+     int               _cc)         // With this completion code
+{
+   if( USE_ITRACE )
+     Trace::trace(".DSP", "dfer", &defer_Task, item);
+
+   item->cc= _cc;                   // Set the completion code
+   defer_Task.enqueue(item);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       dispatch::Disp::shutdown
+//
+// Purpose-
+//       Terminate the timers task
+//
+//----------------------------------------------------------------------------
+void
+   Disp::shutdown( void )           // Terminate the timers task
+{  if( HCDM ) traceh("Dispatch(*)::shutdown()...\n");
 
    if( timers != nullptr ) {
      timers->stop();
@@ -219,10 +221,10 @@ void
      timers= nullptr;
    }
 
-   if( HCDM ) traceh("...Dispatch(*)::wait()\n");
+   if( HCDM ) traceh("...Dispatch(*)::shutdown()\n");
 }
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Method-
 //       dispatch::Item::debug
@@ -238,7 +240,7 @@ void
          , this, info, fc, cc, done);
 }
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Method-
 //       dispatch::Done::done
@@ -388,10 +390,6 @@ void
 
    if( USE_ITRACE )
      Trace::trace(".DSP", "IDLE", this);
-
-Item* tail= itemList.get_tail();
-if( tail )
-  Trace::trace(".DSP", "TAIL", this, tail);
 }
 
 //----------------------------------------------------------------------------

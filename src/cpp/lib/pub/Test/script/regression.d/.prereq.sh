@@ -16,7 +16,7 @@
 ##       Verify test prequisites
 ##
 ## Last change date-
-##       2023/06/05
+##       2023/07/07
 ##
 ##############################################################################
 
@@ -24,9 +24,9 @@
 ## Prerequisite: filecomp
 type -p filecomp >/dev/null 2>/dev/null
 if [[ $? != 0 ]] ; then
-  echo -e "\n\nInstalling missing prerequite: filecomp (into ~/bin)\n"
-  pushd ~/obj/cpp/sys >/dev/null
-  make install
+  echo -e "\n\nInstalling missing prerequite: filecomp (into $ROOT/bin)\n"
+  pushd $ROOT/obj/cpp/sys >/dev/null
+  make install-filecomp
   popd >/dev/null
 
   echo ""
@@ -39,7 +39,7 @@ fi
 
 ##############################################################################
 ## Prerequisite: libraries
-pushd ~/obj/cpp/lib/com >/dev/null
+pushd $ROOT/obj/cpp/lib/com >/dev/null
 echo make: $PWD
 make
 rc=$?
