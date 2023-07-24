@@ -16,7 +16,10 @@
 //       Compile bringup
 //
 // Last change date-
-//       2023/05/24
+//       2023/07/20
+//
+// Implementation notes-
+//       Use make include to run the compile test.
 //
 //----------------------------------------------------------------------------
 #if true
@@ -55,11 +58,14 @@
   #define IT "cstdio"               // Include something
 #endif
 
+//----------------------------------------------------------------------------
+// Include (only) the selected header + cstdio for printf
+//----------------------------------------------------------------------------
 #include IT
-#include <stdio.h>                  // For printf
+#include <cstdio>                   // For printf
 
 extern int                          // Return code
    main(int, char**)                // Mainline code
 //   int               argc,        // Argument count (Unused)
 //   char*             argv[])      // Argument array (Unused)
-{  printf("%s compiles OK\n", IT); return 0; }
+{  printf("#include \"%s\" // compiles OK\n", IT); return 0; }

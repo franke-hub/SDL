@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2023/07/16
+//       2023/07/24
 //
 //------------------------------------------------------------------------ -->
 
@@ -27,9 +27,30 @@ This file is free content, distributed under the MIT license.
 (See the accompanying file LICENSE.MIT or the original contained
 within https://opensource.org/licenses/MIT)
 
-#### 07/16/2023 maint/trunk commit
+Minor changes are not documented in this change log, but since the distribution
+is maintained in git, changes are always recorded.
 
-This is primarily a documentation release.
+----
+
+#### 07/24/2023 maint commit
+(Primarily a documentation test release.)
+
+This is a preliminary documentation release needed to verify that all the
+updated documentation is actually provided and not, for example, hidden by
+.gitignore.
+
+The public domain license was changed from the "un-license" to the
+Creative Commons CC0 public domain license.
+This seems to be more worldwide in scope.
+
+It does have a trade mark and patent restriction clause that might give
+pause to copiers, but the README.md "Copying" section essentially asserts
+that trade mark or patent restrictions do not and will not apply.
+
+----
+
+#### 07/16/2023 maint/trunk commit
+(Primarily a documentation release.)
 
 On Windows/Cygwin, when running certain DEV library stress tests the Windows
 resource manager shows continual but small virtual storage growth, which
@@ -39,8 +60,8 @@ Storage allocation and release trace hooks were added, but the memory leak
 is yet to be found.
 
 #### 05/25/2023 maint commit
-This is a synchronization commit with debugging hooks left in the code.
-Most of these hooks need to be removed before a trunk commit.
+(A synchronization commit with debugging hooks left in the code.
+Most of these hooks need to be removed before a trunk commit.)
 
 Issue #2 has been corrected, but dispatch::Task::~Task still has issues.
 The FC_UNDEF wait request doesn't complete, so the destructor doesn't complete

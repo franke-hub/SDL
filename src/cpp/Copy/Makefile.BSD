@@ -1,11 +1,11 @@
 ##############################################################################
 ##
-##       Copyright (C) 2020 Frank Eskesen.
+##       Copyright (C) 2020-2023 Frank Eskesen.
 ##
-##       This file is free content, distributed under the "un-license,"
+##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
-##       (See accompanying file LICENSE.UNLICENSE or the original
-##       contained within http://unlicense.org)
+##       (See accompanying html file LICENSE.ZERO or the original contained
+##       within https://creativecommons.org/publicdomain/zero/1.0/legalcode)
 ##
 ##############################################################################
 ##
@@ -16,15 +16,21 @@
 ##       Sample Makefile.
 ##
 ## Last change date-
-##       2020/01/29
+##       2023/07/23
 ##
 ## Implementation note-
 ##       The basic make file template is given to the public domain.
 ##       You can freely use it without attribution of any kind.
 ##
-##       The make file's "look and feel" is explicitly not copyrighted.
+##       The makefile's "look and feel" is explicitly not copyrighted.
 ##
 ##############################################################################
+
+##############################################################################
+## Local module list
+MAKEXE :=
+MAKOBJ := $(patsubst $(OBJDIR)/S_main.o,,$(MAKOBJ))
+MAKEXE += S_main
 
 ##############################################################################
 ## Set default target
@@ -40,9 +46,31 @@ default: $(DEFAULT)
 include $(INCDIR)/com/Makefile.BSD
 include $(INCDIR)/pub/Makefile.BSD
 
+LLIBS  += -L. -llocal               ## Link using the local library
+
 ##############################################################################
-## Cleanup
-.PHONY: MAK_clean
-clean:  MAK_clean
-MAK_clean: ;
-	-@rm debug.* >/dev/null 2>/dev/null
+## Dependencies
+$(MAKEXE): liblocal.a
+
+##############################################################################
+## TARGET: liblocal.a
+liblocal.a : $(MAKOBJ)
+	$(AR) $(@) $(MAKOBJ)
+
+##############################################################################
+## TARGET: do
+.PHONY: do
+do: S_main
+	@S_main
+
+##############################################################################
+## Cleanup (Note: the base Makefile defines clean and pristine)
+.PHONY: pristine.dir
+pristine: pristine.dir
+pristine.dir: ;
+	-@true >/dev/null 2>/dev/null      ## (Placeholder)
+
+.PHONY: clean.dir
+clean: clean.dir
+clean.dir: ;
+	-@rm liblocal.a >/dev/null 2>/dev/null

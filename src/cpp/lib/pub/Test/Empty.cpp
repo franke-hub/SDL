@@ -1,10 +1,11 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
-//       This file is free content, distributed under the MIT license.
-//       (See accompanying file LICENSE.MIT or the original contained
-//       within https://opensource.org/licenses/MIT)
+//       This file is free content, distributed under creative commons CC0,
+//       explicitly released into the Public Domain.
+//       (See accompanying html file LICENSE.ZERO or the original contained
+//       within https://creativecommons.org/publicdomain/zero/1.0/legalcode)
 //
 //----------------------------------------------------------------------------
 //
@@ -12,9 +13,12 @@
 //       Empty.cpp
 //
 // Purpose-
-//       Build an empty local library.
+//       Library placeholder.
 //
 // Last change date-
-//       2022/09/02
+//       2023/07/23
+//
+// Implementation notes-
+//       This is normally used to create a placeholder library.
 //
 //----------------------------------------------------------------------------

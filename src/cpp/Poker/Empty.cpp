@@ -1,11 +1,11 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2017 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
-//       This file is free content, distributed under the GNU General
-//       Public License, version 3.0.
-//       (See accompanying file LICENSE.GPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+//       This file is free content, distributed under creative commons CC0,
+//       explicitly released into the Public Domain.
+//       (See accompanying html file LICENSE.ZERO or the original contained
+//       within https://creativecommons.org/publicdomain/zero/1.0/legalcode)
 //
 //----------------------------------------------------------------------------
 //
@@ -13,20 +13,12 @@
 //       Empty.cpp
 //
 // Purpose-
-//       Empty implementation.
+//       Library placeholder.
 //
 // Last change date-
-//       2017/01/01
+//       2023/07/23
+//
+// Implementation notes-
+//       This is normally used to create a placeholder library.
 //
 //----------------------------------------------------------------------------
-#include "Define.h"
-#include "Empty.h"
-
-//----------------------------------------------------------------------------
-// Constants for parameterization
-//----------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------
-// Internal data areas
-//----------------------------------------------------------------------------
-

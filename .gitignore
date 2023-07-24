@@ -13,13 +13,12 @@
 !/.gitignore
 !/.configure
 !/.gitsynch
-!/.LICENSE
+!/.licenses
 !/.README
+!/CONTRIBUTORS.md
 !/COMMIT.md
+!/LICENSE
 !/README.md
-
-##############################################################################
-## Public subdirectories
 !/bat
 !/bin
 !/bin

@@ -15,7 +15,7 @@
 //       SDL Project overview information.
 //
 // Last change date-
-//       2023/02/01
+//       2023/07/22
 //
 //------------------------------------------------------------------------ -->
 
@@ -28,17 +28,98 @@ This file is free content, distributed under the MIT license.
 within https://opensource.org/licenses/MIT)
 
 #### Content overview
-This is the Software Development Laboratory (SDL) distribution package,
+This is a Software Development Laboratory (SDL) distribution package,
 sometimes referred to as "The Distribution".
 
-This package contains multiple language examples:
-- C++, Python, and Java examples also include libraries and working example programs.
-- A (mostly) bash script library.
+This package contains multiple programming examples in multiple languages.
+C++, Python, and Java examples also include libraries.
+A (mostly) bash script library is also provided.
 
-Compiled libraries, sample programs and utilities are generally built using
-make from the associated object subdirectory.
+Compiled libraries, sample programs and utilities are built using GNU make
+from the associated object subdirectory.
 
-Subdirectory structure:
+Programs are compiled and tested on CYGWIN and Linux (Fedora and Ubuntu.)
+While there are some sample programs that once ran on Windows,
+Windows support is deprecated and is no longer tested.
+
+All content is distributed AS-IS, without purpose or warranty of any kind;
+not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+#### Copying
+This is an open source project, consisting of free content distributed under
+an open source license.
+
+While the distribution author retains the open source copyright and licensing
+rights, no additional restrictive rights are or will be claimed.
+In particular but not exclusively, the author warrants that no trade mark or
+patent rights exist and none will be generated for any content in this
+distribution. This distribution is and will remain open source.
+
+**ALL** content in this distribution may be copied, but
+- Your license is not exclusive. No person or entity can restrict any other
+person or entity's usage of *any* content.
+- Imported content retains the copyright, copying and licensing restrictions
+of the original author (or source, if no copyright information was included
+in the imported content.)
+Every SDL distribution file containing imported content contains
+originating copyright and licensing information
+
+Small content segments may be copied under the public domain license
+without attribution or licensing requirements[^1].
+Any significant aggregation of content segments requires the GNU GPL
+including its attribution and licensing requirements.
+
+[Contributors](./CONTRIBUTORS.md)
+
+#### Licensing
+All imported content retains the copyright and licensing restrictions of
+the original authors.
+
+Most original C++ source code is distributed under the GNU Public License.
+Most original include headers are distributed under the Lesser GPL.
+
+Most documentation, such as this file, and control files (e.g. make files) is
+distributed using the MIT license.
+
+The Creative Commons license is used (at least) for Lilypond (music) files.
+
+Some example content explictly uses the public domain license.
+This content does not require attribution or licensing[^1].
+
+Any and all "look and feel" content in this entire distribution is explicitly
+licensed under the public domain license.
+
+[^1]: Once something is given or released to the public domain,
+no person or entity can then claim exclusive ownership of it.
+(This also applies to the original author.)
+
+License detail:
+- [Boost](.licenses/LICENSE.BOOST-1.0)
+- [BSD](.licenses/LICENSE.BSD-3)
+- [Creative Commons V3.0](.licenses/LICENSE.BY_SA-3.0)
+- [Creative Commons V4.0](.licenses/LICENSE.BY_SA-4.0)
+- [GNU GPL (General Public License)](.licenses/LICENSE.GPL-3.0)
+- [GNU LGPL (Lesser General Public License)](.licenses/LICENSE.LGPL-3.0)
+- [MIT License](.licenses/LICENSE.MIT)
+- [Public domain license](.licenses/LICENSE.UNLICENSE)
+
+#### The Distribution
+The distribution primarily uses two git branches:
+- The trunk branch, relatively well tested.
+- The maint branch, more current but more unstable.
+This branch may contain known errors when used for distribution testing.
+
+The distribution is kept locally in /home/data/home/ on all local machines,
+physical or virtual.
+In addition to this public distribution, the /home/data/ subdirectory contains
+private information shared via rsync between multiple machines.
+One of these machines (NFS) exports /home/data in read-only mode and
+some (local virtual) machines access that.
+
+The Ubuntu build test (virtual) machine updates only via github.
+It does not access the exported /home/data Network File System.
+
+#### Subdirectory structure:
 
 ```
 (Root) The distribution root directory, designated as ~
@@ -135,43 +216,7 @@ __TODO__ Document the sample programs.
 The project Wiki contains complete build instructions starting from an
 "Ubuntu Desktop for developers" package.
 
-#### Licensing
-All content is distributed AS-IS, without purpose or warranty of any kind;
-not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-This is an open source project, consisting of free content distributed under
-open source licenses.
-
-Most source code is distributed under the GNU Public License.
-Most include headers are distributed under the Lesser GPL.
-
-Exceptions exist for imported code.
-For example, ~/src/cpp/inc/pub/memory.h essentially uses and adds nothing to
-the Boost atomic_shared_ptr and is distributed under the BOOST license.
-
-Documentation, such as this file, and control files (e.g. make files) are
-normally distributed using the MIT license. (No attribution is required.)
-
-The Creative Commons license is used (at least) for Lilypond (music) files.
-Code intended to be used as skeleton code samples or cut and paste fragments
-generally use the un-license, given to the public domain.
-
-#### Usage notes-
-The trunk branch is relatively well tested;
-The maint branch is more current but is sometimes used for distribution
-testing.
-
-The distribution is kept locally in /home/data/home/.
-In addition to this public distribution, the /home/data/. directory contains
-information shared between multiple machines.
-A build test (virtual) machine only updates source files from github.
-
-Links into /home/data that do not also link to /home/data/home
-are used at times similarly to links to /home/data/usr/.
-In particular, java web applications cannot use links when running
-in Cygwin, so we use a direct path to /home/data/web/database/ instead.
-
-#### Further reading-
+#### Further reading
 
 - [Documentation](src/doc/index.md)
-- [Latest Commit](./COMMIT.md)
+- [Change log](./COMMIT.md)

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2012 arduino.cc/.
+//       Copyright (c) 2012 arduino.cc/.
 //       Copyright (C) 2012 github.com/.
 //
 //       This file is free content, distributed under the GNU General

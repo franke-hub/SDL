@@ -27,6 +27,7 @@
 !/js
 !/make
 !/mcs
+!/perl
 !/py
 
 ## Global file ignores (Debugging and error files)

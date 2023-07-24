@@ -288,7 +288,7 @@ void
 //       Editor::~Editor
 //
 // Purpose-
-//       Editor constructor
+//       Editor destructor
 //
 //----------------------------------------------------------------------------
    Editor::~Editor( void )          // Destructor

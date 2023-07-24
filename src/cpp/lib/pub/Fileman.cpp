@@ -18,6 +18,9 @@
 // Last change date-
 //       2022/09/15
 //
+// Implementation note-
+//       TODO: Deprecate, rename to Data.h; rename line=>get_list; etc.
+//
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
 #include <dirent.h>                 // For struct dirent
@@ -130,6 +133,13 @@ void
 void
    Data::debug( void ) const        // Debugging display
 {
+   size_t index= 0;
+   for(Line* line= _line.get_head(); line; line= line->get_next()) {
+     printf("[%4zd] '%s'\n", ++index, line->text);
+   }
+   if( index )
+     printf("\n");
+
    for(Pool* pool= _pool.get_head(); pool != nullptr; pool= pool->get_next())
      pool->debug();
 }

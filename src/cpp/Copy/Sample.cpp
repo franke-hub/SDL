@@ -1,11 +1,11 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
-//       This file is free content, distributed under the "un-license,"
+//       This file is free content, distributed under creative commons CC0,
 //       explicitly released into the Public Domain.
-//       (See accompanying file LICENSE.UNLICENSE or the original
-//       contained within http://unlicense.org)
+//       (See accompanying html file LICENSE.ZERO or the original contained
+//       within https://creativecommons.org/publicdomain/zero/1.0/legalcode)
 //
 //----------------------------------------------------------------------------
 //
@@ -13,10 +13,10 @@
 //       Sample.cpp
 //
 // Purpose-
-//       Sample source file.
+//       Sample implentation source file (for a local library object)
 //
 // Last change date-
-//       2020/10/04
+//       2023/07/23
 //
 // Implementation note-
 //       The basic source file template is given to the public domain.
@@ -25,37 +25,29 @@
 //       The source file's "look and feel" is explicitly not copyrighted.
 //
 //----------------------------------------------------------------------------
-#include <pub/Debug.h>              // For debugging
+#include <pub/config.h>             // For _PUB_NAMESPACE macro
+#include <pub/Debug.h>              // For namespace debugging
 #include "Sample.h"                 // Object declarations
 
-using namespace _PUB_NAMESPACE::debugging; // For debugging
+#define PUB _PUB_NAMESPACE          // (More useful if used more than once)
+using namespace PUB::debugging;     // For debugging subroutines
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#define HCDM                        // If defined, Hard Core Debug Mode
-#endif
+// Usage: if( HCDM ) { ... }, if( VERBOSE > 1 ) { ... }
+// Compiler verfies compilation; optimization elides unreachable statements.
+enum
+{  HCDM= true                       // Hard Core Debug Mode?
+,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
-#include <pub/ifmacro.h>
+,  USE_DEBUG= true                  // Activate debug method?
+};
 
-namespace _PUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
 Sample                 Sample::global; // The global Sample
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Sample::~Sample
-//
-// Purpose-
-//       Destructor
-//
-//----------------------------------------------------------------------------
-   Sample::~Sample( void )          // Destructor
-{  IFHCDM( debugf("%4d Sample(%p)::~Sample\n", __LINE__, this); ) }
 
 //----------------------------------------------------------------------------
 //
@@ -68,7 +60,19 @@ Sample                 Sample::global; // The global Sample
 //----------------------------------------------------------------------------
    Sample::Sample( void )           // Constructor
 :  name("sample")                   // Yes, they're all the same
-{  IFHCDM( debugf("%4d Sample(%p)::Sample\n", __LINE__, this); ) }
+{  if( HCDM ) debugf("%4d Sample(%p)::Sample\n", __LINE__, this); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Sample::~Sample
+//
+// Purpose-
+//       Destructor
+//
+//----------------------------------------------------------------------------
+   Sample::~Sample( void )          // Destructor
+{  if( HCDM ) debugf("%4d Sample(%p)::~Sample\n", __LINE__, this); }
 
 //----------------------------------------------------------------------------
 //
@@ -80,26 +84,15 @@ Sample                 Sample::global; // The global Sample
 //
 //----------------------------------------------------------------------------
 void
-   Sample::debug( void ) const      // Debugging display
+   Sample::debug(                       // Debugging display
+     const char*       info) const      // Informational message
 {
-IFHCDM(
-   debugf("Sample(%p)::debug\n", this);
-   debugf("name(%s)\n", name.c_str());
-)
+   if( USE_DEBUG ) {
+     debugf("Sample(%p)::debug(%s)\n", this, info);
+     debugf("name(%s)\n", name.c_str());
+     debugf("global.name(%s)\n", global.name.c_str());
+   }
 }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Sample::run
-//
-// Purpose-
-//       Implement the default run method.
-//
-//----------------------------------------------------------------------------
-void
-   Sample::run( void )              // Run this Sample
-{  IFHCDM( debugf("%4d Sample(%p)::run\n", __LINE__, this); ) }
 
 //----------------------------------------------------------------------------
 //
@@ -113,27 +106,3 @@ void
 void
    Sample::start( void )            // Start this Sample
 {  run(); }                         // To start it is to run it
-} // namespace _PUB_NAMESPACE
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       main
-//
-// Purpose-
-//       Mainline code
-//
-// Implementation note-
-//       We don't normally include main in an object implementation, but this
-//       is only a simple sample.
-//
-//----------------------------------------------------------------------------
-int                                 // void also allowed
-   main(int, char**)                // Mainline code
-//   int               argc,        // Argument count (Unused)
-//   char*             argv[])      // Argument array (Unused)
-{
-   pub::Sample sample;
-   sample.debug();
-   return 0;
-}

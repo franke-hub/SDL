@@ -1,11 +1,11 @@
 ##############################################################################
 ##
-##       Copyright (C) 2020 Frank Eskesen.
+##       Copyright (C) 2020-2023 Frank Eskesen.
 ##
-##       This file is free content, distributed under the "un-license,"
+##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
-##       (See accompanying file LICENSE.UNLICENSE or the original
-##       contained within http://unlicense.org)
+##       (See accompanying html file LICENSE.ZERO or the original contained
+##       within https://creativecommons.org/publicdomain/zero/1.0/legalcode)
 ##
 ##############################################################################
 ##
@@ -16,22 +16,26 @@
 ##       README information file.
 ##
 ## Last change date-
-##       2020/01/29
+##       2023/07/23
 ##
 ## Information-
 ##       The basic .README file template is given to the public domain.
 ##       You can freely use it without attribution of any kind.
 ##
-##       A .README file's "look and feel" is explicitly not copyrighted.
-##       Likewise, the source directory's "look and feel" is explicitly
-##       not copyrighted.
+##       The .README file's "look and feel" is explicitly not copyrighted.
+##       Likewise, the source and object directory's "look and feel" are
+##       explicitly not copyrighted.
 ##
 ##############################################################################
 
 ##############################################################################
-## STATUS: 2020/01/29 Operational
+## STATUS: 2023/07/23 Operational
+         Added examples: local library build, make pristine (placeholder)
+
+##############################################################################
+## CHANGE LOG:
+2020/01/29 Initial operational release
          This particular README format is used for project tracking.
-         The sample code is as operational as it's going to get.
 
 ##############################################################################
 ## BUGS:

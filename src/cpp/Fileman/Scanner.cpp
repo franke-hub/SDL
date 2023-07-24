@@ -16,7 +16,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2023/05/24
+//       2023/07/24
 //
 // Verifications-
 //       File permissions. (Auto-correctable)
@@ -60,6 +60,14 @@
 //       scanner --verbose=5 or more
 //         * Adds extensive debugging display
 //
+// Implementation notes-
+//       TODO: Use options rather than verbose to activate functions.
+//       TODO: Simplify scanning. All copyrights are identical except for
+//             their leading comment control characters.
+//             Maybe add leading characters to html file comment extensions,
+//             like the ** between /** and **/.
+//       TODO: See what can be done to auto-update file attributes.
+//
 //----------------------------------------------------------------------------
 #undef  _GNU_SOURCE                 // For strcasestr
 #define _GNU_SOURCE                 // For strcasestr
@@ -90,13 +98,16 @@ typedef Tokenizer::Iterator Iterator;
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
+enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
-#include <pub/ifmacro.h>            // For IFHCDM
+// TEST: opt_verbose == OPT_EXTENSIONS
+,  OPT_EXTENSIONS= -101             // Get list of file extensions?
+}; // Generic enum
 
-#define OPT_EXTENSIONS -101         // Get list of file extensions
+// USE_AUTO_UPDATE must be a #define for conditional data defines
+#define USE_AUTO_UPDATE false       // Use extended automatic update?
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -118,33 +129,33 @@ static Data*           data_none= nullptr; // Common: unmatchable copyright
 static Data*           bash_gpl=  nullptr; // The GPL  bash copyright header
 static Data*           bash_lgpl= nullptr; // The LGPL bash copyright header
 static Data*           bash_mit=  nullptr; // The MIT  bash copyright header
-static Data*           bash_none= nullptr; // The NONE bash copyright header
 static Data*           bash_sa30= nullptr; // The SA30 bash copyright header
 static Data*           bash_sa40= nullptr; // The SA40 bash copyright header
+static Data*           bash_zero= nullptr; // The NONE bash copyright header
 static int             bash_count[COPY_TYPES]= {};
 
 static Data*           code_gpl=  nullptr; // The GPL  code copyright header
 static Data*           code_lgpl= nullptr; // The LGPL code copyright header
 static Data*           code_mit=  nullptr; // The MIT  code copyright header
-static Data*           code_none= nullptr; // The NONE code copyright header
 static Data*           code_sa30= nullptr; // The SA30 bash copyright header
 static Data*           code_sa40= nullptr; // The SA40 bash copyright header
+static Data*           code_zero= nullptr; // The NONE code copyright header
 static int             code_count[COPY_TYPES]= {};
 
 static Data*           html_gpl=  nullptr; // The GPL  html copyright header
 static Data*           html_lgpl= nullptr; // The LGPL html copyright header
 static Data*           html_mit=  nullptr; // The MIT  html copyright header
-static Data*           html_none= nullptr; // The NONE html copyright header
 static Data*           html_sa30= nullptr; // The SA30 bash copyright header
 static Data*           html_sa40= nullptr; // The SA40 bash copyright header
+static Data*           html_zero= nullptr; // The NONE html copyright header
 static int             html_count[COPY_TYPES]= {};
 
 static Data*           lily_gpl=  nullptr; // The GPL  lily copyright header
 static Data*           lily_lgpl= nullptr; // The LGPL html copyright header
 static Data*           lily_mit=  nullptr; // The MIT  html copyright header
-static Data*           lily_none= nullptr; // The NONE lily copyright header
 static Data*           lily_sa30= nullptr; // The SA30 lily copyright header
 static Data*           lily_sa40= nullptr; // The SA40 lily copyright header
+static Data*           lily_zero= nullptr; // The NONE lily copyright header
 static int             lily_count[COPY_TYPES]= {};
 
 static int             misc_count[COPY_TYPES]= {};
@@ -158,9 +169,9 @@ static const name2data bash_table[]=
 {  {  " GPL", &bash_gpl }
 ,  {  "LGPL", &bash_lgpl}
 ,  {  " MIT", &bash_mit }
-,  {  "UNLI", &bash_none}
 ,  {  "SA30", &bash_sa30}
 ,  {  "SA40", &bash_sa40}
+,  {  "ZERO", &bash_zero}
 ,  {  nullptr, nullptr  }
 };
 
@@ -168,9 +179,9 @@ static const name2data code_table[]=
 {  {  " GPL", &code_gpl }
 ,  {  "LGPL", &code_lgpl}
 ,  {  " MIT", &code_mit }
-,  {  "UNLI", &code_none}
 ,  {  "SA30", &code_sa30}
 ,  {  "SA40", &code_sa40}
+,  {  "ZERO", &code_zero}
 ,  {  nullptr, nullptr  }
 };
 
@@ -178,9 +189,9 @@ static const name2data html_table[]=
 {  {  " GPL", &html_gpl }
 ,  {  "LGPL", &html_lgpl}
 ,  {  " MIT", &html_mit }
-,  {  "UNLI", &html_none}
 ,  {  "SA30", &html_sa30}
 ,  {  "SA40", &html_sa40}
+,  {  "ZERO", &html_zero}
 ,  {  nullptr, nullptr  }
 };
 
@@ -188,9 +199,9 @@ static const name2data lily_table[]=
 {  {  " GPL", &lily_gpl }
 ,  {  "LGPL", &lily_lgpl}
 ,  {  " MIT", &lily_mit }
-,  {  "UNLI", &lily_none}
 ,  {  "SA30", &lily_sa30}
 ,  {  "SA40", &lily_sa40}
+,  {  "ZERO", &lily_zero}
 ,  {  nullptr, nullptr  }
 };
 
@@ -203,7 +214,7 @@ static int             opt_help= false; // --help (or error)
 static int             opt_format= false; // Check/repair file (unix) format
 static int             opt_index;   // Option index
 static int             opt_multi= false; // Allow multiple errors
-static int             opt_verbose= -1; // Verbosity (Higher is more)
+static int             opt_verbose= VERBOSE; // Verbosity (Higher is more)
 static int             opt_verify= false; // Verify copyright
 static int             opt_x= false; // Auto-correct extended mode
 
@@ -213,7 +224,7 @@ static struct option   OPTS[]=      // The getopt_long longopts parameter
 ,  {"format",  no_argument,       &opt_format,  true}
 ,  {"multi",   no_argument,       &opt_multi,   true}
 ,  {"verify",  no_argument,       &opt_verify,  true}
-,  {"verbose", optional_argument, &opt_verbose, true}
+,  {"verbose", optional_argument, &opt_verbose,    1}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
@@ -328,37 +339,37 @@ static void
      HOME= HOME + "/";
 
    // Load copyright data
-   string base= HOME + "src/.C";    // The base copyright file path
+   string base= HOME + "/src/.C";       // The base license file path
 
    data_none= new Data(base, ".LICENSE"); // Load an unmatchable copyright
 
    bash_gpl=  new Data(base, "B.GPL");  // Load the GPL  copyright
    bash_lgpl= data_none;                // Load the LGPL copyright (disallowed)
    bash_mit=  new Data(base, "B.MIT");  // Load the MIT  copyright
-   bash_none= new Data(base, "B.NONE"); // Load the NONE copyright
    bash_sa30= data_none;                // Load the SA30 copyright (undefined)
    bash_sa40= data_none;                // Load the SA40 copyright (undefined)
+   bash_zero= new Data(base, "B.ZERO"); // Load the NONE copyright
 
    code_gpl=  new Data(base, "C.GPL");  // Load the GPL  copyright
    code_lgpl= new Data(base, "C.LGPL"); // Load the LGPL copyright
    code_mit=  new Data(base, "C.MIT");  // Load the MIT  copyright
-   code_none= new Data(base, "C.NONE"); // Load the NONE copyright
    code_sa30= new Data(base, "C.SA30"); // Load the SA30 copyright
    code_sa40= new Data(base, "C.SA40"); // Load the SA40 copyright
+   code_zero= new Data(base, "C.ZERO"); // Load the NONE copyright
 
    html_gpl=  new Data(base, "H.GPL");  // Load the GPL  copyright
    html_lgpl= data_none;                // Load the LGPL copyright (disallowed)
    html_mit=  new Data(base, "H.MIT");  // Load the MIT  copyright
-   html_none= new Data(base, "H.NONE"); // Load the NONE copyright
    html_sa30= data_none;                // Load the SA30 copyright (undefined)
    html_sa40= data_none;                // Load the SA40 copyright (undefined)
+   html_zero= new Data(base, "H.ZERO"); // Load the NONE copyright
 
    lily_gpl=  new Data(base, "L.GPL");  // Load the GPL  copyright
    lily_lgpl= data_none;                // Load the LGPL copyright (disallowed)
    lily_mit=  data_none;                // Load the MIT  copyright (undefined)
-   lily_none= new Data(base, "L.NONE"); // Load the NONE copyright
    lily_sa30= new Data(base, "L.SA30"); // Load the SA30 copyright
    lily_sa40= data_none;                // Load the SA40 copyright (undefined)
+   lily_zero= new Data(base, "L.ZERO"); // Load the NONE copyright
 
    // Get list of IGNORE files
    IGNORE.open(".", ".ignore");     // List of files to ignore
@@ -397,59 +408,69 @@ static void
    delete bash_gpl;
 // delete bash_lgpl;
    delete bash_mit;
-   delete bash_none;
 // delete bash_sa30;
 // delete bash_sa40;
+   delete bash_zero;
 
    delete code_gpl;
    delete code_lgpl;
    delete code_mit;
-   delete code_none;
    delete code_sa30;
    delete code_sa40;
+   delete code_zero;
 
    delete html_gpl;
 // delete html_lgpl;
    delete html_mit;
-   delete html_none;
 // delete html_sa30;
 // delete html_sa40;
+   delete html_zero;
 
    delete lily_gpl;
 // delete lily_lgpl;
 // delete lily_mit;
-   delete lily_none;
    delete lily_sa30;
 // delete lily_sa40;
+   delete lily_zero;
 
    //-------------------------------------------------------------------------
    // Verify all IGNORE entries found
    //-------------------------------------------------------------------------
-   if( opt_verbose > 2 ) {
-     int found= 0;
+   if( true ) {
+     // Locate and count ignored files and paths
+     int paths= 0;
+     int files= 0;
      for(Line* line= IGNORE.line().get_head(); line; line= line->get_next())
      {
+       if( files == 0 && paths == 0 )
+         fprintf(stderr, "Missing .ignores:\n");
        size_t L= strlen(line->text);
-       if( L > 1 && strcmp(&line->text[L-2], "/*") == 0 ) // If ignored path
-         continue;                  // (Not currently verified)
-       if( found == 0 )
-         fprintf(stderr, "\n.ignore files not found:\n");
-
-       fprintf(stderr, "%s\n", line->text);
-       ++found;
+       if( L > 1 && strcmp(&line->text[L-2], "/*") == 0 ) { // If ignored path
+         fprintf(stderr, "Path: %s\n", line->text);
+         ++paths;
+       } else {                     // If ignore file
+         fprintf(stderr, "File: %s\n", line->text);
+         ++files;
+       }
      }
-     if( found == 0 )
-       printf("\nAll .ignore files found\n");
+     if( paths == 0 )
+       printf("*ALL* .ignore paths found\n");
      else
-       fprintf(stderr, "%d .ignore file%s not found\n", found
-              , found == 1 ? "" : "s");
+       fprintf(stderr, "%5d .ignore path%s not found\n", paths
+              , paths == 1 ? "" : "s");
+
+     if( files == 0 )
+       printf("*ALL* .ignore files found\n");
+     else
+       fprintf(stderr, "%5d .ignore file%s not found\n", files
+              , files == 1 ? "" : "s");
    }
    IGNORE.close();
 
    //-------------------------------------------------------------------------
    // Display verification statistics
    //-------------------------------------------------------------------------
-   if( opt_verify ) {
+   if( true ) {
      printf("\nBash format copyrights:\n");
      for(int i=  0; i < COPY_TYPES; ++i ) {
        printf("%s: %6d\n", bash_table[i].name, bash_count[i]);
@@ -702,8 +723,9 @@ static inline bool                  // TRUE iff name is in "bash" format
    is_bash(                         // Is file in bash format?
      const string&     name)        // The filename
 {
+   string ext= get_extension(name);
    if( name == ".gitignore" || name == ".README" || name == "README"
-       || starts_with(name, "Makefile") )
+       || starts_with(name, "Makefile") || ext == "py" )
      return true;
 
    return false;
@@ -724,7 +746,7 @@ static inline bool                  // TRUE iff name is in "code" format
 {
    string ext= get_extension(name);
    if( ext == "cpp" || ext == "h" || ext == "hpp" || ext == "i" || ext == "c"
-       || ext == "cs" || ext == "py" || ext == "java" || ext == "js"
+       || ext == "cs" || ext == "java" || ext == "js"
      ) return true;
 
    return false;
@@ -939,7 +961,7 @@ static void
      return;
    }
 
-   if( opt_verbose >= 0 ) {
+   if( opt_verbose > 0 ) {
      if( opt_x == false ) {
        printf("File(%s) Correctable last(%d) copy(%d)\n",
               full.c_str(), l_yy, year);
@@ -1096,7 +1118,7 @@ static int                          // The copyright year, -1 if invalid
 
    //-------------------------------------------------------------------------
    // Correctable date detected
-   if( opt_verbose >= 0 ) {         // If user is interested
+   if( opt_verbose > 0 ) {          // If user is interested
      if( opt_x ) {                  // If auto-correct allowed
        text= comment + " ";
        if( text.length() < 9 )
@@ -1122,6 +1144,69 @@ static int                          // The copyright year, -1 if invalid
 
 //----------------------------------------------------------------------------
 //
+// Data area-
+//       verify_info_*
+//
+// Function-
+//       Define the obsolete licenses
+//
+//----------------------------------------------------------------------------
+#if USE_AUTO_UPDATE
+/*****************************************************************************
+Auto-update is complete. This should have been done with one verify_info_xxxx
+table, replacing the original comment header characters. There were a lot of
+unique comment headers, and corrections were made fixing these headers one by
+one.
+*****************************************************************************/
+
+static const char*     verify_info_bash[]=
+{ "##"
+, "##       This file is free content, distributed under the \"un-license,\""
+, "##       explicitly released into the Public Domain."
+, "##       (See accompanying file LICENSE.UNLICENSE or the original"
+, "##       contained within http://unlicense.org)"
+, "##"
+, nullptr
+};
+
+static const char*     verify_info_code[]=
+{ "//"
+, "//       This file is free content, distributed under the \"un-license,\""
+, "//       explicitly released into the Public Domain."
+, "//       (See accompanying file LICENSE.UNLICENSE or the original"
+, "//       contained within http://unlicense.org)"
+, "//"
+, nullptr
+};
+
+static const char*     verify_info_html[]=
+{ ""
+, "         This file is free content, distributed under the \"un-license,\""
+, "         explicitly released into the Public Domain."
+, "         (See accompanying file LICENSE.UNLICENSE or the original"
+, "         contained within http://unlicense.org)"
+, ""
+, nullptr
+};
+
+static const char*     verify_info_lily[]=
+{ "%%"
+, "%%       This file is free content, distributed under the \"un-license,\""
+, "%%       explicitly released into the Public Domain."
+, "%%       (See accompanying file LICENSE.UNLICENSE or the original"
+, "%%       contained within http://unlicense.org)"
+, "%%"
+, nullptr
+};
+#else // Referenced by code that's optimized out rather than by #if ... #endif
+static const char*     verify_info_bash[]= { nullptr }; // Wasted space
+static const char*     verify_info_code[]= { nullptr };
+static const char*     verify_info_html[]= { nullptr };
+static const char*     verify_info_lily[]= { nullptr };
+#endif
+
+//----------------------------------------------------------------------------
+//
 // Subroutine-
 //       verify_info
 //
@@ -1139,7 +1224,7 @@ static void
      return;
    }
 
-   int* count= misc_count;          // Default: MISC format
+   int*             count= misc_count; // Default: misc (a.k.a bash)
    const name2data* table= misc_table;
    string file= data.file();
    if( is_bash(file) ) {
@@ -1159,6 +1244,11 @@ static void
    for(int i= 0; table[i].name; i++) {
      Data* info= *table[i].data;
      Line* lhs= get_copyline(*info)->get_next();
+     if( lhs == nullptr ) {
+       fprintf(stderr, "Table(%s) undefined, exiting\n", table[i].name);
+       exit(1);
+     }
+
      Line* rhs= line->get_next();
      while( lhs ) {
        if( !rhs )
@@ -1187,13 +1277,90 @@ static void
      }
    }
 
+   //-------------------------------------------------------------------------
+   // This code handles a one-time automatic copyright update, changing the
+   // public domain copyright detail.
+   // Once all source update operations complete, USE_AUTO_UPDATE is set false
+   // so that compiler optimization prevents the associated object code
+   // generation.
+   if( USE_AUTO_UPDATE ) {          // Fix/fail copyright update
+     // Determine which old format public domain copyright applies
+     Data*        info= nullptr;
+     const char** oldi= nullptr;
+
+     if( table == bash_table ) {
+       info= bash_zero;
+       oldi= verify_info_bash;
+     } else if( table == code_table ) {
+       info= code_zero;
+       oldi= verify_info_code;
+     } else if( table == html_table ) {
+       info= html_zero;
+       oldi= verify_info_html;
+     } else if( table == lily_table ) {
+       info= lily_zero;
+       oldi= verify_info_lily;
+     } else {                         // (default == bash_table)
+       info= bash_zero;
+       oldi= verify_info_bash;
+     }
+
+     // Compare the current copyright text with the obsolete text
+     int index= 0;
+     const char* lhs= oldi[0];
+     Line*       rhs= line->get_next();
+     while( lhs ) {
+       if( !rhs )
+         break;
+
+       // Account for possible empty lines
+       // If a line is not empty, it must contain at least 2 characters
+       if( *lhs == '\0' ) {
+         if(*rhs->text != '\0' )   // LHS empty but RHS not empty
+           break;
+       } else if( *rhs->text == '\0' ) { // LHS not empty but RHS empty
+         break;
+       } else if( strcmp(lhs+2, rhs->text+2) != 0 ) {
+         break;
+       }
+
+       lhs= oldi[++index];
+       rhs= rhs->get_next();
+     }
+     if( lhs == nullptr ) {
+       printf("File(%s) correct%s public domain (c)\n"
+             , data.full().c_str(), opt_x ? "ed" : "able");
+
+       if( opt_x ) {                // If repair option selected
+         pub::DHDL_list<Line>& list= info->line();
+         index= 0;
+         Line* lhs= get_copyline(*info)->get_next();
+         rhs= line->get_next();
+         while( lhs ) {
+           Line* rhs_prior= rhs->get_prev();
+           list.remove(rhs);
+           rhs= info->get_line(lhs->text);
+           list.insert(rhs_prior, rhs);
+           lhs= lhs->get_next();
+           rhs= rhs->get_next();
+         }
+
+         data.write();
+       }
+       if( !opt_multi )
+         exit(0);
+       return;
+     }
+   }
+
+   // Unable to automatically update the copyright.
    printf("File(%s) Copyright invalid\n", data.full().c_str());
    if( !opt_multi )
      exit(0);
 }
 
 //----------------------------------------------------------------------------
-//                                  `
+//
 // Subroutine-
 //       handle_bash
 //
@@ -1231,7 +1398,7 @@ static void
 //       Handle a code (.cpp,...) format file
 //
 // Implementation note-
-//       This also handles python (.py) and lily (.ly) format files.
+//       This also handles lily (.ly) format files.
 //
 //----------------------------------------------------------------------------
 static void
@@ -1409,7 +1576,7 @@ static void
          continue;                  // And ignore it
        }
 
-       if( opt_verbose >= 0 ) {
+       if( opt_verbose > 0 ) {
          mode_t mode= file->st.st_mode & ACCESSPERMS;
          mode_t want= S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
          mode_t exec= want    | S_IXUSR | S_IXGRP | S_IXOTH;
@@ -1458,7 +1625,7 @@ static void
          }
        }
 
-       if( opt_verbose >= 0 )
+       if( opt_verbose > 0 )
          handle_data(data);         // Common file checking
        if( is_code(name) )          // Implementation note: Sort likely first
          handle_code(data);
@@ -1496,7 +1663,7 @@ static void
        }
 
        full= path + "/" + file->name;
-       if( opt_verbose >= 0 ) {
+       if( opt_verbose > 0 ) {
          mode_t mode= file->st.st_mode & ACCESSPERMS;
          mode_t want= S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
          mode_t exec= want    | S_IXUSR | S_IXGRP | S_IXOTH;

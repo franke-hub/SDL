@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2023/06/04
+##       2023/07/20
 ##
 ##############################################################################
 
@@ -49,13 +49,23 @@ make.dir: $(MAKEXE) cert.dir        ## Default: build executable, certificates
 do: T_Stream
 	T_Stream --server --stress=1 --major=2
 
-.PHONY: include                     ## Include is only compiled on demand
-include: Include
+.PHONY: include, _include           ## Includes are only compiled on demand
+include: ;
+	-@rm -f Include Include.o >/dev/null 2>/dev/null
+	$(MAKE) Include
 	Include
+
+_include: ;
+	-@rm -f _Include _Include.o >/dev/null 2>/dev/null
+	$(MAKE) _Include
+	_Include
+
+include: H/dev/*
+_include: H/dev/*
 
 .PHONY: list
 list: ;
-	@echo "Targets: do, include, list"
+	@echo "Targets: do, include, _include, list"
 	@echo "Removes: client, dirty, option, server, stress, test"
 
 .PHONY: quick
@@ -99,8 +109,6 @@ verify: ;
 include $(INCDIR)/dev/Makefile.BSD  ## DEV library controls
 include $(INCDIR)/pub/Makefile.BSD  ## PUB library controls
 
-Include: $(INCDIR)/pub/http/*       ## Include test depends on include
-
 $(MAKEXE): $(LIBDIR)/libdev.a $(LIBDIR)/libpub.a
 
 ##############################################################################
@@ -120,4 +128,5 @@ clean.dir: ;
 	-@rm -f make.dir    >/dev/null 2>/dev/null
 	-@rm -f Dirty       >/dev/null 2>/dev/null
 	-@rm -f Include     >/dev/null 2>/dev/null
+	-@rm -f _Include    >/dev/null 2>/dev/null
 

@@ -1,12 +1,12 @@
 ##############################################################################
 ##
 ##       Copyright (C) 2016 Frank Eskesen.
-##
-##       This file is free content, distributed under the "un-license,"
-##       explicitly released into the Public Domain.
-##       (See accompanying file LICENSE.UNLICENSE or the original
-##       contained within http://unlicense.org)
-##
+//
+//       This file is free content, distributed under creative commons CC0,
+//       explicitly released into the Public Domain.
+//       (See accompanying html file LICENSE.ZERO or the original contained
+//       within https://creativecommons.org/publicdomain/zero/1.0/legalcode)
+//
 ##############################################################################
 ##
 ## Title-

@@ -30,15 +30,27 @@
 //       Signal::reset or Signal::~Signal disconnects all of that Signal's
 //       associations.
 //
-//       When an application invokes Signal::signal, it then serially invokes
+//       When an application invokes Signal::signal, signal serially invokes
 //       each connected Event handler. All connected Event handlers will have
 //       been called before signal returns. No thread switching occurs.
+//
+// Usage restrictions-
+//       Signal handlers run holding a SHR_latch on the Listener's Connector
+//       list. Therefore Signal handlers must not create or remove Connectors
+//       for the same Signal, which requires an XCL_latch on that list.
+//       Obtaining that XCL_latch waits for all SHR_latch holders to unlock
+//       the latch and a deadlock will occur.
+//       If the list changes during iteration, iteration fails unpredictably.
+//       While it may be possible in certain specialized circumstances to
+//       work around this restriction, that work around will need to rely on
+//       application stability as well as undocumented library internals.
+//       Library internals are subject to change without notice.
 //
 // Thread safety-
 //       Signal objects are NOT thread-safe.
 //       Although some locking code exists, multi-threading is untested.
 //       Connector move construction and assignment are definitely unsafe.
-//           For thread safety, these operations must be (but aren't) atomic.
+//       For thread safety, these operations must be (but aren't) atomic.
 //
 // Sample usage code-
 //       using namespace pub::signals; // For Signal, Connector

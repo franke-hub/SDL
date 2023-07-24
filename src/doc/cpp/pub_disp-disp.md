@@ -55,8 +55,8 @@ to delete the delay.
 
 The Item is posted under control of an internal Dispatch Task.
 
-An application may require this feature under special circumstances.
-For example, if posting an Item might cause the running Task to be deleted
+An application may require this feature under certain circumstances.
+For example, if posting an Item might cause the running Task to be deleted,
 a livelock can occur when that Item is posted.
 Moving the post operation to a different task prevents this livelock.
 
@@ -73,4 +73,4 @@ Terminate the Dispatcher's (internal) delay notification thread.
 All currently scheduled delay operations are posted with the CC_PURGE
 completion code.
 
-Subsequent delay operations restart the delay notification thread.
+Any subsequent delay operation restarts the delay notification thread.

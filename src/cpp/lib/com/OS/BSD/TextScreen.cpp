@@ -23,14 +23,15 @@
 #undef  HCDM                        // If defined, Hard Core Debug Mode
 #endif
 
-#define  NCURSES_INTERNALS 1        // Uses WINDOW
-#include <curses.h>                 // Uses CURSES
 #include <ctype.h>                  // Used in debug traces
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>                 // For STDIN_FILENO
 #include <sys/ioctl.h>              // For ioctl, TIOCGWINSZ
+
+#define  NCURSES_INTERNALS 1        // Uses WINDOW
+#include <curses.h>                 // Uses CURSES
 
 #include <com/Color.h>
 #include <com/Debug.h>

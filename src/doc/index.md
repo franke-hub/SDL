@@ -22,8 +22,8 @@
 # Documentation
 
 [SDL C++ Reference manual:](cpp/REFERENCE.md)
-This is a work in progress, currently only highlighting a lock free
-multi-threading paradigm.
+(A work in progress, currently only highlighting a lock free
+multi-threading paradigm.)
 
 ---
 #### Debugging notes

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (c) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Reporter.h
 //
 // Last change date-
-//       2022/06/24
+//       2023/06/24
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string

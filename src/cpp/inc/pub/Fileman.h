@@ -18,6 +18,9 @@
 // Last change date-
 //       2022/09/02
 //
+// Implementation note-
+//       TODO: Deprecate, rename to Data.h, add copy() and move() methods etc.
+//
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_FILEMAN_H_INCLUDED
 #define _LIBPUB_FILEMAN_H_INCLUDED

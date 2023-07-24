@@ -37,11 +37,18 @@ Handle the completion of the associated work Item.
 
 <!-- ===================================================================== -->
 ---
+### *pub::dispatch::LambdaDone attributes*
+
+`typedef std::function&lt;void(Item*)&gt; function_t;` // The lambda function signature
+
+`protected: function_t callback` // The lambda function instance
+
 ### *pub::dispatch::LambdaDone methods*
 
 #### pub::dispatch::Wait::LambdaDone(void) : public Done;
 
-The (default) LambdaDone constructor. The lambda function is undefined.
+The (default) LambdaDone constructor.
+There is no default lambda function. It's left undefined.
 
 ---
 #### pub::dispatch::Wait::LambdaDone(function_t _cb) : public Done;
@@ -51,13 +58,16 @@ An initializing LambdaDone constructor, defining the lambda function.
 ---
 #### virtual void pub::dispatch::LambdaDone::done(Item* item);
 
-(For internal use only.
-This overrides Done::done and invokes the callback lambda function.)
+For internal use only.
+This overrides Done::done. It just invokes the callback lambda function.
+
+You provide the done functionality either in the constructor or
+by using the on_done method.
 
 ---
 #### virtual void pub::dispatch::LambdaDone::on_done(function_t _cb);
 
-Replaces the callback lambda function.)
+Replaces the callback lambda function.
 
 <!-- ===================================================================== -->
 ---
