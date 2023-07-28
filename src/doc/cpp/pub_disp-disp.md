@@ -15,12 +15,12 @@
 //       Dispatch.h reference manual: Disp
 //
 // Last change date-
-//       2023/06/21
+//       2023/07/28
 //
 -------------------------------------------------------------------------- -->
 ## (pub::dispatch::Disp::)cancel, delay, enqueue, post, shutdown
 
-###### Defined in header &lt;pub/Dispatch.h&gt
+###### Defined in header <pub/Dispatch.h>
 
 <!-- ===================================================================== -->
 ---

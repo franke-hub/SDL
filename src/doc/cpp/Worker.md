@@ -15,11 +15,11 @@
 //       Worker.h reference manual
 //
 // Last change date-
-//       2023/06/30
+//       2023/07/28
 //
 -------------------------------------------------------------------------- -->
 ## pub::Worker
-\#include &lt;pub/Worker.h&gt;
+\#include <pub/Worker.h>
 
 Worker is the base class for (pub::)dispatch::Task.
 

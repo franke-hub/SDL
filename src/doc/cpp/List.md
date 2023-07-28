@@ -15,23 +15,23 @@
 //       List.h reference manual
 //
 // Last change date-
-//       2023/06/14
+//       2023/07/28
 //
 -------------------------------------------------------------------------- -->
 ## pub::List
-\#include &lt;pub/List.h&gt;
+\#include <pub/List.h>
 
-Unlike std::List&lt;T&gt;, pub::List elements are links.
+Unlike std::List<T>, pub::List elements are links.
 The various List types do not *own* the Link objects.
 They only control their position on a List.
 
 The List types:
 
-- AI_list&lt;T&gt;: Atomic Insert singly linked list. (Thread safe)
-- DHDL_list&lt;T&gt;: Doubly Headed Doubly Linked list.
-- DHSL_list&lt;T&gt;: Doubly Headed Singly Linked list.
-- SHSL_list&lt;T&gt;: Singly Headed Singly Linked list.
-- List&lt;T&gt;: Alias for DHDL_list&lt;T&gt;.
+- AI_list<T>: Atomic Insert singly linked list. (Thread safe)
+- DHDL_list<T>: Doubly Headed Doubly Linked list.
+- DHSL_list<T>: Doubly Headed Singly Linked list.
+- SHSL_list<T>: Singly Headed Singly Linked list.
+- List<T>: Alias for DHDL_list<T>.
 
 #### AI_list
 

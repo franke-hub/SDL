@@ -15,12 +15,12 @@
 //       Worker.h reference manual
 //
 // Last change date-
-//       2023/06/30
+//       2023/07/28
 //
 -------------------------------------------------------------------------- -->
 ## pub::Worker::work; pub::WorkerPool:: get_running, reset, work
 
-###### Defined in header &lt;pub/Worker.h&gt
+###### Defined in header <pub/Worker.h>
 
 ---
 #### virtual void pub::Worker::work(void);

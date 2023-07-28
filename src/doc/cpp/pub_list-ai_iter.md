@@ -15,12 +15,12 @@
 //       List.h reference manual: AI_list iterator
 //
 // Last change date-
-//       2023/06/14
+//       2023/07/28
 //
 -------------------------------------------------------------------------- -->
-## `AI_list&lt;T&gt;::iterator`:: constructors, begin, end, fifo, get_tail, is_coherent, is_empty, is_on_list, reset(void), reset(void*)
+## `AI_list<T>::iterator`:: constructors, begin, end, fifo, get_tail, is_coherent, is_empty, is_on_list, reset(void), reset(void*)
 
-###### Defined in header &lt;pub/bits/List.h&gt
+###### Defined in header <pub/bits/List.h>
 
 While an AI_list::iterator references the AI_list, the AI_list *does not*
 reference the iterator.
@@ -28,7 +28,7 @@ reference the iterator.
 Fields:
 - pointer _left: The remaining Links
 - pointer _link: The current Link
-- AI_list* _list: The associated AI_list&lt;T&gt;*
+- AI_list* _list: The associated AI_list<T>*
 
 ---
 #### AI_list::iterator::iterator(void) noexcept;

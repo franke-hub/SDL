@@ -15,12 +15,12 @@
 //       Debug.h reference manual
 //
 // Last change date-
-//       2023/07/24
+//       2023/07/28
 //
 -------------------------------------------------------------------------- -->
 ## debugf, errorf, throwf, tracef, vdebugf, verrorf, vtracef, debugh, errorh, traceh, vdebugh, verrorh, vthrowf, vtraceh
 
-###### Defined in header &lt;pub/Debug.h&gt
+###### Defined in header <pub/Debug.h>
 
 (Partially documented)
 

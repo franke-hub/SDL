@@ -15,12 +15,12 @@
 //       Dispatch.h reference manual: Task
 //
 // Last change date-
-//       2023/07/16
+//       2023/07/28
 //
 -------------------------------------------------------------------------- -->
 ## (pub::dispatch::Task::)Task, enqueue, work(void), work(Item*)
 
-###### Defined in header &lt;pub/Dispatch.h&gt
+###### Defined in header <pub/Dispatch.h>
 
 #### class pub::dispatch::Task : public pub::Worker
 
@@ -34,7 +34,7 @@ The LambdaTask is derived from Task.
 LambdaTask contains:
 
 ```
-typedef std::function&lt;void(Item*)&gt; function_t;
+typedef std::function<void(Item*)> function_t;
 function_t             callback;
 ```
 
@@ -112,8 +112,8 @@ Replaces the Work(Item*) handler with the specified function.
 
 Sample usage example:
 ```
-#include &lt;cstdio&gt;
-#include &lt;pub/Dispatch.h&gt;
+#include <cstdio>
+#include <pub/Dispatch.h>
 int main( void )
 {
     using namespace pub::dispatch;

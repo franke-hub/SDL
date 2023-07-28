@@ -15,14 +15,14 @@
 //       Dispatch.h reference manual: Item
 //
 // Last change date-
-//       2023/06/21
+//       2023/07/28
 //
 -------------------------------------------------------------------------- -->
 ## (pub::dispatch::Item::)Item, post
 
-###### Defined in header &lt;pub/Dispatch.h&gt;
+###### Defined in header <pub/Dispatch.h>
 
-#### struct pub::dispatch::Item : public AI_list\&lt;pub::dispatch::Item&gt;::Link
+#### struct pub::dispatch::Item : public AI_list<pub::dispatch::Item>::Link
 
 Constants:
 

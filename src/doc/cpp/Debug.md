@@ -15,11 +15,11 @@
 //       Debug.h reference manual
 //
 // Last change date-
-//       2023/07/24
+//       2023/07/28
 //
 -------------------------------------------------------------------------- -->
 ## pub::Debug
-\#include &lt;pub/Debug.h&gt;
+\#include <pub/Debug.h>
 
 (Partially documented)
 
@@ -32,7 +32,6 @@
 | [errorf](./pub_debug.md) | Write to stderr and the trace file |
 | [errorh](./pub_debug.md) | Write to stderr and the trace file, including heading information |
 | [throwf](./pub_debug.md) | Write to stderr and the trace file, then throw an exception |
-| throwh | (NOT IMPLEMENTED) Write to stderr and the trace file including heading information, then throw an exception |
 | [tracef](./pub_debug.md) | Write (only) to the trace file |
 | [traceh](./pub_debug.md) | Write (only) to the trace file, including heading information |
 | [vdebugf](./pub_debug.md) | Write to stdout and the trace file |

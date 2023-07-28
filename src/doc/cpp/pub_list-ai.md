@@ -15,20 +15,20 @@
 //       List.h reference manual: AI_list<T>
 //
 // Last change date-
-//       2023/06/14
+//       2023/07/28
 //
 -------------------------------------------------------------------------- -->
-## `AI_list&lt;T&gt;::` begin, end, fifo, get_tail, is_coherent, is_empty, is_on_list, reset(void), reset(void*)
+## `AI_list<T>::` begin, end, fifo, get_tail, is_coherent, is_empty, is_on_list, reset(void), reset(void*)
 
-###### Defined in header &lt;pub/List.h&gt
+###### Defined in header <pub/List.h>
 
-See also: [`AI_list&lt;T&gt;::iterator`](./pub_list-ai_iter.md)
+See also: [`AI_list<T>::iterator`](./pub_list-ai_iter.md)
 
 Types:
-- `AI_list&lt;T&gt;::struct Link`: The Link type
+- `AI_list<T>::struct Link`: The Link type
 
-`AI_list&lt;T&gt;` Links are implemented using
-`class T : public pub::AI_list&lt;T&gt::Link {...};`
+`AI_list<T>` Links are implemented using
+`class T : public pub::AI_list<T>::Link {...};`
 
 ---
 #### iterator begin() noexcept;
@@ -73,21 +73,69 @@ Empty the List, replacing it with a dummy Link
 
 ---
 
+### Example:
+Note that the Item added onto the list while iterating is handled by the
+same iteration.
+
+
 ```
-#include <pub/Debug.h>              // For namespace PUB::debugging
+#include <assert.h>                 // For assert
+#include <stdio.h>                  // For printf
+#include <stdlib.h>                 // For size_t
+
 #include <pub/Dispatch.h>           // For namespace PUB::dispatch
 #include <pub/List.h>               // For PUB::AI_list, ...
-#include <pub/Thread.h>             // For PUB::Thread
 #define PUB _LIBPUB_NAMESPACE
-using namespace PUB::debugging;
-using namespace PUB::dispatch;
+
+struct Item : public pub::AI_list<Item>::Link {
+size_t                 value;
+   Item(size_t v) : value(v) {}
+}; // class Item
 
 int main() {
-   debugf("NOT CODED YET\n");
+   pub::AI_list<Item> list;
+
+   Item one(1);
+   Item two(2);
+   Item meaning(42);
+   Item more(732);
+
+   assert( list.fifo(&one) == nullptr); // Add onto empty list
+   assert( list.fifo(&two) == &one);
+   assert( list.fifo(&meaning) == &two);
+
+   size_t index= 0;
+   for(auto ix= list.begin(); ix != list.end(); ++ix) {
+     switch(index++) {
+       case 0:
+         assert( ix->value == 1 );
+         break;
+
+       case 1:
+         assert( ix->value == 2 );
+         list.fifo(&more);
+         break;
+
+       case 2:
+         assert( ix->value == 42 );
+         break;
+
+       case 3:
+         assert( ix->value == 732 );
+         break;
+
+       default:
+         printf("SHOULD NOT OCCUR\n");
+     }
+   }
+
+   assert( index == 4 && list.get_tail() == nullptr );
+   printf("NO errors\n");
+   return 0;
 }
 ```
 
 #### See also:
 
 - [Dispatch](Dispatch.md) Multi-threading dispatcher
-  - pub::dispatch::Item, derived from AI_list&lt;pub::dispatch::Item&gt;::Link.
+  - pub::dispatch::Item, derived from AI_list<pub::dispatch::Item>::Link.

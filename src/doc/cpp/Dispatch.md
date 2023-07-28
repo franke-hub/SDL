@@ -15,11 +15,11 @@
 //       Dispatch.h reference manual (overview)
 //
 // Last change date-
-//       2023/07/16
+//       2023/07/28
 //
 -------------------------------------------------------------------------- -->
 ## pub::Dispatch
-\#include &lt;pub/Dispatch.h&gt;
+\#include <pub/Dispatch.h>
 
 ### Dispatch objects
 Dispatch objects are defined in namespace pub::dispatch.

@@ -15,12 +15,12 @@
 //       Dispatch.h reference manual: Done, Wait
 //
 // Last change date-
-//       2023/07/16
+//       2023/07/28
 //
 -------------------------------------------------------------------------- -->
 ## (pub::dispatch::)Done::Done, Done::done; LambdaDone::LambdaDone, LambdaDone::done, LambdaDone::on_done; Wait::Wait, Wait::done, Wait::reset, Wait::wait
 
-###### Defined in header &lt;pub/Dispatch.h&gt
+###### Defined in header <pub/Dispatch.h>
 
 <!-- ===================================================================== -->
 ---
@@ -39,7 +39,7 @@ Handle the completion of the associated work Item.
 ---
 ### *pub::dispatch::LambdaDone attributes*
 
-`typedef std::function&lt;void(Item*)&gt; function_t;` // The lambda function signature
+`typedef std::function<void(Item*)> function_t;` // The lambda function signature
 
 `protected: function_t callback` // The lambda function instance
 
