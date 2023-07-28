@@ -80,7 +80,7 @@ and to allow sequential writing functions in a multithreading environment.
 Usage:
 ```
    {{{{
-     std::lock_guard&lt;decltype(*pub::Debug::get())&gt; lock(*pub::Debug::get());
+     std::lock_guard<decltype(*pub::Debug::get())> lock(*pub::Debug::get());
      debugf("The value is: ");
      debugf("42 (of course)\n");
    }}}}
