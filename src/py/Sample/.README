@@ -1,0 +1,73 @@
+##############################################################################
+##
+##       Copyright (C) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       .README
+##
+## Purpose-
+##       Imported source information.
+##
+## Last change date-
+##       2023/07/27
+##
+## Usage notes-
+##       If you want to see the local source or an imported source that's
+##       no longer available, request it.
+##
+##############################################################################
+
+##############################################################################
+##
+## Source: Debug
+##
+## Implementation notes:
+##       It's just used for testing, and its content is not interesting.
+##       (The link should never have been committed.)
+##
+##############################################################################
+
+##############################################################################
+##
+## Source: GUI
+##
+## Implementation notes:
+##       Contains "hello world" type Qt and Tk examples that don't work.
+##       (The link should never have been committed.)
+##
+##############################################################################
+
+##############################################################################
+##
+## Source: HsslServer
+##       http://www.piware.de/2011/01/creating-an-https-server-in-python/
+##
+## Usage:
+##       Generate server.pem with the following command:
+##         openssl req -new -x509 -keyout server.pem -out server.pem -days 365 -nodes
+##
+##       Run as follows:
+##         python simple-https-server.py
+##
+##       Visit (in your browser):
+##         https://localhost:4443
+##
+##############################################################################
+
+##############################################################################
+##
+## Source: ProxyServer
+##       http://voorloopnul.com/blog/a-python-proxy-in-less-than-100-lines-of-code/
+##
+## Local modifications-
+##       Added: Logging (via Debug.tracef) Debug's defined in ~/src/py/lib/.
+##       Changed: forward_to address, port
+##       Changed: on_recv, added .decode() in print
+##
+##############################################################################
