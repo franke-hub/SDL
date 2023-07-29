@@ -16,7 +16,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2023/06/20
+//       2023/07/23
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCH_H_INCLUDED
@@ -305,6 +305,11 @@ virtual void                        // (IMPLEMENT this method)
 // Purpose-
 //       The Dispatcher Done callback Object
 //
+// Implementation notes-
+//       The LambdaDone object uses the done() method to provide an
+//       alternate method for overriding it.
+//       The original done() method now "belongs" to LambdaDone.
+//
 //----------------------------------------------------------------------------
 class LambdaDone : public Done {    // The dispatch::LambdaDone callback Object
 //----------------------------------------------------------------------------
@@ -338,6 +343,7 @@ void
    on_done(function_t f)            // Replace callback
 {  callback= f; }
 
+private:
 virtual void
    done(                            // Complete
      Item*             item)        // This work Item
@@ -355,6 +361,11 @@ virtual void
 // Notes-
 //       This Object cannot cannot be shared, but can be reused by calling the
 //       reset method once the wait has been satisfied.
+//
+// Implementation notes-
+//       The Wait object uses the done() method to convert the Done object
+//       into a wait/post object, where posting occurs in the done() method.
+//       The overridden done() method now "belongs" to Wait.
 //
 //----------------------------------------------------------------------------
 class Wait : public Done {          // The dispatcher Wait until Done Object
@@ -378,12 +389,6 @@ virtual
 //----------------------------------------------------------------------------
 // Wait::Methods
 //----------------------------------------------------------------------------
-public:
-virtual void
-   done(                            // Complete
-     Item*)                         // This (ignored) work Item
-{  event.post(); }
-
 void
    reset( void )                    // Reset for re-use
 {  event.reset(); }
@@ -391,6 +396,12 @@ void
 void
    wait( void )                     // Wait for work Item completion
 {  event.wait(); }
+
+private:
+virtual void
+   done(                            // Complete
+     Item*)                         // This (ignored) work Item
+{  event.post(); }
 }; // class Wait
 
 //----------------------------------------------------------------------------
@@ -400,6 +411,11 @@ void
 //
 // Purpose-
 //       A Dispatch Task using a std::function
+//
+// Implementation notes-
+//       The LambdaTask object uses the work() method to provide an
+//       alternate method for overriding it.
+//       The original work() method now "belongs" to LambdaTask.
 //
 // Sample usage (which performs the default action)-
 //       LambdaTask task([this](Item* item) {
@@ -418,10 +434,10 @@ function_t             callback;    // The Work item handler
 public:
    LambdaTask( void )               // Default constructor
 :  Task()
-,  callback([](Item* item) { item->post(); })
 {  }
 
-   LambdaTask(function_t f)         // Lambda constructor
+   LambdaTask(                      // Instantiate work method
+     function_t        f)           // With this lambda function
 :  Task(), callback(f) {}
 
 virtual
@@ -432,11 +448,12 @@ virtual
 // LambdaTask::Methods
 //----------------------------------------------------------------------------
 void
-   on_work(function_t f)
+   on_work(                         // Instantiate work method
+     function_t        f)           // With this lambda function
 {  callback= f; }
 
-protected:
-virtual void                        // (Callback constructor-defined)
+private:
+virtual void
    work(                            // Process
      Item*             item)        // This work Item
 {  callback(item); }
