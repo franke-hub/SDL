@@ -15,7 +15,7 @@
 //       Development journal
 //
 // Last change date-
-//       2023/07/16
+//       2023/07/28
 //
 -------------------------------------------------------------------------- -->
 
@@ -25,6 +25,14 @@
 
 This journal is a record of the SDL (Software Development Lab) distribution: a
 set of libraries, programs, and associated documentation.
+
+----
+
+### 2023/07/28 trunk/maint commit
+
+I'm not sure switching to the Creative Commons CC0 license was a good idea.
+I'm looking for an alternative public domain license that also releases
+distribution patent and trademark ownership.
 
 ----
 

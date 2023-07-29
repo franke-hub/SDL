@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2023/07/24
+//       2023/07/28
 //
 //------------------------------------------------------------------------ -->
 
@@ -31,6 +31,10 @@ Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
 
 ----
+
+#### 07/28/2023 trunk/maint commit
+Fixed documentation problems, primarily with regard to using characters
+"<" and ">".
 
 #### 07/24/2023 maint commit
 (Primarily a documentation test release.)
