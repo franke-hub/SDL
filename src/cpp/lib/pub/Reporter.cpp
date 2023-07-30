@@ -16,7 +16,13 @@
 //       Implement Reporter.h
 //
 // Last change date-
-//       2023/06/24
+//       2023/07/29
+//
+// Implementation notes-
+//       For some unknown reason, std::mutex does not operate properly when
+//       used in static global initialization. The lock_guard in Reporter::get
+//       is called recursively, eventually throwing std::system_error.
+//       (This problem found testing on Cygwin. Not tested on Linux systems.)
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string

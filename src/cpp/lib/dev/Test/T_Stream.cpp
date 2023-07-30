@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2023/07/16
+//       2023/07/29
 //
 // Arguments-
 //       With no arguments, --client defaulted
@@ -54,6 +54,7 @@
 #include <pub/Dispatch.h>           // For namespace pub::dispatch
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Event.h>              // For pub::Event
+#include <pub/Ioda.h>               // For pub::Ioda
 #include <pub/Reporter.h>           // For pub::Reporter
 #include <pub/Statistic.h>          // For pub::Statistic
 #include <pub/Thread.h>             // For pub::Thread
@@ -64,7 +65,6 @@
 
 #include "pub/http/Agent.h"         // For pub::http::ClientAgent, ListenAgent
 #include "pub/http/Client.h"        // For pub::http::Client
-#include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Listen.h"        // For pub::http::Listen
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Request.h"       // For pub::http::Request
@@ -587,9 +587,6 @@ static inline int                   // Error count
 
    size_of("Client",        sizeof(PUB::http::Client));
    size_of("ClientAgent",   sizeof(PUB::http::ClientAgent));
-   size_of("Ioda",          sizeof(PUB::http::Ioda));
-   size_of("Ioda::Mesg",    sizeof(PUB::http::Ioda::Mesg));
-   size_of("Ioda::Page",    sizeof(PUB::http::Ioda::Page));
    size_of("Listen",        sizeof(PUB::http::Listen));
    size_of("ListenAgent",   sizeof(PUB::http::ListenAgent));
    size_of("Options",       sizeof(PUB::http::Options));

@@ -16,34 +16,31 @@
 //       TestIoda.h
 //
 // Last change date-
-//       2023/06/04
-//
-// Implementation notes-
-//       Usability study.
+//       2023/07/29
 //
 //----------------------------------------------------------------------------
 #include <cassert>                  // For assert
 #include <cstdint>                  // For size_t
-#include <cstdlib>                  // For rand
+#include <cstdlib>                  // For rand, srand
+#include <ctime>                    // For time
 #include <locale.h>                 // For setlocale
 
 #include <pub/TEST.H>               // For VERIFY macros
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
+#include <pub/Reporter.h>           // For pub::Reporter
 #include <pub/utility.h>            // For pub::utilities
 #include <pub/Wrapper.h>            // For pub::Wrapper
 
-#include "pub/http/Ioda.h"          // For pub::http::Ioda, ... (Tested)
+#include "pub/Ioda.h"               // For pub::Ioda, ... (Tested)
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB;
 using namespace PUB::debugging;
-using namespace PUB::http;
 using PUB::utility::visify;
 
 using std::string;
 
-typedef PUB::http::Ioda   Ioda;
 typedef Ioda::Mesg        Mesg;
 typedef Ioda::Page        Page;
 
@@ -84,6 +81,80 @@ static inline void
      size_t            size,        // The size
      const char*       name)        // The something's name
 {  debugf("%8zd= sizeof(%s)\n", size, name); }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       equals
+//
+// Purpose-
+//       Compare (write) Ioda data
+//
+//----------------------------------------------------------------------------
+static inline void
+   SNO(int line)                    // Should Not Occur
+{  debugf("%4d %s SHOULD NOT OCCUR\n", line, __FILE__);
+   throw std::runtime_error("should not occur");
+}
+
+static bool                         // TRUE if identical data
+   equals(                          // Do Iodas contain identical data?
+     const Ioda&       lhs,         // Left Hand Side Ioda
+     const Ioda&       rhs)         // Right Hand Side Ioda
+{
+   if( lhs.get_used() != rhs.get_used() ) // If differing sizes
+     return false;                  // (They can't be equal)
+
+   if( lhs.get_used() == 0 )        // If both are read Iodas
+     return true;                   // (Read buffers are identical)
+
+   // Get the associated msghdr iovec areas so we can compare data
+   Mesg lhs_mesg;
+   Mesg rhs_mesg;
+   lhs.set_wr_mesg(lhs_mesg);
+   rhs.set_wr_mesg(rhs_mesg);
+
+   struct iovec* lhs_iov= lhs_mesg.msg_iov;
+   struct iovec* rhs_iov= rhs_mesg.msg_iov;
+   size_t lhs_len= lhs_mesg.msg_iovlen;
+   size_t rhs_len= rhs_mesg.msg_iovlen;
+   size_t lhs_lix= 0;               // Current index
+   size_t rhs_lix= 0;
+   const char* lhs_addr= nullptr;   // Current address
+   const char* rhs_addr= nullptr;
+   unsigned lhs_size= 0;            // Current remaining length
+   unsigned rhs_size= 0;
+
+   // Compare data areas
+   for(;;) {
+     if( lhs_size == 0 ) {
+       if( lhs_lix >= lhs_len ) {   // If lhs EOF
+         if( rhs_size != 0 || rhs_lix < rhs_len ) // If not rhs EOF
+           SNO(__LINE__);             // (Should Not Occur)
+         return true;
+       }
+       lhs_addr= (char*)lhs_iov[lhs_lix].iov_base;
+       lhs_size= (unsigned)lhs_iov[lhs_lix++].iov_len;
+       continue;
+     }
+     if( rhs_size == 0 ) {
+       if( rhs_lix >= rhs_len )     // If rhs EOF
+         SNO(__LINE__);             // (Should Not Occur) (lhs_size != 0)
+       rhs_addr= (char*)rhs_iov[rhs_lix].iov_base;
+       rhs_size= (unsigned)rhs_iov[rhs_lix++].iov_len;
+       continue;
+     }
+
+     unsigned size= std::min(lhs_size, rhs_size);
+     if( memcmp(lhs_addr, rhs_addr, size) != 0 )
+       return false;
+
+     lhs_addr += size;
+     rhs_addr += size;
+     lhs_size -= size;
+     rhs_size -= size;
+   }
+}
 
 //----------------------------------------------------------------------------
 //
@@ -174,9 +245,9 @@ static inline int
    for(int i= 0; i<LINES; ++i)
      from.put(line);
    if( opt_verbose )
-     from.debug("from 24,000");
+     from.debug("from 24,000; size 0");
    string full= (string)from;
-   assert( full.size() == 24'000 ); // (Total size 24,000)
+   error_count += VERIFY( full.size() == 24'000 ); // (Total size 24,000)
 
    //-------------------------------------------------------------------------
    if( opt_verbose )
@@ -194,20 +265,21 @@ static inline int
    if( opt_verbose )
      debugf("\nIoda::get_mesg\n");
    Ioda read; Mesg mesg;
-   read.get_rd_mesg(mesg, 20'000);
+   read.set_rd_mesg(mesg, 20'000);
    if( opt_verbose )
      mesg.debug("rd_mesg 0x4e20");
+   error_count += VERIFY( mesg.size() == 20'000 );
 
    read.set_used(5'000);
-   if( opt_verbose )
-     debugf("..set_used should have deleted 3 rd_mesg buffers\n");
-   read.get_wr_mesg(mesg);
+   read.set_wr_mesg(mesg);
    if( opt_verbose )
      mesg.debug("wr_mesg 0x1338");
+   error_count += VERIFY( mesg.size() == 5'000 );
 
-   into.get_wr_mesg(mesg, 6'000);
+   into.set_wr_mesg(mesg, 6'000);
    if( opt_verbose )
      mesg.debug("wr_mesg 0x1770");
+   error_count += VERIFY( mesg.size() == 6'000 );
 
 enum { SIZES_DIM= 25 };
 static const size_t sizes[SIZES_DIM]=
@@ -216,19 +288,19 @@ static const size_t sizes[SIZES_DIM]=
    , 0x00002 //  2
    , 0x00003 //  3
    , 0x00004 //  4
-   , 0x00ffd //  5
-   , 0x00ffe //  6
-   , 0x00fff //  7
-   , 0x01000 //  8
-   , 0x01001 //  9
-   , 0x01002 // 10
-   , 0x01003 // 11
-   , 0x01004 // 12
-   , 0x01fff // 13 8191
-   , 0x04ffd // 14
-   , 0x04ffe // 15
+   , 0x00ffe //  5
+   , 0x00fff //  6
+   , 0x01000 //  7 4,096
+   , 0x01001 //  8
+   , 0x01002 //  9
+   , 0x01ffd // 10 8,090
+   , 0x01ffe // 11
+   , 0x02000 // 12 8,092
+   , 0x02001 // 13
+   , 0x02002 // 14
+   , 0x04ffe // 15 20,478
    , 0x04fff // 16
-   , 0x05000 // 17
+   , 0x05000 // 17 20,480
    , 0x05001 // 18
    , 0x05002 // 19
    , 0x05003 // 20
@@ -240,96 +312,36 @@ static const size_t sizes[SIZES_DIM]=
 
    //-------------------------------------------------------------------------
    if( opt_verbose )
-     debugf("\nIoda::split\n");
+     debugf("\nIoda::split/discard\n");
    for(size_t sx= 0; sx < SIZES_DIM; ++sx) {
      size_t size= sizes[sx];
-     if( opt_verbose > 1 )
-       tracef("\nSIZE:(0x%.6zx) %'6zd\n", size, size);
-     size_t page= size_t(-1);
-     for(size_t px= 0; px < 8; ++px) {
-       page= px * 4096;
-       if( size < 4096 ) break;
-       if( page >= (size-1) ) break;
-       if( page > 0 )
-       { Ioda tail; tail.put(full);
-         if( opt_verbose > 1 )
-           tracef("split(0x%.6zx) page-1\n", page-1);
-         Ioda head; tail.split(head, page - 1);
-         error_count += VERIFY( ((string)head + (string)tail) == full);
-         if( error_count ) break;
-       }
-       if( page >= (size-0) ) break;
-       { Ioda tail; tail.put(full);
-         if( opt_verbose > 1 )
-           tracef("split(0x%.6zx) page-0\n", page-0);
-         Ioda head; tail.split(head, page - 0);
-         error_count += VERIFY( ((string)head + (string)tail) == full);
-         if( error_count ) break;
-       }
-       if( (page+1) == (size-1) ) break;
-       { Ioda tail; tail.put(full);
-         if( opt_verbose > 1 )
-           tracef("split(0x%.6zx) page+1\n", page+1);
-         Ioda head; tail.split(head, page + 1);
-         error_count += VERIFY( ((string)head + (string)tail) == full);
-         if( error_count ) break;
-       }
-     }
-
-     if( opt_verbose > 1 )
-       tracef(" page(0x%.6zx)\n", page);
-     if( size <= 4095 && size > 1 )
-     { Ioda tail; tail.put(full);
-       if( opt_verbose > 1 )
-         tracef("split(0x%.6zx) page+0\n", size_t(0));
-       Ioda head; tail.split(head, 0);
-       error_count += VERIFY( ((string)head + (string)tail) == full);
-       if( error_count ) break;
-     }
-     if( size <= 4095 && size > 2 )
-     { Ioda tail; tail.put(full);
-       if( opt_verbose > 1 )
-         tracef("split(0x%.6zx) page+1\n", size_t(1));
-       Ioda head; tail.split(head, 1);
-       error_count += VERIFY( ((string)head + (string)tail) == full);
-       if( error_count ) break;
-     }
-     if( page > 0 && page == (size - 1) )
-     { Ioda tail; tail.put(full);
-       if( opt_verbose > 1 )
-         tracef("split(0x%.6zx) page-1\n", page - 1);
-       Ioda head; tail.split(head, page - 1);
-       error_count += VERIFY( ((string)head + (string)tail) == full);
-       if( error_count ) break;
-     }
-     if( size > 0 )
-     { Ioda tail; tail.put(full);
-       if( opt_verbose > 1 )
-         tracef("split(0x%.6zx) SIZE-1\n", size - 1);
-       Ioda head; tail.split(head, size - 1);
-       error_count += VERIFY( ((string)head + (string)tail) == full);
-       if( error_count ) break;
-     }
-     { Ioda tail; tail.put(full);
-       if( opt_verbose > 1 )
-         tracef("split(0x%.6zx) SIZE\n", size + 0);
-       Ioda head; tail.split(head, size + 0);
-       error_count += VERIFY( ((string)head + (string)tail) == full);
-       if( error_count ) break;
-     }
-     { Ioda tail; tail.put(full);
-       if( opt_verbose > 1 )
-         tracef("split(0x%.6zx) SIZE+1\n", size + 1);
-       Ioda head; tail.split(head, size + 1);
-       error_count += VERIFY( ((string)head + (string)tail) == full);
-       if( error_count ) break;
-     }
-     if( opt_verbose > 1 && size == 8191 ) {
+     { if( opt_verbose > 1 )
+         tracef("[%2zd] Split size:(0x%.6zx) %'6zd\n", sx, size, size);
        Ioda tail; tail.put(full);
        Ioda head; tail.split(head, size);
-       tracef("\n\nVIEW %zd\nhead %zd\n{{{%s}}}\n\ntail %zd\n{{{%s}}}\n", size
-             , ((string)head).size(), visify((string)head).c_str()
-             , ((string)tail).size(), visify((string)tail).c_str());
+       error_count += VERIFY( ((string)head + (string)tail) == full);
+       if( error_count ) break;
+
+       head.reset();                // Test discard
+       head.put(full);
+       head.discard(size);
+       error_count += VERIFY( equals(head, tail) );
+     }
+   }
+
+   for(size_t sx= 0; sx < 64; ++sx) {
+     size_t size= rand() % 24'100;  // (Can be larger than Ioda.used)
+     { if( opt_verbose > 1 )
+         tracef("[%2zd]  Rand size:(0x%.6zx) %'6zd\n", sx, size, size);
+       Ioda tail; tail.put(full);
+       Ioda head; tail.split(head, size);
+       error_count += VERIFY( ((string)head + (string)tail) == full);
+       if( error_count ) break;
+
+       head.reset();                // Test discard
+       head.put(full);
+       head.discard(size);
+       error_count += VERIFY( equals(head, tail) );
      }
    }
 
@@ -400,14 +412,17 @@ extern int                          // Return code
 
    setlocale(LC_NUMERIC, "");       // Enables printf("%'d\n", 123'456'789)
 
-   tc.on_info([]()
-   {
+   tc.on_info([]() {
      fprintf(stderr, "  --dirty\tRun dirty test\n");
      fprintf(stderr, "  --size\tRun object size test\n");
    });
 
-   tc.on_main([tr](int, char**)
-   {
+   tc.on_init([](int, char**) {
+     srand(time(nullptr));          // Initialize the random number generator
+     return 0;
+   });
+
+   tc.on_main([tr](int, char**) {
      int error_count= 0;            // Error count
 
      try {
@@ -416,7 +431,14 @@ extern int                          // Return code
 
        if( opt_size  ) error_count= test_size();
        if( opt_unit  ) error_count= test_unit();
-       if( opt_dirty ) error_count += test_dirty();
+//     if( opt_dirty ) error_count += test_dirty();
+
+       // Statistics (if opt_verbose && compiled into Ioda.cpp)
+       if( opt_verbose ) {
+         Reporter::get()->report([](Reporter::Record& record) {
+           debugf("%s\n", record.h_report().c_str());
+         }); // reporter.report
+       }
      } catch(const char* x) {
        debugf("FAILED: Exception: const char*(%s)\n", x);
        ++error_count;

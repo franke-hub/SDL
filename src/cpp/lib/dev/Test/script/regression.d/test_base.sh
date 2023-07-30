@@ -16,13 +16,13 @@
 ##       Run executables with default options
 ##
 ## Last change date-
-##       2023/06/04
+##       2023/07/29
 ##
 ##############################################################################
 
 ##############################################################################
 ## Run executables
-test_set="T_Option T_Quick TestIoda"
+test_set="T_Option T_Quick"
 for test in $test_set
 do
   ./$test

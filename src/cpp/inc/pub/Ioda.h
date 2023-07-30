@@ -10,18 +10,18 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       http/Ioda.h
+//       Ioda.h
 //
 // Purpose-
-//       HTTP I/O data area.
+//       I/O Data Area.
 //
 // Last change date-
-//       2022/11/12
+//       2022/07/29
 //
 // Implementation notes-
 //       The I/O data area contains a scatter/gather I/O area used both as an
-//       I/O buffer and for passing data between components.
-//       It minimizes overhead for these operations.
+//       I/O buffer and to pass data between components, minimizing overhead
+//       for these operations.
 //
 //       In order to avoid accidental copying, the Ioda copy constructor, copy
 //       assignment operator and copy append operator (+=) have been deleted.
@@ -29,8 +29,8 @@
 //       intended.
 //
 //----------------------------------------------------------------------------
-#ifndef _LIBPUB_HTTP_IODA_H_INCLUDED
-#define _LIBPUB_HTTP_IODA_H_INCLUDED
+#ifndef _LIBPUB_IODA_H_INCLUDED
+#define _LIBPUB_IODA_H_INCLUDED
 
 #include <string>                   // For std::string
 #include <stdint.h>                 // For uint32_t
@@ -38,10 +38,8 @@
 #include <sys/socket.h>             // For struct msghdr
 
 #include <pub/List.h>               // For pub::List
-#include "dev/bits/devconfig.h"     // For HTTP config controls
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
-namespace http {
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
@@ -104,6 +102,11 @@ size_t size( void ) const;          // Get total data length
 // Ioda::Page, address of I/O data page
 //----------------------------------------------------------------------------
 struct Page : public List<Page>::Link { // Ioda page list link
+enum
+{  LOG2_SIZE= 12                    // Log2(PAGE_SIZE)
+,  PAGE_SIZE= 4096                  // The (constant) data size
+}; // PAGE_SIZE constants
+
 char*                  data;        // Data address
 size_t                 used;        // Number of bytes used
 
@@ -162,23 +165,25 @@ explicit
 //----------------------------------------------------------------------------
 void debug(const char* info="") const; // Debugging display
 
-void
-   get_rd_mesg(                     // Get read Mesg
-     Mesg&             msg,         // (Resultant)
-     size_t            len);        // Of this (maximum) length
-
-void
-   get_wr_mesg(                     // Get write Mesg
-     Mesg&             msg,         // (Resultant)
-     size_t            len= 0,      // Of this (maximum) length
-     size_t            off=0) const; // Starting at this offset
-
 size_t
    get_used( void ) const           // Get used data length
 {  return used; }
 
+// set_used converts a read Ioda into an write Ioda, truncating it.
+// (Write Ioda::size == 0; Ioda::used == total used data length)
 void
    set_used(size_t);                // Set the used data length
+
+void
+   set_rd_mesg(                     // Set read Mesg
+     Mesg&             msg,         // (Resultant)
+     size_t            len);        // Of this (maximum) length
+
+void
+   set_wr_mesg(                     // Set write Mesg
+     Mesg&             msg,         // (Resultant)
+     size_t            len= 0,      // Of this (maximum) length
+     size_t            off=0) const; // Starting at this offset
 
 //----------------------------------------------------------------------------
 // Ioda::I/O methods
@@ -203,12 +208,18 @@ void
    discard(size_t);                 // Discard leading data
 
 void
-   reset( void );                    // Reset (empty) the Ioda
-void
-   reset(size_t);                    // Reset the Ioda (into input buffer)
+   move(Ioda&&);                    // Move Ioda, replacing any content.
 
 void
-   split(Ioda& result, size_t size); // Split leading data
+   reset( void );                   // Reset (empty) the Ioda
+
+void                                // Reset the Ioda, converting it an input
+   reset(size_t);                   // buffer of the specified size
+
+void                                // (*this contains the trailing data)
+   split(                           // Split leading data
+     Ioda&           result,        // The leading data resultant
+     size_t          size);         // Split at length
 }; // class Ioda
 
 //============================================================================
@@ -288,6 +299,5 @@ void
    reset( void )                    // Reset the IodaReader for re-use
 {  offset= 0; ix_page= nullptr; ix_off0= 0; }
 }; // class IodaReader
-}  // namespace http
 _LIBPUB_END_NAMESPACE
-#endif // _LIBPUB_HTTP_IODA_H_INCLUDED
+#endif // _LIBPUB_IODA_H_INCLUDED

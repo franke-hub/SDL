@@ -16,7 +16,7 @@
 //       Statistical event reporter
 //
 // Last change date-
-//       2023/06/02
+//       2023/07/29
 //
 // Implementation notes-
 //       Records contain statistical information that can be displayed by the
@@ -34,6 +34,7 @@
 #include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
 
+#include <pub/Latch.h>              // For pub::Latch
 #include <pub/List.h>               // For pub::List
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
@@ -82,7 +83,7 @@ typedef std::function<void(Record&)>
                        f_reporter;  // The reporter function
 
 typedef std::string    string;      // Import std::string
-typedef std::mutex     mutex_t;     // The mutex type
+typedef Latch          mutex_t;     // The mutex type
 
 //----------------------------------------------------------------------------
 // Reporter::Attributes

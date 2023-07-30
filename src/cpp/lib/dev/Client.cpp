@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2023/06/20
+//       2023/07/29
 //
 // Implmentation note-
 //       TODO: Test _read() disconnect (close processing)
@@ -43,6 +43,7 @@
 #include <pub/Dispatch.h>           // For pub::Dispatch objects
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Exception.h>          // For pub::Exception
+#include <pub/Ioda.h>               // For pub::Ioda
 #include <pub/Named.h>              // For pub::Named
 #include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/Thread.h>             // For pub::Thread
@@ -51,7 +52,6 @@
 
 #include "pub/http/Agent.h"         // For pub::http::ClientAgent (owner)
 #include "pub/http/Client.h"        // For pub::http::Client, implementated
-#include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Exception.h"     // For pub::http::exceptions
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Request.h"       // For pub::http::Request
@@ -1054,7 +1054,7 @@ void
    for(;;) {
      Ioda ioda;
      Mesg mesg;
-     ioda.get_rd_mesg(mesg, size_inp);
+     ioda.set_rd_mesg(mesg, size_inp);
      L= socket->recvmsg(&mesg, 0);
      iodm(line, "read", L);
      if( L > 0 ) {
@@ -1124,7 +1124,7 @@ ssize_t                             // Written length
      if( USE_ITRACE )
        Trace::trace(".INF", __LINE__, "CSocket->write");
 
-     Mesg mesg; ioda_out.get_wr_mesg(mesg, size_out, ioda_off);
+     Mesg mesg; ioda_out.set_wr_mesg(mesg, size_out, ioda_off);
      ssize_t L= socket->sendmsg(&mesg, 0);
      iodm(line, "sendmsg", L);
      if( L > 0 ) {

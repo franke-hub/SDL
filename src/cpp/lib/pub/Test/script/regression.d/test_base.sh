@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2022 Frank Eskesen.
+##       Copyright (C) 2022-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Run executables with default options
 ##
 ## Last change date-
-##       2022/04/22
+##       2022/07/29
 ##
 ##############################################################################
 
@@ -50,7 +50,7 @@ else
   exit $rc
 fi
 
-test_set="TestList TestLock TestMisc Test_num Test_thr"
+test_set="TestIoda TestList TestLock TestMisc Test_num Test_thr"
 for test in $test_set
 do
   [[ "$test" == "Test_num" ]] && echo "TEST: ./$test (started)"

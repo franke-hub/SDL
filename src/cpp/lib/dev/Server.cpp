@@ -16,7 +16,7 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2023/06/24
+//       2023/07/29
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -34,6 +34,7 @@
 #include <pub/Dispatch.h>           // For namespace pub::dispatch objects
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Exception.h>          // For pub::Exception
+#include <pub/Ioda.h>               // For pub::Ioda
 #include <pub/Select.h>             // For pub::Select
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Statistic.h>          // For pub::Active_record
@@ -42,7 +43,6 @@
 
 #include "pub/http/Agent.h"         // For pub::http::ListenAgent
 #include "pub/http/Exception.h"     // For pub::http::exceptions
-#include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Listen.h"        // For pub::http::Listen (owner)
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Server.h"        // For pub::http::Server, implemented
@@ -677,7 +677,7 @@ void
    for(;;) {
      Ioda ioda;
      Mesg mesg;
-     ioda.get_rd_mesg(mesg, size_inp);
+     ioda.set_rd_mesg(mesg, size_inp);
      L= socket->recvmsg(&mesg, 0);
      iodm(line, "read", L);
      if( L > 0 ) {
@@ -769,7 +769,7 @@ void
      if( USE_ITRACE )
        Trace::trace(".INF", __LINE__, "SSocket->write");
 
-     Mesg mesg; ioda_out.get_wr_mesg(mesg, size_out, ioda_off);
+     Mesg mesg; ioda_out.set_wr_mesg(mesg, size_out, ioda_off);
      ssize_t L= socket->sendmsg(&mesg, 0);
      iodm(__LINE__, "sendmsg", L);
      if( L > 0 ) {

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Encoders and decoders.
 //
 // Last change date-
-//       2022/10/26
+//       2023/07/29
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CODEC_H_INCLUDED
@@ -25,8 +25,8 @@
 #include <functional>               // For std::function
 #include <string>                   // For std::string, size_t
 
-#include "dev/Ioda.h"               // For pub::http:Ioda
-#include "dev/bits/devconfig.h"     // For HTTP config controls
+#include <pub/Ioda.h>               // For pub::Ioda
+#include "pub/http/bits/devconfig.h" // For HTTP config controls
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 namespace http {

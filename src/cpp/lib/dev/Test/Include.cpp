@@ -16,15 +16,13 @@
 //       Compile bringup
 //
 // Last change date-
-//       2023/07/20
+//       2023/07/29
 //
 // Implementation notes-
 //       Use make include to run the compile test.
 //
 //----------------------------------------------------------------------------
 #if true
-  #define IT "pub/http/Ioda.h"
-#elif true
   #define IT "pub/http/Agent.h"
 #elif true
   #define IT "pub/http/Client.h"
@@ -34,8 +32,6 @@
   #define IT "pub/http/Exception.h"
 #elif true
   #define IT "pub/http/Frame.h"
-#elif true
-  #define IT "pub/http/Ioda.h"
 #elif true
   #define IT "pub/http/Listen.h"
 #elif true

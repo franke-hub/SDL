@@ -16,7 +16,7 @@
 //       Implement http/StreamSet.h
 //
 // Last change date-
-//       2023/06/04
+//       2023/07/29
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -37,17 +37,17 @@
 #include <pub/utility.h>            // For pub::to_string, ...
 
 #include "pub/http/Client.h"        // For pub::http::Client
-#include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Request.h"       // For pub::http::Request
 #include "pub/http/Response.h"      // For pub::http::Response
 #include "pub/http/Server.h"        // For pub::http::Server
 #include "pub/http/Stream.h"        // For pub::http::Stream, implemented
 
-using namespace _LIBPUB_NAMESPACE;
-using namespace _LIBPUB_NAMESPACE::debugging;
-using _LIBPUB_NAMESPACE::utility::to_string;
-using _LIBPUB_NAMESPACE::utility::visify;
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB;
+using namespace PUB::debugging;
+using PUB::utility::to_string;
+using PUB::utility::visify;
 using std::string;
 
 namespace _LIBPUB_NAMESPACE::http { // Implementation namespace

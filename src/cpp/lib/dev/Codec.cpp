@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2022-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement http/Codec.h
 //
 // Last change date-
-//       2022/03/06
+//       2023/07/29
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::runtime_error
@@ -24,11 +24,14 @@
 #include <stdio.h>                  // For EOF
 
 #include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Ioda.h>               // For pub::Ioda
 #include <pub/utility.h>            // For namespace pub::utility
 #include "pub/http/Codec.h"         // For pub::http::Codec, implemented
 
-using namespace _LIBPUB_NAMESPACE::debugging;
-using namespace _LIBPUB_NAMESPACE::utility;
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB::debugging;
+using namespace PUB::utility;
+using PUB::Ioda;
 
 namespace _LIBPUB_NAMESPACE::http {  // Implementation namespace
 //----------------------------------------------------------------------------

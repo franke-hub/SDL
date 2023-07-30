@@ -16,7 +16,7 @@
 ##       Run verbose tests
 ##
 ## Last change date-
-##       2023/06/05
+##       2023/07/30
 ##
 ##############################################################################
 
@@ -25,6 +25,7 @@
 function cmd
 {
   echo -e "\nTEST: $1 (started)"
+  echo "$@"
   "$@"
   rc=$?
   if [ $rc == 0 ] ; then
@@ -40,10 +41,6 @@ function cmd
 ##############################################################################
 ## Run verbose tests
 cmd T_Quick  --verbose
-cmd TestIoda --verbose
 
 cmd T_Stream --verbose --bringup --client
 cmd T_Stream --verbose --server
-cmd T_Stream --verbose --stress
-cmd T_Stream --verbose --stress=1
-cmd T_Stream --verbose --stress=10

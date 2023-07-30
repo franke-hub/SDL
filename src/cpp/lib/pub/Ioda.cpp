@@ -16,7 +16,7 @@
 //       Implement http/Ioda.h
 //
 // Last change date-
-//       2023/06/24
+//       2023/07/29
 //
 //----------------------------------------------------------------------------
 // #define NDEBUG                   // TODO: USE (to disable asserts)
@@ -36,7 +36,7 @@
 #include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/utility.h>            // For pub::to_string
 
-#include "pub/http/Ioda.h"          // For pub::http::Ioda, implemented
+#include "pub/Ioda.h"               // For pub::Ioda, implemented
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB;
@@ -47,7 +47,7 @@ using std::bad_alloc;
 using std::runtime_error;
 using std::string;
 
-namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
+namespace _LIBPUB_NAMESPACE {       // Implementation namespace
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -57,8 +57,8 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
-,  LOG2_SIZE= 12                    // Log2(PAGE_SIZE)
-,  PAGE_SIZE= 4096                  // The Iota::Page data size
+,  LOG2_SIZE= Ioda::Page::LOG2_SIZE // The Log2(PAGE_SIZE)
+,  PAGE_SIZE= Ioda::Page::PAGE_SIZE // The Ioda::Page::data size (constant)
 
 ,  USE_REPORT= true                 // Use event Reporter?
 ,  USE_VERIFY= true                 // Use internal consistency checking?
@@ -192,16 +192,16 @@ static void checkstop(int line)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Ioda::Mesg::Mesg(Mesg&& move)
+   Ioda::Mesg::Mesg(Mesg&& from)
 {  if( HCDM )
-     debugh("Ioda(%p)::Mesg(Mesg&& %p)\n", this, &move);
+     debugh("Ioda(%p)::Mesg(Mesg&& %p)\n", this, &from);
 
    memset((struct msghdr*)this, 0, sizeof(struct msghdr));
-   msg_iov= move.msg_iov;
-   msg_iovlen= move.msg_iovlen;
+   msg_iov= from.msg_iov;
+   msg_iovlen= from.msg_iovlen;
 
-   move.msg_iov= nullptr;
-   move.msg_iovlen= 0;
+   from.msg_iov= nullptr;
+   from.msg_iovlen= 0;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -324,21 +324,12 @@ void
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Ioda::Ioda(Ioda&& move)        // Move constructor
+   Ioda::Ioda(Ioda&& from)        // Move constructor
 :  list()
 {  if( HCDM )
-     debugh("Ioda(%p)::Ioda(Ioda&& %p)\n", this, &move);
+     debugh("Ioda(%p)::Ioda(Ioda&&(%p))\n", this, &from);
 
-   Page* head= move.list.get_head();
-   Page* tail= move.list.get_tail();
-   if( head ) {
-     move.list.reset();
-     list.insert(nullptr, head, tail);
-   }
-   size= move.size;
-   used= move.used;
-   move.size= 0;
-   move.used= 0;
+   move(std::move(from));
 
    if( USE_REPORT )
      ioda_count.inc();
@@ -377,22 +368,11 @@ void
 //
 //----------------------------------------------------------------------------
 Ioda&
-   Ioda::operator=(Ioda&& move)     // Assignment move operator
+   Ioda::operator=(Ioda&& from)     // Assignment move operator
 {  if( HCDM )
-     debugh("Ioda(%p)::operator=(Ioda&&(%p)\n", this, &move);
+     debugh("Ioda(%p)::operator=(Ioda&&(%p))\n", this, &from);
 
-   reset();
-   size= move.size;
-   used= move.used;
-   Page* head= move.list.get_head();
-   if( head ) {
-     Page* tail= move.list.get_tail();
-     move.list.reset();
-     list.insert(nullptr, head, tail);
-   }
-   move.size= 0;
-   move.used= 0;
-
+   move(std::move(from));
    return *this;
 }
 
@@ -413,28 +393,28 @@ Ioda&
 //       Ioda::operator+=
 //
 // Purpose-
-//       Append operator
+//       (Move) append operator
 //
 //----------------------------------------------------------------------------
 Ioda&
-   Ioda::operator+=(Ioda&& move)    // Move append
+   Ioda::operator+=(Ioda&& from)    // Move append
 {  if( HCDM )
-     debugh("Ioda(%p)::operator+=(Ioda&&(%p)\n", this, &move);
+     debugh("Ioda(%p)::operator+=(Ioda&&(%p))\n", this, &from);
 
-   if( size || move.size )          // Cannot append into/from read mode
-     throw runtime_error("Ioda::operator+=, size != 0");
-   if( this == &move )              // Cannot append move from ourself
-     throw runtime_error("Ioda::operator+=(Ioda&& *this) disallowed");
+   if( this == &from )              // Cannot append from self
+     throw runtime_error("Ioda::operator+=(*this)");
+   if( size || from.size )          // Cannot append into/from a read Ioda
+     throw runtime_error("Ioda::operator+=, read Ioda");
 
-   used += move.used;
-   Page* head= move.list.get_head();
+   used += from.used;
+   Page* head= from.list.get_head();
    if( head ) {
-     Page* tail= move.list.get_tail();
-     move.list.reset();
+     Page* tail= from.list.get_tail();
      list.insert(list.get_tail(), head, tail);
+     from.list.reset();
    }
-   move.size= 0;
-   move.used= 0;
+   from.size= 0;
+   from.used= 0;
 
    return *this;
 }
@@ -475,7 +455,8 @@ Ioda&
 //----------------------------------------------------------------------------
 void
    Ioda::debug(const char* info) const // Debugging display
-{  debugf("Ioda(%p)::debug(%s) size(%'zd)\n", this, info, size);
+{  debugf("Ioda(%p)::debug(%s) used(%'zd) size(%'zd)\n", this, info
+         , used, size);
    size_t index= 0;
    size_t total= 0;
    for(Page* page= list.get_head(); page; page= page->get_next()) {
@@ -501,14 +482,14 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Ioda::get_rd_mesg
+//       Ioda::set_rd_mesg
 //
 // Purpose-
 //       Initialize a read (scatter) Mesg
 //
 //----------------------------------------------------------------------------
 void
-   Ioda::get_rd_mesg(               // Get read (scatter) Mesg
+   Ioda::set_rd_mesg(               // Set read (scatter) Mesg
      Mesg&             msg,         // (The resultant)
      size_t            size)        // Of this (maximum) length
 {  if( HCDM )
@@ -556,14 +537,14 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Ioda::get_wr_mesg
+//       Ioda::set_wr_mesg
 //
 // Purpose-
 //       Initialize a write (gather) Mesg
 //
 //----------------------------------------------------------------------------
 void
-   Ioda::get_wr_mesg(               // Get gather vector from offset
+   Ioda::set_wr_mesg(               // Set write (scatter) Mesg
      Mesg&             msg,         // (The resultant)
      size_t            size,        // Of this (maximum) length
      size_t            skip) const  // Starting from this offset
@@ -695,18 +676,21 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   Ioda::copy(const Ioda& copy)     // Copy source Ioda
+   Ioda::copy(const Ioda& from)     // Copy source Ioda
 {  if( HCDM )
-     debugh("Ioda(%p)::copy(%p)\n", this, &copy);
+     debugh("Ioda(%p)::copy(%p)\n", this, &from);
 
-   if( copy.used == 0 ) {           // If degnerate case, nothing to copy
-     reset(copy.size);
+   if( this == &from )              // Don't copy from self
+     return;
+
+   if( from.used == 0 ) {           // If copy from read Ioda, nothing to copy
+     reset(from.size);
      return;
    }
 
    // Copy page by page
-   reset();                         // (Replace)
-   for(Page* page= copy.list.get_head(); page; page= page->get_next())
+   reset();                         // Discard current content, if any
+   for(Page* page= from.list.get_head(); page; page= page->get_next())
      write(page->data, page->used);
 }
 
@@ -719,18 +703,13 @@ void
 //       Discard leading data
 //
 //----------------------------------------------------------------------------
-#if 1 // Defer until stable
-void
-   Ioda::discard(                   // Discard leading data
-     size_t            slen)        // For this length
-{  Ioda ignore; split(ignore, slen); }
-#else // Deferred
 void
    Ioda::discard(                   // Discard leading data
      size_t            slen)        // For this length
 {  if( HCDM )
-     debugh("Ioda(%p)::discard(%'zd(\n", this, slen);
+     debugf("Ioda(%p)::discard(%'zd)\n", this, slen);
 
+   // Handle special cases
    if( slen == 0 )                  // If discard none
      return;
    if( slen >= used ) {             // If discard all
@@ -739,30 +718,76 @@ void
    }
 
    size_t lead= 0;                  // Current leading length
-   for(Page* page= list.get_head(); page; page= list.get_head()) {
+   Page* tail= nullptr;             // The last removed link
+   Page* head= list.get_head();     // Our head link
+   for(Page* page= head; page; page= page->get_next()) {
      if( (lead + page->used) >= slen ) { // If split point found
-       if( (lead + page->used) > slen ) { // If partial page delete
+       if( (lead + page->used) == slen ) { // If split at page boundary
+         list.remove(head, page);
+         tail= page;
+       } else {
          int page_used= int(slen - lead); // The used byte count
          int page_left= page->used - page_used; // The remaining byte count
 
-         page->used= page_used;
-         memcpy(page->data, page->data+page_used, page_left);
-         copy->used= page_left;
+         memcpy(page->data, page->data+page_used, page_left); // Move remainder
+         page->used= page_left;
+         if( head != page ) {       // If pages need to be removed
+           page= page->get_prev();
+           list.remove(head, page);
+           tail= page;
+         }
        }
 
-       used -= slen;
+       // Discard removed pages
+       if( tail ) {                 // If any pages removed
+         for(;;) {
+           Page* temp= head;
+           head= head->get_next();
+           put_page(temp);
+           if( temp == tail )
+             break;
+         }
+       }
+
+       used -= slen;                // (Common path)
        return;
      }
 
      lead += page->used;
-     list.remove(page);
-     put_page(page);
    }
 
-debugf("lead(%'zd) slen(%'zd) size(%'zd) used(%'zd)\n", lead, slen, size, used);
+debugf("lead(%'zd) slen(%'zd) used(%'zd) size(%'zd)\n", lead, slen, used, size);
    checkstop(__LINE__);             // Inconsistent with !(slen >= used)
 }
-#endif
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Ioda::move
+//
+// Purpose-
+//       Move (replace content with) Ioda
+//
+//----------------------------------------------------------------------------
+void
+   Ioda::move(Ioda&& from)          // Move source Ioda
+{  if( HCDM )
+     debugh("Ioda(%p)::move(%p)\n", this, &from);
+
+   if( this == &from )              // Don't move from self
+     return;
+
+   reset();                         // Discard current content (if any)
+   size= from.size;
+   used= from.used;
+   Page* head= from.list.get_head();
+   if( head ) {
+     Page* tail= from.list.get_tail();
+     list.insert(nullptr, head, tail);
+     from.list.reset();             // (Sets: list._head= list._tail= nullptr)
+   }
+   from.size= from.used= 0;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -774,9 +799,9 @@ debugf("lead(%'zd) slen(%'zd) size(%'zd) used(%'zd)\n", lead, slen, size, used);
 //
 //----------------------------------------------------------------------------
 void
-   Ioda::put(int copy)              // Write character
+   Ioda::put(int from)              // Write character
 {  if( HCDM && VERBOSE > 2 )
-     debugh("Ioda(%p)::put('%c')\n", this, copy);
+     debugh("Ioda(%p)::put('%c')\n", this, from);
 
    Page* page= list.get_tail();
    if( page == nullptr || page->used >= PAGE_SIZE ) {
@@ -784,7 +809,7 @@ void
      list.fifo(page);
    }
 
-   page->data[page->used++]= copy;
+   page->data[page->used++]= from;
    ++used;
 }
 
@@ -847,7 +872,7 @@ void
    if( slen == 0 )                  // If empty split
      return;
    if( slen >= used ) {             // If split at or after end
-     ioda= std::move(*this);
+     ioda.move(std::move(*this));
      return;
    }
 
@@ -866,10 +891,10 @@ void
          ioda.list.insert(nullptr, head, page); // Give them to the resultant
          page->used= page_used;     // Trimming the last page
 
-         Page* copy= get_page();    // Duplicate common page
-         memcpy(copy->data, page->data+page_used, page_left); // Copy remainder
-         copy->used= page_left;     // Setting its length
-         list.lifo(copy);           // Add it to the head of the list
+         Page* last= get_page();    // Duplicate (last) common page
+         memcpy(last->data, page->data+page_used, page_left); // Copy remainder
+         last->used= page_left;     // Setting its length
+         list.lifo(last);           // Add it to the end of the list
        }
 
        ioda.used= slen;             // (Common path)
@@ -895,13 +920,16 @@ debugf("lead(%'zd) slen(%'zd) size(%'zd) used(%'zd)\n", lead, slen, size, used);
 //----------------------------------------------------------------------------
 void
    Ioda::write(                     // Write buffer
-     const void*       copy,        // Buffer address
+     const void*       from,        // Buffer address
      size_t            size)        // Buffer length
 {  if( HCDM && VERBOSE > 2 )
-     debugh("Ioda(%p)::write(%p,%'zd)\n", this, copy, size);
+     debugh("Ioda(%p)::write(%p,%'zd)\n", this, from, size);
 
    if( this->size != 0 )
      throw runtime_error("Ioda::write to input buffer");
+
+   if( size == 0 )                  // If (silly) zero length write
+     return;                        // (Could avoid allocating an unused page)
 
    Page* page= list.get_tail();
    if( page == nullptr || page->used >= PAGE_SIZE ) {
@@ -909,10 +937,13 @@ void
      list.fifo(page);
    }
 
-   char* addr= (char*)copy;         // (For address arithmetic)
+   // While copying data from the buffer into an Ioda::Page,
+   // - Page* page is the valid tail page of the page list.
+   // - Page* page->used is less than PAGE_SIZE. (It's zero if newly allocated)
+   const char* addr= (char*)from;   // (For address arithmetic)
    while( size ) {                  // Write buffer
      size_t left= size_t(PAGE_SIZE - page->used);
-     if( size < left ) {
+     if( size <= left ) {           // If this page completes the write
        memcpy(page->data + page->used, addr, size);
        page->used += size;
        used += size;
@@ -1114,4 +1145,4 @@ string
      S += T;
    }
 }
-}  // namespace _LIBPUB_NAMESPACE::http
+}  // namespace _LIBPUB_NAMESPACE

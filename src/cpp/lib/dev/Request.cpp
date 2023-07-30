@@ -16,7 +16,7 @@
 //       Implement http/Request.h
 //
 // Last change date-
-//       2023/06/04
+//       2023/07/29
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -31,12 +31,12 @@
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
+#include <pub/Ioda.h>               // For pub::Ioda
 #include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/utility.h>            // For pub::to_string, ...
 
 #include "pub/http/Client.h"        // For pub::http::Client
 #include "pub/http/Exception.h"     // For pub::http:exceptions
-#include "pub/http/Ioda.h"          // For pub::http::Ioda
 #include "pub/http/Listen.h"        // For pub::http::Listen
 #include "pub/http/Request.h"       // For pub::http::Request, implemented
 #include "pub/http/Response.h"      // For pub::http::Response

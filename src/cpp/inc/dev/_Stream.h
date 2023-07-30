@@ -16,7 +16,7 @@
 //       HTTP Stream object.
 //
 // Last change date-
-//       2023/06/27
+//       2023/07/29
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_STREAM_H_INCLUDED
@@ -29,9 +29,9 @@
 #include <string>                   // For std::string
 
 #include <pub/Dispatch.h>           // For pub::dispatch objects
+#include <pub/Ioda.h>               // For pub::Ioda
 #include <pub/Statistic.h>          // For pub::Statistic
 
-#include "pub/http/Ioda.h"          // For pub::http::Ioda, ...
 #include "pub/http/StreamSet.h"     // For pub::StreamSet::Node, base class
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)

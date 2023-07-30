@@ -16,7 +16,7 @@
 ##       Run timing tests
 ##
 ## Last change date-
-##       2023/06/04
+##       2023/07/29
 ##
 ##############################################################################
 
@@ -25,6 +25,7 @@
 function cmd
 {
   echo -e "\nTEST: $1 (started)"
+  echo "$@"
   "$@"
   rc=$?
   if [ $rc == 0 ] ; then
@@ -40,4 +41,5 @@ function cmd
 ## Run timing/performance tests
 cmd T_Stream --runtime=30 --stress=1  --verbose
 cmd T_Stream --runtime=30 --stress=16 --verbose
+cmd T_Stream --runtime=30 --stress=1  --verbose --major
 cmd T_Stream --runtime=30 --stress=16 --verbose --major

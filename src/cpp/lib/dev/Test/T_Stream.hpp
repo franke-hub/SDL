@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2023/06/04
+//       2023/07/29
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -779,7 +779,7 @@ static void
    listen_agent->stop();
    listen_agent->reset();
 
-   debugf("...Driver.test_client\n");
+   debugf("...ClientThread.test_client\n");
    Trace::trace(".TXT", __LINE__, "TC.client exit");
 }
 
