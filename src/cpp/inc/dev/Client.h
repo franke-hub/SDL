@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2023/07/29
+//       2023/07/30
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
@@ -32,9 +32,7 @@
 #include <pub/Dispatch.h>           // For pub::Dispatch objects
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Ioda.h>               // For pub::Ioda
-#include <pub/Semaphore.h>          // For pub::Semaphore
 #include <pub/Socket.h>             // For pub::Socket
-#include <pub/Thread.h>             // For pub::Thread
 
 #include "pub/http/Stream.h"        // For pub::http::Stream, ...
 
