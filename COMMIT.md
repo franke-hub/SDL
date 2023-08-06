@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2023/08/05
+//       2023/08/06
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,12 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 08/06/2023 maint commit
+Removed links that cannot be resolved in the distributed content, retaining
+the associated "how to obtain it" information.
 
 ----
 
