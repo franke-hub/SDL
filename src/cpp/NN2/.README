@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2018-2020 Frank Eskesen.
+##       Copyright (C) 2018-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,13 +15,19 @@
 ##       NN2 subdirectory information.
 ##
 ## Last change date-
-##       2020/10/04
+##       2023/08/06
+##
+## Implementation notes-
+##       There isn't really much to see here. While the image displays are
+##       operational, the neural network's pretty primitive and doesn't do
+##       anything useful toward image classification.
 ##
 ##############################################################################
 
 ##############################################################################
 INFO:
-cifar-10-binary.tar.gz
+Subdirectory "data", not distributed, contains the expansion of
+  cifar-10-binary.tar.gz
          Source: https://www.cs.toronto.edu/~kriz/cifar.html
          Content: 5000 32x32 training images, 1000 32x32 test images
 
@@ -34,20 +40,30 @@ cifar-10-binary.tar.gz
              line 0: Name for identifier 0
              :
              line 9: Name for identifier 9
-2020/10/04 Status
-         Programs not operational: ImageMagick++ interface changed
 
-2020/03/01 Status
-         EXPERIMENTAL:
-            GetImage: Displays images in set.
-            TestUnit: Displays a few images, writes debugging output.
-                So far, nothing to write home about.
-
-2018/01/01 Overview
-         1) This is a prototype for a more basic neural network, designed
-            to minimize component storage overhead.
-         2) The basic concept is to separate the logic needed to process
+##############################################################################
+Overview 2018/01/01
+         This is a prototype for a basic neural network, intended to
+            minimize Neuron storage overhead.
+         The basic concept is to separate the logic needed to process
             a Neuron from the storage needed to maintain its state.
+
+##############################################################################
+Executables 2020/03/01
+         GetImage: Displays images in set.
+         TestUnit: Displays a few images, writes debugging output.
+             So far, nothing to write home about.
+
+##############################################################################
+Change log:
+2023/08/06 Programs *ARE* operational (Possibly since 2020/10/06)
+         Only this .README file was updated, mostly to further explain the
+         content of the data subdirectory.
+
+2020/10/04 Programs not operational: ImageMagick++ interface changed
+
+2020/03/01 Bringup
+         EXPERIMENTAL: Neural Network "see what happens" prototype
 
 ##############################################################################
 FEATURE:
