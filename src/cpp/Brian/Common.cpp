@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2021 Frank Eskesen.
+//       Copyright (c) 2019-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,16 +16,12 @@
 //       Brian Common object methods
 //
 // Last change date-
-//       2021/07/09
+//       2023/08/04
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <pub/Debug.h>              // For debugging
-#include <pub/Exception.h>          // For Exception
-#include <pub/Thread.h>             // For Thread::sleep
+#include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Exception.h>          // For pub::Exception
+#include <pub/Thread.h>             // For pub::Thread::sleep
 
 #include "Common.h"
 #include "Service.h"                // For Service
@@ -48,7 +44,7 @@ using pub::Thread;
 // Constants for parameterization
 //----------------------------------------------------------------------------
 #define ID_AGENT   "Brian"
-#define ID_VERSION "0.0-2020-01-06"
+#define ID_VERSION "0.0-2023-08-04"
 
 //----------------------------------------------------------------------------
 // External data areas
@@ -80,7 +76,7 @@ static const char*     user_agent=
 
    //-------------------------------------------------------------------------
    // Terminate dispatcher services
-   pub::dispatch::Disp::wait();
+   pub::dispatch::Disp::shutdown();
 
    common= nullptr;                // Delete the singleton pointer
 }

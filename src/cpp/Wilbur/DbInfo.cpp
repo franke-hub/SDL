@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2011-2018 Frank Eskesen.
+//       Copyright (c) 2011-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement DbInfo object methods
 //
 // Last change date-
-//       2018/01/01 DB4/5 compatibility
+//       2023/08/04
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -121,8 +121,7 @@ int                                 // Resultant type value
    if( index >= 0 && index < DIM_COUNT )
    {
      result= this->type[index];
-     if( type != NULL )
-       *type= result;
+     *type= result;
    }
 
    return result;

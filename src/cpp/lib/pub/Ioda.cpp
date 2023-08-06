@@ -16,7 +16,7 @@
 //       Implement http/Ioda.h
 //
 // Last change date-
-//       2023/07/29
+//       2023/08/04
 //
 //----------------------------------------------------------------------------
 // #define NDEBUG                   // TODO: USE (to disable asserts)
@@ -47,6 +47,8 @@ using std::bad_alloc;
 using std::runtime_error;
 using std::string;
 
+#undef PAGE_SIZE                    // (Defined by some libraries)
+
 namespace _LIBPUB_NAMESPACE {       // Implementation namespace
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -57,8 +59,8 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
-,  LOG2_SIZE= Ioda::Page::LOG2_SIZE // The Log2(PAGE_SIZE)
-,  PAGE_SIZE= Ioda::Page::PAGE_SIZE // The Ioda::Page::data size (constant)
+,  LOG2_SIZE= 12                    // Log2(PAGE_SIZE)
+,  PAGE_SIZE= 4096                  // The (constant) data size
 
 ,  USE_REPORT= true                 // Use event Reporter?
 ,  USE_VERIFY= true                 // Use internal consistency checking?

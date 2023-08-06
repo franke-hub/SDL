@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Display a file tree.
 //
 // Last change date-
-//       2007/01/01
+//       2023/08/04
 //
 //----------------------------------------------------------------------------
 #include <stdarg.h>
@@ -589,6 +589,7 @@ void
    // Populate the list
    //-------------------------------------------------------------------------
    ptrE= genA.head;                 // Address the first entry
+   ptrA->list[0]= ptrE;             // (Avoid maybe-uninitialized compile error)
    for(i=0; i<count; i++)           // Populate the list
    {
      ptrA->list[i]= ptrE;

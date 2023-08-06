@@ -15,7 +15,7 @@
 //       SDL Project overview information.
 //
 // Last change date-
-//       2023/07/22
+//       2023/08/05
 //
 //------------------------------------------------------------------------ -->
 
@@ -102,6 +102,31 @@ License detail:
 - [GNU LGPL (Lesser General Public License)](.licenses/LICENSE.LGPL-3.0)
 - [MIT License](.licenses/LICENSE.MIT)
 - [Public domain license](.licenses/LICENSE.UNLICENSE)
+
+#### Installation and running
+
+These instructions assume that you'll be using the SDL package as delivered.
+
+Use ". setupSDL" to set up the *SDL_ROOT* environment variable and update
+your *PATH* environment variable.
+
+Now, from the installation root subdirectory,
+use `make` for configuration control.
+- `make` (without options) lists available options
+- `make install` Creates or updates:
+  - bin: Installs library and regression test prerequisite files.
+  - obj/cpp: Installs lib (an include library) and dll (a dll library.)
+- `make reinstall` Uninstalls and then installs. Use this after installing
+a new Linux version.
+- `make uninstall` Removes all files created by make install.
+- `make check` Runs all available test suites.
+- `make compile` Compiles (but does not test) all sample programs.
+- `make clean` Removes all files created by make check and make compile.
+- `make pristine` Essentially the same as running make clean followed by
+make uninstall.
+
+__TODO__ Implement C#, Python, and Java installation Makefiles.
+(Only the C++ Makefiles are currently implemented.)
 
 #### The Distribution
 The distribution primarily uses two git branches:

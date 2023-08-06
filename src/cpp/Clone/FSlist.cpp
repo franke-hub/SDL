@@ -19,6 +19,7 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
+#if 0
 #include <assert.h>                // Used in timeTest
 #include <stdarg.h>
 #include <stdio.h>
@@ -774,4 +775,24 @@ extern int                          // Return code
 
    return 0;
 }
-
+#else
+#include <stdio.h>
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       main
+//
+// Purpose-
+//       Mainline code.
+//
+//----------------------------------------------------------------------------
+extern int                          // Return code
+   main(                            // Mainline code
+     int               argc,        // Argument count
+     char*             argv[])      // Argument array
+{
+   (void)argc; (void)argv;
+   fprintf(stderr, "FSlist is deprecated\n");
+   return 1;
+}
+#endif

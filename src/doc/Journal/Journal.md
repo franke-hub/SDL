@@ -15,7 +15,7 @@
 //       Development journal
 //
 // Last change date-
-//       2023/07/28
+//       2023/08/05
 //
 -------------------------------------------------------------------------- -->
 
@@ -25,6 +25,15 @@
 
 This journal is a record of the SDL (Software Development Lab) distribution: a
 set of libraries, programs, and associated documentation.
+
+----
+
+#### 08/05/2023 maint commit
+Created configure/build Makefiles and fixed most compile problems found in full
+recompile. (~/src/cpp/Clone/FSlist.cpp temporarily deprecated.)
+
+This greatly simplifies installation and removal, including building
+prerequisite executables needed to build the libraries.
 
 ----
 

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       ~/src/cpp/inc/pub/Allocator.h Stress test
 //
 // Last change date-
-//       2022/03/11
+//       2023/08/04
 //
 // Parameters-
 //       --help        (Display help message)
@@ -411,11 +411,11 @@ static int                          // Return code (0 if OK)
              opt_trace= parm_int();
              if( errno == 0 ) {     // If valid
                if( opt_trace < pub::Trace::TABLE_SIZE_MIN ) {
-                 fprintf(stderr, "--trace(%u) set to MINIMUM(%u)\n"
+                 fprintf(stderr, "--trace(%u) set to MINIMUM(%lu)\n"
                                , opt_trace, pub::Trace::TABLE_SIZE_MIN);
                  opt_trace= pub::Trace::TABLE_SIZE_MIN;
                } else if( opt_trace > pub::Trace::TABLE_SIZE_MAX ) {
-                 fprintf(stderr, "--trace(%u) set to MAXIMUM(%u)\n"
+                 fprintf(stderr, "--trace(%u) set to MAXIMUM(%lu)\n"
                                , opt_trace, pub::Trace::TABLE_SIZE_MAX);
                  opt_trace= pub::Trace::TABLE_SIZE_MAX;
                }

@@ -7,7 +7,28 @@
 ##       within https://opensource.org/licenses/MIT)
 ##
 ##############################################################################
-## ~/src/cpp/sys/Makefile.BSD
+##
+## Title-
+##       ~/src/cpp/sys/Makefile.BSD
+##
+## Purpose-
+##       Installation makefile for C++ prerequisite programs
+##
+## Last change date-
+##       2023/08/04
+##
+## Usage-
+##       make           (Compile out of date programs)
+##       make compile   (Compile out of date programs)
+##       make install   ('make compile', then install to ~/bin if out of date)
+##       make reinstall ('make compile', then uncondionally install to ~/bin.)
+##       make clean     (Remove executable files and some ditrius.)
+##       make pristine  (Restore object directory to its initial state.)
+##       make uninstall ('make pristine', then remove installed ~/bin files.)
+##
+## Implementaton notes-
+##       TODO: Implement rdconfig and wrconfig
+##
 ##############################################################################
 
 ##############################################################################
@@ -62,37 +83,63 @@ MAKSRC := $(wildcard $(SRCDIR)/*.cpp)
 MAKEXE := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%,$(MAKSRC))
 MAKOBJ := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(MAKSRC))
 
+## Remove placeholder executables
+MAKEXE := $(patsubst $(OBJDIR)/rdconfig,,$(MAKEXE))
+MAKEXE := $(patsubst $(OBJDIR)/wrconfig,,$(MAKEXE))
+
 ##############################################################################
 ## Set default targets
 ifeq "" "$(DEFAULT)"
 DEFAULT:= $(MAKEXE)
 endif
 
-.PHONY: default
-default: $(DEFAULT)
+.PHONY: compile
+compile: $(DEFAULT)
+	strip filecomp
+	strip makeproj
+
+.PHONY: recompile
+recompile: pristine compile
 
 ##############################################################################
-## Target: install
+## TARGETS: install, install-filecomp install-makeproj
 .PHONY: install install-filecomp install-makeproj
 install: install-filecomp install-makeproj
 
-install-filecomp: filecomp
-	strip filecomp
-	cp -idp filecomp $(BINDIR)/.
+install-filecomp: $(BINDIR)/filecomp
+install-makeproj: $(BINDIR)/makeproj
 
-install-makeproj: makeproj
-	strip makeproj
-	cp -idp makeproj $(BINDIR)/.
+$(BINDIR)/filecomp: filecomp
+	cp -fp filecomp $(BINDIR)/.
 
-## TODO: Implement rdconfig/wrconfig
-## strip rdconfig wrconfig
-## cp -idp rdconfig wrconfig $(BINDIR)/.
+$(BINDIR)/makeproj: makeproj
+	cp -fp makeproj $(BINDIR)/.
+
+##############################################################################
+## TARGETS: reinstall, reinstall-filecomp reinstall-makeproj
+.PHONY: reinstall reinstall-filecomp reinstall-makeproj
+reinstall: reinstall-filecomp reinstall-makeproj
+
+reinstall-filecomp: recompile
+	cp -fp filecomp $(BINDIR)/.
+
+reinstall-makeproj: recompile
+	cp -fp makeproj $(BINDIR)/.
+
+##############################################################################
+## TARGET: uninstall
+.PHONY: uninstall
+uninstall: pristine
+	rm $(BINDIR)/filecomp
+	rm $(BINDIR)/makeproj
 
 ##############################################################################
 ## TARGET: pristine, clean
 .PHONY: pristine clean
 pristine: clean
 	-@rm *.lst *.o *.stackdump         >/dev/null 2>/dev/null
+	-@rm $(OBJDIR)/filecomp            >/dev/null 2>/dev/null
+	-@rm $(OBJDIR)/makeproj            >/dev/null 2>/dev/null
 
 clean: ;
 	-@rm $(MAKEXE)                     >/dev/null 2>/dev/null

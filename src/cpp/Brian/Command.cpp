@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (c) 2019-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,18 +16,15 @@
 //       Command object methods
 //
 // Last change date-
-//       2020/10/03
+//       2023/08/04
 //
 //----------------------------------------------------------------------------
-#include <map>
-#include <mutex>
+#include <map>                      // For std::map
+#include <mutex>                    // For std::mutex
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <pub/Debug.h>              // For debugging
-#include <pub/utility.h>            // For to_string
+#include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Exception.h>          // For pub::Exception
+#include <pub/utility.h>            // For pub::utility::to_string
 
 #include "Command.h"
 #include "Common.h"

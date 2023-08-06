@@ -1,0 +1,139 @@
+##############################################################################
+##
+##       Copyright (C) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       (~/src/cpp/)Makefile.BSD
+##
+## Purpose-
+##       C++ build control makefile
+##
+## Last change date-
+##       2023/08/04
+##
+## Implementation notes-
+##       ~/obj/cpp/Makefile links to this file.
+##
+##############################################################################
+
+##############################################################################
+## Default action
+.PHONY: list-options
+list-options: ;
+	@echo "Available options:"
+	@echo "  make install: Build all installation prerequisites and libraries."
+	@echo "    Use this to initialize or update your installation."
+	@echo "  make uninstall: Remove prerequisites and build libraries."
+	@echo "  make reinstall: (make uninstall; make install)"
+	@echo "    Use this after installing a new Linux version."
+	@echo
+	@echo "  make check: Compile and run all test suites."
+	@echo "  make compile: Compile all source files."
+	@echo
+	@echo "  make clean: Remove all 'make check' and 'make compile' files."
+	@echo "  make pristine: Performs 'make clean' and 'make uninstall' "
+	@echo
+
+##############################################################################
+## $SDL_ROOT is the base directory, containing ./bin ./src/cpp and ./obj/cpp
+## $SDL_ROOT/obj/cpp must be the current directory.
+ifeq "" "$(SDL_ROOT)"               ## If $SDL_ROOT is undefined
+SDL_ROOT := "../.."                 ## Default to ../..
+endif
+
+##############################################################################
+## C++ source directories
+CPP_ :=
+CPP_ += Brian
+CPP_ += Clean    Clone    Copy
+CPP_ += Darwin   Decoder  Diag
+CPP_ += Edit     Edit/Xcb EiDB
+CPP_ += Fileman  Forth
+CPP_ += Grid
+CPP_ += Hello    Howto    HTTP
+CPP_ += Math
+CPP_ += Neuron   NN2      NNC
+CPP_ += Poker
+CPP_ += Sample   Sorter   Spell    Stock    Stress
+CPP_ += Timing   Tools    Traffic
+CPP_ += Util
+CPP_ += Viewer
+CPP_ += Wilbur
+CPP_ += Xample   XML
+
+##############################################################################
+## TARGETS: check, compile, install, reinstall, uninstall
+.PHONY: check compile install reinstall uninstall
+
+##----------------------------------------------------------------------------
+check: is-installed
+	(echo; echo; cd lib/pub/Test; regression)
+	(echo; echo; cd lib/dev/Test; regression)
+	@echo "** check completed OK **"
+
+##----------------------------------------------------------------------------
+_build = set -e; (echo; echo; cd $(dir); $(MAKE))
+compile: is-installed
+	@$(foreach dir, $(CPP_), $(_build);)
+	@echo "** compile completed OK **"
+
+##----------------------------------------------------------------------------
+install: ;
+	(echo; echo; cd sys; $(MAKE) install)
+	(echo; echo; cd lib; $(MAKE))
+	(echo; echo; cd dll; $(MAKE))
+	@echo "** install completed OK **"
+
+##----------------------------------------------------------------------------
+reinstall: uninstall install
+	@echo "** reinstall completed OK **"
+
+##----------------------------------------------------------------------------
+uninstall: ;
+	(echo; echo; cd dll; $(MAKE) pristine)
+	(echo; echo; cd lib; $(MAKE) pristine)
+	(echo; echo; cd sys; $(MAKE) uninstall)
+	@echo "** uninstall completed OK **"
+
+##############################################################################
+## TARGETS: clean, pristine
+.PHONY: clean pristine
+
+##----------------------------------------------------------------------------
+_clean = (cd $(dir); $(MAKE) pristine )
+.PHONY: clean
+clean: is-installed
+	-$(foreach dir, $(CPP_), $(_clean);)
+	-@(cd lib/dev/Test; $(MAKE) pristine)
+	-@(cd lib/pub/Test; $(MAKE) pristine)
+
+##----------------------------------------------------------------------------
+pristine: clean
+	-@(cd dll; $(MAKE) pristine)
+	-@(cd lib; $(MAKE) pristine)
+	-@(cd sys; $(MAKE) uninstall)
+
+##############################################################################
+## TARGET: is-installed (Verify installation setup)
+.PHONY: is-installed is-valid-path  ## Prerequisite checks
+
+##----------------------------------------------------------------------------
+is-installed: $(SDL_ROOT)/bin $(SDL_ROOT)/bin/makeproj is-valid-path
+
+$(SDL_ROOT)/bin: ;
+
+$(SDL_ROOT)/bin/makeproj: ;
+	@echo
+	@echo
+	@echo "Cannot find '$(SDL_ROOT)/bin/makeproj', a required file."
+	@echo "Use 'make install' to create it, along with the runtime libraries."
+	@false
+
+is-valid-path: ;
+	@(is_valid=`echo $(PATH) | grep $(SDL_ROOT)/bin:`; [[ -n "$(is_valid)" ]] && false; true)

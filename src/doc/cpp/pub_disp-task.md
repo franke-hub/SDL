@@ -118,11 +118,14 @@ int main( void )
 {
     using namespace pub::dispatch;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     LambdaTask lambda_task([](Item* item)
     {
       printf("Initial Item handler\n");
       item->post();
     });
+#pragma GCC diagnostic pop
     Wait wait;
     Item item(&wait);
     lambda_task.enqueue(&item);
@@ -138,6 +141,9 @@ int main( void )
     wait.wait();
 }
 ```
+
+__TODO__ Figure out why GCC 13.1.1 gives a "maybe-uninitialized" error
+and GCC 11.4.0 doesn't. (Both versions execute correctly.)
 
 Normally you'd specify the work Item handler once using either the constructor
 or the on_work method, not both (as is in the example.)

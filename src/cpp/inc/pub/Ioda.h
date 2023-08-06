@@ -16,7 +16,7 @@
 //       I/O Data Area.
 //
 // Last change date-
-//       2022/07/29
+//       2022/07/30
 //
 // Implementation notes-
 //       The I/O data area contains a scatter/gather I/O area used both as an
@@ -102,9 +102,9 @@ size_t size( void ) const;          // Get total data length
 // Ioda::Page, address of I/O data page
 //----------------------------------------------------------------------------
 struct Page : public List<Page>::Link { // Ioda page list link
-enum
-{  LOG2_SIZE= 12                    // Log2(PAGE_SIZE)
-,  PAGE_SIZE= 4096                  // The (constant) data size
+enum {
+// LOG2_SIZE= 12                    // Log2(PAGE_SIZE)
+// PAGE_SIZE= 4096                  // The (constant) data size
 }; // PAGE_SIZE constants
 
 char*                  data;        // Data address

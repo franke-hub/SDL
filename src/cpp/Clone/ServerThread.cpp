@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014-2020 Frank Eskesen.
+//       Copyright (c) 2014-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement ServerThread object methods
 //
 // Last change date-
-//       2020/10/03
+//       2023/08/03
 //
 // Implementation notes-
 //       This multi-threaded server DOES NOT change path or file permissions
@@ -25,6 +25,8 @@
 //
 //----------------------------------------------------------------------------
 #include <exception>
+#include <string>                   // For std::string
+
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>               // For S_IREAD ...
@@ -38,6 +40,8 @@
 #include "RdCommon.h"
 
 #include "ServerThread.h"
+
+using std::string;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -298,7 +302,6 @@ void
 {
    DirEntry*           ptrE;        // -> DirEntry
    DirList*            ptrL;        // -> DirList
-   char                newPath[MAX_DIRFILE+1]; // Nested path name
    char                fileName[MAX_DIRNAME+1]; // Current file name
 
    PeerRequest         query;       // Question from client
@@ -308,7 +311,8 @@ void
    // Load the directory
    //-------------------------------------------------------------------------
    msglog("serveDirectory(%s,%s)..\n", path, dirEntry->fileName);
-   makeFileName(newPath, path, dirEntry->fileName);
+
+   string newPath= makeFileName(path, dirEntry->fileName);
 
    //-------------------------------------------------------------------------
    // Reply with directory information
@@ -351,7 +355,7 @@ void
            }
          #endif
 
-         serveFile(newPath, ptrE);
+         serveFile(newPath.c_str(), ptrE);
          break;
 
        case REQ_GOTO:               // Goto subdirectory
@@ -379,7 +383,7 @@ void
          #ifdef USE_ASYNCHRONOUS_LOADER
            ptrL->wait();            // Make sure loading has completed
          #endif
-         serveDirectory(newPath, ptrE);
+         serveDirectory(newPath.c_str(), ptrE);
          break;
 
        case REQ_QUIT:               // Exit
@@ -391,7 +395,7 @@ void
            delete ptrL;
            dirEntry->list= NULL;
          #endif
-         msglog("..serveDirectory(%s)\n", newPath);
+         msglog("..serveDirectory(%s)\n", newPath.c_str());
          return;
 
        default:                     // Error, invalid question
@@ -417,7 +421,6 @@ void
 {
    PeerResponse        qresp;       // Reply to client
 
-   char                fileName[MAX_DIRFILE+1]; // Current file name
    int                 hand;        // Input (changed) file handle
    off64_t             left;        // Bytes of file left to send
    int                 rlen;        // Number of bytes read
@@ -426,11 +429,11 @@ void
    // Open the file
    //-------------------------------------------------------------------------
    msglog("serveFile(%s,%s)\n", path, ptrE->fileName);
-   makeFileName(fileName, path, ptrE->fileName);
-   hand= open64(fileName,O_RDONLY | O_RSHARE | O_BINARY);
+   string fileName= makeFileName(path, ptrE->fileName);
+   hand= open64(fileName.c_str(),O_RDONLY | O_RSHARE | O_BINARY);
    if( hand < 0 )                   // If open failed
    {
-     msgerr("%4d Server: open64(%s) failure", __LINE__, fileName);
+     msgerr("%4d Server: open64(%s) failure", __LINE__, fileName.c_str());
 
      qresp.rc= RSP_NO;              // Reject the request
      nSend(&qresp, 1);
@@ -451,11 +454,11 @@ void
    {
      rlen= read(hand, buffer, min(left,MAX_TRANSFER)); // Read the file
      if( rlen < 0 )
-       throwf("%4d Server: read(%s) I/O error", __LINE__, fileName);
+       throwf("%4d Server: read(%s) I/O error", __LINE__, fileName.c_str());
 
      if( rlen < 1 )
-       throwf("%4d Server: read(%s) unexpected end of file",
-              __LINE__, fileName);
+       throwf("%4d Server: read(%s) unexpected end of file", __LINE__
+             , fileName.c_str());
 
      nSendStruct(buffer,rlen);      // Send some of the file
      left -= rlen;                  // Those sent aren't left to send
@@ -465,7 +468,7 @@ void
    // Close the file
    //-------------------------------------------------------------------------
    if( close(hand) != 0 )            // Close data file failed
-     throwf("%4d Server: close(%s) failure", __LINE__, fileName);
+     throwf("%4d Server: close(%s) failure", __LINE__, fileName.c_str());
 }
 
 //----------------------------------------------------------------------------

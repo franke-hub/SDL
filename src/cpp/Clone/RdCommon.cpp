@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014-2020 Frank Eskesen.
+//       Copyright (c) 2014-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Common routines used by RdClient and RdServer.
 //
 // Last change date-
-//       2020/10/03
+//       2023/08/03
 //
 // Environment variables-
 //       LOG_HCDM=n    Hard Core Debug Mode verbosity
@@ -86,6 +86,8 @@
 #include "RdCommon.h"
 #include "CommonThread.h"
 #include "ocrw.h"
+
+using std::string;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -300,11 +302,8 @@ virtual int                         // Return code (0 iff handled)
      const char*       pathName)    // Directory path name
 :  handle(-1)
 {
-   char                FQN[MAX_DIRFILE+1];
-   char*               ptrFQN;
-
-   ptrFQN= makeFileName(FQN, pathName, "*");
-   handle= _findfirst(ptrFQN, &block);
+   string FQN= makeFileName(pathName, "*");
+   handle= _findfirst(ptrFQN.c_str(), &block);
 }
 
 #else
@@ -391,18 +390,18 @@ const char*                         // The next file name
 
    if( dirEntry != NULL && handle >= 0 ) // If backout is required
    {
-     char fileName[MAX_DIRFILE+1];  // Fully qualified file name
-     makeFileName(fileName, path, dirEntry->fileName);
-     msglog("Backout(%s)\n", fileName);
+     string fileName=               // Fully qualified file name
+     makeFileName(path, dirEntry->fileName);
+     msglog("Backout(%s)\n", fileName.c_str());
      msgout("  %-10s %c %-32s %s\n",
             "removed", 'F', dirEntry->fileName, "[Backout action]");
 
      #if defined(_OS_WIN) || defined(_OS_CYGWIN)
-       chmod(fileName, dirEntry->chmod()|S_IWUSR);
+       chmod(fileName.c_str(), dirEntry->chmod()|S_IWUSR);
      #endif
 
-     if( remove(fileName) != 0 ) // Remove file failed
-       msgerr("%4d Backout: remove(%s) failure", __LINE__, fileName);
+     if( remove(fileName.c_str()) != 0 ) // Remove file failed
+       msgerr("%4d Backout: remove(%s) failure", __LINE__, fileName.c_str());
    }
 }
 
@@ -725,7 +724,6 @@ int                                 // Return code (0 OK)
    HOST64              ksum;        // Resultant checksum
 
    PEER64*             word;        // Checksum word
-   char                fileName[MAX_DIRFILE+1]; // Current file name
    int                 hand;        // File handle
    unsigned            left;        // File size remaining
    unsigned            size;        // Transfer length
@@ -741,16 +739,16 @@ int                                 // Return code (0 OK)
    //-------------------------------------------------------------------------
    // Get the complete file name
    //-------------------------------------------------------------------------
-   makeFileName(fileName, path, this->fileName);
+   string fileName= makeFileName(path, this->fileName);
 
    //-------------------------------------------------------------------------
    // Open the file
    //-------------------------------------------------------------------------
-   hand= open64(fileName, O_RDONLY | O_RSHARE | O_BINARY);
+   hand= open64(fileName.c_str(), O_RDONLY | O_RSHARE | O_BINARY);
    if( hand < 0 )                   // If open failed
    {
      msgerr("%4d DirEntry.checksum: open64(%s) failure",
-            __LINE__, fileName);
+            __LINE__, fileName.c_str());
      return (-1);
    }
 
@@ -771,7 +769,8 @@ int                                 // Return code (0 OK)
      L= read(hand, buffer, size);
      if( L != size )
      {
-       msgerr("%4d DirEntry.checksum: read(%s) I/O error", __LINE__, fileName);
+       msgerr("%4d DirEntry.checksum: read(%s) I/O error", __LINE__
+             , fileName.c_str());
        close(hand);
        return (-1);
      }
@@ -787,7 +786,8 @@ int                                 // Return code (0 OK)
    //-------------------------------------------------------------------------
    if( close(hand) != 0 )           // Close data file failed
    {
-     msgerr("%4d DirEntry.checksum: close(%s) failure", __LINE__, fileName);
+     msgerr("%4d DirEntry.checksum: close(%s) failure", __LINE__
+           , fileName.c_str());
      return(-1);
    }
 
@@ -1178,10 +1178,10 @@ int                                 // Return code (0 OK)
    //-------------------------------------------------------------------------
    // Read the directory
    //-------------------------------------------------------------------------
-   char   fullName[MAX_DIRFILE+1];  // The fully qualified name
-   makeFileName(fullName, path, inpE->fileName);
-   Direct dir(fullName);            // Directory object
-   this->path= must_strdup(fullName); // Associated path
+   string fullName=                 // The fully qualified name
+   makeFileName(path, inpE->fileName);
+   Direct dir(fullName.c_str());    // Directory object
+   this->path= must_strdup(fullName.c_str()); // Associated path
 
    count= 0;                        // No entries located yet
    for(;;)                          // For each directory entry
@@ -1867,23 +1867,17 @@ extern PEER64                       // PEER format
 //       Combine a path and filename into a fully qualified name.
 //
 //----------------------------------------------------------------------------
-extern char*                        // Resultant
+extern string                       // Resultant
    makeFileName(                    // Generate fully qualified name
-     char*             resultant,   // -> Resultant fully qualified name
      const char*       path,        // Source path name
      const char*       name)        // Source file name
 {
-   //-------------------------------------------------------------------------
-   // Diagnostics
-   //-------------------------------------------------------------------------
-   if( (strlen(path) + strlen(name) + 1) >= MAX_DIRFILE )
-     throwf("%4d RdCommon makeFileName(%s,%s) too large",
-            __LINE__, path, name);
+   string resultant(path);          // Default, path
 
-   if( strcmp(name,".") == 0 )
-     strcpy(resultant, path);
-   else
-     sprintf(resultant, "%s/%s", path, name);
+   if( strcmp(name, ".") != 0 ) {
+     resultant += "/";
+     resultant += name;
+   }
 
    return resultant;
 }

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,13 +16,15 @@
 //       Common controls.
 //
 // Last change date-
-//       2014/01/01
+//       2023/08/03
 //
 //----------------------------------------------------------------------------
 #ifndef RDCOMMON_H_INCLUDED
 #define RDCOMMON_H_INCLUDED
 
 #include <new>                      // For std::size_t
+#include <string>                   // For std::string
+
 #include <com/define.h>
 #include <com/Thread.h>
 
@@ -252,9 +254,8 @@ extern int                          // TRUE if simulated link
 //       Combine a path and filename into a fully qualified name.
 //
 //----------------------------------------------------------------------------
-extern char*                        // Resultant
+extern std::string                  // Resultant
    makeFileName(                    // Generate fully qualified name
-     char*             resultant,   // -> Resultant fully qualified name
      const char*       path,        // Source path name
      const char*       name);       // Source file name
 

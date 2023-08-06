@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010-2018 Frank Eskesen.
+//       Copyright (c) 2010-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       HttpCached implementation methods.
 //
 // Last change date-
-//       2018/01/01 DB4/5 compatibility
+//       2023/08/04
 //
 //----------------------------------------------------------------------------
 #define __STDC_FORMAT_MACROS        // For linux inttypes.h
@@ -340,3 +340,7 @@ int                                 // Return code (0 OK)
    return 0;
 }
 
+int                                 // Return code (0 OK)
+   HttpCached::open(                // Load the HttpSource
+     const char*       uri)         // For this URL string
+{  return open(uri, false); }

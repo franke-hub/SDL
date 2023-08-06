@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2023/07/30
+//       2023/08/05
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,12 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 08/05/2023 maint commit
+Created configure/build Makefiles and fixed most compile problems found in full
+recompile. (~/src/cpp/Clone/FSlist.cpp temporarily deprecated.)
 
 ----
 

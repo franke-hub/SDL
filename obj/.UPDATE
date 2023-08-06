@@ -1,7 +1,7 @@
 #!/bin/bash
 ##############################################################################
 ##
-##       Copyright (C) 2019-2022 Frank Eskesen.
+##       Copyright (C) 2019-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,19 +16,16 @@
 ##       Synchronize this directory with the distribution obj directory.
 ##
 ## Last change date-
-##       2020/05/03
+##       2023/08/03
 ##
 ## Usage-
 ##       .UPDATE
 ##
 ## Implementation notes-
-##       EXPERIMENTAL: Not ready for production use.
 ##       TODO: Verify proper operation with blanks in file name.
 ##
 ##############################################################################
 message_test=0
-
-echo "** WARNING ** This script is EXPERIMENTAL and not well tested"
 
 ##############################################################################
 ## Function: CHANGED, display script changed message and exit
@@ -175,7 +172,7 @@ if [[ -d "$repo/.git" ]] ; then
 fi
 
 if [[ -d "$self/.git" ]] ; then
-   echo "Removing '$self/.git', prior update incomplete"
+   echo "Removing '$self/.git'"
    rm -Rf "$self/.git"
 fi
 
@@ -199,7 +196,7 @@ mv $repo/.git $self/.git
 git reset --hard HEAD >/dev/null 2>/dev/null
 
 ##############################################################################
-## Remove $self/.git. (Temporarily commented out.)
+## Remove $self/.git. (Temporarily
 ##rm -Rf "$self/.git"
 ## See if there's a way to auto-correct removed or renamed files.
 ##   Test: added and renamed files.

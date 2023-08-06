@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010-2012 Frank Eskesen.
+//       Copyright (c) 2010-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Common object methods
 //
 // Last change date-
-//       2012/01/01
+//       2023/08/04
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -235,16 +235,16 @@ void
    httpClient.wait();
 
    //-------------------------------------------------------------------------
-   // Delete this object
-   delete this;
-
-   //-------------------------------------------------------------------------
    // Insure garbage collection cleanup completion
    {{{{
      Ref<Object> r(new Object());
    }}}}
 
    logf("...Common(%p)::finalize()\n", this);
+
+   //-------------------------------------------------------------------------
+   // Delete this object
+   delete this;
 
    //-------------------------------------------------------------------------
    // Delete the ThreadLogger object

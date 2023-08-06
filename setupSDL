@@ -1,0 +1,38 @@
+## (Use '. setupSDL')
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       setupSDL
+##
+## Purpose-
+##       Initialize SDL (Software Development Lab) PATH
+##
+## Last change date-
+##       2023/08/03
+##
+## Usage-
+##       . setupSDL
+##
+## Implementation note-
+##       $SDL_ROOT is only used by ./Makefile and ./obj/cpp/Makefile, but
+##       $PATH (including ./bat and ./bin) is generally needed.
+##         './bat' is useful, but can be omitted.
+##         './bin' (initialized by 'make install') is needed:
+##            'filecomp' is needed for regression output testing.
+##            'makeproj' is used in Makefiles to build dependency files.
+##
+##############################################################################
+
+##############################################################################
+## Set environment
+root=`./bat/.root`
+export PATH="$root/bat:$root/bin:$PATH"
+export SDL_ROOT="$root"

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       ~/Stress/Tdisp.cpp customization.
 //
 // Last change date-
-//       2022/03/11
+//       2023/08/04
 //
 //----------------------------------------------------------------------------
 #ifndef S_TDISP_H_INCLUDED
@@ -121,9 +121,7 @@ virtual
    ~Thread( void )                  // Destructor
 {
    // Cleanup
-   FINAL.reset();
    for(unsigned i= 0; i<opt_dtask; i++) {
-     TASK[i]->reset();
      delete TASK[i];
    }
 

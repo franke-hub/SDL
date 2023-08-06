@@ -16,7 +16,7 @@
 ##       Run timing tests
 ##
 ## Last change date-
-##       2023/07/29
+##       2023/08/04
 ##
 ##############################################################################
 
@@ -39,7 +39,7 @@ function cmd
 
 ##############################################################################
 ## Run timing/performance tests
-cmd T_Stream --runtime=30 --stress=1  --verbose
+cmd T_Stream --runtime=5  --stress=1  --verbose
+cmd T_Stream --runtime=5  --stress=1  --verbose --major
 cmd T_Stream --runtime=30 --stress=16 --verbose
-cmd T_Stream --runtime=30 --stress=1  --verbose --major
 cmd T_Stream --runtime=30 --stress=16 --verbose --major

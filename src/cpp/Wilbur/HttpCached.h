@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010-2014 Frank Eskesen.
+//       Copyright (c) 2010-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define a Cached HTTP DataSource.
 //
 // Last change date-
-//       2014/01/01
+//       2023/08/04
 //
 //----------------------------------------------------------------------------
 #ifndef HTTPCACHED_H_INCLUDED
@@ -69,8 +69,12 @@ void
 
 virtual int                         // Return code (0 OK)
    open(                            // Load the HttpCached
+     const char*       uri);        // For this URL string
+
+virtual int                         // Return code (0 OK)
+   open(                            // Load the HttpCached
      const char*       uri,         // For this URL string
-     int               cached= FALSE); // TRUE to only load from cache
+     int               cached);     // TRUE to only load from cache
 }; // class HttpCached
 
 #endif // HTTPCACHED_H_INCLUDED

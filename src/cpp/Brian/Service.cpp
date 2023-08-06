@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2021 Frank Eskesen.
+//       Copyright (c) 2019-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,20 +16,22 @@
 //       Service object methods
 //
 // Last change date-
-//       2021/07/09
+//       2023/08/04
 //
 //----------------------------------------------------------------------------
 #include <map>
 #include <mutex>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <string.h>
 
-#include <pub/Debug.h>              // For debugging
-#include <pub/utility.h>            // For to_string
+#include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/Dispatch.h>           // For pub::dispatch objects
+#include <pub/Exception.h>          // For pub::Exception
+#include <pub/utility.h>            // For pub::utility::to_string
 
-#include "Service.h"
+#include "Service.h"                // For Service, implemented
 
 using pub::Exception;
 using pub::utility::to_string;
@@ -167,7 +169,12 @@ void
 //----------------------------------------------------------------------------
 void
    Service::wait( void )            // Wait for stop completion
-{  reset(); }                       // Reset the Service
+{
+   Wait wait;
+   Item item(Item::FC_CHASE, &wait);
+   enqueue(&item);
+   wait.wait();
+}
 
 //----------------------------------------------------------------------------
 //
