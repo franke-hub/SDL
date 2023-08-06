@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2023/01/12
+##       2023/08/05
 ##
 ##############################################################################
 
@@ -44,12 +44,12 @@ all: dll lib
 
 ##############################################################################
 ## TARGET: libdev.so.1.0, libdev.so, libdev.dll
-## DEVLIB := ############################ DEV libraries
-## DEVLIB += -lX11 $(shell pkg-config --libs xcb xcb-xfixes xcb-image)
-## DEVLIB += -lssl -lcrypto -lboost_stacktrace_addr2line ## DEV libraries
+DEVLIB := ############################ DEV libraries
+DEVLIB += -lX11 $(shell pkg-config --libs xcb xcb-xfixes xcb-image)
+DEVLIB += -lssl -lcrypto -lboost_stacktrace_addr2line ## DEV libraries
 
 libdev.so.1.0: $(MAKOBJ)
-	$(CC) -shared -o $@ $^ -LL -lcom ## $(DEVLIB)
+	$(CC) -shared -o $@ $^ -LL -lpub $(DEVLIB)
 	touch $@
 
 libdev.so: libdev.so.1.0
