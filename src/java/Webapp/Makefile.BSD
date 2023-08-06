@@ -52,7 +52,7 @@ web-installer: S/web-installer
 	@echo "To install it, which includes the default databases and Tomcat:"
 	@echo "  1) create /home/data"
 	@echo "  2) cd ~/obj/java/Webapp"
-	@echo "  3) make database-installer"
+	@echo "  3) make web-installer"
 	@false
 
 install: ;                          ## Included files define dependencies

@@ -2,10 +2,9 @@
 ##
 ##       Copyright (C) Frank Eskesen 2020.
 ##
-##       This file is free content, distributed under the Lesser GNU
-##       General Public License, version 3.0.
-##       (See accompanying file LICENSE.LGPL-3.0 or the original
-##       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
 ##
 ##############################################################################
 ##
@@ -16,7 +15,7 @@
 ##       Describe subdirectory content.
 ##
 ## Last change date-
-##       2020/01/19
+##       2023/08/06
 ##
 ## Implementation notes-
 ##       This directory contains files not maintained in any repository.
@@ -31,14 +30,13 @@
 ##       but not distributed by this application.
 ##
 ## Implementation notes-
-##       This distribution is kept locally in /home/data/home/. In addition to
-##       this public distribution, this directory contains information
-##       shared between multiple machines. The bulk of this is personal.
+##       This distribution is kept locally in /home/data/home/. In addition
+##       to this public distribution, the /home/data/. directory contains
+##       information shared between multiple machines.
 ##
-##       Links into /home/data that do not link to part of this distribution
-##       are used at times similarly to links to /home/data/usr/.
-##       In particular, the java web applications cannot use links when
-##       running in Cygwin, so a direct path to /home/data/web/database/.
-##       is used instead.
+##       Because java web applications cannot use links when running under
+##       Cygwin, we use a direct path to "/home/data/web/database/" instead.
+##       (If that directory is missing when running make from
+##       "~/obj/java/Webapp", installation instructions are provided.)
 ##
 ##############################################################################

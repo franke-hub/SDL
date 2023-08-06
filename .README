@@ -15,18 +15,17 @@
 ##       Describe subdirectory content.
 ##
 ## Last change date-
-##       2023/07/16
+##       2023/08/06
 ##
 ## Implementation notes-
 ##       This distribution is kept locally in /home/data/home/. In addition
 ##       to this public distribution, the /home/data/. directory contains
 ##       information shared between multiple machines.
 ##
-##       Links into /home/data that do not also link to /home/data/home
-##       are used at times similarly to links to /home/data/usr/.
-##       In particular, java web applications cannot use links when running
-##       in Cygwin, so we use a direct path to /home/data/web/database/
-##       instead.
+##       Because java web applications cannot use links when running under
+##       Cygwin, we use a direct path to "/home/data/web/database/" instead.
+##       (If that directory is missing when running make from
+##       "~/obj/java/Webapp", installation instructions are provided.)
 ##
 ## Subdirectory information-
 ##       .git  The git repository
