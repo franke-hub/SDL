@@ -26,8 +26,9 @@
 
 ##############################################################################
 INFO:
-Subdirectory "data", not distributed, contains the expansion of
-  cifar-10-binary.tar.gz
+   The data file "data_batch_1.bin" is not distributed.
+   Get and expand cifar-10-binary.tar.gz to obtain it.
+
          Source: https://www.cs.toronto.edu/~kriz/cifar.html
          Content: 5000 32x32 training images, 1000 32x32 test images
 
