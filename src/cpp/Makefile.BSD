@@ -15,7 +15,7 @@
 ##       C++ build control makefile
 ##
 ## Last change date-
-##       2023/08/04
+##       2023/08/06
 ##
 ## Implementation notes-
 ##       ~/obj/cpp/Makefile links to this file.
@@ -60,7 +60,7 @@ CPP_ += Hello    Howto    HTTP
 CPP_ += Math
 CPP_ += Neuron   NN2      NNC
 CPP_ += Poker
-CPP_ += Sample   Sorter   Spell    Stock    Stress
+CPP_ += Sample   Sorter   Stock    Stress
 CPP_ += Timing   Tools    Traffic
 CPP_ += Util
 CPP_ += Viewer
