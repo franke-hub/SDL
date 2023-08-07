@@ -274,9 +274,9 @@ public InputVerifier                // The change() InputVerifier
 
         return valid;
      }
-//   WHEN shouldYieldFocus has one parameter *********************************
+//   WHEN shouldYieldFocus has one parameter ********************************/
 
-//   WHEN shouldYieldFocus has two parameters ********************************
+/*   WHEN shouldYieldFocus has two parameters ********************************
      public boolean
         shouldYieldFocus(
           JComponent        out,
