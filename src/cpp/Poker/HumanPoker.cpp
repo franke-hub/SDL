@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2017-2018 Frank Eskesen.
+//       Copyright (C) 2017-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Human poker player implementations.
 //
 // Last change date-
-//       2018/01/01
+//       2023/08/07
 //
 //----------------------------------------------------------------------------
 #include <ctype.h>
@@ -121,7 +121,12 @@ int                                 // The actual bet
    {
      result= 0;
      printf("Fold, Call, Raise(*%d): ", minRaise);
-     fgets(string, sizeof(string), stdin);
+     if( fgets(string, sizeof(string), stdin) == nullptr ) {
+       if( ferror(stdin) )
+         fprintf(stderr, ">>> Unable to read from stdin\n");
+       printf("Leaving the table\n");
+       exit(0);
+     }
      if( toupper(string[0]) == 'F' )
        break;
 
