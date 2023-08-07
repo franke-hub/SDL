@@ -32,6 +32,14 @@ is maintained in git, changes are always recorded.
 
 ----
 
+#### 08/07/2023 maint/trunk commit
+Fixed problems found in full recompile on Ubuntu test build machine running
+GCC 11.4.0 and ImageMagick-6. With ImageMagick-6, src/cpp/NN2 does not
+compile, so we changed its Makefile.BSD to reflect that fact.
+We fixed ~/src/cpp/Clone/FSlist.cpp, so it's no longer deprecated.
+
+----
+
 #### 08/06/2023 maint commit
 Removed links that cannot be resolved in the distributed content, retaining
 the associated "how to obtain it" information.
