@@ -130,8 +130,8 @@ reinstall-makeproj: recompile
 ## TARGET: uninstall
 .PHONY: uninstall
 uninstall: pristine
-	rm $(BINDIR)/filecomp
-	rm $(BINDIR)/makeproj
+	-@rm $(BINDIR)/filecomp            >/dev/null 2>/dev/null
+	-@rm $(BINDIR)/makeproj            >/dev/null 2>/dev/null
 
 ##############################################################################
 ## TARGET: pristine, clean
