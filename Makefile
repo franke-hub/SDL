@@ -97,4 +97,4 @@ environment: $(CPP_) $(JAVA_) $(MCS_) $(PY_)
 ## Insure $(SDL_ROOT)/bin is in $PATH
 environment: is-valid-path
 is-valid-path: ;
-	@(is_valid=`echo "$(PATH)" | grep $(SDL_ROOT)/bin:`; [[ -n "$(is_valid)" ]] && false; true)
+	@(is_valid=`echo "$(PATH)" | grep $(SDL_ROOT)/bin:`; [ -n "$(is_valid)" ] && false; true)

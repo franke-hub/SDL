@@ -136,4 +136,4 @@ $(SDL_ROOT)/bin/makeproj: ;
 	@false
 
 is-valid-path: ;
-	@(is_valid=`echo $(PATH) | grep $(SDL_ROOT)/bin:`; [[ -n "$(is_valid)" ]] && false; true)
+	@(is_valid=`echo $(PATH) | grep $(SDL_ROOT)/bin:`; [ -n "$(is_valid)" ] && false; true)
