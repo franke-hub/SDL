@@ -16,9 +16,10 @@
 //       Display a file tree.
 //
 // Last change date-
-//       2023/08/04
+//       2023/08/07
 //
 //----------------------------------------------------------------------------
+#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -781,7 +782,11 @@ extern int                          // Return code
    if( initPath == NULL )
    {
      initPath= initArea;            // Use internal area
-     getcwd(initPath, sizeof(initArea)); // Get current working directory
+     if( getcwd(initPath, sizeof(initArea)) == nullptr ) {
+       debugf(">>Unable to determine current directory %d:%s\n"
+             , errno, strerror(errno) );
+       exit(1);
+     }
    }
    L= strlen(initPath);
    if( L > 1 )

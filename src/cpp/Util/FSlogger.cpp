@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,9 +16,10 @@
 //       Keep a file log, looking for differences.
 //
 // Last change date-
-//       2007/01/01
+//       2023/08/07
 //
 //----------------------------------------------------------------------------
+#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1539,7 +1540,11 @@ extern int                          // Return code
    //-------------------------------------------------------------------------
    if( initPath == NULL )
    {
-     getcwd(initArea, sizeof(initArea)); // Get current working directory
+     if( getcwd(initArea, sizeof(initArea)) == nullptr ) {
+       debugf(">>Unable to determine current directory %d:%s\n"
+             , errno, strerror(errno) );
+       exit(1);
+     }
      initPath= initArea;            // Use internal area
    }
    L= strlen(initPath);

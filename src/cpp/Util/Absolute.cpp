@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Determine the absolute path to a file, removing all links.
 //
 // Last change date-
-//       2007/01/01
+//       2023/08/07
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -32,8 +32,6 @@
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#define __SOURCE__       "ABSOLUTE" // Source file
-
 #ifndef HCDM
 #undef  HCDM                        // If defined, Hard Core Debug Mode
 #endif
@@ -100,7 +98,11 @@ static char*                        // Resultant, NULL if error
    source[0]= '\0';
    if( *input != '/' )              // If not absolute path
    {
-     getcwd(source, sizeof(source));
+     if( getcwd(source, sizeof(source)) == nullptr ) {
+       debugf(">>Unable to determine current directory %d:%s\n"
+             , errno, strerror(errno) );
+       exit(1);
+     }
      strcat(source, "/");
    }
 

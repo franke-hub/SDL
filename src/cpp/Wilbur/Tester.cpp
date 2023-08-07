@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2010 Frank Eskesen.
+//       Copyright (c) 2010-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Wilbur bringup utilities and unit tests.
 //
 // Last change date-
-//       2010/01/01
+//       2023/08/07
 //
 // Content-
 //        --test            (Run simpleTest)
@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/wait.h>               // For WEXITSTATUS, WSTOPSIG
 
 //nclude "com/DebugObject.h"        // For debugging
 #include <com/Debug.h>
@@ -1511,10 +1512,11 @@ static void
      if( x > 0 )
      {
        sprintf(buff3, "echo %s | aspell list >/tmp/aspell.out", buff2);
-////   printf("%s\n", buff3);
-//     if( system(buff3) ) { ; }    // Avoids compiler complaint
-       system(buff3);
-
+       if( system(buff3) ) {
+         debugf(">>Unable to verify '%s' %d:%s\n", buff2
+               , errno, strerror(errno));
+         return;
+       }
        struct stat filestat;
        memset(&filestat, 0, sizeof(filestat));
        stat("/tmp/aspell.out", &filestat);
