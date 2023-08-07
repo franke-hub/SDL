@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,11 +16,11 @@
 //       Display files in the current directory, long format.
 //
 // Last change date-
-//       2020/10/03
+//       2023/08/07
 //
 //----------------------------------------------------------------------------
-#if 0
 #include <assert.h>                // Used in timeTest
+#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,6 +92,11 @@ inline int
 {
    return name.compare(that->name);
 }
+
+virtual int
+   compare(                         // Base method, otherwise hidden
+     const SORT_List<void>::Link* that) const
+{  return compare((const CompFile*)that); }
 
 inline void
    reset(                           // Reset name and info
@@ -503,7 +508,8 @@ static void
      initPath= initArea;            // Use internal area
      if( getcwd(initPath, sizeof(initArea)) == NULL ) // Get current working directory
      {
-       fprintf(stderr, "%4d ShouldNotOccur\n", __LINE__);
+       fprintf(stderr, "%4d ShouldNotOccur %d:%s\n", __LINE__
+              , errno, strerror(errno) );
        exit(EXIT_FAILURE);
      }
    }
@@ -775,24 +781,3 @@ extern int                          // Return code
 
    return 0;
 }
-#else
-#include <stdio.h>
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       main
-//
-// Purpose-
-//       Mainline code.
-//
-//----------------------------------------------------------------------------
-extern int                          // Return code
-   main(                            // Mainline code
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
-{
-   (void)argc; (void)argv;
-   fprintf(stderr, "FSlist is deprecated\n");
-   return 1;
-}
-#endif
