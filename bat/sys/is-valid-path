@@ -1,0 +1,33 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       is-valid-path
+##
+## Purpose-
+##       Determine whether or not $SDL_ROOT/bin is in the path.
+##
+## Last change date-
+##       2023/08/07
+##
+## Implementation note-
+##       Invoked from ../../Makefile because /bin/sh isn't well documented
+##       and this method allows better error documentation.
+##
+##############################################################################
+
+is_valid=`echo "$PATH" | grep $SDL_ROOT/bin:`
+[[ -n "$is_valid" ]] && exit 0
+
+echo "SDL_ROOT '$SDL_ROOT'"
+echo "'\$SDL_ROOT/bin:' not found in \$PATH"
+echo "Initialize SDL_ROOT using 'source setupSDL'"
+exit 1

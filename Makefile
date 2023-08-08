@@ -20,15 +20,6 @@
 ##############################################################################
 
 ##############################################################################
-## Default action when $SDL_ROOT is not initialized
-ifeq "" "$(SDL_ROOT)"               ## If $SDL_ROOT is undefined
-.PHONY: not-initialized
-not-initialized: ;
-	@echo "Environment variable SDL_ROOT is undefined."
-	@echo "Use 'source setupSDL' to initialize required Environment variables."
-endif
-
-##############################################################################
 ## Default action
 .PHONY: list-options
 list-options: ;
@@ -78,23 +69,69 @@ compile: environment
 	(cd $(CPP_); $(MAKE) compile)
 
 ##----------------------------------------------------------------------------
-clean: ;
+clean: defined-root
 	(cd $(CPP_); $(MAKE) clean)
 
 ##----------------------------------------------------------------------------
-pristine: ;
+pristine: defined-root
 	(cd $(CPP_); $(MAKE) pristine)
 
 ##############################################################################
 ## TARGET: environment: Insure $SDL_ROOT is defined and valid
-.PHONY: environment
+.PHONY: environment defined-root valid-path
+
 ##----------------------------------------------------------------------------
 ## Insure required subdirectories exist
+environment: defined-root
 environment: $(SDL_ROOT)/src $(SDL_ROOT)/obj $(SDL_ROOT)/bin
 environment: $(CPP_) $(JAVA_) $(MCS_) $(PY_)
 
+$(SDL_ROOT)/bin: ;
+	@echo "Missing file: '$(SDL_ROOT)/bin', SDL_ROOT improperly defined"
+	@false
+
+$(SDL_ROOT)/obj: ;
+	@echo "Missing file: '$(SDL_ROOT)/obj', SDL_ROOT improperly defined"
+	@false
+
+$(SDL_ROOT)/src: ;
+	@echo "Missing file: '$(SDL_ROOT)/src', SDL_ROOT improperly defined"
+	@false
+
+$(CPP_): ;
+	@echo "Missing file: '$(CPP_)', SDL_ROOT improperly defined"
+	@false
+
+$(JAVA_): ;
+	@echo "Missing file: '$(JAVA_)', SDL_ROOT improperly defined"
+	@false
+
+$(MCS_): ;
+	@echo "Missing file: '$(MCS_)', SDL_ROOT improperly defined"
+	@false
+
+$(PY_): ;
+	@echo "Missing file: '$(PY_)', SDL_ROOT improperly defined"
+	@false
+
+##----------------------------------------------------------------------------
+## Insure SDL_ROOT is defined
+ifeq "" "$(SDL_ROOT)"
+defined-root: ;
+	@echo "Environment variable SDL_ROOT is undefined."
+	@echo "Use 'source setupSDL' to initialize required Environment variables."
+	@false
+else
+defined-root: ;
+	@true
+endif
+
 ##----------------------------------------------------------------------------
 ## Insure $(SDL_ROOT)/bin is in $PATH
-environment: is-valid-path
-is-valid-path: ;
-	@(is_valid=`echo "$(PATH)" | grep $(SDL_ROOT)/bin:`; [ -n "$(is_valid)" ] && false; true)
+environment: valid-path
+valid-path: $(SDL_ROOT)/bat/sys/is-valid-path
+	@$(SDL_ROOT)/bat/sys/is-valid-path
+
+$(SDL_ROOT)/bat/sys/is-valid-path: ;
+	@echo "Missing file: '$(SDL_ROOT)/bat/sys/is-valid-path', SDL_ROOT improperly defined"
+	@false
