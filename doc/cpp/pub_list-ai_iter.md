@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/src/doc/cpp/pub_list-ai_iter.md
+//       ~/doc/cpp/pub_list-ai_iter.md
 //
 // Purpose-
 //       List.h reference manual: AI_list iterator

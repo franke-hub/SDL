@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/src/doc/index.md
+//       ~/doc/index.md
 //
 // Purpose-
 //       Distribution documentation
@@ -34,11 +34,11 @@ multi-threading paradigm.)
 ---
 #### Progress/status notes
 
-- [DEV library](../cpp/lib/dev/README.md)
-- [GUI library](../cpp/lib/gui/README.md)
-- [PUB library](../cpp/lib/pub/README.md)
+- [DEV library](../src/cpp/lib/dev/README.md)
+- [GUI library](../src/cpp/lib/gui/README.md)
+- [PUB library](../src/cpp/lib/pub/README.md)
 
 [Development Journal](Journal/Journal.md)
 
 ---
-[Back](../../README.md)
+[Back](../README.md)

@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/src/doc/cpp/pub_list-ai.md
+//       ~/doc/cpp/pub_list-ai.md
 //
 // Purpose-
 //       List.h reference manual: AI_list<T>

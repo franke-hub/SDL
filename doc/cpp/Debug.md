@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/src/doc/cpp/Debug.md
+//       ~/doc/cpp/Debug.md
 //
 // Purpose-
 //       Debug.h reference manual

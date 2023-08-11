@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/src/doc/trailer.md
+//       ~/doc/trailer.md
 //
 // Purpose-
 //       Documentation trailer

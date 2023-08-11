@@ -9,13 +9,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/src/doc/cpp/pub_disp-task.md
+//       ~/doc/cpp/pub_disp-task.md
 //
 // Purpose-
 //       Dispatch.h reference manual: Task
 //
 // Last change date-
-//       2023/07/28
+//       2023/08/11
 //
 -------------------------------------------------------------------------- -->
 ## (pub::dispatch::Task::)Task, enqueue, work(void), work(Item*)
@@ -109,43 +109,3 @@ deletion.
 #### void pub::dispatch::LambdaTask::on_work(function_t f);
 
 Replaces the Work(Item*) handler with the specified function.
-
-Sample usage example:
-```
-#include <cstdio>
-#include <pub/Dispatch.h>
-int main( void )
-{
-    using namespace pub::dispatch;
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-    LambdaTask lambda_task([](Item* item)
-    {
-      printf("Initial Item handler\n");
-      item->post();
-    });
-#pragma GCC diagnostic pop
-    Wait wait;
-    Item item(&wait);
-    lambda_task.enqueue(&item);
-    wait.wait();
-
-    lambda_task.on_work([](Item* item)
-    {
-      printf("Replacement Item handler\n");
-      item->post();
-    });
-    wait.reset();
-    lambda_task.enqueue(&item);
-    wait.wait();
-}
-```
-
-__TODO__ Figure out why GCC 13.1.1 gives a "maybe-uninitialized" error
-and GCC 11.4.0 doesn't. (Both versions execute correctly.)
-
-Normally you'd specify the work Item handler once using either the constructor
-or the on_work method, not both (as is in the example.)
-If replacing a work Item handler, it's the handler that's active
-*when the work Item is processed* that's used.

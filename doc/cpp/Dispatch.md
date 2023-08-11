@@ -9,13 +9,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/src/doc/cpp/Dispatch.md
+//       ~/doc/cpp/Dispatch.md
 //
 // Purpose-
 //       Dispatch.h reference manual (overview)
 //
 // Last change date-
-//       2023/07/28
+//       2023/08/11
 //
 -------------------------------------------------------------------------- -->
 ## pub::Dispatch
@@ -118,7 +118,7 @@ Handles work Items serially, in the order they were enqueued to the Task.
 
 | Method | Purpose |
 |--------|---------|
-| (constructor)](./pub_disp-task.md) | Construct a Task object |
+| [(constructor)](./pub_disp-task.md) | Construct a Task object |
 | [enqueue](./pub_disp-task.md) | Enqueue a work Item for this Task |
 | [work(void)](./pub_disp-task.md) | Implement Worker interface |
 | [work(Item*)](./pub_disp-task.md) | Process a work Item |
@@ -139,27 +139,40 @@ Extends Task, implementing work(Item*) as a lambda function.
 
 #### Example
 ```
-#include "pub/Debug.h"              // For namespace pub::debugging
-#include "pub/Dispatch.h"           // For pub::dispatch objects
-#define PUB _LIBPUB_NAMESPACE
-using namespace PUB::debugging;
+#include <cstdio>
+#include <pub/Dispatch.h>
+int main( void )
+{
+    using namespace pub::dispatch;
 
-int main() {
-   debug_set_head(PUB::Debug::HEAD_THREAD);
-   debugh("main() invoked\n");
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+    LambdaTask lambda_task([](Item* item)
+    {
+      printf("Initial Item handler\n");
+      item->post();
+    });
+#pragma GCC diagnostic pop
+    Wait wait;
+    Item item(&wait);
+    lambda_task.enqueue(&item);
+    wait.wait();
 
-   using namespace PUB::dispatch;
-   LambdaTask task([](Item* item) {
-     debugh("LambdaTask invoked\n");
-     item->post();
-     debugh("LambdaTask complete\n");
-   });
-
-   Wait wait;
-   Item item(&wait);
-   task.enqueue(&item);
-   wait.wait();
-
-   debugh("main() complete\n");
+    lambda_task.on_work([](Item* item)
+    {
+      printf("Replacement Item handler\n");
+      item->post();
+    });
+    wait.reset();
+    lambda_task.enqueue(&item);
+    wait.wait();
 }
 ```
+
+__TODO__ Figure out why GCC 13.1.1 gives a "maybe-uninitialized" error
+and GCC 11.4.0 doesn't. (Both versions execute correctly.)
+
+Normally you'd specify a work Item handler once using either the constructor
+or the on_work method, not both (as is in the example.)
+If replacing a work Item handler, it's the handler that's active
+*when the work Item is processed* that's used.

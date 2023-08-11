@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/src/doc/cpp/REFEFENCE.md
+//       ~/doc/cpp/REFEFENCE.md
 //
 // Purpose-
 //       SDL Distribution reference manual

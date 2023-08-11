@@ -11,7 +11,7 @@
 //
 -------------------------------------------------------------------------- -->
 
-# ~/src/doc/Journal/Nasties.md
+# ~/doc/Journal/Nasties.md
 
 Copyright (C) 2022 Frank Eskesen.
 

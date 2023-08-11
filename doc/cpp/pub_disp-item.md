@@ -9,13 +9,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/src/doc/cpp/pub_disp-item.md
+//       ~/doc/cpp/pub_disp-item.md
 //
 // Purpose-
 //       Dispatch.h reference manual: Item
 //
 // Last change date-
-//       2023/07/28
+//       2023/08/11
 //
 -------------------------------------------------------------------------- -->
 ## (pub::dispatch::Item::)Item, post
@@ -40,7 +40,8 @@ Function codes: (enum FC)
 Fields:
 - fc: (int) Function Code, default FC_VALID (0). Negative values handled internally.
 - cc: (int) Completion Code, default CC_NORMAL (0). Negative values are pre-defined.
-- done: pub::dispatch::Done*, default nullptr (Indicated delete when done)
+- done: (pub::dispatch::Done*) Completion handler,
+the (nullptr) default indicates delete when done.
 
 <!-- ===================================================================== -->
 ---

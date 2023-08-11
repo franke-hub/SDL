@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/src/doc/cpp/List.md
+//       ~/doc/cpp/List.md
 //
 // Purpose-
 //       List.h reference manual

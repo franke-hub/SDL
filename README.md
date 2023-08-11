@@ -101,7 +101,7 @@ License detail:
 - [GNU GPL (General Public License)](.licenses/LICENSE.GPL-3.0)
 - [GNU LGPL (Lesser General Public License)](.licenses/LICENSE.LGPL-3.0)
 - [MIT License](.licenses/LICENSE.MIT)
-- [Public domain license](.licenses/LICENSE.UNLICENSE)
+- [Public domain license](.licenses/LICENSE.ZERO)
 
 #### Installation and running
 
@@ -151,6 +151,8 @@ It does not access the exported /home/data Network File System.
    ~
    |
    [-- bat ((Mostly bash) scripts)
+   |
+   [-- doc (Documentation)
    |
    [-- obj (Object files)
    |    |
@@ -243,5 +245,5 @@ The project Wiki contains complete build instructions starting from an
 
 #### Further reading
 
-- [Documentation](src/doc/index.md)
+- [Documentation](doc/index.md)
 - [Change log](./COMMIT.md)

@@ -11,7 +11,7 @@
 //
 -------------------------------------------------------------------------- -->
 
-# ~/src/doc/Journal/Socket.md
+# ~/doc/Journal/Socket.md
 
 Copyright (C) 2022 Frank Eskesen.
 

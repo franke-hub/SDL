@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/src/doc/cpp/pub_worker.md
+//       ~/doc/cpp/pub_worker.md
 //
 // Purpose-
 //       Worker.h reference manual

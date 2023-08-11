@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/src/doc/cpp/pub_disp-disp.md
+//       ~/doc/cpp/pub_disp-disp.md
 //
 // Purpose-
 //       Dispatch.h reference manual: Disp

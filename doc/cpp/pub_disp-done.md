@@ -9,7 +9,7 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/src/doc/cpp/pub_disp-done.md
+//       ~/doc/cpp/pub_disp-done.md
 //
 // Purpose-
 //       Dispatch.h reference manual: Done, Wait
