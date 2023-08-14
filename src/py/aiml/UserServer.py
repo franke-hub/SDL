@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2016-2021 Frank Eskesen.
@@ -124,4 +125,3 @@ control['Console'] = _HandleUSER
 ## Add Console to the list of controlled threads
 ##############################################################################
 Common.add_thread(Console())
-

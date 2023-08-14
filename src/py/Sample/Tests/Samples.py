@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2016-2019 Frank Eskesen.
@@ -1037,4 +1038,3 @@ def yesno(prompt, retries=4, complaint='Yes or no, please!'): # Optional parms
         print(complaint)
 
 dict['compile-only'] = CompileOnly
-

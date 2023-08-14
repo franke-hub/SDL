@@ -98,7 +98,10 @@ class Debug(object):
             try:
                 self._open('wb')
             except Exception as X:
-                print('open(%s) Exception ignored: %s' % (name, X), file=sys.stderr)
+                print('open(%s) Exception ignored: %s' % (name, X)
+                     , file=sys.stderr)
+                print('  This can occur normally during termination'
+                     , file=sys.stderr)
 
     if sys.version_info[0] >= 3:
         def __del__(self):
@@ -226,7 +229,7 @@ class Debug(object):
                     self._file.flush()
 
     ##########################################################################
-    ## FX_00002: So far, 'print' has been available
+    ## FX_00002: So far, 'print' has still been available
     def writef(self, *args, **kwargs): ## FX_00002 (Added try/except wrapper)
         try:
             self._writef(*args, **kwargs)
@@ -248,4 +251,3 @@ class Logger(Debug):
 
     def _format(self, *args):
         return self._format_log(*args)
-

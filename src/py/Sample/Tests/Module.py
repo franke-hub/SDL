@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2016 Frank Eskesen.
@@ -136,4 +137,3 @@ class Other:
     @staticmethod
     def get_outer__classvar():
         return Outer._Outer__classvar
-

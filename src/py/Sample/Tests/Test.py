@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2016 Frank Eskesen.
@@ -26,4 +27,3 @@ class Test(object):                 ## NOTE: object base needed for super
 
     def run(self):
         print("Test.run")
-

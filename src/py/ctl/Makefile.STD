@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2020 Frank Eskesen.
+##       Copyright (c) 2020-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
@@ -13,7 +13,10 @@
 ##       Makefile.STD
 ##
 ## Purpose-
-##       Default Makefile for Python programs
+##       Default target Makefile for Python programs
+##
+## Last change date-
+##       2023/08/13
 ##
 ##############################################################################
 
@@ -29,12 +32,11 @@ default: $(DEFAULT)
 ##############################################################################
 ## Built-in targets
 dirty: ;
-	-Main dirty 2>debug.err
+	-_Main dirty 2>debug.err
 	@echo -e "\n\nSTDERR:"
 	@cat debug.err
 
 do: ;
-	-Main main 2>debug.err
+	-_Main 2>debug.err
 	@echo -e "\n\nSTDERR:"
 	@cat debug.err
-

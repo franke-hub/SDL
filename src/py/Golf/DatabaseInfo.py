@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -39,4 +40,3 @@ class DatabaseInfo(DebuggingAdaptor):
 
     def tracef(self, *args, **kwargs):
         if self.isdebug(): Debug.tracef(*args, **kwargs)
-

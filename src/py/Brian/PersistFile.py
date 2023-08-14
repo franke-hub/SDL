@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2018 Frank Eskesen.
+##       Copyright (C) 2018-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,12 +17,13 @@
 ##       Brian AI: Persistent data service.
 ##
 ## Last change date-
-##       2018/01/01
+##       2023/08/12
 ##
 ## Usage notes-
-##       This Module does not create subdirectories. These must be created
-##       in advance of any use. Use 'data/' only for permanent files.
-##       Use 'temp/' for bringup.
+##       Subdirectories must be created in advance of any use. This module
+##       DOES NOT create subdirectories.
+##       Use '_data/' for permanent files.
+##       Use '_temp/' for temporary or bringup files.
 ##
 ##############################################################################
 import os
@@ -38,7 +40,7 @@ import Common
 ##############################################################################
 ## Internal constants
 ##############################################################################
-_DATA = "data"
+_DATA = "_data"
 
 ##############################################################################
 ## _logger: Log "ShouldNotOccur" conditions
@@ -165,4 +167,3 @@ if False:
                 bar = b'exceptional data'
 
             return 0
-

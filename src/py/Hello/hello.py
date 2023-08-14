@@ -1,7 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2016 Frank Eskesen.
+##       Copyright (C) 2016-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
@@ -17,10 +17,14 @@
 ##       Python demonstration program.
 ##
 ## Last change date-
-##       2016/01/01
+##       2023/08/13
 ##
 ##############################################################################
 from distutils import sysconfig
 
-print('Hello, python world!')
-print('Python version: %s' % sysconfig.get_config_var('VERSION'))
+##############################################################################
+## Mainline code
+##############################################################################
+if __name__ == "__main__":
+    print('Hello, python world!')
+    print('Python version: %s' % sysconfig.get_config_var('VERSION'))

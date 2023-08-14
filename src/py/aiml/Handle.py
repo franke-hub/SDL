@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2017 Frank Eskesen.
@@ -27,4 +28,3 @@ import traceback
 def exception():
     x_type, x_value, x_tb = sys.exc_info()
     traceback.print_exception(x_type, x_value, x_tb)
-

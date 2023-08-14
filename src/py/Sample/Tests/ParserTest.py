@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2016-2018 Frank Eskesen.
@@ -80,4 +80,3 @@ if __name__ == '__main__':
         x_type, x_value, x_tb = sys.exc_info()
         traceback.print_exception(x_type, x_value, x_tb)
         raise
-

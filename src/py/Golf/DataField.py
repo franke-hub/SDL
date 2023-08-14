@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -144,4 +145,3 @@ class DataField(QLabel, DatabaseInfo):
             if validator.validate(self) == False:
                 return False
         return True
-

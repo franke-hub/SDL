@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2017 Frank Eskesen.
@@ -85,4 +86,3 @@ class __Brain_Command:
         return 0
 
 command['brain'] = __Brain_Command ## Dispatch debugger
-

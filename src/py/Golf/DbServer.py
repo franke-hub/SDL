@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -264,4 +265,3 @@ class DbServer(DebuggingAdaptor):
 
     def setdebug(self, T):          ## Set debugging state
         self.debugging = bool(T)
-

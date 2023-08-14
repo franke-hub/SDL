@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -565,4 +566,3 @@ class GolferMain(GolfApplet):       ## The application control window
         gc.collect()
         tracef('gc.get_count: %s' % str(gc.get_count()))
         Debug.get().flush()
-

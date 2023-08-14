@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -107,4 +108,3 @@ class GolfSample(GolfApplet):       ## A sample application window
 
         self.setLayout(main)
         return super().show()
-

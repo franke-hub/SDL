@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (c) 2016-2021 Frank Eskesen.
+##       Copyright (c) 2016-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,7 +17,7 @@
 ##       Brian AI: HTTP server, command['test-server']
 ##
 ## Last change date-
-##       2021/04/06
+##       2023/08/13
 ##
 ## Implementation notes-
 ##       VERBOSITY 0: No logging
@@ -363,12 +364,15 @@ class __Command:
 
         return 0
 
+    @staticmethod
+    def work(arg):
+        command['test-server'].run(['test-server', arg])
+
 command['test-server'] = __Command
 
 ##############################################################################
 ## Startup: start the Test server
 ##############################################################################
-if True:
+if False:                           ## MARKER
     _TestServerThread()             ## Start the test-server thread
     time.sleep(0.125)               ## (Hack: Wait for Running message)
-

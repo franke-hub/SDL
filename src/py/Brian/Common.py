@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2016-2018 Frank Eskesen.
@@ -135,7 +136,3 @@ def stop():
             Debug.handle_exception()
 
     _event.set()
-
-dispatcher = OBJ()                  ## The Dispatcher
-add_thread(dispatcher)              ## (The dispatcher is a managed Thread)
-

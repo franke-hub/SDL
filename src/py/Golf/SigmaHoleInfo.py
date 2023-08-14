@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -81,4 +82,3 @@ class SigmaHoleInfo(HoleInfo):
         except:
             tot = 'N/A'
         super().setText(HOLE_TOT, str(tot))
-

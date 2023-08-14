@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2016-2021 Frank Eskesen.
+##       Copyright (C) 2016-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,7 +17,7 @@
 ##       Brian AI: HTTP server, command['http-server']
 ##
 ## Last change date-
-##       2021/04/03
+##       2023/08/13
 ##
 ## Implementation notes-
 ##       VERBOSITY 0: No logging
@@ -366,12 +367,15 @@ class __Command:
 
         return 0
 
+    @staticmethod
+    def work(arg):
+        command['http-server'].run(['http-server', arg])
+
 command['http-server'] = __Command
 
 ##############################################################################
 ## Startup: start the HTTP server
 ##############################################################################
-if True:
+if False:
     _HttpServerThread()             ## Start the http-server thread
     time.sleep(0.125)               ## (Hack: Wait for Running message)
-

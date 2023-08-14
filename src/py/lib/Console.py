@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2016-2021 Frank Eskesen.
+##       Copyright (C) 2016-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,7 +16,16 @@
 ##       Console utility
 ##
 ## Last change date-
-##       2021/04/03
+##       2023/08/13
+##
+## Implementation notes: Command definitions-
+##       from lib.Command import command
+##       class __CommandN:
+##           @staticmethod
+##           def run(self, argv):
+##               ## Handle input string using command dictionary
+##
+##       command['commandN'] = __CommandN
 ##
 ## Usage notes[sys.stdin character handling]-
 ##       The sys.stdin.read(1) function echos characters as received. The
@@ -24,9 +33,10 @@
 ##       of the input characters are returned to the caller are returned to
 ##       the caller until a '\n' (newline) character is received.
 ##
-##       The stdio assembler package provides a version of getch which returns
-##       but does not echo the input character. We clear backspace characters
-##       as received and don't move back past the original input column.
+##       The stdio assembler package provides a version of getchar which
+##       returns but does not echo the input character. We clear backspace
+##       characters as received and don't move back past the original input
+##       column.
 ##
 ##       Backspace and up/down arrow are only handled properly when the
 ##       stdio assembler package is used.
@@ -57,16 +67,16 @@ from lib.Utility import visify
 __all__ = ['Console']
 
 ##############################################################################
-## Import getch/putch (With internal default implementations.)
+## Import getchar/putchar (With internal default implementations.)
 ##############################################################################
 try:
-    from stdio import getch, putch
+    from stdio import getchar, putchar
 except ImportError:
     print('Warning: stdio not available')
-    def getch(): ## FAKE getch (because it echos)
+    def getchar(): ## FAKE getchar (because it echos)
         return sys.stdin.read(1)
 
-    def putch(c): ## FAKE putch (because echo already done)
+    def putchar(c): ## FAKE putchar (because echo already done)
         pass
 
     def outch(s):
@@ -82,9 +92,9 @@ _ESC = 27                           ## Escape character
 ## Utility subroutines
 ##############################################################################
 def _bs():                          ## Echo character delete sequence
-    putch('\b')
-    putch(' ')
-    putch('\b')
+    putchar('\b')
+    putchar(' ')
+    putchar('\b')
 
 def _cu(s):                         ## Echo CTRL-U delete sequence for line
     for _ in s:
@@ -187,7 +197,7 @@ class _History(object):
             history = 1
 
         s = self.history[-history]
-        for c in s: putch(c)
+        for c in s: putchar(c)
         self._debug_history(history, s)
 
     def move_up(self):
@@ -225,29 +235,29 @@ class Console(threading.Thread):
     def __inp(self):                ## Method[2]: Character by character input
         s = ''
         while self.operational:
-            c = getch()
+            c = getchar()
 
             if ord(c) == _ESC:      ## Escape (sequence)
-                c = getch()
+                c = getchar()
                 if c == '[':
-                    c = getch()
+                    c = getchar()
                     if c == 'A':    ## UP arrow
                         _cu(s)
                         s = self.hist.move_up()
-                        for c in s: putch(c)
+                        for c in s: putchar(c)
                         continue
 
                     if c == 'B':    ## DOWN arrow
                         _cu(s)
                         s = self.hist.move_down()
-                        for c in s: putch(c)
+                        for c in s: putchar(c)
                         continue
 
-                    putch(chr(_ESC)) ## Unrecognized sequence
-                    putch('[')
+                    putchar(chr(_ESC)) ## Unrecognized sequence
+                    putchar('[')
                     s += chr(_ESC) + '['
                 else:
-                    putch(chr(_ESC)) ## Unrecognized sequence
+                    putchar(chr(_ESC)) ## Unrecognized sequence
                     s += chr(_ESC)
 
             if c == '\b':
@@ -261,7 +271,7 @@ class Console(threading.Thread):
                 if c == '\t':
                     c = ' '
 
-                putch(c)            ## Echo the character
+                putchar(c)          ## Echo the character
                 if c == '\n':
                     break
                 s += c

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -99,4 +100,3 @@ class GolfLayout(QGridLayout):
             return None             ## Haven't figured out the rest of it
 
         raise NotImplementedError('Should not occur') ## Pick one, dammit
-

@@ -15,7 +15,7 @@
 //       PUB library description
 //
 // Last change date-
-//       2023/06/03
+//       2023/08/11
 //
 -------------------------------------------------------------------------- -->
 
@@ -140,7 +140,7 @@ We can rely on process termination cleanup to clean up what we can't.
 
 ### Library includes
 
-#### Debug.h<sup>1</sup>
+#### Debug.h[^1]
 This was one of the earliest library functions created.
 Its iterfaces are more stable than most.
 
@@ -238,7 +238,7 @@ The dynamic_pointer_cast code was temporarily moved into a separate file that
 wasn't dependency tracked so that it could be modified without requiring
 recompiling the entire dev library.
 
-#### Dispatch.h<sup>1</sup>
+#### Dispatch.h[^1]
 The atomic work dispatcher allows multiple threads to schedule work requests
 while processing these requests under control of individual threads.
 
@@ -317,7 +317,7 @@ distribution's development.
 
 ----
 
-[1] Migrated from the COM (common) library and improved by the PUB (public)
+[^1] Migrated from the COM (common) library and improved by the PUB (public)
 implementation.
 
 ----

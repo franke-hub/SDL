@@ -734,4 +734,3 @@ class WDW(WDO):
         """Wait for operation completion"""
         self._event.wait()
         self._event.clear()
-

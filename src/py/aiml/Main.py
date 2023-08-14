@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2016-2021 Frank Eskesen.
@@ -111,4 +111,3 @@ if __name__ == "__main__":
         os.kill(os.getpid(), 9)
 
     debugf("%.3f .... Done ...." % time.time())
-

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2017 Frank Eskesen.
@@ -34,4 +35,3 @@ class __Command:
         return 0
 
 command['version'] = __Command
-

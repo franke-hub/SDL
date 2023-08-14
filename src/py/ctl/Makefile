@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2019-2020 Frank Eskesen.
+##       Copyright (c) 2019-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,14 +15,14 @@
 ##       Makefile for Python programs
 ##
 ## Last change date-
-##       2020/03/24
+##       2023/08/13
 ##
 ## Preparation-
 ##       In your object directory,
 ##         ln -s <Source_directory>  S
 ##         ln -s <This_directory>    M
 ##         ln -s M/Makefile Makefile
-##         ln -s S/Main.py Main (Usually)
+##         ln -s S/Main.py _Main (Usually)
 ##
 ## Commands-
 ##       make clean    Remove standard garbage
@@ -34,6 +34,18 @@
 ##       *.stackdump   System dump.
 ##
 ##############################################################################
+
+##############################################################################
+## Remove *ALL* implicit rules and builtin patterns
+MAKEFLAGS += --no-implicit-rules
+.SUFFIXES:
+
+## Builtin patterns ----------------------------------------------------------
+%: %,v
+%: RCS/%,v
+%: RCS/%
+%: s.%
+%: SCCS/s.%
 
 ##############################################################################
 ## Set default paths
@@ -64,4 +76,3 @@ pristine: clean
 clean: ;
 	-@rm -f debug.*
 	-@rm -f *.stackdump
-

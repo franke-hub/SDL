@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -308,4 +309,3 @@ __all__ += [ 'HOLE_ID',  'HOLE_OUT', 'HOLE_IN',  'HOLE_TOT', 'FORMAT_USER'
            , 'FORMAT_MAX', 'FORMAT_MIN'
            , 'FIELD_DP',   'FIELD_ERR',  'CLOSE_MAX'
            ]
-

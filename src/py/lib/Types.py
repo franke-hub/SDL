@@ -87,4 +87,3 @@ class String(object):
     def _(self, v):
         if not isinstance(v, str): raise ValueError('String(%s(%s))' % (type(v), v))
         self.__v = v
-

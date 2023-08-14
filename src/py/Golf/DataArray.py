@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -120,4 +121,3 @@ class DataArray(object):
 
     def text(self, row, col):       ## Get associated DataField's text
         return rows[row][col].text()
-

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -171,4 +172,3 @@ class HoleInfoLabel(HoleInfo):
 
     def _setText(self, hole, value):
         if self.format > hole: self.setText(hole, value)
-

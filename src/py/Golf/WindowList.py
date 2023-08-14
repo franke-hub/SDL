@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -229,4 +230,3 @@ class WindowList(_Window):          ## The List of open windows
                    break            ## (It can only be in one!)
         self.close()
         logger('WindowList(%s).<<<remove' % self)
-

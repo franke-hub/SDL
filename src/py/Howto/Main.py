@@ -1,7 +1,7 @@
-#!/bin/python3
+#!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2016-2021 Frank Eskesen.
+##       Copyright (C) 2016-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,7 +17,7 @@
 ##       Command processor.
 ##
 ## Last change date-
-##       2021/04/20
+##       2023/08/10
 ##
 ## Usage-
 ##       ./Main.py
@@ -35,18 +35,18 @@ from lib.Dispatch import OBJ
 from lib.Console import Console
 
 ##############################################################################
-## Demonstrate override Console.getch, Console.putch
+## Demonstrate override Console.getchar, Console.putchar
 ##############################################################################
 if False:
-    def getch():                    ## (Echos)
+    def getchar():                  ## (Echos)
         return sys.stdin.read(1)
 
-    def putch(c):                   ## (getch echos, so putch shouldn't)
+    def putchar(c):                 ## (getchar echos, so putchar shouldn't)
         pass
 
     import lib.Console as Override
-    Override.getch = getch
-    Override.putch = putch
+    Override.getchar = getchar
+    Override.putchar = putchar
 
 ##############################################################################
 ## Constants
@@ -134,6 +134,8 @@ command['sleep'] = __Sleep_Command  ## Sleep command
 ## Mainline code
 ##############################################################################
 if __name__ == '__main__':
+    import Dirty
+
     try:
         debug = Debug('debug.out', append=True)
         debug.set_opt('flush', True)

@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2016-2021 Frank Eskesen.
+##       Copyright (C) 2016-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,14 +16,13 @@
 ##       Utility (or reminder) functions.
 ##
 ## Last change date-
-##       2021/04/03
+##       2023/08/13
 ##
 ##############################################################################
 import sys
 import string                       ## For string.whitespace
 
-#### lib #####################################################################
-from lib.Global      import *
+from lib.Global import *            ## For Global.TESTING
 
 ##############################################################################
 ## Define available imports
@@ -41,6 +40,12 @@ QUOTES = ["'", '"']                 ## The quotation characters
 ## HowTo reminder functions
 ##############################################################################
 class ReminderFunctions():          ## Reminder functions (Class deleted)
+    def _echo(args):                ## (Argument echo, for debugging)
+        count= 0
+        for arg in args:
+            print("[%2d] '%s'" % (count, arg))
+            count= count + 1
+
     def _findWhite(S, x):           ## Find next blank in string S_
         L = len(S)
         while x < L and not S[x] in string.whitespace:
@@ -222,10 +227,10 @@ def visify(inp):
                 out += '\\r'
             elif c == '\t':
                 out += '\\t'
-            elif ord(c) == ESC:
-                out += '\\e'
+            elif ord(c) == ESC:     ## ESC is not a Python \\ character
+                out += '\\E'
             else:
-                out += '\\x%.2X' % x
+                out += '\\X%.2X' % x
         elif c == '\\':
             out += '\\\\'
         else:
@@ -292,4 +297,3 @@ class Tokenizer():
         X = self.X
         while X < L and S[X] in string.whitespace: X += 1
         self.X = X
-

@@ -1,7 +1,7 @@
-#!/bin/python3
+#!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2016-2021 Frank Eskesen.
+##       Copyright (C) 2016-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,7 +17,7 @@
 ##       Brian AI controller.
 ##
 ## Last change date-
-##       2021/04/03
+##       2023/08/13
 ##
 ## Usage-
 ##       ./Main.py
@@ -56,8 +56,9 @@ class __Quit_Command:
         Common.stop()
         return 0
 
-command['.quit'] =    __Quit_Command ## Immediate quit Console built-in
-command['shutdown'] = __Quit_Command ## Delayed quit
+command['exit'] =     __Quit_Command ## Immediate quit (alias)
+command['quit'] =     __Quit_Command ## Immediate quit Console built-in
+command['shutdown'] = __Quit_Command ## Delayed quit (Not implemented)
 
 ##############################################################################
 ## __Raise_Command class (Built-in THROW command)
@@ -85,6 +86,15 @@ if __name__ == "__main__":
                 Config.PROGRAM +"/"+ Config.VERSION, "Started")
 
         import Imports
+        from lib.Dispatch import OBJ
+
+        ## Initialize
+        command['http-server'].work('start')
+        command['test-server'].work('start')
+        Common.dispatcher= OBJ()
+        Common.add_thread(Common.dispatcher)
+
+        ## Operate the Console
         Common.add_thread(Console())
         Common.join()
         if False:
@@ -108,4 +118,3 @@ if __name__ == "__main__":
         os.kill(os.getpid(), 9)
 
     _debugf(".... Done ....")
-

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2016-2021 Frank Eskesen.
@@ -360,4 +361,3 @@ command['http-server'] = __Command
 if True:
     _HttpServerThread()             ## Start the http-server thread
     time.sleep(0.125)               ## (Hack: Wait for Running message)
-

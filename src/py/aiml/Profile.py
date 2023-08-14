@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2017-2018 Frank Eskesen.
@@ -138,4 +139,3 @@ def properties(kern, botName):
             value = line[x+1:]
             kern.setBotPredicate(name, value)
             # print("Name(%s) Value(%s)" % (name, value) ## For debugging)
-

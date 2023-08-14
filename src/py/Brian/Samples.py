@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2016-2018 Frank Eskesen.
@@ -38,4 +39,3 @@ if True:
             uow.done()
 
     control['post-server'] = __Handler()
-

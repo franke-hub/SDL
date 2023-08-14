@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -195,4 +196,3 @@ class ResultView(GolfApplet):       ## An ResultView window
 
         self.setLayout(main.wrapper())
         return super().show()
-

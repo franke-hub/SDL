@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2019 Frank Eskesen.
+##       Copyright (C) 2019-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,7 +17,7 @@
 ##       Golf test driver.
 ##
 ## Last change date-
-##       2019/08/18
+##       2023/08/13
 ##
 ## Implementation note-
 ##       Only this module creates a DbServer object
@@ -35,15 +36,16 @@ from lib.Debug       import *
 from lib.Utility     import *
 
 #### Golf ####################################################################
-from DbServer        import *
+from golf            import *
+import golf.DbServer as DbServer
 
-## Import the test modules
+#### Test ####################################################################
 try:
-    import test.Dirty
-except Exception as X:
-    print('Exception: %s' % X)
+    import Dirty
+except ImportError:
+    pass
 
-import test.UnitTest
+import UnitTest
 
 ##############################################################################
 ## Mainline code
@@ -75,7 +77,7 @@ def main():
 
         selected = True
         try:
-            if test == 'all':
+            if test == 'all' or test == 'main':
                 errorCount += runAllTests()
             else:
                 debugf("Running: '%s'" % test)
@@ -101,11 +103,5 @@ def main():
     else:
         debugf('All tests successful')
 
-class Main():
-    def run(self):
-        main()
-
 if __name__ == '__main__':
-    main = Main()
-    main.run()
-
+    main()

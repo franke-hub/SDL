@@ -11,13 +11,13 @@
 ##############################################################################
 ##
 ## Title-
-##       UnitTest.py
+##       Dirty.py
 ##
 ## Purpose-
-##       Golf: Unit test driver
+##       Quick and dirty test.
 ##
 ## Last change date-
-##       2019/08/05
+##       2019/08/18
 ##
 ##############################################################################
 import sys
@@ -28,14 +28,28 @@ from PyQt5.QtGui     import *
 from PyQt5.QtWidgets import *
 
 #### lib #####################################################################
+from lib.Command     import *
 from lib.Debug       import *
 from lib.Utility     import *
 
-##############################################################################
-## Run unit test
-##############################################################################
-if __name__ == '__main__':
-    import test.Main
-    main = test.Main.Main()
-    main.run()
+#### Golf ####################################################################
+from DbServer        import *
+from GolfApplet      import *
+from HoleInfo        import *
 
+##############################################################################
+## Dirty test
+##############################################################################
+class Dirty_fail():
+    @staticmethod
+    def run(*args):
+        raise RuntimeError('Induced failure')
+
+class Dirty_test():
+    @staticmethod
+    def run(*args):                 ## Test DbServer
+        debugf(dbError('dbError test'))
+        debugf(dbMissing(FIND_PLAYER, 'nobody'))
+
+command['dirty'] = Dirty_fail       ## Last one wins
+command['dirty'] = Dirty_test       ## Last one wins

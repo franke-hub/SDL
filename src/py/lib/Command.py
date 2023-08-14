@@ -169,4 +169,3 @@ class __List:
         return 0
 
 command['list'] = __List
-

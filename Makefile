@@ -15,7 +15,7 @@
 ##       Build control makefile.
 ##
 ## Last change date-
-##       2023/08/06
+##       2023/08/12
 ##
 ##############################################################################
 
@@ -51,30 +51,37 @@ PY_    := $(SDL_ROOT)/obj/py
 ##----------------------------------------------------------------------------
 install: environment
 	(cd $(CPP_); $(MAKE) install)
+	(cd $(PY_);  $(MAKE) install)
 
 ##----------------------------------------------------------------------------
 reinstall: environment
 	(cd $(CPP_); $(MAKE) reinstall)
+	(cd $(PY_);  $(MAKE) reinstall)
 
 ##----------------------------------------------------------------------------
 uninstall: environment
 	(cd $(CPP_); $(MAKE) uninstall)
+	(cd $(PY_);  $(MAKE) uninstall)
 
 ##----------------------------------------------------------------------------
 check: environment
 	(cd $(CPP_); $(MAKE) check)
+	(cd $(PY_);  $(MAKE) check)
 
 ##----------------------------------------------------------------------------
 compile: environment
 	(cd $(CPP_); $(MAKE) compile)
+	(cd $(PY_);  $(MAKE) compile)
 
 ##----------------------------------------------------------------------------
 clean: defined-root
 	(cd $(CPP_); $(MAKE) clean)
+	(cd $(PY_);  $(MAKE) clean)
 
 ##----------------------------------------------------------------------------
 pristine: defined-root
 	(cd $(CPP_); $(MAKE) pristine)
+	(cd $(PY_);  $(MAKE) pristine)
 
 ##############################################################################
 ## TARGET: environment: Insure $SDL_ROOT is defined and valid
@@ -82,7 +89,6 @@ pristine: defined-root
 
 ##----------------------------------------------------------------------------
 ## Insure required subdirectories exist
-environment: defined-root
 environment: $(SDL_ROOT)/src $(SDL_ROOT)/obj $(SDL_ROOT)/bin
 environment: $(CPP_) $(JAVA_) $(MCS_) $(PY_)
 
@@ -115,7 +121,8 @@ $(PY_): ;
 	@false
 
 ##----------------------------------------------------------------------------
-## Insure SDL_ROOT is defined
+## Insure *ONLY* that SDL_ROOT is defined
+environment: defined-root
 ifeq "" "$(SDL_ROOT)"
 defined-root: ;
 	@echo "Environment variable SDL_ROOT is undefined."

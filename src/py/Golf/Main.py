@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2019 Frank Eskesen.
+##       Copyright (C) 2019-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,19 +17,15 @@
 ##       Golf: Main program
 ##
 ## Last change date-
-##       2019/08/05
+##       2023/08/13
 ##
 ##############################################################################
 import sys
 
+#### Imports #################################################################
 import configparser
 import datetime
 import pdb
-
-##############################################################################
-## Compliation controls
-##############################################################################
-USE_PDB = False                     ## Use debugger?
 
 #### PyQt5 ###################################################################
 from PyQt5.QtCore    import *
@@ -49,8 +45,13 @@ from WindowList      import *
 #### Test ####################################################################
 try:
     import Dirty
-except Exception as X:
-    print('Exception: %s' % X)
+except ImportError as X:
+    pass
+
+##############################################################################
+## Compliation controls
+##############################################################################
+USE_PDB = False                     ## Use debugger?
 
 ##############################################################################
 ## Constants
@@ -115,6 +116,5 @@ if __name__ == '__main__':
             Main.run()
 
     runner = Command(command)
-    runner.omit = ['dirty', 'list', 'main']
+    runner.omit = ['list', 'main']
     runner.main(argv)
-

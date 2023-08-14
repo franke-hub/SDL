@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2017-2018 Frank Eskesen.
@@ -268,4 +269,3 @@ class __Command:
         return 0
 
 command['aiml-server'] = __Command
-

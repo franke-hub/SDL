@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2016-2018 Frank Eskesen.
@@ -105,4 +105,3 @@ Samples.dict['list'] = List
 if __name__ == '__main__':
     main = Main()
     main.run()
-

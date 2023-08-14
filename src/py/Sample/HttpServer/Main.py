@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2018 Frank Eskesen.
@@ -176,4 +176,3 @@ if __name__ == "__main__":
 
     thread.quit()
     print(".... Done ....")
-

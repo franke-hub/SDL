@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -117,4 +118,3 @@ class TeamInfo(DatabaseInfo):       ## A team information container
 
             self.playerNets.append(None) ## TODO: NOT CODED YET
             self.playerPost.append(None) ## TODO: NOT CODED YET
-

@@ -2,6 +2,8 @@
 .home/.git/*
 .home/bin/*
 .home/obj/*
+.home/doc/cpp/Doxygen/html/*
+.home/doc/cpp/Doxygen/latex/*
 .home/src/.LICENSE/*
 .home/src/asm/x86/boot/*
 .home/src/c/inc/jpeg/bsd/*
@@ -24,8 +26,6 @@
 .home/src/cpp/inc/jpeg/win/*
 .home/src/cpp/inc/jpeg/win.old/*
 .home/src/cpp/lang/*
-.home/src/doc/cpp/Doxygen/html/*
-.home/src/doc/cpp/Doxygen/latex/*
 .home/src/java/Applet/*
 .home/src/java/PMA/*
 .home/src/java/Webapp/usr/fne/sample/*
@@ -40,6 +40,7 @@
 
 ## IGNORED files
 .home/bat/bat-CA/openssl.patch
+.home/doc/cpp/Doxygen/index.html.lnk
 .home/src/c/lib/1st/jpeg/jpegsr9c.zip
 .home/src/c/lib/1st/jpeg/jpegsrc.v9c.tar.gz
 .home/src/cpp/Edit/Xcb/Editor.md
@@ -48,7 +49,6 @@
 .home/src/cpp/Patterns/make.bat
 .home/src/cpp/Sample/.OBSOLETE/opencv/hello_world.cpp
 .home/src/cpp/Tools/Makeproj/make.bat
-.home/src/doc/cpp/Doxygen/index.html.lnk
 .home/src/lily/Eskesen/.Private/Crypto.ly.gpg
 .home/src/py/InfoDB/.ASIDES.odt
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2016-2018 Frank Eskesen.
@@ -43,7 +44,7 @@ def _logger(*args, **kwargs):
 ##############################################################################
 ## _AlarmTAB: Handle a single alarm
 ##############################################################################
-_alarm_file = "temp/alarm-data.pickle"
+_alarm_file = "_temp/alarm-data.pickle"
 _alarm_lock = threading.RLock()
 
 class _AlarmTAB(TAB):
@@ -112,7 +113,7 @@ class _AlarmThread(threading.Thread):
 ## __Command class: Set an alarm
 ##############################################################################
 class __Command:
-    _thread = _AlarmThread()        ## Create the _AlarmThread
+    ## _thread = _AlarmThread()     ## Create the _AlarmThread
 
     @staticmethod
     def run(argv):
@@ -120,4 +121,3 @@ class __Command:
         return 0
 
 command['alarm'] = __Command
-

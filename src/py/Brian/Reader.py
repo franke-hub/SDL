@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2016-2018 Frank Eskesen.
@@ -155,4 +156,3 @@ class _ReaderTAB(TAB):
 Common.add_service('file-reader', _FileReaderTAB())
 Common.add_service('http-reader', _HttpReaderTAB())
 Common.add_service('reader', _ReaderTAB())
-

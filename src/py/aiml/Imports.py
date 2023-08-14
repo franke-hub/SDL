@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2017 Frank Eskesen.
@@ -27,4 +28,3 @@ import HttpServer ## The HTTP server
 import UserServer ## The user console (LAST)
 
 import Dirty      ## BRINGUP: Quick and dirty test
-

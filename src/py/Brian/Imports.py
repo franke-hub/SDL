@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2016-2018 Frank Eskesen.
+##       Copyright (C) 2016-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,7 +17,7 @@
 ##       Brian AI: Startup imports
 ##
 ## Last change date-
-##       2018/01/01
+##       2023/08/13
 ##
 ##############################################################################
 """This module imports all the Brian adjunct modules"""
@@ -43,8 +44,4 @@ import Samples
 ## Tests
 ##############################################################################
 if True:
-    import test.Reader
-
-if True:
     import Dirty
-

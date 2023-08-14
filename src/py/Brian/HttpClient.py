@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2016-2018 Frank Eskesen.
@@ -101,4 +102,3 @@ class __Command:
         return 0
 
 command['curl'] = __Command
-

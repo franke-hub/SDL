@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -64,4 +65,3 @@ class ResultEdit(ResultView):       ## An ResultEdit window
     def show(self):
         logger('EventsCard.show');
         super().show()
-

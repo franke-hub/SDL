@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019 Frank Eskesen.
@@ -181,4 +182,3 @@ class GolferTest(GolfApplet):       ## The application control window
 
         self.setLayout(main)
         return super().show()
-
