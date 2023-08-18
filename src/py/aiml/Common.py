@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2016-2018 Frank Eskesen.
+##       Copyright (C) 2016-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,7 +17,7 @@
 ##       AIML: Common data area.
 ##
 ## Last change date-
-##       2018/01/01
+##       2023/08/17
 ##
 ##############################################################################
 import threading
@@ -145,5 +145,6 @@ def stop():
 
     _event.set()
 
-dispatcher = OBJ()                  ## The Dispatcher
-add_thread(dispatcher)              ## (The dispatcher is a managed Thread)
+## (Moved to Main.py)
+## dispatcher = OBJ()                  ## The Dispatcher
+## add_thread(dispatcher)              ## (The dispatcher is a managed Thread)

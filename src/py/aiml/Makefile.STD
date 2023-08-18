@@ -23,9 +23,8 @@ include M/Makefile.STD
 
 ##############################################################################
 ## Local cleanup
-.PHONY: mak.pristine
-pristine: mak.pristine
-mak.pristine: ;
+.PHONY: pristine.dir
+pristine: pristine.dir
+pristine.dir: ;
 	@rm -Rf brain.freeze
 	@rm -Rf log/*.log session/*.session
-

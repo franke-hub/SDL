@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2016-2021 Frank Eskesen.
+##       Copyright (C) 2016-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,7 +17,7 @@
 ##       AIML controller.
 ##
 ## Last change date-
-##       2021/04/03
+##       2023/08/17
 ##
 ## Usage-
 ##       ./Main.py
@@ -56,8 +56,10 @@ class __Quit_Command:
         Common.stop()
         return 0
 
-command['.quit'] = __Quit_Command   ## Adds built-in ".quit" to command list
-command['shutdown'] = __Quit_Command ## Delayed quit
+command['.quit'] = __Quit_Command    ## Adds built-in ".quit" to command list
+command['exit'] = __Quit_Command     ## (Alias)
+command['quit'] = __Quit_Command     ## (Alias)
+command['shutdown'] = __Quit_Command ## Delayed quit, implemented as immediate
 
 ##############################################################################
 ## __Raise_Command class (Built-in THROW command)
@@ -90,6 +92,17 @@ if __name__ == "__main__":
                PROGRAM +"/"+ VERSION, "Started")
 
         import Imports
+        from lib.Console  import Console
+        from lib.Dispatch import OBJ
+
+        ## Initialize
+        command['http-server'].run(['http-server', 'start'])
+        Common.dispatcher = OBJ()
+        Common.add_thread(Common.dispatcher)
+        control['aiml-server']._loader() ## Activate the aiml-server
+
+        ## Operate theConsole
+        Common.add_thread(Console())
         Common.join()
         if False:
             debugf("Active threads:")

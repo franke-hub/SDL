@@ -71,7 +71,7 @@ include $(INCSRC)
 ## Standard cleanup file
 .PHONY: clean pristine
 pristine: clean
-	-(cd M/; ./.Cleanup)
+	-(cd M; ./.Cleanup)
 
 clean: ;
 	-@rm -f debug.*

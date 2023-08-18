@@ -19,13 +19,13 @@
 
 ##############################################################################
 ## Use standard build targets
-include M/Makefile.MAK
+include M/Makefile.STD
 
 ##############################################################################
 ## Local cleanup
-## .PHONY: clean.dir pristine.dir
-## clean: clean.dir
-## clean.dir: ;
-##
-## pristine: pristine.dir
-## pristine.dir: ;
+.PHONY: clean.dir pristine.dir
+clean: clean.dir
+clean.dir: ;
+
+pristine: pristine.dir
+pristine.dir: ;

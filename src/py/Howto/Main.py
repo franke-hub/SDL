@@ -112,7 +112,8 @@ class __Quit_Command:
         return 0
 
 command['.quit'] =    __Quit_Command ## Immediate quit Console built-in
-command['shutdown'] = __Quit_Command ## Delayed quit
+command['quit'] =     __Quit_Command ## (Alias)
+command['shutdown'] = __Quit_Command ## Delayed quit, implemented as immediate
 
 ##############################################################################
 ## __Sleep_Command class (Built-in SLEEP command)

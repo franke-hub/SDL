@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2017-2018 Frank Eskesen.
+##       Copyright (C) 2017-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,7 +17,7 @@
 ##       Source independent AIML input/output handler.
 ##
 ## Last change date-
-##       2018/01/01
+##       2023/08/17
 ##
 ## Implementation notes-
 ##       Input:
@@ -143,6 +143,9 @@ def transmit(sess, mess):
 ## _IgnoreTAB: The AIML server TAB, NOP replacement
 ##############################################################################
 class _IgnoreTAB(TAB):
+    def _loader(self):
+        _LoaderTAB()                ## Asynchronously load the Server
+
     def work(self, uow):
         uow.work = "AIML server offline"
         uow.done(UOW.CC_ERROR)
@@ -248,10 +251,11 @@ class _LoaderTAB(TAB):              ## Asynchronous AIML loader
 
 if _USE_ASYNCH_LOADER:
     control['aiml-server'] = _IgnoreTAB() ## (Temporarily) disable AIML
-    _LoaderTAB()                    ## Asynchronously load the Server
+##  control['aiml-server']._loader() ## Activate the aiml-server
+##  _LoaderTAB()                    ## Asynchronously load the Server
 else:
     control['aiml-server'] = _ServerTAB() ## Enable AIML
-    control['aiml-server']._loader() ## Activate the aiml-server
+##  control['aiml-server']._loader() ## Activate the aiml-server
 
 ##############################################################################
 ## Class __Command

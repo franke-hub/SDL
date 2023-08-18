@@ -124,4 +124,5 @@ control['Console'] = _HandleUSER
 ##############################################################################
 ## Add Console to the list of controlled threads
 ##############################################################################
-Common.add_thread(Console())
+if False:
+    Common.add_thread(Console())

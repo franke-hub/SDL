@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2018 Frank Eskesen.
+##       Copyright (C) 2018-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,7 +17,7 @@
 ##       HTTP client
 ##
 ## Last change date-
-##       2018/01/01
+##       2023/08/17
 ##
 ## Usage-
 ##       ./Main.py
@@ -28,7 +28,7 @@ import time
 import urllib.request, urllib.error, urllib.parse
 
 _COUNTER = 10
-_WEBPAGE = "http://bigblue:7777/"
+_WEBPAGE = "http://bigblue:8080/"
 _VERBOSE = 0
 
 ##############################################################################

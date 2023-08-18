@@ -1,0 +1,44 @@
+##############################################################################
+##
+##       Copyright (C) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the GNU General
+##       Public License, version 3.0.
+##       (See accompanying file LICENSE.GPL-3.0 or the original
+##       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
+##
+##############################################################################
+##
+## Title-
+##       .relink
+##
+## Purpose-
+##       Build: Install library link
+##
+## Last change date-
+##       2023/08/17
+##
+## Implementation notes-
+##       ** ONLY ** invoked from Makefile.STD
+##
+##############################################################################
+
+##############################################################################
+## Get directory containing this script
+##############################################################################
+DIR_THIS=$(dirname $0)
+cd $DIR_THIS
+DIR_THIS=`pwd -P`
+[[ $? != 0 ]] && { echo "PWD error"; exit 1; }
+
+##############################################################################
+## Get Python site-packages directory
+##############################################################################
+DIR_SITE=`python -c "import sysconfig; print(sysconfig.get_path('purelib'))"`
+[[ $? != 0 ]] && { echo "Cannot find site-packages"; exit 1; }
+
+##############################################################################
+## Install library link
+##############################################################################
+echo ln -sf $DIR_THIS $DIR_SITE/lib
+ln -sf $DIR_THIS $DIR_SITE/lib

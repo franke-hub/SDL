@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2018 Frank Eskesen.
+##       Copyright (C) 2018-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,7 +17,7 @@
 ##       HTTP server
 ##
 ## Last change date-
-##       2018/01/01
+##       2023/08/17
 ##
 ## Usage-
 ##       ./Main.py
@@ -90,6 +90,8 @@ class HTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     print(heading, "=", self.headers[heading])
 
         if self.path.lower() == "/quit": self.path = "/quit.html"
+        if self.path == "/": self.path = "/index.html"
+        self.path = 'html/' + self.path
         f = self.send_head()
         if f:
             try:
@@ -97,7 +99,7 @@ class HTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             finally:
                 f.close()
 
-        if self.path.lower() == "/quit.html":
+        if self.path.lower() == "html/quit.html":
             if True:
                 thread = threading.current_thread()
                 try:

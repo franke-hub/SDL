@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##############################################################################
 ##
 ##       Copyright (C) 2019-2021 Frank Eskesen.
@@ -439,4 +440,5 @@ class __NittyGritty:
             debugf('%8d ******** Test%s failed! ********'
                   % (errors, ('' if errors == 1 else 's')))
         return errors
+
 command['gritty'] = __NittyGritty

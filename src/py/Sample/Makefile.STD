@@ -50,19 +50,17 @@ endif
 ##############################################################################
 ## Python source directories
 PY_ :=
-PY_ += aiml
-PY_ += Brian
-PY_ += Golf
-PY_ += Hello    Howto
-PY_ += Misc
-##PY_ += Sample
+PY_ += HttpClient
+PY_ += HttpServer
+PY_ += Tests
+PY_ += Usage
 
 ##############################################################################
 ## TARGETS: check, compile, install, reinstall, uninstall
 .PHONY: check compile install reinstall uninstall
 
 ##----------------------------------------------------------------------------
-check: is-installed
+check: ;
 	@echo; echo; echo "No available tests"
 	@echo "** check completed OK **"
 
@@ -73,10 +71,8 @@ compile: ;
 	@echo "** compile completed OK **"
 
 ##----------------------------------------------------------------------------
-install: sys-install
-	(echo; echo; cd lib; $(MAKE) install)
-	(echo; echo; cd site-packages/stdio; $(MAKE) install)
-	@echo "** install completed OK **"
+install: ;
+	@echo "Nothing to install"
 
 ##----------------------------------------------------------------------------
 reinstall: uninstall install
@@ -84,36 +80,18 @@ reinstall: uninstall install
 
 ##----------------------------------------------------------------------------
 uninstall: ;
-	(echo; echo; cd lib; $(MAKE) uninstall)
-	(echo; echo; cd site-packages/stdio; $(MAKE) uninstall)
-	@echo "** uninstall completed OK **"
-
-##############################################################################
-## TARGET: sys-install
-.PHONY: sys-install
-sys-install: ;
-	python -m pip install pip --upgrade
-	python -m pip install aiml --upgrade
+	@echo "Nothing to uninstall"
 
 ##############################################################################
 ## TARGETS: clean, pristine
 .PHONY: clean pristine
 
 ##----------------------------------------------------------------------------
-_clean = (cd $(dir); $(MAKE) pristine )
-clean: is-installed
+_clean = (cd $(dir); $(MAKE) clean)
+clean: ;
 	-$(foreach dir, $(PY_), $(_clean);)
-	-@(cd site-packages/stdio; $(MAKE) clean)
 
 ##----------------------------------------------------------------------------
-pristine: clean
-	-@(cd lib; $(MAKE) pristine)
-	-@(cd site-packages/stdio; $(MAKE) pristine)
-
-##############################################################################
-## TARGET: is-installed (Verify installation setup)
-.PHONY: is-installed
-
-##----------------------------------------------------------------------------
-## (Not currently needed)
-is-installed: ;
+_pristine = (cd $(dir); $(MAKE) pristine)
+pristine: ;
+	-$(foreach dir, $(PY_), $(_pristine);)

@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2020-2023 Frank Eskesen.
+##       Copyright (c) 2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
@@ -10,7 +10,7 @@
 ##############################################################################
 ##
 ## Title-
-##       Makefile.STD
+##       Makefile.MAK
 ##
 ## Purpose-
 ##       Default target Makefile for Python programs
@@ -22,20 +22,13 @@
 
 ##############################################################################
 ## Set default target
-ifeq "" "$(DEFAULT)"
-DEFAULT:= do
-endif
-
-.PHONY: default dirty do
-default: $(DEFAULT)
+.PHONY: build
+build: ;
+	@_Make
 
 ##############################################################################
 ## Built-in targets
-dirty: ;
-	-_Main dirty 2>debug.err
-	@echo -e "\n\nSTDERR:"
-	@cat debug.err
-
+.PHONY: do
 do: ;
 	-_Main 2>debug.err
 	@echo -e "\n\nSTDERR:"

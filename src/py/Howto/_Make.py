@@ -3,22 +3,23 @@
 ##
 ##       Copyright (C) 2023 Frank Eskesen.
 ##
-##       This file is free content, distributed under creative commons CC0,
-##       explicitly released into the Public Domain.
-##       (See accompanying html file LICENSE.ZERO or the original contained
-##       within https://creativecommons.org/publicdomain/zero/1.0/legalcode)
+##       This file is free content, distributed under the GNU General
+##       Public License, version 3.0.
+##       (See accompanying file LICENSE.GPL-3.0 or the original
+##       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
 ##
 ##############################################################################
 ##
 ## Title-
-##       Make.py
+##       _Make.py
 ##
 ## Purpose-
-##       Implement (default) make
+##       Compile all programs in subdirectory.
 ##
 ## Last change date-
 ##       2023/08/17
 ##
 ##############################################################################
 
-import hello
+import Main
+import Shm_demo
