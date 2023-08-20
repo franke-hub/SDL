@@ -20,7 +20,7 @@
 ##
 ## Usage-
 ##       sudo command parameters
-##           (On CYGWIN, ust execute command.)
+##           (On CYGWIN, just execute command.)
 ##
 ## Implementation notes-
 ##       This DOES NOT WORK for remote connections.

@@ -15,7 +15,7 @@
 ##       Python build control makefile
 ##
 ## Last change date-
-##       2023/08/08
+##       2023/08/19
 ##
 ## Implementation notes-
 ##       ~/obj/py/Makefile links to this file.
@@ -55,7 +55,11 @@ PY_ += Brian
 PY_ += Golf
 PY_ += Hello    Howto
 PY_ += Misc
-##PY_ += Sample
+
+## Python library and multi-source subdirectories
+DIR :=
+DIR += lib
+DIR += Sample
 
 ##############################################################################
 ## TARGETS: check, compile, install, reinstall, uninstall
@@ -68,8 +72,10 @@ check: is-installed
 
 ##----------------------------------------------------------------------------
 _build = set -e; (echo; echo; cd $(dir); $(MAKE))
+_compile = set -e; (echo; echo; cd $(dir); $(MAKE) compile)
 compile: ;
 	@$(foreach dir, $(PY_), $(_build);)
+	@$(foreach dir, $(DIR), $(_compile);)
 	@echo "** compile completed OK **"
 
 ##----------------------------------------------------------------------------
@@ -89,26 +95,31 @@ uninstall: ;
 	@echo "** uninstall completed OK **"
 
 ##############################################################################
-## TARGET: sys-install
-.PHONY: sys-install
-sys-install: ;
-	python -m pip install pip --upgrade
-	python -m pip install aiml --upgrade
-
-##############################################################################
 ## TARGETS: clean, pristine
 .PHONY: clean pristine
 
 ##----------------------------------------------------------------------------
-_clean = (cd $(dir); $(MAKE) pristine )
-clean: is-installed
+_clean = (cd $(dir); $(MAKE) clean)
+clean: ;
 	-$(foreach dir, $(PY_), $(_clean);)
+	-$(foreach dir, $(DIR), $(_clean);)
 	-@(cd site-packages/stdio; $(MAKE) clean)
 
 ##----------------------------------------------------------------------------
-pristine: clean
-	-@(cd lib; $(MAKE) pristine)
+_pristine = (cd $(dir); $(MAKE) pristine)
+pristine: ;
+	-$(foreach dir, $(PY_), $(_pristine);)
+	-$(foreach dir, $(DIR), $(_pristine);)
 	-@(cd site-packages/stdio; $(MAKE) pristine)
+
+##############################################################################
+## TARGET: sys-install
+.PHONY: sys-install
+sys-install: ;
+	@echo; echo; echo "Installing/upgrading prerequisite packages"; echo; echo;
+	python -m pip install --upgrade pip
+	python -m pip install --upgrade setuptools wheel
+	python -m pip install --upgrade aiml
 
 ##############################################################################
 ## TARGET: is-installed (Verify installation setup)

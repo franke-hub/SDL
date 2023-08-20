@@ -9,7 +9,7 @@
 ##############################################################################
 ##
 ## Title-
-##       (~/src/py/)Makefile.STD
+##       (~/src/py/Sample/)Makefile.STD
 ##
 ## Purpose-
 ##       Python build control makefile
@@ -68,15 +68,14 @@ check: ;
 _build = set -e; (echo; echo; cd $(dir); $(MAKE))
 compile: ;
 	@$(foreach dir, $(PY_), $(_build);)
-	@echo "** compile completed OK **"
 
 ##----------------------------------------------------------------------------
 install: ;
 	@echo "Nothing to install"
 
 ##----------------------------------------------------------------------------
-reinstall: uninstall install
-	@echo "** reinstall completed OK **"
+reinstall: ;
+	@echo "Nothing to uninstall or install"
 
 ##----------------------------------------------------------------------------
 uninstall: ;

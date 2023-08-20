@@ -16,7 +16,7 @@
 ##       Build: Install library link
 ##
 ## Last change date-
-##       2023/08/17
+##       2023/08/18
 ##
 ## Implementation notes-
 ##       ** ONLY ** invoked from Makefile.STD
@@ -39,6 +39,10 @@ DIR_SITE=`python -c "import sysconfig; print(sysconfig.get_path('purelib'))"`
 
 ##############################################################################
 ## Install library link
+##
+## Implementation note:
+##    It's possible that the python implementation did not create the
+##    $DIR_SITE directory. For now, if it's missing create it manually.
 ##############################################################################
-echo ln -sf $DIR_THIS $DIR_SITE/lib
-ln -sf $DIR_THIS $DIR_SITE/lib
+echo sudo ln -sf $DIR_THIS $DIR_SITE/lib
+sudo ln -sf $DIR_THIS $DIR_SITE/lib

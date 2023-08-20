@@ -52,7 +52,7 @@ check: ;
 ##----------------------------------------------------------------------------
 _source = Command Console Control Debug Dispatch Global
 compile: ;
-	$(foreach mod, $(_source), python -c "from lib import $(mod)"; )
+	@$(foreach mod, $(_source), python -c "from lib import $(mod)"; )
 	@echo "** compile completed OK **"
 
 ##----------------------------------------------------------------------------
