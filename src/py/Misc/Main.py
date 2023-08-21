@@ -38,8 +38,8 @@ import NittyGritty
 ##############################################################################
 try: ## The Dirty module is not maintained in git, so it might not be here.
     import Dirty
-except Exception as X:
-    debugf('Exception: %s' % X)
+except ImportError:
+    pass
 
 ##############################################################################
 ## Constants (Some may be overridden by parameters)
