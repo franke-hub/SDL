@@ -16,10 +16,10 @@
 ##       Build: Remove library link
 ##
 ## Last change date-
-##       2023/08/18
+##       2023/08/21
 ##
 ## Implementation notes-
-##       ** ONLY ** invoked from Makefile.STD
+##       ** MUST ONLY ** be invoked from Makefile.STD
 ##
 ##############################################################################
 

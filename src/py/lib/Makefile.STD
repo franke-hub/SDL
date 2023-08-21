@@ -15,7 +15,7 @@
 ##       Python build control makefile
 ##
 ## Last change date-
-##       2023/08/17
+##       2023/08/21
 ##
 ## Implementation notes-
 ##       ~/obj/py/lib/Makefile links to this file.
@@ -57,7 +57,7 @@ compile: ;
 
 ##----------------------------------------------------------------------------
 install: ;
-	@S/.relink
+	@bash -c S/.relink
 	@echo "$(lib_root)"
 	@echo "** install completed OK **"
 
@@ -67,7 +67,7 @@ reinstall: uninstall install
 
 ##----------------------------------------------------------------------------
 uninstall: ;
-	@S/.unlink
+	@bash -c S/.unlink
 	@echo "** uninstall completed OK **"
 
 ##############################################################################
