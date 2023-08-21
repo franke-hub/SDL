@@ -17,12 +17,11 @@
 ##       Compile all programs in subdirectory.
 ##
 ## Last change date-
-##       2023/08/17
+##       2023/08/21
 ##
 ##############################################################################
 
 import Main
-import Module
 import Python2_Sample
 import Python3_Sample
 import Sample
