@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2017 Frank Eskesen.
+##       Copyright (C) 2017-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,7 +17,7 @@
 ##       Import servers.
 ##
 ## Last change date-
-##       2017/01/01
+##       2023/08/21
 ##
 ##############################################################################
 from __future__ import print_function
@@ -27,4 +27,7 @@ import AimlTester ## The AIML tester commands
 import HttpServer ## The HTTP server
 import UserServer ## The user console (LAST)
 
-import Dirty      ## BRINGUP: Quick and dirty test
+try:
+    import Dirty  ## BRINGUP: Quick and dirty test
+except ImportError:
+    pass

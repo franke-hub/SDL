@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2017-2019 Frank Eskesen.
+##       Copyright (C) 2017-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,7 +17,7 @@
 ##       Library tester.
 ##
 ## Last change date-
-##       2019/09/04
+##       2023/08/21
 ##
 ##############################################################################
 import argparse
@@ -43,10 +43,10 @@ import Types_test
 import Utility_test
 
 ##############################################################################
-try: ## The Dirty module is not maintained in git, so it might not be here.
+try:
     import Dirty
-except Exception as X:
-    print('Exception: %s' % X)
+except ImportError:
+    pass
 
 ##############################################################################
 ## Constants (Some may be overridden by parameters)

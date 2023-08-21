@@ -17,7 +17,7 @@
 ##       Command processor.
 ##
 ## Last change date-
-##       2023/08/10
+##       2023/08/21
 ##
 ## Usage-
 ##       ./Main.py
@@ -135,7 +135,10 @@ command['sleep'] = __Sleep_Command  ## Sleep command
 ## Mainline code
 ##############################################################################
 if __name__ == '__main__':
-    import Dirty
+    try:
+        import Dirty
+    except ImportError:
+        pass
 
     try:
         debug = Debug('debug.out', append=True)

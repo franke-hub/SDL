@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2016-2019 Frank Eskesen.
+##       Copyright (C) 2016-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,7 +17,7 @@
 ##       Pythons sample program, demonstrating compiler features/user errors
 ##
 ## Last change date-
-##       2019/08/13
+##       2023/08/21
 ##
 ## Implementation note-
 ##       python version 3 required: python2 disallows added keyword syntax
@@ -40,7 +40,10 @@ dict = {} ## dict['Test_name'] = Class_name
 dict['base'] = Test
 
 ## This cannot be imported until the dictionary is defined
-import Dirty                        ## A quick and dirty test
+try:
+    import Dirty  ## BRINGUP: Quick and dirty test
+except ImportError:
+    pass
 
 ##############################################################################
 ## Controls

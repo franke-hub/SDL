@@ -17,7 +17,7 @@
 ##       Brian AI: Startup imports
 ##
 ## Last change date-
-##       2023/08/13
+##       2023/08/21
 ##
 ##############################################################################
 """This module imports all the Brian adjunct modules"""
@@ -41,7 +41,9 @@ import Reader                       ## 'reader'
 import Samples
 
 ##############################################################################
-## Tests
+## Bringup tests
 ##############################################################################
-if True:
+try:
     import Dirty
+except ImportError:
+    pass
