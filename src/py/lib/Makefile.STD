@@ -47,28 +47,22 @@ list-options: ;
 ##----------------------------------------------------------------------------
 check: ;
 	@echo; echo; echo "No available tests"
-	@echo "** check completed OK **"
 
 ##----------------------------------------------------------------------------
 _source = Command Console Control Debug Dispatch Global
 compile: ;
 	@$(foreach mod, $(_source), python -c "from lib import $(mod)"; )
-	@echo "** compile completed OK **"
 
 ##----------------------------------------------------------------------------
 install: ;
 	@bash -c S/.relink
-	@echo "$(lib_root)"
-	@echo "** install completed OK **"
 
 ##----------------------------------------------------------------------------
 reinstall: uninstall install
-	@echo "** reinstall completed OK **"
 
 ##----------------------------------------------------------------------------
 uninstall: ;
 	@bash -c S/.unlink
-	@echo "** uninstall completed OK **"
 
 ##############################################################################
 ## TARGETS: clean, pristine
