@@ -1,0 +1,20 @@
+##############################################################################
+##
+##       Copyright (C) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+## ~/obj/py/Golf/.gitignore
+##############################################################################
+/*
+!/.gitignore
+!/_Main
+!/_Make
+!/golfer.ini
+!/M
+!/Makefile
+!/S
+!/Test
