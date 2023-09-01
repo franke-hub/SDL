@@ -180,7 +180,7 @@ fi
 ## Create temporary $repo/obj/.git source
 date=`date`
 pushd $repo >/dev/null
-git init -b trunk >/dev/null
+git init  >/dev/null
 git add . >/dev/null
 git commit -m "Synchronization commit $date" >/dev/null
 git gc >/dev/null 2>/dev/null

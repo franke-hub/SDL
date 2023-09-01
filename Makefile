@@ -15,7 +15,7 @@
 ##       Build control makefile.
 ##
 ## Last change date-
-##       2023/08/12
+##       2023/08/26
 ##
 ##############################################################################
 
@@ -26,6 +26,7 @@ list-options: ;
 	@echo "Available options:"
 	@echo "  make install: Build all installation prerequisites and libraries."
 	@echo "    Use this to initialize or update your installation."
+	@echo "  make install_dll: Build the C++ Dynamic-Link (Shared) Library."
 	@echo "  make uninstall: Remove prerequisites and build libraries."
 	@echo "  make reinstall: (make uninstall; make install)"
 	@echo "    Use this after installing a new Linux version."
@@ -45,13 +46,18 @@ MCS_   := $(SDL_ROOT)/obj/mcs
 PY_    := $(SDL_ROOT)/obj/py
 
 ##############################################################################
-## TARGETS: install, reinstall, uninstall, check, compile, clean, pristine
-.PHONY: install uninstall reinstall check compile clean pristine
+## TARGETS: check, compile, clean, install, install_dll, pristine, reinstall,
+## TARGETS: uninstall
+.PHONY: check compile clean install install_dll pristine reinstall uninstall
 
 ##----------------------------------------------------------------------------
 install: environment
 	(cd $(CPP_); $(MAKE) install)
 	(cd $(PY_);  $(MAKE) install)
+
+##----------------------------------------------------------------------------
+install_dll: environment
+	(cd $(CPP_); $(MAKE) install_dll)
 
 ##----------------------------------------------------------------------------
 reinstall: environment

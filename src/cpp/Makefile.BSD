@@ -15,7 +15,7 @@
 ##       C++ build control makefile
 ##
 ## Last change date-
-##       2023/08/06
+##       2023/08/31
 ##
 ## Implementation notes-
 ##       ~/obj/cpp/Makefile links to this file.
@@ -29,6 +29,7 @@ list-options: ;
 	@echo "Available options:"
 	@echo "  make install: Build all installation prerequisites and libraries."
 	@echo "    Use this to initialize or update your installation."
+	@echo "  make install_dll: Build the C++ Dynamic-Link (Shared) Library."
 	@echo "  make uninstall: Remove prerequisites and build libraries."
 	@echo "  make reinstall: (make uninstall; make install)"
 	@echo "    Use this after installing a new Linux version."
@@ -68,8 +69,8 @@ CPP_ += Wilbur
 CPP_ += Xample   XML
 
 ##############################################################################
-## TARGETS: check, compile, install, reinstall, uninstall
-.PHONY: check compile install reinstall uninstall
+## TARGETS: check, compile, install, install_dll, reinstall, uninstall
+.PHONY: check compile install install_dll reinstall uninstall
 
 ##----------------------------------------------------------------------------
 check: is-installed
@@ -87,8 +88,13 @@ compile: is-installed
 install: ;
 	(echo; echo; cd sys; $(MAKE) install)
 	(echo; echo; cd lib; $(MAKE))
-	(echo; echo; cd dll; $(MAKE))
 	@echo "** install completed OK **"
+
+##----------------------------------------------------------------------------
+install_dll: ;
+	(echo; echo; cd sys; $(MAKE) install)
+	(echo; echo; cd dll; $(MAKE))
+	@echo "** install_dll completed OK **"
 
 ##----------------------------------------------------------------------------
 reinstall: uninstall install
@@ -108,7 +114,7 @@ uninstall: ;
 ##----------------------------------------------------------------------------
 _clean = (cd $(dir); $(MAKE) pristine )
 .PHONY: clean
-clean: is-installed
+clean: ;
 	-$(foreach dir, $(CPP_), $(_clean);)
 	-@(cd lib/dev/Test; $(MAKE) pristine)
 	-@(cd lib/pub/Test; $(MAKE) pristine)

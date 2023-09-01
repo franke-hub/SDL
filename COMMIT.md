@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2023/08/06
+//       2023/08/23
 //
 //------------------------------------------------------------------------ -->
 
@@ -32,11 +32,27 @@ is maintained in git, changes are always recorded.
 
 ----
 
+#### 08/23/2023 maint/trunk commit
+Make now also controls Python installation.
+Python 3.8 implemented PEP 517 and 518, changing the install mechanism.
+This updated mechanism is now used.
+
+PyQt5, which is required by the Golf program, is not installed by default.
+PyQt5 requires qt5, which installs separately.
+
+The stdio (Python C extention) installs using setuptools.
+The local Python library currently installs using sudo to install a link to
+the library subdirectory.
+
+----
+
 #### 08/07/2023 maint/trunk commit
 Fixed problems found in full recompile on Ubuntu test build machine running
 GCC 11.4.0 and ImageMagick-6. With ImageMagick-6, src/cpp/NN2 does not
-compile, so we changed its Makefile.BSD to reflect that fact.
-We fixed ~/src/cpp/Clone/FSlist.cpp, so it's no longer deprecated.
+compile, so we changed its Makefile.BSD to reflect that fact but *ONLY*
+on that build machine.
+(Cygwin and Fedora's ImageMagick is version 7.)
+Fixed ~/src/cpp/Clone/FSlist.cpp, so it's no longer deprecated.
 
 ----
 

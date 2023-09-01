@@ -49,4 +49,3 @@ extern int                          // Return code
 
    return errorCount;
 }
-

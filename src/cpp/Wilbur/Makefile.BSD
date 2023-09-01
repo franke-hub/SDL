@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2023/08/04
+##       2023/09/01
 ##
 ##############################################################################
 
@@ -72,6 +72,7 @@ ifneq "$(strip $(LIBDBX))" ""
 endif
 LOCLIB += -ldb -ldb_cxx
 LOCLIB += -ldl
+LOCLIB += -lpthread
 LOCLIB += -lX11
 LOCLIB += -lbz2 -lz
 LOCLIB += -lboost_stacktrace_addr2line
