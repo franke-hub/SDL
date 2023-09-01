@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2023/05/05
+//       2023/08/28
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -877,6 +877,31 @@ void
 void
    editor::exit( void )             // Unconditional editor (normal) exit
 {  device->operational= false; }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::insert_command
+//
+// Purpose-
+//       Insert command output onto the file list
+//
+//----------------------------------------------------------------------------
+void
+   editor::insert_command(            // Insert command output to the file list
+     const char*       input,         // The command  (must be present)
+     const std::string&output)        // The command output
+{  if( opt_hcdm )
+     traceh("editor::insert_output(%s)\n", input);
+
+   EdFile* next= new EdFile(nullptr);
+   next->command(input, output);
+
+   file_list.insert(file, next, next);
+   last= next;
+   term->activate(last);
+   hist->activate();
+}
 
 //----------------------------------------------------------------------------
 //

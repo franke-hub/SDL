@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2023/05/12
+//       2023/08/28
 //
 // Implementation objects-
 //       EdLine: Editor EdFile line descriptor
@@ -350,6 +350,20 @@ EdLine*                             // The last inserted line
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdFile::command
+//
+// Purpose-
+//       Load command output
+//
+//----------------------------------------------------------------------------
+void
+   command(                         // Load command output
+     const char*       input,       // The command name
+     const std::string&output);     // Insert after this line
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdFile::insert
 //
 // Purpose-
@@ -383,6 +397,24 @@ EdLine*                             // (Always line)
 EdLine*                             // The allocated line
    new_line(                        // Allocate a new line
      const char*       text= nullptr) const; // Line text
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::parse
+//
+// Purpose-
+//       Parse text.
+//
+// Implementation note-
+//       DOS files get DOS delimiters. All others get UNIX delimiters.
+//
+//----------------------------------------------------------------------------
+EdLine*                             // The last inserted EdLine
+   parse(                           // Parse text, inserting EdLines
+     EdLine*           line,        // The line to insert after
+     char*             text,        // The (allocated) text
+     size_t            size);       // The text length
 
 //----------------------------------------------------------------------------
 //

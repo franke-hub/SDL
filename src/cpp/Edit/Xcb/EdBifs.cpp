@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2023/05/12
+//       2023/08/28
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -40,8 +40,8 @@ using namespace config;             // For opt_* controls
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  TAB= 8                           // TAB spacing (2**N)
-,  USE_BRINGUP= false               // Extra bringup diagnostics?
+
+,  TABS= 8                          // TAB spacing (2**N)
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
@@ -135,7 +135,6 @@ static const Command_desc
                        command_desc[]= // The Command descriptor list
 {  {command_bot,    "BOT",     "Bottom of file"}
 ,  {command_change, "C",       "Change"}
-,  {command_cmd,    "CMD",     "(System) command"}
 ,  {command_debug,  "D",       "Alias for DEBUG"}
 ,  {command_debug,  "DEBUG",   "Debugging display"}
 ,  {command_detab,  "DETAB",   "Convert tabs to spaces"}
@@ -171,9 +170,6 @@ static const Command_desc
 ,  {nullptr     ,  nullptr, nullptr} // End of list delimiter
 };
 
-//----------------------------------------------------------------------------
-// Forward references
-//----------------------------------------------------------------------------
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -317,10 +313,40 @@ static const char*                  // Error message, nullptr expected
    command_cmd(                     // Command command
      char*             parm)        // (Mutable) parameter string
 {
-   int rc= system(parm);
-   if( rc )
-     return "Command failed";
+   char buffer[256];                // Input buffer
+   std::string input(parm);         // The input command
+   std::string output;              // The output buffer
+   input += " 2>&1";                // (Route stderr onto stdout)
 
+   auto pipe= popen(input.c_str(), "r"); // The output pipe
+   int rc= EXIT_FAILURE;
+
+   try {
+     if( !pipe ) {
+       sprintf(buffer, "popen error: %d:%s", errno, strerror(errno));
+       throw std::runtime_error(buffer);
+     }
+
+     while( !feof(pipe) ) {
+       if( fgets(buffer, sizeof(buffer), pipe) )
+         output += buffer;
+     }
+
+     rc= pclose(pipe);
+     if( rc != 0 ) {
+       output += "\n\n";
+       output += "Command failed";
+     }
+   } catch( std::exception& X ) {
+     output += "\n\n";
+     output += "Exception: ";
+     output += X.what();
+     if( pipe )
+       pclose(pipe);
+   }
+
+   // Create result pseudo-file
+   editor::insert_command(parm, output);
    return nullptr;
 }
 
@@ -395,8 +421,8 @@ static const char*                  // Error message, nullptr expected
        size_t L= tabs - text;       // Length of text
        active->append_text(text, L); // Append the text
        L= active->get_used();
-       L += TAB;
-       L &= ~(TAB - 1);
+       L += TABS;
+       L &= ~(TABS - 1);
        active->fetch(L-1);
        if( L > active->get_used() )
          active->append_text(" ");
@@ -765,17 +791,17 @@ const char*                         // Error message, nullptr if none
      }
 
      // Process builtin commands
-     Function* func= nullptr;       // Default, not found
      for(int i= 0; command_desc[i].name; i++) { // Find command
        if( strcasecmp(buffer, command_desc[i].name) == 0 ) {
-         func= command_desc[i].func;
-         break;
+         return command_desc[i].func(parm);
        }
      }
-     if( func )
-       error= func(parm);
-     else
-       error= "Invalid command";
+
+     // Process system command
+     if( parm )
+       *text= ' ';
+
+     error= command_cmd(buffer);
    }
 
    return error;

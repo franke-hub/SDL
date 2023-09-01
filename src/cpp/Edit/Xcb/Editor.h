@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2022/12/29
+//       2023/08/28
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -296,6 +296,20 @@ void
 //----------------------------------------------------------------------------
 void
    exit( void );                    // Unconditional editor (normal) exit
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::insert_command
+//
+// Purpose-
+//       Insert command output onto the file list
+//
+//----------------------------------------------------------------------------
+void
+   insert_command(                    // Insert command output to the file list
+     const char*       input,         // The command
+     const std::string&output);       // The command output
 
 //----------------------------------------------------------------------------
 //

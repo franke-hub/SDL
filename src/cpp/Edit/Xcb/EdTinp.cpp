@@ -16,7 +16,7 @@
 //       Editor: Implement EdTerm.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2023/05/17
+//       2023/08/28
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -616,7 +616,8 @@ void
      //-----------------------------------------------------------------------
      // Function keys
      case XK_F1: {
-       printf(" F1: This help message\n"
+       editor::insert_command("**F1-HELP**",
+              " F1: This help message\n"
               " F2: NOP\n"
               " F3: Quit File\n"
               " F4: Test changed\n"

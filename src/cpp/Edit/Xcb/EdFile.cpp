@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2023/05/12
+//       2023/08/28
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -351,7 +351,7 @@ static void
    EdFile::EdFile(                  // Constructor
      const char*       name_)       // Fully qualified file name
 :  ::pub::List<EdFile>::Link()
-,  name(name_)
+,  name(name_ ? name_ : "")
 {  if( HCDM || opt_hcdm )
      traceh("EdFile(%p)::EdFile(%s)\n", this, get_name().c_str());
 
@@ -502,6 +502,33 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdFile::command
+//
+// Purpose-
+//       Load command output (into empty file)
+//
+//----------------------------------------------------------------------------
+void
+   EdFile::command(                 // Load command output
+     const char*       input,       // The command name
+     const std::string&output)      // The command output
+{
+   name= input;                     // The file name is the command name
+   protect= true;                   // The file is protected
+
+   size_t size= output.size();      // The size of the file
+   char* text= allocate(size + 2);  // Allocate space for file (+ "\n\0")
+   memcpy(text, output.c_str(), size); // Copy text into allocated buffer
+   if( text[size-1] != '\n' )       // If missing trailing '\n'
+     text[size++]= '\n';            // Add it in
+   text[size]= '\0';                // Add trailing '\0' delimiter
+
+   parse(line_list.get_head(), text, size); // Parse text into lines
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdFile::activate
 //
 // Purpose-
@@ -576,6 +603,76 @@ EdLine*                             // The last inserted line
      size= L;
    }
 
+   // Parse the text into lines
+   return parse(line, text, size);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::insert
+//
+// Purpose-
+//       Insert file lines (or line)
+//
+//----------------------------------------------------------------------------
+EdLine*                             // (Always tail)
+   EdFile::insert(                  // Insert
+     EdLine*           after,       // After this line
+     EdLine*           head,        // From this line
+     EdLine*           tail)        // Upto this line
+{
+   line_list.insert(after, head, tail);
+
+   for(EdLine* line= head; line != tail; line= line->get_next()) {
+     if( line == nullptr ) throw "Invalid insert chain";
+     rows++;
+   }
+   rows++;                          // (Count the tail line)
+   row_zero= get_row(top_line);     // Correct row_zero
+
+   return tail;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::new_line
+//
+// Purpose-
+//       Allocate a new line, also setting the delimiter
+//
+// Implementation note-
+//       DOS files get DOS delimiters. All others get UNIX delimiters.
+//
+//----------------------------------------------------------------------------
+EdLine*                             // The allocated line
+   EdFile::new_line(                // Allocate a new line
+     const char*       text) const  // Line text
+{
+   EdLine* line= new EdLine(text);
+   line->delim[0]= '\n';            // Default, UNIX delimiter
+   if( mode == M_DOS )              // For DOS mode files
+     line->delim[1]= '\r';          // Use DOS delimiter
+
+   return line;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::parse
+//
+// Purpose-
+//       Parse (allocated) text
+//
+//----------------------------------------------------------------------------
+EdLine*                             // The last inserted line
+   EdFile::parse(                   // Parse (allocated) text
+     EdLine*           line,        // The line to insert after
+     char*             text,        // The (allocated) text
+     size_t            size)        // The text length
+{
    // Check for binary file
    char* last= strchr(text, '\0');
    if( last != (text + size) ) {    // If file contains '\0' delimiter
@@ -586,8 +683,7 @@ EdLine*                             // The last inserted line
 
    // Parse the text into lines (Performance critical path)
    char* used= text;
-   while( used < last )
-   {
+   while( used < last ) {
      char* from= used;              // Starting character
      line= insert(line, new EdLine(from));
 
@@ -639,57 +735,6 @@ EdLine*                             // The last inserted line
        }
      }
    }
-
-   return line;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdFile::insert
-//
-// Purpose-
-//       Insert file lines (or line)
-//
-//----------------------------------------------------------------------------
-EdLine*                             // (Always tail)
-   EdFile::insert(                  // Insert
-     EdLine*           after,       // After this line
-     EdLine*           head,        // From this line
-     EdLine*           tail)        // Upto this line
-{
-   line_list.insert(after, head, tail);
-
-   for(EdLine* line= head; line != tail; line= line->get_next()) {
-     if( line == nullptr ) throw "Invalid insert chain";
-     rows++;
-   }
-   rows++;                          // (Count the tail line)
-   row_zero= get_row(top_line);     // Correct row_zero
-
-   return tail;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdFile::new_line
-//
-// Purpose-
-//       Allocate a new line, also setting the delimiter
-//
-// Implementation note-
-//       DOS files get DOS delimiters. All others get UNIX delimiters.
-//
-//----------------------------------------------------------------------------
-EdLine*                             // The allocated line
-   EdFile::new_line(                // Allocate a new line
-     const char*       text) const  // Line text
-{
-   EdLine* line= new EdLine(text);
-   line->delim[0]= '\n';            // Default, UNIX delimiter
-   if( mode == M_DOS )              // For DOS mode files
-     line->delim[1]= '\r';          // Use DOS delimiter
 
    return line;
 }
