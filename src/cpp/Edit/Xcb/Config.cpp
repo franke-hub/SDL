@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2023/01/01
+//       2023/09/01
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -140,11 +140,11 @@ static void term( void );           // Terminate
 //----------------------------------------------------------------------------
 static const char*     Edit_conf=
    "[Program]\n"
-   "URL=https://github.com/franke-hub/Cornucopia/tree/trunk/src/cpp/Edit/Xcb\n"
+   "URL=https://github.com/franke-hub/SDL/tree/trunk/src/cpp/Edit/Xcb\n"
    "Exec=View ; Edit in read-only mode\n"
    "Exec=Edit ; Edit in read-write mode\n"
    "Purpose=Graphic text editor\n"
-   "Version=1.0.0\n"
+   "Version=1.0.1\n"
    "\n"
    "[Options]\n"
    ";; See sample: ~/src/cpp/Edit/Xcb/.SAMPLE/Edit.conf\n"
