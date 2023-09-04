@@ -1,0 +1,81 @@
+##############################################################################
+##
+##       Copyright (c) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile customization.
+##
+## Last change date-
+##       2023/08/29
+##
+##############################################################################
+
+##############################################################################
+## Local module list
+
+##############################################################################
+## Local library
+LIBOBJ := ############################
+LIBOBJ += RFC7540.o
+MAKEXE := $(patsubst $(OBJDIR)/RFC7540,,$(MAKEXE))
+LIBOBJ += RFC7541.o
+MAKEXE := $(patsubst $(OBJDIR)/RFC7541,,$(MAKEXE))
+
+LLIBS  += -L. -llocal
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= make.dir
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+.PHONY: make.dir
+make.dir: $(MAKEXE)
+## make.dir: Enviro
+
+.PHONY: make.all
+make.all: $(MAKEXE)
+
+all: make.all
+
+##############################################################################
+## TARGET: liblocal.a
+liblocal.a: $(LIBOBJ)
+	$(AR) $@ $^
+	touch $@
+
+##############################################################################
+## Run the default program
+.PHONY: do
+do: Main
+	Main
+
+##############################################################################
+## Dependency controls
+include $(INCDIR)/pub/Makefile.BSD  ## PUB library controls
+
+$(MAKEXE): $(LIBDIR)/libpub.a       ## All execs depend on PUB library
+$(MAKEXE): liblocal.a               ## All execs depend on local library
+
+##############################################################################
+## Makefile cleanup
+.PHONY: clean.dir pristine.dir
+pristine : pristine.dir
+pristine.dir: ;
+	-@rm -f liblocal.a       >/dev/null 2>/dev/null
+
+clean: clean.dir
+clean.dir: ;
+	-@rm -f trace.mem        >/dev/null 2>/dev/null
