@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2023/08/28
+//       2023/09/04
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -167,7 +167,8 @@ static const Command_desc
 ,  {command_save,  "SAVCE", nullptr} // (SAVE)
 ,  {command_save,  "SAVVE", nullptr} // (SAVE)
 ,  {command_save,  "SVAE",  nullptr} // (SAVE)
-,  {nullptr     ,  nullptr, nullptr} // End of list delimiter
+,  {command_top,   "TIO",   nullptr} // (TOP)
+,  {nullptr,       nullptr, nullptr} // End of list delimiter
 };
 
 //----------------------------------------------------------------------------
