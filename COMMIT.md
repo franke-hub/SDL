@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2023/08/23
+//       2023/09/22
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,32 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 09/22/2023 maint/trunk commit
+- XCB editor (~/src/cpp/Edit/Xcb)
+  - New feature: If not an editor command, run as a system command and display
+output in a new pseudo file.
+  - New features: 'help' command and 'set help' command.
+  - New features: Added common ctrl- keys: ctrl-S, ctrl-Q, ctrl-Y, and ctrl-Z.
+  - Added 'TIO' misspelling of 'TOP' command.
+- List.h (~/src/cpp/inc/pub/List.h, ~/src/cpp/inc/pub/bits/List.h
+  - Fixed SHSL_list iterator. It shouldn't be destructive.
+  - Added '= delete' constructors and assignment operators. Since all lists use
+link references rather than copies, none of the list objects can be copied.
+List objects can be moved, but that functionality isn't needed (yet.)
+- src/cpp/RFC: RFC7541.*
+  - Huffman decoding and encoding are fully operational. (Timing tests and
+production tests have not been run.)
+  - HPACK compression has a preliminary interface defined. The interface
+implementation is scaffolded and compile tested. There's a lot left to do.
+- src/cpp/RFC: other content, not ready for distribution.
+  - README.md: Documents the RFC7541 implementation process. At this point
+it's poorly written and contains a lot of muddled thinking. Once the writing
+is satisfactory it can be added with muddled thinking included.
+  - RFC7540.h/cpp: A placeholder for HTTP/2 functionality. It's currently only
+scaffolding and might not ever be used.
 
 ----
 
