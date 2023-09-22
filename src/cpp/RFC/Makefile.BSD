@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2023/08/29
+##       2023/09/16
 ##
 ##############################################################################
 
@@ -42,7 +42,7 @@ endif
 default: $(DEFAULT)
 
 .PHONY: make.dir
-make.dir: $(MAKEXE)
+make.dir: $(LIBOBJ) $(MAKEXE)       ## $(LIBOBJ) more prone to error
 ## make.dir: Enviro
 
 .PHONY: make.all

@@ -16,7 +16,7 @@
 //       RFC7540, RFC7541 unit test
 //
 // Last change date-
-//       2023/09/04
+//       2023/09/15
 //
 //----------------------------------------------------------------------------
 #include <cstdint>                  // For uint32_t, uint16_t, ...
@@ -58,7 +58,6 @@ enum
 // Internal data areas
 //----------------------------------------------------------------------------
 static int             error_count= 0; // Error counter
-static Debug*          debug= nullptr; // The Debug object
 static void*           table= nullptr; // The Trace table
 
 //----------------------------------------------------------------------------
@@ -68,11 +67,11 @@ extern int             opt_hcdm;    // Hard Core Debug Mode?
 extern int             opt_verbose; // Debugging verbosity
 
 static int             opt_debug=    0; // --debug
-static int             opt_throw=    0; // --throw
+static int             opt_timing=   0; // --timing
 static int             opt_trace=    0; // --trace
 static struct option   opts[]=      // The getopt_long parameter: longopts
 {  {"debug",           no_argument,       &opt_debug,       true}
-,  {"throw",           no_argument,       &opt_throw,       true}
+,  {"timing",          no_argument,       &opt_timing,      true}
 ,  {"trace",           optional_argument, &opt_trace, 0x00400000}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
@@ -82,56 +81,43 @@ static const char*     ostr="";     // The getopt_long parameter: optstring
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       test_7540
+//       torf
 //
 // Purpose-
-//       Test RFC7540
+//       Convert condition to "true" or "false" string
 //
 //----------------------------------------------------------------------------
-static inline int
-   test_7540( void )                // Test RFC7540
-{
-   if( opt_verbose )
-     debugf("\ntest_7540:\n");
-   error_count= 0;
-
-   RFC7540 test;                    // The test object
-   // NOT CODED YET
-
-   return error_count;
-}
+static inline const char*
+   torf(bool condition)
+{  return condition ? "true" : "false"; }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       test_7541
+//       test_Huff
 //
 // Purpose-
-//       Test RFC7541
+//       Test RFC7541: Huffman encoding/decoding
 //
 //----------------------------------------------------------------------------
 static inline int
-   test_7541( void )                // Test RFC7540
+   test_Huff( void )                // Test RFC7541: Huffman encoding/decoding
 {
-   typedef RFC7541::Huff  Huffie;
+   if( opt_verbose )
+     debugf("\ntest_Huff:\n");
+   int error_count= 0;
+
+   typedef RFC7541::Huff  Huff;
    typedef RFC7541::octet octet;
 
-   if( opt_verbose )
-     debugf("\ntest_7541:\n");
-   error_count= 0;
-
-   // Bringup display
-// RFC7541::debug("TABLES");
-
    // Static tests
-   VERIFY( RFC7541::encoded_length("") == 0 );
-   const Huffie nul;                // Empty Huffie
+   VERIFY( RFC7541::Huff::encoded_length("") == 0 );
+   const Huff nul;                  // Empty Huff
    VERIFY( nul == nul );            // Self comparison
-   Huffie one;
+   Huff one;
    VERIFY( nul == one );            // Empty to empty comparison
 
    // Dynamic tests
-   RFC7541 test;                    // The test object
    char buffer[256];                // The string test buffer
    for(int i= 0; i<256; ++i)
      buffer[i]= i;
@@ -143,11 +129,11 @@ static inline int
 
      if( opt_verbose )
        debugf("\nsample '%s'\n", pub::utility::visify(sample).c_str());
-     one= test.encode(sample);      // (Also tests copy replacement)
+     one= sample;
 
      std::string check= one.decode();
      error_count += VERIFY( check == sample );
-     error_count += VERIFY(RFC7541::encoded_length(sample) == one.get_size());
+     error_count += VERIFY(Huff::encoded_length(sample) == one.get_size());
      if( opt_verbose)
        debugf("decode '%s'\n", pub::utility::visify(check).c_str());
      if( error_count ) {
@@ -160,7 +146,7 @@ static inline int
      }
 
      // Copy test
-     Huffie two= one;
+     Huff two= one;
      error_count += VERIFY( two.decode() == sample );
      if( error_count ) {
        one.debug("one");
@@ -178,7 +164,7 @@ static inline int
      VERIFY( memcmp(one_octet, two_octet, two_size) == 0 );
 
      // String constructor test
-     Huffie str(sample);
+     Huff str(sample);
      error_count += VERIFY( str.decode() == sample );
      if( error_count ) {
        one.debug("one");
@@ -193,7 +179,7 @@ static inline int
      VERIFY( one != nul );
 
      // Move constructor/assignment test
-     Huffie h03= std::move(two);
+     Huff h03= std::move(two);
      VERIFY( one == h03 );
      VERIFY( two == nul );
 
@@ -205,37 +191,111 @@ static inline int
        break;
    }
 
-   return error_count != 0;
+   // Timing tests
+   if( opt_timing && error_count != 0 )
+     debugf("RFC 7541 Huff timing test skipped: %d error%s encountered.\n"
+           , error_count , error_count != 1 ? "s" : "");
+
+   if( opt_timing && error_count == 0 ) {
+     debugf("RFC 7541 Huff timing test skipped: it's NOT CODED YET.\n");
+   }
+
+   return error_count;
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       test_throw
+//       test_pack
 //
 // Purpose-
-//       Test exception handling
+//       Test RFC7541: HPACK encoding/decoding
 //
 //----------------------------------------------------------------------------
-[[noreturn]]
-static void
-   test_throw( void )               // Test exception handling
+static inline int
+   test_pack( void )                // Test RFC7541: HPACK encoding/decoding
 {
-   throw std::runtime_error("just testing");
+   if( opt_verbose )
+     debugf("\ntest_pack:\n");
+   int error_count= 0;
+
+   typedef RFC7541::Pack            Pack;
+   typedef RFC7541::Property        Property;
+   typedef RFC7541::Properties      Properties;
+
+   // Bringup - All methods present?
+   Properties properties;
+   Property   property;
+   Pack       pack;
+
+   // Not much to see here. This only checks that methods are present.
+
+   properties= RFC7541::load_properties();
+   RFC7541::dump_properties(properties);
+
+   // Timing tests
+   if( opt_timing && error_count != 0 )
+     debugf("RFC 7541 PACK timing test skipped: %d error%s encountered.\n"
+           , error_count , error_count != 1 ? "s" : "");
+
+   if( opt_timing && error_count == 0 ) {
+     debugf("RFC 7541 PACK timing test skipped: it's NOT CODED YET.\n");
+   }
+
+   return error_count;
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       torf
+//       test_7540
 //
 // Purpose-
-//       Convert condition to "true" or "false" string
+//       Test RFC7540
 //
 //----------------------------------------------------------------------------
-static inline const char*
-   torf(bool condition)
-{  return condition ? "true" : "false"; }
+static inline int
+   test_7540( void )                // Test RFC7540
+{
+   if( opt_verbose )
+     debugf("\ntest_7540:\n");
+   int error_count= 0;
+
+   // NOT CODED YET
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_7541
+//
+// Purpose-
+//       Test RFC7541
+//
+//----------------------------------------------------------------------------
+static inline int
+   test_7541( void )                // Test RFC7541
+{
+   if( opt_verbose )
+     debugf("\ntest_7541:\n");
+   int error_count= 0;
+
+   // Bringup display (** ONLY **)
+   if( opt_debug ) {
+     RFC7541::debug("TABLES");
+     return 0;
+   }
+
+   // Huffman encoding/decoding tests
+   error_count += test_Huff();
+
+   // HPACK encoding/decoding tests
+   error_count += test_pack();
+
+   return error_count;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -282,16 +342,14 @@ extern int                          // Return code
    tc.on_info([](void)
    {
      fprintf(stderr,
-            "  --debug\tPrint using Debug object\n"
-            "  --throw\tThrow an exception\n"
+            "  --debug\tRun debugging displays instead of tests\n"
+            "  --timing\tRun timing tests\n"
             "  --trace\t{=size} Create internal trace file './trace.mem'\n"
             );
    });
 
    tc.on_init([tr](int, char**)
    {
-     if( opt_debug )
-       debug= tr->init_debug();
      if( opt_trace )
        table= tr->init_trace("./trace.mem", opt_trace);
 
@@ -302,8 +360,6 @@ extern int                          // Return code
    {
      if( table )
        tr->term_trace(table, opt_trace);
-     if( debug )
-       tr->term_debug(debug);
    });
 
    tc.on_main([tr](int, char**)
@@ -316,17 +372,9 @@ extern int                          // Return code
        debugf("%5d verbose\n", opt_verbose);
 
        debugf("%5s debug\n", torf(opt_debug));
-       debugf("%5s throw\n", torf(opt_throw));
+       debugf("%5s timing\n", torf(opt_timing));
        debugf("%5s trace: %#x\n", torf(opt_trace), opt_trace);
      }
-
-     if( opt_debug ) {
-       debugf("\n");
-       tr->debug("opt_debug");
-     }
-
-     if( opt_throw )
-       test_throw();
 
      error_count += test_7540();
      error_count += test_7541();

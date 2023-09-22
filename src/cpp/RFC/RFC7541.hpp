@@ -16,7 +16,7 @@
 //       RFC7541, HTTP/2 HPACK compression helper file
 //
 // Last change date-
-//       2023/09/04
+//       2023/09/15
 //
 // Implementation notes-
 //       This file is included by and considered part of RFC7541.cpp
@@ -25,12 +25,23 @@
 //----------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------
+//
+// Namespace-
+//       RFC7541
+//
+// Purpose-
+//       HTTP/2 HPACK compression.
+//
+//----------------------------------------------------------------------------
+namespace RFC7541 {                 // Class RFC7541, HTTP/2 HPACK compression
+
+//----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum                                // Table dimensions
 {  DECODE_INDEX_DIM= 21             // Decoding table index size
-,  DECODE_TABLE_DIM= 257            // Decoding table size
-,  ENCODE_TABLE_DIM= 257            // Encoding table size
+,  DECODE_TABLE_DIM= 256            // Decoding table size
+,  ENCODE_TABLE_DIM= 256            // Encoding table size
 }; // Table dimensions
 
 //----------------------------------------------------------------------------
@@ -62,21 +73,6 @@ static inline std::string
 //----------------------------------------------------------------------------
 //
 // Struct-
-//       Huff7541
-//
-// Purpose-
-//       RFC7541 Huffman encoding/decoding item
-//
-//----------------------------------------------------------------------------
-struct Huff7541 {                   // RFC7541 Huffman encoding/decoding item
-uint16_t               decode;      // The encoded character
-uint16_t               bits;        // Encoding length, in bits
-uint32_t               encode;      // The character encoding
-}; // struct Huff7541
-
-//----------------------------------------------------------------------------
-//
-// Struct-
 //       Bits7541
 //
 // Purpose-
@@ -89,6 +85,21 @@ uint16_t               bits;        // Encoding length, in bits
 uint32_t               min_encode;  // Minimum encoded value
 uint32_t               max_encode;  // Maximum encoded value
 }; // struct Bits7541
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       Huff7541
+//
+// Purpose-
+//       RFC7541 Huffman encoding/decoding item
+//
+//----------------------------------------------------------------------------
+struct Huff7541 {                   // RFC7541 Huffman encoding/decoding item
+uint16_t               decode;      // The encoded character
+uint16_t               bits;        // Encoding length, in bits
+uint32_t               encode;      // The character encoding
+}; // struct Huff7541
 
 //----------------------------------------------------------------------------
 //
@@ -121,7 +132,7 @@ static const Bits7541  decode_index[DECODE_INDEX_DIM]=
 ,  {190, 26, 0x03FF'FFE0, 0x03FF'FFEE} // [17]  15
 ,  {205, 27, 0x07FF'FFDE, 0x07FF'FFF0} // [18]  19
 ,  {224, 28, 0x0FFF'FFE2, 0x0FFF'FFFE} // [19]  29
-,  {253, 30, 0x3FFF'FFFC, 0x3FFF'FFFF} // [20]   4
+,  {253, 30, 0x3FFF'FFFC, 0x3FFF'FFFE} // [20]   4
 }; // decode_index
 
 //----------------------------------------------------------------------------
@@ -385,8 +396,8 @@ static const Huff7541    decode_table[DECODE_TABLE_DIM]=
 //                                                         FFFFFF111100
 ,  { 13, 30, 0x3FFF'FFFD}           // [0x0D] '\r'   [254] Carriage return
 ,  { 22, 30, 0x3FFF'FFFE}           // [0x16]  (SYN) [255] Synchronize
-,  {256, 30, 0x3FFF'FFFF}           // [0x100] (EOS) [256] FFFFFF111111
-}; // decode_table
+//                                                         FFFFFF111110
+}; // Huff7541 decode_table
 
 //----------------------------------------------------------------------------
 //
@@ -654,5 +665,97 @@ static const Huff7541   encode_table[ENCODE_TABLE_DIM]=
 ,  {253, 27, 0x07FF'FFEF}           // [0xFD]
 ,  {254, 27, 0x07FF'FFF0}           // [0xFE]
 ,  {255, 26, 0x03FF'FFEE}           // [0xFF]
-,  {256, 30, 0x3FFF'FFFF}           // [0x100]       (EOS)
-}; // encode_table
+}; // Huff7541 encode_table
+
+//----------------------------------------------------------------------------
+// End Of String (Must not actually appear in an encoded string)
+//----------------------------------------------------------------------------
+Huff7541               EOS= {256, 30, 0x3FFF'FFFF}; // End Of String
+
+//----------------------------------------------------------------------------
+//
+// Data area-
+//       static_index
+//
+// Purpose-
+//       RFC7541 static index table
+//
+//----------------------------------------------------------------------------
+#define GEN7541(name, value, tbd) {name, value}
+
+// Specification notes:
+//   Entry[16] value("gzip, deflate") The space is not a typo.
+//   Entry[19] index("accept") is not alphabetized.
+Index7541              static_index[STATIC_INDEX_DIM]=
+{  GEN7541(nullptr,            nullptr, 0)            // [ 0] (Not used)
+,  GEN7541(":authority",       nullptr, 0)            // [ 1]
+,  GEN7541(":method",          "GET", 1)              // [ 2]
+,  GEN7541(":method",          "POST", 1)             // [ 3]
+,  GEN7541(":path",            "/", 1)                // [ 4]
+,  GEN7541(":path",            "/index.html", 1)      // [ 5]
+,  GEN7541(":scheme",          "http", 1)             // [ 6]
+,  GEN7541(":scheme",          "https", 1)            // [ 7]
+,  GEN7541(":status",          "200", 1)              // [ 8]
+,  GEN7541(":status",          "204", 1)              // [ 9]
+,  GEN7541(":status",          "206", 1)              // [10]
+,  GEN7541(":status",          "304", 1)              // [11]
+,  GEN7541(":status",          "400", 1)              // [12]
+,  GEN7541(":status",          "404", 1)              // [13]
+,  GEN7541(":status",          "500", 1)              // [14]
+,  GEN7541("accept-charset",   nullptr, 0)            // [15]
+,  GEN7541("accept-encoding",  "gzip, deflate", 1)    // [16]
+,  GEN7541("accept-language",  nullptr, 0)            // [17]
+,  GEN7541("accept-ranges",    nullptr, 0)            // [18]
+,  GEN7541("accept",           nullptr, 0)            // [19]
+,  GEN7541("access-control-allow-origin"              // [20]
+,                              nullptr, 0)
+,  GEN7541("age",              nullptr, 0)            // [21]
+,  GEN7541("allow",            nullptr, 0)            // [22]
+,  GEN7541("authorization",    nullptr, 0)            // [23]
+,  GEN7541("cache-control",    nullptr, 0)            // [24]
+,  GEN7541("content-disposition"                      // [25]
+,                              nullptr, 0)
+,  GEN7541("content-encoding", nullptr, 0)            // [26]
+,  GEN7541("content-language", nullptr, 0)            // [27]
+,  GEN7541("content-length",   nullptr, 0)            // [28]
+,  GEN7541("content-location", nullptr, 0)            // [29]
+,  GEN7541("content-range",    nullptr, 0)            // [30]
+,  GEN7541("content-type",     nullptr, 0)            // [31]
+,  GEN7541("cookie",           nullptr, 0)            // [32]
+,  GEN7541("date",             nullptr, 0)            // [33]
+,  GEN7541("etag",             nullptr, 0)            // [34]
+,  GEN7541("expect",           nullptr, 0)            // [35]
+,  GEN7541("expires",          nullptr, 0)            // [36]
+,  GEN7541("from",             nullptr, 0)            // [37]
+,  GEN7541("host",             nullptr, 0)            // [38]
+,  GEN7541("if-match",         nullptr, 0)            // [39]
+,  GEN7541("if-modified-since"                        // [40]
+,                              nullptr, 0)
+,  GEN7541("if-none-match",    nullptr, 0)            // [41]
+,  GEN7541("if-range",         nullptr, 0)            // [42]
+,  GEN7541("if-unmodified-since"                      // [43]
+,                              nullptr, 0)
+,  GEN7541("last-modified",    nullptr, 0)            // [44]
+,  GEN7541("link",             nullptr, 0)            // [45]
+,  GEN7541("location",         nullptr, 0)            // [46]
+,  GEN7541("max-forwards",     nullptr, 0)            // [47]
+,  GEN7541("proxy-authenticate"                       // [48]
+,                              nullptr, 0)
+,  GEN7541("proxy-authorization"                      // [49]
+,                              nullptr, 0)
+,  GEN7541("range",            nullptr, 0)            // [50]
+,  GEN7541("referer",          nullptr, 0)            // [51]
+,  GEN7541("refresh",          nullptr, 0)            // [52]
+,  GEN7541("retry-after",      nullptr, 0)            // [53]
+,  GEN7541("server",           nullptr, 0)            // [54]
+,  GEN7541("set-cookie",       nullptr, 0)            // [55]
+,  GEN7541("strict-transport-security"                // [56]
+,                              nullptr, 0)
+,  GEN7541("transfer-encoding"                        // [57]
+,                              nullptr, 0)
+,  GEN7541("user-agent",       nullptr, 0)            // [58]
+,  GEN7541("vary",             nullptr, 0)            // [59]
+,  GEN7541("via",              nullptr, 0)            // [60]
+,  GEN7541("www-authenticate", nullptr, 0)            // [61]
+}; // Index7541 static_index
+}  // Namespace RFC7541

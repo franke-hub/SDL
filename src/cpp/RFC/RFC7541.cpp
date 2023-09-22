@@ -16,7 +16,7 @@
 //       RFC7541, HTTP/2 HPACK compression
 //
 // Last change date-
-//       2023/09/04
+//       2023/09/15
 //
 //----------------------------------------------------------------------------
 #include <cassert>                  // For assert
@@ -31,6 +31,7 @@
 #include <pub/Debug.h>              // For pub::debugf, ...
 
 #include "RFC7541.h"                // For class RFC7541, implemented
+#include "RFC7541.hpp"              // Internal objects and tables
 
 // Namespace accessors
 #define PUB _LIBPUB_NAMESPACE
@@ -60,10 +61,37 @@ enum                                // Octet constants
 //----------------------------------------------------------------------------
 // Internal objects and tables
 //----------------------------------------------------------------------------
-#include "RFC7541.hpp"              // Internal objects and tables
-
 // Fill validation table
 static const int       fill_table[8]= { 0, 1, 3, 7, 15, 31, 63, 127};
+
+namespace RFC7541 {                 // Implementation namespace
+//----------------------------------------------------------------------------
+//
+// Enum-
+//       RFC7541::ENCODE_TYPE
+//
+// Purpose-
+//       Define HPACK encoding types
+//
+//----------------------------------------------------------------------------
+enum ENCODE_TYPE        // bitcode
+{  ET_INDEX= 0          // 1xxxxxxx // Index only
+//                      // 10000000 // NOT ALLOWED
+,  ET_NAME_INDEX_INSERT // 01xxxxxx // Literal value inserted, name indexed
+,  ET_INSERT            // 01000000 // Literal name and value inserted
+
+// ET*INDEX_ONLY implies that the name is not indexed in this instance, but
+//     may be indexed by intermediaries.
+// ET*INDEX_NEVER implies that the name is not indexed in this instance, and
+//     *MUST NOT* be indexed by intermediaries. This encoding is intended to
+//     "protect header field values that are not to be put at risk by
+//     compressing them."
+,  ET_NAME_INDEX_ONLY   // 0000xxxx // Literal value, name indexed. Const table
+,  ET_INDEX_ONLY        // 00000000 // Literal name, value. Const table
+,  ET_NAME_INDEX_NEVER  // 0001xxxx // Literal value, name indexed. Const table
+,  ET_INDEX_NEVER       // 00010000 // Literal name, value. Const table
+,  ET_RESIZE            // 001xxxxx // Dynamic table size change
+};
 
 //----------------------------------------------------------------------------
 //
@@ -72,25 +100,25 @@ static const int       fill_table[8]= { 0, 1, 3, 7, 15, 31, 63, 127};
 //       RFC7541::Huff::~Huff
 //
 // Purpose-
-//       Constructor
+//       Constructors
 //       Destructor
 //
 //----------------------------------------------------------------------------
 #if USE_OUTLINE
-   RFC7541::Huff::Huff( void )      // Constructor
+   Huff::Huff( void )               // Constructor
 {  if( HCDM )
      debugf("Huff(%p)::Huff()\n", this);
    // = default;
 }
 
-   RFC7541::Huff::Huff(const std::string& s) // Copy std::string constructor
+   Huff::Huff(const std::string& s) // Copy std::string constructor
 {  if( HCDM )
      debugf("Huff(%p)::Huff(string(%s))\n", this, s.c_str());
 
-   *this= RFC7541::encode(s);
+   *this= encode(s);
 }
 
-   RFC7541::Huff::Huff(const Huff& h) // Copy constructor
+   Huff::Huff(const Huff& h)        // Copy constructor
 {  if( HCDM )
      debugf("Huff(%p)::Huff(const Huff&(%p) {%p,%zd} addr(%p))\n", this
            , &h, h.addr, h.size, addr);
@@ -99,15 +127,15 @@ static const int       fill_table[8]= { 0, 1, 3, 7, 15, 31, 63, 127};
 }
 
 
-   RFC7541::Huff::Huff(Huff&& h)    // Move constructor
+   Huff::Huff(Huff&& h)             // Move constructor
+:  addr(h.addr), size(h.size)
 {  if( HCDM )
      debugf("Huff(%p)::Huff(Huff&&(%p) {%p,%zd})\n", this, &h, h.addr, h.size);
 
-   addr= h.addr; size= h.size;
    h.addr= nullptr; h.size= 0;
 }
 
-   RFC7541::Huff::~Huff( void )     // Destructor
+   Huff::~Huff( void )              // Destructor
 {  if( HCDM )
      debugf("Huff(%p)::~Huff() {%p,%zd}\n", this, addr, size);
 
@@ -127,7 +155,7 @@ static const int       fill_table[8]= { 0, 1, 3, 7, 15, 31, 63, 127};
 //
 //----------------------------------------------------------------------------
 void
-   RFC7541::Huff::debug(const char* info) const // Debugging display
+   Huff::debug(const char* info) const // Debugging display
 {
    debugf("Huff(%p).debug(%s) {%p,%zd}\n", this, info, addr, size);
    pub::utility::dump(addr, size);
@@ -143,18 +171,18 @@ void
 //
 //----------------------------------------------------------------------------
 #if USE_OUTLINE
-RFC7541::Huff&
-   RFC7541::Huff::operator=(        // Assignment
-   const std::string&  s)           // From std::string
+Huff&
+   Huff::operator=(                 // Assignment
+     const std::string&s)           // From std::string
 {  if( HCDM )
      debugf("Huff(%p)::op=(string(%s)) {%p,%zd}\n", this, s.c_str(), addr, size);
 
-   *this= RFC7541::encode(s);
+   *this= encode(s);
    return *this;
 }
 
-RFC7541::Huff&
-   RFC7541::Huff::operator=(        // Copy assignment
+Huff&
+   Huff::operator=(                 // Copy assignment
      const Huff&       h)
 {  if( HCDM )
      debugf("Huff(%p)::op=(Huff&(%p)) {%p,%zd}\n", this, &h, addr, size);
@@ -163,8 +191,8 @@ RFC7541::Huff&
    return *this;
 }
 
-RFC7541::Huff&
-   RFC7541::Huff::operator=(        // Move assignment
+Huff&
+   Huff::operator=(                 // Move assignment
      Huff&&            h)
 {  if( HCDM )
      debugf("Huff(%p)::op=(Huff&&(%p)) {%p,%zd}\n", this, &h, addr, size);
@@ -188,7 +216,7 @@ RFC7541::Huff&
 //
 //----------------------------------------------------------------------------
 bool
-   RFC7541::Huff::operator==(const Huff& h) const // Equality comparison
+   Huff::operator==(const Huff& h) const // Equality comparison
 {  if( HCDM )
      debugf("Huff(%p)::op==(const Huff&(%p))\n", this, &h);
 
@@ -204,7 +232,7 @@ bool
 }
 
 bool
-   RFC7541::Huff::operator!=(const Huff& h) const // Inequality comparison
+   Huff::operator!=(const Huff& h) const // Inequality comparison
 {  return !operator==(h); }
 
 //----------------------------------------------------------------------------
@@ -217,8 +245,8 @@ bool
 //
 //----------------------------------------------------------------------------
 void
-   RFC7541::Huff::_copy(            // Copy from
-      const Huff&      h)           // This RFC7541::Huff
+   Huff::_copy(                     // Copy from
+      const Huff&      h)           // This Huff
 {  if( HCDM )
      debugf("Huff(%p)::_copy(Huff(%p) {%p,%zd}) addr(%p)\n", this
            , &h, h.addr, h.size, addr);
@@ -242,90 +270,14 @@ void
 //       RFC7541::Huff::decode
 //
 // Purpose-
-//       Accessor method
-//
-//----------------------------------------------------------------------------
-#if USE_OUTLINE
-std::string RFC7541::Huff::decode( void ) const // Decode
-{  if( HCDM )
-     debugf("Huff(%p)::decode() {%p,%zd}\n", this, addr, size);
-
-   return RFC7541::decode(addr, size);
-}
-#endif
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       RFC7541::RFC7541
-//       RFC7541::~RFC7541
-//
-// Purpose-
-//       Constructor
-//       Destructor
-//
-//----------------------------------------------------------------------------
-#if USE_OUTLINE
-   RFC7541::RFC7541( void )         // NOT CODED YET
-{  }
-
-   RFC7541::~RFC7541( void )        // NOT CODED YET
-{  }
-#endif
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       RFC7541::debug
-//
-// Purpose-
-//       Debugging display
-//
-//----------------------------------------------------------------------------
-void
-   RFC7541::debug(const char* info) // Debugging display
-{
-   debugf("RFC7541::debug(%s)\n", info);
-
-   // Debug decode_index
-   debugf("\ndecode_index:\n");
-   for(int i= 0; i<DECODE_INDEX_DIM; ++i) {
-     const Bits7541& X= decode_index[i];
-     debugf("[%3d]: {%3d, %2d, %.8x, %.8x}\n", i, X.min_index, X.bits
-           , X.min_encode, X.max_encode);
-   }
-
-   // Debug decode_table
-   debugf("\ndecode_table:\n");
-   for(int i= 0; i<DECODE_TABLE_DIM; ++i) {
-     const Huff7541& T= decode_table[i];
-     debugf("[%3d]: {%3d, %2d, %#.8x} '%c'\n", i, T.decode, T.bits, T.encode
-           , T.decode < 256 && isprint(T.decode) ? T.decode : '~');
-   }
-
-   // Debug encode_table
-   debugf("\nencode_table:\n");
-   for(int i= 0; i<ENCODE_TABLE_DIM; ++i) {
-     const Huff7541& T= encode_table[i];
-     debugf("[%3d]: {%3d, %2d, %#.8x} '%c'\n", i, T.decode, T.bits, T.encode
-           , T.decode < 256 && isprint(T.decode) ? T.decode : '~');
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       RFC7541::decode
-//
-// Purpose-
 //       Decode compressed string
 //
 //----------------------------------------------------------------------------
 std::string                         // The decompressed string
-   RFC7541::decode(                 // Decode buffer
+   Huff::decode(                    // Decode buffer
       const octet*     addr,        // Buffer address
       size_t           size)        // Buffer length
-{  if( HCDM ) debugf("RFC7541::decode(%p,%zd)\n", addr, size);
+{  if( HCDM ) debugf("RFC7541::Huff::decode(%p,%zd)\n", addr, size);
 
    enum {BUFF_DIM= 15};              // The output buffer size
    size_t              inp_index= 0; // The input buffer index
@@ -403,35 +355,35 @@ std::string                         // The decompressed string
    } else {
      accumulator= 0;                // (accum <<= ACC_WIDTH) == accum
    }
-   if( accumulator != (uint64_t)fill_table[acc_index] )
+   if( acc_index > 7 || accumulator != (uint64_t)fill_table[acc_index] )
      throw std::runtime_error("encoding error: fill");
 
    return out_string;
 }
 
 #if USE_OUTLINE
-std::string                         // The decompressed string
-   RFC7541::decode(                 // Decode
-      const Huff&      h)           // This Huff
-{  if( HCDM ) debugf("RFC7541::decode Huff(%p) {%p,%zd}\n", &h, h.addr, h.size);
+std::string
+   Huff::decode( void ) const       // Decode (this)
+{  if( HCDM )
+     debugf("Huff(%p)::decode() {%p,%zd}\n", this, addr, size);
 
-   return decode(h.addr, h.size);
+   return decode(addr, size);
 }
 #endif
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       RFC7541::encode
+//       RFC7541::Huff::encode
 //
 // Purpose-
 //       Encode string
 //
 //----------------------------------------------------------------------------
-RFC7541::Huff                       // The encoded string
-   RFC7541::encode(                 // Encode
+Huff                                // The encoded string
+   Huff::encode(                    // Encode
       const std::string& s)         // This string
-{  if( HCDM ) debugf("RFC7541::encode(%s)\n", s.c_str());
+{  if( HCDM ) debugf("RFC7541::Huff::encode(%s)\n", s.c_str());
 
    Huff h;
    size_t size= encoded_length(s);  // The encoded length
@@ -492,14 +444,14 @@ RFC7541::Huff                       // The encoded string
 //----------------------------------------------------------------------------
 //
 // Method-
-//       RFC7541::encoded_length
+//       RFC7541::Huff::encoded_length
 //
 // Purpose-
 //       Get the encoded length of a std::string (in bytes)
 //
 //----------------------------------------------------------------------------
 size_t                              // The encoded length
-   RFC7541::encoded_length(         // Get encoded length
+   Huff::encoded_length(            // Get encoded length
       const std::string& s)         // Of this string
 {
    size_t size= 0;                  // The encoded length (in bits)
@@ -514,3 +466,237 @@ size_t                              // The encoded length
 
    return size;
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Pack::Pack
+//       RFC7541::Pack::~Pack
+//
+// Purpose-
+//       Constructors
+//       Destructor
+//
+//----------------------------------------------------------------------------
+   Pack::Pack( void )               // Default constructor
+{  if( HCDM )                       // (Is really = default)
+     debugf("Pack(%p)::Pack()\n", this);
+}
+
+   Pack::Pack(IPack size)           // Table size constructor
+{  if( HCDM )
+     debugf("Pack(%p)::Pack(%u)\n", this, size);
+
+   resize(size);
+}
+
+   Pack::~Pack( void )              // Destructor
+{  if( HCDM )
+     debugf("Pack(%p)::~Pack()\n", this);
+
+   resize(0);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Pack::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+void
+   Pack::debug(const char* info) const // Debugging display
+{
+   debugf("Pack(%p).debug(%s)\n", this, info);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Pack::decode
+//
+// Purpose-
+//       Decode packed data
+//
+//----------------------------------------------------------------------------
+RFC7541::Properties                 // Decoded properties
+   Pack::decode(const std::string& S) // Decode packed data
+{  if( HCDM ) {
+     debugf("Pack(%p).decode(%p)\n", this, S.c_str());
+     if( VERBOSE > 1 )
+       pub::utility::dump(S.c_str(), S.size());
+   }
+
+   Properties properties;
+
+   // Perhaps some work is needed here, nicht var?
+
+   return properties;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Pack::encode
+//
+// Purpose-
+//       Encode Properties
+//
+//----------------------------------------------------------------------------
+std::string                         // Encoded Properties
+   Pack::encode(const Properties& P) // Encode Properties
+{  if( HCDM ) {
+     debugf("Pack(%p).encode(%p)\n", this, &P);
+     if( VERBOSE > 1 ) {
+     }
+   }
+
+   std::string encoding;
+
+   // Perhaps some work is needed here, nicht var?
+
+   return encoding;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Pack::get_setting
+//
+// Purpose-
+//       Get a connection setting
+//
+//----------------------------------------------------------------------------
+Pack::IPack                         // The connection setting
+   Pack::get_setting(int I) const   // Get connection setting[I]
+{  if( HCDM )
+     debugf("Pack(%p).get_setting(%d)\n", this, I);
+
+   return 4096;                     // Hey, why not this?
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Pack::resize
+//
+// Purpose-
+//       Resize the encode_table
+//
+//----------------------------------------------------------------------------
+void
+   Pack::resize(IPack size)         // Resize the encode_table
+{  if( HCDM )
+     debugf("Pack(%p)::resize(%u)\n", this, size);
+
+   // Resize(0): delete the table
+   if( size == 0 ) {
+     free(index_table);
+     index_table= nullptr;
+     index_size= index_used= index_ins= index_old= 0;
+
+     free(value_table);
+     value_table= nullptr;
+     value_size= value_used= 0;
+
+     encode_size= encode_used= encode_index= encode_value= 0;
+     return;
+   }
+
+   // resize(size!=0) not coded yet.
+}
+
+//----------------------------------------------------------------------------
+//
+// (Static) subroutine-
+//       RFC7541::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+void
+   debug(const char* info) // Debugging display
+{
+   debugf("RFC7541::debug(%s)\n", info);
+
+   // Debug decode_index
+   debugf("\ndecode_index:\n");
+   for(int i= 0; i<DECODE_INDEX_DIM; ++i) {
+     const Bits7541& X= decode_index[i];
+     debugf("[%3d]: {%3d, %2d, %.8x, %.8x}\n", i, X.min_index, X.bits
+           , X.min_encode, X.max_encode);
+   }
+
+   // Debug decode_table
+   debugf("\ndecode_table:\n");
+   for(int i= 0; i<DECODE_TABLE_DIM; ++i) {
+     const Huff7541& T= decode_table[i];
+     debugf("[%3d]: {%3d, %2d, 0x%.8x} '%c'\n", i, T.decode, T.bits, T.encode
+           , T.decode < 256 && isprint(T.decode) ? T.decode : '~');
+   }
+
+   // Debug encode_table
+   debugf("\nencode_table:\n");
+   for(int i= 0; i<ENCODE_TABLE_DIM; ++i) {
+     const Huff7541& T= encode_table[i];
+     debugf("[%3d]: {%3d, %2d, 0x%.8x} '%c'\n", i, T.decode, T.bits, T.encode
+           , T.decode < 256 && isprint(T.decode) ? T.decode : '~');
+   }
+
+   // Debug static_index
+   debugf("\nstatic_index:\n");
+   for(int i= 1; i<STATIC_INDEX_DIM; ++i) {
+     const Index7541& T= static_index[i];
+     debugf("[%3d]: {%s, %s}\n", i, T.name, T.value);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// (Static) utility subroutine-
+//       RFC7541::dump_properties
+//
+// Purpose-
+//       Debugging display: Properties
+//
+//----------------------------------------------------------------------------
+void
+   dump_properties(const Properties& P) // Debugging display: Properties
+{
+   debugf("RFC7541::dump_properties(%p) [%zd]\n", &P, P.size());
+
+   for(size_t i= 0; i < P.size(); ++i) {
+     debugf("[%2zd] '%s': '%s'\n", i, P[i].name.c_str(), P[i].value.c_str());
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// (Static) utility subroutine-
+//       RFC7541::load_properties
+//
+// Purpose-
+//       Properties loader
+//
+//----------------------------------------------------------------------------
+Properties                          // The Properties
+   load_properties( void )          // Load Properties, parameters TBD
+{
+   debugf("RFC7541::load_properties()\n");
+
+   Properties properties;
+   Property   property{"alpha", "beta"};
+   properties.insert(properties.end(), property);
+   property= {"beta", "alpha"};
+   properties.insert(properties.end(), property);
+   properties.insert(properties.end(), Property{"what-the", "hey"});
+   properties.insert(properties.end(), {"does-this", "work?"});
+
+   // Yes, work is needed here
+
+   return properties;
+}
+}  // Namespace RFC7541

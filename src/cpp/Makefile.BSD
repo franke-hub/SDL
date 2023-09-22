@@ -15,7 +15,7 @@
 ##       C++ build control makefile
 ##
 ## Last change date-
-##       2023/08/31
+##       2023/09/22
 ##
 ## Implementation notes-
 ##       ~/obj/cpp/Makefile links to this file.
@@ -44,8 +44,8 @@ list-options: ;
 ##############################################################################
 ## $SDL_ROOT is the base directory, containing ./bin ./src/cpp and ./obj/cpp
 ## $SDL_ROOT/obj/cpp must be the current directory.
-ifeq "" "$(SDL_ROOT)"               ## If $SDL_ROOT is undefined
-SDL_ROOT := "../.."                 ## Default to ../..
+ifeq "" "$(SDL_ROOT)"
+SDL_ROOT := ../..
 endif
 
 ##############################################################################
@@ -61,6 +61,7 @@ CPP_ += Hello    Howto    HTTP
 CPP_ += Math
 CPP_ += Neuron   NN2      NNC
 CPP_ += Poker
+CPP_ += RFC
 CPP_ += Sample   Sorter   Stock    Stress
 CPP_ += Tools    Traffic
 CPP_ += Util
@@ -135,6 +136,7 @@ is-installed: $(SDL_ROOT)/bin $(SDL_ROOT)/bin/makeproj is-valid-path
 $(SDL_ROOT)/bin: ;
 
 $(SDL_ROOT)/bin/makeproj: ;
+	ls -alF $(SDL_ROOT)/bin/makeproj
 	@echo
 	@echo
 	@echo "Cannot find '$(SDL_ROOT)/bin/makeproj', a required file."
