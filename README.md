@@ -15,7 +15,7 @@
 //       SDL Project overview information.
 //
 // Last change date-
-//       2023/08/05
+//       2023/09/22
 //
 //------------------------------------------------------------------------ -->
 
@@ -109,6 +109,7 @@ These instructions assume that you'll be using the SDL package as delivered.
 
 Use ". setupSDL" to set up the *SDL_ROOT* environment variable and update
 your *PATH* environment variable.
+(You might want to look at and modify setupSDL first.)
 
 Now, from the installation root subdirectory,
 use `make` for configuration control.
@@ -244,6 +245,8 @@ The project Wiki contains complete build instructions starting from an
 "Ubuntu Desktop for developers" package.
 
 #### Further reading
-
-- [Documentation](doc/index.md)
+- [SDL C++ Reference manual](doc/cpp/REFERENCE.md)
+(This is a work in progress, currently containing only detail that highlights
+a lock free multi-threading paradigm.)
+- [Development detail](doc/index.md)
 - [Change log](./COMMIT.md)

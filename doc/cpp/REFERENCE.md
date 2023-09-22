@@ -15,7 +15,7 @@
 //       SDL Distribution reference manual
 //
 // Last change date-
-//       2023/07/24
+//       2023/09/22
 //
 -------------------------------------------------------------------------- -->
 
@@ -37,10 +37,10 @@ This reference manual describes SDL C++ interfaces provided by the distribution.
 - Clock.h: An epoch-offset clock, represented as a double.
 - config.h: Provides a (minimal) set of user macros.
 - Console.h: Wrappers for console functions
-- [Debug](./Debug.md) Debugging tools
+- [Debug.h:](./Debug.md) Debugging tools
 - Diagnostic.h: (to be renamed) Provides a mechanism for diagnosing shared_ptr
 and weak_ptr usage problems.
-- [Dispatch](./Dispatch.md)
+- [Dispatch.h:](./Dispatch.md)
 Dispatch provides lock-free multi-threading control mechanisms.
 - Event.h: Provides a wait/post event handling mechanism.
 - Exception.h: (to be removed?) Provides a base Exception.
@@ -60,7 +60,7 @@ Doubly Headed Doubly Linked list,
 Doubly Headed Singly Linked list, and
 Singly Headed Singly Linked list.
 It also provides List, an alias for DHDL_list.
-- [List](./List.md) The AI_list.
+- [List.h:](./List.md) The AI_list.
 - Lock.h: Provides a process named lock.
 - memory.h: Implements atomic_shared_ptr<class T>, currently via boost.
 - Must.h: Provides utility routines that throw std::bad_alloc instead of
@@ -86,7 +86,7 @@ reporting. __TODO__ Event status checking.
 with a memory-mapped file, handy for debugging multi-threading problems.
 - Utf.h: UTF encoder/decoder mechanisms
 - utility.h: A set of utility functions
-- [Worker](./Worker.md) Worker is an interface class that provides thread
+- [Worker.h:](./Worker.md) Worker is an interface class that provides thread
 scheduling via WorkerPool, a thread pool manager.
 - Wrapper.h: A generic program wrapper with user lambda functions exits.
 

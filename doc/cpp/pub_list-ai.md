@@ -15,7 +15,7 @@
 //       List.h reference manual: AI_list<T>
 //
 // Last change date-
-//       2023/07/28
+//       2023/09/22
 //
 -------------------------------------------------------------------------- -->
 ## `AI_list<T>::` begin, end, fifo, get_tail, is_coherent, is_empty, is_on_list, reset(void), reset(void*)
@@ -34,10 +34,14 @@ Types:
 #### iterator begin() noexcept;
 Create/construct a begin() iterator.
 
-Implementation note: The iterator *removes* all elements from the AI_list,
+*Implementation notes*:
+- The begin iterator *removes* all elements from the AI_list,
 replacing the List with a dummy item.
 It also reverses the AI_list's native LIFO ordering so that the iterator
 returns FIFO ordered Links.
+- Applications *MUST NOT* exit an AI_list begin/end loop early, before the
+begin() iterator equals end().
+Doing so can result in more problems than you might imagine.
 
 ---
 #### iterator end() noexcept;
