@@ -16,72 +16,7 @@
 //       Describe the List objects.
 //
 // Last change date-
-//       2023/05/24
-//
-// Implementation notes-
-//       Unlike std::List<T>, pub::List<T> elements *are* links.
-//       Pros:
-//         This optimizes list handling, especially when copying is expensive.
-//       Cons:
-//         pub::List classes do not *own* List<T>::Link objects. It is the
-//         user's responsibility to create and delete them.
-//            Note that while this is similar to that of a std::list<T*>,
-//            accessing a pub::List<T>::Link requires one less load operation.
-//       Differences:
-//         ++pub::List<T>::end() == pub::List<T>::end()
-//         ++std::list<T>::end() == std::list<T>::begin()
-//         --pub::List<T>::end() == pub::List<T>::end()
-//         --std::list<T>::end() == std::list<T>::rbegin()
-//
-//         --pub::List<T>::begin() == pub::List<T>::end()
-//         --std::list<T>::begin() == std::list<T>::rend()
-//         *List<T>::end() and List<T>::end()-> throw an exception rather than
-//         act in an undefined manner.
-//
-//         std::list has methods not available in pub::List. It handle arrays
-//         extremely well. pub::AI_list provides a lock-free atomic insertion
-//         capability, not available in std::list.
-//
-//       Note: pub::List<T>::Link construction and destruction is *always*
-//       the user's responsibility. e.g. pub::~List<T> does nothing.
-//
-//       For all List classes, the is_coherent and is_on_list methods run in
-//       linear time. Method is_coherent examines the entire List. Method
-//       is_on_list traverses the List until either the Link is found or the
-//       entire List examined.
-//
-//       In lieu of searching Lists for duplicated Links, is_coherent reports
-//       FALSE should a List contains more than an implementation defined
-//       (Currently 1G) Link count. Other methods assume that the List is
-//       coherent and either ignore or do not check for usage errors.
-//
-// List types-
-//       AI_list<T>:    Atomic Insert Singly Linked List, thread-safe.
-//       DHDL_list<T>:  Doubly Headed Doubly Linked List.
-//       DHSL_list<T>:  Doubly Headed Singly Linked List.
-//       SHSL_list<T>:  Single Headed Singly Linked List.
-//       List<T>:       Equivalent to DHDL_list<T>.
-//
-//       In each case, the associated Link class is defined within the List
-//       class. All Link classes must be derived from that List::Link class.
-//       An example follows:
-//
-// Example declaration and usage-
-//       class My_link : public List<My_link>::Link {
-//       public:
-//         My_link(...) : List<My_link>::Link(), ... { ... } // Constructor
-//         // Remainder of implementation of My_link
-//       }; // class My_link, the elements to be put on a class List<My_link>
-//
-//       List<My_link> my_list1;    // A List containing My_link elements
-//       List<My_link> my_list2;    // Another List contining My_link Links
-//
-//       My_link* link1= new My_link(); // Create a new My_link
-//       my_list1.fifo(link1);         // Insert it (FIFO) onto my_list1
-//       My_link* link2= my_list1.remq(); // Then remove it, emptying my_list1
-//       assert( link1 == link2 );     // The link added is the link removed
-//       my_list2.lifo(link2);         // Insert it (LIFO) onto my_list2
-//       // my_list1 is empty, my_list2 only contains link2 (which == link1)
+//       2023/09/21
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_LIST_H_INCLUDED
@@ -125,6 +60,28 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
    now in FIFO order, are presented to the consumer.  Addionally, this input
    iterator automatically handles links added to the List while iterating
    without changing its state from active to idle (empty.)
+
+   Applications MUST ALWAYS complete an AI_list begin()..end() loop.
+   Not doing so can result in more kinds of problems than you might imagine.
+   Loop exception handling must either continue the loop, prevent any further
+   access of the associated AI_list, or terminate the application.
+
+   Usage warning-
+       A multi-thread timing anomaly can and does occur: When using
+       `for(auto it= list.begin(); it != list.end(); ++it)`, while between
+       processing the `++it` and  the `it != list.end()`, the iterator is in a
+       temporary "limbo" state. The iterator is associated with and will
+       eventually reference the AI_list, but cannot guarantee that the AI_list
+       still exists without application assistance.
+
+       Applications MAY need to add code in destructors of objects that
+       contain an AI_list to insure that all iterators have been processed.
+       For sample code, see ~/src/cpp/lib/pub/Dispatch.cpp methods
+       dispatch::Task::~Task() and dispatch::Task::work(). [Additional code
+       was required in ~/src/cpp/dev/Client.cpp and ~/src/cpp/dev/Server.cpp
+       where item->post() calls were changed to dispatch::Disp::post() to
+       avoid a deadlock condition.]
+
 *****************************************************************************/
 template<class T>
    class AI_list
@@ -151,10 +108,19 @@ template<class T>
 
      public:
        //---------------------------------------------------------------------
-       // AI_list<T>::Constructor/Destructor
+       // AI_list<T>::Constructors/Destructor
        //---------------------------------------------------------------------
+       AI_list( void ) = default;   // (Default constructor)
+       AI_list(const AI_list<T>&) = delete; // *NO* copy constructor
+       AI_list(AI_list<T>&&) = delete; // *NO* move constructor
+
        ~AI_list( void ) = default;
-       AI_list( void ) = default;
+
+       //---------------------------------------------------------------------
+       // AI_list<T>::Operators
+       //---------------------------------------------------------------------
+       AI_list& operator=(const AI_list<T>&) = delete; // *NO* copy assignment
+       AI_list& operator=(AI_list<T>&&) = delete; // *NO* move assignment
 
        //---------------------------------------------------------------------
        //
@@ -176,23 +142,6 @@ template<class T>
        //       inserted while the iteration is in progress are logically
        //       part of that iteration. If no new links were inserted, the
        //       AI_list becomes empty and the iterator == end().
-       //
-       // Usage warning-
-       //       A multi-thread timing anomaly can and does occur: When using
-       //       `for(auto it= list.begin(); it != list.end(); ++it)`, while
-       //       between processing `++it` and `it != list.end()`, the iterator
-       //       is in a "limbo" state. The iterator is associated with and
-       //       will eventually reference the list, but cannot guarantee that
-       //       the list still exists without application assistance.
-       //
-       //       This timing anomaly occurs when a thread's time slice ends
-       //       while the iterator is in that "limbo" state processing the
-       //       final AI_list element before list deletion.
-       //
-       //       Users may need to add code in a list's destructor to insure
-       //       that all iterators have been processed. For sample code, see
-       //       ~/src/cpp/lib/pub/Dispatch.cpp (methods dispatch::Task::~Task()
-       //       and dispatch::Task::work().)
        //
        //---------------------------------------------------------------------
        iterator begin() noexcept { return iterator(this); }
@@ -337,6 +286,7 @@ template<class T>
        //       The returned Links are (reverse) ordered from tail to head.
        //
        //---------------------------------------------------------------------
+       /* DEPRECATED, REMOVED ************************************************
        pointer                      // The set of removed Links
          reset( void )              // Reset (empty) the List
        {
@@ -346,6 +296,7 @@ template<class T>
 
           return link;
        }
+       ** DEPRECATED, REMOVED ***********************************************/
 
        //---------------------------------------------------------------------
        //
@@ -357,8 +308,7 @@ template<class T>
        //       The returned Links are (reverse) ordered from tail to head.
        //
        //       This method is used by the iterator to prevent triggering
-       //       of the empty to non-empty state transition. For a sample
-       //       implementation, see ~/src/cpp/lib/pub/Dispatch.cpp::work
+       //       of the empty to non-empty state transition.
        //
        //---------------------------------------------------------------------
        /**
@@ -421,6 +371,9 @@ template<class T>
 // Purpose-
 //       Typed DHDL_list object, where T is of class DHDL_list<T>::Link.
 //
+// Implementation notes-
+//       TODO: Consider implementing move constructor and assignment.
+//
 //----------------------------------------------------------------------------
 template<class T>
    class DHDL_list : public DHDL_list<void>
@@ -450,10 +403,19 @@ template<class T>
        }; // class DHDL_list<T>::Link
 
        //---------------------------------------------------------------------
-       // DHDL_list<T>::Constructor/Destructor
+       // DHDL_list<T>::Constructors/Destructor
        //---------------------------------------------------------------------
-       DHDL_list( void ) {}
-       ~DHDL_list( void ) {}
+       DHDL_list( void ) = default;
+       DHDL_list(const DHDL_list<T>&) = delete; // *NO* copy constructor
+       DHDL_list(DHDL_list<T>&&) = delete; // *NO* move constructor
+
+       ~DHDL_list( void ) = default;
+
+       //---------------------------------------------------------------------
+       // DHDL_list<T>::Operators
+       //---------------------------------------------------------------------
+       DHDL_list& operator=(const DHDL_list<T>&) = delete; // *NO* copy
+       DHDL_list& operator=(DHDL_list<T>&&) = delete; // *NO* move assignment
 
        //---------------------------------------------------------------------
        // DHDL_list<T>::Methods
@@ -489,16 +451,16 @@ template<class T>
        **********************************************************************/
        void
          insert(                    // Insert at position,
-           pointer                link, // -> Link to insert after
+           pointer                after, // -> Link to insert after
            pointer                head, // -> First Link to insert
            pointer                tail) // -> Final Link to insert
-       { _Base::insert(link, head, tail); }
+       { _Base::insert(after, head, tail); }
 
        void
          insert(                    // Insert at position,
-           pointer                link, // -> Link to insert after
-           pointer                head) // -> The Link to insert
-       { _Base::insert(link, head, head); }
+           pointer                after, // -> Link to insert after
+           pointer                link) // -> The Link to insert
+       { _Base::insert(after, link, link); }
 
        bool                         // TRUE if the object is coherent
          is_coherent( void ) const  // Coherency check
@@ -584,6 +546,9 @@ template<class T>
 // Purpose-
 //       Typed DHSL_list object, where T is of class DHSL_list<T>::Link.
 //
+// Implementation notes-
+//       TODO: Consider implementing move constructor and assignment.
+//
 //----------------------------------------------------------------------------
 template<class T>
    class DHSL_list : public DHSL_list<void>
@@ -607,10 +572,19 @@ template<class T>
        }; // class DHSL_list<T>::Link
 
        //---------------------------------------------------------------------
-       // DHSL_list<T>::Constructor/Destructor
+       // DHSL_list<T>::Constructors/Destructor
        //---------------------------------------------------------------------
-       DHSL_list( void ) {}
-       ~DHSL_list( void ) {}
+       DHSL_list( void ) = default;
+       DHSL_list(const DHSL_list<T>&) = delete; // *NO* copy constructor
+       DHSL_list(DHSL_list<T>&&) = delete; // *NO* move constructor
+
+       ~DHSL_list( void ) = default;
+
+       //---------------------------------------------------------------------
+       // DHSL_list<T>::Operators
+       //---------------------------------------------------------------------
+       DHSL_list& operator=(const DHSL_list<T>&) = delete; // *NO* copy
+       DHSL_list& operator=(DHSL_list<T>&&) = delete; // *NO* move assignment
 
        //---------------------------------------------------------------------
        // DHSL_list<T>::Methods
@@ -682,6 +656,9 @@ template<class T>
 // Purpose-
 //       Typed SHSL_list object, where T is of class SHSL_list<T>::Link.
 //
+// Implementation notes-
+//       TODO: Consider implementing move constructor and assignment.
+//
 //----------------------------------------------------------------------------
 template<class T>
    class SHSL_list : public SHSL_list<void>
@@ -691,6 +668,7 @@ template<class T>
        typedef T*                             pointer;
        typedef T&                             reference;
        typedef _SHSL_iter<value_type>         iterator;
+       typedef _SHSL_const_iter<value_type>   const_iterator;
 
        typedef SHSL_list<void>                _Base; // The base List type
        typedef SHSL_list<void>::_Link         _Link; // The base Link type
@@ -707,26 +685,32 @@ template<class T>
        //---------------------------------------------------------------------
        // SHSL_list<T>::Constructor/Destructor
        //---------------------------------------------------------------------
-       SHSL_list( void ) {}
-       ~SHSL_list( void ) {}
+       SHSL_list( void ) = default;
+       SHSL_list(const SHSL_list<T>&) = delete; // *NO* copy constructor
+       SHSL_list(SHSL_list<T>&&) = delete; // *NO* move constructor
+
+       ~SHSL_list( void ) = default;
+
+       //---------------------------------------------------------------------
+       // SHSL_list<T>::Operators
+       //---------------------------------------------------------------------
+       SHSL_list& operator=(const SHSL_list<T>&) = delete; // *NO* copy
+       SHSL_list& operator=(SHSL_list<T>&&) = delete; // *NO* move assignment
 
        //---------------------------------------------------------------------
        // SHSL_list<T>::Methods
        //---------------------------------------------------------------------
-       // The begin() iterator removes all current links, creating an input
-       // iterator from them. These links are *only* associated with that
-       // iterator. There is no const_iterator.
-       iterator begin() noexcept { return iterator(this); }
-       iterator end()   noexcept { return iterator(); }
+               iterator begin()       noexcept { return iterator(this); }
+         const_iterator begin() const noexcept { return const_iterator(this); }
+               iterator end()         noexcept { return iterator(); }
+         const_iterator end()   const noexcept { return const_iterator(); }
 
+/***** [[deprecated("Use lifo to insert and begin/end to iterate")]] *********
        void
          fifo(                      // Insert (FIFO order)
            pointer           link)  // -> Link to insert
-#if true
-       ; // (Deprecated)
-#else
        { _Base::fifo(link); }
-#endif
+*****************************************************************************/
 
        pointer                      // -> Tail T* on List
          get_tail( void ) const     // Get tail link
@@ -753,18 +737,16 @@ template<class T>
            pointer           link)  // -> Link to insert
        { _Base::lifo(link); }
 
+/***** [[deprecated("No use case and it takes linear time")]] ****************
        void
          remove(                    // Remove from List
            pointer           head,  // -> First Link to remove
            pointer           tail)  // -> Final Link to remove
-#if true
-       ; // (Deprecated)
-#else
        { _Base::remove(head, tail); }
-#endif
+*****************************************************************************/
 
        pointer                      // Removed T*
-         remq( void )               // Remove tail link
+         remq( void )               // Remove TAIL link
        { return static_cast<pointer>(_Base::remq()); }
 
        pointer                      // -> The set of removed Links

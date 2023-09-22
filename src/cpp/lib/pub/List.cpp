@@ -16,7 +16,7 @@
 //       List object methods.
 //
 // Last change date-
-//       2023/04/23
+//       2023/09/21
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -46,15 +46,13 @@ enum
 //       __detail::_PREV_link __end
 //
 // Purpose-
-//       TODO: UPDATE
 //       This dummy end-of-list pseudo-link is the oldest link on every
 //       AI_list with an active iterator. Newer elements point to it, but
-//       its value is never referenced.
+//       its value is never referenced. It is removed from the AI_list when
+//       incrementing the begin() iterator to equal the end() iterator.
 //
 //----------------------------------------------------------------------------
-//const void*            __detail::__end= &__detail::__end;
 const void*            __detail::__end= nullptr;
-
 
 //----------------------------------------------------------------------------
 //

@@ -16,7 +16,7 @@
 //       List tests.
 //
 // Last change date-
-//       2023/04/29
+//       2023/09/21
 //
 //----------------------------------------------------------------------------
 #include <new>
@@ -50,6 +50,7 @@ enum
 ,  DIM= 12, MID= DIM/2              // Array size. Use: 9 < DIM < 100
 };
 #define USE_ERROR_CHECK false       // Run type checking? (Cause compile errors)
+#define USE_BEGIN_END   true        // Use begin()/end() logic?
 
 //----------------------------------------------------------------------------
 //
@@ -225,7 +226,7 @@ static int
      error_count += VERIFY( ai_list.is_on_list(&ai_data[i]) );
    error_count += VERIFY( ai_list.is_coherent() );
 
-   ai_list.reset();
+   ai_list.reset(nullptr);
 
    //-------------------------------------------------------------------------
    // AI iterator test
@@ -302,11 +303,17 @@ static void
 {
    if( opt_verbose ) {
      debugf("List:");
+#if USE_BEGIN_END
+     for(auto it= anchor->begin(); it != anchor->end(); ++it) {
+       debugf(" %2d", it->index);
+     }
+#else
      DHDL_block* link= anchor->get_head(); // Get head element
      while( link != nullptr ) {
        debugf(" %2d", link->index);
        link= link->get_next();
      }
+#endif
 
      debugf("\n");
    }
@@ -320,11 +327,17 @@ static void
 {
    if( opt_verbose ) {
      debugf("List:");
+#if USE_BEGIN_END
+     for(auto it= anchor->begin(); it != anchor->end(); ++it) {
+       debugf(" %2d", it->index);
+     }
+#else
      DHDL_block* link= anchor->get_head(); // Get head element
      while( link != nullptr ) {
        debugf(" %2d", link->index);
        link= link->get_next();
      }
+#endif
 
      debugf(" --(%2d)", removed->index);
      debugf("\n");
@@ -734,11 +747,17 @@ static void
 {
    if( opt_verbose ) {
      debugf("List:");
+#if USE_BEGIN_END
+     for(auto it= anchor->begin(); it != anchor->end(); ++it) {
+       debugf(" %2d", it->index);
+     }
+#else
      SHSL_block* link= anchor->get_tail(); // Get tail element
      while( link != nullptr ) {
        debugf(" %2d", link->index);
        link= link->get_prev();
      }
+#endif
 
      debugf("\n");
    }
@@ -752,11 +771,17 @@ static void
 {
    if( opt_verbose ) {
      debugf("List:");
+#if USE_BEGIN_END
+     for(auto it= anchor->begin(); it != anchor->end(); ++it) {
+       debugf(" %2d", it->index);
+     }
+#else
      SHSL_block* link= anchor->get_tail(); // Get tail element
      while( link != nullptr ) {
        debugf(" %2d", link->index);
        link= link->get_prev();
      }
+#endif
 
      debugf(" --(%2d)", removed->index);
      debugf("\n");
@@ -791,7 +816,7 @@ static int
    //-------------------------------------------------------------------------
    if( opt_verbose ) {
      debugf("\n");
-     debugf("SHSL_LIFO test (1..%d):\n", DIM);
+     debugf("SHSL_LIFO test (%d..1):\n", DIM);
    }
    for(int i=0; i<DIM; i++) {
      shsl_data[i].index= i + 1;
@@ -833,14 +858,14 @@ static int
        debugf(" %2d", it->index);
 
      shsl_link= it.get();
-     error_count += VERIFY( shsl_link->index == (ix + 1) );
-     error_count += VERIFY( it->index == (ix + 1) );
+     error_count += VERIFY( shsl_link->index == (DIM - ix) );
+     error_count += VERIFY( it->index == (DIM - ix) );
      ++ix;
    }
    if( opt_verbose )
      debugf("\n");
    for(int i=0; i<DIM; i++)
-     error_count += VERIFY( !shsl_list.is_on_list(&shsl_data[i]) );
+     error_count += VERIFY( shsl_list.is_on_list(&shsl_data[i]) );
    error_count += VERIFY( shsl_list.is_coherent() );
    shsl_list.reset();
 
@@ -869,11 +894,17 @@ static void
 {
    if( opt_verbose ) {
      debugf("List:");
+#if USE_BEGIN_END
+     for(auto it= anchor->begin(); it != anchor->end(); ++it) {
+       debugf(" %2d", it->index);
+     }
+#else
      SORT_block* link= anchor->get_head(); // Get head element
      while( link != nullptr ) {
        debugf(" %2d", link->index);
        link= link->get_next();
      }
+#endif
 
      debugf("\n");
    }
@@ -1037,8 +1068,10 @@ int
 
    tc.on_main([tr](int, char*[])
    {
-     if( opt_verbose )
+     if( opt_verbose ) {
        debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
+       debugf("USE_BEGIN_END(%s)\n", USE_BEGIN_END ? "true" : "false");
+     }
 
      int error_count= 0;
 

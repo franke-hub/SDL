@@ -9,17 +9,17 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ~/src/lib/pub/README.md
+//       ~/src/cpp/lib/pub/README.md
 //
 // Purpose-
-//       PUB library description
+//       SDL: PUB library description
 //
 // Last change date-
-//       2023/08/11
+//       2023/09/17
 //
 -------------------------------------------------------------------------- -->
 
-# ~/src/lib/pub/README.md
+# ~/src/cpp/lib/pub/README.md
 
 Copyright (C) 2022-2023 Frank Eskesen.
 
@@ -44,10 +44,21 @@ performance and usability characteristics as well as additional functions.
 ## USAGE NOTE
 There is no attempt to keep interfaces consistent across time, but we do
 attempt to keep the interfaces consistent across the distribution.
-When an interface changes, we attempt to also modify every usage within the
-distribution to match the updated interface.
-We do not recompile every distributed source module whenever a new trunk
-is distributed. We do recompile every library source module.
+When an interface changes, we also modify every usage within the distribution
+to match the updated interface.
+We now recompile every distributed source module whenever a new trunk is
+distributed.
+
+----
+
+## 2023/04/05
+The ~/src/cpp/lib/pub/Test/TestDisp.cpp timing testcase has an unexpected and
+large throughput performance improvement. No SDL code change explains this
+improvement, so we think that Linux kernel/library changes are responsible.
+(Timing tests run between 3/2020 and 3/2023 had an unexplained Linux throughput
+decrease, which we think was caused by kernel/library security fixes.)
+
+See: ~/src/cpp/lib/pub/Test/.TIMING
 
 ----
 
@@ -106,8 +117,8 @@ either directly or indirectly in library code where a problem was likely
 to arise again and again.
 There is no separation of design and development.
 Code is just written, designed on the fly.
-Library code is written with the philosophy of get it working first, then get
-error paths working, then (if needed) optimize.
+Library code is written with the philosophy of "get it working," then get
+error paths working, then optimize.
 
 - Static objects
 The library contains static objects, and we have run into some of the known
@@ -129,12 +140,13 @@ This code needed to be and has been hardened.
 
 Other library functions need to be kept at least semi-operational.
 They should work as well as possible as long as possible, but never segfault.
-(I'm talking about you, Trace.cpp, who used a map after it was deconstructed.
-The segfault was in std::map code but the problem was in Trace.cpp.)
+(I'm talking about you, Trace.cpp. You used a map after it was deconstructed.
+The segfault was in std::map code but the problem was in Trace.cpp which used
+a static map after the main program exited.)
 
-However, once we reach static object deconstruction there's no point in
-worrying about memory leaks any more.
-We can rely on process termination cleanup to clean up what we can't.
+Once static object deconstruction starts, there's no point in worrying about
+memory leaks any more.
+We rely on process termination to clean up what we can't.
 
 ----
 
@@ -319,16 +331,5 @@ distribution's development.
 
 [^1] Migrated from the COM (common) library and improved by the PUB (public)
 implementation.
-
-----
-
-## 2023/04/05
-The ~/src/cpp/lib/pub/Test/TestDisp.cpp timing testcase has an unexpected and
-large throughput performance improvement. No pub library code change explains
-this improvement, so it's assumed that Linux kernel/library changes are
-responsible. (This is good, since there was also no explanation of the
-Linux throughput decrease between 3/2020 and 3/2023.)
-
-See: ~/src/cpp/lib/pub/Test/.TIMING
 
 ----

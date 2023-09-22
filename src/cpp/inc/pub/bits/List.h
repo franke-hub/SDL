@@ -16,7 +16,7 @@
 //       ../List.h template definitions and internal base classes.
 //
 // Last change date-
-//       2023/05/24
+//       2023/09/21
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_LIST_H_INCLUDED
@@ -104,15 +104,29 @@ namespace __detail
 // Purpose-
 //       Atomic Insertion list iterator.
 //
+// Implementation notes-
+//       Only one thread (called the consumer thread) may use this iterator.
+//       Any number of producer threads may add elements to the thread
+//       whether or not the consumer thread is active.
+//
 //----------------------------------------------------------------------------
 /**
    @brief An AI_list<T> iterator
 
    There isn't an AI_const_iter.
 
-   This iterator reverses the AI_list reverse links without changing the Link
-   type, so get_prev() and _prev in the code actually refer to the logically
-   NEXT link.
+   This iterator *REMOVES* all elements from the list, replacing the list with
+   a dummy element, &__detail::__end. The removed links are ONLY associated
+   with the iterator.
+
+   While this iterates in a forward direction, it cannot be a forward_iterator
+   because it is not a multi-pass iterator. Creating the iterator modifies the
+   list.
+
+   The iterator then inverts the list so that elements are presented to the
+   application in the order they were enqueued. The link type is unchanged.
+   In the implementation, get_prev() and _prev now refer to the logically NEXT
+   link.
 **/
 template<typename T>
    struct _AI_iter
@@ -161,14 +175,14 @@ template<typename T>
      { return bool(_link); }
 
      reference
-     operator*() const // noexcept
+     operator*() const
      { if( _link )
          return (reference)(*_link);
        throw __detail::end_dereferenced();
      }
 
      pointer
-     operator->() const // noexcept
+     operator->() const
      { if( _link )
          return _link;
        throw __detail::end_dereferenced();
@@ -221,7 +235,7 @@ template<typename T>
      //-----------------------------------------------------------------------
      //
      // Method-
-     //       AI_list<T>::is_on_iter
+     //       AI_iter<T>::is_on_iter
      //
      // Purpose-
      //       Test whether link is present in this AI_iter
@@ -263,7 +277,7 @@ template<typename T>
 //
 //----------------------------------------------------------------------------
 /**
- *  @brief A DHDL_list::iterator.
+   @brief A DHDL_list::iterator.
 **/
 template<typename T>
    struct _DHDL_iter
@@ -356,7 +370,7 @@ template<typename T>
    }; // _DHDL_iter
 
 /**
- *  @brief A DHDL_list::const_iterator.
+   @brief A DHDL_list::const_iterator.
 */
 template<typename T>
    struct _DHDL_const_iter
@@ -394,14 +408,14 @@ template<typename T>
      { return bool(_link); }
 
      reference
-     operator*() const noexcept
+     operator*() const
      { if( _link )
          return *static_cast<pointer>(_link);
        throw __detail::end_dereferenced();
      }
 
      pointer
-     operator->() const noexcept
+     operator->() const
      { if( _link )
          return static_cast<pointer>(_link);
        throw __detail::end_dereferenced();
@@ -488,10 +502,16 @@ template<> class DHDL_list<void>
        // DHDL_list<void>::Constructors/Destructor
        //---------------------------------------------------------------------
        DHDL_list( void ) = default;
+       DHDL_list(const DHDL_list&) = delete; // *NO* copy constructor
+       DHDL_list(DHDL_list&&) = delete; // *NO* move constructor
+
        ~DHDL_list( void ) = default;
 
-       DHDL_list(const DHDL_list&) = delete;
-       DHDL_list& operator=(const DHDL_list&) = delete;
+       //---------------------------------------------------------------------
+       // DHDL_list<void>::Operators
+       //---------------------------------------------------------------------
+       DHDL_list& operator=(const DHDL_list&) = delete; // *NO* copy assignment
+       DHDL_list& operator=(DHDL_list&&) = delete; // *NO* move assignment
 
        //---------------------------------------------------------------------
        //
@@ -503,14 +523,8 @@ template<> class DHDL_list<void>
        //       Create an DHDL_list FIFO iterator.
        //       Create an DHDL_list FIFO end() iterator.
        //
-       // Implementation notes-
-       //       Implemented in DHDL_List<T>
-       //
        //---------------------------------------------------------------------
-//             iterator begin()       noexcept { return iterator(this); }
-//       const_iterator begin() const noexcept { return const_iterator(this); }
-//             iterator end()       noexcept { return iterator(); }
-//       const_iterator end() const noexcept { return const_iterator(); }
+       // Implemented in DHDL_list<T>
 
        //---------------------------------------------------------------------
        //
@@ -651,7 +665,7 @@ template<> class DHDL_list<void>
 //
 //----------------------------------------------------------------------------
 /**
- *  @brief A DHSL_list::iterator.
+   @brief A DHSL_list::iterator.
 **/
 template<typename T>
    struct _DHSL_iter
@@ -727,7 +741,7 @@ template<typename T>
    }; // _DHSL_iter
 
 /**
- *  @brief A DHSL_list::const_iterator.
+   @brief A DHSL_list::const_iterator.
 */
 template<typename T>
    struct _DHSL_const_iter
@@ -838,11 +852,17 @@ template<> class DHSL_list<void>
        //---------------------------------------------------------------------
        // DHSL_list<void>::Constructors/Destructor
        //---------------------------------------------------------------------
-       ~DHSL_list( void ) {}
-       DHSL_list( void ) {}
+       DHSL_list( void ) = default;
+       DHSL_list(const DHSL_list&) = delete; // *NO* copy constructor
+       DHSL_list(DHSL_list&&) = delete; // *NO* move constructor
 
-       DHSL_list(const DHSL_list&) = delete;
-       DHSL_list& operator=(const DHSL_list&) = delete;
+       ~DHSL_list( void ) = default;
+
+       //---------------------------------------------------------------------
+       // DHSL_list<void>::Operators
+       //---------------------------------------------------------------------
+       DHSL_list& operator=(const DHSL_list&) = delete; // *NO* copy assignment
+       DHSL_list& operator=(DHSL_list&&) = delete; // *NO* move assignment
 
        //---------------------------------------------------------------------
        //
@@ -854,14 +874,8 @@ template<> class DHSL_list<void>
        //       Create an DHSL_list FIFO iterator.
        //       Create an DHSL_list FIFO end() iterator.
        //
-       // Implementation notes-
-       //       Implemented in DHSL_List<T>
-       //
        //---------------------------------------------------------------------
-//             iterator begin()       noexcept { return iterator(this); }
-//       const_iterator begin() const noexcept { return const_iterator(this); }
-//             iterator end()       noexcept { return iterator(); }
-//       const_iterator end() const noexcept { return const_iterator(); }
+       // Implemented in DHSL_list<T>
 
        //---------------------------------------------------------------------
        //
@@ -990,7 +1004,10 @@ template<> class DHSL_list<void>
 //
 //----------------------------------------------------------------------------
 /**
- *  @brief A SHSL_list::iterator.
+   @brief An SHSL_list::iterator.
+
+   This is a reverse iterator, iterating from the oldest element on the list
+   to the newest.
 **/
 template<typename T>
    struct _SHSL_iter
@@ -1004,31 +1021,101 @@ template<typename T>
      typedef SHSL_list<T>                     _List;
      typedef _SHSL_iter<T>                    _Self;
 
-     pointer _link= nullptr;
+     pointer _link;
 
-     _SHSL_iter() noexcept = default;
-
-     _SHSL_iter(const _SHSL_iter& that) noexcept
-     :  _link(that._link) {}
+     _SHSL_iter() noexcept
+     : _link(nullptr) {}
 
      explicit
      _SHSL_iter(_List* list) noexcept
-     {
-       pointer todo= nullptr;
-       pointer tail= list->reset();
-       while( tail )
-       {
-         pointer prev= tail->get_prev();
-         tail->_prev= todo;
-         todo= tail;
-         tail= prev;
-       }
-       _link= todo;
-     }
+     { _link= list->get_tail(); }
+
+     _SHSL_iter(const _SHSL_iter<T>& that) noexcept
+     :  _link(that._link) {}
 
      _Self
      _const_cast() const noexcept
      { return *this; }
+
+     pointer
+     get() const noexcept
+     { return _link; }
+
+     operator bool() const noexcept
+     { return bool(_link); }
+
+     reference
+     operator*() const
+     { if( _link )
+         return *_link;
+       throw __detail::end_dereferenced();
+     }
+
+     pointer
+     operator->() const
+     { if( _link )
+         return _link;
+       throw __detail::end_dereferenced();
+     }
+
+     _Self&
+     operator++() noexcept
+     {
+       if( _link )
+         _link = _link->get_prev();
+       return *this;
+     }
+
+     _Self
+     operator++(int) noexcept
+     {
+       _Self __tmp = *this;
+       if( _link )
+         _link = _link->get_prev();
+       return __tmp;
+     }
+
+     friend bool
+     operator==(const _Self& lhs, const _Self& rhs) noexcept
+     { return lhs._link == rhs._link; }
+
+     friend bool
+     operator!=(const _Self& lhs, const _Self& rhs) noexcept
+     { return lhs._link != rhs._link; }
+   }; // _SHSL_iter
+
+/**
+   @brief An SHSL_list::const_iterator.
+
+   This is a reverse iterator, iterating from the oldest element on the list
+   to the newest.
+**/
+template<typename T>
+   struct _SHSL_const_iter
+   {
+     typedef ptrdiff_t                        difference_type;
+     typedef std::input_iterator_tag          iterator_category;
+     typedef T                                value_type;
+     typedef const T*                         pointer;
+     typedef const T&                         reference;
+
+     typedef SHSL_list<T>                     _List;
+     typedef _SHSL_const_iter<T>              _Self;
+
+     pointer _link;
+
+     _SHSL_const_iter() noexcept
+     : _link(nullptr) {}
+
+     explicit
+     _SHSL_const_iter(const _List* list) noexcept
+     { _link= list->get_tail(); }
+
+     _SHSL_const_iter(const _SHSL_iter<T>& that) noexcept
+     :  _link(that._link) {}
+
+     _SHSL_const_iter(const _SHSL_const_iter<T>& that) noexcept
+     :  _link(that._link) {}
 
      pointer
      get() const noexcept
@@ -1122,10 +1209,16 @@ template<> class SHSL_list<void>
        // SHSL_list<void>::Constructors/Destructor
        //---------------------------------------------------------------------
        SHSL_list( void ) = default;
+       SHSL_list(const SHSL_list&) = delete; // *NO* copy constructor
+       SHSL_list(SHSL_list&&) = delete; // *NO* move constructor
+
        ~SHSL_list( void ) = default;
 
-       SHSL_list(const SHSL_list&) = delete;
-       SHSL_list& operator=(const SHSL_list&) = delete;
+       //---------------------------------------------------------------------
+       // SHSL_list<void>::Operators
+       //---------------------------------------------------------------------
+       SHSL_list& operator=(const SHSL_list&) = delete; // *NO* copy assignment
+       SHSL_list& operator=(SHSL_list&&) = delete; // *NO* move assignment
 
        //---------------------------------------------------------------------
        //
@@ -1137,12 +1230,8 @@ template<> class SHSL_list<void>
        //       Create an SHSL_list LIFO iterator.
        //       Create an SHSL_list LIFO end() iterator.
        //
-       // Implementation notes-
-       //       Implemented in SHSL_List<T>
-       //
        //---------------------------------------------------------------------
-//     iterator begin() noexcept { return iterator(this); }
-//     iterator end()   noexcept { return iterator(); }
+       // Implemented in SHSL_list<T>
 
        //---------------------------------------------------------------------
        //

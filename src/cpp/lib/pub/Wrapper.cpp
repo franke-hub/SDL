@@ -111,7 +111,7 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       format_opt
+//       debug_opt
 //
 // Purpose-
 //       Generate debugging display line for option

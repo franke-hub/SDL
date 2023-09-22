@@ -220,7 +220,7 @@ enum code_t                         // Error code values
 ,  REFUSED_STREAM=           0x0007 // Stream not processed
 ,  CANCEL=                   0x0008 // Stream cancelled
 ,  COMPRESSION_ERROR=        0x0009 // Compression state not updated
-,  CONNECT_ERROR=            0x000A // TCP Connection error for CONNECT metho
+,  CONNECT_ERROR=            0x000A // TCP Connection error for CONNECT method
 ,  ENHANCE_YOUR_CALM=        0x000B // Processing capability exceeded
 ,  INADEQUATE_SECURITY=      0x000C // Negotiated TLS parameters not acceptabe
 ,  HTTP_1_1_REQUIRED=        0x000D // Use HTTP/1.1 for the request
