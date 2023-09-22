@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2023/08/28
+//       2023/09/15
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -175,6 +175,21 @@ const char*                         // The (immutable) text
 const char*                         // Error message, nullptr if none
    command(                         // Process a command
      char*             buffer);     // (MODIFIABLE) command buffer
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::command_help
+//
+// Purpose-
+//       Process the 'help' command.
+//
+// Implementation notes-
+//       Implemented in EdBifs.cpp
+//
+//----------------------------------------------------------------------------
+const char*                         // (Always nullptr)
+   command_help(char* parm= nullptr); // Process the 'help' command
 
 //----------------------------------------------------------------------------
 //
@@ -362,6 +377,22 @@ void
 //----------------------------------------------------------------------------
 bool                                // TRUE iff editor is in unchanged state
    un_changed( void );              // Activate a changed file
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::write_file
+//
+// Purpose-
+//       Write a/the file
+//
+// Implementation notes-
+//       Implemented in EdBifs.cpp
+//
+//----------------------------------------------------------------------------
+const char*                         // Error message, nullptr if none
+   write_file(                      // Write a file (nullptr for current file)
+     char*             buffer);     // (MODIFIABLE) command buffer
 
 //----------------------------------------------------------------------------
 //

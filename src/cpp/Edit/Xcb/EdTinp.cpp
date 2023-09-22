@@ -16,7 +16,7 @@
 //       Editor: Implement EdTerm.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2023/08/28
+//       2023/09/19
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -259,8 +259,11 @@ static int                          // Return code, TRUE if error message
        } else if( mask == gui::KS_CTRL ) {
          switch(key) {                // Allowed keys:
            case 'C':                  // COPY MARK
+           case 'Q':                  // QUIT (safe)
            case 'V':                  // PASTE COPY
            case 'X':                  // CUT MARK
+           case 'Y':                  // REDO
+           case 'Z':                  // UNDO
              return false;
 
            default:
@@ -269,7 +272,7 @@ static int                          // Return code, TRUE if error message
        }
      }
    } else {
-     switch( key ) {                // Check for disallowed key
+     switch( key ) {                // Check for disallowed keys
        case 0x007F:                 // (DEL KEY, should not occur)
        case XK_BackSpace:
        case XK_Delete:
@@ -349,11 +352,6 @@ void
        draw();
        break;
      }
-     case 'Q': {                    // (Safe) quit
-       data->commit();
-       editor::put_message( editor::do_quit() );
-       break;
-     }
      case 'S': {                    // Split line
        editor::put_message( editor::do_split() ); // Split the current line
        break;
@@ -399,6 +397,19 @@ void
        editor::put_message( mark->copy() );
        break;
      }
+     case 'Q': {                    // Quit
+       editor::put_message( editor::do_quit() );
+       break;
+     }
+     case 'S': {                    // Save
+       data->commit();
+       const char* error= editor::write_file(nullptr);
+       if( error )
+         editor::put_message(error);
+       else
+         draw_top();
+       break;
+     }
      case 'V': {                    // Paste (from copy/cut)
        data->commit();
        const char* error= mark->paste(file, data->cursor, data->get_column());
@@ -411,6 +422,19 @@ void
      case 'X': {                    // Cut the mark
        editor::put_message( mark->cut() );
        draw();
+       break;
+     }
+     case 'Y': {                    // REDO
+       data->commit();
+       file->redo();
+       break;
+     }
+     case 'Z': {                    // UNDO
+       if( data->active.undo() ) {
+         data->draw_active();
+         draw_top();
+       } else
+         file->undo();
        break;
      }
      default:
@@ -616,27 +640,13 @@ void
      //-----------------------------------------------------------------------
      // Function keys
      case XK_F1: {
-       editor::insert_command("**F1-HELP**",
-              " F1: This help message\n"
-              " F2: NOP\n"
-              " F3: Quit File\n"
-              " F4: Test changed\n"
-              " F5: Locate\n"
-              " F6: Change\n"
-              " F7: Previous File\n"
-              " F8: Next File\n"
-              " F9: NOP\n"
-              "F10: Line to top\n"
-              "F11: Undo\n"
-              "F12: Redo\n"
-       );
+       editor::command_help();
        break;
      }
      case XK_F2: {                  // NOT ASSIGNED
        break;
      }
      case XK_F3: {                  // (Safe) quit
-       data->commit();
        editor::put_message( editor::do_quit() );
        break;
      }
@@ -678,7 +688,11 @@ void
          activate(file);
        break;
      }
-     case XK_F9: {                  // NOT ASSIGNED
+     case XK_F9: {                  // Copy cursor line to command line
+       // (This sequence DOES NOT change the cursor line)
+       Active& active= data->active; // The current command line
+       const char* command= active.truncate(); // Truncate it
+       editor::hist->activate(command); // Activate the history view
        break;
      }
      case XK_F10: {                 // Line to top

@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2023/09/04
+//       2023/09/19
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -69,12 +69,14 @@ static Name_value      bool_value[]= // Boolean value table
 , {nullptr,            -1}          // Not found value
 }; // bool_value[]
 
+// Command: set mode= dos | unix
 static Name_value      mode_value[]= // Mode value table
 { {"dos",              EdFile::M_DOS}
 , {"unix",             EdFile::M_UNIX}
 , {nullptr,            -1}          // Not found value
 }; // mode_value[]
 
+// Command: set <symbol>= <bool_value>
 static Name_addr       true_addr[]= // Boolean symbols, default true
 { {"prior",            (int*)&editor::locate_back} // Short symbol names
 , {"case",             (int*)&editor::locate_case}
@@ -88,7 +90,7 @@ static Name_addr       true_addr[]= // Boolean symbols, default true
 , {"hidden",           (int*)&config::USE_MOUSE_HIDE} // Controls
 , {"mouse_hide",       (int*)&config::USE_MOUSE_HIDE}
 , {"use_mouse_hide",   (int*)&config::USE_MOUSE_HIDE}
-, {nullptr,            nullptr}     // Not found address
+, {nullptr,            nullptr}     // Symbol not found
 }; // true_addr[]
 
 //----------------------------------------------------------------------------
@@ -117,8 +119,8 @@ static const char* command_edit(char*);
 static const char* command_exit(char*);
 static const char* command_file(char*);
 static const char* command_find(char*);
-static const char* command_get(char*);
-static const char* command_list(char*);
+// static const char* command_get(char*); // NOT CODED YET
+//         editor::command_help(char*);
 static const char* command_locate(char*);
 // static const char* command_margins(char*);
 static const char* command_quit(char*);
@@ -130,45 +132,50 @@ static const char* command_sort(char*);
 static const char* command_top(char*);
 // static const char* command_undo(char*);
 static const char* command_view(char*);
+static const char* command_0042(char*);
 
 static const Command_desc
                        command_desc[]= // The Command descriptor list
 {  {command_bot,    "BOT",     "Bottom of file"}
 ,  {command_change, "C",       "Change"}
-,  {command_debug,  "D",       "Alias for DEBUG"}
-,  {command_debug,  "DEBUG",   "Debugging display"}
+,  {command_debug,  "DEBUG",   nullptr}
 ,  {command_detab,  "DETAB",   "Convert tabs to spaces"}
 ,  {command_edit,   "E",       "Alias for EDIT"}
 ,  {command_edit,   "EDIT",    "Edit file(s)"}
 ,  {command_exit,   "EXIT",    "(Safe) Exit" }
-,  {command_find,   "FI",      "Find (column 1)"} // (Alias)
-,  {command_file,   "FILE",    "Write and close file"}
-,  {command_find,   "FIND",    "Find (column 1)"}
-,  {command_get,    "GET",     "Append file"}
-,  {command_locate, "L",       "Locate (forward)"}
-,  {command_list,   "LIST",    "List commands"}
+,  {command_find,   "FI",      "Find (starting in column 1)"} // (Alias)
+,  {command_file,   "FILE",    "(Unconditionally) save and close file"}
+,  {command_find,   "FIND",    "Find (starting in column 1)"}
+// {nullptr,        "GET",     "Append file"} // NOT CODED YET
+,  {editor::command_help,
+                    "HELP",    "Help command"}
+,  {command_locate, "L",       "Locate"}
 // {command_margins,"MARGINS", "Set margins"}
 ,  {command_quit,   "QUIT",    "(Unconditionally) close file"}
 // {command_redo,   "REDO",    "REDO an UNDO"}
 ,  {command_save,   "SAVE",    "Write file"}
-,  {command_set,    "SET",     "Set option= value"}
-,  {command_sort,   "SORT",    "{-f} Sort file list"
-                               " (using fully-qualified name)"}
+,  {command_set,    "SET",     "Set option value"}
+,  {command_sort,   "SORT",    "Sort file list using file name"}
+,  {nullptr,        "SORT -f", "Sort using fully-qualified name"}
 // {command_tabs,   "TABS",    "Set tabs"}
 ,  {command_top,    "TOP",     "Top of File"}
 // {command_undo,   "UNDO",    "UNDO a change"}
 ,  {command_view,   "V",       "Alias for VIEW"}
 ,  {command_view,   "VIEW",    "Edit file(s) in read/only mode"}
+,  {nullptr,        "<",       "Locate (reverse search)"}
+,  {nullptr,        ">",       "Locate (forward search)"}
+,  {nullptr,        "#",       "(Comment)"}
+,  {command_0042,   "number",  "Set current line to 'number'"}
 
 // Spelling errors/typos
-,  {command_list,   "",     nullptr} // Misspelled commands follow
-,  {command_save,  "SAE",   nullptr} // (SAVE)
-,  {command_save,  "SAVAE", nullptr} // (SAVE)
-,  {command_save,  "SAVCE", nullptr} // (SAVE)
-,  {command_save,  "SAVVE", nullptr} // (SAVE)
-,  {command_save,  "SVAE",  nullptr} // (SAVE)
-,  {command_top,   "TIO",   nullptr} // (TOP)
-,  {nullptr,       nullptr, nullptr} // End of list delimiter
+,  {nullptr,        "",        nullptr} // Misspelled commands follow
+,  {command_save,  "SAE",      nullptr} // (SAVE)
+,  {command_save,  "SAVAE",    nullptr} // (SAVE)
+,  {command_save,  "SAVCE",    nullptr} // (SAVE)
+,  {command_save,  "SAVVE",    nullptr} // (SAVE)
+,  {command_save,  "SVAE",     nullptr} // (SAVE)
+,  {command_top,   "TIO",      nullptr} // (TOP)
+,  {nullptr,       nullptr,    nullptr} // End of list delimiter
 };
 
 //----------------------------------------------------------------------------
@@ -215,47 +222,6 @@ static int                          // The symbol's value
    }
 
    return addr->value;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       write_file
-//
-// Purpose-
-//       Write file (with error checking)
-//
-//----------------------------------------------------------------------------
-static const char*                  // Error message, nullptr expected
-   write_file(                      // Write file
-     char*             parm)        // (Mutable) parameter string
-{
-   EdFile* file= editor::file;
-
-   if( file->protect )
-     return "Read-only";
-   if( file->damaged )
-     return "Damaged file";
-
-   if( parm ) {                     // If filename specified
-     struct stat info;
-     int rc= stat(parm, &info);     // Get file information
-     if( rc == 0 )                  // If file exists
-       return "File exists";
-
-     rc= file->write(parm);         // Write the file
-     if( rc )
-       return "Write failure";
-     return nullptr;                // (File remains changed)
-   }
-
-   // Replace the file (even if unchanged)
-   int rc= file->write();
-   if( rc )
-     return "Write failure";
-
-   file->reset();
-   return nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -488,7 +454,7 @@ static const char*                  // Error message, nullptr expected
    command_file(                    // File command
      char*             parm)        // (Mutable) parameter string
 {
-   const char* mess= write_file(parm); // Save the file
+   const char* mess= editor::write_file(parm); // Save the file
    if( mess == nullptr )            // If saved
      mess= command_quit(parm);      // Quit the file
 
@@ -520,24 +486,45 @@ static const char*                  // Error message, nullptr expected
    return command_locate(parm);
 }
 
+#if 0
 static const char*                  // Error message, nullptr expected
    command_get(char*)               // Get command
 {
    // SPECIAL CASE: Get after ending line with no delimiter.
    // The no delimiter line CHANGES. It's part of the REDO/UNDO.
-   return nullptr;                  // TODO: NOT CODED YET
+   return "Not coded yet";          // TODO: NOT CODED YET
 }
+#endif
 
-static const char*                  // Error message, nullptr expected
-   command_list(char*)              // Display the command list
+const char*                         // (Always nullptr)
+   editor::command_help(char*)      // The 'help' command
 {
-   printf("Command list: (Command names are not case sensitive)\n");
-   for(int i= 0; command_desc[i].name[0] != '\0'; ++i) {
-     char buffer[32];
-     sprintf(buffer, "%s:", command_desc[i].name);
-     printf("%-8s %s\n", buffer, command_desc[i].desc);
-   }
+   std::string text= "Function keys:\n"
+       " F1:     This help message\n"
+       " F2:     NOP\n"
+       " F3:     Quit file (if unchanged)\n"
+       " F4:     Query: Any files changed?\n"
+       " F5:     Locate (next)\n"
+       " F6:     Change (current or next)\n"
+       " F7:     Switch to previous file\n"
+       " F8:     Switch to next file\n"
+       " F9:     Copy cursor line to command line\n"
+       "F10:     Move cursor line to top of screen\n"
+       "F11:     Undo\n"
+       "F12:     Redo\n"
+       ;
 
+   text += "\nCommand list: (Command names are not case sensitive)\n";
+   for(int i= 0; command_desc[i].name[0] != '\0'; ++i) {
+     if( command_desc[i].desc ) {
+       char name[16];
+       char line[128];
+       sprintf(name, "%s:", command_desc[i].name);
+       sprintf(line, "%-8s %s\n", name, command_desc[i].desc);
+       text += line;
+     }
+   }
+   editor::insert_command("**Editor help**", text);
    return nullptr;
 }
 
@@ -621,7 +608,7 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_save(                    // Save command
      char*             parm)        // (Mutable) parameter string
-{  return write_file(parm); }       // Write the file
+{  return editor::write_file(parm); } // Write the file
 
 static const char*                  // Error message, nullptr expected
    command_set(                     // Set command
@@ -637,6 +624,22 @@ static const char*                  // Error message, nullptr expected
    Iterator i= t.begin();
    const char* name= i().c_str();
    const char* value= i.next().remainder();
+
+   if( strcasecmp(name, "help") == 0 ) {
+     std::string text=
+         "set mode {dos | unix}\n"
+         " mode dos  (Use DOS file mode.)\n"
+         " mode unix (Use UNIX file mode.)\n"
+         "\n"
+         "set <option> {ON | off}, options:\n"
+         " hidden    (Hide idle mouse cursor?)\n"
+         " mixed     (Use case sensitive locate?)\n"
+         " reverse   (Use locate toward top of file?)\n"
+         " wrap      (Use locate wrap-around?)\n"
+         ;
+     editor::insert_command("**SET command help**", text);
+     return nullptr;
+   }
 
    if( strcasecmp(name, "mode") == 0 ) {
      int mode= find_value(value, mode_value);
@@ -745,6 +748,10 @@ static const char*                  // Error message, nullptr expected
    return nullptr;
 }
 
+static const char*                  // Error message, nullptr expected
+   command_0042(char*)              // NUMBER command
+{  return "'number' isn't a command. Try using a numeric value instead."; }
+
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -794,7 +801,9 @@ const char*                         // Error message, nullptr if none
      // Process builtin commands
      for(int i= 0; command_desc[i].name; i++) { // Find command
        if( strcasecmp(buffer, command_desc[i].name) == 0 ) {
-         return command_desc[i].func(parm);
+         if( command_desc[i].func )
+           return command_desc[i].func(parm);
+         return "OOPS";
        }
      }
 
@@ -806,4 +815,45 @@ const char*                         // Error message, nullptr if none
    }
 
    return error;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::write_file
+//
+// Purpose-
+//       Write file (with error checking)
+//
+//----------------------------------------------------------------------------
+const char*                         // Error message, nullptr expected
+   editor::write_file(              // Write file
+     char*             parm)        // (Mutable) parameter string
+{
+   EdFile* file= editor::file;
+
+   if( file->protect )
+     return "Read-only";
+   if( file->damaged )
+     return "Damaged file";
+
+   if( parm ) {                     // If filename specified
+     struct stat info;
+     int rc= stat(parm, &info);     // Get file information
+     if( rc == 0 )                  // If file exists
+       return "File exists";
+
+     rc= file->write(parm);         // Write the file
+     if( rc )
+       return "Write failure";
+     return nullptr;                // (File remains changed)
+   }
+
+   // Replace the file (even if unchanged)
+   int rc= file->write();
+   if( rc )
+     return "Write failure";
+
+   file->reset();
+   return nullptr;
 }

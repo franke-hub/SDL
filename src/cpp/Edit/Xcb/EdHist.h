@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: history/message EdView
 //
 // Last change date-
-//       2021/12/31
+//       2023/09/19
 //
 //----------------------------------------------------------------------------
 #ifndef EDHIST_H_INCLUDED
@@ -88,7 +88,8 @@ virtual xcb_gcontext_t               // The current graphic context
 //
 //----------------------------------------------------------------------------
 virtual void
-   activate( void );                // Activate the history view
+   activate(                        // Activate the history view
+     const char*       text= nullptr); // Initial (immutable) text
 
 //----------------------------------------------------------------------------
 //

@@ -132,13 +132,14 @@ xcb_gcontext_t                       // The current graphic context
 //
 //----------------------------------------------------------------------------
 void
-   EdHist::activate( void )         // Activate the history view
+   EdHist::activate(                // Activate the history view
+     const char*       text)        // Initial (immutable) text
 {  if( HCDM || opt_hcdm ) traceh("EdHist(%p)::actiate\n", this);
 
    editor::term->undo_cursor();
    col_zero= col= 0;                // Start in column 0
    cursor= nullptr;
-   active.reset("");
+   active.reset(text);
    EdView::activate();
 }
 
