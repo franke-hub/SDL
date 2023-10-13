@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2023/09/19
+//       2023/10/08
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -170,10 +170,12 @@ static const Command_desc
 // Spelling errors/typos
 ,  {nullptr,        "",        nullptr} // Misspelled commands follow
 ,  {command_save,  "SAE",      nullptr} // (SAVE)
+,  {command_save,  "SAV",      nullptr} // (SAVE)
 ,  {command_save,  "SAVAE",    nullptr} // (SAVE)
 ,  {command_save,  "SAVCE",    nullptr} // (SAVE)
 ,  {command_save,  "SAVVE",    nullptr} // (SAVE)
 ,  {command_save,  "SVAE",     nullptr} // (SAVE)
+,  {command_save,  "SVE",      nullptr} // (SAVE)
 ,  {command_top,   "TIO",      nullptr} // (TOP)
 ,  {nullptr,       nullptr,    nullptr} // End of list delimiter
 };
@@ -465,6 +467,9 @@ static const char*                  // Error message, nullptr expected
    command_find(                    // Find command
      char*             parm)        // (Mutable) parameter string
 {
+   if( parm == nullptr )            // Parameter is required
+     return "Missing parameter";
+
    // Leading blanks have been removed, so we need special handling.
    // We use the special character '.' and ignore it if it's first.
    // To find an actual leading '.', use "..".
