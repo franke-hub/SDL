@@ -440,27 +440,23 @@ void
 //       HTTP/2 Frame type T_SETTINGS payload
 //
 // Implementation notes-
-//       FLAGS: F_ACK
+//       See 'struct Settings', below
 //
 //----------------------------------------------------------------------------
 struct FrameSettings {              // Frame type T_SETTINGS payload
-struct Setting {
 uint8_t                ident[2];    // Registry identifier
 uint8_t                value[4];    // Value
-}; // struct FrameSettings::Setting
 
-Setting                setting[0];  // Array of settings
-
-enum setting_t                      // Registry identifier
-{  S_INVALID=                0x0000 // (Invalid value)
+enum id_t                           // Registry identifiers
+{  S_INVALID=                0x0000 // (Invalid identifier)
 ,  S_HEADER_TABLE_SIZE=      0x0001 // Header table size
 ,  S_ENABLE_PUSH=            0x0002 // Enable push
 ,  S_MAX_CONCURRENT_STREAMS= 0x0003 // Maximum concurrent streams
 ,  S_INITIAL_WINDOW_SIZE=    0x0004 // Initial window size
 ,  S_MAX_FRAME_SIZE=         0x0005 // Maximum frame size
 ,  S_MAX_HEADER_LIST_SIZE=   0x0006 // Maximum header list size
-,  S_MAX_SETTING_T                  // Number of registry identifiers
-}; // enum setting_t
+,  S_MAX_SETTINGS                   // Number of registry identifiers
+}; // enum id_t
 
 enum default_t                      // Registry identifier default values
 {  D_HEADER_TABLE_SIZE= 4096        // Header table size
@@ -474,29 +470,21 @@ enum default_t                      // Registry identifier default values
 //----------------------------------------------------------------------------
 // FrameSettings::Accessors
 //----------------------------------------------------------------------------
-uint32_t                            // The setting[X].ident
-   get_ident(int X)                 // Get setting[X].ident
-{  return setting[X].ident[0] <<  8 | setting[X].ident[1]; }
+uint32_t                            // The registry identifier
+   get_ident( void )                // Get registry identifier
+{  return ident[0] <<  8 | ident[1]; }
 
-uint32_t                            // The setting[X].value
-   get_value(int X)                 // Get setting[X].value
-{  return setting[X].value[0] << 24 | setting[X].value[1] << 16
-        | setting[X].value[2] <<  8 | setting[X].value[3];
-}
+uint32_t                            // The value
+   get_value( void )                // Get value
+{  return value[0] << 24 | value[1] << 16 | value[2] << 8 | value[3]; }
 
 void
-   set_ident(int X, uint32_t V)     // Set setting[X].ident
-{  setting[X].ident[1]= V;
-   setting[X].ident[0]= V >> 8;
-}
+   set_ident(int X, uint32_t V)     // Set ident
+{  ident[1]= V; ident[0]= V >> 8; }
 
 void
-   set_value(int X, uint32_t V)     // Set setting[X].value
-{  setting[X].value[3]= V;
-   setting[X].value[2]= V >> 8;
-   setting[X].value[1]= V >> 16;
-   setting[X].value[0]= V >> 24;
-}
+   set_value(uint32_t V)            // Set value
+{  value[0]= V >> 24; value[1]= V >> 16; value[2]= V >> 8; value[3]= V; }
 }; // struct FrameSettings
 
 //----------------------------------------------------------------------------
@@ -533,6 +521,35 @@ void
    this->size[0]= V >> 24;
 }
 }; // struct FrameUpdate
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       Settings
+//
+// Purpose-
+//       HTTP/2 Settings table
+//
+// Implementation notes-
+//       See 'struct FrameSettings', above
+//
+//----------------------------------------------------------------------------
+struct Settings {                   // Settings value table
+typedef uint32_t       Value_t;     // A settings value
+
+Value_t                setting[FrameSetting::S_MAX_SETTINGS]; // Settings array
+
+//----------------------------------------------------------------------------
+// Settings::Accessors
+//----------------------------------------------------------------------------
+Value_t                             // The setting[X].value
+   get_value(int X)                 // Get setting[X].value
+{  return setting[X]; }
+
+void
+   set_value(int X, Value_t V)      // Set setting[X].value
+{  setting[X]= V; }
+}; // struct Settings
 }  // namespace http
 _LIBPUB_END_NAMESPACE
 #endif // _PUB_HTTP_FRAME_HPP_INCLUDED
