@@ -16,17 +16,20 @@
 //       I/O Data Area.
 //
 // Last change date-
-//       2022/07/30
+//       2022/09/27
 //
 // Implementation notes-
 //       The I/O data area contains a scatter/gather I/O area used both as an
 //       I/O buffer and to pass data between components, minimizing overhead
 //       for these operations.
 //
+// Implementation notes (copying)-
 //       In order to avoid accidental copying, the Ioda copy constructor, copy
 //       assignment operator and copy append operator (+=) have been deleted.
-//       Use the copy (assignment) method where copying rather than moving is
-//       intended.
+//
+//       The (**HIGH-OVERHEAD**) std::string cast alternative can be used as
+//       a direct replacement for these methods. The append and copy methods
+//       are high (but lower) overhead indirect method replacements.
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_IODA_H_INCLUDED
@@ -54,6 +57,18 @@ class IodaReader;
 //       Input/Output Data Area.
 //
 // Implementation notes-
+//       For an Ioda::Buffer: Ioda::size != 0; Ioda::used == 0)
+//         Ioda::size is the maximum size of the input buffer.
+//       For an Ioda::Writer: Ioda::size == 0; Ioda::used >= 0)
+//         Ioda::used is the size of the output buffer.
+//         An output Ioda may use append methods; an Ioda::Buffer cannot.
+//       The default constructor creates a zero length Ioda::Writer.
+//       Ioda::set_used(size) truncates an Ioda::Buffer, converting it into
+//          an Ioda::Writer.
+//       Ioda::reset(size) resets any Ioda into an Ioda::Buffer.
+//       Ioda::reset() resets any Ioda into the (default) empty Ioda::Writer.
+//
+// Implementation notes-
 //       Ioda::Mesg is the struct msghdr to be used with recvmsg and sendmsg.
 //       It handles all association storage allocation and release.
 //
@@ -76,10 +91,10 @@ class IodaReader;
 //----------------------------------------------------------------------------
 class Ioda {                        // Input/Output Data Area
 friend class IodaReader;
-//============================================================================
+public:
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -- - - - - - - - -
 // Ioda::Mesg, struct msghdr wrapper with storage allocation control
 //----------------------------------------------------------------------------
-public:
 struct Mesg : public msghdr {       // Wrapper for struct msghdr
    Mesg( void );                    // Default constructor
    Mesg(const Mesg&) = delete;;     // Copy constructor
@@ -96,17 +111,12 @@ void debug(const char* info= "") const; // Debugging display
 // Mesg::Methods
 //----------------------------------------------------------------------------
 size_t size( void ) const;          // Get total data length
-}; // struct Ioda::Mesg
+}; // struct Ioda::Mesg - - - - - - - - - - - - -- - - - - - - - - - - - - - -
 
-//============================================================================
+//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -- - - - - - - - -
 // Ioda::Page, address of I/O data page
 //----------------------------------------------------------------------------
 struct Page : public List<Page>::Link { // Ioda page list link
-enum {
-// LOG2_SIZE= 12                    // Log2(PAGE_SIZE)
-// PAGE_SIZE= 4096                  // The (constant) data size
-}; // PAGE_SIZE constants
-
 char*                  data;        // Data address
 size_t                 used;        // Number of bytes used
 
@@ -114,12 +124,15 @@ size_t                 used;        // Number of bytes used
 // Page::debug
 //----------------------------------------------------------------------------
 void debug(const char* info= "") const; // Debugging display
-}; // struct Ioda::Page
+}; // struct Ioda::Page - - - - - - - - - - - - -- - - - - - - - - - - - - - -
 
 //============================================================================
 // Ioda::Typedefs, enumerations, and constants
 //----------------------------------------------------------------------------
-typedef std::string    string;
+typedef std::string    string;      // Import std::string
+typedef Ioda           Buffer;      // Ioda used as an input Buffer
+typedef IodaReader     Reader;      // IodaReader type
+typedef Ioda           Writer;      // Ioda used as an output Writer
 
 //----------------------------------------------------------------------------
 // Ioda::Attributes
@@ -134,9 +147,15 @@ size_t                 used= 0;     // The combined (used) size
 //----------------------------------------------------------------------------
 public:
    Ioda( void );                    // Default constructor
-   Ioda(const Ioda&) = delete;      // Copy constructor
+
+   Ioda(const Ioda& copy) = delete; // *NO* copy(const Ioda&) constructor
+   explicit
+   Ioda(const std::string& copy);   // Ioda(const Ioda&) alternative
+
    Ioda(Ioda&&);                    // Move constructor
-   explicit Ioda(size_t);           // Construct with initial buffer
+
+   explicit
+   Ioda(size_t);                    // Construct as input buffer
 
    ~Ioda( void );                   // Destructor
 
@@ -144,33 +163,63 @@ public:
 // Ioda::Operators
 //----------------------------------------------------------------------------
 Ioda&
-   operator=(const Ioda&) = delete; // (Copy) assignment
+   operator=(const Ioda&) = delete; // *NO* copy(const Ioda&) assignment
 Ioda&
-   operator=(Ioda&&);               // (Move) assignment
+   operator=(const std::string& copy); // (std::string)assignment alternative,
+                                    // **HIGH-OVERHEAD** if (string) cast used
+
+Ioda&
+   operator=(Ioda&&);               // Move assignment
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Ioda&
-   operator+=(const Ioda&) = delete; // Append Ioda (copy)
+   operator+=(const Ioda&) = delete; // *NO* const Ioda& append
 Ioda&
-   operator+=(Ioda&&);              // Append Ioda (move)
+   operator+=(const string& S)      // operator+=(const Ioda&) alternative
+{  put(S); return *this; }          // **HIGH-OVERHEAD** if (string) cast used
+
 Ioda&
-   operator+=(const string& S)      // Append std::string
-{  write(S.c_str(), S.size()); return *this; }
+   operator+=(Ioda&& from);         // Move append Ioda
+
+//************************ HIGH-OVERHEAD OPERATIONS **************************
+bool
+   operator==(const Ioda& S)        // Equality comparison
+{  return (string)*this == (string)S; } // **HIGH-OVERHEAD** casts
+
+bool
+   operator!=(const Ioda& S)        // Inequality comparison
+{  return (string)*this != (string)S; } // **HIGH-OVERHEAD** casts
 
 explicit
-   operator string( void ) const;   // (std::string) cast operator
+   operator string( void ) const;   // **HIGH-OVERHEAD** operation
 
 //----------------------------------------------------------------------------
 // Ioda::Accessor methods
 //----------------------------------------------------------------------------
 void debug(const char* info="") const; // Debugging display
+void dump(const char* info="") const; // Debugging dump
+
+bool
+   is_buffer( void ) const
+{  return size != 0; }
+
+bool
+   is_reader( void ) const
+{  return false; }
+
+bool
+   is_writer( void ) const
+{  return size == 0; }
 
 size_t
-   get_used( void ) const           // Get used data length
+   get_size( void ) const           // Get maximum input data length
+{  return size; }
+
+size_t
+   get_used( void ) const           // Get current output data length
 {  return used; }
 
-// set_used converts a read Ioda into an write Ioda, truncating it.
-// (Write Ioda::size == 0; Ioda::used == total used data length)
+// Convert a read Ioda into an write Ioda, truncating it.
 void
    set_used(size_t);                // Set the used data length
 
@@ -201,7 +250,10 @@ void
 //----------------------------------------------------------------------------
 // Ioda::Methods
 //----------------------------------------------------------------------------
-void
+void                                // ** DATA COPYING REQUIRED **
+   append(const Ioda&);             // Append Ioda
+
+void                                // ** DATA COPYING REQUIRED **
    copy(const Ioda&);               // Copy Ioda, replacing any content.
 
 void
@@ -214,7 +266,7 @@ void
    reset( void );                   // Reset (empty) the Ioda
 
 void                                // Reset the Ioda, converting it an input
-   reset(size_t);                   // buffer of the specified size
+   reset(size_t);                   // Ioda of the specified size
 
 void                                // (*this contains the trailing data)
    split(                           // Split leading data
@@ -230,6 +282,10 @@ void                                // (*this contains the trailing data)
 // Purpose-
 //       Ioda data reader.
 //
+// Implementation notes-
+//       Ioda::used is the IodaReader's data length. (Since Ioda::used == 0
+//       in a read Ioda, the associated Ioda should be a write Ioda.)
+//
 //----------------------------------------------------------------------------
 class IodaReader {                  // Ioda data reader
 //----------------------------------------------------------------------------
@@ -237,12 +293,13 @@ class IodaReader {                  // Ioda data reader
 //----------------------------------------------------------------------------
 public:
 typedef std::string    string;
+typedef IodaReader     Reader;      // IodaReader type (alias)
 
 //----------------------------------------------------------------------------
 // IodaReader::Attributes
 //----------------------------------------------------------------------------
 protected:
-const Ioda&            ioda;        // The associated (const) Ioda
+const Ioda::Writer&    ioda;        // The associated (const) Ioda Writer
 size_t                 offset= 0;   // The current offset
 
 // operator[] cache
@@ -253,12 +310,20 @@ mutable size_t         ix_off0= 0;  // The page origin's index
 // IodaReader::Constructors/Destructor
 //----------------------------------------------------------------------------
 public:
-   IodaReader(const Ioda&);         // Constructor
+   IodaReader(const Ioda::Writer&); // Constructor
+
+   IodaReader( void ) = delete;     // *NO* default constructor
+   IodaReader(const IodaReader&) = delete; // *NO* copy constructor
+   IodaReader(IodaReader&&) = delete; // *NO* move constructor
+
    ~IodaReader( void );             // Destructor
 
 //----------------------------------------------------------------------------
 // IodaReader::Operators
 //----------------------------------------------------------------------------
+IodaReader& operator=(const IodaReader&) = delete; // *NO* copy assignment
+IodaReader& operator=(const IodaReader&&) = delete; // *NO* move assignment
+
 int
    operator[](size_t x) const       // Get character at offset
 {  return index(x); }
@@ -266,8 +331,30 @@ int
 //----------------------------------------------------------------------------
 // IodaReader::Accessor methods
 //----------------------------------------------------------------------------
+void debug(const char* info="") const; // Debugging display
+
+void dump(const char* info="") const; // Debugging dump
+
 int
    index(size_t) const;             // Get character at offset
+
+bool
+   is_buffer( void ) const
+{  return false; }
+
+// If Ioda is_buffer() is true, reader.get_used() returns zero, the same as
+// an empty Ioda::Writer.
+bool
+   is_reader( void ) const
+{  return true; }
+
+bool
+   is_writer( void ) const
+{  return false; }
+
+size_t
+   get_length( void ) const         // Get remaining length
+{  return ioda.get_used() - offset; }
 
 size_t
    get_offset( void ) const         // Get offset

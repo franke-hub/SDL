@@ -16,7 +16,7 @@
 //       TestIoda.h
 //
 // Last change date-
-//       2023/07/29
+//       2023/09/25
 //
 //----------------------------------------------------------------------------
 #include <cassert>                  // For assert
@@ -106,7 +106,7 @@ static bool                         // TRUE if identical data
      return false;                  // (They can't be equal)
 
    if( lhs.get_used() == 0 )        // If both are read Iodas
-     return true;                   // (Read buffers are identical)
+     return true;                   // (Read Iodas are identical)
 
    // Get the associated msghdr iovec areas so we can compare data
    Mesg lhs_mesg;
@@ -221,6 +221,177 @@ static inline int
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       unit_exceptions
+//
+// Purpose-
+//       Ioda unit test: exception generation
+//
+//----------------------------------------------------------------------------
+static inline int
+   unit_exceptions( void )
+{
+   int error_count= 0;
+
+   size_t read_size= 2'000;
+   Ioda read(read_size);                       // An input Ioda
+   Ioda into("This is an output Ioda");        // An output Ioda
+   size_t into_used= into.get_used();
+   error_count += VERIFY( read.get_size() == read_size );
+   error_count += VERIFY( read.get_used() ==         0 );
+   error_count += VERIFY( into.get_size() ==         0 );
+   error_count += VERIFY( into.get_used() == into_used );
+
+   // Test operator+=(Ioda&&) exceptions - - - - - - - - - - - - - - - - - - -
+   bool
+   exceptional= false;
+   try {
+     into += std::move(into);       // Cannot += from self
+   } catch(std::runtime_error& X) {
+     exceptional= true;
+     if( opt_verbose )
+       debugf("expected exception: %s\n", X.what());
+   }
+   error_count += VERIFY( exceptional == true );
+
+   try {
+     into += std::move(read);       // Cannot += from input Ioda
+   } catch(std::runtime_error& X) {
+     exceptional= true;
+     if( opt_verbose )
+       debugf("expected exception: %s\n", X.what());
+   }
+   error_count += VERIFY( exceptional == true );
+
+   exceptional= false;
+   try {
+     read += std::move(into);       // Cannot += into input Ioda
+   } catch(std::runtime_error& X) {
+     exceptional= true;
+     if( opt_verbose )
+       debugf("expected exception: %s\n", X.what());
+   }
+   error_count += VERIFY( exceptional == true );
+
+   // Test method append exceptions- - - - - - - - - - - - - - - - - - - - - -
+   exceptional= false;
+   try {
+     into.append(into);             // Cannot append from self
+   } catch(std::runtime_error& X) {
+     exceptional= true;
+     if( opt_verbose )
+       debugf("expected exception: %s\n", X.what());
+   }
+   error_count += VERIFY( exceptional == true );
+
+   try {
+     into.append(read);             // Cannot append from input Ioda
+   } catch(std::runtime_error& X) {
+     exceptional= true;
+     if( opt_verbose )
+       debugf("expected exception: %s\n", X.what());
+   }
+   error_count += VERIFY( exceptional == true );
+
+   try {
+     read.append(into);             // Cannot append into input Ioda
+   } catch(std::runtime_error& X) {
+     exceptional= true;
+     if( opt_verbose )
+       debugf("expected exception: %s\n", X.what());
+   }
+   error_count += VERIFY( exceptional == true );
+
+   // Test method copy exceptions- - - - - - - - - - - - - - - - - - - - - - -
+   exceptional= false;
+   try {
+     into.copy(into);               // Cannot copy from self
+   } catch(std::runtime_error& X) {
+     exceptional= true;
+     if( opt_verbose )
+       debugf("expected exception: %s\n", X.what());
+   }
+   error_count += VERIFY( exceptional == true );
+
+   try {
+     into.copy(read);               // Cannot copy from input Ioda
+   } catch(std::runtime_error& X) {
+     exceptional= true;
+     if( opt_verbose )
+       debugf("expected exception: %s\n", X.what());
+   }
+   error_count += VERIFY( exceptional == true );
+
+   try {
+     read.copy(into);               // Cannot copy into input Ioda
+   } catch(std::runtime_error& X) {
+     exceptional= true;
+     if( opt_verbose )
+       debugf("expected exception: %s\n", X.what());
+   }
+   error_count += VERIFY( exceptional == true );
+
+   // Test method set_used - - - - - - - - - - - - - - - - - - - - - - - - - -
+   exceptional= false;
+   try {
+     read.set_used(read_size + 1);  // More used data than buffer size
+   } catch(std::runtime_error& X) {
+     exceptional= true;
+     if( opt_verbose )
+       debugf("expected exception: %s\n", X.what());
+   }
+   error_count += VERIFY( exceptional == true );
+
+   try {
+     into.set_used(1);              // Method set_used requires an input Ioda
+   } catch(std::runtime_error& X) {
+     exceptional= true;
+     if( opt_verbose )
+       debugf("expected exception: %s\n", X.what());
+   }
+   error_count += VERIFY( exceptional == true );
+
+   try {
+     read.set_used(0);              // Nothing used
+   } catch(std::runtime_error& X) {
+     exceptional= true;
+     if( opt_verbose )
+       debugf("expected exception: %s\n", X.what());
+   }
+   error_count += VERIFY( exceptional == true );
+
+   // Test output method exceptions- - - - - - - - - - - - - - - - - - - - - -
+   exceptional= false;
+   try {
+     read.put('x');                 // Cannot put(char) into input Ioda
+   } catch(std::runtime_error& X) {
+     exceptional= true;
+     if( opt_verbose )
+       debugf("expected exception: %s\n", X.what());
+   }
+   error_count += VERIFY( exceptional == true );
+
+   exceptional= false;
+   try {                            // Ioda::put(string) converts to write
+     read.put("put string");        // Cannot write into input Ioda
+   } catch(std::runtime_error& X) {
+     exceptional= true;
+     if( opt_verbose )
+       debugf("expected exception: %s\n", X.what());
+   }
+   error_count += VERIFY( exceptional == true );
+
+   // Size checks verify that exceptions didn't change anything
+   error_count += VERIFY( read.get_size() == read_size );
+   error_count += VERIFY( read.get_used() == 0 );
+   error_count += VERIFY( into.get_size() == 0 );
+   error_count += VERIFY( into.get_used() == into_used );
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       test_unit
 //
 // Purpose-
@@ -242,77 +413,98 @@ static inline int
    if( opt_verbose )
      debugf("\nIoda::put(string)\n");
    Ioda from;
+   error_count += VERIFY( from.get_size() == 0 );
+   error_count += VERIFY( from.get_used() == 0 );
+
    for(int i= 0; i<LINES; ++i)
      from.put(line);
+   error_count += VERIFY( from.get_used() == 24'000 );
    if( opt_verbose )
      from.debug("from 24,000; size 0");
+
    string full= (string)from;
    error_count += VERIFY( full.size() == 24'000 ); // (Total size 24,000)
 
    //-------------------------------------------------------------------------
    if( opt_verbose )
-     debugf("\noperator +=\n");
+     debugf("\noperator+=(Ioda&&)\n");
    Ioda into;
-   if( opt_verbose )
-     into.debug("into");
    into += std::move(from);
+   error_count += VERIFY( from.get_size() ==      0 );
+   error_count += VERIFY( from.get_used() ==      0 );
+   error_count += VERIFY( into.get_size() ==      0 );
+   error_count += VERIFY( into.get_used() == 24'000 );
+
    if( opt_verbose ) {
-     from.debug("from 0");
+     debugf("\n");
+     from.debug("empty from 0");
+     debugf("\n");
      into.debug("into 24,000");
    }
 
    //-------------------------------------------------------------------------
    if( opt_verbose )
      debugf("\nIoda::get_mesg\n");
-   Ioda read; Mesg mesg;
+   Mesg mesg;
+   Ioda read;
    read.set_rd_mesg(mesg, 20'000);
-   if( opt_verbose )
-     mesg.debug("rd_mesg 0x4e20");
-   error_count += VERIFY( mesg.size() == 20'000 );
+   error_count += VERIFY( read.get_size() == 20'000 );
+   error_count += VERIFY( read.get_used() ==      0 );
+   error_count += VERIFY( mesg.size()     == 20'000 );
+   if( opt_verbose && false )
+     read.debug("meaningless data"); // Read Ioda content is meaningless
 
    read.set_used(5'000);
+   error_count += VERIFY( mesg.size() == 20'000 );
+   error_count += VERIFY( read.get_size() ==      0 );
+   error_count += VERIFY( read.get_used() ==  5'000 );
    read.set_wr_mesg(mesg);
-   if( opt_verbose )
-     mesg.debug("wr_mesg 0x1338");
-   error_count += VERIFY( mesg.size() == 5'000 );
+   error_count += VERIFY( mesg.size()     ==  5'000 );
+   if( opt_verbose && false )
+     read.debug("meaningless data"); // Read Ioda content is meaningless
 
+   // (Tests depends upon Ioda's PAGE_SIZE == 4096. It's defined in Ioda.cpp)
    into.set_wr_mesg(mesg, 6'000);
+   error_count += VERIFY( mesg.size() == 6'000 );
+   string head4096((char*)mesg.msg_iov[0].iov_base, mesg.msg_iov[0].iov_len);
+   string tail1904((char*)mesg.msg_iov[1].iov_base, mesg.msg_iov[1].iov_len);
+   error_count += VERIFY( head4096 == full.substr(    0, 4'096));
+   error_count += VERIFY( tail1904 == full.substr(4'096, 1'904));
    if( opt_verbose )
      mesg.debug("wr_mesg 0x1770");
-   error_count += VERIFY( mesg.size() == 6'000 );
-
-enum { SIZES_DIM= 25 };
-static const size_t sizes[SIZES_DIM]=
-   { 0x00000 //  0
-   , 0x00001 //  1
-   , 0x00002 //  2
-   , 0x00003 //  3
-   , 0x00004 //  4
-   , 0x00ffe //  5
-   , 0x00fff //  6
-   , 0x01000 //  7 4,096
-   , 0x01001 //  8
-   , 0x01002 //  9
-   , 0x01ffd // 10 8,090
-   , 0x01ffe // 11
-   , 0x02000 // 12 8,092
-   , 0x02001 // 13
-   , 0x02002 // 14
-   , 0x04ffe // 15 20,478
-   , 0x04fff // 16
-   , 0x05000 // 17 20,480
-   , 0x05001 // 18
-   , 0x05002 // 19
-   , 0x05003 // 20
-   , 0x05004 // 21
-   ,  23'999 // 22 0x05dbf
-   ,  24'000 // 23 0x05dc0
-   ,  24'001 // 24 0x05dc1
-   };        // 25 SIZES_DIM
 
    //-------------------------------------------------------------------------
    if( opt_verbose )
      debugf("\nIoda::split/discard\n");
+
+   enum { SIZES_DIM= 25 };
+   static const size_t sizes[SIZES_DIM]=
+      { 0x00000 //  0
+      , 0x00001 //  1
+      , 0x00002 //  2
+      , 0x00003 //  3
+      , 0x00004 //  4
+      , 0x00ffe //  5
+      , 0x00fff //  6
+      , 0x01000 //  7 4,096
+      , 0x01001 //  8
+      , 0x01002 //  9
+      , 0x01ffd // 10 8,090
+      , 0x01ffe // 11
+      , 0x02000 // 12 8,092
+      , 0x02001 // 13
+      , 0x02002 // 14
+      , 0x04ffe // 15 20,478
+      , 0x04fff // 16
+      , 0x05000 // 17 20,480
+      , 0x05001 // 18
+      , 0x05002 // 19
+      , 0x05003 // 20
+      , 0x05004 // 21
+      ,  23'999 // 22 0x05dbf
+      ,  24'000 // 23 0x05dc0
+      ,  24'001 // 24 0x05dc1
+      };        // 25 SIZES_DIM
    for(size_t sx= 0; sx < SIZES_DIM; ++sx) {
      size_t size= sizes[sx];
      { if( opt_verbose > 1 )
@@ -385,6 +577,11 @@ static const size_t sizes[SIZES_DIM]=
    error_count += VERIFY( reader.get_token(" ") == "The" );
    error_count += VERIFY( reader.get_token("s") == "quick brown fox jump" );
    error_count += VERIFY( reader.get_token("\r\n") == " over the lazy dog." );
+
+   //-------------------------------------------------------------------------
+   if( opt_verbose )
+     debugf("\nIoda::exception generation\n");
+   error_count += unit_exceptions();
 
    //-------------------------------------------------------------------------
    if( opt_verbose )

@@ -16,7 +16,7 @@
 //       ../List.h template definitions and internal base classes.
 //
 // Last change date-
-//       2023/09/21
+//       2023/09/26
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_LIST_H_INCLUDED
@@ -65,8 +65,8 @@ namespace __detail
    {
      typedef _BIDI_link                       _Self;
 
-     _Self* _next;
-     _Self* _prev;
+     _Self* _next= nullptr;
+     _Self* _prev= nullptr;
 
      static void
      swap(_Self& lhs, _Self& rhs) noexcept;
@@ -76,7 +76,7 @@ namespace __detail
    struct _NEXT_link
    {
      typedef _NEXT_link                       _Self;
-     _Self* _next;
+     _Self* _next= nullptr;
 
      static void
      swap(_Self& lhs, _Self& rhs) noexcept;
@@ -86,7 +86,7 @@ namespace __detail
    struct _PREV_link
    {
      typedef _PREV_link                       _Self;
-     _Self* _prev;
+     _Self* _prev= nullptr;
 
      static void
      swap(_Self& lhs, _Self& rhs) noexcept;

@@ -16,7 +16,7 @@
 //       Implement http/Ioda.h
 //
 // Last change date-
-//       2023/08/04
+//       2023/09/27
 //
 //----------------------------------------------------------------------------
 // #define NDEBUG                   // TODO: USE (to disable asserts)
@@ -236,8 +236,9 @@ void
 
    struct iovec* iov= msg_iov;
    for(size_t ix= 0; ix < size_t(msg_iovlen); ++ix) {
-     intptr_t data= intptr_t(iov->iov_base);
-     debugf("[%2zd] {%.10zx.%.4zx}\n", ix, data, iov->iov_len);
+     debugf("[%2zd] {0x%.4zx} ", ix, iov->iov_len);
+     utility::dump(iov->iov_base, iov->iov_len > 16 ? 16 : iov->iov_len);
+
      ++iov;
    }
 }
@@ -326,6 +327,18 @@ void
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Ioda::Ioda(const std::string& from) // (Alternative) copy constructor
+:  list()
+{  if( HCDM )
+     debugh("Ioda(%p)::Ioda(std::string&&(%s))\n", this, from.c_str());
+
+   operator+=(from);                // Append to this (empty) Ioda
+
+   if( USE_REPORT )
+     ioda_count.inc();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Ioda::Ioda(Ioda&& from)        // Move constructor
 :  list()
 {  if( HCDM )
@@ -369,11 +382,22 @@ void
 //       Assignment operator
 //
 //----------------------------------------------------------------------------
+// This implementation is higher overhead than page by page copy
+Ioda&
+   Ioda::operator=(const std::string& copy) // Assignment copy operator
+{  if( HCDM )
+     debugh("Ioda(%p)::operator=(string&(%s))\n", this, copy.c_str());
+
+   put(copy);
+   return *this;
+}
+
 Ioda&
    Ioda::operator=(Ioda&& from)     // Assignment move operator
 {  if( HCDM )
      debugh("Ioda(%p)::operator=(Ioda&&(%p))\n", this, &from);
 
+   reset();
    move(std::move(from));
    return *this;
 }
@@ -404,9 +428,9 @@ Ioda&
      debugh("Ioda(%p)::operator+=(Ioda&&(%p))\n", this, &from);
 
    if( this == &from )              // Cannot append from self
-     throw runtime_error("Ioda::operator+=(*this)");
-   if( size || from.size )          // Cannot append into/from a read Ioda
-     throw runtime_error("Ioda::operator+=, read Ioda");
+     throw runtime_error("Ioda::operator+= (*this)");
+   if( size || from.size )          // Cannot append into|from a read Ioda
+     throw runtime_error("Ioda::operator+= into|from read Ioda");
 
    used += from.used;
    Page* head= from.list.get_head();
@@ -415,7 +439,7 @@ Ioda&
      list.insert(list.get_tail(), head, tail);
      from.list.reset();
    }
-   from.size= 0;
+// from.size= 0;                    // (Checked earlier)
    from.used= 0;
 
    return *this;
@@ -450,9 +474,11 @@ Ioda&
 //
 // Method-
 //       Ioda::debug
+//       Ioda::dump
 //
 // Purpose-
 //       Debugging display
+//       Debugging (full) dump
 //
 //----------------------------------------------------------------------------
 void
@@ -461,24 +487,30 @@ void
          , used, size);
    size_t index= 0;
    size_t total= 0;
-   for(Page* page= list.get_head(); page; page= page->get_next()) {
-     if( page->used > 16 ) {
-       string S(page->data, 16);
-       S= visify(S);
-       debugf("..[%2zd] %p {%p,%4zd} '%s'...\n", index++, page
-              , page->data, page->used, S.c_str());
-     } else {
-       string S(page->data, page->used);
-       S= visify(S);
-       debugf("..[%2zd] %p {%p,%4zd} '%s'\n", index++, page
-              , page->data, page->used, S.c_str());
+   if( used ) {                     // (Input Ioda data is meaningless)
+     for(Page* page= list.get_head(); page; page= page->get_next()) {
+       size_t size= page->used;
+       debugf("..[%2zd] %.4zd ", index++, size);
+       pub::utility::dump(page->data, size > 16 ? 16 : size);
+       total += size;
      }
-
-     total += page->used;
    }
    debugf("..[%2zd] %'8zd Total\n", index, total);
    if( total != used )
      debugf("..Total(%'zd) != used(%'zd) **** WARNING ****\n", total, used);
+}
+
+void
+   Ioda::dump(const char* info) const // Debugging (full) dump
+{  debugf("Ioda(%p)::dump(%s) used(%'zd) size(%'zd)\n", this, info
+         , used, size);
+   if( used ) {                     // (Input Ioda data is meaningless)
+     size_t index= 0;
+     for(Page* page= list.get_head(); page; page= page->get_next()) {
+       debugf("[%2zd] %p:%.4zd\n", index++, page, page->used);
+       pub::utility::dump(page->data, page->used);
+     }
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -671,6 +703,30 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Ioda::append
+//
+// Purpose-
+//       Append Ioda Ioda
+//
+//----------------------------------------------------------------------------
+void
+   Ioda::append(const Ioda& from)   // Copy source Ioda
+{  if( HCDM )
+     debugh("Ioda(%p)::append(%p)\n", this, &from);
+
+   if( this == &from )              // Cannot copy from self
+     throw std::runtime_error("Ioda::append(*this)");
+   if( this->size != 0 || from.size != 0 )
+     throw runtime_error("Ioda::append into|from input buffer");
+
+   // Append page by page
+   for(Page* page= from.list.get_head(); page; page= page->get_next())
+     write(page->data, page->used);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Ioda::copy
 //
 // Purpose-
@@ -683,12 +739,9 @@ void
      debugh("Ioda(%p)::copy(%p)\n", this, &from);
 
    if( this == &from )              // Don't copy from self
-     return;
-
-   if( from.used == 0 ) {           // If copy from read Ioda, nothing to copy
-     reset(from.size);
-     return;
-   }
+     throw std::runtime_error("Ioda::copy(*this)");
+   if( this->size != 0 || from.size != 0 )
+     throw runtime_error("Ioda::copy into|from input buffer");
 
    // Copy page by page
    reset();                         // Discard current content, if any
@@ -805,6 +858,9 @@ void
 {  if( HCDM && VERBOSE > 2 )
      debugh("Ioda(%p)::put('%c')\n", this, from);
 
+   if( this->size != 0 )
+     throw runtime_error("Ioda::put into input buffer");
+
    Page* page= list.get_tail();
    if( page == nullptr || page->used >= PAGE_SIZE ) {
      page= get_page();
@@ -860,7 +916,7 @@ void
 //       Ioda::split
 //
 // Purpose-
-//       Split leading data
+//       Split leading data. Trailing data remains in this Ioda.
 //
 //----------------------------------------------------------------------------
 void
@@ -870,7 +926,7 @@ void
 {  if( HCDM )
      debugh("Ioda(%p)::split(%p,%'zd(\n", this, &ioda, slen);
 
-   ioda.reset();                    // Empty the resultant
+   ioda.reset();                    // Empty the leading data resultant
    if( slen == 0 )                  // If empty split
      return;
    if( slen >= used ) {             // If split at or after end
@@ -907,7 +963,9 @@ void
      lead += page->used;
    }
 
-debugf("lead(%'zd) slen(%'zd) size(%'zd) used(%'zd)\n", lead, slen, size, used);
+   // This should not occur. Maybe this information will help if it does.
+   debugf("ERROR: lead(%'zd) slen(%'zd) size(%'zd) used(%'zd)\n"
+         , lead, slen, size, used);
    checkstop(__LINE__);             // Inconsistent with !(slen >= used)
 }
 
@@ -928,7 +986,7 @@ void
      debugh("Ioda(%p)::write(%p,%'zd)\n", this, from, size);
 
    if( this->size != 0 )
-     throw runtime_error("Ioda::write to input buffer");
+     throw runtime_error("Ioda::write into input buffer");
 
    if( size == 0 )                  // If (silly) zero length write
      return;                        // (Could avoid allocating an unused page)
@@ -973,12 +1031,56 @@ void
 //       Destructor
 //
 //----------------------------------------------------------------------------
-   IodaReader::IodaReader(const Ioda& I)
+   IodaReader::IodaReader(const Ioda::Writer& I)
 :  ioda(I)
 {  if( HCDM ) debugh("IodaReader(%p)::IodaReader(%p)\n", this, &ioda); }
 
    IodaReader::~IodaReader( void )
 {  if( HCDM ) debugh("IodaReader(%p)::~IodaReader\n", this); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       IodaReader::debug
+//       IodaReader::dump
+//
+// Purpose-
+//       Debugging display
+//       Debugging dump
+//
+//----------------------------------------------------------------------------
+void
+   IodaReader::debug(const char* info) const // Debugging display
+{  debugf("IodaReader(%p)::debug(%s)\n", this, info);
+
+   debugf("..Ioda(%p) used(%'zd) size(%'zd)\n", &ioda, ioda.used, ioda.size);
+   debugf("..offset(%'zd) ix_page(%p) ix_off0(%'zd)\n"
+         , offset, ix_page, ix_off0);
+   if( ioda.used ) {                // (Input Ioda data is meaningless)
+     size_t index= 0;
+     for(Page* page= ioda.list.get_head(); page; page= page->get_next()) {
+       size_t size= page->used;
+       debugf("..[%2zd] %.4zd ", index++, size);
+       pub::utility::dump(page->data, size > 16 ? 16 : size);
+     }
+   }
+}
+
+void
+   IodaReader::dump(const char* info) const // Debugging (full) display
+{  debugf("IodaReader(%p)::dump(%s)\n", this, info);
+
+   debugf("..Ioda(%p) .used(%'zd) .size(%'zd)\n", &ioda, ioda.used, ioda.size);
+   debugf("..offset(%'zd) ix_page(%p) ix_off0(%'zd)\n"
+         , offset, ix_page, ix_off0);
+   if( ioda.used ) {                // (Input Ioda data is meaningless)
+     size_t index= 0;
+     for(Page* page= ioda.list.get_head(); page; page= page->get_next()) {
+       debugf("[%2zd] %p:%.4zd\n", index++, page, page->used);
+       pub::utility::dump(page->data, page->used);
+     }
+   }
+}
 
 //----------------------------------------------------------------------------
 //
@@ -1023,7 +1125,7 @@ int
        checkstop(__LINE__);
    }
 
-   return ix_page->data[index - ix_off0];
+   return ix_page->data[index - ix_off0] & 0x00FF; // (Return unsigned char)
 }
 
 //----------------------------------------------------------------------------
@@ -1055,7 +1157,8 @@ int
    if( offset >= ioda.get_used() )
      return EOF;
 
-   return index(offset++);
+   int C= index(offset++);
+   return C;
 }
 
 int
