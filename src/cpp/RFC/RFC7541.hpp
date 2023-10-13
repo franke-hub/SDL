@@ -16,59 +16,27 @@
 //       RFC7541, HTTP/2 HPACK compression helper file
 //
 // Last change date-
-//       2023/09/15
+//       2023/10/13
 //
 // Implementation notes-
 //       This file is included by and considered part of RFC7541.cpp
-//       It should not be included from any other file.
+//       It should not be included by any other file.
 //
 //----------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------
-//
-// Namespace-
-//       RFC7541
-//
-// Purpose-
-//       HTTP/2 HPACK compression.
-//
+// Namespace: RFC7541, HTTP/2 HPACK compression
 //----------------------------------------------------------------------------
-namespace RFC7541 {                 // Class RFC7541, HTTP/2 HPACK compression
+namespace RFC7541 {
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum                                // Table dimensions
-{  DECODE_INDEX_DIM= 21             // Decoding table index size
+{  DECODE_INDEX_DIM= 21             // Decoding table size
 ,  DECODE_TABLE_DIM= 256            // Decoding table size
 ,  ENCODE_TABLE_DIM= 256            // Encoding table size
 }; // Table dimensions
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       to_bits
-//
-// Purpose-
-//       Convert value to bit string (used for debugging display)
-//
-//----------------------------------------------------------------------------
-static inline std::string
-   to_bits(                              // Convert to bit string
-     long              value,            // Value to convert
-     int               width)            // Number of bits to convert
-{
-   std::string out_string;
-   while( width > 0 ) {
-     if( (value >> (width - 1)) & 0x00000001 )
-       out_string += '1';
-     else
-       out_string += '0';
-     --width;
-   }
-
-   return out_string;
-}
 
 //----------------------------------------------------------------------------
 //
@@ -137,7 +105,6 @@ static const Bits7541  decode_index[DECODE_INDEX_DIM]=
 
 //----------------------------------------------------------------------------
 // Decoding table
-//----------------------------------------------------------------------------
 static const Huff7541    decode_table[DECODE_TABLE_DIM]=
 {  { 48,  5, 0x0000'0000}           // [0x30] '0'    [  0] 00000
 ,  { 49,  5, 0x0000'0001}           // [0x31] '1'    [  1]
@@ -675,87 +642,690 @@ Huff7541               EOS= {256, 30, 0x3FFF'FFFF}; // End Of String
 //----------------------------------------------------------------------------
 //
 // Data area-
-//       static_index
+//       static_entry
 //
 // Purpose-
-//       RFC7541 static index table
+//       RFC7541 static entry table
 //
 //----------------------------------------------------------------------------
-#define GEN7541(name, value, tbd) {name, value}
+#define GEN7541(name, value, index, encoding) \
+        Entry_const(name, value, index)
 
 // Specification notes:
 //   Entry[16] value("gzip, deflate") The space is not a typo.
 //   Entry[19] index("accept") is not alphabetized.
-Index7541              static_index[STATIC_INDEX_DIM]=
-{  GEN7541(nullptr,            nullptr, 0)            // [ 0] (Not used)
-,  GEN7541(":authority",       nullptr, 0)            // [ 1]
-,  GEN7541(":method",          "GET", 1)              // [ 2]
-,  GEN7541(":method",          "POST", 1)             // [ 3]
-,  GEN7541(":path",            "/", 1)                // [ 4]
-,  GEN7541(":path",            "/index.html", 1)      // [ 5]
-,  GEN7541(":scheme",          "http", 1)             // [ 6]
-,  GEN7541(":scheme",          "https", 1)            // [ 7]
-,  GEN7541(":status",          "200", 1)              // [ 8]
-,  GEN7541(":status",          "204", 1)              // [ 9]
-,  GEN7541(":status",          "206", 1)              // [10]
-,  GEN7541(":status",          "304", 1)              // [11]
-,  GEN7541(":status",          "400", 1)              // [12]
-,  GEN7541(":status",          "404", 1)              // [13]
-,  GEN7541(":status",          "500", 1)              // [14]
-,  GEN7541("accept-charset",   nullptr, 0)            // [15]
-,  GEN7541("accept-encoding",  "gzip, deflate", 1)    // [16]
-,  GEN7541("accept-language",  nullptr, 0)            // [17]
-,  GEN7541("accept-ranges",    nullptr, 0)            // [18]
-,  GEN7541("accept",           nullptr, 0)            // [19]
-,  GEN7541("access-control-allow-origin"              // [20]
-,                              nullptr, 0)
-,  GEN7541("age",              nullptr, 0)            // [21]
-,  GEN7541("allow",            nullptr, 0)            // [22]
-,  GEN7541("authorization",    nullptr, 0)            // [23]
-,  GEN7541("cache-control",    nullptr, 0)            // [24]
-,  GEN7541("content-disposition"                      // [25]
-,                              nullptr, 0)
-,  GEN7541("content-encoding", nullptr, 0)            // [26]
-,  GEN7541("content-language", nullptr, 0)            // [27]
-,  GEN7541("content-length",   nullptr, 0)            // [28]
-,  GEN7541("content-location", nullptr, 0)            // [29]
-,  GEN7541("content-range",    nullptr, 0)            // [30]
-,  GEN7541("content-type",     nullptr, 0)            // [31]
-,  GEN7541("cookie",           nullptr, 0)            // [32]
-,  GEN7541("date",             nullptr, 0)            // [33]
-,  GEN7541("etag",             nullptr, 0)            // [34]
-,  GEN7541("expect",           nullptr, 0)            // [35]
-,  GEN7541("expires",          nullptr, 0)            // [36]
-,  GEN7541("from",             nullptr, 0)            // [37]
-,  GEN7541("host",             nullptr, 0)            // [38]
-,  GEN7541("if-match",         nullptr, 0)            // [39]
-,  GEN7541("if-modified-since"                        // [40]
-,                              nullptr, 0)
-,  GEN7541("if-none-match",    nullptr, 0)            // [41]
-,  GEN7541("if-range",         nullptr, 0)            // [42]
-,  GEN7541("if-unmodified-since"                      // [43]
-,                              nullptr, 0)
-,  GEN7541("last-modified",    nullptr, 0)            // [44]
-,  GEN7541("link",             nullptr, 0)            // [45]
-,  GEN7541("location",         nullptr, 0)            // [46]
-,  GEN7541("max-forwards",     nullptr, 0)            // [47]
-,  GEN7541("proxy-authenticate"                       // [48]
-,                              nullptr, 0)
-,  GEN7541("proxy-authorization"                      // [49]
-,                              nullptr, 0)
-,  GEN7541("range",            nullptr, 0)            // [50]
-,  GEN7541("referer",          nullptr, 0)            // [51]
-,  GEN7541("refresh",          nullptr, 0)            // [52]
-,  GEN7541("retry-after",      nullptr, 0)            // [53]
-,  GEN7541("server",           nullptr, 0)            // [54]
-,  GEN7541("set-cookie",       nullptr, 0)            // [55]
-,  GEN7541("strict-transport-security"                // [56]
-,                              nullptr, 0)
-,  GEN7541("transfer-encoding"                        // [57]
-,                              nullptr, 0)
-,  GEN7541("user-agent",       nullptr, 0)            // [58]
-,  GEN7541("vary",             nullptr, 0)            // [59]
-,  GEN7541("via",              nullptr, 0)            // [60]
-,  GEN7541("www-authenticate", nullptr, 0)            // [61]
-}; // Index7541 static_index
+Entry_const            static_entry[STATIC_ENTRY_DIM]=
+{  GEN7541(nullptr,            nullptr,  0, 0x00) // [ 0] (Not used)
+,  GEN7541(":authority",       nullptr,  1, 0x10) // [ 1]
+,  GEN7541(":method",          "GET",    2, 0x80) // [ 2]
+,  GEN7541(":method",          "POST",   3, 0x80) // [ 3]
+,  GEN7541(":path",            "/",      4, 0x80) // [ 4]
+,  GEN7541(":path",            "/index.html"      // [ 5]
+,                                        5, 0x80)
+,  GEN7541(":scheme",          "http",   6, 0x80) // [ 6]
+,  GEN7541(":scheme",          "https",  7, 0x80) // [ 7]
+,  GEN7541(":status",          "200",    8, 0x80) // [ 8]
+,  GEN7541(":status",          "204",    9, 0x80) // [ 9]
+,  GEN7541(":status",          "206",   10, 0x80) // [10]
+,  GEN7541(":status",          "304",   11, 0x80) // [11]
+,  GEN7541(":status",          "400",   12, 0x80) // [12]
+,  GEN7541(":status",          "404",   13, 0x80) // [13]
+,  GEN7541(":status",          "500",   14, 0x80) // [14]
+,  GEN7541("accept-charset",   nullptr, 15, 0x80) // [15]
+,  GEN7541("accept-encoding",  "gzip, deflate"    // [16]
+,                                       16, 0x80)
+,  GEN7541("accept-language",  nullptr, 17, 0x80) // [17]
+,  GEN7541("accept-ranges",    nullptr, 18, 0x80) // [18]
+,  GEN7541("accept",           nullptr, 19, 0x80) // [19]
+,  GEN7541("access-control-allow-origin"          // [20]
+,                              nullptr, 20, 0x80)
+,  GEN7541("age",              nullptr, 21, 0x80) // [21]
+,  GEN7541("allow",            nullptr, 22, 0x80) // [22]
+,  GEN7541("authorization",    nullptr, 23, 0x10) // [23]
+,  GEN7541("cache-control",    nullptr, 24, 0x80) // [24]
+,  GEN7541("content-disposition"                  // [25]
+,                              nullptr, 25, 0x80)
+,  GEN7541("content-encoding", nullptr, 26, 0x80) // [26]
+,  GEN7541("content-language", nullptr, 27, 0x80) // [27]
+,  GEN7541("content-length",   nullptr, 28, 0x80) // [28]
+,  GEN7541("content-location", nullptr, 29, 0x80) // [29]
+,  GEN7541("content-range",    nullptr, 30, 0x80) // [30]
+,  GEN7541("content-type",     nullptr, 31, 0x80) // [31]
+,  GEN7541("cookie",           nullptr, 32, 0x10) // [32]
+,  GEN7541("date",             nullptr, 33, 0x80) // [33]
+,  GEN7541("etag",             nullptr, 34, 0x80) // [34]
+,  GEN7541("expect",           nullptr, 35, 0x80) // [35]
+,  GEN7541("expires",          nullptr, 36, 0x80) // [36]
+,  GEN7541("from",             nullptr, 37, 0x80) // [37]
+,  GEN7541("host",             nullptr, 38, 0x80) // [38]
+,  GEN7541("if-match",         nullptr, 39, 0x80) // [39]
+,  GEN7541("if-modified-since"                    // [40]
+,                              nullptr, 40, 0x80)
+,  GEN7541("if-none-match",    nullptr, 41, 0x80) // [41]
+,  GEN7541("if-range",         nullptr, 42, 0x80) // [42]
+,  GEN7541("if-unmodified-since"                  // [43]
+,                              nullptr, 43, 0x80)
+,  GEN7541("last-modified",    nullptr, 44, 0x80) // [44]
+,  GEN7541("link",             nullptr, 45, 0x80) // [45]
+,  GEN7541("location",         nullptr, 46, 0x80) // [46]
+,  GEN7541("max-forwards",     nullptr, 47, 0x80) // [47]
+,  GEN7541("proxy-authenticate"                   // [48]
+,                              nullptr, 48, 0x10)
+,  GEN7541("proxy-authorization"                  // [49]
+,                              nullptr, 49, 0x10)
+,  GEN7541("range",            nullptr, 50, 0x80) // [50]
+,  GEN7541("referer",          nullptr, 51, 0x80) // [51]
+,  GEN7541("refresh",          nullptr, 52, 0x80) // [52]
+,  GEN7541("retry-after",      nullptr, 53, 0x80) // [53]
+,  GEN7541("server",           nullptr, 54, 0x80) // [54]
+,  GEN7541("set-cookie",       nullptr, 55, 0x10) // [55]
+,  GEN7541("strict-transport-security"            // [56]
+,                              nullptr, 56, 0x10)
+,  GEN7541("transfer-encoding"                    // [57]
+,                              nullptr, 57, 0x80)
+,  GEN7541("user-agent",       nullptr, 58, 0x80) // [58]
+,  GEN7541("vary",             nullptr, 59, 0x80) // [59]
+,  GEN7541("via",              nullptr, 60, 0x80) // [60]
+,  GEN7541("www-authenticate", nullptr, 61, 0x10) // [61]
+}; // Entry static_entry array
+
+//----------------------------------------------------------------------------
+// Internal data areas
+//----------------------------------------------------------------------------
+static const char* type_to_name[8]=
+         { "ET_INDEX", "ET_INSERT_NOINDEX", "ET_INSERT", "ET_RESIZE"
+         , "ET_NEVER_NOINDEX", "ET_NEVER", "ET_CONST_NOINDEX", "ET_CONST"};
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       connection_error
+//
+// Purpose-
+//       Connection error exception
+//
+//----------------------------------------------------------------------------
+class connection_error : public std::runtime_error {
+using std::runtime_error::runtime_error;
+}; // class connection_error
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       decoder_get
+//
+// Purpose-
+//       Read character from IodaReader, disallowing EOF
+//
+//----------------------------------------------------------------------------
+static int
+   decoder_get(IodaReader& ioda)    // Read disallowing EOF
+{
+   int byte= ioda.get();
+   if( byte == EOF )
+     throw connection_error("decoder: EOF");
+   return byte;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Entry::Entry
+//       RFC7541::Entry::~Entry
+//       RFC7541::Entry::debug
+//
+// Purpose-
+//       Constructors
+//       Destructor
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Entry::Entry(                    // Copy constructor
+     const Entry&      I)           // Source Entry
+:  pub::List<Entry>::Link()
+{
+   name=      pub::must::strdup(I.name);
+   value=     pub::must::strdup(I.value);
+   index=     I.index;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Entry::Entry(                    // Move constructor
+     Entry&&           I)           // Source Entry
+:  pub::List<Entry>::Link()
+{
+   name=      I.name;
+   value=     I.value;
+   index=     I.index;
+
+   new (&I) Entry();                // Reset source Entry
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Entry::Entry(                    // Constructor
+     const char*       name,        // Name
+     const char*       value,       // Value
+     Array_ix          index)       // Name index
+:  pub::List<Entry>::Link()
+,  name(name), value(value), index(index)
+{
+   if( name )
+     this->name= pub::must::strdup(name);
+   if( value )
+     this->value= pub::must::strdup(value);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Entry::Entry(                    // Constructor
+     const Property&   P)           // Source Property
+:  pub::List<Entry>::Link()
+,  name(nullptr), value(nullptr), index(0)
+{
+   name=      pub::must::strdup(P.name.c_str());
+   value=     pub::must::strdup(P.value.c_str());
+   index=     0;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Entry::~Entry( void )           // Destructor
+{  free((void*)name); free((void*)value); }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void
+   Entry::debug(const char* info) const // Debugging display
+{  debugf("Entry(%p).debug(%s) [%d] '%s': '%s'\n", this, info
+         , index, name, value);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Entry::operator Property
+//
+// Purpose-
+//       Cast operator
+//
+//----------------------------------------------------------------------------
+   Entry::operator Property( void ) const
+{
+   Property property(*this);
+   return property;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Entry_const::Entry_const
+//
+// Purpose-
+//       Constructors
+//
+//----------------------------------------------------------------------------
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Entry_const::Entry_const(        // Constructor
+     const char*       name,        // Name
+     const char*       value,       // Value
+     Entry_ix          index)       // Name index
+:  Entry(name, value, index)
+{  }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Entry_const::Entry_const(        // Copy (const Entry&) constructor
+     const Entry&      I)           // Source Entry
+:  Entry()
+{
+   name=      I.name;
+   value=     I.value;
+   index=     I.index;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Entry_map::Entry_map
+//       RFC7541::Entry_map::~Entry_map
+
+//
+// Purpose-
+//       Constructor
+//       Destructor
+//
+//----------------------------------------------------------------------------
+   Entry_map::Entry_map( void )
+{
+   // Create the hash table
+   size_t size= sizeof(Hash_entry) * HASH_SIZE;
+   hash_table= (Hash_entry*)must::malloc(size);
+   for(size_t i= 0; i<HASH_SIZE; ++i) {
+     Hash_entry& list= hash_table[i];
+     new (&list) pub::List<Entry>();
+   }
+
+   // Initialize the hash table
+   for(size_t i= 1; i<STATIC_ENTRY_DIM; ++i) {
+     Entry& ix= static_entry[i];
+     Entry_const* entry= new Entry_const(ix);
+     insert(entry);
+   }
+}
+
+   Entry_map::~Entry_map( void )
+{
+   for(size_t i= 0; i<HASH_SIZE; ++i) {
+     Hash_entry& list= hash_table[i]; // The hash list
+     for(;;) {                      // Empty the list
+       Entry* entry= list.remq();
+       if( entry == nullptr )
+         break;
+
+       // All dynamic indexes should have been removed by now
+       if( entry->is_dynamic() ) {
+         debugf("~Entry_map(%p) contained Entry(%p)\n", this, entry);
+         entry->debug("?Memory leak?");
+       }
+
+       delete entry;
+     }
+   }
+
+   free(hash_table);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Entry_map::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+void
+   Entry_map::debug(const char* info) const // Debugging display
+{
+   debugf("Entry_map(%p).debug(%s)\n", this, info);
+   for(size_t i= 0; i<HASH_SIZE; ++i) {
+     Hash_entry& list= hash_table[i]; // The hash list
+     // debugf("[%2zd] {%p,%p}\n", i, list.get_head(), list.get_tail());
+     for(Entry* entry= list.get_tail(); entry; entry= entry->get_prev()) {
+       if( entry->is_dynamic() )
+         debugf("..%p[%2d] '%s': '%s'\n", entry, entry->index
+               , entry->name, entry->value);
+     }
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Entry_map::insert
+//       RFC7541::Entry_map::locate
+//       RFC7541::Entry_map::remove
+//       RFC7541::Entry_map::reset
+//
+// Purpose-
+//       Insert map entry
+//       Locate map entry
+//       Remove map entry
+//       Remove non-const map entries from the map
+//
+//----------------------------------------------------------------------------
+void
+   Entry_map::insert(Entry* entry)  // Insert Entry into hash table
+{
+   std::string S= entry->name;
+   size_t ix= std::hash<std::string>{}(S); // Full hash entry
+   ix &= HASH_MASK;                 // Table hash entry
+   Hash_entry& list= hash_table[ix]; // The hash list
+   list.fifo(entry);                // Add Entry to list
+}
+
+Entry*
+   Entry_map::locate(const char* name, const char* value)
+{
+   std::string S= name;
+   size_t ix= std::hash<std::string>{}(S); // Full hash index
+   ix &= HASH_MASK;                 // Table hash index
+   Hash_entry& list= hash_table[ix]; // The hash list
+
+   for(Entry* entry= list.get_head(); entry; entry= entry->get_next()) {
+     if( strcmp(name, entry->name) == 0 ) { // If name match
+       if( value == nullptr )       // If name-only locate
+         return entry;
+       if( entry->value && strcmp(value, entry->value) == 0 )
+         return entry;
+     }
+   }
+
+   return nullptr;
+}
+
+void
+   Entry_map::remove(Entry* entry)
+{
+   std::string S= entry->name;
+   size_t ix= std::hash<std::string>{}(S); // Full hash index
+   ix &= HASH_MASK;                 // Table hash index
+   Hash_entry& list= hash_table[ix]; // The hash list
+   if( !list.is_on_list(entry) ) {
+     debugf("Entry_map::remove(%p) NOT ON LIST\n", entry);
+     entry->debug("NOT ON LIST");
+     return;
+   }
+
+   list.remove(entry);
+}
+
+void
+   Entry_map::reset( void )
+{  // Remove all entries that are not Entry_const (constant)
+   for(size_t i= 0; i<HASH_SIZE; ++i) {
+     Hash_entry& list= hash_table[i]; // The hash list
+     for(;;) {
+       bool all_const= true;
+       for(Entry* entry= list.get_tail(); entry; entry= entry->get_prev()) {
+         if( entry->is_static() )
+           continue;
+
+         all_const= false;
+         list.remove(entry);
+         break;
+       }
+
+       if( all_const )
+         break;
+     }
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Integer::decode
+//
+// Purpose-
+//       Decode an integer
+//
+//----------------------------------------------------------------------------
+Integer::Value_t                    // The decoded integer
+   Integer::decode(                 // Decode integer
+     Reader&           reader,      // (INPUT) ReaderIoda
+     int               bits)        // Number of size bits in first octet
+{
+   int mask= (1 << bits) - 1;       // First octet value mask
+   int byte= decoder_get(reader);   // The first octet
+
+   size_t value= byte & mask;
+   if( value >= (size_t)mask ) {    // Handle continuation
+     int SI= 0;                     // (Shift Entry)
+     do {
+       byte= decoder_get(reader);
+       value += ((byte & 0x007F) << SI);
+       if( value > UINT32_MAX )
+         throw std::range_error("decoder: value");
+       SI += 7;
+     } while( byte & 0x0080 );
+   }
+
+   return (Value_t)value;
+}
+
+void
+   Integer::encode(                 // Encode integer
+     Writer&           writer,      // (OUTPUT Writer Ioda
+     Value_t           value,       // The Integer value
+     int               stamp,       // First byte encoding bits (ONLY)
+     int               bits)        // Number of DATA size bits in stamp
+{
+   int mask= (1 << bits) - 1;       // First octet value mask
+   if( value < (size_t)mask ) {     // If single octet encoding
+     writer.put(value |= stamp);
+     return;
+   }
+
+   writer.put( stamp | mask );      // Encode the first (bit bits) octet
+   value -= mask;
+
+   while( value > 0x007F ) {        // Encode middle (7 bit) octets
+     writer.put(int(value & 0x007F) | 0x0080);
+     value >>= 7;
+   }
+
+   writer.put((int)value);          // Encode the final (7 bit) octet
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Property::Property(...)
+//
+// Purpose-
+//       Name/value constructor
+//
+//----------------------------------------------------------------------------
+   Property::Property(              // Name/Value constructor
+     const string&     name,        // Name
+     const string&     value,       // Value
+     octet             et,          // Transfer encoding type
+     bool              n_encoded,   // Huffman encoded name?
+     bool              v_encoded)   // Huffman encoded value?
+:  name(name), value(value), et(et)
+,  n_encoded(n_encoded), v_encoded(v_encoded)
+{  }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Property::Property(const Entry&)
+//
+// Purpose-
+//       Construct from Entry
+//
+//----------------------------------------------------------------------------
+   Property::Property(const Entry& I)
+{
+   name=      I.name;
+   value=     I.value ? I.value : "";
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Property::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+void
+   Property::debug(const char* info) const // Debugging display
+{  debugf("Property(%p)::debug(%s)\n", this, info);
+   debugf("..name(%s)%s value(%s)%s\n", name.c_str(), n_encoded ? "H" : ""
+         , value.c_str(), v_encoded ? "H" : "");
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Property::copy
+//       RFC7541::Property::move
+//
+// Purpose-
+//       Copy a Property
+//       Move a Property (by copying it)
+//
+//----------------------------------------------------------------------------
+void
+   Property::copy(                  // Copy a Property
+     const Property&   P)           // Source Property
+{
+   name=      P.name;
+   value=     P.value;
+   et=        P.et;
+   n_encoded= P.n_encoded;
+   v_encoded= P.v_encoded;
+}
+
+void
+   Property::move(                  // Move a Property
+     Property&&         P)          // Source Property
+{
+   name=      std::move(P.name);
+   value=     std::move(P.value);
+   et=        P.et;
+   n_encoded= P.n_encoded;
+   v_encoded= P.v_encoded;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Properties::debug
+//
+// Purpose-
+//       Debug properties
+//
+//----------------------------------------------------------------------------
+void
+   Properties::debug(const char* info) const // Debug properties
+{
+   debugf("Properties(%p)::debug(%s) [%zd]\n", this, info, size());
+
+   for(size_t i= 0; i < size(); ++i) {
+     const Property& P= at(i);
+     debugf("[%2zd] et(%d:0x%.2x) %s '%s'%s: '%s'%s\n", i
+           , P.et, type_to_mask[P.et], type_to_name[P.et]
+           , P.name.c_str(), P.n_encoded ? "(H)" : ""
+           , P.value.c_str(), P.v_encoded ? "(H)" : ""
+           );
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Property::operator==
+//
+// Purpose-
+//       Equality comparison operator
+//
+// Implementation notes-
+//       This method is used for comparing encoded Properties to their decoded
+//       counterparts. Only the name and value are compared.
+//
+//----------------------------------------------------------------------------
+bool
+   Property::operator==(const Property& rhs) const
+{  return name == rhs.name && value == rhs.value; }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Property::operator Entry
+//
+// Purpose-
+//       Cast operator
+//
+//----------------------------------------------------------------------------
+   Property::operator Entry( void ) const
+{
+   Entry entry(*this);
+   return entry;
+}
+
+//----------------------------------------------------------------------------
+//
+// (Static) subroutine-
+//       RFC7541::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+void
+   debug(const char* info) // Debugging display
+{
+   debugf("RFC7541::debug(%s)\n", info);
+
+   // Display storage sizes
+   debugf("%'4zd= sizeof Entry\n", sizeof(Entry));
+   debugf("%'4zd= sizeof Entry_const\n", sizeof(Entry_const));
+   debugf("%'4zd= sizeof Entry_map\n", sizeof(Entry_map));
+   debugf("%'4zd= sizeof Integer\n", sizeof(Integer));
+   debugf("%'4zd= sizeof Property\n", sizeof(Property));
+   debugf("%'4zd= sizeof Properties\n", sizeof(Properties));
+   debugf("%'4zd= sizeof Huff\n", sizeof(Huff));
+   debugf("%'4zd= sizeof Pack\n", sizeof(Pack));
+
+#if 0
+   #pragma GCC diagnostic push
+   #pragma GCC diagnostic ignored "-Winvalid-offsetof"
+   debugf("%'4zd= offsetof Entry::name\n", offsetof(Entry, name));
+   debugf("%'4zd= offsetof Entry::value\n", offsetof(Entry, value));
+   debugf("%'4zd= offsetof Entry::index\n", offsetof(Entry, index));
+   debugf("%'4zd= offsetof Entry::_002C\n", offsetof(Entry, _002C));
+   #pragma GCC diagnostic pop
+#endif
+
+   // Debug decode_index
+   debugf("\ndecode_index:\n");
+   for(int i= 0; i<DECODE_INDEX_DIM; ++i) {
+     const Bits7541& X= decode_index[i];
+     debugf("[%3d]: {%3d, %2d, %.8x, %.8x}\n", i, X.min_index, X.bits
+           , X.min_encode, X.max_encode);
+   }
+
+   // Debug decode_table
+   debugf("\ndecode_table:\n");
+   for(int i= 0; i<DECODE_TABLE_DIM; ++i) {
+     const Huff7541& T= decode_table[i];
+     debugf("[%3d]: {%3d, %2d, 0x%.8x} '%c'\n", i, T.decode, T.bits, T.encode
+           , T.decode < 256 && isprint(T.decode) ? T.decode : '~');
+   }
+
+   // Debug encode_table
+   debugf("\nencode_table:\n");
+   for(int i= 0; i<ENCODE_TABLE_DIM; ++i) {
+     const Huff7541& T= encode_table[i];
+     debugf("[%3d]: {%3d, %2d, 0x%.8x} '%c'\n", i, T.decode, T.bits, T.encode
+           , T.decode < 256 && isprint(T.decode) ? T.decode : '~');
+   }
+
+   // Debug static_entry
+   debugf("\nstatic_entry:\n");
+   for(int i= 1; i<STATIC_ENTRY_DIM; ++i) {
+     const Entry_const& X= static_entry[i];
+     debugf("[%3d]: {%s, %s}\n", i, X.name, X.value);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// (Static) utility subroutine-
+//       RFC7541::load_properties
+//
+// Purpose-
+//       Properties loader
+//
+// Implementation notes-
+//       Intent is to make this a test case Properties loader
+//       Right now it's scaffolded.
+//
+//----------------------------------------------------------------------------
+Properties                          // The Properties
+   load_properties( void )          // Load Properties, parameters TBD
+{
+   debugf("RFC7541::load_properties()\n");
+
+   Properties properties;
+   properties.append("alpha", "beta");
+   properties.append("beta", "alpha");
+   properties.append("what-the", "hey");
+   properties.append("does-this", "work?");
+
+   return properties;
+}
 }  // Namespace RFC7541

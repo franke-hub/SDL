@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2023/09/16
+##       2023/10/06
 ##
 ##############################################################################
 
@@ -25,8 +25,6 @@
 ##############################################################################
 ## Local library
 LIBOBJ := ############################
-LIBOBJ += RFC7540.o
-MAKEXE := $(patsubst $(OBJDIR)/RFC7540,,$(MAKEXE))
 LIBOBJ += RFC7541.o
 MAKEXE := $(patsubst $(OBJDIR)/RFC7541,,$(MAKEXE))
 
@@ -57,10 +55,22 @@ liblocal.a: $(LIBOBJ)
 	touch $@
 
 ##############################################################################
-## Run the default program
+## Main (No parameters)
 .PHONY: do
 do: Main
 	Main
+
+##############################################################################
+## Main --timing
+.PHONY: timing
+timing: Main
+	Main --timing
+
+##############################################################################
+## Main --verbose
+.PHONY: verbose
+verbose: Main
+	Main --verbose
 
 ##############################################################################
 ## Dependency controls

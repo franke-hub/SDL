@@ -16,22 +16,23 @@
 //       RFC7541, HTTP/2 HPACK compression
 //
 // Last change date-
-//       2023/09/15
+//       2023/10/13
 //
 //----------------------------------------------------------------------------
 #include <cassert>                  // For assert
 #include <cstdint>                  // For uint32_t, uint16_t, ...
 #include <cstring>                  // For memcpy, memcmp, ...
 #include <cctype>                   // For isprint
-#include <new>                      // For std::bad_alloc
+#include <functional>               // For std::hash<std::string>
+#include <new>                      // For std::bad_alloc, placement new
 #include <stdexcept>                // For std::runtime_error
 #include <string>                   // For std::string
 
+#include <pub/Must.h>               // For pub::must::strdup
 #include <pub/utility.h>            // For pub::utility::dump
 #include <pub/Debug.h>              // For pub::debugf, ...
 
 #include "RFC7541.h"                // For class RFC7541, implemented
-#include "RFC7541.hpp"              // Internal objects and tables
 
 // Namespace accessors
 #define PUB _LIBPUB_NAMESPACE
@@ -48,9 +49,14 @@ using namespace std;
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
-}; // enum
 
-#define USE_OUTLINE false           // Use out-line code? (not in-line)
+// Hash table size definitions
+,  HASH_MASK= 0x0000003F            // Hash table index mask
+,  HASH_SIZE= 64                    // Size of hash table (power of 2)
+
+,  STATIC_ENTRY_DIM= 62             // Predefined entry table size
+,  USE_CHECKING= true               // Enable checks (or check debugging)?
+}; // (generic) enum
 
 enum                                // Octet constants
 {  BITS_PER_OCTET= 8                // Number of bits in an octet
@@ -61,87 +67,86 @@ enum                                // Octet constants
 //----------------------------------------------------------------------------
 // Internal objects and tables
 //----------------------------------------------------------------------------
+#include "RFC7541.hpp"              // Internal objects and tables
+
 // Fill validation table
 static const int       fill_table[8]= { 0, 1, 3, 7, 15, 31, 63, 127};
 
 namespace RFC7541 {                 // Implementation namespace
 //----------------------------------------------------------------------------
+// Globals
+//----------------------------------------------------------------------------
+// Operational controls
+int                    Pack::hcdm= 0; // Hard Core Debug Mode
+int                    Pack::verbose= 0; // Debugging verbosity
+
+//----------------------------------------------------------------------------
 //
-// Enum-
-//       RFC7541::ENCODE_TYPE
+// Extern-
+//       RFC7541::type_to_bits
+//       RFC7541::type_to_mask
 //
 // Purpose-
-//       Define HPACK encoding types
+//       RFC7541::get_encode_bits data area
+//       RFC7541::get_encode_mask data area
 //
 //----------------------------------------------------------------------------
-enum ENCODE_TYPE        // bitcode
-{  ET_INDEX= 0          // 1xxxxxxx // Index only
-//                      // 10000000 // NOT ALLOWED
-,  ET_NAME_INDEX_INSERT // 01xxxxxx // Literal value inserted, name indexed
-,  ET_INSERT            // 01000000 // Literal name and value inserted
+octet type_to_bits[8]= {   7,    0,    6,    5,    0,    4,    0,    4};
+octet type_to_mask[8]= {0x80, 0x40, 0x40, 0x20, 0x10, 0x10, 0x00, 0x00};
 
-// ET*INDEX_ONLY implies that the name is not indexed in this instance, but
-//     may be indexed by intermediaries.
-// ET*INDEX_NEVER implies that the name is not indexed in this instance, and
-//     *MUST NOT* be indexed by intermediaries. This encoding is intended to
-//     "protect header field values that are not to be put at risk by
-//     compressing them."
-,  ET_NAME_INDEX_ONLY   // 0000xxxx // Literal value, name indexed. Const table
-,  ET_INDEX_ONLY        // 00000000 // Literal name, value. Const table
-,  ET_NAME_INDEX_NEVER  // 0001xxxx // Literal value, name indexed. Const table
-,  ET_INDEX_NEVER       // 00010000 // Literal name, value. Const table
-,  ET_RESIZE            // 001xxxxx // Dynamic table size change
-};
+//----------------------------------------------------------------------------
+// Convert the input octet into an ENCODE_TYPE
+ENCODE_TYPE
+   get_encode_type(int C)           // Convert input octet into ENCODE_TYPE
+{
+   if( C == 0x0080 ) {
+     if( USE_CHECKING )
+       debugf("%4d %s Disallowed encoding: 0x80\n", __LINE__, __FILE__);
+     throw connection_error("Disallowed encoding: 0x80");
+   }
+   if( C == 0x0040 )
+     return ET_INSERT_NOINDEX;
+   if( C == 0x0010 )
+     return ET_NEVER_NOINDEX;
+   if( C == 0x0000 )
+     return ET_CONST_NOINDEX;
+
+   if( C & 0x0080 )                 // (DO NOT change change testing order)
+     return ET_INDEX;
+   if( C & 0x0040 )
+     return ET_INSERT;
+   if( C & 0x0020 )
+     return ET_RESIZE;
+   if( C & 0x0010 )
+     return ET_NEVER;
+   return ET_CONST;
+}
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       RFC7541::Huff::Huff
-//       RFC7541::Huff::~Huff
+// Subroutine-
+//       to_bits
 //
 // Purpose-
-//       Constructors
-//       Destructor
+//       Convert value to bit string (used for debugging display)
 //
 //----------------------------------------------------------------------------
-#if USE_OUTLINE
-   Huff::Huff( void )               // Constructor
-{  if( HCDM )
-     debugf("Huff(%p)::Huff()\n", this);
-   // = default;
-}
+#if 0  // This works OK, it's just unused
+static inline std::string
+   to_bits(                              // Convert to bit string
+     long              value,            // Value to convert
+     int               width)            // Number of bits to convert
+{
+   std::string out_string;
+   while( width > 0 ) {
+     if( (value >> (width - 1)) & 0x00000001 )
+       out_string += '1';
+     else
+       out_string += '0';
+     --width;
+   }
 
-   Huff::Huff(const std::string& s) // Copy std::string constructor
-{  if( HCDM )
-     debugf("Huff(%p)::Huff(string(%s))\n", this, s.c_str());
-
-   *this= encode(s);
-}
-
-   Huff::Huff(const Huff& h)        // Copy constructor
-{  if( HCDM )
-     debugf("Huff(%p)::Huff(const Huff&(%p) {%p,%zd} addr(%p))\n", this
-           , &h, h.addr, h.size, addr);
-
-   _copy(h);
-}
-
-
-   Huff::Huff(Huff&& h)             // Move constructor
-:  addr(h.addr), size(h.size)
-{  if( HCDM )
-     debugf("Huff(%p)::Huff(Huff&&(%p) {%p,%zd})\n", this, &h, h.addr, h.size);
-
-   h.addr= nullptr; h.size= 0;
-}
-
-   Huff::~Huff( void )              // Destructor
-{  if( HCDM )
-     debugf("Huff(%p)::~Huff() {%p,%zd}\n", this, addr, size);
-
-   free(addr);
-   addr= 0;
-   size= 0;
+   return out_string;
 }
 #endif
 
@@ -160,49 +165,6 @@ void
    debugf("Huff(%p).debug(%s) {%p,%zd}\n", this, info, addr, size);
    pub::utility::dump(addr, size);
 }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       RFC7541::Huff::operator=
-//
-// Purpose-
-//       Assignment operators
-//
-//----------------------------------------------------------------------------
-#if USE_OUTLINE
-Huff&
-   Huff::operator=(                 // Assignment
-     const std::string&s)           // From std::string
-{  if( HCDM )
-     debugf("Huff(%p)::op=(string(%s)) {%p,%zd}\n", this, s.c_str(), addr, size);
-
-   *this= encode(s);
-   return *this;
-}
-
-Huff&
-   Huff::operator=(                 // Copy assignment
-     const Huff&       h)
-{  if( HCDM )
-     debugf("Huff(%p)::op=(Huff&(%p)) {%p,%zd}\n", this, &h, addr, size);
-
-   _copy(h);
-   return *this;
-}
-
-Huff&
-   Huff::operator=(                 // Move assignment
-     Huff&&            h)
-{  if( HCDM )
-     debugf("Huff(%p)::op=(Huff&&(%p)) {%p,%zd}\n", this, &h, addr, size);
-
-   free(addr);
-   addr= h.addr; size= h.size;
-   h.addr= nullptr; h.size= 0;
-   return *this;
-}
-#endif
 
 //----------------------------------------------------------------------------
 //
@@ -238,17 +200,17 @@ bool
 //----------------------------------------------------------------------------
 //
 // Method-
-//       RFC7541::Huff::_copy
+//       RFC7541::Huff::copy
 //
 // Purpose-
 //       Copy method
 //
 //----------------------------------------------------------------------------
 void
-   Huff::_copy(                     // Copy from
+   Huff::copy(                      // Copy from
       const Huff&      h)           // This Huff
 {  if( HCDM )
-     debugf("Huff(%p)::_copy(Huff(%p) {%p,%zd}) addr(%p)\n", this
+     debugf("Huff(%p)::copy(Huff(%p) {%p,%zd}) addr(%p)\n", this
            , &h, h.addr, h.size, addr);
 
    free(addr);
@@ -267,21 +229,21 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       RFC7541::Huff::decode
+//       RFC7541::Huff::decode(const octet*, size_t)
 //
 // Purpose-
 //       Decode compressed string
 //
 //----------------------------------------------------------------------------
-std::string                         // The decompressed string
+string                              // The decompressed string
    Huff::decode(                    // Decode buffer
       const octet*     addr,        // Buffer address
       size_t           size)        // Buffer length
 {  if( HCDM ) debugf("RFC7541::Huff::decode(%p,%zd)\n", addr, size);
 
-   enum {BUFF_DIM= 15};              // The output buffer size
+   enum {BUFF_DIM= 15};             // The output buffer size
    size_t              inp_index= 0; // The input buffer index
-   std::string         out_string;  // The output string
+   string              out_string;  // The output string
    char                out_buffer[BUFF_DIM+1]; // The output buffer
    int                 out_index= 0; // The output buffer index
 
@@ -301,10 +263,9 @@ std::string                         // The decompressed string
        // while( B.bits > acc_index ) instead of if( ... )
        if( B.bits > acc_index ) {   // If more accumulator bits are needed
          if( inp_index >= size ) {
-           // Use when bits between code_points can be > BITS_PER_OCTET
-           // if( acc_index > BITS_PER_OCTET )
-           //   throw std::runtime_error("encoding error");
-
+           // When bits between code_points can be > BITS_PER_OCTET, use:
+           //   if( acc_index > BITS_PER_OCTET )
+           //     throw std::runtime_error("encoding error");
            end_of_string= true;
            break;
          }
@@ -330,7 +291,7 @@ std::string                         // The decompressed string
          index += B.min_index;
 
          if( out_index >= BUFF_DIM ) {
-           std::string addend(out_buffer, BUFF_DIM);
+           string addend(out_buffer, BUFF_DIM);
            out_string += addend;
            out_index= 0;
          }
@@ -345,7 +306,7 @@ std::string                         // The decompressed string
    }
 
    if( out_index ) {                // Add remainder
-     std::string addend(out_buffer, out_index);
+     string addend(out_buffer, out_index);
      out_string += addend;
    }
 
@@ -361,20 +322,32 @@ std::string                         // The decompressed string
    return out_string;
 }
 
-#if USE_OUTLINE
-std::string
-   Huff::decode( void ) const       // Decode (this)
-{  if( HCDM )
-     debugf("Huff(%p)::decode() {%p,%zd}\n", this, addr, size);
-
-   return decode(addr, size);
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Huff::encode(Writer&, const string&)
+//
+// Purpose-
+//       Encode string (including length prefix)
+//
+// Implementation note:
+//       Phase-0 implementation
+//
+//----------------------------------------------------------------------------
+void
+   Huff::encode(                    // Encode string (ONLY)
+     Writer&           writer,      // (OUTPUT) Writer Ioda
+     const string&     S)           // The string to encode
+{
+   Huff huff(S);
+   Integer::encode(writer, huff.size);
+   writer.write(huff.addr, huff.size);
 }
-#endif
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       RFC7541::Huff::encode
+//       RFC7541::Huff::encode(const string&)
 //
 // Purpose-
 //       Encode string
@@ -382,7 +355,7 @@ std::string
 //----------------------------------------------------------------------------
 Huff                                // The encoded string
    Huff::encode(                    // Encode
-      const std::string& s)         // This string
+      const string&    s)           // This string
 {  if( HCDM ) debugf("RFC7541::Huff::encode(%s)\n", s.c_str());
 
    Huff h;
@@ -431,11 +404,12 @@ Huff                                // The encoded string
      h.addr[out_index++]= (octet)accumulator;
    }
 
-   // DIAGNOSTICS
-   if( out_index != size ) { // Correctness check
-     debugf("%4d %s SHOULD NOT OCCUR\n", __LINE__, __FILE__);
+   // Internal cross-check: encoded_length() correctness
+   if( USE_CHECKING && out_index != size ) { // Correctness check
+     debugf("%4d %s SHOULD NOT OCCUR%s\n", __LINE__, __FILE__
+           , out_index > size ? " - BUFFER OVERFLOW" : "");
      debugf("..out_index(%zd) ..size(%zd)\n", out_index, size);
-     exit(2);
+     throw connection_error("out_index != size");
    }
 
    return h;
@@ -447,12 +421,12 @@ Huff                                // The encoded string
 //       RFC7541::Huff::encoded_length
 //
 // Purpose-
-//       Get the encoded length of a std::string (in bytes)
+//       Get the encoded length of a string (in bytes)
 //
 //----------------------------------------------------------------------------
 size_t                              // The encoded length
    Huff::encoded_length(            // Get encoded length
-      const std::string& s)         // Of this string
+      const string&    s)           // Of this string
 {
    size_t size= 0;                  // The encoded length (in bits)
 
@@ -479,14 +453,20 @@ size_t                              // The encoded length
 //
 //----------------------------------------------------------------------------
    Pack::Pack( void )               // Default constructor
+:  entry_array()
 {  if( HCDM )                       // (Is really = default)
      debugf("Pack(%p)::Pack()\n", this);
+
+   init();
+   resize(65536);                   // Use default pack size
 }
 
-   Pack::Pack(IPack size)           // Table size constructor
+   Pack::Pack(Value_t size)         // Table size constructor
+:  entry_array()
 {  if( HCDM )
      debugf("Pack(%p)::Pack(%u)\n", this, size);
 
+   init();
    resize(size);
 }
 
@@ -495,6 +475,37 @@ size_t                              // The encoded length
      debugf("Pack(%p)::~Pack()\n", this);
 
    resize(0);
+   term();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Pack::init
+//       RFC7541::Pack::term
+//
+// Purpose-
+//       Initialize
+//       Terminate
+//
+//----------------------------------------------------------------------------
+void Pack::init(void)               // Initialize
+{
+   encode_size= DEFAULT_TABLE_SIZE;
+   entry_size= encode_size / SPEC_ENTRY_SIZE;
+   size_t
+   size= sizeof(Entry*) * entry_size;
+   entry_array= (Entry**)must::malloc(size);
+   memset(entry_array, 0, size);
+
+   entry_used= 0;                   // Number of Entries in use
+   entry_ins= 1;                    // Current insert Array_ix
+   entry_old= 1;                    // Current oldest Array_ix
+}
+
+void Pack::term(void)               // Terminate
+{
+   free(entry_array);
 }
 
 //----------------------------------------------------------------------------
@@ -505,11 +516,58 @@ size_t                              // The encoded length
 // Purpose-
 //       Debugging display
 //
+// Implementation notes-
+//       The hcdm version verifies entix2entry(Entry_ix) and its inverse
+//       entry2entix(Entry*) method.
+//       The same sort of thing needs to be done for entry_ins < entry_old.
+//       (When entry_ins == entry_old, entry_used == 0)
+//
 //----------------------------------------------------------------------------
 void
    Pack::debug(const char* info) const // Debugging display
 {
    debugf("Pack(%p).debug(%s)\n", this, info);
+   debugf("..used %u of %u\n", get_encode_used(), get_encode_size());
+   debugf("..entry_used(%u) entry_old(%u) entry_ins(%u) entry_size(%u)\n"
+         , entry_used, entry_old, entry_ins, entry_size);
+
+   for(Index_ix index_ix= entry_size; index_ix > 0; --index_ix) {
+     Array_ix array_ix= entry_size - index_ix + 1;
+     Entry* entry= entry_array[index_ix - 1];
+
+     if( entry ) {
+       Entry_ix entry_ix= 0;
+       try {
+         entry_ix= entry2entix(entry);
+         if( array_ix != entry->index ) {
+           if( USE_CHECKING )
+             debugf("%4d cpp [%2u] [%2u]%p[%2u]: array_ix != entry->index\n"
+                   , __LINE__ , index_ix, array_ix, entry, entry->index);
+           throw connection_error("consistency fault");
+         }
+         if( entry != entix2entry(entry_ix) ) {
+           if( USE_CHECKING )
+             debugf("%4d cpp [%2u] [%2u]%p[%2u] [%u]: %p != %p= ix2entry(%u)\n"
+                   , __LINE__ , index_ix, array_ix, entry, entry->index
+                   , entry_ix, entry, entix2entry(entry_ix), entry_ix);
+           throw connection_error("consistency fault");
+         }
+       } catch(std::exception& X) {
+         if( USE_CHECKING )
+           debugf("%4d cpp [%2u] [%2u]%p[%2u]: Exception(%s)\n", __LINE__
+                 , index_ix, array_ix, entry, entry->index, X.what());
+         throw X;
+       }
+       debugf("[%2u] [%2u]%p[%2u] [%2u] '%s': '%s'\n"
+             , index_ix - 1, array_ix, entry, entry->index, entry_ix
+             , entry->name, entry->value);
+     } else {
+       debugf("[%2u] [%2u]nullptr\n", index_ix - 1, array_ix);
+     }
+   }
+
+   if( hcdm && verbose > 1 )
+     entry_map.debug(info);
 }
 
 //----------------------------------------------------------------------------
@@ -521,17 +579,88 @@ void
 //       Decode packed data
 //
 //----------------------------------------------------------------------------
-RFC7541::Properties                 // Decoded properties
-   Pack::decode(const std::string& S) // Decode packed data
-{  if( HCDM ) {
-     debugf("Pack(%p).decode(%p)\n", this, S.c_str());
-     if( VERBOSE > 1 )
-       pub::utility::dump(S.c_str(), S.size());
-   }
+Properties                          // Decoded Properties
+   Pack::decode(                    // Decode Properties
+     Reader&           reader)      // (INPUT) IodaReader
+{  if( HCDM ) debugf("Pack(%p).decode\n", this);
 
    Properties properties;
 
-   // Perhaps some work is needed here, nicht var?
+   size_t length= reader.get_length();
+   while( length ) {                // Decode the header
+     int C= reader.peek();
+     if( C == EOF )
+       break;
+
+     ENCODE_TYPE et= get_encode_type(C);
+     // debugf("%4d cpp C(0x%.2x) et(%d)\n", __LINE__, C, et);
+     switch( et ) {
+       case ET_INDEX:               // Name and value (already) indexed
+       { Entry_ix entry_ix= Integer::decode(reader, 7);
+         const Entry* entry= entix2entry(entry_ix);
+         assert( entry != nullptr && entry->value != nullptr );
+
+         // Name/value are NOT Huffman encoded
+         properties.append(entry->name, entry->value, ET_INDEX);
+         if( verbose )
+           debugf("Decode: '%s': '%s' ET_INDEX\n", entry->name, entry->value);
+         break;
+       }
+       case ET_INSERT:              // Indexed name, literal value, insert
+       case ET_NEVER:               // Indexed name, literal value, const table
+       case ET_CONST:               // Indexed name, literal value, const table
+       { Entry_ix entry_ix= Integer::decode(reader, type_to_bits[et]);
+         const Entry* entry= entix2entry(entry_ix);
+         assert( entry != nullptr );
+
+         string name= entry->name;
+         string value= string_decode(reader);
+
+         Property property(name, value, et);
+         properties.append(property);
+         if( verbose )
+           debugf("Decode: '%s': '%s' %s\n", name.c_str(), value.c_str()
+                 , type_to_name[et]);
+         if( et == ET_INSERT ) {
+           insert(property);
+           if( verbose )
+             debugf("Insert: '%s': '%s' ET_INSERT\n"
+                   , name.c_str(), value.c_str());
+         }
+         break;
+       }
+       case ET_INSERT_NOINDEX:      // Literal name and value, insert
+       case ET_CONST_NOINDEX:       // Literal name and value, const table
+       case ET_NEVER_NOINDEX:       // Literal name and value, const table
+       { reader.get();              // (Consume the ENCODE_TYPE character)
+         bool n_encoded= (reader.peek()  & 0x80);
+         string name=  string_decode(reader);
+         bool v_encoded= (reader.peek()  & 0x80);
+         string value= string_decode(reader);
+         Property property(name, value, et, n_encoded, v_encoded);
+         properties.append(property);
+         if( verbose )
+           debugf("Decode: '%s': '%s' %s\n", name.c_str(), value.c_str()
+                 , type_to_name[et]);
+
+         if( et == ET_INSERT_NOINDEX ) {
+           insert(property);
+           if( verbose )
+             debugf("Insert: '%s': '%s' %s\n", name.c_str(), value.c_str()
+                   , type_to_name[et]);
+         }
+         break;
+       }
+       case ET_RESIZE:              // Resize operation (MUST precede others)
+       { throw std::runtime_error("ET_RESIZE NOT CODED YET");
+         break;
+       }
+       default:
+       { debugf("%4d %s C(0x%.2x) et(%d)\n", __LINE__, __FILE__, C, et);
+         throw std::runtime_error("SHOULD NOT OCCUR");
+       }
+     }
+   }
 
    return properties;
 }
@@ -544,20 +673,251 @@ RFC7541::Properties                 // Decoded properties
 // Purpose-
 //       Encode Properties
 //
+// Implementation notes-
+//       Because length attacks are possible, it's unclear whether the indexing
+//       check logic should be used for anything other than ET_INSERT.
+//
 //----------------------------------------------------------------------------
-std::string                         // Encoded Properties
-   Pack::encode(const Properties& P) // Encode Properties
+void
+   Pack::encode(                    // Encode Properties
+     Writer&           writer,      // Ioda (Writer)
+     const Properties& properties)  // Properties to encode
 {  if( HCDM ) {
-     debugf("Pack(%p).encode(%p)\n", this, &P);
-     if( VERBOSE > 1 ) {
-     }
+     debugf("Pack(%p).encode(%p)\n", this, &properties);
+     if( VERBOSE > 1 )
+       properties.debug("Pack::encode");
    }
 
-   std::string encoding;
+   for(size_t i= 0; i<properties.size(); ++i) {
+     const Property property= properties[i];
+     const char* name=  property.name.c_str();
+     const char* value= property.value.c_str();
+     if( verbose )
+       debugf("Encode: '%s': '%s'\n", name, value);
 
-   // Perhaps some work is needed here, nicht var?
+     int         et= property.et;   // Requested encoded type
+     Entry*      entry= nullptr;    // Default, no Entry found (or allowed)
+     switch( et ) {
+       case ET_INDEX:               // Entry, downgrade to INSERT if needed
+         entry= entry_map.locate(name, value);
+         if( entry == nullptr )  {  // Name/value match not found
+           entry= entry_map.locate(name);
+           if( entry )
+             et= ET_INSERT;
+           else
+             et= ET_INSERT_NOINDEX;
+         }
+         break;
 
-   return encoding;
+       case ET_INSERT_NOINDEX:      // (No indexing)
+       case ET_NEVER_NOINDEX:
+       case ET_CONST_NOINDEX:
+         break;
+
+       case ET_INSERT:
+         entry= entry_map.locate(name);
+         if( entry == nullptr )
+           et= ET_INSERT_NOINDEX;
+         break;
+
+       case ET_NEVER:
+         entry= entry_map.locate(name);
+         if( entry == nullptr )
+           et= ET_NEVER_NOINDEX;
+         break;
+
+       case ET_CONST:
+         entry= entry_map.locate(name);
+         if( entry == nullptr )
+           et= ET_CONST_NOINDEX;
+         break;
+
+       default:
+         if( USE_CHECKING ) {
+           debugf("%4d %s Invalid property encoding(%d)\n", __LINE__, __FILE__
+                 , et);
+           property.debug("Invalid encoding");
+         }
+         throw connection_error("Invalid encoding");
+
+     }
+
+     // Handle indexing
+     if( entry ) {
+       Entry_ix entry_ix= entry2entix(entry);
+       if( et == ET_INDEX ) {       // Entry only
+         Integer::encode(writer, entry_ix);
+         continue;
+       }
+
+       // Encode Entry_ix and value
+       Integer::encode(writer, entry_ix, type_to_mask[et], type_to_bits[et]);
+       string_encode(writer, property.value, property.v_encoded);
+       if( et == ET_INSERT ) {
+         insert(property);
+         if( verbose )
+           debugf("Insert: '%s': '%s' ET_INSERT\n", name, value);
+       }
+       continue;
+     }
+
+     // Write encode_mask, name, and value
+     writer.put(get_encode_mask((ENCODE_TYPE)et));
+     string_encode(writer, property.name,  property.n_encoded);
+     string_encode(writer, property.value, property.v_encoded);
+     if( et == ET_INSERT_NOINDEX ) {
+       insert(property);
+       if( verbose )
+         debugf("Insert: '%s': '%s' ET_INSERT_NOINDEX\n", name, value);
+     }
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Pack::entix2entry
+//
+// Purpose-
+//       Get the Entry* for a logical Entry_ix
+//
+//----------------------------------------------------------------------------
+const Entry*                        // The Entry*
+   Pack::entix2entry(               // Locate Entry*
+     Entry_ix          entry_ix) const // For this logical Entry_ix
+{  if( HCDM )
+     debugf("Pack(%p).entix2entry(%u)\n", this, entry_ix);
+
+   // Handle static index
+   if( entry_ix < STATIC_ENTRY_DIM )
+     return &static_entry[entry_ix];
+
+   // Handle dynamic index
+   Value_t dynam_ix= entry_ix - STATIC_ENTRY_DIM;
+   if( dynam_ix >= entry_used ) {
+     if( USE_CHECKING )
+       debugf("%4d cpp entix2entry(%u) dynam_ix(%u)\n", __LINE__
+             , entry_ix, dynam_ix);
+     debug("range error");
+     throw connection_error("entix2entry range error");
+   }
+
+   // If entry_array has only one section containing entries
+   if( entry_ins > entry_old ) {
+     Array_ix array_ix= entry_ins - dynam_ix - 1;
+     Index_ix index_ix= entry_size - array_ix;
+     Entry* entry= entry_array[index_ix];
+     if( entry )
+       return entry;
+
+     if( USE_CHECKING )             // If entry not found (internal logic error)
+       debugf("%4d cpp entix2entry(%u) dynam_ix(%u) array_ix(%u)\n"
+             , __LINE__, entry_ix, dynam_ix, array_ix);
+     debug("constency fault");
+     throw connection_error("consistency fault");
+   }
+
+   // If entry_array has a top and bottom entry section
+   if( dynam_ix < (entry_ins - 1) ) { // If entry is in top section
+     Array_ix array_ix= entry_ins - dynam_ix - 1;
+     Index_ix index_ix= entry_size - array_ix;
+     Entry* entry= entry_array[index_ix];
+     if( entry )
+       return entry;
+
+     if( USE_CHECKING )         // If entry not found (internal logic error)
+       debugf("%4d cpp entix2entry(%u) dynam_ix(%u) array_ix(%u)\n"
+             , __LINE__, entry_ix, dynam_ix, array_ix);
+     debug("constency fault");
+     throw connection_error("consistency fault");
+   } else {                       // Entry must be in bottom section
+     Index_ix index_ix= dynam_ix - entry_ins + 1;
+     if( index_ix <= (entry_size - entry_old) ) {
+       Entry* entry= entry_array[index_ix];
+       if( entry )
+         return entry;
+     }
+
+     if( USE_CHECKING )             // If entry not found (internal logic error)
+       debugf("%4d cpp entix2entry(%u) dynam_ix(%u) index_ix(%u)\n"
+             , __LINE__, entry_ix, dynam_ix, index_ix);
+     debug("constency fault");
+     throw connection_error("consistency fault");
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Pack::entry2entix
+//
+// Purpose-
+//       Get the logical Entry_ix for an Entry*
+//
+// Implementation notes-
+//       The oldest dynamic Entry index is STATIC_INDEX_DIM
+//
+//----------------------------------------------------------------------------
+RFC7541::Entry_ix                   // The logical index
+   Pack::entry2entix(               // Get logical index
+     const Entry*      entry) const // For this Entry*
+{  if( HCDM )
+     debugf("Pack(%p).entry2entix(%p)\n", this, entry);
+
+   // Handle static index
+   Array_ix array_ix= entry->index;
+   if( entry->is_static() )
+     return array_ix;
+
+   // Handle dynamic index
+   if( entry_ins > entry_old ) {
+     if( array_ix >= entry_ins || array_ix < entry_old ) {
+       debugf("%4d cpp ERROR !{entry_old(%u)<=array_ix(%u)<entry_ins(%u)}\n"
+             , __LINE__, entry_old, array_ix, entry_ins);
+       debug("constency fault");
+       throw connection_error("consistency fault");
+     }
+
+     Entry_ix entry_ix= STATIC_ENTRY_DIM + entry_ins - array_ix - 1;
+     return entry_ix;
+   } else {
+     if( array_ix < entry_ins ) {   // If entry is in top section
+       Entry_ix entry_ix= STATIC_ENTRY_DIM + entry_ins - array_ix - 1;
+       return entry_ix;
+     }
+     if( array_ix >= entry_old ) {  // If entry is in bottom section
+       Index_ix index_ix= entry_size - array_ix;
+       Entry_ix entry_ix= STATIC_ENTRY_DIM + entry_ins + index_ix - 1;
+       return entry_ix;
+     }
+
+     debugf("%4d cpp ERROR !{entry_ins(%u)<=array_ix(%u)>entry_old(%u)}\n"
+           , __LINE__, entry_ins, array_ix, entry_old);
+     debug("constency fault");
+     throw connection_error("consistency fault");
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Pack::evict
+//
+// Purpose-
+//       Evict entries from the encode_table
+//
+//----------------------------------------------------------------------------
+void
+   Pack::evict(size_t size)         // Evict entries from the encode table
+{  if( HCDM )
+     debugf("Pack(%p)::evict(%zu)\n", this, size);
+
+   while( entry_used ) {            // While entries remain
+     if( encode_size >= (entry_used * SPEC_ENTRY_SIZE) + value_used + size )
+       break;
+
+     remove();
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -569,12 +929,116 @@ std::string                         // Encoded Properties
 //       Get a connection setting
 //
 //----------------------------------------------------------------------------
-Pack::IPack                         // The connection setting
+#if 0
+RFC7541::Value_t                    // The connection setting
    Pack::get_setting(int I) const   // Get connection setting[I]
 {  if( HCDM )
      debugf("Pack(%p).get_setting(%d)\n", this, I);
 
    return 4096;                     // Hey, why not this?
+}
+#endif
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Pack::insert
+//
+// Purpose-
+//       Insert an Entry into the entry_array and the entry_map
+//
+//----------------------------------------------------------------------------
+void
+   Pack::insert(Entry* entry)
+{
+   if( entry->is_dynamic() ) {      // If dynamic Entry
+     size_t nv_size= strlen(entry->name) + strlen(entry->value);
+     size_t spec_size= SPEC_ENTRY_SIZE + nv_size;
+
+     // Make room for new Entry (Whether or not it will fit)
+//   evict(spec_size);
+     while( entry_used ) {          // While entries remain
+       if( encode_size >= (get_encode_used() + spec_size) )
+         break;
+       remove();
+     }
+
+     // Don't insert an Entry that won't fit by itself
+     if( spec_size > encode_size ) {
+       delete entry;
+       return;
+     }
+
+     // Insert the Entry into the entry_array
+     if( entry_ins > entry_size )
+       entry_ins= 1;
+     Array_ix array_ix= entry_ins++;
+     entry->index= array_ix;
+     Index_ix index_ix= entry_size - array_ix;
+     entry_array[index_ix]= entry;
+
+     // Account for used storage
+     ++entry_used;
+     value_used += nv_size;
+   }
+
+   entry_map.insert(entry);
+}
+
+void
+   Pack::insert(                    // Allocate and insert Entry into table
+     const Property&   property)    // Using this Property
+{  insert(new Entry(property)); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Pack::remove
+//
+// Purpose-
+//       Remove the oldest Entry
+//
+//----------------------------------------------------------------------------
+void
+   Pack::remove( void )
+{
+   if( entry_used == 0 ) {
+     if( USE_CHECKING )
+       debugf("Pack(%p)::remove, nothing to remove\n", this);
+     throw connection_error("Pack::remove when empty");
+   }
+
+   Array_ix array_ix= entry_old;
+   Index_ix index_ix= entry_size - array_ix;
+   Entry* entry= entry_array[index_ix];
+   if( entry == nullptr ) {
+     if( USE_CHECKING )
+       debugf("%4d cpp consistency check index_ix(%u)\n", __LINE__, index_ix);
+     debug("constency fault");
+     throw connection_error("consistency fault");
+   }
+   Value_t size= strlen(entry->name);
+   if( entry->value )
+     size += strlen(entry->value);
+   if( size > value_used ) {
+     debugf("%4d RFC7541 size(%u) > value_used(%u)\n", __LINE__
+           , size, value_used);
+     value_used= 0;
+   } else {
+     value_used -= size;
+   }
+
+   if( verbose )
+     debugf("Remove: '%s': '%s'\n", entry->name, entry->value);
+   entry_map.remove(entry);
+   delete entry;
+   entry_array[index_ix]= nullptr;  // (So it won't get used in method debug)
+   if( ++entry_old > entry_size )
+     entry_old= 1;
+
+   if( --entry_used == 0 ) {
+     entry_old= entry_ins= 1;
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -587,116 +1051,94 @@ Pack::IPack                         // The connection setting
 //
 //----------------------------------------------------------------------------
 void
-   Pack::resize(IPack size)         // Resize the encode_table
+   Pack::resize(Value_t size)       // Resize the encode_table
 {  if( HCDM )
      debugf("Pack(%p)::resize(%u)\n", this, size);
 
-   // Resize(0): delete the table
-   if( size == 0 ) {
-     free(index_table);
-     index_table= nullptr;
-     index_size= index_used= index_ins= index_old= 0;
-
-     free(value_table);
-     value_table= nullptr;
-     value_size= value_used= 0;
-
-     encode_size= encode_used= encode_index= encode_value= 0;
-     return;
+   if( size > DEFAULT_TABLE_SIZE ) { // TODO: USE HEADER_TABLE_LIMIT instead
+     if( USE_CHECKING )
+       debugf("Pack(%p)::resize(%u) > DEFAULT_TABLE_SIZE(%u)\n", this, size
+             , DEFAULT_TABLE_SIZE);
+     throw connection_error("Pack::resize size>DEFAULT_TABLE_SIZE");
    }
 
-   // resize(size!=0) not coded yet.
+   while( (entry_used * SPEC_ENTRY_SIZE + value_used) > size )
+     remove();
+
+   encode_size= size;
+   entry_size= encode_size / SPEC_ENTRY_SIZE;
 }
 
 //----------------------------------------------------------------------------
 //
-// (Static) subroutine-
-//       RFC7541::debug
+// Method-
+//       RFC7541::Pack::string_decode
 //
 // Purpose-
-//       Debugging display
+//       Retrieve input string, including encoding
+//
+// Implementation note-
+//       Phase-0 implementation, uses std::string intermediaries
+//
+//----------------------------------------------------------------------------
+std::string                         // Resultant string
+   Pack::string_decode(             // Retrieve input string
+     Reader&           reader)      // (INPUT) IodaReader
+{
+   bool encoded= reader.peek() & 0x80; // Huffman encoded?
+   Value_t size= Integer::decode(reader, 7); // Get the string length
+
+   // Retrieve the input string, encoded or not
+   enum {BUFF_DIM= 15};             // The output buffer size
+   string              out_string;  // The output string
+   char                out_buffer[BUFF_DIM+1]; // The output buffer
+   int                 out_index= 0; // The output buffer index
+   Value_t             out_total= 0; // The out_string length
+
+   while( out_total < size ) {
+     int C= decoder_get(reader);
+     out_buffer[out_index++]= C;
+     if( out_index >= BUFF_DIM ) {
+       string addend(out_buffer, BUFF_DIM);
+       out_string += addend;
+       out_index= 0;
+     }
+     ++out_total;
+   }
+
+   if( out_index ) {
+     string addend(out_buffer, out_index);
+     out_string += addend;
+   }
+
+   if( encoded )
+     out_string= Huff::decode((octet*)out_string.c_str(), size);
+
+   if( HCDM && VERBOSE > 0 )
+     debugf("%s= {%d} string_decode(reader)\n", out_string.c_str(), size);
+   return out_string;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Pack::string_encode
+//
+// Purpose-
+//       Encode output string
 //
 //----------------------------------------------------------------------------
 void
-   debug(const char* info) // Debugging display
+   Pack::string_encode(             // Encode output string
+     Writer&           writer,      // (OUTPUT) IodaWriter
+     string            text,        // The string
+     bool              encoded)     // Huffman encoded?
 {
-   debugf("RFC7541::debug(%s)\n", info);
-
-   // Debug decode_index
-   debugf("\ndecode_index:\n");
-   for(int i= 0; i<DECODE_INDEX_DIM; ++i) {
-     const Bits7541& X= decode_index[i];
-     debugf("[%3d]: {%3d, %2d, %.8x, %.8x}\n", i, X.min_index, X.bits
-           , X.min_encode, X.max_encode);
+   if( encoded ) {
+     Huff::encode(writer, text);
+   } else {
+     Integer::encode(writer, text.size(), 0x00, 7);
+     writer.put(text);
    }
-
-   // Debug decode_table
-   debugf("\ndecode_table:\n");
-   for(int i= 0; i<DECODE_TABLE_DIM; ++i) {
-     const Huff7541& T= decode_table[i];
-     debugf("[%3d]: {%3d, %2d, 0x%.8x} '%c'\n", i, T.decode, T.bits, T.encode
-           , T.decode < 256 && isprint(T.decode) ? T.decode : '~');
-   }
-
-   // Debug encode_table
-   debugf("\nencode_table:\n");
-   for(int i= 0; i<ENCODE_TABLE_DIM; ++i) {
-     const Huff7541& T= encode_table[i];
-     debugf("[%3d]: {%3d, %2d, 0x%.8x} '%c'\n", i, T.decode, T.bits, T.encode
-           , T.decode < 256 && isprint(T.decode) ? T.decode : '~');
-   }
-
-   // Debug static_index
-   debugf("\nstatic_index:\n");
-   for(int i= 1; i<STATIC_INDEX_DIM; ++i) {
-     const Index7541& T= static_index[i];
-     debugf("[%3d]: {%s, %s}\n", i, T.name, T.value);
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// (Static) utility subroutine-
-//       RFC7541::dump_properties
-//
-// Purpose-
-//       Debugging display: Properties
-//
-//----------------------------------------------------------------------------
-void
-   dump_properties(const Properties& P) // Debugging display: Properties
-{
-   debugf("RFC7541::dump_properties(%p) [%zd]\n", &P, P.size());
-
-   for(size_t i= 0; i < P.size(); ++i) {
-     debugf("[%2zd] '%s': '%s'\n", i, P[i].name.c_str(), P[i].value.c_str());
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// (Static) utility subroutine-
-//       RFC7541::load_properties
-//
-// Purpose-
-//       Properties loader
-//
-//----------------------------------------------------------------------------
-Properties                          // The Properties
-   load_properties( void )          // Load Properties, parameters TBD
-{
-   debugf("RFC7541::load_properties()\n");
-
-   Properties properties;
-   Property   property{"alpha", "beta"};
-   properties.insert(properties.end(), property);
-   property= {"beta", "alpha"};
-   properties.insert(properties.end(), property);
-   properties.insert(properties.end(), Property{"what-the", "hey"});
-   properties.insert(properties.end(), {"does-this", "work?"});
-
-   // Yes, work is needed here
-
-   return properties;
 }
 }  // Namespace RFC7541

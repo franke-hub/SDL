@@ -13,14 +13,15 @@
 //       Main.cpp
 //
 // Purpose-
-//       RFC7540, RFC7541 unit test
+//       RFC7541 unit test
 //
 // Last change date-
-//       2023/09/15
+//       2023/10/13
 //
 //----------------------------------------------------------------------------
 #include <cstdint>                  // For uint32_t, uint16_t, ...
 
+#include <locale.h>                 // For setlocale
 #include <stdexcept>                // For std::runtime_error
 #include <string>                   // For std::string
 
@@ -30,21 +31,40 @@
 // The tested includes
 #include <pub/TEST.H>               // For VERIFY, ...
 #include <pub/Debug.h>              // For debugging
+#include <pub/Interval.h>           // For pub::Interval
+#include <pub/Ioda.h>               // For pub::Ioda, pub::IodaReader
 #include <pub/utility.h>            // For pub::utility::visify
 #include <pub/Wrapper.h>            // For pub::Wrapper
+
+#include "RFC7541.h"                // For class RFC7541, tested
 
 // Namespace accessors
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB;                // For pub objects
 using namespace PUB::debugging;     // For debugging subroutines
-
-#include "RFC7540.h"                // For class RFC7540, tested
-#include "RFC7541.h"                // For class RFC7541, tested
-
 using PUB::utility::visify;         // For pub::utility::visify method
-using PUB::Wrapper;                 // For pub::Wrapper class
-
 using namespace std;
+
+// RFC7541 types
+typedef RFC7541::octet              octet;
+typedef RFC7541::Huff               Huff;
+typedef RFC7541::Integer            Integer;
+typedef RFC7541::Pack               Pack;
+typedef RFC7541::Property           Property;
+typedef RFC7541::Properties         Properties;
+typedef RFC7541::Value_t            Value_t;
+
+// RFC7541 ENCODE_TYPE parameters
+enum ENCODE_TYPE
+{  ET_INDEX=           RFC7541::ET_INDEX
+,  ET_INSERT_NOINDEX=  RFC7541::ET_INSERT_NOINDEX
+,  ET_INSERT=          RFC7541::ET_INSERT
+,  ET_RESIZE=          RFC7541::ET_RESIZE
+,  ET_NEVER_NOINDEX=   RFC7541::ET_NEVER_NOINDEX
+,  ET_NEVER=           RFC7541::ET_NEVER
+,  ET_CONST_NOINDEX=   RFC7541::ET_CONST_NOINDEX
+,  ET_CONST=           RFC7541::ET_CONST
+}; // ENCODE_TYPE
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -52,6 +72,8 @@ using namespace std;
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
+
+,  JUST_CHECKING= false             // Check one timing operation?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -67,10 +89,12 @@ extern int             opt_hcdm;    // Hard Core Debug Mode?
 extern int             opt_verbose; // Debugging verbosity
 
 static int             opt_debug=    0; // --debug
+static int             opt_dirty=    0; // --dirty
 static int             opt_timing=   0; // --timing
 static int             opt_trace=    0; // --trace
 static struct option   opts[]=      // The getopt_long parameter: longopts
 {  {"debug",           no_argument,       &opt_debug,       true}
+,  {"dirty",           no_argument,       &opt_dirty,       true}
 ,  {"timing",          no_argument,       &opt_timing,      true}
 ,  {"trace",           optional_argument, &opt_trace, 0x00400000}
 ,  {0, 0, 0, 0}                     // (End of option list)
@@ -94,21 +118,165 @@ static inline const char*
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       test_Huff
+//       test_dirty
+//
+// Purpose-
+//       The world-famous "quick and dirty test."
+//
+//----------------------------------------------------------------------------
+static inline int
+   test_dirty( void )               // Quick and dirty test dujour
+{
+   if( opt_verbose )
+     debugf("\ntest_dirty:\n");
+   int error_count= 0;
+
+   Ioda       writer;
+   IodaReader reader(writer);
+
+   string O= "The world-famous \"quick and dirty\" test string";
+   Huff::encode(writer, O);
+   string I= Pack::string_decode(reader); // (This was broken. Now it's fixed)
+   error_count += VERIFY( I == O );
+   if( error_count )
+     utility::dump(I.c_str(), I.size());
+
+   if( opt_verbose ) {
+     debugf("O(%s)\n", O.c_str());
+     debugf("I(%s)\n", I.c_str());
+   }
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       time_Huff
+//
+// Purpose-
+//       Test RFC7541: Huffman encoding/decoding timing tests
+//
+//----------------------------------------------------------------------------
+static inline int
+   time_Huff( void )                // Test RFC7541: Huff timing tests
+{
+   // debugf("\nRFC 7541 Huff encode/decode timing test:\n");
+   debugf("RFC 7541 Huff timing test skipped: it's NOT CODED YET.\n");
+   error_count= 0;
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       time_pack
+//
+// Purpose-
+//       Test RFC7541: HPACK timing tests
+//
+//----------------------------------------------------------------------------
+static inline int
+   time_pack( void )                // Test RFC7541: HPACK timing tests
+{
+   debugf("\nRFC 7541 HPACK timing tests:\n");
+
+   Integer    integer;
+   Ioda       writer;
+   IodaReader reader(writer);
+
+   int        error_count= 0;
+
+   //-------------------------------------------------------------------------
+   // Integer encoding/decoding timing tests
+   debugf("\nRFC7541::Integer encode/decode timing test:\n");
+
+   Interval   interval;
+   size_t     ITERATIONS=  100;
+   uint32_t   QUESTIONS= 100'000;
+   for(size_t i= 0; i<ITERATIONS; ++i) {
+     for(uint32_t question= 0; question < QUESTIONS; ++question) {
+       writer.reset();
+       reader.reset();
+       integer.encode(writer, question, 0x50, 4);
+       integer.encode(writer, question, 0xA0, 4);
+       uint32_t answer= integer.decode(reader, 4);
+       error_count += VERIFY( answer == question );
+       if( error_count ) {
+         debugf("Q(%d) A(%d)\n", question, answer);
+         break;
+       }
+
+       answer= integer.decode(reader, 4);
+       error_count += VERIFY( answer == question );
+       if( error_count ) {
+         debugf("Q(%d) A(%d)\n", question, answer);
+         break;
+       }
+       error_count += VERIFY( reader.get() == EOF );
+     }
+   }
+   interval.stop();
+   double operations= (double)ITERATIONS * (double)QUESTIONS * 2.0;
+   debugf("%'16.3f seconds, %'12.0f Integer encode/decode operations\n"
+         , (double)interval, operations);
+   debugf("%'16.3f operations/second\n", operations / (double)interval);
+
+   //-------------------------------------------------------------------------
+   // Pack encoding/decoding timing tests
+   debugf("\nRFC7541::Pack encode/decode timing test:\n");
+   Pack out_pack(512), inp_pack(512);
+
+   ITERATIONS= 1'000'000;
+   interval.start();
+   for(size_t iteration= 0; iteration <= ITERATIONS; ++iteration) {
+     writer.reset(); reader.reset();
+     Properties out_prop, inp_prop;
+
+     char buffer[64];
+     sprintf(buffer, "N_%.14zd", iteration);
+     string name= buffer;
+     sprintf(buffer, "V_%.14zd", iteration);
+     string value= buffer;
+     out_prop.append(name, value);
+     sprintf(buffer, "V_%.14zd", iteration+1);
+     value= buffer;
+     out_prop.append(name, value);
+
+     out_pack.encode(writer, out_prop);
+     inp_prop= inp_pack.decode(reader);
+     error_count += VERIFY( inp_prop == out_prop );
+     error_count += VERIFY( reader.get_length() == 0 );
+     if( JUST_CHECKING && iteration == 1026 ) {
+       reader.dump("just checking");
+       inp_pack.debug("just checking");
+     }
+   }
+   interval.stop();
+   operations= (double)ITERATIONS * 2.0;
+   debugf("%'16.3f seconds, %'12.0f Pack encode/decode operations\n"
+         , (double)interval, operations);
+   debugf("%'16.3f operations/second\n", operations / (double)interval);
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       unit_Huff
 //
 // Purpose-
 //       Test RFC7541: Huffman encoding/decoding
 //
 //----------------------------------------------------------------------------
 static inline int
-   test_Huff( void )                // Test RFC7541: Huffman encoding/decoding
+   unit_Huff( void )                // Test RFC7541: Huffman encoding/decoding
 {
    if( opt_verbose )
-     debugf("\ntest_Huff:\n");
+     debugf("\nunit_Huff:\n");
    int error_count= 0;
-
-   typedef RFC7541::Huff  Huff;
-   typedef RFC7541::octet octet;
 
    // Static tests
    VERIFY( RFC7541::Huff::encoded_length("") == 0 );
@@ -191,111 +359,207 @@ static inline int
        break;
    }
 
-   // Timing tests
-   if( opt_timing && error_count != 0 )
-     debugf("RFC 7541 Huff timing test skipped: %d error%s encountered.\n"
-           , error_count , error_count != 1 ? "s" : "");
-
-   if( opt_timing && error_count == 0 ) {
-     debugf("RFC 7541 Huff timing test skipped: it's NOT CODED YET.\n");
-   }
-
    return error_count;
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       test_pack
+//       unit_pack
 //
 // Purpose-
-//       Test RFC7541: HPACK encoding/decoding
+//       Test RFC7541: HPACK unit test
 //
 //----------------------------------------------------------------------------
 static inline int
-   test_pack( void )                // Test RFC7541: HPACK encoding/decoding
+   pack_verify(                     // Verify question == answer
+     int               line,        // Caller's line number
+     IodaReader&       reader,      // Associated Reader
+     Value_t           question,
+     Value_t           answer)
 {
-   if( opt_verbose )
-     debugf("\ntest_pack:\n");
-   int error_count= 0;
-
-   typedef RFC7541::Pack            Pack;
-   typedef RFC7541::Property        Property;
-   typedef RFC7541::Properties      Properties;
-
-   // Bringup - All methods present?
-   Properties properties;
-   Property   property;
-   Pack       pack;
-
-   // Not much to see here. This only checks that methods are present.
-
-   properties= RFC7541::load_properties();
-   RFC7541::dump_properties(properties);
-
-   // Timing tests
-   if( opt_timing && error_count != 0 )
-     debugf("RFC 7541 PACK timing test skipped: %d error%s encountered.\n"
-           , error_count , error_count != 1 ? "s" : "");
-
-   if( opt_timing && error_count == 0 ) {
-     debugf("RFC 7541 PACK timing test skipped: it's NOT CODED YET.\n");
+   int error_count= VERIFY( answer == question );
+   if( error_count ) {
+     debugf("%4d A(%d) Q(%d)\n", line, answer, question);
+     reader.dump("A != Q");
    }
 
    return error_count;
 }
 
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       test_7540
-//
-// Purpose-
-//       Test RFC7540
-//
-//----------------------------------------------------------------------------
 static inline int
-   test_7540( void )                // Test RFC7540
+   unit_pack( void )                // Test RFC7541::Integer encoding/decoding
 {
    if( opt_verbose )
-     debugf("\ntest_7540:\n");
+     debugf("\nunit_pack:\n");
    int error_count= 0;
 
-   // NOT CODED YET
+   // Input/output objects
+   Ioda       writer;
+   IodaReader reader(writer);
 
-   return error_count;
-}
+   // Test objects
+   Integer    integer;
+   Properties inp_prop;
+   Properties out_prop;
+   Pack       inp_pack;
+   Pack       out_pack;
 
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       test_7541
-//
-// Purpose-
-//       Test RFC7541
-//
-//----------------------------------------------------------------------------
-static inline int
-   test_7541( void )                // Test RFC7541
-{
+   //-------------------------------------------------------------------------
+   // Integer unit tests (Find out the question being answered!)
+   Value_t question= 42;
+   integer.encode(writer, question, 0xA0, 4); // Bringup test, the question
    if( opt_verbose )
-     debugf("\ntest_7541:\n");
-   int error_count= 0;
+     writer.debug("Integer.encode");
 
-   // Bringup display (** ONLY **)
-   if( opt_debug ) {
-     RFC7541::debug("TABLES");
-     return 0;
+   Value_t answer= integer.decode(reader, 4);
+   error_count += VERIFY( answer == question );
+   if( opt_verbose )
+     reader.dump("Integer.decode");
+
+   error_count += VERIFY( reader.get() == EOF );
+
+   for(question= 0; question < 60'000; question += 11) {
+     writer.reset();
+     reader.reset();
+     integer.encode(writer, question); // (Default: 0x80, 7)
+     integer.encode(writer, question, 0x00, 7);
+     integer.encode(writer, question, 0xC0, 6);
+     integer.encode(writer, question, 0xA0, 5);
+     integer.encode(writer, question, 0x50, 4);
+     integer.encode(writer, question, 0xA8, 3);
+
+     error_count += VERIFY( (reader.peek() & 0x80) == 0x80 );
+     answer= integer.decode(reader);
+     if( pack_verify(__LINE__, reader, question, answer) ) // 0x80, 7
+       return 1;
+
+     error_count += VERIFY( (reader.peek() & 0x80) == 0x00 );
+     answer= integer.decode(reader);
+     if( pack_verify(__LINE__, reader, question, answer) ) // 0x00, 7
+       return 1;
+
+     error_count += VERIFY( (reader.peek() & 0xC0) == 0xC0 );
+     answer= integer.decode(reader, 6);
+     if( pack_verify(__LINE__, reader, question, answer) ) // 0xC0, 6
+       return 1;
+
+     error_count += VERIFY( (reader.peek() & 0xE0) == 0xA0 );
+     answer= integer.decode(reader, 5);
+     if( pack_verify(__LINE__, reader, question, answer) ) // 0xA0, 5
+       return 1;
+
+     error_count += VERIFY( (reader.peek() & 0xF0) == 0x50 );
+     answer= integer.decode(reader, 4);
+     if( pack_verify(__LINE__, reader, question, answer) ) // 0x50, 4
+       return 1;
+
+     error_count += VERIFY( (reader.peek() & 0xF8) == 0xA8 );
+     answer= integer.decode(reader, 3);
+     if( pack_verify(__LINE__, reader, question, answer) ) // 0xA8, 3
+       return 1;
+
+     error_count += VERIFY( reader.peek() == EOF );
+     error_count += VERIFY( reader.get() == EOF );
    }
 
-   // Huffman encoding/decoding tests
-   error_count += test_Huff();
-
+   //-------------------------------------------------------------------------
    // HPACK encoding/decoding tests
-   error_count += test_pack();
+   out_pack.reset(); inp_pack.reset();
+   out_pack.resize(256); inp_pack.resize(256);
+   out_pack.resize(512); inp_pack.resize(512);
+
+   size_t ITERATIONS= 100'000;
+   size_t DISPLAY_MAX= 1056;
+   size_t DISPLAY_MIN= 1024;
+   for(size_t iteration= 1; iteration <= ITERATIONS; ++iteration) {
+     if( iteration >= DISPLAY_MAX ) {
+       inp_pack.hcdm= false;
+       inp_pack.verbose= 0;
+     } else if( opt_verbose && iteration == DISPLAY_MIN ) {
+       inp_pack.hcdm= true;
+       inp_pack.verbose= 1;
+     }
+     writer.reset(); reader.reset();
+     out_prop.reset(); inp_prop.reset();
+     char buffer[64];
+     sprintf(buffer, "N_%.14zd", iteration);
+     string name= buffer;
+     sprintf(buffer, "V_%.14zd", iteration);
+     string value= buffer;
+     out_prop.append(name, value);
+
+     if( opt_verbose && iteration >= DISPLAY_MIN && iteration < DISPLAY_MAX )
+       debugf("\nENCODE\n");
+     out_pack.encode(writer, out_prop);
+     if( opt_verbose && iteration >= DISPLAY_MIN && iteration < DISPLAY_MAX )
+       out_pack.debug("pack_encode");
+
+     if( opt_verbose && iteration >= DISPLAY_MIN && iteration < DISPLAY_MAX )
+       debugf("\nDECODE\n");
+     inp_prop= inp_pack.decode(reader);
+     if( opt_verbose && iteration >= DISPLAY_MIN && iteration < DISPLAY_MAX )
+       inp_pack.debug("pack_decode");
+
+     error_count += VERIFY( inp_prop == out_prop );
+     error_count += VERIFY( reader.get_length() == 0 );
+   }
+   inp_pack.hcdm= false;
+   inp_pack.verbose= 0;
 
    return error_count;
 }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_time
+//
+// Purpose-
+//       RFC7541 timing tests
+//
+//----------------------------------------------------------------------------
+static inline int
+   test_time( void )                // RFC7541 timing tests
+{
+   int error_count= 0;
+
+   error_count += time_Huff();
+   error_count += time_pack();
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_unit
+//
+// Purpose-
+//       RFC7541 Unit tests
+//
+//----------------------------------------------------------------------------
+static inline int
+   test_unit( void )                // RFC7541 Unit tests
+{
+   int error_count= 0;
+
+   error_count += unit_Huff();
+   error_count += unit_pack();
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       exam_7541
+//
+// Purpose-
+//       Test RFC7541 examples
+//
+//----------------------------------------------------------------------------
+#include "Main7541.hpp"
 
 //----------------------------------------------------------------------------
 //
@@ -343,6 +607,7 @@ extern int                          // Return code
    {
      fprintf(stderr,
             "  --debug\tRun debugging displays instead of tests\n"
+            "  --dirty\tRun \"quick and dirty\" test\n"
             "  --timing\tRun timing tests\n"
             "  --trace\t{=size} Create internal trace file './trace.mem'\n"
             );
@@ -350,6 +615,8 @@ extern int                          // Return code
 
    tc.on_init([tr](int, char**)
    {
+     setlocale(LC_NUMERIC, "");     // Allow printf("%'d\n", 123456780)
+
      if( opt_trace )
        table= tr->init_trace("./trace.mem", opt_trace);
 
@@ -376,14 +643,25 @@ extern int                          // Return code
        debugf("%5s trace: %#x\n", torf(opt_trace), opt_trace);
      }
 
-     error_count += test_7540();
-     error_count += test_7541();
+     if( opt_dirty ) {              // Quick and dirty test (** ONLY **)
+       error_count += test_dirty();
+     } else if( opt_debug ) {       // Table display (** ONLY **)
+       RFC7541::debug("TABLES");
+     } else {
+       error_count += test_unit();
+       // error_count += VERIFY( bool("FORCED ERROR") != true );
+       if( error_count == 0 ) {
+         if( opt_timing )
+           error_count += test_time();
+         error_count += exam_7541();
+       }
+     }
 
      if( opt_verbose ) {
        debugf("\n");
        tr->report_errors(error_count);
      }
-     return error_count != 0;
+     return int(error_count != 0);
    });
 
    //-------------------------------------------------------------------------
