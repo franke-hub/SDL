@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2023/09/22
+//       2023/10/13
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,17 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 10/13/2023 maint/trunk commit
+- XCB editor (~/src/cpp/Edit/Xcb)
+  - New feature: ctrl-F9 copies current line to history line. (F9 without ctrl
+copies the filename to the history line.)
+- src/cpp/RFC: RFC7541.*
+  - Almost all functions fully operational. (Pack::resize does not yet transfer
+the resize request via an Ioda Writer/Reader.)
+  - Added Ioda::dump function. It displays the entire Ioda buffer sequence.
 
 ----
 
