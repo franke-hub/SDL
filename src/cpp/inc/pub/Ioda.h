@@ -16,7 +16,7 @@
 //       I/O Data Area.
 //
 // Last change date-
-//       2022/09/27
+//       2022/10/16
 //
 // Implementation notes-
 //       The I/O data area contains a scatter/gather I/O area used both as an
@@ -284,7 +284,7 @@ void                                // (*this contains the trailing data)
 //
 // Implementation notes-
 //       Ioda::used is the IodaReader's data length. (Since Ioda::used == 0
-//       in a read Ioda, the associated Ioda should be a write Ioda.)
+//       in a read Ioda, the associated Ioda should be an Ioda::Writer.)
 //
 //----------------------------------------------------------------------------
 class IodaReader {                  // Ioda data reader
@@ -299,7 +299,7 @@ typedef IodaReader     Reader;      // IodaReader type (alias)
 // IodaReader::Attributes
 //----------------------------------------------------------------------------
 protected:
-const Ioda::Writer&    ioda;        // The associated (const) Ioda Writer
+const Ioda::Writer&    writer;      // The associated (const) Ioda::Writer
 size_t                 offset= 0;   // The current offset
 
 // operator[] cache
@@ -321,7 +321,7 @@ public:
 //----------------------------------------------------------------------------
 // IodaReader::Operators
 //----------------------------------------------------------------------------
-IodaReader& operator=(const IodaReader&) = delete; // *NO* copy assignment
+IodaReader& operator=(const IodaReader&)  = delete; // *NO* copy assignment
 IodaReader& operator=(const IodaReader&&) = delete; // *NO* move assignment
 
 int
@@ -342,7 +342,7 @@ bool
    is_buffer( void ) const
 {  return false; }
 
-// If Ioda is_buffer() is true, reader.get_used() returns zero, the same as
+// If Ioda::is_buffer() is true, reader.get_used() returns zero, the same as
 // an empty Ioda::Writer.
 bool
    is_reader( void ) const
@@ -354,11 +354,15 @@ bool
 
 size_t
    get_length( void ) const         // Get remaining length
-{  return ioda.get_used() - offset; }
+{  return writer.get_used() - offset; }
 
 size_t
    get_offset( void ) const         // Get offset
 {  return offset; }
+
+const Ioda::Writer&
+   get_writer( void ) const         // Get Writer
+{  return writer; }
 
 void
    set_offset(size_t o)             // Set offset

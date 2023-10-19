@@ -16,7 +16,7 @@
 //       Implement http/Ioda.h
 //
 // Last change date-
-//       2023/09/27
+//       2023/10/16
 //
 //----------------------------------------------------------------------------
 // #define NDEBUG                   // TODO: USE (to disable asserts)
@@ -1027,13 +1027,13 @@ void
 //       IodaReader::~IodaReader
 //
 // Purpose-
-//       Constructor
+//       Constructors
 //       Destructor
 //
 //----------------------------------------------------------------------------
-   IodaReader::IodaReader(const Ioda::Writer& I)
-:  ioda(I)
-{  if( HCDM ) debugh("IodaReader(%p)::IodaReader(%p)\n", this, &ioda); }
+   IodaReader::IodaReader(const Ioda::Writer& W)
+:  writer(W)
+{  if( HCDM ) debugh("IodaReader(%p)::IodaReader(%p)\n", this, &writer); }
 
    IodaReader::~IodaReader( void )
 {  if( HCDM ) debugh("IodaReader(%p)::~IodaReader\n", this); }
@@ -1053,12 +1053,13 @@ void
    IodaReader::debug(const char* info) const // Debugging display
 {  debugf("IodaReader(%p)::debug(%s)\n", this, info);
 
-   debugf("..Ioda(%p) used(%'zd) size(%'zd)\n", &ioda, ioda.used, ioda.size);
+   debugf("..writer(%p) used(%'zd) size(%'zd)\n", &writer
+         , writer.used, writer.size);
    debugf("..offset(%'zd) ix_page(%p) ix_off0(%'zd)\n"
          , offset, ix_page, ix_off0);
-   if( ioda.used ) {                // (Input Ioda data is meaningless)
+   if( writer.used ) {              // (Ioda::Buffer data is meaningless)
      size_t index= 0;
-     for(Page* page= ioda.list.get_head(); page; page= page->get_next()) {
+     for(Page* page= writer.list.get_head(); page; page= page->get_next()) {
        size_t size= page->used;
        debugf("..[%2zd] %.4zd ", index++, size);
        pub::utility::dump(page->data, size > 16 ? 16 : size);
@@ -1070,12 +1071,13 @@ void
    IodaReader::dump(const char* info) const // Debugging (full) display
 {  debugf("IodaReader(%p)::dump(%s)\n", this, info);
 
-   debugf("..Ioda(%p) .used(%'zd) .size(%'zd)\n", &ioda, ioda.used, ioda.size);
+   debugf("..Writer(%p) .used(%'zd) .size(%'zd)\n", &writer
+         , writer.used, writer.size);
    debugf("..offset(%'zd) ix_page(%p) ix_off0(%'zd)\n"
          , offset, ix_page, ix_off0);
-   if( ioda.used ) {                // (Input Ioda data is meaningless)
+   if( writer.used ) {              // (Ioda::Buffer data is meaningless)
      size_t index= 0;
-     for(Page* page= ioda.list.get_head(); page; page= page->get_next()) {
+     for(Page* page= writer.list.get_head(); page; page= page->get_next()) {
        debugf("[%2zd] %p:%.4zd\n", index++, page, page->used);
        pub::utility::dump(page->data, page->used);
      }
@@ -1093,7 +1095,7 @@ void
 // Implementation notes-
 //       Internal logic errors result in runtime_error("Should not occur")
 //       These logic errors can also occur through usage errors, e.g.
-//       if const Ioda& ioda doesn't remain constant.
+//       if const Ioda& writer doesn't remain constant.
 //
 //----------------------------------------------------------------------------
 int
@@ -1101,12 +1103,12 @@ int
 {  if( HCDM && VERBOSE > 1 )
      debugh("IodaReader(%p)::operator[](%'zd)\n", this, index);
 
-   if( index >= ioda.used )
+   if( index >= writer.used )
      return EOF;
 
    if( ix_page == nullptr ) {       // If no cache exists
      ix_off0= 0;
-     ix_page= ioda.list.get_head(); // Start at zero
+     ix_page= writer.list.get_head(); // Start at zero
      if( ix_page == nullptr )       // (Must have some used if index < used)
        checkstop(__LINE__);
    }
@@ -1121,7 +1123,7 @@ int
    while( index >= ix_off0 + ix_page->used ) { // Forward search
      ix_off0 += ix_page->used;
      ix_page= ix_page->get_next();
-     if( ix_page == nullptr )       // (Implies ioda.used < Sigma(page->used))
+     if( ix_page == nullptr )       // (Implies writer.used<Sigma(page->used))
        checkstop(__LINE__);
    }
 
@@ -1154,7 +1156,7 @@ int
 int
    IodaReader::get( void )
 {
-   if( offset >= ioda.get_used() )
+   if( offset >= writer.get_used() )
      return EOF;
 
    int C= index(offset++);
@@ -1164,7 +1166,7 @@ int
 int
    IodaReader::peek( void ) const
 {
-   if( offset >= ioda.get_used() )
+   if( offset >= writer.get_used() )
      return EOF;
 
    return index(offset);
@@ -1182,7 +1184,7 @@ int
 string
    IodaReader::get_line( void )
 {
-   if( offset >= ioda.get_used() )
+   if( offset >= writer.get_used() )
      return "";
 
    string L;                        // The line
@@ -1224,7 +1226,7 @@ string
 string
    IodaReader::get_token(string delim)
 {
-   if( offset >= ioda.get_used() )
+   if( offset >= writer.get_used() )
      return "";
 
    string S;                        // The token
