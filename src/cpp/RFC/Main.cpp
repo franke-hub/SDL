@@ -13,10 +13,10 @@
 //       Main.cpp
 //
 // Purpose-
-//       RFC7541 unit test
+//       RFC7541 unit, example, and regression tests.
 //
 // Last change date-
-//       2023/10/13
+//       2023/10/19
 //
 //----------------------------------------------------------------------------
 #include <cstdint>                  // For uint32_t, uint16_t, ...
@@ -46,8 +46,10 @@ using PUB::utility::visify;         // For pub::utility::visify method
 using namespace std;
 
 // RFC7541 types
+typedef RFC7541::connection_error   connection_error;
 typedef RFC7541::octet              octet;
 typedef RFC7541::Huff               Huff;
+typedef RFC7541::Entry              Entry;
 typedef RFC7541::Integer            Integer;
 typedef RFC7541::Pack               Pack;
 typedef RFC7541::Property           Property;
@@ -73,6 +75,7 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
+,  DYNAMIC_ENTRY_0= Pack::DYNAMIC_ENTRY_0
 ,  JUST_CHECKING= false             // Check one timing operation?
 }; // enum
 
@@ -101,6 +104,9 @@ static struct option   opts[]=      // The getopt_long parameter: longopts
 };
 
 static const char*     ostr="";     // The getopt_long parameter: optstring
+
+// Ignore error messages for character arrays containing any value > 127
+#pragma GCC diagnostic ignored "-Wnarrowing"
 
 //----------------------------------------------------------------------------
 //
@@ -131,20 +137,7 @@ static inline int
      debugf("\ntest_dirty:\n");
    int error_count= 0;
 
-   Ioda       writer;
-   IodaReader reader(writer);
-
-   string O= "The world-famous \"quick and dirty\" test string";
-   Huff::encode(writer, O);
-   string I= Pack::string_decode(reader); // (This was broken. Now it's fixed)
-   error_count += VERIFY( I == O );
-   if( error_count )
-     utility::dump(I.c_str(), I.size());
-
-   if( opt_verbose ) {
-     debugf("O(%s)\n", O.c_str());
-     debugf("I(%s)\n", I.c_str());
-   }
+   // Info: Tested string_decode, now fixed and also now private.
 
    return error_count;
 }
@@ -462,6 +455,155 @@ static inline int
      error_count += VERIFY( reader.peek() == EOF );
      error_count += VERIFY( reader.get() == EOF );
    }
+
+   //-------------------------------------------------------------------------
+   // HPACK ET_RESIZE encoding/decoding tests
+   out_pack.reset(); inp_pack.reset();
+   writer.reset(); reader.reset();
+   if( opt_verbose ) {
+     inp_pack.hcdm= true;
+     inp_pack.verbose= 1;
+   }
+
+   out_pack.resize(writer, 0);
+   out_pack.resize(writer, 256);
+   inp_pack.decode(reader);
+   if( opt_verbose ) {
+     inp_pack.debug("ET_RESIZE 0, 256");
+     writer.debug("ET_RESIZE 0, 256");
+   }
+
+   // Verify reorganization of values
+   writer.reset(); reader.reset();
+   out_prop.reset(); inp_prop.reset();
+   out_prop.append("N123456789ABCD00", "V123456789ABCD09", ET_INSERT_NOINDEX);
+   out_prop.append("N123456789ABCD00", "V123456789ABCD08", ET_INSERT_NOINDEX);
+   out_prop.append("N123456789ABCD00", "V123456789ABCD07", ET_INSERT_NOINDEX);
+   out_prop.append("N123456789ABCD00", "V123456789ABCD06", ET_INSERT_NOINDEX);
+   out_prop.append("N123456789ABCD01", "V123456789ABCD05", ET_INSERT_NOINDEX);
+   out_prop.append("N123456789ABCD01", "V123456789ABCD04", ET_INSERT_NOINDEX);
+   out_prop.append("N123456789ABCD01", "V123456789ABCD03", ET_INSERT_NOINDEX);
+   out_prop.append("N123456789ABCD01", "V123456789ABCD02", ET_INSERT_NOINDEX);
+   out_prop.append("N123456789ABCD02", "V123456789ABCD01", ET_INSERT_NOINDEX);
+   out_prop.append("N123456789ABCD02", "V123456789ABCD00", ET_INSERT_NOINDEX);
+   out_pack.encode(writer, out_prop);
+   inp_pack.decode(reader);
+   if( opt_verbose ) {
+     inp_pack.debug("ET_REORG 256");
+     if( opt_verbose > 1 )
+       out_pack.debug("ET_REORG 256");
+   }
+
+   writer.reset(); reader.reset();
+   out_pack.resize(writer, 512);
+   inp_pack.decode(reader);
+   if( opt_verbose ) {
+     inp_pack.debug("inp_pack ET_REORG 512");
+//   if( opt_verbose > 1 )
+       out_pack.debug("out_pack ET_REORG 512");
+   }
+
+   writer.reset(); reader.reset();
+   out_prop.reset(); inp_prop.reset();
+   out_pack.resize(writer, 31);     // Too small to contain any entries
+
+   // (HPACK tables that are too small to contain entries are still usable)
+   out_prop.append("N123456789ABCD02", "V123456789ABCDXX");
+   out_pack.encode(writer, out_prop);
+   inp_prop= inp_pack.decode(reader);
+   error_count += VERIFY( inp_prop == out_prop );
+   if( opt_verbose ) {
+     inp_pack.debug("inp_pack ET_RESIZE 31");
+     inp_prop.debug("inp_prop ET_RESIZE 31");
+   }
+
+   // ENCODE/DECODE: Too many resize operations
+   out_pack.reset(); inp_pack.reset(); // ENCODE: Too many resize operations
+   writer.reset(); reader.reset();
+   bool caught= false;
+   try {
+     out_pack.resize(writer, 0);
+     out_pack.resize(writer, 128);
+     out_pack.resize(writer, 64);
+   } catch(connection_error& X) {
+     caught= true;
+     if( opt_verbose )
+       debugf("(Expected) connection_error(%s) caught\n", X.what());
+   }
+   error_count += VERIFY( caught );
+
+   out_pack.reset(); inp_pack.reset(); // DECODE: Too many resize operations
+   writer.reset(); reader.reset();
+   caught= false;
+   try {
+     char buffer[5]= {0x20,0x3F,0x21,0x3F,0x22};
+     writer.write(buffer, 5);       // resize(0); resize(64); resize(65);
+     inp_pack.decode(reader);
+   } catch(connection_error& X) {
+     caught= true;
+     if( opt_verbose )
+       debugf("(Expected) connection_error(%s) caught\n", X.what());
+   }
+   error_count += VERIFY( caught );
+
+   // ENCODE/DECODE: Resize not first operation
+   out_pack.reset(); inp_pack.reset(); // ENCODE: Resize not first operation
+   writer.reset(); reader.reset();
+   caught= false;
+   try {
+     writer.put(0x84);              // ':method': 'GET'
+     out_pack.resize(writer, 64);
+   } catch(connection_error& X) {
+     caught= true;
+     if( opt_verbose )
+       debugf("(Expected) connection_error(%s) caught\n", X.what());
+   }
+   error_count += VERIFY( caught );
+
+   out_pack.reset(); inp_pack.reset(); // DECODE: Resize not first operation
+   writer.reset(); reader.reset();
+   caught= false;
+   try {
+     char buffer[3]= {0x84,0x3F,0x21};
+     writer.write(buffer, 3);       // ':method': 'GET'; resize(64)
+     inp_pack.decode(reader);
+   } catch(connection_error& X) {
+     caught= true;
+     if( opt_verbose )
+       debugf("(Expected) connection_error(%s) caught\n", X.what());
+   }
+   error_count += VERIFY( caught );
+
+   // ENCODE/DECODE: Second resize <= first
+   out_pack.reset(); inp_pack.reset(); // Second resize <= first
+   writer.reset(); reader.reset();
+   caught= false;
+   try {
+     out_pack.resize(writer, 64);
+     out_pack.resize(writer, 0);
+   } catch(connection_error& X) {
+     caught= true;
+     if( opt_verbose )
+       debugf("(Expected) connection_error(%s) caught\n", X.what());
+   }
+   error_count += VERIFY( caught );
+
+   out_pack.reset(); inp_pack.reset(); // Second resize <= first
+   writer.reset(); reader.reset();
+   caught= false;
+   try {
+     char buffer[3]= {0x3F,0x21,0x20};
+     writer.write(buffer, 3);       // resize(64); resize(0)
+     inp_pack.decode(reader);
+   } catch(connection_error& X) {
+     caught= true;
+     if( opt_verbose )
+       debugf("(Expected) connection_error(%s) caught\n", X.what());
+   }
+   error_count += VERIFY( caught );
+
+   inp_pack.hcdm= false;
+   inp_pack.verbose= 0;
 
    //-------------------------------------------------------------------------
    // HPACK encoding/decoding tests

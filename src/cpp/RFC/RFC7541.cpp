@@ -16,7 +16,7 @@
 //       RFC7541, HTTP/2 HPACK compression
 //
 // Last change date-
-//       2023/10/13
+//       2023/10/19
 //
 //----------------------------------------------------------------------------
 #include <cassert>                  // For assert
@@ -133,9 +133,9 @@ ENCODE_TYPE
 //----------------------------------------------------------------------------
 #if 0  // This works OK, it's just unused
 static inline std::string
-   to_bits(                              // Convert to bit string
-     long              value,            // Value to convert
-     int               width)            // Number of bits to convert
+   to_bits(                         // Convert to bit string
+     long              value,       // Value to convert
+     int               width)       // Number of bits to convert
 {
    std::string out_string;
    while( width > 0 ) {
@@ -376,8 +376,6 @@ Huff                                // The encoded string
 
    for(auto it= s.cbegin(); it != s.cend(); ++it) {
      const Huff7541& H= encode_table[(octet)*it];
-     //const octet O= (octet)*it;     // The next octet
-     //const int   bits= encode_table[O].bits; // The encoded octet size, in bits
      if( (acc_index + H.bits) > ACC_WIDTH ) { // If accumulator dump required
        while( acc_index > BITS_PER_OCTET ) { // While full bytes exist
          h.addr[out_index++]= (accumulator >> (acc_index - BITS_PER_OCTET));
@@ -457,8 +455,7 @@ size_t                              // The encoded length
 {  if( HCDM )                       // (Is really = default)
      debugf("Pack(%p)::Pack()\n", this);
 
-   init();
-   resize(65536);                   // Use default pack size
+   init(DEFAULT_ENCODE_SIZE);       // Initialize, defaulting encode_size
 }
 
    Pack::Pack(Value_t size)         // Table size constructor
@@ -466,15 +463,14 @@ size_t                              // The encoded length
 {  if( HCDM )
      debugf("Pack(%p)::Pack(%u)\n", this, size);
 
-   init();
-   resize(size);
+   init(size);
 }
 
    Pack::~Pack( void )              // Destructor
 {  if( HCDM )
      debugf("Pack(%p)::~Pack()\n", this);
 
-   resize(0);
+   resize(0);                       // (Evict all entries)
    term();
 }
 
@@ -489,24 +485,60 @@ size_t                              // The encoded length
 //       Terminate
 //
 //----------------------------------------------------------------------------
-void Pack::init(void)               // Initialize
+void
+   Pack::init(                      // Initialize
+     Value_t           size)        // Initial table size
 {
-   encode_size= DEFAULT_TABLE_SIZE;
-   entry_size= encode_size / SPEC_ENTRY_SIZE;
-   size_t
-   size= sizeof(Entry*) * entry_size;
-   entry_array= (Entry**)must::malloc(size);
-   memset(entry_array, 0, size);
-
    entry_used= 0;                   // Number of Entries in use
    entry_ins= 1;                    // Current insert Array_ix
    entry_old= 1;                    // Current oldest Array_ix
+
+   resize(size);
 }
 
 void Pack::term(void)               // Terminate
 {
    free(entry_array);
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       RFC7541::Pack::operator==
+//       RFC7541::Pack::operator!=
+//
+// Purpose-
+//       Equality comparison operator
+//       Inequality comparison operator
+//
+//----------------------------------------------------------------------------
+bool
+   Pack::operator==(                // Compare equal to
+     const Pack&       pack) const  // This Pack
+{
+   if( encode_size != pack.encode_size ) // (entry_size depends on encode_size)
+     return false;
+   if( entry_used != pack.entry_used )
+     return false;
+   if( value_used != pack.value_used )
+     return false;
+
+   // The entry_arrays don't have to be identical, but their content does
+   for(Value_t ix= 0; ix < entry_used; ++ix) {
+     const Entry* this_entry= entix2entry(STATIC_ENTRY_DIM + ix);
+     const Entry* that_entry= pack.entix2entry(STATIC_ENTRY_DIM + ix);
+     if( strcmp(this_entry->name,  that_entry->name)  != 0
+      || strcmp(this_entry->value, that_entry->value) != 0 )
+       return false;
+   }
+
+   return true;
+}
+
+bool
+   Pack::operator!=(                // Compare not equal to
+     const Pack&       pack) const  // This Pack
+{  return !operator==(pack); }
 
 //----------------------------------------------------------------------------
 //
@@ -526,7 +558,13 @@ void Pack::term(void)               // Terminate
 void
    Pack::debug(const char* info) const // Debugging display
 {
-   debugf("Pack(%p).debug(%s)\n", this, info);
+   if( debug_recursion > 0 ) {      // Prevent debug recursion
+     debug_flush();                 // If recursion occurs, flush
+     return;
+   }
+   ++debug_recursion;
+
+   debugf("\nPack(%p).debug(%s)\n", this, info);
    debugf("..used %u of %u\n", get_encode_used(), get_encode_size());
    debugf("..entry_used(%u) entry_old(%u) entry_ins(%u) entry_size(%u)\n"
          , entry_used, entry_old, entry_ins, entry_size);
@@ -568,6 +606,8 @@ void
 
    if( hcdm && verbose > 1 )
      entry_map.debug(info);
+
+   --debug_recursion;
 }
 
 //----------------------------------------------------------------------------
@@ -652,7 +692,28 @@ Properties                          // Decoded Properties
          break;
        }
        case ET_RESIZE:              // Resize operation (MUST precede others)
-       { throw std::runtime_error("ET_RESIZE NOT CODED YET");
+       { // If multiple resize operations are encoded, only two are allowed.
+         // These MUST be the first two encoded operations, and the second
+         // resize value MUST be greater than the first.
+         bool have_first= false;    // Default, not the first operation
+         if( reader.get_offset() != 0 ) { // If not the first operation
+           Reader aux_reader(reader.get_writer()); // Get auxiliary Reader
+           if( (aux_reader.peek() & 0x00E0) != 0x20 )
+             throw connection_error("Pack::decode resize not first op");
+           have_first= true;        // A prior resize exists
+           Integer::decode(aux_reader, 5); // (encode_size= first resize)
+
+           // If we are not about to process the second ET_RESIZE operation
+           if( reader.get_offset() != aux_reader.get_offset() )
+             throw connection_error("Pack::decode resize sequence error");
+         }
+
+         Value_t size= Integer::decode(reader, 5); // Get the resize value
+         if( verbose )
+           debugf("Decode: ET_RESIZE: %d\n", size);
+         if( have_first && size <= encode_size )
+            throw connection_error("Pack::decode second resize <= first");
+         resize(size);
          break;
        }
        default:
@@ -775,7 +836,7 @@ void
 
 //----------------------------------------------------------------------------
 //
-// Method-
+// Protected method-
 //       RFC7541::Pack::entix2entry
 //
 // Purpose-
@@ -825,12 +886,12 @@ const Entry*                        // The Entry*
      if( entry )
        return entry;
 
-     if( USE_CHECKING )         // If entry not found (internal logic error)
+     if( USE_CHECKING )             // If entry not found
        debugf("%4d cpp entix2entry(%u) dynam_ix(%u) array_ix(%u)\n"
              , __LINE__, entry_ix, dynam_ix, array_ix);
-     debug("constency fault");
+     debug("constency fault");      // (Internal logic error)
      throw connection_error("consistency fault");
-   } else {                       // Entry must be in bottom section
+   } else {                         // Entry must be in bottom section
      Index_ix index_ix= dynam_ix - entry_ins + 1;
      if( index_ix <= (entry_size - entry_old) ) {
        Entry* entry= entry_array[index_ix];
@@ -848,7 +909,7 @@ const Entry*                        // The Entry*
 
 //----------------------------------------------------------------------------
 //
-// Method-
+// Protected method-
 //       RFC7541::Pack::entry2entix
 //
 // Purpose-
@@ -900,20 +961,21 @@ RFC7541::Entry_ix                   // The logical index
 
 //----------------------------------------------------------------------------
 //
-// Method-
+// Protected method-
 //       RFC7541::Pack::evict
 //
 // Purpose-
-//       Evict entries from the encode_table
+//       Evict entries from encoding storage
 //
 //----------------------------------------------------------------------------
 void
-   Pack::evict(size_t size)         // Evict entries from the encode table
+   Pack::evict(                     // Evict entries from encoding storage
+     size_t            size)        // Until an entry of this size will fit
 {  if( HCDM )
      debugf("Pack(%p)::evict(%zu)\n", this, size);
 
    while( entry_used ) {            // While entries remain
-     if( encode_size >= (entry_used * SPEC_ENTRY_SIZE) + value_used + size )
+     if( encode_size >= (get_encode_used() + size) )
        break;
 
      remove();
@@ -922,26 +984,7 @@ void
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       RFC7541::Pack::get_setting
-//
-// Purpose-
-//       Get a connection setting
-//
-//----------------------------------------------------------------------------
-#if 0
-RFC7541::Value_t                    // The connection setting
-   Pack::get_setting(int I) const   // Get connection setting[I]
-{  if( HCDM )
-     debugf("Pack(%p).get_setting(%d)\n", this, I);
-
-   return 4096;                     // Hey, why not this?
-}
-#endif
-
-//----------------------------------------------------------------------------
-//
-// Method-
+// Protected method-
 //       RFC7541::Pack::insert
 //
 // Purpose-
@@ -955,13 +998,8 @@ void
      size_t nv_size= strlen(entry->name) + strlen(entry->value);
      size_t spec_size= SPEC_ENTRY_SIZE + nv_size;
 
-     // Make room for new Entry (Whether or not it will fit)
-//   evict(spec_size);
-     while( entry_used ) {          // While entries remain
-       if( encode_size >= (get_encode_used() + spec_size) )
-         break;
-       remove();
-     }
+     // Make room for new Entry (whether or not it will fit)
+     evict(spec_size);
 
      // Don't insert an Entry that won't fit by itself
      if( spec_size > encode_size ) {
@@ -992,7 +1030,7 @@ void
 
 //----------------------------------------------------------------------------
 //
-// Method-
+// Protected method-
 //       RFC7541::Pack::remove
 //
 // Purpose-
@@ -1043,35 +1081,105 @@ void
 
 //----------------------------------------------------------------------------
 //
-// Method-
+// Protected method-
 //       RFC7541::Pack::resize
 //
 // Purpose-
-//       Resize the encode_table
+//       Update the encode_size
 //
 //----------------------------------------------------------------------------
 void
-   Pack::resize(Value_t size)       // Resize the encode_table
-{  if( HCDM )
-     debugf("Pack(%p)::resize(%u)\n", this, size);
+   Pack::resize(                    // Update the encode_size
+     Value_t           size)        // To this size
+{  if( HCDM || hcdm )
+     debugf("Pack(%p)::resize(%u) encode_size(%d)\n", this, size, encode_size);
 
-   if( size > DEFAULT_TABLE_SIZE ) { // TODO: USE HEADER_TABLE_LIMIT instead
+   if( size == encode_size )        // Quick exit if size unchanged
+     return;
+
+   if( size > HEADER_TABLE_LIMIT ) {
      if( USE_CHECKING )
-       debugf("Pack(%p)::resize(%u) > DEFAULT_TABLE_SIZE(%u)\n", this, size
-             , DEFAULT_TABLE_SIZE);
+       debugf("Pack(%p)::resize(%u) > HEADER_TABLE_LIMIT(%u)\n", this, size
+             , HEADER_TABLE_LIMIT);
      throw connection_error("Pack::resize size>DEFAULT_TABLE_SIZE");
    }
 
-   while( (entry_used * SPEC_ENTRY_SIZE + value_used) > size )
+   // Evict entries (if required)
+   while( entry_used ) {            // While entries remain
+     if( size >= encode_size )
+       break;
+
      remove();
+   }
+
+   // Diagnostics: current array_entry table
+   if( hcdm && verbose > 1 )
+     debug("Resize: current table");
+
+   // Update the entry_array table, relocating entries
+   if( size < SPEC_ENTRY_SIZE ) {   // If the the table can't contain entries
+     assert( entry_used == 0 );
+     free(entry_array);
+     entry_array= nullptr;
+   } else {
+     size_t entry_size= (size / SPEC_ENTRY_SIZE);
+     size_t size= entry_size * sizeof(Entry*);
+
+     Entry** entry_array= (Entry**)must::malloc(size);
+     memset(entry_array, 0, size);
+     for(Array_ix array_ix= 1; array_ix <= entry_used; ++array_ix) {
+       Entry_ix entry_ix= STATIC_ENTRY_DIM + array_ix - 1;
+       Entry* entry= const_cast<Entry*>(entix2entry(entry_ix));
+       entry->index= array_ix;
+       Index_ix index_ix= entry_size - array_ix;
+       entry_array[index_ix]= entry;
+     }
+
+     entry_old= 1;
+     entry_ins= entry_used + 1;
+
+     free(this->entry_array);
+     this->entry_array= entry_array;
+   }
 
    encode_size= size;
    entry_size= encode_size / SPEC_ENTRY_SIZE;
+
+   // Diagnostics: updated array_entry table
+   if( hcdm && verbose > 1 )
+     debug("Resize: updated table");
+}
+
+void
+   Pack::resize(                    // Encode resize
+     Writer&           writer,      // On this Writer
+     Value_t           size)        // For this size
+{
+   if( verbose )
+     debugf("Encode: ET_RESIZE: %d\n", size);
+
+   // If multiple resize operations are encoded, only two are allowed.
+   // These MUST be the first two encoded operations, and the second
+   // resize value MUST be greater than the first.
+   if( writer.get_used() > 0 ) {    // If not the first resize
+     Ioda::Reader reader(writer);
+     if( (reader[0] & 0x00E0) != 0x20 )
+       throw connection_error("Pack::encode resize not first op");
+     Integer::decode(reader, 5);    // (encode_size= first resize)
+     if( reader.peek() != EOF )     // If another operation already encoded
+        throw connection_error("Pack::encode resize sequence error");
+     if( size <= encode_size )
+        throw connection_error("Pack::encode second resize <= first");
+   }
+
+   // Process and encode the resize request
+   resize(size);
+   Integer::encode(writer, size, 0x20, 5);
 }
 
 //----------------------------------------------------------------------------
 //
-// Method-
+// Protected method-
 //       RFC7541::Pack::string_decode
 //
 // Purpose-
@@ -1121,7 +1229,7 @@ std::string                         // Resultant string
 
 //----------------------------------------------------------------------------
 //
-// Method-
+// Protected method-
 //       RFC7541::Pack::string_encode
 //
 // Purpose-

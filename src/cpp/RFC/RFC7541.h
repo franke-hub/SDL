@@ -16,7 +16,7 @@
 //       RFC7541, HTTP/2 HPACK compression
 //
 // Last change date-
-//       2023/10/13
+//       2023/10/19
 //
 //----------------------------------------------------------------------------
 #ifndef _RFC7541_H_INCLUDED
@@ -75,7 +75,7 @@ typedef Value_t        Entry_ix;    // The logical Entry index
 typedef Value_t        Index_ix;    // A standard (entry_size-Array_ix) index
 
 enum DEFAULTS                       // Implementation defaults
-{  DEFAULT_TABLE_SIZE= 0x0001'0000  // Default encode_size (64K)
+{  DEFAULT_ENCODE_SIZE= 0x0001'0000 // Default encode_size (64K)
 
 ,  SPEC_ENTRY_SIZE= 32              // Specification-defined entry overhead
 }; // enum DEFAULTS
@@ -87,9 +87,6 @@ enum LIMITS                         // Implementation limitations
 ,  HEADER_LIST_LIMIT=  0xFFFF'FFFF  // Maximum SETTINGS_HEADER_LIST_SIZE
 // HEADER_ITEM_LIMIT=  0x0000'0000  // Maximum name or value length (TBD)
 }; // enum LIMITS
-
-// These are here for reference purposes during RFC7541.cpp's coding.
-// STATIC_ENTRY_DIM= 62             // Predefined static index table size
 
 //----------------------------------------------------------------------------
 //
@@ -125,6 +122,19 @@ enum ENCODE_TYPE        // bitcode
 ,  ET_CONST_NOINDEX     // 00000000 // Literal name, value. Const table
 ,  ET_CONST             // 0000xxxx // Indexed name, literal value. Const table
 }; // enum RFC7541::ENCODE_TYPE
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       connection_error
+//
+// Purpose-
+//       Connection error exception
+//
+//----------------------------------------------------------------------------
+class connection_error : public std::runtime_error {
+using std::runtime_error::runtime_error;
+}; // class connection_error
 
 //----------------------------------------------------------------------------
 //
@@ -320,8 +330,6 @@ static void
 //       Property vector
 //
 // Implementaton notes:
-//       TODO: n/v_encoded enum be DEFAULT, true, or false. (CONSIDER)
-//
 //       ENCODE_TYPES ET_INSERT, ET_NEVER, and ET_CONST may be specified
 //       whether or not an index is available. When no matching name index is
 //       in encoder storage, the literal name value is encoded. The inverse is
@@ -554,9 +562,7 @@ typedef pub::Ioda::Buffer Buffer;   // I/O Data Area: (input) Buffer, unused
 typedef pub::Ioda::Reader Reader;   // I/O Data Area: IodaReader
 typedef pub::Ioda::Writer Writer;   // I/O Data Area: Writer
 
-// Operational controls
-static int             hcdm;        // Hard Core Debug Mode?
-static int             verbose;     // Verbosity, higher is more verbose
+enum {DYNAMIC_ENTRY_0= 62};         // Entry_ix for the first dynamic entry
 
 // RFC7541::Pack::Attributes - - - - - - - - - - - - - - - - - - - - - - - - -
 private: // Production
@@ -570,18 +576,24 @@ Value_t                value_used= 0; // Allocated data storage size
 
 Entry**                entry_array= nullptr; // The Entry array
 Entry_map              entry_map;     // The Entry hash map
-size_t                 debug_recursion= 0; // Debug recursion counter
+
+// Operational controls
+static int             hcdm;        // Hard Core Debug Mode?
+static int             verbose;     // Verbosity, higher is more verbose
+
+// TODO: REMOVE
+mutable int            debug_recursion= 0; // Debug recursion indicator
 
 // RFC7541::Pack::Constructors, destructor - - - - - - - - - - - - - - - - - -
 public:
-   Pack( void );                    // Default constructor (encode_size == 0)
+   Pack( void );                    // Default constructor, DEFAULT_ENCODE_SIZE
    Pack(Value_t);                   // Constructor, specifying encode_size
    Pack(const Pack&) = delete;      // No copy constructor
    Pack(Pack&&) = delete;           // No move constructor
 
    ~Pack( void );                   // Destructor
 
-void init( void );                  // Initialize (construct)
+void init(Value_t size= 0);         // Initialize (construct) with initial size
 void term( void );                  // Terminate  (delete)
 
 // RFC7541::Pack::Debugging methods- - - - - - - - - - - - - - - - - - - - - -
@@ -593,8 +605,8 @@ Pack& operator=(const Pack&) = delete; // No copy assignment operator
 Pack& operator=(Pack&&) = delete;   // No move assignment operator
 
 // RFC7541::Pack::Comparison operators - - - - - - - - - - - - - - - - - - - -
-bool  operator==(const Pack& h) const = delete; // No equality comparison
-bool  operator!=(const Pack& h) const = delete; // No inequality comparison
+bool  operator==(const Pack& h) const; // Equality comparison
+bool  operator!=(const Pack& h) const; // Inequality comparison
 
 // RFC7541::Pack::Accessor methods - - - - - - - - - - - - - - - - - - - - - -
 Value_t
@@ -612,6 +624,27 @@ Properties
 void
    encode(Writer&, const Properties&); // Encode Properties
 
+const Entry*                        // The Entry
+   get_entry(                       // Get Entry
+     Entry_ix          entry)       // From this index
+{  return entix2entry(entry); }     // (Public access version)
+
+void
+   reset( void )                    // Reset the Pack object, emptying it
+{  resize(0); }                     // To its default initial state
+
+void
+   reset(Value_t size)              // Reset the Pack object, setting new size
+{  resize(0); if( size ) resize(size); }
+
+void
+   resize(Value_t);                 // Update the encoding storage size
+
+void
+   resize(Writer&, Value_t);        // Encode encode_size update
+
+// RFC7541::Pack::Internal methods - - - - - - - - - - - - - - - - - - - - - -
+private:
 const Entry*                        // The Entry*
    entix2entry(                     // Get Entry*
      Entry_ix          entry) const; // For this logical index
@@ -621,8 +654,8 @@ Entry_ix                            // The logical index
      const Entry*      entry) const; // For this Entry
 
 void
-   evict(                           // Evict entry_array entries
-     size_t            size= 0);    // Including new Entry space
+   evict(                           // Evict entries from encoding storage
+     size_t            size= 0);    // Until an entry of this size will fit
 
 void
    insert(Entry*);                  // Insert Entry into table
@@ -634,17 +667,6 @@ void
 void
    remove( void );                  // Remove the oldest index
 
-void
-   reset( void )                    // Reset the Pack object
-{  resize(0); }
-
-void
-   reset(Value_t size)              // Reset the Pack object, setting new size
-{  resize(0); if( size ) resize(size); }
-
-void
-   resize(Value_t);                 // Update the table size
-
 static string                       // Resultant string
    string_decode(                   // Decode input string
      Reader&           reader);     // (INPUT) IodaReader
@@ -653,14 +675,7 @@ static void
    string_encode(                   // Copy string to Writer
      Writer&           writer,      // (OUTPUT) Ioda::Writer
      string            text,        // The encode string
-     bool              encoded);    // Huffman encoded?
-
-// RFC7541::Pack::Internal methods - - - - - - - - - - - - - - - - - - - - - -
-private:
-#if 0
-Value_t                             // Setting value
-   get_setting(int) const;          // Get setting value
-#endif
+     bool              encoded);    // Use Huffman encoding?
 }; // class RFC7541::Pack
 
 //----------------------------------------------------------------------------

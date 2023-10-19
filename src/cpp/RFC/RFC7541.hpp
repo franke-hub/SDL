@@ -16,7 +16,7 @@
 //       RFC7541, HTTP/2 HPACK compression helper file
 //
 // Last change date-
-//       2023/10/13
+//       2023/10/19
 //
 // Implementation notes-
 //       This file is included by and considered part of RFC7541.cpp
@@ -648,85 +648,84 @@ Huff7541               EOS= {256, 30, 0x3FFF'FFFF}; // End Of String
 //       RFC7541 static entry table
 //
 //----------------------------------------------------------------------------
-#define GEN7541(name, value, index, encoding) \
-        Entry_const(name, value, index)
+#define GEN7541(name, value, index) Entry_const(name, value, index)
 
 // Specification notes:
 //   Entry[16] value("gzip, deflate") The space is not a typo.
 //   Entry[19] index("accept") is not alphabetized.
 Entry_const            static_entry[STATIC_ENTRY_DIM]=
-{  GEN7541(nullptr,            nullptr,  0, 0x00) // [ 0] (Not used)
-,  GEN7541(":authority",       nullptr,  1, 0x10) // [ 1]
-,  GEN7541(":method",          "GET",    2, 0x80) // [ 2]
-,  GEN7541(":method",          "POST",   3, 0x80) // [ 3]
-,  GEN7541(":path",            "/",      4, 0x80) // [ 4]
-,  GEN7541(":path",            "/index.html"      // [ 5]
-,                                        5, 0x80)
-,  GEN7541(":scheme",          "http",   6, 0x80) // [ 6]
-,  GEN7541(":scheme",          "https",  7, 0x80) // [ 7]
-,  GEN7541(":status",          "200",    8, 0x80) // [ 8]
-,  GEN7541(":status",          "204",    9, 0x80) // [ 9]
-,  GEN7541(":status",          "206",   10, 0x80) // [10]
-,  GEN7541(":status",          "304",   11, 0x80) // [11]
-,  GEN7541(":status",          "400",   12, 0x80) // [12]
-,  GEN7541(":status",          "404",   13, 0x80) // [13]
-,  GEN7541(":status",          "500",   14, 0x80) // [14]
-,  GEN7541("accept-charset",   nullptr, 15, 0x80) // [15]
-,  GEN7541("accept-encoding",  "gzip, deflate"    // [16]
-,                                       16, 0x80)
-,  GEN7541("accept-language",  nullptr, 17, 0x80) // [17]
-,  GEN7541("accept-ranges",    nullptr, 18, 0x80) // [18]
-,  GEN7541("accept",           nullptr, 19, 0x80) // [19]
-,  GEN7541("access-control-allow-origin"          // [20]
-,                              nullptr, 20, 0x80)
-,  GEN7541("age",              nullptr, 21, 0x80) // [21]
-,  GEN7541("allow",            nullptr, 22, 0x80) // [22]
-,  GEN7541("authorization",    nullptr, 23, 0x10) // [23]
-,  GEN7541("cache-control",    nullptr, 24, 0x80) // [24]
-,  GEN7541("content-disposition"                  // [25]
-,                              nullptr, 25, 0x80)
-,  GEN7541("content-encoding", nullptr, 26, 0x80) // [26]
-,  GEN7541("content-language", nullptr, 27, 0x80) // [27]
-,  GEN7541("content-length",   nullptr, 28, 0x80) // [28]
-,  GEN7541("content-location", nullptr, 29, 0x80) // [29]
-,  GEN7541("content-range",    nullptr, 30, 0x80) // [30]
-,  GEN7541("content-type",     nullptr, 31, 0x80) // [31]
-,  GEN7541("cookie",           nullptr, 32, 0x10) // [32]
-,  GEN7541("date",             nullptr, 33, 0x80) // [33]
-,  GEN7541("etag",             nullptr, 34, 0x80) // [34]
-,  GEN7541("expect",           nullptr, 35, 0x80) // [35]
-,  GEN7541("expires",          nullptr, 36, 0x80) // [36]
-,  GEN7541("from",             nullptr, 37, 0x80) // [37]
-,  GEN7541("host",             nullptr, 38, 0x80) // [38]
-,  GEN7541("if-match",         nullptr, 39, 0x80) // [39]
-,  GEN7541("if-modified-since"                    // [40]
-,                              nullptr, 40, 0x80)
-,  GEN7541("if-none-match",    nullptr, 41, 0x80) // [41]
-,  GEN7541("if-range",         nullptr, 42, 0x80) // [42]
-,  GEN7541("if-unmodified-since"                  // [43]
-,                              nullptr, 43, 0x80)
-,  GEN7541("last-modified",    nullptr, 44, 0x80) // [44]
-,  GEN7541("link",             nullptr, 45, 0x80) // [45]
-,  GEN7541("location",         nullptr, 46, 0x80) // [46]
-,  GEN7541("max-forwards",     nullptr, 47, 0x80) // [47]
-,  GEN7541("proxy-authenticate"                   // [48]
-,                              nullptr, 48, 0x10)
-,  GEN7541("proxy-authorization"                  // [49]
-,                              nullptr, 49, 0x10)
-,  GEN7541("range",            nullptr, 50, 0x80) // [50]
-,  GEN7541("referer",          nullptr, 51, 0x80) // [51]
-,  GEN7541("refresh",          nullptr, 52, 0x80) // [52]
-,  GEN7541("retry-after",      nullptr, 53, 0x80) // [53]
-,  GEN7541("server",           nullptr, 54, 0x80) // [54]
-,  GEN7541("set-cookie",       nullptr, 55, 0x10) // [55]
-,  GEN7541("strict-transport-security"            // [56]
-,                              nullptr, 56, 0x10)
-,  GEN7541("transfer-encoding"                    // [57]
-,                              nullptr, 57, 0x80)
-,  GEN7541("user-agent",       nullptr, 58, 0x80) // [58]
-,  GEN7541("vary",             nullptr, 59, 0x80) // [59]
-,  GEN7541("via",              nullptr, 60, 0x80) // [60]
-,  GEN7541("www-authenticate", nullptr, 61, 0x10) // [61]
+{  GEN7541(nullptr,            nullptr,  0) // [ 0] (Not used)
+,  GEN7541(":authority",       nullptr,  1) // [ 1]
+,  GEN7541(":method",          "GET",    2) // [ 2]
+,  GEN7541(":method",          "POST",   3) // [ 3]
+,  GEN7541(":path",            "/",      4) // [ 4]
+,  GEN7541(":path"                          // [ 5]
+,          "/index.html",                5)
+,  GEN7541(":scheme",          "http",   6) // [ 6]
+,  GEN7541(":scheme",          "https",  7) // [ 7]
+,  GEN7541(":status",          "200",    8) // [ 8]
+,  GEN7541(":status",          "204",    9) // [ 9]
+,  GEN7541(":status",          "206",   10) // [10]
+,  GEN7541(":status",          "304",   11) // [11]
+,  GEN7541(":status",          "400",   12) // [12]
+,  GEN7541(":status",          "404",   13) // [13]
+,  GEN7541(":status",          "500",   14) // [14]
+,  GEN7541("accept-charset",   nullptr, 15) // [15]
+,  GEN7541("accept-encoding"                // [16]
+,          "gzip, deflate",             16)
+,  GEN7541("accept-language",  nullptr, 17) // [17]
+,  GEN7541("accept-ranges",    nullptr, 18) // [18]
+,  GEN7541("accept",           nullptr, 19) // [19]
+,  GEN7541("access-control-allow-origin"    // [20]
+,                              nullptr, 20)
+,  GEN7541("age",              nullptr, 21) // [21]
+,  GEN7541("allow",            nullptr, 22) // [22]
+,  GEN7541("authorization",    nullptr, 23) // [23]
+,  GEN7541("cache-control",    nullptr, 24) // [24]
+,  GEN7541("content-disposition"            // [25]
+,                              nullptr, 25)
+,  GEN7541("content-encoding", nullptr, 26) // [26]
+,  GEN7541("content-language", nullptr, 27) // [27]
+,  GEN7541("content-length",   nullptr, 28) // [28]
+,  GEN7541("content-location", nullptr, 29) // [29]
+,  GEN7541("content-range",    nullptr, 30) // [30]
+,  GEN7541("content-type",     nullptr, 31) // [31]
+,  GEN7541("cookie",           nullptr, 32) // [32]
+,  GEN7541("date",             nullptr, 33) // [33]
+,  GEN7541("etag",             nullptr, 34) // [34]
+,  GEN7541("expect",           nullptr, 35) // [35]
+,  GEN7541("expires",          nullptr, 36) // [36]
+,  GEN7541("from",             nullptr, 37) // [37]
+,  GEN7541("host",             nullptr, 38) // [38]
+,  GEN7541("if-match",         nullptr, 39) // [39]
+,  GEN7541("if-modified-since"              // [40]
+,                              nullptr, 40)
+,  GEN7541("if-none-match",    nullptr, 41) // [41]
+,  GEN7541("if-range",         nullptr, 42) // [42]
+,  GEN7541("if-unmodified-since"            // [43]
+,                              nullptr, 43)
+,  GEN7541("last-modified",    nullptr, 44) // [44]
+,  GEN7541("link",             nullptr, 45) // [45]
+,  GEN7541("location",         nullptr, 46) // [46]
+,  GEN7541("max-forwards",     nullptr, 47) // [47]
+,  GEN7541("proxy-authenticate"             // [48]
+,                              nullptr, 48)
+,  GEN7541("proxy-authorization"            // [49]
+,                              nullptr, 49)
+,  GEN7541("range",            nullptr, 50) // [50]
+,  GEN7541("referer",          nullptr, 51) // [51]
+,  GEN7541("refresh",          nullptr, 52) // [52]
+,  GEN7541("retry-after",      nullptr, 53) // [53]
+,  GEN7541("server",           nullptr, 54) // [54]
+,  GEN7541("set-cookie",       nullptr, 55) // [55]
+,  GEN7541("strict-transport-security"      // [56]
+,                              nullptr, 56)
+,  GEN7541("transfer-encoding"              // [57]
+,                              nullptr, 57)
+,  GEN7541("user-agent",       nullptr, 58) // [58]
+,  GEN7541("vary",             nullptr, 59) // [59]
+,  GEN7541("via",              nullptr, 60) // [60]
+,  GEN7541("www-authenticate", nullptr, 61) // [61]
 }; // Entry static_entry array
 
 //----------------------------------------------------------------------------
@@ -735,19 +734,6 @@ Entry_const            static_entry[STATIC_ENTRY_DIM]=
 static const char* type_to_name[8]=
          { "ET_INDEX", "ET_INSERT_NOINDEX", "ET_INSERT", "ET_RESIZE"
          , "ET_NEVER_NOINDEX", "ET_NEVER", "ET_CONST_NOINDEX", "ET_CONST"};
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       connection_error
-//
-// Purpose-
-//       Connection error exception
-//
-//----------------------------------------------------------------------------
-class connection_error : public std::runtime_error {
-using std::runtime_error::runtime_error;
-}; // class connection_error
 
 //----------------------------------------------------------------------------
 //
