@@ -57,7 +57,7 @@ public:
 //       Read input character. The character is NOT echoed.
 //
 //----------------------------------------------------------------------------
-static int                           // The next character, NUL if stopped
+static int                           // The next character, -1 if stopped
    getch( void );                    // Get next character, no echo
 
 //----------------------------------------------------------------------------

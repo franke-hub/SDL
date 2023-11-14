@@ -59,8 +59,10 @@ static int             registered= false; // One-time initialization flag
 //
 //----------------------------------------------------------------------------
 static void handle_atexit( void ) { // atexit target subroutine
-    if( in_getch )
-      tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
+   if( in_getch ) {
+     operational= 0;
+     tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -140,21 +142,23 @@ char*                               // addr || nullptr iff non-operational
 
        continue;
      }
-     else if( C == 21 ) {           // If Ctrl-U (or not operational)
+     else if( C == 21 || C == -1 ) { // If Ctrl-U (or not operational)
        while( used > 0 )
        {
          puts("\b \b");
          used--;
        }
 
+       if( C == -1 )
+         return nullptr;
        continue;
      }
-     else if( C == 27 ) {         // If ESCape, ignore 3 character sequence
+     else if( C == 27 ) {           // If ESCape, ignore 3 character sequence
        getch();
        getch();
        putch('\a');
      }
-     else if( C == '\r' )         // Silently ignore carriage return
+     else if( C == '\r' )           // Silently ignore carriage return
        continue;
 
      addr[used++]= C;
