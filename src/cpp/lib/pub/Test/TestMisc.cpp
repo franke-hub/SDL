@@ -16,7 +16,7 @@
 //       Miscellaneous tests.
 //
 // Last change date-
-//       2023/05/03
+//       2023/11/13
 //
 //----------------------------------------------------------------------------
 #include <assert.h>
@@ -31,6 +31,7 @@
 #include "pub/TEST.H"               // For VERIFY, ...
 #include "pub/Hardware.h"           // For pub::Hardware
 #include "pub/Properties.h"         // For pub::Properties
+#include "pub/Random.h"             // For pub::Random
 #include "pub/Statistic.h"          // For pub::Statistic
 #include "pub/Tokenizer.h"          // For pub::Tokenizer
 #include "pub/Wrapper.h"            // For pub::Wrapper
@@ -246,6 +247,19 @@ static inline int
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       test_Random
+//
+// Purpose-
+//       Test Random.h
+//
+//----------------------------------------------------------------------------
+static inline int                   // Number of errors found
+   test_Random( void )              // Test Random.h
+{  return PUB::Random::_self_test(opt_verbose); }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       test_Statistic
 //
 // Purpose-
@@ -347,8 +361,10 @@ extern int                          // Return code
    {
      int error_count= 0;
 
+     setlocale(LC_NUMERIC, "");     // Allows printf("%'d\n", 123456789);
      error_count += test_Hardware(); // Test Hardware.h
      error_count += test_Properties(); // Test Properties.h
+     error_count += test_Random();  // Test Random.h
      error_count += test_Statistic(); // Test Statistic.h
      error_count += test_Tokenizer(); // Test Tokenizer.h
 
