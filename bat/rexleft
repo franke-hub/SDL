@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2018-2021 Frank Eskesen.
+##       Copyright (C) 2018-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       rexterm left of bluebird terminal
 ##
 ## Last change date-
-##       2021/02/17
+##       2023/10/27
 ##
 ## Usage-
 ##       rexleft {-x n} {-y n}
@@ -29,6 +29,8 @@
 ##############################################################################
 # Handle -x, -y parameters
 source .tweaks --rexleft
+geom=80x24
+[[ -n "$rexleft_geom" ]] && geom=$rexleft_geom
 xgeo=( ${rexleft_xgeo[@]} )
 ygeo=( ${rexleft_ygeo[@]} )
 
@@ -97,5 +99,5 @@ yoff=${ygeo[$yndx]}
 
 ##############################################################################
 # Rexterm left of bluebird
-rexterm $cs -geometry 80x24-$xoff+$yoff $parm
+rexterm $cs -geometry $geom-$xoff+$yoff $parm
 

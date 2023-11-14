@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2020 Frank Eskesen.
+##       Copyright (C) 2020-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Local configuration information.
 ##
 ## Last change date-
-##       2020/09/05
+##       2023/10/27
 ##
 ## Usage-
 ##       Copy this script into your ~/bin directory, then tailor it there.
@@ -50,6 +50,7 @@ fi
 ##############################################################################
 ## ~/bat/rexleft: xterm geometries
 if [[ "$1" == "--rexleft" ]] ; then
+  rexleft_geom=80x24
   rexleft_xgeo=(668 1170)
   rexleft_ygeo=(0 382)
   return
