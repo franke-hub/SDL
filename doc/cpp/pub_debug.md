@@ -15,7 +15,7 @@
 //       Debug.h reference manual
 //
 // Last change date-
-//       2023/11/19
+//       2023/11/26
 //
 -------------------------------------------------------------------------- -->
 ## Defined in header <pub/Debug.h>
@@ -53,7 +53,7 @@ debugf, errorf, throwf, tracef, vdebugf, verrorf, vtracef, debugh, errorh, trace
  The default Debug object, accessible using methods get, set, and show.
 
 ------------------------------------------------------------------------------
-### <a id="constructors">Constructors:</a>
+### <a id="construct">Constructor:</a>
 
 #### Debug(const char* name= nullptr);
 The constructor sets the file_name attribute from the specified name.
@@ -70,29 +70,13 @@ This allows the file_name, file_mode, Heading, and Mode to be set first.
 Writes to FILE stdout and the trace file using printf style arguments.
 
 ---
-#### <a id="errorf">void errorf(const char* fmt, ...);</a>
-Writes to FILE stderr and the trace file using printf style arguments.
-
----
-#### <a id="tracef">void tracef(const char* fmt, ...);</a>
-Writes to the trace file using printf style arguments,
-
----
-#### <a id="vdebugf">void vdebugf(const char* fmt, va_list arg);</a>
-Writes to FILE stdout and the trace file using vprintf style arguments.
-
----
-#### <a id="verrorf">void verrorf(const char* fmt, va_list arg);</a>
-Writes to FILE stderr and the trace file using vprintf style arguments.
-
----
-#### <a id="vtracef">void vtracef(const char* fmt, va_list arg);</a>
-Writes to the trace file using vprintf style arguments,
-
----
 #### <a id="debugh">void debugh(const char* fmt, ...);</a>
 Writes to FILE stdout and the trace file using printf style arguments,
 prefixing the message using Heading controls.
+
+---
+#### <a id="errorf">void errorf(const char* fmt, ...);</a>
+Writes to FILE stderr and the trace file using printf style arguments.
 
 ---
 #### <a id="errorh">void errorh(const char* fmt, ...);</a>
@@ -100,9 +84,17 @@ Writes to FILE stderr and the trace file using printf style arguments,
 prefixing the message using Heading controls.
 
 ---
-#### <a id="errorh">void traceh(const char* fmt, ...);</a>
+#### <a id="tracef">void tracef(const char* fmt, ...);</a>
+Writes to the trace file using printf style arguments,
+
+---
+#### <a id="traceh">void traceh(const char* fmt, ...);</a>
 Writes to the trace file using printf style arguments,
 prefixing the message using Heading controls.
+
+---
+#### <a id="vdebugf">void vdebugf(const char* fmt, va_list arg);</a>
+Writes to FILE stdout and the trace file using vprintf style arguments.
 
 ---
 #### <a id="vdebugh">void vdebugh(const char* fmt, va_list arg);</a>
@@ -110,9 +102,17 @@ Writes to FILE stdout and the trace file using vprintf style arguments,
 prefixing the message using Heading controls.
 
 ---
+#### <a id="verrorf">void verrorf(const char* fmt, va_list arg);</a>
+Writes to FILE stderr and the trace file using vprintf style arguments.
+
+---
 #### <a id="verrorh">void verrorh(const char* fmt, va_list arg);</a>
 Writes to FILE stderr and the trace file using vprintf style arguments,
 prefixing the message using Heading controls.
+
+---
+#### <a id="vtracef">void vtracef(const char* fmt, va_list arg);</a>
+Writes to the trace file using vprintf style arguments,
 
 ---
 #### <a id="vtraceh">void vtraceh(const char* fmt, va_list arg);</a>
@@ -122,7 +122,7 @@ prefixing the message using Heading controls.
 ---
 #### Errors
 
-Should an error occurs opening the trace file, a descriptive error message
+Should an error occur opening the trace file, a descriptive error message
 is written to stderr and the `handle` attribute is set to stderr.
 
 ------------------------------------------------------------------------------
@@ -147,11 +147,19 @@ outputs.
 #### <a id="backtrace">void backtrace(void);</a>
 Writes debugging backtrace information.
 
+---
 #### <a id="clr_head">void clr_head(Heading bits);</a>
 Clears the Heading controls specified by `bits`.
 
 ---
-#### <a id="get_FILE">FILE* get_FILE(void);</a>
+#### <a id="flush">void flush(void);</a>
+Flushes stdout, stderr, and the trace file.
+
+Additionally, when the `mode` attribute equals MODE_INTENSIVE,
+closes and then re-opens the trace file with mode "ab".
+
+---
+#### <a id="get_file">FILE* get_FILE(void);</a>
 Returns the trace FILE handle.
 This is (at least) used by and with pub::utility::dump.
 
@@ -162,14 +170,6 @@ Returns the trace file mode, used when opening the file.
 ---
 #### <a id="get_file_name">std::string get_file_name(void);</a>
 Returns the trace file name.
-
----
-#### <a id="flush">void flush(void);</a>
-Flushes stdout, stderr, and the trace file.
-
-Additionally, when the `mode` attribute equals MODE_INTENSIVE,
-the flush method closes and then re-opens the trace file with mode "ab".
-__TODO__ Test: see if this is required in every OS or just Cygwin.
 
 ---
 #### <a id="set_file_mode">void set_file_name(std::string mode);</a>
@@ -197,13 +197,8 @@ operation.
 
 Note: The flush method closes and then re-opens the trace file with mode "ab".
 
-| <div style="width:10%">Method</div> | <div style="width:90%">Purpose<div> |
-|--------|---------|
-| [set_head](./pub_debug.md#set_head) | Set heading options. |
-| [set_mode](./pub_debug.md#set_mode) | Set debugging mode. |
-
 ------------------------------------------------------------------------------
-### Default Debug object access:
+### <a id="default-debug-object">Default Debug object access:</a>
 The default Debug object is created by the Debug::get method.
 It can also be set by the application using Debug::set.
 (Namespace pub::debugging methods use Debug::get to access it.)
@@ -222,31 +217,28 @@ Replaces the current default Debug object with `debug` and returns
 the replaced default Debug object.
 
 ---
-#### <a id="show">Debug* show(void);</a>
-Returns the current default Debug object, but does not creating it.
+#### <a id="show">static Debug* show(void);</a>
+Returns the current default Debug object, but does not create it.
 
 ------------------------------------------------------------------------------
-### Implementing *Lockable*:
-
----
-#### <a id="lock">static void lock(void);</a>
-Obtains the global (recursive) Debug lock.
-
----
-#### <a id="try_lock">static bool try_lock(void);</a>
-Conditionally obtains the global (recursive)  Debug lock,
-returning `true` if the lock was obtained.
-
----
-#### <a id="unlock">void unlock(void);</a>
-Releases the global Debug lock.
-
----
-The Debug *Lockable* implementation:
-
+### <a id="lockable">*Lockable* methods:</a>
 Debug defines a static internal RecursiveLatch or recursive_mutex for locking.
 This allows sequential writing functions in a multithreading environment.
 
+---
+#### <a id="lock">static void lock(void);</a>
+Obtains the recursive Debug lock.
+
+---
+#### <a id="try_lock">static bool try_lock(void);</a>
+Conditionally obtains the recursive Debug lock,
+returning `true` if the lock was obtained.
+
+---
+#### <a id="unlock">static void unlock(void);</a>
+Releases the Debug lock.
+
+---
 Usage:
 ```
    {{{{
@@ -256,10 +248,10 @@ Usage:
    }}}}
 ```
 
-Without the lock_guard, another thread might write another Debug message
+Without the lock_guard, another thread might write a Debug message
 between the two debugf statements.
-Note that nothing prevents another thread from using printf which could then
-break up the debugf statements.
+Note: Nothing prevents another thread from using printf which might also
+break up the debugf statements in the stdout stream.
 
 __NOTE__: If an application uses DLLs, it must use the DLL library rather than
 the default include library.
@@ -269,62 +261,63 @@ This works poorly in a single-threaded environment and even worse when
 multi-threading.
 
 ------------------------------------------------------------------------------
-### <a id="namespace">Namespace pub::debugging:</a>
+### <a id="namespace-debugging">Namespace pub::debugging:</a>
 
 Namespace pub::debugging subroutines use the default Debug object,
 creating it if necessary.
 
-Namespace subroutines [debugf](#debugf), [debugh](#debugh),
+The [debugf](#debugf), [debugh](#debugh),
 [errorf](#errorf), [errorh](#errorh), [tracef](#tracef), [traceh](#traceh),
 [vdebugf](#vdebugf), [vdebugh](#vdebugh),
 [verrorf](#verrorf), [verrorh](#verrorh),
 [vtracef](#vtracef), [vtraceh](#vtraceh),
-[throwf](#throwf), and [vthrowf](#vthrowf)
+[throwf](#throwf), and [vthrowf](#vthrowf) subroutines
 have the same names and interfaces as their Debug object method counterparts.
 
 ---
 #### <a id="debug_backtrace">void debug_backtrace(void);</a>
 Writes debugging backtrace information using the default Debug object.
+[see backtrace](#backtrace)
 
 ---
 #### <a id="debug_clr_head">void debug_clr_head(Heading bits);</a>
 Clears Heading controls for the default Debug object.
-[see](#clr_head)
+[see clr_head](#clr_head)
 
 ---
 #### <a id="debug_flush">void debug_flush(void);</a>
 Flushes the default Debug object.
-[see](#flush)
+[see flush](#flush)
 
 ---
 #### <a id="debug_get_file_mode">std::string debug_get_file_mode(void);</a>
 Returns the file mode of the default Debug object.
-[see](#get_file_mode)
+[see get_file_mode](#get_file_mode)
 
 ---
 #### <a id="debug_get_file_name">std::string debug_get_file_name(void);</a>
 Returns the file name of the default Debug object.
-[see](#get_file_name)
+[see get_file_name](#get_file_name)
 
 ---
 #### <a id="debug_set_file_mode">void debug_set_file_mode(const char* mode);</a>
 Sets the file mode of the default Debug object.
-[see](#set_file_mode)
+[see set_file_mode](#set_file_mode)
 
 ---
 #### <a id="debug_set_file_name">void debug_set_file_name(const char* name);</a>
 Sets the file name of the default Debug object.
-[see](#set_file_name)
+[see set_file_name](#set_file_name)
 
 ---
 #### <a id="debug_set_head">void debug_set_head(Heading bits);</a>
 Sets Heading controls for the default Debug object.
-[see](#set_head)
+[see set_head](#set_head)
 
 ---
 #### <a id="debug_set_mode">void debug_set_mode(Mode mode);</a>
 Sets the debugging mode of the default Debug object.
-[see](#set_mode)
+[see set_mode](#set_mode)
 
 ------------------------------------------------------------------------------
 ### Example:

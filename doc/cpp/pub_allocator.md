@@ -15,7 +15,7 @@
 //       Allocator.h reference manual
 //
 // Last change date-
-//       2023/11/16
+//       2023/11/26
 //
 -------------------------------------------------------------------------- -->
 ###### Defined in header <pub/Allocator.h>
@@ -41,7 +41,7 @@ Allocator is a base class.
 
 ####
 ---
-#### <a id="a_allocator">Allocator( void ) = default;</a>
+#### <a id="a_construct">Allocator( void ) = default;</a>
 #### virtual ~Allocator( void ) = default;
 The (base class) Allocator constructor and destructor do nothing.
 
@@ -90,12 +90,12 @@ The BlockAllocator allocates and releases fixed-size blocks.
 
 ####
 ---
-#### <a id="b_allocator">BlockAllocator(size_t size, size_t b_size);</a>
+#### <a id="b_construct">BlockAllocator(size_t size, size_t b_size);</a>
 The constructor verifies the parameters but does not allocate any storage.
 (A storage block is allocated by the first get method call.)
 
 ---
-#### virtual ~BlockAllocator( void );
+#### <a id="b_destruct">virtual ~BlockAllocator( void );</a>
 The destructor releases all BlockAllocator storage.
 
 ---
