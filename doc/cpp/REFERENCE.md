@@ -15,21 +15,17 @@
 //       SDL Distribution reference manual
 //
 // Last change date-
-//       2023/11/09
+//       2023/11/26
 //
 -------------------------------------------------------------------------- -->
 
 # Software Development Lab (SDL) C++ Library reference manual
 
-__Note__
-TODO: This manual is incomplete.
-It currently only documents Dispatch.h and associated objects.
-- Debug.h: (partially documented since it's used by Dispatch.h's example.)
-- Dispatch.h: The lock free multi-threading dispatcher
-- List.h: The AI_list is a key to the Dispatch scheduling mechanism.
-- Worker.h: provides the base class for pub::dispatch::Task.
+This reference manual describes SDL C++ interfaces provided by the
+distribution.
 
-This reference manual describes SDL C++ interfaces provided by the distribution.
+__TODO__ Update in progress: Current update:
+Allocator.h, Debug.h
 
 - [Allocator.h:](./Allocator.md) An experimental storage allocator.
 (It's use is not currently recommended.)

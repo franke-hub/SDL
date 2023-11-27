@@ -44,7 +44,7 @@ Class: BlockAllocator (Allocate/release a fixed size block.
 
 | <div style="width:10%">Method</div> | <div style="width:90%">Purpose<div> |
 |--------|---------|
-| [constructor](./pub_allocator.md##b_construct) | Initialize the BlockAllocator |
+| [constructor](./pub_allocator.md#b_construct) | Initialize the BlockAllocator |
 | [destructor](./pub_allocator.md#b_destruct) | Release all allocated storage |
 | [get](./pub_allocator.md#b_get) | Allocate a fixed-size storage block |
 | [put](./pub_allocator.md#b_put) | Release a fixed-size storage block |

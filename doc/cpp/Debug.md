@@ -105,9 +105,9 @@ creating a default Debug object it if needed.
 | [debug_flush](./pub_debug.md#debug_flush) | Flush the trace file. |
 | [debug_get_file_mode](./pub_debug.md#debug_get_file_mode) | Get the file mode. |
 | [debug_get_file_name](./pub_debug.md#debug_get_file_name) | Get the file name. |
-| [debug_set_head](./pub_debug.md#debug_set_head) | Set Heading control options. |
 | [debug_set_file_mode](./pub_debug.md#debug_set_file_mode) | Set the file mode. |
 | [debug_set_file_name](./pub_debug.md#debug_set_file_name) | Set the file name. |
+| [debug_set_head](./pub_debug.md#debug_set_head) | Set Heading control options. |
 | [debug_set_mode](./pub_debug.md#debug_set_mode) | Set the debugging mode. |
 
 These subroutines have the same names and interface as their Debug method

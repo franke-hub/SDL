@@ -33,7 +33,7 @@ debugf, errorf, throwf, tracef, vdebugf, verrorf, vtracef, debugh, errorh, trace
   - MODE_IGNORE (Debugging inactive)
   - MODE_INTENSIVE (Debugging active, auto-flush enabled)
 
-- enum Heading (Heading (bit) field masks)
+- enum Heading (Heading bit field masks)
   -  HEAD_TIME (Include current time in heading)
   -  HEAD_THREAD (Include current thread in heading)
   -  HEAD_DEFAULT (Default heading: currently HEAD_TIME)
