@@ -15,7 +15,7 @@
 //       SDL Distribution reference manual
 //
 // Last change date-
-//       2023/09/22
+//       2023/11/09
 //
 -------------------------------------------------------------------------- -->
 
@@ -31,12 +31,13 @@ It currently only documents Dispatch.h and associated objects.
 
 This reference manual describes SDL C++ interfaces provided by the distribution.
 
-- Allocator.h: An experimental storage allocator.
+- [Allocator.h:](./Allocator.md) An experimental storage allocator.
 (It's use is not currently recommended.)
-- ASCII.h: A (reference) list of ASCII characters.
-- Clock.h: An epoch-offset clock, represented as a double.
-- config.h: Provides a (minimal) set of user macros.
-- Console.h: Wrappers for console functions
+- [ASCII.h:](../../src/cpp/inc/pub/ASCII.h) A list of ASCII characters.
+This is intended as a reference rather than an include file.
+- [Clock.h:](./Clock.md) An epoch-offset clock, represented as a double.
+- [config.h:](./config.md) Provides a (minimal) set of user macros.
+- [Console.h:](./Console.md) Wrappers for console I/O functions.
 - [Debug.h:](./Debug.md) Debugging tools
 - Diagnostic.h: (to be renamed) Provides a mechanism for diagnosing shared_ptr
 and weak_ptr usage problems.

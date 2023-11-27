@@ -15,96 +15,117 @@
 //       Debug.h reference manual
 //
 // Last change date-
-//       2023/07/28
+//       2023/11/19
 //
 -------------------------------------------------------------------------- -->
 ## pub::Debug
 \#include <pub/Debug.h>
 
-(Partially documented)
-
-#### Member functions
+#### Methods
 
 | <div style="width:10%">Method</div> | <div style="width:90%">Purpose<div> |
 |--------|---------|
-| [debugf](./pub_debug.md) | Write to stdout and the trace file |
-| [debugh](./pub_debug.md) | Write to stdout and the trace file, including heading information |
-| [errorf](./pub_debug.md) | Write to stderr and the trace file |
-| [errorh](./pub_debug.md) | Write to stderr and the trace file, including heading information |
-| [throwf](./pub_debug.md) | Write to stderr and the trace file, then throw an exception |
-| [tracef](./pub_debug.md) | Write (only) to the trace file |
-| [traceh](./pub_debug.md) | Write (only) to the trace file, including heading information |
-| [vdebugf](./pub_debug.md) | Write to stdout and the trace file |
-| [vdebugh](./pub_debug.md) | Write to stdout and the trace file, including heading information |
-| [verrorf](./pub_debug.md) | Write to stderr and the trace file |
-| [verrorh](./pub_debug.md) | Write to stderr and the trace file, including heading information |
-| [vthrowf](./pub_debug.md) | Write to stderr and the trace file, then throw an exception |
-| [vtracef](./pub_debug.md) | Write (only) to the trace file |
-| [vtraceh](./pub_debug.md) | Write (only) to the trace file, including heading information |
+| [attributes](./pub_debug.md#attributes) | Attributes |
+| [constructor](./pub_debug.md#constructor) | Constructors |
+
+---
+Write methods:
+
+| <div style="width:10%">Method</div> | <div style="width:90%">Purpose<div> |
+|--------|---------|
+| [debugf](./pub_debug.md#debugf) | Write to stdout and the trace file. |
+| [debugh](./pub_debug.md#debugh) | Write to stdout and the trace file, including heading information. |
+| [errorf](./pub_debug.md#errorf) | Write to stderr and the trace file. |
+| [errorh](./pub_debug.md#errorh) | Write to stderr and the trace file, including heading information. |
+| [flush](./pub_debug.md#flush) | Flush the trace file. |
+| [tracef](./pub_debug.md#tracef) | Write (only) to the trace file |
+| [traceh](./pub_debug.md#traceh) | Write (only) to the trace file, including heading information. |
+| [vdebugf](./pub_debug.md#vdebugf) | Write to stdout and the trace file. |
+| [vdebugh](./pub_debug.md#vdebugh) | Write to stdout and the trace file, including heading information. |
+| [verrorf](./pub_debug.md#verrorf) | Write to stderr and the trace file. |
+| [verrorh](./pub_debug.md#verrorh) | Write to stderr and the trace file, including heading information. |
+| [vtracef](./pub_debug.md#vtracef) | Write (only) to the trace file. |
+| [vtraceh](./pub_debug.md#vtraceh) | Write (only) to the trace file, including heading information. |
+
+---
+Exception generator methods:
+
+| <div style="width:10%">Method</div> | <div style="width:90%">Purpose<div> |
+|--------|---------|
+| [throwf](./pub_debug.md#throwf) | Write to stderr and the trace file, then throw an exception. |
+| [vthrowf](./pub_debug.md#vthrowf) | Write to stderr and the trace file, then throw an exception |
+
+---
+Accessor and control methods:
+
+| <div style="width:10%">Method</div> | <div style="width:90%">Purpose<div> |
+|--------|---------|
+| [backtrace](./pub_debug.md#backtrace) | Write debugging backtrace. |
+| [clr_head](./pub_debug.md#clr_head) | Clear heading options. |
+| [get_FILE](./pub_debug.md#get_FILE) | Get the trace FILE (pointer). |
+| [get_file_mode](./pub_debug.md#get_file_mode) | Get the file mode. |
+| [get_file_name](./pub_debug.md#get_file_name) | Get the file name. |
+| [set_file_mode](./pub_debug.md#set_file_mode) | Set the file mode. |
+| [set_file_name](./pub_debug.md#set_file_name) | Set the file name. |
+| [set_head](./pub_debug.md#set_head) | Set heading options. |
+| [set_mode](./pub_debug.md#set_mode) | Set debugging mode. |
+
+---
+Default Debug object access:
+
+| <div style="width:10%">Method</div> | <div style="width:90%">Purpose<div> |
+|--------|---------|
+| [get](./pub_debug.md#get) | Access the global debug object. |
+| [set](./pub_debug.md#set) | Set the global debug object. |
+| [show](./pub_debug.md#show) | Conditionally access the global debug object. |
+
+The default Debug object:
+ The default Debug object is either set using Debug::set or, if not
+initialized, created and set when a pub::debugging write method is used.
+
+---
+*Lockable* methods:
+
+| <div style="width:10%">Method</div> | <div style="width:90%">Purpose<div> |
+|--------|---------|
+| [lock](./pub_debug.md#lock) | Obtain (global) recursive lock. |
+| [try_lock](./pub_debug.md#try_lock) | Conditionally obtain (global) recursive lock. |
+| [unlock](./pub_debug.md#unlock) | Release (global) recursive lock. |
 
 #### Namespace pub::debugging
-This namespace provides subroutines that duplicate many of the pub::Debug
-member functions.
-These write to the default Debug object.
+
+Namespace pub::debugging subroutines duplicate pub::Debug methods, implicitly
+creating a default Debug object it if needed.
 
 | Subroutine | Purpose |
 |------------|---------|
-| [debugf](./pub_debug.md) | Write to stdout and the trace file |
-| [debugh](./pub_debug.md) | Write to stdout and the trace file, including heading information |
-| [errorf](./pub_debug.md) | Write to stderr and the trace file |
-| [errorh](./pub_debug.md) | Write to stderr and the trace file, including heading information |
-| [throwf](./pub_debug.md) | Write to stderr and the trace file, then throw an exception |
-| [tracef](./pub_debug.md) | Write (only) to the trace file |
-| [traceh](./pub_debug.md) | Write (only) to the trace file, including heading information |
-| [vdebugf](./pub_debug.md) | Write to stdout and the trace file |
-| [vdebugh](./pub_debug.md) | Write to stdout and the trace file, including heading information |
-| [verrorf](./pub_debug.md) | Write to stderr and the trace file |
-| [verrorh](./pub_debug.md) | Write to stderr and the trace file, including heading information |
-| [vthrowf](./pub_debug.md) | Write to stderr and the trace file, then throw an exception |
-| [vtracef](./pub_debug.md) | Write (only) to the trace file |
-| [vtraceh](./pub_debug.md) | Write (only) to the trace file, including heading information |
+| [debug_backtrace](./pub_debug.md#debug_backtrace) | Write debugging backtrace. |
+| [debug_clr_head](./pub_debug.md#debug_clr_head) | Clear Heading control options. |
+| [debug_flush](./pub_debug.md#debug_flush) | Flush the trace file. |
+| [debug_get_file_mode](./pub_debug.md#debug_get_file_mode) | Get the file mode. |
+| [debug_get_file_name](./pub_debug.md#debug_get_file_name) | Get the file name. |
+| [debug_set_head](./pub_debug.md#debug_set_head) | Set Heading control options. |
+| [debug_set_file_mode](./pub_debug.md#debug_set_file_mode) | Set the file mode. |
+| [debug_set_file_name](./pub_debug.md#debug_set_file_name) | Set the file name. |
+| [debug_set_mode](./pub_debug.md#debug_set_mode) | Set the debugging mode. |
 
-#### The default Debug object.
-If undefined, the default Debug object is created upon a namespace subroutine
-first use. The default debug object trace file name is "debug.out".
+These subroutines have the same names and interface as their Debug method
+counterparts:
 
-An application may replace the default object using pub::Debug::set, currently
-documented only in the Debug.h header file.
 
-#### The Debug *Lockable* implementation.
-
-Debug uses a static internal RecursiveLatch or recursive_mutex for locking,
-and to allow sequential writing functions in a multithreading environment.
-
-Usage:
-```
-   {{{{
-     std::lock_guard<decltype(*pub::Debug::get())> lock(*pub::Debug::get());
-     debugf("The value is: ");
-     debugf("42 (of course)\n");
-   }}}}
-```
-
-Without the lock_guard, another thread might write another Debug message
-between the two debugf statements.
-Note that nothing prevents another thread from using printf which could then
-break up the debugf statements.
-
-__TODO__ Document: When DLLs are used, applications must use the DLL library
-rather than the include library.
-
-#### Example
-```
-#include "pub/Debug.h"
-#define PUB _LIBPUB_NAMESPACE
-using namespace PUB::debugging;
-
-int main() {
-   debugf("This appears in %s and %s\n", "TRACE", "STDOUT");
-   errorf("This appears in %s and %s\n", "TRACE", "STDERR");
-   tracef("This ONLY appears in %s\n",   "TRACE");
-   debugh("This appears in %s and %s\n", "TRACE", "STDOUT");
-   errorh("This appears in %s and %s\n", "TRACE", "STDERR");
-   traceh("This ONLY appears in %s\n",   "TRACE");
-}
-```
+| Subroutine | Purpose |
+|------------|---------|
+| [debugf](./pub_debug.md#debugf) | Write to stdout and the trace file. |
+| [debugh](./pub_debug.md#debugh) | Write to stdout and the trace file, including heading information. |
+| [errorf](./pub_debug.md#errorf) | Write to stderr and the trace file. |
+| [errorh](./pub_debug.md#errorh) | Write to stderr and the trace file, including heading information. |
+| [tracef](./pub_debug.md#tracef) | Write (only) to the trace file. |
+| [traceh](./pub_debug.md#traceh) | Write (only) to the trace file, including heading information. |
+| [vdebugf](./pub_debug.md#vdebugf) | Write to stdout and the trace file. |
+| [vdebugh](./pub_debug.md#vdebugh) | Write to stdout and the trace file, including heading information. |
+| [verrorf](./pub_debug.md#verrorf) | Write to stderr and the trace file. |
+| [verrorh](./pub_debug.md#verrorh) | Write to stderr and the trace file, including heading information. |
+| [vtracef](./pub_debug.md#vtracef) | Write (only) to the trace file. |
+| [vtraceh](./pub_debug.md#vtraceh) | Write (only) to the trace file, including heading information. |
+| [throwf](./pub_debug.md#throwf) | Write to stderr and the trace file, then throw an exception. |
+| [vthrowf](./pub_debug.md#vthrowf) | Write to stderr and the trace file, then throw an exception. |
