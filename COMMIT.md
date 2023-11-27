@@ -32,6 +32,12 @@ is maintained in git, changes are always recorded.
 
 ----
 
+#### 11/16/2023 maint (test)
+- Documentation update test (Verify .md files on github.)
+- Removed Debug::errorp method. (Moved to ~/src/cpp/lib/pub/Fileman.cpp)
+
+----
+
 #### 10/13/2023 maint/trunk commit
 - XCB editor (~/src/cpp/Edit/Xcb)
   - New feature: ctrl-F9 copies current line to history line. (F9 without ctrl
