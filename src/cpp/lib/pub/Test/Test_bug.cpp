@@ -16,10 +16,12 @@
 //       Test debugging methods.
 //
 // Last change date-
-//       2023/04/29
+//       2023/11/21
 //
 //----------------------------------------------------------------------------
 #include <errno.h>                  // For errno
+#include <stdio.h>  // TODO: REMOVE
+#include <stdlib.h> // TODO: REMOVE
 
 #include "pub/Debug.h"              // For Debug, tested
 #include <pub/Wrapper.h>            // For class Wrapper
@@ -114,7 +116,6 @@ extern int                          // Return code
 
      debug_set_mode(Debug::MODE_IGNORE);
      errno= 0;
-     errorp("Ignore mode: This appears in STDERR (even with ignore mode)");
      debugf("Ignore mode:\n");
      errorf("Ignore mode:\n");
      tracef("Ignore mode:\n");
@@ -125,6 +126,8 @@ extern int                          // Return code
      debug_set_mode(Debug::MODE_INTENSIVE);
      debugf("Intensive mode:\n");
      debugf("This appears in %s and %s\n", "TRACE", "STDOUT");
+// debugf("Abort..."); abort();
+debugf("Pause..."); getchar();
      errorf("This appears in %s and %s\n", "TRACE", "STDERR");
      tracef("This appears in %s ONLY\n",   "TRACE");
      debugh("This appears in %s and %s\n", "TRACE", "STDOUT");

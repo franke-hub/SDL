@@ -28,9 +28,9 @@
 #include <cstring>                  // For strcpy, strlen, ...
 #include <arpa/inet.h>              // For htons, ntohs
 
-#include "pub/Debug.h"              // For pub::Debug, namespace pub::debugging
+#include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include "pub/Utf.h"                // Implementation class
-#include "pub/utility.h"            // For pub::to_string
+#include <pub/utility.h>            // For pub::to_string
 
 using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
 using _LIBPUB_NAMESPACE::utility::to_string;

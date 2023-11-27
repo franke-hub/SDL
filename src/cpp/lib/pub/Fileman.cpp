@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2022 Frank Eskesen.
+//       Copyright (c) 2020-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Fileman.h object methods
 //
 // Last change date-
-//       2022/09/15
+//       2023/11/21
 //
 // Implementation note-
 //       TODO: Deprecate, rename to Data.h; rename line=>get_list; etc.
@@ -24,9 +24,10 @@
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
 #include <dirent.h>                 // For struct dirent
+#include <errno.h>                  // For errno
 #include <limits.h>                 // For PATH_MAX, SYMLINK_MAX, SYMLOOP_MAX
-#include <stdarg.h>                 // For va_list
-#include <stdio.h>                  // For fprintf
+#include <stdarg.h>                 // For va_* functions
+#include <stdio.h>                  // For fprintf, ...
 #include <string.h>                 // For strcpy, ...
 #include <unistd.h>                 // For getcwd, ...
 #include <sys/stat.h>               // For struct stat, lstat
@@ -38,7 +39,6 @@
 #include <pub/utility.h>            // For pub::utility::dump
 
 using namespace _LIBPUB_NAMESPACE::debugging;
-using _LIBPUB_NAMESPACE::debugging::errorp;
 
 namespace _LIBPUB_NAMESPACE::fileman { // The fileman namespace
 //----------------------------------------------------------------------------
@@ -49,6 +49,36 @@ enum
 ,  MIN_POOL_SIZE= 65536             // Minimum pool size
 };
 #define MIN_SYMLOOP 256             // Minimum maximum symlink loop count
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       errorp
+//
+// Purpose-
+//       Write I/O error message, preserving errno.
+//
+//----------------------------------------------------------------------------
+_LIBPUB_PRINTF(1, 2)
+static void
+   errorp(                          // Write I/O error message
+     const char*       fmt,         // Printf-style format string
+                       ...)         // The remaining arguments
+{
+   va_list    argptr;               // The argument list
+   int ERRNO= errno;                // Preserve errno
+
+   fflush(NULL);                    // Flush everything first
+
+   char buffer[4096];               // Big enough buffer
+   va_start(argptr, fmt);           // Initialize va_ functions
+   vsnprintf(buffer, sizeof(buffer), fmt, argptr); // Format the message
+   va_end(argptr);                  // Close va_ functions
+   perror(buffer);                  // Write the message in one operation
+
+   fflush(stderr);                  // Insure messsage written
+   errno= ERRNO;                    // Restore errno
+}
 
 //----------------------------------------------------------------------------
 //

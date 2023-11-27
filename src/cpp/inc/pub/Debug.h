@@ -16,7 +16,7 @@
 //       Debugging control.
 //
 // Last change date-
-//       2023/06/21
+//       2023/11/21
 //
 // Implementation notes-
 //       A file name of ">" or "1>" writes the log to stdout.
@@ -150,7 +150,7 @@ static void
 //----------------------------------------------------------------------------
 // Debug::Accessors and control operations
 //----------------------------------------------------------------------------
-inline void
+void
    clr_head(                        // Clear a Heading options
      int               head)        // The Heading options to clear
 {  this->head &= ~head; }
@@ -158,7 +158,7 @@ inline void
 void
    flush( void );                   // Flush the trace file, stdout and stderr
 
-inline FILE*                        // The handle
+FILE*                               // The handle
    get_FILE( void )                 // Get the handle
 {
    if( handle == nullptr )          // If not initialized
@@ -183,12 +183,12 @@ void
    set_file_name(                   // Set the trace file name
      const char*       name);       // The trace file name
 
-inline void
+void
    set_head(                        // Set a Heading option
      int               head)        // The Heading options to set
 {  this->head |= head; }
 
-inline void
+void
    set_mode(                        // Set the Mode
      Mode              mode)        // To this Mode
 {  this->mode= mode; }
@@ -197,6 +197,9 @@ inline void
 // Debug::Methods
 //----------------------------------------------------------------------------
 public:
+void
+   backtrace( void );               // Write backtrace information
+
 _LIBPUB_PRINTF(2, 3)
 virtual void
    debugf(                          // Write to trace and stdout
@@ -308,7 +311,7 @@ extern int             pub_hcdm;    // Hard Core Debug Mode? [default: false]
 extern int             pub_verbose; // Debugging verbosity   [default: -1]
 }  // namespace options
 
-void                                // (Does nothing in Cygwin)
+void
    debug_backtrace( void );         // Write backtrace information
 
 void
@@ -317,6 +320,9 @@ void
 
 void
    debug_flush( void );             // Flush write the trace file
+
+std::string
+   debug_get_file_mode( void );     // Get the trace file mode
 
 std::string
    debug_get_file_name( void );     // Get the trace file name
@@ -358,12 +364,6 @@ void
 _LIBPUB_PRINTF(1, 2)
 void
    errorh(                          // Write to trace and stderr with heading
-     const char*       fmt,         // The PRINTF format string
-                       ...);        // PRINTF argruments
-
-_LIBPUB_PRINTF(1, 2)
-void
-   errorp(                          // Wrap perror(message), only to stderr
      const char*       fmt,         // The PRINTF format string
                        ...);        // PRINTF argruments
 

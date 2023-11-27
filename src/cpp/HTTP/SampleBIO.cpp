@@ -698,7 +698,6 @@ static const char* request=         // The request data
        // LOCK_GUARD(*Debug::get());
        // debugf("%p Thread\n", this);
        // errno= ERRNO;
-       // errorp("BIO_do_connect");
        handle_ERR();
        // debugf("\n");             // (Synchronizes the message sequence)
        throw Exception("STD_Client: connect failure");

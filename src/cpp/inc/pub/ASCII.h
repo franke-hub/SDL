@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2022 Frank Eskesen.
+//       Copyright (c) 2018-2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       Enumerate the ASCII character set.
 //
 // Last change date-
-//       2022/09/02
+//       2023/11/16
 //
 // Implementation notes-
 //       This is only intended for use as a reference.
@@ -27,7 +27,6 @@
 #include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
-namespace __detail::unused {
 //----------------------------------------------------------------------------
 //
 // Enum-
@@ -178,6 +177,5 @@ enum ASCII                          // ASCII enumeration
 // Values 0x80 through 0xFF are not defined by ASCII.
 // See https://www.ascii-codes.com/ for differing code page implementations.
 }; // enum ASCII
-}  // namespace __detail::unused
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_ASCII_H_INCLUDED

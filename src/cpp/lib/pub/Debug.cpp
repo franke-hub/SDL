@@ -16,7 +16,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2023/06/17
+//       2023/11/21
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -139,8 +139,7 @@ static bool                         // true iff STDIO
    if( file_name[0] == '>' && file_name[1] == '\0' )
      return true;
 
-   if( file_name[0] == '1' || file_name[0] == '2' )
-   {
+   if( file_name[0] == '1' || file_name[0] == '2' ) {
      if( file_name[1] == '>' && file_name[2] == '\0' )
        return true;
    }
@@ -226,8 +225,7 @@ void
    Debug::heading(                  // Debug heading
      FILE*             file)        // The target FILE
 {
-   if( head & HEAD_TIME )           // Time of day heading
-   {
+   if( head & HEAD_TIME ) {         // Time of day heading
      struct timespec     ticker;    // UTC time base
      clock_gettime(CLOCK_REALTIME, &ticker);
      double tod= (double)ticker.tv_sec;
@@ -236,16 +234,14 @@ void
      fprintf(file, "%14.3f ", tod);
    }
 
-   if( head & HEAD_THREAD )         // Thread heading
-   {
+   if( head & HEAD_THREAD ) {       // Thread heading
      Thread* current= Thread::current();
      Named* named= nullptr;
      if( current )
        named= dynamic_cast<Named*>(current);
      if( named )
        fprintf(file, "<%13s> ", named->get_name().c_str());
-     else
-     {
+     else {
        if( sizeof(void*) == 8 )
          fprintf(file, "<@%.12lx> ", (unsigned long)(uintptr_t)current);
        else
@@ -270,21 +266,16 @@ void
    Debug::init( void )              // Activate the trace file
 {  if( HCDM ) { fprintf(stderr, "Debug(%p)::init()\n", this); }
 
-   if( handle == nullptr )          // If still not active
-   {
+   if( handle == nullptr ) {        // If still not active
      int ERRNO= errno;              // On some systems, fopen sets errno= 0
-     if( isSTDIO(file_name.c_str()) )
-     {
+     if( isSTDIO(file_name.c_str()) ) {
        if( file_name[0] == '>' || file_name[0] == '1' )
          handle= stdout;
        else
          handle= stderr;
-     }
-     else
-     {
+     } else {
        handle= fopen(file_name.c_str(), file_mode.c_str());// Open the trace file
-       if( handle == nullptr )      // If the open failed
-       {
+       if( handle == nullptr ) {    // If the open failed
          fprintf(stderr, "DEBUG: Error: fopen(%s,%s) error %d:%s\n"
                        , file_name.c_str(), file_mode.c_str()
                        , errno, strerror(errno));
@@ -311,8 +302,7 @@ void
    std::lock_guard<decltype(mutex)> lock(mutex);
 
    if( handle != nullptr            // If close required
-       && handle != stdout && handle != stderr)
-   {
+       && handle != stdout && handle != stderr) {
      int rc= fclose(handle);        // Close the file
      if( rc != 0 )                  // If error encountered
        fprintf(stderr, "DEBUG: Error: file(%s), close error(%d) %d:%s\n"
@@ -340,13 +330,11 @@ Debug*                              // -> Current default debug object
    Debug::get( void )               // Extract the current default debug object
 {
    Debug* result= Debug::common;
-   if( result == nullptr )
-   {
+   if( result == nullptr ) {
      std::lock_guard<decltype(mutex)> lock(mutex);
 
      result= Debug::common;
-     if( result == nullptr )
-     {
+     if( result == nullptr ) {
        Debug::common= result= new Debug();
        internal= result;
        if( global_destructor_invoked ) {
@@ -355,9 +343,8 @@ Debug*                              // -> Current default debug object
        }
      }
 
-     #if defined(HCDM) || false
+     if( HCDM )
        fprintf(stderr, "%p= Debug(*)::get()\n", result);
-     #endif
    }
 
    return result;
@@ -376,16 +363,13 @@ Debug*                              // The removed Debug object
    Debug::set(                      // Set
      Debug*            object)      // This new default debug object
 {
-   #if defined(HCDM) || false
-     fprintf(stderr, "Debug(*)::set(%p) %p\n",
-                     object, Debug::common);
-   #endif
+   if( HCDM )
+     fprintf(stderr, "Debug(*)::set(%p) %p\n", object, Debug::common);
 
    std::lock_guard<decltype(mutex)> lock(mutex);
-   Debug* removed = Debug::common;
+   Debug* removed= Debug::common;
 
-   if( removed == internal )
-   {
+   if( removed == internal ) {
      delete internal;
      internal= nullptr;
      removed= nullptr;
@@ -438,20 +422,17 @@ void
    fflush(stdout);
    fflush(stderr);
 
-   if( handle != nullptr )          // If trace is active
-   {
+   if( handle != nullptr ) {        // If trace is active
      fflush(handle);                // Flush the trace file
 
-     if( handle != stdout && handle != stderr )
-     {
+     if( handle != stdout && handle != stderr ) {
        int rc= fclose(handle);      // Close the trace file
        if( rc != 0 )                // If the close failed
          fprintf(stderr, "DEBUG: Error: file(%s) close error %d:%s\n"
                        , file_name.c_str(), errno, strerror(errno));
 
        handle= fopen(file_name.c_str(), "ab"); // Re-open the trace file
-       if( handle == nullptr )      // If the re-open failed
-       {
+       if( handle == nullptr ) {    // If the re-open failed
          fprintf(stderr, "DEBUG: Error: file(%s) open(\"ab\") error %d:%s\n"
                        , file_name.c_str(), errno, strerror(errno));
          handle= stderr;
@@ -504,6 +485,28 @@ void
    if( name == nullptr || name[0] == '\0' )
      name= "debug.out";
    file_name= name;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Debug::backtrace
+//
+// Purpose-
+//       Display backtrace information.
+//
+//----------------------------------------------------------------------------
+void
+   Debug::backtrace( void )         // Display backtrace information
+{
+   auto trace= boost::stacktrace::stacktrace();
+   auto array= trace.as_vector();
+   for(size_t i= 1; i<array.size(); i++) {
+     auto frame= array[i];
+     debugf("[bt] %2zd %s at %s:%zd\n", i-1, frame.name().c_str()
+           , frame.source_file().c_str(), frame.source_line());
+   }
+   flush();
 }
 
 //----------------------------------------------------------------------------
@@ -678,15 +681,13 @@ void
      const char*       fmt,         // The PRINTF format string
      va_list           argptr)      // VALIST
 {
-   if( mode != MODE_IGNORE )        // If not ignore mode
-   {
+   if( mode != MODE_IGNORE ) {      // If not ignore mode
      std::lock_guard<decltype(mutex)> lock(mutex);
 
      if( handle == nullptr )        // If trace file not already open
        init();                      // Open it now
 
-     if( isDIFFER(stdout, handle) )
-     {
+     if( isDIFFER(stdout, handle) ) {
        va_list outptr;
        va_copy(outptr, argptr);
        vfprintf(stdout, fmt, outptr); // Write to stdout
@@ -714,15 +715,13 @@ void
      const char*       fmt,         // The PRINTF format string
      va_list           argptr)      // VALIST
 {
-   if( mode != MODE_IGNORE )        // If not ignore mode
-   {
+   if( mode != MODE_IGNORE ) {      // If not ignore mode
      std::lock_guard<decltype(mutex)> lock(mutex);
 
      if( handle == nullptr )        // If trace file not already open
        init();                      // Open it now
 
-     if( isDIFFER(stdout, handle) )
-     {
+     if( isDIFFER(stdout, handle) ) {
        heading(stdout);
 
        va_list outptr;
@@ -754,15 +753,13 @@ void
      const char*       fmt,         // The PRINTF format string
      va_list           argptr)      // VALIST
 {
-   if( mode != MODE_IGNORE )        // If not ignore mode
-   {
+   if( mode != MODE_IGNORE ) {      // If not ignore mode
      std::lock_guard<decltype(mutex)> lock(mutex);
 
      if( handle == nullptr )        // If trace file not already open
        init();                      // Open it now
 
-     if( isDIFFER(stderr, handle) )
-     {
+     if( isDIFFER(stderr, handle) ) {
        va_list errptr;
        va_copy(errptr, argptr);
        vfprintf(stderr, fmt, errptr); // Write to stderr
@@ -790,15 +787,13 @@ void
      const char*       fmt,         // The PRINTF format string
      va_list           argptr)      // VALIST
 {
-   if( mode != MODE_IGNORE )        // If not ignore mode
-   {
+   if( mode != MODE_IGNORE ) {      // If not ignore mode
      std::lock_guard<decltype(mutex)> lock(mutex);
 
      if( handle == nullptr )        // If trace file not already open
        init();                      // Open it now
 
-     if( isDIFFER(stderr, handle) )
-     {
+     if( isDIFFER(stderr, handle) ) {
        heading(stderr);
 
        va_list errptr;
@@ -882,8 +877,7 @@ void
      const char*       fmt,         // The PRINTF format string
      va_list           argptr)      // VALIST
 {
-   if( mode != MODE_IGNORE )        // If not ignore mode
-   {
+   if( mode != MODE_IGNORE ) {      // If not ignore mode
      std::lock_guard<decltype(mutex)> lock(mutex);
 
      if( handle == nullptr )        // If trace file not already open
@@ -911,8 +905,7 @@ void
      const char*       fmt,         // The PRINTF format string
      va_list           argptr)      // VALIST
 {
-   if( mode != MODE_IGNORE )        // If not ignore mode
-   {
+   if( mode != MODE_IGNORE ) {      // If not ignore mode
      std::lock_guard<decltype(mutex)> lock(mutex);
 
      if( handle == nullptr )        // If trace file not already open
@@ -938,15 +931,8 @@ namespace debugging {
 //----------------------------------------------------------------------------
 void
    debug_backtrace( void )          // Display backtrace information
-{
-   auto trace= boost::stacktrace::stacktrace();
-   auto array= trace.as_vector();
-   for(size_t i= 1; i<array.size(); i++) {
-     auto frame= array[i];
-     debugf("[bt] %2zd %s at %s:%zd\n", i-1, frame.name().c_str()
-           , frame.source_file().c_str(), frame.source_line());
-   }
-   debug_flush();
+{  std::lock_guard<decltype(mutex)> lock(mutex);
+   Debug::get()->backtrace();
 }
 
 void
@@ -960,6 +946,12 @@ void
    debug_flush( void )              // Flush write the trace file
 {  std::lock_guard<decltype(mutex)> lock(mutex);
    Debug::get()->flush();
+}
+
+std::string                         // The trace file mode
+   debug_get_file_mode( void )      // Get the trace file mode
+{  std::lock_guard<decltype(mutex)> lock(mutex);
+   return Debug::get()->get_file_mode();
 }
 
 std::string                         // The trace file name
@@ -1046,27 +1038,6 @@ void
    va_start(argptr, fmt);           // Initialize va_ functions
    verrorh(fmt, argptr);
    va_end(argptr);                  // Close va_ functions
-}
-
-_LIBPUB_PRINTF(1, 2)
-void                                // Note: Does not use Debug object
-   errorp(                          // Write message to stderr (only)
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // The remaining arguments
-{
-   int ERRNO= errno;                // Preserve errno
-   va_list             argptr;      // Argument list pointer
-
-   fflush(NULL);                    // Flush everything first
-
-   char buffer[4096];               // Format buffer
-   va_start(argptr, fmt);           // Initialize va_ functions
-   vsnprintf(buffer, sizeof(buffer), fmt, argptr); // Format the message
-   va_end(argptr);                  // Close va_ functions
-
-   perror(buffer);                  // Write the message in one line
-   fflush(stderr);                  // Flush stderr
-   errno= ERRNO;                    // Restore errno
 }
 
 [[noreturn]]
