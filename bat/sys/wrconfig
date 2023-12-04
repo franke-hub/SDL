@@ -1,0 +1,32 @@
+##############################################################################
+##
+##       Copyright (C) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/bat/sys/wrconfig
+##
+## Purpose-
+##       Write configuration file item.
+##
+## Last change date-
+##       2023/11/27
+##
+## Usage-
+##       wrconfig config-file-name config-file-item config-file-data
+##       (config-file-name normally resides in the current directory.)
+##
+##############################################################################
+
+##############################################################################
+## Parameter verification
+[[ -z "$3" ]] && { echo "wrconfig: Missing parameter" ; exit 1 ; }
+
+##############################################################################
+## Write the configuration line
+echo "$2" = "$3" > $1

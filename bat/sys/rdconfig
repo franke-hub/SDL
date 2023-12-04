@@ -1,0 +1,45 @@
+##############################################################################
+##
+##       Copyright (C) 2023 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/bat/sys/rdconfig
+##
+## Purpose-
+##       Read configuration file item.
+##
+## Last change date-
+##       2023/11/27
+##
+## Usage-
+##       rdconfig config-file-name config-file-item
+##
+## Implementation notes-
+##       config file format: config-file-item = yyyy/mm/dd-hh:mm
+##
+##############################################################################
+
+##############################################################################
+## Parameter verification
+[[ -z "$2" ]] && { echo "rdconfig: Missing parameter" ; exit 1 ; }
+
+##############################################################################
+## Locate the configuration line
+while IFS= read -r line || [[ -n "$line" ]]; do
+   let ix=0
+   found=0
+   for item in ${line//\=/ } ; do
+     [[ $ix == 0 && "$item" == "$2" ]] && found=1
+     [[ $ix == 1 && "$found" == "1" ]] && { echo $item ; exit 0 ; }
+     let ix=$ix+1
+   done
+done < "$1"
+
+echo "<<NOT FOUND>>"
+exit 1

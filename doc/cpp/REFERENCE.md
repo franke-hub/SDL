@@ -24,8 +24,41 @@
 This reference manual describes SDL C++ interfaces provided by the
 distribution.
 
-__TODO__ Update in progress: Current update:
-Allocator.h, Debug.h
+### The COM Library
+
+The COM (common) library uses namespace `com`.
+It defines general-purpose utility objects.
+
+While this library is still maintined, much of its functionality has been
+moved to the PUB library.
+
+The source code provides the only documentation.
+
+### The GUI Library
+
+The GUI (Graphical User Interface) library uses namespace `gui`.
+It defines GUI objects used by the XCB editor (~/src/cpp/Edit/Xcb/*,)
+replacing the library now in ~/src/cpp/inc/.OBSOLETE/gui.
+
+The source code provides the only documentation.
+
+### The OBJ Library
+
+The OBJ (object) library uses namespace `obj`.
+It defines automatic thread-safe storage management capabilities.
+
+The source code provides the only documentation.
+
+### The PUB Library
+
+The PUB (public) library uses namespace `pub`.
+It defines general-purpose utility objects.
+
+While a smattering of Doxygen source documentation exists, it will be removed
+when this documentation is complete.
+
+__TODO__ Update in progress. Current update:
+Diagnostic.h, Event.h, Exception.h, Fileman.h, Hardware.h
 
 - [Allocator.h:](./Allocator.md) An experimental storage allocator.
 (It's use is not currently recommended.)
@@ -37,8 +70,8 @@ This is intended as a reference rather than an include file.
 - [Debug.h:](./Debug.md) Debugging tools
 - Diagnostic.h: (to be renamed) Provides a mechanism for diagnosing shared_ptr
 and weak_ptr usage problems.
-- [Dispatch.h:](./Dispatch.md)
-Dispatch provides lock-free multi-threading control mechanisms.
+- [Dispatch.h:](./Dispatch.md) Provides lock-free multi-threading control
+mechanisms.
 - Event.h: Provides a wait/post event handling mechanism.
 - Exception.h: (to be removed?) Provides a base Exception.
 - Fileman.h: Provides file handling utility functions.
@@ -46,7 +79,8 @@ Dispatch provides lock-free multi-threading control mechanisms.
 timestamp counter.
 - http Subdirectory containing HTTP Client/Server objects. (This is a work
 in progress, and currently only supports HTTP/1.)
-- ifmacro.h: (deprecated) A set of compilation controls.
+- ifmacro.h: Provides a set of compilation controls.
+(deprecated. To be removed. Use ~/src/cpp/inc/com/ifmacro.h instead.)
 - Interval.h: Provides an interval timer.
 - Latch.h: Provides (lockable) spin latches, which can sometimes be more
 useful than a mutex. There is also a latch type that can be accessed either
@@ -57,7 +91,7 @@ Doubly Headed Doubly Linked list,
 Doubly Headed Singly Linked list, and
 Singly Headed Singly Linked list.
 It also provides List, an alias for DHDL_list.
-- [List.h:](./List.md) The AI_list.
+- [List.h:](./List.md) (Currently only documents AI_list.)
 - Lock.h: Provides a process named lock.
 - memory.h: Implements atomic_shared_ptr<class T>, currently via boost.
 - Must.h: Provides utility routines that throw std::bad_alloc instead of
@@ -68,6 +102,7 @@ returning nullptr.
 - Object.h: A base class for Objects providing utility functions.
 - Parser.h: Provides a simple parameter file parser.
 - Properties.h: Provides a name/value string pair mapping.
+- Random.h: Provides a simple thread-safe random number generator.
 - Reporter.h: Provides a generic mechanism for statistical event recording and
 reporting. __TODO__ Event status checking.
 - Select.h: Provides a socket polling controller and selector.
@@ -76,7 +111,7 @@ reporting. __TODO__ Event status checking.
 - Socket.h: Provides socket interfaces.
 - Statistic.h: Provides statistical measurement object.
 - SubAllocator.h: (Placeholder: not implemented)
-- TEST.h: (Note all caps name) Provides test case error checking tools.
+- TEST.H: (Note all caps name) Provides test case error checking tools.
 - Thread.h: Provides a thread representaion.
 - Tokenizer.h: A string tokenizer
 - Trace.h: Provides circular trace table controls. When used in conjunction
