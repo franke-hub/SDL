@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2021 Frank Eskesen.
+##       Copyright (c) 2007-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,10 @@
 ##       Subdirectory build control: included from ../Makefile.*
 ##
 ## Last change date-
-##       2021/07/09
+##       2023/12/03
+##
+## Implementation notes-
+##       Included from src/cpp/lib/Makefile.BSD [obj/cpp/lib and obj/cpp/dll]
 ##
 ##############################################################################
 
@@ -31,12 +34,12 @@ WIN_PREREQ += $(wildcard $(SRCDIR)/gui/OS/WIN/*)
 
 ##############################################################################
 ## TARGET: gui/libgui.a
-$(OBJDIR)/gui/libgui.a: $(BSD_PREREQ) libcom.a
+$(OBJDIR)/gui/libgui.a: $(BSD_PREREQ) libpub.a
 	(cd $(OBJDIR)/gui/; export MAKRUN=lib; $(MAKE))
 	touch $@
 
 libgui.a: $(OBJDIR)/gui/libgui.a
-	@echo trace31 ln -s $< $@
+	@echo gui.trace11 ln -s $< $@
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
 build.bsd.lib: libgui.a
@@ -48,7 +51,7 @@ $(OBJDIR)/gui/libgui.so.1.0: $(BSD_PREREQ) libpub.so
 	touch $@
 
 libgui.so.1.0: $(OBJDIR)/gui/libgui.so.1.0
-	@echo trace32 ln -s $< $@
+	@echo gui.trace12 ln -s $< $@
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
 ~/bin/libgui.so.1.0: libgui.so
@@ -57,7 +60,7 @@ libgui.so.1.0: $(OBJDIR)/gui/libgui.so.1.0
 	touch $@
 
 libgui.dll: $(OBJDIR)/gui/libgui.so.1.0
-	@echo trace33 ln -s $< $@
+	@echo gui.trace13 ln -s $< $@
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
 ~/bin/libgui.dll: libgui.dll
@@ -70,7 +73,13 @@ build.cygwin.dll: libgui.dll libgui.so ~/bin/libgui.so
 build.linux.so: libgui.so /usr/local/lib/libgui.so
 
 ##############################################################################
-## TARGET: libgui.lib
+## Dependencies
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+$(OBJDIR)/gui/libgui.so.1.0: libpub.dll
+endif
+
+##############################################################################
+## TARGET: libgui.lib [WINDOWS VERSION, OBSOLETE]
 $(OBJDIR)/gui/libgui.lib: $(WIN_PREREQ)
 	(cd $(OBJDIR)/gui/; $(MAKE))
 	touch $@
@@ -87,6 +96,18 @@ build.win.lib: libgui.lib
 depend: gui.depend
 gui.depend: ;
 	(cd $(OBJDIR)/gui/; $(MAKE) depend)
+
+##############################################################################
+## TARGET: gui.update
+.PHONY: gui.update
+update: gui.update
+ifeq "$(MAKRUN)" "build.bsd.lib"
+gui.update: ;
+	(cd $(OBJDIR)/gui/; export MAKRUN=lib; $(MAKE) update)
+else
+gui.update: ;
+	(cd $(OBJDIR)/gui/; export MAKRUN=dll; $(MAKE) update)
+endif
 
 ##############################################################################
 ## Cleanup
@@ -106,4 +127,3 @@ gui.clean.bsd: ;
 clean.win: gui.clean.win
 gui.clean.win: ;
 	-@rm -f libgui.lib >/dev/null 2>/dev/null
-

@@ -126,8 +126,6 @@ extern int                          // Return code
      debug_set_mode(Debug::MODE_INTENSIVE);
      debugf("Intensive mode:\n");
      debugf("This appears in %s and %s\n", "TRACE", "STDOUT");
-// debugf("Abort..."); abort();
-debugf("Pause..."); getchar();
      errorf("This appears in %s and %s\n", "TRACE", "STDERR");
      tracef("This appears in %s ONLY\n",   "TRACE");
      debugh("This appears in %s and %s\n", "TRACE", "STDOUT");

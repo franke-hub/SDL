@@ -15,7 +15,7 @@
 ##       C++ build control makefile
 ##
 ## Last change date-
-##       2023/09/22
+##       2023/12/03
 ##
 ## Implementation notes-
 ##       ~/obj/cpp/Makefile links to this file.
@@ -33,6 +33,7 @@ list-options: ;
 	@echo "  make uninstall: Remove prerequisites and build libraries."
 	@echo "  make reinstall: (make uninstall; make install)"
 	@echo "    Use this after installing a new Linux version."
+	@echo "  make update: Update an installation."
 	@echo
 	@echo "  make check: Compile and run all test suites."
 	@echo "  make compile: Compile all source files."
@@ -70,8 +71,8 @@ CPP_ += Wilbur
 CPP_ += Xample   XML
 
 ##############################################################################
-## TARGETS: check, compile, install, install_dll, reinstall, uninstall
-.PHONY: check compile install install_dll reinstall uninstall
+## TARGETS: check, compile, install, install_dll, reinstall, uninstall, update
+.PHONY: check compile install install_dll reinstall uninstall, update
 
 ##----------------------------------------------------------------------------
 check: is-installed
@@ -107,6 +108,11 @@ uninstall: ;
 	(echo; echo; cd lib; $(MAKE) pristine)
 	(echo; echo; cd sys; $(MAKE) uninstall)
 	@echo "** uninstall completed OK **"
+
+##----------------------------------------------------------------------------
+update: ;
+	(echo; echo; cd dll; $(MAKE) update)
+	(echo; echo; cd lib; $(MAKE) update)
 
 ##############################################################################
 ## TARGETS: clean, pristine
@@ -144,4 +150,4 @@ $(SDL_ROOT)/bin/makeproj: ;
 	@false
 
 is-valid-path: ;
-	@(is_valid=`echo $(PATH) | grep $(SDL_ROOT)/bin:`; [ -n "$(is_valid)" ] && false; true)
+	@(is_valid=`echo "$(PATH)" | grep "$(SDL_ROOT)/bin:"`; [ -n "$(is_valid)" ] && false; true)

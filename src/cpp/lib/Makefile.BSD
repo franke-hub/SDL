@@ -12,10 +12,10 @@
 ##       Makefile.BSD
 ##
 ## Purpose-
-##       CYGWIN/LINUX Makefile versioning
+##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2023/01/12
+##       2023/12/03
 ##
 ##############################################################################
 
@@ -60,15 +60,25 @@ $(OBJDIR)/%.so: $(OBJDIR)/%.so.1.0
 ## Dependencies
 $(OBJDIR)/libgui.so: $(OBJDIR)/libpub.so.1.0
 
-##############################################################################
-## Include subdirectories
-.PHONY: clean.bsd clean.win pristine.bsd pristine.win
+#############################################################################
+## Target update (additional dependencies in ./*/Makefile.DIR)
+.PHONY: update
+ifeq "$(MAKRUN)" "build.bsd.lib"
+update: $(MAKRUN)
+else
+update: ;
+endif
+
+#############################################################################
+## Cleanup targets
+.PHONY: clean clean.bsd clean.win pristine pristine.bsd pristine.win
 clean: clean.bsd
 pristine: pristine.bsd
 
+##############################################################################
+## Include subdirectories
 include $(SRCDIR)/com/Makefile.DIR
 include $(SRCDIR)/dev/Makefile.DIR
 include $(SRCDIR)/gui/Makefile.DIR
 include $(SRCDIR)/obj/Makefile.DIR
 include $(SRCDIR)/pub/Makefile.DIR
-

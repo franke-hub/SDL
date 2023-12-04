@@ -16,7 +16,7 @@
 //       Implement Random.h
 //
 // Last change date-
-//       2023/11/13
+//       2023/12/02
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<uint64_t>
@@ -38,7 +38,7 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbiosity, higher is more verbose
 
-,  USE_SELF_TEST= false             // Use _self_test method?
+,  USE_SELF_TEST= true              // Use _self_test method?
 };
 
 //----------------------------------------------------------------------------
@@ -245,6 +245,20 @@ int                                 // Error count
      //-----------------------------------------------------------------------
      // Test for duplicates. Duplicates will repeat sequence
      uint64_t checker= array[DIM_ARRAY-1];
+     if( opt_verbose )
+       debugf("Pass 1\n");
+     for(uint64_t i= 1; i <= CHECK_ITERATIONS; ++i) {
+       if( RNG.get64() == checker ) { // Oh no! Algorithm failure
+         debugf("Random::get64() repeats: %'zd loops, value %'zu\n", i, checker);
+         return ++error_count;        // Slow loop detected
+       }
+       if( opt_verbose && (i % 1'000'000'000) == 0 )
+         printf("Iteration %'16zd of %'16zd\n", i, CHECK_ITERATIONS);
+     }
+
+     checker= RNG.get64();            // We might have skidded into a loop
+     if( opt_verbose )
+       debugf("Pass 2\n");
      for(uint64_t i= 1; i <= CHECK_ITERATIONS; ++i) {
        if( RNG.get64() == checker ) { // Oh no! Algorithm failure
          debugf("Random::get64() repeats: %'zd loops, value %'zu\n", i, checker);
@@ -254,7 +268,7 @@ int                                 // Error count
          printf("Iteration %'16zd of %'16zd\n", i, CHECK_ITERATIONS);
      }
      if( opt_verbose )
-       debugf("No duplicate found in %'zu iterations\n", CHECK_ITERATIONS);
+       debugf("No duplicate found in %'zu iterations\n", 2 * CHECK_ITERATIONS);
 
      //-----------------------------------------------------------------------
      // Distribution tests

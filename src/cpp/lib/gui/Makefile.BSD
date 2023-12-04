@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2021 Frank Eskesen.
+##       Copyright (c) 2007-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -12,10 +12,10 @@
 ##       Makefile.BSD
 ##
 ## Purpose-
-##       CYGWIN/LINUX Makefile versioning
+##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2021/07/09
+##       2023/12/03
 ##
 ##############################################################################
 
@@ -38,9 +38,28 @@ endif
 
 .PHONY: default dll lib all
 default: $(DEFAULT)
-dll: libgui.so.1.0
-lib: libgui.a
+dll: configure libgui.so.1.0
+lib: configure libgui.a
 all: dll lib
+
+##############################################################################
+## TARGET: configure
+.PHONY: configure
+configure: ;
+	@../../../../bat/sys/configure.sh src/cpp/lib/gui
+
+##############################################################################
+## TARGET: update
+.PHONY: update
+EXISTS := $(shell _exists.sh "libgui.so.1.0")
+
+ifeq "$(MAKRUN)" "lib"
+update: default
+else ifeq "$(EXISTS)" "true"
+update: default
+else
+update: ;
+endif
 
 ##############################################################################
 ## TARGET: libgui.so.1.0, libgui.so, libgui.dll
@@ -73,9 +92,12 @@ endif
 
 ##############################################################################
 ## Cleanup
-.PHONY: gui.clean.bsd
+.PHONY: gui.clean.bsd gui.pristine.bsd
 clean: gui.clean.bsd
 gui.clean.bsd: ;
-	-@rm libgui.a >/dev/null 2>/dev/null
-	-@rm libgui.so* libgui.dll >/dev/null 2>/dev/null
+	-@rm -f libgui.a >/dev/null 2>/dev/null
+	-@rm -f libgui.so* libgui.dll >/dev/null 2>/dev/null
 
+pristine: gui.pristine.bsd
+gui.pristine.bsd: ;
+	-@rm -f _have.version >/dev/null 2>/dev/null

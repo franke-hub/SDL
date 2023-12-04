@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2021 Frank Eskesen.
+##       Copyright (c) 2021-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2021/07/09
+##       2023/12/03
 ##
 ##############################################################################
 
@@ -38,9 +38,28 @@ endif
 
 .PHONY: default dll lib all
 default: $(DEFAULT)
-dll: libpub.so.1.0
-lib: libpub.a
+dll: configure libpub.so.1.0
+lib: configure libpub.a
 all: dll lib
+
+##############################################################################
+## TARGET: configure
+.PHONY: configure
+configure: ;
+	@../../../../bat/sys/configure.sh src/cpp/lib/pub
+
+##############################################################################
+## TARGET: update
+.PHONY: update
+EXISTS := $(shell _exists.sh "libpub.so.1.0")
+
+ifeq "$(MAKRUN)" "lib"
+update: default
+else ifeq "$(EXISTS)" "true"
+update: default
+else
+update: ;
+endif
 
 ##############################################################################
 ## TARGET: libpub.so.1.0, libpub.so, libpub.dll
@@ -75,8 +94,12 @@ endif
 
 ##############################################################################
 ## Cleanup
-.PHONY: pub.clean.bsd
+.PHONY: pub.clean.bsd pub.pristine.bsd
 clean: pub.clean.bsd
 pub.clean.bsd: ;
 	-@rm libpub.a >/dev/null 2>/dev/null
 	-@rm libpub.so* libpub.dll >/dev/null 2>/dev/null
+
+pristine: pub.pristine.bsd
+pub.pristine.bsd: ;
+	-@rm -f _have.version >/dev/null 2>/dev/null

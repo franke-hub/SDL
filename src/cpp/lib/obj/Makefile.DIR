@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2018-2020 Frank Eskesen.
+##       Copyright (c) 2018-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,10 @@
 ##       Subdirectory build control: included from ../Makefile.*
 ##
 ## Last change date-
-##       2020/06/29
+##       2023/12/03
+##
+## Implementation notes-
+##       Included from src/cpp/lib/Makefile.BSD [obj/cpp/lib and obj/cpp/dll]
 ##
 ##############################################################################
 
@@ -36,7 +39,7 @@ $(OBJDIR)/obj/libobj.a: $(BSD_PREREQ) libcom.a
 	touch $@
 
 libobj.a: $(OBJDIR)/obj/libobj.a
-	@echo trace11 ln -s $< $@
+	@echo obj.trace11 ln -s $< $@
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
 build.bsd.lib: libobj.a
@@ -48,7 +51,7 @@ $(OBJDIR)/obj/libobj.so.1.0: $(BSD_PREREQ) libcom.so
 	touch $@
 
 libobj.so.1.0: $(OBJDIR)/obj/libobj.so.1.0
-	@echo trace12 ln -s $< $@
+	@echo obj.trace12 ln -s $< $@
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
 ~/bin/libobj.so.1.0: libobj.so
@@ -57,7 +60,7 @@ libobj.so.1.0: $(OBJDIR)/obj/libobj.so.1.0
 	touch $@
 
 libobj.dll: $(OBJDIR)/obj/libobj.so.1.0
-	@echo trace13 ln -s $< $@
+	@echo obj.trace13 ln -s $< $@
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
 ~/bin/libobj.dll: libobj.dll
@@ -70,7 +73,13 @@ build.cygwin.dll: libobj.dll libobj.so ~/bin/libobj.so
 build.linux.so: libobj.so /usr/local/lib/libobj.so
 
 ##############################################################################
-## TARGET: libobj.lib
+## Dependencies
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+$(OBJDIR)/obj/libobj.so.1.0: libcom.dll
+endif
+
+##############################################################################
+## TARGET: libobj.lib [WINDOWS VERSION, OBSOLETE]
 $(OBJDIR)/obj/libobj.lib: $(WIN_PREREQ)
 	(cd $(OBJDIR)/obj/; $(MAKE))
 	touch $@
@@ -87,6 +96,18 @@ build.win.lib: libobj.lib
 depend: obj.depend
 obj.depend: ;
 	(cd $(OBJDIR)/obj/; $(MAKE) depend)
+
+##############################################################################
+## TARGET: obj.update
+.PHONY: obj.update
+update: obj.update
+ifeq "$(MAKRUN)" "build.bsd.lib"
+obj.update: ;
+	(cd $(OBJDIR)/obj/; export MAKRUN=lib; $(MAKE) update)
+else
+obj.update: ;
+	(cd $(OBJDIR)/obj/; export MAKRUN=dll; $(MAKE) update)
+endif
 
 ##############################################################################
 ## Cleanup
@@ -106,4 +127,3 @@ obj.clean.bsd: ;
 clean.win: obj.clean.win
 obj.clean.win: ;
 	-@rm -f libobj.lib >/dev/null 2>/dev/null
-

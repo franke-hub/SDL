@@ -15,7 +15,7 @@
 ##       Build control makefile.
 ##
 ## Last change date-
-##       2023/08/26
+##       2023/11/27
 ##
 ##############################################################################
 
@@ -30,6 +30,7 @@ list-options: ;
 	@echo "  make uninstall: Remove prerequisites and build libraries."
 	@echo "  make reinstall: (make uninstall; make install)"
 	@echo "    Use this after installing a new Linux version."
+	@echo "  make update: Update an installation."
 	@echo
 	@echo "  make check: Compile and run all test suites."
 	@echo "  make compile: Compile all source files."
@@ -47,8 +48,9 @@ PY_    := $(SDL_ROOT)/obj/py
 
 ##############################################################################
 ## TARGETS: check, compile, clean, install, install_dll, pristine, reinstall,
-## TARGETS: uninstall
-.PHONY: check compile clean install install_dll pristine reinstall uninstall
+## TARGETS: uninstall, update
+.PHONY: check compile clean install install_dll pristine reinstall
+.PHONY: uninstall update
 
 ##----------------------------------------------------------------------------
 install: environment
@@ -68,6 +70,11 @@ reinstall: environment
 uninstall: environment
 	(cd $(CPP_); $(MAKE) uninstall)
 	(cd $(PY_);  $(MAKE) uninstall)
+
+##----------------------------------------------------------------------------
+update: environment
+	(cd $(CPP_); $(MAKE) update)
+	(cd $(PY_);  $(MAKE) update)
 
 ##----------------------------------------------------------------------------
 check: environment
@@ -132,7 +139,7 @@ environment: defined-root
 ifeq "" "$(SDL_ROOT)"
 defined-root: ;
 	@echo "Environment variable SDL_ROOT is undefined."
-	@echo "Use 'source setupSDL' to initialize required Environment variables."
+	@echo "Use 'source setupSDL' to initialize the environment variables."
 	@false
 else
 defined-root: ;

@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2020 Frank Eskesen.
+##       Copyright (c) 2007-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,10 @@
 ##       Subdirectory build control: included from ../Makefile.*
 ##
 ## Last change date-
-##       2020/06/29
+##       2023/12/03
+##
+## Implementation notes-
+##       Included from src/cpp/lib/Makefile.BSD [obj/cpp/lib and obj/cpp/dll]
 ##
 ##############################################################################
 
@@ -39,7 +42,7 @@ $(OBJDIR)/com/libcom.a: $(BSD_PREREQ)
 	touch $@
 
 libcom.a: $(OBJDIR)/com/libcom.a
-	@echo trace11 ln -s $< $@
+	@echo com.trace11 ln -s $< $@
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
 build.bsd.lib: libcom.a
@@ -51,7 +54,7 @@ $(OBJDIR)/com/libcom.so.1.0: $(BSD_PREREQ)
 	touch $@
 
 libcom.so.1.0: $(OBJDIR)/com/libcom.so.1.0
-	@echo trace12 ln -s $< $@
+	@echo com.trace12 ln -s $< $@
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
 ~/bin/libcom.so.1.0: libcom.so
@@ -60,7 +63,7 @@ libcom.so.1.0: $(OBJDIR)/com/libcom.so.1.0
 	touch $@
 
 libcom.dll: $(OBJDIR)/com/libcom.so.1.0
-	@echo trace13 ln -s $< $@
+	@echo com.trace13 ln -s $< $@
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
 ~/bin/libcom.dll: libcom.dll
@@ -73,7 +76,7 @@ build.cygwin.dll: libcom.dll libcom.so ~/bin/libcom.so
 build.linux.so: libcom.so /usr/local/lib/libcom.so
 
 ##############################################################################
-## TARGET: libcom.lib
+## TARGET: libcom.lib [WINDOWS VERSION, OBSOLETE]
 $(OBJDIR)/com/libcom.lib: $(WIN_PREREQ)
 	(cd $(OBJDIR)/com/; $(MAKE))
 	touch $@
@@ -90,6 +93,18 @@ build.win.lib: libcom.lib
 depend: com.depend
 com.depend: ;
 	(cd $(OBJDIR)/com/; $(MAKE) depend)
+
+##############################################################################
+## TARGET: com.update
+.PHONY: com.update
+update: com.update
+ifeq "$(MAKRUN)" "build.bsd.lib"
+com.update: ;
+	(cd $(OBJDIR)/com/; export MAKRUN=lib; $(MAKE) update)
+else
+com.update: ;
+	(cd $(OBJDIR)/com/; export MAKRUN=dll; $(MAKE) update)
+endif
 
 ##############################################################################
 ## Cleanup
@@ -109,4 +124,3 @@ com.clean.bsd: ;
 clean.win: com.clean.win
 com.clean.win: ;
 	-@rm -f libcom.lib >/dev/null 2>/dev/null
-

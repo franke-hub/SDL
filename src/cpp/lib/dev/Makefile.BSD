@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2023/08/05
+##       2023/12/03
 ##
 ##############################################################################
 
@@ -38,9 +38,28 @@ endif
 
 .PHONY: default dll lib all
 default: $(DEFAULT)
-dll: libdev.so.1.0
-lib: libdev.a
+dll: configure libdev.so.1.0
+lib: configure libdev.a
 all: dll lib
+
+##############################################################################
+## TARGET: configure
+.PHONY: configure
+configure: ;
+	@../../../../bat/sys/configure.sh src/cpp/lib/dev
+
+##############################################################################
+## TARGET: update
+.PHONY: update
+EXISTS := $(shell _exists.sh "libdev.so.1.0")
+
+ifeq "$(MAKRUN)" "lib"
+update: default
+else ifeq "$(EXISTS)" "true"
+update: default
+else
+update: ;
+endif
 
 ##############################################################################
 ## TARGET: libdev.so.1.0, libdev.so, libdev.dll
@@ -75,8 +94,12 @@ endif
 
 ##############################################################################
 ## Cleanup
-.PHONY: dev.clean.bsd
+.PHONY: dev.clean.bsd dev.pristine.bsd
 clean: dev.clean.bsd
 dev.clean.bsd: ;
-	-@rm libdev.a >/dev/null 2>/dev/null
-	-@rm libdev.so* libdev.dll >/dev/null 2>/dev/null
+	-@rm -f libdev.a >/dev/null 2>/dev/null
+	-@rm -f libdev.so* libdev.dll >/dev/null 2>/dev/null
+
+pristine: dev.pristine.bsd
+dev.pristine.bsd: ;
+	-@rm -f _have.version >/dev/null 2>/dev/null

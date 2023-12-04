@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2023/10/13
+//       2023/12/03
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,20 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 12/03/2023 maint
+- Added "make update" feature.
+  - File ~/bat/sys/_want.version contains a list of desired versions
+  - Various libraries and components contain _have.version version files
+  - We update the _want.version file when a recompile is needed even when
+include dependencies are met.
+  - Make update recompiles the updated components.
+- Doxygen now built from ~/doc/obj/Doxygen
+  - This is the only documentation for the COM, DEV, GUI, and OBJ libraries
+  - Only the PUB library has any Doxygen markup, and that is minimal.
+Githup markup documentation in progress for the PUB library.
 
 ----
 

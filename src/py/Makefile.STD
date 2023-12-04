@@ -15,7 +15,7 @@
 ##       Python build control makefile
 ##
 ## Last change date-
-##       2023/08/19
+##       2023/11/30
 ##
 ## Implementation notes-
 ##       ~/obj/py/Makefile links to this file.
@@ -32,6 +32,7 @@ list-options: ;
 	@echo "  make uninstall: Remove prerequisites and build libraries."
 	@echo "  make reinstall: (make uninstall; make install)"
 	@echo "    Use this after installing a new Linux version."
+	@echo "  make update: Update an installation."
 	@echo
 	@echo "  make check: Compile and run all test suites."
 	@echo "  make compile: Compile all source files."
@@ -93,6 +94,10 @@ uninstall: ;
 	(echo; echo; cd lib; $(MAKE) uninstall)
 	(echo; echo; cd site-packages/stdio; $(MAKE) uninstall)
 	@echo "** uninstall completed OK **"
+
+##----------------------------------------------------------------------------
+update: ;
+	(echo; echo; cd site-packages/stdio; $(MAKE) update)
 
 ##############################################################################
 ## TARGETS: clean, pristine

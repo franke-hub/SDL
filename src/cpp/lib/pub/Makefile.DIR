@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2018-2020 Frank Eskesen.
+##       Copyright (c) 2018-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,10 @@
 ##       Subdirectory build control: included from ../Makefile.*
 ##
 ## Last change date-
-##       2020/06/29
+##       2023/12/03
+##
+## Implementation notes-
+##       Included from src/cpp/lib/Makefile.BSD [obj/cpp/lib and obj/cpp/dll]
 ##
 ##############################################################################
 
@@ -36,7 +39,7 @@ $(OBJDIR)/pub/libpub.a: $(BSD_PREREQ) libcom.a
 	touch $@
 
 libpub.a: $(OBJDIR)/pub/libpub.a
-	@echo trace11 ln -s $< $@
+	@echo pub.trace11 ln -s $< $@
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
 build.bsd.lib: libpub.a
@@ -48,7 +51,7 @@ $(OBJDIR)/pub/libpub.so.1.0: $(BSD_PREREQ) libcom.so
 	touch $@
 
 libpub.so.1.0: $(OBJDIR)/pub/libpub.so.1.0
-	@echo trace12 ln -s $< $@
+	@echo pub.trace12 ln -s $< $@
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
 ~/bin/libpub.so.1.0: libpub.so
@@ -57,7 +60,7 @@ libpub.so.1.0: $(OBJDIR)/pub/libpub.so.1.0
 	touch $@
 
 libpub.dll: $(OBJDIR)/pub/libpub.so.1.0
-	@echo trace13 ln -s $< $@
+	@echo pub.trace13 ln -s $< $@
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
 ~/bin/libpub.dll: libpub.dll
@@ -70,7 +73,13 @@ build.cygwin.dll: libpub.dll libpub.so ~/bin/libpub.so
 build.linux.so: libpub.so /usr/local/lib/libpub.so
 
 ##############################################################################
-## TARGET: libpub.lib
+## Dependencies
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+$(OBJDIR)/pub/libpub.so.1.0: libcom.dll
+endif
+
+##############################################################################
+## TARGET: libpub.lib [WINDOWS VERSION, OBSOLETE]
 $(OBJDIR)/pub/libpub.lib: $(WIN_PREREQ)
 	(cd $(OBJDIR)/pub/; $(MAKE))
 	touch $@
@@ -87,6 +96,18 @@ build.win.lib: libpub.lib
 depend: pub.depend
 pub.depend: ;
 	(cd $(OBJDIR)/pub/; $(MAKE) depend)
+
+##############################################################################
+## TARGET: pub.update
+.PHONY: pub.update
+update: pub.update
+ifeq "$(MAKRUN)" "build.bsd.lib"
+pub.update: ;
+	(cd $(OBJDIR)/pub/; export MAKRUN=lib; $(MAKE) update)
+else
+pub.update: ;
+	(cd $(OBJDIR)/pub/; export MAKRUN=dll; $(MAKE) update)
+endif
 
 ##############################################################################
 ## Cleanup
@@ -106,4 +127,3 @@ pub.clean.bsd: ;
 clean.win: pub.clean.win
 pub.clean.win: ;
 	-@rm -f libpub.lib >/dev/null 2>/dev/null
-
