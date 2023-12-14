@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2023/05/24
+//       2023/12/14
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For std::free
@@ -31,6 +31,7 @@
 
 #include "pub/TEST.H"               // For error counting
 #include "pub/Debug.h"              // For namespace pub::debugging
+#include "pub/diag-pristine.h"      // For namespace pub::debugging
 #include "pub/Exception.h"          // For pub::Exception
 #include "pub/Latch.h"              // See test_Latch
 #include "pub/Reporter.h"           // For pub::Reporter
@@ -69,6 +70,7 @@ using PUB::Wrapper;
 //----------------------------------------------------------------------------
 static int             opt_TEST= false; // (Only set if --all)
 static int             opt_case= false; // (Only set if --all)
+static int             opt_diag= false; // (Only set if --all)
 static int             opt_dump= false; // --dump
 static int             opt_latch= false; // --latch
 static int             opt_misc= false; // --misc
@@ -152,6 +154,49 @@ static inline int
    int error_count= 0;              // Error counter
 
    error_count += VERIFY( true );   // Dummy test
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_diag
+//
+// Purpose-
+//       Test diagnostic diag-pristine.h
+//
+//----------------------------------------------------------------------------
+#pragma GCC diagnostic ignored "-Warray-bounds"
+static void
+   test_diag_error(void* V)         // Deliberately trash of before and after
+{
+   char* C= (char*)V;
+   *(C -  1)= 0xff;
+   *(C + 32)= 0xff;
+}
+#pragma GCC diagnostic pop
+
+static inline int
+   test_diag( void )
+{
+   if( opt_verbose )
+     debugf("\ntest_diag\n");
+
+   struct {
+     Pristine before;
+     char buffer[32]= {};
+     Pristine after;
+   } S;
+
+   int error_count= 0;              // Error counter
+
+   if( opt_verbose ) {
+     void* V= S.buffer;
+     test_diag_error(V);
+     debugf("Two error messages expected...\n");
+     Pristine::opt_hcdm= true;
+   }
 
    return error_count;
 }
@@ -1123,8 +1168,10 @@ extern int                          // Return code
        if( opt_hcdm ) {
          opt_TEST= true;            // (Only set here)
          opt_case= true;            // (Only set here)
+         opt_diag= true;            // (Only set here)
        }
        // opt_dump= true;           // Select separately (needs validation)
+       opt_diag= true;
        opt_latch= true;
        opt_misc= true;
        opt_signals= true;
@@ -1147,6 +1194,7 @@ extern int                          // Return code
 
      if( opt_TEST )    error_count += test_TEST();
      if( opt_case )    error_count += test_case();
+     if( opt_diag )    error_count += test_diag();
      if( opt_dump )    error_count += test_dump();
      if( opt_latch )   error_count += test_Latch();
      if( opt_misc )    error_count += test_Misc();

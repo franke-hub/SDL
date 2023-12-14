@@ -10,112 +10,23 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       Diagnostic.h
+//       diag-shared_ptr.h
 //
 // Purpose-
-//       Debugging diagnostics.
+//       std::shared_ptr debugging diagnostics.
 //
 // Last change date-
-//       2023/05/18
-//
-// Available diagnostics:
-//       pub::diag::Pristine: Used to catch "wild stores" clobbering objects.
-//       See `class diag::Pristine` implementation/usage notes, below.
-//
-//       namespace std::pub_diag: Used to catch std::shared_ptr objects that
-//       don't get deleted. See `namespace std::pub_diag` implementation and
-//       usage notes, below.
+//       2023/12/05
 //
 //----------------------------------------------------------------------------
-#ifndef _LIBPUB_DIAGNOSTIC_H_INCLUDED
-#define _LIBPUB_DIAGNOSTIC_H_INCLUDED
+#ifndef _LIBPUB_DIAG_SHARED_PTR_H_INCLUDED
+#define _LIBPUB_DIAG_SHARED_PTR_H_INCLUDED
 
 #include <map>                      // For std::map
 #include <memory>                   // For std::shared_ptr, ...
 #include <string>                   // For std::string
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB macros
-
-_LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
-namespace diag {
-//----------------------------------------------------------------------------
-//
-// Class-
-//       diag::Pristine
-//
-// Purpose-
-//       Check for wild stores.
-//
-// Implementation notes-
-//       When used in static areas, construction and destruction information
-//       may also be useful.
-//       Changing `HCDM= true` to `HCDM= false` disables this feature.
-//
-// Usage notes-
-//       For an object declared as `X object` that you suspect is getting
-//       clobbered by wild stores, instead use:
-//         Pristine before;
-//         X object;
-//         Pristine after;
-//
-//       REMOVE the Pristine declarations in production code.
-//       The Pristine destructor invokes check("Destructor"). You can also
-//       invoke the check method at any time.
-//
-//----------------------------------------------------------------------------
-class Pristine {                    // Pristine base class
-//----------------------------------------------------------------------------
-// Pristine::Typedefs and enumerations
-//----------------------------------------------------------------------------
-public:
-enum                                // Constants for parameterization
-{  HCDM= true                       // Hard Core Debug Mode?
-,  VERBOSE= 1                       // Verbosity, higher is more verbose
-};
-
-typedef uint64_t       Word;        // Our checkword type
-
-enum                                // (For 4K range
-{  DIM= 512                         // Number of uint64_t's in page
-,  MID= 257                         // Midpoint prime
-};
-
-//----------------------------------------------------------------------------
-// Pristine::Attributes
-//----------------------------------------------------------------------------
-protected:
-Word                   array[DIM]= {}; // The check array
-
-//----------------------------------------------------------------------------
-// Pristine::Destructor, constructors
-//----------------------------------------------------------------------------
-public:
-   Pristine( void )                 // Default constructor
-:  Pristine(Word(0x7654321089ABCDEF)) {}
-
-   Pristine(Word word);             // Checkword constructor
-
-   ~Pristine( void );               // Destructor
-
-//----------------------------------------------------------------------------
-// Pristine::check, check for wild store
-//----------------------------------------------------------------------------
-void check(const char* info="") const // Debugging check, caller information
-{
-   Word check_word= array[MID];     // Any array word would work as well
-   for(int i= 0; i<DIM; ++i) {      // Verify
-     if( array[i] != check_word )
-       fault(info);
-   }
-}
-
-//----------------------------------------------------------------------------
-// Pristine::fault, describe error condition
-//----------------------------------------------------------------------------
-void fault(const char* info="") const;
-}; // class Pristine
-}  // namespace diag
-_LIBPUB_END_NAMESPACE
 
 namespace std { // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 namespace pub_diag {
@@ -149,7 +60,7 @@ namespace pub_diag {
 //       Add a control file included by all file where tracking is desired:
 //          #define USE_DEBUG_PTR   // (Swap lines to disable/enable)
 //          #undef  USE_DEBUG_PTR   // (Swap lines to enable/disable)
-//          #include "pub/bits/Diagnostic.i"
+//          #include "pub/bits/diag-shared_ptr.i"
 //
 //       In each constructor for objects containing shared_ptr objects, add:
 //         INS_DEBUG_OBJ("name")    // ("name" is the name of the object)
@@ -163,6 +74,10 @@ namespace pub_diag {
 //
 //       Note: the control file should be include as `#include "control-file"`
 //       for dependency tracking.
+//
+//       The DEV library uses this diagnostic. File "dev/bits/devconfig.h"
+//       is the control file. All DEV library include files include that file
+//       either directly or indirectly.
 //
 // Implementation notes-
 //       When USE_DEBUG_PTR is not defined in your control file, this file is
@@ -581,4 +496,4 @@ bool operator> (const __PUB::debug_ptr<T>& lhs,
 {  return lhs.get() >  rhs.get(); }
 
 #undef __PUB
-#endif // _LIBPUB_DIAGNOSTIC_H_INCLUDED
+#endif // _LIBPUB_DIAG_SHARED_PTR_H_INCLUDED

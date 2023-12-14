@@ -15,7 +15,7 @@
 //       SDL: PUB library description
 //
 // Last change date-
-//       2023/09/17
+//       2023/12/04
 //
 -------------------------------------------------------------------------- -->
 
@@ -215,12 +215,12 @@ A simple flush operation sometimes left the trace file incomplete.)
 This is not a complete description of the Debug object or the pub::debugging
 static methods. Please refer to the include file for additional information.
 
-#### Diagnostic.h
+#### diag-shared_ptr.h
 This recent addition to the pub library was added to help locate problems
 found in C++ version migration and the current dev library development.
 
-Pristine.h defines a simple data block with content checking. You place one
-before and after an area suspected of being clobbered by wild stores.
+diag-pristine.h defines a simple data block with content checking. You place
+one before and after an area suspected of being clobbered by wild stores.
 
 Aside:
 Thread.cpp contains a map of managed Threads and started getting segfaults
@@ -231,8 +231,8 @@ However, the map error actually occurred after Thread's static map object's
 just a misuse of static storage.
 
 Namespace std::pub_diag was created in order to find shared_ptr<Stream>
-objects that prevented Streams from being deleted.
-Besides Diagnostic.h, a control file ~/src/cpp/inc/pub/bits/Diagnostic.i
+objects that prevented Streams from being deleted. Besides diag-shared_ptr.h,
+a control file "~/src/cpp/inc/pub/bits/diag-shared_ptr.i"
 needs to be included that (conditionally) defines make_shared as
 pub_diag::make_debug, shared_ptr as pub_diag::debug_ptr, and weak_ptr as
 pub_diag::dweak_ptr.

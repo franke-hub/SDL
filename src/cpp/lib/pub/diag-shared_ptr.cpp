@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       Diagnostic.cpp
+//       diag-shared_ptr.cpp
 //
 // Purpose-
-//       Implement Diagnostic.h.
+//       Implement diag-shared_ptr.h.
 //
 // Last change date-
-//       2023/05/24
+//       2023/12/05
 //
 // Implementation notes-
 //       Depending on global initialization ordering, static shared_ptr
@@ -26,79 +26,22 @@
 //       Your results may vary.
 //
 //----------------------------------------------------------------------------
+#include <map>                      // For std::map
+#include <memory>                   // For std::shared_ptr, ...
 #include <mutex>                    // For std::lock_guard
 #include <string>                   // For std::string
 
-#include <pub/Debug.h>              // For Debug object (see dump())
-#include "pub/Diagnostic.h"         // For Diagnostic methods, implemented
-#include <pub/utility.h>            // For utility::dump
+#include <pub/Debug.h>              // For namespace pub::debugging methods
+#include "pub/diag-shared_ptr.h"    // For shared_ptr diagnostics, implemented
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB;
 using namespace PUB::debugging;
-using utility::dump;
-
-namespace _LIBPUB_NAMESPACE::diag {
-//----------------------------------------------------------------------------
-// Constants for parameterization
-//----------------------------------------------------------------------------
-enum
-{  HCDM= false                      // Hard Core Debug Mode?
-,  VERBOSE= 0                       // Verbosity, higher is more verbose
-}; // enum
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Pristine::Pristine
-//       Pristine::~Pristine
-//
-// Purpose-
-//       Constructor
-//       Destructor
-//
-//----------------------------------------------------------------------------
-   Pristine::Pristine(Word word)    // Checkword constructor
-{  if( HCDM && VERBOSE ) debugf("Pristine(%p)!\n", this);
-
-   for(int i= 0; i<DIM; ++i) {      // Verify
-     if( array[i] != 0 )
-       fault("Constructor");
-   }
-
-   for(int i= 0; i<DIM; ++i)        // Initialize
-     array[i]= word;
-}
-
-   Pristine::~Pristine( void )      // Destructor
-{  if( HCDM && VERBOSE ) debugf("Pristine(%p)~\n", this);
-
-   check("Destructor");
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Pristine::fault
-//
-// Purpose-
-//       Handle error detection
-//
-//----------------------------------------------------------------------------
-void Pristine::fault(const char* info) const
-{
-   // Add a breakpoint here if more information is desired
-   errorf("\n\n>>>>>>>>>>>> Pristine::fault(%s) <<<<<<<<<<<<\n", info);
-   if( HCDM )
-     dump(array, sizeof(array));
-   errorf("\n");
-}
-}  // namespace _LIBPUB_NAMESPACE::diag
 
 namespace std { // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 namespace pub_diag {
 //----------------------------------------------------------------------------
-// Constants for parameterization (Note different namespace)
+// Constants for parameterization
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?

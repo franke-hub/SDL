@@ -15,17 +15,14 @@
 ##       Development status, history, and reminders.
 ##
 ## Last change date-
-##       2023/05/25
+##       2023/12/04
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
-2023/05/25 Dispatch.cpp issue #2 test fix implemented
-         This problem occured when ../dev/Test/T_Stream.cpp runs a stress test.
-         Testing issues remain: the FC_UNDEF request does not complete. That
-         means that dispatch::Task destructors don't complete and therefore
-         Client and Server destructors don't complete. This needs a-fixin'.
+2023/12/04 Renamed Diagnostic.h to diag-shared_ptr.h, etc
+         Changed documentation, including this file, to reflect change.
 
 ##############################################################################
 ## FEATURES:
@@ -41,6 +38,12 @@
 
 ##############################################################################
 ## DONE:
+2023/05/25 Dispatch.cpp issue #2 test fix implemented
+         This problem occured when ../dev/Test/T_Stream.cpp runs a stress test.
+         Testing issues remain: the FC_UNDEF request does not complete. That
+         means that dispatch::Task destructors don't complete and therefore
+         Client and Server destructors don't complete. This needs a-fixin'.
+
 2023/04/05 Stable. No significant changes.
          However, Test/TestDisp.cpp Linux timings have significantly improved.
          Conjecture: Linux kernel/library fixes improved multithreading
@@ -51,7 +54,7 @@
          While no known multithreading timing holes exist, associated fixes
          have significantly reduced dev library throughput.
 
-2022/10/16 Added Diagnostic.h, for tracking hard to debug problems.
+2022/10/16 Added diag-shared_ptr.h, for tracking hard to debug problems.
 
 2019/03/15 See ~/src/cpp/HTTP/.README for additional information.
 

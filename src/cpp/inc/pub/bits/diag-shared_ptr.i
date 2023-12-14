@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       pub/bits/Diagnostic.i
+//       pub/bits/diag-shared_ptr.i
 //
 // Purpose-
 //       Diagnostic activation control
 //
 // Last change date-
-//       2023/04/15
+//       2023/12/04
 //
 // Implementation notes-
 //       This file is useful to debug failure to delete shared_ptr objects.
@@ -32,11 +32,11 @@
 //         REM_DEBUG_MAP(name, that) // When destroyed
 //
 //----------------------------------------------------------------------------
-#ifndef _LIBPUB_BITS_DIAGNOSTIC_I_INCLUDED
-#define _LIBPUB_BITS_DIAGNOSTIC_I_INCLUDED
+#ifndef _LIBPUB_BITS_DIAG_SHARED_PTR_I_INCLUDED
+#define _LIBPUB_BITS_DIAG_SHARED_PTR_I_INCLUDED
 
 #ifdef USE_DEBUG_PTR //- - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#include "pub/Diagnostic.h"         // Include *before* redefines
+#include "pub/diag-shared_ptr.h"    // Include *before* redefines
 
 #  define make_shared pub_diag::make_debug
 #  define shared_ptr  pub_diag::debug_ptr
@@ -53,4 +53,4 @@
 #  define INS_DEBUG_MAP(x, that)
 #  define REM_DEBUG_MAP(x, that)
 #endif //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#endif // _LIBPUB_BITS_DIAGNOSTIC_I_INCLUDED
+#endif // _LIBPUB_BITS_DIAG_SHARED_PTR_I_INCLUDED

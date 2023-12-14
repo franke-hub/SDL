@@ -16,7 +16,7 @@
 //       Configuration control macros.
 //
 // Last change date-
-//       2023/06/03
+//       2023/12/04
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_BITS_DEVCONFIG_H_INCLUDED
@@ -24,8 +24,8 @@
 
 // When defined, USE_DEBUG_PTR activates shared_ptr debugging diagnostics.
 // (Swap the next two lines to select or remove its definition.)
-#define USE_DEBUG_PTR
 #undef  USE_DEBUG_PTR
-#include "pub/bits/Diagnostic.i"
+#define USE_DEBUG_PTR
+#include "pub/bits/diag-shared_ptr.i"
 
 #endif // _LIBPUB_HTTP_BITS_DEVCONFIG_H_INCLUDED
