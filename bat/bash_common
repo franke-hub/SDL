@@ -1,7 +1,7 @@
 ##
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2017-2021 Frank Eskesen.
+##       Copyright (C) 2017-2023 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Common shell startup script, sourced from .bashrc
 ##
 ## Last change date-
-##       2021/05/06
+##       2023/12/11
 ##
 ## Usage-
 ##       . bash_common
@@ -77,7 +77,7 @@ function myCD
   else
     \cd "$1"
   fi
-  export PS1=$PWD:' '
+  export PS1=$CONDA_PROMPT_MODIFIER$PWD:' '
 }
 
 ##############################################################################
@@ -110,4 +110,3 @@ esac
 ##############################################################################
 ## Debugging hook
 [ -n "$debugging" ] && date "+%s.%N HOST($HOST) USER($USER) *end* bash_common $$ $0" >>$debugging
-
