@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2023/07/29
+//       2023/12/13
 //
 // Arguments-
 //       With no arguments, --client defaulted
@@ -51,11 +51,13 @@
 #include <pub/TEST.H>               // For VERIFY macro
 #include <pub/Clock.h>              // For pub::Clock
 #include <pub/Debug.h>              // For debugging classes and functions
+#include <pub/diag-shared_ptr.h>    // For std::pub_diag::Debug_ptr::debug()
 #include <pub/Dispatch.h>           // For namespace pub::dispatch
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Ioda.h>               // For pub::Ioda
 #include <pub/Reporter.h>           // For pub::Reporter
+#include <pub/Signals.h>            // For namespace pub::signals
 #include <pub/Statistic.h>          // For pub::Statistic
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
@@ -76,6 +78,7 @@
 using namespace PUB;                // For pub classes
 using namespace PUB::debugging;     // For pub debugging functions
 using namespace PUB::http;          // For pub::http classes
+using namespace PUB::signals;       // For signal handling
 using PUB::utility::visify;         // (Import)
 using namespace std;                // For std classes
 
@@ -97,7 +100,7 @@ enum
 ,  USE_LOGGER= false                // Option: Use logger
 ,  USE_REPORT= false                // Option: Use event Reporter
 ,  USE_REPORT_ITERATION= 0          // Option: Event Reporter iteration count
-,  USE_SIGNAL= false                // Option: Use signal handler
+,  USE_SIGNAL= true                 // Option: Use signal handler
 }; // generic enum
 
 enum                                // Default option values
@@ -127,6 +130,14 @@ static constexpr CC*   cert_file= "public.pem";  // The public certificate file
 static constexpr CC*   priv_file= "private.pem"; // The private key file
 
 //----------------------------------------------------------------------------
+// Internal data area types
+//----------------------------------------------------------------------------
+struct SIG {                        // The signal event
+int                    id;          // The interrupt ID
+   SIG(int id) : id(id) {}          // Constructor
+}; // SIG
+
+//----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
 static Debug*          debug= nullptr; // Our Debug object
@@ -137,6 +148,15 @@ static void*           trace_table= nullptr; // The internal trace area
 
 static ClientAgent*    client_agent= nullptr; // Our ClientAgent
 static ListenAgent*    listen_agent= nullptr; // Our ListenAgent
+
+// Interrupt handler
+Signal<SIG>            interruptSignal;
+Connector<SIG>         interruptConnector=
+   interruptSignal.connect([](SIG sig) {
+     if( opt_verbose )
+       debugf("System signal(%d)\n", sig.id);
+     std::pub_diag::Debug_ptr::debug("Signal");
+   });
 
 // Test controls
 typedef std::atomic_size_t          atomic_count_t;
@@ -423,6 +443,9 @@ static void
      case SIGUSR2:                  // (No configured action)
      default:
        Trace::trace(".SIG", __LINE__, text);
+
+       SIG sig(id);
+       interruptSignal.signal(sig);
        break;
    }
 
@@ -574,7 +597,7 @@ static void
    size_of(                         // Display size of object
      const char*       name,        // Object name
      size_t            size)        // Object size
-{  debugf("%4zd = sizeof(%s)\n", size, name); }
+{  debugf("0x%.4zx = sizeof(%s)\n", size, name); }
 
 static inline int                   // Error count
    test_bringup( void )             // Bringup test
@@ -587,21 +610,22 @@ static inline int                   // Error count
 
    size_of("Client",        sizeof(PUB::http::Client));
    size_of("ClientAgent",   sizeof(PUB::http::ClientAgent));
+   size_of("ClientThread",  sizeof(ClientThread));
    size_of("Listen",        sizeof(PUB::http::Listen));
    size_of("ListenAgent",   sizeof(PUB::http::ListenAgent));
    size_of("Options",       sizeof(PUB::http::Options));
    size_of("Request",       sizeof(PUB::http::Request));
    size_of("Response",      sizeof(PUB::http::Response));
    size_of("Server",        sizeof(PUB::http::Server));
+   size_of("ServerThread",  sizeof(ServerThread));
    size_of("Stream",        sizeof(PUB::http::Stream));
 
 #pragma GCC diagnostic ignored "-Winvalid-offsetof"
    debugf("\n");
-   debugf("%.4zx = offsetof(Client, task_inp)\n", offsetof(Client, task_inp));
-   debugf("%.4zx = offsetof(Client, task_out)\n", offsetof(Client, task_out));
-
-   debugf("%.4zx = offsetof(Server, task_inp)\n", offsetof(Server, task_inp));
-   debugf("%.4zx = offsetof(Server, task_out)\n", offsetof(Server, task_out));
+   debugf("0x%.4zx = offsetof(Client, task_inp)\n", offsetof(Client, task_inp));
+   debugf("0x%.4zx = offsetof(Client, task_out)\n", offsetof(Client, task_out));
+   debugf("0x%.4zx = offsetof(Server, task_inp)\n", offsetof(Server, task_inp));
+   debugf("0x%.4zx = offsetof(Server, task_out)\n", offsetof(Server, task_out));
 
    if( false ) {                    // Bringup internal tests
      debugf("\npage200(\"BODY\")\n%s", page200("BODY").c_str());

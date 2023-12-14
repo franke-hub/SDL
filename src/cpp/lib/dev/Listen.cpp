@@ -16,7 +16,7 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2023/06/04
+//       2023/12/13
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -472,9 +472,9 @@ void
    {{{{                             // Copy the Server list
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-     for(auto it : map ) {
-       std::shared_ptr<Server> server= it.second;
-       list.emplace_back(server);
+     for(const_iterator it= map.begin(); it != map.end(); ++it ) {
+       REM_DEBUG_MAP("Listen.MAP", &it->second);
+       list.emplace_back(it->second);
      }
    }}}}
 
@@ -527,6 +527,8 @@ void
 
      // Insert the entry
      map[key]= server;
+     it= map.find(key);
+     INS_DEBUG_MAP("Listen.MAP", &it->second);
    }}}}
 
    if( HCDM )
@@ -574,6 +576,7 @@ void
      if( USE_REPORT )
        server_count.dec();
 
+     REM_DEBUG_MAP("Listen.MAP", &it->second);
      map.erase(it);
    }}}}
 
