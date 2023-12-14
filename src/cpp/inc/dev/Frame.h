@@ -31,6 +31,7 @@
 #include <stdint.h>                 // For uint8_t, uint32_t, ...
 
 #include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+
 #include "dev/bits/devconfig.h"     // For HTTP config controls
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
