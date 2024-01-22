@@ -63,7 +63,11 @@ $(OBJDIR)/libgui.so: $(OBJDIR)/libpub.so.1.0
 #############################################################################
 ## Target update (additional dependencies in ./*/Makefile.DIR)
 .PHONY: update dependable
-update: dependable default
+ifeq "$(MAKRUN)" "build.bsd.lib"
+update: dependable $(MAKRUN)
+else
+update: ;
+endif
 
 dependable: ;
 	@($(MAKE) depend)
