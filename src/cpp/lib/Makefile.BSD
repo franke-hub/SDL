@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2023 Frank Eskesen.
+##       Copyright (c) 2007-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2023/12/03
+##       2024/01/22
 ##
 ##############################################################################
 
@@ -62,12 +62,11 @@ $(OBJDIR)/libgui.so: $(OBJDIR)/libpub.so.1.0
 
 #############################################################################
 ## Target update (additional dependencies in ./*/Makefile.DIR)
-.PHONY: update
-ifeq "$(MAKRUN)" "build.bsd.lib"
-update: $(MAKRUN)
-else
-update: ;
-endif
+.PHONY: update dependable
+update: dependable default
+
+dependable: ;
+	@($(MAKE) depend)
 
 #############################################################################
 ## Cleanup targets
