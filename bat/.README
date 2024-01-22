@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2018-2020 Frank Eskesen.
+##       Copyright (C) 2018-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -28,7 +28,7 @@
 ##       Command usage reminders
 ##
 ## Last change date-
-##       2020/11/02
+##       2024/01/09
 ##
 ## Usage-
 ##       .README (or edit .README)
@@ -107,23 +107,20 @@ cat $0
 ##############################################################################
 ##
 ## Command-
-##       soffice {-program}
+##       rpmcheck
+##       rpmconf
 ##
 ## Purpose-
-##       Invoke open office from the command line
+##       Display existing .rpmnew and .rpmsave files.
+##       Manage .rpmnew and .rpmsave files, with file-by-file options
+##           The Y option always uses the maintainers version
 ##
-## Options-
-##       -help   Get a complete list of options
-##       -nologo Do not show the start-up screen
-##       -view   Start in read-only mode
+## Usage-
+##       rpmcheck
 ##
-## Examples-
-##       soffice -calc     Spreadsheet
-##       soffice -draw     Drawing
-##       soffice -impress  Presentation
-##       soffice -math     Formula
-##       soffice -web      Web page
-##       soffice -writer   Text
+##       sudo rpmconf -c { -u use_maintainer }
+##       sudo rpmconf -a { -u use_maintainer }
+##       ## yes | while [[ 0 == 0 ]] do read; echo Y; done | sudo rpmconf -a
 ##
 ##############################################################################
 
@@ -179,6 +176,29 @@ cat $0
 ##############################################################################
 ##
 ## Command-
+##       soffice {-program}
+##
+## Purpose-
+##       Invoke open office from the command line
+##
+## Options-
+##       -help   Get a complete list of options
+##       -nologo Do not show the start-up screen
+##       -view   Start in read-only mode
+##
+## Examples-
+##       soffice -calc     Spreadsheet
+##       soffice -draw     Drawing
+##       soffice -impress  Presentation
+##       soffice -math     Formula
+##       soffice -web      Web page
+##       soffice -writer   Text
+##
+##############################################################################
+
+##############################################################################
+##
+## Command-
 ##       systemctl
 ##
 ## Purpose-
@@ -220,4 +240,3 @@ cat $0
 ##       rename something `uuidgen`
 ##
 ##############################################################################
-
