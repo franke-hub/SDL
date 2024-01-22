@@ -16,7 +16,7 @@
 //       Implement Random.h
 //
 // Last change date-
-//       2023/12/02
+//       2024/01/22
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<uint64_t>
@@ -38,7 +38,7 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbiosity, higher is more verbose
 
-,  USE_SELF_TEST= true              // Use _self_test method?
+,  USE_SELF_TEST= false             // Use _self_test method?
 };
 
 //----------------------------------------------------------------------------
