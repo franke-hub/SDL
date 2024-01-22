@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022 Frank Eskesen.
+//       Copyright (C) 2023 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,13 +16,9 @@
 //       signals::Signal and signals::Connector descriptors.
 //
 // Last change date-
-//       2022/09/02
+//       2023/01/08
 //
 // Usage notes-
-//       The Signal interface consists of these objects:
-//           Event     The application-defined Signal event parameter.
-//           Connector "Connects" a Signal and an Signal Event handler.
-//           Signal    The Signal generation object.
 //       The application defines the Event parameter type, the Event function
 //       handler code, and the objects that generate Signals. The Connector
 //       object "connects" the Signal object and the Signal Event handler.

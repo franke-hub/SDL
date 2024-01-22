@@ -16,7 +16,7 @@
 //       Debugging diagnostic: Catch "wild stores" clobbering objects.
 //
 // Last change date-
-//       2023/12/05
+//       2023/12/14
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DIAG_PRISTINE_H_INCLUDED
@@ -35,14 +35,9 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 // Purpose-
 //       Check for wild stores.
 //
-// Implementation notes-
-//       When used in static areas, construction and destruction information
-//       may also be useful.
-//       Changing `HCDM= true` to `HCDM= false` disables this feature.
-//
 // Usage notes-
 //       For an object declared as `X object` that you suspect is getting
-//       clobbered by wild stores, instead use:
+//       clobbered by wild stores, use:
 //         Pristine before;
 //         X object;
 //         Pristine after;

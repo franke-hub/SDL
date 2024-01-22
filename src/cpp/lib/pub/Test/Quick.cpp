@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2023 Frank Eskesen.
+//       Copyright (c) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2023/12/14
+//       2024/01/08
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For std::free
@@ -28,10 +28,12 @@
 #include <errno.h>                  // For errno, ...
 #include <limits.h>                 // For INT_MIN, INT_MAX, ...
 #include <stddef.h>                 // For offsetof
+#include <stdlib.h>                 // For getenv
 
 #include "pub/TEST.H"               // For error counting
 #include "pub/Debug.h"              // For namespace pub::debugging
 #include "pub/diag-pristine.h"      // For namespace pub::debugging
+#include "pub/Dictionary.h"         // For pub::Dictionary
 #include "pub/Exception.h"          // For pub::Exception
 #include "pub/Latch.h"              // See test_Latch
 #include "pub/Reporter.h"           // For pub::Reporter
@@ -70,6 +72,7 @@ using PUB::Wrapper;
 //----------------------------------------------------------------------------
 static int             opt_TEST= false; // (Only set if --all)
 static int             opt_case= false; // (Only set if --all)
+static int             opt_dict= false; // (Only set if --all)
 static int             opt_diag= false; // (Only set if --all)
 static int             opt_dump= false; // --dump
 static int             opt_latch= false; // --latch
@@ -197,6 +200,75 @@ static inline int
      debugf("Two error messages expected...\n");
      Pristine::opt_hcdm= true;
    }
+
+   return error_count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_dict
+//
+// Purpose-
+//       Test Diagnostic.h
+//
+//----------------------------------------------------------------------------
+static inline int
+   test_dict( void )
+{
+   if( opt_verbose )
+     debugf("\ntest_dict\n");
+
+   using PUB::Dictionary;
+
+   int error_count= 0;              // Error counter
+
+   const char* home= getenv("HOME");
+   error_count += VERIFY( home != nullptr );
+   if( error_count )
+     return error_count;
+
+   static const char* dict_init[3]=
+   {  "/Library/*INVALID_PATH*/local.dic"
+   ,  "/Library/Spelling/local.dic"
+   ,  nullptr
+   };
+
+   char* dict_list[3]=
+   {  nullptr
+   ,  nullptr
+   ,  nullptr
+   };
+
+   {{{{
+     std::string name(home);
+     name += dict_init[0];
+     dict_list[0]= strdup(name.c_str());
+     error_count += VERIFY( dict_list[0] != nullptr );
+     if( error_count )
+       return error_count;
+   }}}}
+
+   {{{{
+     std::string name(home);
+     name += dict_init[1];
+     dict_list[1]= strdup(name.c_str());
+     error_count += VERIFY( dict_list[1] != nullptr );
+     if( error_count )
+       return error_count;
+   }}}}
+
+   if( opt_verbose ) {
+     Dictionary dict((const char**)dict_list); // Compilation/Load test
+     dict.debug("Usage test");
+   } else {
+     Dictionary dict;               // Compilation/Load test
+   }
+
+   free(dict_list[0]);
+   free(dict_list[1]);
+
+   error_count += VERIFY( true );   // Dummy test
 
    return error_count;
 }
@@ -1164,14 +1236,14 @@ extern int                          // Return code
      if( opt_hcdm )
        debugf("on_parm(%s,%s)\n", name.c_str(), value);
 
-     if( name == "all" ) {          // Note: specify --hcdm *BEFORE* --all
-       if( opt_hcdm ) {
-         opt_TEST= true;            // (Only set here)
-         opt_case= true;            // (Only set here)
-         opt_diag= true;            // (Only set here)
+     if( name == "all" ) {
+       if( opt_hcdm ) {             // Note: specify --hcdm *BEFORE* --all
+         opt_TEST= true;            // Only set here, with --hcdm
        }
-       // opt_dump= true;           // Select separately (needs validation)
+
        opt_diag= true;
+       opt_dict= true;
+       // opt_dump= true;           // Select separately (needs validation)
        opt_latch= true;
        opt_misc= true;
        opt_signals= true;
@@ -1195,6 +1267,7 @@ extern int                          // Return code
      if( opt_TEST )    error_count += test_TEST();
      if( opt_case )    error_count += test_case();
      if( opt_diag )    error_count += test_diag();
+     if( opt_dict )    error_count += test_dict();
      if( opt_dump )    error_count += test_dump();
      if( opt_latch )   error_count += test_Latch();
      if( opt_misc )    error_count += test_Misc();
