@@ -1,6 +1,6 @@
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2023 Frank Eskesen.
+##       Copyright (C) 2023-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,20 +15,23 @@
 ##       Current version information control file.
 ##
 ## Last change date-
-##       2023/11/30
+##       2024/02/01
 ##
 ## Usage notes-
-##       Version control is used only for items that might need recompilation.
+##       Version control is used for items that might need recompilation
+##       outside of normal dependency controls.
+##
+##       See configure.sh for more information.
 ##
 ##############################################################################
 
 ## CPP libraries
-src/cpp/lib/com = 2023/11/27-00:00
-src/cpp/lib/dev = 2023/11/27-00:00
-src/cpp/lib/gui = 2023/11/27-00:00
-src/cpp/lib/obj = 2023/11/27-00:00
-src/cpp/lib/pub = 2023/11/27-00:00
+src/cpp/lib/com = 2024/02/01-00:00
+src/cpp/lib/dev = 2024/02/01-00:00
+src/cpp/lib/gui = 2024/02/01-00:00
+src/cpp/lib/obj = 2024/02/01-00:00
+src/cpp/lib/pub = 2024/02/01-00:00
 
 ## Python libraries
-src/py/lib = 2023/11/27-00:00
-src/py/site-packages/stdio = 2023/11/27-00:00
+src/py/lib = 2023/12/01-00:00
+src/py/site-packages/stdio = 2023/12/01-00:00

@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2018-2023 Frank Eskesen.
+##       Copyright (c) 2018-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -9,80 +9,49 @@
 ##############################################################################
 ##
 ## Title-
-##       Makefile.DIR
+##       ~/src/cpp/lib/obj/Makefile.DIR
 ##
 ## Purpose-
-##       Subdirectory build control: included from ../Makefile.*
+##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2023/12/03
-##
-## Implementation notes-
-##       Included from src/cpp/lib/Makefile.BSD [obj/cpp/lib and obj/cpp/dll]
+##       2024/02/01
 ##
 ##############################################################################
 
 ##############################################################################
-## TARGET: prerequisites
+## Prerequisites
 PREREQ := $(wildcard $(INCDIR)/obj/*)
 PREREQ += $(wildcard $(SRCDIR)/obj/*)
-PREREQ += $(wildcard $(SRCDIR)/obj/OS/USR/*)
-BSD_PREREQ := $(PREREQ)
-BSD_PREREQ += $(wildcard $(SRCDIR)/obj/OS/BSD/*)
-WIN_PREREQ := $(PREREQ)
-WIN_PREREQ += $(wildcard $(SRCDIR)/obj/OS/WIN/*)
 
 ##############################################################################
 ## TARGET: obj/libobj.a
-$(OBJDIR)/obj/libobj.a: $(BSD_PREREQ) libcom.a
-	(cd $(OBJDIR)/obj/; export MAKRUN=lib; $(MAKE))
-	touch $@
+$(OBJDIR)/obj/libobj.a: $(PREREQ) libcom.a
+	(cd $(OBJDIR)/obj/; $(MAKE))
 
-libobj.a: $(OBJDIR)/obj/libobj.a
-	@echo obj.trace11 ln -s $< $@
+$(OBJDIR)/libobj.a: $(OBJDIR)/obj/libobj.a
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
-build.bsd.lib: libobj.a
+build.bsd: $(OBJDIR)/libobj.a
 
 ##############################################################################
 ## TARGET: obj/libobj.so.1.0
-$(OBJDIR)/obj/libobj.so.1.0: $(BSD_PREREQ) libcom.so
-	(cd $(OBJDIR)/obj/; export MAKRUN=dll; $(MAKE))
-	touch $@
-
-libobj.so.1.0: $(OBJDIR)/obj/libobj.so.1.0
-	@echo obj.trace12 ln -s $< $@
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-~/bin/libobj.so.1.0: libobj.so
-	cp -Lpf $< $@
-	rebase -b 0x230000000 $@
-	touch $@
-
-libobj.dll: $(OBJDIR)/obj/libobj.so.1.0
-	@echo obj.trace13 ln -s $< $@
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-~/bin/libobj.dll: libobj.dll
-	cp -Lpf $< $@
-	rebase -b 0x230000000 $@
-	touch $@
-
-.SECONDARY: libobj.so.1.0 /usr/local/lib/libobj.so.1.0
-build.cygwin.dll: libobj.dll libobj.so ~/bin/libobj.so
-build.linux.so: libobj.so /usr/local/lib/libobj.so
-
-##############################################################################
-## Dependencies
-ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-$(OBJDIR)/obj/libobj.so.1.0: libcom.dll
-endif
-
-##############################################################################
-## TARGET: libobj.lib [WINDOWS VERSION, OBSOLETE]
-$(OBJDIR)/obj/libobj.lib: $(WIN_PREREQ)
+$(OBJDIR)/obj/libobj.so.1.0: $(PREREQ) libcom.so
 	(cd $(OBJDIR)/obj/; $(MAKE))
-	touch $@
+
+$(OBJDIR)/libobj.so.1.0: $(OBJDIR)/obj/libobj.so.1.0
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+build.bsd: $(OBJDIR)/libobj.so
+build.bsd: $(USRLIB)/libobj.so $(USRLIB)/libobj.so.1.0
+
+build.cygwin: $(OBJDIR)/libobj.dll
+build.cygwin: $(USRLIB)/libobj.dll
+
+##############################################################################
+## TARGET: libobj.lib [WINDOWS VERSION, NOT MAINTAINED]
+$(OBJDIR)/obj/libobj.lib: $(PREREQ)
+	(cd $(OBJDIR)/obj/; $(MAKE))
 
 libobj.lib: $(OBJDIR)/obj/libobj.lib libcom.lib
 	cp -Lpf $< $@
@@ -101,29 +70,18 @@ obj.depend: ;
 ## TARGET: obj.update
 .PHONY: obj.update
 update: obj.update
-ifeq "$(MAKRUN)" "build.bsd.lib"
 obj.update: ;
-	(cd $(OBJDIR)/obj/; export MAKRUN=lib; $(MAKE) update)
-else
-obj.update: ;
-	(cd $(OBJDIR)/obj/; export MAKRUN=dll; $(MAKE) update)
-endif
+	(cd $(OBJDIR)/obj/; $(MAKE) update)
 
 ##############################################################################
 ## Cleanup
 .PHONY: obj.pristine
-pristine.bsd: obj.pristine
-pristine.win: obj.pristine
+pristine: obj.pristine
 obj.pristine: ;
 	(cd $(OBJDIR)/obj/; $(MAKE) pristine)
+	-@rm -f $(USRLIB)/libobj.* >/dev/null 2>/dev/null
 
-.PHONY: obj.clean.bsd
-clean.bsd: obj.clean.bsd
-obj.clean.bsd: ;
-	-@rm -f libobj.a >/dev/null 2>/dev/null
-	-@rm -f libobj.so* libobj.dll >/dev/null 2>/dev/null
-
-.PHONY: obj.clean.win
-clean.win: obj.clean.win
-obj.clean.win: ;
-	-@rm -f libobj.lib >/dev/null 2>/dev/null
+.PHONY: obj.clean
+clean: obj.clean
+obj.clean: ;
+	-@rm -f libobj.* >/dev/null 2>/dev/null

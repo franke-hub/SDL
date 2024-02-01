@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2023 Frank Eskesen.
+##       Copyright (c) 2007-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -9,21 +9,18 @@
 ##############################################################################
 ##
 ## Title-
-##       Makefile.DIR
+##       ~/src/cpp/lib/com/Makefile.DIR
 ##
 ## Purpose-
-##       Subdirectory build control: included from ../Makefile.*
+##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2023/12/03
-##
-## Implementation notes-
-##       Included from src/cpp/lib/Makefile.BSD [obj/cpp/lib and obj/cpp/dll]
+##       2024/02/01
 ##
 ##############################################################################
 
 ##############################################################################
-## TARGET: prerequisites
+## Prerequisites
 PREREQ := $(wildcard $(INCDIR)/com/*)
 PREREQ += $(wildcard $(SRCDIR)/com/*)
 PREREQ += $(wildcard $(SRCDIR)/com/HW/PPC/*)
@@ -38,48 +35,31 @@ WIN_PREREQ += $(wildcard $(SRCDIR)/com/OS/WIN/*)
 ##############################################################################
 ## TARGET: com/libcom.a
 $(OBJDIR)/com/libcom.a: $(BSD_PREREQ)
-	(cd $(OBJDIR)/com/; export MAKRUN=lib; $(MAKE))
-	touch $@
+	(cd $(OBJDIR)/com/; $(MAKE))
 
-libcom.a: $(OBJDIR)/com/libcom.a
-	@echo com.trace11 ln -s $< $@
+$(OBJDIR)/libcom.a: $(OBJDIR)/com/libcom.a
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
-build.bsd.lib: libcom.a
+build.bsd: $(OBJDIR)/libcom.a
 
 ##############################################################################
 ## TARGET: com/libcom.so.1.0
 $(OBJDIR)/com/libcom.so.1.0: $(BSD_PREREQ)
-	(cd $(OBJDIR)/com/; export MAKRUN=dll; $(MAKE))
-	touch $@
+	(cd $(OBJDIR)/com/; $(MAKE))
 
-libcom.so.1.0: $(OBJDIR)/com/libcom.so.1.0
-	@echo com.trace12 ln -s $< $@
+$(OBJDIR)/libcom.so.1.0: $(OBJDIR)/com/libcom.so.1.0
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
-~/bin/libcom.so.1.0: libcom.so
-	cp -Lpf $< $@
-	rebase -b 0x210000000 $@
-	touch $@
+build.bsd: $(OBJDIR)/libcom.so
+build.bsd: $(USRLIB)/libcom.so $(USRLIB)/libcom.so.1.0
 
-libcom.dll: $(OBJDIR)/com/libcom.so.1.0
-	@echo com.trace13 ln -s $< $@
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-~/bin/libcom.dll: libcom.dll
-	cp -Lpf $< $@
-	rebase -b 0x210000000 $@
-	touch $@
-
-.SECONDARY: libcom.so.1.0 /usr/local/lib/libcom.so.1.0
-build.cygwin.dll: libcom.dll libcom.so ~/bin/libcom.so
-build.linux.so: libcom.so /usr/local/lib/libcom.so
+build.cygwin: $(OBJDIR)/libcom.dll
+build.cygwin: $(USRLIB)/libcom.dll
 
 ##############################################################################
-## TARGET: libcom.lib [WINDOWS VERSION, OBSOLETE]
+## TARGET: libcom.lib [WINDOWS VERSION, NOT MAINTAINED]
 $(OBJDIR)/com/libcom.lib: $(WIN_PREREQ)
 	(cd $(OBJDIR)/com/; $(MAKE))
-	touch $@
 
 libcom.lib: $(OBJDIR)/com/libcom.lib
 	cp -Lpf $< $@
@@ -98,29 +78,18 @@ com.depend: ;
 ## TARGET: com.update
 .PHONY: com.update
 update: com.update
-ifeq "$(MAKRUN)" "build.bsd.lib"
 com.update: ;
-	(cd $(OBJDIR)/com/; export MAKRUN=lib; $(MAKE) update)
-else
-com.update: ;
-	(cd $(OBJDIR)/com/; export MAKRUN=dll; $(MAKE) update)
-endif
+	(cd $(OBJDIR)/com/; $(MAKE) update)
 
 ##############################################################################
 ## Cleanup
 .PHONY: com.pristine
-pristine.bsd: com.pristine
-pristine.win: com.pristine
+pristine: com.pristine
 com.pristine: ;
 	(cd $(OBJDIR)/com/; $(MAKE) pristine)
+	-@rm -f $(USRLIB)/libcom.* >/dev/null 2>/dev/null
 
-.PHONY: com.clean.bsd
-clean.bsd: com.clean.bsd
-com.clean.bsd: ;
-	-@rm -f libcom.a >/dev/null 2>/dev/null
-	-@rm -f libcom.so* libcom.dll >/dev/null 2>/dev/null
-
-.PHONY: com.clean.win
-clean.win: com.clean.win
-com.clean.win: ;
-	-@rm -f libcom.lib >/dev/null 2>/dev/null
+.PHONY: com.clean
+clean: com.clean
+com.clean: ;
+	-@rm -f libcom.* >/dev/null 2>/dev/null

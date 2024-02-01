@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2023 Frank Eskesen.
+##       Copyright (C) 2023-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       C++ build control makefile
 ##
 ## Last change date-
-##       2023/12/03
+##       2024/02/01
 ##
 ## Implementation notes-
 ##       ~/obj/cpp/Makefile links to this file.
@@ -29,7 +29,6 @@ list-options: ;
 	@echo "Available options:"
 	@echo "  make install: Build all installation prerequisites and libraries."
 	@echo "    Use this to initialize or update your installation."
-	@echo "  make install_dll: Build the C++ Dynamic-Link (Shared) Library."
 	@echo "  make uninstall: Remove prerequisites and build libraries."
 	@echo "  make reinstall: (make uninstall; make install)"
 	@echo "    Use this after installing a new Linux version."
@@ -71,8 +70,8 @@ CPP_ += Wilbur
 CPP_ += Xample   XML
 
 ##############################################################################
-## TARGETS: check, compile, install, install_dll, reinstall, uninstall, update
-.PHONY: check compile install install_dll reinstall uninstall, update
+## TARGETS: check, compile, install, reinstall, uninstall, update
+.PHONY: check compile install reinstall uninstall, update
 
 ##----------------------------------------------------------------------------
 check: is-installed
@@ -93,25 +92,17 @@ install: ;
 	@echo "** install completed OK **"
 
 ##----------------------------------------------------------------------------
-install_dll: ;
-	(echo; echo; cd sys; $(MAKE) install)
-	(echo; echo; cd dll; $(MAKE))
-	@echo "** install_dll completed OK **"
-
-##----------------------------------------------------------------------------
 reinstall: uninstall install
 	@echo "** reinstall completed OK **"
 
 ##----------------------------------------------------------------------------
 uninstall: ;
-	(echo; echo; cd dll; $(MAKE) pristine)
 	(echo; echo; cd lib; $(MAKE) pristine)
 	(echo; echo; cd sys; $(MAKE) uninstall)
 	@echo "** uninstall completed OK **"
 
 ##----------------------------------------------------------------------------
 update: ;
-	(echo; echo; cd dll; $(MAKE) update)
 	(echo; echo; cd lib; $(MAKE) update)
 
 ##############################################################################
@@ -128,7 +119,6 @@ clean: ;
 
 ##----------------------------------------------------------------------------
 pristine: clean
-	-@(cd dll; $(MAKE) pristine)
 	-@(cd lib; $(MAKE) pristine)
 	-@(cd sys; $(MAKE) uninstall)
 

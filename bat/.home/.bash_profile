@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2020-2021 Frank Eskesen.
+##       Copyright (C) 2020-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
@@ -16,55 +16,69 @@
 ##       Shell startup script, sourced during login
 ##
 ## Last change date-
-##        2021/04/20
+##        2024/01/26
 ##
 ##############################################################################
 
 ##############################################################################
-# Debugging hook
-# export debugging=~/.local/log/user.log
+## Debugging hook
+## export debugging=$HOME/.local/log/user.log
 [ -n "$debugging" ] && date "+%s.%N HOST($HOST) USER($USER) begin .bash_profile $$ $0" >>$debugging
 
 ##############################################################################
-# Set PATH
+## Set PATH
+## export PATH=/usr/local/bin:usr/bin/:/usr/local/sbin:/usr/sbin
+
 . $HOME/bat/f.appendstring
 
 ## Prepend in reverse order
-[ -d $HOME/.local/bin ] && PrependString PATH "$HOME/.local/bin"
 [ -d $HOME/bin ] && PrependString PATH "$HOME/bin"
 [ -d $HOME/bat ] && PrependString PATH "$HOME/bat"
+[ -d $HOME/.local/bin ] && PrependString PATH "$HOME/.local/bin"
+[ -d $HOME/.local/bat ] && PrependString PATH "$HOME/.local/bat"
 PrependString PATH "."
 
 ## Append in normal order
 [ -d /usr/local/bin ] && AppendString PATH "/usr/local/bin"
 
 ##############################################################################
-# LINUX/CYGWIN version code
+## Set LD_LIBRARY_PATH
+
+## Prepend in reverse order
+[ -d $HOME/.local/lib ] && PrependString LD_LIBRARY_PATH "$HOME/.local/lib"
+[ -d $HOME/.local/lib/usr ] && PrependString LD_LIBRARY_PATH "$HOME/.local/lib/usr"
+PrependString LD_LIBRARY_PATH "."
+
+## Append in normal order
+[ -d /usr/local/lib ] && AppendString LD_LIBRARY_PATH "/usr/local/lib"
+
+##############################################################################
+## CYGWIN version code
 isCYGWIN=`uname | grep CYGWIN`
 if [ -n "$isCYGWIN" ] ; then
-  if [ -z "$HOST" ] ; then
-    export HOST=`hostname`
-  fi
-
-  export CYGWIN="winsymlinks:nativestrict"
-else
-  [ -d /usr/local/lib ] && PrependString LD_LIBRARY_PATH "/usr/local/lib"
-  PrependString LD_LIBRARY_PATH "."
-
-##[ ! -d /run/user/$UID/thumbnails ] && mkdir /run/user/$UID/thumbnails
+  export CYGWIN="winsymlinks:native"
 fi
 
 ##############################################################################
-# Shell initialization
-[ -r ~/.bashrc ] && source ~/.bashrc
+## Other initialization
+[ -z "$HOST" ] && export HOST=`hostname`
+export LANG=$(locale -uU 2>/dev/null)
+[ -z "$LANG" ] && export LANG=en_US.UTF-8
+
+unset EDITOR
+source $HOME/bat/setupEDIT
 
 ##############################################################################
-# Environment checks.
-[ -s ~/.cvspass ] && echo WARNING: ~/.cvspass exists
-[ -s ~/.local/log/error.log ] && echo WARNING: ~/.local/log/error.log exists
+## Shell initialization
+[ -r $HOME/.bashrc ] && source $HOME/.bashrc
+
+##############################################################################
+## Environment checks.
+[ -s $HOME/.cvspass ] && echo WARNING: $HOME/.cvspass exists
+[ -s $HOME/.local/log/error.log ] && echo WARNING: $HOME/.local/log/error.log exists
 
 unset -f AppendString PrependString
 
 ##############################################################################
-# Debugging hook
+## Debugging hook
 [ -n "$debugging" ] && date "+%s.%N HOST($HOST) USER($USER) *end* .bash_profile $$ $0" >>$debugging

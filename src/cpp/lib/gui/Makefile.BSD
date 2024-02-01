@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2023 Frank Eskesen.
+##       Copyright (c) 2007-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -9,38 +9,52 @@
 ##############################################################################
 ##
 ## Title-
-##       Makefile.BSD
+##       ~/src/cpp/lib/gui/Makefile.BSD
 ##
 ## Purpose-
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2023/12/03
+##       2024/02/01
 ##
 ##############################################################################
 
 ##############################################################################
 ## Local options (-fPIC, but not on CYGWIN)
 ifneq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-COPTS  += -fPIC ################### Generate position independent code
+COPTS  += -fPIC ###################### Generate position independent code
 endif
 
 ##############################################################################
 ## Set targets
 ifeq "" "$(MAKRUN)"
-MAKRUN := dll
-MAKRUN := lib
+MAKRUN := all
 endif
 
 ifeq "" "$(DEFAULT)"
 DEFAULT := $(MAKRUN)
 endif
 
-.PHONY: default dll lib all
-default: $(DEFAULT)
-dll: configure libgui.so.1.0
-lib: configure libgui.a
+.PHONY: default all dll lib
+default: configure $(DEFAULT)
 all: dll lib
+dll: libgui.so.1.0
+lib: libgui.a
+
+##############################################################################
+## TARGET: libgui.a
+libgui.a: $(MAKOBJ)
+	$(AR) $@ $^
+	touch $@
+
+##############################################################################
+## TARGET: libgui.so.1.0
+libgui.so.1.0: $(MAKOBJ)
+	$(CC) -shared -o $@ $^ -lbz2 -lz -lc
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+	rebase -b 0x220000000 $@
+endif
+	touch $@
 
 ##############################################################################
 ## TARGET: configure
@@ -51,40 +65,12 @@ configure: ;
 ##############################################################################
 ## TARGET: update
 .PHONY: update
-EXISTS := $(shell _exists.sh "libgui.so.1.0")
-
-ifeq "$(MAKRUN)" "lib"
 update: default
-else ifeq "$(EXISTS)" "true"
-update: default
-else
-update: ;
-endif
-
-##############################################################################
-## TARGET: libgui.so.1.0, libgui.so, libgui.dll
-GUILIB := ############################ GUI libraries
-GUILIB += -lX11 $(shell pkg-config --libs xcb xcb-xfixes xcb-image)
-GUILIB += -lssl -lcrypto -lboost_stacktrace_addr2line ## PUB libraries
-
-libgui.so.1.0: $(MAKOBJ)
-	$(CC) -shared -o $@ $^ -LL -lpub $(GUILIB)
-	touch $@
-
-libgui.so: libgui.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-libgui.dll: libgui.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-##############################################################################
-## TARGET: libgui.a
-libgui.a: $(MAKOBJ)
-	$(AR) $@ $^
-	touch $@
 
 ##############################################################################
 ## Dependencies
+include $(INCDIR)/gui/Makefile.BSD
+
 ifneq "" "$(DEPENDS)"
 Makeproj.dep: $(wildcard $(INCDIR)/gui/*)
 Makeproj.dep: $(wildcard $(SRCDIR)/*)
@@ -92,12 +78,12 @@ endif
 
 ##############################################################################
 ## Cleanup
-.PHONY: gui.clean.bsd gui.pristine.bsd
-clean: gui.clean.bsd
-gui.clean.bsd: ;
+.PHONY: gui.clean gui.pristine
+clean: gui.clean
+gui.clean: ;
 	-@rm -f libgui.a >/dev/null 2>/dev/null
 	-@rm -f libgui.so* libgui.dll >/dev/null 2>/dev/null
 
-pristine: gui.pristine.bsd
-gui.pristine.bsd: ;
+pristine: gui.pristine
+gui.pristine: ;
 	-@rm -f _have.version >/dev/null 2>/dev/null

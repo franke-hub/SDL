@@ -9,74 +9,94 @@
 ##############################################################################
 ##
 ## Title-
-##       Makefile.BSD
+##       ~/src/cpp/lib/Makefile.BSD
 ##
 ## Purpose-
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/01/22
+##       2024/02/01
 ##
 ##############################################################################
 
 ##############################################################################
-## Set default target (build.bsd.dll, build.bsd.lib)
+## Set default target (build.bsd)
 ifeq "" "$(MAKRUN)"
-MAKRUN := build.bsd.lib
+MAKRUN := build.bsd
 endif
 
 ifeq "" "$(DEFAULT)"
 DEFAULT := $(MAKRUN)
 endif
 
-.PHONY: default build.bsd.dll build.bsd.lib
+.PHONY: default build.bsd
 default: $(DEFAULT)
 
 ##############################################################################
-## Common build instructions
-.PHONY: build.cygwin.dll build.linux.so
+## CYGWIN extra instructions
+.PHONY: build.cygwin
 ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-build.bsd.dll: build.cygwin.dll
-else
-build.bsd.dll: build.linux.so
+build.bsd: build.cygwin
 endif
-
-/usr/local/lib/%.so: /usr/local/lib/%.so.1.0
-	@echo trace01 sudo ln -s $(<F) $@
-	$(shell [ ! -L "$@" ] && sudo ln -s $(<F) $@)
-
-/usr/local/lib/%.so.1.0: %.so
-	sudo cp -Lpf $< $@
-
-~/bin/%.so: ~/bin/%.so.1.0
-	@echo trace02 ln -s $(<F) $@
-	$(shell [ ! -L "$@" ] && ln -s $(<F) $@)
-
-$(OBJDIR)/%.so: $(OBJDIR)/%.so.1.0
-	@echo trace03 ln -s $(<F) $(@F)
-	$(shell [ ! -L "$(@F)" ] && ln -s $(<F) $(@F))
 
 ##############################################################################
 ## Dependencies
-$(OBJDIR)/libgui.so: $(OBJDIR)/libpub.so.1.0
+## Library order dependencies
+## $(OBJDIR)/libobj.a: $(OBJDIR)/libcom.a
+## $(OBJDIR)/libpub.a: $(OBJDIR)/libcom.a
+## $(OBJDIR)/libgui.a: $(OBJDIR)/libpub.a
+## $(OBJDIR)/libdev.a: $(OBJDIR)/libpub.a
+
+## $(OBJDIR)/libobj.so.1.0: $(OBJDIR)/libcom.so.1.0
+## $(OBJDIR)/libpub.so.1.0: $(OBJDIR)/libcom.so.1.0
+## $(OBJDIR)/libgui.so.1.0: $(OBJDIR)/libpub.so.1.0
+## $(OBJDIR)/libdev.so.1.0: $(OBJDIR)/libpub.so.1.0
+
+##############################################################################
+## $(USRLIB) definition; created as *first* build.bsd dependency
+USRLIB := ~/.local/lib/usr############ User dynamic link library directory
+$(USRLIB): ;
+	mkdir -p $(USRLIB)
+
+build.bsd: $(USRLIB)
+
+##############################################################################
+## Patterns
+$(OBJDIR)/%.so: $(OBJDIR)/%.so.1.0
+	$(shell [ ! -L "$(@F)" ] && ln -s $(<F) $(@F))
+
+$(OBJDIR)/%: $(OBJDIR)/%.so.1.0
+	$(shell [ ! -L "$(@F)" ] && ln -s $(<F) $(@F)))
+
+$(USRLIB)/%.so.1.0: $(OBJDIR)/%.so.1.0
+	cp -Lpf $< $@
+	touch $@
+
+$(USRLIB)/%.so: $(USRLIB)/%.so.1.0
+	$(shell [ ! -L "$@" ] && (cd $(<D); ln -s $(<F) $(@F)))
+
+$(USRLIB)/%: $(USRLIB)/%.so.1.0
+	$(shell [ ! -L "$@" ] && (cd $(<D); ln -s $(<F) $(@F)))
 
 #############################################################################
 ## Target update (additional dependencies in ./*/Makefile.DIR)
 .PHONY: update dependable
-ifeq "$(MAKRUN)" "build.bsd.lib"
 update: dependable $(MAKRUN)
-else
-update: ;
-endif
 
 dependable: ;
 	@($(MAKE) depend)
 
-#############################################################################
-## Cleanup targets
-.PHONY: clean clean.bsd clean.win pristine pristine.bsd pristine.win
-clean: clean.bsd
-pristine: pristine.bsd
+##############################################################################
+## Cleanup
+.PHONY: lib.pristine
+pristine: lib.pristine
+lib.pristine: ;
+	-@rm -f Makeproj.*
+
+.PHONY: lib.clean
+clean: lib.clean
+lib.clean: ;
+## 	-@rm -f lib* >/dev/null 2>/dev/null
 
 ##############################################################################
 ## Include subdirectories

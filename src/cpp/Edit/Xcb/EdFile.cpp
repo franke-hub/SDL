@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2023/08/28
+//       2024/01/25
 //
 // Implements-
 //       EdFile: Editor File descriptor
@@ -439,7 +439,7 @@ size_t                              // The row number
 
 bool                                // TRUE if file is changed or damaged
    EdFile::is_changed( void ) const // Is file changed or damaged?
-{  return changed||chdetab||damaged || editor::data->active.get_changed(); }
+{  return changed||chglock||damaged || editor::data->active.get_changed(); }
 
 
 //----------------------------------------------------------------------------
@@ -468,8 +468,8 @@ void
 
    if( this == editor::file )       // If this is the active file
      editor::term->synch_file(this); // Get current terminal state
-   debugf("..mode(%d) changed(%s) chdetab(%s) damaged(%s) protect(%s)\n"
-         , mode, TF(changed), TF(chdetab), TF(damaged), TF(protect));
+   debugf("..mode(%d) changed(%s) chglock(%s) damaged(%s) protect(%s)\n"
+         , mode, TF(changed), TF(chglock), TF(damaged), TF(protect));
    debugf("..top_line(%p) csr_line(%p)\n", top_line, csr_line);
    debugf("..col_zero(%zd) col(%d) row_zero(%zd) row(%d) rows(%zd)\n"
          , col_zero, col, row_zero, row, rows);
@@ -1017,7 +1017,7 @@ void
    undo_delete();
 
    changed= false;
-   chdetab= false;
+   chglock= false;
    damaged= false;
 }
 

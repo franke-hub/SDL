@@ -1,7 +1,7 @@
-##
+#!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (c) 2012-2023 Frank Eskesen.
+##       Copyright (c) 2012-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Extract nickname for subdirectory
 ##
 ## Last change date-
-##       2023/05/09
+##       2024/02/01
 ##
 ## Usage-
 ##       cd `nickdir alias_name`
@@ -40,8 +40,6 @@ case $1 in
     echo       ctl=`nickdir ctl`
     echo       dev=`nickdir dev`
 ##  echo      diva=`nickdir diva`
-    echo       dll=`nickdir dll`
-    echo       doc=`nickdir doc`
     echo      edit=`nickdir edit`
     echo     forth=`nickdir forth`
     echo       gpg=`nickdir gpg`
@@ -143,14 +141,6 @@ case $1 in
     __FULLDIR="$HOME/obj/cpp/lib/dev/${1:4}"
     ;;
 
-  dll)
-    __FULLDIR="$HOME/obj/cpp/dll"
-    ;;
-
-  dll/*)
-    __FULLDIR="$HOME/obj/cpp/dll/${1:4}"
-    ;;
-
   gui)
     __FULLDIR="$HOME/obj/cpp/lib/gui"
     ;;
@@ -171,11 +161,11 @@ case $1 in
     __FULLDIR="$HOME/obj/cpp/lib/obj"
     ;;
 
-  obj/cpp | obj/doc | obj/java | obj/js | obj/mcs | obj/py)
+  obj/cpp | obj/java | obj/js | obj/mcs | obj/py)
     __FULLDIR="$HOME/$1"
     ;;
 
-  obj/cpp/* | obj/doc/* | obj/java/* | obj/js/* | obj/mcs/* | obj/py/*)
+  obj/cpp/* | obj/java/* | obj/js/* | obj/mcs/* | obj/py/*)
     __FULLDIR="$HOME/$1"
     ;;
 
@@ -199,7 +189,7 @@ case $1 in
   ############################################################################
   ## Documentation source directories
   doc | doc/*)
-    __FULLDIR="$HOME/src/$1"
+    __FULLDIR="$HOME/$1"
     ;;
 
   ############################################################################

@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2022-2023 Frank Eskesen.
+//       Copyright (c) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       SDL Distribution reference manual
 //
 // Last change date-
-//       2023/11/26
+//       2024/01/08
 //
 -------------------------------------------------------------------------- -->
 
@@ -33,6 +33,18 @@ While this library is still maintined, much of its functionality has been
 moved to the PUB library.
 
 The source code provides the only documentation.
+
+### The DEV Library
+
+The DEV (development) library uses namespace `pub`.
+It defines HTTP (HTTP/1 only) control utility objects.
+
+When ready, this library will be moved to the PUB library.
+It is currently experimental.
+(Currently ~/src/cpp/inc/pub/http links to ~/src/cpp/inc/dev/.)
+
+The source code currently provides the only documentation.
+When ready, documentation will be added here.
 
 ### The GUI Library
 
@@ -55,7 +67,7 @@ The PUB (public) library uses namespace `pub`.
 It defines general-purpose utility objects.
 
 While a smattering of Doxygen source documentation exists, it will be removed
-when this documentation is complete.
+after completing this documentation.
 
 __TODO__ Update in progress. Current update:
 Diagnostic.h, Event.h, Exception.h, Fileman.h, Hardware.h
@@ -68,8 +80,10 @@ This is intended as a reference rather than an include file.
 - [config.h:](./config.md) Provides a (minimal) set of user macros.
 - [Console.h:](./Console.md) Wrappers for console I/O functions.
 - [Debug.h:](./Debug.md) Debugging tools
-- Diagnostic.h: (to be renamed) Provides a mechanism for diagnosing shared_ptr
-and weak_ptr usage problems.
+- [diag-shared_ptr.h:](./diag-shared_ptr.h) A diagnostic tool for debugging
+std::shared_ptr and std::weak_ptr usage problems.
+- [diag-pristine.h:](./diag-pristine.h) A diagnostic tool for debugging
+"wild store" problems.
 - [Dispatch.h:](./Dispatch.md) Provides lock-free multi-threading control
 mechanisms.
 - Event.h: Provides a wait/post event handling mechanism.
@@ -77,10 +91,11 @@ mechanisms.
 - Fileman.h: Provides file handling utility functions.
 - Hardware.h: Mechanisms for reading the link pointer, stack pointer, and
 timestamp counter.
-- http Subdirectory containing HTTP Client/Server objects. (This is a work
-in progress, and currently only supports HTTP/1.)
+- http Subdirectory containing HTTP Client/Server includes.
+(This is a work in progress, and currently only supports HTTP/1.)
 - ifmacro.h: Provides a set of compilation controls.
-(deprecated. To be removed. Use ~/src/cpp/inc/com/ifmacro.h instead.)
+(deprecated. To be removed.)
+If really wanted, use ~/src/cpp/inc/com/ifmacro.h instead.
 - Interval.h: Provides an interval timer.
 - Latch.h: Provides (lockable) spin latches, which can sometimes be more
 useful than a mutex. There is also a latch type that can be accessed either
@@ -92,7 +107,7 @@ Doubly Headed Singly Linked list, and
 Singly Headed Singly Linked list.
 It also provides List, an alias for DHDL_list.
 - [List.h:](./List.md) (Currently only documents AI_list.)
-- Lock.h: Provides a process named lock.
+- Lock.h: Provides a process-wide named lock.
 - memory.h: Implements atomic_shared_ptr<class T>, currently via boost.
 - Must.h: Provides utility routines that throw std::bad_alloc instead of
 returning nullptr.
@@ -107,7 +122,7 @@ returning nullptr.
 reporting. __TODO__ Event status checking.
 - Select.h: Provides a socket polling controller and selector.
 - Semaphore.h: Provides wait/post semaphore functions.
-- Signals.h: Provides slots and signals mechanisms.
+- [Signals.h:](./Signals.md) Provides a "signals and slots" mechanism.
 - Socket.h: Provides socket interfaces.
 - Statistic.h: Provides statistical measurement object.
 - SubAllocator.h: (Placeholder: not implemented)

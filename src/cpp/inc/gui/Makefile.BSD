@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2021 Frank Eskesen.
+##       Copyright (c) 2021-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -12,25 +12,26 @@
 ##       Makefile.BSD
 ##
 ## Purpose-
-##       (Include this Makefile to add GUI library controls and dependencies.)
+##       GUI library controls and dependencies.
+##
+## Last change date-
+##       2024/02/01
 ##
 ## Implementation notes-
-##       This version is intended to be included from CYGWIN/LINUX makefiles.
+##       Include this file from CYGWIN/LINUX Makefiles that use GUI library.
 ##
 ##############################################################################
+ifeq "" "$(_LIBPUB_GUI_MAKEFILE_BSD_INCLUDED)"
+_LIBPUB_GUI_MAKEFILE_BSD_INCLUDED := "TRUE"
 
-################################### Controls
-LLIBS  += -L$(LIBDIR) -lgui ####### GUI library
-LLIBS  += -L$(LIBDIR) -lcom ####### COM library
-LLIBS  += -L$(LIBDIR) -lpub ####### PUB library
+###################################### Dependent libraries
+LLIBS  += -L$(LIBDIR) -lgui ########## GUI library
+include $(INCDIR)/pub/Makefile.BSD ### PUB library
 
-CLIBS  += -lX11
-CLIBS  += $(shell pkg-config --libs xcb xcb-xfixes xcb-image)
-CLIBS  += -lboost_stacktrace_addr2line -lboost_stacktrace_basic
-ignore += -ljpeg
-CLIBS  += -lpthread
 CLIBS  += -ldl
+CLIBS  += -lX11 $(shell pkg-config --libs xcb xcb-xfixes xcb-image)
 
 ##############################################################################
 ## Dependencies
 $(MAKEXE): $(LIBDIR)/libgui.a
+endif

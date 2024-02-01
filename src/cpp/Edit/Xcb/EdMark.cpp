@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2022/12/29
+//       2024/02/01
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -286,12 +286,20 @@ const char*                         // Error message, nullptr expected
 const char*                         // Error message, nullptr expected
    EdMark::cut( void )              // Cut the marked area
 {
+   const char*      rc= nullptr;    // Default, no error
+
    if( mark_file == nullptr )
      return "No mark";
    if( mark_file->protect )
      return "Read/only mark";
-   const char* error= copy();
+
+   const char* error= copy();       // Copy the marked area
    if( error ) return error;
+
+   if( mark_file != editor::file ) { // If the mark is in a different file
+     mark_file->put_message("Mark data removed"); // The "from" file
+     rc= "Mark was in a different file";
+   }
 
    // Trace the cut
    Trace::trace(".MRK", " C^X", mark_head, mark_tail);
@@ -360,7 +368,7 @@ const char*                         // Error message, nullptr expected
    change_signal.signal(event);
    undo();                          // (No mark remains after cut)
 
-   return nullptr;
+   return rc;
 }
 
 //----------------------------------------------------------------------------
@@ -491,7 +499,7 @@ const char*                         // Error message, nullptr expected
    if( edLine->flags & EdLine::F_PROT )
      return "Protected";
    if( mark_file && mark_file != edFile )
-     return "Mark offscreen";
+     return "Different file already marked";
    if( editor::view != editor::data )
      return "Cursor view";
 

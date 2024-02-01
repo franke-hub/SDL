@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Editor data view
 //
 // Last change date-
-//       2023/05/05
+//       2024/01/25
 //
 //----------------------------------------------------------------------------
 #ifndef EDVIEW_H_INCLUDED
@@ -144,18 +144,6 @@ virtual void
 //----------------------------------------------------------------------------
 virtual void
    commit( void );                  // Commit the Active line
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdView::commit_only
-//
-// Purpose-
-//       Commit the Active data line (without REDO)
-//
-//----------------------------------------------------------------------------
-void
-   commit_only( void );             // Commit the Active line without REDO
 
 //----------------------------------------------------------------------------
 //

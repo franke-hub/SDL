@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdTerm.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2023/09/26
+//       2024/02/01
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -347,7 +347,7 @@ void
          break;
        }
 
-       mark->cut();
+       editor::put_message( mark->cut() );
        mark->paste(file, data->cursor, data->get_column());
        draw();
        break;

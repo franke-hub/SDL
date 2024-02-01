@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement gui/Device.h
 //
 // Last change date-
-//       2023/05/11
+//       2024/01/23
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -68,7 +68,7 @@ static const char*                  // The widget name or "<nullptr>"
 //
 //----------------------------------------------------------------------------
    Device::Device( void )           // Constructor
-:  Window(nullptr, "Device"), signal("DeviceSignal")
+:  Window(nullptr, "Device"), signal()
 {
    if( opt_hcdm )
      debugh("Device(%p)::Device()\n", this);

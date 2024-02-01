@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2023 Frank Eskesen.
+##       Copyright (c) 2007-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -9,38 +9,52 @@
 ##############################################################################
 ##
 ## Title-
-##       Makefile.BSD
+##       ~/src/cpp/lib/com/Makefile.BSD
 ##
 ## Purpose-
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2023/12/03
+##       2024/02/01
 ##
 ##############################################################################
 
 ##############################################################################
 ## Local options (-fPIC, but not on CYGWIN)
 ifneq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-COPTS  += -fPIC ################### Generate position independent code
+COPTS  += -fPIC ###################### Generate position independent code
 endif
 
 ##############################################################################
 ## Set targets
 ifeq "" "$(MAKRUN)"
-MAKRUN := dll
-MAKRUN := lib
+MAKRUN := all
 endif
 
 ifeq "" "$(DEFAULT)"
 DEFAULT := $(MAKRUN)
 endif
 
-.PHONY: default dll lib all
-default: $(DEFAULT)
-dll: configure libcom.so.1.0
-lib: configure libcom.a
+.PHONY: default all dll lib
+default: configure $(DEFAULT)
 all: dll lib
+dll: libcom.so.1.0
+lib: libcom.a
+
+##############################################################################
+## TARGET: libcom.a
+libcom.a: $(MAKOBJ)
+	$(AR) $@ $^
+	touch $@
+
+##############################################################################
+## TARGET: libcom.so.1.0
+libcom.so.1.0: $(MAKOBJ)
+	$(CC) -shared -o $@ $^ -lbz2 -lz -lc
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+	rebase -b 0x210000000 $@
+endif
+	touch $@
 
 ##############################################################################
 ## TARGET: configure
@@ -51,22 +65,24 @@ configure: ;
 ##############################################################################
 ## TARGET: update
 .PHONY: update
-EXISTS := $(shell _exists.sh "libcom.so.1.0")
+update: default
 
-ifeq "$(MAKRUN)" "lib"
-update: default
-	@echo update lib complete MAKRUN $(MAKRUN)
-else ifeq "$(EXISTS)" "true"
-update: default
-	@echo update dll complete MAKRUN $(MAKRUN)
-else
-update: ;
-	@echo update dll not required MAKRUN $(MAKRUN)
+##############################################################################
+## Dependencies
+include $(INCDIR)/com/Makefile.BSD
+
+ifneq "" "$(DEPENDS)"
+Makeproj.dep: $(wildcard $(INCDIR)/com/*)
+Makeproj.dep: $(wildcard $(SRCDIR)/*)
+Makeproj.dep: $(wildcard $(SRCDIR)/HW/STD/*)
+Makeproj.dep: $(wildcard $(SRCDIR)/HW/X86/*)
+Makeproj.dep: $(wildcard $(SRCDIR)/OS/BSD/*)
+Makeproj.dep: $(wildcard $(SRCDIR)/OS/CYGWIN/*)
 endif
 
 ##############################################################################
 ## Explicit rule to make assembler source, listing (NO OUTPUT)
-AS     := as ###################### Assembler
+AS     := as ######################### Assembler
 
 %.s : $(SRCDIR)/%.cpp
 	$(CC) -o $@ -S $(CFLAGS) -c $<
@@ -78,46 +94,13 @@ Atomic.s : $(SRCDIR)/HW/X86/Atomic.GNU
 Hardware.s : $(SRCDIR)/HW/X86/Hardware.GNU
 
 ##############################################################################
-## TARGET: libcom.so.1.0, libcom.so, libcom.dll
-ifneq "" "$(LINKMAP)"
-LINKMAP := -Wl,-Map -Wl,libcom.map ## Generate linker map
-endif
-
-libcom.so.1.0: $(MAKOBJ)
-	$(CC) $(LINKMAP) -shared -o $@ $^ -lbz2 -lncurses -lpthread -lz -lc
-	touch $@
-
-libcom.so: libcom.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-libcom.dll: libcom.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-##############################################################################
-## TARGET: libcom.a
-libcom.a: $(MAKOBJ)
-	$(AR) $@ $^
-	touch $@
-
-##############################################################################
-## Dependencies
-ifneq "" "$(DEPENDS)"
-Makeproj.dep: $(wildcard $(INCDIR)/com/*)
-Makeproj.dep: $(wildcard $(SRCDIR)/*)
-Makeproj.dep: $(wildcard $(SRCDIR)/HW/STD/*)
-Makeproj.dep: $(wildcard $(SRCDIR)/HW/X86/*)
-Makeproj.dep: $(wildcard $(SRCDIR)/OS/BSD/*)
-Makeproj.dep: $(wildcard $(SRCDIR)/OS/CYGWIN/*)
-endif
-
-##############################################################################
 ## Cleanup
-.PHONY: com.clean.bsd com.pristine.bsd
-clean: com.clean.bsd
-com.clean.bsd: ;
+.PHONY: com.clean com.pristine
+clean: com.clean
+com.clean: ;
 	-@rm -f libcom.a >/dev/null 2>/dev/null
 	-@rm -f libcom.so* libcom.dll >/dev/null 2>/dev/null
 
-pristine: com.pristine.bsd
-com.pristine.bsd: ;
+pristine: com.pristine
+com.pristine: ;
 	-@rm -f _have.version >/dev/null 2>/dev/null

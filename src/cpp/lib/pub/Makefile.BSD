@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2021-2023 Frank Eskesen.
+##       Copyright (c) 2021-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -9,38 +9,52 @@
 ##############################################################################
 ##
 ## Title-
-##       Makefile.BSD
+##       ~/src/cpp/lib/pub/Makefile.BSD
 ##
 ## Purpose-
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2023/12/03
+##       2024/02/01
 ##
 ##############################################################################
 
 ##############################################################################
 ## Local options (-fPIC, but not on CYGWIN)
 ifneq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-COPTS  += -fPIC ################### Generate position independent code
+COPTS  += -fPIC ###################### Generate position independent code
 endif
 
 ##############################################################################
 ## Set targets
 ifeq "" "$(MAKRUN)"
-MAKRUN := dll
-MAKRUN := lib
+MAKRUN := all
 endif
 
 ifeq "" "$(DEFAULT)"
 DEFAULT := $(MAKRUN)
 endif
 
-.PHONY: default dll lib all
-default: $(DEFAULT)
-dll: configure libpub.so.1.0
-lib: configure libpub.a
+.PHONY: default all dll lib
+default: configure $(DEFAULT)
 all: dll lib
+dll: libpub.so.1.0
+lib: libpub.a
+
+##############################################################################
+## TARGET: libpub.a
+libpub.a: $(MAKOBJ)
+	$(AR) $@ $^
+	touch $@
+
+##############################################################################
+## TARGET: libpub.so.1.0
+libpub.so.1.0: $(MAKOBJ)
+	$(CC) -shared -o $@ $^ -lbz2 -lz -lc
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+	rebase -b 0x240000000 $@
+endif
+	touch $@
 
 ##############################################################################
 ## TARGET: configure
@@ -51,40 +65,12 @@ configure: ;
 ##############################################################################
 ## TARGET: update
 .PHONY: update
-EXISTS := $(shell _exists.sh "libpub.so.1.0")
-
-ifeq "$(MAKRUN)" "lib"
 update: default
-else ifeq "$(EXISTS)" "true"
-update: default
-else
-update: ;
-endif
-
-##############################################################################
-## TARGET: libpub.so.1.0, libpub.so, libpub.dll
-PUBLIB := ############################ PUB libraries
-PUBLIB += -lX11 $(shell pkg-config --libs xcb xcb-xfixes xcb-image)
-PUBLIB += -lssl -lcrypto -lboost_stacktrace_addr2line ## PUB libraries
-
-libpub.so.1.0: $(MAKOBJ)
-	$(CC) -shared -o $@ $^ -LL -lcom $(PUBLIB)
-	touch $@
-
-libpub.so: libpub.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-libpub.dll: libpub.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-##############################################################################
-## TARGET: libpub.a
-libpub.a: $(MAKOBJ)
-	$(AR) $@ $^
-	touch $@
 
 ##############################################################################
 ## Dependencies
+include $(INCDIR)/pub/Makefile.BSD
+
 ifneq "" "$(DEPENDS)"
 Makeproj.dep: $(wildcard $(INCDIR)/pub/*)
 Makeproj.dep: $(wildcard $(SRCDIR)/*)
@@ -94,12 +80,12 @@ endif
 
 ##############################################################################
 ## Cleanup
-.PHONY: pub.clean.bsd pub.pristine.bsd
-clean: pub.clean.bsd
-pub.clean.bsd: ;
-	-@rm libpub.a >/dev/null 2>/dev/null
-	-@rm libpub.so* libpub.dll >/dev/null 2>/dev/null
+.PHONY: pub.clean pub.pristine
+clean: pub.clean
+pub.clean: ;
+	-@rm -f libpub.a >/dev/null 2>/dev/null
+	-@rm -f libpub.so* libpub.dll >/dev/null 2>/dev/null
 
-pristine: pub.pristine.bsd
-pub.pristine.bsd: ;
+pristine: pub.pristine
+pub.pristine: ;
 	-@rm -f _have.version >/dev/null 2>/dev/null

@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2023 Frank Eskesen.
+##       Copyright (c) 2023-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -12,24 +12,23 @@
 ##       Makefile.BSD
 ##
 ## Purpose-
-##       (Include this Makefile to add PUB library controls and dependencies.)
+##       DEV library controls and dependencies.
 ##
 ## Last change date-
-##       2023/01/12
+##       2024/02/01
 ##
 ## Implementation notes-
-##       This version is intended to be included from CYGWIN/LINUX makefiles.
+##       Include this file from CYGWIN/LINUX Makefiles that use DEV library.
 ##
 ##############################################################################
+ifeq "" "$(_LIBPUB_DEV_MAKEFILE_BSD_INCLUDED)"
+_LIBPUB_DEV_MAKEFILE_BSD_INCLUDED := "TRUE"
 
-################################### Controls
-LLIBS  += -L$(LIBDIR) -ldev ####### DEV library
-CLIBS  += -lboost_stacktrace_addr2line
-CLIBS  += -lcrypto
-CLIBS  += -lpthread
-CLIBS  += -lssl
+###################################### Dependent libraries
+LLIBS  += -L$(LIBDIR) -ldev ########## DEV library
+include $(INCDIR)/pub/Makefile.BSD ### PUB library
 
 ##############################################################################
 ## Dependencies
 $(MAKEXE): $(LIBDIR)/libdev.a
-
+endif

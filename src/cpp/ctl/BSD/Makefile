@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2021 Frank Eskesen.
+##       Copyright (c) 2007-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
@@ -10,13 +10,13 @@
 ##############################################################################
 ##
 ## Title-
-##       Makefile
+##       ~/src/cpp/ctl/BSD/Makefile
 ##
 ## Purpose-
 ##       Makefile for C++/Assembler programs
 ##
 ## Last change date-
-##       2021/09/06
+##       2024/02/01
 ##
 ## Preparation-
 ##       In your object directory,
@@ -55,6 +55,18 @@
 ##############################################################################
 
 ##############################################################################
+## Remove builtin rules
+MAKEFLAGS += --no-builtin-rules
+MAKEFLAGS += --no-builtin-variables
+
+vpath
+
+.SUFFIXES:
+.SUFFIXES: .o
+## Make% : ;
+## make% : ;
+
+##############################################################################
 ## Set default paths
 INCDIR = H######################### Include directory
 LIBDIR = L######################### Library directory
@@ -87,14 +99,7 @@ endif
 include $(INCSRC)
 
 ##############################################################################
-## Default rules
-vpath
-
-.SUFFIXES:
-.SUFFIXES: .o
-## Make% : ;
-## make% : ;
-
+## Default patterns
 % : %.o
 	$(LD) -o $@ $< $(CLOAD) $(CLIBS)
 
@@ -140,14 +145,14 @@ nothing: ;
 ## TARGET: pristine, clean
 .PHONY: pristine clean
 pristine: clean
-	-@rm *.lst *.o *.stackdump         >/dev/null 2>/dev/null
-	-@rm Makeproj.dep                  >/dev/null 2>/dev/null
-	-@rm Makeproj.inp Makeproj.out     >/dev/null 2>/dev/null
+	-@rm -f *.lst *.o *.stackdump         >/dev/null 2>/dev/null
+	-@rm -f Makeproj.dep                  >/dev/null 2>/dev/null
+	-@rm -f Makeproj.inp Makeproj.out     >/dev/null 2>/dev/null
 
 clean: ;
-	-@rm $(MAKEXE)                     >/dev/null 2>/dev/null
-	-@rm *.exe *.map                   >/dev/null 2>/dev/null
-	-@rm core debug.* errs             >/dev/null 2>/dev/null
+	-@rm -f $(MAKEXE)                     >/dev/null 2>/dev/null
+	-@rm -f *.exe *.map                   >/dev/null 2>/dev/null
+	-@rm -f core debug.* errs             >/dev/null 2>/dev/null
 
 ##############################################################################
 ## Include the dependency file
@@ -158,4 +163,3 @@ else
 INCSRC := $(MAKDIR)/$(INCSRC)
 endif
 include $(INCSRC)
-

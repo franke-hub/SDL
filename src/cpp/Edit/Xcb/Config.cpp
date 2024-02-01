@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2023/09/01
+//       2024/02/01
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -141,10 +141,10 @@ static void term( void );           // Terminate
 static const char*     Edit_conf=
    "[Program]\n"
    "URL=https://github.com/franke-hub/SDL/tree/trunk/src/cpp/Edit/Xcb\n"
-   "Exec=View ; Edit in read-only mode\n"
    "Exec=Edit ; Edit in read-write mode\n"
+   "Exec=View ; Edit in read-only mode\n"
    "Purpose=Graphic text editor\n"
-   "Version=1.0.1\n"
+   "Version=1.0.2\n"
    "\n"
    "[Options]\n"
    ";; See sample: ~/src/cpp/Edit/Xcb/.SAMPLE/Edit.conf\n"
@@ -227,8 +227,10 @@ static int                          // Resultant value
      Config::failure("No HOME directory");
    HOME= env;
 
-   // If required, create "$HOME/.config/editxcb/Edit.conf"
-   std::string S= HOME + "/.config";
+   // If required, create "$HOME/.local/state/editxcb/Edit.conf"
+   std::string S= HOME + "/.local";
+   make_dir(S);
+   S += "/state";
    make_dir(S);
    S += "/editxcb";
    make_dir(S);

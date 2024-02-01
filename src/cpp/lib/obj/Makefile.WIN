@@ -56,5 +56,4 @@ endif
 .PHONY: obj.clean.win
 clean: obj.clean.win
 obj.clean.win: ;
-	-@rm libobj.lib >/dev/null 2>/dev/null
-
+	-@rm -f libobj.lib >/dev/null 2>/dev/null

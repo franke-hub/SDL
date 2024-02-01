@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2024/01/08
+//       2024/01/23
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For std::free
@@ -36,6 +36,7 @@
 #include "pub/Dictionary.h"         // For pub::Dictionary
 #include "pub/Exception.h"          // For pub::Exception
 #include "pub/Latch.h"              // See test_Latch
+#include "pub/Named.h"              // For pub::Named
 #include "pub/Reporter.h"           // For pub::Reporter
 #include "pub/Signals.h"            // See test_Signals
 #include "pub/Statistic.h"          // For pub::Statistic
@@ -77,7 +78,7 @@ static int             opt_diag= false; // (Only set if --all)
 static int             opt_dump= false; // --dump
 static int             opt_latch= false; // --latch
 static int             opt_misc= false; // --misc
-static int             opt_reporter= true; // (Unconditionally true)
+static int             opt_report= false; // --report
 static int             opt_signals= false; // --signals
 static int             opt_trace= false; // --trace
 
@@ -86,6 +87,7 @@ static struct option   opts[]=      // Options
 ,  {"dump",    no_argument,       &opt_dump,    true}
 ,  {"latch",   no_argument,       &opt_latch,   true}
 ,  {"misc",    no_argument,       &opt_misc,    true}
+,  {"report",  no_argument,       &opt_report,  true}
 ,  {"signals", no_argument,       &opt_signals, true}
 ,  {"trace",   no_argument,       &opt_trace,   true}
 ,  {0, 0, 0, 0}                     // (End of option list)
@@ -129,15 +131,15 @@ pub::statistic::Active stat;        // A named, reported statistic
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       hcdml
+//       verbosely
 //
 // Purpose-
-//       Hard Core Debug Mode: Print line number
+//       If opt_verbose specified, print line number
 //
 //----------------------------------------------------------------------------
-static void
-   hcdml(int line)
-{  if( opt_hcdm ) debugf("%4d Quick (HCDM)\n", line); }
+static inline void
+   verbosely(int line)
+{  if( opt_verbose ) debugf("%4d Quick\n", line); }
 
 //----------------------------------------------------------------------------
 //
@@ -756,36 +758,38 @@ static inline int
 
    int                 error_count= 0; // Number of errors encountered
 
+   static int          A_counter= 0; // Number of A clicks
+   static int          B_counter= 0; // Number of B clicks
+
    using namespace PUB::signals;
+
+   // pub::signals::Event is the parameter to the Event handler
    struct Event {                   // Our event type
      float             X;           // X value
      float             Y;           // Y value
 
      Event(float X_, float Y_) : X(X_), Y(Y_) {}
-   }; // struct Event
 
-   static int          A_counter= 0; // Number of A clicks
-   static int          B_counter= 0; // Number of B clicks
+     int               index= 0;    // (Tests local variables, pass by ref)
+   }; // struct Event
 
    using click_conn=   Connector<Event>;
    using click_event=  Event;
    using click_signal= Signal<Event>;
 
-   PUB::debugging::options::pub_hcdm= opt_hcdm;
+   struct gui_element : public pub::Named {
+     click_signal      clicked;     // Our Signal<Event>
 
-   struct gui_element{
-     click_signal clicked;
-     void mouse_down(float X,float Y) { Event E(X,Y); clicked.signal(E); }
+     // When a mouse_down Event occurs, drive our Signal<Event> Listeners
+     void mouse_down(float X,float Y)
+     { Event E(X,Y); clicked.signal(E); }
 
-     gui_element(const char* name= nullptr) : clicked(name) {}
+     gui_element(const char* name= nullptr) : Named(name) {}
    };
 
-   hcdml(__LINE__); gui_element A("A"); // The "A" gui_element
-   hcdml(__LINE__); gui_element B("B"); // The "B" gui_element
-   hcdml(__LINE__); click_conn connection_1;
-   hcdml(__LINE__); click_conn connection_2;
-
-   struct Slot_A {
+   // Define some Listener functions.
+   // Here the functions are defined using operator() methods.
+   struct Listener_A {
      void operator()(click_event& E) {
        A_counter++;
        if( opt_verbose )
@@ -793,7 +797,7 @@ static inline int
      }
    };
 
-   struct Slot_B {
+   struct Listener_B {
      void operator()(click_event& E) {
        B_counter++;
        if( opt_verbose )
@@ -801,133 +805,198 @@ static inline int
      }
    };
 
-   hcdml(__LINE__);
+   // Define some gui_elements (Signal containers)
+   gui_element A("A"); // The "A" gui_element
+   gui_element B("B"); // The "B" gui_element
+
+   // Define some (currently unused) Connections.
+   click_conn connection_1;
+   click_conn connection_2;
+
+   // Here we define Listener functions at the same time that we initialize
+   // their associated Connections
    connection_1= A.clicked.connect([](click_event& E) {
        A_counter++;
        if( opt_verbose )
          debugf("LA: A was counted for %.0f,%.0f\n", E.X, E.Y);
    });
-   hcdml(__LINE__);
+
    connection_2= B.clicked.connect([](click_event& E) {
        B_counter++;
        if( opt_verbose )
          debugf("LB: B was counted for %.0f,%.0f\n", E.X, E.Y);
    });
-// A.clicked.debug("A");
-// B.clicked.debug("B");
 
    // A has one connection, B has one connection
-   IFHCDM( hcdml(__LINE__); A.clicked.debug("A");      )
-   IFHCDM( hcdml(__LINE__); B.clicked.debug("B");      )
-   IFHCDM( hcdml(__LINE__); connection_1.debug("c_1"); )
-   IFHCDM( hcdml(__LINE__); connection_2.debug("c_2"); )
+   if( opt_verbose ) {
+     verbosely(__LINE__);
+     A.clicked.debug("A");
+     B.clicked.debug("B");
 
-   hcdml(__LINE__); A.mouse_down(__LINE__, -1);
-   hcdml(__LINE__); B.mouse_down(-1, __LINE__);
+     connection_1.debug("c_1");
+     connection_2.debug("c_2");
+   }
+
+   // (Fake) Events occur! Verify results.
+   A.mouse_down(__LINE__, -1);
+   B.mouse_down(-1, __LINE__);
    error_count += MUST_EQ(A_counter, 1);
    error_count += MUST_EQ(B_counter, 1);
    error_count += VERIFY(B_counter == 1);
 
-   {
-     hcdml(__LINE__);
+   // Create a temporary connector. Its destructor will be called when it goes
+   // out of scope.
+   {{{{ // (Begin scope)
+     // Create a temporary Connector and its associated Listener
      auto temporary= A.clicked.connect([](click_event& E)
      {
        A_counter++;
        if( opt_verbose )
          debugf("LT: A was counted for %.0f,%.0f\n", E.X, E.Y);
      });
-     IFHCDM( hcdml(__LINE__); A.clicked.debug("A"); )
+
      // A has two connections, B has one connection
-     hcdml(__LINE__); A.mouse_down(1, 0);
-     hcdml(__LINE__); B.mouse_down(0, 1);
+     if( opt_verbose )
+       A.clicked.debug("temporary in-scope");
+
+     // (Fake) Events occur! Verify results.
+     A.mouse_down(1, 0);
+     B.mouse_down(0, 1);
      error_count += MUST_EQ(A_counter, 3);
      error_count += MUST_EQ(B_counter, 2);
+   }}}} // (End scope. temporary's destructor is invoked.)
+   // temporary is out of scope: A has one connection, B has one connection
+
+   // Next we overwrite the B connection_2 with the A connection_1,
+   // leaving connection_1 empty and connection_2 with the A connection.
+   connection_2= std::move(connection_1);
+   if( opt_verbose ) {
+     verbosely(__LINE__);
+     A.clicked.debug("A");
+     B.clicked.debug("B");
+
+     connection_1.debug("c_1");
+     connection_2.debug("c_2");
    }
 
-   // temporary is out of scope: A has one connection, B has one connection
-   // This overwrites the B connection_2 with the A connection_1,
-   // leaving connection_1 empty and connection_2 with the A connection.
-   hcdml(__LINE__);
-   connection_2= std::move(connection_1);
-
-   // A has one connection, B has no connections
-   IFHCDM( hcdml(__LINE__); A.clicked.debug("A"); )
-   IFHCDM( hcdml(__LINE__); B.clicked.debug("B"); )
-   hcdml(__LINE__); A.mouse_down(2, 0);
-   hcdml(__LINE__); B.mouse_down(0, 2);
+   // (Fake) Events occur! Verify results.
+   A.mouse_down(2, 0);
+   B.mouse_down(0, 2);
    error_count += MUST_EQ(A_counter, 4);
    error_count += MUST_EQ(B_counter, 2);
 
-   // Add a Slot_B connection to A.clicked.
-   // A.mouse_down drives both l1 and SB connections
-   hcdml(__LINE__);
-   click_conn more= A.clicked.connect(Slot_B()); // Clicking A counts B!
-   IFHCDM( hcdml(__LINE__); A.clicked.debug("B"); )
-   hcdml(__LINE__); A.mouse_down(3, 0); // Increments A_counter and B_counter
+   // Add a Listener_B Connector to the A.clicked Signal
+   click_conn more= A.clicked.connect(Listener_B()); // Clicking A now counts B!
+   if( opt_verbose ) {
+     A.clicked.debug("A has a Listener_B");
+   }
+
+   // (Fake) Events occur! Verify results.
+   A.mouse_down(3, 0);              // Increments A_counter and B_counter
    error_count += MUST_EQ(A_counter, 5);
    error_count += MUST_EQ(B_counter, 3);
 
-   // B.mouse_down does nothing.
-   hcdml(__LINE__); B.mouse_down(0, 3);
+   // B.mouse_down does nothing. (There's no assocated Connector.)
+   B.mouse_down(0, 3);              // Yet another fake Event occurs!
    error_count += MUST_EQ(A_counter, 5);
-   error_count += MUST_EQ(B_counter, 3);
+   error_count += MUST_EQ(B_counter, 3); // (A has a Listener that increments B)
 
-   // This is a usage error.
-   // The connection is created but not saved, so it's immediately deleted.
-   // Thus it has no effect.
-   B.clicked.connect(Slot_B());
-   IFHCDM( hcdml(__LINE__); B.clicked.debug("T"); )
-   hcdml(__LINE__); A.mouse_down(4, 0); // Increments A_counter and B_counter
+   // This would be a usage error if we weren't doing it on purpose.
+   // The Connector is created but not saved, so it's immediately deleted.
+   // It has no effect.
+   B.clicked.connect(Listener_B()); // *REMOVE THIS WHEN IT'S COMPILE CHECKED*
+   if( opt_verbose ) {
+     B.clicked.debug("B doesn't have any Listeners, oopsie");
+   }
+
+   A.mouse_down(4, 0);              // Another (fake) Event! Check results
    error_count += MUST_EQ(A_counter, 6);
    error_count += MUST_EQ(B_counter, 4);
 
    // B.mouse_down still does nothing.
-   hcdml(__LINE__); B.mouse_down(0, 4); // Might expect B_counter == 5
+   B.mouse_down(0, 4);              // Might expect B_counter == 5
    error_count += MUST_EQ(A_counter, 6);
    error_count += MUST_EQ(B_counter, 4); // But connection does not exist
 
    //-------------------------------------------------------------------------
    // Test Signal::reset()
-   hcdml(__LINE__); A.clicked.reset();
-   hcdml(__LINE__); B.clicked.reset();
+   A.clicked.reset();
+   B.clicked.reset();
 
-   hcdml(__LINE__); A.mouse_down(-5, 0);
-   hcdml(__LINE__); B.mouse_down(0, -5);
+   A.mouse_down(-5, 0);
+   B.mouse_down(0, -5);
    error_count += MUST_EQ(A_counter, 6); // (Unchanged)
    error_count += MUST_EQ(B_counter, 4); // (Unchanged)
 
    //-------------------------------------------------------------------------
    // Test Connection::reset()
-   hcdml(__LINE__);
-   connection_1= A.clicked.connect(Slot_A()); // Make connection
+   verbosely(__LINE__);
+   connection_1= A.clicked.connect(Listener_A()); // Make connection
    connection_1.reset();            // Break connection
 
-   hcdml(__LINE__); A.mouse_down(-6, 0);
-   hcdml(__LINE__); B.mouse_down(0, -6);
+   verbosely(__LINE__); A.mouse_down(-6, 0);
+   verbosely(__LINE__); B.mouse_down(0, -6);
    error_count += MUST_EQ(A_counter, 6); // (Unchanged)
    error_count += MUST_EQ(B_counter, 4); // (Unchanged)
 
    //-------------------------------------------------------------------------
-   // Test multiple connections
-   hcdml(__LINE__);
-   A_counter= B_counter= 0;
-   click_conn l_array[32];
-   for(int i= 0; i<32; i++)
+   // Test multiple connections, 17 A's and 16 B's, and while we're at it also
+   // test local variable capture and Event's pass by reference implementation.
+   verbosely(__LINE__);
+   int A2= 0, B2= 0;
+   click_conn l_array[33];
+   for(int i= 0; i<33; i++)
    {
-     if( i & 1 )
-       l_array[i]= B.clicked.connect(Slot_B());
-     else
-       l_array[i]= A.clicked.connect(Slot_A());
+     if( i & 1 ) { // Capture order isn't important
+       l_array[i]= B.clicked.connect([i, &error_count, &B2](Event& event) {
+         B2++;
+         if( opt_verbose > 1 ) {
+           debugf("B.click i(%2d) event.index(%2d) B2(%2d)\n"
+                 , i, event.index, B2);
+         }
+
+         // Test: local variable "i", pass by reference "event.index"
+         error_count += VERIFY( event.index == i - 1);
+         event.index += 2;
+       });
+     } else { // (Address capture notation == capture by reference)
+       l_array[i]= A.clicked.connect([i, &A2, &error_count](Event& event) {
+         A2++;
+         if( opt_verbose > 1 ) {
+           debugf("A.click i(%2d) event.index(%2d) A2(%2d)\n"
+                 , i, event.index, A2);
+         }
+
+         // Test: local variable "i", pass by reference "event.index"
+         error_count += VERIFY( event.index == i);
+         event.index += 2;
+       });
+     }
    }
-   IFHCDM( hcdml(__LINE__); A.clicked.debug("A"); )
-   IFHCDM( hcdml(__LINE__); B.clicked.debug("B"); )
-   hcdml(__LINE__); A.mouse_down(16, 0);
-   hcdml(__LINE__); B.mouse_down(0, 16);
-   error_count += MUST_EQ(A_counter, 16);
-   error_count += MUST_EQ(B_counter, 16);
+   if( opt_verbose ) {
+     A.clicked.debug("A");
+     B.clicked.debug("B");
+   }
+   A.mouse_down(-17, 0);            // ONE fake Event, 17 Connectors
+   B.mouse_down(0, -16);            // ONE fake Event, 16 Connectors
+   error_count += MUST_EQ(A2, 17);
+   error_count += MUST_EQ(B2, 16);
+
+   for(int i= 0; i<33; i++)         // (Reset the Connectors)
+     l_array[i].reset();
 
    return error_count;
 }
+   // pub::signals::Event is the parameter to the Event handler
+   struct Event {                   // Our event type
+     float             X;           // X value
+     float             Y;           // Y value
+
+     Event(float X_, float Y_) : X(X_), Y(Y_) {}
+
+     int               index= 0;    // (For testing pass by reference)
+     int               count= 0;    // (For testing local variables)
+   }; // struct Event
 
 //----------------------------------------------------------------------------
 //
@@ -1217,6 +1286,7 @@ extern int                          // Return code
      fprintf(stderr, "  --all\t\tRun all regression tests\n"
                      "  --dump\tutility.h dump() test\n"
                      "  --latch\tLatch.h regression test\n"
+                     "  --report\tReporter.h regression test\n"
                      "  --signals\tsignals::Signal.h regression test\n"
                      "  --trace\tTrace.h debug.out test\n"
             );
@@ -1246,6 +1316,7 @@ extern int                          // Return code
        // opt_dump= true;           // Select separately (needs validation)
        opt_latch= true;
        opt_misc= true;
+       opt_report= true;
        opt_signals= true;
        // opt_trace= true;          // Select separately (needs validation)
      }
@@ -1271,7 +1342,7 @@ extern int                          // Return code
      if( opt_dump )    error_count += test_dump();
      if( opt_latch )   error_count += test_Latch();
      if( opt_misc )    error_count += test_Misc();
-     if( opt_reporter) error_count += test_Reporter();
+     if( opt_report)   error_count += test_Reporter();
      if( opt_signals ) error_count += test_Signals();
      if( opt_trace )   error_count += test_Trace();
 //   if( true )        error_count += test_dirty(); // Optional bringup test

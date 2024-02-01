@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2023/10/08
+//       2024/01/25
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -113,6 +113,7 @@ const char*            desc;        // The command description
 static const char* command_bot(char*); // Forward references: commands
 static const char* command_change(char*);
 static const char* command_cmd(char*);
+static const char* command_deblank(char*);
 static const char* command_debug(char*);
 static const char* command_detab(char*);
 static const char* command_edit(char*);
@@ -134,50 +135,50 @@ static const char* command_top(char*);
 static const char* command_view(char*);
 static const char* command_0042(char*);
 
-static const Command_desc
-                       command_desc[]= // The Command descriptor list
-{  {command_bot,    "BOT",     "Bottom of file"}
-,  {command_change, "C",       "Change"}
-,  {command_debug,  "DEBUG",   nullptr}
-,  {command_detab,  "DETAB",   "Convert tabs to spaces"}
-,  {command_edit,   "E",       "Alias for EDIT"}
-,  {command_edit,   "EDIT",    "Edit file(s)"}
-,  {command_exit,   "EXIT",    "(Safe) Exit" }
-,  {command_find,   "FI",      "Find (starting in column 1)"} // (Alias)
-,  {command_file,   "FILE",    "(Unconditionally) save and close file"}
-,  {command_find,   "FIND",    "Find (starting in column 1)"}
-// {nullptr,        "GET",     "Append file"} // NOT CODED YET
+static const Command_desc  command_desc[]= // The Command descriptor list
+{  {command_bot,      "BOT",      "Bottom of file"}
+,  {command_change,   "C",        "Change"}
+,  {command_deblank,  "DEBLANK",  "Remove all trailing blanks"}
+,  {command_debug,    "DEBUG",    nullptr}
+,  {command_detab,    "DETAB",    "Convert tabs to spaces"}
+,  {command_edit,     "E",        "Alias for EDIT"}
+,  {command_edit,     "EDIT",     "Edit file(s)"}
+,  {command_exit,     "EXIT",     "(Safe) Exit" }
+,  {command_find,     "FI",       "Find (starting in column 1)"} // (Alias)
+,  {command_file,     "FILE",     "(Unconditionally) save and close file"}
+,  {command_find,     "FIND",     "Find (starting in column 1)"}
+// {nullptr,          "GET",      "Append file"} // NOT CODED YET
 ,  {editor::command_help,
-                    "HELP",    "Help command"}
-,  {command_locate, "L",       "Locate"}
-// {command_margins,"MARGINS", "Set margins"}
-,  {command_quit,   "QUIT",    "(Unconditionally) close file"}
-// {command_redo,   "REDO",    "REDO an UNDO"}
-,  {command_save,   "SAVE",    "Write file"}
-,  {command_set,    "SET",     "Set option value"}
-,  {command_sort,   "SORT",    "Sort file list using file name"}
-,  {nullptr,        "SORT -f", "Sort using fully-qualified name"}
-// {command_tabs,   "TABS",    "Set tabs"}
-,  {command_top,    "TOP",     "Top of File"}
-// {command_undo,   "UNDO",    "UNDO a change"}
-,  {command_view,   "V",       "Alias for VIEW"}
-,  {command_view,   "VIEW",    "Edit file(s) in read/only mode"}
-,  {nullptr,        "<",       "Locate (reverse search)"}
-,  {nullptr,        ">",       "Locate (forward search)"}
-,  {nullptr,        "#",       "(Comment)"}
-,  {command_0042,   "number",  "Set current line to 'number'"}
+                      "HELP",     "Help command"}
+,  {command_locate,   "L",        "Locate"}
+// {command_margins,  "MARGINS",  "Set margins"}
+,  {command_quit,     "QUIT",     "(Unconditionally) close file"}
+// {command_redo,     "REDO",     "REDO an UNDO"}
+,  {command_save,     "SAVE",     "Write file"}
+,  {command_set,      "SET",      "Set option value"}
+,  {command_sort,     "SORT",     "Sort file list using file name"}
+,  {nullptr,          "SORT -f",  "Sort using fully-qualified name"}
+// {command_tabs,     "TABS",     "Set tabs"}
+,  {command_top,      "TOP",      "Top of File"}
+// {command_undo,     "UNDO",     "UNDO a change"}
+,  {command_view,     "V",        "Alias for VIEW"}
+,  {command_view,     "VIEW",     "Edit file(s) in read/only mode"}
+,  {nullptr,          "<",        "Locate (reverse search)"}
+,  {nullptr,          ">",        "Locate (forward search)"}
+,  {nullptr,          "#",        "(Comment)"}
+,  {command_0042,     "number",   "Set current line to 'number'"}
 
 // Spelling errors/typos
-,  {nullptr,        "",        nullptr} // Misspelled commands follow
-,  {command_save,  "SAE",      nullptr} // (SAVE)
-,  {command_save,  "SAV",      nullptr} // (SAVE)
-,  {command_save,  "SAVAE",    nullptr} // (SAVE)
-,  {command_save,  "SAVCE",    nullptr} // (SAVE)
-,  {command_save,  "SAVVE",    nullptr} // (SAVE)
-,  {command_save,  "SVAE",     nullptr} // (SAVE)
-,  {command_save,  "SVE",      nullptr} // (SAVE)
-,  {command_top,   "TIO",      nullptr} // (TOP)
-,  {nullptr,       nullptr,    nullptr} // End of list delimiter
+,  {nullptr,         "",          nullptr} // Misspelled commands follow
+,  {command_save,    "SAE",       nullptr} // (SAVE)
+,  {command_save,    "SAV",       nullptr} // (SAVE)
+,  {command_save,    "SAVAE",     nullptr} // (SAVE)
+,  {command_save,    "SAVCE",     nullptr} // (SAVE)
+,  {command_save,    "SAVVE",     nullptr} // (SAVE)
+,  {command_save,    "SVAE",      nullptr} // (SAVE)
+,  {command_save,    "SVE",       nullptr} // (SAVE)
+,  {command_top,     "TIO",       nullptr} // (TOP)
+,  {nullptr,         nullptr,     nullptr} // End of list delimiter
 };
 
 //----------------------------------------------------------------------------
@@ -327,6 +328,39 @@ static const char*                  // Error message, nullptr expected
 }
 
 static const char*                  // Error message, nullptr expected
+   command_deblank(char*)           // Remove all trailing blanks from lines
+{
+   EdFile* file= editor::file;      // (The current file)
+   bool    changed= false;          // Have we changed a line?
+
+   if( file->protect )              // Do not modify protected files
+     return "Read/only";
+
+   // Command deblank cannot be undone. Disallow if unsaved changes exist
+   if( file->changed )              // If the file has unsaved changes
+     return "Cancelled: save or undo changes first";
+
+   for(EdLine* line= file->line_list.get_head(); line; line= line->get_next()) {
+     if( line->flags & EdLine::F_PROT ) // If the line is protected
+       continue;                    // (Skip line. Don't check trailing blanks)
+     const char* text= line->text;
+     size_t L= strlen(text);
+     if( L > 0 && text[L-1] == ' ' ) {
+       changed= true;
+       line->text= editor::allocate(text); // (Allocate strips trailing blanks)
+     }
+   }
+
+   // If a blank line was truncated, undo is no longer possible
+   if( changed ) {                  // If we changed a line
+     file->chglock= true;           // Indicate file changed, undo impossible
+     editor::term->draw_top();      // Re-draw top lines, indicating changed
+   }
+
+   return nullptr;
+}
+
+static const char*                  // Error message, nullptr expected
    command_debug(                   // Debug command
      char*             parm)        // (Mutable) parameter string
 {
@@ -360,19 +394,14 @@ static const char*                  // Error message, nullptr expected
 {
    EdView* data= editor::data;
    EdFile* file= editor::file;
-   EdLine* top= editor::term->head; // Save the head line
    EdLine* cur= data->cursor;       // Save the cursor line
 
    if( file->protect )              // Do not modify protected files
      return "Read/only";
 
-   if( file->changed ) {            // If the file is changed
-     // Convert the file from changed to chdetab state.
-     file->redo_delete();
-     file->undo_delete();
-     file->changed= false;
-     file->chdetab= true;
-   }
+   // Command detab cannot be undone. Disallow if unsaved changes exist
+   if( file->changed )              // If the file has unsaved changes
+     return "Cancelled: save or undo changes first";
 
    for(EdLine* line= file->line_list.get_head(); line; line= line->get_next()) {
      if( line->flags & EdLine::F_PROT ) // If the line is protected
@@ -403,12 +432,10 @@ static const char*                  // Error message, nullptr expected
      if( active ) {               // If tabs found
        active->append_text(text); // Append trailing text
        active->append_text(" ");  // (Indicate changed)
-       data->commit_only();       // (Commit without REDO/UNDO)
-       file->chdetab= true;       // (File changed by DETAB command)
-       if( line == cur )
-         cur= data->cursor;
-       if( line == top )
-         editor::term->head= data->cursor;
+       file->chglock= true;       // (File changed, UNDO not possible)
+       const char* buffer= active->get_changed();
+       if( buffer )               // (Should always be non-null)
+         line->text= editor::allocate(buffer); // (We never delete text)
      }
    }
 

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2023/05/05
+//       2024/01/25
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -199,43 +199,6 @@ void
      cursor= line;                  // Replace the cursor
    } else if( USE_BRINGUP ) {
      Trace::trace(".CSR", "Vnop", cursor, cursor); // (Old, old)
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdView::commit_only
-//
-// Purpose-
-//       Commit the Active data line without REDO
-//
-// Implementation notes-
-//       Used by EdBifs DETAB command for performance.
-//
-//----------------------------------------------------------------------------
-void
-   EdView::commit_only( void )      // Commit the Active line without REDO
-{
-   const char* buffer= active.get_changed();
-   if( opt_hcdm )
-     debugh("EdView(%p)::commit_only buffer(%s)\n", this , buffer);
-
-   if( buffer                       // If actually changed
-       && (cursor->flags & EdLine::F_PROT) == 0 ) { // and not protected
-     // Create a new REDO line, duplicating the current line chain
-     EdLine* line= new EdLine();
-     *line= *cursor;                // (Duplicates links, flags, and delimiters)
-
-     // Replace the text in the REDO line
-     line->text= editor::allocate(buffer);
-     active.reset(line->text);      // (Prevents duplicate commit)
-
-     // The new line replaces the cursor line in the file_list
-     editor::file->remove(cursor, cursor); // (Does not change links)
-     editor::file->insert(cursor->get_prev(), line);
-
-     cursor= line;                  // Replace the cursor
    }
 }
 

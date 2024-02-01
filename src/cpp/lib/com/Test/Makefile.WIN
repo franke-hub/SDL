@@ -73,6 +73,5 @@ include $(INCDIR)/com/Makefile.WIN
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	-@rm debug.out Logger.log    >/dev/null 2>/dev/null
-	-@rm debug.log MediaTest.out >/dev/null 2>/dev/null
-
+	-@rm -f debug.out Logger.log    >/dev/null 2>/dev/null
+	-@rm -f debug.log MediaTest.out >/dev/null 2>/dev/null

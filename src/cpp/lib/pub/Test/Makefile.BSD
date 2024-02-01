@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2018-2023 Frank Eskesen.
+##       Copyright (c) 2018-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -9,13 +9,13 @@
 ##############################################################################
 ##
 ## Title-
-##       Makefile.BSD
+##       ~/src/cpp/lib/pub/Test/Makefile.BSD
 ##
 ## Purpose-
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2023/06/16
+##       2024/02/01
 ##
 ##############################################################################
 
@@ -37,7 +37,7 @@ DEFAULT:= make.dir
 endif
 
 .PHONY: default
-default: $(DEFAULT)
+default: configure $(DEFAULT)
 
 .PHONY: make.dir
 make.dir: $(MAKEXE)
@@ -53,6 +53,12 @@ all: make.all
 liblocal.a: $(LIBOBJ)
 	$(AR) $@ $^
 	touch $@
+
+##############################################################################
+## TARGET: configure
+.PHONY: configure
+configure: ;
+	@../../../../../bat/sys/configure.sh src/cpp/lib/pub
 
 ##############################################################################
 ## Run the Dirty program
@@ -104,8 +110,9 @@ TestSock: cert.dir                  ## TestSock depends on certificates
 ##############################################################################
 ## Makefile cleanup
 .PHONY: clean.dir pristine.dir
-pristine : pristine.dir
+pristine: pristine.dir
 pristine.dir: ;
+	-@rm -f _have.version    >/dev/null 2>/dev/null
 	-@rm -f cert.dir         >/dev/null 2>/dev/null
 	-@rm -f private.pem      >/dev/null 2>/dev/null
 	-@rm -f public.pem       >/dev/null 2>/dev/null

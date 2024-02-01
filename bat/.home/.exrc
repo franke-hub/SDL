@@ -1,6 +1,6 @@
 ""############################################################################
 ""
-""       Copyright (C) 2020 Frank Eskesen.
+""       Copyright (C) 2020-2024 Frank Eskesen.
 ""
 ""       This file is free content, distributed under creative commons CC0,
 ""       explicitly released into the Public Domain.
@@ -9,5 +9,5 @@
 ""
 ""############################################################################
 set ignorecase
-set number
+"" set number
 set showmode

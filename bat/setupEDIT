@@ -1,7 +1,7 @@
 ##
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (c) 2021-2023 Frank Eskesen.
+##       Copyright (c) 2021-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,23 +16,23 @@
 ##       Set up EDITOR environment variable (heuristic.)
 ##
 ## Last change date-
-##       2023/06/07
+##       2024/02/01
 ##
 ## Usage-
 ##       . setupEDIT
 ##
 ## Implementation note-
-##       editor:  alias for ncurses editor
-##       editxcb: alias for XCB editor
+##       editor:  The ncurses editor
+##       editxcb: The XCB editor
 ##
 ##############################################################################
 
 ##############################################################################
 ## Heuristic: set EDITOR environment variable
-isCYGWIN=`uname | grep CYGWIN`
-if [[ -n "$isCYGWIN" && -z "$DISPLAY" ]] ; then
-   export EDITOR=$HOME/bin/editor   ## (Must) use ncurses editor
-elif [[ -z "$EDITOR" ]] ; then      ## If not already specified
-   export EDITOR="$HOME/bin/editxcb --fg" ## Use XCB editor
+if [[ -z "$EDITOR" ]] ; then        ## If not already specified
+  if [[ -n "$DISPLAY" ]] ; then     ## If we have a DISPLAY
+    export EDITOR="$HOME/bin/editxcb" ## Use XCB editor
+  else                              ## No Display
+    export EDITOR="$HOME/bin/editor" ## Use ncurses editor
+  fi
 fi
-unset CYGWIN

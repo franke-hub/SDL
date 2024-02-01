@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2018-2023 Frank Eskesen.
+##       Copyright (c) 2018-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -9,38 +9,52 @@
 ##############################################################################
 ##
 ## Title-
-##       Makefile.BSD
+##       ~/src/cpp/lib/obj/Makefile.BSD
 ##
 ## Purpose-
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2023/12/03
+##       2024/02/01
 ##
 ##############################################################################
 
 ##############################################################################
 ## Local options (-fPIC, but not on CYGWIN)
 ifneq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-COPTS  += -fPIC ################### Generate position independent code
+COPTS  += -fPIC ###################### Generate position independent code
 endif
 
 ##############################################################################
 ## Set targets
 ifeq "" "$(MAKRUN)"
-MAKRUN := dll
-MAKRUN := lib
+MAKRUN := all
 endif
 
 ifeq "" "$(DEFAULT)"
 DEFAULT := $(MAKRUN)
 endif
 
-.PHONY: default dll lib all
-default: $(DEFAULT)
-dll: configure libobj.so.1.0
-lib: configure libobj.a
+.PHONY: default all dll lib
+default: configure $(DEFAULT)
 all: dll lib
+dll: libobj.so.1.0
+lib: libobj.a
+
+##############################################################################
+## TARGET: libobj.a
+libobj.a: $(MAKOBJ)
+	$(AR) $@ $^
+	touch $@
+
+##############################################################################
+## TARGET: libobj.so.1.0
+libobj.so.1.0: $(MAKOBJ)
+	$(CC) -shared -o $@ $^ -lbz2 -lz -lc
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+	rebase -b 0x230000000 $@
+endif
+	touch $@
 
 ##############################################################################
 ## TARGET: configure
@@ -51,36 +65,12 @@ configure: ;
 ##############################################################################
 ## TARGET: update
 .PHONY: update
-EXISTS := $(shell _exists.sh "libobj.so.1.0")
-
-ifeq "$(MAKRUN)" "lib"
 update: default
-else ifeq "$(EXISTS)" "true"
-update: default
-else
-update: ;
-endif
-
-##############################################################################
-## TARGET: libobj.so.1.0, libobj.so, libobj.dll
-libobj.so.1.0: $(MAKOBJ)
-	$(CC) -shared -o $@ $^ -LL -lcom -lX11
-	touch $@
-
-libobj.so: libobj.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-libobj.dll: libobj.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-##############################################################################
-## TARGET: libobj.a
-libobj.a: $(MAKOBJ)
-	$(AR) $@ $^
-	touch $@
 
 ##############################################################################
 ## Dependencies
+include $(INCDIR)/obj/Makefile.BSD
+
 ifneq "" "$(DEPENDS)"
 Makeproj.dep: $(wildcard $(INCDIR)/obj/*)
 Makeproj.dep: $(wildcard $(SRCDIR)/*)
@@ -90,12 +80,12 @@ endif
 
 ##############################################################################
 ## Cleanup
-.PHONY: obj.clean.bsd obj.pristine.bsd
-clean: obj.clean.bsd
-obj.clean.bsd: ;
-	-@rm libobj.a >/dev/null 2>/dev/null
-	-@rm libobj.so* libobj.dll >/dev/null 2>/dev/null
+.PHONY: obj.clean obj.pristine
+clean: obj.clean
+obj.clean: ;
+	-@rm -f libobj.a >/dev/null 2>/dev/null
+	-@rm -f libobj.so* libobj.dll >/dev/null 2>/dev/null
 
-pristine: obj.pristine.bsd
-obj.pristine.bsd: ;
+pristine: obj.pristine
+obj.pristine: ;
 	-@rm -f _have.version >/dev/null 2>/dev/null

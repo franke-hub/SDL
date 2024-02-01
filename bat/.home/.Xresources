@@ -1,6 +1,6 @@
 !!############################################################################
 !!
-!!       Copyright (C) 2020-2021 Frank Eskesen.
+!!       Copyright (C) 2020-2024 Frank Eskesen.
 !!
 !!       This file is free content, distributed under creative commons CC0,
 !!       explicitly released into the Public Domain.
@@ -10,7 +10,7 @@
 !!============================================================================
 !!
 !! Last change date-
-!!       2021/04/22
+!!       2024/01/26
 !!
 !!############################################################################
 !!============================================================================
@@ -27,4 +27,3 @@ xterm*utf8: 1
 xterm*eightBitInput: false
 xterm*eightBitControl: false
 xterm*eightBitOutput: true
-

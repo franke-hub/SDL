@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2015-2019 Frank Eskesen.
+##       Copyright (C) 2015-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -19,10 +19,10 @@ S/%.C: ;
 ##############################################################################
 ## Local module list
 MAKRUN = \
-    Main.run
+    O/Main.run
 
 MAKOBJ = \
-    Main.s     \
+    S/Main.s     \
     Alpha.o    \
     ../subdir/Beta.o     \
     Gamma.o    \
@@ -57,7 +57,11 @@ default: $(DEFAULT)
 	@echo -e "$$\c"
 	@echo -e "(\<D) $(<D)"
 	@echo -e "$$\c"
+	@echo -e "(\@D) $(@D)"
+	@echo -e "$$\c"
 	@echo -e "(\<F) $(<F)"
+	@echo -e "$$\c"
+	@echo -e "(\@F) $(@F)"
 	@echo -e ""
 	@echo -e "%o: ;"
 	@echo -e "S/%.C: ;"
@@ -66,8 +70,8 @@ default: $(DEFAULT)
 
 ##############################################################################
 ## Make control: Main
-Main.run: $(MAKOBJ)
-	@echo -e "Main.run: $(MAKOBJ)"
+O/Main.run: $(MAKOBJ)
+	@echo -e "O/Main.run: $(MAKOBJ)"
 	@echo -e "$$\c"
 	@echo -e "(\@)  $@"
 	@echo -e "$$\c"
@@ -85,16 +89,20 @@ Main.run: $(MAKOBJ)
 	@echo -e "$$\c"
 	@echo -e "(\<D) $(<D)"
 	@echo -e "$$\c"
+	@echo -e "(\@D) $(@D)"
+	@echo -e "$$\c"
 	@echo -e "(\<F) $(<F)"
+	@echo -e "$$\c"
+	@echo -e "(\@F) $(@F)"
 	@echo -e ""
 	@echo -e "Main.run: Other"
 
-Main.run: Other
+O/Main.run: O/Other
 
 ##############################################################################
 ## Make control: Other
-Other: foo.o bar.o foo.o bar.o
-	@echo -e "Other: foo.o bar.o foo.o bar.o"
+O/Other: subdir/foo.o bar.o subdir/foo.o bar.o
+	@echo -e "O/Other: subdir/foo.o bar.o subdir/foo.o bar.o"
 	@echo -e "$$\c"
 	@echo -e "(\@)  $@"
 	@echo -e "$$\c"
@@ -112,6 +120,10 @@ Other: foo.o bar.o foo.o bar.o
 	@echo -e "$$\c"
 	@echo -e "(\<D) $(<D)"
 	@echo -e "$$\c"
+	@echo -e "(\@D) $(@D)"
+	@echo -e "$$\c"
 	@echo -e "(\<F) $(<F)"
+	@echo -e "$$\c"
+	@echo -e "(\@F) $(@F)"
 	@echo ""
 

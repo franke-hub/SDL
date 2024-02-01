@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,10 +16,10 @@
 //       Editor: Implement EdTerm.h screen handler.
 //
 // Last change date-
-//       2023/07/12
+//       2024/02/01
 //
 // Implementation notes-
-//       EdInps.cpp implements keyboard and mouse event handlers.
+//       EdTinp.cpp implements keyboard and mouse event handlers.
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string

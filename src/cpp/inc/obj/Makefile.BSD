@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2021 Frank Eskesen.
+##       Copyright (c) 2021-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -12,18 +12,23 @@
 ##       Makefile.BSD
 ##
 ## Purpose-
-##       (Include this Makefile to add OBJ library controls and dependencies.)
+##       OBJ library controls and dependencies.
+##
+## Last change date-
+##       2024/02/01
 ##
 ## Implementation notes-
-##       This version is intended to be included from CYGWIN/LINUX makefiles.
+##       Include this file from CYGWIN/LINUX Makefiles that use OBJ library.
 ##
 ##############################################################################
+ifeq "" "$(_LIBPUB_OBJ_MAKEFILE_BSD_INCLUDED)"
+_LIBPUB_OBJ_MAKEFILE_BSD_INCLUDED := "TRUE"
 
-################################### Controls
-LLIBS  += -L$(LIBDIR) -lobj ####### OBJ library
-CLIBS  += -lpthread################ PTHREAD library
+###################################### Dependent libraries
+LLIBS  += -L$(LIBDIR) -lobj ########## OBJ library
+include $(INCDIR)/com/Makefile.BSD ### COM library
 
 ##############################################################################
 ## Dependencies
 $(MAKEXE): $(LIBDIR)/libobj.a
-
+endif

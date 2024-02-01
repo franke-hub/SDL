@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2022-2023 Frank Eskesen.
+##       Copyright (c) 2022-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -9,13 +9,13 @@
 ##############################################################################
 ##
 ## Title-
-##       Makefile.BSD
+##       ~/src/cpp/lib/dev/Test/Makefile.BSD
 ##
 ## Purpose-
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2023/07/20
+##       2024/02/01
 ##
 ##############################################################################
 
@@ -36,7 +36,7 @@ DEFAULT:= make.dir
 endif
 
 .PHONY: default
-default: $(DEFAULT)
+default: configure $(DEFAULT)
 
 all: default
 
@@ -81,6 +81,12 @@ dirty: Dirty
 	Dirty
 
 ##############################################################################
+## TARGET: configure
+.PHONY: configure
+configure: ;
+	@../../../../../bat/sys/configure.sh src/cpp/lib/dev
+
+##############################################################################
 ## Make a certificate
 host:=$(shell "hostname")
 ifneq "" "$(USE_LOCALHOST)"
@@ -116,17 +122,18 @@ $(MAKEXE): $(LIBDIR)/libdev.a $(LIBDIR)/libpub.a
 .PHONY: clean.dir pristine.dir
 pristine : pristine.dir
 pristine.dir: ;
-	-@rm -f cert.dir    >/dev/null 2>/dev/null
-	-@rm -f private.pem >/dev/null 2>/dev/null
-	-@rm -f public.pem  >/dev/null 2>/dev/null
-	-@rm -f log/*       >/dev/null 2>/dev/null
-	-@rm -f trace.mem   >/dev/null 2>/dev/null
-	-@rm -f *.out       >/dev/null 2>/dev/null
+	-@rm -f _have.version    >/dev/null 2>/dev/null
+	-@rm -f cert.dir         >/dev/null 2>/dev/null
+	-@rm -f private.pem      >/dev/null 2>/dev/null
+	-@rm -f public.pem       >/dev/null 2>/dev/null
+	-@rm -f log/*            >/dev/null 2>/dev/null
+	-@rm -f trace.mem        >/dev/null 2>/dev/null
+	-@rm -f *.out            >/dev/null 2>/dev/null
 
 clean : clean.dir
 clean.dir: ;
-	-@rm -f make.dir    >/dev/null 2>/dev/null
-	-@rm -f Dirty       >/dev/null 2>/dev/null
-	-@rm -f Include     >/dev/null 2>/dev/null
-	-@rm -f _Include    >/dev/null 2>/dev/null
+	-@rm -f make.dir         >/dev/null 2>/dev/null
+	-@rm -f Dirty            >/dev/null 2>/dev/null
+	-@rm -f Include          >/dev/null 2>/dev/null
+	-@rm -f _Include         >/dev/null 2>/dev/null
 

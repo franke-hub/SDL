@@ -1,1 +1,1 @@
-/etc/RO
+.bash_history

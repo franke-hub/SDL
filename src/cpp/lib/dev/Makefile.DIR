@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2023 Frank Eskesen.
+##       Copyright (c) 2023-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -9,75 +9,49 @@
 ##############################################################################
 ##
 ## Title-
-##       Makefile.DIR
+##       ~/src/cpp/lib/dev/Makefile.DIR
 ##
 ## Purpose-
-##       Subdirectory build control: included from ../Makefile.*
+##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2023/12/03
-##
-## Implementation notes-
-##       Included from src/cpp/lib/Makefile.BSD [obj/cpp/lib and obj/cpp/dll]
+##       2024/02/01
 ##
 ##############################################################################
 
 ##############################################################################
-## TARGET: prerequisites
+## Prerequisites
 PREREQ := $(wildcard $(INCDIR)/dev/*)
 PREREQ += $(wildcard $(SRCDIR)/dev/*)
 
 ##############################################################################
 ## TARGET: dev/libdev.a
 $(OBJDIR)/dev/libdev.a: $(PREREQ) libpub.a
-	(cd $(OBJDIR)/dev/; export MAKRUN=lib; $(MAKE))
-	touch $@
+	(cd $(OBJDIR)/dev/; $(MAKE))
 
-libdev.a: $(OBJDIR)/dev/libdev.a
-	@echo dev.trace11 ln -s $< $@
+$(OBJDIR)/libdev.a: $(OBJDIR)/dev/libdev.a
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
-build.bsd.lib: libdev.a
+build.bsd: $(OBJDIR)/libdev.a
 
 ##############################################################################
 ## TARGET: dev/libdev.so.1.0
 $(OBJDIR)/dev/libdev.so.1.0: $(PREREQ) libpub.so
-	(cd $(OBJDIR)/dev/; export MAKRUN=dll; $(MAKE))
-	touch $@
-
-libdev.so.1.0: $(OBJDIR)/dev/libdev.so.1.0
-	@echo dev.trace12 ln -s $< $@
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-~/bin/libdev.so.1.0: libdev.so
-	cp -Lpf $< $@
-	rebase -b 0x250000000 $@
-	touch $@
-
-libdev.dll: $(OBJDIR)/dev/libdev.so.1.0
-	@echo dev.trace13 ln -s $< $@
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-~/bin/libdev.dll: libdev.dll
-	cp -Lpf $< $@
-	rebase -b 0x250000000 $@
-	touch $@
-
-.SECONDARY: libdev.so.1.0 /usr/local/lib/libdev.so.1.0
-build.cygwin.dll: libdev.dll libdev.so ~/bin/libdev.so
-build.linux.so: libdev.so /usr/local/lib/libdev.so
-
-##############################################################################
-## Dependencies
-ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-$(OBJDIR)/dev/libdev.so.1.0: libpub.dll
-endif
-
-##############################################################################
-## TARGET: libdev.lib [WINDOWS VERSION, OBSOLETE]
-$(OBJDIR)/dev/libdev.lib: $(WIN_PREREQ)
 	(cd $(OBJDIR)/dev/; $(MAKE))
-	touch $@
+
+$(OBJDIR)/libdev.so.1.0: $(OBJDIR)/dev/libdev.so.1.0
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+build.bsd: $(OBJDIR)/libdev.so
+build.bsd: $(USRLIB)/libdev.so $(USRLIB)/libdev.so.1.0
+
+build.cygwin: $(OBJDIR)/libdev.dll
+build.cygwin: $(USRLIB)/libdev.dll
+
+##############################################################################
+## TARGET: libdev.lib [WINDOWS VERSION, NOT MAINTAINED]
+$(OBJDIR)/dev/libdev.lib: $(PREREQ)
+	(cd $(OBJDIR)/dev/; $(MAKE))
 
 libdev.lib: $(OBJDIR)/dev/libdev.lib
 	cp -Lpf $< $@
@@ -96,29 +70,18 @@ dev.depend: ;
 ## TARGET: dev.update
 .PHONY: dev.update
 update: dev.update
-ifeq "$(MAKRUN)" "build.bsd.lib"
 dev.update: ;
-	(cd $(OBJDIR)/dev/; export MAKRUN=lib; $(MAKE) update)
-else
-dev.update: ;
-	(cd $(OBJDIR)/dev/; export MAKRUN=dll; $(MAKE) update)
-endif
+	(cd $(OBJDIR)/dev/; $(MAKE) update)
 
 ##############################################################################
 ## Cleanup
 .PHONY: dev.pristine
-pristine.bsd: dev.pristine
-pristine.win: dev.pristine
+pristine: dev.pristine
 dev.pristine: ;
 	(cd $(OBJDIR)/dev/; $(MAKE) pristine)
+	-@rm -f $(USRLIB)/libdev.* >/dev/null 2>/dev/null
 
-.PHONY: dev.clean.bsd
-clean.bsd: dev.clean.bsd
-dev.clean.bsd: ;
-	-@rm -f libdev.a >/dev/null 2>/dev/null
-	-@rm -f libdev.so* libdev.dll >/dev/null 2>/dev/null
-
-.PHONY: dev.clean.win
-clean.win: dev.clean.win
-dev.clean.win: ;
-	-@rm -f libdev.lib >/dev/null 2>/dev/null
+.PHONY: dev.clean
+clean: dev.clean
+dev.clean: ;
+	-@rm -f libdev.* >/dev/null 2>/dev/null

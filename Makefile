@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2023 Frank Eskesen.
+##       Copyright (C) 2023-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       Build control makefile.
 ##
 ## Last change date-
-##       2023/11/27
+##       2024/02/01
 ##
 ##############################################################################
 
@@ -26,7 +26,6 @@ list-options: ;
 	@echo "Available options:"
 	@echo "  make install: Build all installation prerequisites and libraries."
 	@echo "    Use this to initialize or update your installation."
-	@echo "  make install_dll: Build the C++ Dynamic-Link (Shared) Library."
 	@echo "  make uninstall: Remove prerequisites and build libraries."
 	@echo "  make reinstall: (make uninstall; make install)"
 	@echo "    Use this after installing a new Linux version."
@@ -47,19 +46,15 @@ MCS_   := $(SDL_ROOT)/obj/mcs
 PY_    := $(SDL_ROOT)/obj/py
 
 ##############################################################################
-## TARGETS: check, compile, clean, install, install_dll, pristine, reinstall,
+## TARGETS: check, compile, clean, install, pristine, reinstall,
 ## TARGETS: uninstall, update
-.PHONY: check compile clean install install_dll pristine reinstall
+.PHONY: check compile clean install pristine reinstall
 .PHONY: uninstall update
 
 ##----------------------------------------------------------------------------
 install: environment
 	(cd $(CPP_); $(MAKE) install)
 	(cd $(PY_);  $(MAKE) install)
-
-##----------------------------------------------------------------------------
-install_dll: environment
-	(cd $(CPP_); $(MAKE) install_dll)
 
 ##----------------------------------------------------------------------------
 reinstall: environment

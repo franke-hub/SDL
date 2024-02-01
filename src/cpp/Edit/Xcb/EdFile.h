@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2023/08/28
+//       2024/01/25
 //
 // Implementation objects-
 //       EdLine: Editor EdFile line descriptor
@@ -255,7 +255,7 @@ size_t                 rows= 0;     // The number of file rows
 
 int                    mode= M_NONE; // The file mode
 bool                   changed= false; // File is changed
-bool                   chdetab= false; // File is changed by DETAB command
+bool                   chglock= false; // File is changed, undo not available
 bool                   damaged= false; // File is damaged
 bool                   protect= false; // File is protected
 

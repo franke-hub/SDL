@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2018-2023 Frank Eskesen.
+##       Copyright (c) 2018-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -9,80 +9,49 @@
 ##############################################################################
 ##
 ## Title-
-##       Makefile.DIR
+##       ~/src/cpp/lib/pub/Makefile.DIR
 ##
 ## Purpose-
-##       Subdirectory build control: included from ../Makefile.*
+##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2023/12/03
-##
-## Implementation notes-
-##       Included from src/cpp/lib/Makefile.BSD [obj/cpp/lib and obj/cpp/dll]
+##       2024/02/01
 ##
 ##############################################################################
 
 ##############################################################################
-## TARGET: prerequisites
+## Prerequisites
 PREREQ := $(wildcard $(INCDIR)/pub/*)
 PREREQ += $(wildcard $(SRCDIR)/pub/*)
-PREREQ += $(wildcard $(SRCDIR)/pub/OS/USR/*)
-BSD_PREREQ := $(PREREQ)
-BSD_PREREQ += $(wildcard $(SRCDIR)/pub/OS/BSD/*)
-WIN_PREREQ := $(PREREQ)
-WIN_PREREQ += $(wildcard $(SRCDIR)/pub/OS/WIN/*)
 
 ##############################################################################
 ## TARGET: pub/libpub.a
-$(OBJDIR)/pub/libpub.a: $(BSD_PREREQ) libcom.a
-	(cd $(OBJDIR)/pub/; export MAKRUN=lib; $(MAKE))
-	touch $@
+$(OBJDIR)/pub/libpub.a: $(PREREQ) libcom.a
+	(cd $(OBJDIR)/pub/; $(MAKE))
 
-libpub.a: $(OBJDIR)/pub/libpub.a
-	@echo pub.trace11 ln -s $< $@
+$(OBJDIR)/libpub.a: $(OBJDIR)/pub/libpub.a
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 
-build.bsd.lib: libpub.a
+build.bsd: $(OBJDIR)/libpub.a
 
 ##############################################################################
 ## TARGET: pub/libpub.so.1.0
-$(OBJDIR)/pub/libpub.so.1.0: $(BSD_PREREQ) libcom.so
-	(cd $(OBJDIR)/pub/; export MAKRUN=dll; $(MAKE))
-	touch $@
-
-libpub.so.1.0: $(OBJDIR)/pub/libpub.so.1.0
-	@echo pub.trace12 ln -s $< $@
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-~/bin/libpub.so.1.0: libpub.so
-	cp -Lpf $< $@
-	rebase -b 0x240000000 $@
-	touch $@
-
-libpub.dll: $(OBJDIR)/pub/libpub.so.1.0
-	@echo pub.trace13 ln -s $< $@
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-~/bin/libpub.dll: libpub.dll
-	cp -Lpf $< $@
-	rebase -b 0x240000000 $@
-	touch $@
-
-.SECONDARY: libpub.so.1.0 /usr/local/lib/libpub.so.1.0
-build.cygwin.dll: libpub.dll libpub.so ~/bin/libpub.so
-build.linux.so: libpub.so /usr/local/lib/libpub.so
-
-##############################################################################
-## Dependencies
-ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-$(OBJDIR)/pub/libpub.so.1.0: libcom.dll
-endif
-
-##############################################################################
-## TARGET: libpub.lib [WINDOWS VERSION, OBSOLETE]
-$(OBJDIR)/pub/libpub.lib: $(WIN_PREREQ)
+$(OBJDIR)/pub/libpub.so.1.0: $(PREREQ) libcom.so
 	(cd $(OBJDIR)/pub/; $(MAKE))
-	touch $@
+
+$(OBJDIR)/libpub.so.1.0: $(OBJDIR)/pub/libpub.so.1.0
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+build.bsd: $(OBJDIR)/libpub.so
+build.bsd: $(USRLIB)/libpub.so $(USRLIB)/libpub.so.1.0
+
+build.cygwin: $(OBJDIR)/libpub.dll
+build.cygwin: $(USRLIB)/libpub.dll
+
+##############################################################################
+## TARGET: libpub.lib [WINDOWS VERSION, NOT MAINTAINED]
+$(OBJDIR)/pub/libpub.lib: $(PREREQ)
+	(cd $(OBJDIR)/pub/; $(MAKE))
 
 libpub.lib: $(OBJDIR)/pub/libpub.lib libcom.lib
 	cp -Lpf $< $@
@@ -101,29 +70,18 @@ pub.depend: ;
 ## TARGET: pub.update
 .PHONY: pub.update
 update: pub.update
-ifeq "$(MAKRUN)" "build.bsd.lib"
 pub.update: ;
-	(cd $(OBJDIR)/pub/; export MAKRUN=lib; $(MAKE) update)
-else
-pub.update: ;
-	(cd $(OBJDIR)/pub/; export MAKRUN=dll; $(MAKE) update)
-endif
+	(cd $(OBJDIR)/pub/; $(MAKE) update)
 
 ##############################################################################
 ## Cleanup
 .PHONY: pub.pristine
-pristine.bsd: pub.pristine
-pristine.win: pub.pristine
+pristine: pub.pristine
 pub.pristine: ;
 	(cd $(OBJDIR)/pub/; $(MAKE) pristine)
+	-@rm -f $(USRLIB)/libpub.* >/dev/null 2>/dev/null
 
-.PHONY: pub.clean.bsd
-clean.bsd: pub.clean.bsd
-pub.clean.bsd: ;
-	-@rm -f libpub.a >/dev/null 2>/dev/null
-	-@rm -f libpub.so* libpub.dll >/dev/null 2>/dev/null
-
-.PHONY: pub.clean.win
-clean.win: pub.clean.win
-pub.clean.win: ;
-	-@rm -f libpub.lib >/dev/null 2>/dev/null
+.PHONY: pub.clean
+clean: pub.clean
+pub.clean: ;
+	-@rm -f libpub.* >/dev/null 2>/dev/null

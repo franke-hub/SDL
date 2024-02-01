@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2015-2019 Frank Eskesen.
+##       Copyright (C) 2015-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -70,6 +70,8 @@ Main.run: $(MAKOBJ)
 	@echo "$$ | $(|)"
 	@echo "$$ (<D) $(<D)"
 	@echo "$$ (<F) $(<F)"
+	@echo "$$ (@D) $(@D)"
+	@echo "$$ (@F) $(@F)"
 	@echo ""
 	@echo "Main.run: Other"
 	@echo ""
@@ -90,5 +92,7 @@ Other: foo.o bar.o foo.o bar.o
 	@echo "$$ | $(|)"
 	@echo "$$ \(<D\) $(<D)"
 	@echo "$$ \(<F\) $(<F)"
+	@echo "$$ \(@D\) $(@D)"
+	@echo "$$ \(@F\) $(@F)"
 	@echo ""
 
