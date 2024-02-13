@@ -1,7 +1,7 @@
 ## (Use '. setupSDL')
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2023 Frank Eskesen.
+##       Copyright (C) 2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Initialize SDL (Software Development Lab) PATH
 ##
 ## Last change date-
-##       2023/08/03
+##       2024/02/10
 ##
 ## Usage-
 ##       . setupSDL
@@ -36,3 +36,12 @@
 root=`./bat/.root`
 export PATH="$root/bat:$root/bin:$PATH"
 export SDL_ROOT="$root"
+
+if [[ "" != "`uname | grep CYGWIN`" ]] ; then ## CYGWIN version ##############
+export PATH="~/.local/lib/sdlc++:$PATH"
+echo PATH $PATH
+
+else ## LINUX version ########################################################
+export LD_LIBRARY_PATH="~/.local/lib/sdlc++:$LD_LIBRARY_PATH"
+echo LD_LIBRARY_PATH $LD_LIBRARY_PATH
+fi

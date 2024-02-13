@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2021 Frank Eskesen.
+##       Copyright (c) 2007-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2021/09/06
+##       2024/02/10
 ##
 ##############################################################################
 
@@ -56,12 +56,12 @@ all: make.all
 ##############################################################################
 ## TARGET: Base_SMS
 Base_SMS: Test_SMS.o SMS_base.o
-	$(CC) -o $@ $^ $(CLOAD) $(CLIBS)
+	$(CC) -o $@ $^ $(CLOAD) $(LLIBS) $(CLIBS)
 
 ##############################################################################
 ## TARGET: Pool_SMS
 Pool_SMS: Test_SMS.o SMS_Pool.o
-	$(CC) -o $@ $^ $(CLOAD) $(CLIBS)
+	$(CC) -o $@ $^ $(CLOAD) $(LLIBS) $(CLIBS)
 
 ##############################################################################
 ## Dependencies

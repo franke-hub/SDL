@@ -16,7 +16,7 @@
 ##       Default dependency control
 ##
 ## Last change date-
-##       2024/01/17
+##       2024/02/10
 ##
 ##############################################################################
 
@@ -24,20 +24,20 @@
 ## TARGETS: depend, depends: Unconditionally update the dependency file
 .PHONY: depend depends
 Makeproj.inp : Makeproj.dep
-	@echo "#################################"                  > Makeproj.inp
-	@echo "## Makeproj.inp -- automatically generated"        >> Makeproj.inp
-	@echo "#################################"                 >> Makeproj.inp
-	@echo "#path $(SRCDIR)"                                   >> Makeproj.inp
-	@echo "#path $(INCDIR)"                                   >> Makeproj.inp
-	@echo "#path $(INCSYS)"                                   >> Makeproj.inp
+	@echo "#################################"               > Makeproj.inp
+	@echo "## Makeproj.inp -- automatically generated"     >> Makeproj.inp
+	@echo "#################################"              >> Makeproj.inp
+	@echo "#path $(SRCDIR)"                                >> Makeproj.inp
+	@echo "#path $(INCDIR)"                                >> Makeproj.inp
+	@echo "#path $(INCSYS)"                                >> Makeproj.inp
 ifneq "" "$(INCDEP)"
-	@echo "#path $(INCDEP)"                                   >> Makeproj.inp
+	@echo "#path $(INCDEP)"                                >> Makeproj.inp
 endif
-	@echo ""                                                  >> Makeproj.inp
-	@ls $(MAKSRC)                                             >> Makeproj.inp
+	@echo ""                                               >> Makeproj.inp
+	@ls $(MAKSRC)                                          >> Makeproj.inp
 
 Makeproj.out : Makeproj.inp
-	-@rm Makeproj.out >/dev/null 2>/dev/null
+	@rm -f Makeproj.out
 	@makeproj Makeproj.inp
 	@mv Makeproj.incl Makeproj.out
 
@@ -49,7 +49,7 @@ Makeproj.dep:  $(MAKSRC)
 endif
 
 depend: ;
-	-@rm Makeproj.inp
+	@rm -f Makeproj.inp
 	@$(MAKE) Makeproj.out >/dev/null
 
 depends: depend

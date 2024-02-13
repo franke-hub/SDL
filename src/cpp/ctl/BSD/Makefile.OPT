@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2021 Frank Eskesen.
+##       Copyright (c) 2007-2024Frank Eskesen.
 ##
 ##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
@@ -16,7 +16,7 @@
 ##       Default compiler options.
 ##
 ## Last change date-
-##       2021/09/02
+##       2024/02/01
 ##
 ##############################################################################
 
@@ -29,46 +29,29 @@ endif
 
 ##############################################################################
 ## CDEFS    (Compiler defines)
-CDEFS  += $(LDEFS)################# C defines
-CDEFS  += -D_OS_BSD################ OS=BSD
+CDEFS  += -D_OS_BSD################### OS=BSD
 
 ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-CDEFS  += -D_HW_X86################ HW=Intel X86
-CDEFS  += -D_OS_CYGWIN############# OS=CYGWIN
+CDEFS  += -D_HW_X86################### HW=Intel X86
+CDEFS  += -D_OS_CYGWIN################ OS=CYGWIN
 endif
 
 ifeq "Linux"  "$(findstring Linux,$(shell uname))"
-CDEFS  += -D_HW_X86################ HW=Intel X86
-CDEFS  += -D_OS_LINUX############## OS=LINUX
+CDEFS  += -D_HW_X86################### HW=Intel X86
+CDEFS  += -D_OS_LINUX################# OS=LINUX
 endif
 
 ##############################################################################
 ## CINCL    (Include libraries)
-CINCL  += $(LINCL)################# C includes
-CINCL  += -I$(SRCDIR)############## Project source directory
-CINCL  += -I$(INCDIR)############## Project include directory
+CINCL  += -I$(SRCDIR)################# Project source directory
+CINCL  += -I$(INCDIR)################# Project include directory
 
 ##############################################################################
 ## CLIBS    (Loader libraries)
-CLIBS  += $(LLIBS)################# Local libraries
-###### += -L$(LIBDIR) -lcom######## Common library (To be deprecated)
-###### += -L$(LIBDIR) -lgui######## GUI library
-###### += -L$(LIBDIR) -lobj######## Object library (Experimental)
-###### += -L$(LIBDIR) -lpub######## Public library (Common library replacement)
-###### += -lc###################### Standard C Library
-###### += -lcurses################# CURSES Library
-###### += -lm###################### Mathlib, Security
-###### += -lncurses################ New CURSES Library
-###### += -lpthread################ Thread library
-###### += -ls###################### Security
-###### += -lX11#################### Standard X Library
 
 ##############################################################################
 ## CLOAD    (Loader options)
-CLOAD  += $(LLOAD)################# Load options
-###### += -Wl,--print-map ######### Print map to stderr
 
 ##############################################################################
 ## Set CFLAGS
 CFLAGS  = $(strip $(CDEFS) $(CINCL) $(COPTS))
-

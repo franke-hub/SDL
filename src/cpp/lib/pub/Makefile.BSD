@@ -15,31 +15,32 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/02/01
+##       2024/02/10
 ##
 ##############################################################################
 
 ##############################################################################
-## Local options (-fPIC, but not on CYGWIN)
-ifneq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+## Local options
 COPTS  += -fPIC ###################### Generate position independent code
-endif
 
 ##############################################################################
 ## Set targets
-ifeq "" "$(MAKRUN)"
-MAKRUN := all
-endif
-
 ifeq "" "$(DEFAULT)"
-DEFAULT := $(MAKRUN)
+DEFAULT := $(MAKOBJ)
 endif
 
-.PHONY: default all dll lib
-default: configure $(DEFAULT)
-all: dll lib
-dll: libpub.so.1.0
+.PHONY: default all lib shr update
+default: $(DEFAULT)
+all: lib shr
+lib: .have-version
+shr: .have-version
 lib: libpub.a
+shr: libpub.so.1.0
+update: all
+
+ifneq "" "$(findstring CYGWIN,$(shell uname))"
+shr: libpub.dll
+endif
 
 ##############################################################################
 ## TARGET: libpub.a
@@ -47,45 +48,50 @@ libpub.a: $(MAKOBJ)
 	$(AR) $@ $^
 	touch $@
 
+## libpub.a: ;                      ## (No library dependency)
+
 ##############################################################################
-## TARGET: libpub.so.1.0
-libpub.so.1.0: $(MAKOBJ)
-	$(CC) -shared -o $@ $^ -lbz2 -lz -lc
-ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-	rebase -b 0x240000000 $@
+## TARGETS: libpub.so.1.0 libpub.so libpub.dll
+ifneq "" "$(LINKMAP)"
+LINKMAP := -Wl,-Map -Wl,libpub.map ### Generate linker map
 endif
+
+libpub.so.1.0: $(MAKOBJ)
+	$(CC) $(LINKMAP) -shared -o $@ $^ $(CLIBS)
 	touch $@
 
-##############################################################################
-## TARGET: configure
-.PHONY: configure
-configure: ;
-	@../../../../bat/sys/configure.sh src/cpp/lib/pub
+libpub.so: libpub.so.1.0
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+libpub.dll: libpub.so.1.0
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+	rebase -b 0x250000000 $@
+	touch $@
+
+## libpub.so.1.0: ;                 ## (No library dependency)
 
 ##############################################################################
-## TARGET: update
-.PHONY: update
-update: default
+## TARGET: config
+.PHONY: config
+config: ;
+	@../../../../bat/sys/configure.sh src/cpp/lib/pub
+
+.have-version: ../../../../bat/sys/.want-version
+	$(MAKE) config
+	touch $@
 
 ##############################################################################
 ## Dependencies
 include $(INCDIR)/pub/Makefile.BSD
-
-ifneq "" "$(DEPENDS)"
-Makeproj.dep: $(wildcard $(INCDIR)/pub/*)
-Makeproj.dep: $(wildcard $(SRCDIR)/*)
-Makeproj.dep: $(wildcard $(SRCDIR)/pub/OS/USR/*) ## (non-existent)
-Makeproj.dep: $(wildcard $(SRCDIR)/pub/OS/BSD/*) ## (non-existent)
-endif
 
 ##############################################################################
 ## Cleanup
 .PHONY: pub.clean pub.pristine
 clean: pub.clean
 pub.clean: ;
-	-@rm -f libpub.a >/dev/null 2>/dev/null
-	-@rm -f libpub.so* libpub.dll >/dev/null 2>/dev/null
+	@rm -f libpub.a
+	@rm -f libpub.so* libpub.dll
 
 pristine: pub.pristine
 pub.pristine: ;
-	-@rm -f _have.version >/dev/null 2>/dev/null
+	@rm -f .have-version

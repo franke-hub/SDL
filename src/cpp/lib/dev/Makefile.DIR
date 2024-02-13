@@ -15,49 +15,70 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/02/01
+##       2024/02/10
 ##
 ##############################################################################
 
 ##############################################################################
-## Prerequisites
-PREREQ := $(wildcard $(INCDIR)/dev/*)
-PREREQ += $(wildcard $(SRCDIR)/dev/*)
+## Source/object files
+DEV_SOURCE :=
+DEV_SOURCE += $(wildcard $(INCDIR)/dev/*)
+DEV_SOURCE += $(wildcard $(SRCDIR)/dev/*)
+
+DEV_OBJECT := $(patsubst dev/%.cpp,dev/%.o,$(wildcard dev/*.cpp))
 
 ##############################################################################
-## TARGET: dev/libdev.a
-$(OBJDIR)/dev/libdev.a: $(PREREQ) libpub.a
-	(cd $(OBJDIR)/dev/; $(MAKE))
+## Dependency controls
+DEV_DEPEND := dev/.have-version dev/Makeproj.gcc ## Dependency requirements
+
+dev/.have-version: $(LIB_SOURCE) ##### If dev/.have-version out of date
+	(cd $(OBJDIR)/dev/; $(MAKE) config)## Update it. (Full recompile possible)
+	touch $@
+
+dev/Makeproj.out: $(DEV_SOURCE) ###### If any source changed, make required
+	touch $@
+
+dev/Makeproj.gcc: dev/Makeproj.out ### If compilation might be needed
+	(cd $(OBJDIR)/dev/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
+	echo -n "Last compile (check): " >$@; date >>$@  ## Avoid secondary remake
+
+$(DEV_DEPEND): $(OBJDIR)/libpub.a $(OBJDIR)/libpub.so
+
+##############################################################################
+## TARGETS: dev/libdev.a libdev.a
+$(OBJDIR)/dev/libdev.a: $(DEV_DEPEND)
 
 $(OBJDIR)/libdev.a: $(OBJDIR)/dev/libdev.a
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
+	touch $@
 
-build.bsd: $(OBJDIR)/libdev.a
+lib: $(OBJDIR)/libdev.a
+## usr: $(USRLIB)/libdev.a             ## [Currently not in $(USRLIB)]
 
 ##############################################################################
-## TARGET: dev/libdev.so.1.0
-$(OBJDIR)/dev/libdev.so.1.0: $(PREREQ) libpub.so
-	(cd $(OBJDIR)/dev/; $(MAKE))
+## TARGETS: dev/libdev.so.1.0 libdev.so
+$(OBJDIR)/dev/libdev.so.1.0: $(DEV_DEPEND)
 
 $(OBJDIR)/libdev.so.1.0: $(OBJDIR)/dev/libdev.so.1.0
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-build.bsd: $(OBJDIR)/libdev.so
-build.bsd: $(USRLIB)/libdev.so $(USRLIB)/libdev.so.1.0
-
-build.cygwin: $(OBJDIR)/libdev.dll
-build.cygwin: $(USRLIB)/libdev.dll
-
-##############################################################################
-## TARGET: libdev.lib [WINDOWS VERSION, NOT MAINTAINED]
-$(OBJDIR)/dev/libdev.lib: $(PREREQ)
-	(cd $(OBJDIR)/dev/; $(MAKE))
-
-libdev.lib: $(OBJDIR)/dev/libdev.lib
-	cp -Lpf $< $@
 	touch $@
 
-build.win.lib: libdev.lib
+.SECONDARY: $(USRLIB)/libdev.so.1.0
+shr: $(OBJDIR)/libdev.so
+usr: $(USRLIB)/libdev.so
+
+##############################################################################
+## TARGETS: dev/libdev.dll libdev.dll
+$(OBJDIR)/dev/libdev.dll: $(OBJDIR)/dev/libdev.so.1.0
+	(cd $(OBJDIR)/dev/; $(MAKE) shr)
+	touch $@
+
+$(OBJDIR)/libdev.dll: $(OBJDIR)/dev/libdev.dll
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+	touch $@
+
+dll.shr: $(OBJDIR)/libdev.dll
+dll.usr: $(USRLIB)/libdev.dll
 
 ##############################################################################
 ## TARGET: dev.depend
@@ -79,9 +100,9 @@ dev.update: ;
 pristine: dev.pristine
 dev.pristine: ;
 	(cd $(OBJDIR)/dev/; $(MAKE) pristine)
-	-@rm -f $(USRLIB)/libdev.* >/dev/null 2>/dev/null
+	@rm -f $(USRLIB)/libdev.*
 
 .PHONY: dev.clean
 clean: dev.clean
 dev.clean: ;
-	-@rm -f libdev.* >/dev/null 2>/dev/null
+	@rm -f libdev.*

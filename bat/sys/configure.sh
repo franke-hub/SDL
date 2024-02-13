@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2023 Frank Eskesen.
+##       Copyright (C) 2023-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,16 +16,16 @@
 ##       If version is out of date, make pristine.
 ##
 ## Last change date-
-##       2024/02/01
+##       2024/02/10
 ##
 ## Usage-
 ##       ~/bat/sys/configure.sh library-name
-##       ~/bat/sys/_want.version contains a list of library names and versions:
+##       ~/bat/sys/.want-version contains a list of library names and versions:
 ##          library-name1 = date
 ##
 ##       Make files invoke configure.sh, testing to see if they need to
 ##       be recompiled outside of dependency controls. Configure.sh uses
-##       the file "_have.version" to test whether or not 'make pristine'
+##       the file ".have-version" to test whether or not 'make pristine'
 ##       needs to be invoked. If the dates match, configure.sh does nothing.
 ##       If the dates don't match, configure.sh invokes 'make.pristine'
 ##
@@ -36,7 +36,7 @@
 ##       library's function signature or structure order *does* change, an
 ##       application needs to be recompiled.
 ##
-##       That's why ~/bat/sys/configure.sh and ~/bat/sys/_want.version
+##       That's why ~/bat/sys/configure.sh and ~/bat/sys/.want-version
 ##       (and the anciliary files ~/bat/sys/rdconfig and ~/bat/sys/wrconfig)
 ##       exist.
 ##
@@ -61,8 +61,8 @@ fi
 ## Parameterization: Program names and actions
 RDCONFIG="$SDL_ROOT/bat/sys/rdconfig"
 WRCONFIG="$SDL_ROOT/bat/sys/wrconfig"
-WANTFILE="$SDL_ROOT/bat/sys/_want.version"
-HAVEFILE="./_have.version"
+WANTFILE="$SDL_ROOT/bat/sys/.want-version"
+HAVEFILE="./.have-version"
 THISFILE=`basename "$0"`
 
 ##############################################################################

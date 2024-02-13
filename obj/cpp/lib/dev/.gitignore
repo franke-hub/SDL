@@ -7,7 +7,7 @@
 ##       within https://opensource.org/licenses/MIT)
 ##
 ##############################################################################
-## ~/obj/cpp/lib/gui/Test/.gitignore
+## ~/obj/cpp/lib/dev/.gitignore
 ##############################################################################
 /*
 !/.gitignore
@@ -16,3 +16,4 @@
 !/M
 !/Makefile
 !/S
+!/Test

@@ -1,4 +1,5 @@
-##############################################################################
+##
+##============================================================================
 ##
 ##       Copyright (C) 2020-2024 Frank Eskesen.
 ##
@@ -26,17 +27,13 @@
 
 ##############################################################################
 ## If not running bash interactively, don't do anything
-## CYGWIN: Ignore interactive check (??TEMPORARY??)
-isCYGWIN=`uname | grep CYGWIN`
-if [ -z "$isCYGWIN" ] ; then
-  [ -z "$BASH_VERSION" ] && return
-  [[ $- != *i* ]] && return
+if [ -z "`uname | grep CYGWIN`" ] ; then ## Ignore interactive check in CYGWIN
+   [ -z "$BASH_VERSION" ] && return
+   [[ $- != *i* ]] && return
 fi
 
 ##############################################################################
 ## Common initialization
-## [ -r /etc/bashrc ] && source /etc/bashrc || ([ -r /etc/bash.bashrc ] && source /etc/bash.bashrc)
-
 [ -r $HOME/bat/bash_common ] && source $HOME/bat/bash_common
 
 export EXECIGNORE="*.dll"           ## Exclude *.dlls from TAB expansion

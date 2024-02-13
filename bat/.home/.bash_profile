@@ -1,4 +1,5 @@
-##############################################################################
+##
+##============================================================================
 ##
 ##       Copyright (C) 2020-2024 Frank Eskesen.
 ##
@@ -16,7 +17,7 @@
 ##       Shell startup script, sourced during login
 ##
 ## Last change date-
-##        2024/01/26
+##        2024/02/10
 ##
 ##############################################################################
 
@@ -26,12 +27,17 @@
 [ -n "$debugging" ] && date "+%s.%N HOST($HOST) USER($USER) begin .bash_profile $$ $0" >>$debugging
 
 ##############################################################################
+## Set temporary functions and variables, unset at end
+. $HOME/bat/f.appendstring          ## For AppendString, PrependString
+isCYGWIN=`uname | grep CYGWIN`      ## [ -n "$isCYGWIN" ] && echo In CYGWIN
+
+##############################################################################
 ## Set PATH
 ## export PATH=/usr/local/bin:usr/bin/:/usr/local/sbin:/usr/sbin
 
-. $HOME/bat/f.appendstring
-
 ## Prepend in reverse order
+[ -n "$isCYGWIN" -a -d $HOME/.local/lib/sdlc++ ] && \
+    PrependString PATH "$HOME/.local/lib/sdlc++"
 [ -d $HOME/bin ] && PrependString PATH "$HOME/bin"
 [ -d $HOME/bat ] && PrependString PATH "$HOME/bat"
 [ -d $HOME/.local/bin ] && PrependString PATH "$HOME/.local/bin"
@@ -46,7 +52,8 @@ PrependString PATH "."
 
 ## Prepend in reverse order
 [ -d $HOME/.local/lib ] && PrependString LD_LIBRARY_PATH "$HOME/.local/lib"
-[ -d $HOME/.local/lib/usr ] && PrependString LD_LIBRARY_PATH "$HOME/.local/lib/usr"
+[ -z "$isCYGWIN" -a -d $HOME/.local/lib/sdlc++ ] && \
+    PrependString LD_LIBRARY_PATH "$HOME/.local/lib/sdlc++"
 PrependString LD_LIBRARY_PATH "."
 
 ## Append in normal order
@@ -54,10 +61,7 @@ PrependString LD_LIBRARY_PATH "."
 
 ##############################################################################
 ## CYGWIN version code
-isCYGWIN=`uname | grep CYGWIN`
-if [ -n "$isCYGWIN" ] ; then
-  export CYGWIN="winsymlinks:native"
-fi
+[ -n "$isCYGWIN" ] && export CYGWIN="winsymlinks:native"
 
 ##############################################################################
 ## Other initialization
@@ -77,7 +81,10 @@ source $HOME/bat/setupEDIT
 [ -s $HOME/.cvspass ] && echo WARNING: $HOME/.cvspass exists
 [ -s $HOME/.local/log/error.log ] && echo WARNING: $HOME/.local/log/error.log exists
 
+##############################################################################
+## Unset temporary functions and variables
 unset -f AppendString PrependString
+unset -n isCYGWIN
 
 ##############################################################################
 ## Debugging hook

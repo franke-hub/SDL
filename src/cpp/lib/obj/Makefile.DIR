@@ -15,49 +15,70 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/02/01
+##       2024/02/10
 ##
 ##############################################################################
 
 ##############################################################################
-## Prerequisites
-PREREQ := $(wildcard $(INCDIR)/obj/*)
-PREREQ += $(wildcard $(SRCDIR)/obj/*)
+## Source/object files
+OBJ_SOURCE :=
+OBJ_SOURCE += $(wildcard $(INCDIR)/obj/*)
+OBJ_SOURCE += $(wildcard $(SRCDIR)/obj/*)
+
+OBJ_OBJECT := $(patsubst obj/%.cpp,obj/%.o,$(wildcard obj/*.cpp))
 
 ##############################################################################
-## TARGET: obj/libobj.a
-$(OBJDIR)/obj/libobj.a: $(PREREQ) libcom.a
-	(cd $(OBJDIR)/obj/; $(MAKE))
+## Dependency controls
+OBJ_DEPEND := obj/.have-version obj/Makeproj.gcc ## Dependency requirements
+
+obj/.have-version: $(LIB_SOURCE) ##### If obj/.have-version out of date
+	(cd $(OBJDIR)/obj/; $(MAKE) config)## Update it. (Full recompile possible)
+	touch $@
+
+obj/Makeproj.out: $(OBJ_SOURCE) ###### If any source changed, make required
+	touch $@
+
+obj/Makeproj.gcc: obj/Makeproj.out ### If compilation might be needed
+	(cd $(OBJDIR)/obj/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
+	echo -n "Last compile (check): " >$@; date >>$@  ## Avoid secondary remake
+
+$(OBJ_DEPEND): $(OBJDIR)/libcom.a $(OBJDIR)/libcom.so
+
+##############################################################################
+## TARGETS: obj/libobj.a libobj.a
+$(OBJDIR)/obj/libobj.a: $(OBJ_DEPEND)
 
 $(OBJDIR)/libobj.a: $(OBJDIR)/obj/libobj.a
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
+	touch $@
 
-build.bsd: $(OBJDIR)/libobj.a
+lib: $(OBJDIR)/libobj.a
+## usr: $(USRLIB)/libcom.a             ## [Currently not in $(USRLIB)]
 
 ##############################################################################
-## TARGET: obj/libobj.so.1.0
-$(OBJDIR)/obj/libobj.so.1.0: $(PREREQ) libcom.so
-	(cd $(OBJDIR)/obj/; $(MAKE))
+## TARGETS: obj/libobj.so.1.0 libobj.so
+$(OBJDIR)/obj/libobj.so.1.0: $(OBJ_DEPEND)
 
 $(OBJDIR)/libobj.so.1.0: $(OBJDIR)/obj/libobj.so.1.0
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-build.bsd: $(OBJDIR)/libobj.so
-build.bsd: $(USRLIB)/libobj.so $(USRLIB)/libobj.so.1.0
-
-build.cygwin: $(OBJDIR)/libobj.dll
-build.cygwin: $(USRLIB)/libobj.dll
-
-##############################################################################
-## TARGET: libobj.lib [WINDOWS VERSION, NOT MAINTAINED]
-$(OBJDIR)/obj/libobj.lib: $(PREREQ)
-	(cd $(OBJDIR)/obj/; $(MAKE))
-
-libobj.lib: $(OBJDIR)/obj/libobj.lib libcom.lib
-	cp -Lpf $< $@
 	touch $@
 
-build.win.lib: libobj.lib
+.SECONDARY: $(USRLIB)/libobj.so.1.0
+shr: $(OBJDIR)/libobj.so
+usr: $(USRLIB)/libobj.so
+
+##############################################################################
+## TARGETS: obj/libobj.dll libobj.dll
+$(OBJDIR)/obj/libobj.dll: $(OBJDIR)/obj/libobj.so.1.0
+	(cd $(OBJDIR)/obj/; $(MAKE) shr)
+	touch $@
+
+$(OBJDIR)/libobj.dll: $(OBJDIR)/obj/libobj.dll
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+	touch $@
+
+dll.shr: $(OBJDIR)/libobj.dll
+dll.usr: $(USRLIB)/libobj.dll
 
 ##############################################################################
 ## TARGET: obj.depend
@@ -79,9 +100,9 @@ obj.update: ;
 pristine: obj.pristine
 obj.pristine: ;
 	(cd $(OBJDIR)/obj/; $(MAKE) pristine)
-	-@rm -f $(USRLIB)/libobj.* >/dev/null 2>/dev/null
+	@rm -f $(USRLIB)/libobj.*
 
 .PHONY: obj.clean
 clean: obj.clean
 obj.clean: ;
-	-@rm -f libobj.* >/dev/null 2>/dev/null
+	@rm -f libobj.*

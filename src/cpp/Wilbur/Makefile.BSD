@@ -122,11 +122,6 @@ make.dir: libWilbur.a
 
 ##############################################################################
 ## TARGET: libWilbur.so
-USRLIB := ~/.local/lib/usr############ User dynamic link library directory
-L: $(USRLIB)
-	$(shell [ ! -L "$@" ] && echo ln -s $< $@)
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
 libWilbur.so.1.0: $(MAKOBJ) L
 	$(CC) -shared -o $@ $(MAKOBJ) -Wl,-Map,libWilbur.map $(LOCLIB)
 ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"

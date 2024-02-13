@@ -15,49 +15,70 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/02/01
+##       2024/02/10
 ##
 ##############################################################################
 
 ##############################################################################
-## Prerequisites
-PREREQ := $(wildcard $(INCDIR)/pub/*)
-PREREQ += $(wildcard $(SRCDIR)/pub/*)
+## Source/object files
+PUB_SOURCE :=
+PUB_SOURCE += $(wildcard $(INCDIR)/pub/*)
+PUB_SOURCE += $(wildcard $(SRCDIR)/pub/*)
+
+PUB_OBJECT := $(patsubst pub/%.cpp,pub/%.o,$(wildcard pub/*.cpp))
 
 ##############################################################################
-## TARGET: pub/libpub.a
-$(OBJDIR)/pub/libpub.a: $(PREREQ) libcom.a
-	(cd $(OBJDIR)/pub/; $(MAKE))
+## Dependency controls
+PUB_DEPEND := pub/.have-version pub/Makeproj.gcc ## Dependency requirements
+
+pub/.have-version: $(LIB_SOURCE) ##### If pub/.have-version out of date
+	(cd $(OBJDIR)/pub/; $(MAKE) config)## Update it. (Full recompile possible)
+	touch $@
+
+pub/Makeproj.out: $(PUB_SOURCE) ###### If any source changed, make required
+	touch $@
+
+pub/Makeproj.gcc: pub/Makeproj.out ### If compilation might be needed
+	(cd $(OBJDIR)/pub/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
+	echo -n "Last compile (check): " >$@; date >>$@  ## Avoid secondary remake
+
+## $(PUB_DEPEND): ;
+
+##############################################################################
+## TARGETS: pub/libpub.a libpub.a
+$(OBJDIR)/pub/libpub.a: $(PUB_DEPEND)
 
 $(OBJDIR)/libpub.a: $(OBJDIR)/pub/libpub.a
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
+	touch $@
 
-build.bsd: $(OBJDIR)/libpub.a
+lib: $(OBJDIR)/libpub.a
+## usr: $(USRLIB)/libcom.a             ## [Currently not in $(USRLIB)]
 
 ##############################################################################
-## TARGET: pub/libpub.so.1.0
-$(OBJDIR)/pub/libpub.so.1.0: $(PREREQ) libcom.so
-	(cd $(OBJDIR)/pub/; $(MAKE))
+## TARGETS: pub/libpub.so.1.0 libpub.so
+$(OBJDIR)/pub/libpub.so.1.0: $(PUB_DEPEND)
 
 $(OBJDIR)/libpub.so.1.0: $(OBJDIR)/pub/libpub.so.1.0
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-build.bsd: $(OBJDIR)/libpub.so
-build.bsd: $(USRLIB)/libpub.so $(USRLIB)/libpub.so.1.0
-
-build.cygwin: $(OBJDIR)/libpub.dll
-build.cygwin: $(USRLIB)/libpub.dll
-
-##############################################################################
-## TARGET: libpub.lib [WINDOWS VERSION, NOT MAINTAINED]
-$(OBJDIR)/pub/libpub.lib: $(PREREQ)
-	(cd $(OBJDIR)/pub/; $(MAKE))
-
-libpub.lib: $(OBJDIR)/pub/libpub.lib libcom.lib
-	cp -Lpf $< $@
 	touch $@
 
-build.win.lib: libpub.lib
+.SECONDARY: $(USRLIB)/libpub.so.1.0
+shr: $(OBJDIR)/libpub.so
+usr: $(USRLIB)/libpub.so
+
+##############################################################################
+## TARGETS: pub/libpub.dll libpub.dll
+$(OBJDIR)/pub/libpub.dll: $(OBJDIR)/pub/libpub.so.1.0
+	(cd $(OBJDIR)/pub/; $(MAKE) shr)
+	touch $@
+
+$(OBJDIR)/libpub.dll: $(OBJDIR)/pub/libpub.dll
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+	touch $@
+
+dll.shr: $(OBJDIR)/libpub.dll
+dll.usr: $(USRLIB)/libpub.dll
 
 ##############################################################################
 ## TARGET: pub.depend
@@ -79,9 +100,9 @@ pub.update: ;
 pristine: pub.pristine
 pub.pristine: ;
 	(cd $(OBJDIR)/pub/; $(MAKE) pristine)
-	-@rm -f $(USRLIB)/libpub.* >/dev/null 2>/dev/null
+	@rm -f $(USRLIB)/libpub.*
 
 .PHONY: pub.clean
 clean: pub.clean
 pub.clean: ;
-	-@rm -f libpub.* >/dev/null 2>/dev/null
+	@rm -f libpub.*

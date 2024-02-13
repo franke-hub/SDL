@@ -26,6 +26,8 @@ MAKOBJ = \
     Alpha.o    \
     ../subdir/Beta.o     \
     Gamma.o    \
+    alpha/One.foo        \
+    beta/Two.bar         \
 
 ##############################################################################
 ## Set default target
@@ -96,3 +98,20 @@ Other: foo.o bar.o foo.o bar.o
 	@echo "$$ \(@F\) $(@F)"
 	@echo ""
 
+##############################################################################
+## Make control: One Two
+alpha/One.foo beta/Two.bar: foo.o bar.o foo.o bar.o
+	@echo "alpha/One/foo beta/Two.bar: foo.o bar.o foo.o bar.o"
+	@echo "$$ @ $(@)"
+	@echo "$$ < $(<)"
+	@echo "$$ ^ $(^)"
+	@echo "$$ ? $(?)"
+	@echo "$$ + $(+)"
+	@echo "$$ * $(*)"
+	@echo "$$ % $(%)"
+	@echo "$$ | $(|)"
+	@echo "$$ \(<D\) $(<D)"
+	@echo "$$ \(<F\) $(<F)"
+	@echo "$$ \(@D\) $(@D)"
+	@echo "$$ \(@F\) $(@F)"
+	@echo ""

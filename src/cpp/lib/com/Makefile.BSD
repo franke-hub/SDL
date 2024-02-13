@@ -15,31 +15,32 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/02/01
+##       2024/02/10
 ##
 ##############################################################################
 
 ##############################################################################
-## Local options (-fPIC, but not on CYGWIN)
-ifneq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+## Local options
 COPTS  += -fPIC ###################### Generate position independent code
-endif
 
 ##############################################################################
 ## Set targets
-ifeq "" "$(MAKRUN)"
-MAKRUN := all
-endif
-
 ifeq "" "$(DEFAULT)"
-DEFAULT := $(MAKRUN)
+DEFAULT := $(MAKOBJ)
 endif
 
-.PHONY: default all dll lib
-default: configure $(DEFAULT)
-all: dll lib
-dll: libcom.so.1.0
+.PHONY: default all lib shr update
+default: $(DEFAULT)
+all: lib shr
+lib: .have-version
+shr: .have-version
 lib: libcom.a
+shr: libcom.so.1.0
+update: all
+
+ifneq "" "$(findstring CYGWIN,$(shell uname))"
+shr: libcom.dll
+endif
 
 ##############################################################################
 ## TARGET: libcom.a
@@ -47,60 +48,63 @@ libcom.a: $(MAKOBJ)
 	$(AR) $@ $^
 	touch $@
 
+## libcom.a: ;                      ## (No library dependency)
+
 ##############################################################################
-## TARGET: libcom.so.1.0
-libcom.so.1.0: $(MAKOBJ)
-	$(CC) -shared -o $@ $^ -lbz2 -lz -lc
-ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-	rebase -b 0x210000000 $@
+## TARGETS: libcom.so.1.0 libcom.so libcom.dll
+ifneq "" "$(LINKMAP)"
+LINKMAP := -Wl,-Map -Wl,libcom.map ### Generate linker map
 endif
+
+libcom.so.1.0: $(MAKOBJ)
+	$(CC) $(LINKMAP) -shared -o $@ $^ $(CLIBS)
 	touch $@
 
-##############################################################################
-## TARGET: configure
-.PHONY: configure
-configure: ;
-	@../../../../bat/sys/configure.sh src/cpp/lib/com
+libcom.so: libcom.so.1.0
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+
+libcom.dll: libcom.so.1.0
+	$(shell [ ! -L "$@" ] && ln -s $< $@)
+	rebase -b 0x210000000 $@
+	touch $@
+
+## libcom.so.1.0: ;                 ## (No library dependency)
 
 ##############################################################################
-## TARGET: update
-.PHONY: update
-update: default
+## TARGET: config
+.PHONY: config
+config: ;
+	@../../../../bat/sys/configure.sh src/cpp/lib/com
+
+.have-version: ../../../../bat/sys/.want-version
+	$(MAKE) config
+	touch $@
 
 ##############################################################################
 ## Dependencies
 include $(INCDIR)/com/Makefile.BSD
-
-ifneq "" "$(DEPENDS)"
-Makeproj.dep: $(wildcard $(INCDIR)/com/*)
-Makeproj.dep: $(wildcard $(SRCDIR)/*)
-Makeproj.dep: $(wildcard $(SRCDIR)/HW/STD/*)
-Makeproj.dep: $(wildcard $(SRCDIR)/HW/X86/*)
-Makeproj.dep: $(wildcard $(SRCDIR)/OS/BSD/*)
-Makeproj.dep: $(wildcard $(SRCDIR)/OS/CYGWIN/*)
-endif
-
-##############################################################################
-## Explicit rule to make assembler source, listing (NO OUTPUT)
-AS     := as ######################### Assembler
-
-%.s : $(SRCDIR)/%.cpp
-	$(CC) -o $@ -S $(CFLAGS) -c $<
-
-%.lst : %.s
-	$(AS) -o /dev/null -a=$@ $<
-
-Atomic.s : $(SRCDIR)/HW/X86/Atomic.GNU
-Hardware.s : $(SRCDIR)/HW/X86/Hardware.GNU
 
 ##############################################################################
 ## Cleanup
 .PHONY: com.clean com.pristine
 clean: com.clean
 com.clean: ;
-	-@rm -f libcom.a >/dev/null 2>/dev/null
-	-@rm -f libcom.so* libcom.dll >/dev/null 2>/dev/null
+	@rm -f libcom.a
+	@rm -f libcom.so* libcom.dll
 
 pristine: com.pristine
 com.pristine: ;
-	-@rm -f _have.version >/dev/null 2>/dev/null
+	@rm -f .have-version
+
+##############################################################################
+## Explicit rule to make assembler source, listing (NO OUTPUT)
+AS     := as ######################### Assembler
+
+%.s: $(SRCDIR)/%.cpp
+	$(CC) -o $@ -S $(CFLAGS) -c $<
+
+%.lst: %.s
+	$(AS) -o /dev/null -a=$@ $<
+
+Atomic.s: $(SRCDIR)/HW/X86/Atomic.GNU
+Hardware.s: $(SRCDIR)/HW/X86/Hardware.GNU

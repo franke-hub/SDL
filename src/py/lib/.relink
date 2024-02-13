@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2023 Frank Eskesen.
+##       Copyright (C) 2023-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -16,7 +16,7 @@
 ##       Build: Install library link
 ##
 ## Last change date-
-##       2023/08/26
+##       2024/02/10
 ##
 ## Implementation notes-
 ##       ** MUST ONLY ** be invoked from Makefile.STD
@@ -26,15 +26,15 @@
 ##############################################################################
 ## Get directory containing this script
 ##############################################################################
-DIR_THIS=$(dirname $0)
-cd $DIR_THIS
-DIR_THIS=`pwd -P`
+THIS_DIR=$(dirname $0)
+cd $THIS_DIR
+THIS_DIR=`pwd -P`
 [[ $? != 0 ]] && { echo "PWD error"; exit 1; }
 
 ##############################################################################
 ## Get Python site-packages directory
 ##############################################################################
-DIR_SITE=`python -c "import sysconfig; print(sysconfig.get_path('purelib'))"`
+SITE_DIR=`python -c "import sysconfig; print(sysconfig.get_path('purelib'))"`
 [[ $? != 0 ]] && { echo "Cannot find site-packages"; exit 1; }
 
 ##############################################################################
@@ -42,7 +42,11 @@ DIR_SITE=`python -c "import sysconfig; print(sysconfig.get_path('purelib'))"`
 ##
 ## Implementation note:
 ##    It's possible that the python implementation did not create the
-##    $DIR_SITE directory. For now, if it's missing create it manually.
+##    $SITE_DIR directory. For now, if it's missing create it manually.
 ##############################################################################
-echo sudo ln -snf $DIR_THIS $DIR_SITE/lib
-sudo ln -snf $DIR_THIS $DIR_SITE/lib
+echo SITE_DIR $SITE_DIR
+echo THIS_DIR $THIS_DIR
+exit 0
+
+echo sudo ln -snf $THIS_DIR $SITE_DIR/lib
+sudo ln -snf $THIS_DIR $SITE_DIR/lib

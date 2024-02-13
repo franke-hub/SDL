@@ -16,7 +16,7 @@
 //       Editor: Implement EdTerm.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2024/02/01
+//       2024/02/04
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -260,6 +260,7 @@ static int                          // Return code, TRUE if error message
          switch(key) {                // Allowed keys:
            case 'C':                  // COPY MARK
            case 'Q':                  // QUIT (safe)
+           case 'S':                  // SAVE
            case 'V':                  // PASTE COPY
            case 'X':                  // CUT MARK
            case 'Y':                  // REDO

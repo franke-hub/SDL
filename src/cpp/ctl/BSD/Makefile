@@ -16,7 +16,7 @@
 ##       Makefile for C++/Assembler programs
 ##
 ## Last change date-
-##       2024/02/01
+##       2024/02/10
 ##
 ## Preparation-
 ##       In your object directory,
@@ -101,7 +101,7 @@ include $(INCSRC)
 ##############################################################################
 ## Default patterns
 % : %.o
-	$(LD) -o $@ $< $(CLOAD) $(CLIBS)
+	$(LD) -o $@ $< $(CLOAD) $(LLIBS) $(CLIBS)
 
 %.o : $(SRCDIR)/%.cpp
 	$(CC) -o $@ -c $<  $(CFLAGS)
@@ -146,8 +146,7 @@ nothing: ;
 .PHONY: pristine clean
 pristine: clean
 	-@rm -f *.lst *.o *.stackdump         >/dev/null 2>/dev/null
-	-@rm -f Makeproj.dep                  >/dev/null 2>/dev/null
-	-@rm -f Makeproj.inp Makeproj.out     >/dev/null 2>/dev/null
+	-@rm -f Makeproj.*                    >/dev/null 2>/dev/null
 
 clean: ;
 	-@rm -f $(MAKEXE)                     >/dev/null 2>/dev/null

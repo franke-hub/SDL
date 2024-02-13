@@ -29,6 +29,7 @@ LLIBS  += -L$(LIBDIR) -lcom ########## COM library
 
 CLIBS  += -lncurses
 CLIBS  += -lpthread -lssl
+CLIBS  += -lbz2 -lz -lc
 
 ##############################################################################
 ## Dependencies

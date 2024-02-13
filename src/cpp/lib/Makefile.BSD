@@ -15,71 +15,112 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/02/01
+##       2024/02/10
+##
+## Implementation notes-
+##       Note that for Cygwin, shared libraries MUST BE included in the
+##       PATH environment variable instead of LD_LIBRARY_PATH.
+##
+## Implementation notes-
+##       TARGET: install    Install C++ shared library in usrlib
+##       TARGET: uninstall  Remove C++ shared library from usrlib
+##
+##       TARGET: lib   Create static library (Cygwin/Linux)
+##       TARGET: shr   Create shared library (Cygwin/Linux)
+##           dll.shr   Create shared library (Cygwin only)
+##       TARGET: usr   Create shared install (Cygwin/Linux) [Install]
+##           dll.usr   Create shared install (Cygwin only)  [Install]
 ##
 ##############################################################################
 
 ##############################################################################
-## Set default target (build.bsd)
-ifeq "" "$(MAKRUN)"
-MAKRUN := build.bsd
-endif
+## Disable the build executable rule (to simplify Makefile debugging.)
+% : %.o
 
+##############################################################################
+## $SDL_ROOT is the base directory, containing
+##    ./bat ./bin ./src/cpp/lib and ./obj/cpp/lib/.
+## $SDL_ROOT/obj/cpp/lib must be the current (invoking) directory.
+ifeq "" "$(SDL_ROOT)"
+SDL_ROOT := ../../..
+endif
+LIB_SOURCE := $(SDL_ROOT)/bat/sys/.want-version
+
+##############################################################################
+## Set default target
 ifeq "" "$(DEFAULT)"
-DEFAULT := $(MAKRUN)
+DEFAULT := all
 endif
 
-.PHONY: default build.bsd
+.PHONY: all default install dll dll.shr dll.usr lib shr usr
 default: $(DEFAULT)
 
-##############################################################################
-## CYGWIN extra instructions
-.PHONY: build.cygwin
+all: lib shr
+dll dll.shr dll.usr lib shr usr: ;
+install: usr
+usr: lib shr
+
 ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-build.bsd: build.cygwin
+all: dll
+dll.shr: shr
+dll.usr: dll.shr
+install: dll.usr
 endif
 
-##############################################################################
-## Dependencies
-## Library order dependencies
-## $(OBJDIR)/libobj.a: $(OBJDIR)/libcom.a
-## $(OBJDIR)/libpub.a: $(OBJDIR)/libcom.a
-## $(OBJDIR)/libgui.a: $(OBJDIR)/libpub.a
-## $(OBJDIR)/libdev.a: $(OBJDIR)/libpub.a
-
-## $(OBJDIR)/libobj.so.1.0: $(OBJDIR)/libcom.so.1.0
-## $(OBJDIR)/libpub.so.1.0: $(OBJDIR)/libcom.so.1.0
-## $(OBJDIR)/libgui.so.1.0: $(OBJDIR)/libpub.so.1.0
-## $(OBJDIR)/libdev.so.1.0: $(OBJDIR)/libpub.so.1.0
+.PHONY: echo
+echo: ;
+	@echo LIB_SOURCE $(LIB_SOURCE)
+	@echo COM_SOURCE $(COM_SOURCE)
+	@echo
+	ls -alF $(LIB_SOURCE)
 
 ##############################################################################
-## $(USRLIB) definition; created as *first* build.bsd dependency
-USRLIB := ~/.local/lib/usr############ User dynamic link library directory
-$(USRLIB): ;
-	mkdir -p $(USRLIB)
+## TARGET: $(USRLIB)
+USRLIB := usrlib
 
-build.bsd: $(USRLIB)
+~/.local/lib: ;
+	mkdir -p $@
+
+~/.local/lib/sdlc++: ~/.local/lib
+	$(shell [ ! -L "$@" ] && (cd ~/.local/lib; ln -s $(PWD)/$(USRLIB) $(@F)))
+
+$(USRLIB): ; ######################### (Should already exist)
+	$(shell [ ! -d "$@" ] && mkdir $@) ## (Should not be needed)
+
+$(USRLIB): ~/.local/lib/sdlc++
+
+install: $(USRLIB)
 
 ##############################################################################
-## Patterns
+## PATTERNS
+$(OBJDIR)/%.dll: $(OBJDIR)/%.so.1.0
+	$(shell [ ! -L "$(@F)" ] && ln -s $(<F) $(@F))
+	touch $@
+
 $(OBJDIR)/%.so: $(OBJDIR)/%.so.1.0
 	$(shell [ ! -L "$(@F)" ] && ln -s $(<F) $(@F))
-
-$(OBJDIR)/%: $(OBJDIR)/%.so.1.0
-	$(shell [ ! -L "$(@F)" ] && ln -s $(<F) $(@F)))
+	touch $@
 
 $(USRLIB)/%.so.1.0: $(OBJDIR)/%.so.1.0
 	cp -Lpf $< $@
 	touch $@
 
+$(USRLIB)/%.dll: $(USRLIB)/%.so.1.0
+	$(shell [ ! -L "$@" ] && (cd $(<D); ln -s $(<F) $(@F)))
+	touch $@
+
 $(USRLIB)/%.so: $(USRLIB)/%.so.1.0
 	$(shell [ ! -L "$@" ] && (cd $(<D); ln -s $(<F) $(@F)))
+	touch $@
 
-$(USRLIB)/%: $(USRLIB)/%.so.1.0
-	$(shell [ ! -L "$@" ] && (cd $(<D); ln -s $(<F) $(@F)))
+## Build order dependencies (Library order set in */Makefile.DIR)
+%(USRLIB)/%.so: $(OBJDIR)/%.a
+%(USRLIB)/%.so: $(OBJDIR)/%.so
+%(USRLIB)/%.dll: $(OBJDIR)/%.dll
 
-#############################################################################
-## Target update (additional dependencies in ./*/Makefile.DIR)
+##############################################################################
+## TARGETS: update dependable
+##############################################################################
 .PHONY: update dependable
 update: dependable $(MAKRUN)
 
@@ -88,15 +129,19 @@ dependable: ;
 
 ##############################################################################
 ## Cleanup
+.PHONY: uninstall
+uninstall: ;
+	@rm -f $(USRLIB)/lib*
+
 .PHONY: lib.pristine
 pristine: lib.pristine
 lib.pristine: ;
-	-@rm -f Makeproj.*
+	@rm -f Makeproj.*
 
 .PHONY: lib.clean
 clean: lib.clean
 lib.clean: ;
-## 	-@rm -f lib* >/dev/null 2>/dev/null
+	@rm -f lib*
 
 ##############################################################################
 ## Include subdirectories
