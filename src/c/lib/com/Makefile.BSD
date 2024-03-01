@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2007 Frank Eskesen.
+##       Copyright (C) 2007-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -33,5 +33,4 @@ libcom.a: $(MAKOBJ)
 clean: MAK_clean
 .PHONY: MAK_clean
 MAK_clean : ;
-	-@rm libcom.a >/dev/null 2>/dev/null
-
+	@rm -f libcom.a

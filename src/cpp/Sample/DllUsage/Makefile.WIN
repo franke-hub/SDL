@@ -45,5 +45,4 @@ $(MAKEXE): Loader.obj Test1.dll Test2.dll
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	-@rm local.lib  >/dev/null 2>/dev/null
-
+	@rm -f local.lib

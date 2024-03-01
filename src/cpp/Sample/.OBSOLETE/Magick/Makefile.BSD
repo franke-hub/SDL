@@ -37,4 +37,3 @@ default: $(DEFAULT)
 ## Build: main
 main: $(MAKOBJ)
 	$(LD) -o $@ $(MAKOBJ) $(CLOAD)
-

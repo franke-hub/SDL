@@ -56,5 +56,4 @@ Main.exe: local.lib
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	-@rm local.lib  >/dev/null 2>/dev/null
-
+	@rm -f local.lib

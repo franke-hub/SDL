@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2019-2022 Frank Eskesen.
+##       Copyright (c) 2019-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -12,10 +12,10 @@
 ##       Makefile.BSD
 ##
 ## Purpose-
-##       CYGWIN/LINUX Makefile versioning
+##       CYGWIN/LINUX Makefile customization
 ##
 ## Last change date-
-##       2022/06/09
+##       2024/03/01
 ##
 ##############################################################################
 
@@ -89,11 +89,10 @@ help: ;
 clean: clean.dir
 pristine: pristine.dir
 pristine.dir: ;
-	-@rm cert.dir        >/dev/null 2>/dev/null
-	-@rm private.key     >/dev/null 2>/dev/null
-	-@rm public.crt      >/dev/null 2>/dev/null
+	@rm -f cert.dir
+	@rm -f private.key
+	@rm -f public.crt
 
 clean.dir: ;
-	-@rm liblocal.a      >/dev/null 2>/dev/null
-	-@rm trace.*         >/dev/null 2>/dev/null
-
+	@rm -f liblocal.a
+	@rm -f trace.*

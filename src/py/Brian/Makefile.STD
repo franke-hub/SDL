@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2020-2023 Frank Eskesen.
+##       Copyright (c) 2020-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
@@ -15,6 +15,9 @@
 ## Purpose-
 ##       Local Makefile extension for build and cleanup.
 ##
+## Last change date-
+##       2024/03/01
+##
 ##############################################################################
 
 ##############################################################################
@@ -26,8 +29,8 @@ include M/Makefile.STD
 .PHONY: clean.dir pristine.dir
 clean: clean.dir
 clean.dir: ;
-	-@rm -Rf _temp/*      >/dev/null 2>/dev/null
+	@rm -f _temp/*
 
 pristine: pristine.dir
 pristine.dir: ;
-	-@rm -Rf log/*.log    >/dev/null 2>/dev/null
+	@rm -f log/*.log

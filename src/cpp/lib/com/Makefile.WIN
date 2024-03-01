@@ -57,4 +57,4 @@ endif
 .PHONY: com.clean.win
 clean: com.clean.win
 com.clean.win: ;
-	-@rm -f libcom.lib >/dev/null 2>/dev/null
+	@rm -f libcom.lib

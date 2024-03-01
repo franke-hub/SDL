@@ -47,4 +47,3 @@ rdclient: RdClient.o RdCommon.o CommonThread.o ClientThread.o
 ## TARGET: RdServer
 rdserver: RdServer.o RdCommon.o CommonThread.o ListenThread.o ServerThread.o
 	$(CC) -o $@ $^ $(CLIBS)
-

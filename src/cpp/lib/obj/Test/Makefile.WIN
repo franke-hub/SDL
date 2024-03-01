@@ -68,5 +68,4 @@ do: make.dir
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	-@rm -f liblocal.a >/dev/null 2>/dev/null
-
+	@rm -f liblocal.a

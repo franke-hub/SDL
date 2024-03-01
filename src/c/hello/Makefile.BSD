@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2010 Frank Eskesen.
+##       Copyright (C) 2010-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
@@ -40,5 +40,4 @@ hello: liblocal.a
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	-@rm liblocal.a >/dev/null 2>/dev/null
-
+	@rm -f liblocal.a

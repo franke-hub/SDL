@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2015-2019 Frank Eskesen.
+##       Copyright (C) 2015-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       Makefile for C# programs
 ##
 ## Last change date-
-##       2019/01/14
+##       2024/03/01
 ##
 ## Preparation-
 ##       In your object directory,
@@ -160,9 +160,8 @@ debug: ;
 ## TARGET: pristine, clean
 .PHONY: pristine clean
 pristine: clean
-	-@rm -f *.stackdump                   >/dev/null 2>/dev/null
+	@rm -f *.stackdump
 
 clean: ;
-	-@rm -f *.exe *.dll *.net *.mdb *.pdb >/dev/null 2>/dev/null
-	-@rm -f core debug.out debug.log errs >/dev/null 2>/dev/null
-
+	@rm -f *.exe *.dll *.net *.mdb *.pdb
+	@rm -f core debug.out debug.log errs

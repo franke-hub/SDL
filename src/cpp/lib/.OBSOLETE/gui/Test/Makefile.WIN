@@ -63,7 +63,6 @@ $(MAKEXE) : $(OBJDIR)/local.lib $(LIBDIR)/libcom.lib $(LIBDIR)/libgui.lib
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	-@rm -f sample.log >/dev/null 2>/dev/null
-	-@rm -f simple.log >/dev/null 2>/dev/null
-	-@rm -f local.lib  >/dev/null 2>/dev/null
-
+	@rm -f sample.log
+	@rm -f simple.log
+	@rm -f local.lib

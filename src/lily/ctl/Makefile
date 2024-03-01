@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2007-2020 Frank Eskesen.
+##       Copyright (C) 2007-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       Makefile for lilypond programs
 ##
 ## Last change date-
-##       2020/02/03
+##       2024/03/01
 ##
 ## Preparation-
 ##       In your object directory,
@@ -136,9 +136,8 @@ ps: $(OBJPS)
 ## TARGET: CLEAN, PRISTINE
 .PHONY: pristine clean
 pristine: ;
-	-@rm *.pdf *.ps *.midi             >/dev/null 2>/dev/null
-	-@rm core errs *.eps               >/dev/null 2>/dev/null
+	@rm -f *.pdf *.ps *.midi
+	@rm -f core errs *.eps
 
 clean: ;
-	-@rm $(OBJECT)                     >/dev/null 2>/dev/null
-
+	@rm -f $(OBJECT)

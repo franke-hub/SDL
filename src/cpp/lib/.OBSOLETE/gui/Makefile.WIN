@@ -52,5 +52,4 @@ endif
 .PHONY: gui.clean.win
 clean: gui.clean.win
 gui.clean.win: ;
-	-@rm libgui.lib >/dev/null 2>/dev/null
-
+	@rm -f libgui.lib

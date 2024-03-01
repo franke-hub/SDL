@@ -51,12 +51,12 @@ do: T_Stream
 
 .PHONY: include, _include           ## Includes are only compiled on demand
 include: ;
-	-@rm -f Include Include.o >/dev/null 2>/dev/null
+	@rm -f Include Include.o
 	$(MAKE) Include
 	Include
 
 _include: ;
-	-@rm -f _Include _Include.o >/dev/null 2>/dev/null
+	@rm -f _Include _Include.o
 	$(MAKE) _Include
 	_Include
 
@@ -122,18 +122,17 @@ $(MAKEXE): $(LIBDIR)/libdev.a $(LIBDIR)/libpub.a
 .PHONY: clean.dir pristine.dir
 pristine : pristine.dir
 pristine.dir: ;
-	-@rm -f .have-version    >/dev/null 2>/dev/null
-	-@rm -f cert.dir         >/dev/null 2>/dev/null
-	-@rm -f private.pem      >/dev/null 2>/dev/null
-	-@rm -f public.pem       >/dev/null 2>/dev/null
-	-@rm -f log/*            >/dev/null 2>/dev/null
-	-@rm -f trace.mem        >/dev/null 2>/dev/null
-	-@rm -f *.out            >/dev/null 2>/dev/null
+	@rm -f .have-version
+	@rm -f cert.dir
+	@rm -f private.pem
+	@rm -f public.pem
+	@rm -f log/*
+	@rm -f trace.mem
+	@rm -f *.out
 
 clean : clean.dir
 clean.dir: ;
-	-@rm -f make.dir         >/dev/null 2>/dev/null
-	-@rm -f Dirty            >/dev/null 2>/dev/null
-	-@rm -f Include          >/dev/null 2>/dev/null
-	-@rm -f _Include         >/dev/null 2>/dev/null
-
+	@rm -f make.dir
+	@rm -f Dirty
+	@rm -f Include
+	@rm -f _Include

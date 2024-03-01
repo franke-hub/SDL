@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2020-2021 Frank Eskesen.
+##       Copyright (c) 2020-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2021/07/09
+##       2024/03/01
 ##
 ##############################################################################
 
@@ -94,8 +94,7 @@ endif
 .PHONY: clean.dir
 clean:  clean.dir
 clean.dir: ;
-	-@rm $(MAKEXE)  >/dev/null 2>/dev/null
-	-@rm liblocal.a >/dev/null 2>/dev/null
-	-@rm debug.*    >/dev/null 2>/dev/null
-	-@rm trace.*    >/dev/null 2>/dev/null
-
+	@rm -f $(MAKEXE)
+	@rm -f liblocal.a
+	@rm -f debug.*
+	@rm -f trace.*

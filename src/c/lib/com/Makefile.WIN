@@ -33,5 +33,4 @@ libcom.lib: $(MAKOBJ)
 clean: MAK_clean
 .PHONY: MAK_clean
 MAK_clean : ;
-	-@rm libcom.lib >/dev/null 2>/dev/null
-
+	@rm -f libcom.lib

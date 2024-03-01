@@ -66,4 +66,4 @@ clean : MAK_clean
 
 .PHONY : MAK_clean
 MAK_clean: ;
-	-@rm $(MAKRUN) tlc._s tlc.m4 >/dev/null 2>/dev/null
+	@rm -f $(MAKRUN) tlc._s tlc.m4

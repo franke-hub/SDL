@@ -38,12 +38,11 @@ com.pristine : ;
 clean.bsd: com.clean.bsd
 .PHONY: com.clean.bsd
 com.clean.bsd : ;
-	-@rm com/libcom.a >/dev/null 2>/dev/null
-	-@rm libcom.a >/dev/null 2>/dev/null
+	@rm -f com/libcom.a
+	@rm -f libcom.a
 
 clean.win: com.clean.win
 .PHONY: com.clean.win
 com.clean.win : ;
-	-@rm com/libcom.lib >/dev/null 2>/dev/null
-	-@rm libcom.lib >/dev/null 2>/dev/null
-
+	@rm -f com/libcom.lib
+	@rm -f libcom.lib

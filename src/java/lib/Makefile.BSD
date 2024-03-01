@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2007 Frank Eskesen.
+##       Copyright (C) 2007-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -41,7 +41,7 @@ include $(SRCDIR)/user/node/Makefile.DIR
 include $(SRCDIR)/user/util/Makefile.DIR
 
 user.jar: $(MAKJAR)
-	-@rm user.jar >/dev/null 2>/dev/null
+	@rm -f user.jar
 	jar -cvf $(@) $(MAKJAR)
 
 ##############################################################################
@@ -64,5 +64,4 @@ echo : ;
 pristine : MAK_pristine
 .PHONY: MAK_pristine
 MAK_pristine: ;
-	-@rm *.log >/dev/null 2>/dev/null
-
+	@rm -f *.log

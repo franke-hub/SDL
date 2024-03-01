@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/02/10
+##       2024/03/01
 ##
 ##############################################################################
 
@@ -28,6 +28,9 @@ LIBOBJ := ############################
 LIBOBJ += Empty.o
 MAKEXE := $(patsubst $(OBJDIR)/Empty,,$(MAKEXE))
 
+## Attempting static link
+ignore += -flinker-output=exec
+ignore += -static
 LLIBS  += -L. -llocal
 
 ##############################################################################
@@ -112,13 +115,13 @@ TestSock: cert.dir                  ## TestSock depends on certificates
 .PHONY: clean.dir pristine.dir
 pristine: pristine.dir
 pristine.dir: ;
-	-@rm -f .have-version    >/dev/null 2>/dev/null
-	-@rm -f cert.dir         >/dev/null 2>/dev/null
-	-@rm -f private.pem      >/dev/null 2>/dev/null
-	-@rm -f public.pem       >/dev/null 2>/dev/null
+	@rm -f .have-version
+	@rm -f cert.dir
+	@rm -f private.pem
+	@rm -f public.pem
 
 clean: clean.dir
 clean.dir: ;
-	-@rm -f liblocal.a       >/dev/null 2>/dev/null
-	-@rm -f test_bug.*       >/dev/null 2>/dev/null
-	-@rm -f trace.mem        >/dev/null 2>/dev/null
+	@rm -f liblocal.a
+	@rm -f test_bug.*
+	@rm -f trace.mem

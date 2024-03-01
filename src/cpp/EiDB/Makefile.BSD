@@ -1,13 +1,22 @@
 ##############################################################################
 ##
-##       Copyright (C) 2004-2021 Frank Eskesen.
+##       Copyright (C) 2004-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
 ##       within https://opensource.org/licenses/MIT)
 ##
 ##############################################################################
-## Makefile.BSD
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile customization
+##
+## Last change date-
+##       2024/03/01
+##
 ##############################################################################
 
 ##############################################################################
@@ -66,7 +75,6 @@ inScan   : liblocal.a
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	-@rm liblocal.a >/dev/null 2>/dev/null
-	-@rm *.new >/dev/null 2>/dev/null
-	-@rm Phases.eidb.* >/dev/null 2>/dev/null
-
+	@rm -f liblocal.a
+	@rm -f *.new
+	@rm -f Phases.eidb.*

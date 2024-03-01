@@ -59,7 +59,6 @@ $(MAKEXE) : liblocal.a L/libcom.a L/libgui.a
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	-@rm -f sample.log >/dev/null 2>/dev/null
-	-@rm -f simple.log >/dev/null 2>/dev/null
-	-@rm -f liblocal.a >/dev/null 2>/dev/null
-
+	@rm -f sample.log
+	@rm -f simple.log
+	@rm -f liblocal.a

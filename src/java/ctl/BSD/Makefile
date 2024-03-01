@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2010 Frank Eskesen.
+##       Copyright (C) 2010-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       Makefile for JAVA programs
 ##
 ## Last change date-
-##       2010/01/01
+##       2024/03/01
 ##
 ## Preparation-
 ##       In your source directory,
@@ -105,8 +105,7 @@ do: $(MAKOBJ)
 ## TARGET: CLEAN, PRISTINE
 .PHONY: pristine clean
 pristine: clean
-	-@rm *.class    >/dev/null 2>/dev/null
+	@rm -f *.class
 
 clean: ;
-	-@rm *.jar      >/dev/null 2>/dev/null
-
+	@rm -f *.jar

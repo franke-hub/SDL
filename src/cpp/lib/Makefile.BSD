@@ -15,21 +15,19 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/02/10
+##       2024/03/01
 ##
 ## Implementation notes-
 ##       Note that for Cygwin, shared libraries MUST BE included in the
 ##       PATH environment variable instead of LD_LIBRARY_PATH.
 ##
 ## Implementation notes-
-##       TARGET: install    Install C++ shared library in usrlib
-##       TARGET: uninstall  Remove C++ shared library from usrlib
+##       TARGET: install    Install C++ static and shared libraries
+##       TARGET: uninstall  Remove C++ static and shared libraries
 ##
 ##       TARGET: lib   Create static library (Cygwin/Linux)
 ##       TARGET: shr   Create shared library (Cygwin/Linux)
-##           dll.shr   Create shared library (Cygwin only)
-##       TARGET: usr   Create shared install (Cygwin/Linux) [Install]
-##           dll.usr   Create shared install (Cygwin only)  [Install]
+##           shr.dll   Create shared library (Cygwin only)
 ##
 ##############################################################################
 
@@ -52,19 +50,17 @@ ifeq "" "$(DEFAULT)"
 DEFAULT := all
 endif
 
-.PHONY: all default install dll dll.shr dll.usr lib shr usr
+.PHONY: all default install lib shr shr.dll
 default: $(DEFAULT)
 
 all: lib shr
-dll dll.shr dll.usr lib shr usr: ;
-install: usr
-usr: lib shr
+lib shr shr.dll: ;
+install: all
+shr: lib
 
 ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-all: dll
-dll.shr: shr
-dll.usr: dll.shr
-install: dll.usr
+all: shr.dll
+shr.dll: shr
 endif
 
 .PHONY: echo
@@ -75,21 +71,23 @@ echo: ;
 	ls -alF $(LIB_SOURCE)
 
 ##############################################################################
-## TARGET: $(USRLIB)
-USRLIB := usrlib
+## TARGET: $(SHARED) $(STATIC)
+SHARED := shared
+STATIC := static
 
 ~/.local/lib: ;
 	mkdir -p $@
 
 ~/.local/lib/sdlc++: ~/.local/lib
-	$(shell [ ! -L "$@" ] && (cd ~/.local/lib; ln -s $(PWD)/$(USRLIB) $(@F)))
+	$(shell [ ! -L "$@" ] && (cd ~/.local/lib; ln -s $(PWD)/$(SHARED) $(@F)))
 
-$(USRLIB): ; ######################### (Should already exist)
+$(SHARED): ~/.local/lib/sdlc++
+
+$(SHARED): ; ######################### (Should already exist)
 	$(shell [ ! -d "$@" ] && mkdir $@) ## (Should not be needed)
 
-$(USRLIB): ~/.local/lib/sdlc++
-
-install: $(USRLIB)
+$(STATIC): ; ######################### (Should already exist)
+	$(shell [ ! -d "$@" ] && mkdir $@) ## (Should not be needed)
 
 ##############################################################################
 ## PATTERNS
@@ -101,22 +99,33 @@ $(OBJDIR)/%.so: $(OBJDIR)/%.so.1.0
 	$(shell [ ! -L "$(@F)" ] && ln -s $(<F) $(@F))
 	touch $@
 
-$(USRLIB)/%.so.1.0: $(OBJDIR)/%.so.1.0
+$(SHARED)/%.dll: $(SHARED)/%.so.1.0
+	$(shell [ ! -L "$@" ] && (cd $(<D); ln -s $(<F) $(@F)))
+	touch $@
+
+$(SHARED)/%.so: $(SHARED)/%.so.1.0
+	$(shell [ ! -L "$@" ] && (cd $(<D); ln -s $(<F) $(@F)))
+	touch $@
+
+.SECONDARY: $(OBJDIR)/.so
+$(SHARED)/%.so: $(OBJDIR)/%.so
+
+$(SHARED)/%.so.1.0: $(OBJDIR)/%.so.1.0
 	cp -Lpf $< $@
 	touch $@
 
-$(USRLIB)/%.dll: $(USRLIB)/%.so.1.0
-	$(shell [ ! -L "$@" ] && (cd $(<D); ln -s $(<F) $(@F)))
-	touch $@
+.SECONDARY: $(OBJDIR)/.so
+$(SHARED)/%.so.1.0: $(OBJDIR)/%.so
 
-$(USRLIB)/%.so: $(USRLIB)/%.so.1.0
-	$(shell [ ! -L "$@" ] && (cd $(<D); ln -s $(<F) $(@F)))
+$(STATIC)/%.a: $(OBJDIR)/%.a
+	cp -Lpf $< $@
 	touch $@
 
 ## Build order dependencies (Library order set in */Makefile.DIR)
-%(USRLIB)/%.so: $(OBJDIR)/%.a
-%(USRLIB)/%.so: $(OBJDIR)/%.so
-%(USRLIB)/%.dll: $(OBJDIR)/%.dll
+%(SHARED)/%.so:  $(STATIC)/%.a
+%(SHARED)/%.so:  $(OBJDIR)/%.so
+%(SHARED)/%.dll: $(OBJDIR)/%.dll
+%(STATIC)/%.a:   $(OBJDIR)/%.a
 
 ##############################################################################
 ## TARGETS: update dependable
@@ -130,13 +139,13 @@ dependable: ;
 ##############################################################################
 ## Cleanup
 .PHONY: uninstall
-uninstall: ;
-	@rm -f $(USRLIB)/lib*
+uninstall: pristine
 
 .PHONY: lib.pristine
 pristine: lib.pristine
 lib.pristine: ;
-	@rm -f Makeproj.*
+	@rm -f $(SHARED)/lib*
+	@rm -f $(STATIC)/lib*
 
 .PHONY: lib.clean
 clean: lib.clean

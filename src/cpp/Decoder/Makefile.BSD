@@ -24,4 +24,3 @@
 include $(MAKDIR)/Makefile.BSD
 include $(INCDIR)/com/Makefile.BSD
 include $(INCDIR)/obj/Makefile.BSD
-

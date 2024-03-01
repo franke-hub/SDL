@@ -42,5 +42,4 @@ $(MAKEXE) : liblocal.a
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	-@rm liblocal.a >/dev/null 2>/dev/null
-
+	@rm -f liblocal.a

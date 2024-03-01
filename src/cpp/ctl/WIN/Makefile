@@ -181,14 +181,13 @@ nothing: ;
 ## TARGET: CLEAN, PRISTINE
 .PHONY: pristine clean
 pristine: clean
-	-@rm *.lst *.obj                   >/dev/null 2>/dev/null
-	-@rm Makeproj.inp Makeproj.out     >/dev/null 2>/dev/null
-	-@rm Makeproj.dep                  >/dev/null 2>/dev/null
+	@rm -f *.lst *.obj
+	@rm -f Makeproj.*
 
 clean: ;
-	-@rm $(MAKEXE)                     >/dev/null 2>/dev/null
-	-@rm *.exe *.map                   >/dev/null 2>/dev/null
-	-@rm core debug.out errs           >/dev/null 2>/dev/null
+	@rm -f $(MAKEXE)
+	@rm -f *.exe *.map
+	@rm -f core debug.out errs
 
 ##############################################################################
 ## Include the dependency file
@@ -199,4 +198,3 @@ else
 INCSRC := $(MAKDIR)/$(INCSRC)
 endif
 include $(INCSRC)
-

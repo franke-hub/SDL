@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2021 Frank Eskesen.
+##       Copyright (c) 2007-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -12,10 +12,10 @@
 ##       Makefile.BSD
 ##
 ## Purpose-
-##       CYGWIN/LINUX Makefile versioning
+##       CYGWIN/LINUX Makefile customization
 ##
 ## Last change date-
-##       2021/07/13
+##       2024/03/01
 ##
 ##############################################################################
 
@@ -57,4 +57,4 @@ map2: Sample11 Float2Raw Raw2Map
 ## .PHONY: clean.dir
 ## clean : clean.dir
 ## clean.dir: ;
-## 	@echo "rm liblocal.a >/dev/null 2>/dev/null
+## 	@echo "rm -f liblocal.a"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#
 ##----------------------------------------------------------------------------
 ##
 ##       Copyright (C) 2024 Frank Eskesen.
@@ -16,15 +16,9 @@
 ##       Subdirectory information
 ##
 ## Last change date-
-##       2024/04/10
+##       2024/03/01
 ##
 ## Implementation notes-
-##       This is the install directory for the SDL C++ library.
-##
-##       File ~/.local/lib/sdlc++ is a link to this subdirectory,
-##       automatically created by SDL's make install.
-##       For Linux systems, add "~/.local/lib/sdlc++" to LD_LIBRARY_PATH and
-##       for Cygwin systems, add "~/.local/lib/sdlc++" to the PATH
-##       environment variable.
+##       This is the installation directory for the SDL C++ static library.
 ##
 ##############################################################################

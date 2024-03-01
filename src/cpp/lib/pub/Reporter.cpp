@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022-2023 Frank Eskesen.
+//       Copyright (c) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Reporter.h
 //
 // Last change date-
-//       2023/07/29
+//       2024/02/16
 //
 // Implementation notes-
 //       For some unknown reason, std::mutex does not operate properly when
@@ -25,6 +25,7 @@
 //       (This problem found testing on Cygwin. Not tested on Linux systems.)
 //
 //----------------------------------------------------------------------------
+#include <iostream>                 // For std::cout
 #include <string>                   // For std::string
 #include <stdint.h>                 // For integer types
 
@@ -58,11 +59,19 @@ Reporter::mutex_t      Reporter::mutex;
 //----------------------------------------------------------------------------
 static Reporter*       internal= nullptr; // The auto-allocated Reporter
 
-static struct GlobalDestructor {
-inline
-   ~GlobalDestructor( void )
-{  Reporter::set(nullptr); }        // Cleans up Reporter::common & internal
-}  globalDestructor;
+namespace {
+static struct StaticGlobal {
+   StaticGlobal(void)               // Constructor
+{  }
+
+   ~StaticGlobal(void)              // Destructor
+{
+   if( VERBOSE > 0 ) debugf("%4d Reporter.cpp\n", __LINE__);
+   Reporter::set(nullptr);          // Cleans up Reporter::common & internal
+   if( VERBOSE > 0 ) debugf("%4d Reporter.cpp\n", __LINE__);
+}
+}  staticGlobal;
+}  // Anonymous namespace
 
 //----------------------------------------------------------------------------
 //
@@ -76,10 +85,11 @@ inline
 //
 //----------------------------------------------------------------------------
    Reporter::Reporter( void )
-{  if( HCDM && VERBOSE > 0 ) debugf("Reporter(%p)::Reporter\n", this); }
+:  list()                           // (Insure list construction)
+{  if( HCDM ) debugf("Reporter(%p)::Reporter\n", this); }
 
    Reporter::~Reporter( void )
-{  if( HCDM && VERBOSE > 0 ) debugf("Reporter(%p)::~Reporter\n", this);
+{  if( HCDM ) debugf("Reporter(%p)::~Reporter\n", this);
 
    for(;;) {
      RecordItem* item= list.remq();
@@ -146,17 +156,17 @@ Reporter*                           // -> Current default Reporter
 //----------------------------------------------------------------------------
 Reporter*                           // The removed Reporter object
    Reporter::set(                   // Set
-     Reporter*         insert)      // This new default Reporter
+     Reporter*         replace)     // This new default Reporter
 {
    std::lock_guard<decltype(mutex)> lock(mutex);
 
-   Reporter* removed = Reporter::common;
+   Reporter* removed= Reporter::common;
    if( removed == internal ) {
      delete internal;
      removed= internal= nullptr;
    }
 
-   Reporter::common= insert;
+   Reporter::common= replace;
    return removed;
 }
 
@@ -172,7 +182,7 @@ Reporter*                           // The removed Reporter object
 void
    Reporter::insert(                // Insert
      Record*           record)      // This record
-{  if( HCDM && VERBOSE > 0 )
+{  if( HCDM )
      debugf("Reporter(%p)::insert(%p) %s\n", this
            , record, record->name.c_str());
 
@@ -194,7 +204,7 @@ void
 void
    Reporter::remove(                // Remove
      Record*           record)      // This record
-{  if( HCDM && VERBOSE > 0 )
+{  if( HCDM )
      debugf("Reporter(%p)::remove(%p) %s\n", this
            , record, record->name.c_str());
 
@@ -220,7 +230,7 @@ void
 void
    Reporter::report(                // Generate report
      f_reporter        reporter)    // Using this reporter
-{  if( HCDM && VERBOSE > 0 ) debugf("Reporter(%p)::report\n", this);
+{  if( HCDM ) debugf("Reporter(%p)::report\n", this);
 
    bool once= true;
 
@@ -246,13 +256,26 @@ void
 //----------------------------------------------------------------------------
 void
    Reporter::reset( void )          // Reset all Records
-{  if( HCDM && VERBOSE > 0 ) debugf("Reporter(%p)::reset\n", this);
+{  if( HCDM ) debugf("Reporter(%p)::reset\n", this);
 
    std::lock_guard<decltype(mutex)> lock(mutex);
    for(RecordItem* item= list.get_head(); item; item= item->get_next()) {
      item->record->h_reset();
    }
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Reporter::Record::operator()
+//
+// Purpose-
+//       A default reporter function, writing the report to stdout
+//
+//----------------------------------------------------------------------------
+void
+   Reporter::Record::operator()(Record& R)
+{  std::cout << R.h_report() << "\n"; }
 
 //----------------------------------------------------------------------------
 //

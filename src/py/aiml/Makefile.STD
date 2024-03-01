@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2020-2023 Frank Eskesen.
+##       Copyright (c) 2020-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
@@ -15,6 +15,9 @@
 ## Purpose-
 ##       Local Makefile extension for cleanup.
 ##
+## Last change date-
+##       2024/03/01
+##
 ##############################################################################
 
 ##############################################################################
@@ -26,5 +29,5 @@ include M/Makefile.STD
 .PHONY: pristine.dir
 pristine: pristine.dir
 pristine.dir: ;
-	-@rm -Rf brain.freeze
-	-@rm -Rf log/*.log session/*.session
+	@rm -f brain.freeze
+	@rm -f log/*.log session/*.session

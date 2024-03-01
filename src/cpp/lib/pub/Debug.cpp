@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2007-2023 Frank Eskesen.
+//       Copyright (C) 2007-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2023/11/21
+//       2024/02/26
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -87,6 +87,7 @@ static RecursiveLatch  mutex;       // Recursive serialization Latch
 #endif
 static Debug*          internal= nullptr; // The auto-allocated Debug object
 
+namespace {
 static int             global_destructor_invoked= false;
 static struct GlobalDestructor {    // On unload, remove Debug::global
 inline
@@ -96,6 +97,7 @@ inline
    global_destructor_invoked= true;
 }
 }  globalDestructor;
+}  // Anonymous namespace
 
 //----------------------------------------------------------------------------
 //

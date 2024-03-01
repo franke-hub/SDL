@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2021 Frank Eskesen.
+##       Copyright (c) 2007-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -12,10 +12,10 @@
 ##       Makefile.BSD
 ##
 ## Purpose-
-##       CYGWIN/LINUX Makefile versioning
+##       CYGWIN/LINUX Makefile customization
 ##
 ## Last change date-
-##       2021/09/06
+##       2024/03/01
 ##
 ##############################################################################
 
@@ -65,8 +65,7 @@ Testmoid: liblocal.a
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	-@rm liblocal.a >/dev/null 2>/dev/null
-	-@rm *.nnc      >/dev/null 2>/dev/null
-	-@rm *.out      >/dev/null 2>/dev/null
-	-@rm *.000      >/dev/null 2>/dev/null
-
+	@rm -f liblocal.a
+	@rm -f *.nnc
+	@rm -f *.out
+	@rm -f *.000

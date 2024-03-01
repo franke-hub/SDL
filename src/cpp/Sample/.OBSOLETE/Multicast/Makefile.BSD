@@ -34,4 +34,3 @@ client.o : $(SRCDIR)/sample.cpp
 
 server.o : $(SRCDIR)/sample.cpp
 	$(CC) -o $@ -DSERVER $(CFLAGS) -c $<
-

@@ -1,13 +1,22 @@
 ##############################################################################
 ##
-##       Copyright (C) 2020 Frank Eskesen.
+##       Copyright (C) 2020-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
 ##       within https://opensource.org/licenses/MIT)
 ##
 ##############################################################################
-## Makefile.BSD
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile customization
+##
+## Last change date-
+##       2024/03/01
+##
 ##############################################################################
 
 ##############################################################################
@@ -31,4 +40,4 @@ CLIBS   += -lrt
 .PHONY: MAK_clean
 clean:  MAK_clean
 MAK_clean: ;
-	-@rm debug.* >/dev/null 2>/dev/null
+	@rm -f debug.*

@@ -33,5 +33,4 @@ default: $(DEFAULT)
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	-@rm Display.out >/dev/null 2>/dev/null
-
+	@rm -f Display.out

@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2023 Frank Eskesen.
+##       Copyright (C) 2023-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       Installation makefile for C++ prerequisite programs
 ##
 ## Last change date-
-##       2023/08/04
+##       2024/03/01
 ##
 ## Usage-
 ##       make           (Compile out of date programs)
@@ -130,18 +130,16 @@ reinstall-makeproj: recompile
 ## TARGET: uninstall
 .PHONY: uninstall
 uninstall: pristine
-	-@rm $(BINDIR)/filecomp            >/dev/null 2>/dev/null
-	-@rm $(BINDIR)/makeproj            >/dev/null 2>/dev/null
 
 ##############################################################################
 ## TARGET: pristine, clean
 .PHONY: pristine clean
 pristine: clean
-	-@rm *.lst *.o *.stackdump         >/dev/null 2>/dev/null
-	-@rm $(OBJDIR)/filecomp            >/dev/null 2>/dev/null
-	-@rm $(OBJDIR)/makeproj            >/dev/null 2>/dev/null
+	@rm -f *.lst *.o *.stackdump
+	@rm -f $(OBJDIR)/filecomp
+	@rm -f $(OBJDIR)/makeproj
 
 clean: ;
-	-@rm $(MAKEXE)                     >/dev/null 2>/dev/null
-	-@rm *.map                         >/dev/null 2>/dev/null
-	-@rm core errs                     >/dev/null 2>/dev/null
+	@rm -f $(MAKEXE)
+	@rm -f *.map
+	@rm -f core errs

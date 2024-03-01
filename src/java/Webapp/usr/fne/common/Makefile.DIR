@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2008-2023 Frank Eskesen.
+##       Copyright (c) 2008-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -12,10 +12,10 @@
 ##       Makefile.DIR
 ##
 ## Purpose-
-##       Included by ../../../..Makefile.BSD
+##       Included by ../../../../Makefile.BSD
 ##
 ## Last change date-
-##       2023/01/18
+##       2024/03/01
 ##
 ##############################################################################
 
@@ -33,5 +33,4 @@ pristine : common.pristine
 .PHONY: common.pristine
 common.pristine : ;
 	(cd usr/fne/common; $(MAKE) pristine)
-	-@rm common.jar
-
+	@rm -f common.jar

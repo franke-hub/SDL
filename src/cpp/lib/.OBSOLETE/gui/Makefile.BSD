@@ -74,6 +74,5 @@ endif
 .PHONY: gui.clean.bsd
 clean: gui.clean.bsd
 gui.clean.bsd: ;
-	-@rm libgui.a >/dev/null 2>/dev/null
-	-@rm libgui.so* libgui.dll >/dev/null 2>/dev/null
-
+	@rm -f libgui.a
+	@rm -f libgui.so* libgui.dll

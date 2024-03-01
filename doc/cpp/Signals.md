@@ -212,5 +212,5 @@ Complex example, showing connector scope
 ```
 
 Readers are encouraged to [look at](../../src/cpp/lib/pub/Test/Quick.cpp) and
-run the Signal test case (from "~/obj/cpp/lib/Test") 
+run the Signal test case (from "~/obj/cpp/lib/Test")
 using the "make Quick; Quick --signal --verbose" commands.

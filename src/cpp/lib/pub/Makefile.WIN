@@ -75,4 +75,4 @@ endif
 .PHONY: pub.clean.win
 clean: pub.clean.win
 pub.clean.win: ;
-	-@rm -f libpub.lib >/dev/null 2>/dev/null
+	@rm -f libpub.lib

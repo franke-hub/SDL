@@ -35,4 +35,3 @@ default: $(DEFAULT)
 .PHONY: do
 do: default
 	visible
-

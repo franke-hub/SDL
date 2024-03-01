@@ -49,6 +49,5 @@ Edit.exe: $(LIBDIR)/libcom.lib
 clean : MAK_clean
 .PHONY: MAK_clean
 MAK_clean: ;
-	-@rm $(MAKEXE)  >/dev/null 2>/dev/null
-	-@rm local.lib  >/dev/null 2>/dev/null
-
+	@rm -f $(MAKEXE)
+	@rm -f local.lib

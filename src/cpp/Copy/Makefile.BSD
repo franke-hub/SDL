@@ -16,7 +16,7 @@
 ##       Sample Makefile.
 ##
 ## Last change date-
-##       2023/07/23
+##       2024/03/01
 ##
 ## Implementation note-
 ##       The basic make file template is given to the public domain.
@@ -68,9 +68,9 @@ do: S_main
 .PHONY: pristine.dir
 pristine: pristine.dir
 pristine.dir: ;
-	-@true >/dev/null 2>/dev/null      ## (Placeholder)
+	@rm -f liblocal.a                  ## (Placeholder)
 
 .PHONY: clean.dir
 clean: clean.dir
 clean.dir: ;
-	-@rm liblocal.a >/dev/null 2>/dev/null
+	@rm -f liblocal.a

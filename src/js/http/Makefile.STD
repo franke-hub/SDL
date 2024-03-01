@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2021 Frank Eskesen.
+##       Copyright (C) 2021-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
@@ -16,7 +16,7 @@
 ##       Node.js local Makefile
 ##
 ## Last change date-
-##       2021/05/19
+##       2024/03/01
 ##
 ##############################################################################
 
@@ -60,5 +60,5 @@ cert: ;
 ## Target pristine
 .PHONY: pristine
 pristine: clean
-	-@rm -f log/*
-	-@rm -f *.pem
+	@rm -f log/*
+	@rm -f *.pem

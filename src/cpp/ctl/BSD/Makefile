@@ -16,7 +16,7 @@
 ##       Makefile for C++/Assembler programs
 ##
 ## Last change date-
-##       2024/02/10
+##       2024/03/01
 ##
 ## Preparation-
 ##       In your object directory,
@@ -145,13 +145,13 @@ nothing: ;
 ## TARGET: pristine, clean
 .PHONY: pristine clean
 pristine: clean
-	-@rm -f *.lst *.o *.stackdump         >/dev/null 2>/dev/null
-	-@rm -f Makeproj.*                    >/dev/null 2>/dev/null
+	@rm -f *.lst *.o *.stackdump
+	@rm -f Makeproj.*
 
 clean: ;
-	-@rm -f $(MAKEXE)                     >/dev/null 2>/dev/null
-	-@rm -f *.exe *.map                   >/dev/null 2>/dev/null
-	-@rm -f core debug.* errs             >/dev/null 2>/dev/null
+	@rm -f $(MAKEXE)
+	@rm -f *.exe *.map
+	@rm -f core debug.* errs
 
 ##############################################################################
 ## Include the dependency file

@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2007 Frank Eskesen.
+##       Copyright (C) 2007-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -30,5 +30,4 @@ make.dir: $(DEFAULT)
 .phony: MAK_clean
 clean : MAK_clean
 MAK_clean: ;
-	-@rm make.dir >/dev/null 2>/dev/null
-
+	@rm -f make.dir

@@ -41,4 +41,3 @@ include $(INCDIR)/com/Makefile.BSD
 ## TARGET: Stock
 Stock: $(MAKOBJ)
 	$(CC) -o $@ $(CLOAD) $? $(CLIBS)
-

@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2023 Frank Eskesen.
+##       Copyright (c) 2023-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -12,10 +12,10 @@
 ##       Makefile.DIR
 ##
 ## Purpose-
-##       Included by ../../../..Makefile.BSD
+##       Included by ../../../../Makefile.BSD
 ##
 ## Last change date-
-##       2023/01/18
+##       2024/03/01
 ##
 ##############################################################################
 
@@ -39,5 +39,4 @@ pristine : applet.pristine
 .PHONY: applet.pristine
 applet.pristine : ;
 	(cd usr/fne/applet; $(MAKE) pristine)
-	-@rm applet.jar
-
+	@rm -f applet.jar

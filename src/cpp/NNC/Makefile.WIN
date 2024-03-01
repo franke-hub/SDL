@@ -61,8 +61,7 @@ Testmoid.exe: local.lib
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	-@rm local.lib  >/dev/null 2>/dev/null
-	-@rm *.nnc      >/dev/null 2>/dev/null
-	-@rm *.out      >/dev/null 2>/dev/null
-	-@rm *.000      >/dev/null 2>/dev/null
-
+	@rm -f local.lib
+	@rm -f *.nnc
+	@rm -f *.out
+	@rm -f *.000

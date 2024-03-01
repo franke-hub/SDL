@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2021 Frank Eskesen.
+##       Copyright (c) 2021-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2021/09/06
+##       2024/03/01
 ##
 ##############################################################################
 
@@ -80,5 +80,4 @@ test: ;
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	-@rm -f liblocal.a >/dev/null 2>/dev/null
-
+	@rm -f liblocal.a

@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2024/01/23
+//       2024/02/16
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For std::free
@@ -101,11 +101,25 @@ static struct option   opts[]=      // Options
 // Purpose-
 //       Sample record, for pub::Reporter test
 //
+// Implementation notes-
+//        Compiler restriction: an object that defines an operator() function
+//        must be copyable. If a subclass has an operator() function, that
+//        function cannot be invoked using a superclass name unless that
+//        superclass is copyable.
+//
+//        If we tried to use SampleRecord() to invoke pub::Reporter::Record(),
+//        SampleRecord would need to have a copy constructor.
+//
+//        In order to define a SampleRecord::operator() function, SampleRecord
+//        would need to be copy constructable whether or not the function is
+//        used.
+//
 //----------------------------------------------------------------------------
 struct SampleRecord : public pub::Reporter::Record {
 pub::statistic::Active stat;        // A named, reported statistic
 
    SampleRecord(std::string name= "unnamed")
+:  Record()
 {
    this->name= name;
 
@@ -126,7 +140,21 @@ pub::statistic::Active stat;        // A named, reported statistic
      stat.minimum.store(0);
    }); // on_reset
 }  // (constructor)
+
+// The stat field cannot be simply copied, but we don't have to actually copy
+// it in our copy constructor.
+   SampleRecord(const SampleRecord&) {}
+
+void operator()(pub::Reporter::Record& R) {
+   std::cout << "sample " << R.h_report() << "\n";
+}; // operator()
 }; // struct SampleRecord
+
+struct SampleReport {
+void operator()(pub::Reporter::Record& R) {
+   std::cout << "struct " << R.h_report() << "\n";
+}; // operator()
+}; // SampleReport
 
 //----------------------------------------------------------------------------
 //
@@ -709,6 +737,7 @@ static inline int
 
    Reporter reporter;
    Reporter::set(&reporter);
+   error_count += VERIFY( Reporter::get() == &reporter );
    SampleRecord one("one");
    SampleRecord two("two");
 
@@ -721,20 +750,33 @@ static inline int
 
    // Verify the report (Requires opt_verbose)
    if( opt_verbose ) {
+     // Report using three display methods.
+
+     // Report defining a lambda function for output
      reporter.report([](Record& record) {
-       std::cout << record.h_report() << "\n";
+       std::cout << "lambda " << record.h_report() << "\n";
      }); // reporter.report
+
+     // Report using a separate simple struct to define an operator() function.
+     // (The simple struct is copy constructable)
+     reporter.report(SampleReport());
+
+     // Report using the operator() function in SampleRecord.
+     reporter.report(SampleRecord());
+
+     // Report using pub::Reporter::Record::operator().
+     reporter.report(Reporter::Record());
 
      std::cout << "\nRESET\n";
      Reporter::get()->reset();
      reporter.report([](Record& record) {
-       std::cout << record.h_report() << "\n";
+       std::cout << "reset0 " << record.h_report() << "\n";
      }); // reporter.report
 
      std::cout << "\nREMOVE\n";
-     Reporter::get()->remove(&two); // Using the global Reporter
+     Reporter::get()->remove(&two); // Remove using the global Reporter
      reporter.report([](Record& record) {
-       std::cout << record.h_report() << "\n";
+       std::cout << "remove " << record.h_report() << "\n";
      }); // reporter.report
    }
 

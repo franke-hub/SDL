@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Statistical event reporter
 //
 // Last change date-
-//       2023/07/29
+//       2024/02/16
 //
 // Implementation notes-
 //       Records contain statistical information that can be displayed by the
@@ -65,6 +65,8 @@ void on_report(const f_report& f)   // Set reporter function
 
 void on_reset(const f_reset& f)     // Set reset function
 {  h_reset= f; }
+
+void operator()(Record&);           // (A default report function)
 }; // class Record
 
 //----------------------------------------------------------------------------
@@ -118,7 +120,7 @@ static Reporter*                    // -> The common Reporter instance
 
 static Reporter*                    // (The old common Reporter instance)
    set(                             // Set
-     Reporter*         debug);      // This new common Reporter instance)
+     Reporter*         replace);    // This new common Reporter instance)
 
 static Reporter*                    // (The current common Reporter instance)
    show( void )                     // Get the current common Reporter instance

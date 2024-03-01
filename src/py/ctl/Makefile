@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2019-2023 Frank Eskesen.
+##       Copyright (c) 2019-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       Makefile for Python programs
 ##
 ## Last change date-
-##       2023/08/13
+##       2024/03/01
 ##
 ## Preparation-
 ##       In your object directory,
@@ -74,5 +74,5 @@ pristine: clean
 	-(cd M; ./.Cleanup)
 
 clean: ;
-	-@rm -f debug.*
-	-@rm -f *.stackdump
+	@rm -f debug.*
+	@rm -f *.stackdump

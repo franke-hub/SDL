@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/02/10
+##       2024/03/01
 ##
 ##############################################################################
 
@@ -40,9 +40,9 @@ gui/Makeproj.out: $(GUI_SOURCE) ###### If any source changed, make required
 
 gui/Makeproj.gcc: gui/Makeproj.out ### If compilation might be needed
 	(cd $(OBJDIR)/gui/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
-	echo -n "Last compile (check): " >$@; date >>$@  ## Avoid secondary remake
+	echo -n "Last compile (check): " >$@; date >>$@
 
-$(GUI_DEPEND): $(OBJDIR)/libpub.a $(OBJDIR)/libpub.so
+$(GUI_DEPEND): $(STATIC)/libpub.a $(OBJDIR)/libpub.so
 
 ##############################################################################
 ## TARGETS: gui/libgui.a libgui.a
@@ -52,8 +52,7 @@ $(OBJDIR)/libgui.a: $(OBJDIR)/gui/libgui.a
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 	touch $@
 
-lib: $(OBJDIR)/libgui.a
-## usr: $(USRLIB)/libcom.a             ## [Currently not in $(USRLIB)]
+lib: $(STATIC)/libgui.a
 
 ##############################################################################
 ## TARGETS: gui/libgui.so.1.0 libgui.so
@@ -63,9 +62,8 @@ $(OBJDIR)/libgui.so.1.0: $(OBJDIR)/gui/libgui.so.1.0
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 	touch $@
 
-.SECONDARY: $(USRLIB)/libgui.so.1.0
-shr: $(OBJDIR)/libgui.so
-usr: $(USRLIB)/libgui.so
+.SECONDARY: $(SHARED)/libgui.so.1.0
+shr: $(SHARED)/libgui.so
 
 ##############################################################################
 ## TARGETS: gui/libgui.dll libgui.dll
@@ -77,8 +75,7 @@ $(OBJDIR)/libgui.dll: $(OBJDIR)/gui/libgui.dll
 	$(shell [ ! -L "$@" ] && ln -s $< $@)
 	touch $@
 
-dll.shr: $(OBJDIR)/libgui.dll
-dll.usr: $(USRLIB)/libgui.dll
+shr.dll: $(SHARED)/libgui.dll
 
 ##############################################################################
 ## TARGET: gui.depend
@@ -100,9 +97,11 @@ gui.update: ;
 pristine: gui.pristine
 gui.pristine: ;
 	(cd $(OBJDIR)/gui/; $(MAKE) pristine)
-	@rm -f $(USRLIB)/libgui.*
+	@rm -f $(SHARED)/libgui.*
+	@rm -f $(STATIC)/libgui.*
 
 .PHONY: gui.clean
 clean: gui.clean
 gui.clean: ;
+	@rm -f gui/libgui.* gui/Makeproj.*
 	@rm -f libgui.*

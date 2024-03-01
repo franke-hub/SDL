@@ -72,6 +72,6 @@ include $(INCDIR)/com/Makefile.BSD
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	-@rm -f debug.out Logger.log    >/dev/null 2>/dev/null
-	-@rm -f debug.log MediaTest.out >/dev/null 2>/dev/null
-	-@rm -f Base_SMS  Pool_SMS      >/dev/null 2>/dev/null
+	@rm -f debug.out Logger.log
+	@rm -f debug.log MediaTest.out
+	@rm -f Base_SMS  Pool_SMS

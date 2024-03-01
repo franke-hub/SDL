@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2023 Frank Eskesen.
+##       Copyright (C) 2023-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       Python build control makefile
 ##
 ## Last change date-
-##       2023/11/30
+##       2024/03/01
 ##
 ## Implementation notes-
 ##       ~/obj/py/Makefile links to this file.
@@ -57,9 +57,8 @@ PY_ += Golf
 PY_ += Hello    Howto
 PY_ += Misc
 
-## Python library and multi-source subdirectories
+## Python multi-source subdirectories
 DIR :=
-DIR += lib
 DIR += Sample
 
 ##############################################################################
@@ -69,7 +68,7 @@ DIR += Sample
 ##----------------------------------------------------------------------------
 check: is-installed
 	@echo; echo; echo "No available tests"
-	@echo "** check completed OK **"
+	@echo "** src/py check completed OK **"
 
 ##----------------------------------------------------------------------------
 _build = set -e; (echo; echo; cd $(dir); $(MAKE))
@@ -77,27 +76,29 @@ _compile = set -e; (echo; echo; cd $(dir); $(MAKE) compile)
 compile: ;
 	@$(foreach dir, $(PY_), $(_build);)
 	@$(foreach dir, $(DIR), $(_compile);)
-	@echo "** compile completed OK **"
+	@echo "** src/py compile completed OK **"
 
 ##----------------------------------------------------------------------------
 install: sys-install
-	(echo; echo; cd lib; $(MAKE) install)
 	(echo; echo; cd site-packages/stdio; $(MAKE) install)
+	(echo; echo; cd site-packages/lib; $(MAKE) install)
 	@echo "** install completed OK **"
 
 ##----------------------------------------------------------------------------
 reinstall: uninstall install
-	@echo "** reinstall completed OK **"
+	@echo "** src/py reinstall completed OK **"
 
 ##----------------------------------------------------------------------------
 uninstall: ;
-	(echo; echo; cd lib; $(MAKE) uninstall)
+	(echo; echo; cd site-packages/lib; $(MAKE) uninstall)
 	(echo; echo; cd site-packages/stdio; $(MAKE) uninstall)
-	@echo "** uninstall completed OK **"
+	@echo "** src/py uninstall completed OK **"
 
 ##----------------------------------------------------------------------------
 update: ;
 	(echo; echo; cd site-packages/stdio; $(MAKE) update)
+	(echo; echo; cd site-packages/lib; $(MAKE) update)
+	@echo "** src/py update completed OK **"
 
 ##############################################################################
 ## TARGETS: clean, pristine
@@ -108,6 +109,7 @@ _clean = (cd $(dir); $(MAKE) clean)
 clean: ;
 	-$(foreach dir, $(PY_), $(_clean);)
 	-$(foreach dir, $(DIR), $(_clean);)
+	-@(cd site-packages/lib; $(MAKE) clean)
 	-@(cd site-packages/stdio; $(MAKE) clean)
 
 ##----------------------------------------------------------------------------
@@ -115,6 +117,7 @@ _pristine = (cd $(dir); $(MAKE) pristine)
 pristine: ;
 	-$(foreach dir, $(PY_), $(_pristine);)
 	-$(foreach dir, $(DIR), $(_pristine);)
+	-@(cd site-packages/lib; $(MAKE) pristine)
 	-@(cd site-packages/stdio; $(MAKE) pristine)
 
 ##############################################################################

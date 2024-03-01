@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (C) 2023 Frank Eskesen.
+//       Copyright (C) 2023-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,13 +15,13 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2023/12/03
+//       2024/03/01
 //
 //------------------------------------------------------------------------ -->
 
 # ~/COMMIT.md
 
-Copyright (C) 2023 Frank Eskesen.
+Copyright (C) 2023-2024 Frank Eskesen.
 
 This file is free content, distributed under the MIT license.
 (See the accompanying file LICENSE.MIT or the original contained
@@ -29,6 +29,20 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 03/01/2024 maint
+Note: This is a test commit.
+
+- Updated makefiles
+  - C++ libraries now use the same object files, building static libraries in
+~/obj/cpp/lib/static and shared libraries in ~/obj/cpp/lib/shared/.
+  - Use "@rm -f ..." instead of "-@rm ... >/dev/null 2>/dev/null" (Even
+updating the now unsupported Windows makefiles.)
+  - Empty last makefile lines have been removed.
+  - The python library is now built using standard python mechanisms rather
+than creating a link to the library source.
 
 ----
 

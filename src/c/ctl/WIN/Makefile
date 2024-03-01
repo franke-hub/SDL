@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2018 Frank Eskesen.
+##       Copyright (c) 2007-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
@@ -151,14 +151,14 @@ nothing: ;
 ## TARGET: CLEAN, PRISTINE
 .PHONY: pristine clean
 pristine: clean
-	-@rm *.lst *.obj                   >/dev/null 2>/dev/null
-	-@rm Makeproj.inp Makeproj.out     >/dev/null 2>/dev/null
-	-@rm Makeproj.dep                  >/dev/null 2>/dev/null
+	@rm -f *.lst *.obj
+	@rm -f Makeproj.inp Makeproj.out
+	@rm -f Makeproj.dep
 
 clean: ;
-	-@rm $(MAKEXE)                     >/dev/null 2>/dev/null
-	-@rm *.exe *.map                   >/dev/null 2>/dev/null
-	-@rm core debug.out errs           >/dev/null 2>/dev/null
+	@rm -f $(MAKEXE)
+	@rm -f *.exe *.map
+	@rm -f core debug.out errs
 
 ##############################################################################
 ## Include the dependency file
