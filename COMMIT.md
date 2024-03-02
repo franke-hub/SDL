@@ -32,6 +32,31 @@ is maintained in git, changes are always recorded.
 
 ----
 
+#### 03/02/2024 maint/trunk
+- Fixed one minor problem in Makefile (Remove operations are not displayed.)
+
+The C++ library build has been modified so that the shared and static libraries
+use the same set of object files.
+The static libraries are copied to ~/obj/cpp/lib/static/.
+The shared libraries are copied to ~/obj/cpp/lib/shared/.
+
+When building, your L link that points to the library should point to the
+static or shared library.
+
+To use the C++ shared library:
+Your "L" library link should link to ~/.local/lib/sdlc++ (which is a link to
+~/obj/cpp/lib/shared created during shared library installation.)
+
+On Cygwin, add ~/.local/lib/sdlc++ to your PATH
+On Linux,  add ~/.local/lib/sdlc++ to your LD_LIBRARY_PATH
+
+To use the C++ static library:
+Your "L" (library link) should link to either ~/obj/cpp/L, ~/obj/cpp/lib/L,
+or ~/obj/cpp/lib/static/. It SHOULD NOT link to ~/obj/cpp/lib, which contains
+both the static and (incomplete) shared library objects.
+
+----
+
 #### 03/01/2024 maint
 Note: This is a test commit.
 
