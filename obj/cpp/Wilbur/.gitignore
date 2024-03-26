@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2022 Frank Eskesen.
+##       Copyright (C) 2022-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -11,6 +11,7 @@
 ##############################################################################
 /*
 !/.gitignore
+!/D
 !/H
 !/L
 !/M
