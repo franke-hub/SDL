@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/03/01
+##       2024/03/21
 ##
 ##############################################################################
 
@@ -29,53 +29,49 @@ GUI_OBJECT := $(patsubst gui/%.cpp,gui/%.o,$(wildcard gui/*.cpp))
 
 ##############################################################################
 ## Dependency controls
-GUI_DEPEND := gui/.have-version gui/Makeproj.gcc ## Dependency requirements
+GUI_DEPEND := gui/.have-version gui/Makeproj.all ## Dependency requirements
 
 gui/.have-version: $(LIB_SOURCE) ##### If gui/.have-version out of date
 	(cd $(OBJDIR)/gui/; $(MAKE) config)## Update it. (Full recompile possible)
 	touch $@
 
-gui/Makeproj.out: $(GUI_SOURCE) ###### If any source changed, make required
+gui/Makeproj.all: $(GUI_SOURCE) ###### Recompile/rebuild
+	(cd $(OBJDIR)/gui/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
 	touch $@
 
-gui/Makeproj.gcc: gui/Makeproj.out ### If compilation might be needed
-	(cd $(OBJDIR)/gui/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
-	echo -n "Last compile (check): " >$@; date >>$@
-
-$(GUI_DEPEND): $(STATIC)/libpub.a $(OBJDIR)/libpub.so
-
 ##############################################################################
-## TARGETS: gui/libgui.a libgui.a
-$(OBJDIR)/gui/libgui.a: $(GUI_DEPEND)
-
-$(OBJDIR)/libgui.a: $(OBJDIR)/gui/libgui.a
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
+## TARGETS: static/libgui.a
+$(STATIC)/libgui.a: gui/libgui.a
+	cp -Lpf $< $@
 	touch $@
 
 lib: $(STATIC)/libgui.a
+gui/libgui.a: gui/.have-version gui/Makeproj.all $(STATIC)/libpub.a
 
 ##############################################################################
-## TARGETS: gui/libgui.so.1.0 libgui.so
-$(OBJDIR)/gui/libgui.so.1.0: $(GUI_DEPEND)
-
-$(OBJDIR)/libgui.so.1.0: $(OBJDIR)/gui/libgui.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
+## TARGETS: shared/libgui.dll shared/libgui.so.1.0 shared/libgui.so
+$(SHARED)/cyggui.dll: gui/cyggui.dll
+	cp -Lpf $< $@
 	touch $@
 
 .SECONDARY: $(SHARED)/libgui.so.1.0
+$(SHARED)/libgui.so.1.0: gui/libgui.so.1.0
+	cp -Lpf $< $@
+	touch $@
+
+$(SHARED)/libgui.so: $(SHARED)/libgui.so.1.0
+	$(shell [ ! -L "$@" ] && (cd $(SHARED); ln -s $(<F) $(@F)))
+	touch $@
+
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+shr: $(SHARED)/cyggui.dll
+gui/cyggui.dll: gui/Makeproj.all
+gui/Makeproj.all: gui/.have-version pub/Makeproj.all $(SHARED)/cygpub.dll
+else
 shr: $(SHARED)/libgui.so
-
-##############################################################################
-## TARGETS: gui/libgui.dll libgui.dll
-$(OBJDIR)/gui/libgui.dll: $(OBJDIR)/gui/libgui.so.1.0
-	(cd $(OBJDIR)/gui/; $(MAKE) shr)
-	touch $@
-
-$(OBJDIR)/libgui.dll: $(OBJDIR)/gui/libgui.dll
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-	touch $@
-
-shr.dll: $(SHARED)/libgui.dll
+gui/libgui.so.1.0: gui/Makeproj.all
+gui/Makeproj.all: gui/.have-version pub/Makeproj.all $(SHARED)/libpub.so
+endif
 
 ##############################################################################
 ## TARGET: gui.depend
@@ -97,11 +93,10 @@ gui.update: ;
 pristine: gui.pristine
 gui.pristine: ;
 	(cd $(OBJDIR)/gui/; $(MAKE) pristine)
-	@rm -f $(SHARED)/libgui.*
+	@rm -f $(SHARED)/cyggui.* $(SHARED)/libgui.*
 	@rm -f $(STATIC)/libgui.*
 
 .PHONY: gui.clean
 clean: gui.clean
 gui.clean: ;
-	@rm -f gui/libgui.* gui/Makeproj.*
-	@rm -f libgui.*
+	@rm -f gui/cyggui.* gui/libgui.* gui/Makeproj.*

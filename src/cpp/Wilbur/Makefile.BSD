@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2024/03/01
+##       2024/03/24
 ##
 ##############################################################################
 
@@ -63,11 +63,11 @@ ifeq "$(strip $(LIBDBX))" ""
 endif
 
 LOCLIB :=
-LOCLIB += -L$(LIBDIR) -lcom
-LOCLIB += -L$(LIBDIR) -lgui
-LOCLIB += -L$(LIBDIR) -lobj
-LOCLIB += -L$(LIBDIR) -lpub
-LOCLIB += -L$(LIBDIR) -ldev
+LOCLIB += -L$(SHRDIR) -lcom
+LOCLIB += -L$(SHRDIR) -lgui
+LOCLIB += -L$(SHRDIR) -lobj
+LOCLIB += -L$(SHRDIR) -lpub
+LOCLIB += -L$(SHRDIR) -ldev
 
 ifneq "$(strip $(LIBDBX))" ""
   LOCLIB += -L$(strip $(LIBDBX))
@@ -122,14 +122,13 @@ make.dir: libWilbur.a
 
 ##############################################################################
 ## TARGET: libWilbur.so
-libWilbur.so.1.0: $(MAKOBJ) L
+libWilbur.so.1.0: $(MAKOBJ)
 	$(CC) -shared -o $@ $(MAKOBJ) -Wl,-Map,libWilbur.map $(LOCLIB)
 ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
 	rebase -b 0x2f0000000 $@
 endif
 
 libWilbur.so.1.0: libWilbur.a
-libWilbur.so.1.0: L
 
 libWilbur.so: libWilbur.so.1.0
 	ln -sf $< $@
@@ -192,4 +191,3 @@ clean.dir: ;
 	@rm -f libFileServer.*
 	@rm -f libPostServer.*
 	@rm -f gather.*
-

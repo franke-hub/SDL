@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022-2023 Frank Eskesen.
+//       Copyright (c) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Generic program wrapper.
 //
 // Last change date-
-//       2023/05/04
+//       2024/03/04
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_WRAPPER_H_INCLUDED
@@ -212,7 +212,7 @@ class Wrapper                       // Generic program wrapper
      static Debug* init_debug(
        const char*     name= nullptr,
        const char*     mode= nullptr,
-       int             head= 0);
+       int             head= Debug::HEAD_DEFAULT);
 
      /************************************************************************
        @brief Create memory mapped trace file.

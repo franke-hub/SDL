@@ -22,6 +22,6 @@
 
 Copyright (C) 2023 Frank Eskesen.
 
-The example programs in this subdirectory are free content and may be freely
+All example programs in this subdirectory are free content and may be freely
 copied and used for any purpose, including commercial use.
 Attribution is NOT required.

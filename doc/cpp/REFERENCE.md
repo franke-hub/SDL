@@ -15,7 +15,7 @@
 //       SDL Distribution reference manual
 //
 // Last change date-
-//       2024/01/08
+//       2024/03/04
 //
 -------------------------------------------------------------------------- -->
 
@@ -78,6 +78,9 @@ Diagnostic.h, Event.h, Exception.h, Fileman.h, Hardware.h
 This is intended as a reference rather than an include file.
 - [Clock.h:](./Clock.md) An epoch-offset clock, represented as a double.
 - [config.h:](./config.md) Provides a (minimal) set of user macros.
+The SDL libraries avoid using macros, preferring `enum` where possible.
+(Since there is no macro namespace, avoiding macros helps avoid name
+collisions.)
 - [Console.h:](./Console.md) Wrappers for console I/O functions.
 - [Debug.h:](./Debug.md) Debugging tools
 - [diag-shared_ptr.h:](./diag-shared_ptr.h) A diagnostic tool for debugging

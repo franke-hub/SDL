@@ -115,7 +115,7 @@ const char*            DbBase::DATABASE_TEMP= "Wilbur/temp/";
    {
      uint32_t flags= DB_CREATE | DB_RECOVER | DB_REGISTER | DB_THREAD
                    | DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL | DB_INIT_TXN;
-     dbEnv= new DbEnv(0);
+     dbEnv= new DbEnv((int)0);
      dbEnv->set_data_dir(DATABASE_NAME);
      dbEnv->set_tmp_dir(DATABASE_TEMP);
      int rc= dbEnv->open(DATABASE_PATH, flags, 0);

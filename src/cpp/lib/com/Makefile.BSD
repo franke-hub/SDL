@@ -15,13 +15,25 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/03/01
+##       2024/03/21
 ##
 ##############################################################################
 
 ##############################################################################
 ## Local options
 COPTS  += -fPIC ###################### Generate position independent code
+module := com
+CYGDLL :=
+CYGDLL += -shared -o cyg${module}.dll
+CYGDLL += -Wl,--out-implib=lib${module}.dll.a
+CYGDLL += -Wl,--export-all-symbols
+CYGDLL += -Wl,--enable-auto-import
+ignore += -Wl,--whole-archive ${old_libs}
+ignore += -Wl,--no-whole-archive ${dependency_libs}
+
+ifneq "" "$(LINKMAP)"
+CYGDLL += -Wl,-Map -Wl,lib${module}.map
+endif
 
 ##############################################################################
 ## Set targets
@@ -35,40 +47,31 @@ all: lib shr
 lib: .have-version
 shr: .have-version
 lib: libcom.a
-shr: libcom.so
 update: all
 
 ifneq "" "$(findstring CYGWIN,$(shell uname))"
-shr: libcom.dll
+shr: cygcom.dll
+else
+shr: libcom.so.1.0
 endif
 
 ##############################################################################
 ## TARGET: libcom.a
 libcom.a: $(MAKOBJ)
+	rm -f $@
 	$(AR) $@ $^
 	touch $@
 
-## libcom.a: ;                      ## (No library dependency)
-
 ##############################################################################
-## TARGETS: libcom.so.1.0 libcom.so libcom.dll
-ifneq "" "$(LINKMAP)"
-LINKMAP := -Wl,-Map -Wl,libcom.map ### Generate linker map
-endif
+## TARGETS: cygcom.dll libcom.so.1.0
+cygcom.dll: $(MAKOBJ)
+	$(CC) $(CYGDLL) $^ $(CLIBS)
+	rebase -b 0x210000000 $@
+	touch $@
 
 libcom.so.1.0: $(MAKOBJ)
 	$(CC) $(LINKMAP) -shared -o $@ $^ $(CLIBS)
 	touch $@
-
-libcom.so: libcom.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-libcom.dll: libcom.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-	rebase -b 0x210000000 $@
-	touch $@
-
-## libcom.so.1.0: ;                 ## (No library dependency)
 
 ##############################################################################
 ## TARGET: config
@@ -89,8 +92,7 @@ include $(INCDIR)/com/Makefile.BSD
 .PHONY: com.clean com.pristine
 clean: com.clean
 com.clean: ;
-	@rm -f libcom.a
-	@rm -f libcom.so* libcom.dll
+	@rm -f cygcom.* libcom.*
 	@rm -f Makeproj.*
 
 pristine: com.pristine

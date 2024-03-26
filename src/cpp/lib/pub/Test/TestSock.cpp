@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022-2023 Frank Eskesen.
+//       Copyright (c) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2023/04/29
+//       2024/03/04
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -1637,7 +1637,7 @@ int
        opt_verbose= VERBOSE;
 
      if( opt_hcdm || true ) {
-       debug_set_head(Debug::HEAD_THREAD);
+       debug_set_head(Debug::HEAD_THREAD | Debug::HEAD_TIME);
        debug_set_mode(Debug::MODE_INTENSIVE);
      }
 

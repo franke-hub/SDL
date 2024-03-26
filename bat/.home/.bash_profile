@@ -17,7 +17,7 @@
 ##       Shell startup script, sourced during login
 ##
 ## Last change date-
-##        2024/02/10
+##        2024/03/25
 ##
 ##############################################################################
 
@@ -33,11 +33,9 @@ isCYGWIN=`uname | grep CYGWIN`      ## [ -n "$isCYGWIN" ] && echo In CYGWIN
 
 ##############################################################################
 ## Set PATH
-## export PATH=/usr/local/bin:usr/bin/:/usr/local/sbin:/usr/sbin
-
 ## Prepend in reverse order
 [ -n "$isCYGWIN" -a -d $HOME/.local/lib/sdlc++ ] && \
-    PrependString PATH "$HOME/.local/lib/sdlc++"
+   PrependString PATH "$HOME/.local/lib/sdlc++"
 [ -d $HOME/bin ] && PrependString PATH "$HOME/bin"
 [ -d $HOME/bat ] && PrependString PATH "$HOME/bat"
 [ -d $HOME/.local/bin ] && PrependString PATH "$HOME/.local/bin"
@@ -49,11 +47,10 @@ PrependString PATH "."
 
 ##############################################################################
 ## Set LD_LIBRARY_PATH
-
 ## Prepend in reverse order
 [ -d $HOME/.local/lib ] && PrependString LD_LIBRARY_PATH "$HOME/.local/lib"
-[ -z "$isCYGWIN" -a -d $HOME/.local/lib/sdlc++ ] && \
-    PrependString LD_LIBRARY_PATH "$HOME/.local/lib/sdlc++"
+[ -d $HOME/.local/lib/sdlc++ ] && \
+   PrependString LD_LIBRARY_PATH "$HOME/.local/lib/sdlc++"
 PrependString LD_LIBRARY_PATH "."
 
 ## Append in normal order
@@ -68,9 +65,7 @@ PrependString LD_LIBRARY_PATH "."
 [ -z "$HOST" ] && export HOST=`hostname`
 export LANG=$(locale -uU 2>/dev/null)
 [ -z "$LANG" ] && export LANG=en_US.UTF-8
-
 unset EDITOR
-source $HOME/bat/setupEDIT
 
 ##############################################################################
 ## Shell initialization

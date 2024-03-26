@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2023 Frank Eskesen.
+//       Copyright (c) 2023-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       Debug.h reference manual
 //
 // Last change date-
-//       2023/11/26
+//       2024/03/04
 //
 -------------------------------------------------------------------------- -->
 ## pub::Debug
@@ -60,11 +60,12 @@ Accessor and control methods:
 | <div style="width:10%">Method</div> | <div style="width:90%">Purpose<div> |
 |--------|---------|
 | [backtrace](./pub_debug.md#backtrace) | Write debugging backtrace. |
-| [clr_head](./pub_debug.md#clr_head) | Clear heading options. |
 | [flush](./pub_debug.md#flush) | Flush the trace file. |
 | [get_FILE](./pub_debug.md#get_file) | Get the trace FILE (pointer). |
 | [get_file_mode](./pub_debug.md#get_file_mode) | Get the file mode. |
 | [get_file_name](./pub_debug.md#get_file_name) | Get the file name. |
+| [get_head](./pub_debug.md#get_head) | Get heading options. |
+| [get_mode](./pub_debug.md#get_mode) | Get debugging mode. |
 | [set_file_mode](./pub_debug.md#set_file_mode) | Set the file mode. |
 | [set_file_name](./pub_debug.md#set_file_name) | Set the file name. |
 | [set_head](./pub_debug.md#set_head) | Set heading options. |
@@ -101,10 +102,11 @@ creating a default Debug object it if needed.
 | Subroutine | Purpose |
 |------------|---------|
 | [debug_backtrace](./pub_debug.md#debug_backtrace) | Write debugging backtrace. |
-| [debug_clr_head](./pub_debug.md#debug_clr_head) | Clear Heading control options. |
 | [debug_flush](./pub_debug.md#debug_flush) | Flush the trace file. |
 | [debug_get_file_mode](./pub_debug.md#debug_get_file_mode) | Get the file mode. |
 | [debug_get_file_name](./pub_debug.md#debug_get_file_name) | Get the file name. |
+| [debug_get_head](./pub_debug.md#debug_get_head) | Get Heading control options. |
+| [debug_get_mode](./pub_debug.md#debug_get_mode) | Get the debugging mode. |
 | [debug_set_file_mode](./pub_debug.md#debug_set_file_mode) | Set the file mode. |
 | [debug_set_file_name](./pub_debug.md#debug_set_file_name) | Set the file name. |
 | [debug_set_head](./pub_debug.md#debug_set_head) | Set Heading control options. |

@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2021 Frank Eskesen.
+##       Copyright (c) 2007-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under creative commons CC0,
 ##       explicitly released into the Public Domain.
@@ -16,13 +16,13 @@
 ##       Default GCC compiler controls
 ##
 ## Last change date-
-##       2021/09/02
+##       2024/03/04
 ##
 ##############################################################################
 
 ##############################################################################
 ## CC       (Compiler identifier)
-AR     := ar -r ################### Archiver: ar
+AR     := ar -cr ################## Archiver: ar
 CC     := c++ ##################### Compiler: gnu C++
 LD     := c++ ##################### Loader: gnu C++
 
@@ -88,4 +88,3 @@ endif
 
 ##############################################################################
 ## CLOAD    (Linker variables, set in Makefile.OPT)
-

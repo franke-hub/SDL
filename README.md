@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       SDL Project overview information.
 //
 // Last change date-
-//       2023/09/22
+//       2024/03/03
 //
 //------------------------------------------------------------------------ -->
 
@@ -107,8 +107,8 @@ License detail:
 
 These instructions assume that you'll be using the SDL package as delivered.
 
-Use ". setupSDL" to set up the *SDL_ROOT* environment variable and update
-your *PATH* environment variable.
+Use `. setupSDL` to set up the `$SDL_ROOT` environment variable and update
+your `$PATH` environment variable.
 (You might want to look at and modify setupSDL first.)
 
 Now, from the installation root subdirectory,
@@ -126,8 +126,8 @@ a new Linux version.
 - `make pristine` Essentially the same as running make clean followed by
 make uninstall.
 
-__TODO__ Implement C#, Python, and Java installation Makefiles.
-(Only the C++ Makefiles are currently implemented.)
+__TODO__ Implement C# and Java library installation Makefiles.
+(Only C++ and Python library Makefiles are currently implemented.)
 
 #### The Distribution
 The distribution primarily uses two git branches:
@@ -135,20 +135,22 @@ The distribution primarily uses two git branches:
 - The maint branch, more current but more unstable.
 This branch may contain known errors when used for distribution testing.
 
-The distribution is kept locally in /home/data/home/ on all local machines,
+The distribution is kept locally in /home/data/SDL on all local machines,
 physical or virtual.
 In addition to this public distribution, the /home/data/ subdirectory contains
-private information shared via rsync between multiple machines.
-One of these machines (NFS) exports /home/data in read-only mode and
-some (local virtual) machines access that.
+private information shared via rsync between machines.
+One of these machines (NFS) exports /home/data in read-only mode and some
+local virtual machines access that.
 
-The Ubuntu build test (virtual) machine updates only via github.
+An Ubuntu build test (virtual) machine updates only via github.
 It does not access the exported /home/data Network File System.
+It's used to verify maint and trunk releases operate properly as distributed,
+and does not access the NFS file system.
 
 #### Subdirectory structure:
 
 ```
-(Root) The distribution root directory, designated as ~
+(Root) The distribution root directory, *designated as ~*
    ~
    |
    [-- bat ((Mostly bash) scripts)
@@ -200,7 +202,11 @@ Multiple libraries are also provided:
    |    |      |
    |    |   cpp/lib/*/Test (Library test object/executables)
    |    |
-   |    [--  [java,js,mcs,py]/lib
+   |    [-- [java,js,mcs]/lib
+   |    |
+   |    [-- py/site-packages (The python library subdirectory)
+   |    |      |
+   |    |   The python library
    |
    [-- src
    |    |
@@ -219,20 +225,21 @@ Multiple libraries are also provided:
    |    |      |
    |    |   cpp/lib/*/Test (Library test source)
    |    |
-   |    [--  [java,mcs,py]/lib
+   |    [-- [java,mcs]/lib
+   |    |
+   |    [-- py/site-packages
 ```
-
-Libraries are built using make from the ~/obj/*/lib subdirectory.
 
 All C++ libraries have an associated Test subdirectory:
 `~/src/cpp/lib/*/Test`
 The dev and pub libraries also have a regression test script, `regression`,
 used for distribution testing.
+These can be invoked from the root directory using `make check`.
 
 For C++ programs, two build helper programs are required.
 These programs are built in the `~/obj/cpp/sys/` subdirectory and installed
-into $(HOME)/bin using `make install`.
-(The bin directory location is not currrently configurable.)
+into $HOME/bin using `make install`.
+(The $HOME/bin directory location is not currrently configurable.)
 
 - makeproj: Used to create or update dependencies.
 - filecomp: Used in regression testing to (partially) compare files.
@@ -246,7 +253,6 @@ The project Wiki contains complete build instructions starting from an
 
 #### Further reading
 - [SDL C++ Reference manual](doc/cpp/REFERENCE.md)
-(This is a work in progress, currently containing only detail that highlights
-a lock free multi-threading paradigm.)
+(This is a work in progress.)
 - [Development detail](doc/index.md)
 - [Change log](./COMMIT.md)

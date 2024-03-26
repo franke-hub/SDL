@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Wrapper.h generic program wrapper.
 //
 // Last change date-
-//       2023/05/04
+//       2024/03/04
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -359,7 +359,7 @@ Debug*                              // The (initialized) debug file
    Debug* debug= new Debug(file);
    Debug::set(debug);
 
-   if( head )
+   if( head != (int)Debug::HEAD_DEFAULT )
      debug->set_head(head);
    if( mode )
      debug->set_file_mode(mode);

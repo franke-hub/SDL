@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2023 Frank Eskesen.
+//       Copyright (c) 2023-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       Debug.h reference manual
 //
 // Last change date-
-//       2023/11/26
+//       2024/03/04
 //
 -------------------------------------------------------------------------- -->
 ## Defined in header <pub/Debug.h>
@@ -46,7 +46,7 @@ debugf, errorf, throwf, tracef, vdebugf, verrorf, vtracef, debugh, errorh, trace
 - std::string file_name= "debug.out";
  The file name, accessible using methods get/set_file_name.
 - int         head= HEAD_DEFAULT;
- The Heading bit fields, accessible using methods get/clr_head.
+ The Heading bit fields, accessible using methods get/set_head.
 - int         mode= MODE_DEFAULT;
  The file mode, accessible using methods get/set_mode.
 - static Debug* common;
@@ -148,10 +148,6 @@ outputs.
 Writes debugging backtrace information.
 
 ---
-#### <a id="clr_head">void clr_head(Heading bits);</a>
-Clears the Heading controls specified by `bits`.
-
----
 #### <a id="flush">void flush(void);</a>
 Flushes stdout, stderr, and the trace file.
 
@@ -172,7 +168,7 @@ Returns the trace file mode, used when opening the file.
 Returns the trace file name.
 
 ---
-#### <a id="set_file_mode">void set_file_name(std::string mode);</a>
+#### <a id="set_file_mode">void set_file_mode(std::string mode);</a>
 Sets the trace file mode used when opening the file.
 This method may only be used before a file write method is used.
 
@@ -185,11 +181,13 @@ the then current file mode.
 
 ---
 #### <a id="set_head">void set_head(Heading bits);</a>
-Sets the Heading controls specified by `bits`.
+Sets the Heading controls specified by `bits`. (This is a logical OR.)
+- HEAD_THREAD: Include current thread in Heading.
+- HEAD_TIME: Include time in Heading.
 
 ---
 #### <a id="set_mode">void set_mode(Mode mode);</a>
-Sets the Debugging mode.
+Sets (replacing) the Debugging mode.
 - MODE_DEFAULT: Write operations include writing to the trace file.
 - MODE_IGNORE: Write operations do nothing.
 - MODE_INTENSIVE: The Debug::flush method is invoked after each write
@@ -238,7 +236,6 @@ returning `true` if the lock was obtained.
 #### <a id="unlock">static void unlock(void);</a>
 Releases the Debug lock.
 
----
 Usage:
 ```
    {{{{
@@ -253,12 +250,14 @@ between the two debugf statements.
 Note: Nothing prevents another thread from using printf which might also
 break up the debugf statements in the stdout stream.
 
-__NOTE__: If an application uses DLLs, it must use the DLL library rather than
-the default include library.
-If the include library is used, each DLL includes a separate copy of the
+__NOTE__: If an application uses DLLs, it must use the DLL (shared) library
+rather than the default (static) include library.
+If the static library is used, each DLL includes a separate copy of the
 debugging namespace, the default Debug object, and the static Debug lock.
-This works poorly in a single-threaded environment and even worse when
-multi-threading.
+This can result in unexpected results when using shared libraries even in a
+single-threaded environment.
+When multi-threading, data loss occurs unless each thead uses a different
+output file name.
 
 ------------------------------------------------------------------------------
 ### <a id="namespace-debugging">Namespace pub::debugging:</a>
@@ -278,11 +277,6 @@ have the same names and interfaces as their Debug object method counterparts.
 #### <a id="debug_backtrace">void debug_backtrace(void);</a>
 Writes debugging backtrace information using the default Debug object.
 [see backtrace](#backtrace)
-
----
-#### <a id="debug_clr_head">void debug_clr_head(Heading bits);</a>
-Clears Heading controls for the default Debug object.
-[see clr_head](#clr_head)
 
 ---
 #### <a id="debug_flush">void debug_flush(void);</a>

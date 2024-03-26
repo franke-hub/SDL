@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2022 Frank Eskesen.
+//       Copyright (c) 2019-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Sample HTTP/HTTPS Client/Server, using openssl socket layer.
 //
 // Last change date-
-//       2022/06/15
+//       2024/03/04
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -1333,7 +1333,7 @@ extern int                          // Return code
    // Set debugging object
    Debug debug;
    Debug::set(&debug);
-   debug.set_head(Debug::HEAD_THREAD);
+   debug.set_head(Debug::HEAD_THREAD | Debug::HEAD_TIME);
    if( HCDM || opt_verbose > 1 ) debug.set_mode(Debug::MODE_INTENSIVE);
 debug.set_mode(Debug::MODE_INTENSIVE);
    debug.debugh("SampleSSL Started...\n");

@@ -13,19 +13,21 @@
 ##############################################################################
 ## Built-in rules
 .SUFFIXES:
-%.o : ;
-S/%.C: ;
+%.o:      ;
+alpha/%:  ;
+beta/%:   ;
+subdir/%: ;
 
 ##############################################################################
 ## Local module list
 MAKRUN = \
-    O/Main.run
+    Main.run
 
 MAKOBJ = \
-    S/Main.s     \
+    Main.o     \
     Alpha.o    \
-    ../subdir/Beta.o     \
-    Gamma.o    \
+    alpha/One.foo(Q)     \
+    beta/Two.bar         \
 
 ##############################################################################
 ## Set default target
@@ -38,92 +40,101 @@ default: $(DEFAULT)
 
 ##############################################################################
 ## Make control: Generic rule
-%.s : S/%.C
-	@echo -e "%.s : S/%.C"
+%.s: S/%.C
+	@echo -e "%.s: S/%.C"
 	@echo -e "$$\c"
-	@echo -e "(\@)  $@"
+	@echo -e "@     $@"
 	@echo -e "$$\c"
-	@echo -e "(\<)  $<"
+	@echo -e "<     $<"
 	@echo -e "$$\c"
-	@echo -e "(\^)  $^"
+	@echo -e "^     $^"
 	@echo -e "$$\c"
-	@echo -e "(\?)  $?"
+	@echo -e "?     $?"
 	@echo -e "$$\c"
-	@echo -e "(\+)  $+"
+	@echo -e "+     $+"
 	@echo -e "$$\c"
-	@echo -e "(\*)  $*"
+	@echo -e "*     $*"
 	@echo -e "$$\c"
-	@echo -e "(\%)  $%"
+	@echo -e "%     $%"
 	@echo -e "$$\c"
-	@echo -e "(\<D) $(<D)"
+	@echo -e "(<D)  $(<D)"
 	@echo -e "$$\c"
-	@echo -e "(\@D) $(@D)"
+	@echo -e "(@D)  $(@D)"
 	@echo -e "$$\c"
-	@echo -e "(\<F) $(<F)"
+	@echo -e "(<F)  $(<F)"
 	@echo -e "$$\c"
-	@echo -e "(\@F) $(@F)"
-	@echo -e ""
-	@echo -e "%o: ;"
-	@echo -e "S/%.C: ;"
+	@echo -e "(@F)  $(@F)"
 	@echo -e ""
 	@echo -e ""
 
 ##############################################################################
 ## Make control: Main
-O/Main.run: $(MAKOBJ)
-	@echo -e "O/Main.run: $(MAKOBJ)"
+Main.street Main.run: $(MAKOBJ)
+	@echo -e "Main.street Main.run: $(MAKOBJ)"
 	@echo -e "$$\c"
-	@echo -e "(\@)  $@"
+	@echo -e "@     $@"
 	@echo -e "$$\c"
-	@echo -e "(\<)  $<"
+	@echo -e "<     $<"
 	@echo -e "$$\c"
-	@echo -e "(\^)  $^"
+	@echo -e "<     $<"
 	@echo -e "$$\c"
-	@echo -e "(\?)  $?"
+	@echo -e "^     $^"
 	@echo -e "$$\c"
-	@echo -e "(\+)  $+"
+	@echo -e "?     $?"
 	@echo -e "$$\c"
-	@echo -e "(\*)  $*"
+	@echo -e "+     $+"
 	@echo -e "$$\c"
-	@echo -e "(\%)  $%"
+	@echo -e "*     $*"
 	@echo -e "$$\c"
-	@echo -e "(\<D) $(<D)"
+	@echo -e "%     $%"
 	@echo -e "$$\c"
-	@echo -e "(\@D) $(@D)"
+	@echo -e "(<D)  $(<D)"
 	@echo -e "$$\c"
-	@echo -e "(\<F) $(<F)"
+	@echo -e "(@D)  $(@D)"
 	@echo -e "$$\c"
-	@echo -e "(\@F) $(@F)"
+	@echo -e "(<F)  $(<F)"
+	@echo -e "$$\c"
+	@echo -e "(@F)  $(@F)"
 	@echo -e ""
-	@echo -e "Main.run: Other"
+	@echo -e "$$\c"
+	@echo -e "@F    $@F  (Yes, the parentheses really are needed.)"
+	@echo -e "Main.run: O/Other"
+	@echo -e ""
+	@echo -e ""
 
-O/Main.run: O/Other
+Main.run: O/Other
 
 ##############################################################################
-## Make control: Other
-O/Other: subdir/foo.o bar.o subdir/foo.o bar.o
-	@echo -e "O/Other: subdir/foo.o bar.o subdir/foo.o bar.o"
+## Make control: O/Other
+O/Other: subdir/xxx.o yyy.o subdir/xxx.o yyy.o
+	@echo -e "O/Other: subdir/xxx.o yyy.o subdir/xxx.o yyy.o"
 	@echo -e "$$\c"
-	@echo -e "(\@)  $@"
+	@echo -e "@     $@"
 	@echo -e "$$\c"
-	@echo -e "(\<)  $<"
+	@echo -e "<     $<"
 	@echo -e "$$\c"
-	@echo -e "(\^)  $^"
+	@echo -e "^     $^"
 	@echo -e "$$\c"
-	@echo -e "(\?)  $?"
+	@echo -e "?     $?"
 	@echo -e "$$\c"
-	@echo -e "(\+)  $+"
+	@echo -e "+     $+"
 	@echo -e "$$\c"
-	@echo -e "(\*)  $*"
+	@echo -e "*     $*"
 	@echo -e "$$\c"
-	@echo -e "(\%)  $%"
+	@echo -e "%     $%"
 	@echo -e "$$\c"
-	@echo -e "(\<D) $(<D)"
+	@echo -e "(<D)  $(<D)"
 	@echo -e "$$\c"
-	@echo -e "(\@D) $(@D)"
+	@echo -e "(@D)  $(@D)"
 	@echo -e "$$\c"
-	@echo -e "(\<F) $(<F)"
+	@echo -e "(<F)  $(<F)"
 	@echo -e "$$\c"
-	@echo -e "(\@F) $(@F)"
-	@echo ""
+	@echo -e "(@F)  $(@F)"
+	@echo -e ""
+	@echo -e "O/Other: Other.s subdir/foo.o bar.o"
+	@echo -e "S/Other.C: subdir/bar.o foo.o"
+	@echo -e ""
+	@echo -e ""
 
+O/Other: Other.s subdir/foo.o bar.o
+S/Other.C: subdir/bar.o foo.o;

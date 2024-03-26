@@ -15,13 +15,25 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/03/01
+##       2024/03/21
 ##
 ##############################################################################
 
 ##############################################################################
 ## Local options
 COPTS  += -fPIC ###################### Generate position independent code
+module := dev
+CYGDLL :=
+CYGDLL += -shared -o cyg${module}.dll
+CYGDLL += -Wl,--out-implib=lib${module}.dll.a
+CYGDLL += -Wl,--export-all-symbols
+CYGDLL += -Wl,--enable-auto-import
+ignore += -Wl,--whole-archive ${old_libs}
+ignore += -Wl,--no-whole-archive ${dependency_libs}
+
+ifneq "" "$(LINKMAP)"
+CYGDLL += -Wl,-Map -Wl,lib${module}.map
+endif
 
 ##############################################################################
 ## Set targets
@@ -35,40 +47,31 @@ all: lib shr
 lib: .have-version
 shr: .have-version
 lib: libdev.a
-shr: libdev.so
 update: all
 
 ifneq "" "$(findstring CYGWIN,$(shell uname))"
-shr: libdev.dll
+shr: cygdev.dll
+else
+shr: libdev.so.1.0
 endif
 
 ##############################################################################
 ## TARGET: libdev.a
 libdev.a: $(MAKOBJ)
+	rm -f $@
 	$(AR) $@ $^
 	touch $@
 
-libdev.a: L/libpub.a                ## (Must already exist)
-
 ##############################################################################
-## TARGETS: libdev.so.1.0 libdev.so libdev.dll
-ifneq "" "$(LINKMAP)"
-LINKMAP := -Wl,-Map -Wl,libdev.map ### Generate linker map
-endif
+## TARGETS: cygdev.dll libdev.so.1.0
+cygdev.dll: $(MAKOBJ)
+	$(CC) $(CYGDLL) $^ -LD -lpub $(CLIBS)
+	rebase -b 0x250000000 $@
+	touch $@
 
 libdev.so.1.0: $(MAKOBJ)
-	$(CC) $(LINKMAP) -shared -o $@ $^ -LL -lpub $(CLIBS)
+	$(CC) $(LINKMAP) -shared -o $@ $^ -LD -lpub $(CLIBS)
 	touch $@
-
-libdev.so: libdev.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-libdev.dll: libdev.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-	rebase -b 0x220000000 $@
-	touch $@
-
-libdev.so.1.0: L/libpub.so          ## (Must already exist)
 
 ##############################################################################
 ## TARGET: config
@@ -89,8 +92,7 @@ include $(INCDIR)/dev/Makefile.BSD
 .PHONY: dev.clean dev.pristine
 clean: dev.clean
 dev.clean: ;
-	@rm -f libdev.a
-	@rm -f libdev.so* libdev.dll
+	@rm -f cygdev.* libdev.*
 	@rm -f Makeproj.*
 
 pristine: dev.pristine

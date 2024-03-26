@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/03/01
+##       2024/03/21
 ##
 ##############################################################################
 
@@ -29,53 +29,49 @@ PUB_OBJECT := $(patsubst pub/%.cpp,pub/%.o,$(wildcard pub/*.cpp))
 
 ##############################################################################
 ## Dependency controls
-PUB_DEPEND := pub/.have-version pub/Makeproj.gcc ## Dependency requirements
+PUB_DEPEND := pub/.have-version pub/Makeproj.all ## Dependency requirements
 
 pub/.have-version: $(LIB_SOURCE) ##### If pub/.have-version out of date
 	(cd $(OBJDIR)/pub/; $(MAKE) config)## Update it. (Full recompile possible)
 	touch $@
 
-pub/Makeproj.out: $(PUB_SOURCE) ###### If any source changed, make required
+pub/Makeproj.all: $(PUB_SOURCE) ###### Recompile/rebuild
+	(cd $(OBJDIR)/pub/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
 	touch $@
 
-pub/Makeproj.gcc: pub/Makeproj.out ### If compilation might be needed
-	(cd $(OBJDIR)/pub/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
-	echo -n "Last compile (check): " >$@; date >>$@
-
-## $(PUB_DEPEND): ;
-
 ##############################################################################
-## TARGETS: pub/libpub.a libpub.a
-$(OBJDIR)/pub/libpub.a: $(PUB_DEPEND)
-
-$(OBJDIR)/libpub.a: $(OBJDIR)/pub/libpub.a
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
+## TARGETS: static/libpub.a
+$(STATIC)/libpub.a: pub/libpub.a
+	cp -Lpf $< $@
 	touch $@
 
 lib: $(STATIC)/libpub.a
+pub/libpub.a: pub/.have-version pub/Makeproj.all
 
 ##############################################################################
-## TARGETS: pub/libpub.so.1.0 libpub.so
-$(OBJDIR)/pub/libpub.so.1.0: $(PUB_DEPEND)
-
-$(OBJDIR)/libpub.so.1.0: $(OBJDIR)/pub/libpub.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
+## TARGETS: shared/cygpub.dll shared/libpub.so.1.0 shared/libpub.so
+$(SHARED)/cygpub.dll: pub/cygpub.dll
+	cp -Lpf $< $@
 	touch $@
 
 .SECONDARY: $(SHARED)/libpub.so.1.0
+$(SHARED)/libpub.so.1.0: pub/libpub.so.1.0
+	cp -Lpf $< $@
+	touch $@
+
+$(SHARED)/libpub.so: $(SHARED)/libpub.so.1.0
+	$(shell [ ! -L "$@" ] && (cd $(SHARED); ln -s $(<F) $(@F)))
+	touch $@
+
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+shr: $(SHARED)/cygpub.dll
+pub/cygpub.dll: pub/Makeproj.all
+pub/Makeproj.all: pub/.have-version
+else
 shr: $(SHARED)/libpub.so
-
-##############################################################################
-## TARGETS: pub/libpub.dll libpub.dll
-$(OBJDIR)/pub/libpub.dll: $(OBJDIR)/pub/libpub.so.1.0
-	(cd $(OBJDIR)/pub/; $(MAKE) shr)
-	touch $@
-
-$(OBJDIR)/libpub.dll: $(OBJDIR)/pub/libpub.dll
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-	touch $@
-
-shr.dll: $(SHARED)/libpub.dll
+pub/libpub.so.1.0: pub/Makeproj.all
+pub/Makeproj.all: pub/.have-version
+endif
 
 ##############################################################################
 ## TARGET: pub.depend
@@ -97,11 +93,11 @@ pub.update: ;
 pristine: pub.pristine
 pub.pristine: ;
 	(cd $(OBJDIR)/pub/; $(MAKE) pristine)
-	@rm -f $(SHARED)/libpub.*
+	@rm -f $(SHARED)/cygpub.* $(SHARED)/libpub.*
 	@rm -f $(STATIC)/libpub.*
 
 .PHONY: pub.clean
 clean: pub.clean
 pub.clean: ;
-	@rm -f pub/libpub.* pub/Makeproj.*
+	@rm -f pub/cygpub.* pub/libpub.* pub/Makeproj.*
 	@rm -f libpub.*

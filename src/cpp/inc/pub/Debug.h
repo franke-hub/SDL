@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2023 Frank Eskesen.
+//       Copyright (c) 2007-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Debugging control.
 //
 // Last change date-
-//       2023/11/21
+//       2024/03/05
 //
 // Implementation notes-
 //       A file name of ">" or "1>" writes the log to stdout.
@@ -60,9 +60,9 @@ enum Mode                           // Debug::Mode
 }; // enum Mode
 
 enum Heading                        // Debug::Heading
-{  HEAD_TIME=   0x00000001          // Add time to heading
-,  HEAD_THREAD= 0x00000002          // Add thread to heading
-,  HEAD_DEFAULT= HEAD_TIME          // Default heading
+{  HEAD_DEFAULT= 0x00000001         // Default heading (HEAD_TIME)
+,  HEAD_TIME=    0x00000001         // Include time in heading
+,  HEAD_THREAD=  0x00000002         // Include thread to heading
 }; // enum Heading
 
 //----------------------------------------------------------------------------
@@ -73,7 +73,7 @@ FILE*                  handle= nullptr; // Debug file handle
 std::string            file_mode= "wb"; // Debug file mode
 std::string            file_name= "debug.out"; // Debug file name
 int                    head= HEAD_DEFAULT; // Heading options
-int                    mode= MODE_DEFAULT; // Debugging mode
+Mode                   mode= MODE_DEFAULT; // Debugging mode
 
 //----------------------------------------------------------------------------
 // Debug::Static attributes
@@ -151,11 +151,6 @@ static void
 // Debug::Accessors and control operations
 //----------------------------------------------------------------------------
 void
-   clr_head(                        // Clear a Heading options
-     int               head)        // The Heading options to clear
-{  this->head &= ~head; }
-
-void
    flush( void );                   // Flush the trace file, stdout and stderr
 
 FILE*                               // The handle
@@ -175,6 +170,14 @@ std::string
    get_file_name( void )            // Get the trace file name
 {  return file_name; }
 
+int                                 // The current heading options
+   get_head( void )                 // Get the Heading options
+{  return head; }
+
+Mode                                // The current Mode
+   get_mode( void )                 // Get the Mode
+{  return mode; }
+
 void
    set_file_mode(                   // Set the trace file mode
      const char*       mode);       // The trace file mode
@@ -184,9 +187,9 @@ void
      const char*       name);       // The trace file name
 
 void
-   set_head(                        // Set a Heading option
-     int               head)        // The Heading options to set
-{  this->head |= head; }
+   set_head(                        // Set the Heading options
+     int               head)        // The Heading option(s) to set
+{  this->head= head; }
 
 void
    set_mode(                        // Set the Mode
@@ -315,10 +318,6 @@ void
    debug_backtrace( void );         // Write backtrace information
 
 void
-   debug_clr_head(                  // Clear a Heading options
-     Debug::Heading    head);       // The Heading option to clear
-
-void
    debug_flush( void );             // Flush write the trace file
 
 std::string
@@ -327,9 +326,11 @@ std::string
 std::string
    debug_get_file_name( void );     // Get the trace file name
 
-void
-   debug_set_head(                  // Set a Heading options
-     Debug::Heading    head);       // The Heading option to set
+int                                 // The current Heading options
+   debug_get_head( void );          // Get the current Heading options
+
+Debug::Mode                         // The current debug Mode
+   debug_get_mode( void );          // Get the current debug Mode
 
 void
    debug_set_file_mode(             // Set the trace file mode
@@ -338,6 +339,10 @@ void
 void
    debug_set_file_name(             // Set the trace file name
      const char*       name);       // The trace file name
+
+void
+   debug_set_head(                  // Set the Heading options
+     int               head);       // The Heading option(s) to set
 
 void
    debug_set_mode(                  // Set the Mode

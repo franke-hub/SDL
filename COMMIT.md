@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/03/01
+//       2024/03/26
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,47 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 03/26/2024 maint
+
+This is a maintenance commit.
+
+Existing known anomalies:
+- Running make compile, ~/obj/cpp/Stock once attempted to link before the
+object files were compiled. (Not reproducible.)
+- ~/obj/cpp/HTTP/SampleSSL loops. (Not diagnosed.)
+
+Changes:
+- The C++ library build has been restructured.
+  - Static libraries are built in ~/obj/cpp/lib/static
+  - Shared libraries are built in ~/obj/cpp/lib/shared
+  - In CYGWIN, the shared libraries are DLLs rather than unix libraries
+- Documentation has been updated. This work is incomplete.
+- ~/bat/.home contains recommended bash initialization scripts.
+
+The C++ library build needs more testing, especially in regard to dependency
+resolution.
+Perhaps the ${module} variable can be used to make the Makefile.BSD more
+common.
+
+----
+
+#### 03/05/2024 maint
+
+- Partially updated Debug.h documentation, correcting links and missing
+information.
+- Removed pub::Debug::clr_head and changed pub::Debug::set_head to set
+complete heading rather than set heading bit.
+- Fixed ~/src/cpp/lib/dev/Test/T_Stream.hpp, adding a short delay to allow
+threads to complete. (Otherwise Stream object count error could occur.)
+- Fixed ~/src/cpp/lib/dev/Test/script/regression.d/.prereq.sh and
+~/src/cpp/lib/pub/Test/script/regression.d/.prereq.sh, making ~/obj/cpp/lib
+rather than just the associated library.
+- Fixed static library build, removing include of dependent libraries. This
+was just wasted filler.
+- Corrected some static library build dependencies.
 
 ----
 

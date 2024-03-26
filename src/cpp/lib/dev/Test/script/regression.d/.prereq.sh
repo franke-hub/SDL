@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2022-2023 Frank Eskesen.
+##       Copyright (C) 2022-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Verify test prequisites
 ##
 ## Last change date-
-##       2023/07/07
+##       2024/03/04
 ##
 ##############################################################################
 
@@ -39,16 +39,10 @@ fi
 
 ##############################################################################
 ## Prerequisite: libraries
-pushd $ROOT/obj/cpp/lib/pub >/dev/null
+pushd $ROOT/obj/cpp/lib >/dev/null
 echo make: $PWD
 make
 rc=$?
-if [[ $rc == 0 ]] ; then
-  cd ../dev
-  echo make: $PWD
-  make
-  rc=$?
-fi
 popd >/dev/null
 [[ $rc != 0 ]] && exit $rc
 

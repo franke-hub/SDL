@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2024/01/25
+//       2024/03/04
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -540,7 +540,8 @@ const char*                         // (Always nullptr)
        " F6:     Change (current or next)\n"
        " F7:     Switch to previous file\n"
        " F8:     Switch to next file\n"
-       " F9:     Copy cursor line to command line\n"
+       " F9:     Copy file name to command line\n"
+       "ctrl-F9: Copy cursor line to command line\n"
        "F10:     Move cursor line to top of screen\n"
        "F11:     Undo\n"
        "F12:     Redo\n"

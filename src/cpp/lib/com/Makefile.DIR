@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/03/01
+##       2024/03/21
 ##
 ##############################################################################
 
@@ -34,53 +34,49 @@ COM_OBJECT := $(patsubst com/%.cpp,com/%.o,$(wildcard com/*.cpp))
 
 ##############################################################################
 ## Dependency controls
-COM_DEPEND := com/.have-version com/Makeproj.gcc ## Dependency requirements
+COM_DEPEND := com/.have-version com/Makeproj.all ## Dependency requirements
 
 com/.have-version: $(LIB_SOURCE) ##### If com/.have-version out of date
 	(cd $(OBJDIR)/com/; $(MAKE) config)## Update it. (Full recompile possible)
 	touch $@
 
-com/Makeproj.out: $(COM_SOURCE) ###### If any source changed, make required
+com/Makeproj.all: $(COM_SOURCE) ###### Recompile/rebuild
+	(cd $(OBJDIR)/com/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
 	touch $@
 
-com/Makeproj.gcc: com/Makeproj.out ### If compilation might be needed
-	(cd $(OBJDIR)/com/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
-	echo -n "Last compile (check): " >$@; date >>$@
-
-## $(COM_DEPEND): ;
-
 ##############################################################################
-## TARGETS: com/libcom.a libcom.a
-$(OBJDIR)/com/libcom.a: $(COM_DEPEND)
-
-$(OBJDIR)/libcom.a: $(OBJDIR)/com/libcom.a
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
+## TARGETS: static/libcom.a
+$(STATIC)/libcom.a: com/libcom.a
+	cp -Lpf $< $@
 	touch $@
 
 lib: $(STATIC)/libcom.a
+com/libcom.a: com/.have-version com/Makeproj.all
 
 ##############################################################################
-## TARGETS: com/libcom.so.1.0 libcom.so
-$(OBJDIR)/com/libcom.so.1.0: $(COM_DEPEND)
-
-$(OBJDIR)/libcom.so.1.0: $(OBJDIR)/com/libcom.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
+## TARGETS: shared/cygcom.dll shared/libcom.so.1.0 shared/libcom.so
+$(SHARED)/cygcom.dll: com/cygcom.dll
+	cp -Lpf $< $@
 	touch $@
 
 .SECONDARY: $(SHARED)/libcom.so.1.0
+$(SHARED)/libcom.so.1.0: com/libcom.so.1.0
+	cp -Lpf $< $@
+	touch $@
+
+$(SHARED)/libcom.so: $(SHARED)/libcom.so.1.0
+	$(shell [ ! -L "$@" ] && (cd $(SHARED); ln -s $(<F) $(@F)))
+	touch $@
+
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+shr: $(SHARED)/cygcom.dll
+com/cygcom.dll: com/Makeproj.all
+com/Makeproj.all: com/.have-version
+else
 shr: $(SHARED)/libcom.so
-
-##############################################################################
-## TARGETS: com/libcom.dll libcom.dll
-$(OBJDIR)/com/libcom.dll: $(OBJDIR)/com/libcom.so.1.0
-	(cd $(OBJDIR)/com/; $(MAKE) shr)
-	touch $@
-
-$(OBJDIR)/libcom.dll: $(OBJDIR)/com/libcom.dll
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-	touch $@
-
-shr.dll: $(SHARED)/libcom.dll
+com/libcom.so.1.0: com/Makeproj.all
+com/Makeproj.all: com/.have-version
+endif
 
 ##############################################################################
 ## TARGET: com.depend
@@ -102,11 +98,11 @@ com.update: ;
 pristine: com.pristine
 com.pristine: ;
 	(cd $(OBJDIR)/com/; $(MAKE) pristine)
-	@rm -f $(SHARED)/libcom.*
+	@rm -f $(SHARED)/cygcom.* $(SHARED)/libcom.*
 	@rm -f $(STATIC)/libcom.*
 
 .PHONY: com.clean
 clean: com.clean
 com.clean: ;
-	@rm -f com/libcom.* com/Makeproj.*
+	@rm -f com/cygcom.* com/libcom.* com/Makeproj.*
 	@rm -f libcom.*

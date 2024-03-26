@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/03/01
+##       2024/03/21
 ##
 ## Implementation notes-
 ##       Note that for Cygwin, shared libraries MUST BE included in the
@@ -26,8 +26,8 @@
 ##       TARGET: uninstall  Remove C++ static and shared libraries
 ##
 ##       TARGET: lib   Create static library (Cygwin/Linux)
-##       TARGET: shr   Create shared library (Cygwin/Linux)
-##           shr.dll   Create shared library (Cygwin only)
+##       TARGET: shr   Create shared library (Linux)
+##       TARGET: dll   Create shared library (Cygwin only)
 ##
 ##############################################################################
 
@@ -46,22 +46,17 @@ LIB_SOURCE := $(SDL_ROOT)/bat/sys/.want-version
 
 ##############################################################################
 ## Set default target
+.PHONY: all default install lib shr
+all default install lib shr: ;
+
 ifeq "" "$(DEFAULT)"
 DEFAULT := all
 endif
 
-.PHONY: all default install lib shr shr.dll
 default: $(DEFAULT)
 
 all: lib shr
-lib shr shr.dll: ;
 install: all
-shr: lib
-
-ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-all: shr.dll
-shr.dll: shr
-endif
 
 .PHONY: echo
 echo: ;
@@ -88,44 +83,6 @@ $(SHARED): ; ######################### (Should already exist)
 
 $(STATIC): ; ######################### (Should already exist)
 	$(shell [ ! -d "$@" ] && mkdir $@) ## (Should not be needed)
-
-##############################################################################
-## PATTERNS
-$(OBJDIR)/%.dll: $(OBJDIR)/%.so.1.0
-	$(shell [ ! -L "$(@F)" ] && ln -s $(<F) $(@F))
-	touch $@
-
-$(OBJDIR)/%.so: $(OBJDIR)/%.so.1.0
-	$(shell [ ! -L "$(@F)" ] && ln -s $(<F) $(@F))
-	touch $@
-
-$(SHARED)/%.dll: $(SHARED)/%.so.1.0
-	$(shell [ ! -L "$@" ] && (cd $(<D); ln -s $(<F) $(@F)))
-	touch $@
-
-$(SHARED)/%.so: $(SHARED)/%.so.1.0
-	$(shell [ ! -L "$@" ] && (cd $(<D); ln -s $(<F) $(@F)))
-	touch $@
-
-.SECONDARY: $(OBJDIR)/.so
-$(SHARED)/%.so: $(OBJDIR)/%.so
-
-$(SHARED)/%.so.1.0: $(OBJDIR)/%.so.1.0
-	cp -Lpf $< $@
-	touch $@
-
-.SECONDARY: $(OBJDIR)/.so
-$(SHARED)/%.so.1.0: $(OBJDIR)/%.so
-
-$(STATIC)/%.a: $(OBJDIR)/%.a
-	cp -Lpf $< $@
-	touch $@
-
-## Build order dependencies (Library order set in */Makefile.DIR)
-%(SHARED)/%.so:  $(STATIC)/%.a
-%(SHARED)/%.so:  $(OBJDIR)/%.so
-%(SHARED)/%.dll: $(OBJDIR)/%.dll
-%(STATIC)/%.a:   $(OBJDIR)/%.a
 
 ##############################################################################
 ## TARGETS: update dependable

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2023/07/29
+//       2024/03/04
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -657,8 +657,16 @@ static void
 {
    statistic::Active* stat= nullptr;
 
+   // Delay, allowing threads to complete
+   Thread::sleep(0.25);
+
+   // Verify the object counters
+   error_count += VERIFY( Stream::obj_count.current.load() == 0 );
+   error_count += VERIFY( Request::obj_count.current.load() == 0 );
+   error_count += VERIFY( Response::obj_count.current.load() == 0 );
+
    // Display the object counters
-   if( opt_verbose > 1 ) {
+   if( opt_verbose > 1 || error_count ) {
      debugf("\n");
      debugf("           Total {   Cur,    Min,    Max}: Description\n");
      stat= &Stream::obj_count;
@@ -677,13 +685,8 @@ static void
            , stat->minimum.load(), stat->maximum.load());
    }
 
-   // Verify the object counters
-   error_count += VERIFY( Stream::obj_count.current.load() == 0 );
-   error_count += VERIFY( Request::obj_count.current.load() == 0 );
-   error_count += VERIFY( Response::obj_count.current.load() == 0 );
-
    // Display Reporter records
-   if( opt_verbose > 1 ) {
+   if( opt_verbose > 1 || error_count ) {
      Reporter::get()->report([](Reporter::Record& record) {
        debugf("%s\n", record.h_report().c_str());
      }); // reporter.report

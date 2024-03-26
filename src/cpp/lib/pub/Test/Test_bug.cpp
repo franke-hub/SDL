@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2023 Frank Eskesen.
+//       Copyright (c) 2007-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test debugging methods.
 //
 // Last change date-
-//       2023/11/21
+//       2024/03/04
 //
 //----------------------------------------------------------------------------
 #include <errno.h>                  // For errno
@@ -105,6 +105,7 @@ extern int                          // Return code
        test_bt();
 
      // Test modes
+     debug_set_head(Debug::HEAD_TIME);
      debug_set_mode(Debug::MODE_DEFAULT);
      debugf("Standard mode:\n");
      debugf("This appears in %s and %s\n", "TRACE", "STDOUT");

@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2020-2023 Frank Eskesen.
+##       Copyright (C) 2020-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -10,13 +10,13 @@
 ##----------------------------------------------------------------------------
 ##
 ## Title-
-##       .tweaks
+##       ~/bat/.tweaks
 ##
 ## Purpose-
 ##       Local configuration information.
 ##
 ## Last change date-
-##       2023/10/27
+##       2024/03/16
 ##
 ## Usage-
 ##       Copy this script into your ~/bin directory, then tailor it there.
@@ -26,50 +26,64 @@
 ##############################################################################
 ## Run ~/bin/tweaks if it exists (with recursion prevention)
 if [[ "$1" != "--bin" && -f ~/bin/.tweaks ]] ; then
-  source ~/bin/.tweaks --bin "$@"
-  return
+   source ~/bin/.tweaks --bin "$@"
+   return
 fi
 shift                               ## (Remove --bin)
 
 ##############################################################################
 ## ~/bat/backup.raid: The backup disk
 if [[ "$1" == "--backup.raid" ]] ; then
-  backup_raid="backup-raid"
-  return
+   backup_raid="backup-raid"
+   return
 fi
 
 ##############################################################################
 ## ~/bat/bluebird: xterm geometries
 if [[ "$1" == "--bluebird" ]] ; then
-  bluebird_time=false               ## Invoke xclock?
-  bluebird_root=80x24-0+164         ## -cs root  window geometry
-  bluebird_user=80x24-164+0         ## -cs linux window geometry
-  return
+   if [[ "${DISPLAY:0:9}" == "localhost" ]] ; then ## If invoked from Cygwin
+     bluebird_time=false            ## Invoke xclock?
+     bluebird_root=80x24-0+164      ## -cs root  window geometry
+     bluebird_user=80x24-164+0      ## -cs linux window geometry
+     return
+   fi
+
+## Machine Fedora 1920 X 1080 (GNOME)
+   bluebird_time=true               ## Invoke xclock?
+   bluebird_root=80x58-0+252        ## -cs root  window geometry
+   bluebird_user=80x75-167+0        ## -cs linux window geometry
+   return
 fi
 
 ##############################################################################
 ## ~/bat/rexleft: xterm geometries
 if [[ "$1" == "--rexleft" ]] ; then
-  rexleft_geom=80x24
-  rexleft_xgeo=(668 1170)
-  rexleft_ygeo=(0 382)
-  return
+## Machine Fedora 1920 X 1080
+   rexleft_geom=80x35
+   rexleft_xgeo=(668 1170)
+   rexleft_ygeo=(0 552)
+
+## Virtual Ubuntu 1920 X 977
+   rexleft_geom=80x23
+   rexleft_xgeo=(668 1170)
+   rexleft_ygeo=(0 496)
+   return
 fi
 
 ##############################################################################
-## ~/bat/rexterm: default colorset by [host][dest]
+## ~/bat/rexterm: default colorset by [dest]
 if [[ "$1" == "--rexterm" ]] ; then
-  colorset=paper
-  case $dest in
-    windows1 | windows2 | windowsN)
-      [[ "$host" != "$dest" ]] && colorset=partner
-      ;;
+   colorset=indian
+   case $dest in
+     windows1 | windows2 | windowsN)
+       colorset=partner
+       [[ "$host" == "$dest" ]] && colorset=paper
+       ;;
 
-    linux1 | linux2 | linuxN)
-      colorset=partner
-      [[ "$host" == "$dest" || -n "`osCYGWIN`" ]] && colorset=linux
-      ;;
-  esac
-  return
+     linux1 | linux2 | linuxN)
+       colorset=partner
+       [[ "$host" == "$dest" ]] && colorset=linux
+       ;;
+   esac
+   return
 fi
-

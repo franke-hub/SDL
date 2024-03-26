@@ -16,7 +16,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2024/02/26
+//       2024/03/05
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -938,13 +938,6 @@ void
 }
 
 void
-   debug_clr_head(                  // Clear a Heading options
-     Debug::Heading    head)        // The Heading option to clear
-{  std::lock_guard<decltype(mutex)> lock(mutex);
-   Debug::get()->clr_head(head);
-}
-
-void
    debug_flush( void )              // Flush write the trace file
 {  std::lock_guard<decltype(mutex)> lock(mutex);
    Debug::get()->flush();
@@ -962,11 +955,16 @@ std::string                         // The trace file name
    return Debug::get()->get_file_name();
 }
 
-void
-   debug_set_head(                  // Set a Heading options
-     Debug::Heading    head)        // The Heading option to set
+int                                 // The current Heading options
+   debug_get_head( void )           // Get the Heading options
 {  std::lock_guard<decltype(mutex)> lock(mutex);
-   Debug::get()->set_head(head);
+   return Debug::get()->get_head();
+}
+
+Debug::Mode                         // The current debug Mode
+   debug_get_mode( void )           // Get the debug Mode
+{  std::lock_guard<decltype(mutex)> lock(mutex);
+   return Debug::get()->get_mode();
 }
 
 void
@@ -981,6 +979,13 @@ void
      const char*       name)        // The trace file name
 {  std::lock_guard<decltype(mutex)> lock(mutex);
    Debug::get()->set_file_name(name);
+}
+
+void
+   debug_set_head(                  // Set a Heading options
+     int               head)        // The Heading option(s) to set
+{  std::lock_guard<decltype(mutex)> lock(mutex);
+   Debug::get()->set_head(head);
 }
 
 void

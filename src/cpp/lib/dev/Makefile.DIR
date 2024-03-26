@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/03/01
+##       2024/03/21
 ##
 ##############################################################################
 
@@ -29,53 +29,49 @@ DEV_OBJECT := $(patsubst dev/%.cpp,dev/%.o,$(wildcard dev/*.cpp))
 
 ##############################################################################
 ## Dependency controls
-DEV_DEPEND := dev/.have-version dev/Makeproj.gcc ## Dependency requirements
+DEV_DEPEND := dev/.have-version dev/Makeproj.all ## Dependency requirements
 
 dev/.have-version: $(LIB_SOURCE) ##### If dev/.have-version out of date
 	(cd $(OBJDIR)/dev/; $(MAKE) config)## Update it. (Full recompile possible)
 	touch $@
 
-dev/Makeproj.out: $(DEV_SOURCE) ###### If any source changed, make required
+dev/Makeproj.all: $(DEV_SOURCE) ###### Recompile/rebuild
+	(cd $(OBJDIR)/dev/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
 	touch $@
 
-dev/Makeproj.gcc: dev/Makeproj.out ### If compilation might be needed
-	(cd $(OBJDIR)/dev/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
-	echo -n "Last compile (check): " >$@; date >>$@
-
-$(DEV_DEPEND): $(STATIC)/libpub.a $(OBJDIR)/libpub.so
-
 ##############################################################################
-## TARGETS: dev/libdev.a libdev.a
-$(OBJDIR)/dev/libdev.a: $(DEV_DEPEND)
-
-$(OBJDIR)/libdev.a: $(OBJDIR)/dev/libdev.a
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
+## TARGETS: static/libdev.a
+$(STATIC)/libdev.a: dev/libdev.a
+	cp -Lpf $< $@
 	touch $@
 
 lib: $(STATIC)/libdev.a
+dev/libdev.a: dev/.have-version dev/Makeproj.all $(STATIC)/libpub.a
 
 ##############################################################################
-## TARGETS: dev/libdev.so.1.0 libdev.so
-$(OBJDIR)/dev/libdev.so.1.0: $(DEV_DEPEND)
-
-$(OBJDIR)/libdev.so.1.0: $(OBJDIR)/dev/libdev.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
+## TARGETS: shared/cygdev.dll shared/libdev.so.1.0 shared/libdev.so
+$(SHARED)/cygdev.dll: dev/cygdev.dll
+	cp -Lpf $< $@
 	touch $@
 
 .SECONDARY: $(SHARED)/libdev.so.1.0
+$(SHARED)/libdev.so.1.0: dev/libdev.so.1.0
+	cp -Lpf $< $@
+	touch $@
+
+$(SHARED)/libdev.so: $(SHARED)/libdev.so.1.0
+	$(shell [ ! -L "$@" ] && (cd $(SHARED); ln -s $(<F) $(@F)))
+	touch $@
+
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+shr: $(SHARED)/cygdev.dll
+dev/cygdev.dll: dev/Makeproj.all
+dev/Makeproj.all: dev/.have-version pub/Makeproj.all $(SHARED)/cygpub.dll
+else
 shr: $(SHARED)/libdev.so
-
-##############################################################################
-## TARGETS: dev/libdev.dll libdev.dll
-$(OBJDIR)/dev/libdev.dll: $(OBJDIR)/dev/libdev.so.1.0
-	(cd $(OBJDIR)/dev/; $(MAKE) shr)
-	touch $@
-
-$(OBJDIR)/libdev.dll: $(OBJDIR)/dev/libdev.dll
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-	touch $@
-
-shr.dll: $(SHARED)/libdev.dll
+dev/libdev.so.1.0: dev/Makeproj.all
+dev/Makeproj.all: dev/.have-version pub/Makeproj.all $(SHARED)/libpub.so
+endif
 
 ##############################################################################
 ## TARGET: dev.depend
@@ -97,11 +93,10 @@ dev.update: ;
 pristine: dev.pristine
 dev.pristine: ;
 	(cd $(OBJDIR)/dev/; $(MAKE) pristine)
-	@rm -f $(SHARED)/libdev.*
+	@rm -f $(SHARED)/cygdev.* $(SHARED)/libdev.*
 	@rm -f $(STATIC)/libdev.*
 
 .PHONY: dev.clean
 clean: dev.clean
 dev.clean: ;
-	@rm -f dev/libdev.* dev/Makeproj.*
-	@rm -f libdev.*
+	@rm -f dev/cygdev.* dev/libdev.* dev/Makeproj.*

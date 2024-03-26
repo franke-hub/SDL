@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2023 Frank Eskesen.
+//       Copyright (c) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Display environmental control variables.
 //
 // Last change date-
-//       2023/04/29
+//       2024/03/25
 //
 //----------------------------------------------------------------------------
 #define _FILE_OFFSET_BITS 64        // (Required for LINUX)
@@ -513,6 +513,12 @@ static inline int
    debugf("%8.5s defined(%s)\n", chs, "__GNUG__");
 
    chs= "NOT";
+#ifdef __has_declspec_attribute
+   chs= "IS";
+#endif
+   debugf("%8.5s defined(%s)\n", chs, "__has_declspec_attribute");
+
+   chs= "NOT";
 #ifdef _POSIX_SOURCE
    chs= "IS";
 #endif
@@ -573,6 +579,7 @@ static inline int
    debugf("\n");
    MACROF(__cplusplus);
    MACROF(__FAVOR_BSD);
+   MACROF(__has_declspec_attribute);
    MACROF(__KERNEL_STRICT_NAMES);
    MACROF(__LARGE64_FILES);
    MACROF(__POSIX_VISIBLE);

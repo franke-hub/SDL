@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2023/12/13
+//       2024/03/04
 //
 // Arguments-
 //       With no arguments, --client defaulted
@@ -500,7 +500,7 @@ static int                          // Return code, 0 expected
      debug_set_mode(Debug::MODE_INTENSIVE);
      debugh("HCDM: MODE_INTENSIVE\n");
    }
-   debug_set_head(Debug::HEAD_THREAD);
+   debug_set_head(Debug::HEAD_THREAD | Debug::HEAD_TIME);
 
    if( opt_trace ) {                // If --trace specified
      //-----------------------------------------------------------------------

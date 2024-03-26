@@ -15,13 +15,25 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/03/01
+##       2024/03/21
 ##
 ##############################################################################
 
 ##############################################################################
 ## Local options
 COPTS  += -fPIC ###################### Generate position independent code
+module := pub
+CYGDLL :=
+CYGDLL += -shared -o cyg${module}.dll
+CYGDLL += -Wl,--out-implib=lib${module}.dll.a
+CYGDLL += -Wl,--export-all-symbols
+CYGDLL += -Wl,--enable-auto-import
+ignore += -Wl,--whole-archive ${old_libs}
+ignore += -Wl,--no-whole-archive ${dependency_libs}
+
+ifneq "" "$(LINKMAP)"
+CYGDLL += -Wl,-Map -Wl,lib${module}.map
+endif
 
 ##############################################################################
 ## Set targets
@@ -35,40 +47,31 @@ all: lib shr
 lib: .have-version
 shr: .have-version
 lib: libpub.a
-shr: libpub.so
 update: all
 
 ifneq "" "$(findstring CYGWIN,$(shell uname))"
-shr: libpub.dll
+shr: cygpub.dll
+else
+shr: libpub.so.1.0
 endif
 
 ##############################################################################
 ## TARGET: libpub.a
 libpub.a: $(MAKOBJ)
+	rm -f $@
 	$(AR) $@ $^
 	touch $@
 
-## libpub.a: ;                      ## (No library dependency)
-
 ##############################################################################
-## TARGETS: libpub.so.1.0 libpub.so libpub.dll
-ifneq "" "$(LINKMAP)"
-LINKMAP := -Wl,-Map -Wl,libpub.map ### Generate linker map
-endif
+## TARGETS: cygpub.dll libpub.so.1.0
+cygpub.dll: $(MAKOBJ)
+	$(CC) $(CYGDLL) $^ $(CLIBS)
+	rebase -b 0x220000000 $@
+	touch $@
 
 libpub.so.1.0: $(MAKOBJ)
 	$(CC) $(LINKMAP) -shared -o $@ $^ $(CLIBS)
 	touch $@
-
-libpub.so: libpub.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-
-libpub.dll: libpub.so.1.0
-	$(shell [ ! -L "$@" ] && ln -s $< $@)
-	rebase -b 0x250000000 $@
-	touch $@
-
-## libpub.so.1.0: ;                 ## (No library dependency)
 
 ##############################################################################
 ## TARGET: config
@@ -89,8 +92,7 @@ include $(INCDIR)/pub/Makefile.BSD
 .PHONY: pub.clean pub.pristine
 clean: pub.clean
 pub.clean: ;
-	@rm -f libpub.a
-	@rm -f libpub.so* libpub.dll
+	@rm -f cygpub.* libpub.*
 	@rm -f Makeproj.*
 
 pristine: pub.pristine

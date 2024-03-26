@@ -4,7 +4,7 @@
 using namespace PUB::debugging;
 
 int main() {
-   debug_set_head(PUB::Debug::HEAD_THREAD);
+   debug_set_head(PUB::Debug::HEAD_THREAD | PUB::Debug::HEAD_TIME);
    debugh("main() invoked\n");
 
    using namespace PUB::dispatch;

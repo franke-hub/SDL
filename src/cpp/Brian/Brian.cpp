@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2020 Frank Eskesen.
+//       Copyright (c) 2019-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Brian mainline.
 //
 // Last change date-
-//       2020/08/23
+//       2024/03/04
 //
 // Controls-
 //       If the first parameter is not a switch parameter, it specifies the
@@ -219,7 +219,7 @@ extern int                          // Return code
 
    Debug debug(opt_debug);
    Debug::set(&debug);
-   debug_set_head(Debug::HEAD_THREAD);
+   debug_set_head(Debug::HEAD_TIME | Debug::HEAD_THREAD);
    if( opt_verbose > 5 )
      debug_set_mode(Debug::MODE_INTENSIVE);
 

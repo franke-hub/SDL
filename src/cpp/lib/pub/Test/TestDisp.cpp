@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2023 Frank Eskesen.
+//       Copyright (c) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test the Dispatch objects.
 //
 // Last change date-
-//       2023/06/23
+//       2024/03/04
 //
 // Arguments: (For test_timing only)
 //       TestDisp --timing          // (Only run timing test)
@@ -484,7 +484,7 @@ extern int
 
    tc.on_init([tr](int, char**)
    {
-     debug_set_head(Debug::HEAD_THREAD); // Include thread in heading
+     debug_set_head(Debug::HEAD_THREAD | Debug::HEAD_TIME);
      if( opt_hcdm )
        debug_set_mode(Debug::MODE_INTENSIVE);
 

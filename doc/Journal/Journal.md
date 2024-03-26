@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       Development journal
 //
 // Last change date-
-//       2023/08/05
+//       2024/03/20
 //
 -------------------------------------------------------------------------- -->
 
@@ -25,6 +25,42 @@
 
 This journal is a record of the SDL (Software Development Lab) distribution: a
 set of libraries, programs, and associated documentation.
+
+----
+
+#### 03/20/2024
+I've been negligent in updating this Journal.
+
+I spent a lot of time working on HTTP/2, getting RFC7541 and a reference
+implementation of HPACK compression working. I don't think that's been useful
+since HTTP/3 is the newer thing and that looks like too much effort to try to
+implement anyway.
+
+I've been working on updating the documentation. Doing that, however, I'm
+easily distracted. It's not enjoyable. I write computer code easily. English,
+however, is hard. Right now I'm 3/4 of the way through updating pub::Debug
+documentation and verifying that the links work. Mushing through this I find
+things I should have done differently, so I do them differently.
+
+I fooled around with some AI stuff starting in December. It turns out that my
+graphics card is too old to be useful, so there's not much that I can do with
+the open source packages. That's on hold for now.
+
+January was pretty much a bust due to Covid. It left me foggy for three weeks.
+
+I spent most of February restructuring the makefiles. I'm not sure how much of
+that was necessary or just change. Anyway, were errors left over that were
+found by running make in different conditions.
+
+March is gone and there are a lot of changed files, mostly because of interface
+updates. The next commit is coming soon, but the pub::Debug documentation will
+not be completed. I want to get all the known makefile glitches fixed and then
+maybe get back to that.
+
+However, I'm finding that I'd like to get both the ncurses editor and the xcb
+editor working with the same functionality. This means (at least) adding undo
+capability into the ncurses editor and paragraph formatting into the xcb
+editor. That's the plan, anyway. We'll see.
 
 ----
 

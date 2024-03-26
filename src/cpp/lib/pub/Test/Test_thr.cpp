@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2023 Frank Eskesen.
+//       Copyright (c) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Thread function.
 //
 // Last change date-
-//       2023/04/29
+//       2024/03/04
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -717,8 +717,7 @@ extern int
      if( HCDM ) opt_hcdm= true;
      if( VERBOSE > opt_verbose ) opt_verbose= VERBOSE;
 
-     debug_set_head(Debug::HEAD_THREAD);
-     debug_set_head(Debug::HEAD_TIME);
+     debug_set_head(Debug::HEAD_THREAD | Debug::HEAD_TIME);
      if( opt_hcdm )
        debug_set_mode(Debug::MODE_INTENSIVE);
 

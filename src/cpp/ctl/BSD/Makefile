@@ -69,9 +69,10 @@ vpath
 ##############################################################################
 ## Set default paths
 INCDIR = H######################### Include directory
-LIBDIR = L######################### Library directory
+LIBDIR = L######################### (Static) library directory
 MAKDIR = M######################### Makefile directory
 OBJDIR = .######################### Object directory
+SHRDIR = D######################### (Shared) library directory
 SRCDIR = S######################### Source directory
 
 ##############################################################################

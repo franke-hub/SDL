@@ -16,7 +16,7 @@
 //       Editor: Implement EdTerm.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2024/02/04
+//       2024/03/04
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -689,13 +689,13 @@ void
          activate(file);
        break;
      }
-     case XK_F9: {                  // Copy to command line
-       if( state & gui::KS_CTRL ) { // Copy cursor line to command line
+     case XK_F9: {                  // Copy filename/cursor line to history
+       if( state & gui::KS_CTRL ) { // (^-F9) Copy cursor line to command line
          // (This sequence DOES NOT change the cursor line)
          Active& active= data->active; // The current command line
          const char* command= active.truncate(); // Truncate it
          editor::hist->activate(command); // Activate the history view
-       } else {                     // Copy file name to command line
+       } else {                     // (F9) Copy file name to command line
          editor::hist->activate(editor::file->name.c_str());
        }
        break;
