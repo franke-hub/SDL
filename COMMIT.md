@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/03/26
+//       2024/03/27
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,14 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 03/27/2024 maint
+
+- The ~/obj/cpp/NN2 make process now writes an error message (but completes
+normally) if ImageMagick-7 is not installed. User modification of the makefile
+is not required.
 
 ----
 

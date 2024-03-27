@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2018-2023 Frank Eskesen.
+##       Copyright (C) 2018-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,12 +15,17 @@
 ##       NN2 subdirectory information.
 ##
 ## Last change date-
-##       2023/08/07
+##       2024/03/27
 ##
 ## Implementation notes-
 ##       There isn't really much to see here. While the image displays are
 ##       operational, the neural network's pretty primitive and doesn't do
 ##       anything useful toward image classification.
+##
+##       The image display functions require the development version of
+##       ImageMagick-7(-devel), but it isn't available on every software
+##       distribution. The makefile currently displays an error message
+##       (but completes normally) if it's missing.
 ##
 ##############################################################################
 

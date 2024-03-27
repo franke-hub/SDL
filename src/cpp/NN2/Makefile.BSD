@@ -15,9 +15,21 @@
 ##       CYGWIN/LINUX Makefile customization
 ##
 ## Last change date-
-##       2024/03/01
+##       2024/03/27
 ##
 ##############################################################################
+
+##############################################################################
+## NN2 Requires ImageMagick-7 (Does not compile with ImageMagic-6)
+have_ImageMagick7=$(shell [ -e "/usr/include/ImageMagick-7" ] && echo "TRUE")
+ifeq "" "$(have_ImageMagick7)"
+.PHONY: need_ImageMagick7
+need_ImageMagick7: ;
+	@echo; echo
+	@echo "NN2 requires ImageMagick-7(-devel), but it's not installed"
+	@echo "(make terminated)"
+	@echo; echo
+endif
 
 ##############################################################################
 ## Local options
