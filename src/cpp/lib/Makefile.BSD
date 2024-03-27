@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/03/21
+##       2024/03/27
 ##
 ## Implementation notes-
 ##       Note that for Cygwin, shared libraries MUST BE included in the
@@ -71,7 +71,7 @@ SHARED := shared
 STATIC := static
 
 ~/.local/lib: ;
-	mkdir -p $@
+	@mkdir -p $@
 
 ~/.local/lib/sdlc++: ~/.local/lib
 	$(shell [ ! -L "$@" ] && (cd ~/.local/lib; ln -s $(PWD)/$(SHARED) $(@F)))
@@ -83,6 +83,10 @@ $(SHARED): ; ######################### (Should already exist)
 
 $(STATIC): ; ######################### (Should already exist)
 	$(shell [ ! -d "$@" ] && mkdir $@) ## (Should not be needed)
+
+lib: ./static
+shr: ./shared
+shr: ~/.local/lib/sdlc++
 
 ##############################################################################
 ## TARGETS: update dependable
