@@ -16,219 +16,19 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2024/01/25
-//
-// Implementation objects-
-//       EdLine: Editor EdFile line descriptor
-//       EdMess: Editor EdFile message descriptor
-//       EdHide: Editor EdFile hidden line group (NOT IMPLEMENTED)
-//       EdRedo: Editor EdFile Redo/Undo control
-//       EdFile: Editor File descriptor
+//       2024/03/31
 //
 //----------------------------------------------------------------------------
 #ifndef EDFILE_H_INCLUDED
 #define EDFILE_H_INCLUDED
 
-#include <sys/stat.h>               // For struct stat
-
-#include <gui/Types.h>              // For gui::Line
 #include <pub/List.h>               // For pub::List
 #include <pub/Signals.h>            // For namespace pub::signals
 
 #include "Editor.h"                 // For Editor
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       EdLine
-//
-// Purpose-
-//       Editor Line
-//
-// Implementation note-
-//       Lines are allocated and deleted, but text is never deleted
-//
-//----------------------------------------------------------------------------
-class EdLine : public pub::List<EdLine>::Link { // Editor Line descriptor
-//----------------------------------------------------------------------------
-// EdLine::Attributes
-public:
-const char*            text;        // Text, never nullptr
-
-uint16_t               flags= 0;    // Control flags
-enum FLAGS                          // Control flags
-{  F_NONE= 0x0000                   // No flags
-,  F_MARK= 0x0001                   // Line is marked (selected)
-,  F_PROT= 0x0002                   // Line is read/only
-,  F_HIDE= 0x0004                   // Line is hidden
-,  F_AUTO= 0x0100                   // Line is in automatic (stack) storage
-};
-
-unsigned char          delim[2]= {'\0', 0}; // Delimiter (NONE default)
-//   For [0]= '\n', [1]= either '\r' or '\0' for DOS or Unix format.
-//   For [0]= '\0', [1]= repetition count. {'\0',0}= NO delimiter
-
-//----------------------------------------------------------------------------
-// EdLine::Constructor/Destructor
-//----------------------------------------------------------------------------
-public:
-   EdLine(                          // Constructor
-     const char*       text= nullptr); // Line text
-
-   ~EdLine( void );                 // Destructor
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdLine::debug
-//
-// Purpose-
-//       (Minimal) debugging display
-//
-//----------------------------------------------------------------------------
-void
-   debug( void ) const;             // Debugging display
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdLine::is_within
-//
-// Purpose-
-//       Is this line within range head..tail (inclusive)?
-//
-//----------------------------------------------------------------------------
-bool
-   is_within(                       // Is this line within range head..tail?
-     const EdLine*     head,        // First line in range
-     const EdLine*     tail) const; // Final line in range
-}; // class EdLine
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       EdMess
-//
-// Purpose-
-//       Editor Message
-//
-//----------------------------------------------------------------------------
-class EdMess : public pub::List<EdMess>::Link { // Editor message descriptor
-//----------------------------------------------------------------------------
-// EdMess::Attributes
-public:
-enum                                // Message types
-{  T_INFO                           // T_INFO: Informational, any key removes
-,  T_MESS                           // T_MESS: Action, button click required
-,  T_BUSY                           // T_BUSY: Limited function until complete
-};
-
-std::string            mess;        // The message
-int                    type= T_INFO; // The message type
-
-//----------------------------------------------------------------------------
-// EdMess::Constructor/Destructor
-//----------------------------------------------------------------------------
-public:
-   EdMess(                          // Constructor
-     std::string       mess_,       // Message text
-     int               type_= T_INFO);
-
-   ~EdMess( void );                 // Destructor
-}; // class EdMess
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       EdHide
-//
-// Purpose-
-//       Editor hidden line group
-//
-// Implementation note-
-//       Caller *ALWAYS* verifies that head/tail not protected
-//
-//----------------------------------------------------------------------------
-class EdHide : public EdLine {      // Editor hidden line group
-//----------------------------------------------------------------------------
-// EdHide::Attributes
-//----------------------------------------------------------------------------
-public:
-std::string            info;        // The text line string
-size_t                 count= 0;    // The number of hidden lines
-pub::List<EdLine>      list;        // The hidden line list
-
-//----------------------------------------------------------------------------
-// EdHide::Constructor/Destructor
-//----------------------------------------------------------------------------
-public:
-   EdHide(                          // Constructor
-     EdLine*           head_= nullptr, // First hidden line
-     EdLine*           tail_= nullptr); // Final hidden line
-
-   ~EdHide( void );                 // Destructor
-
-//----------------------------------------------------------------------------
-// EdHide::Methods
-//----------------------------------------------------------------------------
-public:
-void
-   append(                          // Add to end of list
-     EdLine*           line);       // Making this the new tail line
-
-void
-   prepend(                         // Add to beginning of list
-     EdLine*           line);       // Making this the new head line
-
-void
-   remove( void );                  // Remove (and delete) this hidden line
-
-void
-   update( void );                  // Update the count and the message
-}; // class EdHide
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       EdRedo
-//
-// Purpose-
-//       Editor Redo/Undo action
-//
-//----------------------------------------------------------------------------
-class EdRedo : public pub::List<EdRedo>::Link { // Editor Undo/Redo
-//----------------------------------------------------------------------------
-// EdRedo::Attributes
-public:
-EdLine*                head_insert= nullptr; // First line inserted
-EdLine*                tail_insert= nullptr; // Last line  inserted
-EdLine*                head_remove= nullptr; // First line removed
-EdLine*                tail_remove= nullptr; // Last line  removed
-
-// Block copy/move columns
-ssize_t                lh_col= -1;  // Left  hand column
-ssize_t                rh_col= -1;  // Right hand column
-
-//----------------------------------------------------------------------------
-// EdRedo::Destructor/Constructor
-//----------------------------------------------------------------------------
-public:
-   ~EdRedo( void );                 // Destructor
-   EdRedo( void );                  // Constructor
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdRedo::debug
-//
-// Purpose-
-//       Debugging display.
-//
-//----------------------------------------------------------------------------
-void
-   debug(                           // Debugging display
-     const char*       info= nullptr) const; // Associated info
-}; // class EdRedo
+#include "EdLine.h"                 // For EdLine, EdHide
+#include "EdMess.h"                 // For EdMess
+#include "EdRedo.h"                 // For EdRedo
 
 //----------------------------------------------------------------------------
 //
@@ -236,7 +36,7 @@ void
 //       EdFile
 //
 // Purpose-
-//       Editor File
+//       Editor File descriptor
 //
 //----------------------------------------------------------------------------
 class EdFile : public pub::List<EdFile>::Link { // Editor file descriptor
@@ -336,20 +136,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdFile::append
-//
-// Purpose-
-//       Load file data
-//
-//----------------------------------------------------------------------------
-EdLine*                             // The last inserted line
-   append(                          // Append file
-     const char*       name,        // The file name to insert
-     EdLine*           line);       // Insert after this line
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       EdFile::command
 //
 // Purpose-
@@ -359,7 +145,21 @@ EdLine*                             // The last inserted line
 void
    command(                         // Load command output
      const char*       input,       // The command name
-     const std::string&output);     // Insert after this line
+     const std::string&output);     // The command output
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdFile::insert_file
+//
+// Purpose-
+//       Load and insert file without redo/undo
+//
+//----------------------------------------------------------------------------
+EdLine*                             // The last inserted line
+   insert_file(                     // Insert file (Without redo/undo)
+     const char*       name,        // The file name to insert
+     EdLine*           line);       // Insert after this line
 
 //----------------------------------------------------------------------------
 //
@@ -367,17 +167,17 @@ void
 //       EdFile::insert
 //
 // Purpose-
-//       Insert file line(s)
+//       Insert file line(s) without redo/undo
 //
 //----------------------------------------------------------------------------
 EdLine*                             // (Always tail)
-   insert(                          // Insert
+   insert(                          // Insert without redo/undo
      EdLine*           after,       // After this line
      EdLine*           head,        // From this line
      EdLine*           tail);       // Upto this line
 
 EdLine*                             // (Always line)
-   insert(                          // Insert
+   insert(                          // Insert without redo/undo
      EdLine*           after,       // After this line
      EdLine*           line)        // This line
 {  return insert(after, line, line); }
@@ -386,9 +186,11 @@ EdLine*                             // (Always line)
 //
 // Method-
 //       EdFile::new_line
+//       EdFile::new_text
 //
 // Purpose-
-//       Allocate a new line, also setting the delimiter
+//       Allocate a new line, also setting the delimiter (Immutable text)
+//       Allocate a new line, also setting the delimiter (Duplicated text)
 //
 // Implementation note-
 //       DOS files get DOS delimiters. All others get UNIX delimiters.
@@ -396,7 +198,20 @@ EdLine*                             // (Always line)
 //----------------------------------------------------------------------------
 EdLine*                             // The allocated line
    new_line(                        // Allocate a new line
-     const char*       text= nullptr) const; // Line text
+     const char*       text= nullptr) const; // (Immutable) text
+
+EdLine*                             // The allocated line
+   new_text(                        // Allocate a new line with copied text
+     const char*       text= nullptr) const // (Temporary) text
+{
+   if( text ) {
+     char* copy= allocate(strlen(text) + 1);
+     strcpy(copy, text);
+     text= copy;
+   }
+
+   return new_line(text);
+}
 
 //----------------------------------------------------------------------------
 //

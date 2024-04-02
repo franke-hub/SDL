@@ -45,6 +45,7 @@ class EdHist : public EdView {      // Editor command controller
 //----------------------------------------------------------------------------
 public:
 pub::List<EdLine>      hist_list;   // History line list
+bool                   info_message= false; // Reset text after message?
 
 //----------------------------------------------------------------------------
 // EdHist::Destructor/Constructor

@@ -16,7 +16,7 @@
 //       Implement gui/Device.h
 //
 // Last change date-
-//       2024/01/23
+//       2024/03/31
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -31,7 +31,7 @@
 #include <pub/utility.h>            // For pub::utility::dump
 
 #include "gui/Device.h"             // Implementation class
-#include "gui/Global.h"             // For Global data areas and utilities
+#include "gui/Global.h"             // For opt_* definitions
 #include "gui/Layout.h"             // For Layout
 #include "gui/Types.h"              // For enum KEY_STATE, DEV_EVENT_MASK
 #include "gui/Widget.h"             // For Widget
@@ -50,6 +50,25 @@ enum // Compilation controls
 }; // Compilation controls
 
 namespace gui {
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       checkstop
+//
+// Purpose-
+//       Handle checkstop condition.
+//
+//----------------------------------------------------------------------------
+static void
+   checkstop(                       // Check stop
+     int               line,        // Line number
+     const char*       name)        // Function name
+{
+   debugh("%4d Device.cpp::%s CHECKSTOP\n", line, name);
+   debug_flush();
+   exit(2);
+}
+
 //----------------------------------------------------------------------------
 // get_name: Get widget name (or "<nullptr>")
 //----------------------------------------------------------------------------
@@ -634,7 +653,7 @@ void
          }
          case XCB_MOTION_NOTIFY: {
            xcb_motion_notify_event_t* et= (xcb_motion_notify_event_t*)e;
-           if( run_hcdm && opt_verbose >= 0) debugh("DEV.MOTION_NOTIFY\n");
+           if( run_hcdm && opt_verbose > 1) debugh("DEV.MOTION_NOTIFY\n");
            locate_window(et->event, this)->motion_notify(et);
            break;
          }
@@ -648,7 +667,7 @@ void
          case XCB_PROPERTY_NOTIFY: {
            xcb_property_notify_event_t* et= (xcb_property_notify_event_t*)e;
            Window* window= locate_window(et->window, this);
-           if( run_hcdm ) event_diagnostic(window, et);
+           if( run_hcdm && opt_verbose > 0 ) event_diagnostic(window, et);
            window->property_notify(et);
            break;
          }

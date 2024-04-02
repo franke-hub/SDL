@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2024/03/04
+##       2024/04/02
 ##
 ## Implementation notes-
 ##       See ".USAGE.md" for usage and implementation information.
@@ -24,6 +24,22 @@
 
 ##############################################################################
 ## STATUS: 2023/05/12
+2024/04/02 editxcb feature update
+- INSERT  command: Insert file after cursor (with redo/undo)
+- MARGINS command: Set/display margins for paragraph function (ctrl-P)
+- TABS    command: Set/display screen tabs
+- Implemented forward/reverse tabs: update cursor position
+- Implemented ctrl-P (paragraph) function
+
+Restructured modules, splitting some functions into .hpp files.
+- EdBifs.cpp
+  - Moved tabs and margin functions into EdTabs.hpp, included by EdBifs.cpp
+- EdFile.h
+  - Split and added EdRedo.h, EdLine.h, and EdMess.h declaration files
+- EdFile.cpp
+  - Moved EdRedo.h, EdLine.h, and EdMess.h implementations into
+    EdRedo.hpp, included by EdFile.cpp
+
 2024/03/04 See TODOs, implement what's possible.
 
 ##############################################################################

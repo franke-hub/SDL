@@ -16,12 +16,16 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2024/02/01
+//       2024/04/02
 //
 //----------------------------------------------------------------------------
+#include <string>                   // For std::string
+
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Signals.h>            // For pub::signals::Connector
+#include <pub/Tokenizer.h>          // For pub::Tokenizer
 #include <pub/Trace.h>              // For pub::Trace
+#include <pub/Utf.h>                // For pub::Utf8::get_codes
 
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For namespace editor
@@ -249,7 +253,7 @@ const char*                         // Error message, nullptr expected
    if( mark_file == nullptr )
      return "No mark";
    if( editor::view != editor::data )
-     return "Cursor view";
+     return "History view";
 
    // Commit the current line
    editor::data->commit();
@@ -297,8 +301,8 @@ const char*                         // Error message, nullptr expected
    if( error ) return error;
 
    if( mark_file != editor::file ) { // If the mark is in a different file
-     mark_file->put_message("Mark data removed"); // The "from" file
-     rc= "Mark was in a different file";
+     mark_file->put_message("Mark removed"); // The "from" file
+     rc= "Mark was in another file";
    }
 
    // Trace the cut
@@ -382,7 +386,115 @@ const char*                         // Error message, nullptr expected
 //----------------------------------------------------------------------------
 const char*                         // Error message, nullptr expected
    EdMark::format( void )           // Format the marked area
-{  return "NOT CODED YET"; }
+{
+   typedef std::string              string;
+   typedef pub::Tokenizer           Tokenizer;
+   typedef Tokenizer::Iterator      Iterator;
+
+   Active* const active= editor::active;
+   EdFile* const edFile= editor::file;
+   size_t  const l_margin= editor::margins[0] - 1;
+   size_t  const r_margin= editor::margins[1] - 1;
+
+   // Validate state
+   if( mark_file == nullptr )
+     return "No mark";
+   if( mark_file->protect )
+     return "Protected";
+   if( copy_col >= 0 )
+     return "Line block required";
+   if( editor::view != editor::data )
+     return "History view";
+   if( mark_file != edFile )         // If a different file is marked
+     undo();                         // (Silently) undo the mark
+
+   // Perform the format (with REDO)
+   unsigned char delim[2]= {'\n', 0}; // Default UNIX mode
+   if( edFile->mode == EdFile::M_DOS )
+     delim[1]= '\r';
+
+   EdLine* cursor= edFile->csr_line;
+   EdLine* prev= mark_head->get_prev();
+   EdRedo* redo= new EdRedo();
+   redo->head_remove= mark_head;
+   redo->tail_remove= mark_tail;
+   edFile->line_list.remove(mark_head, mark_tail);
+
+   string removed;
+   for(EdLine* line= mark_head; line; line= line->get_next()) {
+     if( removed != "" )
+       removed += ' ';
+     removed += line->text;
+     if( line == cursor )
+       edFile->csr_line= prev;
+     if( line == mark_tail )
+       break;
+   }
+
+   Tokenizer tokenizer(removed);
+   Iterator  tix= tokenizer.begin();
+   pub::List<EdLine> list;          // Replacement line list
+
+   string insert_str;
+   size_t insert_col= 0;
+   while( tix != tokenizer.end() ) {
+     string token_str= tix();
+     size_t token_col= pub::Utf8::get_codes(token_str);
+     if( insert_col == 0) {
+       insert_str= tix();
+       insert_col= token_col;
+       ++tix;
+       continue;
+     }
+
+     if( (l_margin + insert_col + token_col + 1) > r_margin ) {
+       active->reset();
+       active->fetch(l_margin);
+       active->append_text(insert_str.c_str(), insert_str.length());
+       EdLine* line= edFile->new_text(active->get_changed());
+       line->delim[0]= delim[0]; line->delim[1]= delim[1];
+       line->flags= EdLine::F_MARK;
+       list.fifo(line);
+
+       insert_str= "";
+       insert_col= 0;
+       continue;
+     }
+
+     insert_str += ' ' + token_str;
+     insert_col += token_col + 1;
+     ++tix;
+   }
+
+   if( insert_col ) {
+     active->reset();
+     active->fetch(l_margin);
+     active->append_text(insert_str.c_str(), insert_str.length());
+     EdLine* line= edFile->new_text(active->get_changed());
+     line->delim[0]= delim[0]; line->delim[1]= delim[1];
+     line->flags= EdLine::F_MARK;
+     list.fifo(line);
+   }
+
+   if( list.get_head() ) {          // If any lines inserted
+     mark_line= mark_head= redo->head_insert= list.get_head();
+     mark_tail= redo->tail_insert= list.get_tail();
+     edFile->insert(prev, mark_head, mark_tail);
+   } else {
+     mark_line= mark_head= mark_tail= nullptr;
+     mark_file= nullptr;
+   }
+
+   edFile->redo_insert(redo);
+   edFile->activate(prev);
+   editor::term->draw();
+
+   // Raise ChangeEvent signal
+   ChangeEvent event= {edFile, redo};
+   change_signal.signal(event);
+
+   return nullptr;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -496,12 +608,12 @@ const char*                         // Error message, nullptr expected
      EdLine*           edLine,      // And this EdLine
      ssize_t           column)      // And this column (block copy)
 {
-   if( edLine->flags & EdLine::F_PROT )
-     return "Protected";
-   if( mark_file && mark_file != edFile )
-     return "Different file already marked";
    if( editor::view != editor::data )
-     return "Cursor view";
+     return "History view";
+   if( edLine->flags & EdLine::F_PROT )
+     return "Protected line";
+   if( mark_file && mark_file != edFile ) // If a different file is marked
+     undo();                         // (Silently) undo the mark
 
    if( column >= 0 ) {               // If block mark
      if( mark_col < 0 ) {            // If no block mark yet
@@ -600,7 +712,7 @@ const char*                         // Error message, nullptr expected
    if( copy_list.get_head() == nullptr )
      return "No copy/cut";
    if( editor::view != editor::data )
-     return "Cursor view";
+     return "History view";
    if( editor::file->protect )
      return "Read/only";
    if( edLine->get_next() == nullptr )
@@ -783,7 +895,7 @@ const char*                         // Error message, nullptr expected
    if( editor::file->protect )
      return "Read/only";
    if( editor::view != editor::data )
-     return "Cursor view";
+     return "History view";
 
    if( mark_col < 0 ) {             // Verify line copy
      if( edLine->get_next() == nullptr ) // Disallow copy past end
@@ -817,26 +929,27 @@ const char*                         // Error message, nullptr expected
      EdLine*           edLine)      // After(line) or into(block) this line
 {
    const char* error= verify_copy(edLine);
-   if( error == nullptr ) {
-     if( mark_file->protect )
-       return "Read/only mark";
+   if( error )
+     return error;
 
-     // If moving columns within a mark and to the right of the mark,
-     // subtract the number of columns moved from the current column.
-     EdView& data= *editor::data;   // The data view
-     if( (data.cursor->flags & EdLine::F_MARK) // If moving into marked line
-         && mark_lh >= 0            // If column move
-         && data.get_column() > size_t(mark_rh) ) { // If move left past mark
-       size_t cols= mark_rh - mark_lh + 1; // Column move count
-       if( cols <= data.col )       // If column adjustment sufficient
-         data.col -= (decltype(data.col))cols;
-       else {
-         cols -= data.col;
-         data.col= 0;
-         data.col_zero -= (decltype(data.col_zero))cols;
-       }
+   if( mark_file->protect )
+     return "Read/only source";
+
+   // If moving columns within a mark and to the right of the mark,
+   // subtract the number of columns moved from the current column.
+   EdView& data= *editor::data;     // The data view
+   if( (data.cursor->flags & EdLine::F_MARK) // If moving into marked line
+       && mark_lh >= 0              // If column move
+       && data.get_column() > size_t(mark_rh) ) { // If move left past mark
+     size_t cols= mark_rh - mark_lh + 1; // Column move count
+     if( cols <= data.col )         // If column adjustment sufficient
+       data.col -= (decltype(data.col))cols;
+     else {
+       cols -= data.col;
+       data.col= 0;
+       data.col_zero -= (decltype(data.col_zero))cols;
      }
    }
 
-   return error;
+   return nullptr;
 }

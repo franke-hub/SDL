@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2021-2022 Frank Eskesen.
+//       Copyright (C) 2021-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Utf.h implementation methods: classes Utf, Utf8, Utf16, and Utf32.
 //
 // Last change date-
-//       2022/09/02
+//       2024/03/30
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
@@ -424,6 +424,33 @@ Utf8& Utf8::operator= (const utf8_t* src) // Copy utf8_t string
 {
    init(Utf8::get_init(src));
    return *this;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Utf8::get_code
+//
+// Purpose-
+//       Get the length of a string in code points
+//
+//----------------------------------------------------------------------------
+size_t                              // The length of the (utf8) string
+   Utf8::get_codes(                 // Get length (in code points)
+     const std::string src)         // Of this string
+{
+   const char* origin= src.c_str();
+   size_t offset= 0;
+   size_t length= src.length();
+
+   size_t col_count= 0;
+   while( offset < length ) {
+     ++col_count;
+     unsigned L= utf8size(origin, offset);
+     offset += L;
+   }
+
+   return col_count;
 }
 
 //----------------------------------------------------------------------------

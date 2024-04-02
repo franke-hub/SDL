@@ -92,50 +92,6 @@ enum OPT_INDEX                      // Must match OPTS[]
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       init
-//
-// Purpose-
-//       Initialize
-//
-//----------------------------------------------------------------------------
-static int                          // Return code (0 OK)
-   init(int, char**)                // Initialize
-//   int               argc,        // Argument count (Unused)
-//   char*             argv[])      // Argument array (Unused)
-{
-   //-------------------------------------------------------------------------
-   // Initialize globals
-   gui::opt_hcdm= opt_hcdm;         // Expose options
-   gui::opt_verbose= opt_verbose - 1;
-
-   config::opt_hcdm= opt_hcdm;
-   config::opt_verbose= opt_verbose;
-
-   //-------------------------------------------------------------------------
-   // Initialize numeric locale
-   setlocale(LC_NUMERIC, "");       // Allows printf("%'d\n", 123456789);
-
-   return 0;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       term
-//
-// Purpose-
-//       terminate
-//
-//----------------------------------------------------------------------------
-static void
-   term( void )                     // Terminate
-{
-   // Place holder
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
 //       info
 //
 // Purpose-
@@ -315,12 +271,8 @@ extern int                          // Return code
    int rc= parm(argc, argv);        // Argument analysis
    if( rc ) return rc;              // Return if invalid
 
-   rc= init(argc, argv);            // Initialize
-   if( rc ) return rc;              // Return if invalid
-
    if( opt_bg ) {                   // If run in background
-     rc= fork();
-     if( rc )
+     if( fork() )                   // If parent (foreground)
        return 0;
    }
 
@@ -328,6 +280,10 @@ extern int                          // Return code
    // Operate the Editor
    //-------------------------------------------------------------------------
    try {
+     setlocale(LC_NUMERIC, "");     // Allows printf("%'d\n", 123456789);
+
+     config::opt_hcdm= opt_hcdm;    // Expose config:: options
+     config::opt_verbose= opt_verbose;
      Config config(argc, argv);     // Configure
      if( opt_hcdm || opt_verbose > 0 ) {
        Config::errorf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
@@ -335,8 +291,11 @@ extern int                          // Return code
                      , opt_hcdm, opt_verbose, !opt_bg);
      }
 
+     gui::opt_hcdm= opt_hcdm;       // Expose gui:: options
+     gui::opt_verbose= opt_verbose - 1;
      Editor editor(optind, argc, argv); // Load the initial file set
      editor::start();               // Initial screen draw, XCB polling loop
+     // :                           // : Wait for completion
      editor::join();                // Polling loop complete
    } catch(pub::Exception& X) {
      debugf("%s\n", std::string(X).c_str());
@@ -351,9 +310,8 @@ extern int                          // Return code
    //-------------------------------------------------------------------------
    // Terminate
    //-------------------------------------------------------------------------
-   term();                          // Termination cleanup
    if( opt_hcdm && opt_verbose > 0 )
-     printf("Edit completed\n");
+     Config::errorf("Edit completed\n");
 
    return rc;
 }

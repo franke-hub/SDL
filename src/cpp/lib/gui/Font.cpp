@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement gui/Font.h
 //
 // Last change date-
-//       2021/06/26
+//       2024/03/31
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::runtime_error
@@ -159,7 +159,7 @@ xcb_gcontext_t                      // The created graphic context
                   , xcb_create_gc_checked(conn, fontGC, draw, mask, parm) );
    device->flush();
 
-   if( opt_hcdm )
+   if( opt_hcdm && opt_verbose > 0 )
      debugh("%u= Font(%p)::makeGC(%.6x,%.6x)\n", fontGC, this
            , uint32_t(fg), uint32_t(bg));
 

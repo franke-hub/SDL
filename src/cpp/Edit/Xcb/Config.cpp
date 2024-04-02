@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2024/02/01
+//       2024/03/31
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -45,7 +45,11 @@
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For Config (Implementation class)
 #include "Editor.h"                 // For namespace editor
-#include "EdFile.h"                 // For EdFile
+#include "EdFile.h"                 // For EdFile::debug
+#include "EdHist.h"                 // For EdFile::debug
+#include "EdMark.h"                 // For EdMark::debug
+#include "EdTerm.h"                 // For EdTerm::debug
+#include "EdView.h"                 // For EdView::debug
 
 using namespace config;             // For implementation
 using namespace pub::debugging;     // For pub::debugging
@@ -122,8 +126,26 @@ std::string            config::AUTO; // AUTOSAVE directory "~/.config/editxcb"
 std::string            config::HOME; // HOME directory (getenv("HOME"))
 
 // (Internal) -------- Global event signals ----------------------------------
-pub::signals::Signal<const char*> config::checkSignal; // The CheckEvent signal
-pub::signals::Signal<const char*> config::debugSignal; // The DebugEvent signal
+// Implementation note: Static signals *MUST BE* initialized on access
+static pub::signals::Signal<const char*>*
+                       the_check_signal= nullptr;
+
+pub::signals::Signal<const char*>*  // The RAII check_signal (pointer)
+   config::check_signal(void)
+{
+   static pub::Latch latch;
+   std::lock_guard<pub::Latch> lock(latch);
+   if( the_check_signal == nullptr )
+     the_check_signal= new pub::signals::Signal<const char*>();
+
+   return the_check_signal;
+}
+
+namespace {
+static struct cleanup {             // On termination, delete the_check_signal
+   ~cleanup( void ) { delete the_check_signal; the_check_signal= nullptr; }
+} static_cleanup;
+} // (Anonymous namespace)
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -215,19 +237,20 @@ static int                          // Resultant value
 //   int               argc,        // Argument count (Unused)
 //   char*             argv[])      // Argument array (Unused)
 {  if( opt_hcdm ) fprintf(stderr, "Config::Config\n"); // (Don't use debugf)
+
    using namespace config;
 
    // Allocate GUI objects
    device= new gui::Device();       // The screen/connection device
    font= new gui::Font(device);     // The Font object
 
-   // Initialize HOME and AUTO
+   // Initialize HOME, AUTO, and debug_path
    const char* env= getenv("HOME"); // Get HOME directory
    if( env == nullptr )
      Config::failure("No HOME directory");
    HOME= env;
 
-   // If required, create "$HOME/.local/state/editxcb/Edit.conf"
+   // If required, create "$HOME/.local/state/editxcb
    std::string S= HOME + "/.local";
    make_dir(S);
    S += "/state";
@@ -235,8 +258,6 @@ static int                          // Resultant value
    S += "/editxcb";
    make_dir(S);
    AUTO= debug_path= S;
-   S += std::string("/Edit.conf");
-   make_file(S, Edit_conf);
 
    // Override AUTOSAVE directory, if required
    env= getenv("AUTOSAVE");         // Get AUTOSAVE directory override
@@ -252,6 +273,16 @@ static int                          // Resultant value
 
      file= file->get_next();
    }
+
+   // Locate, possibly creating "$HOME/.local/config/editxcb/Edit.conf"
+   S= HOME + "/.local";
+// make_dir(S);
+   S += "/config";
+   make_dir(S);
+   S += "/editxcb";
+   make_dir(S);
+   S += std::string("/Edit.conf");
+   make_file(S, Edit_conf);
 
    // Parse the configuration file
    parser(S);
@@ -271,7 +302,7 @@ static int                          // Resultant value
 //
 //----------------------------------------------------------------------------
    Config::~Config( void )          // Destructor
-{  if( opt_hcdm ) fprintf(stderr, "Config::~Config\n"); // (Don't use debugf)
+{  if( opt_hcdm ) debugh("Config::~Config\n");
 
    // Delete XCB objects
    delete font;
@@ -286,13 +317,16 @@ static int                          // Resultant value
 //       Config::check
 //
 // Purpose-
-//       Raise checkSignal
+//       Raise check_signal (Run debugging consistency checks)
+//
+// Implementation notes-
+//       Listener: EdFile.hpp
 //
 //----------------------------------------------------------------------------
 void
    Config::check(                   // Debugging consistency check
      const char*       info)        // Informational text
-{  checkSignal.signal(info); }
+{  check_signal()->signal(info); }
 
 //----------------------------------------------------------------------------
 //
@@ -300,14 +334,14 @@ void
 //       Config::debug
 //
 // Purpose-
-//       Debugging display (modified as needed)
+//       Debugging displays
 //
 //----------------------------------------------------------------------------
 void
-   Config::debug(                   // Debugging display
+   Config::debug(                   // Debugging displays
      const char*       info)        // Informational text
 {
-static int             recursion= 0; // Recursion count
+   static int recursion= 0;         // Recursion count (to avoid recursion)
 
    if( info == nullptr )
      info= "";
@@ -316,7 +350,23 @@ static int             recursion= 0; // Recursion count
    if( recursion ) return;
 
    ++recursion;
-   debugSignal.signal(info);
+   debugf("\n============================================================\n");
+   debugf("Config::debug(%s)\n", info ? info : "");
+
+   Editor::debug(info);
+   debugf("\n");
+   editor::mark->debug(info);
+   debugf("\n");
+   editor::file->debug("lines");
+   debugf("\n");
+   editor::term->debug(info);
+   debugf("\n");
+   config::font->debug(info);
+   debugf("\n");
+   editor::data->debug(info);
+   debugf("\n");
+   editor::hist->debug(info);
+   debugf("============================================================\n\n");
    --recursion;
 }
 
@@ -461,7 +511,7 @@ static void
 //----------------------------------------------------------------------------
 static int                          // Return code (0 OK)
    init( void )                     // Initialize
-{  if( opt_hcdm ) fprintf(stderr, "Config::init\n"); // (Don't use debugf)
+{  if( opt_hcdm ) fprintf(stderr, "Config::init\n"); // (debug not initialized)
 
    //-------------------------------------------------------------------------
    // Initialize signal handling
@@ -531,7 +581,15 @@ static int                          // Return code (0 OK)
 //----------------------------------------------------------------------------
 static void
    term( void )                     // Terminate
-{  if( opt_hcdm ) fprintf(stderr, "Config::term\n"); // (Don't use debugf)
+{  if( opt_hcdm ) debugh("Config::term\n");
+
+   //-------------------------------------------------------------------------
+   // Terminate debugging
+   pub::Debug::set(nullptr);        // Remove Debug object
+   delete debug;                    // and delete it
+   debug= nullptr;
+
+   opt_hcdm= false;                 // Prevent Config::errorf tracing
 
    //-------------------------------------------------------------------------
    // Restore system signal handlers
@@ -548,14 +606,6 @@ static void
      munmap(trace_table, TRACE_SIZE);
      trace_table= nullptr;
    }
-
-   //-------------------------------------------------------------------------
-   // Terminate debugging
-   pub::Debug::set(nullptr);        // Remove Debug object
-   delete debug;                    // and delete it
-   debug= nullptr;
-
-   opt_hcdm= false;                 // Prevent Config::errorf tracing
 }
 
 //----------------------------------------------------------------------------
@@ -783,8 +833,3 @@ static void
    if( !font_valid )                // If valid font not present
      font->open();                  // Use default font
 }
-
-//============================================================================
-// DEBUGGING EXTENSION: configCheck, configDebug, and configSignal listaners
-//============================================================================
-#include "Config.hpp"               // Default config signal listeners

@@ -16,7 +16,7 @@
 //       Editor: Implement EdTerm.h screen handler.
 //
 // Last change date-
-//       2024/02/01
+//       2024/03/31
 //
 // Implementation notes-
 //       EdTinp.cpp implements keyboard and mouse event handlers.
@@ -293,9 +293,17 @@ void
      unsigned          left,        // Left (X) offset
      unsigned          top,         // Top  (Y) offset
      const char*       text)        // Using this text
-{  if( opt_hcdm && opt_verbose > 0 )
+{  if( opt_hcdm && opt_verbose > 0 ) {
+     char buffer[24];
+     if( strlen(text) < 17 )
+       strcpy(buffer, text);
+     else {
+       memcpy(buffer, text, 16);
+       strcpy(buffer+16, "...");
+     }
      debugh("EdTerm(%p)::putxy(%u,[%d,%d],'%s')\n", this
-           , fontGC, left, top, text);
+           , fontGC, left, top, buffer);
+   }
 
    enum{ DIM= 256 };                // xcb_image_text_16 maximum length
    xcb_char2b_t out[DIM];           // UTF16 output buffer
@@ -529,7 +537,8 @@ void
           ( c, XCB_PROP_MODE_REPLACE, widget_id
           , protocol, 4, 32, 1, &wm_close) );
    if( opt_hcdm )
-     debugf("atom PROTOCOL(%d)\natom WM_CLOSE(%d)\n", protocol, wm_close);
+     debugh("%4d %s PROTOCOL(%d), atom WM_CLOSE(%d)\n", __LINE__, __FILE__
+           , protocol, wm_close);
 
    flush();
 }
@@ -822,8 +831,8 @@ void
      }
 
      row_used -= USER_TOP;
-     if( opt_hcdm )
-       debugf("%4d LAST xy(%d,%d)\n", __LINE__, 0, row_used);
+     if( opt_hcdm && opt_verbose > 0 )
+       debugh("%4d %s LAST xy(%d,%d)\n", __LINE__, __FILE__, 0, row_used);
    }
 
    draw_top();                      // Draw top (status, hist/message) lines

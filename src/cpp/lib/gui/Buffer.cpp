@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2021 Frank Eskesen.
+//       Copyright (C) 2021-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Buffer.h
 //
 // Last change date-
-//       2021/02/09
+//       2024/03/31
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -27,7 +27,7 @@
 #include <xcb/xcb_image.h>          // For xcb_image_t, associated functions
 
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <gui/Global.h>             // For gui::get_image_order
+#include "gui/Global.h"             // For opt_* definitions, ...
 #include <gui/Pixmap.h>             // For gui::Pixmap
 
 #include "gui/Buffer.h"             // Implementation class

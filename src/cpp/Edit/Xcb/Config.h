@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2023/01/01
+//       2024/03/31
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
@@ -162,10 +162,8 @@ extern std::string     HOME;        // The HOME directory
 //----------------------------------------------------------------------------
 // config::Signals
 //----------------------------------------------------------------------------
-extern pub::signals::Signal<const char*> // The CheckEvent signal
-                       checkSignal;
-extern pub::signals::Signal<const char*> // The DebugEvent signal
-                       debugSignal;
+extern pub::signals::Signal<const char*>* // The RAII Check signal
+   check_signal();                  // Run consistency checks
 
 //----------------------------------------------------------------------------
 // Static string constants

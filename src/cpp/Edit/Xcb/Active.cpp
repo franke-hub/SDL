@@ -212,7 +212,8 @@ void
    Active::expand(                  // Expand the buffer
      Length            length)      // To this length (+1)
 {  if( opt_hcdm )
-     debugh("Active(%p)::expand(%zd) [%zd,%zd]\n", this, length, buffer_used, buffer_size);
+     debugh("Active(%p)::expand(%zd) [%zd,%zd]\n", this, length, buffer_used
+           , buffer_size);
 
    if( length >= buffer_size ) {    // If expansion required
      size_t replace_size= length + BUFFER_SIZE;

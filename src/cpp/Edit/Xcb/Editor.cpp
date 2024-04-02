@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2023/08/28
+//       2024/03/31
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -97,6 +97,10 @@ uint32_t               editor::diagnostic= 0; // Non-zero if abnormal state
 uint32_t               editor::locate_back= false;
 uint32_t               editor::locate_case= false;
 uint32_t               editor::locate_wrap= false;
+
+// (Format) margins ----------------------------------------------------------
+size_t                 editor::margins[2]= {1, 80}; // {Left, right} margin
+size_t                 editor::tabs[Editor::TAB_DIM]= {}; // Tab position array
 
 //----------------------------------------------------------------------------
 //
@@ -250,11 +254,11 @@ static const char*                  // Return message, nullptr if OK
    if( argv[0][0] == 'v' || argv[0][0] == 'V' ) // If View command (not Edit)
      protect= true;
 
-   for(int i= argi; i<argc; i++) {
-     insert_file(argv[i], protect);
-   }
+   for(int i= argi; i<argc; i++)
+     file_loader(argv[i], protect);
+
    if( file_list.get_head() == nullptr ) // Always have something
-     insert_file(nullptr);          // Even if it's an empty file
+     file_loader(nullptr);          // Even if it's an empty file
 
    //-------------------------------------------------------------------------
    // Activate the terminal
@@ -587,7 +591,7 @@ const char*                         // Error message, nullptr expected
      return nullptr;
 
    data->commit();
-   EdLine* after= data->cursor;     // Insert afer the current cursor line
+   EdLine* after= data->cursor;     // Insert after the current cursor line
    if( after->get_next() == nullptr ) // If it's the last line
      after= after->get_prev();      //  Use the prior line instead
 
@@ -595,7 +599,8 @@ const char*                         // Error message, nullptr expected
    EdLine* tail= head;
 
    // Handle insert after no delimiter line
-   EdRedo* redo= new EdRedo();
+   // (The top_of_file line has a delimiter.)
+   EdRedo* redo= new EdRedo();      // (First, create the REDO)
    if( after->delim[0] == '\0' && after->delim[1] == '\0' ) {
      head= file->new_line(after->text); // Get "after" line replacement
 
@@ -881,18 +886,18 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::insert_command
+//       editor::file_command
 //
 // Purpose-
-//       Insert command output onto the file list
+//       Load command input/output pseudo-file
 //
 //----------------------------------------------------------------------------
 void
-   editor::insert_command(            // Insert command output to the file list
-     const char*       input,         // The command  (must be present)
+   editor::file_command(              // Load command input/output pseudo-file
+     const char*       input,         // The command (required)
      const std::string&output)        // The command output
 {  if( opt_hcdm )
-     traceh("editor::insert_output(%s)\n", input);
+     traceh("editor::file_command(%s)\n", input);
 
    EdFile* next= new EdFile(nullptr);
    next->command(input, output);
@@ -906,10 +911,10 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::insert_file
+//       editor::file_loader
 //
 // Purpose-
-//       Insert file(s) onto the file list
+//       Load files, adding them to the file list
 //
 //----------------------------------------------------------------------------
 #if defined(_OS_CYGWIN)
@@ -919,11 +924,11 @@ void
 #endif
 
 void
-   editor::insert_file(             // Insert file(s) onto the file list
+   editor::file_loader(             // Load files, adding them to the file list
      const char*       name_,       // The file name (file wildcards allowed)
      int               protect)     // Protect file?
 {  if( opt_hcdm )
-     traceh("editor::insert_file(%s)\n", name_);
+     traceh("editor::file_loader(%s)\n", name_);
 
    if( name_ == nullptr )           // If missing parameter
      name_= "unnamed.txt";          // Use default name

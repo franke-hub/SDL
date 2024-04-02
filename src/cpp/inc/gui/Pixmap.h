@@ -62,6 +62,7 @@ using Layout::configure;
 //----------------------------------------------------------------------------
 struct Pending {                    // Pending XCB request table
 const char*            opname;      // The operation name
+const char*            opfile;      // The operation file
 int                    opline;      // The associated line number
 xcb_void_cookie_t      op;          // The Cookie
 }; // struct Pending
@@ -191,12 +192,14 @@ void
 void
    enqueue(                         // Add operation to pending queue
      int               line,        // Source line number
+     const char*       file,        // Source file name
      const char*       name,        // Operation name
      xcb_void_cookie_t op);         // Operation cookie
 
 void                                // Response handled in reply loop
    noqueue(                         // Drive operation
      int               line,        // Source line number
+     const char*       file,        // Source file name
      const char*       name,        // Operation name
      xcb_void_cookie_t op);         // Operation cookie
 
@@ -227,6 +230,7 @@ void
 void
    synchronously(                   // Synchronous XCB operation
      int               line,        // Source line number
+     const char*       file,        // Source file name
      const char*       name,        // The operation name
      xcb_void_cookie_t op);         // The synchronous operation (cookie)
 

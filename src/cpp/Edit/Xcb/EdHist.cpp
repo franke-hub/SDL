@@ -220,10 +220,15 @@ void
    // Process the command (Using mutable buffer)
    const char* text= cursor->text;
    const char* error= editor::command(buffer);
-   if( error )                      // If error encountered
+   if( error ) {                    // If error encountered
      editor::put_message(error);
-   else
+     if( info_message ) {
+       info_message= false;
+       text= "";
+     }
+   } else {
      text= "";
+   }
    active.reset(text);              // Reset the (mutated) buffer
    cursor= nullptr;                 // Reset the cursor
 

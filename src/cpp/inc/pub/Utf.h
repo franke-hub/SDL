@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021-2023 Frank Eskesen.
+//       Copyright (c) 2021-2024Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       UTF utilities
 //
 // Last change date-
-//       2023/05/12
+//       2024/03/30
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_UTF_H_INCLUDED
@@ -24,6 +24,7 @@
 
 #include <cstdint>                  // For uint8_t, ...
 #include <iterator>                 // For std::forward_iterator_tag
+#include <string>                   // For std::string
 
 #include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
 
@@ -248,6 +249,10 @@ size_t                              // The length of the utf8_t buffer
 size_t                              // The length of the utf8_t buffer
    get_codes( void ) const          // Get length (in code points)
 {  return codes; }
+
+static size_t                       // The length of the (utf8) string
+   get_codes(                       // Get length (in code points)
+     const std::string src);        // Of this string
 
 //----------------------------------------------------------------------------
 // Decode the next UTF32 encoding in the encoding buffer.

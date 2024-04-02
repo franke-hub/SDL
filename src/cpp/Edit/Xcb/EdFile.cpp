@@ -13,17 +13,15 @@
 //       EdFile.cpp
 //
 // Purpose-
-//       Editor: Implement EdFile.h
+//       Editor: Implement EdFile.h, EdLine.h, EdMess.h, and EdRedo.h
 //
 // Last change date-
-//       2024/01/25
+//       2024/04/02
 //
 // Implements-
 //       EdFile: Editor File descriptor
 //       EdLine: Editor File Line descriptor
 //       EdMess: Editor File Message descriptor
-//       EdHide: (UNUSED, MOSTLY PLACEHOLDER)
-//           REQUIRES LINE COUNT SCREEN MANAGEMENT UPDATES
 //       EdRedo: EdFile redo/undo descriptor
 //
 //----------------------------------------------------------------------------
@@ -55,9 +53,10 @@ using pub::Trace;                   // For pub::Trace
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // Compilation controls
 
-#define USE_BRINGUP true            // Use bringup diagnostics? TODO: false
+#define USE_REDO_DIAGNOSTICS true   // Use redo/undo diagnostics? TODO: false
 
 //----------------------------------------------------------------------------
 // External data areas
@@ -66,280 +65,6 @@ pub::signals::Signal<EdFile::CloseEvent>
                        EdFile::close_signal; // CloseEvent signal
 
 //----------------------------------------------------------------------------
-//
-// Subroutine-
-//       debug_redo
-//       assert_line
-//       assert_miss
-//       assert_xxdo
-//       assert_redo
-//       assert_undo
-//
-// Purpose-
-//       Bringup debugging
-//
-// Implementation notes-
-//       For BRINGUP checking. NOT optimized.
-//
-//----------------------------------------------------------------------------
-#if USE_BRINGUP
-static void
-   debug_redo(                      // Inconsistent REDO
-     int               line,        // Line number
-     EdRedo*           redo)        // For this REDO
-{
-   debugf("%4d EdFile redo(%p,%p,%p,%p)\n", line
-         , redo->head_insert, redo->tail_insert
-         , redo->head_remove, redo->tail_remove);
-
-   redo->debug("Inconsistent");
-
-   if( !editor::file->damaged ) {   // One report per file
-     editor::file->damaged= true;
-     Editor::alertf("REDO/UNDO inconsistent");
-   } else
-     debugf("\n");
-}
-
-static void
-   assert_line(                     // Assert
-     EdLine*           test,        // This line is active in
-     EdFile*           file,        // This file for
-     EdRedo*           redo)        // This redo
-{
-   for(EdLine* L= file->line_list.get_head(); L; L= L->get_next()) {
-     if( L == test )
-       return;
-   }
-
-   debugf("%4d EdFile(%p)->assert_line(%p) FAILED\n", __LINE__, file, test);
-   debug_redo(__LINE__, redo);
-}
-
-static void
-   assert_miss(                     // Assert
-     EdLine*           test,        // This line is not active in
-     EdFile*           file,        // This file for
-     EdRedo*           redo)        // This redo
-{
-   for(EdLine* line= file->line_list.get_head(); line; line= line->get_next() ) {
-     if( line == test ) {
-       debugf("%4d EdFile(%p)->assert_miss(%p) FAILED\n", __LINE__, file, test);
-       debug_redo(__LINE__, redo);
-     }
-   }
-}
-
-static void
-   assert_base(                     // Assert
-     EdRedo*           redo)        // This REDO/UNDO is self-consistent
-{
-   if( redo->head_insert ) {
-     if( redo->tail_insert == nullptr )
-       debug_redo(__LINE__, redo);
-   } else if( redo->tail_insert )
-     debug_redo(__LINE__, redo);
-
-   if( redo->head_remove ) {
-     if( redo->tail_remove == nullptr )
-       debug_redo(__LINE__, redo);
-   } else if( redo->tail_remove )
-     debug_redo(__LINE__, redo);
-
-   if( redo->head_insert && redo->head_remove ) {
-     if( redo->head_insert->get_prev() != redo->head_remove->get_prev() )
-       debug_redo(__LINE__, redo);
-     if( redo->tail_insert->get_next() != redo->tail_remove->get_next() )
-       debug_redo(__LINE__, redo);
-   } else if( !(redo->head_insert || redo->head_remove) ) {
-     debug_redo(__LINE__, redo);
-   }
-}
-
-static void
-   assert_redo(                     // Assert
-     EdRedo*           redo,        // This REDO is self-consistent
-     EdFile*           file)        // For this file
-{
-   assert_base(redo);
-
-   if( redo->head_remove ) {        // If redo remove
-     assert_line(redo->head_remove->get_prev(), file, redo);
-     assert_line(redo->tail_remove->get_next(), file, redo);
-
-     for(EdLine* line= redo->head_remove; ; line= line->get_next() ) {
-       if( line == nullptr ) {
-         debugf("%4d EdFile nullptr redo(,,%p,%p)\n", __LINE__
-               , redo->head_remove, redo->tail_remove);
-         debug_redo(__LINE__, redo);
-       }
-       assert_line(line, file, redo);
-       if( line == redo->tail_remove )
-         break;
-     }
-   }
-   if( redo->head_insert ) {        // If redo insert
-     assert_line(redo->head_insert->get_prev(), file, redo);
-     assert_line(redo->tail_insert->get_next(), file, redo);
-
-     for(EdLine* line= redo->head_insert; ; line= line->get_next() ) {
-       if( line == nullptr ) {
-         debugf("%4d EdFile nullptr redo(%p,%p,,)\n", __LINE__
-               , redo->head_insert, redo->tail_insert);
-         debug_redo(__LINE__, redo);
-       }
-       assert_miss(line, file, redo);
-       if( line == redo->tail_insert )
-         break;
-     }
-   }
-}
-
-static void
-   assert_undo(                     // Assert
-     EdRedo*           undo,        // This UNDO is self-consistent
-     EdFile*           file)        // For this file
-{
-   assert_base(undo);
-
-   if( undo->head_insert ) {        // If undo insert
-     assert_line(undo->head_insert->get_prev(), file, undo);
-     assert_line(undo->tail_insert->get_next(), file, undo);
-
-     for(EdLine* line= undo->head_insert; ; line= line->get_next() ) {
-       if( line == nullptr ) {
-         debugf("%4d EdFile nullptr undo(%p,%p,,)\n", __LINE__
-               , undo->head_insert, undo->tail_insert);
-         debug_redo(__LINE__, undo);
-       }
-       assert_line(line, file, undo);
-       if( line == undo->tail_insert )
-         break;
-     }
-   }
-   if( undo->head_remove ) {        // If undo remove
-     assert_line(undo->head_remove->get_prev(), file, undo);
-     assert_line(undo->tail_remove->get_next(), file, undo);
-
-     for(EdLine* line= undo->head_remove; ; line= line->get_next() ) {
-       if( line == nullptr ) {
-         debugf("%4d EdFile nullptr undo(,,%p,%p)\n", __LINE__
-               , undo->head_remove, undo->tail_remove);
-         return;
-       }
-       assert_miss(line, file, undo);
-       if( line == undo->tail_remove )
-         break;
-     }
-   }
-}
-#else // If USE_BRINGUP == false
-static void assert_base(EdRedo*) {} // Assert self-consistent REDO insert
-static void assert_redo(EdRedo*, EdFile*) {} // Assert self-consistent REDO
-static void assert_undo(EdRedo*, EdFile*) {} // Assert self-consistent UNDO
-#endif
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       chg_mode
-//
-// Purpose-
-//       Change the file mode after redo/undo.
-//
-//----------------------------------------------------------------------------
-static void
-   chg_mode(                        // Get file mode
-     const EdLine*     head,        // Head changed line
-     const EdLine*     tail)        // Tail changed line
-{
-   // The mode does not change unless all file lines changed, e.g. by set_mode
-   if( head->get_prev()->get_prev() != nullptr )
-     return;
-   if( tail->get_next()->get_next() != nullptr )
-     return;
-
-   int delim= '\0';                 // Unix delimiter modifier
-   int mode= EdFile::M_UNIX;
-   if( head->delim[1] == '\r' ) {
-     delim= '\r';
-     mode= EdFile::M_DOS;
-   }
-
-   for(const EdLine* line= head; line; line= line->get_next()) {
-     if( line->delim[0] != '\n' ) { // If neither DOS nor UNIX
-       if( line->delim[1] != '\0' ) // (line->delim[0] == '\0' assumed)
-         mode= EdFile::M_BIN;       // Must be binary file
-       break;
-     }
-     if( line->delim[1] != delim )  // If inconsistent mode
-       mode= EdFile::M_MIX;         // Mixed mode (Might still be binary)
-
-     if( line == tail )             // If all lines checked
-       break;
-   }
-
-   editor::file->mode= mode;        // Update the mode
-   editor::term->draw_top();        // And redraw the top lines
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       trace_redo
-//
-// Purpose-
-//       Trace utilities
-//
-//----------------------------------------------------------------------------
-static void
-   trace_redo(                      // Trace redo/undo operation
-     const char*       ident,       // Trace identifier
-     EdRedo*           redo,        // The REDO/UNDO
-     EdFile*           file,        // The REDO/UNDO file
-     EdLine*           line)        // The REDO/UNDO cursor line
-{
-   typedef pub::Trace::Record Record;
-   Record* record= Trace::trace(sizeof(Record) + 32);
-   if( record ) {
-     memset(record, 0, sizeof(Record) + 32);
-     struct unit {
-       uint16_t lh_col;
-       uint16_t rh_col;
-     }* U= (unit*)(&record->unit);
-     U->lh_col= htons((uint16_t)redo->lh_col);
-     U->rh_col= htons((uint16_t)redo->rh_col);
-
-     uintptr_t V0= uintptr_t(file);
-     uintptr_t V1= uintptr_t(line);
-     uintptr_t R0= uintptr_t(redo->head_insert);
-     uintptr_t R1= uintptr_t(redo->tail_insert);
-     uintptr_t R2= uintptr_t(redo->head_remove);
-     uintptr_t R3= uintptr_t(redo->tail_remove);
-
-#pragma GCC diagnostic push         // GCC regression START
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
-     for(unsigned i= 8; i>0; i--) {
-       record->value[ 0 + i - 1]= char(V0);
-       record->value[ 8 + i - 1]= char(V1);
-       ((char*)(record->value))[16 + i - 1]= char(R0);
-       ((char*)(record->value))[24 + i - 1]= char(R1);
-       ((char*)(record->value))[32 + i - 1]= char(R2);
-       ((char*)(record->value))[40 + i - 1]= char(R3);
-
-       V0 >>= 8;
-       V1 >>= 8;
-       R0 >>= 8;
-       R1 >>= 8;
-       R2 >>= 8;
-       R3 >>= 8;
-     }
-     record->trace(ident);
-   }
-#pragma GCC diagnostic pop          // GCC regression END
-}
-
-//============================================================================
 //
 // Method-
 //       EdFile::EdFile
@@ -351,7 +76,7 @@ static void
    EdFile::EdFile(                  // Constructor
      const char*       name_)       // Fully qualified file name
 :  ::pub::List<EdFile>::Link()
-,  name(name_ ? name_ : "")
+,  name(name_ ? name_ : "unnamed.txt")
 {  if( HCDM || opt_hcdm )
      traceh("EdFile(%p)::EdFile(%s)\n", this, get_name().c_str());
 
@@ -367,7 +92,7 @@ static void
    csr_line= top;
 
    if( name_ )
-     append(name_, top);            // Insert the file
+     insert_file(name_, top);       // Insert the file
 }
 
    EdFile::~EdFile( void )          // Destructor
@@ -441,7 +166,6 @@ bool                                // TRUE if file is changed or damaged
    EdFile::is_changed( void ) const // Is file changed or damaged?
 {  return changed||chglock||damaged || editor::data->active.get_changed(); }
 
-
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -502,6 +226,28 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdFile::activate
+//
+// Purpose-
+//       Activate file line
+//
+//----------------------------------------------------------------------------
+void
+   EdFile::activate(                // Activate
+     EdLine*           line)        // This line
+{
+   if( this == editor::file ) {     // If the file is active
+     editor::term->activate(line);
+   } else {                         // If the file is off-screen
+     top_line= csr_line= line;
+     col_zero= col= row= 0;
+     row_zero= get_row(line);
+  }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdFile::command
 //
 // Purpose-
@@ -529,36 +275,14 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdFile::activate
-//
-// Purpose-
-//       Activate file line
-//
-//----------------------------------------------------------------------------
-void
-   EdFile::activate(                // Activate
-     EdLine*           line)        // This line
-{
-   if( this == editor::file ) {     // If the file is active
-     editor::term->activate(line);
-   } else {                         // If the file is off-screen
-     top_line= csr_line= line;
-     col_zero= col= row= 0;
-     row_zero= get_row(line);
-  }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdFile::append
+//       EdFile::insert_file
 //
 // Purpose-
 //       Load file data
 //
 //----------------------------------------------------------------------------
 EdLine*                             // The last inserted line
-   EdFile::append(                  // Append file
+   EdFile::insert_file(             // Insert file
      const char*       name,        // The file name to insert
      EdLine*           line)        // Insert after this line
 {
@@ -579,8 +303,10 @@ EdLine*                             // The last inserted line
      return nullptr;
    }
 
-   if( st.st_size == 0 )            // If empty file
-     return nullptr;                // Nothing to append
+   if( st.st_size == 0 ) {          // If empty file
+     put_message("Empty file");
+     return nullptr;
+   }
 
    // Allocate the input data area Pool
    size_t size= st.st_size;         // The size of the file
@@ -613,11 +339,11 @@ EdLine*                             // The last inserted line
 //       EdFile::insert
 //
 // Purpose-
-//       Insert file lines (or line)
+//       Insert file line(s) without redo/undo
 //
 //----------------------------------------------------------------------------
 EdLine*                             // (Always tail)
-   EdFile::insert(                  // Insert
+   EdFile::insert(                  // Insert file lines without redo/undo
      EdLine*           after,       // After this line
      EdLine*           head,        // From this line
      EdLine*           tail)        // Upto this line
@@ -648,7 +374,7 @@ EdLine*                             // (Always tail)
 //----------------------------------------------------------------------------
 EdLine*                             // The allocated line
    EdFile::new_line(                // Allocate a new line
-     const char*       text) const  // Line text
+     const char*       text) const  // (Immutable) text
 {
    EdLine* line= new EdLine(text);
    line->delim[0]= '\n';            // Default, UNIX delimiter
@@ -796,184 +522,6 @@ int                                 // TRUE if a message removed or remains
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdFile::redo
-//       EdFile::undo
-//
-// Purpose-
-//       Perform redo action
-//       Perform undo action
-//
-// Visual-
-//       OLD: ...<-A<->D->...
-//       NEW: ...<-A<->B<->C<->D->...
-//       UNDO: hi(A<-B) ti(C->D) hr(0) tr(0)
-//
-//       OLD: ...<-A<->B<->C<->D->...
-//       NEW: ...<-A<->G<->H<->I<->D->...
-//       UNDO: hi(A<-G) ti(I->D) hr(A<-B) tr(C->D)
-//
-//       OLD: ...<-A<->G<->H<->I<->D->...
-//       NEW: ...<-A<->B<->C<->D->...
-//       UNDO: hi(A<-B) ti(C->D) hr(A<-G) tr(I->D)
-//
-//       OLD: ...<-A<->G<->H<->I<->D->...
-//       NEW: ...<-A<->D->...
-//       UNDO: hi(0) ti(0) hr(A<-G) tr(I->D)
-//
-//----------------------------------------------------------------------------
-//============================================================================
-// REDO ======================================================================
-//============================================================================
-void
-   EdFile::redo( void )             // Perform redo action
-{  if( HCDM || opt_hcdm )
-     traceh("EdFile(%p)::redo\n", this);
-
-   if( HCDM ) {
-     debugf("\n\n--------------------------------\n");
-     debug("redo");
-   }
-
-   EdRedo* redo= redo_list.remq();
-   if( redo == nullptr ) {
-     put_message("Cannot redo");
-     return;
-   }
-
-   // Perform redo action
-   trace_redo(".RDO", redo, this, editor::data->cursor);
-   assert_redo(redo, this);         // (Only active when USE_BRINGUP == true)
-
-   EdLine* line= nullptr;           // Activation line
-   if( redo->head_remove ) {        // If redo remove
-     remove(redo->head_remove, redo->tail_remove);
-
-     line= redo->head_remove->get_prev();
-   }
-   if( redo->head_insert ) {        // If redo insert
-     EdLine* after= redo->head_insert->get_prev();
-     insert(after, redo->head_insert, redo->tail_insert);
-
-     line= redo->head_insert->get_prev();
-   }
-
-   changed= true;                   // File changed
-   editor::mark->handle_redo(this, redo);
-   editor::term->activate(line);
-   editor::term->draw();
-   undo_list.lifo(redo);            // Move REDO to UNDO list
-   if( redo->head_insert )          // If lines inserted
-     chg_mode(redo->head_insert, redo->tail_insert);
-
-   if( USE_BRINGUP )
-     Config::check("redo");
-}
-
-//============================================================================
-// UNDO ======================================================================
-//============================================================================
-void
-   EdFile::undo( void )             // Perform undo action
-{  if( HCDM || opt_hcdm )
-     traceh("EdFile(%p)::undo\n", this);
-
-   if( HCDM ) {
-     debugf("\n\n--------------------------------\n");
-     debug("undo");
-   }
-
-   EdRedo* undo= undo_list.remq();
-   if( undo == nullptr ) {
-     put_message("Cannot undo");
-     return;
-   }
-
-   // Perform undo action
-   trace_redo(".UDO", undo, this, editor::data->cursor);
-   assert_undo(undo, this);         // (Only active when USE_BRINGUP == true)
-
-   if( undo_list.get_head() == nullptr ) // If nothing left to undo
-     changed= false;                // File reverts to unchanged
-
-   EdLine* line= nullptr;           // Activation line
-   if( undo->head_insert ) {        // If undo insert
-     line= undo->head_insert->get_prev();
-     remove(undo->head_insert, undo->tail_insert);
-   }
-   if( undo->head_remove ) {        // If undo remove
-     line= undo->head_remove->get_prev();
-     insert(line, undo->head_remove, undo->tail_remove);
-   }
-
-   editor::mark->handle_undo(this, undo);
-   editor::term->activate(line);
-   editor::term->draw();
-   redo_list.lifo(undo);            // Move UNDO to REDO list
-   if( undo->head_remove )          // If lines removed
-     chg_mode(undo->head_remove, undo->tail_remove);
-
-   if( USE_BRINGUP )
-     Config::check("undo");
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdFile::redo_delete
-//
-// Purpose-
-//       Delete the REDO list
-//
-//----------------------------------------------------------------------------
-void
-   EdFile::redo_delete( void )      // Delete the REDO list
-{
-   // Delete the entire REDO list, also deleting all insert lines
-   for(EdRedo* redo= redo_list.remq(); redo; redo= redo_list.remq() ) {
-     EdLine* line= redo->head_insert;
-     while( line ) {
-       EdLine* next= line->get_next();
-       delete line;
-
-       if( line == redo->tail_insert )
-         break;
-       line= next;
-     }
-
-     delete redo;
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdFile::redo_insert
-//
-// Purpose-
-//       Add REDO to the UNDO list
-//
-// Implementation notes-
-//       DOES NOT update the cursor.
-//
-//----------------------------------------------------------------------------
-void
-   EdFile::redo_insert(             // Insert
-     EdRedo*           redo)        // This REDO onto the UNDO list
-{
-   trace_redo(".IDO", redo, this, editor::data->cursor);
-   assert_undo(redo, this);         // (Only active when USE_BRINGUP == true)
-   redo_delete();                   // Delete the current REDO list
-
-   undo_list.lifo(redo);            // Insert the REDO onto the UNDO list
-   changed= true;
-
-   if( USE_BRINGUP )
-     Config::check("redo_insert");
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       EdFile::remove
 //
 // Purpose-
@@ -1088,34 +636,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdFile::undo_delete
-//
-// Purpose-
-//       Delete the UNDO list
-//
-//----------------------------------------------------------------------------
-void
-   EdFile::undo_delete( void )      // Delete the UNDO list
-{
-   // Delete the entire UNDO list, also deleting all remove lines
-   for(EdRedo* undo= undo_list.remq(); undo; undo= undo_list.remq() ) {
-     EdLine* line= undo->head_remove;
-     while( line ) {
-       EdLine* next= line->get_next();
-       delete line;
-
-       if( line == undo->tail_remove )
-         break;
-       line= next;
-     }
-
-     delete undo;
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       EdFile::write
 //
 // Purpose-
@@ -1129,11 +649,12 @@ int                                 // Return code, 0 OK
    EdFile::write(                   // Write the file
      const char*       name)        // The file name to write
 {
-   int                 rc= -2;      // Default, open failure
+   int cc;                          // Completion code
+   int rc= -2;                      // Return code: default: open failure
 
    FILE* F= fopen(name, "wb");      // Open the file
    if( F ) {                        // If open successful
-     rc= -1;                        // Default, write failure
+     rc= -2;                        // Default, write failure
      for(EdLine* line= line_list.get_head(); ; line= line->get_next()) {
        if( line == nullptr ) {      // If all lines written
          rc= 0;                     // No error
@@ -1142,37 +663,27 @@ int                                 // Return code, 0 OK
        if( (line->flags & EdLine::F_PROT) == 0 ) {
          // Write line data
          if( line->text[0] != '\0' ) {
-           int wc= fprintf(F, "%s", line->text);
-           if( wc < 0 ) break;      // If write failure
+           cc= fprintf(F, "%s", line->text);
+           if( cc < 0 ) break;      // If write failure
          }
 
          // Write line delimiter
          if( line->delim[0] == '\n' ) { // If UNIX or DOS format
            if( line->delim[1] != '\0' ) { // If DOS format
-             int cc= fputc('\r', F);
-             if( cc < 0 ) break;    // If write failure
-           }
-           int cc= fputc('\n', F);
-           if( cc < 0 ) break;      // If write failure
-
-         } else if( line->delim[0] == '\0' ) { // If '\0' delimiter
-           size_t L= 1;             // Default, OK
-           for(int i= 0; i<line->delim[1]; i++) {
-             int cc= fputc('\0', F);
-             if( cc < 0 ) break;    // If write failure
-           }
-           if( L != 1 ) break;      // If write failure
-
-#if 0    // REMOVED: '\r' not implemented in reader
-         } else if( line->delim[0] == '\r' ) { // If '\r' delimiter
-           int cc= 1;               // Default, OK
-           for(int i= 0; i<line->delim[1]; i++) {
              cc= fputc('\r', F);
              if( cc < 0 ) break;    // If write failure
            }
+           cc= fputc('\n', F);
            if( cc < 0 ) break;      // If write failure
-#endif   // REMOVED: '\r' not implemented in reader
-
+         } else if( line->delim[0] == '\0' ) { // If '\0' delimiter
+           cc= -2;
+           unsigned L= line->delim[1];
+           for(unsigned i= 0; i<L; i++) {
+             cc= fputc('\0', F);
+             if( cc < 0 ) break;    // If write failure
+           }
+           if( cc < 0 )             // If write failure or invalid delimiter
+             break;
          } else {                   // If INVALID delimiter (should not occur)
            rc= -3;
            Config::errorf("%4d EdFile INTERNAL ERROR\n", __LINE__);
@@ -1219,229 +730,13 @@ int                                 // Return code, 0 OK
    return rc;
 }
 
-//============================================================================
+//----------------------------------------------------------------------------
 //
-// Method-
-//       EdLine
+// Include-
+//       EdRedo.hpp
 //
 // Purpose-
-//       Constructor/Destructor
-//
-// Implementation notes-
-//       Implicit copy operator only used in EdView for a temporary EdLine
+//       Implement EdRedo, EdLine, and EdMess
 //
 //----------------------------------------------------------------------------
-   EdLine::EdLine(                  // Constructor
-     const char*       text)        // Line text
-:  ::pub::List<EdLine>::Link(), text(text ? text : "")
-{  if( HCDM || (opt_hcdm && opt_verbose > 1) )
-     traceh("EdLine(%p)::EdLine\n", this);
-
-   Trace::trace(".NEW", "line", this);
-}
-
-   EdLine::~EdLine( void )          // Destructor
-{  if( HCDM || (opt_hcdm && opt_verbose > 1) )
-     traceh("EdLine(%p)::~EdLine\n", this);
-
-   if( (flags & F_AUTO) == 0 )      // Do not trace temporary lines
-     Trace::trace(".DEL", "line", this);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdLine::debug
-//
-// Purpose-
-//       (Minimal) debugging display
-//
-//----------------------------------------------------------------------------
-void
-   EdLine::debug( void ) const      // Minimal debugging display
-{
-   char buffer[42]; buffer[41]= '\0';
-   strncpy(buffer, text, 41);
-   debugf("%p F(%.4x) D(%.2x,%.2x) '%s'\n", this, flags
-         , delim[0], delim[1], buffer);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdLine::is_within
-//
-// Purpose-
-//       Is this line within range head..tail (inclusive)?
-//
-//----------------------------------------------------------------------------
-bool
-   EdLine::is_within(               // Is this line within range head..tail?
-     const EdLine*     head,        // First line in range
-     const EdLine*     tail) const  // Final line in range
-{  if( HCDM || (opt_hcdm && opt_verbose > 1) )
-     debugh("EdLine(%p)::is_within(%p,%p)\n", this, head, tail);
-
-   for(const EdLine* line= head; line; line= line->get_next() ) {
-     if( line == this )
-       return true;
-     if( line == tail )
-       return false;
-   }
-
-   /// We get here because line == nullptr, which should not occur.
-   /// The associated list segment is corrupt, and code needs fixing.
-   if( head || tail )               // If the range is not empty
-     debugf("%4d EdLine(%p).is_within(%p..%p) invalid range\n", __LINE__
-           , this, head, tail);
-   return false;
-}
-
-//============================================================================
-//
-// Method-
-//       EdMess::EdMess
-//
-// Purpose-
-//       Constructor/Destructor
-//
-//----------------------------------------------------------------------------
-   EdMess::EdMess(                  // Constructor
-     std::string       mess_,       // Message text
-     int               type_)       // Message type
-:  ::pub::List<EdMess>::Link(), mess(mess_), type(type_)
-{  if( HCDM || opt_hcdm )
-     traceh("EdMess(%p)::EdMess(%s,%d)\n", this, mess_.c_str(), type_);
-}
-
-   EdMess::~EdMess( void )          // Destructor
-{  if( HCDM || opt_hcdm )
-     traceh("EdMess(%p)::~EdMess\n", this);
-}
-
-//============================================================================
-//
-// Method-
-//       EdHide::EdHide
-//
-// Purpose-
-//       Constructor/Destructor
-//
-//----------------------------------------------------------------------------
-   EdHide::EdHide(                  // Constructor
-     EdLine*           head_,       // First hidden line
-     EdLine*           tail_)       // Final hidden line
-:  EdLine()
-{  if( HCDM || opt_hcdm )
-     traceh("EdHide(%p)::EdHide\n", this);
-
-   flags= F_HIDE;
-   list.insert(nullptr, head_, tail_);
-}
-
-   EdHide::~EdHide( void )          // Destructor
-{  if( HCDM || opt_hcdm )
-     debugh("EdHide(%p)::~EdHide\n", this);
-
-   for(;;) {
-     EdLine* line= list.remq();
-     if( line == nullptr )
-       break;
-
-     delete line;
-   }
-}
-
-//----------------------------------------------------------------------------
-// EdHide::Methods
-//----------------------------------------------------------------------------
-void
-   EdHide::append(                  // Add to end of list
-     EdLine*           line)        // Making this the new tail line
-{
-   list.fifo(line);
-   update();
-}
-
-void
-   EdHide::prepend(                 // Add to beginning of list
-     EdLine*           line)        // Making this the new head line
-{
-   list.lifo(line);
-   update();
-}
-
-void
-   EdHide::remove( void )           // Remove (and delete) this hidden line
-{
-}
-
-void
-   EdHide::update( void )           // Update the count and the message
-{
-}
-
-//============================================================================
-//
-// Method-
-//       EdRedo::EdRedo
-//
-// Purpose-
-//       Constructor/Destructor
-//
-//----------------------------------------------------------------------------
-   EdRedo::EdRedo( void )           // Constructor
-:  ::pub::List<EdRedo>::Link()
-{  if( HCDM || opt_hcdm )
-     debugh("EdRedo(%p)::EdRedo\n", this);
-
-   Trace::trace(".NEW", "redo", this);
-}
-
-   EdRedo::~EdRedo( void )          // Destructor
-{  if( HCDM || opt_hcdm )
-     debugh("EdRedo(%p)::~EdRedo\n", this);
-
-   Trace::trace(".DEL", "redo", this);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdRedo::debug
-//
-// Purpose-
-//       Debugging display.
-//
-//----------------------------------------------------------------------------
-void
-   EdRedo::debug(                   // Debugging display
-     const char*       info) const  // Associated info
-{  debugf("EdRedo(%p)::debug(%s)\n", this, info ? info : "");
-
-   debugf("  COL [%3zd:%3zd]\n", lh_col, rh_col);
-
-   debugf("  INS [");
-   if( head_insert ) debugf("%p<-", head_insert->get_prev());
-   debugf("%p,%p", head_insert, tail_insert);
-   if( tail_insert ) debugf("->%p", tail_insert->get_next());
-   debugf("],\n");
-
-   for(EdLine* line= head_insert; line; line=line->get_next() ) {
-     debugf("    "); line->debug();
-     if( line == tail_insert )
-       break;
-   }
-
-   debugf("  REM [");
-   if( head_remove ) debugf("%p<-", head_remove->get_prev());
-   debugf("%p,%p", head_remove, tail_remove);
-   if( tail_remove ) debugf("->%p", tail_remove->get_next());
-   debugf("]\n");
-
-   for(EdLine* line= head_remove; line; line=line->get_next() ) {
-     debugf("    "); line->debug();
-     if( line == tail_remove )
-       break;
-   }
-}
+#include "EdRedo.hpp"

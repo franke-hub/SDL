@@ -279,7 +279,7 @@ void
 //----------------------------------------------------------------------------
 const char*                         // The resized buffer
    resize(                          // Resize the buffer
-     size_t            size);       // To (exactly) this size
+     size_t            size= 0);    // To (exactly) this size
 
 //----------------------------------------------------------------------------
 //

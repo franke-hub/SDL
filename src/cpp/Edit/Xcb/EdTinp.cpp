@@ -16,7 +16,7 @@
 //       Editor: Implement EdTerm.h keyboard and mouse event handlers.
 //
 // Last change date-
-//       2024/03/04
+//       2024/03/29
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -353,6 +353,11 @@ void
        draw();
        break;
      }
+     case 'P': {                    // Format paragraph
+       data->commit();
+       editor::put_message( mark->format() ); // Format the paragraph
+       break;
+     }
      case 'S': {                    // Split line
        editor::put_message( editor::do_split() ); // Split the current line
        break;
@@ -620,23 +625,13 @@ void
        break;
      }
      case XK_Tab: {
-       column += TAB;
-       column &= ~(TAB - 1);
-       move_cursor_H(column);
+       move_cursor_H(editor::tab_forward(column));
        break;
      }
-     case XK_ISO_Left_Tab:
-       if( column ) {               // If not already at column[0]
-         if( column <= TAB )
-           column= 0;
-         else {
-           if( (column % TAB) == 0 )
-             column--;
-           column &= ~(TAB - 1);
-         }
-         move_cursor_H(column);
-       }
+     case XK_ISO_Left_Tab: {
+       move_cursor_H(editor::tab_reverse(column));
        break;
+     }
 
      //-----------------------------------------------------------------------
      // Function keys

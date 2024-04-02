@@ -16,7 +16,7 @@
 //       Implement gui/Window.h and gui/Pixmap.h
 //
 // Last change date-
-//       2023/05/09
+//       2024/03/31
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -29,7 +29,7 @@
 #include <pub/utility.h>            // For pub::utility::clock
 
 #include "gui/Device.h"             // For Device
-#include "gui/Global.h"             // For Global data areas and utilities
+#include "gui/Global.h"             // For opt_* definitions
 #include "gui/Pixmap.h"             // For Pixmap, base class
 #include "gui/Types.h"              // For Type definitions
 #include "gui/Window.h"             // Implementation class
@@ -46,6 +46,34 @@ enum // Compilation controls
 }; // Compilation controls
 
 namespace gui {
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       xcbcheck
+//
+// Purpose-
+//       Validate an XCB result.
+//
+//----------------------------------------------------------------------------
+static void
+   xcbcheck(                        // Verify XCB function result
+     int               line,        // Source line number
+     const char*       file,        // Source file name
+     const char*       name,        // Function name
+     xcb_generic_error_t* xc)       // Generic error
+{
+   if( xc ) {
+     debugh("%4d %s EC(%d)= %s()\n", line, file, xc->error_code, name);
+     xcberror(xc);
+
+     debugh("%4d %s::%s CHECKSTOP\n", line, file, name);
+     debug_flush();
+     exit(2);
+   } else if( opt_hcdm && opt_verbose > 1 ) {
+     debugh("%4d %s::%s()\n", line, file, name);
+   }
+}
+
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -159,7 +187,8 @@ void
    debugf("..penduse(%d)\n", penduse);
    for(unsigned i= 0; i<penduse; i++) {
      const Pending& p= pending[i];
-     debugf("..[%2d] %4d: (%6u) %s\n", i, p.opline, p.op.sequence, p.opname);
+     debugf("..[%2d] %4d: %s(%6u) %s\n", i, p.opline, p.opfile
+           , p.op.sequence, p.opname);
    }
 
    Layout::debug();
@@ -240,6 +269,7 @@ void
 void
    Pixmap::enqueue(                 // Add operation to pending queue
      int               line,        // Source line number
+     const char*       file,        // Source file name
      const char*       name,        // Operation name
      xcb_void_cookie_t op)          // Operation cookie
 {
@@ -253,6 +283,7 @@ void
 
    Pending& pending= this->pending[penduse++];
    pending.opname= name;
+   pending.opname= file;
    pending.opline= line;
    pending.op=     op;
 }
@@ -261,12 +292,13 @@ void
 void                                // Response handled in reply loop
    Pixmap::noqueue(                 // Drive operation
      int               line,        // Source line number
+     const char*       file,        // Source file name
      const char*       name,        // Operation name
      xcb_void_cookie_t op)          // Operation cookie
 {
    (void)op;                        // Unused parameter
    if( opt_hcdm && opt_verbose > 0 )
-     traceh("Pixmap(%p)::noqueue(%d,%s)\n", this, line, name);
+     traceh("Pixmap(%p)::noqueue %4d %s(%p)\n", this, line, file, name);
 }
 
 //----------------------------------------------------------------------------
@@ -281,12 +313,12 @@ void                                // Response handled in reply loop
 void
    Pixmap::flush( void )            // Flush outstanding operations
 {
-   if( opt_hcdm )
+   if( opt_hcdm && opt_verbose > 0 )
      debugh("Pixmap(%p)::flush(%u)\n", this, penduse);
 
    for(unsigned i= 0; i<penduse; i++) {  // Complete pending operations
      Pending& pending= this->pending[i];
-     synchronously(pending.opline, pending.opname, pending.op);
+     synchronously(pending.opline, pending.opfile, pending.opname, pending.op);
    }
 
    penduse= 0;
@@ -306,14 +338,15 @@ void
 void
    Pixmap::synchronously(           // Synchronous XCB operation
      int               line,        // Source line number
+     const char*       file,        // Source file name
      const char*       name,        // The operation name
      xcb_void_cookie_t op)          // The synchronous operation (cookie)
-{  xcbcheck(line, name, xcb_request_check(c, op)); }
+{  xcbcheck(line, file, name, xcb_request_check(c, op)); }
 
 void
    Pixmap::synchronously(           // Synchronous XCB operation
      xcb_void_cookie_t op)          // The synchronous operation (cookie)
-{  xcbcheck(__LINE__, "synchronously", xcb_request_check(c, op)); }
+{  xcbcheck(__LINE__, __FILE__, "synchronously", xcb_request_check(c, op)); }
 
 //----------------------------------------------------------------------------
 //
@@ -533,7 +566,7 @@ void
 
    int16_t mask= XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
    int32_t parm[2]= { x, y };
-   synchronously(__LINE__
+   synchronously(__LINE__, __FILE__
                 , "xcb_configure_window", xcb_configure_window_checked
                 ( c, widget_id, mask, parm ) );
 }

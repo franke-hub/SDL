@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2023/09/15
+//       2024/04/02
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -51,9 +51,17 @@ class EdView;                       // Editor view
 //----------------------------------------------------------------------------
 class Editor {                      // Editor constuctor/destructor
 //----------------------------------------------------------------------------
-// Editor::Constructor/Destructor
+// Editor::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
+enum                                // TABS controls
+{  TAB_DEFAULT= 8                   // TABS: default spacing
+,  TAB_DIM= 128                     // TABS: table size (+1)
+}; // enum
+
+//----------------------------------------------------------------------------
+// Editor::Constructor/Destructor
+//----------------------------------------------------------------------------
    Editor(                          // Constructor
      int               argi,        // Argument index
      int               argc,        // Argument count
@@ -142,6 +150,10 @@ extern uint32_t        diagnostic;  // Diagnostic state (TRUE if halted)
 extern uint32_t        locate_back; // Reverse search (default= false)
 extern uint32_t        locate_case; // Case sensitive search (default= false)
 extern uint32_t        locate_wrap; // Autowrap (default= false)
+
+// Margins (for format) ------------------------------------------------------
+extern size_t          margins[2];  // [left][right] margins
+extern size_t          tabs[Editor::TAB_DIM]; // Tabs array, tab[0] is count
 
 //----------------------------------------------------------------------------
 //
@@ -315,28 +327,28 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::insert_command
+//       editor::file_command
 //
 // Purpose-
-//       Insert command output onto the file list
+//       Load command input/output pseudo-file
 //
 //----------------------------------------------------------------------------
 void
-   insert_command(                    // Insert command output to the file list
-     const char*       input,         // The command
+   file_command(                      // Load command input/output pseudo-file
+     const char*       input,         // The command (required)
      const std::string&output);       // The command output
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       editor::insert_file
+//       editor::file_loader
 //
 // Purpose-
-//       Insert file onto the file list
+//       Load files, adding them to the file list
 //
 //----------------------------------------------------------------------------
 void
-   insert_file(                     // Insert file(s) onto the file list
+   file_loader(                     // Load files, adding them to the file list
      const char*       name= nullptr, // The file name (wildards allowed)
      int               protect= false); // Protect file?
 
@@ -365,6 +377,32 @@ void
 //----------------------------------------------------------------------------
 void
    remove_file( void );             // Remove active file from the file list
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::tab_forward
+//
+// Purpose-
+//       Get next tab column.
+//
+//----------------------------------------------------------------------------
+size_t                              // The next tab column
+   tab_forward(                     // Get the tab column
+     size_t            column);     // After this column
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::tab_reverse
+//
+// Purpose-
+//       Get prior tab column.
+//
+//----------------------------------------------------------------------------
+size_t                              // The prior tab column
+   tab_reverse(                     // Get the tab column
+     size_t            column);     // Before this column
 
 //----------------------------------------------------------------------------
 //
