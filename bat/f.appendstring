@@ -93,4 +93,3 @@ function PrependString
 
   unset __varpath __varfile __sepchar __current __foundL __foundM __foundR
 }
-

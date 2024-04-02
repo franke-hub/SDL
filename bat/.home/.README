@@ -16,21 +16,17 @@
 ##       Describe subdirectory content.
 ##
 ## Last change date-
-##       2020/01/19
+##       2024/03/27
 ##
 ## Implementation notes-
 ##       This subdirectory contains suggested content for your $HOME directory.
 ##       Put edited versions of these control files your $HOME directory.
 ##
 ## Usage notes-
-##       .bash_history -> /etc/RO is used to disable bash history recording.
-##       To create /etc/RO:
-##           sudo touch /etc/RO
-##           sudo chmod a=r /etc/RO
+##       .bash_history -> .bash_history
+##       (The self-referencing link disables bash history recording.)
 ##
-##       .bash_logout is not included. It is unchanged from whatever version
-##       is provided by your distribution.
-##
-##       .gitconfig ** REQUIRES USER MODIFICATION **
+##       .gitconfig
+##       ** REQUIRES USER MODIFICATION **
 ##
 ##############################################################################

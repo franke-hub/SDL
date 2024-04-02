@@ -16,7 +16,7 @@
 ##       If version is out of date, make pristine.
 ##
 ## Last change date-
-##       2024/02/10
+##       2024/03/28
 ##
 ## Usage-
 ##       ~/bat/sys/configure.sh library-name
@@ -72,9 +72,11 @@ if [[ -r "$HAVEFILE" ]] ; then
    have=`$RDCONFIG $HAVEFILE "$1"`
    [[ "$have" == "$want" ]] && exit 0
 
-   echo "$THISFILE: _have $have, _want $want"
+   echo "$THISFILE: _want $want, _have $have"
+elif [[ ! -e "$HAVEFILE" ]] ; then
+   echo "$THISFILE: _want $want, _have <missing>"
 else
-   echo "$THISFILE: $HAVEFILE NOT READABLE"
+   echo "$THISFILE: _want $want, _have *UNREADABLE--FIX-REQUIRED*"
 fi
 
 ##############################################################################

@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (C) 2020 Frank Eskesen.
+##       Copyright (C) 2020-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,22 +15,13 @@
 ##       Subdirectory content.
 ##
 ## Last change date-
-##       2020/03/23
+##       2024/03/27
 ##
 ## Implementation note-
 ##       This subdirectory is highly uninteresting. Ignoring it is advised.
-##       These are learning files used to understand make variables content.
-##
-##       You have to compare the makefiles and their outputs in order to make
-##       much sense out of it.
+##       These are learning files used to understand make variables.
 ##
 ## Usage-
-##       make -f builtins/Makefile.BSD
-##       make -f builtins/Makefile.GNU
-##       make -f builtins/Makefile.WIN
-##
-##       The three files have a lot in common.
-##       Makefile.GNU uses a different output formatting and tests templates.
-##       Makefile.WIN object file type is .obj, not .o
+##       make -f builtins/Makefile
 ##
 ##############################################################################

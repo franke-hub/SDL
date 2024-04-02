@@ -15,7 +15,7 @@
 //       Signals.h reference manual
 //
 // Last change date-
-//       2024/01/23
+//       2024/03/30
 //
 -------------------------------------------------------------------------- -->
 ## pub::Signals
@@ -61,6 +61,60 @@ handlers.
 When an application invokes Signal::signal, signal serially invokes
 each connected Event handler. All connected Event handlers will have
 been called before signal returns. No thread switching occurs.
+
+#### Static initialization considerations:
+
+When using static Signal objects and static lambda initializers, you need to
+consider initializer ordering. e.g.
+
+----
+Module 1:
+```
+pub::signals:Signal<const char*> my_global_signal; // (Also defined as extern)
+```
+
+Module 2:
+```
+pub::signals:Connector<const char*> my_global_signal_handler=
+    my_global_signal.connect([](const char* info)
+{   printf("Wahoo! my_global_signal_handler invoked\n"); }
+```
+----
+
+If my_global_signal_handler's static initialization is invoked before
+my_global_signal's construction, there's a problem.
+Avoid it using the RAII (Resource Aqusition Is Initialization) algorithm:
+
+----
+Module 1:
+```
+static pub::signals:Signal<const char*>* the_global_signal= nullptr;
+
+pub::signals:Signal<const char*>* my_global_signal() // (Also defined as extern)
+{                                   // The (hidden) implementation
+   static std::mutex mutex;
+   std::lock_guard<std::mutex> lock(mutex);
+   if( the_global_symbol == nullptr )
+     the_global_symbol= new pub::signals:Signal<const char*>();
+
+   return the_global_symbol;
+}
+
+
+namespace {
+static struct cleanup {             // On termination, delete the_global_signal
+   ~cleanup() { delete the_global_symbol; the_global_symbol= nullptr; }
+}  my_cleanup;
+}  // (Anonymous namespace)
+```
+
+Module 2:
+```
+pub::signals:Connector<const char*> my_global_signal_handler=
+    my_global_signal()->connect([](const char* info)
+{   printf("Wahoo! my_global_signal_handler invoked\n"); }
+```
+----
 
 #### Usage restrictions:
 

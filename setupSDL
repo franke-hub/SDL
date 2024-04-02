@@ -16,13 +16,13 @@
 ##       Initialize SDL (Software Development Lab) PATH
 ##
 ## Last change date-
-##       2024/02/10
+##       2024/03/28
 ##
 ## Usage-
 ##       . setupSDL
 ##
 ## Implementation note-
-##       $SDL_ROOT is only used by ./Makefile and ./obj/cpp/Makefile, but
+##       $SDL_ROOT is only used by Makefiles, but
 ##       $PATH (including ./bat and ./bin) is generally needed.
 ##         './bat' is useful, but can be omitted.
 ##         './bin' (initialized by 'make install') is needed:
@@ -34,14 +34,35 @@
 ##############################################################################
 ## Set environment
 root=`./bat/.root`
-export PATH="$root/bat:$root/bin:$PATH"
 export SDL_ROOT="$root"
 
-if [[ "" != "`uname | grep CYGWIN`" ]] ; then ## CYGWIN version ##############
-export PATH="~/.local/lib/sdlc++:$PATH"
-echo PATH $PATH
+.  ./bat/f.appendstring             ## AppendString and PrependString
 
-else ## LINUX version ########################################################
-export LD_LIBRARY_PATH="~/.local/lib/sdlc++:$LD_LIBRARY_PATH"
-echo LD_LIBRARY_PATH $LD_LIBRARY_PATH
+##############################################################################
+## Update PATH
+[ "" != "`uname | grep CYGWIN`" ] && PrependString PATH "$HOME/.local/lib/sdlc++"
+
+PrependString PATH "$SDL_ROOT/bin"
+PrependString PATH "$SDL_ROOT/bat"
+
+##############################################################################
+## Update LD_LIBRARY_PATH
+[ ! -d "$HOME/.local/lib" ] && mkdir -p $HOME/.local/lib
+
+if [ ! -L "$HOME/.local/lib/sdlc++" ] ; then
+   pushd $HOME/.local/lib >/dev/null 2>&1
+   ln -s $SDL_ROOT/obj/cpp/lib/shared sdlc++
+   popd >/dev/null 2>&1
+fi
+
+PrependString LD_LIBRARY_PATH "$HOME/.local/lib/sdlc++"
+
+##############################################################################
+## Display status
+if [ 1 == 2 ] ; then
+   echo PATH $PATH
+   echo
+   echo LD_LIBRARY_PATH $LD_LIBRARY_PATH
+   echo
+   echo SDL_ROOT $SDL_ROOT
 fi
