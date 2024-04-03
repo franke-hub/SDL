@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/03/27
+//       2024/04/02
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,15 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 04/02/2024 maint/trunk
+
+Library restructure stable and ready for trunk merge.
+
+Updated editxcb, restructuring and adding function.
+See: [.README](src/cpp/Edit/Xcb/.README)
 
 ----
 
