@@ -16,7 +16,7 @@
 //       Editor: Editor data view
 //
 // Last change date-
-//       2024/01/25
+//       2024/04/05
 //
 //----------------------------------------------------------------------------
 #ifndef EDVIEW_H_INCLUDED
@@ -27,9 +27,7 @@
 #include <xcb/xproto.h>             // For xcb_gcontext_t, ...
 
 #include "Active.h"                 // For Active
-#include "Editor.h"                 // For Editor
-#include "EdFile.h"                 // For EdFile, EdLine
-#include "EdTerm.h"                 // For EdTerm
+#include "EdLine.h"                 // For EdLine
 
 //----------------------------------------------------------------------------
 //

@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2024/04/02
+//       2024/04/05
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -30,7 +30,7 @@
 #include "EdFile.h"                 // For EdFile, EdLine
 #include "EdHist.h"                 // For EdHist
 #include "EdMark.h"                 // For EdMark
-#include "EdTerm.h"                 // For EdTerm
+#include "EdOuts.h"                 // For EdOuts
 
 using namespace pub::debugging;     // For debugging
 using namespace config;             // For opt_* controls
@@ -176,7 +176,8 @@ static const Command_desc  command_desc[]= // The Command descriptor list
 ,  {command_0042,     "number",   "Set current line to 'number'"}
 
 // Spelling errors/typos
-,  {nullptr,         "",          nullptr} // Misspelled commands follow
+,  {nullptr,         "",          nullptr} // Command aliases follow
+,  {command_insert,  "INCLUDE",   nullptr} // (INSERT)
 ,  {command_margins, "MARGIN",    nullptr} // (MARGINS)
 ,  {command_save,    "SAE",       nullptr} // (SAVE)
 ,  {command_save,    "SAV",       nullptr} // (SAVE)
@@ -284,9 +285,9 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_bot(char*)               // Bottom command
 {
-   using namespace editor;          // For editor::(data, hist, term)
+   using namespace editor;          // For editor::(data, hist, outs)
    data->col_zero= data->col= 0;
-   term->activate(file->line_list.get_tail());
+   outs->activate(file->line_list.get_tail());
    hist->activate();                // (Remain in command mode)
    return nullptr;
 }
@@ -358,7 +359,7 @@ static const char*                  // Error message, nullptr expected
    // If a blank line was truncated, undo is no longer possible
    if( changed ) {                  // If we changed a line
      file->chglock= true;           // Indicate file changed, undo impossible
-     editor::term->draw_top();      // Re-draw top lines, indicating changed
+     editor::outs->draw_top();      // Re-draw top lines, indicating changed
    }
 
    return nullptr;
@@ -380,8 +381,8 @@ static const char*                  // Error message, nullptr expected
      editor::file->debug("lines");
    else if( strcasecmp(parm, "mark") == 0 )
      editor::mark->debug("command");
-   else if( strcasecmp(parm, "term") == 0 )
-     editor::term->debug("command");
+   else if( strcasecmp(parm, "outs") == 0 )
+     editor::outs->debug("command");
    else if( strcasecmp(parm, "view") == 0 ) {
      editor::data->debug("command");
      editor::hist->debug("command");
@@ -407,7 +408,7 @@ static const char*                  // Error message, nullptr expected
    }
 
    if( editor::file != editor::last )
-     editor::term->activate(editor::last);
+     editor::outs->activate(editor::last);
    editor::hist->activate();
 
    return nullptr;
@@ -543,7 +544,7 @@ static const char*                  // Error message, nullptr expected
    // Update the file state
    data->col_zero= data->col= 0;
    file->activate(head);            // Activate the first inserted line
-   editor::term->draw();            // And redraw
+   editor::outs->draw();            // And redraw
 
    return nullptr;
 }
@@ -581,8 +582,8 @@ static const char*                  // Error message, nullptr expected
      return message;
 
    editor::data->activate();
-   editor::term->move_cursor_H(0);
-   editor::term->activate(editor::file->get_line(line_number));
+   editor::outs->move_cursor_H(0);
+   editor::outs->activate(editor::file->get_line(line_number));
 
    return nullptr;
 }
@@ -771,9 +772,9 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_top(char*)               // Top command
 {
-   using namespace editor;          // For editor::(data, hist, term)
+   using namespace editor;          // For editor::(data, hist, outs)
    data->col_zero= data->col= 0;
-   term->activate(file->line_list.get_head());
+   outs->activate(file->line_list.get_head());
    hist->activate();                // (Remain in command mode)
    return nullptr;
 }
@@ -784,7 +785,7 @@ static const char*                  // Error message, nullptr expected
 {
    if( editor::data->active.undo() ) {
      editor::data->draw_active();
-     editor::term->draw_top();
+     editor::outs->draw_top();
    } else
      editor::file->undo();
    return nullptr;
@@ -805,7 +806,7 @@ static const char*                  // Error message, nullptr expected
    }
 
    if( editor::file != editor::last )
-     editor::term->activate(editor::last);
+     editor::outs->activate(editor::last);
    editor::hist->activate();
 
    return nullptr;

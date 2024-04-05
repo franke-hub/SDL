@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       EdTinp.cpp
+//       EdInps.cpp
 //
 // Purpose-
-//       Editor: Implement EdTerm.h keyboard and mouse event handlers.
+//       Editor: Window, keyboard, and mouse handlers.
 //
 // Last change date-
-//       2024/03/29
+//       2024/04/05
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -34,27 +34,33 @@
 #include <pub/Fileman.h>            // For pub::fileman::Name
 #include <pub/List.h>               // For pub::List
 #include <pub/Trace.h>              // For pub::Trace
+#include <pub/Utf.h>                // For pub::Utf classes
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For Config, namespace config
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile
 #include "EdHist.h"                 // For EdHist
+#include "EdInps.h"                 // For EdInps, implemented
 #include "EdMark.h"                 // For EdMark
 
 using namespace config;             // For config::opt_*, ...
 using namespace pub::debugging;     // For debugging
 using pub::Trace;                   // For pub::Trace
 
+typedef pub::Utf::utf8_t   utf8_t;  // Import utf8_t
+typedef pub::Utf::utf16_t  utf16_t; // Import utf16_t
+typedef pub::Utf::utf32_t  utf32_t; // Import utf32_t
+
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+
 ,  KP_MAX= 0xffbf                   // Keypad maximum key value
 ,  KP_MIN= 0xff80                   // Keypad minimum key value
-,  TAB= 8                           // TAB spacing (2**N)
-,  USE_BRINGUP= false               // Use bringup debugging?
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
@@ -81,6 +87,8 @@ static unsigned short  kp_off[64]=  // Keypad conversion table, numlock off
 ,     '0',    '1',    '2',    '3',    '4',    '5',    '6',    '7' // 0xffb0 ..
 ,     '8',    '9', 0xffba, 0xffbb, 0xffbc,    '=', 0xffbe, 0xffbf // 0xffb8 ..
 }; // kp_off
+
+// (Statically) verify kp_num and kp_off definitions
 static_assert(0xff80 == XK_KP_Space     && 0xffbf == XK_F2
            && 0xff8d == XK_KP_Enter     && 0xff0d == XK_Return
            && 0xff95 == XK_KP_Home      && 0xff50 == XK_Home
@@ -108,8 +116,9 @@ static_assert(0xff80 == XK_KP_Space     && 0xffbf == XK_F2
 static const char*                  // The name of the key
    key_to_name(xcb_keysym_t key)    // Convert xcb_keysym_t to name
 {
-static char buffer[16];
-static const char* F_KEY= "123456789ABCDEF";
+   static char buffer[8];           // (Static) return buffer
+   static const char* F_KEY= "123456789ABCDEF";
+
    if( key >= 0x0020 && key <= 0x007f ) { // If text key (but not TAB or ESC)
      buffer[0]= char(key);
      buffer[1]= '\0';
@@ -214,27 +223,27 @@ static const char* F_KEY= "123456789ABCDEF";
 //
 //----------------------------------------------------------------------------
 static bool
-   is_text_key(                     // Is key an input key?
+   is_text_key(                     // Is key a text key?
      xcb_keysym_t      key)         // Input key
 {
-   bool is_key= false;
    if( (key >= 0x0020 && key < 0x007F) // If standard text key
        || key == '\b' || key == '\t' || key == '\x1B' ) // or escaped key
-     is_key= true;
-   return is_key;
+     return true;
+
+   return false;
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       line_protected
+//       is_protected_key
 //
 // Purpose-
-//       Disallow keypress event for a protected line.
+//       Determine whether a keypress is allowed for a protected line.
 //
 //----------------------------------------------------------------------------
 static int                          // Return code, TRUE if error message
-   line_protected(                  // Handle this protected line
+   is_protected_key(                // Is keypress protected
      xcb_keysym_t      key,         // Input key
      int               state)       // Alt/Ctl/Shift state mask
 {
@@ -291,14 +300,239 @@ static int                          // Return code, TRUE if error message
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::key_alt
+//       EdInps::EdInps
+//
+// Purpose-
+//       Constructor
+//
+//----------------------------------------------------------------------------
+   EdInps::EdInps(                  // Constructor
+     Widget*           parent,      // Parent Widget
+     const char*       name)        // Widget name
+:  Window(parent, name ? name : "EdInps")
+,  active(*editor::active), font(*config::font)
+{
+   if( opt_hcdm )
+     debugh("EdInps(%p)::EdInps\n", this);
+
+   // Handle EdMark::ChangeEvent (lambda function)
+   // (Implement in EdOuts.cpp)
+
+   // Basic window colors
+   bg= config::text_bg;
+   fg= config::text_fg;
+
+   // Layout
+   col_size= config::geom.width;
+   row_size= config::geom.height;
+   unsigned mini_c= MINI_C;
+   unsigned mini_r= MINI_R;
+   if( mini_c > col_size ) mini_c= col_size;
+   if( mini_r > row_size ) mini_r= row_size;
+   min_size= { gui::WH_t(mini_c   * font.length.width  + 2)
+             , gui::WH_t(mini_r   * font.length.height + 2) };
+   use_size= { gui::WH_t(col_size * font.length.width  + 2)
+             , gui::WH_t(row_size * font.length.height + 2) };
+   use_unit= { gui::WH_t(font.length.width), gui::WH_t(font.length.height) };
+
+   // Set window event mask
+   emask= XCB_EVENT_MASK_KEY_PRESS
+//      | XCB_EVENT_MASK_KEY_RELEASE
+        | XCB_EVENT_MASK_BUTTON_PRESS
+        | XCB_EVENT_MASK_POINTER_MOTION
+        | XCB_EVENT_MASK_BUTTON_MOTION
+        | XCB_EVENT_MASK_EXPOSURE
+        | XCB_EVENT_MASK_STRUCTURE_NOTIFY
+//      | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
+        | XCB_EVENT_MASK_FOCUS_CHANGE
+//      | XCB_EVENT_MASK_PROPERTY_CHANGE
+        ;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdInps::~EdInps
+//
+// Purpose-
+//       Constructor
+//
+//----------------------------------------------------------------------------
+   EdInps::~EdInps( void )          // Destructor
+{
+   if( opt_hcdm )
+     debugh("EdInps(%p)::~EdInps\n", this);
+
+   if( flipGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, flipGC) );
+   if( fontGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, fontGC) );
+   if( markGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, markGC) );
+   if( bg_chg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, bg_chg) );
+   if( bg_sts ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, bg_sts) );
+   if( gc_chg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_chg) );
+   if( gc_msg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_msg) );
+   if( gc_sts ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_sts) );
+
+   flush();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdInps::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+void
+   EdInps::debug(                   // Debugging display
+     const char*       info) const  // Associated info
+{
+   debugf("EdOuts(%p)::debug(%s) Named(%s)\n", this, info ? info : ""
+         , get_name().c_str());
+
+   debugf("..head(%p) tail(%p) col_size(%u) row_size(%u) row_used(%u)\n"
+         , head, tail, col_size, row_size, row_used);
+   debugf("..motion(%d,%d,%d,%d)\n", motion.state, motion.time
+         , motion.x, motion.y);
+   debugf("..fontGC(%u) flipGC(%u) markGC(%u)\n", fontGC, flipGC, markGC);
+   debugf("..gc_chg(%u) gc_msg(%u) gc_sts(%u)\n"
+         , gc_chg, gc_msg, gc_sts);
+   debugf("..protocol(%u) wm_close(%u)\n", protocol, wm_close);
+   Window::debug(info);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdInps::configure
+//
+// Purpose-
+//       Configure the Window
+//
+//----------------------------------------------------------------------------
+void
+   EdInps::configure( void )        // Configure the Window
+{
+   if( opt_hcdm )
+     debugh("EdInps(%p)::configure\n", this);
+
+   Window::configure();             // Create the Window
+   flush();
+
+   // Create the graphic contexts
+   fontGC= font.makeGC(fg, bg);          // (The default)
+   flipGC= font.makeGC(bg, fg);          // (Inverted)
+   markGC= font.makeGC(mark_fg,    mark_bg);
+   bg_chg= font.makeGC(change_bg,  change_bg);
+   bg_sts= font.makeGC(status_bg,  status_bg);
+   gc_chg= font.makeGC(change_fg,  change_bg);
+   gc_msg= font.makeGC(message_fg, message_bg);
+   gc_sts= font.makeGC(status_fg,  status_bg);
+
+   // Configure views
+   EdView* const data= editor::data;
+   data->gc_flip= flipGC;
+   data->gc_font= fontGC;
+   data->gc_mark= markGC;
+   EdHist* const hist= editor::hist;
+   hist->gc_flip= flipGC;
+
+   // Set up WM_DELETE_WINDOW protocol handler
+   protocol= name_to_atom("WM_PROTOCOLS", true);
+   wm_close= name_to_atom("WM_DELETE_WINDOW");
+   ENQUEUE("xcb_change_property", xcb_change_property_checked
+          ( c, XCB_PROP_MODE_REPLACE, widget_id
+          , protocol, 4, 32, 1, &wm_close) );
+   if( opt_hcdm )
+     debugh("%4d %s PROTOCOL(%d), atom WM_CLOSE(%d)\n", __LINE__, __FILE__
+           , protocol, wm_close);
+
+   flush();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdInps::grab_mouse
+//       EdInps::hide_mouse
+//       EdInps::show_mouse
+//
+// Purpose-
+//       Grab the mouse cursor
+//       Hide the mouse cursor
+//       Show the mouse cursor
+//
+// Implementation notes-
+//       xcb_configure_window has no effect before the first window::draw().
+//
+//----------------------------------------------------------------------------
+void
+   EdInps::grab_mouse( void )       // Grab the mouse cursor
+{
+   using gui::WH_t;
+
+   uint32_t x_origin= config::geom.x;
+   uint32_t y_origin= config::geom.y;
+   if( x_origin || y_origin ) {     // If position specified
+     uint16_t mask= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
+     uint32_t parm[2];
+     parm[0]= x_origin;
+     parm[1]= y_origin;
+     ENQUEUE("xcb_configure_window", xcb_configure_window_checked
+            (c, widget_id, mask, parm) );
+   } else {                         // If position assigned
+     flush();                       // (Yes, this is needed)
+     xcb_get_geometry_cookie_t cookie= xcb_get_geometry(c, widget_id);
+     xcb_get_geometry_reply_t* r= xcb_get_geometry_reply(c, cookie, nullptr);
+     if( r ) {
+       x_origin= r->x;
+       y_origin= r->y;
+       free(r);
+     } else {
+       debugf("%4d EdInps xcb_get_geometry error\n", __LINE__);
+     }
+   }
+
+   x_origin += rect.width/2;
+   y_origin += rect.height/2;
+   NOQUEUE("xcb_warp_pointer", xcb_warp_pointer
+          (c, XCB_NONE, widget_id, 0,0,0,0
+          , WH_t(x_origin), WH_t(y_origin)) );
+   flush();
+}
+
+void
+   EdInps::hide_mouse( void )       // Hide the mouse cursor
+{
+   if( motion.state != CS_HIDDEN ) { // If not already hidden
+     NOQUEUE("xcb_hide_cursor", xcb_xfixes_hide_cursor(c, widget_id) );
+     motion.state= CS_HIDDEN;
+     flush();
+   }
+}
+
+void
+   EdInps::show_mouse( void )       // Show the mouse cursor
+{
+   if( motion.state != CS_VISIBLE ) { // If not already visible
+     NOQUEUE("xcb_show_cursor", xcb_xfixes_show_cursor(c, widget_id) );
+     motion.state= CS_VISIBLE;
+     flush();
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdInps::key_alt
 //
 // Purpose-
 //       Handle alt-key event
 //
 //----------------------------------------------------------------------------
 void
-   EdTerm::key_alt(                 // Handle this
+   EdInps::key_alt(                 // Handle this
      xcb_keysym_t      key)         // Alt_Key input event
 {
    EdView* const data= editor::data;
@@ -377,21 +611,20 @@ void
      }
      default:
        editor::put_message("Invalid key");
-       draw_top();
    }
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::key_ctl
+//       EdInps::key_ctl
 //
 // Purpose-
 //       Handle ctl-key event
 //
 //----------------------------------------------------------------------------
 void
-   EdTerm::key_ctl(                 // Handle this
+   EdInps::key_ctl(                 // Handle this
      xcb_keysym_t      key)         // Ctrl_Key input event
 {
    EdView* const data= editor::data;
@@ -451,14 +684,224 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::key_input
+//       EdInps::putxy
 //
 // Purpose-
-//       Handle keypress event
+//       Draw text at [left,top] point
 //
 //----------------------------------------------------------------------------
 void
-   EdTerm::key_input(               // Handle this
+   EdInps::putxy(                   // Draw text
+     xcb_gcontext_t    fontGC,      // The target graphic context
+     unsigned          left,        // Left (X) offset
+     unsigned          top,         // Top  (Y) offset
+     const char*       text)        // Using this text
+{  if( opt_hcdm && opt_verbose > 0 ) {
+     char buffer[24];
+     if( strlen(text) < 17 )
+       strcpy(buffer, text);
+     else {
+       memcpy(buffer, text, 16);
+       strcpy(buffer+16, "...");
+     }
+     debugh("EdOuts(%p)::putxy(%u,[%d,%d],'%s')\n", this
+           , fontGC, left, top, buffer);
+   }
+
+   enum{ DIM= 256 };                // xcb_image_text_16 maximum length
+   xcb_char2b_t out[DIM];           // UTF16 output buffer
+
+   unsigned outlen= 0;              // UTF16 output buffer length
+   unsigned outorg= left;           // Current output origin index
+   unsigned outpix= left;           // Current output pixel index
+   for(auto it= pub::Utf8::const_iterator((const utf8_t*)text); *it; ++it) {
+     if( outlen > (DIM-4) ) {       // If time for a partial write
+       NOQUEUE("xcb_image_text_16", xcb_image_text_16
+              ( c, uint8_t(outlen), widget_id, fontGC
+              , uint16_t(outorg), uint16_t(top + font.offset.y), out) );
+       outorg= outpix;
+       outlen= 0;
+     }
+
+     utf32_t code= *it;             // Next encoding
+     outpix += font.length.width;   // Ending pixel (+1)
+     if( outpix >= rect.width || code == 0 ) // If at end of encoding
+       break;
+
+     pub::Utf16::encode(code, (utf16_t*)out + outlen);
+     outlen += pub::Utf16::length(code);
+   }
+
+   if( outlen )                     // If there's something left to render
+     NOQUEUE("xcb_image_text_16", xcb_image_text_16
+            ( c, uint8_t(outlen), widget_id, fontGC
+            , uint16_t(outorg), uint16_t(top + font.offset.y), out) );
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Window event handler methods
+//
+// Purpose-
+//       Window *_event_t handlers
+//
+//----------------------------------------------------------------------------
+void
+   EdInps::button_press(            // Handle this
+     xcb_button_press_event_t* event) // Button press event
+{
+   EdView* const data= editor::data;
+   EdFile* const file= editor::file;
+   EdHist* const hist= editor::hist;
+   EdView* const view= editor::view;
+
+   // Use E.detail and gui::Types::BUTTON_TYPE to determine button
+   // E.root_x/y is position on root window; E.event_x/y is position on window
+   xcb_button_release_event_t& E= *event;
+   if( opt_hcdm && opt_verbose > 0 )
+     debugh("button:   %.2x root[%d,%d] event[%d,%d] state(0x%.4x)"
+           " ss(%u) rec(%u,%u,%u)\n"
+           , E.detail, E.root_x, E.root_y, E.event_x, E.event_y, E.state
+           , E.same_screen, E.root, E.event, E.child);
+
+   size_t current_col= view->get_column(); // The current column number
+   unsigned button_row= get_row(E.event_y); // (Absolute) button row
+
+   switch( E.detail ) {
+     case gui::BT_LEFT: {           // Left button
+       if( button_row < USER_TOP ) { // If on top of screen
+         if( !file->rem_message() ) { // If no message removed or remains
+           if( view == hist )       // If history active
+             move_cursor_H(hist->col_zero + get_col(E.event_x)); // Update column
+           else
+             hist->activate();
+         }
+         draw_top();
+         break;
+       }
+
+       // Button press is on data screen
+       if( view == hist ) {         // If history active
+         data->activate();
+         draw_top();
+       }
+
+       if( button_row != data->row ) { // If row changed
+         if( button_row > row_used ) // (Button should not cause scroll up)
+           button_row= row_used;
+         data->move_cursor_V(button_row - data->row); // Set new row
+       }
+       move_cursor_H(data->col_zero + get_col(E.event_x)); // Set new column
+       break;
+     }
+     case gui::BT_RIGHT: {          // Right button
+       if( button_row < USER_TOP ) { // If on top of screen
+         if( file->rem_message() ) { // If message removed
+           draw_top();
+           break;
+         }
+
+         // Invert the view
+         editor::do_view();
+       }
+       break;
+     }
+     case gui::WT_PUSH:             // Mouse wheel push (away)
+       move_screen_V(-3);
+       break;
+
+     case gui::WT_PULL:             // Mouse wheel pull (toward)
+       move_screen_V(+3);
+       break;
+
+     case gui::WT_LEFT:             // Mouse wheel left
+       move_cursor_H(current_col > 3 ? current_col - 3 : 0);
+       break;
+
+     case gui::WT_RIGHT:            // Mouse wheel right
+       move_cursor_H(current_col + 3);
+       break;
+
+     case gui::BT_CNTR:             // Middle button (ignored)
+     default:                       // (Buttons 6 and 7 undefined)
+       break;
+   }
+}
+
+void
+   EdInps::client_message(          // Handle this
+     xcb_client_message_event_t* E) // Client message event
+{
+   if( opt_hcdm )
+     debugh("message: type(%u) data(%u)\n", E->type, E->data.data32[0]);
+
+   if( E->type == protocol && E->data.data32[0] == wm_close )
+     device->operational= false;
+}
+
+void
+   EdInps::configure_notify(        // Handle this
+     xcb_configure_notify_event_t* E) // Configure notify event
+{
+   if( opt_hcdm )
+     debugh("configure_notify(%d,%d) window(%x)\n"
+           , E->width, E->height, E->window);
+
+   // (Ignore anything other than a window size change, e.g. window movement)
+   if( rect.width != E->width || rect.height != E->height )
+     resized(E->width, E->height);
+}
+
+void
+   EdInps::expose(                  // Handle this
+     xcb_expose_event_t* E)         // Expose event
+{
+   if( opt_hcdm )
+     debugh("expose(%x) %d [%d,%d,%d,%d]\n"
+           , E->window, E->count, E->x, E->y, E->width, E->height);
+
+   draw();
+}
+
+void
+   EdInps::focus_in(                // Handle this
+     xcb_focus_in_event_t* E)       // Focus-in event
+{  using namespace editor;
+
+   if( opt_hcdm && opt_verbose > 0 )
+     debugh("gain focus: detail(%d) event(%d) mode(%d)\n"
+           , E->detail, E->event, E->mode);
+
+   if( !(view == hist && file->mess_list.get_head()) ) {
+     draw_cursor();
+     flush();
+   }
+   status |= SF_FOCUS;
+
+   show_mouse();
+}
+
+void
+   EdInps::focus_out(               // Handle this
+     xcb_focus_out_event_t* E)      // Focus-out event
+{  using namespace editor;
+
+   if( opt_hcdm && opt_verbose > 0 )
+     debugh("lost focus: detail(%d) event(%d) mode(%d)\n"
+           , E->detail, E->event, E->mode);
+
+   if( !(view == hist && file->mess_list.get_head()) ) {
+     undo_cursor();
+     flush();
+   }
+   status &= ~(SF_FOCUS);
+
+   hide_mouse();
+}
+
+void
+   EdInps::key_input(               // Handle this
      xcb_keysym_t      key,         // Key input event
      int               state)       // Alt/Ctl/Shift state mask
 {
@@ -470,7 +913,7 @@ void
    const char* key_name= key_to_name(key);
    Trace::trace(".KEY", (state<<16) | (key & 0x0000ffff), key_name);
    if( opt_hcdm && opt_verbose > 0 )
-     debugh("EdTerm(%p)::key_input(0x%.4x,%.4x) '%s'\n", this
+     debugh("EdInps(%p)::key_input(0x%.4x,%.4x) '%s'\n", this
            , key, state, key_name);
 
    // Convert Keypad keys to standard keys
@@ -494,7 +937,7 @@ void
    // Handle protected line
    if( view == data ) {             // Only applies to data view
      if( data->cursor->flags & EdLine::F_PROT // If protected line
-         && line_protected(key, state) ) // And modification key
+         && is_protected_key(key, state) ) // And modification key
        return;                      // (Disallowed)
    }
 
@@ -770,160 +1213,8 @@ void
    status &= ~(SF_NFC_MESSAGE);     // "No File Changed" message not active
 }
 
-//============================================================================
-// EdTerm::Event handlers
-//============================================================================
 void
-   EdTerm::button_press(            // Handle this
-     xcb_button_press_event_t* event) // Button press event
-{
-   EdView* const data= editor::data;
-   EdFile* const file= editor::file;
-   EdHist* const hist= editor::hist;
-   EdView* const view= editor::view;
-
-   // Use E.detail and gui::Types::BUTTON_TYPE to determine button
-   // E.root_x/y is position on root window; E.event_x/y is position on window
-   xcb_button_release_event_t& E= *event;
-   if( opt_hcdm && opt_verbose > 0 )
-     debugh("button:   %.2x root[%d,%d] event[%d,%d] state(0x%.4x)"
-           " ss(%u) rec(%u,%u,%u)\n"
-           , E.detail, E.root_x, E.root_y, E.event_x, E.event_y, E.state
-           , E.same_screen, E.root, E.event, E.child);
-
-   size_t current_col= view->get_column(); // The current column number
-   unsigned button_row= get_row(E.event_y); // (Absolute) button row
-
-   switch( E.detail ) {
-     case gui::BT_LEFT: {           // Left button
-       if( button_row < USER_TOP ) { // If on top of screen
-         if( !file->rem_message() ) { // If no message removed or remains
-           if( view == hist )       // If history active
-             move_cursor_H(hist->col_zero + get_col(E.event_x)); // Update column
-           else
-             hist->activate();
-         }
-         draw_top();
-         break;
-       }
-
-       // Button press is on data screen
-       if( view == hist ) {         // If history active
-         data->activate();
-         draw_top();
-       }
-
-       if( button_row != data->row ) { // If row changed
-         if( button_row > row_used ) // (Button should not cause scroll up)
-           button_row= row_used;
-         data->move_cursor_V(button_row - data->row); // Set new row
-       }
-       move_cursor_H(data->col_zero + get_col(E.event_x)); // Set new column
-       break;
-     }
-     case gui::BT_RIGHT: {          // Right button
-       if( button_row < USER_TOP ) { // If on top of screen
-         if( file->rem_message() ) { // If message removed
-           draw_top();
-           break;
-         }
-
-         // Invert the view
-         editor::do_view();
-       }
-       break;
-     }
-     case gui::WT_PUSH:             // Mouse wheel push (away)
-       move_screen_V(-3);
-       break;
-
-     case gui::WT_PULL:             // Mouse wheel pull (toward)
-       move_screen_V(+3);
-       break;
-
-     case gui::WT_LEFT:             // Mouse wheel left
-       move_cursor_H(current_col > 3 ? current_col - 3 : 0);
-       break;
-
-     case gui::WT_RIGHT:            // Mouse wheel right
-       move_cursor_H(current_col + 3);
-       break;
-
-     case gui::BT_CNTR:             // Middle button (ignored)
-     default:                       // (Buttons 6 and 7 undefined)
-       break;
-   }
-}
-
-void
-   EdTerm::client_message(          // Handle this
-     xcb_client_message_event_t* E) // Client message event
-{
-   if( opt_hcdm )
-     debugh("message: type(%u) data(%u)\n", E->type, E->data.data32[0]);
-
-   if( E->type == protocol && E->data.data32[0] == wm_close )
-     device->operational= false;
-}
-
-void
-   EdTerm::configure_notify(        // Handle this
-     xcb_configure_notify_event_t* E) // Configure notify event
-{
-   if( opt_hcdm )
-     debugh("configure_notify(%d,%d) window(%x)\n"
-           , E->width, E->height, E->window);
-
-   // (Ignore anything other than a window size change, e.g. window movement)
-   if( rect.width != E->width || rect.height != E->height )
-     resize(E->width, E->height);
-}
-
-void
-   EdTerm::expose(                  // Handle this
-     xcb_expose_event_t* E)         // Expose event
-{
-   if( opt_hcdm )
-     debugh("expose(%x) %d [%d,%d,%d,%d]\n"
-           , E->window, E->count, E->x, E->y, E->width, E->height);
-
-   draw();
-}
-
-void
-   EdTerm::focus_in(                // Handle this
-     xcb_focus_in_event_t* E)       // Focus-in event
-{  using namespace editor;
-
-   if( opt_hcdm && opt_verbose > 0 )
-     debugh("gain focus: detail(%d) event(%d) mode(%d)\n"
-           , E->detail, E->event, E->mode);
-
-   if( !(view == hist && file->mess_list.get_head()) ) {
-     draw_cursor();
-     flush();
-   }
-   status |= SF_FOCUS;
-}
-
-void
-   EdTerm::focus_out(               // Handle this
-     xcb_focus_out_event_t* E)      // Focus-out event
-{  using namespace editor;
-
-   if( opt_hcdm && opt_verbose > 0 )
-     debugh("lost focus: detail(%d) event(%d) mode(%d)\n"
-           , E->detail, E->event, E->mode);
-
-   if( !(view == hist && file->mess_list.get_head()) ) {
-     undo_cursor();
-     flush();
-   }
-   status &= ~(SF_FOCUS);
-}
-
-void
-   EdTerm::motion_notify(           // Handle this
+   EdInps::motion_notify(           // Handle this
      xcb_motion_notify_event_t* E)  // Motion notify event
 {
    if( opt_hcdm && opt_verbose > 1 )
@@ -944,9 +1235,9 @@ void
    motion.y= E->event_y;
 }
 
-// EdTerm::property_notify does nothing. It's only used to record the call.
+// EdInps::property_notify does nothing except write a debugging message.
 void
-   EdTerm::property_notify(         // Handle this
+   EdInps::property_notify(         // Handle this
      xcb_property_notify_event_t* E) // Property notify event
 {
    if( opt_hcdm )

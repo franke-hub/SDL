@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2024/04/02
+##       2024/04/05
 ##
 ## Implementation notes-
 ##       See ".USAGE.md" for usage and implementation information.
@@ -23,7 +23,14 @@
 ##############################################################################
 
 ##############################################################################
-## STATUS: 2023/05/12
+## STATUS: 2024/04/05
+2024/04/05 Restructure: Replaced EdTerm.*/EdTinp.cpp with EdOuts.*/EdInps.*
+         Rather than including EdTinp.cpp, EdInps is the base for EdOuts
+
+2024/03/04 See TODOs, implement what's possible.
+
+##############################################################################
+## CHANGE LOG:
 2024/04/02 editxcb feature update
 - INSERT  command: Insert file after cursor (with redo/undo)
 - MARGINS command: Set/display margins for paragraph function (ctrl-P)
@@ -40,10 +47,6 @@ Restructured modules, splitting some functions into .hpp files.
   - Moved EdRedo.h, EdLine.h, and EdMess.h implementations into
     EdRedo.hpp, included by EdFile.cpp
 
-2024/03/04 See TODOs, implement what's possible.
-
-##############################################################################
-## CHANGE LOG:
 2023/05/17 Backspace needed to call draw_top handle top background.
 
 2023/05/12 Fixed: Unable to control windows size update on GNOME.
@@ -236,9 +239,14 @@ Restructured modules, splitting some functions into .hpp files.
 
 ##############################################################################
 ## TODO:
+>>>>>>>> TODO Search reminder
+         Greps: -i {"TODO", "USE_BRINGUP", "NOT CODED"} {"HCDM"}
+
+2024/04/04 Add disable caps lock option
+
 2024/03/04 Cannot read long error message.
          Need to be able to use '<', '>', and 'END' keys or some way of
-         moving command line into a buffer.
+         moving error message line into a buffer.
 
 2024/03/04 Cursor should move with scroll to top or bottom of screen.
 
@@ -258,9 +266,6 @@ Restructured modules, splitting some functions into .hpp files.
          Multiple editor windows. (Restructure required.)
            (May not be too hard. Only one window open at a time.)
 
-2021/03/04 TODO: (Search reminder)
-         Greps: "TODO:", "HCDM", "USE_BRINGUP", "NOT CODED"
-
 2020/09/05 ** EXPERIMENTAL **
          Code review. Completely test all implemented functions.
             ==> Invalid font: Need better user error message
@@ -269,16 +274,17 @@ Restructured modules, splitting some functions into .hpp files.
          Hide system cursor when typing. (Show when moving mouse.)
          Is draw optimization (double buffering) required?
 
-2020/07/28 Xcb/Device base class: Widget or Window?
-         Window (at least for now)
+2020/07/28 gui::Device base class: Widget or Window?
+         For now, gui::Window
 
 2020/07/28 Need to check whether file is a file or a directory.
          If directory, load R/O file list, selectable files/directories
 
-2020/07/28 Background file loader. Synch with EdTerm
-
 ##############################################################################
 ## DONE:
+2020/07/28 Background file loader. Synch with EdTerm
+********** Not needed. Even big files load quickly.
+
 2022/02/22 Run as a thread so that exitxcb has same window appearance as xterm
 2022/12/20 Only needed fork() in Edit.cpp
 

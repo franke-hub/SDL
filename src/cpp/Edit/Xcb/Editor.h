@@ -36,8 +36,8 @@ class Active;                       // Editor Active line object
 class EdFile;                       // Editor file descriptor
 class EdHist;                       // Editor history view
 class EdMark;                       // Editor mark controller
+class EdOuts;                       // Editor output/input services
 class EdPool;                       // Editor pool allocators
-class EdTerm;                       // Editor terminal controller
 class EdView;                       // Editor view
 
 //----------------------------------------------------------------------------
@@ -124,7 +124,7 @@ namespace editor {                  // The Editor namespace
 //----------------------------------------------------------------------------
 // editor::Global attributes
 //----------------------------------------------------------------------------
-extern EdTerm*         term;        // The Terminal controller
+extern EdOuts*         outs;        // Output/input services
 
 extern pub::List<EdFile> file_list; // The list of EdFiles
 extern EdFile*         file;        // The current File object

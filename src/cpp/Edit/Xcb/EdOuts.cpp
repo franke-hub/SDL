@@ -10,16 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       EdTerm.cpp
+//       EdOuts.cpp
 //
 // Purpose-
-//       Editor: Implement EdTerm.h screen handler.
+//       Editor: Implement EdOuts.h: screen, mouse, and keyboard handlers.
 //
 // Last change date-
-//       2024/03/31
-//
-// Implementation notes-
-//       EdTinp.cpp implements keyboard and mouse event handlers.
+//       2024/04/05
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -43,28 +40,27 @@
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile
 #include "EdHist.h"                 // For EdHist
+#include "EdInps.h"                 // For EdInps, super class
 #include "EdMark.h"                 // For EdMark
+#include "EdOuts.h"                 // For EdOuts, implemented
 
 using namespace config;             // For config::opt_*, ...
 using namespace pub::debugging;     // For debugging
 using pub::Trace;                   // For pub::Trace
+
+typedef pub::Utf::utf8_t   utf8_t;  // Import utf8_t
+typedef pub::Utf::utf16_t  utf16_t; // Import utf16_t
+typedef pub::Utf::utf32_t  utf32_t; // Import utf32_t
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
-,  USE_BRINGUP= false               // Use bringup debugging?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  HM_ROW= 1                        // History/Message line row
 }; // Compilation controls
-
-//----------------------------------------------------------------------------
-// Typedefs and enumerations
-//----------------------------------------------------------------------------
-typedef pub::Utf::utf8_t   utf8_t;  // Import utf8_t
-typedef pub::Utf::utf16_t  utf16_t; // Import utf16_t
-typedef pub::Utf::utf32_t  utf32_t; // Import utf32_t
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -74,44 +70,30 @@ static pub::signals::Connector<EdMark::ChangeEvent>
 
 //----------------------------------------------------------------------------
 //
-// Subroutine-
-//       trunc
+// Method-
+//       EdOuts::EdOuts
 //
 // Purpose-
-//       Truncate down.
+//       Constructor.
 //
 //----------------------------------------------------------------------------
-static inline unsigned              // The truncated value
-   trunc(                           // Get truncated value
-     unsigned          v,           // The value to truncate
-     unsigned          unit)        // The unit length
-{
-   v /= unit;                       // Number of units (truncated)
-   v *= unit;                       // Number of units * unit length
-   return v;
-}
-
-//----------------------------------------------------------------------------
-// EdTerm::Constructor
-//----------------------------------------------------------------------------
-   EdTerm::EdTerm(                  // Constructor
+   EdOuts::EdOuts(                  // Constructor
      Widget*           parent,      // Parent Widget
      const char*       name)        // Widget name
-:  Window(parent, name ? name : "EdTerm")
-,  active(*editor::active), font(*config::font)
+:  EdInps(parent, name ? name : "EdOuts")
 {
    if( opt_hcdm )
-     debugh("EdTerm(%p)::EdTerm\n", this);
+     debugh("EdOuts(%p)::EdOuts\n", this);
 
    // Handle EdMark::ChangeEvent (lambda function)
-   // Purpose: Repair EdTerm::head (if it changed)
+   // Purpose: Repair EdOuts::head (if it changed)
    using Event= EdMark::ChangeEvent;
    changeEvent_connector= EdMark::change_signal.connect([this](Event& event) {
      EdFile* file= event.file;
      const EdRedo* redo= event.redo;
 
-     /// If the head line was removed, we need to adjust it so that we point
-     /// to a head line that's actually in the file.
+     // If the head line was removed, we need to adjust it so that we point
+     // to a head line that's actually in the file.
      if( head->is_within(redo->head_remove, redo->tail_remove) ) {
        for(EdLine* L= head->get_prev(); L; L= L->get_prev() ) {
          if( !L->is_within(redo->head_remove, redo->tail_remove) ) {
@@ -125,148 +107,37 @@ static inline unsigned              // The truncated value
        // This should not occur. The top line, the only one with a nullptr
        // get_prev(), should never be within a redo_remove list. This indicates
        // that something has gone very wrong and can't be auto-corrected.
-       Editor::alertf("%4d EdTerm: internal error\n", __LINE__);
+       Editor::alertf("%4d EdOuts: internal error\n", __LINE__);
      }
 
-     /// If the removal occurs in the current file prior to the head line,
-     /// row_zero needs to be adjusted as well. We'll just update it since
-     /// it's more work to see if it needs updating than to just do it.
+     // If the removal occurs in the current file prior to the head line,
+     // row_zero needs to be adjusted as well. We'll just update it since
+     // it's more work to see if it needs updating than to just do it.
      if( file == editor::file )
        editor::data->row_zero= file->get_row(head);
    });
-
-   // Basic window colors
-   bg= config::text_bg;
-   fg= config::text_fg;
-
-   // Layout
-   col_size= config::geom.width;
-   row_size= config::geom.height;
-   unsigned mini_c= MINI_C;
-   unsigned mini_r= MINI_R;
-   if( mini_c > col_size ) mini_c= col_size;
-   if( mini_r > row_size ) mini_r= row_size;
-   min_size= { gui::WH_t(mini_c   * font.length.width  + 2)
-             , gui::WH_t(mini_r   * font.length.height + 2) };
-   use_size= { gui::WH_t(col_size * font.length.width  + 2)
-             , gui::WH_t(row_size * font.length.height + 2) };
-   use_unit= { gui::WH_t(font.length.width), gui::WH_t(font.length.height) };
-
-   // Set window event mask
-   emask= XCB_EVENT_MASK_KEY_PRESS
-//      | XCB_EVENT_MASK_KEY_RELEASE
-        | XCB_EVENT_MASK_BUTTON_PRESS
-        | XCB_EVENT_MASK_POINTER_MOTION
-        | XCB_EVENT_MASK_BUTTON_MOTION
-        | XCB_EVENT_MASK_EXPOSURE
-        | XCB_EVENT_MASK_STRUCTURE_NOTIFY
-//      | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
-        | XCB_EVENT_MASK_FOCUS_CHANGE
-//      | XCB_EVENT_MASK_PROPERTY_CHANGE
-        ;
 }
 
 //----------------------------------------------------------------------------
-// EdTerm::Destructor
+// EdOuts::Destructor
 //----------------------------------------------------------------------------
-   EdTerm::~EdTerm( void )          // Destructor
+   EdOuts::~EdOuts( void )          // Destructor
 {
    if( opt_hcdm )
-     debugh("EdTerm(%p)::~EdTerm\n", this);
-
-   if( flipGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, flipGC) );
-   if( fontGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, fontGC) );
-   if( markGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, markGC) );
-   if( bg_chg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, bg_chg) );
-   if( bg_sts ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, bg_sts) );
-   if( gc_chg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_chg) );
-   if( gc_msg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_msg) );
-   if( gc_sts ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_sts) );
-
-   flush();
+     debugh("EdOuts(%p)::~EdOuts\n", this);
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::debug
-//
-// Purpose-
-//       Debugging display
-//
-//----------------------------------------------------------------------------
-void
-   EdTerm::debug(                   // Debugging display
-     const char*       info) const  // Associated info
-{
-   debugf("EdTerm(%p)::debug(%s) Named(%s)\n", this, info ? info : ""
-         , get_name().c_str());
-
-   debugf("..head(%p) tail(%p) col_size(%u) row_size(%u) row_used(%u)\n"
-         , head, tail, col_size, row_size, row_used);
-   debugf("..motion(%d,%d,%d,%d)\n", motion.state, motion.time
-         , motion.x, motion.y);
-   debugf("..fontGC(%u) flipGC(%u) markGC(%u)\n", fontGC, flipGC, markGC);
-   debugf("..gc_chg(%u) gc_msg(%u) gc_sts(%u)\n"
-         , gc_chg, gc_msg, gc_sts);
-   debugf("..protocol(%u) wm_close(%u)\n", protocol, wm_close);
-   Window::debug(info);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdTerm::get_col
-//       EdTerm::get_row
-//       EdTerm::get_x
-//       EdTerm::get_y
-//       EdTerm::get_xy
-//
-// Purpose-
-//       Convert pixel x position to (screen) column
-//       Convert pixel y position to (screen) row
-//       Get pixel position for column.
-//       Get pixel position for row.
-//       Get [col,row] pixel position.
-//
-//----------------------------------------------------------------------------
-int                                 // The column
-   EdTerm::get_col(                 // Get column
-     int               x) const     // For this x pixel position
-{  return x/font.length.width; }
-
-int                                 // The row
-   EdTerm::get_row(                 // Get row
-     int               y) const     // For this y pixel position
-{  return y/font.length.height; }
-
-int                                 // The offset in Pixels
-   EdTerm::get_x(                   // Get offset in Pixels
-     int               col) const   // For this column
-{  return col * font.length.width + 1; }
-
-int                                 // The offset in Pixels
-   EdTerm::get_y(                   // Get offset in Pixels
-     int               row) const   // For this row
-{  return row * font.length.height + 1; }
-
-xcb_point_t                         // The offset in Pixels
-   EdTerm::get_xy(                  // Get offset in Pixels
-     int               col,         // And this column
-     int               row) const   // For this row
-{  return {gui::PT_t(get_x(col)), gui::PT_t(get_y(row))}; }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdTerm::get_text
+//       EdOuts::get_text
 //
 // Purpose-
 //       Return the line text, which differs for the cursor line
 //
 //----------------------------------------------------------------------------
 const char*                         // The text
-   EdTerm::get_text(                // Get text
+   EdOuts::get_text(                // Get text
      const EdLine*     line) const  // For this EdLine
 {
    EdView* data= editor::data;
@@ -281,75 +152,18 @@ const char*                         // The text
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::putxy
-//
-// Purpose-
-//       Draw text at [left,top] point
-//
-//----------------------------------------------------------------------------
-void
-   EdTerm::putxy(                   // Draw text
-     xcb_gcontext_t    fontGC,      // The target graphic context
-     unsigned          left,        // Left (X) offset
-     unsigned          top,         // Top  (Y) offset
-     const char*       text)        // Using this text
-{  if( opt_hcdm && opt_verbose > 0 ) {
-     char buffer[24];
-     if( strlen(text) < 17 )
-       strcpy(buffer, text);
-     else {
-       memcpy(buffer, text, 16);
-       strcpy(buffer+16, "...");
-     }
-     debugh("EdTerm(%p)::putxy(%u,[%d,%d],'%s')\n", this
-           , fontGC, left, top, buffer);
-   }
-
-   enum{ DIM= 256 };                // xcb_image_text_16 maximum length
-   xcb_char2b_t out[DIM];           // UTF16 output buffer
-
-   unsigned outlen= 0;              // UTF16 output buffer length
-   unsigned outorg= left;           // Current output origin index
-   unsigned outpix= left;           // Current output pixel index
-   for(auto it= pub::Utf8::const_iterator((const utf8_t*)text); *it; ++it) {
-     if( outlen > (DIM-4) ) {       // If time for a partial write
-       NOQUEUE("xcb_image_text_16", xcb_image_text_16
-              ( c, uint8_t(outlen), widget_id, fontGC
-              , uint16_t(outorg), uint16_t(top + font.offset.y), out) );
-       outorg= outpix;
-       outlen= 0;
-     }
-
-     utf32_t code= *it;             // Next encoding
-     outpix += font.length.width;   // Ending pixel (+1)
-     if( outpix >= rect.width || code == 0 ) // If at end of encoding
-       break;
-
-     pub::Utf16::encode(code, (utf16_t*)out + outlen);
-     outlen += pub::Utf16::length(code);
-   }
-
-   if( outlen )                     // If there's something left to render
-     NOQUEUE("xcb_image_text_16", xcb_image_text_16
-            ( c, uint8_t(outlen), widget_id, fontGC
-            , uint16_t(outorg), uint16_t(top + font.offset.y), out) );
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdTerm::activate(EdFile*)
+//       EdOuts::activate(EdFile*)
 //
 // Purpose-
 //       Activate, then draw a file at its current position.
 //
 //----------------------------------------------------------------------------
 void
-   EdTerm::activate(                // Activate
+   EdOuts::activate(                // Activate
      EdFile*           act_file)    // This file
 {
    if( opt_hcdm )
-     debugh("EdTerm(%p)::activate(%s)\n", this
+     debugh("EdOuts(%p)::activate(%s)\n", this
            , act_file ? act_file->get_name().c_str() : "nullptr");
 
    EdView* const data= editor::data;
@@ -398,14 +212,14 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::activate(EdLine*)
+//       EdOuts::activate(EdLine*)
 //
 // Purpose-
 //       Move the cursor to the specified line, redrawing as required
 //
 //----------------------------------------------------------------------------
 void
-   EdTerm::activate(                // Activate
+   EdOuts::activate(                // Activate
      EdLine*           act_line)    // This line
 {
    EdView* const data= editor::data;
@@ -485,7 +299,7 @@ void
    }
 
    // Line is not in file (SHOULD NOT OCCUR)
-   Editor::alertf("%4d EdTerm file(%p) line(%p)", __LINE__
+   Editor::alertf("%4d EdOuts file(%p) line(%p)", __LINE__
                  , file, act_line);
    data->cursor= line= file->line_list.get_head();
    data->col_zero= data->col= 0;
@@ -497,69 +311,70 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::configure
+//       EdOuts::draw
 //
 // Purpose-
-//       Configure the Window
+//       Draw the entire Window
 //
 //----------------------------------------------------------------------------
 void
-   EdTerm::configure( void )        // Configure the Window
+   EdOuts::draw( void )             // Draw the entire Window
 {
    if( opt_hcdm )
-     debugh("EdTerm(%p)::configure\n", this);
+     debugh("EdOuts(%p)::draw\n", this);
 
-   Window::configure();             // Create the Window
-   flush();
+   Trace::trace(".DRW", " all", head, tail);
+   // Clear the drawable window
+   NOQUEUE("xcb_clear_area", xcb_clear_area
+          ( c, 0, widget_id, 0, 0, rect.width, rect.height) );
 
-   // Create the graphic contexts
-   fontGC= font.makeGC(fg, bg);          // (The default)
-   flipGC= font.makeGC(bg, fg);          // (Inverted)
-   markGC= font.makeGC(mark_fg,    mark_bg);
-   bg_chg= font.makeGC(change_bg,  change_bg);
-   bg_sts= font.makeGC(status_bg,  status_bg);
-   gc_chg= font.makeGC(change_fg,  change_bg);
-   gc_msg= font.makeGC(message_fg, message_bg);
-   gc_sts= font.makeGC(status_fg,  status_bg);
+   // Display the text (if any)
+   tail= this->head;
+   if( tail ) {
+     EdLine* line= tail;
+     row_used= USER_TOP;
 
-   // Configure views
-   EdView* const data= editor::data;
-   data->gc_flip= flipGC;
-   data->gc_font= fontGC;
-   data->gc_mark= markGC;
-   EdHist* const hist= editor::hist;
-   hist->gc_flip= flipGC;
+     unsigned max_used= row_size - USER_BOT;
+     if( get_y(max_used-1) > rect.height )
+       --max_used;
+     while( row_used < max_used ) {
+       if( line == nullptr )
+         break;
 
-   // Set up WM_DELETE_WINDOW protocol handler
-   protocol= name_to_atom("WM_PROTOCOLS", true);
-   wm_close= name_to_atom("WM_DELETE_WINDOW");
-   ENQUEUE("xcb_change_property", xcb_change_property_checked
-          ( c, XCB_PROP_MODE_REPLACE, widget_id
-          , protocol, 4, 32, 1, &wm_close) );
-   if( opt_hcdm )
-     debugh("%4d %s PROTOCOL(%d), atom WM_CLOSE(%d)\n", __LINE__, __FILE__
-           , protocol, wm_close);
+       draw_line(row_used, line);
+       row_used++;
+       tail= line;
+       line= line->get_next();
+     }
 
+     row_used -= USER_TOP;
+     if( opt_hcdm && opt_verbose > 0 )
+       debugh("%4d %s LAST xy(%d,%d)\n", __LINE__, __FILE__, 0, row_used);
+   }
+
+   draw_top();                      // Draw top (status, hist/message) lines
+   if( editor::view == editor::data )
+     draw_cursor();
    flush();
 }
 
 //----------------------------------------------------------------------------
 //
 // Methods-
-//       EdTerm::draw_cursor (set == true)
-//       EdTerm::undo_cursor (set == false)
+//       EdOuts::draw_cursor (set == true)
+//       EdOuts::undo_cursor (set == false)
 //
 // Purpose-
 //       Set or clear the screen cursor character
 //
 //----------------------------------------------------------------------------
 void
-   EdTerm::draw_cursor(bool set)    // Set/clear the character cursor
+   EdOuts::draw_cursor(bool set)    // Set/clear the character cursor
 {
    EdView* const view= editor::view;
 
    if( opt_hcdm && opt_verbose > 0 )
-     debugh("EdTerm(%p)::%s_cursor cr[%u,%u]\n", this
+     debugh("EdOuts(%p)::%s_cursor cr[%u,%u]\n", this
            , set ? "draw" : "undo", view->col, view->row);
 
    char buffer[8];                  // The cursor encoding buffer
@@ -578,176 +393,14 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::draw_top
-//       EdTerm::draw_history
-//       EdTerm::draw_message
-//       EdTerm::draw_status
-//
-// Purpose-
-//       Draw the top lines: draw_status, then draw_message or draw_history
-//         Draw the history line
-//         Draw the message line
-//         Draw the status line
-//
-//----------------------------------------------------------------------------
-void
-   EdTerm::draw_top( void )         // Redraw the top lines
-{
-   // Draw the background
-   xcb_rectangle_t fill= {};
-   fill.width=  (decltype(fill.height))(rect.width+1);
-   fill.height= (decltype(fill.height))(2*font.length.height + 1);
-   xcb_gcontext_t gc= editor::file->is_changed() ? bg_chg : bg_sts;
-   NOQUEUE("xcb_poly_fill_rectangle", xcb_poly_fill_rectangle
-          ( c, widget_id, gc, 1, &fill) );
-
-   // Draw the status and message/history lines
-   draw_status();
-   if( draw_message() )
-     return;
-   draw_history();
-}
-
-void
-   EdTerm::draw_history( void )     // Redraw the history line
-{
-   EdHist* const hist= editor::hist;
-   EdView* const view= editor::view;
-
-   if( opt_hcdm )
-     debugh("EdTerm(%p)::draw_history view(%s)\n", this
-           , view == hist ? "hist" : "data");
-
-   if( view != hist ) {             // If history not active
-     hist->active.reset();
-     hist->active.index(col_size + 1);
-     const char* buffer= hist->active.get_buffer();
-     putcr(hist->get_gc(), 0, HM_ROW, buffer);
-     flush();
-     return;
-   }
-
-   if( HCDM )
-     Trace::trace(".DRW", "hist", hist->cursor);
-   const char* buffer= hist->get_buffer();
-   putcr(hist->get_gc(), 0, HM_ROW, buffer);
-   draw_cursor();
-   flush();
-}
-
-bool                                // Return code, TRUE if handled
-   EdTerm::draw_message( void )     // Message line
-{
-   EdMess* mess= editor::file->mess_list.get_head();
-   if( mess == nullptr )
-     return false;
-
-   if( opt_hcdm )
-     debugh("EdTerm(%p)::draw_message view(%s)\n", this
-           , editor::view == editor::hist ? "hist" : "data");
-
-   status |= SF_MESSAGE;            // Message present
-   if( editor::view == editor::hist )
-     undo_cursor();
-
-   char buffer[1024];               // Message buffer
-   memset(buffer, ' ', sizeof(buffer));
-   buffer[sizeof(buffer) - 1]= '\0';
-   strcpy(buffer, mess->mess.c_str());
-   buffer[strlen(buffer)]= ' ';
-
-   if( HCDM )
-     Trace::trace(".DRW", " msg");
-   putcr(gc_msg, 0, HM_ROW, buffer);
-   flush();
-   return true;
-}
-
-// format6: format 6 character field (draw_status helper)
-// format8: format 8 character field (draw_status helper)
-static void
-   format6(
-     size_t            value,
-     char*             buffer)
-{
-   if( value > 10000000 )
-     sprintf(buffer, "*%.6u", unsigned(value % 1000000));
-   else
-     sprintf(buffer, "%7zu", value);
-}
-
-static void
-   format8(
-     size_t            value,
-     char*             buffer)
-{
-   if( value > 1000000000 )
-     sprintf(buffer, "*%.8u", unsigned(value % 100000000));
-   else
-     sprintf(buffer, "%9zu", value);
-}
-
-void
-   EdTerm::draw_status( void )      // Redraw the status line
-{
-   EdView* const data= editor::data;
-   EdFile* const file= editor::file;
-
-   if( opt_hcdm )
-     debugh("EdTerm(%p)::draw_status view(%s)\n", this
-           , editor::view == editor::hist ? "hist" : "data");
-
-   char buffer[1024];               // Status line buffer
-   memset(buffer, ' ', sizeof(buffer)); // (Blank fill)
-   buffer[sizeof(buffer)-1]= '\0';
-   // Offset:      012345678901234567890123456789012345678901234567890123456
-   strcpy(buffer, "C[*******] L[*********,*********] [REP] [UNIX] EDIT V3.0");
-   buffer[56]= ' ';                 // Full size (255) length buffer
-   char number[16];                 // Numeric buffer
-   size_t draw_col= data->get_column() + 1;
-   format6(draw_col, number);
-   memcpy(buffer+2, number, 7);
-   size_t draw_row= data->get_row() - USER_TOP;
-   format8(draw_row, number);
-   memcpy(buffer+13, number, 9);
-   format8(file->rows,     number);
-   memcpy(buffer+23, number, 9);
-   std::string S= pub::fileman::Name::get_file_name(file->name);
-   size_t L= S.length();
-   if( L > 192 )
-     L= 192;
-   memcpy(buffer+57, S.c_str(), L);
-
-   if( keystate & KS_INS )          // Set insert mode (if not REP)
-     memcpy(buffer+35, "INS", 3);
-   if( file->mode != EdFile::M_UNIX ) {
-     if( file->mode == EdFile::M_DOS )
-       memcpy(buffer+41, "=DOS", 4);
-     else if( file->mode == EdFile::M_MIX )
-       memcpy(buffer+41, "=MIX", 4);
-     else if( file->mode == EdFile::M_BIN ) // Set file mode (if not UNIX)
-       memcpy(buffer+41, "=BIN", 4);
-   }
-
-   if( HCDM )
-     Trace::trace(".DRW", " sts", (void*)draw_col, (void*)draw_row);
-   putxy(editor::hist->get_gc(), 1, 1, buffer);
-   flush();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdTerm::draw_line
-//       EdTerm::draw
+//       EdOuts::draw_line
 //
 // Purpose-
 //       Draw one line
-//       Draw the entire screen, both data and info
 //
 //----------------------------------------------------------------------------
 void
-   EdTerm::draw_line(               // Draw one data line
+   EdOuts::draw_line(               // Draw one data line
      unsigned          row,         // The (absolute) row number
      const EdLine*     line)        // The line to draw
 {
@@ -799,129 +452,177 @@ void
    }
 }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void
-   EdTerm::draw( void )             // Redraw the Window
-{
-   if( opt_hcdm )
-     debugh("EdTerm(%p)::draw\n", this);
-
-   Trace::trace(".DRW", " all", head, tail);
-   // Clear the drawable window
-   NOQUEUE("xcb_clear_area", xcb_clear_area
-          ( c, 0, widget_id, 0, 0, rect.width, rect.height) );
-
-   // Display the text (if any)
-   tail= this->head;
-   if( tail ) {
-     EdLine* line= tail;
-     row_used= USER_TOP;
-
-     unsigned max_used= row_size - USER_BOT;
-     if( get_y(max_used-1) > rect.height )
-       --max_used;
-     while( row_used < max_used ) {
-       if( line == nullptr )
-         break;
-
-       draw_line(row_used, line);
-       row_used++;
-       tail= line;
-       line= line->get_next();
-     }
-
-     row_used -= USER_TOP;
-     if( opt_hcdm && opt_verbose > 0 )
-       debugh("%4d %s LAST xy(%d,%d)\n", __LINE__, __FILE__, 0, row_used);
-   }
-
-   draw_top();                      // Draw top (status, hist/message) lines
-   if( editor::view == editor::data )
-     draw_cursor();
-   flush();
-}
-
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::grab_mouse
-//       EdTerm::hide_mouse
-//       EdTerm::show_mouse
+//       EdOuts::draw_history
+//       EdOuts::draw_message
+//       EdOuts::draw_status
+//       EdOuts::draw_top
 //
 // Purpose-
-//       Grab the mouse cursor
-//       Hide the mouse cursor
-//       Show the mouse cursor
-//
-// Implementation notes-
-//       xcb_configure_window has no effect before the first window::draw().
+//       Draw the history line
+//       Draw the message line
+//       Draw the status line
+//       Draw the top lines
 //
 //----------------------------------------------------------------------------
 void
-   EdTerm::grab_mouse( void )       // Grab the mouse cursor
+   EdOuts::draw_history( void )     // Redraw the history line
 {
-   using gui::WH_t;
+   EdHist* const hist= editor::hist;
+   EdView* const view= editor::view;
 
-   uint32_t x_origin= config::geom.x;
-   uint32_t y_origin= config::geom.y;
-   if( x_origin || y_origin ) {     // If position specified
-     uint16_t mask= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
-     uint32_t parm[2];
-     parm[0]= x_origin;
-     parm[1]= y_origin;
-     ENQUEUE("xcb_configure_window", xcb_configure_window_checked
-            (c, widget_id, mask, parm) );
-   } else {                         // If position assigned
-     flush();                       // (Yes, this is needed)
-     xcb_get_geometry_cookie_t cookie= xcb_get_geometry(c, widget_id);
-     xcb_get_geometry_reply_t* r= xcb_get_geometry_reply(c, cookie, nullptr);
-     if( r ) {
-       x_origin= r->x;
-       y_origin= r->y;
-       free(r);
-     } else
-       debugf("%4d EdTerm xcb_get_geometry error\n", __LINE__);
+   if( opt_hcdm )
+     debugh("EdOuts(%p)::draw_history view(%s)\n", this
+           , view == hist ? "hist" : "data");
+
+   if( view != hist ) {             // If history not active
+     hist->active.reset();
+     hist->active.index(col_size + 1);
+     const char* buffer= hist->active.get_buffer();
+     putcr(hist->get_gc(), 0, HM_ROW, buffer);
+     flush();
+     return;
    }
 
-   x_origin += rect.width/2;
-   y_origin += rect.height/2;
-   NOQUEUE("xcb_warp_pointer", xcb_warp_pointer
-          (c, XCB_NONE, widget_id, 0,0,0,0
-          , WH_t(x_origin), WH_t(y_origin)) );
+   if( HCDM )
+     Trace::trace(".DRW", "hist", hist->cursor);
+   const char* buffer= hist->get_buffer();
+   putcr(hist->get_gc(), 0, HM_ROW, buffer);
+   draw_cursor();
+   flush();
+}
+
+bool                                // Return code, TRUE if handled
+   EdOuts::draw_message( void )     // Message line
+{
+   EdMess* mess= editor::file->mess_list.get_head();
+   if( mess == nullptr )
+     return false;
+
+   if( opt_hcdm )
+     debugh("EdOuts(%p)::draw_message view(%s)\n", this
+           , editor::view == editor::hist ? "hist" : "data");
+
+   status |= SF_MESSAGE;            // Message present
+   if( editor::view == editor::hist )
+     undo_cursor();
+
+   char buffer[1024];               // Message buffer
+   memset(buffer, ' ', sizeof(buffer));
+   buffer[sizeof(buffer) - 1]= '\0';
+   strcpy(buffer, mess->mess.c_str());
+   buffer[strlen(buffer)]= ' ';
+
+   if( HCDM )
+     Trace::trace(".DRW", " msg");
+   putcr(gc_msg, 0, HM_ROW, buffer);
+   flush();
+   return true;
+}
+
+// format6: format 6 character field (draw_status helper)
+// format8: format 8 character field (draw_status helper)
+static void
+   format6(
+     size_t            value,
+     char*             buffer)
+{
+   if( value > 10000000 )
+     sprintf(buffer, "*%.6u", unsigned(value % 1000000));
+   else
+     sprintf(buffer, "%7zu", value);
+}
+
+static void
+   format8(
+     size_t            value,
+     char*             buffer)
+{
+   if( value > 1000000000 )
+     sprintf(buffer, "*%.8u", unsigned(value % 100000000));
+   else
+     sprintf(buffer, "%9zu", value);
+}
+
+void
+   EdOuts::draw_status( void )      // Redraw the status line
+{
+   EdView* const data= editor::data;
+   EdFile* const file= editor::file;
+
+   if( opt_hcdm )
+     debugh("EdOuts(%p)::draw_status view(%s)\n", this
+           , editor::view == editor::hist ? "hist" : "data");
+
+   char buffer[1024];               // Status line buffer
+   memset(buffer, ' ', sizeof(buffer)); // (Blank fill)
+   buffer[sizeof(buffer)-1]= '\0';
+   // Offset:      012345678901234567890123456789012345678901234567890123456
+   strcpy(buffer, "C[*******] L[*********,*********] [REP] [UNIX] EDIT V3.0");
+   buffer[56]= ' ';                 // Full size (255) length buffer
+   char number[16];                 // Numeric buffer
+   size_t draw_col= data->get_column() + 1;
+   format6(draw_col, number);
+   memcpy(buffer+2, number, 7);
+   size_t draw_row= data->get_row() - USER_TOP;
+   format8(draw_row, number);
+   memcpy(buffer+13, number, 9);
+   format8(file->rows,     number);
+   memcpy(buffer+23, number, 9);
+   std::string S= pub::fileman::Name::get_file_name(file->name);
+   size_t L= S.length();
+   if( L > 192 )
+     L= 192;
+   memcpy(buffer+57, S.c_str(), L);
+
+   if( keystate & KS_INS )          // Set insert mode (if not REP)
+     memcpy(buffer+35, "INS", 3);
+   if( file->mode != EdFile::M_UNIX ) {
+     if( file->mode == EdFile::M_DOS )
+       memcpy(buffer+41, "=DOS", 4);
+     else if( file->mode == EdFile::M_MIX )
+       memcpy(buffer+41, "=MIX", 4);
+     else if( file->mode == EdFile::M_BIN ) // Set file mode (if not UNIX)
+       memcpy(buffer+41, "=BIN", 4);
+   }
+
+   if( HCDM )
+     Trace::trace(".DRW", " sts", (void*)draw_col, (void*)draw_row);
+   putxy(editor::hist->get_gc(), 1, 1, buffer);
    flush();
 }
 
 void
-   EdTerm::hide_mouse( void )       // Hide the mouse cursor
+   EdOuts::draw_top( void )         // Redraw the top lines
 {
-   if( motion.state != CS_HIDDEN ) { // If not already hidden
-     NOQUEUE("xcb_hide_cursor", xcb_xfixes_hide_cursor(c, widget_id) );
-     motion.state= CS_HIDDEN;
-     flush();
-   }
-}
+   // Draw the background
+   xcb_rectangle_t fill= {};
+   fill.width=  (decltype(fill.height))(rect.width+1);
+   fill.height= (decltype(fill.height))(2*font.length.height + 1);
+   xcb_gcontext_t gc= editor::file->is_changed() ? bg_chg : bg_sts;
+   NOQUEUE("xcb_poly_fill_rectangle", xcb_poly_fill_rectangle
+          ( c, widget_id, gc, 1, &fill) );
 
-void
-   EdTerm::show_mouse( void )       // Show the mouse cursor
-{
-   if( motion.state != CS_VISIBLE ) { // If not already visible
-     NOQUEUE("xcb_show_cursor", xcb_xfixes_show_cursor(c, widget_id) );
-     motion.state= CS_VISIBLE;
-     flush();
-   }
+   // Draw the status and message/history lines
+   draw_status();
+   if( draw_message() )
+     return;
+   draw_history();
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::move_cursor_H
+//       EdOuts::move_cursor_H
 //
 // Purpose-
 //       Move cursor horizontally
 //
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 if draw performed
-   EdTerm::move_cursor_H(           // Move cursor horizontally
+   EdOuts::move_cursor_H(           // Move cursor horizontally
      size_t            column)      // The (absolute) column number
 {
    int rc= 1;                       // Default, draw not performed
@@ -964,14 +665,14 @@ int                                 // Return code, 0 if draw performed
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::move_screen_V
+//       EdOuts::move_screen_V
 //
 // Purpose-
 //       Move screen vertically
 //
 //----------------------------------------------------------------------------
 void
-   EdTerm::move_screen_V(           // Move screen vertically
+   EdOuts::move_screen_V(           // Move screen vertically
      int               rows)        // The row count (down is positive)
 {
    EdView* data= editor::data;
@@ -1004,22 +705,19 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::resize
+//       EdOuts::resized
 //
 // Purpose-
-//       Resize the window
-//
-// Implementation notes-
-//       *ONLY* called from configure_notify
+//       Handle Window resized event
 //
 //----------------------------------------------------------------------------
 void
-   EdTerm::resize(                  // Resize the Window
+   EdOuts::resized(                 // Handle Window resized event
      unsigned          x,           // New width
      unsigned          y)           // New height
 {
    if( opt_hcdm )
-     debugh("EdTerm(%p)::resize(%u,%u)\n", this, x, y);
+     debugh("EdOuts(%p)::resize(%u,%u)\n", this, x, y);
 
    if( opt_hcdm ) {
      gui::WH_size_t size= get_size();
@@ -1036,8 +734,8 @@ void
    col_size= (x - 2) / font.length.width;
    row_size= (y - 2) / font.length.height;
 
-   // Some window managers don't an expose event when the window shrinks, so
-   // we generate a fake expose. That expose removes partial characters.
+   // Some window managers don't an expose event when the window shrinks,
+   // we redraw to removes partial characters.
    if( col_size > prior_col || row_size > prior_row ) // If bigger
      return;                        // (An expose event will be generated)
    if( col_size < prior_col || row_size < prior_row ) { // If smaller
@@ -1054,8 +752,7 @@ void
        move_cursor_H(data->col);
      }
 
-     xcb_expose_event_t E= {};      // (Fake expose event)
-     expose(&E);                    // (Removes partial characters)
+     draw();                        // Redraw, removing partial characters
    }
    return;
 }
@@ -1063,14 +760,14 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::synch_active
+//       EdOuts::synch_active
 //
 // Purpose-
 //       Set the Active (cursor) line from the current row.
 //
 //----------------------------------------------------------------------------
 void
-   EdTerm::synch_active( void )     // Set the Active (cursor) line
+   EdOuts::synch_active( void )     // Set the Active (cursor) line
 {  using namespace editor;
 
    if( data->row < USER_TOP )       // (File initial value == 0)
@@ -1111,14 +808,14 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::synch_file
+//       EdOuts::synch_file
 //
 // Purpose-
 //       Save the current state in the active file
 //
 //----------------------------------------------------------------------------
 void
-   EdTerm::synch_file(              // Synchronize the active file
+   EdOuts::synch_file(              // Synchronize the active file
      EdFile*           file) const  // (Note that file is not const)
 {
    EdView* const data= editor::data;

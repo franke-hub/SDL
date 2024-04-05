@@ -13,16 +13,10 @@
 //       EdFile.cpp
 //
 // Purpose-
-//       Editor: Implement EdFile.h, EdLine.h, EdMess.h, and EdRedo.h
+//       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2024/04/02
-//
-// Implements-
-//       EdFile: Editor File descriptor
-//       EdLine: Editor File Line descriptor
-//       EdMess: Editor File Message descriptor
-//       EdRedo: EdFile redo/undo descriptor
+//       2024/04/05
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf, fopen, fclose, ...
@@ -39,9 +33,12 @@
 
 #include "Config.h"                 // For Config::check
 #include "Editor.h"                 // For namespace editor
-#include "EdFile.h"                 // For EdFile, EdLine, EdRedo
+#include "EdFile.h"                 // For EdFile
+#include "EdLine.h"                 // For EdLine
 #include "EdMark.h"                 // For EdMark
-#include "EdTerm.h"                 // For EdTerm
+#include "EdMess.h"                 // For EdMess
+#include "EdOuts.h"                 // For EdOuts
+#include "EdRedo.h"                 // For EdRedo
 #include "EdView.h"                 // For EdView
 
 using namespace config;             // For config::opt_*
@@ -175,7 +172,7 @@ bool                                // TRUE if file is changed or damaged
 //       Debugging display.
 //
 // Implementation notes-
-//       If the file is active, term->synch_file updates the state and commits
+//       If the file is active, outs->synch_file updates the state and commits
 //       the active line
 //
 //----------------------------------------------------------------------------
@@ -191,7 +188,7 @@ void
          , info ? info : "", get_name().c_str());
 
    if( this == editor::file )       // If this is the active file
-     editor::term->synch_file(this); // Get current terminal state
+     editor::outs->synch_file(this); // Synchronize current I/O state
    debugf("..mode(%d) changed(%s) chglock(%s) damaged(%s) protect(%s)\n"
          , mode, TF(changed), TF(chglock), TF(damaged), TF(protect));
    debugf("..top_line(%p) csr_line(%p)\n", top_line, csr_line);
@@ -237,7 +234,7 @@ void
      EdLine*           line)        // This line
 {
    if( this == editor::file ) {     // If the file is active
-     editor::term->activate(line);
+     editor::outs->activate(line);
    } else {                         // If the file is off-screen
      top_line= csr_line= line;
      col_zero= col= row= 0;
@@ -497,7 +494,7 @@ void
      S += ": Click here to continue";
    mess_list.fifo(new EdMess(S, type_));
    if( editor::file == this )       // (Only if this file is active)
-     editor::term->draw_top();      // (Otherwise, message is deferred)
+     editor::outs->draw_top();      // (Otherwise, message is deferred)
 }
 
 int                                 // TRUE if a message removed or remains

@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2024/01/25
+//       2024/04/05
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -30,7 +30,7 @@
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile, EdLine
 #include "EdMark.h"                 // For EdMark
-#include "EdTerm.h"                 // For EdTerm
+#include "EdOuts.h"                 // For EdOuts
 #include "EdView.h"                 // For EdView (Implementation class)
 
 using namespace config;             // For opt_* variables
@@ -104,15 +104,15 @@ void
 void
    EdView::draw_active( void )      // Redraw the active line
 {
-   EdTerm* term= editor::term;
-   active.index(col_zero+term->col_size); // Blank fill
+   EdOuts* outs= editor::outs;
+   active.index(col_zero+outs->col_size); // Blank fill
    EdLine line= *cursor;            // (Copy the cursor flags)
    line.flags |= EdLine::F_AUTO;    // (Do not trace ~EdLine)
    line.text= active.get_buffer();
-   term->draw_line(row, &line);
+   outs->draw_line(row, &line);
    if( editor::view == this )
-     term->draw_cursor();
-   term->flush();
+     outs->draw_cursor();
+   outs->flush();
 }
 
 //----------------------------------------------------------------------------
@@ -152,7 +152,7 @@ void
    EdView::activate( void )         // Activate this EdView
 {
    editor::view= this;              // (EdHist or EdView)
-   editor::term->draw_top();        // (History or Status line)
+   editor::outs->draw_top();        // (History or Status line)
 }
 
 //----------------------------------------------------------------------------
@@ -228,38 +228,38 @@ void
    EdView::move_cursor_V(           // Move cursor vertically
      int             n)             // The relative row (Down positive)
 {
-   EdTerm* term= editor::term;
+   EdOuts* outs= editor::outs;
 
-   term->undo_cursor();
+   outs->undo_cursor();
    commit();                        // Commit the active line
 
    int rc= 1;                       // Default, no draw
    if( n > 0 ) {                    // Move down
      while( n-- ) {
-       if( term->row_used > row )
+       if( outs->row_used > row )
          row++;
        else {
-         EdLine* line= (EdLine*)term->head->get_next();
+         EdLine* line= (EdLine*)outs->head->get_next();
          if( line ) {
-           term->head= line;
-           term->row_used--;
+           outs->head= line;
+           outs->row_used--;
            row_zero++;
            rc= 0;
          } else {
            break;
          }
-         if( term->tail->get_next() == nullptr )
+         if( outs->tail->get_next() == nullptr )
            row--;
        }
      }
    } else if( n < 0 ) {             // Move up
      while( n++ ) {
-       if( row > term->USER_TOP )
+       if( row > outs->USER_TOP )
          row--;
        else {
-         EdLine* line= (EdLine*)term->head->get_prev();
+         EdLine* line= (EdLine*)outs->head->get_prev();
          if( line ) {
-           term->head= line;
+           outs->head= line;
            row_zero--;
            rc= 0;
          } else {
@@ -269,9 +269,9 @@ void
      }
    }
 
-   term->synch_active();
+   outs->synch_active();
    if( rc == 0 )
-     term->draw();
+     outs->draw();
    else
-     term->draw_status();
+     outs->draw_status();
 }

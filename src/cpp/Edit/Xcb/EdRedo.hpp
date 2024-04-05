@@ -156,7 +156,7 @@ static void
    }
 
    editor::file->mode= mode;        // Update the mode
-   editor::term->draw_top();        // And redraw the top lines
+   editor::outs->draw_top();        // And redraw the top lines
 }
 
 //----------------------------------------------------------------------------
@@ -454,8 +454,8 @@ void
 
    changed= true;                   // File changed
    editor::mark->handle_redo(this, redo);
-   editor::term->activate(line);
-   editor::term->draw();
+   editor::outs->activate(line);
+   editor::outs->draw();
    undo_list.lifo(redo);            // Move REDO to UNDO list
    if( redo->head_insert )          // If lines inserted
      chg_mode(redo->head_insert, redo->tail_insert);
@@ -501,8 +501,8 @@ void
    }
 
    editor::mark->handle_undo(this, undo);
-   editor::term->activate(line);
-   editor::term->draw();
+   editor::outs->activate(line);
+   editor::outs->draw();
    redo_list.lifo(undo);            // Move UNDO to REDO list
    if( undo->head_remove )          // If lines removed
      chg_mode(undo->head_remove, undo->tail_remove);

@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2023/05/12
+//       2024/04/05
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -34,7 +34,7 @@
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For namespace editor
 #include "EdHist.h"                 // For EdHist
-#include "EdTerm.h"                 // For EdTerm
+#include "EdOuts.h"                 // For EdOuts
 
 using namespace config;             // For opt_* variables
 using namespace pub::debugging;     // For debugging
@@ -118,8 +118,8 @@ xcb_gcontext_t                       // The current graphic context
 {
    using namespace editor;
    if( file->is_changed() )
-     return term->gc_chg;
-   return term->gc_sts;
+     return outs->gc_chg;
+   return outs->gc_sts;
 }
 
 //----------------------------------------------------------------------------
@@ -136,7 +136,7 @@ void
      const char*       text)        // Initial (immutable) text
 {  if( HCDM || opt_hcdm ) traceh("EdHist(%p)::actiate\n", this);
 
-   editor::term->undo_cursor();
+   editor::outs->undo_cursor();
    col_zero= col= 0;                // Start in column 0
    cursor= nullptr;
    active.reset(text);
@@ -155,12 +155,12 @@ void
 void
    EdHist::draw_active( void )      // Redraw the active line
 {
-   EdTerm* term= editor::term;
-   active.index(col_zero+term->col_size); // Blank fill
-   term->putcr(get_gc(), 0, row, active.get_buffer(col_zero));
+   EdOuts* outs= editor::outs;
+   active.index(col_zero+outs->col_size); // Blank fill
+   outs->putcr(get_gc(), 0, row, active.get_buffer(col_zero));
    if( editor::view == this )
-     term->draw_cursor();
-   term->flush();
+     outs->draw_cursor();
+   outs->flush();
 }
 
 //----------------------------------------------------------------------------
@@ -189,11 +189,8 @@ void
    col_zero= col= 0;                // Starting in column 0
 
    int C= *((const unsigned char*)buffer);
-   if( C == '\0' ) {                // Empty line: ignore
-//   editor::data->activate();      // (Use ESC to exit history view)
-//   editor::term->draw_top();
+   if( C == '\0' )                  // Ignore empty line
      return;
-   }
 
    // Search for duplicate history line
    for(EdLine* line= hist_list.get_tail(); line; line= line->get_prev()) {
@@ -232,7 +229,7 @@ void
    active.reset(text);              // Reset the (mutated) buffer
    cursor= nullptr;                 // Reset the cursor
 
-   editor::term->draw_top();
+   editor::outs->draw_top();
 }
 
 //----------------------------------------------------------------------------
@@ -289,5 +286,5 @@ void
 
    col_zero= col= 0;
    active.reset(cursor->text);
-   editor::term->draw_top();
+   editor::outs->draw_top();
 }

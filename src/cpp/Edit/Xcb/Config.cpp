@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2024/03/31
+//       2024/04/05
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -48,7 +48,7 @@
 #include "EdFile.h"                 // For EdFile::debug
 #include "EdHist.h"                 // For EdFile::debug
 #include "EdMark.h"                 // For EdMark::debug
-#include "EdTerm.h"                 // For EdTerm::debug
+#include "EdOuts.h"                 // For EdOuts::debug
 #include "EdView.h"                 // For EdView::debug
 
 using namespace config;             // For implementation
@@ -359,7 +359,7 @@ void
    debugf("\n");
    editor::file->debug("lines");
    debugf("\n");
-   editor::term->debug(info);
+   editor::outs->debug(info);
    debugf("\n");
    config::font->debug(info);
    debugf("\n");

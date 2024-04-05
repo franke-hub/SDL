@@ -92,7 +92,7 @@ static const char*                  // Error message, nullptr expected
    // Reset the active line and redraw (whether or not needed)
    data->cursor= cur;
    data->active.reset(cur->text);
-   editor::term->draw();
+   editor::outs->draw();
 
    return nullptr;
 }

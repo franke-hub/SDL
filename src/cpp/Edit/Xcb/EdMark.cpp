@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2024/04/02
+//       2024/04/05
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -31,7 +31,7 @@
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile, EdLine, EdRedo
 #include "EdMark.h"                 // For EdMark (Implementation class)
-#include "EdTerm.h"                 // For EdTerm
+#include "EdOuts.h"                 // For EdOuts
 #include "EdView.h"                 // For EdView
 
 using namespace pub::debugging;     // For debugging
@@ -329,8 +329,8 @@ const char*                         // Error message, nullptr expected
          line->text= editor::allocate(text);
        if( from == editor::data->cursor) // If modifying the cursor line
          repC= line;                // (Replace it after insertion)
-       if( from == editor::term->head ) // If modifying the head screen line
-         editor::term->head= line;  // (Replace it now)
+       if( from == editor::outs->head ) // If modifying the head screen line
+         editor::outs->head= line;  // (Replace it now)
        if( line == copy.tail )
          break;
        from= from->get_next();
@@ -349,10 +349,10 @@ const char*                         // Error message, nullptr expected
      if( mark_file->csr_line->flags & EdLine::F_MARK )
        mark_file->activate(mark_head->get_prev());
      else {
-       EdLine* head= editor::term->head; // (The top screen data line)
+       EdLine* head= editor::outs->head; // (The top screen data line)
        for(EdLine* line= mark_head; line; line= line->get_next()) {
          if( line == head ) {
-           editor::term->head= mark_head->get_prev();
+           editor::outs->head= mark_head->get_prev();
            break;
          }
          if( line == mark_tail )
@@ -487,7 +487,7 @@ const char*                         // Error message, nullptr expected
 
    edFile->redo_insert(redo);
    edFile->activate(prev);
-   editor::term->draw();
+   editor::outs->draw();
 
    // Raise ChangeEvent signal
    ChangeEvent event= {edFile, redo};

@@ -44,8 +44,8 @@
 #include <pub/Exception.h>          // For Exception object
 #include <pub/Trace.h>              // For Trace object
 
-#include <Config.h>                 // For namespace config
-#include <Editor.h>                 // For namespace editor
+#include "Config.h"                 // For namespace config
+#include "Editor.h"                 // For namespace editor
 
 using pub::Debug;                   // For Debug object
 using pub::Trace;                   // For Trace object

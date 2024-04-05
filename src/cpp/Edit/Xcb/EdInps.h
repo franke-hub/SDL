@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -10,17 +10,17 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       EdTerm.h
+//       EdInps.h
 //
 // Purpose-
-//       Editor: Terminal (screen, keyboard, and mouse) controller
+//       Editor: Window, keyboard, and mouse handlers.
 //
 // Last change date-
-//       2023/05/08
+//       2024/04/05
 //
 //----------------------------------------------------------------------------
-#ifndef EDTERM_H_INCLUDED
-#define EDTERM_H_INCLUDED
+#ifndef EDINPS_H_INCLUDED
+#define EDINPS_H_INCLUDED
 
 #include <string>                   // For std::string
 #include <sys/types.h>              // For
@@ -44,15 +44,15 @@ class EdView;
 //----------------------------------------------------------------------------
 //
 // Class-
-//       EdTerm
+//       EdInps
 //
 // Purpose-
 //       TextWindow keyboard, mouse, and screen controller.
 //
 //----------------------------------------------------------------------------
-class EdTerm : public gui::Window { // Editor text Window viewport
+class EdInps : public gui::Window { // Editor text Window viewport
 //----------------------------------------------------------------------------
-// EdTerm::Typedefs and enumerations
+// EdInps::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum CURSOR_STATE                   // Mouse cursor state
@@ -82,7 +82,7 @@ enum STATUS_FLAGS                   // (Bit flags)
 }; // enum KEYBOARD_STATE
 
 //----------------------------------------------------------------------------
-// EdTerm::Attributes
+// EdInps::Attributes
 //----------------------------------------------------------------------------
 Active&                active;      // Active reference (*editor::active)
 gui::Font&             font;        // Font reference (*config::font)
@@ -118,23 +118,23 @@ unsigned               USER_TOP= 2; // Number of reserved TOP lines
 unsigned               USER_BOT= 0; // Number of reserved BOTTOM lines
 
 //----------------------------------------------------------------------------
-// EdTerm::Constructor
+// EdInps::Constructor
 //----------------------------------------------------------------------------
 public:
-   EdTerm(                          // Constructor
+   EdInps(                          // Constructor
      Widget*           parent= nullptr, // Parent Widget
      const char*       name= nullptr);
 
 //----------------------------------------------------------------------------
-// EdTerm::Destructor
+// EdInps::Destructor
 //----------------------------------------------------------------------------
 virtual
-   ~EdTerm( void );                 // Destructor
+   ~EdInps( void );                 // Destructor
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::debug
+//       EdInps::debug
 //
 // Purpose-
 //       Debugging display
@@ -146,98 +146,12 @@ virtual void
 
 //----------------------------------------------------------------------------
 //
-// Public method-
-//       EdTerm::activate
-//
-// Purpose-
-//       Set the current file
-//       Set the current line
-//
-//----------------------------------------------------------------------------
-void
-   activate(                        // Activate
-     EdFile*           file);       // This file
-
-void
-   activate(                        // Activate
-     EdLine*           line);       // This line
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdTerm::configure
-//
-// Purpose-
-//       Configure the Window
-//
-//----------------------------------------------------------------------------
-virtual void
-   configure( void );               // Create the Window (Layout complete)
-
-//----------------------------------------------------------------------------
-//
-// Methods-
-//       EdTerm::draw_cursor
-//       EdTerm::undo_cursor
-//
-// Purpose-
-//       Draw/clear the screen cursor character
-//
-//----------------------------------------------------------------------------
-void
-   draw_cursor(bool set= true);     // Set the character cursor
-
-void
-   undo_cursor( void )              // Clear the character cursor
-{  draw_cursor(false); }
-
-//----------------------------------------------------------------------------
-//
-// Public method-
-//       EdTerm::draw
-//       EdTerm::draw_line
-//       EdTerm::draw_top
-//       EdTerm::draw_history
-//       EdTerm::draw_message
-//       EdTerm::draw_status
-//
-// Purpose-
-//       Draw the entire screen, data and info
-//       Draw one data line
-//       Draw the top lines: draw_status, then draw_message or draw_history
-//         Draw the history line
-//         Draw the message line
-//         Draw the status line
-//
-//----------------------------------------------------------------------------
-virtual void
-   draw( void );                    // Redraw the Window
-
-void
-   draw_line(                       // Draw one data line
-     unsigned          row,         // The row number (absolute)
-     const EdLine*     line);       // The line to draw
-
-void
-   draw_top( void );                // Redraw the top (heading) lines
-
-void
-   draw_history( void );            // Redraw the history line
-
-bool                                // Return code, TRUE if handled
-   draw_message( void );            // Redraw the message line if present
-
-void
-   draw_status( void );             // Redraw the status line
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdTerm::get_col
-//       EdTerm::get_row
-//       EdTerm::get_x
-//       EdTerm::get_y
-//       EdTerm::get_xy
+// Accessor methods-
+//       EdInps::get_col
+//       EdInps::get_row
+//       EdInps::get_x
+//       EdInps::get_y
+//       EdInps::get_xy
 //
 // Purpose-
 //       Convert pixel x position to (screen) column
@@ -249,44 +163,48 @@ void
 //----------------------------------------------------------------------------
 int                                 // The column
    get_col(                         // Get column
-     int               x) const;    // For this x pixel position
+     int               x) const     // For this x pixel position
+{  return x/font.length.width; }
 
 int                                 // The row
    get_row(                         // Get row
-     int               y) const;    // For this y pixel position
+     int               y) const     // For this y pixel position
+{  return y/font.length.height; }
 
 int                                 // The offset in Pixels
    get_x(                           // Get offset in Pixels
-     int               col) const;  // For this column
+     int               col) const   // For this column
+{  return col * font.length.width + 1; }
 
 int                                 // The offset in Pixels
    get_y(                           // Get offset in Pixels
-     int               row) const;  // For this row
+     int               row) const   // For this row
+{  return row * font.length.height + 1; }
 
 xcb_point_t                         // The offset in Pixels
    get_xy(                          // Get offset in Pixels
      int               col,         // And this column
-     int               row) const;  // For this row
+     int               row) const   // For this row
+{  return {gui::PT_t(get_x(col)), gui::PT_t(get_y(row))}; }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdTerm::get_text
+//       EdInps::configure
 //
 // Purpose-
-//       Get the text (which may be in flux.)
+//       Configure the Window, invoked during Window creation.
 //
 //----------------------------------------------------------------------------
-virtual const char*                 // The associated text
-   get_text(                        // Get text
-     const EdLine*     line) const; // For this EdLine
+virtual void
+   configure( void );               // Configure the Window
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       EdTerm::grab_mouse
-//       EdTerm::hide_mouse
-//       EdTerm::show_mouse
+// Mouse control methods-
+//       EdInps::grab_mouse
+//       EdInps::hide_mouse
+//       EdInps::show_mouse
 //
 // Purpose-
 //       Grab the mouse cursor
@@ -305,73 +223,35 @@ void
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       EdTerm::key_alt
-//       EdTerm::key_ctl
+// Keypress extension methodss-
+//       EdInps::key_alt
+//       EdInps::key_ctl
 //
 // Purpose-
-//       Handle alt-key input
-//       Handle ctl-key input
+//       Handle alt-key event
+//       Handle ctl-key event
+//
+// Implementation notes-
+//       These methods use EdInps methods, so they can't be subroutines.
 //
 //----------------------------------------------------------------------------
 void
    key_alt(                         // Handle this
-     xcb_keysym_t      key);        // Alt-key input event
+     xcb_keysym_t      key);        // Alt_Key input event
 
 void
    key_ctl(                         // Handle this
-     xcb_keysym_t      key);        // Ctrl-key input event
+     xcb_keysym_t      key);        // Ctrl_Key input event
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       EdTerm::move_cursor_H
-//
-// Purpose-
-//       Move cursor horizontally
-//
-//----------------------------------------------------------------------------
-int                                 // Return code, 0 if draw performed
-   move_cursor_H(                   // Move cursor horizontally
-     size_t            column);     // The (absolute) column number
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdTerm::move_screen_V
-//
-// Purpose-
-//       Move screen vertically
-//
-//----------------------------------------------------------------------------
-void
-   move_screen_V(                   // Move screen vertically
-     int               rows);       // The row count (down is positive)
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdTerm::putcr
-//
-// Purpose-
-//       Draw text at [col,row] position
-//
-//----------------------------------------------------------------------------
-void
-   putcr(                           // Draw text
-     xcb_gcontext_t    fontGC,      // Using this graphic context
-     unsigned          col,         // At this left (column) offset
-     unsigned          row,         // At this top  (row) offset
-     const char*       text)        // Using this text
-{  putxy(fontGC, get_x(col), get_y(row), text); }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdTerm::putxy
+// Screen control methods-
+//       EdInps::putxy
+//       EdInps::putcr
 //
 // Purpose-
 //       Draw text at [x,y] pixel position
+//       Draw text at [col,row] position
 //
 //----------------------------------------------------------------------------
 void
@@ -388,53 +268,85 @@ void
      const char*       text)        // Using this text
 {  putxy(fontGC, left, top, text); }
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdTerm::resize
-//
-// Purpose-
-//       Resize the window
-//
-//----------------------------------------------------------------------------
 void
-   resize(                          // Resize the Window
+   putcr(                           // Draw text
+     xcb_gcontext_t    fontGC,      // Using this graphic context
+     unsigned          col,         // At this left (column) offset
+     unsigned          row,         // At this top  (row) offset
+     const char*       text)        // Using this text
+{  putxy(fontGC, get_x(col), get_y(row), text); }
+
+//----------------------------------------------------------------------------
+//
+// Pure virtual methods, implemented in EdOuts.cpp-
+//       EdInps::draw               Redraw everything
+//       EdInps::draw_cursor        Draw the cursor
+//       EdInps::draw_line          Draw a line
+//       EdInps::draw_top           Draw the top lines
+//       EdInps::draw_history       Draw the history line
+//       EdInps::draw_message       Draw the message line
+//       EdInps::draw_status        Draw the status line
+//       EdInps::move_cursor_H      Move the cursor horizontally
+//       EdInps::move_screen_V      Move the screen vertically
+//       EdInps::undo_cursor        Clear the cursor
+//
+//       EdInps::activate           Activate a file
+//       EdInps::resized            Window resized event
+//
+//----------------------------------------------------------------------------
+virtual void
+   draw( void )= 0;                 // Redraw the Window
+
+virtual void
+   draw_cursor(bool set= true)= 0;  // Set the character cursor
+
+virtual void
+   draw_line(                       // Draw one data line
+     unsigned          row,         // The row number (absolute)
+     const EdLine*     line)= 0;    // The line to draw
+
+virtual void
+   draw_top( void )= 0;             // Redraw the top (heading) lines
+
+virtual void
+   draw_history( void )= 0;         // Redraw the history line
+
+virtual bool                        // Return code, TRUE if handled
+   draw_message( void )= 0;         // Redraw the message line if present
+
+virtual void
+   draw_status( void )= 0;          // Redraw the status line
+
+virtual int                         // Return code, 0 if draw performed
+   move_cursor_H(                   // Move cursor horizontally
+     size_t            column)= 0;  // The (absolute) column number
+
+virtual void
+   move_screen_V(                   // Move screen vertically
+     int               rows)= 0;    // The row count (down is positive)
+
+inline void
+   undo_cursor( void )              // Clear the character cursor
+{  draw_cursor(false); }
+
+virtual void
+   activate(                        // Acativate
+     EdFile*           file)= 0;    // This file
+
+virtual void
+   resized(                         // Resize the Window
      unsigned          x,           // New width
-     unsigned          y);          // New height
+     unsigned          y)= 0;       // New height
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       EdTerm::synch_active
+// Methods-
+//       Window event handler methods
 //
 // Purpose-
-//       Set the Active (cursor) line to the current row.
-//
-// Inputs-
-//       this->line= top screen line
-//       data->row   screen row
+//       Window *_event_t handlers
 //
 //----------------------------------------------------------------------------
-void
-   synch_active( void );            // Set the Active (cursor) line
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdTerm::synch_file
-//
-// Purpose-
-//       Save the current state in the active file
-//
-//----------------------------------------------------------------------------
-void
-   synch_file(                      // Synchronize the active file
-     EdFile*           file) const; // The active file, which is updated
-
-//============================================================================
-// EdTerm::Event handlers
-//============================================================================
-public:
 virtual void
    button_press(                    // Handle this
      xcb_button_press_event_t* event); // Button press event
@@ -447,15 +359,15 @@ virtual void
    configure_notify(                // Handle this
      xcb_configure_notify_event_t* E); // Configure notify event
 
-void
+virtual void
    expose(                          // Handle this
      xcb_expose_event_t* E);        // Expose event
 
-void
+virtual void
    focus_in(                        // Handle this
      xcb_focus_in_event_t* E);      // Focus-in event
 
-void
+virtual void
    focus_out(                       // Handle this
      xcb_focus_out_event_t* E);     // Focus-out event
 
@@ -471,5 +383,5 @@ virtual void
 virtual void
    property_notify(                 // Handle this
      xcb_property_notify_event_t* E); // Property notify event
-}; // class EdTerm
-#endif // EDTERM_H_INCLUDED
+}; // class EdInps
+#endif // EDINPS_H_INCLUDED
