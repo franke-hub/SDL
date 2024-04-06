@@ -16,7 +16,7 @@
 //       Implement gui/Device.h
 //
 // Last change date-
-//       2024/03/31
+//       2024/04/06
 //
 //----------------------------------------------------------------------------
 #include <limits.h>                 // For UINT_MAX
@@ -172,8 +172,8 @@ static void
      Pixmap* pixmap= dynamic_cast<Pixmap*>(child);
      if( pixmap ) {
        if( opt_hcdm && opt_verbose > 1 )
-         debugh("%4d Device: %s(%p)->configure(%s,%s)\n", __LINE__
-               , get_name(pixmap), pixmap, get_name(device), get_name(parent));
+         debugh("%4d Device(%s@%p): Pixmap(%s@%p)->configure\n", __LINE__
+               , get_name(device), device, get_name(pixmap), pixmap);
 
        pixmap->configure(device, parent);
        Window* window= dynamic_cast<Window*>(child);
@@ -191,8 +191,8 @@ static void
 {
    for(Widget* child= widget->get_first(); child; child= child->get_next()) {
      if( opt_hcdm && opt_verbose > 1 )
-       debugf("%4d Device %s(%p)->configure()\n", __LINE__
-             , get_name(child), child );
+       debugh("%4d Device: Widget(%s@%p)->configure\n", __LINE__
+             , get_name(child), child);
      child->configure();
 
      configure_widget(child);
@@ -206,21 +206,31 @@ void
    if( opt_hcdm )
      debugh("Device(%p)::configure\n", this);
 
-   // Window: Device, Parent, Child configurator
+   // Phase I: Pixmap configurator
+   if( opt_hcdm && opt_verbose > 1 )
+     debugh("\nDevice::configure phase I: Pixmaps\n");
    configure_pixmap(this, this, this);
 
-   // Layout configuration, depth and breadth recursion controlled by Layout.
+   // Phase II: Layout configurator (recursion controlled by Layout)
+   if( opt_hcdm && opt_verbose > 1 )
+     debugh("\nDevice::configure phase II: Layouts\n");
    Layout::config_t config;
 // memset((char*)&config, 0, sizeof(config)); // (Already initialized)
    rect= geom;                      // Initialize rectangle
    Layout::configure(config);
    rect= {0, 0, config.max_size.width, config.max_size.height};
 
+   // Phase III: Widget configurator
+   if( opt_hcdm && opt_verbose > 1 )
+     debugh("\nDevice::configure phase III: Widgets\n");
+
    if( opt_hcdm )
      debug_tree("Device::configure");
 
-   // Widget: configuration
    configure_widget(this);
+
+   if( opt_hcdm && opt_verbose > 1 )
+     debugh("\nDevice::configure complete\n\n");
 }
 
 //----------------------------------------------------------------------------
@@ -244,9 +254,9 @@ static void
    } else
      debugf("[----,----,----,----] ");
 
-   debugf("Widget(%.10zx,%6s) Parent(%p,%s)\n"
-         , uintptr_t(widget), get_name(widget)
-         , parent, get_name(parent) );
+   debugf("Parent(%s@%.10zx) Widget(%6s@%.10zx)\n"
+         , get_name(parent), uintptr_t(parent)
+         , get_name(widget), uintptr_t(widget) );
 
    for(Widget* child= widget->get_first(); child; child= child->get_next()) {
      debug_widget_tree(child);
@@ -257,7 +267,7 @@ void
    Device::debug_tree(              // Display the Device tree
      const char*       info) const  // Caller information
 {
-   debugf("Device(%p)::debug_tree(%s)\n", this, info ? info : "");
+   debugf("\nDevice(%p)::debug_tree(%s)\n", this, info ? info : "");
 
    debug_widget_tree(this);
 }

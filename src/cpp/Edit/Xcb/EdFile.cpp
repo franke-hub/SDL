@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2024/04/05
+//       2024/04/06
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf, fopen, fclose, ...
@@ -24,7 +24,6 @@
 #include <unistd.h>                 // For unlink
 #include <sys/stat.h>               // For stat
 
-#include <gui/Types.h>              // For gui::Line
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Fileman.h>            // For pub::Name
 #include <pub/Signals.h>            // For pub::signals::Signal
@@ -53,7 +52,7 @@ enum // Compilation controls
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // Compilation controls
 
-#define USE_REDO_DIAGNOSTICS true   // Use redo/undo diagnostics? TODO: false
+#define USE_REDO_DIAGNOSTICS true   // Use redo/undo diagnostics?
 
 //----------------------------------------------------------------------------
 // External data areas

@@ -13,10 +13,10 @@
 //       EdOuts.h
 //
 // Purpose-
-//       Editor: Output/input services (screen, keyboard, and mouse) controller
+//       Editor: Input/output server (See EdInps.h)
 //
 // Last change date-
-//       2024/04/05
+//       2024/04/06
 //
 // Implementation notes-
 //       All attributes are defined in EdInps.h
@@ -36,7 +36,6 @@
 
 #include "Active.h"                 // For Active
 #include "EdInps.h"                 // For EdInps (base class)
-#include "EdOuts.h"                 // For EdOuts (implementation class)
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -52,10 +51,10 @@ class EdView;
 //       EdOuts
 //
 // Purpose-
-//       TextWindow keyboard, mouse, and screen controller.
+//       Input/output server
 //
 //----------------------------------------------------------------------------
-class EdOuts : public EdInps {      // Editor text Window viewport
+class EdOuts : public EdInps {      // Editor: Input/output server
 public:
 //----------------------------------------------------------------------------
 // EdOuts::Constructor

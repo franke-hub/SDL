@@ -16,7 +16,7 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2024/04/02
+//       2024/04/06
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
@@ -124,7 +124,9 @@ namespace editor {                  // The Editor namespace
 //----------------------------------------------------------------------------
 // editor::Global attributes
 //----------------------------------------------------------------------------
-extern EdOuts*         outs;        // Output/input services
+extern gui::Device*    device;      // Our Device
+extern EdOuts*         outs;        // Our Window: input/output services
+extern gui::Font*      font;        // Our Font
 
 extern pub::List<EdFile> file_list; // The list of EdFiles
 extern EdFile*         file;        // The current File object

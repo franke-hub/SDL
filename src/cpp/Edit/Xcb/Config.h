@@ -16,17 +16,15 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2024/03/31
+//       2024/04/06
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
 #define CONFIG_H_INCLUDED
 
 #include <string>                   // For std::string
+#include <xcb/xproto.h>             // For xcb_rectangle_t
 
-#include <gui/Device.h>             // For gui::Device
-#include <gui/Font.h>               // For gui::Font
-#include <gui/Window.h>             // For gui::Window
 #include <pub/config.h>             // For ATTRIB_PRINTF macro
 #include <pub/Signals.h>            // For pub::signals
 
@@ -127,11 +125,6 @@ namespace config {                  // The Config namespace
 // Debugging controls
 extern int             opt_hcdm;    // Hard Core Debug Mode?
 extern int             opt_verbose; // Debugging verbosity
-
-// GUI objects --------------------------------------------------------------
-extern gui::Device*    device;      // The root Device
-extern gui::Window*    window;      // The test Window
-extern gui::Font*      font;        // The Font object
 
 // Color controls ------------------------------------------------------------
 extern uint32_t        mark_bg;     // mark.bg: Marked text BG (background)

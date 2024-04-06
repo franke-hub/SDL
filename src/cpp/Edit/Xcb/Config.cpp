@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2024/04/05
+//       2024/04/06
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -115,11 +115,6 @@ xcb_rectangle_t        config::geom= {0, 0, 80, 50}; // The screen geometry
 
 // Bringup controls -- From configuration file or set command ----------------
 uint32_t               config::USE_MOUSE_HIDE= true; // Use mouse hide logic?
-
-// GUI objects ------- Initialized at startup (Font configured) --------------
-gui::Device*           config::device= nullptr; // The root Device
-gui::Window*           config::window= nullptr; // A TEST Window (Not needed)
-gui::Font*             config::font= nullptr; // The Font object
 
 // (Internal) -------- Initialized at startup --------------------------------
 std::string            config::AUTO; // AUTOSAVE directory "~/.config/editxcb"
@@ -240,9 +235,10 @@ static int                          // Resultant value
 
    using namespace config;
 
-   // Allocate GUI objects
-   device= new gui::Device();       // The screen/connection device
-   font= new gui::Font(device);     // The Font object
+   // Allocate (editor) GUI objects
+   editor::device= new gui::Device();
+   editor::font= new gui::Font(editor::device);
+   editor::outs= new EdOuts();
 
    // Initialize HOME, AUTO, and debug_path
    const char* env= getenv("HOME"); // Get HOME directory
@@ -304,10 +300,6 @@ static int                          // Resultant value
    Config::~Config( void )          // Destructor
 {  if( opt_hcdm ) debugh("Config::~Config\n");
 
-   // Delete XCB objects
-   delete font;
-   delete device;
-
    term();
 }
 
@@ -361,7 +353,7 @@ void
    debugf("\n");
    editor::outs->debug(info);
    debugf("\n");
-   config::font->debug(info);
+   editor::font->debug(info);
    debugf("\n");
    editor::data->debug(info);
    debugf("\n");
@@ -539,7 +531,7 @@ static int                          // Return code (0 OK)
    //-------------------------------------------------------------------------
    // Create memory-mapped trace file
    S= debug_path + "/trace.mem";
-   int fd= open(S.c_str(), O_RDWR | O_CREAT, S_IRWXU);
+   int fd= open(S.c_str(), O_RDWR|O_CREAT, S_IRUSR|S_IWUSR| S_IRGRP| S_IROTH);
    if( fd < 0 ) {
      Config::errorf("%4d open(%s) %s\n", __LINE__, S.c_str()
                    , strerror(errno));
@@ -582,6 +574,16 @@ static int                          // Return code (0 OK)
 static void
    term( void )                     // Terminate
 {  if( opt_hcdm ) debugh("Config::term\n");
+
+   // Delete GUI objects
+   delete editor::outs;
+   editor::outs= nullptr;
+
+   delete editor::font;
+   editor::font= nullptr;
+
+   editor::device= nullptr;
+   delete editor::device;
 
    //-------------------------------------------------------------------------
    // Terminate debugging
@@ -794,7 +796,7 @@ static void
          }
 
          if( strcmp(name, "font") == 0 ) { // Font parameter?
-           int rc= font->open(value); // Set the font
+           int rc= editor::font->open(value); // Set the font
            if( rc == 0 )
              font_valid= true;
            continue;
@@ -831,5 +833,5 @@ static void
      }
    }
    if( !font_valid )                // If valid font not present
-     font->open();                  // Use default font
+     editor::font->open();          // Use default font
 }

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2023/01/02
+//       2024/04/06
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -24,32 +24,21 @@
 
 #include <ctype.h>                  // For isprint, toupper
 #include <errno.h>                  // For errno
-#include <fcntl.h>                  // For O_* constants
 #include <getopt.h>                 // For getopt_long
 #include <limits.h>                 // For INT_MAX, INT_MIN
-#include <semaphore.h>              // For sem_open, sem_close
-#include <stdarg.h>                 // For va_list
 #include <stdio.h>                  // For printf
 #include <stdlib.h>                 // For various
 #include <unistd.h>                 // For close, ftruncate
-#include <sys/mman.h>               // For mmap, shm_open, ...
-#include <sys/stat.h>               // For S_* constants
-#include <sys/signal.h>             // For signal, SIGINT, SIGSEGV
 #include <sys/types.h>              // For type definitions
-#include <xcb/xcb.h>                // For XCB interfaces
-#include <xcb/xproto.h>             // For XCB types
 
-#include <gui/Global.h>             // For namespace gui utilities
+#include <gui/Global.h>             // For gui::opt_* controls
 #include <pub/Debug.h>              // For Debug object
 #include <pub/Exception.h>          // For Exception object
-#include <pub/Trace.h>              // For Trace object
 
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For namespace editor
 
 using pub::Debug;                   // For Debug object
-using pub::Trace;                   // For Trace object
-
 using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
@@ -282,6 +271,9 @@ extern int                          // Return code
    try {
      setlocale(LC_NUMERIC, "");     // Allows printf("%'d\n", 123456789);
 
+     gui::opt_hcdm= opt_hcdm;       // Expose gui:: options
+     gui::opt_verbose= opt_verbose;
+
      config::opt_hcdm= opt_hcdm;    // Expose config:: options
      config::opt_verbose= opt_verbose;
      Config config(argc, argv);     // Configure
@@ -291,8 +283,6 @@ extern int                          // Return code
                      , opt_hcdm, opt_verbose, !opt_bg);
      }
 
-     gui::opt_hcdm= opt_hcdm;       // Expose gui:: options
-     gui::opt_verbose= opt_verbose - 1;
      Editor editor(optind, argc, argv); // Load the initial file set
      editor::start();               // Initial screen draw, XCB polling loop
      // :                           // : Wait for completion

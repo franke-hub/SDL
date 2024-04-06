@@ -13,10 +13,10 @@
 //       EdOuts.cpp
 //
 // Purpose-
-//       Editor: Implement EdOuts.h: screen, mouse, and keyboard handlers.
+//       Editor: Input/output server
 //
 // Last change date-
-//       2024/04/05
+//       2024/04/06
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -348,8 +348,8 @@ void
      }
 
      row_used -= USER_TOP;
-     if( opt_hcdm && opt_verbose > 0 )
-       debugh("%4d %s LAST xy(%d,%d)\n", __LINE__, __FILE__, 0, row_used);
+     if( opt_hcdm && opt_verbose > 1 )
+       debugh("%4d %s row_used(%d)\n", __LINE__, __FILE__, row_used);
    }
 
    draw_top();                      // Draw top (status, hist/message) lines

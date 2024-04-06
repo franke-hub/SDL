@@ -13,17 +13,15 @@
 //       EdInps.h
 //
 // Purpose-
-//       Editor: Window, keyboard, and mouse handlers.
+//       Editor: Input/output server (See EdOuts.h)
 //
 // Last change date-
-//       2024/04/05
+//       2024/04/06
 //
 //----------------------------------------------------------------------------
 #ifndef EDINPS_H_INCLUDED
 #define EDINPS_H_INCLUDED
 
-#include <string>                   // For std::string
-#include <sys/types.h>              // For
 #include <xcb/xproto.h>             // For XCB types
 #include <xcb/xfixes.h>             // For XCB xfixes extension
 
@@ -84,8 +82,8 @@ enum STATUS_FLAGS                   // (Bit flags)
 //----------------------------------------------------------------------------
 // EdInps::Attributes
 //----------------------------------------------------------------------------
-Active&                active;      // Active reference (*editor::active)
-gui::Font&             font;        // Font reference (*config::font)
+Active                 active;      // Active object
+gui::Font&             font;        // Font reference (*editor::font)
 EdLine*                head= nullptr; // Current first data screen line
 EdLine*                tail= nullptr; // Current last  data screen line
 

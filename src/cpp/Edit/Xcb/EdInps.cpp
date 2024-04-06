@@ -13,10 +13,10 @@
 //       EdInps.cpp
 //
 // Purpose-
-//       Editor: Window, keyboard, and mouse handlers.
+//       Editor: Input/output server (See EdOuts.h)
 //
 // Last change date-
-//       2024/04/05
+//       2024/04/06
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -310,7 +310,7 @@ static int                          // Return code, TRUE if error message
      Widget*           parent,      // Parent Widget
      const char*       name)        // Widget name
 :  Window(parent, name ? name : "EdInps")
-,  active(*editor::active), font(*config::font)
+,  font(*editor::font)
 {
    if( opt_hcdm )
      debugh("EdInps(%p)::EdInps\n", this);

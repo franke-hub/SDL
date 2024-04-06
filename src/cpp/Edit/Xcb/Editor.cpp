@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2024/04/05
+//       2024/04/06
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -33,9 +33,6 @@
 
 #include <gui/Device.h>             // For gui::Device
 #include <gui/Font.h>               // For gui::Font
-#include <gui/Layout.h>             // For gui::Layout
-#include <gui/Widget.h>             // For gui::Widget, our base class
-#include <gui/Window.h>             // For gui::Window
 #include <pub/Debug.h>              // For Debug, namespace pub::debugging
 #include <pub/Fileman.h>            // For namespace pub::fileman
 #include <pub/Signals.h>            // For pub::signals
@@ -48,7 +45,6 @@
 #include "EdFile.h"                 // For EdFile, EdLine, EdPool, ...
 #include "EdHist.h"                 // For EdHist
 #include "EdMark.h"                 // For EdMark
-#include "EdMisc.h"                 // For EdMisc TODO: REMOVE
 #include "EdOuts.h"                 // For EdOuts
 #include "EdPool.h"                 // For EdPool
 #include "EdView.h"                 // For EdView
@@ -71,7 +67,9 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-EdOuts*                editor::outs= nullptr; // Output/input services
+gui::Device*           editor::device= nullptr; // Our Device
+EdOuts*                editor::outs= nullptr; // Our Input/output services
+gui::Font*             editor::font= nullptr; // Our Font
 
 pub::List<EdFile>      editor::file_list; // The list of EdFiles
 EdFile*                editor::file= nullptr; // The current File
@@ -293,11 +291,9 @@ static const char*                  // Return message, nullptr if OK
    // Delete allocated objects
    delete actalt;
    delete active;
-   delete outs;
    delete data;
    delete hist;
    delete mark;
-   delete window;
 }
 
 //----------------------------------------------------------------------------
@@ -314,7 +310,7 @@ void
      const char*       info)        // Associated info
 {
    debugf("Editor::debug(%s)\n", info ? info : "");
-   debugf("..device(%p) window(%p) outs(%p)\n", device, window, outs);
+   debugf("..device(%p) font(%p) outs(%p)\n", device, font, outs);
    debugf("..mark(%p) data(%p) hist(%p) view(%p)\n", mark, data, hist, view);
    debugf("..locate[%s] change[%s]\n"
          , locate_string.c_str(), change_string.c_str());

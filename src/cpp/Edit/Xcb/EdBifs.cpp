@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2024/04/05
+//       2024/04/06
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -376,7 +376,7 @@ static const char*                  // Error message, nullptr expected
    else if( strcasecmp(parm, "file") == 0 )
      editor::file->debug("command");
    else if( strcasecmp(parm, "font") == 0 )
-     config::font->debug("command");
+     editor::font->debug("command");
    else if( strcasecmp(parm, "lines") == 0 )
      editor::file->debug("lines");
    else if( strcasecmp(parm, "mark") == 0 )

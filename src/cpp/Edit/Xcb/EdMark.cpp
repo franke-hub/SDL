@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2024/04/05
+//       2024/04/06
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -302,7 +302,7 @@ const char*                         // Error message, nullptr expected
 
    if( mark_file != editor::file ) { // If the mark is in a different file
      mark_file->put_message("Mark removed"); // The "from" file
-     rc= "Mark was in another file";
+     rc= "Mark offscreen";
    }
 
    // Trace the cut
@@ -399,14 +399,14 @@ const char*                         // Error message, nullptr expected
    // Validate state
    if( mark_file == nullptr )
      return "No mark";
-   if( mark_file->protect )
-     return "Protected";
-   if( copy_col >= 0 )
-     return "Line block required";
    if( editor::view != editor::data )
      return "History view";
-   if( mark_file != edFile )         // If a different file is marked
-     undo();                         // (Silently) undo the mark
+   if( mark_file->protect )
+     return "Protected";
+   if( mark_file != edFile )
+     return "Mark offscreen";
+   if( copy_col >= 0 )
+     return "Line block required";
 
    // Perform the format (with REDO)
    unsigned char delim[2]= {'\n', 0}; // Default UNIX mode
@@ -447,7 +447,7 @@ const char*                         // Error message, nullptr expected
        continue;
      }
 
-     if( (l_margin + insert_col + token_col + 1) > r_margin ) {
+     if( (l_margin + insert_col + token_col) > r_margin ) {
        active->reset();
        active->fetch(l_margin);
        active->append_text(insert_str.c_str(), insert_str.length());

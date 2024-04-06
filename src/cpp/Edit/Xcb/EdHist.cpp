@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2024/04/05
+//       2024/04/06
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -27,8 +27,6 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
-#include <gui/Global.h>             // For GUI globals
-#include <gui/Types.h>              // For gui::Line
 #include <pub/Debug.h>              // For namespace pub::debugging
 
 #include "Config.h"                 // For namespace config
