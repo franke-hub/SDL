@@ -16,7 +16,7 @@
 //       Editor: Input/output server (See EdOuts.h)
 //
 // Last change date-
-//       2024/04/06
+//       2024/04/11
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -116,7 +116,7 @@ static_assert(0xff80 == XK_KP_Space     && 0xffbf == XK_F2
 static const char*                  // The name of the key
    key_to_name(xcb_keysym_t key)    // Convert xcb_keysym_t to name
 {
-   static char buffer[8];           // (Static) return buffer
+   static char buffer[16];          // (Static) return buffer
    static const char* F_KEY= "123456789ABCDEF";
 
    if( key >= 0x0020 && key <= 0x007f ) { // If text key (but not TAB or ESC)
@@ -400,126 +400,6 @@ void
          , gc_chg, gc_msg, gc_sts);
    debugf("..protocol(%u) wm_close(%u)\n", protocol, wm_close);
    Window::debug(info);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdInps::configure
-//
-// Purpose-
-//       Configure the Window
-//
-//----------------------------------------------------------------------------
-void
-   EdInps::configure( void )        // Configure the Window
-{
-   if( opt_hcdm )
-     debugh("EdInps(%p)::configure\n", this);
-
-   Window::configure();             // Create the Window
-   flush();
-
-   // Create the graphic contexts
-   fontGC= font.makeGC(fg, bg);          // (The default)
-   flipGC= font.makeGC(bg, fg);          // (Inverted)
-   markGC= font.makeGC(mark_fg,    mark_bg);
-   bg_chg= font.makeGC(change_bg,  change_bg);
-   bg_sts= font.makeGC(status_bg,  status_bg);
-   gc_chg= font.makeGC(change_fg,  change_bg);
-   gc_msg= font.makeGC(message_fg, message_bg);
-   gc_sts= font.makeGC(status_fg,  status_bg);
-
-   // Configure views
-   EdView* const data= editor::data;
-   data->gc_flip= flipGC;
-   data->gc_font= fontGC;
-   data->gc_mark= markGC;
-   EdHist* const hist= editor::hist;
-   hist->gc_flip= flipGC;
-
-   // Set up WM_DELETE_WINDOW protocol handler
-   protocol= name_to_atom("WM_PROTOCOLS", true);
-   wm_close= name_to_atom("WM_DELETE_WINDOW");
-   ENQUEUE("xcb_change_property", xcb_change_property_checked
-          ( c, XCB_PROP_MODE_REPLACE, widget_id
-          , protocol, 4, 32, 1, &wm_close) );
-   if( opt_hcdm )
-     debugh("%4d %s PROTOCOL(%d), atom WM_CLOSE(%d)\n", __LINE__, __FILE__
-           , protocol, wm_close);
-
-   flush();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdInps::grab_mouse
-//       EdInps::hide_mouse
-//       EdInps::show_mouse
-//
-// Purpose-
-//       Grab the mouse cursor
-//       Hide the mouse cursor
-//       Show the mouse cursor
-//
-// Implementation notes-
-//       xcb_configure_window has no effect before the first window::draw().
-//
-//----------------------------------------------------------------------------
-void
-   EdInps::grab_mouse( void )       // Grab the mouse cursor
-{
-   using gui::WH_t;
-
-   uint32_t x_origin= config::geom.x;
-   uint32_t y_origin= config::geom.y;
-   if( x_origin || y_origin ) {     // If position specified
-     uint16_t mask= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
-     uint32_t parm[2];
-     parm[0]= x_origin;
-     parm[1]= y_origin;
-     ENQUEUE("xcb_configure_window", xcb_configure_window_checked
-            (c, widget_id, mask, parm) );
-   } else {                         // If position assigned
-     flush();                       // (Yes, this is needed)
-     xcb_get_geometry_cookie_t cookie= xcb_get_geometry(c, widget_id);
-     xcb_get_geometry_reply_t* r= xcb_get_geometry_reply(c, cookie, nullptr);
-     if( r ) {
-       x_origin= r->x;
-       y_origin= r->y;
-       free(r);
-     } else {
-       debugf("%4d EdInps xcb_get_geometry error\n", __LINE__);
-     }
-   }
-
-   x_origin += rect.width/2;
-   y_origin += rect.height/2;
-   NOQUEUE("xcb_warp_pointer", xcb_warp_pointer
-          (c, XCB_NONE, widget_id, 0,0,0,0
-          , WH_t(x_origin), WH_t(y_origin)) );
-   flush();
-}
-
-void
-   EdInps::hide_mouse( void )       // Hide the mouse cursor
-{
-   if( motion.state != CS_HIDDEN ) { // If not already hidden
-     NOQUEUE("xcb_hide_cursor", xcb_xfixes_hide_cursor(c, widget_id) );
-     motion.state= CS_HIDDEN;
-     flush();
-   }
-}
-
-void
-   EdInps::show_mouse( void )       // Show the mouse cursor
-{
-   if( motion.state != CS_VISIBLE ) { // If not already visible
-     NOQUEUE("xcb_show_cursor", xcb_xfixes_show_cursor(c, widget_id) );
-     motion.state= CS_VISIBLE;
-     flush();
-   }
 }
 
 //----------------------------------------------------------------------------
@@ -878,8 +758,6 @@ void
      flush();
    }
    status |= SF_FOCUS;
-
-   show_mouse();
 }
 
 void
@@ -896,8 +774,6 @@ void
      flush();
    }
    status &= ~(SF_FOCUS);
-
-   hide_mouse();
 }
 
 void

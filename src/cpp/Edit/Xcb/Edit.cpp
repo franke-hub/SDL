@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2024/04/06
+//       2024/04/12
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -284,9 +284,9 @@ extern int                          // Return code
      }
 
      Editor editor(optind, argc, argv); // Load the initial file set
-     editor::start();               // Initial screen draw, XCB polling loop
+     Config::start();               // Initial screen draw, polling loop
      // :                           // : Wait for completion
-     editor::join();                // Polling loop complete
+     Config::join();                // Polling loop complete
    } catch(pub::Exception& X) {
      debugf("%s\n", std::string(X).c_str());
    } catch(std::exception& X) {

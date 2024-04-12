@@ -16,7 +16,7 @@
 ##       Extract nickname for subdirectory
 ##
 ## Last change date-
-##       2024/03/19
+##       2024/04/11
 ##
 ## Usage-
 ##       cd `nickdir alias_name`
@@ -56,6 +56,7 @@ case $1 in
     echo        py=`nickdir py`
     echo    sample=`nickdir sample`
     echo       src=`nickdir src`
+    echo      term=`nickdir term`
     echo    wilbur=`nickdir wilbur`
     echo       xcb=`nickdir xcb`
     return
@@ -97,6 +98,10 @@ case $1 in
 
   src/edit | src/Edit)
     __FULLDIR="$HOME/src/cpp/Edit"
+    ;;
+
+  src/term | src/Term)
+    __FULLDIR="$HOME/src/cpp/Edit/Term"
     ;;
 
   src/xcb | src/Xcb)
@@ -171,9 +176,12 @@ case $1 in
     __FULLDIR="$HOME/obj/cpp/lib/pub/${1:4}"
     ;;
 
+  term | Term | TERM)
+    __FULLDIR="$HOME/obj/cpp/Edit/Term"
+    ;;
+
   xcb | Xcb | XCB)
     __FULLDIR="$HOME/obj/cpp/Edit/Xcb"
-    unset __i
     ;;
 
   ############################################################################

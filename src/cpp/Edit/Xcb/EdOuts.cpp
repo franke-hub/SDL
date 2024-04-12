@@ -13,10 +13,10 @@
 //       EdOuts.cpp
 //
 // Purpose-
-//       Editor: Input/output server
+//       Editor: Input/output server (See EdInps.h)
 //
 // Last change date-
-//       2024/04/06
+//       2024/04/11
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -306,6 +306,55 @@ void
    data->row_zero= 0;
    data->row= USER_TOP;
    draw();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdOuts::configure
+//
+// Purpose-
+//       Configure the Window
+//
+//----------------------------------------------------------------------------
+void
+   EdOuts::configure( void )        // Configure the Window
+{
+   if( opt_hcdm )
+     debugh("EdOuts(%p)::configure\n", this);
+
+   Window::configure();             // Create the Window
+   flush();
+
+   // Create the graphic contexts
+   fontGC= font.makeGC(fg, bg);          // (The default)
+   flipGC= font.makeGC(bg, fg);          // (Inverted)
+   markGC= font.makeGC(mark_fg,    mark_bg);
+   bg_chg= font.makeGC(change_bg,  change_bg);
+   bg_sts= font.makeGC(status_bg,  status_bg);
+   gc_chg= font.makeGC(change_fg,  change_bg);
+   gc_msg= font.makeGC(message_fg, message_bg);
+   gc_sts= font.makeGC(status_fg,  status_bg);
+
+   // Configure views
+   EdView* const data= editor::data;
+   data->gc_flip= flipGC;
+   data->gc_font= fontGC;
+   data->gc_mark= markGC;
+   EdHist* const hist= editor::hist;
+   hist->gc_flip= flipGC;
+
+   // Set up WM_DELETE_WINDOW protocol handler
+   protocol= name_to_atom("WM_PROTOCOLS", true);
+   wm_close= name_to_atom("WM_DELETE_WINDOW");
+   ENQUEUE("xcb_change_property", xcb_change_property_checked
+          ( c, XCB_PROP_MODE_REPLACE, widget_id
+          , protocol, 4, 32, 1, &wm_close) );
+   if( opt_hcdm )
+     debugh("%4d %s PROTOCOL(%d), atom WM_CLOSE(%d)\n", __LINE__, __FILE__
+           , protocol, wm_close);
+
+   flush();
 }
 
 //----------------------------------------------------------------------------
@@ -615,6 +664,40 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdOuts::hide_mouse
+//       EdOuts::show_mouse
+//
+// Purpose-
+//       Hide the mouse cursor
+//       Show the mouse cursor
+//
+// Implementation notes-
+//       xcb_configure_window has no effect before the first window::draw().
+//
+//----------------------------------------------------------------------------
+void
+   EdOuts::hide_mouse( void )       // Hide the mouse cursor
+{
+   if( motion.state != CS_HIDDEN ) { // If not already hidden
+     NOQUEUE("xcb_hide_cursor", xcb_xfixes_hide_cursor(c, widget_id) );
+     motion.state= CS_HIDDEN;
+     flush();
+   }
+}
+
+void
+   EdOuts::show_mouse( void )       // Show the mouse cursor
+{
+   if( motion.state != CS_VISIBLE ) { // If not already visible
+     NOQUEUE("xcb_show_cursor", xcb_xfixes_show_cursor(c, widget_id) );
+     motion.state= CS_VISIBLE;
+     flush();
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdOuts::move_cursor_H
 //
 // Purpose-
@@ -700,6 +783,32 @@ void
 
    synch_active();
    draw();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdOuts::move_window
+//
+// Purpose-
+//       Position the window (absolute position)
+//
+// Implementation notes-
+//       Does not flush
+//
+//----------------------------------------------------------------------------
+void
+   EdOuts::move_window(             // Position the window
+     uint32_t          x_origin,    // (Absolute) X origin
+     uint32_t          y_origin)    // (Absolute) Y origin
+{
+   uint16_t mask= XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;
+   uint32_t parm[2];
+   parm[0]= x_origin;
+   parm[1]= y_origin;
+   ENQUEUE("xcb_configure_window", xcb_configure_window_checked
+          (c, widget_id, mask, parm) );
+   // flush();
 }
 
 //----------------------------------------------------------------------------

@@ -16,7 +16,7 @@
 //       Editor: Input/output server (See EdInps.h)
 //
 // Last change date-
-//       2024/04/06
+//       2024/04/11
 //
 // Implementation notes-
 //       All attributes are defined in EdInps.h
@@ -27,8 +27,6 @@
 
 #include <string>                   // For std::string
 #include <sys/types.h>              // For
-#include <xcb/xproto.h>             // For XCB types
-#include <xcb/xfixes.h>             // For XCB xfixes extension
 
 #include <gui/Font.h>               // For gui::Font
 #include <gui/Window.h>             // For gui::Window (Base class)
@@ -41,9 +39,7 @@
 // Forward references
 //----------------------------------------------------------------------------
 class EdFile;
-class EdHist;
 class EdLine;
-class EdView;
 
 //----------------------------------------------------------------------------
 //
@@ -72,7 +68,8 @@ virtual
 //----------------------------------------------------------------------------
 //
 // Public method-
-//       EdOuts::activate
+//       EdOuts::activate(EdFile*)
+//       EdOuts::activate(EdLine*)
 //
 // Purpose-
 //       Set the current file
@@ -147,6 +144,35 @@ virtual const char*                 // The associated text
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdOuts::configure
+//
+// Purpose-
+//       Configure the Window, invoked during Window creation.
+//
+//----------------------------------------------------------------------------
+virtual void
+   configure( void );               // Configure the Window
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdOuts::hide_mouse
+//       EdOuts::show_mouse
+//
+// Purpose-
+//       Hide the mouse cursor
+//       Show the mouse cursor
+//
+//----------------------------------------------------------------------------
+virtual void
+   hide_mouse( void );              // Hide the mouse cursor
+
+virtual void
+   show_mouse( void );              // Show the mouse cursor
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdOuts::move_cursor_H
 //
 // Purpose-
@@ -169,6 +195,20 @@ virtual int                         // Return code, 0 if draw performed
 virtual void
    move_screen_V(                   // Move screen vertically
      int               rows);       // The row count (down is positive)
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdOuts::move_window
+//
+// Purpose-
+//       Move the editor window
+//
+//----------------------------------------------------------------------------
+virtual void
+   move_window(                     // Move the editor window
+     uint32_t          x_origin,    // (Absolute) X origin
+     uint32_t          y_origin);   // (Absolute) Y origin
 
 //----------------------------------------------------------------------------
 //

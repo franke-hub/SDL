@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2024/04/06
+//       2024/04/12
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -28,8 +28,6 @@
 #include <string.h>                 // For string functions
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/stat.h>               // For stat
-#include <xcb/xcb.h>                // For XCB interfaces
-#include <xcb/xproto.h>             // For XCB types
 
 #include <gui/Device.h>             // For gui::Device
 #include <gui/Font.h>               // For gui::Font
@@ -258,10 +256,6 @@ static const char*                  // Return message, nullptr if OK
 
    if( file_list.get_head() == nullptr ) // Always have something
      file_loader(nullptr);          // Even if it's an empty file
-
-   //-------------------------------------------------------------------------
-   // Activate the gui::Window
-   device->insert(outs);
 }
 
 //----------------------------------------------------------------------------
@@ -1062,28 +1056,4 @@ bool                                // TRUE if editor in unchanged state
    }
 
    return true;
-}
-
-//----------------------------------------------------------------------------
-// editor::Virtual Thread simulation methods
-//----------------------------------------------------------------------------
-void
-   editor::join( void )
-{  }
-
-void
-   editor::start( void )
-{
-   // Initialize the configuration
-   device->configure();
-
-   // Set initial file
-   outs->activate(file_list.get_head());
-
-   // Start the Device
-   device->draw();
-   outs->show();                    // (Set position fails unless visible)
-   outs->grab_mouse();              // (Also sets position)
-   outs->flush();
-   device->run();
 }

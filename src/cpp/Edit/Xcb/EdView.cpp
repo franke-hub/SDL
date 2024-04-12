@@ -16,7 +16,7 @@
 //       Editor: Implement EdView.h
 //
 // Last change date-
-//       2024/04/05
+//       2024/04/11
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -124,10 +124,10 @@ void
 //       Get the current graphic context
 //
 //----------------------------------------------------------------------------
-xcb_gcontext_t                       // The current graphic context
+EdView::GC_t                         // The current graphic context
    EdView::get_gc( void )            // Get current graphic context
 {
-   xcb_gcontext_t gc= gc_font;
+   GC_t gc= gc_font;
    if( cursor->flags & EdLine::F_MARK ) {
      ssize_t column= ssize_t(col_zero + col);
      EdMark& mark= *editor::mark;

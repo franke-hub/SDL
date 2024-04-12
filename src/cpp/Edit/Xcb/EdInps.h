@@ -16,7 +16,7 @@
 //       Editor: Input/output server (See EdOuts.h)
 //
 // Last change date-
-//       2024/04/06
+//       2024/04/11
 //
 //----------------------------------------------------------------------------
 #ifndef EDINPS_H_INCLUDED
@@ -35,9 +35,7 @@
 // Forward references
 //----------------------------------------------------------------------------
 class EdFile;
-class EdHist;
 class EdLine;
-class EdView;
 
 //----------------------------------------------------------------------------
 //
@@ -53,6 +51,8 @@ class EdInps : public gui::Window { // Editor text Window viewport
 // EdInps::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
+typedef xcb_gcontext_t GC_t;        // Editor: Graphic Context type
+
 enum CURSOR_STATE                   // Mouse cursor state
 {  CS_RESET= 0                      // Reset (initial state, visible)
 ,  CS_HIDDEN                        // Hidden
@@ -96,14 +96,14 @@ Motion                 motion= {CS_VISIBLE, 0, 0, 0}; // System motion controls
 uint32_t               keystate= KS_INS; // Keyboard state
 
 // Graphic contexts
-xcb_gcontext_t         fontGC= 0;   // The standard graphic context
-xcb_gcontext_t         flipGC= 0;   // The inverted graphic context
-xcb_gcontext_t         markGC= 0;   // The selected graphic context
-xcb_gcontext_t         bg_chg= 0;   // Graphic background: status, changed file
-xcb_gcontext_t         bg_sts= 0;   // Graphic background: status, default
-xcb_gcontext_t         gc_chg= 0;   // Graphic context: status, changed file
-xcb_gcontext_t         gc_msg= 0;   // Graphic context: message line
-xcb_gcontext_t         gc_sts= 0;   // Graphic context: status, default
+GC_t                   fontGC= 0;   // The standard graphic context
+GC_t                   flipGC= 0;   // The inverted graphic context
+GC_t                   markGC= 0;   // The selected graphic context
+GC_t                   bg_chg= 0;   // Graphic background: status, changed file
+GC_t                   bg_sts= 0;   // Graphic background: status, default
+GC_t                   gc_chg= 0;   // Graphic context: status, changed file
+GC_t                   gc_msg= 0;   // Graphic context: message line
+GC_t                   gc_sts= 0;   // Graphic context: status, default
 
 // XCB atoms
 xcb_atom_t             protocol= 0; // WM_PROTOCOLS atom
@@ -187,40 +187,6 @@ xcb_point_t                         // The offset in Pixels
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       EdInps::configure
-//
-// Purpose-
-//       Configure the Window, invoked during Window creation.
-//
-//----------------------------------------------------------------------------
-virtual void
-   configure( void );               // Configure the Window
-
-//----------------------------------------------------------------------------
-//
-// Mouse control methods-
-//       EdInps::grab_mouse
-//       EdInps::hide_mouse
-//       EdInps::show_mouse
-//
-// Purpose-
-//       Grab the mouse cursor
-//       Hide the mouse cursor
-//       Show the mouse cursor
-//
-//----------------------------------------------------------------------------
-void
-   grab_mouse( void );              // Grab the mouse cursor
-
-void
-   hide_mouse( void );              // Hide the mouse cursor
-
-void
-   show_mouse( void );              // Show the mouse cursor
-
-//----------------------------------------------------------------------------
-//
 // Keypress extension methodss-
 //       EdInps::key_alt
 //       EdInps::key_ctl
@@ -254,7 +220,7 @@ void
 //----------------------------------------------------------------------------
 void
    putxy(                           // Draw text
-     xcb_gcontext_t    fontGC,      // Using this graphic context
+     GC_t              fontGC,      // Using this graphic context
      unsigned          left,        // At this left (X) offset in Pixels
      unsigned          top,         // At this top  (Y) offset in Pixels
      const char*       text);       // Using this text
@@ -268,7 +234,7 @@ void
 
 void
    putcr(                           // Draw text
-     xcb_gcontext_t    fontGC,      // Using this graphic context
+     GC_t              fontGC,      // Using this graphic context
      unsigned          col,         // At this left (column) offset
      unsigned          row,         // At this top  (row) offset
      const char*       text)        // Using this text
@@ -277,6 +243,9 @@ void
 //----------------------------------------------------------------------------
 //
 // Pure virtual methods, implemented in EdOuts.cpp-
+//       EdInps::activate(EdFile*)  Activate a file
+//       EdInps::resized            Window resized event
+//
 //       EdInps::draw               Redraw everything
 //       EdInps::draw_cursor        Draw the cursor
 //       EdInps::draw_line          Draw a line
@@ -288,10 +257,20 @@ void
 //       EdInps::move_screen_V      Move the screen vertically
 //       EdInps::undo_cursor        Clear the cursor
 //
-//       EdInps::activate           Activate a file
-//       EdInps::resized            Window resized event
+//       EdInps::hide_mouse
+//       EdInps::show_mouse
 //
 //----------------------------------------------------------------------------
+virtual void
+   activate(                        // Acativate
+     EdFile*           file)= 0;    // This file
+
+virtual void
+   resized(                         // Resize the Window
+     unsigned          x,           // New width
+     unsigned          y)= 0;       // New height
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 virtual void
    draw( void )= 0;                 // Redraw the Window
 
@@ -327,14 +306,12 @@ inline void
    undo_cursor( void )              // Clear the character cursor
 {  draw_cursor(false); }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 virtual void
-   activate(                        // Acativate
-     EdFile*           file)= 0;    // This file
+   hide_mouse( void )= 0;           // Hide the mouse cursor
 
 virtual void
-   resized(                         // Resize the Window
-     unsigned          x,           // New width
-     unsigned          y)= 0;       // New height
+   show_mouse( void )= 0;           // Show the mouse cursor
 
 //----------------------------------------------------------------------------
 //

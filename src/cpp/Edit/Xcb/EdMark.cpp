@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2024/04/06
+//       2024/04/10
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -399,17 +399,13 @@ const char*                         // Error message, nullptr expected
    // Validate state
    if( mark_file == nullptr )
      return "No mark";
-   if( editor::view != editor::data )
-     return "History view";
    if( mark_file->protect )
      return "Protected";
    if( mark_file != edFile )
      return "Mark offscreen";
-   if( copy_col >= 0 )
-     return "Line block required";
 
    // Perform the format (with REDO)
-   unsigned char delim[2]= {'\n', 0}; // Default UNIX mode
+   unsigned char delim[2]= {'\n', 0}; // Default, UNIX mode
    if( edFile->mode == EdFile::M_DOS )
      delim[1]= '\r';
 
@@ -435,13 +431,14 @@ const char*                         // Error message, nullptr expected
    Iterator  tix= tokenizer.begin();
    pub::List<EdLine> list;          // Replacement line list
 
+   string margin_str(l_margin, ' ');
    string insert_str;
    size_t insert_col= 0;
    while( tix != tokenizer.end() ) {
      string token_str= tix();
      size_t token_col= pub::Utf8::get_codes(token_str);
      if( insert_col == 0) {
-       insert_str= tix();
+       insert_str= margin_str + token_str;
        insert_col= token_col;
        ++tix;
        continue;
@@ -449,7 +446,6 @@ const char*                         // Error message, nullptr expected
 
      if( (l_margin + insert_col + token_col) > r_margin ) {
        active->reset();
-       active->fetch(l_margin);
        active->append_text(insert_str.c_str(), insert_str.length());
        EdLine* line= edFile->new_text(active->get_changed());
        line->delim[0]= delim[0]; line->delim[1]= delim[1];
@@ -468,7 +464,6 @@ const char*                         // Error message, nullptr expected
 
    if( insert_col ) {
      active->reset();
-     active->fetch(l_margin);
      active->append_text(insert_str.c_str(), insert_str.length());
      EdLine* line= edFile->new_text(active->get_changed());
      line->delim[0]= delim[0]; line->delim[1]= delim[1];

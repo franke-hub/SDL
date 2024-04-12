@@ -896,11 +896,6 @@ const char*                         // Error message, nullptr expected
 {
    EdFile* file= editor::file;
 
-   if( file->protect )
-     return "Read-only";
-   if( file->damaged )
-     return "Damaged file";
-
    if( parm ) {                     // If filename specified
      struct stat info;
      int rc= stat(parm, &info);     // Get file information
@@ -912,6 +907,11 @@ const char*                         // Error message, nullptr expected
        return "Write failure";
      return nullptr;                // (File remains changed)
    }
+
+   if( file->protect )
+     return "Read-only";
+   if( file->damaged )
+     return "Damaged file";
 
    // Replace the file (even if unchanged)
    int rc= file->write();

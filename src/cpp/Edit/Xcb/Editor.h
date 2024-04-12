@@ -16,13 +16,11 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2024/04/06
+//       2024/04/12
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
 #define EDITOR_H_INCLUDED
-
-#include <xcb/xproto.h>             // For xcb_keysym_t, xcb_rectangle_t, ...
 
 #include <gui/Device.h>             // For gui::Device
 #include <gui/Font.h>               // For gui::Font
@@ -433,21 +431,5 @@ bool                                // TRUE iff editor is in unchanged state
 const char*                         // Error message, nullptr if none
    write_file(                      // Write a file (nullptr for current file)
      char*             buffer);     // (MODIFIABLE) command buffer
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       editor::join
-//       editor::start
-//
-// Purpose-
-//       Virtual thread implementation
-//
-//----------------------------------------------------------------------------
-void
-   join( void );                    // Wait for "Thread"
-
-void
-   start( void );                   // Start "Thread"
 }  // namespace editor
 #endif // EDITOR_H_INCLUDED

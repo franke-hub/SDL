@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: history/message EdView
 //
 // Last change date-
-//       2023/09/19
+//       2024/04/11
 //
 //----------------------------------------------------------------------------
 #ifndef EDHIST_H_INCLUDED
@@ -76,7 +76,7 @@ virtual void
 //       Get the current graphic context
 //
 //----------------------------------------------------------------------------
-virtual xcb_gcontext_t               // The current graphic context
+virtual GC_t                         // The current graphic context
    get_gc( void );                   // Get current graphic context
 
 //----------------------------------------------------------------------------

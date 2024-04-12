@@ -16,7 +16,7 @@
 //       Editor: Editor data view
 //
 // Last change date-
-//       2024/04/05
+//       2024/04/11
 //
 //----------------------------------------------------------------------------
 #ifndef EDVIEW_H_INCLUDED
@@ -24,10 +24,10 @@
 
 #include <string>                   // For std::string
 #include <sys/types.h>              // For system types
-#include <xcb/xproto.h>             // For xcb_gcontext_t, ...
 
 #include "Active.h"                 // For Active
 #include "EdLine.h"                 // For EdLine
+#include "EdOuts.h"                 // For EdOuts::GC_t
 
 //----------------------------------------------------------------------------
 //
@@ -40,9 +40,14 @@
 //----------------------------------------------------------------------------
 class EdView {                      // Editor data view
 //----------------------------------------------------------------------------
-// EdView::Attributes
+// EdView::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
+typedef EdOuts::GC_t   GC_t;        // Graphic Context type
+
+//----------------------------------------------------------------------------
+// EdView::Attributes
+//----------------------------------------------------------------------------
 Active                 active;      // The Active text buffer
 EdLine*                cursor= nullptr; // The Active cursor line
 
@@ -51,10 +56,10 @@ size_t                 row_zero= 0; // Current row[0]
 unsigned               col= 0;      // Current screen column
 unsigned               row= 0;      // Current screen row
 
-// Graphic context object identifiers are copies, neither allocated nor deleted
-xcb_gcontext_t         gc_flip= 0;  // Graphic context: cursor character
-xcb_gcontext_t         gc_font= 0;  // Graphic context: normal line
-xcb_gcontext_t         gc_mark= 0;  // Graphic context: marked character
+// Graphic context identifiers are copies, neither allocated nor deleted
+GC_t                   gc_flip= 0;  // Graphic context: cursor character
+GC_t                   gc_font= 0;  // Graphic context: normal line
+GC_t                   gc_mark= 0;  // Graphic context: marked character
 
 //----------------------------------------------------------------------------
 // EdView::Destructor/Constructor
@@ -100,7 +105,7 @@ virtual size_t                      // The current column number
 //       Get the current graphic context
 //
 //----------------------------------------------------------------------------
-virtual xcb_gcontext_t              // The current graphic context
+virtual GC_t                        // The current graphic context
    get_gc( void );                  // Get current graphic context
 
 //----------------------------------------------------------------------------

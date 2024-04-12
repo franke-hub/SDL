@@ -1,0 +1,13 @@
+	a
+		b
+			c
+				d
+0	a	b	c	d
+000000	aaaaaa	bbbbbb	c	d
+0000000	aaaaaaa	bbbbbbb	c	d
+0000000	aaaaaaaa	c	d
+00000000	bbbbbbbb	d
+0	aaaaaaaa	c	d
+#define	aaaaaa	b	c	d
+#define	aaaaaaa	b	c	d
+#define	aaaaaaaa	c	d

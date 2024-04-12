@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2024/04/06
+//       2024/04/11
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -24,8 +24,6 @@
 #include <string.h>                 // For strcmp
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/stat.h>               // For stat
-#include <xcb/xcb.h>                // For XCB interfaces
-#include <xcb/xproto.h>             // For XCB types
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 
@@ -111,7 +109,7 @@ void
 //       Get the current graphic context
 //
 //----------------------------------------------------------------------------
-xcb_gcontext_t                       // The current graphic context
+EdHist::GC_t                         // The current graphic context
    EdHist::get_gc( void )            // Get current graphic context
 {
    using namespace editor;

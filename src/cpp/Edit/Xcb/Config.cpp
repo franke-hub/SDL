@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2024/04/06
+//       2024/04/12
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -57,6 +57,11 @@ using pub::Debug;                   // For pub::Debug
 using pub::Trace;                   // For pub::Trace
 
 //----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+static void sig_handler(int);       // The signal handler
+
+//----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum // Compilation controls
@@ -68,6 +73,14 @@ enum // Compilation controls
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
+// Internal structures
+//----------------------------------------------------------------------------
+struct Option {                     // Value name, address pair
+const char*            name;        // The value name
+uint32_t*              addr;        // The value value
+}; // struct Option
+
+//----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
 static pub::Debug*     debug= nullptr; // Our Debug object
@@ -75,17 +88,11 @@ static std::string     debug_path;  // The debugging output path name
 static void*           trace_table= nullptr; // The internal trace area
 
 // Signal handlers
-typedef void (*sig_handler_t)(int);
+typedef void           (*sig_handler_t)(int);
 static sig_handler_t   sys1_handler= nullptr; // System SIGINT  signal handler
 static sig_handler_t   sys2_handler= nullptr; // System SIGSEGV signal handler
 static sig_handler_t   usr1_handler= nullptr; // System SIGUSR1 signal handler
 static sig_handler_t   usr2_handler= nullptr; // System SIGUSR2 signal handler
-
-// Constants
-static const key_t     SHM_TOKEN= key_t(0x81a2b47c9bbc2dFE);
-// static const unsigned char[16] uuid= // (Currently unused)
-//                     { 0xe7, 0x43, 0xe3, 0xac, 0x68, 0x16, 0x48, 0x78
-//                     , 0x81, 0xa2, 0xb4, 0x7c, 0x9b, 0xbc, 0x2d, 0x37};
 
 //----------------------------------------------------------------------------
 // External data areas
@@ -143,16 +150,6 @@ static struct cleanup {             // On termination, delete the_check_signal
 } // (Anonymous namespace)
 
 //----------------------------------------------------------------------------
-// Forward references
-//----------------------------------------------------------------------------
-static void make_dir(std::string path);
-static void make_file(std::string name, const char* data);
-
-static void parser(std::string);    // Option parser
-static int  init( void );           // Initialize
-static void term( void );           // Terminate
-
-//----------------------------------------------------------------------------
 // Default Edit.conf
 //----------------------------------------------------------------------------
 static const char*     Edit_conf=
@@ -166,331 +163,6 @@ static const char*     Edit_conf=
    "[Options]\n"
    ";; See sample: ~/src/cpp/Edit/Xcb/.SAMPLE/Edit.conf\n"
    ;
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       config_verrorf
-//
-// Purpose-
-//       Display error message
-//
-//----------------------------------------------------------------------------
-static void
-   config_verrorf(                  // Debug write to stderr
-     const char*       fmt,         // The PRINTF format string
-     va_list           arginp)      // Argument list pointer
-{
-   va_list             argptr;      // Argument list pointer
-
-   va_copy(argptr, arginp);         // Initialize va_ functions
-   vfprintf(stderr, fmt, argptr);   // Write to stderr
-   va_end(argptr);                  // Close va_ functions
-
-   if( config::opt_hcdm ) {         // If Hard Core Debug Mode
-     va_copy(argptr, arginp);
-     pub::debugging::vtraceh(fmt, argptr);
-     va_end(argptr);
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       strtoi
-//
-// Purpose-
-//       Integer version of strtol
-//
-//----------------------------------------------------------------------------
-static int                          // Resultant value
-   strtoi(                          // Ascii string to integer
-     const char*       head,        // First character
-     char**            tail,        // (OUTPUT) Last character
-     int               base= 0)     // Radix
-{
-   long R= strtol(head, tail, base); // Resultant
-   if( R < INT_MIN || R > INT_MAX ) { // If range error
-     errno= ERANGE;                 // Indicate range error
-     *tail= (char*)head;
-     R= 0;
-   }
-
-   return int(R);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Config::Config
-//
-// Purpose-
-//       Constructor
-//
-//----------------------------------------------------------------------------
-   Config::Config(int, char**)      // Constructor
-//   int               argc,        // Argument count (Unused)
-//   char*             argv[])      // Argument array (Unused)
-{  if( opt_hcdm ) fprintf(stderr, "Config::Config\n"); // (Don't use debugf)
-
-   using namespace config;
-
-   // Allocate (editor) GUI objects
-   editor::device= new gui::Device();
-   editor::font= new gui::Font(editor::device);
-   editor::outs= new EdOuts();
-
-   // Initialize HOME, AUTO, and debug_path
-   const char* env= getenv("HOME"); // Get HOME directory
-   if( env == nullptr )
-     Config::failure("No HOME directory");
-   HOME= env;
-
-   // If required, create "$HOME/.local/state/editxcb
-   std::string S= HOME + "/.local";
-   make_dir(S);
-   S += "/state";
-   make_dir(S);
-   S += "/editxcb";
-   make_dir(S);
-   AUTO= debug_path= S;
-
-   // Override AUTOSAVE directory, if required
-   env= getenv("AUTOSAVE");         // Get AUTOSAVE directory override
-   if( env )
-     AUTO= env;
-
-   // Look for any *AUTOSAVE* file in AUTOSAVE subdirectory
-   pub::fileman::Path path(AUTO);
-   pub::fileman::File* file= path.list.get_head();
-   while( file ) {
-     if( file->name.find(AUTOFILE) == 0 )
-       Config::failure("File exists: %s/%s", AUTO.c_str(), file->name.c_str());
-
-     file= file->get_next();
-   }
-
-   // Locate, possibly creating "$HOME/.local/config/editxcb/Edit.conf"
-   S= HOME + "/.local";
-// make_dir(S);
-   S += "/config";
-   make_dir(S);
-   S += "/editxcb";
-   make_dir(S);
-   S += std::string("/Edit.conf");
-   make_file(S, Edit_conf);
-
-   // Parse the configuration file
-   parser(S);
-
-   // System related initialization
-   if( init() )
-     Config::failure("Initialization failed");
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Config::~Config
-//
-// Purpose-
-//       Destructor
-//
-//----------------------------------------------------------------------------
-   Config::~Config( void )          // Destructor
-{  if( opt_hcdm ) debugh("Config::~Config\n");
-
-   term();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Config::check
-//
-// Purpose-
-//       Raise check_signal (Run debugging consistency checks)
-//
-// Implementation notes-
-//       Listener: EdFile.hpp
-//
-//----------------------------------------------------------------------------
-void
-   Config::check(                   // Debugging consistency check
-     const char*       info)        // Informational text
-{  check_signal()->signal(info); }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Config::debug
-//
-// Purpose-
-//       Debugging displays
-//
-//----------------------------------------------------------------------------
-void
-   Config::debug(                   // Debugging displays
-     const char*       info)        // Informational text
-{
-   static int recursion= 0;         // Recursion count (to avoid recursion)
-
-   if( info == nullptr )
-     info= "";
-
-   debugf("Config::debug(%s) %d\n", info, recursion);
-   if( recursion ) return;
-
-   ++recursion;
-   debugf("\n============================================================\n");
-   debugf("Config::debug(%s)\n", info ? info : "");
-
-   Editor::debug(info);
-   debugf("\n");
-   editor::mark->debug(info);
-   debugf("\n");
-   editor::file->debug("lines");
-   debugf("\n");
-   editor::outs->debug(info);
-   debugf("\n");
-   editor::font->debug(info);
-   debugf("\n");
-   editor::data->debug(info);
-   debugf("\n");
-   editor::hist->debug(info);
-   debugf("============================================================\n\n");
-   --recursion;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Config::errorf
-//
-// Purpose-
-//       Write to stderr, write to debug trace file iff opt_hcdm
-//
-//----------------------------------------------------------------------------
-void
-   Config::errorf(                  // Debug write to stderr
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // The remaining arguments
-{
-   va_list             argptr;      // Argument list pointer
-
-   va_start(argptr, fmt);           // Initialize va_ functions
-   config_verrorf(fmt, argptr);     // Write to stderr, trace
-   va_end(argptr);                  // Close va_ functions
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Config::failure
-//
-// Purpose-
-//       Write error message and exit
-//
-//----------------------------------------------------------------------------
-void
-   Config::failure(                 // Write error message and exit
-     const char*       fmt,         // The PRINTF format string
-                       ...)         // The remaining arguments
-{
-   va_list             argptr;      // Argument list pointer
-
-   va_start(argptr, fmt);           // Initialize va_ functions
-   config_verrorf(fmt, argptr);     // Write to stderr, trace
-   va_end(argptr);                  // Close va_ functions
-   errorf("\n");
-
-   exit(EXIT_FAILURE);
-}
-
-//----------------------------------------------------------------------------
-// Subroutine: make_dir, insure directory exists
-//----------------------------------------------------------------------------
-static void make_dir(std::string path) // Insure directory exists
-{
-   struct stat info;
-   int rc= stat(path.c_str(), &info);
-   if( rc != 0 ) {
-     rc= mkdir(path.c_str(), DIR_MODE);
-     if( rc )
-       Config::failure("Cannot create %s", path.c_str());
-   }
-}
-
-//----------------------------------------------------------------------------
-// Subroutine: make_file, insure file exists
-//----------------------------------------------------------------------------
-static void make_file(std::string name, const char* data) // Insure file exists
-{
-   struct stat info;
-   int rc= stat(name.c_str(), &info);
-   if( rc != 0 ) {
-     FILE* f= fopen(name.c_str(), "wb"); // Open the file
-     if( f == nullptr )             // If open failure
-       Config::failure("Cannot create %s",  name.c_str());
-
-     size_t L0= strlen(data);
-     size_t L1= fwrite(data, 1, L0, f);
-     rc= fclose(f);
-     if( L0 != L1 || rc )
-       Config::failure("Write failure: %s", name.c_str());
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       sig_handler
-//
-// Purpose-
-//       Handle signals.
-//
-//----------------------------------------------------------------------------
-static void
-   sig_handler(                     // Handle signals
-     int               id)          // The signal identifier
-{
-   static int recursion= 0;         // Signal recursion depth
-   if( recursion ) {                // If signal recursion
-     fprintf(stderr, "sig_handler(%d) recursion\n", id);
-     fflush(stderr);
-     exit(EXIT_FAILURE);
-   }
-
-   // Handle signal
-   recursion++;                     // Disallow recursion
-   const char* text= "<<Unexpected>>";
-   if( id == SIGINT ) text= "SIGINT";
-   else if( id == SIGSEGV ) text= "SIGSEGV";
-   else if( id == SIGUSR1 ) text= "SIGUSR1";
-   else if( id == SIGUSR2 ) text= "SIGUSR2";
-   Config::errorf("sig_handler(%d) %s\n", id, text);
-
-   switch(id) {                     // Handle the signal
-     case SIGINT:                   // (Console CTRL-C)
-       term();                      // Termination cleanup, then
-       exit(EXIT_FAILURE);          // Unconditional immediate exit
-       break;
-
-     case SIGSEGV:                  // (Program fault)
-       Trace::trace(".BUG", __LINE__, "SIGSEGV");
-       debug_set_mode(Debug::MODE_INTENSIVE);
-       debug_backtrace();           // Attempt diagnosis (recursion aborts)
-       Config::debug("SIGSEGV");
-       debugf("..terminated..\n");
-       exit(EXIT_FAILURE);
-       break;
-
-     default:                       // (SIGUSR1 || SIGUSR2)
-       break;                       // (No configured action)
-   }
-
-   recursion--;
-}
 
 //----------------------------------------------------------------------------
 //
@@ -613,17 +285,154 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
+//       config_verrorf
+//
+// Purpose-
+//       Display error message
+//
+//----------------------------------------------------------------------------
+static void
+   config_verrorf(                  // Debug write to stderr
+     const char*       fmt,         // The PRINTF format string
+     va_list           arginp)      // Argument list pointer
+{
+   va_list             argptr;      // Argument list pointer
+
+   va_copy(argptr, arginp);         // Initialize va_ functions
+   vfprintf(stderr, fmt, argptr);   // Write to stderr
+   va_end(argptr);                  // Close va_ functions
+
+   if( config::opt_hcdm ) {         // If Hard Core Debug Mode
+     va_copy(argptr, arginp);
+     pub::debugging::vtraceh(fmt, argptr);
+     va_end(argptr);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       make_dir
+//       make_file
+//
+// Purpose-
+//       Insure directory exists
+//       Insure file exists
+//
+//----------------------------------------------------------------------------
+static void make_dir(std::string path) // Insure directory exists
+{
+   struct stat info;
+   int rc= stat(path.c_str(), &info);
+   if( rc != 0 ) {
+     rc= mkdir(path.c_str(), DIR_MODE);
+     if( rc )
+       Config::failure("Cannot create %s", path.c_str());
+   }
+}
+
+static void make_file(std::string name, const char* data) // Insure file exists
+{
+   struct stat info;
+   int rc= stat(name.c_str(), &info);
+   if( rc != 0 ) {
+     FILE* f= fopen(name.c_str(), "wb"); // Open the file
+     if( f == nullptr )             // If open failure
+       Config::failure("Cannot create %s",  name.c_str());
+
+     size_t L0= strlen(data);
+     size_t L1= fwrite(data, 1, L0, f);
+     rc= fclose(f);
+     if( L0 != L1 || rc )
+       Config::failure("Write failure: %s", name.c_str());
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       sig_handler
+//
+// Purpose-
+//       Handle signals.
+//
+//----------------------------------------------------------------------------
+static void
+   sig_handler(                     // Handle signals
+     int               id)          // The signal identifier
+{
+   static int recursion= 0;         // Signal recursion depth
+   if( recursion ) {                // If signal recursion
+     fprintf(stderr, "sig_handler(%d) recursion\n", id);
+     fflush(stderr);
+     exit(EXIT_FAILURE);
+   }
+
+   // Handle signal
+   recursion++;                     // Disallow recursion
+   const char* text= "<<Unexpected>>";
+   if( id == SIGINT ) text= "SIGINT";
+   else if( id == SIGSEGV ) text= "SIGSEGV";
+   else if( id == SIGUSR1 ) text= "SIGUSR1";
+   else if( id == SIGUSR2 ) text= "SIGUSR2";
+   Config::errorf("sig_handler(%d) %s\n", id, text);
+
+   switch(id) {                     // Handle the signal
+     case SIGINT:                   // (Console CTRL-C)
+       term();                      // Termination cleanup, then
+       exit(EXIT_FAILURE);          // Unconditional immediate exit
+       break;
+
+     case SIGSEGV:                  // (Program fault)
+       Trace::trace(".BUG", __LINE__, "SIGSEGV");
+       debug_set_mode(Debug::MODE_INTENSIVE);
+       debug_backtrace();           // Attempt diagnosis (recursion aborts)
+       Config::debug("SIGSEGV");
+       debugf("..terminated..\n");
+       exit(EXIT_FAILURE);
+       break;
+
+     default:                       // (SIGUSR1 || SIGUSR2)
+       break;                       // (No configured action)
+   }
+
+   recursion--;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       strtoi
+//
+// Purpose-
+//       Integer version of strtol
+//
+//----------------------------------------------------------------------------
+static int                          // Resultant value
+   strtoi(                          // Ascii string to integer
+     const char*       head,        // First character
+     char**            tail,        // (OUTPUT) Last character
+     int               base= 0)     // Radix
+{
+   long R= strtol(head, tail, base); // Resultant
+   if( R < INT_MIN || R > INT_MAX ) { // If range error
+     errno= ERANGE;                 // Indicate range error
+     *tail= (char*)head;
+     R= 0;
+   }
+
+   return int(R);
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
 //       parser
 //
 // Purpose-
 //       Configuration parser
 //
 //----------------------------------------------------------------------------
-struct Option {                     // Value name, address pair
-const char*            name;        // The value name
-uint32_t*              addr;        // The value value
-}; // struct Option
-
 struct Option          bool_list[]= // Boolean parameter list
 { {"locate.prior",     &editor::locate_back}
 , {"locate.mixed",     &editor::locate_case}
@@ -834,4 +643,229 @@ static void
    }
    if( !font_valid )                // If valid font not present
      editor::font->open();          // Use default font
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Config::Config
+//
+// Purpose-
+//       Constructor
+//
+//----------------------------------------------------------------------------
+   Config::Config(int, char**)      // Constructor
+//   int               argc,        // Argument count (Unused)
+//   char*             argv[])      // Argument array (Unused)
+{  if( opt_hcdm ) fprintf(stderr, "Config::Config\n"); // (Don't use debugf)
+
+   using namespace config;
+
+   // Allocate (editor) GUI objects
+   editor::device= new gui::Device();
+   editor::font= new gui::Font(editor::device);
+   editor::outs= new EdOuts();
+
+   // Initialize HOME, AUTO, and debug_path
+   const char* env= getenv("HOME"); // Get HOME directory
+   if( env == nullptr )
+     Config::failure("No HOME directory");
+   HOME= env;
+
+   // If required, create "$HOME/.local/state/editxcb
+   std::string S= HOME + "/.local";
+   make_dir(S);
+   S += "/state";
+   make_dir(S);
+   S += "/editxcb";
+   make_dir(S);
+   AUTO= debug_path= S;
+
+   // Override AUTOSAVE directory, if required
+   env= getenv("AUTOSAVE");         // Get AUTOSAVE directory override
+   if( env )
+     AUTO= env;
+
+   // Look for any *AUTOSAVE* file in AUTOSAVE subdirectory
+   pub::fileman::Path path(AUTO);
+   pub::fileman::File* file= path.list.get_head();
+   while( file ) {
+     if( file->name.find(AUTOFILE) == 0 )
+       Config::failure("File exists: %s/%s", AUTO.c_str(), file->name.c_str());
+
+     file= file->get_next();
+   }
+
+   // Locate, possibly creating "$HOME/.local/config/editxcb/Edit.conf"
+   S= HOME + "/.local";
+// make_dir(S);
+   S += "/config";
+   make_dir(S);
+   S += "/editxcb";
+   make_dir(S);
+   S += std::string("/Edit.conf");
+   make_file(S, Edit_conf);
+
+   // Parse the configuration file
+   parser(S);
+
+   // System related initialization
+   if( init() )
+     Config::failure("Initialization failed");
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Config::~Config
+//
+// Purpose-
+//       Destructor
+//
+//----------------------------------------------------------------------------
+   Config::~Config( void )          // Destructor
+{  if( opt_hcdm ) debugh("Config::~Config\n");
+
+   term();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Config::check
+//
+// Purpose-
+//       Raise check_signal (Run debugging consistency checks)
+//
+// Implementation notes-
+//       Listener: EdFile.hpp
+//
+//----------------------------------------------------------------------------
+void
+   Config::check(                   // Debugging consistency check
+     const char*       info)        // Informational text
+{  check_signal()->signal(info); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Config::debug
+//
+// Purpose-
+//       Debugging displays
+//
+//----------------------------------------------------------------------------
+void
+   Config::debug(                   // Debugging displays
+     const char*       info)        // Informational text
+{
+   static int recursion= 0;         // Recursion count (to avoid recursion)
+
+   if( info == nullptr )
+     info= "";
+
+   debugf("Config::debug(%s) %d\n", info, recursion);
+   if( recursion ) return;
+
+   ++recursion;
+   debugf("\n============================================================\n");
+   debugf("Config::debug(%s)\n", info ? info : "");
+
+   Editor::debug(info);
+   debugf("\n");
+   editor::mark->debug(info);
+   debugf("\n");
+   editor::file->debug("lines");
+   debugf("\n");
+   editor::outs->debug(info);
+   debugf("\n");
+   editor::font->debug(info);
+   debugf("\n");
+   editor::data->debug(info);
+   debugf("\n");
+   editor::hist->debug(info);
+   debugf("============================================================\n\n");
+   --recursion;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Config::errorf
+//
+// Purpose-
+//       Write to stderr, write to debug trace file iff opt_hcdm
+//
+//----------------------------------------------------------------------------
+void
+   Config::errorf(                  // Debug write to stderr
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // The remaining arguments
+{
+   va_list             argptr;      // Argument list pointer
+
+   va_start(argptr, fmt);           // Initialize va_ functions
+   config_verrorf(fmt, argptr);     // Write to stderr, trace
+   va_end(argptr);                  // Close va_ functions
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Config::failure
+//
+// Purpose-
+//       Write error message and exit
+//
+//----------------------------------------------------------------------------
+void
+   Config::failure(                 // Write error message and exit
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // The remaining arguments
+{
+   va_list             argptr;      // Argument list pointer
+
+   va_start(argptr, fmt);           // Initialize va_ functions
+   config_verrorf(fmt, argptr);     // Write to stderr, trace
+   va_end(argptr);                  // Close va_ functions
+   errorf("\n");
+
+   exit(EXIT_FAILURE);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Config::join
+//       Config::start
+//
+// Purpose-
+//       Wait for editor completion
+//       Start the editor
+//
+// Purpose-
+//       Thread simulation methods
+//
+//----------------------------------------------------------------------------
+void
+   Config::join( void )
+{  }
+
+void
+   Config::start( void )
+{
+   // Initialize the configuration
+   editor::device->insert(editor::outs);
+   editor::device->configure();
+
+   // Set initial file
+   editor::outs->activate(editor::file_list.get_head());
+
+   // Start the Device
+   editor::device->draw();
+   editor::outs->show();            // (move_window fails unless visible)
+   if( geom.x || geom.y )           // If position specified
+     editor::outs->move_window(geom.x, geom.y);
+   editor::outs->flush();
+   editor::device->run();
 }

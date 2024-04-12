@@ -1,0 +1,24 @@
+This file contains some long lines. The numbered lines contain 138 characters.
+It's useful for testing the format command and the tab key.
+   4    10            24           37        47
+|  |     |             |            |         ||       |       |
+[01]  one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+[02] one  two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+[03] one two  three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+[04] one two three  four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+[05] one two three four  five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+[06] one two three four five  six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+[07] one two three four five six  seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+[08] one two three four five six seven  eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+[09] one two three four five six seven eight  nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+[10] one two three four five six seven eight nine  ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+[11] one two three four five six seven eight nine ten  eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+[12] one two three four five six seven eight nine ten eleven  twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+[13] one two three four five six seven eight nine ten eleven twelve  thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+[14] one two three four five six seven eight nine ten eleven twelve thirteen  fourteen fifteen sixteen seventeen eighteen nineteen twenty.
+[15] one two three four five six seven eight nine ten eleven twelve thirteen fourteen  fifteen sixteen seventeen eighteen nineteen twenty.
+[16] one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen  sixteen seventeen eighteen nineteen twenty.
+[17] one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen  seventeen eighteen nineteen twenty.
+[18] one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen  eighteen nineteen twenty.
+[19] one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen  nineteen twenty.
+[20] one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen  twenty.
