@@ -155,13 +155,13 @@ const char*            EdUnit::DEFAULT_CONFIG=
 //----------------------------------------------------------------------------
 //
 // Exception-
-//       curses_err
+//       curses_error
 //
 // Purpose-
 //       Indicate curses error
 //
 //----------------------------------------------------------------------------
-struct curses_err : public std::runtime_error {
+struct curses_error : public std::runtime_error {
    using std::runtime_error::runtime_error;
 };
 
@@ -476,13 +476,13 @@ static inline void
    if( IO_TRACE && opt_hcdm )
      traceh("%d= init_extended_color(%d,%d,%d,%d)\n", cc, ix, r, g, b);
    if( cc == ERR )
-     throw curses_err("init_color");
+     throw curses_error("init_color");
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       nc_init_pair
+//       nc_init_color_pair
 //
 // Purpose-
 //       Initialize a color pair
@@ -495,12 +495,12 @@ static inline void
 //
 //----------------------------------------------------------------------------
 static inline void
-   nc_init_pair(                    // Initialize a color pair
+   nc_init_color_pair(              // Initialize a color pair
      GC_t              GC,          // The graphic context
      Color             fg,          // The foreground Color
      Color             bg)          // The background Color
 {  if( IO_TRACE && opt_hcdm )
-     traceh("nc_init_pair(%d,0x%.6X,0x%.6X)\n", GC, fg.rgb, bg.rgb);
+     traceh("nc_init_color_pair(%d,0x%.6X,0x%.6X)\n", GC, fg.rgb, bg.rgb);
 
    nc_init_color(GC+0, fg);
    nc_init_color(GC+1, bg);
@@ -510,8 +510,45 @@ static inline void
    if( IO_TRACE && opt_hcdm )
      traceh("%d= init_pair(%d,%d,%d)\n", cc, GC, GC+0, GC+1);
    if( cc == ERR )
-     throw curses_err("init_pair");
+     throw curses_error("init_color_pair");
 }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       nc_init_pair
+//
+// Purpose-
+//       Initialize a basic color pair
+//
+//----------------------------------------------------------------------------
+static inline void
+   nc_init_pair(                    // Initialize a color pair
+     GC_t              GC,          // The graphic context
+     short             fg,          // The foreground Color
+     short             bg)          // The background Color
+{  if( IO_TRACE && opt_hcdm )
+     traceh("nc_init_pair(%d,%d,%d)\n", GC, fg, bg);
+
+   int cc= init_pair(short(GC), fg, bg);
+   if( IO_TRACE && opt_hcdm )
+     traceh("%d= init_pair(%d,%d,%d)\n", cc, GC, fg, bg);
+   if( cc == ERR )
+     throw curses_error("init_pair");
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       term
+//
+// Purpose-
+//       terminate
+//
+//----------------------------------------------------------------------------
+static inline void
+   term( void )                     // Terminate
+{  EdUnit::Init::at_exit(); }
 
 //----------------------------------------------------------------------------
 //
@@ -652,46 +689,81 @@ void
    }
 
    // Must be done before initscr()
-   // xterm256-color: has_colors()==true, can_change_color()==true
-   setenv("TERM", "xterm-256color", 1);
-   if( false  )
-     slk_init(false);               // Not using special line keys
-   setlocale(LC_CTYPE, "");         // (Support UTF-8)
+   setlocale(LC_CTYPE, "");         // (Required for UTF-8 support)
+   string inp_xterm= getenv("TERM"); // The original TERM valud
 
-   // Initialize NCURSES
-   win= initscr();                  // Initialize NCURSES window
-   nc_active= true;                 // NCURSES active
+   int fg= 0;                       // The default foreground color
+   int bg= 0;                       // The default background color
+   int initialized= 0;              // (Not initialized)
 
-   start_color();                   // Use color features
+   // Method 1: Use TERM=xterm-256color
+   if( initialized == 0 ) try {
+     setenv("TERM", "xterm-256color", true);
+     win= initscr();
+     nc_active= true;
+
+     start_color();
+     if( !has_colors() )
+       throw curses_error("!has_colors");
+     if( !can_change_color() )
+       throw curses_error("!can_change_color");
+
+     nc_init_color(bg_chg, config::change_bg); // bg_chg is a COLOR, not a GC_t
+     nc_init_color(bg_sts, config::status_bg); // bg_sts is a COLOR, not a GC_t
+
+     nc_init_color_pair(gc_font, config::text_fg,   config::text_bg);
+     fg= gc_font + 0;
+     bg= gc_font + 1;
+
+     nc_init_color_pair(gc_flip, config::text_bg,   config::text_fg);
+     nc_init_color_pair(gc_mark, config::mark_fg,   config::mark_bg);
+     nc_init_color_pair(gc_chg, config::change_fg,  config::change_bg);
+     nc_init_color_pair(gc_msg, config::message_fg, config::message_bg);
+     nc_init_color_pair(gc_sts, config::status_fg,  config::status_bg);
+     initialized= 1;                // Method 1 selected
+   } catch( curses_error& X ) {
+     term();
+     setenv("TERM", inp_xterm.c_str(), true);
+   }
+
+   // Method 2: VGA terminal 16 color support
+   if( initialized == 0 ) try {
+     win= initscr();
+     nc_active= true;
+
+     start_color();
+     if( !has_colors() )
+       throw curses_error("!has_colors");
+
+traceh("$TERM(%s) COLORS(%d) COLOR_PAIRS(%d)\n", inp_xterm.c_str()
+      , COLORS, COLOR_PAIRS);
+     if( COLORS < 8 )
+       throw curses_error("COLORS < 8");
+     if( COLOR_PAIRS < 32 )
+       throw curses_error("COLOR_PAIRS < 32");
+
+     nc_init_pair(gc_font, COLOR_WHITE, COLOR_BLUE);
+     fg= COLOR_WHITE;
+     bg= COLOR_BLUE;
+
+     nc_init_pair(gc_flip, COLOR_BLUE,  COLOR_WHITE);
+     nc_init_pair(gc_mark, COLOR_WHITE, COLOR_MAGENTA);
+     nc_init_pair(gc_chg,  COLOR_WHITE, COLOR_RED);
+     nc_init_pair(gc_msg,  COLOR_BLACK, COLOR_YELLOW);
+     nc_init_pair(gc_sts,  COLOR_WHITE, COLOR_GREEN);
+     initialized= 2;                // Method 2 selected
+   } catch( curses_error& X ) {
+     term();
+     Config::failure("Initialization failed: %s", X.what());
+   }
+
+   // Initialized
+traceh("Initialized method %d\n", initialized);
    init_program_modes(win);         // Initialize settings
    def_prog_mode();                 // (Save modes as "program" modes)
 
    getmaxyx(win, row_size, col_size); // Set screen size
    wsetscrreg(win, 0, row_size-1);  // Set scrolling region
-
-   if( !has_colors() ) {            // If monochrome screen
-     fprintf(stderr, "Terminal color support is required\n");
-     return;
-   }
-
-   if( !can_change_color() ) {      // If monochrome screen
-     fprintf(stderr, "Terminal color change support is required\n");
-     return;
-   }
-
-   nc_init_color(bg_chg, config::change_bg); // bg_chg is a COLOR, not a GC_t
-   nc_init_color(bg_sts, config::status_bg); // bg_sts is a COLOR, not a GC_t
-
-   nc_init_pair(gc_font, config::text_fg, config::text_bg);
-   int fg= gc_font+0;               // (Per nc_init_pair convention)
-   int bg= gc_font+1;
-
-   nc_init_pair(gc_flip, config::text_bg,   config::text_fg);
-   nc_init_pair(gc_mark, config::mark_fg,   config::mark_bg);
-   nc_init_pair(gc_chg, config::change_fg,  config::change_bg);
-   nc_init_pair(gc_msg, config::message_fg, config::message_bg);
-   nc_init_pair(gc_sts, config::status_fg,  config::status_bg);
-
    assume_default_colors(fg, bg);
    bkgdset(' ');                    // Set the background
    set_escdelay(50);                // MINIMAL escape character delay
