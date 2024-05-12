@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/04/02
+//       2024/05/11
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,62 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 05/11/2024 maint
+
+The ncurses and xcb editors are now nominally operational.
+
+Too much is working not to share this version, but too much is not working
+well enough for this to be a trunk commit.
+
+The xcb editor has been refactored so that almost all functionality is
+shared with the ncurses editor.
+
+The EdInps and EdOuts modules are not shared. They provide the input and
+output function for each of the editors.
+
+The ncurses editor is compiled with `CDEFS  += -DUSE_NCURSES_VERSION` added
+to the makefile.
+This is only used in one place: In Edit.cpp function main(), the `opt_bg`
+option is ignored in the ncurses version.
+The curses editor always runs in the main thread.
+
+What's not working:
+
+- UTF-8 support.
+
+When running an xterm a Fedora machine (locally or remotely,) a UTF-8
+character sequence isn't recognized as UTF at all.
+The easiest way to explain the result is that it's not usable.
+You get jibberish on lines and the next line's display can be corrupted.
+This certainly has to be fixed.
+
+On Cygwin, UTF-8 sequences are displayed correctly, even including combined
+character sequences.
+Unfortunately, code that we rely on to position the cursor doesn't recognize
+these sequences.
+Since our cursor is mis-positioned at every point on the line after a
+combined sequence, editing becomes problematic.
+
+Neither the xcb editor nor the pub library handle combined characters, so
+at least they agree on character positioning and editing works.
+However, they both need to be fixed to handle these combined characters.
+This looks like a difficult job.
+
+- Cursor support
+
+The ncurses editor currently lets ncurses take care of cursor positioning,
+so the cursors look different.
+We'll probably need to turn off ncurses cursor positioning and just use the
+hide and show_cursor methods.
+This should be but hasn't been relatively easy.
+
+- Mouse cursor hiding
+
+The xcb editor appears to have regressed. Hiding no longer works.
+The ncurses editor doesn't have this function.
 
 ----
 

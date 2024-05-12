@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/03/21
+##       2024/04/21
 ##
 ##############################################################################
 
@@ -39,6 +39,8 @@ obj/Makeproj.all: $(OBJ_SOURCE) ###### Recompile/rebuild
 	(cd $(OBJDIR)/obj/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
 	touch $@
 
+obj/Makeproj.all: obj/.have-version com/Makeproj.all
+
 ##############################################################################
 ## TARGETS: static/libobj.a
 $(STATIC)/libobj.a: obj/libobj.a
@@ -46,7 +48,10 @@ $(STATIC)/libobj.a: obj/libobj.a
 	touch $@
 
 lib: $(STATIC)/libobj.a
-obj/libobj.a: obj/.have-version obj/Makeproj.all $(STATIC)/libcom.a
+obj/libobj.a: obj/Makeproj.all
+	touch $@
+
+obj/Makeproj.all: $(STATIC)/libcom.a
 
 ##############################################################################
 ## TARGETS: shared/cygobj.dll shared/libobj.so.1.0 shared/libobj.so
@@ -65,12 +70,12 @@ $(SHARED)/libobj.so: $(SHARED)/libobj.so.1.0
 
 ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
 shr: $(SHARED)/cygobj.dll
+obj/Makeproj.all: $(SHARED)/cygcom.dll
 obj/cygobj.dll: obj/Makeproj.all
-obj/Makeproj.all: obj/.have-version pub/Makeproj.all $(SHARED)/cygcom.dll
 else
 shr: $(SHARED)/libobj.so
+obj/Makeproj.all: $(SHARED)/libcom.so
 obj/libobj.so.1.0: obj/Makeproj.all
-obj/Makeproj.all: obj/.have-version pub/Makeproj.all $(SHARED)/libcom.so
 endif
 
 ##############################################################################

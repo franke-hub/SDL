@@ -16,7 +16,7 @@
 //       Implement gui/Font.h
 //
 // Last change date-
-//       2024/03/31
+//       2024/04/22
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::runtime_error
@@ -141,7 +141,7 @@ xcb_gcontext_t                      // The created graphic context
      debugh("Font(%p)::makeGC(%.6x,%.6x)\n", this, uint32_t(fg), uint32_t(bg));
 
    if( fontID == 0 ) {
-     fprintf(stderr, "EdText(%p)::makeGC, Font not open\n", this);
+     fprintf(stderr, "Font(%p)::makeGC, Font not open\n", this);
      return 0;
    }
 

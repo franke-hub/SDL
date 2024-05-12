@@ -15,7 +15,7 @@
 ##       NCURSES EDITOR README information file.
 ##
 ## Last change date-
-##       2024/04/12
+##       2024/05/11
 ##
 ## Implementaton notes-
 ##       This editor uses the XCB editor's logic, but uses ncurses for I/O.
@@ -23,14 +23,18 @@
 ##############################################################################
 
 ##############################################################################
-## STATUS: 2024/04/12
-2024/04/12 Created. Compiles but does not link.
+## STATUS:
+2024/05/11 Operational, with UTF-8 not fully implemented
 
 ##############################################################################
 ## CHANGE LOG:
+2024/04/12 Created. Compiles but does not link.
 
 ##############################################################################
 ## OPEN:
+2024/05/11 UTF-8 not fully implemented
+         Combined characters display properly, but the column count is wrong.
+         (pub::Utf is the likely culprit.)
 
 ##############################################################################
 ## FIXED:

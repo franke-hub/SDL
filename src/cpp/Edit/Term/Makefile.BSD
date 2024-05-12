@@ -1,1 +1,117 @@
-Xcb/Makefile.BSD
+##############################################################################
+##
+##       Copyright (c) 2020-2024 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile versioning
+##
+## Last change date-
+##       2024/05/07
+##
+##############################################################################
+
+##############################################################################
+## Local controls
+CDEFS  += -DUSE_NCURSES_VERSION
+
+##############################################################################
+## Local module list
+MAKOBJ := $(patsubst $(OBJDIR)/Edit.o,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Include.o,,$(MAKOBJ))
+MAKOBJ := $(patsubst $(OBJDIR)/Dirty.o,,$(MAKOBJ))
+
+## Force compilation sequence
+MAKOBJ := $(patsubst $(OBJDIR)/Editor.o,,$(MAKOBJ))
+MAKOBJ := Editor.o $(MAKOBJ)
+
+MAKEXE := Edit
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## TARGET: liblocal.a
+liblocal.a: $(MAKOBJ)
+	ar -r $@ $(MAKOBJ)
+
+##############################################################################
+## Dependencies
+$(MAKEXE): liblocal.a
+
+##############################################################################
+## TARGET: cmd debug do io hcdm
+.PHONY: cmd
+cmd: Edit
+	Edit $(EDIT_OPTIONS)
+
+.PHONY: debug
+debug: Edit
+	Edit $(EDIT_OPTIONS) --hcdm --verbose=9 Makeproj.out
+
+.PHONY: do
+do: Edit
+	@Edit $(EDIT_OPTIONS) Makeproj.out
+
+.PHONY: do
+io: EdOuts.o EdInps.o EdUnit.o Editor.o
+
+.PHONY: hcdm
+hcdm: Edit
+	Edit --hcdm --verbose=9 $(EDIT_OPTIONS) Makeproj.out
+
+##############################################################################
+## TARGET: include
+.PHONY: include
+include: Include.o
+	echo "Include.o should fail to compile"
+
+##############################################################################
+## Target: install
+.PHONY: install
+install: default
+	cp Edit editerm
+	strip editerm
+	mv -i editerm $(HOME)/bin/editerm
+
+##############################################################################
+## Controls
+LLIBS  += -L. -l local
+include $(INCDIR)/pub/Makefile.BSD
+
+COPTS  += -Wconversion
+CLIBS  += $(shell pkg-config --libs ncursesw)
+
+## ifeq "Linux" "$(findstring Linux, $(shell uname))"
+CLIBS  += -lboost_stacktrace_addr2line
+CLIBS  += -lboost_stacktrace_basic
+CLIBS  += -ldl
+## endif
+
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+CLOAD  += -Wl,--enable-auto-import
+endif
+
+##############################################################################
+## Makefile cleanup
+.PHONY: clean.dir
+clean:  clean.dir
+clean.dir: ;
+	@rm -f $(MAKEXE)
+	@rm -f liblocal.a
+	@rm -f debug.*
+	@rm -f trace.*

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2023 Frank Eskesen.
+//       Copyright (c) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdHist.h
 //
 // Last change date-
-//       2024/04/11
+//       2024/05/05
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf
@@ -30,7 +30,7 @@
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For namespace editor
 #include "EdHist.h"                 // For EdHist
-#include "EdOuts.h"                 // For EdOuts
+#include "EdUnit.h"                 // For EdUnit
 
 using namespace config;             // For opt_* variables
 using namespace pub::debugging;     // For debugging
@@ -57,7 +57,8 @@ static const int       MAX_HISTORY= 128; // Maximum number of history lines
    EdHist::EdHist( void )           // Constructor
 :  EdView(), hist_list()
 {  if( HCDM || opt_hcdm ) traceh("EdHist(%p)::EdHist\n", this);
-   hist_list.fifo(new EdLine());    // Initial line
+
+   hist_list.fifo(new EdLine());    // Initial List with empty Line
    row= 1;
 }
 
@@ -89,13 +90,13 @@ static const int       MAX_HISTORY= 128; // Maximum number of history lines
 void
    EdHist::debug(                   // Debugging display
      const char*       info) const  // Associated info
-{  debugf("EdHist(%p)::debug(%s)\n", this, info ? info : "");
+{  traceh("EdHist(%p)::debug(%s)\n", this, info ? info : "");
 
-   debugf("..[%p,%p] %p '%s'\n", hist_list.get_head(), hist_list.get_tail()
-         , cursor, cursor ? cursor->text : "");
+   traceh("..gc_chg(%u) gc_sts(%u)\n", gc_chg, gc_sts);
+   traceh("..[%p,%p]\n", hist_list.get_head(), hist_list.get_tail());
    unsigned n= 0;
    for(EdLine* line= hist_list.get_head(); line; line= line->get_next() )
-     debugf("[%2d] %p '%s'\n", n++, line, line->text);
+     traceh("[%2d] %p '%s'\n", n++, line, line->text);
 
    EdView::debug();
 }
@@ -109,13 +110,12 @@ void
 //       Get the current graphic context
 //
 //----------------------------------------------------------------------------
-EdHist::GC_t                         // The current graphic context
+GC_t                                 // The current graphic context
    EdHist::get_gc( void )            // Get current graphic context
 {
-   using namespace editor;
-   if( file->is_changed() )
-     return outs->gc_chg;
-   return outs->gc_sts;
+   if( editor::file->is_changed() )
+     return gc_chg;
+   return gc_sts;
 }
 
 //----------------------------------------------------------------------------
@@ -130,13 +130,15 @@ EdHist::GC_t                         // The current graphic context
 void
    EdHist::activate(                // Activate the history view
      const char*       text)        // Initial (immutable) text
-{  if( HCDM || opt_hcdm ) traceh("EdHist(%p)::actiate\n", this);
+{  if( HCDM || opt_hcdm ) traceh("EdHist(%p)::activate\n", this);
 
-   editor::outs->undo_cursor();
+   editor::unit->hide_cursor();
    col_zero= col= 0;                // Start in column 0
    cursor= nullptr;
    active.reset(text);
-   EdView::activate();
+
+   editor::view= this;              // (EdHist or EdData)
+   editor::unit->draw_top();        // (History or Status line)
 }
 
 //----------------------------------------------------------------------------
@@ -151,12 +153,12 @@ void
 void
    EdHist::draw_active( void )      // Redraw the active line
 {
-   EdOuts* outs= editor::outs;
-   active.index(col_zero+outs->col_size); // Blank fill
-   outs->putcr(get_gc(), 0, row, active.get_buffer(col_zero));
+   EdUnit* unit= editor::unit;
+   active.index(col_zero+unit->col_size); // Blank fill
+   unit->draw_text(get_gc(), row, active.get_buffer(col_zero));
    if( editor::view == this )
-     outs->draw_cursor();
-   outs->flush();
+     unit->show_cursor();
+   unit->flush();
 }
 
 //----------------------------------------------------------------------------
@@ -225,7 +227,7 @@ void
    active.reset(text);              // Reset the (mutated) buffer
    cursor= nullptr;                 // Reset the cursor
 
-   editor::outs->draw_top();
+   editor::unit->draw_top();
 }
 
 //----------------------------------------------------------------------------
@@ -282,5 +284,5 @@ void
 
    col_zero= col= 0;
    active.reset(cursor->text);
-   editor::outs->draw_top();
+   editor::unit->draw_top();
 }

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Storage Pool descriptor
 //
 // Last change date-
-//       2021/01/24
+//       2024/05/05
 //
 //----------------------------------------------------------------------------
 #ifndef EDPOOL_H_INCLUDED
@@ -67,7 +67,7 @@ public:
 {  using namespace config; using namespace pub::debugging;
 
    if( opt_hcdm )
-     debugh("EdPool(%p)::EdPool(%zd)\n", this, size_);
+     traceh("EdPool(%p)::EdPool(%zd)\n", this, size_);
 }
 
 virtual
@@ -75,7 +75,7 @@ virtual
 {  using namespace config; using namespace pub::debugging;
 
    if( opt_hcdm )
-     debugh("EdPool(%p)::~EdPool, used %6zd of %6zd\n", this, used, size);
+     traceh("EdPool(%p)::~EdPool, used %6zd of %6zd\n", this, used, size);
 
    delete [] data;                  // Delete the data
 }
@@ -102,7 +102,7 @@ char*                               // The allocated storage, nullptr if none
    }
 
    if( opt_hcdm )
-     debugh("%p= EdPool(%p)::allocate(%zd)\n", result, this, size);
+     traceh("%p= EdPool(%p)::allocate(%zd)\n", result, this, size);
 
    return result;
 }

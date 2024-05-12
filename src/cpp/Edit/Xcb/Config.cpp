@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2024/04/12
+//       2024/05/05
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -33,7 +33,6 @@
 #include <sys/mman.h>               // For mmap, ...
 #include <sys/signal.h>             // For signal, ...
 #include <sys/stat.h>               // For stat
-#include <xcb/xproto.h>             // For xcb_rectangle_t
 
 #include <pub/config.h>             // For ATTRIB_PRINTF macro
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
@@ -44,11 +43,12 @@
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For Config (Implementation class)
+#include "EdData.h"                 // For EdData::debug
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile::debug
 #include "EdHist.h"                 // For EdFile::debug
 #include "EdMark.h"                 // For EdMark::debug
-#include "EdOuts.h"                 // For EdOuts::debug
+#include "EdUnit.h"                 // For EdUnit::debug
 #include "EdView.h"                 // For EdView::debug
 
 using namespace config;             // For implementation
@@ -118,13 +118,13 @@ uint32_t               config::message_bg= 0x00FFFF00; // Message BG
 uint32_t               config::message_fg= 0x00900000; // Message FG
 
 // Screen controls --- From configuration file -------------------------------
-xcb_rectangle_t        config::geom= {0, 0, 80, 50}; // The screen geometry
+geometry_t             config::geom= {0, 0, 80, 50}; // The screen geometry
 
 // Bringup controls -- From configuration file or set command ----------------
 uint32_t               config::USE_MOUSE_HIDE= true; // Use mouse hide logic?
 
 // (Internal) -------- Initialized at startup --------------------------------
-std::string            config::AUTO; // AUTOSAVE directory "~/.config/editxcb"
+std::string            config::AUTO; // AUTOSAVE directory
 std::string            config::HOME; // HOME directory (getenv("HOME"))
 
 // (Internal) -------- Global event signals ----------------------------------
@@ -150,21 +150,6 @@ static struct cleanup {             // On termination, delete the_check_signal
 } // (Anonymous namespace)
 
 //----------------------------------------------------------------------------
-// Default Edit.conf
-//----------------------------------------------------------------------------
-static const char*     Edit_conf=
-   "[Program]\n"
-   "URL=https://github.com/franke-hub/SDL/tree/trunk/src/cpp/Edit/Xcb\n"
-   "Exec=Edit ; Edit in read-write mode\n"
-   "Exec=View ; Edit in read-only mode\n"
-   "Purpose=Graphic text editor\n"
-   "Version=1.0.2\n"
-   "\n"
-   "[Options]\n"
-   ";; See sample: ~/src/cpp/Edit/Xcb/.SAMPLE/Edit.conf\n"
-   ;
-
-//----------------------------------------------------------------------------
 //
 // Subroutine-
 //       init
@@ -175,7 +160,7 @@ static const char*     Edit_conf=
 //----------------------------------------------------------------------------
 static int                          // Return code (0 OK)
    init( void )                     // Initialize
-{  if( opt_hcdm ) fprintf(stderr, "Config::init\n"); // (debug not initialized)
+{  if( opt_hcdm ) printf("Config::init\n"); // (debug not initialized)
 
    //-------------------------------------------------------------------------
    // Initialize signal handling
@@ -197,7 +182,7 @@ static int                          // Return code (0 OK)
 
    if( opt_hcdm ) {                 // If Hard Core Debug Mode
      debug->set_mode(pub::Debug::MODE_INTENSIVE);
-     debugf("Editor PID(%4d) VID: %s %s\n", getpid(), __DATE__, __TIME__);
+     traceh("Editor PID(%4d) VID: %s %s\n", getpid(), __DATE__, __TIME__);
    }
 
    //-------------------------------------------------------------------------
@@ -228,6 +213,10 @@ static int                          // Return code (0 OK)
    pub::Trace::table= pub::Trace::make(trace_table, TRACE_SIZE);
    close(fd);                       // Descriptor not needed once mapped
 
+   //-------------------------------------------------------------------------
+   // Create the keyboard, screen, and mouse handler
+   editor::unit= EdUnit::Init::initialize();
+
    return 0;
 }
 
@@ -245,25 +234,21 @@ static int                          // Return code (0 OK)
 //----------------------------------------------------------------------------
 static void
    term( void )                     // Terminate
-{  if( opt_hcdm ) debugh("Config::term\n");
+{  if( opt_hcdm ) traceh("Config::term\n");
 
-   // Delete GUI objects
-   delete editor::outs;
-   editor::outs= nullptr;
-
-   delete editor::font;
-   editor::font= nullptr;
-
-   editor::device= nullptr;
-   delete editor::device;
+   // Delete the Window object
+   EdUnit::Init::terminate(editor::unit);
+   editor::unit= nullptr;
 
    //-------------------------------------------------------------------------
-   // Terminate debugging
-   pub::Debug::set(nullptr);        // Remove Debug object
-   delete debug;                    // and delete it
-   debug= nullptr;
+   // Terminate debugging. Note: pub::Debug global termination can handle this
+   if( false && !opt_hcdm ) {
+     pub::Debug::set(nullptr);      // Remove Debug object
+     delete debug;                  // and delete it
+     debug= nullptr;
 
-   opt_hcdm= false;                 // Prevent Config::errorf tracing
+     opt_hcdm= false;               // Prevent Config::errorf tracing
+   }
 
    //-------------------------------------------------------------------------
    // Restore system signal handlers
@@ -386,6 +371,7 @@ static void
      case SIGSEGV:                  // (Program fault)
        Trace::trace(".BUG", __LINE__, "SIGSEGV");
        debug_set_mode(Debug::MODE_INTENSIVE);
+       EdUnit::Init::at_exit();     // Abnormal termination
        debug_backtrace();           // Attempt diagnosis (recursion aborts)
        Config::debug("SIGSEGV");
        debugf("..terminated..\n");
@@ -568,7 +554,7 @@ static void
    parser(                          // Configuration parser
      std::string       file_name)   // The parser file name
 {  if( opt_hcdm )                   // (Don't use debugf here)
-     fprintf(stderr, "Config::parser(%s)\n", file_name.c_str());
+     printf("Config::parser(%s)\n", file_name.c_str());
 
    static bool font_valid= false;   // Font parameter present and valid?
 
@@ -605,7 +591,7 @@ static void
          }
 
          if( strcmp(name, "font") == 0 ) { // Font parameter?
-           int rc= editor::font->open(value); // Set the font
+           int rc= editor::unit->set_font(value); // Set the font
            if( rc == 0 )
              font_valid= true;
            continue;
@@ -614,22 +600,24 @@ static void
          if( strcmp(name, "geometry") == 0 ) {
            if( value && *value == '\0' ) // If geometry=
              continue;              // Ignore, omitted
-           xcb_rectangle_t geom= {0, 0, 0, 0}; // The screen geometry
+           geometry_t geom= {0, 0, 0, 0}; // The screen geometry
            const char* VALUE= value; // (For use in error message)
-           geom.width= uint16_t(parse_int(value)); // Number of rows
+           geom.width= uint32_t(parse_int(value)); // Number of rows
            if( value && *value == 'x' ) {
              value++;
-             geom.height= uint16_t(parse_int(value)); // Number of columns
+             geom.height= uint32_t(parse_int(value)); // Number of columns
              if( value && (*value == '+' || *value == '-') )
-               geom.x= int16_t(parse_int(value)); // X position
+               geom.x= int32_t(parse_int(value)); // X position
              if( value && (*value == '+' || *value == '-') )
-               geom.y= int16_t(parse_int(value)); // Y position
+               geom.y= int32_t(parse_int(value)); // Y position
            } else                   // (Possibly x without y)
              value= VALUE;
-           if( value && *value == '\0' ) // If valid geometry
+           if( value && *value == '\0' ) { // If valid geometry
              config::geom= geom;
-           else
+             editor::unit->set_geom(geom);
+           } else {
              parse_error(file_name, "geometry(%s) invalid\n", VALUE);
+           }
            continue;
          }
 
@@ -641,8 +629,11 @@ static void
        parse_error(file_name, "Unknown section [%s]\n", sect);
      }
    }
-   if( !font_valid )                // If valid font not present
-     editor::font->open();          // Use default font
+   if( !font_valid ) {              // If valid font not present
+     int rc= editor::unit->set_font(); // Use default font
+     if( rc )                       // If default font is unusable
+       Config::failure("Default font invalid");
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -657,14 +648,13 @@ static void
    Config::Config(int, char**)      // Constructor
 //   int               argc,        // Argument count (Unused)
 //   char*             argv[])      // Argument array (Unused)
-{  if( opt_hcdm ) fprintf(stderr, "Config::Config\n"); // (Don't use debugf)
+{  if( opt_hcdm ) printf("Config::Config\n"); // (Don't use debugf)
 
    using namespace config;
 
-   // Allocate (editor) GUI objects
-   editor::device= new gui::Device();
-   editor::font= new gui::Font(editor::device);
-   editor::outs= new EdOuts();
+   // Get EdUnit static variables
+   const char* EDITOR= EdUnit::EDITOR;
+   const char* DEFAULT_CONFIG= EdUnit::DEFAULT_CONFIG;
 
    // Initialize HOME, AUTO, and debug_path
    const char* env= getenv("HOME"); // Get HOME directory
@@ -672,12 +662,13 @@ static void
      Config::failure("No HOME directory");
    HOME= env;
 
-   // If required, create "$HOME/.local/state/editxcb
+   // If required, create "$HOME/.local/state/`EDITOR`"
    std::string S= HOME + "/.local";
    make_dir(S);
    S += "/state";
    make_dir(S);
-   S += "/editxcb";
+   S += "/";
+   S += EDITOR;
    make_dir(S);
    AUTO= debug_path= S;
 
@@ -696,22 +687,24 @@ static void
      file= file->get_next();
    }
 
-   // Locate, possibly creating "$HOME/.local/config/editxcb/Edit.conf"
+   // Locate, possibly creating "$HOME/.local/config/`EDITOR`/Edit.conf"
    S= HOME + "/.local";
 // make_dir(S);
    S += "/config";
    make_dir(S);
-   S += "/editxcb";
+   S += "/";
+   S += EDITOR;
    make_dir(S);
    S += std::string("/Edit.conf");
-   make_file(S, Edit_conf);
+   make_file(S, DEFAULT_CONFIG);
+
+   // Initialize signal handlers, debugging, and editor::unit
+   // NOTE: No pub::debugging method should be called before init() invocation
+   if( init() )
+     Config::failure("Initialization failed");
 
    // Parse the configuration file
    parser(S);
-
-   // System related initialization
-   if( init() )
-     Config::failure("Initialization failed");
 }
 
 //----------------------------------------------------------------------------
@@ -724,7 +717,7 @@ static void
 //
 //----------------------------------------------------------------------------
    Config::~Config( void )          // Destructor
-{  if( opt_hcdm ) debugh("Config::~Config\n");
+{  if( opt_hcdm ) traceh("Config::~Config\n");
 
    term();
 }
@@ -764,27 +757,25 @@ void
    if( info == nullptr )
      info= "";
 
-   debugf("Config::debug(%s) %d\n", info, recursion);
+   traceh("Config::debug(%s) %d\n", info, recursion);
    if( recursion ) return;
 
    ++recursion;
-   debugf("\n============================================================\n");
-   debugf("Config::debug(%s)\n", info ? info : "");
+   traceh("\n============================================================\n");
+   traceh("Config::debug(%s)\n", info ? info : "");
 
    Editor::debug(info);
-   debugf("\n");
+   traceh("\n");
    editor::mark->debug(info);
-   debugf("\n");
+   traceh("\n");
    editor::file->debug("lines");
-   debugf("\n");
-   editor::outs->debug(info);
-   debugf("\n");
-   editor::font->debug(info);
-   debugf("\n");
+   traceh("\n");
+   editor::unit->debug(info);
+   traceh("\n");
    editor::data->debug(info);
-   debugf("\n");
+   traceh("\n");
    editor::hist->debug(info);
-   debugf("============================================================\n\n");
+   traceh("============================================================\n\n");
    --recursion;
 }
 
@@ -831,41 +822,4 @@ void
    errorf("\n");
 
    exit(EXIT_FAILURE);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Config::join
-//       Config::start
-//
-// Purpose-
-//       Wait for editor completion
-//       Start the editor
-//
-// Purpose-
-//       Thread simulation methods
-//
-//----------------------------------------------------------------------------
-void
-   Config::join( void )
-{  }
-
-void
-   Config::start( void )
-{
-   // Initialize the configuration
-   editor::device->insert(editor::outs);
-   editor::device->configure();
-
-   // Set initial file
-   editor::outs->activate(editor::file_list.get_head());
-
-   // Start the Device
-   editor::device->draw();
-   editor::outs->show();            // (move_window fails unless visible)
-   if( geom.x || geom.y )           // If position specified
-     editor::outs->move_window(geom.x, geom.y);
-   editor::outs->flush();
-   editor::device->run();
 }

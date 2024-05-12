@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/03/21
+##       2024/04/21
 ##
 ##############################################################################
 
@@ -39,6 +39,8 @@ dev/Makeproj.all: $(DEV_SOURCE) ###### Recompile/rebuild
 	(cd $(OBJDIR)/dev/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
 	touch $@
 
+dev/Makeproj.all: dev/.have-version pub/Makeproj.all
+
 ##############################################################################
 ## TARGETS: static/libdev.a
 $(STATIC)/libdev.a: dev/libdev.a
@@ -46,7 +48,10 @@ $(STATIC)/libdev.a: dev/libdev.a
 	touch $@
 
 lib: $(STATIC)/libdev.a
-dev/libdev.a: dev/.have-version dev/Makeproj.all $(STATIC)/libpub.a
+dev/libdev.a: dev/Makeproj.all
+	touch $@
+
+dev/Makeproj.all: $(STATIC)/libpub.a
 
 ##############################################################################
 ## TARGETS: shared/cygdev.dll shared/libdev.so.1.0 shared/libdev.so
@@ -65,12 +70,12 @@ $(SHARED)/libdev.so: $(SHARED)/libdev.so.1.0
 
 ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
 shr: $(SHARED)/cygdev.dll
+dev/Makeproj.all: $(SHARED)/cygpub.dll
 dev/cygdev.dll: dev/Makeproj.all
-dev/Makeproj.all: dev/.have-version pub/Makeproj.all $(SHARED)/cygpub.dll
 else
 shr: $(SHARED)/libdev.so
+dev/Makeproj.all: $(SHARED)/libpub.so
 dev/libdev.so.1.0: dev/Makeproj.all
-dev/Makeproj.all: dev/.have-version pub/Makeproj.all $(SHARED)/libpub.so
 endif
 
 ##############################################################################

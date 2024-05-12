@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/03/21
+##       2024/04/21
 ##
 ##############################################################################
 
@@ -39,6 +39,8 @@ pub/Makeproj.all: $(PUB_SOURCE) ###### Recompile/rebuild
 	(cd $(OBJDIR)/pub/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
 	touch $@
 
+pub/Makeproj.all: pub/.have-version
+
 ##############################################################################
 ## TARGETS: static/libpub.a
 $(STATIC)/libpub.a: pub/libpub.a
@@ -46,7 +48,8 @@ $(STATIC)/libpub.a: pub/libpub.a
 	touch $@
 
 lib: $(STATIC)/libpub.a
-pub/libpub.a: pub/.have-version pub/Makeproj.all
+pub/libpub.a: pub/Makeproj.all
+	touch $@
 
 ##############################################################################
 ## TARGETS: shared/cygpub.dll shared/libpub.so.1.0 shared/libpub.so
@@ -66,11 +69,9 @@ $(SHARED)/libpub.so: $(SHARED)/libpub.so.1.0
 ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
 shr: $(SHARED)/cygpub.dll
 pub/cygpub.dll: pub/Makeproj.all
-pub/Makeproj.all: pub/.have-version
 else
 shr: $(SHARED)/libpub.so
 pub/libpub.so.1.0: pub/Makeproj.all
-pub/Makeproj.all: pub/.have-version
 endif
 
 ##############################################################################
@@ -100,4 +101,3 @@ pub.pristine: ;
 clean: pub.clean
 pub.clean: ;
 	@rm -f pub/cygpub.* pub/libpub.* pub/Makeproj.*
-	@rm -f libpub.*

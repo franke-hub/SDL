@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/03/21
+##       2024/04/22
 ##
 ##############################################################################
 
@@ -39,6 +39,8 @@ gui/Makeproj.all: $(GUI_SOURCE) ###### Recompile/rebuild
 	(cd $(OBJDIR)/gui/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
 	touch $@
 
+gui/Makeproj.all: gui/.have-version pub/Makeproj.all
+
 ##############################################################################
 ## TARGETS: static/libgui.a
 $(STATIC)/libgui.a: gui/libgui.a
@@ -46,7 +48,10 @@ $(STATIC)/libgui.a: gui/libgui.a
 	touch $@
 
 lib: $(STATIC)/libgui.a
-gui/libgui.a: gui/.have-version gui/Makeproj.all $(STATIC)/libpub.a
+gui/libgui.a: gui/Makeproj.all
+	touch $@
+
+gui/Makeproj.all: $(STATIC)/libpub.a
 
 ##############################################################################
 ## TARGETS: shared/libgui.dll shared/libgui.so.1.0 shared/libgui.so
@@ -65,12 +70,12 @@ $(SHARED)/libgui.so: $(SHARED)/libgui.so.1.0
 
 ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
 shr: $(SHARED)/cyggui.dll
+gui/Makeproj.all: $(SHARED)/cygpub.dll
 gui/cyggui.dll: gui/Makeproj.all
-gui/Makeproj.all: gui/.have-version pub/Makeproj.all $(SHARED)/cygpub.dll
 else
 shr: $(SHARED)/libgui.so
+gui/Makeproj.all: $(SHARED)/libpub.so
 gui/libgui.so.1.0: gui/Makeproj.all
-gui/Makeproj.all: gui/.have-version pub/Makeproj.all $(SHARED)/libpub.so
 endif
 
 ##############################################################################

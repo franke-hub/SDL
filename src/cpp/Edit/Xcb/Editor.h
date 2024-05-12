@@ -16,27 +16,25 @@
 //       Editor: Global data areas
 //
 // Last change date-
-//       2024/04/12
+//       2024/04/22
 //
 //----------------------------------------------------------------------------
 #ifndef EDITOR_H_INCLUDED
 #define EDITOR_H_INCLUDED
 
-#include <gui/Device.h>             // For gui::Device
-#include <gui/Font.h>               // For gui::Font
-#include <gui/Window.h>             // For gui::Window
 #include <pub/List.h>               // For pub::List
 
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
 class Active;                       // Editor Active line object
+class EdData;                       // Editor data view
 class EdFile;                       // Editor file descriptor
 class EdHist;                       // Editor history view
 class EdMark;                       // Editor mark controller
-class EdOuts;                       // Editor output/input services
 class EdPool;                       // Editor pool allocators
 class EdView;                       // Editor view
+class EdUnit;                       // Editor Unit
 
 //----------------------------------------------------------------------------
 //
@@ -122,20 +120,21 @@ namespace editor {                  // The Editor namespace
 //----------------------------------------------------------------------------
 // editor::Global attributes
 //----------------------------------------------------------------------------
-extern gui::Device*    device;      // Our Device
-extern EdOuts*         outs;        // Our Window: input/output services
-extern gui::Font*      font;        // Our Font
+extern EdUnit*         unit;        // Keyboard, mouse, and screen handler
 
+// Screen controls, managed by EdUnit ----------------------------------------
+extern EdData*         data;        // The data view
+extern EdHist*         hist;        // The history view
+extern EdMark*         mark;        // The Mark Handler
+extern EdView*         view;        // The active view
+
+// Editor controls -----------------------------------------------------------
 extern pub::List<EdFile> file_list; // The list of EdFiles
 extern EdFile*         file;        // The current File object
 extern EdFile*         last;        // The last file inserted
 
-extern Active*         actalt;      // Active object (for temporary use)
-extern Active*         active;      // Active object (for temporary use)
-extern EdView*         data;        // The data view
-extern EdHist*         hist;        // The history view
-extern EdMark*         mark;        // The Mark Handler
-extern EdView*         view;        // The active view
+extern Active*         active;      // Primary Active object (temporary)
+extern Active*         altact;      // Alternative Active object (temporary)
 
 extern std::string     locate_string; // The locate string
 extern std::string     change_string; // The change string
@@ -249,7 +248,8 @@ const char*                         // Error message, nullptr expected
 //
 //----------------------------------------------------------------------------
 const char*                         // Error message, nullptr expected
-   do_insert( void );               // Insert a new, empty line
+   do_insert(                       // Insert a new line
+     const char*       text= nullptr); // The text, default empty
 
 //----------------------------------------------------------------------------
 //

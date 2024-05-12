@@ -16,7 +16,7 @@
 //       Editor: Handle tabs and margins
 //
 // Last change date-
-//       2024/04/02
+//       2024/04/22
 //
 // Implementation notes-
 //       (Only) included by EdBifs.cpp
@@ -92,7 +92,7 @@ static const char*                  // Error message, nullptr expected
    // Reset the active line and redraw (whether or not needed)
    data->cursor= cur;
    data->active.reset(cur->text);
-   editor::outs->draw();
+   editor::unit->draw();
 
    return nullptr;
 }

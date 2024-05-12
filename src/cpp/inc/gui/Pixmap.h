@@ -215,7 +215,7 @@ void                                // Response handled in reply loop
 //       This also invokes xcb_flush.
 //
 //----------------------------------------------------------------------------
-void
+virtual void
    flush( void );                   // Complete all pending operations
 
 //----------------------------------------------------------------------------

@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2024/04/06
+//       2024/05/05
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf, fopen, fclose, ...
@@ -31,14 +31,14 @@
 #include <pub/List.h>               // For pub::List
 
 #include "Config.h"                 // For Config::check
+#include "EdData.h"                 // For EdData
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile
 #include "EdLine.h"                 // For EdLine
 #include "EdMark.h"                 // For EdMark
 #include "EdMess.h"                 // For EdMess
-#include "EdOuts.h"                 // For EdOuts
+#include "EdUnit.h"                 // For EdUnit
 #include "EdRedo.h"                 // For EdRedo
-#include "EdView.h"                 // For EdView
 
 using namespace config;             // For config::opt_*
 using namespace pub::debugging;     // For debugging
@@ -171,8 +171,8 @@ bool                                // TRUE if file is changed or damaged
 //       Debugging display.
 //
 // Implementation notes-
-//       If the file is active, outs->synch_file updates the state and commits
-//       the active line
+//       If the file is active, unit->synch_file commits the active line and
+//       updates the file state.
 //
 //----------------------------------------------------------------------------
 static inline const char*           // "true" or "false"
@@ -183,37 +183,37 @@ void
    EdFile::debug(                   // Debugging display
      const char*       info)        // Associated info
 {
-   debugf("EdFile(%p)::debug(%s) '%s'\n", this
+   traceh("EdFile(%p)::debug(%s) '%s'\n", this
          , info ? info : "", get_name().c_str());
 
    if( this == editor::file )       // If this is the active file
-     editor::outs->synch_file(this); // Synchronize current I/O state
-   debugf("..mode(%d) changed(%s) chglock(%s) damaged(%s) protect(%s)\n"
+     editor::unit->synch_file();    // Synchronize current I/O state
+   traceh("..mode(%d) changed(%s) chglock(%s) damaged(%s) protect(%s)\n"
          , mode, TF(changed), TF(chglock), TF(damaged), TF(protect));
-   debugf("..top_line(%p) csr_line(%p)\n", top_line, csr_line);
-   debugf("..col_zero(%zd) col(%d) row_zero(%zd) row(%d) rows(%zd)\n"
+   traceh("..top_line(%p) csr_line(%p)\n", top_line, csr_line);
+   traceh("..col_zero(%zd) col(%d) row_zero(%zd) row(%d) rows(%zd)\n"
          , col_zero, col, row_zero, row, rows);
 
-   debugf("..mess_list[%p,%p]:\n", mess_list.get_head(), mess_list.get_tail());
+   traceh("..mess_list[%p,%p]:\n", mess_list.get_head(), mess_list.get_tail());
    for(EdMess* mess= mess_list.get_head(); mess; mess= mess->get_next()) {
-     debugf("....(%p) %d '%s'\n", mess, mess->type, mess->mess.c_str());
+     traceh("....(%p) %d '%s'\n", mess, mess->type, mess->mess.c_str());
    }
 
-   debugf("..redo_list[%p,%p]:\n", redo_list.get_head(), redo_list.get_tail());
+   traceh("..redo_list[%p,%p]:\n", redo_list.get_head(), redo_list.get_tail());
    for(EdRedo* redo= redo_list.get_head(); redo; redo= redo->get_next()) {
      redo->debug("redo");
    }
 
-   debugf("..undo_list[%p,%p]:\n", undo_list.get_head(), undo_list.get_tail());
+   traceh("..undo_list[%p,%p]:\n", undo_list.get_head(), undo_list.get_tail());
    for(EdRedo* redo= undo_list.get_head(); redo; redo= redo->get_next()) {
      redo->debug("undo");
    }
 
-   debugf("..line_list[%p,%p]:\n", line_list.get_head(), line_list.get_tail());
+   traceh("..line_list[%p,%p]:\n", line_list.get_head(), line_list.get_tail());
    if( strcasecmp(info, "lines") == 0 ) {
      size_t N= 0;
      for(EdLine* line= line_list.get_head(); line; line= line->get_next()) {
-       debugf("[%4zd] ", N++);
+       traceh("[%4zd] ", N++);
        line->debug();
      }
    }
@@ -233,7 +233,7 @@ void
      EdLine*           line)        // This line
 {
    if( this == editor::file ) {     // If the file is active
-     editor::outs->activate(line);
+     editor::unit->activate(line);
    } else {                         // If the file is off-screen
      top_line= csr_line= line;
      col_zero= col= row= 0;
@@ -493,7 +493,7 @@ void
      S += ": Click here to continue";
    mess_list.fifo(new EdMess(S, type_));
    if( editor::file == this )       // (Only if this file is active)
-     editor::outs->draw_top();      // (Otherwise, message is deferred)
+     editor::unit->draw_top();      // (Otherwise, message is deferred)
 }
 
 int                                 // TRUE if a message removed or remains

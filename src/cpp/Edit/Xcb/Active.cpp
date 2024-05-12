@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2023/01/01
+//       2024/05/05
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -25,8 +25,9 @@
 #include <pub/Must.h>               // For pub::must methods
 #include <pub/Utf.h>                // For pub::Utf methods and objects
 
-#include "Config.h"                 // For config::opt_hcdm
 #include "Active.h"                 // Implementation class
+#include "Config.h"                 // For namespace config
+#include "EdType.h"                 // For Editor types
 
 using namespace config;             // For config::opt_hcdm
 using namespace pub::debugging;     // For debugging
@@ -54,7 +55,7 @@ typedef pub::Utf::utf8_t utf8_t;    // Import pub::Utf::utf8_t
    Active::~Active( void )          // Destructor
 {
    if( opt_hcdm )
-     debugh("Active(%p)::~Active\n", this);
+     traceh("Active(%p)::~Active\n", this);
 
    must::free(buffer);
 }
@@ -72,7 +73,7 @@ typedef pub::Utf::utf8_t utf8_t;    // Import pub::Utf::utf8_t
 :  source(""), buffer_size(BUFFER_SIZE), buffer_used(0)
 {
    if( opt_hcdm )
-     debugh("Active(%p)::Active\n", this);
+     traceh("Active(%p)::Active\n", this);
 
    buffer= (char*)must::malloc(buffer_size);
    fsm= FSM_RESET;
@@ -91,11 +92,11 @@ void
    Active::debug(                   // Debugging display
      const char*       info) const  // Associated info
 {
-   if( info ) debugf("Active(%p)::debug(%s) fsm(%d)\n", this, info, fsm);
-   debugf("..source(%s).%zd\n", source, strlen(source));
+   if( info ) traceh("Active(%p)::debug(%s) fsm(%d)\n", this, info, fsm);
+   traceh("..source(%s).%zd\n", source, strlen(source));
    if( fsm != FSM_RESET ) {
      buffer[buffer_used]= '\0';     // (Buffer is mutable)
-     debugf("..buffer(%s).%zd/%zd\n", buffer, buffer_used, buffer_size);
+     traceh("..buffer(%s).%zd/%zd\n", buffer, buffer_used, buffer_size);
    }
 }
 
@@ -212,7 +213,7 @@ void
    Active::expand(                  // Expand the buffer
      Length            length)      // To this length (+1)
 {  if( opt_hcdm )
-     debugh("Active(%p)::expand(%zd) [%zd,%zd]\n", this, length, buffer_used
+     traceh("Active(%p)::expand(%zd) [%zd,%zd]\n", this, length, buffer_used
            , buffer_size);
 
    if( length >= buffer_size ) {    // If expansion required
@@ -266,7 +267,7 @@ void
    }
 
    if( opt_hcdm )
-     debugh("Active(%p)::fetch(%zd) [%zd/%zd]\n", this, length
+     traceh("Active(%p)::fetch(%zd) [%zd/%zd]\n", this, length
            , buffer_used, buffer_size);
 }
 

@@ -16,7 +16,7 @@
 //       EdFile: Implement EdLine.h, EdMess.h, EdRedo.h
 //
 // Last change date-
-//       2024/04/02
+//       2024/05/05
 //
 // Implementation notes-
 //       (Only) included by EdFile.cpp
@@ -40,7 +40,7 @@ static bool                         // *ALWAYS* true
      std::string       message)     // Error message
 {
    editor::put_message(message.c_str(), EdMess::T_MESS);
-   debugf("%s checkstop(%s)\n", __FILE__, message.c_str());
+   traceh("%s checkstop(%s)\n", __FILE__, message.c_str());
 
    if( pub::Trace::table )          // Turn off tracing
      pub::Trace::table->flag[pub::Trace::X_HALT]= true;
@@ -55,7 +55,7 @@ static bool                         // TRUE if invalid head/tail pair
      const EdLine*     tail)
 {
    if( bool(head) != bool(tail) ) {
-     debugf("%4d %s redo(%p) head(%p) tail(%p)\n", __LINE__, __FILE__
+     traceh("%4d %s redo(%p) head(%p) tail(%p)\n", __LINE__, __FILE__
            , redo, head, tail);
      return checkstop("invalid_list");
    } else if( head == nullptr ) return false;
@@ -64,7 +64,7 @@ static bool                         // TRUE if invalid head/tail pair
      if( line == tail ) return false;
    }
 
-   debugf("%4d Ed::check redo(%p) head(%p) tail(%p)\n", __LINE__, redo, head, tail);
+   traceh("%4d Ed::check redo(%p) head(%p) tail(%p)\n", __LINE__, redo, head, tail);
    return checkstop("missing tail");
 }
 
@@ -156,7 +156,7 @@ static void
    }
 
    editor::file->mode= mode;        // Update the mode
-   editor::outs->draw_top();        // And redraw the top lines
+   editor::unit->draw_top();        // And redraw the top lines
 }
 
 //----------------------------------------------------------------------------
@@ -425,7 +425,7 @@ void
      traceh("EdFile(%p)::redo\n", this);
 
    if( HCDM ) {
-     debugf("\n\n--------------------------------\n");
+     traceh("\n\n--------------------------------\n");
      debug("redo");
    }
 
@@ -454,8 +454,8 @@ void
 
    changed= true;                   // File changed
    editor::mark->handle_redo(this, redo);
-   editor::outs->activate(line);
-   editor::outs->draw();
+   editor::unit->activate(line);
+   editor::unit->draw();
    undo_list.lifo(redo);            // Move REDO to UNDO list
    if( redo->head_insert )          // If lines inserted
      chg_mode(redo->head_insert, redo->tail_insert);
@@ -473,7 +473,7 @@ void
      traceh("EdFile(%p)::undo\n", this);
 
    if( HCDM ) {
-     debugf("\n\n--------------------------------\n");
+     traceh("\n\n--------------------------------\n");
      debug("undo");
    }
 
@@ -501,8 +501,8 @@ void
    }
 
    editor::mark->handle_undo(this, undo);
-   editor::outs->activate(line);
-   editor::outs->draw();
+   editor::unit->activate(line);
+   editor::unit->draw();
    redo_list.lifo(undo);            // Move UNDO to REDO list
    if( undo->head_remove )          // If lines removed
      chg_mode(undo->head_remove, undo->tail_remove);
@@ -635,7 +635,7 @@ void
 {
    char buffer[42]; buffer[41]= '\0';
    strncpy(buffer, text, 41);
-   debugf("%p F(%.4x) D(%.2x,%.2x) '%s'\n", this, flags
+   traceh("%p F(%.4x) D(%.2x,%.2x) '%s'\n", this, flags
          , delim[0], delim[1], buffer);
 }
 
@@ -653,7 +653,7 @@ bool
      const EdLine*     head,        // First line in range
      const EdLine*     tail) const  // Final line in range
 {  if( HCDM || (opt_hcdm && opt_verbose > 1) )
-     debugh("EdLine(%p)::is_within(%p,%p)\n", this, head, tail);
+     traceh("EdLine(%p)::is_within(%p,%p)\n", this, head, tail);
 
    for(const EdLine* line= head; line; line= line->get_next() ) {
      if( line == this )
@@ -665,7 +665,7 @@ bool
    /// We get here because line == nullptr, which should not occur.
    /// The associated list segment is corrupt, and code needs fixing.
    if( head || tail )               // If the range is not empty
-     debugf("%4d EdLine(%p).is_within(%p..%p) invalid range\n", __LINE__
+     traceh("%4d EdLine(%p).is_within(%p..%p) invalid range\n", __LINE__
            , this, head, tail);
    return false;
 }
@@ -704,14 +704,14 @@ bool
    EdRedo::EdRedo( void )           // Constructor
 :  ::pub::List<EdRedo>::Link()
 {  if( HCDM || opt_hcdm )
-     debugh("EdRedo(%p)::EdRedo\n", this);
+     traceh("EdRedo(%p)::EdRedo\n", this);
 
    Trace::trace(".NEW", "redo", this);
 }
 
    EdRedo::~EdRedo( void )          // Destructor
 {  if( HCDM || opt_hcdm )
-     debugh("EdRedo(%p)::~EdRedo\n", this);
+     traceh("EdRedo(%p)::~EdRedo\n", this);
 
    Trace::trace(".DEL", "redo", this);
 }
@@ -728,30 +728,30 @@ bool
 void
    EdRedo::debug(                   // Debugging display
      const char*       info) const  // Associated info
-{  debugf("EdRedo(%p)::debug(%s)\n", this, info ? info : "");
+{  traceh("EdRedo(%p)::debug(%s)\n", this, info ? info : "");
 
-   debugf("  COL [%3zd:%3zd]\n", lh_col, rh_col);
+   traceh("  COL [%3zd:%3zd]\n", lh_col, rh_col);
 
-   debugf("  INS [");
-   if( head_insert ) debugf("%p<-", head_insert->get_prev());
-   debugf("%p,%p", head_insert, tail_insert);
-   if( tail_insert ) debugf("->%p", tail_insert->get_next());
-   debugf("],\n");
+   traceh("  INS [");
+   if( head_insert ) traceh("%p<-", head_insert->get_prev());
+   traceh("%p,%p", head_insert, tail_insert);
+   if( tail_insert ) traceh("->%p", tail_insert->get_next());
+   traceh("],\n");
 
    for(EdLine* line= head_insert; line; line=line->get_next() ) {
-     debugf("    "); line->debug();
+     traceh("    "); line->debug();
      if( line == tail_insert )
        break;
    }
 
-   debugf("  REM [");
-   if( head_remove ) debugf("%p<-", head_remove->get_prev());
-   debugf("%p,%p", head_remove, tail_remove);
-   if( tail_remove ) debugf("->%p", tail_remove->get_next());
-   debugf("]\n");
+   traceh("  REM [");
+   if( head_remove ) traceh("%p<-", head_remove->get_prev());
+   traceh("%p,%p", head_remove, tail_remove);
+   if( tail_remove ) traceh("->%p", tail_remove->get_next());
+   traceh("]\n");
 
    for(EdLine* line= head_remove; line; line=line->get_next() ) {
-     debugf("    "); line->debug();
+     traceh("    "); line->debug();
      if( line == tail_remove )
        break;
    }

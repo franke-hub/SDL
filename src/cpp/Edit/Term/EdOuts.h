@@ -16,38 +16,27 @@
 //       Editor: Terminal output services.
 //
 // Last change date-
-//       2024/04/12
+//       2024/05/10
 //
 // Implementation notes-
-//       See EdInps.h for terminal input services and all attributes.
+//       Attributes are defined in EdInps.h and EdUnit.h
 //
 //----------------------------------------------------------------------------
-#if 1
-#else
-#endif
-
 #ifndef EDOUTS_H_INCLUDED
 #define EDOUTS_H_INCLUDED
 
 #include <string>                   // For std::string
 #include <sys/types.h>              // For
-// #include <xcb/xproto.h>             // For XCB types
-// #include <xcb/xfixes.h>             // For XCB xfixes extension
 
-// #include <gui/Font.h>               // For gui::Font
-// #include <gui/Window.h>             // For gui::Window (Base class)
-// #include <pub/List.h>               // For pub::List
-
-// #include "Active.h"                 // For Active
+#include "Active.h"                 // For Active
 #include "EdInps.h"                 // For EdInps (base class)
 
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
-// class EdFile;
-// class EdHist;
-// class EdLine;
-// class EdView;
+class EdFile;
+class EdLine;
+class EdView;
 
 //----------------------------------------------------------------------------
 //
@@ -59,28 +48,20 @@
 //
 //----------------------------------------------------------------------------
 class EdOuts : public EdInps {      // Editor text Window viewport
+//----------------------------------------------------------------------------
+// EdOuts::Constructor/destructor
+//----------------------------------------------------------------------------
 public:
-//----------------------------------------------------------------------------
-// EdOuts::Constructor
-//----------------------------------------------------------------------------
-#if 1
    EdOuts( void );                  // Constructor
-#else
-   EdOuts(                          // Constructor
-     Widget*           parent= nullptr, // Parent Widget
-     const char*       name= nullptr);
-#endif
 
-//----------------------------------------------------------------------------
-// EdOuts::Destructor
-//----------------------------------------------------------------------------
 virtual
    ~EdOuts( void );                 // Destructor
 
 //----------------------------------------------------------------------------
 //
 // Public method-
-//       EdOuts::activate
+//       EdOuts::activate(EdFile*)
+//       EdOuts::activate(EdLine*)
 //
 // Purpose-
 //       Set the current file
@@ -98,37 +79,25 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Public method-
-//       EdOuts::draw
-//       EdOuts::draw_cursor
-//       EdOuts::draw_line
-//       EdOuts::draw_history
-//       EdOuts::draw_message
-//       EdOuts::draw_status
-//       EdOuts::draw_top
+//       EdOuts::draw               Redraw everything
+//       EdOuts::draw_line          Draw a screen line
+//       EdOuts::draw_history       Draw the history line
+//       EdOuts::draw_message       Draw the message line
+//       EdOuts::draw_status        Draw the status line
+//       EdOuts::draw_top           Draw the top lines
+//       EdOuts::draw_text          Draw a screen line
 //
-// Purpose-
-//       Draw the entire screen, data and info
-//       Draw/clear the screen cursor character
-//       Draw one data line
-//       Draw the history line
-//       Draw the message line
-//       Draw the status line
-//       Draw the top lines
+//       EdOuts::move_cursor_H      Move the cursor horizontally
+//       EdOuts::move_screen_V      Move the screen vertically
 //
 //----------------------------------------------------------------------------
 virtual void
    draw( void );                    // Redraw the Window
 
 virtual void
-   draw_cursor(bool set= true);     // Set the character cursor
-
-virtual void
    draw_line(                       // Draw one data line
      unsigned          row,         // The (absolute) row number
      const EdLine*     line);       // The line to draw
-
-virtual void
-   draw_top( void );                // Redraw the top (heading) lines
 
 virtual void
    draw_history( void );            // Redraw the history line
@@ -138,6 +107,24 @@ virtual bool                        // Return code, TRUE if handled
 
 virtual void
    draw_status( void );             // Redraw the status line
+
+virtual void
+   draw_top( void );                // Redraw the top (heading) lines
+
+virtual void
+   draw_text(                       // Draw text line
+     GC_t              GC,          // The target graphic context
+     uint32_t          row,         // The (absolute) row number
+     const char*       text);       // Using this text
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+virtual int                         // Return code, 0 if draw performed
+   move_cursor_H(                   // Move cursor horizontally
+     size_t            column);     // The (absolute) column number
+
+virtual void
+   move_screen_V(                   // Move file lines vertically
+     int32_t           rows);       // The row count (down is positive)
 
 //----------------------------------------------------------------------------
 //
@@ -155,32 +142,6 @@ virtual const char*                 // The associated text
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdOuts::move_cursor_H
-//
-// Purpose-
-//       Move cursor horizontally
-//
-//----------------------------------------------------------------------------
-virtual int                         // Return code, 0 if draw performed
-   move_cursor_H(                   // Move cursor horizontally
-     size_t            column);     // The (absolute) column number
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdOuts::move_screen_V
-//
-// Purpose-
-//       Move screen vertically
-//
-//----------------------------------------------------------------------------
-virtual void
-   move_screen_V(                   // Move screen vertically
-     int               rows);       // The row count (down is positive)
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       EdOuts::resized
 //
 // Purpose-
@@ -189,36 +150,7 @@ virtual void
 //----------------------------------------------------------------------------
 virtual void
    resized(                         // Handle Window resized event
-     unsigned          x,           // New width
-     unsigned          y);          // New height
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdOuts::synch_active
-//
-// Purpose-
-//       Set the Active (cursor) line to the current row.
-//
-// Inputs-
-//       this->line= top screen line
-//       data->row   screen row
-//
-//----------------------------------------------------------------------------
-virtual void
-   synch_active( void );            // Set the Active (cursor) line
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdOuts::synch_file
-//
-// Purpose-
-//       Save the current state in the active file
-//
-//----------------------------------------------------------------------------
-virtual void
-   synch_file(                      // Synchronize the active file
-     EdFile*           file) const; // The active file, which is updated
+     uint32_t          width,       // New width  (May be columns or pixels)
+     uint32_t          height);     // New height (May be columns or pixels)
 }; // class EdOuts
 #endif // EDOUTS_H_INCLUDED

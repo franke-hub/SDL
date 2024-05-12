@@ -16,7 +16,7 @@
 //       Editor: history/message EdView
 //
 // Last change date-
-//       2024/04/11
+//       2024/04/22
 //
 //----------------------------------------------------------------------------
 #ifndef EDHIST_H_INCLUDED
@@ -47,12 +47,17 @@ public:
 pub::List<EdLine>      hist_list;   // History line list
 bool                   info_message= false; // Reset text after message?
 
+// (Copied) graphic contexts (Status line)
+GC_t                   gc_chg= 0;   // Graphic context: changed status line
+GC_t                   gc_sts= 0;   // Graphic context: normal status line
+
 //----------------------------------------------------------------------------
-// EdHist::Destructor/Constructor
+// EdHist::Constructor/Destructor
 //----------------------------------------------------------------------------
+   EdHist( void );                  // Default constructor
+
 virtual
    ~EdHist( void );                 // Destructor
-   EdHist( void );                  // Default constructor
 
 //----------------------------------------------------------------------------
 //
@@ -88,9 +93,13 @@ virtual GC_t                         // The current graphic context
 //       Activate the history view
 //
 //----------------------------------------------------------------------------
-virtual void
+void
    activate(                        // Activate the history view
-     const char*       text= nullptr); // Initial (immutable) text
+     const char*       text);       // Initial (immutable) text
+
+virtual void
+   activate( void )                 // Activate the history view
+{  activate(nullptr); }
 
 //----------------------------------------------------------------------------
 //
@@ -98,11 +107,12 @@ virtual void
 //       EdHist::commit
 //
 // Purpose-
-//       Commit the Active line     (Does nothing)
+//       Commit the Active line
 //
 //----------------------------------------------------------------------------
 virtual void
-   commit( void ) {}                // Commit the Active line
+   commit( void )                   // Commit the Active line
+{  }                                // (Does nothing)
 
 //----------------------------------------------------------------------------
 //

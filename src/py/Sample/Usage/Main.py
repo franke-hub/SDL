@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ##############################################################################
 ##
-##       Copyright (C) 2017 Frank Eskesen.
+##       Copyright (C) 2017-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the GNU General
 ##       Public License, version 3.0.
@@ -17,7 +17,7 @@
 ##       Command processor.
 ##
 ## Last change date-
-##       2017/01/01
+##       2024/05/02
 ##
 ##############################################################################
 from __future__ import print_function
@@ -43,7 +43,8 @@ if __name__ == "__main__":
         version = "Python3"
 
     try:
-        Debug(append=True)          ## Use append mode
+        if False:
+            Debug(append=True)      ## Use append mode
         debugf("%.3f Running: %s %s" % (time.time(), version, time.asctime()))
 
         file_list = [f for f in os.listdir('S/.') if os.path.isfile("S/"+f)]

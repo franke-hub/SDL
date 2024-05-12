@@ -88,8 +88,7 @@ static const char*                  // The widget name or "<nullptr>"
 //----------------------------------------------------------------------------
    Device::Device( void )           // Constructor
 :  Window(nullptr, "Device"), signal()
-{
-   if( opt_hcdm )
+{  if( opt_hcdm )
      debugh("Device(%p)::Device()\n", this);
 
    // Connect to the XCB server
@@ -143,8 +142,7 @@ static const char*                  // The widget name or "<nullptr>"
 //
 //----------------------------------------------------------------------------
    Device::~Device( void )          // Destructor
-{
-   if( opt_hcdm )
+{  if( opt_hcdm )
      debugh("Device(%p)::~Device()\n", this);
 
    // Clean up

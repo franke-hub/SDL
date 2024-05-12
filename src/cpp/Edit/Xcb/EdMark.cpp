@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2024/04/10
+//       2024/05/05
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -28,11 +28,11 @@
 #include <pub/Utf.h>                // For pub::Utf8::get_codes
 
 #include "Config.h"                 // For namespace config
+#include "EdData.h"                 // For EdData
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile, EdLine, EdRedo
 #include "EdMark.h"                 // For EdMark (Implementation class)
-#include "EdOuts.h"                 // For EdOuts
-#include "EdView.h"                 // For EdView
+#include "EdUnit.h"                 // For EdUnit
 
 using namespace pub::debugging;     // For debugging
 using pub::Trace;                   // For pub::Trace
@@ -215,25 +215,25 @@ void
    EdMark::debug(                   // Debugging display
      const char*       info) const  // Associated info
 {
-   debugf("EdMark::debug(%s)\n", info ? info : "");
+   traceh("EdMark::debug(%s)\n", info ? info : "");
 
-   debugf("..mark_file.name(%s)\n", mark_file ? mark_file->name.c_str() : "");
-   debugf("..mark_file(%p) [%p,%p,%p] [%zd,%zd,%zd]\n", mark_file
+   traceh("..mark_file.name(%s)\n", mark_file ? mark_file->name.c_str() : "");
+   traceh("..mark_file(%p) [%p,%p,%p] [%zd,%zd,%zd]\n", mark_file
          , mark_head, mark_line, mark_tail
          , mark_lh, mark_col, mark_rh);
    size_t row= 0;
    for(EdLine* line= mark_head; line; line= line->get_next() ) {
-     debugf("..[%2zd] ", row++); line->debug();
+     traceh("..[%2zd] ", row++); line->debug();
      if( line == mark_tail )
        break;
    }
-   debugf("..copy_file.name(%s)\n", copy_file ? copy_file->name.c_str() : "");
-   debugf("..copy_file(%p) [%p,%p,%zd] [%zd,%zd,%zd]\n", copy_file
+   traceh("..copy_file.name(%s)\n", copy_file ? copy_file->name.c_str() : "");
+   traceh("..copy_file(%p) [%p,%p,%zd] [%zd,%zd,%zd]\n", copy_file
          , copy_list.get_head(), copy_list.get_tail(), copy_rows
          , copy_lh, copy_col, copy_rh);
    row= 0;
    for(EdLine* line= copy_list.get_head(); line; line= line->get_next() ) {
-     debugf("..[%2zd] ", row++); line->debug(); // (Multi-statement)
+     traceh("..[%2zd] ", row++); line->debug(); // (Multi-statement)
    }
 }
 
@@ -329,8 +329,8 @@ const char*                         // Error message, nullptr expected
          line->text= editor::allocate(text);
        if( from == editor::data->cursor) // If modifying the cursor line
          repC= line;                // (Replace it after insertion)
-       if( from == editor::outs->head ) // If modifying the head screen line
-         editor::outs->head= line;  // (Replace it now)
+       if( from == editor::unit->head ) // If modifying the head screen line
+         editor::unit->head= line;  // (Replace it now)
        if( line == copy.tail )
          break;
        from= from->get_next();
@@ -349,10 +349,10 @@ const char*                         // Error message, nullptr expected
      if( mark_file->csr_line->flags & EdLine::F_MARK )
        mark_file->activate(mark_head->get_prev());
      else {
-       EdLine* head= editor::outs->head; // (The top screen data line)
+       EdLine* head= editor::unit->head; // (The top screen data line)
        for(EdLine* line= mark_head; line; line= line->get_next()) {
          if( line == head ) {
-           editor::outs->head= mark_head->get_prev();
+           editor::unit->head= mark_head->get_prev();
            break;
          }
          if( line == mark_tail )
@@ -482,7 +482,7 @@ const char*                         // Error message, nullptr expected
 
    edFile->redo_insert(redo);
    edFile->activate(prev);
-   editor::outs->draw();
+   editor::unit->draw();
 
    // Raise ChangeEvent signal
    ChangeEvent event= {edFile, redo};
@@ -765,7 +765,7 @@ const char*                         // Error message, nullptr expected
      edFile->redo_insert(redo);
 
      // Update the replacement text
-     Active& F= *editor::actalt;    // Copy from work area
+     Active& F= *editor::altact;    // Copy from work area
      Active& I= *editor::active;    // Copy into work area
      EdLine* line= copy.head;       // The current copy from line
      for(;;) {

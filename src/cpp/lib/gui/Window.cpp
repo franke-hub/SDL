@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement gui/Window.h and gui/Pixmap.h
 //
 // Last change date-
-//       2024/03/31
+//       2024/04/22
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -42,6 +42,9 @@ using namespace pub::debugging;     // For debugging
 //----------------------------------------------------------------------------
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+
+,  USE_IOTRACE= true                // Use (extended) I/O debugh?
 ,  USE_BRINGUP= false               // Use bringup options?
 }; // Compilation controls
 
@@ -63,14 +66,14 @@ static void
      xcb_generic_error_t* xc)       // Generic error
 {
    if( xc ) {
-     debugh("%4d %s EC(%d)= %s()\n", line, file, xc->error_code, name);
+     debugh("xcbcheck(%s) %s:%d EC(%d)\n", name, file, line, xc->error_code);
      xcberror(xc);
 
-     debugh("%4d %s::%s CHECKSTOP\n", line, file, name);
+     debugh("xcbcheck(%s) %s:%d CHECKSTOP\n", name, file, line);
      debug_flush();
      exit(2);
-   } else if( opt_hcdm && opt_verbose > 1 ) {
-     debugh("%4d %s::%s()\n", line, file, name);
+   } else if( USE_IOTRACE && opt_hcdm && opt_verbose > 1 ) {
+     debugh("xcbcheck(%s) %s:%d OK\n", name, file, line);
    }
 }
 
@@ -87,8 +90,7 @@ static void
      Widget*           parent,      // Our parent Widget
      const char*       name)        // The Pixmap's name
 :  Layout(parent, name ? name : "Pixmap"), device(nullptr)
-{
-   if( opt_hcdm )
+{  if( opt_hcdm )
      debugh("Pixmap(%p)::Pixmap(%p,%s)\n", this, parent
            , parent ? parent->get_name().c_str() : "?");
 }
@@ -103,8 +105,7 @@ static void
 //
 //----------------------------------------------------------------------------
    Pixmap::~Pixmap( void )          // Destructor
-{
-   if( opt_hcdm )
+{  if( opt_hcdm )
      debugh("Pixmap(%p)::~Pixmap()\n", this);
 
    // Free the pixmap
@@ -272,9 +273,9 @@ void
      const char*       file,        // Source file name
      const char*       name,        // Operation name
      xcb_void_cookie_t op)          // Operation cookie
-{
-   if( opt_hcdm && opt_verbose > 0 )
-     traceh("Pixmap(%p)::enqueue(%s)\n", this, name);
+{  if( USE_IOTRACE && opt_hcdm && opt_verbose > 0 )
+     traceh("Pixmap(%p)::enqueue(%s) %s:%d [%d]\n", this
+           , name, file, line, penduse);
 
    if( penduse >= DIM_PENDING ) {
      debugf("%4d HCDM Window.cpp UNEXPECTED QUEUE FULL EVENT\n", __LINE__);
@@ -283,7 +284,7 @@ void
 
    Pending& pending= this->pending[penduse++];
    pending.opname= name;
-   pending.opname= file;
+   pending.opfile= file;
    pending.opline= line;
    pending.op=     op;
 }
@@ -295,10 +296,11 @@ void                                // Response handled in reply loop
      const char*       file,        // Source file name
      const char*       name,        // Operation name
      xcb_void_cookie_t op)          // Operation cookie
-{
+{  if( USE_IOTRACE && opt_hcdm && opt_verbose > 0 )
+     traceh("Pixmap(%p)::noqueue(%s) %s:%d [%d]\n", this
+           , name, file, line, penduse);
+
    (void)op;                        // Unused parameter
-   if( opt_hcdm && opt_verbose > 0 )
-     traceh("Pixmap(%p)::noqueue %4d %s(%p)\n", this, line, file, name);
 }
 
 //----------------------------------------------------------------------------
@@ -341,7 +343,12 @@ void
      const char*       file,        // Source file name
      const char*       name,        // The operation name
      xcb_void_cookie_t op)          // The synchronous operation (cookie)
-{  xcbcheck(line, file, name, xcb_request_check(c, op)); }
+{  if( USE_IOTRACE && opt_hcdm && opt_verbose > 0 )
+     traceh("Pixmap(%p)::synchronously(%s) %s:%d [%d]\n", this
+           , name, file, line, penduse);
+
+   xcbcheck(line, file, name, xcb_request_check(c, op));
+}
 
 void
    Pixmap::synchronously(           // Synchronous XCB operation
@@ -361,10 +368,9 @@ void
      Widget*           parent,      // Our parent Widget
      const char*       name)        // The Window's name
 :  Pixmap(parent, name ? name : "Window")
-{
-   if( opt_hcdm )
-     debugh("Window(%p)::Window(%p,%s)\n", this, parent
-           , parent ? parent->get_name().c_str() : "?");
+{  if( opt_hcdm )
+     debugh("Window(%p,%s)::Window(%p,%s)\n", this, get_name().c_str()
+           , parent , parent ? parent->get_name().c_str() : "?");
 }
 
 //----------------------------------------------------------------------------
@@ -377,9 +383,8 @@ void
 //
 //----------------------------------------------------------------------------
    Window::~Window( void )          // Destructor
-{
-   if( opt_hcdm )
-     debugh("Window(%p)::~Window()\n", this);
+{  if( opt_hcdm )
+     debugh("Window(%p,%s)::~Window()\n", this, get_name().c_str());
 
    // Destroy the window
    if( widget_id ) {

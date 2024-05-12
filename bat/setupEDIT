@@ -16,7 +16,7 @@
 ##       Set up EDITOR environment variable (heuristic.)
 ##
 ## Last change date-
-##       2024/02/01
+##       2024/05/09
 ##
 ## Usage-
 ##       . setupEDIT
@@ -33,6 +33,6 @@ if [[ -z "$EDITOR" ]] ; then        ## If not already specified
   if [[ -n "$DISPLAY" ]] ; then     ## If we have a DISPLAY
     export EDITOR="$HOME/bin/editxcb" ## Use XCB editor
   else                              ## No Display
-    export EDITOR="$HOME/bin/editor" ## Use ncurses editor
+    export EDITOR="$HOME/bin/editerm" ## Use ncurses editor
   fi
 fi

@@ -10,19 +10,19 @@
 !!============================================================================
 !!
 !! Last change date-
-!!       2024/03/16
+!!       2024/05/11
 !!
 !!============================================================================
 !! Resources for XTERM
 !!============================================================================
-xterm*background:                      Ivory
-xterm*foreground:                      Black
-xterm*fontWarnings:                    0
-xterm*scrollBar:                       true
-xterm*savelines:                       1000
-xterm*toolBar:                         false
+xterm*background:      Ivory
+xterm*foreground:      Black
+xterm*fontWarnings:    0
+xterm*scrollBar:       false
+xterm*savelines:       1000
+xterm*toolBar:         false
 
 xterm*utf8: 1
-xterm*eightBitInput: false
+xterm*eightBitInput:   false
 xterm*eightBitControl: false
-xterm*eightBitOutput: true
+xterm*eightBitOutput:  true

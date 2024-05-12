@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2024/04/06
+//       2024/05/07
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -26,11 +26,12 @@
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 
 #include "Config.h"                 // For namespace config
+#include "EdData.h"                 // For EdData
 #include "Editor.h"                 // For Editor Globals
 #include "EdFile.h"                 // For EdFile, EdLine
 #include "EdHist.h"                 // For EdHist
 #include "EdMark.h"                 // For EdMark
-#include "EdOuts.h"                 // For EdOuts
+#include "EdUnit.h"                 // For EdUnit
 
 using namespace pub::debugging;     // For debugging
 using namespace config;             // For opt_* controls
@@ -179,6 +180,7 @@ static const Command_desc  command_desc[]= // The Command descriptor list
 ,  {nullptr,         "",          nullptr} // Command aliases follow
 ,  {command_insert,  "INCLUDE",   nullptr} // (INSERT)
 ,  {command_margins, "MARGIN",    nullptr} // (MARGINS)
+,  {command_save,    "SAFE",      nullptr} // (SAVE)
 ,  {command_save,    "SAE",       nullptr} // (SAVE)
 ,  {command_save,    "SAV",       nullptr} // (SAVE)
 ,  {command_save,    "SAVAE",     nullptr} // (SAVE)
@@ -285,9 +287,9 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_bot(char*)               // Bottom command
 {
-   using namespace editor;          // For editor::(data, hist, outs)
+   using namespace editor;          // For editor::(data, hist, unit)
    data->col_zero= data->col= 0;
-   outs->activate(file->line_list.get_tail());
+   unit->activate(file->line_list.get_tail());
    hist->activate();                // (Remain in command mode)
    return nullptr;
 }
@@ -359,7 +361,7 @@ static const char*                  // Error message, nullptr expected
    // If a blank line was truncated, undo is no longer possible
    if( changed ) {                  // If we changed a line
      file->chglock= true;           // Indicate file changed, undo impossible
-     editor::outs->draw_top();      // Re-draw top lines, indicating changed
+     editor::unit->draw_top();      // Re-draw top lines, indicating changed
    }
 
    return nullptr;
@@ -375,14 +377,12 @@ static const char*                  // Error message, nullptr expected
      Editor::debug("command");
    else if( strcasecmp(parm, "file") == 0 )
      editor::file->debug("command");
-   else if( strcasecmp(parm, "font") == 0 )
-     editor::font->debug("command");
    else if( strcasecmp(parm, "lines") == 0 )
      editor::file->debug("lines");
    else if( strcasecmp(parm, "mark") == 0 )
      editor::mark->debug("command");
-   else if( strcasecmp(parm, "outs") == 0 )
-     editor::outs->debug("command");
+   else if( strcasecmp(parm, "unit") == 0 )
+     editor::unit->debug("command");
    else if( strcasecmp(parm, "view") == 0 ) {
      editor::data->debug("command");
      editor::hist->debug("command");
@@ -408,7 +408,7 @@ static const char*                  // Error message, nullptr expected
    }
 
    if( editor::file != editor::last )
-     editor::outs->activate(editor::last);
+     editor::unit->activate(editor::last);
    editor::hist->activate();
 
    return nullptr;
@@ -500,7 +500,7 @@ static const char*                  // Error message, nullptr expected
      char*             file_name)   // The file name to insert
 {
    EdFile* file= editor::file;
-   EdView* data= editor::data;
+   EdData* data= editor::data;
 
    if( file->protect )
      return "Read/only";
@@ -544,7 +544,7 @@ static const char*                  // Error message, nullptr expected
    // Update the file state
    data->col_zero= data->col= 0;
    file->activate(head);            // Activate the first inserted line
-   editor::outs->draw();            // And redraw
+   editor::unit->draw();            // And redraw
 
    return nullptr;
 }
@@ -582,8 +582,8 @@ static const char*                  // Error message, nullptr expected
      return message;
 
    editor::data->activate();
-   editor::outs->move_cursor_H(0);
-   editor::outs->activate(editor::file->get_line(line_number));
+   editor::unit->move_cursor_H(0);
+   editor::unit->activate(editor::file->get_line(line_number));
 
    return nullptr;
 }
@@ -772,9 +772,9 @@ static const char*                  // Error message, nullptr expected
 static const char*                  // Error message, nullptr expected
    command_top(char*)               // Top command
 {
-   using namespace editor;          // For editor::(data, hist, outs)
+   using namespace editor;          // For editor::(data, hist, unit)
    data->col_zero= data->col= 0;
-   outs->activate(file->line_list.get_head());
+   unit->activate(file->line_list.get_head());
    hist->activate();                // (Remain in command mode)
    return nullptr;
 }
@@ -785,7 +785,7 @@ static const char*                  // Error message, nullptr expected
 {
    if( editor::data->active.undo() ) {
      editor::data->draw_active();
-     editor::outs->draw_top();
+     editor::unit->draw_top();
    } else
      editor::file->undo();
    return nullptr;
@@ -806,7 +806,7 @@ static const char*                  // Error message, nullptr expected
    }
 
    if( editor::file != editor::last )
-     editor::outs->activate(editor::last);
+     editor::unit->activate(editor::last);
    editor::hist->activate();
 
    return nullptr;
@@ -829,7 +829,7 @@ const char*                         // Error message, nullptr if none
    editor::command(                 // Process a command
      char*             buffer)      // (MODIFIABLE) command line buffer
 {  if( HCDM || opt_hcdm )
-     debugf("editor::command(%s)\n", buffer);
+     traceh("editor::command(%s)\n", buffer);
 
    data->commit();                  // All commands commit the active line
 

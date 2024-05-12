@@ -13,10 +13,10 @@
 //       EdInps.cpp
 //
 // Purpose-
-//       Editor: Input/output server (See EdOuts.h)
+//       Editor: Implement EdInps.h: Terminal keyboard and mouse handlers.
 //
 // Last change date-
-//       2024/04/11
+//       2024/05/07
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -27,6 +27,7 @@
 
 #include <gui/Device.h>             // For gui::Device
 #include <gui/Font.h>               // For gui::Font
+#include <gui/Global.h>             // For gui::opt_* controls
 #include <gui/Keysym.h>             // For X11/keysymdef
 #include <gui/Types.h>              // For gui::DEV_EVENT_MASK
 #include <gui/Window.h>             // For gui::Window
@@ -38,11 +39,13 @@
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For Config, namespace config
+#include "EdData.h"                 // For EdData
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile
 #include "EdHist.h"                 // For EdHist
 #include "EdInps.h"                 // For EdInps, implemented
 #include "EdMark.h"                 // For EdMark
+#include "EdOuts.h"                 // For EdOuts, subclass
 
 using namespace config;             // For config::opt_*, ...
 using namespace pub::debugging;     // For debugging
@@ -61,7 +64,38 @@ enum // Compilation controls
 
 ,  KP_MAX= 0xffbf                   // Keypad maximum key value
 ,  KP_MIN= 0xff80                   // Keypad minimum key value
+
+,  USE_GRAB_MOUSE= true             // When starting, position the mouse
 }; // Compilation controls
+
+enum // Key definitions
+{  KEY_ESC= '\x1B'                  // ESCape key
+,  KEY_TAB= '\t'                    // TAB key
+}; // Key definitions
+
+//----------------------------------------------------------------------------
+// Imports
+//----------------------------------------------------------------------------
+enum // Imported
+{  KS_ALT= EdUnit::KS_ALT
+,  KS_CTL= EdUnit::KS_CTL
+}; // Imported
+
+//----------------------------------------------------------------------------
+// External data areas
+//----------------------------------------------------------------------------
+const char*            EdUnit::EDITOR= "editxcb";
+const char*            EdUnit::DEFAULT_CONFIG=
+   "[Program]\n"
+   "URL=https://github.com/franke-hub/SDL/tree/trunk/src/cpp/Edit/Xcb\n"
+   "Exec=Edit ; Edit in read-write mode\n"
+   "Exec=View ; Edit in read-only mode\n"
+   "Purpose=XCB based text editor\n"
+   "Version=1.1.0\n"
+   "\n"
+   "[Options]\n"
+   ";; (Defaulted) See sample: ~/src/cpp/Edit/Xcb/.SAMPLE/Edit.conf\n"
+   ;
 
 //----------------------------------------------------------------------------
 // Keypad conversion table (Dependent upon /usr/include/X11/keysymdef.h)
@@ -119,7 +153,7 @@ static const char*                  // The name of the key
    static char buffer[16];          // (Static) return buffer
    static const char* F_KEY= "123456789ABCDEF";
 
-   if( key >= 0x0020 && key <= 0x007f ) { // If text key (but not TAB or ESC)
+   if( key >= 0x0020 && key <= 0x007f ) { // If text key
      buffer[0]= char(key);
      buffer[1]= '\0';
      return buffer;
@@ -224,10 +258,15 @@ static const char*                  // The name of the key
 //----------------------------------------------------------------------------
 static bool
    is_text_key(                     // Is key a text key?
-     xcb_keysym_t      key)         // Input key
+     xcb_keysym_t      key,         // Input key
+     int               state)       // ESC + Alt/Ctl/Shift state mask
 {
-   if( (key >= 0x0020 && key < 0x007F) // If standard text key
-       || key == '\b' || key == '\t' || key == '\x1B' ) // or escaped key
+   if( state & EdUnit::KS_ESC ) {   // If escape mode
+     if( key == '\b' || key == '\t' || key == KEY_ESC )
+       return true;
+   }
+
+   if( key >= 0x0020 && key < 0x007F ) // If standard text key
      return true;
 
    return false;
@@ -241,39 +280,42 @@ static bool
 // Purpose-
 //       Determine whether a keypress is allowed for a protected line.
 //
+// Implementation notes-
+//       Copy and move operations have additional protections
+//
 //----------------------------------------------------------------------------
 static int                          // Return code, TRUE if error message
    is_protected_key(                // Is keypress protected
      xcb_keysym_t      key,         // Input key
-     int               state)       // Alt/Ctl/Shift state mask
+     int               state)       // ESC + Alt/Ctl/Shift state mask
 {
-   if( is_text_key(key) ) {         // If text key
-     int mask= state & (gui::KS_ALT | gui::KS_CTRL);
+   if( is_text_key(key, state) ) {  // If text key
+     int mask= state & (KS_ALT | KS_CTL);
 
      if( mask ) {
        key= toupper(key);
-       if( mask == gui::KS_ALT ) {
-         switch(key) {                // Allowed keys:
-           case 'C':                  // COPY MARK
-           case 'D':                  // DELETE MARK
-           case 'I':                  // INSERT
-           case 'M':                  // MOVE MARK
-           case 'Q':                  // QUIT
-           case 'U':                  // UNDO MARK
+       if( mask == KS_ALT ) {
+         switch(key) {              // Allowed keys:
+           case 'C':                // COPY MARK
+           case 'D':                // DELETE MARK
+           case 'I':                // INSERT
+           case 'M':                // MOVE MARK
+           case 'Q':                // QUIT (safe)
+           case 'U':                // UNDO MARK
              return false;
 
            default:
              break;
          }
-       } else if( mask == gui::KS_CTRL ) {
-         switch(key) {                // Allowed keys:
-           case 'C':                  // COPY MARK
-           case 'Q':                  // QUIT (safe)
-           case 'S':                  // SAVE
-           case 'V':                  // PASTE COPY
-           case 'X':                  // CUT MARK
-           case 'Y':                  // REDO
-           case 'Z':                  // UNDO
+       } else if( mask == KS_CTL ) {
+         switch(key) {              // Allowed keys:
+           case 'C':                // STASH MARK
+           case 'Q':                // QUIT (safe)
+           case 'S':                // SAVE
+           case 'V':                // PASTE STASH
+           case 'X':                // CUT and STASH MARK
+           case 'Y':                // REDO
+           case 'Z':                // UNDO
              return false;
 
            default:
@@ -281,11 +323,12 @@ static int                          // Return code, TRUE if error message
          }
        }
      }
-   } else {
+   } else {                         // If action key
      switch( key ) {                // Check for disallowed keys
-       case 0x007F:                 // (DEL KEY, should not occur)
-       case XK_BackSpace:
-       case XK_Delete:
+//     case '\b':                   // (Backspace, does not occur
+       case XK_BackSpace:           // (Backspace)
+       case 0x007F:                 // (DELete encoding)
+       case XK_Delete:              // (Delete)
          break;
 
        default:                     // All others allowed
@@ -300,6 +343,40 @@ static int                          // Return code, TRUE if error message
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdUnit::Init::initialize
+//       EdUnit::Init::terminate
+//       EdUnit::Init::at_exit
+//
+// Purpose-
+//       Initialize the EdUnit
+//       Terminate  the EdUnit
+//       Termination handler
+//
+//----------------------------------------------------------------------------
+EdUnit*                             // The EdUnit
+   EdUnit::Init::initialize( void ) // Initialize an EdUnit
+{
+   gui::Device* device= new gui::Device(); // The associated gui::Device
+   return new EdOuts(device, "EdUnit"); // The associated EdUnit
+}
+
+void
+   EdUnit::Init::terminate(         // Terminate
+     EdUnit*           unit)        // This EdUnit
+{
+   EdOuts*      outs=   static_cast<EdOuts*>(unit);
+   gui::Device* device= static_cast<gui::Device*>(outs->get_parent());
+   delete unit;                     // Delete the EdUnit
+   delete device;                   // Then, delete the Device
+}
+
+void
+   EdUnit::Init::at_exit( void )    // (Idempotent) termination handler
+{  } // NOT NEEDED
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdInps::EdInps
 //
 // Purpose-
@@ -309,44 +386,18 @@ static int                          // Return code, TRUE if error message
    EdInps::EdInps(                  // Constructor
      Widget*           parent,      // Parent Widget
      const char*       name)        // Widget name
-:  Window(parent, name ? name : "EdInps")
-,  font(*editor::font)
+:  EdUnit(), Window(parent, name ? name : "EdInps")
 {
    if( opt_hcdm )
      debugh("EdInps(%p)::EdInps\n", this);
 
-   // Handle EdMark::ChangeEvent (lambda function)
-   // (Implement in EdOuts.cpp)
+   // Set GUI (static) debugging control options
+   gui::opt_hcdm= opt_hcdm;
+   gui::opt_verbose= opt_verbose;
 
-   // Basic window colors
-   bg= config::text_bg;
-   fg= config::text_fg;
-
-   // Layout
-   col_size= config::geom.width;
-   row_size= config::geom.height;
-   unsigned mini_c= MINI_C;
-   unsigned mini_r= MINI_R;
-   if( mini_c > col_size ) mini_c= col_size;
-   if( mini_r > row_size ) mini_r= row_size;
-   min_size= { gui::WH_t(mini_c   * font.length.width  + 2)
-             , gui::WH_t(mini_r   * font.length.height + 2) };
-   use_size= { gui::WH_t(col_size * font.length.width  + 2)
-             , gui::WH_t(row_size * font.length.height + 2) };
-   use_unit= { gui::WH_t(font.length.width), gui::WH_t(font.length.height) };
-
-   // Set window event mask
-   emask= XCB_EVENT_MASK_KEY_PRESS
-//      | XCB_EVENT_MASK_KEY_RELEASE
-        | XCB_EVENT_MASK_BUTTON_PRESS
-        | XCB_EVENT_MASK_POINTER_MOTION
-        | XCB_EVENT_MASK_BUTTON_MOTION
-        | XCB_EVENT_MASK_EXPOSURE
-        | XCB_EVENT_MASK_STRUCTURE_NOTIFY
-//      | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY
-        | XCB_EVENT_MASK_FOCUS_CHANGE
-//      | XCB_EVENT_MASK_PROPERTY_CHANGE
-        ;
+   // Allocate GUI units
+   gui::Device* device= static_cast<gui::Device*>(get_parent());
+   font=   new gui::Font(device);
 }
 
 //----------------------------------------------------------------------------
@@ -355,24 +406,42 @@ static int                          // Return code, TRUE if error message
 //       EdInps::~EdInps
 //
 // Purpose-
-//       Constructor
+//       Destructor
+//
+// Implementation notes-
+//       Graphic contexts, editor::data/hist/mark created in method start
 //
 //----------------------------------------------------------------------------
    EdInps::~EdInps( void )          // Destructor
-{
-   if( opt_hcdm )
-     debugh("EdInps(%p)::~EdInps\n", this);
+{  if( opt_hcdm ) debugh("EdInps(%p)::~EdInps\n", this);
 
-   if( flipGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, flipGC) );
-   if( fontGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, fontGC) );
-   if( markGC ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, markGC) );
-   if( bg_chg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, bg_chg) );
-   if( bg_sts ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, bg_sts) );
-   if( gc_chg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_chg) );
-   if( gc_msg ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_msg) );
-   if( gc_sts ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_sts) );
-
+   // Delete Graphic Contexts
+   if( gc_flip ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_flip) );
+   if( gc_font ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_font) );
+   if( gc_mark ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_mark) );
+   if( bg_chg  ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, bg_chg ) );
+   if( bg_sts  ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, bg_sts ) );
+   if( gc_chg  ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_chg ) );
+   if( gc_msg  ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_msg ) );
+   if( gc_sts  ) ENQUEUE("xcb_free_gc", xcb_free_gc_checked(c, gc_sts ) );
    flush();
+
+   // Delete controlled objects
+   delete editor::data;
+   delete editor::hist;
+   delete editor::mark;
+
+   editor::data= nullptr;
+   editor::hist= nullptr;
+   editor::mark= nullptr;
+   editor::view= nullptr;
+
+   // Delete GUI objects
+   // This (EdUnit derived) object must be deleted before device deletion.
+   // (That's why static methods EdUnit::Init::initialize/terminate exist.)
+   // EdUnit::Init::terminate deletes this object, then the device.
+   delete font;                     // (No reason not to delete the font now)
+   font= nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -388,19 +457,111 @@ void
    EdInps::debug(                   // Debugging display
      const char*       info) const  // Associated info
 {
-   debugf("EdOuts(%p)::debug(%s) Named(%s)\n", this, info ? info : ""
+   debugf("EdInps(%p)::debug(%s) Named(%s)\n", this, info ? info : ""
          , get_name().c_str());
 
    debugf("..head(%p) tail(%p) col_size(%u) row_size(%u) row_used(%u)\n"
          , head, tail, col_size, row_size, row_used);
    debugf("..motion(%d,%d,%d,%d)\n", motion.state, motion.time
          , motion.x, motion.y);
-   debugf("..fontGC(%u) flipGC(%u) markGC(%u)\n", fontGC, flipGC, markGC);
+   debugf("..gc_font(%u) gc_flip(%u) gc_mark(%u)\n", gc_font, gc_flip, gc_mark);
    debugf("..gc_chg(%u) gc_msg(%u) gc_sts(%u)\n"
          , gc_chg, gc_msg, gc_sts);
    debugf("..protocol(%u) wm_close(%u)\n", protocol, wm_close);
    Window::debug(info);
+   debugf("\n..font:\n");
+   font->debug(info);
 }
+
+//----------------------------------------------------------------------------
+//
+// Pseudo-thread methods-
+//       EdInps::start
+//       EdInps::stop
+//       EdInps::join
+//
+// Purpose-
+//       Start the editor
+//       Stop the editor
+//       Wait for editor completion
+//
+// Purpose-
+//       Thread simulation methods
+//
+//----------------------------------------------------------------------------
+void
+   EdInps::start( void )
+{  if( opt_hcdm ) debugh("EdInps(%p)::start\n", this);
+
+   // Initialize the configuration
+   gui::Device* device= static_cast<gui::Device*>(get_parent());
+   // device->insert(this);
+   device->configure();             // Configure the gui::Window
+
+   // Create the graphic contexts
+   gc_font= font->makeGC(fg, bg);   // (The default)
+   gc_flip= font->makeGC(bg, fg);   // (Inverted)
+   gc_mark= font->makeGC(mark_fg,    mark_bg);
+   bg_chg=  font->makeGC(change_bg,  change_bg);
+   bg_sts=  font->makeGC(status_bg,  status_bg);
+   gc_chg=  font->makeGC(change_fg,  change_bg);
+   gc_msg=  font->makeGC(message_fg, message_bg);
+   gc_sts=  font->makeGC(status_fg,  status_bg);
+
+   // EdData and EdHist require initialized graphic contexts.
+   // That doesn't happen until the gui::Window is configured.
+   EdData* data= new EdData();      // Data view
+   EdHist* hist= new EdHist();      // History view
+   EdMark* mark= new EdMark();      // Mark handler
+
+   editor::data= data;
+   editor::hist= hist;
+   editor::mark= mark;
+   editor::view= hist;              // (Initial view)
+
+   // Configure views
+   data->gc_flip= gc_flip;
+   data->gc_font= gc_font;
+   data->gc_mark= gc_mark;
+
+   hist->gc_chg=  gc_chg;
+   hist->gc_sts=  gc_sts;
+
+   // Set initial file
+   activate(editor::file_list.get_head());
+
+   // Start the Device
+   device->draw();
+   show();                          // (move_window fails unless visible)
+   if( geom.x || geom.y )           // If position specified
+     move_window(geom.x, geom.y);
+
+#ifdef _OS_CYGWIN // - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Grabbing the mouse is not a recommeded practice, but when using Cygwin
+   // leaving the mouse outside the window and hitting escape multiple times
+   // (because it's not working) locks the terminal. It only unlocks after
+   // control-C (or multiple control-C's) and about a 5 second delay.
+   // This has become quite annoying, grabbing the mouse helps (but doesn't
+   // eliminate) the problem.
+   if( USE_GRAB_MOUSE )             // (Optionally)
+     grab_mouse();                  // Position the mouse inside the window
+#endif //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+   flush();
+   device->run();                   // Run the polling loop
+}
+
+void
+   EdInps::stop( void )
+{  if( opt_hcdm ) debugh("EdInps(%p)::stop\n", this);
+
+   gui::Device* device= static_cast<gui::Device*>(get_parent());
+   device->operational= false;
+}
+
+void
+   EdInps::join( void )
+{  if( opt_hcdm ) debugh("EdInps(%p)::join\n", this); }
 
 //----------------------------------------------------------------------------
 //
@@ -415,78 +576,49 @@ void
    EdInps::key_alt(                 // Handle this
      xcb_keysym_t      key)         // Alt_Key input event
 {
-   EdView* const data= editor::data;
-   EdFile* const file= editor::file;
-   EdMark* const mark= editor::mark;
-
    switch(key) {                    // ALT-
      case 'B': {                    // Mark block
-       editor::put_message(mark->mark(file, data->cursor, data->get_column()));
-       draw();
+       op_mark_block();
        break;
      }
      case 'C': {                    // Copy the mark
-       const char* error= mark->verify_copy(data->cursor);
-       if( error ) {
-         editor::put_message(error);
-         break;
-       }
-
-       mark->copy();
-       mark->paste(file, data->cursor, data->get_column());
-       draw();
+       op_mark_copy();
        break;
      }
      case 'D': {                    // Delete the mark
-       editor::put_message( mark->cut() );
-       draw();
+       op_mark_delete();
        break;
      }
      case 'J': {                    // Join lines
-       editor::put_message( editor::do_join() ); // Join current/next lines
+       op_join_line();
        break;
      }
      case 'I': {                    // Insert line
-       editor::put_message( editor::do_insert() ); // Insert line after cursor
+       op_insert_line();
        break;
      }
      case 'L': {                    // Mark line
-       editor::put_message( mark->mark(file, data->cursor) );
-       draw();
+       op_mark_line();
        break;
      }
      case 'M': {                    // Move mark (Uses cut/paste)
-       const char* error= mark->verify_move(data->cursor);
-       if( error ) {
-         editor::put_message(error);
-         break;
-       }
-
-       editor::put_message( mark->cut() );
-       mark->paste(file, data->cursor, data->get_column());
-       draw();
+       op_mark_move();
        break;
      }
      case 'P': {                    // Format paragraph
-       data->commit();
-       editor::put_message( mark->format() ); // Format the paragraph
+       op_mark_format();
        break;
      }
      case 'S': {                    // Split line
-       editor::put_message( editor::do_split() ); // Split the current line
+       op_split_line();
        break;
      }
      case 'U': {                    // Undo mark
-       EdFile* mark_file= mark->mark_file;
-       mark->undo();
-       if( file == mark_file )
-         draw();
-       else
-         draw_top();                // (Remove "No Mark" message)
+       op_mark_undo();
        break;
      }
      case '\\': {                   // Escape
-       keystate |= KS_ESC;
+       key_state |= KS_ESC;
        break;
      }
      default:
@@ -507,116 +639,40 @@ void
    EdInps::key_ctl(                 // Handle this
      xcb_keysym_t      key)         // Ctrl_Key input event
 {
-   EdView* const data= editor::data;
-   EdFile* const file= editor::file;
-   EdMark* const mark= editor::mark;
-
    switch(key) {                    // CTRL-
-     case 'C': {                    // Copy the mark
-       editor::put_message( mark->copy() );
+     case 'C': {                    // Copy the mark into the stash
+       op_mark_stash();
        break;
      }
      case 'Q': {                    // Quit
-       editor::put_message( editor::do_quit() );
+       op_safe_quit();
        break;
      }
      case 'S': {                    // Save
-       data->commit();
-       const char* error= editor::write_file(nullptr);
-       if( error )
-         editor::put_message(error);
-       else
-         draw_top();
+       op_save();
        break;
      }
-     case 'V': {                    // Paste (from copy/cut)
-       data->commit();
-       const char* error= mark->paste(file, data->cursor, data->get_column());
-       if( error )
-         editor::put_message(error);
-       else
-         draw();
+     case 'V': {                    // Paste (the stash)
+       op_mark_paste();
        break;
      }
      case 'X': {                    // Cut the mark
-       editor::put_message( mark->cut() );
-       draw();
+       op_mark_cut();
        break;
      }
      case 'Y': {                    // REDO
-       data->commit();
-       file->redo();
+       op_redo();
        break;
      }
      case 'Z': {                    // UNDO
-       if( data->active.undo() ) {
-         data->draw_active();
-         draw_top();
-       } else
-         file->undo();
+       op_undo();
        break;
      }
      default:
-       editor::put_message("Invalid key");
+       op_key_dead();
    }
 }
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdInps::putxy
-//
-// Purpose-
-//       Draw text at [left,top] point
-//
-//----------------------------------------------------------------------------
-void
-   EdInps::putxy(                   // Draw text
-     xcb_gcontext_t    fontGC,      // The target graphic context
-     unsigned          left,        // Left (X) offset
-     unsigned          top,         // Top  (Y) offset
-     const char*       text)        // Using this text
-{  if( opt_hcdm && opt_verbose > 0 ) {
-     char buffer[24];
-     if( strlen(text) < 17 )
-       strcpy(buffer, text);
-     else {
-       memcpy(buffer, text, 16);
-       strcpy(buffer+16, "...");
-     }
-     debugh("EdOuts(%p)::putxy(%u,[%d,%d],'%s')\n", this
-           , fontGC, left, top, buffer);
-   }
-
-   enum{ DIM= 256 };                // xcb_image_text_16 maximum length
-   xcb_char2b_t out[DIM];           // UTF16 output buffer
-
-   unsigned outlen= 0;              // UTF16 output buffer length
-   unsigned outorg= left;           // Current output origin index
-   unsigned outpix= left;           // Current output pixel index
-   for(auto it= pub::Utf8::const_iterator((const utf8_t*)text); *it; ++it) {
-     if( outlen > (DIM-4) ) {       // If time for a partial write
-       NOQUEUE("xcb_image_text_16", xcb_image_text_16
-              ( c, uint8_t(outlen), widget_id, fontGC
-              , uint16_t(outorg), uint16_t(top + font.offset.y), out) );
-       outorg= outpix;
-       outlen= 0;
-     }
-
-     utf32_t code= *it;             // Next encoding
-     outpix += font.length.width;   // Ending pixel (+1)
-     if( outpix >= rect.width || code == 0 ) // If at end of encoding
-       break;
-
-     pub::Utf16::encode(code, (utf16_t*)out + outlen);
-     outlen += pub::Utf16::length(code);
-   }
-
-   if( outlen )                     // If there's something left to render
-     NOQUEUE("xcb_image_text_16", xcb_image_text_16
-            ( c, uint8_t(outlen), widget_id, fontGC
-            , uint16_t(outorg), uint16_t(top + font.offset.y), out) );
-}
 
 //----------------------------------------------------------------------------
 //
@@ -631,7 +687,7 @@ void
    EdInps::button_press(            // Handle this
      xcb_button_press_event_t* event) // Button press event
 {
-   EdView* const data= editor::data;
+   EdData* const data= editor::data;
    EdFile* const file= editor::file;
    EdHist* const hist= editor::hist;
    EdView* const view= editor::view;
@@ -717,7 +773,7 @@ void
      debugh("message: type(%u) data(%u)\n", E->type, E->data.data32[0]);
 
    if( E->type == protocol && E->data.data32[0] == wm_close )
-     device->operational= false;
+     stop();                        // Unconditional terminate
 }
 
 void
@@ -754,10 +810,9 @@ void
            , E->detail, E->event, E->mode);
 
    if( !(view == hist && file->mess_list.get_head()) ) {
-     draw_cursor();
+     show_cursor();
      flush();
    }
-   status |= SF_FOCUS;
 }
 
 void
@@ -770,323 +825,9 @@ void
            , E->detail, E->event, E->mode);
 
    if( !(view == hist && file->mess_list.get_head()) ) {
-     undo_cursor();
+     hide_cursor();
      flush();
    }
-   status &= ~(SF_FOCUS);
-}
-
-void
-   EdInps::key_input(               // Handle this
-     xcb_keysym_t      key,         // Key input event
-     int               state)       // Alt/Ctl/Shift state mask
-{
-   EdView* const data= editor::data;
-   EdFile* const file= editor::file;
-   EdView* const view= editor::view;
-
-   // Diagnostics
-   const char* key_name= key_to_name(key);
-   Trace::trace(".KEY", (state<<16) | (key & 0x0000ffff), key_name);
-   if( opt_hcdm && opt_verbose > 0 )
-     debugh("EdInps(%p)::key_input(0x%.4x,%.4x) '%s'\n", this
-           , key, state, key_name);
-
-   // Convert Keypad keys to standard keys
-   if( key >= KP_MIN && key <= KP_MAX ) {
-     unsigned short* kp_tab= kp_off;
-     if( state & gui::KS_NUML )
-       kp_tab= kp_num;
-     key= kp_tab[key - KP_MIN];
-   }
-
-   // Handle character escape state
-   if( keystate & KS_ESC ) {
-     if( key == XK_BackSpace || key == XK_Tab || key == XK_Escape
-         || is_text_key(key) ) {
-       key &= 0x00FF;               // Keys "cleverly chosen to map to ASCII"
-       state= 0;
-     }
-     keystate ^= KS_ESC;
-   }
-
-   // Handle protected line
-   if( view == data ) {             // Only applies to data view
-     if( data->cursor->flags & EdLine::F_PROT // If protected line
-         && is_protected_key(key, state) ) // And modification key
-       return;                      // (Disallowed)
-   }
-
-   // Handle message completion, removing informational messages.
-   file->rem_message_type();        // Remove current informational message
-   if( draw_message() )             // If another message is present
-     return;                        // (Return, ignoring the current key)
-
-   if( status & (SF_MESSAGE | SF_NFC_MESSAGE) ) { // If a message completed
-     status &= ~SF_MESSAGE;         // (SF_NFC_MESSAGE status removed later)
-     draw_history();
-   }
-
-   // Handle input key
-   size_t column= view->get_column(); // The cursor column
-   if( is_text_key(key) ) {         // If text key
-     int mask= state & (gui::KS_ALT | gui::KS_CTRL);
-     if( mask ) {
-       key= toupper(key);
-       switch(mask) {
-         case gui::KS_ALT:
-           key_alt(key);
-           break;
-
-         case gui::KS_CTRL:
-           key_ctl(key);
-           break;
-
-         default:                   // (KS_ALT *AND* KS_CTRL)
-           editor::put_message("Invalid key");
-       }
-       return;
-     }
-
-     if( editor::data_protected() )
-       return;
-
-     if( keystate & KS_INS ) {      // If Insert state
-       view->active.insert_char(column, key);
-       if( move_cursor_H(column + 1) )
-         view->draw_active();
-     } else {
-       view->active.replace_char(column, key);
-       move_cursor_H(column + 1);
-     }
-     draw_top();
-     draw_cursor();
-     flush();
-
-     status &= ~(SF_NFC_MESSAGE);   // "No File Changed" message not active
-     return;
-   }
-
-   switch( key ) {                  // Handle data key
-     case XK_Shift_L:               // Left Shift key
-     case XK_Shift_R:               // Right Shift key
-     case XK_Control_L:             // Left Control key
-     case XK_Control_R:             // Right Control key
-     case XK_Caps_Lock:             // Caps Lock key
-     case XK_Shift_Lock:            // Shift Lock key
-     case XK_Meta_L:                // Left Meta key
-     case XK_Meta_R:                // Right Meta key
-     case XK_Alt_L:                 // Left Alt key
-     case XK_Alt_R:                 // Right Alt key
-     case XK_Super_L:               // Left Super key
-     case XK_Super_R:               // Right Super key
-     case XK_Hyper_L:               // Left Hyper key
-     case XK_Hyper_R:               // Right Hyper key
-     case XK_Num_Lock:              // Num Lock key
-       ;;                           // (Silently Ignore)
-       break;
-
-     case XK_BackSpace: {
-       if( editor::data_protected() )
-         return;
-
-       if( column > 0 )
-         column--;
-       view->active.remove_char(column);
-       move_cursor_H(column);
-       view->active.append_text(" ");
-       view->draw_active();
-       draw_top();
-       break;
-     }
-     case XK_Break:
-     case XK_Pause: {
-       if( state & gui::KS_ALT ) { // Alt-Pause, diagnostic dump
-         if( editor::diagnostic ) {
-           editor::diagnostic= false;
-           Config::errorf("Diagnostic mode exit\n");
-           pub::Trace* trace= pub::Trace::table;
-           if( trace )
-             trace->flag[pub::Trace::X_HALT]= false;
-         } else {
-           Editor::alertf("*DEBUG*"); // (Sets editor::diagnostic, stops trace)
-         }
-       }
-       break;
-     }
-     case 0x007F:                  // (This encoding should not occur)
-     case XK_Delete: {             // (This encoding is expected instead)
-       if( editor::data_protected() )
-         return;
-
-       view->active.remove_char(column);
-       view->active.append_text(" ");
-       view->draw_active();
-       draw_top();
-       break;
-     }
-     case XK_Escape: {              // Escape: Invert the view
-       editor::do_view();
-       break;
-     }
-     case XK_Insert: {              // Insert key
-       keystate ^= KS_INS;          // Invert the insert state
-       draw_top();
-       break;
-     }
-     case XK_Return: {
-       if( state & gui::KS_CTRL) {  // If Ctrl-Enter
-         editor::put_message( editor::do_insert() ); // Insert line
-       } else {
-         move_cursor_H(0);
-         view->enter_key();
-       }
-       break;
-     }
-     case XK_Tab: {
-       move_cursor_H(editor::tab_forward(column));
-       break;
-     }
-     case XK_ISO_Left_Tab: {
-       move_cursor_H(editor::tab_reverse(column));
-       break;
-     }
-
-     //-----------------------------------------------------------------------
-     // Function keys
-     case XK_F1: {
-       editor::command_help();
-       break;
-     }
-     case XK_F2: {                  // NOT ASSIGNED
-       break;
-     }
-     case XK_F3: {                  // (Safe) quit
-       editor::put_message( editor::do_quit() );
-       break;
-     }
-     case XK_F4: {                  // Test changed
-       if( status & SF_NFC_MESSAGE ) { // (Duplicate F4 removes message)
-         draw_history();
-       } else {
-         if( editor::un_changed() ) {
-           editor::put_message("No files changed");
-           status |= SF_NFC_MESSAGE;
-           return;
-         }
-       }
-       break;
-     }
-     case XK_F5: {
-       editor::put_message( editor::do_locate() );
-       break;
-     }
-     case XK_F6: {
-       editor::put_message( editor::do_change() );
-       break;
-     }
-     case XK_F7: {                  // Prior file
-       data->commit();
-       EdFile* file= editor::file->get_prev();
-       if( file == nullptr )
-         file= editor::file_list.get_tail();
-       if( file != editor::file )
-         activate(file);
-       break;
-     }
-     case XK_F8: {                  // Next file
-       data->commit();
-       EdFile* file= editor::file->get_next();
-       if( file == nullptr )
-         file= editor::file_list.get_head();
-       if( file != editor::file )
-         activate(file);
-       break;
-     }
-     case XK_F9: {                  // Copy filename/cursor line to history
-       if( state & gui::KS_CTRL ) { // (^-F9) Copy cursor line to command line
-         // (This sequence DOES NOT change the cursor line)
-         Active& active= data->active; // The current command line
-         const char* command= active.truncate(); // Truncate it
-         editor::hist->activate(command); // Activate the history view
-       } else {                     // (F9) Copy file name to command line
-         editor::hist->activate(editor::file->name.c_str());
-       }
-       break;
-     }
-     case XK_F10: {                 // Line to top
-       head= data->cursor;
-       data->row_zero += (data->row - USER_TOP);
-       data->row= USER_TOP;
-       draw();
-       break;
-     }
-     case XK_F11: {                 // Undo
-       if( data->active.undo() ) {
-         data->draw_active();
-         draw_top();
-       } else
-         file->undo();
-       break;
-     }
-     case XK_F12: {                 // Redo
-       data->commit();
-       file->redo();
-       break;
-     }
-
-     //-----------------------------------------------------------------------
-     // Cursor motion keys
-     case XK_Home: {                // Home key
-       undo_cursor();
-       view->col= 0;
-       if( view->col_zero ) {
-         view->col_zero= 0;
-         draw();
-       } else
-         draw_top();
-
-       draw_cursor();
-       flush();
-       break;
-     }
-     case XK_Left: {                // Left arrow
-       if( column > 0 )
-         move_cursor_H(column - 1);
-       break;
-     }
-     case XK_Up: {                  // Up arrow
-       view->move_cursor_V(-1);
-       break;
-     }
-     case XK_Right: {               // Right arrow
-       move_cursor_H(column + 1);
-       break;
-     }
-     case XK_Down: {                // Down arrow
-       view->move_cursor_V(1);
-       break;
-     }
-     case XK_Page_Up: {             // Page_Up key
-       int rows= row_size - (USER_TOP + USER_BOT + 1);
-       move_screen_V(-rows);
-       break;
-     }
-     case XK_Page_Down: {           // Page_Down key
-       int rows= row_size - (USER_TOP + USER_BOT + 1);
-       move_screen_V(+rows);
-       break;
-     }
-     case XK_End: {                 // End key
-       move_cursor_H(view->active.get_cols());
-       break;
-     }
-     default:
-       editor::put_message("Invalid key");
-       break;
-   }
-
-   status &= ~(SF_NFC_MESSAGE);     // "No File Changed" message not active
 }
 
 void
@@ -1119,4 +860,270 @@ void
    if( opt_hcdm )
      debugh("property_notify: window(%x) atom(%x,%s) state(%d)\n"
            , E->window, E->atom, atom_to_name(E->atom).c_str(), state);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdInps::key_input
+//
+// Purpose-
+//       Input key handler
+//
+//----------------------------------------------------------------------------
+void
+   EdInps::key_input(               // Handle this
+     xcb_keysym_t      key,         // Key input event
+     int               gui_state)   // GUI state mask
+{  if( opt_hcdm && opt_verbose > 0 )
+     debugh("EdInps(%p)::key_input(0x%.4X,0x%.8X) '%s%s%s'\n", this
+           , key, state
+           , (gui_state & gui::KS_ALT) ? "ALT-" : ""
+           , (gui_state & gui::KS_CTRL) ? "CTL-" : ""
+           , key_to_name(key)
+     );
+
+   EdData* const data= editor::data;
+   EdFile* const file= editor::file;
+   EdView* const view= editor::view;
+
+   // Diagnostics
+   const char* key_name= key_to_name(key);
+   Trace::trace(".KEY", (state | key), key_name);
+
+   // Translate gui_state
+   state &= ~(KS_LOGIC | KS_ALT | KS_CTL);
+   if( gui_state & gui::KS_ALT )
+     state |= KS_ALT;
+   if( gui_state & gui::KS_CTRL )
+     state |= KS_CTL;
+
+   if( key >= KP_MIN && key <= KP_MAX ) { // Convert Keypads to standard keys
+     unsigned short* kp_tab= kp_off;
+     if( gui_state & gui::KS_NUML )
+       kp_tab= kp_num;
+     key= kp_tab[key - KP_MIN];
+   }
+
+   if( state & KS_ESC ) {           // Escaped characters
+     if( key == XK_BackSpace || key == XK_Tab || key == XK_Escape )
+       key &= 0x00FF;               // Keys "cleverly chosen to map to ASCII"
+   }
+
+   // Handle protected line
+   if( view == data ) {             // Protection only applies to data view
+     if( data->cursor->flags & EdLine::F_PROT // If protected line
+         && is_protected_key(key, state) ) // And modification key
+       return;                      // (Disallowed)
+   }
+
+   // Handle message completion, removing informational messages.
+   file->rem_message_type();        // Remove current informational message
+   if( draw_message() )             // If another message is present
+     return;                        // (Return, ignoring the current key)
+
+   if( key_state & (KS_MSG | KS_NFC) ) { // If a message completed
+     key_state &= ~(KS_MSG);        // (KS_NFC removed later)
+     draw_history();
+   }
+
+   // Handle input key
+   size_t column= view->get_column(); // The cursor column
+   if( is_text_key(key, state) ) {  // If text key
+     int mask= state & (KS_ALT | KS_CTL);
+     if( mask ) {
+       key= toupper(key);
+       switch(mask) {
+         case KS_ALT:
+           key_alt(key);
+           break;
+
+         case KS_CTL:
+           key_ctl(key);
+           break;
+
+         default:                   // (KS_ALT *AND* KS_CTL)
+           op_key_dead();
+       }
+       return;
+     }
+
+     if( editor::data_protected() )
+       return;
+
+     if( key_state & KS_INS ) {     // If Insert state
+       view->active.insert_char(column, key);
+       if( move_cursor_H(column + 1) )
+         view->draw_active();
+     } else {
+       view->active.replace_char(column, key);
+       move_cursor_H(column + 1);
+     }
+     draw_top();
+     show_cursor();
+     flush();
+
+     // Escape complete; "No File Changed" message complete
+     key_state &= ~(KS_ESC | KS_NFC);
+     return;
+   }
+
+   // Handle action key
+   switch( key ) {                  // Handle data key
+     case XK_Shift_L:               // Left Shift key
+     case XK_Shift_R:               // Right Shift key
+     case XK_Control_L:             // Left Control key
+     case XK_Control_R:             // Right Control key
+     case XK_Caps_Lock:             // Caps Lock key
+     case XK_Shift_Lock:            // Shift Lock key
+     case XK_Meta_L:                // Left Meta key
+     case XK_Meta_R:                // Right Meta key
+     case XK_Alt_L:                 // Left Alt key
+     case XK_Alt_R:                 // Right Alt key
+     case XK_Super_L:               // Left Super key
+     case XK_Super_R:               // Right Super key
+     case XK_Hyper_L:               // Left Hyper key
+     case XK_Hyper_R:               // Right Hyper key
+     case XK_Num_Lock:              // Num Lock key
+       ;;                           // (Silently Ignored)
+       break;
+
+     case XK_BackSpace: {           // (Backspace)
+       op_key_backspace();
+       break;
+     }
+     case XK_Break:                 // (Break) or
+     case XK_Pause: {               // (Pause)
+       if( state & KS_ALT )
+         op_debug();
+       break;
+     }
+     case 0x007F:                   // (DEL)
+     case XK_Delete: {              // (Delete)
+       op_key_delete();
+       break;
+     }
+     case XK_Escape:                // (Escape)
+     case KEY_ESC: {                // (Escape)
+       op_swap_view();
+       break;
+     }
+     case XK_Insert: {              // (Insert)
+       op_key_insert();
+       break;
+     }
+     case XK_Return: {              // (Enter)
+       if( state & KS_CTL )
+         op_insert_line();
+       else
+         op_key_enter();
+       break;
+     }
+     case KEY_TAB:                  // (TAB)
+     case XK_Tab: {                 // (TAB)
+       op_key_tab_forward();
+       break;
+     }
+     case XK_ISO_Left_Tab: {        // (Shift-TAB)
+       op_key_tab_reverse();
+       break;
+     }
+
+     //-----------------------------------------------------------------------
+     // Function keys
+     case XK_F1: {
+       op_help();
+       break;
+     }
+     case XK_F2: {
+       op_key_idle();
+       break;
+     }
+     case XK_F3: {
+       op_safe_quit();
+       break;
+     }
+     case XK_F4: {
+       op_goto_changed();
+       return;
+     }
+     case XK_F5: {
+       op_repeat_locate();
+       break;
+     }
+     case XK_F6: {
+       op_repeat_change();
+       break;
+     }
+     case XK_F7: {
+       op_goto_prev_file();
+       break;
+     }
+     case XK_F8: {
+       op_goto_next_file();
+       break;
+     }
+     case XK_F9: {
+       if( state & KS_CTL )
+         op_copy_cursor_to_hist();
+       else
+         op_copy_file_name_to_hist();
+       break;
+     }
+     case XK_F10: {
+       op_line_to_top();
+       break;
+     }
+     case XK_F11: {
+       op_undo();
+       break;
+     }
+     case XK_F12: {
+       op_redo();
+       break;
+     }
+
+     //-----------------------------------------------------------------------
+     // Cursor motion keys
+     case XK_Home: {                // (Home)
+       op_key_home();
+       break;
+     }
+     case XK_Down: {                // (Down arrow)
+       op_key_arrow_down();
+       break;
+     }
+     case XK_Left: {                // (Left arrow)
+       op_key_arrow_left();
+       break;
+     }
+     case XK_Right: {               // (Right arrow)
+       op_key_arrow_right();
+       break;
+     }
+     case XK_Up: {                  // (Up arrow)
+       op_key_arrow_up();
+       break;
+     }
+     case XK_Page_Up: {             // (Page_Up key)
+       op_key_page_up();
+       break;
+     }
+     case XK_Page_Down: {           // (Page_Down key)
+       op_key_page_down();
+       break;
+     }
+     case XK_End: {                 // (End key)
+       op_key_end();
+       break;
+     }
+
+     //-----------------------------------------------------------------------
+     // Key not assigned
+     default:
+       op_key_dead();
+       break;
+   }
+
+   key_state &= ~(KS_ESC | KS_NFC);
 }

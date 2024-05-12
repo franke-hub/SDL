@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2024/04/12
+//       2024/04/22
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -31,12 +31,12 @@
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/types.h>              // For type definitions
 
-#include <gui/Global.h>             // For gui::opt_* controls
 #include <pub/Debug.h>              // For Debug object
 #include <pub/Exception.h>          // For Exception object
 
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For namespace editor
+#include "EdUnit.h"                 // For EdUnit
 
 using pub::Debug;                   // For Debug object
 using namespace pub::debugging;     // For debugging
@@ -260,10 +260,12 @@ extern int                          // Return code
    int rc= parm(argc, argv);        // Argument analysis
    if( rc ) return rc;              // Return if invalid
 
+#ifndef USE_NCURSES_VERSION         // Ncurses editor should run in foreground
    if( opt_bg ) {                   // If run in background
      if( fork() )                   // If parent (foreground)
        return 0;
    }
+#endif
 
    //-------------------------------------------------------------------------
    // Operate the Editor
@@ -271,11 +273,9 @@ extern int                          // Return code
    try {
      setlocale(LC_NUMERIC, "");     // Allows printf("%'d\n", 123456789);
 
-     gui::opt_hcdm= opt_hcdm;       // Expose gui:: options
-     gui::opt_verbose= opt_verbose;
-
      config::opt_hcdm= opt_hcdm;    // Expose config:: options
      config::opt_verbose= opt_verbose;
+
      Config config(argc, argv);     // Configure
      if( opt_hcdm || opt_verbose > 0 ) {
        Config::errorf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
@@ -284,9 +284,9 @@ extern int                          // Return code
      }
 
      Editor editor(optind, argc, argv); // Load the initial file set
-     Config::start();               // Initial screen draw, polling loop
+     editor::unit->start();         // Initial screen draw, polling loop
      // :                           // : Wait for completion
-     Config::join();                // Polling loop complete
+     editor::unit->join();          // Polling loop complete
    } catch(pub::Exception& X) {
      debugf("%s\n", std::string(X).c_str());
    } catch(std::exception& X) {

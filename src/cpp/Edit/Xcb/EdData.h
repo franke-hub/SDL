@@ -10,7 +10,7 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       EdView.h
+//       EdData.h
 //
 // Purpose-
 //       Editor: Editor data view
@@ -19,53 +19,48 @@
 //       2024/05/09
 //
 //----------------------------------------------------------------------------
-#ifndef EDVIEW_H_INCLUDED
-#define EDVIEW_H_INCLUDED
+#ifndef EDDATA_H_INCLUDED
+#define EDDATA_H_INCLUDED
 
 #include <string>                   // For std::string
 #include <sys/types.h>              // For system types
 
 #include "Active.h"                 // For Active
 #include "EdLine.h"                 // For EdLine
-#include "EdType.h"                 // For GC_t
+#include "EdUnit.h"                 // For EdUnit::GC_t
+#include "EdView.h"                 // For EdView (Base class)
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       EdView
+//       EdData
 //
 // Purpose-
 //       Editor data view.
 //
-// Implementation notes-
-//       EdView implementations are in EdData.cpp
-//
 //----------------------------------------------------------------------------
-class EdView {                      // Editor data view
+class EdData : public EdView {      // Editor data view
 //----------------------------------------------------------------------------
-// EdView::Attributes
+// EdData::Attributes
 //----------------------------------------------------------------------------
 public:
-Active                 active;      // The Active text buffer
-EdLine*                cursor= nullptr; // The Active cursor line
-
-size_t                 col_zero= 0; // Current column[0]
-size_t                 row_zero= 0; // Current row[0]
-unsigned               col= 0;      // Current screen column
-unsigned               row= 0;      // Current screen row
+// (Copied) graphic contexts (Cursor position)
+GC_t                   gc_font= 0;  // Graphic context: default character
+GC_t                   gc_flip= 0;  // Graphic context: cursor character
+GC_t                   gc_mark= 0;  // Graphic context: marked character
 
 //----------------------------------------------------------------------------
-// EdView::Constructor/Destructor
+// EdData::Constructor/Destructor
 //----------------------------------------------------------------------------
-   EdView( void );                  // Constructor
+   EdData( void );                  // Constructor
 
 virtual
-   ~EdView( void ) = default;       // Destructor
+   ~EdData( void );                 // Destructor
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdView::debug
+//       EdData::debug
 //
 // Purpose-
 //       Debugging display
@@ -78,97 +73,67 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdView::get_column
-//
-// Purpose-
-//       Get the current LINE column
-//
-//----------------------------------------------------------------------------
-virtual size_t                      // The current column number
-   get_column( void )               // Get current column number
-{  return col_zero + col; }         // The current column number
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdView::get_gc
+//       EdData::get_gc
 //
 // Purpose-
 //       Get the current graphic context
 //
 //----------------------------------------------------------------------------
 virtual GC_t                        // The current graphic context
-   get_gc( void ) = 0;              // Get current graphic context
+   get_gc( void );                  // Get current graphic context
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdView::get_row
-//
-// Purpose-
-//       Get the current FILE row
-//
-//----------------------------------------------------------------------------
-virtual size_t                      // The current row number
-   get_row( void )                  // Get current row number
-{  return row_zero + row; }         // The current row number
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdView::activate
+//       EdData::activate
 //
 // Purpose-
 //       Activate the view
 //
 //----------------------------------------------------------------------------
 virtual void
-   activate( void ) = 0;            // Activate the view
+   activate( void );                // Activate the view
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdView::commit
+//       EdData::commit
 //
 // Purpose-
 //       Commit the Active data line
 //
-// Implementation notes-
-//       EdData::commit updates a modified active line with UNDO.
-//       EdHist::commit does nothing.
-//
 //----------------------------------------------------------------------------
 virtual void
-   commit( void ) = 0;              // Commit the Active line
+   commit( void );                  // Commit the Active line
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdView::draw_active
+//       EdData::draw_active
 //
 // Purpose-
 //       Redraw the active (data) line
 //
 //----------------------------------------------------------------------------
 virtual void
-   draw_active( void ) = 0;         // Redraw the active line
+   draw_active( void );             // Redraw the active line
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdView::enter_key
+//       EdData::enter_key
 //
 // Purpose-
 //       Handle enter keypress.
 //
 //----------------------------------------------------------------------------
 virtual void
-   enter_key( void ) = 0;           // Handle enter keypress
+   enter_key( void );               // Handle enter keypress
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdView::move_cursor_V
+//       EdData::move_cursor_V
 //
 // Purpose-
 //       Move cursor vertically
@@ -176,6 +141,6 @@ virtual void
 //----------------------------------------------------------------------------
 virtual void
    move_cursor_V(                   // Move cursor vertically
-     int             n= 1) = 0;     // The relative row (Down positive)
-}; // class EdView
-#endif // EDVIEW_H_INCLUDED
+     int             n= 1);         // The relative row (Down positive)
+}; // class EdData
+#endif // EDDATA_H_INCLUDED

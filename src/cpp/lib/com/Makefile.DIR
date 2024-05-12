@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/03/21
+##       2024/04/21
 ##
 ##############################################################################
 
@@ -24,11 +24,9 @@
 COM_SOURCE :=
 COM_SOURCE += $(wildcard $(INCDIR)/com/*)
 COM_SOURCE += $(wildcard $(SRCDIR)/com/*)
-COM_SOURCE += $(wildcard $(SRCDIR)/com/HW/PPC/*)
 COM_SOURCE += $(wildcard $(SRCDIR)/com/HW/STD/*)
 COM_SOURCE += $(wildcard $(SRCDIR)/com/HW/X86/*)
 COM_SOURCE += $(wildcard $(SRCDIR)/com/OS/BSD/*)
-COM_SOURCE += $(wildcard $(SRCDIR)/com/OS/CYGWIN/*)
 
 COM_OBJECT := $(patsubst com/%.cpp,com/%.o,$(wildcard com/*.cpp))
 
@@ -44,6 +42,8 @@ com/Makeproj.all: $(COM_SOURCE) ###### Recompile/rebuild
 	(cd $(OBJDIR)/com/; $(MAKE) depend; $(MAKE) all) ## Remake, updating depend
 	touch $@
 
+com/Makeproj.all: com/.have-version
+
 ##############################################################################
 ## TARGETS: static/libcom.a
 $(STATIC)/libcom.a: com/libcom.a
@@ -51,7 +51,8 @@ $(STATIC)/libcom.a: com/libcom.a
 	touch $@
 
 lib: $(STATIC)/libcom.a
-com/libcom.a: com/.have-version com/Makeproj.all
+com/libcom.a: com/Makeproj.all
+	touch $@
 
 ##############################################################################
 ## TARGETS: shared/cygcom.dll shared/libcom.so.1.0 shared/libcom.so
@@ -71,11 +72,9 @@ $(SHARED)/libcom.so: $(SHARED)/libcom.so.1.0
 ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
 shr: $(SHARED)/cygcom.dll
 com/cygcom.dll: com/Makeproj.all
-com/Makeproj.all: com/.have-version
 else
 shr: $(SHARED)/libcom.so
 com/libcom.so.1.0: com/Makeproj.all
-com/Makeproj.all: com/.have-version
 endif
 
 ##############################################################################
@@ -105,4 +104,3 @@ com.pristine: ;
 clean: com.clean
 com.clean: ;
 	@rm -f com/cygcom.* com/libcom.* com/Makeproj.*
-	@rm -f libcom.*

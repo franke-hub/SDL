@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2024/04/12
+//       2024/05/05
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -29,8 +29,6 @@
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/stat.h>               // For stat
 
-#include <gui/Device.h>             // For gui::Device
-#include <gui/Font.h>               // For gui::Font
 #include <pub/Debug.h>              // For Debug, namespace pub::debugging
 #include <pub/Fileman.h>            // For namespace pub::fileman
 #include <pub/Signals.h>            // For pub::signals
@@ -39,13 +37,14 @@
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For namespace config
+#include "EdData.h"                 // For EdData
 #include "Editor.h"                 // For Editor (Implementation class)
 #include "EdFile.h"                 // For EdFile, EdLine, EdPool, ...
 #include "EdHist.h"                 // For EdHist
 #include "EdMark.h"                 // For EdMark
-#include "EdOuts.h"                 // For EdOuts
 #include "EdPool.h"                 // For EdPool
 #include "EdView.h"                 // For EdView
+#include "EdUnit.h"                 // For EdUnit
 
 using namespace config;             // For namespace config (opt_*)
 using namespace editor;             // For namespace editor
@@ -65,18 +64,16 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-gui::Device*           editor::device= nullptr; // Our Device
-EdOuts*                editor::outs= nullptr; // Our Input/output services
-gui::Font*             editor::font= nullptr; // Our Font
+EdUnit*                editor::unit= nullptr; // I/O Unit
 
 pub::List<EdFile>      editor::file_list; // The list of EdFiles
 EdFile*                editor::file= nullptr; // The current File
 EdFile*                editor::last= nullptr; // The last inserted File
 
-Active*                editor::actalt= nullptr; // Active, for temporary use
 Active*                editor::active= nullptr; // Active, for temporary use
+Active*                editor::altact= nullptr; // Active, for temporary use
 EdMark*                editor::mark= nullptr; // The Mark Handler
-EdView*                editor::data= nullptr; // The data view
+EdData*                editor::data= nullptr; // The data view
 EdHist*                editor::hist= nullptr; // The history view
 EdView*                editor::view= nullptr; // The active view
 
@@ -174,8 +171,8 @@ static const char*                  // Return message, nullptr if OK
        const char* C= A.resize(column - 1);
        const char* M= last_strstr(C, S);
        if( M != nullptr ) {
-         outs->move_cursor_H(M - C);
-         outs->draw_top();
+         unit->move_cursor_H(M - C);
+         unit->draw_top();
          return nullptr;
        }
      }
@@ -187,8 +184,8 @@ static const char*                  // Return message, nullptr if OK
      if( (line->flags & EdLine::F_PROT) == 0 ) {
        const char* M= last_strstr(line->text, S);
        if( M != nullptr ) {
-         outs->activate(line);
-         outs->move_cursor_H(M - line->text);
+         unit->activate(line);
+         unit->move_cursor_H(M - line->text);
          return nullptr;
        }
      }
@@ -202,8 +199,8 @@ static const char*                  // Return message, nullptr if OK
        if( (line->flags & EdLine::F_PROT) == 0 ) {
          const char* M= last_strstr(line->text, S);
          if( M != nullptr ) {
-           outs->activate(line);
-           outs->move_cursor_H(M - line->text);
+           unit->activate(line);
+           unit->move_cursor_H(M - line->text);
            put_message("Wrapped");
            return nullptr;
          }
@@ -231,19 +228,14 @@ static const char*                  // Return message, nullptr if OK
    using namespace editor;
 
    if( opt_hcdm )
-     debugh("Editor::Editor\n");
+     traceh("Editor::Editor\n");
 
    // Allocate initial textPool
    textPool.fifo(new EdPool(EdPool::MIN_SIZE));
 
    // Allocate editor namespace objects
-   actalt= new Active();            // An Active work area
    active= new Active();            // An Active work area
-   outs= new EdOuts();              // Output/input manager
-   data= new EdView();              // Data view
-   hist= new EdHist();              // History view
-   mark= new EdMark();              // Mark handler
-   view= hist;                      // (Initial view)
+   altact= new Active();            // An Active work area
 
    //-------------------------------------------------------------------------
    // Load the edit files
@@ -268,7 +260,8 @@ static const char*                  // Return message, nullptr if OK
 //
 //----------------------------------------------------------------------------
    Editor::~Editor( void )          // Destructor
-{
+{  if( opt_hcdm ) traceh("Editor::~Editor\n");
+
    using namespace editor;
 
    // Remove and delete Files
@@ -283,11 +276,8 @@ static const char*                  // Return message, nullptr if OK
      delete pool;
 
    // Delete allocated objects
-   delete actalt;
    delete active;
-   delete data;
-   delete hist;
-   delete mark;
+   delete altact;
 }
 
 //----------------------------------------------------------------------------
@@ -303,41 +293,41 @@ void
    Editor::debug(                   // Debugging display
      const char*       info)        // Associated info
 {
-   debugf("Editor::debug(%s)\n", info ? info : "");
-   debugf("..device(%p) font(%p) outs(%p)\n", device, font, outs);
-   debugf("..mark(%p) data(%p) hist(%p) view(%p)\n", mark, data, hist, view);
-   debugf("..locate[%s] change[%s]\n"
+   traceh("Editor::debug(%s)\n", info ? info : "");
+   traceh("..unit(%p)\n", unit);
+   traceh("..mark(%p) data(%p) hist(%p) view(%p)\n", mark, data, hist, view);
+   traceh("..locate[%s] change[%s]\n"
          , locate_string.c_str(), change_string.c_str());
 
-   debugf("\n..file_list(%p,%p) file(%p)\n"
+   traceh("\n..file_list(%p,%p) file(%p)\n"
          , file_list.get_head(), file_list.get_tail(), file);
    for(EdFile* file= file_list.get_head(); file; file= file->get_next()) {
      if( USE_HCDM_FILE_DEBUG )      // If hard core file debugging
        file->debug(info);
      else                           // If name only file debugging
-       debugf("..[%p] '%s'\n", file, file->name.c_str());
+       traceh("..[%p] '%s'\n", file, file->name.c_str());
    }
 
    size_t size; size_t used;        // Total size, Total used
    size= used= 0;
-   debugf("\n..filePool[%p,%p]\n", filePool.get_head(), filePool.get_tail());
+   traceh("\n..filePool[%p,%p]\n", filePool.get_head(), filePool.get_tail());
    for(EdPool* pool= filePool.get_head(); pool; pool= pool->get_next()) {
-     debugf("..[%p] used(%'8zu) size(%'8zu)\n", pool
+     traceh("..[%p] used(%'8zu) size(%'8zu)\n", pool
           , pool->get_used(), pool->get_size());
      size += pool->get_size();
      used += pool->get_used();
    }
-   debugf("..****TOTAL**** used(%'8zu) size(%'8zu)\n", used, size);
+   traceh("..****TOTAL**** used(%'8zu) size(%'8zu)\n", used, size);
 
    size= used= 0;
-   debugf("\n..textPool[%p,%p]\n", textPool.get_head(), textPool.get_tail());
+   traceh("\n..textPool[%p,%p]\n", textPool.get_head(), textPool.get_tail());
    for(EdPool* pool= textPool.get_head(); pool; pool= pool->get_next()) {
-     debugf("..[%p] used(%'8zu) size(%'8zu)\n", pool
+     traceh("..[%p] used(%'8zu) size(%'8zu)\n", pool
            , pool->get_used(), pool->get_size());
      size += pool->get_size();
      used += pool->get_used();
    }
-   debugf("..****TOTAL**** used(%'8zu) size(%'8zu)\n", used, size);
+   traceh("..****TOTAL**** used(%'8zu) size(%'8zu)\n", used, size);
 }
 
 //----------------------------------------------------------------------------
@@ -360,8 +350,8 @@ void
    va_end(argptr);                  // Close va_ functions
 
    static int recursion= 0;
-   debug_set_mode(Debug::MODE_INTENSIVE); // (Flush after each debugf line)
-   debugf("Editor::alertf(%s)%s\n", S.c_str(), recursion ? " recursion" : "");
+   debug_set_mode(Debug::MODE_INTENSIVE); // (Flush after each traceh line)
+   traceh("Editor::alertf(%s)%s\n", S.c_str(), recursion ? " recursion" : "");
    if( recursion )
      exit(EXIT_FAILURE);
 
@@ -436,7 +426,7 @@ char*                               // The (immutable) text
 
        if( text == nullptr ) {      // If a new EdPool is required
          if( opt_hcdm )
-           debugh("Editor.allocate(%zd) New pool\n", length);
+           traceh("Editor.allocate(%zd) New pool\n", length);
          pool= new EdPool(EdPool::MIN_SIZE);
          text= pool->allocate(length);
          textPool.lifo(pool);
@@ -474,8 +464,8 @@ const char*                         // The (immutable) text
 //       Check for protected file and data view
 //
 //----------------------------------------------------------------------------
-int                          // Return code, TRUE if error message
-   editor::data_protected( void ) // Error if protected file and data view
+int                                 // Return code, TRUE if error message
+   editor::data_protected( void )   // Error if protected file and data view
 {
    if( file->protect && view == data ) {
      editor::put_message("Read/only");
@@ -510,7 +500,7 @@ const char*                         // Return message, nullptr if OK
    size_t column= data->col_zero + data->col; // The current column
    size_t length= locate_string.length();
    data->active.replace_text(column, length, change_string.c_str());
-   outs->draw();                    // (Only active line redraw required)
+   unit->draw();                    // (Only active line redraw required)
    return nullptr;
 }
 
@@ -540,8 +530,8 @@ const char*                         // Return message, nullptr if OK
    for(line= line->get_next(); line; line= line->get_next() ) {
      if( memcmp(line->text, S, L) == 0 ) {
        if( line->get_next() ) {     // If not "end of file" line
-         outs->activate(line);
-         outs->move_cursor_H(0);
+         unit->activate(line);
+         unit->move_cursor_H(0);
          return nullptr;
        }
      }
@@ -553,8 +543,8 @@ const char*                         // Return message, nullptr if OK
      line= file->line_list.get_head(); // (The "top of file" line, skipped)
      for(line= line->get_next(); line; line= line->get_next()) {
        if( memcmp(line->text, S, L) == 0 && line->get_next() ) {
-         outs->activate(line);
-         outs->move_cursor_H(0);
+         unit->activate(line);
+         unit->move_cursor_H(0);
          put_message("Wrapped");
          return nullptr;
        }
@@ -574,10 +564,9 @@ const char*                         // Return message, nullptr if OK
 //
 //----------------------------------------------------------------------------
 const char*                         // Error message, nullptr expected
-   editor::do_insert( void )        // Insert a new, empty line
+   editor::do_insert(               // Insert a new line
+     const char*       text)        // The line text (default empty)
 {
-   if( view != data )
-     return "Cursor view";
    if( data_protected() )
      return nullptr;
 
@@ -586,7 +575,7 @@ const char*                         // Error message, nullptr expected
    if( after->get_next() == nullptr ) // If it's the last line
      after= after->get_prev();      //  Use the prior line instead
 
-   EdLine* head= file->new_line();  // Get new, empty insert line
+   EdLine* head= file->new_text(text); // Get new line with associated text
    EdLine* tail= head;
 
    // Handle insert after no delimiter line
@@ -613,7 +602,7 @@ const char*                         // Error message, nullptr expected
    file->redo_insert(redo);
    mark->handle_redo(file, redo);
    file->activate(tail);            // (Activate the newly inserted line)
-   outs->draw();                    // And redraw
+   unit->draw();                    // And redraw
 
    return nullptr;
 }
@@ -665,7 +654,7 @@ const char*                         // Return message, nullptr expected
    mark->handle_redo(file, redo);
    data->active.reset(line->text);
    file->activate(line);
-   outs->draw();
+   unit->draw();
 
    return nullptr;
 }
@@ -700,8 +689,8 @@ const char*                         // Return message, nullptr if OK
      if( M != nullptr ) {
        data->activate();
        column += M - C;
-       outs->move_cursor_H(column);
-       outs->draw_top();
+       unit->move_cursor_H(column);
+       unit->draw_top();
        return nullptr;
      }
    }
@@ -713,8 +702,8 @@ const char*                         // Return message, nullptr if OK
        const char* M= edit_strstr(line->text, S);
        if( M != nullptr ) {
          data->activate();
-         outs->activate(line);
-         outs->move_cursor_H(M - line->text);
+         unit->activate(line);
+         unit->move_cursor_H(M - line->text);
          return nullptr;
        }
      }
@@ -729,8 +718,8 @@ const char*                         // Return message, nullptr if OK
          const char* M= edit_strstr(line->text, S);
          if( M != nullptr ) {
            data->activate();
-           outs->activate(line);
-           outs->move_cursor_H(M - line->text);
+           unit->activate(line);
+           unit->move_cursor_H(M - line->text);
            put_message("Wrapped");
            return nullptr;
          }
@@ -811,7 +800,7 @@ const char*                         // Error message, nullptr expecte3d
    char* both= (char*)A.get_buffer(); // The modifiable head/tail work area
 
    // Create the tail line
-   Active& T= *editor::actalt;
+   Active& T= *editor::altact;
    T.reset();                       // (Now contains "")
    for(size_t lead= 0; ; lead++) {  // Insert leading blanks in tail
      if( both[lead] != ' ' ) {
@@ -833,8 +822,8 @@ const char*                         // Error message, nullptr expecte3d
    head->text= allocate(H.truncate()); // Set head line text
 
    A.reset(head->text);             // (Discards the working buffer content)
-   outs->activate(head);
-   outs->draw();
+   unit->activate(head);
+   unit->draw();
 
    return nullptr;
 }
@@ -853,10 +842,10 @@ void
 {
    if( view == hist ) {
      data->activate();
-     outs->draw_cursor();
-     outs->flush();
+     unit->show_cursor();
+     unit->flush();
    } else {
-     outs->undo_cursor();
+     unit->hide_cursor();
      hist->activate();
    }
 }
@@ -872,7 +861,7 @@ void
 //----------------------------------------------------------------------------
 void
    editor::exit( void )             // Unconditional editor (normal) exit
-{  device->operational= false; }
+{  unit->stop(); }
 
 //----------------------------------------------------------------------------
 //
@@ -895,7 +884,7 @@ void
 
    file_list.insert(file, next, next);
    last= next;
-   outs->activate(last);
+   unit->activate(last);
    hist->activate();
 }
 
@@ -1014,7 +1003,7 @@ void
    if( next == nullptr ) {
      next= file->get_next();
      if( next == nullptr )          // If no other files are in the list
-       device->operational= false;  // Terminate the Editor
+       editor::unit->stop();        // Terminate the Editor
    }
 
    if( next ) {                     // If another file remains in the list
@@ -1022,8 +1011,8 @@ void
      delete file;                   // (Delete it)
      editor::file= nullptr;         // (And don't reference it any more)
 
-     outs->activate(next);          // (Activate it)
-     outs->draw();                  // (And draw it)
+     unit->activate(next);          // (Activate it)
+     unit->draw();                  // (And draw it)
    } // The last file removed remains on the file_list (It's still referenced)
 }
 
@@ -1048,9 +1037,9 @@ bool                                // TRUE if editor in unchanged state
 
    for(EdFile* file= file_list.get_head(); file; file= file->get_next()) {
      if( !file->damaged && file->is_changed() ) {
-       outs->activate(file);
+       unit->activate(file);
        put_message("File changed");
-       outs->draw();
+       unit->draw();
        return false;
      }
    }

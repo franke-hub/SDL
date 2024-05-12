@@ -16,17 +16,18 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2024/04/12
+//       2024/04/22
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
 #define CONFIG_H_INCLUDED
 
 #include <string>                   // For std::string
-#include <xcb/xproto.h>             // For xcb_rectangle_t
 
 #include <pub/config.h>             // For ATTRIB_PRINTF macro
 #include <pub/Signals.h>            // For pub::signals
+
+#include "EdType.h"                 // For common editor types
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -107,22 +108,6 @@ static void
    failure(                         // Write error message and exit
      const char*       fmt,         // The PRINTF format string
                        ...);        // PRINTF argruments
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Config::join
-//       Config::start
-//
-// Purpose-
-//       Virtual thread implementation
-//
-//----------------------------------------------------------------------------
-static void
-   join( void );                    // Wait for "Thread"
-
-static void
-   start( void );                   // Start "Thread"
 }; // class Config
 
 //----------------------------------------------------------------------------
@@ -159,7 +144,7 @@ extern uint32_t        message_bg;  // message.bg: Message line BG
 extern uint32_t        message_fg;  // message.fg: Message line FG
 
 // Screen controls -----------------------------------------------------------
-extern xcb_rectangle_t geom;        // The screen geometry
+extern geometry_t      geom;        // The screen geometry
 
 // (Operational controls) ----------------------------------------------------
 extern uint32_t        USE_MOUSE_HIDE; // Use mouse hide logic?

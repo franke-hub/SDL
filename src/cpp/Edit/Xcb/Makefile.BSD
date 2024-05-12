@@ -15,16 +15,18 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2024/03/01
+##       2024/05/07
 ##
 ##############################################################################
 
 ##############################################################################
 ## Local module list
 MAKOBJ := $(patsubst $(OBJDIR)/Edit.o,,$(MAKOBJ))
-MAKOBJ := $(patsubst $(OBJDIR)/Editor.o,,$(MAKOBJ))
 MAKOBJ := $(patsubst $(OBJDIR)/Include.o,,$(MAKOBJ))
 MAKOBJ := $(patsubst $(OBJDIR)/Dirty.o,,$(MAKOBJ))
+
+## Force compilation sequence
+MAKOBJ := $(patsubst $(OBJDIR)/Editor.o,,$(MAKOBJ))
 MAKOBJ := Editor.o $(MAKOBJ)
 
 MAKEXE := Edit
@@ -48,10 +50,25 @@ liblocal.a: $(MAKOBJ)
 $(MAKEXE): liblocal.a
 
 ##############################################################################
-## TARGET: do
+## TARGET: cmd debug do io hcdm
+.PHONY: cmd
+cmd: Edit
+	Edit $(EDIT_OPTIONS)
+
+.PHONY: debug
+debug: Edit
+	Edit $(EDIT_OPTIONS) --hcdm --verbose=9 Makeproj.out
+
 .PHONY: do
 do: Edit
-	Edit $(EDIT_OPTIONS)
+	@Edit $(EDIT_OPTIONS) Makeproj.out
+
+.PHONY: io
+io: EdOuts.o EdInps.o EdUnit.o Editor.o
+
+.PHONY: hcdm
+hcdm: Edit
+	Edit --hcdm --verbose=9 $(EDIT_OPTIONS) Makeproj.out
 
 ##############################################################################
 ## TARGET: include
@@ -69,15 +86,16 @@ install: default
 
 ##############################################################################
 ## Controls
+LLIBS  += -L. -l local
+include $(INCDIR)/gui/Makefile.BSD
+include $(INCDIR)/pub/Makefile.BSD
+
 COPTS  += -Wconversion
 ignore += $(shell pkg-config --cflags fontconfig freetype2)
 ignore += $(shell pkg-config --libs   fontconfig freetype2)
 CLIBS  += $(shell pkg-config --libs   xcb xcb-xfixes)
 ignore += $(shell pkg-config --libs   xcb-render xcb-renderutil)
 CLIBS  += -lX11
-LLIBS  += -L. -l local
-include $(INCDIR)/gui/Makefile.BSD
-include $(INCDIR)/pub/Makefile.BSD
 
 ## ifeq "Linux" "$(findstring Linux, $(shell uname))"
 CLIBS  += -lboost_stacktrace_addr2line
