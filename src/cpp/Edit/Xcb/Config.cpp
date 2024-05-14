@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2024/05/05
+//       2024/05/13
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -48,7 +48,8 @@
 #include "EdFile.h"                 // For EdFile::debug
 #include "EdHist.h"                 // For EdFile::debug
 #include "EdMark.h"                 // For EdMark::debug
-#include "EdUnit.h"                 // For EdUnit::debug
+#include "EdOpts.h"                 // For EdOpts
+#include "EdUnit.h"                 // For EdUnit
 #include "EdView.h"                 // For EdView::debug
 
 using namespace config;             // For implementation
@@ -215,7 +216,7 @@ static int                          // Return code (0 OK)
 
    //-------------------------------------------------------------------------
    // Create the keyboard, screen, and mouse handler
-   editor::unit= EdUnit::Init::initialize();
+   editor::unit= EdOpts::initialize();
 
    return 0;
 }
@@ -236,9 +237,11 @@ static void
    term( void )                     // Terminate
 {  if( opt_hcdm ) traceh("Config::term\n");
 
-   // Delete the Window object
-   EdUnit::Init::terminate(editor::unit);
-   editor::unit= nullptr;
+   // Delete the Unit
+   if( editor::unit ) {
+     EdOpts::terminate(editor::unit);
+     editor::unit= nullptr;
+   }
 
    //-------------------------------------------------------------------------
    // Terminate debugging. Note: pub::Debug global termination can handle this
@@ -371,7 +374,7 @@ static void
      case SIGSEGV:                  // (Program fault)
        Trace::trace(".BUG", __LINE__, "SIGSEGV");
        debug_set_mode(Debug::MODE_INTENSIVE);
-       EdUnit::Init::at_exit();     // Abnormal termination
+       EdOpts::at_exit();           // Abnormal termination
        debug_backtrace();           // Attempt diagnosis (recursion aborts)
        Config::debug("SIGSEGV");
        debugf("..terminated..\n");
@@ -652,9 +655,9 @@ static void
 
    using namespace config;
 
-   // Get EdUnit static variables
-   const char* EDITOR= EdUnit::EDITOR;
-   const char* DEFAULT_CONFIG= EdUnit::DEFAULT_CONFIG;
+   // Get EdOpts static variables
+   const char* EDITOR= EdOpts::EDITOR;
+   const char* DEFAULT_CONFIG= EdOpts::DEFAULT_CONFIG;
 
    // Initialize HOME, AUTO, and debug_path
    const char* env= getenv("HOME"); // Get HOME directory

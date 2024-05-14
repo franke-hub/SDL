@@ -49,6 +49,7 @@
 #include "EdHist.h"                 // For EdHist
 #include "EdInps.h"                 // For EdInps, implemented
 #include "EdMark.h"                 // For EdMark
+#include "EdOpts.h"                 // For EdOpts
 #include "EdOuts.h"                 // For EdInps, derived class
 #include "EdType.h"                 // For GC_t
 
@@ -66,10 +67,9 @@ enum // Compilation controls
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 // Controls
-// IO_TRACE is used to optimize out opt_hcdm checks
 ,  IO_TRACE= true                   // I/O trace mode?
 
-// MAX_COLOR= the ncurses color saturation value (Determined experimentally)
+// The color saturation value (Determined experimentally)
 ,  MAX_COLOR= 1000                  // Maximum  color value
 
 ,  USE_UTF8= false                  // Use (TODO) UTF-8 code?
@@ -123,34 +123,20 @@ enum // Imported
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
+static int             have_extended_colors= true; // DEFAULT, extended colors
+
+//----------------------------------------------------------------------------
+// Static internal data areas
+//----------------------------------------------------------------------------
 // Control keys G..M (encoded as 0x07..0x0d) are not passed to application
                                       // 123456789abcdef0123456789a
 static constexpr const char* alt_table= "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static constexpr const char* ctl_table= "ABCDEF*******NOPQRSTUVWXYZ";
 
-// EdInps::at_exit controls
-static int             nc_active= false; // Is curses active?
-
 //----------------------------------------------------------------------------
-// External data areas
+// EdInps.hpp: ONLY included for compilation check.
 //----------------------------------------------------------------------------
-const char*            EdUnit::EDITOR= "editerm";
-const char*            EdUnit::DEFAULT_CONFIG=
-   "[Program]\n"
-   "URL=https://github.com/franke-hub/SDL/tree/trunk/src/cpp/Edit/Term\n"
-   "Exec=Edit ; Edit in read-write mode\n"
-   "Exec=View ; Edit in read-only mode\n"
-   "Purpose=NCURSES based text editor\n"
-   "Version=1.1.0\n"
-   "\n"
-   "[Options]\n"
-   ";; (Defaulted) See sample: ~/src/cpp/Edit/Term/.SAMPLE/Edit.conf\n"
-   ;
-
-//----------------------------------------------------------------------------
-// EdInps.hpp: Included ONLY for compilation check, otherwise unused
-//----------------------------------------------------------------------------
-#include "EdInps.hpp"               // Contains UNUSED struct key_definitions
+#include <EdInps.hpp>               // UNUSED struct with keydefinitions
 
 //----------------------------------------------------------------------------
 //
@@ -203,7 +189,7 @@ short                               // The BLUE color component
 //       putcr_record
 //
 // Purpose-
-//       putcr trace record
+//       Internal trace record for putcr operation.
 //
 //----------------------------------------------------------------------------
 struct putcr_record {
@@ -227,7 +213,7 @@ char                   data[DATA_SIZE]; // The output data
 //       Initialize ncurses program modes.
 //
 // Implementation notes-
-//       Should use cbreak() or raw(), but not both.
+//       Implementations should use cbreak() or raw(), but not both.
 //
 //----------------------------------------------------------------------------
 static inline void
@@ -454,87 +440,160 @@ static const char*                  // The name of the key
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       nc_init_color
+//       nc_64k
 //
 // Purpose-
-//       Initialize a color
+//       Convert a 64M color into a 64K color
+//
+// Implementation notes-
+//       ASSUMING: rrrrrr ggggg bbbbb, NOT TESTED
 //
 //----------------------------------------------------------------------------
-static inline void
-   nc_init_color(                   // Initialize a color
-     int               ix,          // The color index
-     Color             rgb)         // The Color
-{  if( IO_TRACE && opt_hcdm )
-     traceh("init_color(%d, 0x%.6X) {%d,%d,%d}\n", ix, rgb.rgb
-           , rgb.red(), rgb.green(), rgb.blue() );
+static inline int                   // The 64K color
+   nc_64k(                          // Convert 64M color into 64K color
+     uint32_t          color)       // The 64M color
+{
+   Color rgb(color);
+   int r= (rgb.red()    * 63) / 252;
+   int g= (rgb.green()  * 31) / 248;
+   int b= (rgb.blue()   * 31) / 248;
 
+   int c= (r << 10 | g << 4 | b);
+   if( c < 16 && c > 0 )
+     c |= 0x00000420;
+   return c;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       nc_256
+//
+// Purpose-
+//       Convert a 64M color into a 256 color
+//
+// Implementation notes-
+//       ASSUMING: rrr ggg bb, NOT TESTED
+//
+//----------------------------------------------------------------------------
+static inline int                   // The 256 color
+   nc_256(                          // Convert 64M color into 256 color
+     uint32_t          color)       // The 64M color
+{
+   Color rgb(color);
+   int r= (rgb.red()    * 7) / 223;
+   int g= (rgb.green()  * 7) / 223;
+   int b= (rgb.blue()   * 3) / 192;
+
+   int c= (r << 5 | g << 2 | b);
+   if( c < 8 && c > 0 )
+     c |= 0x00000020;
+   return c;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       nc_8
+//
+// Purpose-
+//       Convert a 64M color into an 8 color
+//
+// Implementation notes-
+//       The built-in colors are mapped BLUE, GREEN, RED; i.e. BGR *not* RGB
+//
+//       (Color)           BGR
+//       COLOR_BLACK   0 B:000 ---
+//       COLOR_RED     1 B:001 --R
+//       COLOR_GREEN   2 B:010 -G-
+//       COLOR_YELLOW  3 B:011 -GR (Minus B)
+//       COLOR_BLUE    4 B:100 B--
+//       COLOR_MAGENTA 5 B:101 B-R (Minus G)
+//       COLOR_CYAN    6 B:110 BG- (Minus R)
+//       COLOR_WHITE   7 B:111 BGR
+//
+//       While this function works, translating the 64M default color
+//       definitions doesn't work well enough to be useful.
+//       (This subroutine isn't used.)
+//
+//----------------------------------------------------------------------------
+static inline int                   // The 8 color
+   nc_8(                            // Convert 64M color into an 8 color
+     uint32_t          color)       // The 64M color
+{
+   Color rgb(color);
+   int r= (rgb.red()    / 248);
+   int g= (rgb.green()  / 248);
+   int b= (rgb.blue()   / 248);
+
+   return (b << 2 | g << 1 | r);
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       nc_set_color
+//
+// Purpose-
+//       Initialize a color, returning a replacement color index
+//
+//----------------------------------------------------------------------------
+static inline int                   // The replacement color index
+   nc_set_color(                    // Set a color
+     uint32_t          color)       // The 64M color
+{
+static int ix= 16;                  // The current color index
+
+   Color rgb(color);
    int r= rgb.red()   * MAX_COLOR / 255;
    int g= rgb.green() * MAX_COLOR / 255;
    int b= rgb.blue()  * MAX_COLOR / 255;
    int cc= init_extended_color(ix, r, g, b);
+   if( cc == ERR ) {
+     traceh("%d= init_extended_color(%d,%d,%d,%d)\n", cc, ix, r, g, b);
+     throw curses_error("init_extended_color");
+   }
 
    if( IO_TRACE && opt_hcdm )
      traceh("%d= init_extended_color(%d,%d,%d,%d)\n", cc, ix, r, g, b);
-   if( cc == ERR )
-     throw curses_error("init_color");
+
+   return ix++;
 }
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       nc_init_color_pair
-//
-// Purpose-
-//       Initialize a color pair
-//
-// Implemenation notes-
-//       COLOR_PAIR and COLOR numbers are pre-assigned
-//       GC: The COLOR_PAIR number
-//       GC+0: The foreground COLOR number
-//       GC+1: The background COLOR number
-//
-//----------------------------------------------------------------------------
-static inline void
-   nc_init_color_pair(              // Initialize a color pair
-     GC_t              GC,          // The graphic context
-     Color             fg,          // The foreground Color
-     Color             bg)          // The background Color
-{  if( IO_TRACE && opt_hcdm )
-     traceh("nc_init_color_pair(%d,0x%.6X,0x%.6X)\n", GC, fg.rgb, bg.rgb);
-
-   nc_init_color(GC+0, fg);
-   nc_init_color(GC+1, bg);
-
-   int cc= init_pair(short(GC), short(GC+0), short(GC+1));
-
-   if( IO_TRACE && opt_hcdm )
-     traceh("%d= init_pair(%d,%d,%d)\n", cc, GC, GC+0, GC+1);
-   if( cc == ERR )
-     throw curses_error("init_color_pair");
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       nc_init_pair
+//       nc_set_pair
 //
 // Purpose-
 //       Initialize a basic color pair
 //
 //----------------------------------------------------------------------------
 static inline void
-   nc_init_pair(                    // Initialize a color pair
+   nc_set_pair(                     // Initialize a color pair
      GC_t              GC,          // The graphic context
-     short             fg,          // The foreground Color
-     short             bg)          // The background Color
-{  if( IO_TRACE && opt_hcdm )
-     traceh("nc_init_pair(%d,%d,%d)\n", GC, fg, bg);
+     int               fg,          // The foreground Color or index
+     int               bg)          // The background Color or index
+{
+   if( have_extended_colors ) {     // If using extended colors
+     int cc= init_extended_pair(GC, fg, bg);
+     if( cc == ERR ) {
+       traceh("%d= init_extended_pair(%d,0x%.8x,0x%.8x)\n", cc, GC, fg, bg);
+       throw curses_error("init_extended_pair");
+     }
 
-   int cc= init_pair(short(GC), fg, bg);
-   if( IO_TRACE && opt_hcdm )
-     traceh("%d= init_pair(%d,%d,%d)\n", cc, GC, fg, bg);
-   if( cc == ERR )
-     throw curses_error("init_pair");
+     if( IO_TRACE && opt_hcdm )
+       traceh("%d= init_extended_pair(%d,0x%.8x,0x%.8x)\n", cc, GC, fg, bg);
+   } else {
+     int cc= init_pair(short(GC), short(fg), short(bg));
+     if( cc == ERR ) {
+       traceh("%d= init_pair(%d,0x%.8x,0x%.8x)\n", cc, GC, fg, bg);
+       throw curses_error("init_pair");
+     }
+
+     if( IO_TRACE && opt_hcdm )
+       traceh("%d= init_pair(%d,0x%.8x,0x%.8x)\n", cc, GC, fg, bg);
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -548,7 +607,20 @@ static inline void
 //----------------------------------------------------------------------------
 static inline void
    term( void )                     // Terminate
-{  EdUnit::Init::at_exit(); }
+{  EdOpts::at_exit(); }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       tf
+//
+// Purpose-
+//       Convert boolean to "true" or "false"
+//
+//----------------------------------------------------------------------------
+static inline const char*           // "true" or "false"
+   tf(bool cc)                      // Convert boolean cc to "true" or "false"
+{  return cc ? "true" : "false"; }
 
 //----------------------------------------------------------------------------
 //
@@ -581,45 +653,6 @@ static inline void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdUnit::Init::initialize
-//       EdUnit::Init::terminate
-//       EdUnit::Init::at_exit
-//
-// Purpose-
-//       Initialize the EdUnit
-//       Terminate  the EdUnit
-//       Abnormal termination handler
-//
-//----------------------------------------------------------------------------
-EdUnit*                             // The EdUnit
-   EdUnit::Init::initialize( void ) // Initialize an EdUnit
-{
-   return new EdOuts();             // The associated EdUnit
-}
-
-void
-   EdUnit::Init::terminate(         // Terminate
-     EdUnit*           unit)        // This EdUnit
-{
-   delete unit;                     // Delete the EdUnit
-}
-
-void
-   EdUnit::Init::at_exit( void )    // (Idempotent) termination handler
-{  if( opt_hcdm )
-     traceh("EdUnit::Init::at_exit(%s)\n", nc_active ? "true" : "false");
-
-   if( nc_active ) {                // Is ncurses active?
-     resetty();                     // Reset the keyboard
-     endwin();                      // Terminate the NCURSES window
-
-     nc_active= false;
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       EdInps::EdInps
 //
 // Purpose-
@@ -630,7 +663,7 @@ void
 {  if( opt_hcdm )
      traceh("EdInps(%p)::EdInps\n", this);
 
-   atexit(Init::at_exit);           // Set termination handler
+   atexit(EdOpts::at_exit);         // Set termination handler
 }
 
 //----------------------------------------------------------------------------
@@ -646,9 +679,9 @@ void
 {  if( opt_hcdm )
      traceh("EdInps(%p)::~EdInps\n", this);
 
-   Init::at_exit();                // Terminate ncurses
+   EdOpts::at_exit();               // Terminate ncurses
 
-   delete editor::data;            // Delete the views and the mark
+   delete editor::data;             // Delete the views and the mark
    delete editor::hist;
    delete editor::mark;
 
@@ -670,12 +703,7 @@ void
 // Implementation notes-
 //       We cannot initialize until *after* Config::parser invocation because
 //       the parser sets the variables we need to initialize.
-//       Our constructor is invoked *before* Config::parser invocation.
-//
-// Implementation notes-
-//       We set the TERM environment variable to "xterm-256color".
-//       This works OK (at least for now) and avoids having to implement for
-//       multiple environments.
+//       This constructor is invoked *before* Config::parser invocation.
 //
 //----------------------------------------------------------------------------
 void
@@ -683,89 +711,153 @@ void
 {  if( opt_hcdm )
      traceh("EdInps(%p)::init\n", this);
 
+   // opt_hcdm= true;               // (Bringup?)
+
    if( HCDM || opt_hcdm ) {
      debug_set_mode(pub::Debug::MODE_INTENSIVE);
      traceh("%s %s %s Hard Core Debug Mode\n", __FILE__, __DATE__, __TIME__);
    }
 
-   // Must be done before initscr()
-   setlocale(LC_CTYPE, "");         // (Required for UTF-8 support)
-   string inp_xterm= getenv("TERM"); // The original TERM valud
+   // Get default colors
+   int fg=      config::text_fg;
+   int bg=      config::text_bg;
 
-   int fg= 0;                       // The default foreground color
-   int bg= 0;                       // The default background color
-   int initialized= 0;              // (Not initialized)
+   int fg_mark= config::mark_fg;
+   int bg_mark= config::mark_bg;
+   int fg_chg=  config::change_fg;
+   int bg_chg=  config::change_bg;
+   int fg_msg=  config::message_fg;
+   int bg_msg=  config::message_bg;
+   int fg_sts=  config::status_fg;
+   int bg_sts=  config::status_bg;
 
-   // Method 1: Use TERM=xterm-256color
-   if( initialized == 0 ) try {
+   // Cygwin consoles, when $TERM is changed from `xterm` to `xterm-256color`
+   // actually support 256 COLORS and can_change_color().
+   const char* CYGWIN= getenv("CYGWIN");
+   const char* DISPLAY= getenv("DISPLAY");
+   if( CYGWIN && DISPLAY == nullptr ) {
      setenv("TERM", "xterm-256color", true);
-     win= initscr();
-     nc_active= true;
-
-     start_color();
-     if( !has_colors() )
-       throw curses_error("!has_colors");
-     if( !can_change_color() )
-       throw curses_error("!can_change_color");
-
-     nc_init_color(bg_chg, config::change_bg); // bg_chg is a COLOR, not a GC_t
-     nc_init_color(bg_sts, config::status_bg); // bg_sts is a COLOR, not a GC_t
-
-     nc_init_color_pair(gc_font, config::text_fg,   config::text_bg);
-     fg= gc_font + 0;
-     bg= gc_font + 1;
-
-     nc_init_color_pair(gc_flip, config::text_bg,   config::text_fg);
-     nc_init_color_pair(gc_mark, config::mark_fg,   config::mark_bg);
-     nc_init_color_pair(gc_chg, config::change_fg,  config::change_bg);
-     nc_init_color_pair(gc_msg, config::message_fg, config::message_bg);
-     nc_init_color_pair(gc_sts, config::status_fg,  config::status_bg);
-     initialized= 1;                // Method 1 selected
-   } catch( curses_error& X ) {
-     term();
-     setenv("TERM", inp_xterm.c_str(), true);
    }
 
-   // Method 2: VGA terminal 16 color support
-   if( initialized == 0 ) try {
-     win= initscr();
-     nc_active= true;
-
+   try {                            // Activate NCURSES
+     win= initscr();                // Open the WINDOW
      start_color();
+
+     // Initialize colors
      if( !has_colors() )
-       throw curses_error("!has_colors");
+       throw curses_error("No color support!");
 
-traceh("$TERM(%s) COLORS(%d) COLOR_PAIRS(%d)\n", inp_xterm.c_str()
-      , COLORS, COLOR_PAIRS);
-     if( COLORS < 8 )
-       throw curses_error("COLORS < 8");
-     if( COLOR_PAIRS < 32 )
-       throw curses_error("COLOR_PAIRS < 32");
+     int has_COLORS= COLORS;
+     int has_PAIRS=  COLOR_PAIRS;
 
-     nc_init_pair(gc_font, COLOR_WHITE, COLOR_BLUE);
-     fg= COLOR_WHITE;
-     bg= COLOR_BLUE;
+     if( has_COLORS < 8 || has_PAIRS < 8 )
+       throw curses_error("Not enough color support!");
 
-     nc_init_pair(gc_flip, COLOR_BLUE,  COLOR_WHITE);
-     nc_init_pair(gc_mark, COLOR_WHITE, COLOR_MAGENTA);
-     nc_init_pair(gc_chg,  COLOR_WHITE, COLOR_RED);
-     nc_init_pair(gc_msg,  COLOR_BLACK, COLOR_YELLOW);
-     nc_init_pair(gc_sts,  COLOR_WHITE, COLOR_GREEN);
-     initialized= 2;                // Method 2 selected
-   } catch( curses_error& X ) {
+     // Would you believe it?
+     // Some terminals lie about their can_change_color capability.
+     bool has_change_color= can_change_color();
+     if( has_change_color && COLORS >= 32 ) {
+       int cc= init_extended_color(18, 752, 941, 1000); // Try to change color
+       if( cc == ERR ) {            // LIE detected
+         if( opt_hcdm )
+           traceh("%4d EdInps FAILED init_extended_color test\n", __LINE__);
+         has_change_color= false;   // Fall back to minimal color set
+         has_COLORS= 8;
+       }
+     }
+
+     if( opt_hcdm ) {
+       const char* TERM= getenv("TERM");
+       traceh("$TERM(%s) COLORS(%d) COLOR_PAIRS(%d)\n"
+             , TERM, COLORS, COLOR_PAIRS);
+       traceh("can_change_color(%s) has_change_color(%s)\n"
+             , tf(can_change_color()), tf(has_change_color));
+     }
+
+     if( has_change_color && has_COLORS >= 32 ) { // If can_change_color()
+       if( opt_hcdm )
+         traceh("%4d EdInps: SET colors\n", __LINE__);
+
+       fg=      nc_set_color(fg     );
+       bg=      nc_set_color(bg     );
+       fg_mark= nc_set_color(fg_mark);
+       bg_mark= nc_set_color(bg_mark);
+       fg_chg=  nc_set_color(fg_chg );
+       bg_chg=  nc_set_color(bg_chg );
+       fg_msg=  nc_set_color(fg_msg );
+       bg_msg=  nc_set_color(bg_msg );
+       fg_sts=  nc_set_color(fg_sts );
+       bg_sts=  nc_set_color(bg_sts );
+     } else if( COLORS == 0x01000000 ) { // If 16M colors supported
+       if( opt_hcdm )
+         traceh("%4d EdInps: 16M colors\n", __LINE__);
+
+     } else if( has_COLORS == 0x00010000 ) { // If 64K colors supported
+       if( opt_hcdm )
+         traceh("%4d EdInps: 64K colors\n", __LINE__);
+
+       fg=      nc_64k(fg     );
+       bg=      nc_64k(bg     );
+       fg_mark= nc_64k(fg_mark);
+       bg_mark= nc_64k(bg_mark);
+       fg_chg=  nc_64k(fg_chg );
+       bg_chg=  nc_64k(bg_chg );
+       fg_msg=  nc_64k(fg_msg );
+       bg_msg=  nc_64k(bg_msg );
+       fg_sts=  nc_64k(fg_sts );
+       bg_sts=  nc_64k(bg_sts );
+     } else if( has_COLORS == 0x00000100 ) { // If 256 colors supported
+       if( opt_hcdm )
+         traceh("%4d EdInps: 256 colors\n", __LINE__);
+
+       fg=      nc_256(fg     );
+       bg=      nc_256(bg     );
+       fg_mark= nc_256(fg_mark);
+       bg_mark= nc_256(bg_mark);
+       fg_chg=  nc_256(fg_chg );
+       bg_chg=  nc_256(bg_chg );
+       fg_msg=  nc_256(fg_msg );
+       bg_msg=  nc_256(bg_msg );
+       fg_sts=  nc_256(fg_sts );
+       bg_sts=  nc_256(bg_sts );
+     } else {                       // MINIMAL (8) color support
+       if( opt_hcdm )
+         traceh("%4d EdInps: 8 colors\n", __LINE__);
+
+       have_extended_colors= false; //
+       fg=      COLOR_WHITE;        // (Hand modified)
+       bg=      COLOR_BLUE;
+       fg_mark= COLOR_BLACK;
+       bg_mark= COLOR_CYAN;
+       fg_chg=  COLOR_WHITE;
+       bg_chg=  COLOR_RED;
+       fg_msg=  COLOR_BLACK;
+       bg_msg=  COLOR_YELLOW;
+       fg_sts=  COLOR_BLACK;
+       bg_sts=  COLOR_GREEN;
+     }
+
+     // Set the color pairs (Graphic Contexts)
+     nc_set_pair(gc_font, fg,      bg);
+     nc_set_pair(gc_flip, bg,      fg);
+     nc_set_pair(gc_mark, fg_mark, bg_mark);
+     nc_set_pair(gc_chg,  fg_chg,  bg_chg);
+     nc_set_pair(gc_msg,  fg_msg,  bg_msg);
+     nc_set_pair(gc_sts,  fg_sts,  bg_sts);
+   } catch( std::exception& X ) {
+     traceh("%4d EdInps Exception.what(%s)\n", __LINE__, X.what());
      term();
      Config::failure("Initialization failed: %s", X.what());
    }
 
-   // Initialized
-traceh("Initialized method %d\n", initialized);
+   // Colors initialized. Set screen size, etc.
    init_program_modes(win);         // Initialize settings
    def_prog_mode();                 // (Save modes as "program" modes)
 
    getmaxyx(win, row_size, col_size); // Set screen size
    wsetscrreg(win, 0, row_size-1);  // Set scrolling region
-   assume_default_colors(fg, bg);
-   bkgdset(' ');                    // Set the background
+   assume_default_colors(fg, bg);   // Set default colors (for clear screen)
+   bkgdset(' ');                    // Set the background character
    set_escdelay(50);                // MINIMAL escape character delay
 
    // Initialize views

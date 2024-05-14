@@ -75,17 +75,17 @@ WINDOW*                win= nullptr; // The NCURSES window (stdscr)
 
 Motion                 motion= {CS_VISIBLE, 0, 0}; // System motion controls
 
-// Background colors
-const GC_t             bg_chg=  16; // GC: TOP: BG: File changed
-const GC_t             bg_sts=  17; // GC: TOP: BG: File unchanged
+// Background colors (UNUSED)
+GC_t                   bg_chg=  0;  // GC: TOP: BG: File changed
+GC_t                   bg_sts=  0;  // GC: TOP: BG: File unchanged
 
 // Graphic contexts (Color pairs)
-const GC_t             gc_flip= 18; // Graphic Context: Cursor character
-const GC_t             gc_font= 20; // GC: Standard line
-const GC_t             gc_mark= 22; // GC: Marked line or block
-const GC_t             gc_chg=  24; // GC: TOP: File changed
-const GC_t             gc_msg=  26; // GC: TOP: Message line
-const GC_t             gc_sts=  28; // GC: TOP: File unchanged
+const GC_t             gc_font= 1;  // Graphic Context: Standard line
+const GC_t             gc_flip= 2;  // GC: Cursor character
+const GC_t             gc_mark= 3;  // GC: Marked line or block
+const GC_t             gc_chg=  4;  // GC: TOP: File changed
+const GC_t             gc_msg=  5;  // GC: TOP: Message line
+const GC_t             gc_sts=  6;  // GC: TOP: File unchanged
 
 // Operational controls
 int                    operational= false; // TRUE while operational

@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2024/04/22
+//       2024/05/13
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -36,7 +36,8 @@
 
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For namespace editor
-#include "EdUnit.h"                 // For EdUnit
+#include "EdOpts.h"                 // For EdOpts::bg_enabled
+#include "EdUnit.h"                 // For EdUnit (start/join)
 
 using pub::Debug;                   // For Debug object
 using namespace pub::debugging;     // For debugging
@@ -260,22 +261,28 @@ extern int                          // Return code
    int rc= parm(argc, argv);        // Argument analysis
    if( rc ) return rc;              // Return if invalid
 
-#ifndef USE_NCURSES_VERSION         // Ncurses editor should run in foreground
-   if( opt_bg ) {                   // If run in background
+   if( EdOpts::bg_enabled && opt_bg ) { // If run in background
      if( fork() )                   // If parent (foreground)
        return 0;
    }
-#endif
 
    //-------------------------------------------------------------------------
    // Operate the Editor
    //-------------------------------------------------------------------------
    try {
-     setlocale(LC_NUMERIC, "");     // Allows printf("%'d\n", 123456789);
+     // Initialize environment
+     setlocale(LC_ALL, "");         // Allows printf("%'d\n", 123456789);
+     std::string lang= getenv("LANG");
+     if( lang.find(".utf8") == std::string::npos
+         && lang.find(".UTF-8") == std::string::npos ) {
+       lang += ".utf8";
+     }
+     setlocale(LC_CTYPE, lang.c_str());
 
      config::opt_hcdm= opt_hcdm;    // Expose config:: options
      config::opt_verbose= opt_verbose;
 
+     // Configure and operate the Editor
      Config config(argc, argv);     // Configure
      if( opt_hcdm || opt_verbose > 0 ) {
        Config::errorf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);

@@ -82,22 +82,6 @@ enum // Imported
 }; // Imported
 
 //----------------------------------------------------------------------------
-// External data areas
-//----------------------------------------------------------------------------
-const char*            EdUnit::EDITOR= "editxcb";
-const char*            EdUnit::DEFAULT_CONFIG=
-   "[Program]\n"
-   "URL=https://github.com/franke-hub/SDL/tree/trunk/src/cpp/Edit/Xcb\n"
-   "Exec=Edit ; Edit in read-write mode\n"
-   "Exec=View ; Edit in read-only mode\n"
-   "Purpose=XCB based text editor\n"
-   "Version=1.1.0\n"
-   "\n"
-   "[Options]\n"
-   ";; (Defaulted) See sample: ~/src/cpp/Edit/Xcb/.SAMPLE/Edit.conf\n"
-   ;
-
-//----------------------------------------------------------------------------
 // Keypad conversion table (Dependent upon /usr/include/X11/keysymdef.h)
 //----------------------------------------------------------------------------
 static unsigned short  kp_num[64]=  // Keypad conversion table, numlock on
@@ -339,40 +323,6 @@ static int                          // Return code, TRUE if error message
    editor::put_message("Protected");
    return true;
 }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdUnit::Init::initialize
-//       EdUnit::Init::terminate
-//       EdUnit::Init::at_exit
-//
-// Purpose-
-//       Initialize the EdUnit
-//       Terminate  the EdUnit
-//       Termination handler
-//
-//----------------------------------------------------------------------------
-EdUnit*                             // The EdUnit
-   EdUnit::Init::initialize( void ) // Initialize an EdUnit
-{
-   gui::Device* device= new gui::Device(); // The associated gui::Device
-   return new EdOuts(device, "EdUnit"); // The associated EdUnit
-}
-
-void
-   EdUnit::Init::terminate(         // Terminate
-     EdUnit*           unit)        // This EdUnit
-{
-   EdOuts*      outs=   static_cast<EdOuts*>(unit);
-   gui::Device* device= static_cast<gui::Device*>(outs->get_parent());
-   delete unit;                     // Delete the EdUnit
-   delete device;                   // Then, delete the Device
-}
-
-void
-   EdUnit::Init::at_exit( void )    // (Idempotent) termination handler
-{  } // NOT NEEDED
 
 //----------------------------------------------------------------------------
 //
