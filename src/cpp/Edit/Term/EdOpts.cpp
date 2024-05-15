@@ -16,7 +16,7 @@
 //       Editor: Xcb vs Term configuration options.
 //
 // Last change date-
-//       2024/05/13
+//       2024/05/15
 //
 //----------------------------------------------------------------------------
 #include <ncurses.h>                // For ncurses (== curses.h)
@@ -30,6 +30,11 @@
 
 using namespace config;             // For config::opt_*, ...
 using namespace pub::debugging;     // For debugging
+
+//----------------------------------------------------------------------------
+// EdOpts::Patch level
+//----------------------------------------------------------------------------
+const char*            EdOpts::PATCH= "0-100"; // Patch level
 
 //----------------------------------------------------------------------------
 // EdOpts::External data areas (control attributes)
@@ -62,6 +67,8 @@ static inline EdInps*               // The EdInps*
 EdUnit*                             // The EdUnit
    EdOpts::initialize( void )       // Initialize the EdUnit
 {
+   atexit(EdOpts::at_exit);         // Set termination handler
+
    return new EdOuts();             // The associated EdUnit
 }
 
@@ -69,6 +76,8 @@ void
    EdOpts::terminate(               // Terminate
      EdUnit*           unit)        // This EdUnit
 {
+   EdOpts::at_exit();               // Terminate ncurses
+
    delete unit;                     // Delete the EdUnit
 }
 

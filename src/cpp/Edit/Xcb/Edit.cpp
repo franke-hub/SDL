@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2024/05/13
+//       2024/05/15
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -36,7 +36,7 @@
 
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For namespace editor
-#include "EdOpts.h"                 // For EdOpts::bg_enabled
+#include "EdOpts.h"                 // For EdOpts
 #include "EdUnit.h"                 // For EdUnit (start/join)
 
 using pub::Debug;                   // For Debug object
@@ -92,7 +92,7 @@ static int                          // Return code (Always 1)
    info( void)                      // Parameter description
 {
    fprintf(stderr, "%s <options> filename ...\n"
-                   "File editor\n\n"
+                   "File editor version %d.%d.%s\n\n"
                    "Options:\n"
                    "  --help\tThis help message\n"
                    "  --hcdm\tHard Core Debug Mode\n"
@@ -100,6 +100,7 @@ static int                          // Return code (Always 1)
 
                    "  --fg\t\tRun editor in foreground\n"
                    , __FILE__
+                   , EdOpts::MAJOR, EdOpts::MINOR, EdOpts::PATCH
           );
 
    return 1;

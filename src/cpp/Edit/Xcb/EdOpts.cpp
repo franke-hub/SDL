@@ -16,13 +16,18 @@
 //       Editor: Xcb vs Term configuration options.
 //
 // Last change date-
-//       2024/05/13
+//       2024/05/15
 //
 //----------------------------------------------------------------------------
 #include "gui/Device.h"             // For gui::Device, allocated
 
 #include "EdOpts.h"                 // For EdOpts, implemented
 #include "EdOuts.h"                 // For EdOuts, allocated
+
+//----------------------------------------------------------------------------
+// EdOpts::Patch level
+//----------------------------------------------------------------------------
+const char*            EdOpts::PATCH= "0-100"; // Patch level
 
 //----------------------------------------------------------------------------
 // EdOpts::External data areas (control attributes)

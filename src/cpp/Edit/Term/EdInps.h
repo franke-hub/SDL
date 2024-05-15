@@ -16,7 +16,7 @@
 //       Editor: Terminal input services.
 //
 // Last change date-
-//       2024/05/10
+//       2024/05/15
 //
 // Implementation notes-
 //       See EdOuts.h for terminal output services.
@@ -56,31 +56,35 @@ class EdInps : public EdUnit {      // Editor Input services
 // EdInps::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-enum CURSOR_STATE                   // Mouse cursor state
-{  CS_RESET= 0                      // Reset (initial state, visible)
-,  CS_HIDDEN                        // Hidden
+enum CURSOR_STATE                   // Cursor state
+{  CS_HIDDEN                        // Hidden
 ,  CS_VISIBLE                       // Visible
 }; // enum CURSOR_STATE
 
-struct Motion {                     // System motion controls
-int                    state;       // System mouse CURSOR_STATE
+struct Cursor {                     // Cursor controls
+int                    state;       // CURSOR_STATE
 int                    x;           // Last X position
 int                    y;           // Last Y position
 }; // struct Motion
+
+enum                                // Generic enum
+{  HIST_MESS_ROW= 1                 // History/Message line row
+}; // Generic enum
 
 //----------------------------------------------------------------------------
 // EdInps::Attributes
 //----------------------------------------------------------------------------
 WINDOW*                win= nullptr; // The NCURSES window (stdscr)
 
-Motion                 motion= {CS_VISIBLE, 0, 0}; // System motion controls
+Cursor                 mouse_cursor= {CS_VISIBLE, 0, 0}; // Mouse cursor
+Cursor                 screen_cursor= {CS_HIDDEN, 0, 0}; // Screen cursor
 
 // Background colors (UNUSED)
 GC_t                   bg_chg=  0;  // GC: TOP: BG: File changed
 GC_t                   bg_sts=  0;  // GC: TOP: BG: File unchanged
 
 // Graphic contexts (Color pairs)
-const GC_t             gc_font= 1;  // Graphic Context: Standard line
+const GC_t             gc_font= 1;  // Graphic Context: Text line (default)
 const GC_t             gc_flip= 2;  // GC: Cursor character
 const GC_t             gc_mark= 3;  // GC: Marked line or block
 const GC_t             gc_chg=  4;  // GC: TOP: File changed
@@ -114,18 +118,6 @@ void
 virtual void
    debug(                           // Debugging display
      const char*       info= nullptr) const; // Associated info
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdUnit::flush
-//
-// Purpose-
-//       Complete enqueued I/O operations
-//
-//----------------------------------------------------------------------------
-virtual void
-   flush( void );                   // Complete enqueued I/O operations
 
 //----------------------------------------------------------------------------
 //
@@ -170,31 +162,6 @@ bool                                // TRUE if a  character is available
 
 uint32_t                            // The next character
    read( void );                    // Get the next character
-
-//----------------------------------------------------------------------------
-//
-// Screen output methods-
-//       EdInps::putch
-//       EdInps::putcr
-//
-// Purpose-
-//       Draw char at [col,row] position
-//       Draw text at [col,row] position
-//
-//----------------------------------------------------------------------------
-void
-   putch(                           // Draw character
-     GC_t              gc,          // The graphic context
-     unsigned          col,         // The column
-     unsigned          row,         // The row
-     int               text);       // The character
-
-void
-   putcr(                           // Draw text
-     GC_t              gc,          // The graphic context
-     unsigned          col,         // The column
-     unsigned          row,         // The row
-     const char*       text);       // The text
 
 //----------------------------------------------------------------------------
 //

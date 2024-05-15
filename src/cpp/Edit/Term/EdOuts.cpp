@@ -16,7 +16,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2024/05/10
+//       2024/05/15
 //
 // Implementation notes:
 //       We let curses control the cursor display, setting its position using
@@ -32,6 +32,7 @@
 #include <pub/List.h>               // For pub::List
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/Utf.h>                // For pub::Utf classes
+#include <pub/utility.h>            // For pub::utility::visify
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For Config, namespace config
@@ -46,6 +47,7 @@
 using namespace config;             // For config::opt_*, ...
 using namespace pub::debugging;     // For debugging
 using pub::Trace;                   // For pub::Trace
+using pub::utility::visify;         // For pub::utility::visify
 
 typedef pub::Utf::utf8_t   utf8_t;  // Import utf8_t
 typedef pub::Utf::utf16_t  utf16_t; // Import utf16_t
@@ -59,7 +61,6 @@ enum // Compilation controls
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 // Controls
-,  HM_ROW= 1                        // History/Message line row
 ,  IO_TRACE= true                   // I/O trace mode?
 }; // Compilation controls
 
@@ -68,6 +69,27 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 static pub::signals::Connector<EdMark::ChangeEvent>
                        changeEvent_connector;
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       putcr_record
+//
+// Purpose-
+//       Internal trace record for putcr operation.
+//
+//----------------------------------------------------------------------------
+struct putcr_record {
+enum { DATA_SIZE= 32 };             // The output data length
+char                   ident[4];    // The trace type identifier     ".PUT"
+char                   unit[4];     // The trace data sub-identifier "data"
+uint64_t               clock;       // The UTC epoch clock, in nanoseconds
+uint32_t               col;         // The screen (X) column
+uint32_t               row;         // The screen (Y) row
+uint32_t               _0018;       // Reserved/unused
+uint32_t               length;      // The output data length
+char                   data[DATA_SIZE]; // The output data
+}; // struct putcr_record
 
 //----------------------------------------------------------------------------
 //
@@ -259,6 +281,7 @@ void
      if( line == act_line ) {
        data->row= r;
        draw_top();
+       show_cursor();
        return;
      }
 
@@ -341,6 +364,7 @@ void
 
    Trace::trace(".DRW", " all", head, tail);
    erase();                         // Clear the screen
+   screen_cursor.state= CS_HIDDEN; // (Thus hiding the cursor)
 
    // Display the text (if any)
    tail= this->head;
@@ -365,6 +389,8 @@ void
    }
 
    draw_top();                      // Draw top (status, hist/message) lines
+   if( editor::view == editor::data )
+     show_cursor();
 }
 
 //----------------------------------------------------------------------------
@@ -459,14 +485,15 @@ void
      hist->active.reset();
      hist->active.index(col_size + 1);
      const char* buffer= hist->active.get_buffer();
-     putcr(hist->get_gc(), 0, HM_ROW, buffer);
+     putcr(hist->get_gc(), 0, HIST_MESS_ROW, buffer);
      return;
    }
 
    if( HCDM )
      Trace::trace(".DRW", "hist", hist->cursor);
    const char* buffer= hist->get_buffer();
-   putcr(hist->get_gc(), 0, HM_ROW, buffer);
+   putcr(hist->get_gc(), 0, HIST_MESS_ROW, buffer);
+   show_cursor();
 }
 
 bool                                // Return code, TRUE if handled
@@ -489,7 +516,9 @@ bool                                // Return code, TRUE if handled
 
    if( HCDM )
      Trace::trace(".DRW", " msg");
-   putcr(gc_msg, 0, HM_ROW, buffer);
+   putcr(gc_msg, 0, HIST_MESS_ROW, buffer);
+   if( editor::view == editor::hist )
+     screen_cursor.state= CS_HIDDEN; // (We just over-wrote the history line)
    return true;
 }
 
@@ -586,6 +615,80 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdOuts::flush
+//
+// Purpose-
+//       Complete an operation
+//
+// Implementation notes-
+//       Not normally required: Next poll automatically flushes.
+//
+//----------------------------------------------------------------------------
+void
+   EdOuts::flush( void )            // Complete an operation
+{  if( opt_hcdm )
+     traceh("EdOuts(%p)::flush()\n", this);
+
+   wrefresh(win);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdOuts::hide_cursor
+//       EdOuts::show_cursor
+//
+// Purpose-
+//       Hide the screen cursor
+//       Show the screen cursor
+//
+// Implementation notes-
+//       (NOT UTF-8 capable)
+//
+//----------------------------------------------------------------------------
+void
+   EdOuts::hide_cursor( void )            // Hide the screen cursor
+{  if( opt_hcdm )
+     traceh("EdInps(%p)::hide_cursor()\n", this);
+
+   if( screen_cursor.state == CS_VISIBLE ) {
+     EdView* view= editor::data;
+     if( screen_cursor.y == HIST_MESS_ROW )
+       view= editor::hist;
+
+     int x= screen_cursor.x;
+     int y= screen_cursor.y;
+     view->active.fetch(x);
+     const char* buffer= view->active.get_buffer();
+     putch(view->get_gc(), x, y, buffer[x]);
+
+     screen_cursor.state= CS_HIDDEN;
+   }
+}
+
+void
+   EdOuts::show_cursor( void )            // Show the screen cursor
+{  if( opt_hcdm )
+     traceh("EdInps(%p)::show_cursor()\n", this);
+
+   if( screen_cursor.state == CS_VISIBLE )
+     hide_cursor();
+
+   EdView* view= editor::view;
+   int x= view->col;
+   int y= view->row;
+   view->active.fetch(x);
+   const char* buffer= view->active.get_buffer();
+   putch(gc_flip, x, y, buffer[x]);
+
+   screen_cursor.x= x;
+   screen_cursor.y= y;
+   screen_cursor.state= CS_VISIBLE;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdOuts::move_cursor_H
 //
 // Purpose-
@@ -597,6 +700,8 @@ int                                 // Return code, 0 if draw performed
      size_t            column)      // The (absolute) LINE column number
 {
    int rc= 1;                       // Default, draw not performed
+
+// hide_cursor();                   // Clear the current cursor
 
    EdView* const view= editor::view;
    size_t current= view->get_column(); // Set current column
@@ -619,8 +724,9 @@ int                                 // Return code, 0 if draw performed
    view->col= unsigned(column - view->col_zero);
 
    if( rc ) {                       // If full redraw not needed
-     view->draw_active();           // Update active line
      draw_status();                 // Update status line
+     view->draw_active();           // Update active line
+     show_cursor();                 // (Including the cursor)
    } else {                         // If full redraw needed
      if( view == editor::data )     // If data view, draw_top included
        draw();
@@ -669,6 +775,100 @@ void
 
    synch_active();
    draw();
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdOuts::putch
+//       EdOuts::putcr
+//
+// Purpose-
+//       Draw char at column, row
+//       Draw text at column, row
+//
+//----------------------------------------------------------------------------
+void
+   EdOuts::putch(                   // Draw text
+     GC_t              GC,          // The graphic context
+     unsigned          col,         // The (X) column
+     unsigned          row,         // The (Y) row
+     int               code)        // The character
+{  if( IO_TRACE && opt_hcdm && opt_verbose > 0 )
+     traceh("EdOuts(%p)::putch(%u,[%d,%d],0x%.4X) '%s'\n", this, GC, col, row
+     , code, visify(code).c_str());
+
+   if( code == 0 )                  // Disallow '\0', convert to ' '
+     code= ' ';
+
+   char buffer[8];                  // The cursor encoding buffer
+   unsigned L= pub::Utf8::encode(code, (utf8_t*)buffer);
+   buffer[L]= '\0';                 // (Terminate the string)
+   putcr(GC, col, row, buffer);
+}
+
+void
+   EdOuts::putcr(                   // Draw text
+     GC_t              GC,          // The graphic context
+     unsigned          col,         // The (X) column
+     unsigned          row,         // The (Y) row
+     const char*       text)        // Using this text
+{  if( IO_TRACE && opt_hcdm && opt_verbose > 0 ) {
+     char buffer[24];
+     if( strlen(text) < 17 )
+       strcpy(buffer, text);
+     else {
+       memcpy(buffer, text, 16);
+       strcpy(buffer+16, "...");
+     }
+     traceh("EdOuts(%p)::putcr(%u,[%d,%d],'%s'.%zd)\n", this, GC, col, row
+           , visify(buffer).c_str(), strlen(text));
+   }
+
+   // Compute output length (in glyphs)
+   size_t COL= col_size - col;      // Number of characters left on line
+   size_t OUT= COL;                 // Number of characters to write
+   size_t LEN= strlen(text);        // Number of characters in string
+   OUT= LEN > COL ? COL : LEN;      // Don't use more than lines on string
+
+   // Get the output buffer, adjusting size if UTF-8 characters are present
+   Active* active= editor::altact;
+   active->reset(text);
+   const char* output= active->get_buffer();
+   size_t UTF= pub::Utf8::index(output, OUT);
+   if( UTF > OUT )
+     OUT= UTF;
+   output= active->resize(OUT);
+
+   // The curses addstr methods provide '\b' and '\t' special handling.
+   // This botches our screen handling, so we prevent that.
+   // (TODO: Replace '\b' and '\t' with UNI_REPLACEMENT character)
+   char*
+   C= (char*)strchr(output, '\b');  // Remove '\b' characters
+   while( C ) {
+     *C= '~';
+     C= (char*)strchr(output, '\b');
+   }
+
+   C= (char*)strchr(output, '\t');  // Remove '\t' characters
+   while( C ) {
+     *C= '~';
+     C= (char*)strchr(output, '\t');
+   }
+
+   color_set(short(GC), nullptr);   // Set the color
+   mvwaddstr(win, row, col, output); // Write the string
+   putcr_record* R= (putcr_record*)Trace::storage_if(sizeof(putcr_record));
+   if( R ) {
+     R->col= htonl(col);
+     R->row= htonl(row);
+     R->_0018= 0;
+     R->length= htonl(uint32_t(OUT));
+     Trace::Buffer<putcr_record::DATA_SIZE> buff(output);
+     memcpy(R->data, buff.temp, putcr_record::DATA_SIZE);
+     memcpy(R->unit, "data", 4);
+     ((Trace::Record*)R)->trace(".OUT"); // Trace::trace(".OUT", "data")
+   }
 }
 
 //----------------------------------------------------------------------------

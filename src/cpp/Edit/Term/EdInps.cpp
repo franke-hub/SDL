@@ -16,7 +16,7 @@
 //       Editor: Implement EdInps.h: Terminal keyboard and mouse handlers.
 //
 // Last change date-
-//       2024/05/11
+//       2024/05/15
 //
 // Implementation notes-
 // Term: TODO: On Fedora, UTF8 characters display as separate characters, so
@@ -39,7 +39,6 @@
 #include <pub/List.h>               // For pub::List
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/Utf.h>                // For pub::Utf::UNI_REPLACEMENT
-#include <pub/utility.h>            // For pub::utility::visify
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For Config, namespace config
@@ -50,13 +49,11 @@
 #include "EdInps.h"                 // For EdInps, implemented
 #include "EdMark.h"                 // For EdMark
 #include "EdOpts.h"                 // For EdOpts
-#include "EdOuts.h"                 // For EdInps, derived class
 #include "EdType.h"                 // For GC_t
 
 using namespace config;             // For config::opt_*, ...
 using namespace pub::debugging;     // For debugging
 using pub::Trace;                   // For pub::Trace
-using pub::utility::visify;         // For pub::utility::visify
 using std::string;                  // Using std::string
 
 //----------------------------------------------------------------------------
@@ -185,27 +182,6 @@ short                               // The BLUE color component
 
 //----------------------------------------------------------------------------
 //
-// Struct-
-//       putcr_record
-//
-// Purpose-
-//       Internal trace record for putcr operation.
-//
-//----------------------------------------------------------------------------
-struct putcr_record {
-enum { DATA_SIZE= 32 };             // The output data length
-char                   ident[4];    // The trace type identifier     ".PUT"
-char                   unit[4];     // The trace data sub-identifier "data"
-uint64_t               clock;       // The UTC epoch clock, in nanoseconds
-uint32_t               col;         // The screen (X) column
-uint32_t               row;         // The screen (Y) row
-uint32_t               _0018;       // Reserved/unused
-uint32_t               length;      // The output data length
-char                   data[DATA_SIZE]; // The output data
-}; // struct putcr_record
-
-//----------------------------------------------------------------------------
-//
 // Subroutine-
 //       init_program_modes
 //
@@ -229,7 +205,8 @@ static inline void
    scrollok(win, false);            // (Use automatic scrolling?)
 
    // idlok(win, false);            // (Do not use hardware insert/delete line?)
-   curs_set(1);                     // (Use visible cursor)
+// curs_set(1);                     // (Use visible cursor)
+   curs_set(0);                     // (Don't use cursor)
    intrflush(win, false);           // (Do not flush on interrupt)
    noecho();                        // (Do not echo)
    nonl();                          // (Do not convert '\r' to '\n')
@@ -662,8 +639,6 @@ static inline void
    EdInps::EdInps( void )           // Constructor
 {  if( opt_hcdm )
      traceh("EdInps(%p)::EdInps\n", this);
-
-   atexit(EdOpts::at_exit);         // Set termination handler
 }
 
 //----------------------------------------------------------------------------
@@ -678,8 +653,6 @@ static inline void
    EdInps::~EdInps( void )          // Destructor
 {  if( opt_hcdm )
      traceh("EdInps(%p)::~EdInps\n", this);
-
-   EdOpts::at_exit();               // Terminate ncurses
 
    delete editor::data;             // Delete the views and the mark
    delete editor::hist;
@@ -898,31 +871,13 @@ void
    tracef("..key_state(0x%.8X)%s%s\n", key_state
          , key_state & KS_INS ? "-INS" : "", key_state & KS_ESC ? "-ESC" : ""
    );
-   tracef("..motion(%d,%d,%d)\n", motion.state, motion.x, motion.y);
+   tracef("..mouse_cursor(%d,%d,%d) screen_cursor(%d,%d,%d)\n"
+         , mouse_cursor.state, mouse_cursor.x, mouse_cursor.y
+         , screen_cursor.state, screen_cursor.x, screen_cursor.y);
    tracef("..gc_font(%u) gc_flip(%u) gc_mark(%u)\n", gc_font, gc_flip, gc_mark);
    tracef("..bg_chg(%u)  bg_sts(%u)\n", bg_chg, bg_sts);
    tracef("..gc_chg(%u)  gc_msg(%u)  gc_sts(%u)\n", gc_chg, gc_msg, gc_sts);
    tracef("..operational(%d) poll_char(0x%.4X)\n", operational, poll_char);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdInps::flush
-//
-// Purpose-
-//       Complete an operation
-//
-// Implementation notes-
-//       Not normally required: Next poll automatically flushes.
-//
-//----------------------------------------------------------------------------
-void
-   EdInps::flush( void )            // Complete an operation
-{  if( opt_hcdm )
-     traceh("EdInps(%p)::flush()\n", this);
-
-   wrefresh(win);
 }
 
 //----------------------------------------------------------------------------
@@ -1425,111 +1380,6 @@ uint32_t                            // The next character with modifiers
      trace_keystroke(pc, key_state);
 
    return pc;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdInps::putch
-//       EdInps::putcr
-//
-// Purpose-
-//       Draw char at column, row
-//       Draw text at column, row
-//
-// Implementation note-
-//       Putch was only used to hide or show the cursor. It's now unused.
-//
-//----------------------------------------------------------------------------
-void
-   EdInps::putch(                   // Draw text
-     GC_t              GC,          // The graphic context
-     unsigned          col,         // The (X) column
-     unsigned          row,         // The (Y) row
-     int               code)        // The character
-{  // if( IO_TRACE && opt_hcdm && opt_verbose > 0 )
-     traceh("EdOuts(%p)::putch(%u,[%d,%d],0x%.4X) '%s'\n", this, GC, col, row
-     , code, visify(code).c_str());
-
-   if( code == 0 )                  // Disallow '\0', convert to ' '
-     code= ' ';
-
-   if( USE_UTF8 && code > 0x007f ) {   // Handle UTF-8 encoding
-traceh("%4d Outs UTF8(0x%.6X)\n", __LINE__, code); // NOT EXPECTED
-     char buffer[8];                // The cursor encoding buffer
-     pub::Utf8::encode(code, (utf8_t*)buffer);
-     buffer[pub::Utf8::length(code)]= '\0';
-     putcr(GC, col, row, buffer);
-     return;
-   }
-
-   color_set(short(GC), nullptr);   // Set the color
-   mvwaddch(win, row, col, code);
-   Trace::trace(".PCH", code, visify(code).c_str());
-}
-
-void
-   EdInps::putcr(                   // Draw text
-     GC_t              GC,          // The graphic context
-     unsigned          col,         // The (X) column
-     unsigned          row,         // The (Y) row
-     const char*       text)        // Using this text
-{  if( IO_TRACE && opt_hcdm && opt_verbose > 0 ) {
-     char buffer[24];
-     if( strlen(text) < 17 )
-       strcpy(buffer, text);
-     else {
-       memcpy(buffer, text, 16);
-       strcpy(buffer+16, "...");
-     }
-     traceh("EdOuts(%p)::putcr(%u,[%d,%d],'%s'.%zd)\n", this, GC, col, row
-           , visify(buffer).c_str(), strlen(text));
-   }
-
-   // Compute output length (in glyphs)
-   size_t COL= col_size - col;      // Number of characters left on line
-   size_t OUT= COL;                 // Number of characters to write
-   size_t LEN= strlen(text);        // Number of characters in string
-   OUT= LEN > COL ? COL : LEN;      // Don't use more than lines on string
-
-   // Get the output buffer, adjusting size if UTF-8 characters are present
-   Active* active= editor::altact;
-   active->reset(text);
-   const char* output= active->get_buffer();
-   size_t UTF= pub::Utf8::index(output, OUT);
-   if( UTF > OUT )
-     OUT= UTF;
-   output= active->resize(OUT);
-
-   // The curses addstr methods provide '\b' and '\t' special handling.
-   // This botches our screen handling, so we prevent that.
-   // (TODO: Replace '\b' and '\t' with UNI_REPLACEMENT character)
-   char*
-   C= (char*)strchr(output, '\b');  // Remove '\b' characters
-   while( C ) {
-     *C= '~';
-     C= (char*)strchr(output, '\b');
-   }
-
-   C= (char*)strchr(output, '\t');  // Remove '\t' characters
-   while( C ) {
-     *C= '~';
-     C= (char*)strchr(output, '\t');
-   }
-
-   color_set(short(GC), nullptr);   // Set the color
-   mvwaddstr(win, row, col, output); // Write the string
-   putcr_record* R= (putcr_record*)Trace::storage_if(sizeof(putcr_record));
-   if( R ) {
-     R->col= htonl(col);
-     R->row= htonl(row);
-     R->_0018= 0;
-     R->length= htonl(uint32_t(OUT));
-     Trace::Buffer<putcr_record::DATA_SIZE> buff(output);
-     memcpy(R->data, buff.temp, putcr_record::DATA_SIZE);
-     memcpy(R->unit, "data", 4);
-     ((Trace::Record*)R)->trace(".OUT"); // Trace::trace(".OUT", "data")
-   }
 }
 
 //----------------------------------------------------------------------------

@@ -16,7 +16,7 @@
 //       Editor: Xcb vs Term version controls
 //
 // Last change date-
-//       2024/05/13
+//       2024/05/15
 //
 //----------------------------------------------------------------------------
 #ifndef EDOPTS_H_INCLUDED
@@ -37,10 +37,23 @@ class EdUnit;
 //
 //----------------------------------------------------------------------------
 class EdOpts {                      // Editor text Window viewport
+public:
+//----------------------------------------------------------------------------
+// EdOpts::Enumerations and typedefs
+//----------------------------------------------------------------------------
+enum                                // Version information
+{  MAJOR= 3                         // Version 3.0
+,  MINOR= 0
+}; // Version
+
+//----------------------------------------------------------------------------
+// EdOpts::PATCH version information
+//----------------------------------------------------------------------------
+static const char*     PATCH;       // Version patch level
+
 //----------------------------------------------------------------------------
 // EdOpts::Initialization/termination
 //----------------------------------------------------------------------------
-public:
 static EdUnit*                      // The EdUnit
    initialize( void );              // Initialize
 

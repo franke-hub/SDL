@@ -16,7 +16,7 @@
 //       Editor: Terminal output services.
 //
 // Last change date-
-//       2024/05/10
+//       2024/05/15
 //
 // Implementation notes-
 //       Attributes are defined in EdInps.h and EdUnit.h
@@ -129,6 +129,18 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdOuts::flush
+//
+// Purpose-
+//       Complete enqueued I/O operations
+//
+//----------------------------------------------------------------------------
+virtual void
+   flush( void );                   // Complete enqueued I/O operations
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdOuts::get_text
 //
 // Purpose-
@@ -138,6 +150,48 @@ virtual void
 virtual const char*                 // The associated text
    get_text(                        // Get text
      const EdLine*     line) const; // For this EdLine
+
+//----------------------------------------------------------------------------
+//
+// Screen output methods-
+//       EdOuts::hide_cursor
+//       EdOuts::show_cursor
+//
+// Purpose-
+//       Hide the screen cursor
+//       Show the screen cursor
+//
+//----------------------------------------------------------------------------
+virtual void
+   hide_cursor( void );             // Hide the cursor
+
+virtual void
+   show_cursor( void );             // Show the cursor
+
+//----------------------------------------------------------------------------
+//
+// Screen output methods-
+//       EdOuts::putch
+//       EdOuts::putcr
+//
+// Purpose-
+//       Draw char at [col,row] position
+//       Draw text at [col,row] position
+//
+//----------------------------------------------------------------------------
+virtual void
+   putch(                           // Draw character
+     GC_t              gc,          // The graphic context
+     unsigned          col,         // The column
+     unsigned          row,         // The row
+     int               text);       // The character
+
+virtual void
+   putcr(                           // Draw text
+     GC_t              gc,          // The graphic context
+     unsigned          col,         // The column
+     unsigned          row,         // The row
+     const char*       text);       // The text
 
 //----------------------------------------------------------------------------
 //
