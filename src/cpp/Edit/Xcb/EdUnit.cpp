@@ -16,7 +16,7 @@
 //       Editor: Input/output interface; Handle editor operations.
 //
 // Last change date-
-//       2024/05/09
+//       2024/05/15
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -320,10 +320,18 @@ void
    EdUnit::op_line_to_bot( void )   // Move cursor line to end of screen
 {  using namespace editor;
 
-   // NOT IMPLEMENTED. This is the same as op_line_to_top
-   head= data->cursor;
-   data->row_zero += (data->row - USER_TOP);
-   data->row= USER_TOP;
+   while( data->row < (row_size - 1) ) {
+     if( head->get_prev() == nullptr )
+       break;
+
+     ++data->row;
+     head= head->get_prev();
+     --data->row_zero;
+
+     if( row_used < (row_size - 1) )
+       ++row_used;
+   }
+
    draw();
 }
 

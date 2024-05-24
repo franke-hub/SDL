@@ -16,11 +16,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2024/05/15
-//
-// Implementation notes:
-//       We let curses control the cursor display, setting its position using
-//       `mvwgetch(win, view->row, view->col)` when polling/reading.
+//       2024/05/16
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -94,17 +90,17 @@ char                   data[DATA_SIZE]; // The output data
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       set_title
+//       set_main_name
 //
 // Purpose-
 //       Set the windows title (using an escape sequence)
 //
 //----------------------------------------------------------------------------
 static inline void
-   set_title(                       // Set the window title decoraion
+   set_main_name(                   // Set the window title decoraion
      const char*       title)       // The new title
 {  if( IO_TRACE && opt_hcdm )
-     traceh("EdOuts::set_title(%s)\n", title);
+     traceh("EdOuts::set_main_name(%s)\n", title);
 
    fprintf(stdout, "\x1b]2;%s\x07", title); // Uses escape sequence
    fflush(stdout);
@@ -242,7 +238,7 @@ void
      } else {
        memcpy(buffer + 6, C, L+1);
      }
-     set_title(buffer);
+     set_main_name(buffer);
 
      // Synchronize, then draw the screen
      synch_active();
@@ -270,6 +266,7 @@ void
    Trace::trace(".ACT", "line", data->cursor, act_line); // (Old, new)
 
    // Activate
+   hide_cursor();                   // Clear the current cursor
    data->commit();                  // Commit any active line
    data->active.reset(act_line->text); // Activate the new line
    data->cursor= act_line;          // "
@@ -280,8 +277,8 @@ void
    for(unsigned r= USER_TOP; (r+1) < row_size; r++) { // Set the Active line
      if( line == act_line ) {
        data->row= r;
-       draw_top();
        show_cursor();
+       draw_top();
        return;
      }
 
@@ -364,7 +361,6 @@ void
 
    Trace::trace(".DRW", " all", head, tail);
    erase();                         // Clear the screen
-   screen_cursor.state= CS_HIDDEN; // (Thus hiding the cursor)
 
    // Display the text (if any)
    tail= this->head;
@@ -507,6 +503,8 @@ bool                                // Return code, TRUE if handled
      return false;
 
    key_state |= KS_MSG;             // Message present
+   if( editor::view == editor::hist )
+     hide_cursor();
 
    char buffer[1024];               // Message buffer
    memset(buffer, ' ', sizeof(buffer));
@@ -517,8 +515,6 @@ bool                                // Return code, TRUE if handled
    if( HCDM )
      Trace::trace(".DRW", " msg");
    putcr(gc_msg, 0, HIST_MESS_ROW, buffer);
-   if( editor::view == editor::hist )
-     screen_cursor.state= CS_HIDDEN; // (We just over-wrote the history line)
    return true;
 }
 
@@ -639,51 +635,48 @@ void
 //       EdOuts::show_cursor
 //
 // Purpose-
-//       Hide the screen cursor
-//       Show the screen cursor
-//
-// Implementation notes-
-//       (NOT UTF-8 capable)
+//       Hide the screen cursor character
+//       Show the screen cursor character
 //
 //----------------------------------------------------------------------------
 void
-   EdOuts::hide_cursor( void )            // Hide the screen cursor
-{  if( opt_hcdm )
-     traceh("EdInps(%p)::hide_cursor()\n", this);
+   EdOuts::hide_cursor( void )      // Hide the character cursor
+{  if( opt_hcdm && opt_verbose > 0 )
+     traceh("EdOuts(%p)::hide_cursor cr[%u,%u]\n", this
+           , editor::view->col, editor::view->row);
 
-   if( screen_cursor.state == CS_VISIBLE ) {
-     EdView* view= editor::data;
-     if( screen_cursor.y == HIST_MESS_ROW )
-       view= editor::hist;
+   EdView* const view= editor::view;
 
-     int x= screen_cursor.x;
-     int y= screen_cursor.y;
-     view->active.fetch(x);
-     const char* buffer= view->active.get_buffer();
-     putch(view->get_gc(), x, y, buffer[x]);
+   char buffer[8];                  // The cursor encoding buffer
+   size_t column= view->get_column(); // The current column
+   const utf8_t* data= (const utf8_t*)view->active.get_buffer(column);
+   utf32_t code= pub::Utf8::decode(data);
+   if( code == 0 )
+     code= ' ';
+   pub::Utf8::encode(code, (utf8_t*)buffer);
+   buffer[pub::Utf8::length(code)]= '\0';
 
-     screen_cursor.state= CS_HIDDEN;
-   }
+   putcr(view->get_gc(), view->col, view->row, buffer);
 }
 
 void
-   EdOuts::show_cursor( void )            // Show the screen cursor
-{  if( opt_hcdm )
-     traceh("EdInps(%p)::show_cursor()\n", this);
+   EdOuts::show_cursor( void )      // Show the character cursor
+{  if( opt_hcdm && opt_verbose > 0 )
+     traceh("EdOuts(%p)::show_cursor cr[%u,%u]\n", this
+           , editor::view->col, editor::view->row);
 
-   if( screen_cursor.state == CS_VISIBLE )
-     hide_cursor();
+   EdView* const view= editor::view;
 
-   EdView* view= editor::view;
-   int x= view->col;
-   int y= view->row;
-   view->active.fetch(x);
-   const char* buffer= view->active.get_buffer();
-   putch(gc_flip, x, y, buffer[x]);
+   char buffer[8];                  // The cursor encoding buffer
+   size_t column= view->get_column(); // The current column
+   const utf8_t* data= (const utf8_t*)view->active.get_buffer(column);
+   utf32_t code= pub::Utf8::decode(data);
+   if( code == 0 )
+     code= ' ';
+   int L= pub::Utf8::encode(code, (utf8_t*)buffer);
+   buffer[L]= '\0';
 
-   screen_cursor.x= x;
-   screen_cursor.y= y;
-   screen_cursor.state= CS_VISIBLE;
+   putcr(gc_flip, view->col, view->row, buffer);
 }
 
 //----------------------------------------------------------------------------
@@ -701,7 +694,7 @@ int                                 // Return code, 0 if draw performed
 {
    int rc= 1;                       // Default, draw not performed
 
-// hide_cursor();                   // Clear the current cursor
+   hide_cursor();                   // Clear the current cursor
 
    EdView* const view= editor::view;
    size_t current= view->get_column(); // Set current column
@@ -724,9 +717,8 @@ int                                 // Return code, 0 if draw performed
    view->col= unsigned(column - view->col_zero);
 
    if( rc ) {                       // If full redraw not needed
+     show_cursor();                 // Show the cursor and
      draw_status();                 // Update status line
-     view->draw_active();           // Update active line
-     show_cursor();                 // (Including the cursor)
    } else {                         // If full redraw needed
      if( view == editor::data )     // If data view, draw_top included
        draw();

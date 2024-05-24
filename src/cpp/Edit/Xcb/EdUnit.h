@@ -16,7 +16,7 @@
 //       Editor: Input/output unit interface
 //
 // Last change date-
-//       2024/05/09
+//       2024/05/15
 //
 //----------------------------------------------------------------------------
 #ifndef EDUNIT_H_INCLUDED
@@ -61,7 +61,7 @@ enum KEY_STATE                      // Input data and logic control (key_state)
 // Input key modifiers
 ,  KS_ALT=             0x00020000   // ALT   key modifier
 ,  KS_CTL=             0x00040000   // CTrL  key modifier
-,  KS_SHI=             0x00080000   // SHIft key modifier (UNUSED)
+,  KS_SFT=             0x00080000   // ShiFT key modifier
 
 // Logical states
 ,  KS_INS=             0x01000000   // Insert state

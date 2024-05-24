@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2024/05/07
+//       2024/05/15
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -467,15 +467,15 @@ const char*                         // (Always nullptr)
 {
    string text= "Function keys:\n"
        " F1:     This help message\n"
-       " F2:     NOP\n"
+       " F2:     Copy file name to command line\n"
+       "ctrl-F2: Copy cursor line to command line\n"
        " F3:     Quit file (if unchanged)\n"
        " F4:     Query: Any files changed?\n"
        " F5:     Locate (next)\n"
        " F6:     Change (current or next)\n"
        " F7:     Switch to previous file\n"
        " F8:     Switch to next file\n"
-       " F9:     Copy file name to command line\n"
-       "ctrl-F9: Copy cursor line to command line\n"
+       " F9:     Move cursor line to bottom of screen\n"
        "F10:     Move cursor line to top of screen\n"
        "F11:     Undo\n"
        "F12:     Redo\n"

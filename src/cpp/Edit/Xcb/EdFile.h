@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2024/03/31
+//       2024/05/16
 //
 //----------------------------------------------------------------------------
 #ifndef EDFILE_H_INCLUDED
@@ -58,6 +58,9 @@ bool                   changed= false; // File is changed
 bool                   chglock= false; // File is changed, undo not available
 bool                   damaged= false; // File is damaged
 bool                   protect= false; // File is protected
+
+// We assume it's for UTF-8 encoding when non-ASCII characters are detected
+bool                   contains_UTF8= false; // File contains UTF-8 characters
 
 // Cursor position controls
 EdLine*                top_line= nullptr; // The current top Line

@@ -42,10 +42,9 @@ const char*            EdOpts::PATCH= "0-100"; // Patch level
 // We don't run in background mode.
 int                    EdOpts::bg_enabled= false;
 
-// UTF-8 combining characters are NOT supported.
-// The characters are combined by curses output, but there's a lot of other
-// work to account for these characters properly.
-int                    EdOpts::cc_enabled= true; // (This is unchecked)
+// UTF-8 is generally NOT supported by curses implementations.
+// (Only the CYGWIN implemenation has been found to operate properly.)
+int                    EdOpts::utf8_enabled= false;
 
 //----------------------------------------------------------------------------
 //
@@ -68,6 +67,11 @@ EdUnit*                             // The EdUnit
    EdOpts::initialize( void )       // Initialize the EdUnit
 {
    atexit(EdOpts::at_exit);         // Set termination handler
+
+   // Only Cygwin implements UTF8 correctly.
+   // (But we still need to fix combining characters, so false it is.)
+   if( false && getenv("CYGWIN") != nullptr )
+     utf8_enabled= true;
 
    return new EdOuts();             // The associated EdUnit
 }

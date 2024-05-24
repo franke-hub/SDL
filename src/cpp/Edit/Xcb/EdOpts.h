@@ -67,10 +67,7 @@ static void
 // EdOpts::Control attributes
 //----------------------------------------------------------------------------
 static int             bg_enabled;  // opt_bg allowed?
-
-// This might be a way of handing UTF-8 combining characters, so it's defined
-// here as a placeholder. TODO: implement and/or remove
-static int             cc_enabled;  // UTF-8 combining characters enabled?/
+static int             utf8_enabled;  // Is UTF-8 supported?
 
 //----------------------------------------------------------------------------
 // EdOpts::Static attributes

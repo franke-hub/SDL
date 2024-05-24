@@ -751,6 +751,9 @@ void
      if( e ) {
        handle_event(e);
        free(e);
+
+       // TODO: Consider auto-flush (and removing most flush operations)
+       // flush();                  // TODO: Consider auto-flush
      }
    }
 }

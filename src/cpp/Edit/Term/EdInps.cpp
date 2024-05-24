@@ -16,7 +16,7 @@
 //       Editor: Implement EdInps.h: Terminal keyboard and mouse handlers.
 //
 // Last change date-
-//       2024/05/15
+//       2024/05/16
 //
 // Implementation notes-
 // Term: TODO: On Fedora, UTF8 characters display as separate characters, so
@@ -131,9 +131,9 @@ static constexpr const char* alt_table= "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static constexpr const char* ctl_table= "ABCDEF*******NOPQRSTUVWXYZ";
 
 //----------------------------------------------------------------------------
-// EdInps.hpp: ONLY included for compilation check.
+// EdInps.hpp: Extended key management
 //----------------------------------------------------------------------------
-#include <EdInps.hpp>               // UNUSED struct with keydefinitions
+#include <EdInps.hpp>
 
 //----------------------------------------------------------------------------
 //
@@ -237,7 +237,7 @@ static bool
    if( key >= 0x0020 && key < 0x007F ) // If standard ASCII text key
      return true;
 
-   return false;                    // (Key_0x7f treated as BACKSPACE)
+   return false;                    // (Key_0x7F treated as BACKSPACE)
 }
 
 //----------------------------------------------------------------------------
@@ -293,10 +293,10 @@ static int                          // Return code, TRUE if error message
      }
    } else {                         // If action key
      switch( key ) {                // Check for disallowed keys
-       case '\b':                   // (BACKSPACE)
-//     KEY_BASKSPACE:               // (BACKSPACE, already translated)
-       case 0x007F:                 // (DELete encoding)
-       case KEY_DC:                 // (Delete)
+       case '\b':                   // (Backspace char)
+       case KEY_BACKSPACE:          // (Backspace key)
+       case 0x007F:                 // (DELete char encoding)
+       case KEY_DC:                 // (Delete key)
          break;
 
        default:                     // All others allowed
@@ -323,7 +323,7 @@ static const char*                  // The name of the key
    static char buffer[16];          // (Static) return buffer
    static const char* F_KEY= "123456789ABCDEF";
 
-   if( key >= 0x0020 && key <= 0x007f ) { // If text key (but not TAB or ESC)
+   if( key >= 0x0020 && key <= 0x007F ) { // If ASCII text key
      buffer[0]= char(key);
      buffer[1]= '\0';
      return buffer;
@@ -698,11 +698,11 @@ void
    int fg_mark= config::mark_fg;
    int bg_mark= config::mark_bg;
    int fg_chg=  config::change_fg;
-   int bg_chg=  config::change_bg;
+       bg_chg=  config::change_bg;
    int fg_msg=  config::message_fg;
    int bg_msg=  config::message_bg;
    int fg_sts=  config::status_fg;
-   int bg_sts=  config::status_bg;
+       bg_sts=  config::status_bg;
 
    // Cygwin consoles, when $TERM is changed from `xterm` to `xterm-256color`
    // actually support 256 COLORS and can_change_color().
@@ -871,9 +871,8 @@ void
    tracef("..key_state(0x%.8X)%s%s\n", key_state
          , key_state & KS_INS ? "-INS" : "", key_state & KS_ESC ? "-ESC" : ""
    );
-   tracef("..mouse_cursor(%d,%d,%d) screen_cursor(%d,%d,%d)\n"
-         , mouse_cursor.state, mouse_cursor.x, mouse_cursor.y
-         , screen_cursor.state, screen_cursor.x, screen_cursor.y);
+   tracef("..mouse_cursor(%d,%d,%d)\n"
+         , mouse_cursor.state, mouse_cursor.x, mouse_cursor.y);
    tracef("..gc_font(%u) gc_flip(%u) gc_mark(%u)\n", gc_font, gc_flip, gc_mark);
    tracef("..bg_chg(%u)  bg_sts(%u)\n", bg_chg, bg_sts);
    tracef("..gc_chg(%u)  gc_msg(%u)  gc_sts(%u)\n", gc_chg, gc_msg, gc_sts);
@@ -1003,7 +1002,9 @@ void
    EdInps::key_input(               // Handle this
      uint32_t          key,         // The input key
      uint32_t          state)       // The Alt/Ctl/Shift state mask
-{  if( opt_hcdm && opt_verbose > 0 )
+{  translate_irregular_keys(key, state); // Translate (used) irregular keys
+
+   if( opt_hcdm && opt_verbose > 0 )
      traceh("EdInps(%p)::key_input(0x%.4X,0x%.8X) '%s%s%s'\n", this
            , key, state
            , (state & KS_ALT) ? "ALT-" : ""
@@ -1067,10 +1068,12 @@ void
 
      if( key_state & KS_INS ) {     // If Insert state
        view->active.insert_char(column, key);
+       if( move_cursor_H(column + 1) )
+         view->draw_active();
      } else {
        view->active.replace_char(column, key);
+       move_cursor_H(column + 1);
      }
-     move_cursor_H(column + 1);
      draw_top();
      show_cursor();
 
@@ -1081,8 +1084,8 @@ void
 
    // Handle action key
    switch( key ) {                  // Handle data key
-//   case 0x007F:                   // (DEL char, already translated)
-//   case KEY_BACKSPACE:            // (BACKSPACE, already translated)
+     case 0x007F:                   // (DEL char, treated as backspace)
+     case KEY_BACKSPACE:            // (Backspace)
      case '\b': {                   // (Backspace)
        op_key_backspace();
        break;
@@ -1133,7 +1136,10 @@ void
        break;
      }
      case KEY_F(2): {
-       op_key_idle();
+       if( state & KS_CTL )
+         op_copy_cursor_to_hist();
+       else
+         op_copy_file_name_to_hist();
        break;
      }
      case KEY_F(3): {
@@ -1161,10 +1167,7 @@ void
        break;
      }
      case KEY_F(9): {
-       if( state & KS_CTL )
-         op_copy_cursor_to_hist();
-       else
-         op_copy_file_name_to_hist();
+       op_line_to_bot();
        break;
      }
      case KEY_F(10): {

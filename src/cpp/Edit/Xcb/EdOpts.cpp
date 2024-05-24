@@ -34,11 +34,7 @@ const char*            EdOpts::PATCH= "0-100"; // Patch level
 //----------------------------------------------------------------------------
 // Background is our preferred mode of operation, so we enable it.
 int                    EdOpts::bg_enabled= true;
-
-// UTF-8 combining characters are NOT supported.
-// We don't know how to make this work with our X11 line drawing routines.
-// If we could make it work, there would be no need for this control.
-int                    EdOpts::cc_enabled= false;
+int                    EdOpts::utf8_enabled= true;
 
 //----------------------------------------------------------------------------
 //

@@ -55,8 +55,6 @@ using pub::Trace;                   // For pub::Trace
 enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
-
-,  HM_ROW= 1                        // History/Message line row
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
@@ -115,7 +113,13 @@ static pub::signals::Connector<EdMark::ChangeEvent>
 }
 
 //----------------------------------------------------------------------------
-// EdOuts::Destructor
+//
+// Method-
+//       EdOuts::~EdOuts
+//
+// Purpose-
+//       Destructor.
+//
 //----------------------------------------------------------------------------
    EdOuts::~EdOuts( void )          // Destructor
 {  if( opt_hcdm ) debugh("EdOuts(%p)::~EdOuts\n", this); }
@@ -485,7 +489,7 @@ void
      hist->active.reset();
      hist->active.index(col_size + 1);
      const char* buffer= hist->active.get_buffer();
-     putcr(hist->get_gc(), 0, HM_ROW, buffer);
+     putcr(hist->get_gc(), 0, HIST_MESS_ROW, buffer);
      flush();
      return;
    }
@@ -493,7 +497,7 @@ void
    if( HCDM )
      Trace::trace(".DRW", "hist", hist->cursor);
    const char* buffer= hist->get_buffer();
-   putcr(hist->get_gc(), 0, HM_ROW, buffer);
+   putcr(hist->get_gc(), 0, HIST_MESS_ROW, buffer);
    show_cursor();
    flush();
 }
@@ -520,7 +524,7 @@ bool                                // Return code, TRUE if handled
 
    if( HCDM )
      Trace::trace(".DRW", " msg");
-   putcr(gc_msg, 0, HM_ROW, buffer);
+   putcr(gc_msg, 0, HIST_MESS_ROW, buffer);
    flush();
    return true;
 }
@@ -620,9 +624,8 @@ void
 
    // Draw the status and message/history lines
    draw_status();
-   if( draw_message() )
-     return;
-   draw_history();
+   if( !draw_message() )
+     draw_history();
 }
 
 //----------------------------------------------------------------------------
@@ -659,7 +662,7 @@ void
 void
    EdOuts::show_cursor( void )      // Show the character cursor
 {  if( opt_hcdm && opt_verbose > 0 )
-     traceh("EdOuts(%p)::show_cursor cr[%u,%u]\n", this
+     debugh("EdOuts(%p)::show_cursor cr[%u,%u]\n", this
            , editor::view->col, editor::view->row);
 
    EdView* const view= editor::view;
@@ -670,10 +673,9 @@ void
    utf32_t code= pub::Utf8::decode(data);
    if( code == 0 )
      code= ' ';
-   pub::Utf8::encode(code, (utf8_t*)buffer);
-   buffer[pub::Utf8::length(code)]= '\0';
+   int L= pub::Utf8::encode(code, (utf8_t*)buffer);
+   buffer[L]= '\0';
 
-   // (We use gc_flip to show the cursor in every situation)
    putcr(gc_flip, view->col, view->row, buffer);
 }
 
@@ -737,7 +739,7 @@ void
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 if draw performed
    EdOuts::move_cursor_H(           // Move cursor horizontally
-     size_t            column)      // The (absolute) column number
+     size_t            column)      // The (absolute) LINE column number
 {
    int rc= 1;                       // Default, draw not performed
 
@@ -764,7 +766,7 @@ int                                 // Return code, 0 if draw performed
    view->col= unsigned(column - view->col_zero);
 
    if( rc ) {                       // If full redraw not needed
-     show_cursor();                 // Just set cursor
+     show_cursor();                 // Show the cursor and
      draw_status();                 // Update status line
    } else {                         // If full redraw needed
      if( view == editor::data )     // If data view, draw_top included
@@ -787,28 +789,28 @@ int                                 // Return code, 0 if draw performed
 //----------------------------------------------------------------------------
 void
    EdOuts::move_screen_V(           // Move screen vertically
-     int               rows)        // The row count (down is positive)
+     int               rows)        // The SCREEN row count (down is positive)
 {
    EdView* data= editor::data;
    data->commit();
 
    if( rows > 0 ) {                 // Move down
      while( rows-- ) {
-       EdLine* up= (EdLine*)head->get_next();
-       if( up == nullptr )
+       EdLine* line= (EdLine*)head->get_next();
+       if( line == nullptr )
          break;
 
        data->row_zero++;
-       head= up;
+       head= line;
      }
    } else if( rows < 0 ) {          // Move up
      while( rows++ ) {
-       EdLine* up= (EdLine*)head->get_prev();
-       if( up == nullptr )
+       EdLine* line= (EdLine*)head->get_prev();
+       if( line == nullptr )
          break;
 
        data->row_zero--;
-       head= up;
+       head= line;
      }
    }
 

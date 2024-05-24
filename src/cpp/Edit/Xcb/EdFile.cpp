@@ -37,6 +37,7 @@
 #include "EdLine.h"                 // For EdLine
 #include "EdMark.h"                 // For EdMark
 #include "EdMess.h"                 // For EdMess
+#include "EdOpts.h"                 // For EdOpts
 #include "EdUnit.h"                 // For EdUnit
 #include "EdRedo.h"                 // For EdRedo
 
@@ -188,8 +189,9 @@ void
 
    if( this == editor::file )       // If this is the active file
      editor::unit->synch_file();    // Synchronize current I/O state
-   traceh("..mode(%d) changed(%s) chglock(%s) damaged(%s) protect(%s)\n"
-         , mode, TF(changed), TF(chglock), TF(damaged), TF(protect));
+   traceh("..mode(%d) changed(%s) chglock(%s) damaged(%s)\n"
+         , mode, TF(changed), TF(chglock), TF(damaged));
+   traceh("..contains_UTF8(%s) protect(%s)\n", TF(contains_UTF8), TF(protect));
    traceh("..top_line(%p) csr_line(%p)\n", top_line, csr_line);
    traceh("..col_zero(%zd) col(%d) row_zero(%zd) row(%d) rows(%zd)\n"
          , col_zero, col, row_zero, row, rows);
@@ -401,6 +403,17 @@ EdLine*                             // The last inserted line
      put_message("Binary file");
      last= text + size;
      mode= M_BIN;
+   } else {                         // Not binary, check for UTF-8 encodings
+     for(size_t i= 0; i<size; ++i) {
+       if( text[i] & 0x80 ) {       // If character isn't in ASCII range
+         contains_UTF8= true;       // It's either UTF-8 or garbage
+         if( EdOpts::utf8_enabled == 0 ) { // If UTF-8 not supported
+           put_message("UTF-8 not supported, file not writable");
+           damaged= true;
+         }
+         break;
+       }
+     }
    }
 
    // Parse the text into lines (Performance critical path)

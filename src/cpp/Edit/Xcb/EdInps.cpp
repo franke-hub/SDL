@@ -16,7 +16,7 @@
 //       Editor: Implement EdInps.h: Terminal keyboard and mouse handlers.
 //
 // Last change date-
-//       2024/05/07
+//       2024/05/24
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -137,7 +137,7 @@ static const char*                  // The name of the key
    static char buffer[16];          // (Static) return buffer
    static const char* F_KEY= "123456789ABCDEF";
 
-   if( key >= 0x0020 && key <= 0x007f ) { // If text key
+   if( key >= 0x0020 && key <= 0x007F ) { // If text key
      buffer[0]= char(key);
      buffer[1]= '\0';
      return buffer;
@@ -250,10 +250,10 @@ static bool
        return true;
    }
 
-   if( key >= 0x0020 && key < 0x007F ) // If standard text key
+   if( key >= 0x0020 && key < 0x007F ) // If standard ASCII text key
      return true;
 
-   return false;
+   return false;                    // (Key_0x7F treated as DELETE)
 }
 
 //----------------------------------------------------------------------------
@@ -309,10 +309,10 @@ static int                          // Return code, TRUE if error message
      }
    } else {                         // If action key
      switch( key ) {                // Check for disallowed keys
-//     case '\b':                   // (Backspace, does not occur
-       case XK_BackSpace:           // (Backspace)
-       case 0x007F:                 // (DELete encoding)
-       case XK_Delete:              // (Delete)
+       case '\b':                   // (Backspace char)
+       case XK_BackSpace:           // (Backspace key)
+       case 0x007F:                 // (DELete char encoding)
+       case XK_Delete:              // (Delete key)
          break;
 
        default:                     // All others allowed
@@ -516,117 +516,6 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       EdInps::key_alt
-//
-// Purpose-
-//       Handle alt-key event
-//
-//----------------------------------------------------------------------------
-void
-   EdInps::key_alt(                 // Handle this
-     xcb_keysym_t      key)         // Alt_Key input event
-{
-   switch(key) {                    // ALT-
-     case 'B': {                    // Mark block
-       op_mark_block();
-       break;
-     }
-     case 'C': {                    // Copy the mark
-       op_mark_copy();
-       break;
-     }
-     case 'D': {                    // Delete the mark
-       op_mark_delete();
-       break;
-     }
-     case 'J': {                    // Join lines
-       op_join_line();
-       break;
-     }
-     case 'I': {                    // Insert line
-       op_insert_line();
-       break;
-     }
-     case 'L': {                    // Mark line
-       op_mark_line();
-       break;
-     }
-     case 'M': {                    // Move mark (Uses cut/paste)
-       op_mark_move();
-       break;
-     }
-     case 'P': {                    // Format paragraph
-       op_mark_format();
-       break;
-     }
-     case 'S': {                    // Split line
-       op_split_line();
-       break;
-     }
-     case 'U': {                    // Undo mark
-       op_mark_undo();
-       break;
-     }
-     case '\\': {                   // Escape
-       key_state |= KS_ESC;
-       break;
-     }
-     default:
-       editor::put_message("Invalid key");
-   }
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       EdInps::key_ctl
-//
-// Purpose-
-//       Handle ctl-key event
-//
-//----------------------------------------------------------------------------
-void
-   EdInps::key_ctl(                 // Handle this
-     xcb_keysym_t      key)         // Ctrl_Key input event
-{
-   switch(key) {                    // CTRL-
-     case 'C': {                    // Copy the mark into the stash
-       op_mark_stash();
-       break;
-     }
-     case 'Q': {                    // Quit
-       op_safe_quit();
-       break;
-     }
-     case 'S': {                    // Save
-       op_save();
-       break;
-     }
-     case 'V': {                    // Paste (the stash)
-       op_mark_paste();
-       break;
-     }
-     case 'X': {                    // Cut the mark
-       op_mark_cut();
-       break;
-     }
-     case 'Y': {                    // REDO
-       op_redo();
-       break;
-     }
-     case 'Z': {                    // UNDO
-       op_undo();
-       break;
-     }
-     default:
-       op_key_dead();
-   }
-}
-
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       Window event handler methods
 //
 // Purpose-
@@ -815,6 +704,116 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       EdInps::key_alt
+//
+// Purpose-
+//       Handle alt-key event
+//
+//----------------------------------------------------------------------------
+void
+   EdInps::key_alt(                 // Handle this
+     xcb_keysym_t      key)         // Alt_Key input event
+{
+   switch(key) {                    // ALT-
+     case 'B': {                    // Mark block
+       op_mark_block();
+       break;
+     }
+     case 'C': {                    // Copy the mark
+       op_mark_copy();
+       break;
+     }
+     case 'D': {                    // Delete the mark
+       op_mark_delete();
+       break;
+     }
+     case 'J': {                    // Join lines
+       op_join_line();
+       break;
+     }
+     case 'I': {                    // Insert line
+       op_insert_line();
+       break;
+     }
+     case 'L': {                    // Mark line
+       op_mark_line();
+       break;
+     }
+     case 'M': {                    // Move mark (Uses cut/paste)
+       op_mark_move();
+       break;
+     }
+     case 'P': {                    // Format paragraph
+       op_mark_format();
+       break;
+     }
+     case 'S': {                    // Split line
+       op_split_line();
+       break;
+     }
+     case 'U': {                    // Undo mark
+       op_mark_undo();
+       break;
+     }
+     case '\\': {                   // Escape
+       key_state |= KS_ESC;
+       break;
+     }
+     default:
+       editor::put_message("Invalid key");
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdInps::key_ctl
+//
+// Purpose-
+//       Handle ctl-key event
+//
+//----------------------------------------------------------------------------
+void
+   EdInps::key_ctl(                 // Handle this
+     xcb_keysym_t      key)         // Ctrl_Key input event
+{
+   switch(key) {                    // CTRL-
+     case 'C': {                    // Copy the mark into the stash
+       op_mark_stash();
+       break;
+     }
+     case 'Q': {                    // Quit
+       op_safe_quit();
+       break;
+     }
+     case 'S': {                    // Save
+       op_save();
+       break;
+     }
+     case 'V': {                    // Paste (the stash)
+       op_mark_paste();
+       break;
+     }
+     case 'X': {                    // Cut the mark
+       op_mark_cut();
+       break;
+     }
+     case 'Y': {                    // REDO
+       op_redo();
+       break;
+     }
+     case 'Z': {                    // UNDO
+       op_undo();
+       break;
+     }
+     default:
+       op_key_dead();
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       EdInps::key_input
 //
 // Purpose-
@@ -827,7 +826,7 @@ void
      int               gui_state)   // GUI state mask
 {  if( opt_hcdm && opt_verbose > 0 )
      debugh("EdInps(%p)::key_input(0x%.4X,0x%.8X) '%s%s%s'\n", this
-           , key, state
+           , key, gui_state
            , (gui_state & gui::KS_ALT) ? "ALT-" : ""
            , (gui_state & gui::KS_CTRL) ? "CTL-" : ""
            , key_to_name(key)
@@ -842,7 +841,7 @@ void
    Trace::trace(".KEY", (state | key), key_name);
 
    // Translate gui_state
-   state &= ~(KS_LOGIC | KS_ALT | KS_CTL);
+   uint32_t state= key_state & KS_LOGIC;
    if( gui_state & gui::KS_ALT )
      state |= KS_ALT;
    if( gui_state & gui::KS_CTRL )
@@ -855,7 +854,7 @@ void
      key= kp_tab[key - KP_MIN];
    }
 
-   if( state & KS_ESC ) {           // Escaped characters
+   if( key_state & KS_ESC ) {       // Escaped characters
      if( key == XK_BackSpace || key == XK_Tab || key == XK_Escape )
        key &= 0x00FF;               // Keys "cleverly chosen to map to ASCII"
    }
@@ -948,7 +947,7 @@ void
          op_debug();
        break;
      }
-     case 0x007F:                   // (DEL)
+     case 0x007F:                   // (DEL char)
      case XK_Delete: {              // (Delete)
        op_key_delete();
        break;
@@ -986,7 +985,10 @@ void
        break;
      }
      case XK_F2: {
-       op_key_idle();
+       if( state & KS_CTL )
+         op_copy_cursor_to_hist();
+       else
+         op_copy_file_name_to_hist();
        break;
      }
      case XK_F3: {
@@ -1014,10 +1016,7 @@ void
        break;
      }
      case XK_F9: {
-       if( state & KS_CTL )
-         op_copy_cursor_to_hist();
-       else
-         op_copy_file_name_to_hist();
+       op_line_to_bot();
        break;
      }
      case XK_F10: {

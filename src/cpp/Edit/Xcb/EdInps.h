@@ -70,6 +70,10 @@ int                    x;           // Last X position
 int                    y;           // Last Y position
 }; // struct Motion
 
+enum                                // Generic enum
+{  HIST_MESS_ROW= 1                 // History/Message line row
+}; // Generic enum
+
 //----------------------------------------------------------------------------
 // EdInps::Attributes
 //----------------------------------------------------------------------------
@@ -285,10 +289,12 @@ virtual void
 // Keypress extension methodss-
 //       EdInps::key_alt
 //       EdInps::key_ctl
+//       EdInps::key_input
 //
 // Purpose-
 //       Handle alt-key event
 //       Handle ctl-key event
+//       Handle input key event
 //
 // Implementation notes-
 //       These methods use EdInps methods, so they can't be subroutines.
@@ -301,6 +307,11 @@ void
 void
    key_ctl(                         // Handle this
      xcb_keysym_t      key);        // Ctrl_Key input event
+
+virtual void
+   key_input(                       // Handle this
+     xcb_keysym_t      key,         // Key input event
+     int               gui_state);  // Alt/Ctl/Shift state mask
 
 //----------------------------------------------------------------------------
 //
@@ -334,11 +345,6 @@ virtual void
 virtual void
    focus_out(                       // Handle this
      xcb_focus_out_event_t* E);     // Focus-out event
-
-virtual void
-   key_input(                       // Handle this
-     xcb_keysym_t      key,         // Key input event
-     int               state);      // Alt/Ctl/Shift state mask
 
 virtual void
    motion_notify(                   // Handle this

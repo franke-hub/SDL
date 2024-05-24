@@ -16,7 +16,7 @@
 //       Editor: Terminal input services.
 //
 // Last change date-
-//       2024/05/15
+//       2024/05/16
 //
 // Implementation notes-
 //       See EdOuts.h for terminal output services.
@@ -65,7 +65,7 @@ struct Cursor {                     // Cursor controls
 int                    state;       // CURSOR_STATE
 int                    x;           // Last X position
 int                    y;           // Last Y position
-}; // struct Motion
+}; // struct Cursor
 
 enum                                // Generic enum
 {  HIST_MESS_ROW= 1                 // History/Message line row
@@ -77,9 +77,8 @@ enum                                // Generic enum
 WINDOW*                win= nullptr; // The NCURSES window (stdscr)
 
 Cursor                 mouse_cursor= {CS_VISIBLE, 0, 0}; // Mouse cursor
-Cursor                 screen_cursor= {CS_HIDDEN, 0, 0}; // Screen cursor
 
-// Background colors (UNUSED)
+// TOP area background colors
 GC_t                   bg_chg=  0;  // GC: TOP: BG: File changed
 GC_t                   bg_sts=  0;  // GC: TOP: BG: File unchanged
 
