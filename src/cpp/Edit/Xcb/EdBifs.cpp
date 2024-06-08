@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2024/05/15
+//       2024/06/07
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -131,6 +131,7 @@ static const char* command_find(char*);
 static const char* command_insert(char*);
 static const char* command_locate(char*);
 static const char* command_margins(char*);
+static const char* command_mode(char*);
 static const char* command_quit(char*);
 // static const char* command_redo(char*);
 static const char* command_save(char*);
@@ -160,6 +161,7 @@ static const Command_desc  command_desc[]= // The Command descriptor list
 ,  {command_insert,   "INSERT",   "Insert file"}
 ,  {command_locate,   "L",        "Locate"}
 ,  {command_margins,  "MARGINS",  "Set margins"}
+,  {command_mode,     "MODE",     "Set mode"}
 ,  {command_quit,     "QUIT",     "(Unconditionally) close file"}
 // {command_redo,     "REDO",     "REDO an UNDO"}
 ,  {command_save,     "SAVE",     "Write file"}
@@ -573,6 +575,19 @@ static const char*                  // Error message, nullptr expected
 }
 
 static const char*                  // Error message, nullptr expected
+   command_mode(                    // (Set) mode command
+     char*             parm)        // (Mutable) parameter string
+{
+   int mode= find_value(parm, mode_value);
+   if( mode >= 0 ) {
+     editor::file->set_mode(mode);
+     return nullptr;
+   }
+
+   return "Invalid mode";
+}
+
+static const char*                  // Error message, nullptr expected
    command_number(                  // (Line) number command
      char*             parm)        // (Mutable) parameter string
 {
@@ -659,15 +674,8 @@ static const char*                  // Error message, nullptr expected
      return command_margins(parm);
 
    // Handle "mode"- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   if( strcasecmp(name, "mode") == 0 ) {
-     int mode= find_value(parm, mode_value);
-     if( mode >= 0 ) {
-       editor::file->set_mode(mode);
-       return nullptr;
-     }
-
-     return "Invalid mode";
-   }
+   if( strcasecmp(name, "mode") == 0 )
+     return command_mode(parm);
 
    // Handle "tabs"- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    if( strcasecmp(name, "tabs") == 0 )

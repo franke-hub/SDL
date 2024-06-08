@@ -16,7 +16,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2024/05/09
+//       2024/06/07
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -46,8 +46,11 @@
 #include "EdType.h"                 // For Editor types
 
 using namespace config;             // For config::opt_*, ...
-using namespace pub::debugging;     // For debugging
+using namespace pub::debugging;     // For debugging methods
 using pub::Trace;                   // For pub::Trace
+using pub::Utf;                     // For pub::Utf types
+using pub::utf8_decoder;            // For pub::utf8_decoder
+using pub::utf16_encoder;           // For pub::utf16_encoder
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -62,6 +65,22 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 static pub::signals::Connector<EdMark::ChangeEvent>
                        changeEvent_connector;
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       unexpected
+//
+// Purpose-
+//       An unexpected event occurred. (Conditionally) write debugging message.
+//
+//----------------------------------------------------------------------------
+static inline void
+   unexpected(int line)             // Handle unexpected event @ __LINE__
+{
+   if( true )
+     debugf("%4d %s HCDM **UNEXPECTED**\n", line, __FILE__);
+}
 
 //----------------------------------------------------------------------------
 //
@@ -857,8 +876,8 @@ void
 void
    EdOuts::putxy(                   // Draw text
      xcb_gcontext_t    gc,          // The target graphic context
-     unsigned          left,        // Left (X) offset
-     unsigned          top,         // Top  (Y) offset
+     unsigned          left,        // Left (X) pixel offset
+     unsigned          top,         // Top  (Y) pixel offset
      const char*       text)        // Using this text
 {  if( opt_hcdm && opt_verbose > 0 ) {
      char buffer[24];
@@ -872,8 +891,62 @@ void
            , gc, left, top, buffer);
    }
 
-   enum{ DIM= 256 };                // xcb_image_text_16 maximum length
-   xcb_char2b_t out[DIM];           // UTF16 output buffer
+#if( USE_UTF_VERSION > 1 )
+   enum{ DIM= 256 };                // xcb_image_text_16 maximum UNIT length
+   xcb_char2b_t out[DIM];           // UTF16 big endian output buffer
+
+   utf8_decoder  decoder((const utf8_t*)text);
+   utf16_encoder encoder((pub::Utf::utf16BE_t*)out, DIM);
+
+   unsigned outlen= 0;              // UTF16 output length, in units
+   unsigned outorg= left;           // Current output origin pixel index
+   unsigned outpix= left;           // Current output pixel index
+   for(utf32_t code= decoder.decode(); code; code= decoder.decode()) {
+#if 0 // EXPERIMENT: FAILED (This just overwrites the original character.)
+     // *** EXPERIMENTAL *** VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
+     if( Utf::is_combining(code) ) {
+       if( outlen ) {
+         ENQUEUE("xcb_image_text_16", xcb_image_text_16
+                ( c, uint8_t(outlen), widget_id, gc
+                , uint16_t(outorg), uint16_t(top + font->offset.y), out) );
+         outpix -= font->length.width; // (Backspace)
+         outorg= outpix;
+         outlen= 0;
+         encoder.reset((pub::Utf::utf16BE_t*)out, DIM);
+       } else if( left > font->length.width ) { // else (outlen == 0) && ...
+         // Column logic error:
+         // Output started with combining code, not at left edge of screen
+         unexpected(__LINE__);
+         outorg= left - font->length.width;
+         outpix= outorg;
+       }
+     }
+     // *** EXPERIMENTAL *** ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#endif
+
+     if( outlen >= (DIM - 4) ) {    // If near the end
+       NOQUEUE("xcb_image_text_16", xcb_image_text_16
+              ( c, uint8_t(outlen), widget_id, gc
+              , uint16_t(outorg), uint16_t(top + font->offset.y), out) );
+       outorg= outpix;
+       outlen= 0;
+       encoder.reset((pub::Utf::utf16BE_t*)out, DIM);
+     }
+
+     outpix += font->length.width;  // Ending pixel (+1)
+     if( outpix >= rect.width )     // If at or past end of screen
+       break;
+
+     outlen += encoder.encode(code); // Encode the codepoint
+   }
+
+   if( outlen )                     // If there's something left to render
+     NOQUEUE("xcb_image_text_16", xcb_image_text_16
+            ( c, uint8_t(outlen), widget_id, gc
+            , uint16_t(outorg), uint16_t(top + font->offset.y), out) );
+#else
+   enum{ DIM= 256 };                // xcb_image_text_16 maximum UNIT length
+   xcb_char2b_t out[DIM];           // UTF16 big endian output buffer
 
    unsigned outlen= 0;              // UTF16 output buffer length
    unsigned outorg= left;           // Current output origin index
@@ -888,7 +961,7 @@ void
      }
 
      utf32_t code= *it;             // Next encoding
-     outpix += font->length.width;   // Ending pixel (+1)
+     outpix += font->length.width;  // Ending pixel (+1)
      if( outpix >= rect.width || code == 0 ) // If at end of encoding
        break;
 
@@ -900,6 +973,7 @@ void
      NOQUEUE("xcb_image_text_16", xcb_image_text_16
             ( c, uint8_t(outlen), widget_id, gc
             , uint16_t(outorg), uint16_t(top + font->offset.y), out) );
+#endif
 }
 
 //----------------------------------------------------------------------------

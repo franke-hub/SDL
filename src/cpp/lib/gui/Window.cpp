@@ -16,7 +16,7 @@
 //       Implement gui/Window.h and gui/Pixmap.h
 //
 // Last change date-
-//       2024/04/22
+//       2024/06/07
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -277,10 +277,8 @@ void
      traceh("Pixmap(%p)::enqueue(%s) %s:%d [%d]\n", this
            , name, file, line, penduse);
 
-   if( penduse >= DIM_PENDING ) {
-     debugf("%4d HCDM Window.cpp UNEXPECTED QUEUE FULL EVENT\n", __LINE__);
+   if( penduse >= DIM_PENDING )
      flush();
-   }
 
    Pending& pending= this->pending[penduse++];
    pending.opname= name;

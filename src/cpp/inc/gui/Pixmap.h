@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       XCB based Pixmap
 //
 // Last change date-
-//       2023/05/12
+//       2024/06/07
 //
 //----------------------------------------------------------------------------
 #ifndef GUI_PIXMAP_H_INCLUDED
@@ -52,13 +52,12 @@ public:
 using Layout::configure;
 
 //----------------------------------------------------------------------------
-//
-// Struct-
-//       gui::Pixmap::Pending
-//
-// Purpose-
-//       Pending XCB request table entry.
-//
+// gui::Pixmap::Typedefs and enumerations
+//----------------------------------------------------------------------------
+enum { DIM_PENDING= 16 };           // The pending operation queue size
+
+//----------------------------------------------------------------------------
+// struct gui::Pixmap::Pending: A pending operation queue entry
 //----------------------------------------------------------------------------
 struct Pending {                    // Pending XCB request table
 const char*            opname;      // The operation name
@@ -71,9 +70,8 @@ xcb_void_cookie_t      op;          // The Cookie
 // gui::Pixmap::Attributes
 //----------------------------------------------------------------------------
 protected:
-enum { DIM_PENDING= 16 };           // Number of available queued operations
 Pending                pending[DIM_PENDING]; // The pending operation queue
-unsigned               penduse= 0;  // Number of operations pending
+unsigned               penduse= 0;  // The number of pending operations
 
 public:
 Device*                device= nullptr; // Our parent Device
@@ -126,6 +124,19 @@ virtual void                        // (Optionally) override to
 virtual void
    debug(                           // Debugging display
      const char*       info= nullptr) const; // Associated info
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       gui::Pixmap::get_pending
+//
+// Purpose-
+//       Get the number of pending operations.
+//
+//----------------------------------------------------------------------------
+unsigned                            // The number of pending operations
+   get_pending( void ) const        // Get number of pending operations
+{  return penduse; }
 
 //----------------------------------------------------------------------------
 //
