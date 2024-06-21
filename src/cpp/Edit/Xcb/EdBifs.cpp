@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2024/06/07
+//       2024/06/21
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -142,7 +142,7 @@ static const char* command_tabs(char*);
 static const char* command_top(char*);
 // static const char* command_undo(char*);
 static const char* command_view(char*);
-static const char* command_0042(char*);
+static const char* number_error(char*);
 
 static const Command_desc  command_desc[]= // The Command descriptor list
 {  {command_bot,      "BOT",      "Bottom of file"}
@@ -176,7 +176,7 @@ static const Command_desc  command_desc[]= // The Command descriptor list
 ,  {nullptr,          "<",        "Locate (reverse search)"}
 ,  {nullptr,          ">",        "Locate (forward search)"}
 ,  {nullptr,          "#",        "(Comment)"}
-,  {command_0042,     "number",   "Set current line to 'number'"}
+,  {number_error,     "number",   "Set current line to 'number'"}
 
 // Spelling errors/typos
 ,  {nullptr,         "",          nullptr} // Command aliases follow
@@ -192,6 +192,7 @@ static const Command_desc  command_desc[]= // The Command descriptor list
 ,  {command_save,    "SVE",       nullptr} // (SAVE)
 ,  {command_tabs,    "TAB",       nullptr} // (TABS)
 ,  {command_top,     "TIO",       nullptr} // (TOP)
+,  {command_top,     "TP[",       nullptr} // (TOP)
 ,  {nullptr,         nullptr,     nullptr} // End of list delimiter
 };
 
@@ -821,7 +822,7 @@ static const char*                  // Error message, nullptr expected
 }
 
 static const char*                  // Error message, nullptr expected
-   command_0042(char*)              // NUMBER command
+   number_error(char*)              // NUMBER command error
 {  return "'number' isn't a command. Try using a numeric value instead."; }
 
 //----------------------------------------------------------------------------

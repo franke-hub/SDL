@@ -16,14 +16,7 @@
 //       Editor: Implement EdInps.h: Terminal keyboard and mouse handlers.
 //
 // Last change date-
-//       2024/05/16
-//
-// Implementation notes-
-// Term: TODO: On Fedora, UTF8 characters display as separate characters, so
-//             lines spill over into next line. **UNUSABLE**
-//             (But cat UTF8.html everything OK but Amharic language)
-// Term: TODO: Utf8 combining characters: characters combine, cursor wrong
-// Xcb:  TODO: Utf8 combining characters: does not combine
+//       2024/06/14
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string

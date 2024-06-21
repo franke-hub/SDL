@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/04/21
+##       2024/06/21
 ##
 ##############################################################################
 
@@ -24,6 +24,7 @@
 OBJ_SOURCE :=
 OBJ_SOURCE += $(wildcard $(INCDIR)/obj/*)
 OBJ_SOURCE += $(wildcard $(SRCDIR)/obj/*)
+OBJ_SOURCE := $(patsubst S/obj/Test,,$(OBJ_SOURCE))
 
 OBJ_OBJECT := $(patsubst obj/%.cpp,obj/%.o,$(wildcard obj/*.cpp))
 

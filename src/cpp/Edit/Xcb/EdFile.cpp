@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2024/05/05
+//       2024/06/14
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf, fopen, fclose, ...
@@ -397,17 +397,17 @@ EdLine*                             // The last inserted line
      char*             text,        // The (allocated) text
      size_t            size)        // The text length
 {
-   // Check for binary file
+   // Check for binary or unicode character file
    char* last= strchr(text, '\0');
    if( last != (text + size) ) {    // If file contains '\0' delimiter
      put_message("Binary file");
      last= text + size;
      mode= M_BIN;
-   } else {                         // Not binary, check for UTF-8 encodings
+   } else {                         // Not binary, check for Unicode encodings
      for(size_t i= 0; i<size; ++i) {
        if( text[i] & 0x80 ) {       // If character isn't in ASCII range
          contains_UTF8= true;       // It's either UTF-8 or garbage
-         if( EdOpts::utf8_enabled == 0 ) { // If UTF-8 not supported
+         if( !EdOpts::has_unicode_support() ) { // If UTF-8 not supported
            put_message("UTF-8 not supported, file not writable");
            damaged= true;
          }

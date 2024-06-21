@@ -13,10 +13,10 @@
 //       EdOpts.h
 //
 // Purpose-
-//       Editor: Xcb vs Term version controls
+//       TERM/XCM Editor: Configuration options
 //
 // Last change date-
-//       2024/05/15
+//       2024/06/14
 //
 //----------------------------------------------------------------------------
 #ifndef EDOPTS_H_INCLUDED
@@ -41,15 +41,10 @@ public:
 //----------------------------------------------------------------------------
 // EdOpts::Enumerations and typedefs
 //----------------------------------------------------------------------------
-enum                                // Version information
-{  MAJOR= 3                         // Version 3.0
+enum VERSION                        // Version information
+{  MAJOR= 3                         // Version 3.0.PATCH
 ,  MINOR= 0
-}; // Version
-
-//----------------------------------------------------------------------------
-// EdOpts::PATCH version information
-//----------------------------------------------------------------------------
-static const char*     PATCH;       // Version patch level
+}; // VERSION
 
 //----------------------------------------------------------------------------
 // EdOpts::Initialization/termination
@@ -66,13 +61,20 @@ static void
 //----------------------------------------------------------------------------
 // EdOpts::Control attributes
 //----------------------------------------------------------------------------
-static int             bg_enabled;  // opt_bg allowed?
-static int             utf8_enabled;  // Is UTF-8 supported?
+// TRUE iff opt_bg is implemented
+static bool            is_bg_enabled(); // Is opt_bg implemented?
+
+// TRUE iff UTF combining characters are supported
+static bool            has_unicode_combining(); // Is UTF combining supported?
+
+// TRUE iff Unicode character display is supported
+static bool            has_unicode_support(); // Is Unicode display supported?
 
 //----------------------------------------------------------------------------
 // EdOpts::Static attributes
 //----------------------------------------------------------------------------
-static const char*     EDITOR;      // The editor's name
 static const char*     DEFAULT_CONFIG; // The default configuration file
+static const char*     EDITOR;      // The editor's name
+static const char*     PATCH;       // Version patch level
 }; // class EdOpts
 #endif // EDOPTS_H_INCLUDED

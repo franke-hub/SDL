@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/04/21
+##       2024/06/21
 ##
 ##############################################################################
 
@@ -27,6 +27,7 @@ COM_SOURCE += $(wildcard $(SRCDIR)/com/*)
 COM_SOURCE += $(wildcard $(SRCDIR)/com/HW/STD/*)
 COM_SOURCE += $(wildcard $(SRCDIR)/com/HW/X86/*)
 COM_SOURCE += $(wildcard $(SRCDIR)/com/OS/BSD/*)
+COM_SOURCE := $(patsubst S/com/Test,,$(COM_SOURCE))
 
 COM_OBJECT := $(patsubst com/%.cpp,com/%.o,$(wildcard com/*.cpp))
 

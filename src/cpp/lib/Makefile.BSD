@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/03/27
+##       2024/06/21
 ##
 ## Implementation notes-
 ##       Note that for Cygwin, shared libraries MUST BE included in the
@@ -61,7 +61,7 @@ install: all
 .PHONY: echo
 echo: ;
 	@echo LIB_SOURCE $(LIB_SOURCE)
-	@echo COM_SOURCE $(COM_SOURCE)
+	@echo PUB_SOURCE $(PUB_SOURCE)
 	@echo
 	ls -alF $(LIB_SOURCE)
 

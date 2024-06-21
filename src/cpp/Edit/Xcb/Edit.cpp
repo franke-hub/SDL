@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2024/05/15
+//       2024/06/14
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -262,7 +262,7 @@ extern int                          // Return code
    int rc= parm(argc, argv);        // Argument analysis
    if( rc ) return rc;              // Return if invalid
 
-   if( EdOpts::bg_enabled && opt_bg ) { // If run in background
+   if( EdOpts::is_bg_enabled() && opt_bg ) { // If run in background
      if( fork() )                   // If parent (foreground)
        return 0;
    }

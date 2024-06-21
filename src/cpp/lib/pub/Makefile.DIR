@@ -15,15 +15,17 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/04/21
+##       2024/06/21
 ##
 ##############################################################################
 
 ##############################################################################
 ## Source/object files
 PUB_SOURCE :=
+PUB_SOURCE += $(wildcard $(INCDIR)/pub/bits/*)
 PUB_SOURCE += $(wildcard $(INCDIR)/pub/*)
 PUB_SOURCE += $(wildcard $(SRCDIR)/pub/*)
+PUB_SOURCE := $(patsubst S/pub/Test,,$(PUB_SOURCE))
 
 PUB_OBJECT := $(patsubst pub/%.cpp,pub/%.o,$(wildcard pub/*.cpp))
 

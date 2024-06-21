@@ -16,7 +16,7 @@
 ##       Edit a GPG encrypted file.
 ##
 ## Last change date-
-##       2024/02/06
+##       2024/06/13
 ##
 ## Usage-
 ##       editgpg [-as userid] filename
@@ -77,6 +77,16 @@ if [ -f "$GPGFILE" ] ; then
 fi
 
 ##############################################################################
+## Set up editor
+EDITOR=$HOME/bin/editerm
+[[ ! -x $EDITOR ]] && EDITOR=$HOME/bin/editor
+[[ ! -x $EDITOR ]] && EDITOR=/usr/bin/nano
+if [[ ! -x $EDITOR ]] ; then
+  echo "No editor found"
+  exit 1
+fi
+
+##############################################################################
 ## Decrypt
 gpg --output $GPGFILE --decrypt $GPGFILE.gpg
 rc=$?
@@ -88,7 +98,7 @@ fi
 
 ##############################################################################
 ## Edit, check resultant
-editor $GPGFILE
+$EDITOR $GPGFILE
 if [ ! -f "$GPGFILE" ] ; then
   echo "File \"$GPGFILE\" deleted. No change will occur."
   exit 0

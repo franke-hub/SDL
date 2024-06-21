@@ -16,7 +16,7 @@
 //       UTF inline implementations.
 //
 // Last change date-
-//       2024/06/07
+//       2024/06/21
 //
 // Implementation notes-
 //       *ONLY* included from ../Utf.h
@@ -95,6 +95,11 @@ bool                                // TRUE iff codepoint is valid
 //----------------------------------------------------------------------------
 Utf::Length                         // The Length, in native units
    Utf::strlen(                     // Get Length of
+     const utf8_t*     str)         // This U8-string
+{  return ::strlen((const char*)str); }
+
+Utf::Length                         // The Length, in native units
+   Utf::strlen(                     // Get Length of
      const utf16_t*    str)         // This U16-string
 {
    Length length= 0;
@@ -118,5 +123,68 @@ Utf::Length                         // The Length, in native units
 
    return length;
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_encoder::operator=
+//
+// Purpose-
+//       Inline utf8_encoder assignment operators
+//
+//----------------------------------------------------------------------------
+utf8_encoder&
+   utf8_encoder::operator=(const utf8_encoder& from) // Copy utf8_encoder
+{  utf8_decoder copy(from); return operator=(copy); }
+
+utf8_encoder&
+   utf8_encoder::operator=(const utf16_encoder& from) // Copy utf16_encoder
+{  utf16_decoder copy(from); return operator=(copy); }
+
+utf8_encoder&
+   utf8_encoder::operator=(const utf32_encoder& from) // Copy utf32_encoder
+{  utf32_decoder copy(from); return operator=(copy); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_encoder::operator=
+//
+// Purpose-
+//       Inline utf16_encoder assignment operators
+//
+//----------------------------------------------------------------------------
+utf16_encoder&
+   utf16_encoder::operator=(const utf8_encoder& from) // Copy utf8_encoder
+{  utf8_decoder copy(from); return operator=(copy); }
+
+utf16_encoder&
+   utf16_encoder::operator=(const utf16_encoder& from) // Copy utf16_encoder
+{  utf16_decoder copy(from); return operator=(copy); }
+
+utf16_encoder&
+   utf16_encoder::operator=(const utf32_encoder& from) // Copy utf32_encoder
+{  utf32_decoder copy(from); return operator=(copy); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_encoder::operator=
+//
+// Purpose-
+//       Inline utf32_encoder assignment operators
+//
+//----------------------------------------------------------------------------
+utf32_encoder&
+   utf32_encoder::operator=(const utf8_encoder& from) // Copy utf8_encoder
+{  utf8_decoder copy(from); return operator=(copy); }
+
+utf32_encoder&
+   utf32_encoder::operator=(const utf16_encoder& from) // Copy utf16_encoder
+{  utf16_decoder copy(from); return operator=(copy); }
+
+utf32_encoder&
+   utf32_encoder::operator=(const utf32_encoder& from) // Copy utf32_encoder
+{  utf32_decoder copy(from); return operator=(copy); }
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_BITS_UTF_I_INCLUDED

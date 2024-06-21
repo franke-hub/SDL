@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/05/11
+//       2024/06/21
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,50 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 06/21/2024 NOT DONE
+
+~/src/cpp/Edit/Xcb/* and ~/src/cpp/Edit/Term/* modules need to use the updated
+decoders and encoders.
+
+This has no visible effect for Xcb/Editor modules but does require changes.
+This editor does not support Utf combining characters.
+It writes them as separate characters.
+
+The (ncurses based) Term/Editor output already combined Utf combining
+characters, but did not properly position the cursor.
+Since the cursor wasn't accurate for combining characters, as a safety measure
+we partially disabled Utf support.
+Files containing non-ASCII Unicode characters were marked as damaged so they
+could not be overwritten by the editor.
+
+----
+
+#### 06/21/2024 maint
+
+Completely tested all portions of all the utf*_decoder and utf*_encoder
+implementations.
+
+Fixed a minor library makefile glitch: Each library also had a build
+dependency on its Test subdirectory, causing unnessary make operations
+when that subdirectory changed.
+
+----
+
+#### 06/07/2024 maint
+
+Updated ~/src/cpp/lib/pub/Utf.cpp and ~/src/cpp/inc/pub/Utf.h.
+Added ~/src/cpp/lib/pub/Test/Test_utf.cpp and ~/src/cpp/inc/pub/bits/Utf.i.
+
+The Utf.h updates use user allocated buffers for encoding and decoding rather
+than the current automatically allocated buffers.
+Test_utf.cpp partially tests the encoding and decoding portions of the
+newly implemented code.
+
+~/src/cpp/Edit/Xcb/EdOuts.cpp tested the new implementation in production
+code. (The testing code was included but not activated in this commit.)
 
 ----
 

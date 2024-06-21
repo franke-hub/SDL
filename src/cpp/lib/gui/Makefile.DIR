@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/04/22
+##       2024/06/21
 ##
 ##############################################################################
 
@@ -24,6 +24,7 @@
 GUI_SOURCE :=
 GUI_SOURCE += $(wildcard $(INCDIR)/gui/*)
 GUI_SOURCE += $(wildcard $(SRCDIR)/gui/*)
+GUI_SOURCE := $(patsubst S/gui/Test,,$(GUI_SOURCE))
 
 GUI_OBJECT := $(patsubst gui/%.cpp,gui/%.o,$(wildcard gui/*.cpp))
 

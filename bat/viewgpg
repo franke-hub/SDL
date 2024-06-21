@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2010-2021 Frank Eskesen.
+##       Copyright (C) 2010-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       View a GPG encrypted file.
 ##
 ## Last change date-
-##       2021/06/10
+##       2024/06/13
 ##
 ## Usage-
 ##       viewgpg [-as userid] filename
@@ -64,6 +64,16 @@ if [ -f "$GPGFILE" ] ; then
 fi
 
 ##############################################################################
+## Set up editor
+EDITOR=$HOME/bin/editerm
+[[ ! -x $EDITOR ]] && EDITOR=$HOME/bin/editor
+[[ ! -x $EDITOR ]] && EDITOR=/usr/bin/nano
+if [[ ! -x $EDITOR ]] ; then
+  echo "No editor found"
+  exit 1
+fi
+
+##############################################################################
 ## Decrypt
 gpg --output $GPGFILE --decrypt $GPGFILE.gpg
 rc=$?
@@ -74,8 +84,7 @@ if [ $rc != 0 ] ; then
 fi
 
 ##############################################################################
-## Edit, remove temporary file
-. setupEDIT                         ## (If no display, use ncurses editor)
+## Decrypt
 $EDITOR $GPGFILE
 remove $GPGFILE 2>/dev/null
 

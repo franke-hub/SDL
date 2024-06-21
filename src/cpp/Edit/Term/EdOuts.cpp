@@ -16,7 +16,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2024/05/16
+//       2024/06/12
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -780,6 +780,7 @@ void
 //       Draw text at column, row
 //
 //----------------------------------------------------------------------------
+// TODO: Use new features
 void
    EdOuts::putch(                   // Draw text
      GC_t              GC,          // The graphic context

@@ -13,28 +13,16 @@
 //       EdOpts.cpp (XCB version)
 //
 // Purpose-
-//       Editor: Xcb vs Term configuration options.
+//       XCB Editor: Configuration options.
 //
 // Last change date-
-//       2024/05/15
+//       2024/06/14
 //
 //----------------------------------------------------------------------------
 #include "gui/Device.h"             // For gui::Device, allocated
 
 #include "EdOpts.h"                 // For EdOpts, implemented
 #include "EdOuts.h"                 // For EdOuts, allocated
-
-//----------------------------------------------------------------------------
-// EdOpts::Patch level
-//----------------------------------------------------------------------------
-const char*            EdOpts::PATCH= "0-100"; // Patch level
-
-//----------------------------------------------------------------------------
-// EdOpts::External data areas (control attributes)
-//----------------------------------------------------------------------------
-// Background is our preferred mode of operation, so we enable it.
-int                    EdOpts::bg_enabled= true;
-int                    EdOpts::utf8_enabled= true;
 
 //----------------------------------------------------------------------------
 //
@@ -71,17 +59,34 @@ void
 {  } // NOT NEEDED
 
 //----------------------------------------------------------------------------
-// Static strings
+// EdOpts::Option control methods
 //----------------------------------------------------------------------------
-const char*            EdOpts::EDITOR= "editxcb";
+bool                                // TRUE
+   EdOpts::is_bg_enabled( void )    // Is opt_bg enabled?
+{  return true; }
+
+bool                                // FALSE (At least for now)
+   EdOpts::has_unicode_combining( void ) // Unicode combining chars supported?
+{  return false; }
+
+bool                                // TRUE
+   EdOpts::has_unicode_support( void ) // Is Unicode display supported?
+{  return true; }
+
+//----------------------------------------------------------------------------
+// EdOpts::Static strings
+//----------------------------------------------------------------------------
 const char*            EdOpts::DEFAULT_CONFIG=
    "[Program]\n"
    "URL=https://github.com/franke-hub/SDL/tree/trunk/src/cpp/Edit/Xcb\n"
    "Exec=Edit ; Edit in read-write mode\n"
    "Exec=View ; Edit in read-only mode\n"
    "Purpose=XCB based text editor\n"
-   "Version=1.1.0\n"
+   "Version=3.0.0-101\n"
    "\n"
    "[Options]\n"
-   ";; (Defaulted) See sample: ~/src/cpp/Edit/Xcb/.SAMPLE/Edit.conf\n"
+   ";; (Defaulted) See sample: ~/src/cpp/Edit/Xcb/.Edit.conf\n"
    ;
+
+const char*            EdOpts::EDITOR= "editxcb";
+const char*            EdOpts::PATCH= "0-101"; // Patch level

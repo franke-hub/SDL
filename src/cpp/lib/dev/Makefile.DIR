@@ -15,7 +15,7 @@
 ##       Subdirectory build control: included from ~/src/cpp/lib/Makefile.BSD
 ##
 ## Last change date-
-##       2024/04/21
+##       2024/06/21
 ##
 ##############################################################################
 
@@ -24,6 +24,7 @@
 DEV_SOURCE :=
 DEV_SOURCE += $(wildcard $(INCDIR)/dev/*)
 DEV_SOURCE += $(wildcard $(SRCDIR)/dev/*)
+DEV_SOURCE := $(patsubst S/dev/Test,,$(DEV_SOURCE))
 
 DEV_OBJECT := $(patsubst dev/%.cpp,dev/%.o,$(wildcard dev/*.cpp))
 

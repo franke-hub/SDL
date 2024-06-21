@@ -16,7 +16,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2024/06/07
+//       2024/06/14
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -79,7 +79,7 @@ static inline void
    unexpected(int line)             // Handle unexpected event @ __LINE__
 {
    if( true )
-     debugf("%4d %s HCDM **UNEXPECTED**\n", line, __FILE__);
+     debugh("\n%4d %s HCDM **UNEXPECTED**\n\n", line, __FILE__);
 }
 
 //----------------------------------------------------------------------------
@@ -498,7 +498,7 @@ void
 void
    EdOuts::draw_history( void )     // Redraw the history line
 {  if( opt_hcdm )
-     debugf("EdOuts(%p)::draw_history view(%s)\n", this
+     debugh("EdOuts(%p)::draw_history view(%s)\n", this
            , editor::view == editor::hist ? "hist" : "data");
 
    EdHist* const hist= editor::hist;
@@ -891,7 +891,7 @@ void
            , gc, left, top, buffer);
    }
 
-#if( USE_UTF_VERSION > 1 )
+#if true
    enum{ DIM= 256 };                // xcb_image_text_16 maximum UNIT length
    xcb_char2b_t out[DIM];           // UTF16 big endian output buffer
 
@@ -994,7 +994,7 @@ void
 
      if( opt_verbose > 1 ) {
        gui::WH_size_t size= get_size();
-       debugf("%4d [%d x %d]= get_size\n",  __LINE__, size.width, size.height);
+       debugh("%4d [%d x %d]= get_size\n",  __LINE__, size.width, size.height);
      }
    }
 
