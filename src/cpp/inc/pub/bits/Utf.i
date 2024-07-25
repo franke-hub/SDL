@@ -16,7 +16,7 @@
 //       UTF inline implementations.
 //
 // Last change date-
-//       2024/06/21
+//       2024/07/25
 //
 // Implementation notes-
 //       *ONLY* included from ../Utf.h
@@ -32,7 +32,7 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 bool                                // TRUE iff codepoint is combining
    Utf::is_combining(               // Is codepoint a combining character?
-     utf32_t           code)        // The codepoint to be tested
+     utf32_t           code) noexcept // The codepoint to be tested
 {
    // This coding sequence [rather than 'if( code>0x0300 && code<0x0370 )]'
    // returns false at the lowest codepoint, avoiding additional tests.
@@ -76,7 +76,7 @@ bool                                // TRUE iff codepoint is combining
 //----------------------------------------------------------------------------
 bool                                // TRUE iff codepoint is valid
    Utf::is_unicode(                 // Is code in allowed unicode range?
-     utf32_t           code)        // The source codepoint
+     utf32_t           code) noexcept // The source codepoint
 {
    if( code  < 0x0000'D800 )        // All codepoints < 0x0000'D800
      return true;                   // are allowed
@@ -95,12 +95,12 @@ bool                                // TRUE iff codepoint is valid
 //----------------------------------------------------------------------------
 Utf::Length                         // The Length, in native units
    Utf::strlen(                     // Get Length of
-     const utf8_t*     str)         // This U8-string
+     const utf8_t*     str) noexcept // This U8-string
 {  return ::strlen((const char*)str); }
 
 Utf::Length                         // The Length, in native units
    Utf::strlen(                     // Get Length of
-     const utf16_t*    str)         // This U16-string
+     const utf16_t*    str) noexcept // This U16-string
 {
    Length length= 0;
    while( *str != 0 ) {
@@ -113,7 +113,7 @@ Utf::Length                         // The Length, in native units
 
 Utf::Length                         // The Length, in native units
    Utf::strlen(                     // Get Length of
-     const utf32_t*    str)         // This U32-string
+     const utf32_t*    str) noexcept // This U32-string
 {
    Length length= 0;
    while( *str != 0 ) {
@@ -134,15 +134,15 @@ Utf::Length                         // The Length, in native units
 //
 //----------------------------------------------------------------------------
 utf8_encoder&
-   utf8_encoder::operator=(const utf8_encoder& from) // Copy utf8_encoder
+   utf8_encoder::operator=(const utf8_encoder& from) noexcept(false)
 {  utf8_decoder copy(from); return operator=(copy); }
 
 utf8_encoder&
-   utf8_encoder::operator=(const utf16_encoder& from) // Copy utf16_encoder
+   utf8_encoder::operator=(const utf16_encoder& from) noexcept(false)
 {  utf16_decoder copy(from); return operator=(copy); }
 
 utf8_encoder&
-   utf8_encoder::operator=(const utf32_encoder& from) // Copy utf32_encoder
+   utf8_encoder::operator=(const utf32_encoder& from) noexcept(false)
 {  utf32_decoder copy(from); return operator=(copy); }
 
 //----------------------------------------------------------------------------
@@ -155,15 +155,15 @@ utf8_encoder&
 //
 //----------------------------------------------------------------------------
 utf16_encoder&
-   utf16_encoder::operator=(const utf8_encoder& from) // Copy utf8_encoder
+   utf16_encoder::operator=(const utf8_encoder& from) noexcept(false)
 {  utf8_decoder copy(from); return operator=(copy); }
 
 utf16_encoder&
-   utf16_encoder::operator=(const utf16_encoder& from) // Copy utf16_encoder
+   utf16_encoder::operator=(const utf16_encoder& from) noexcept(false)
 {  utf16_decoder copy(from); return operator=(copy); }
 
 utf16_encoder&
-   utf16_encoder::operator=(const utf32_encoder& from) // Copy utf32_encoder
+   utf16_encoder::operator=(const utf32_encoder& from) noexcept(false)
 {  utf32_decoder copy(from); return operator=(copy); }
 
 //----------------------------------------------------------------------------
@@ -176,15 +176,15 @@ utf16_encoder&
 //
 //----------------------------------------------------------------------------
 utf32_encoder&
-   utf32_encoder::operator=(const utf8_encoder& from) // Copy utf8_encoder
+   utf32_encoder::operator=(const utf8_encoder& from) noexcept(false)
 {  utf8_decoder copy(from); return operator=(copy); }
 
 utf32_encoder&
-   utf32_encoder::operator=(const utf16_encoder& from) // Copy utf16_encoder
+   utf32_encoder::operator=(const utf16_encoder& from) noexcept(false)
 {  utf16_decoder copy(from); return operator=(copy); }
 
 utf32_encoder&
-   utf32_encoder::operator=(const utf32_encoder& from) // Copy utf32_encoder
+   utf32_encoder::operator=(const utf32_encoder& from) noexcept(false)
 {  utf32_decoder copy(from); return operator=(copy); }
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_BITS_UTF_I_INCLUDED

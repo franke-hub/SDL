@@ -16,7 +16,7 @@
 //       UTF utilities
 //
 // Last change date-
-//       2024/06/21
+//       2024/07/25
 //
 // Usage notes-
 //       To expose Utf types, include "pub/bits/Utf_type.i"
@@ -72,12 +72,12 @@ class Utf32;                        // UTF32 container
 //     (inclusive,) or greater than U+10'FFFF, such encodings are invalid.
 //
 // UTF-16 Encoding-
-// Bytes Bits    First     Last  Byte[0]  Byte[1]  Byte[3]  Byte[4]
-//     2   16 U+000000 U+00FFFF ------8- ------8-      N/A      N/A
-//     4   32 U+010000 U+10FFFF 110110-- ------8- 110111-- ------8-
+// Bytes Bits     First      Last  Byte[0]  Byte[1]  Byte[3]  Byte[4]
+//     2   16 U+00'0000 U+00'FFFF ------8- ------8-      N/A      N/A
+//     4   32 U+01'0000 U+10'FFFF 110110-- ------8- 110111-- ------8-
 //
 //     Encoding values U+D800-U+DFFF may only appear in surrogate pairs.
-//     These pairs encode the number range 0x01'0000-0x10'FFFFF.
+//     Surrogate pairs encode the UTF number range 0x01'0000-0x10'FFFFF.
 //     The first (or leading) surrogate is in the range 0xD800-DBFF.
 //     The second (or trailing) surrogate is in the range 0xDC00-DFFF.
 //     Each surrogate contributes 10 bits to the 20 bit encoding range.
@@ -85,15 +85,16 @@ class Utf32;                        // UTF32 container
 //     effective surrogate pair range 0x01'0000-10'FFFF.
 //
 // UTF-32 Encoding-
-// Bytes Bits    First     Last  Byte[0]  Byte[1]  Byte[3]  Byte[4]
-//     4   31 U+000000 U+10FFFF ------8- ------8- ------8- ------8-
+// Bytes Bits     First      Last  Byte[0]  Byte[1]  Byte[3]  Byte[4]
+//     4   31 U+00'0000 U+10'FFFF ------8- ------8- ------8- ------8-
 //
+// Notes-
 //     While it's possible to encode values between U+00'D800 and U+00'DBFF
 //     (inclusive,) or greater than U+10'FFFF, such encodings are invalid.
 //
 // Invalid encodings-
-//     Invalid encodings are silently replaced by UNI_REPLACEMENT, the Unicode
-//     error replacement character, when decoding or encoding.
+//     When decoding or encoding, invalid encodings are silently replaced by
+//     UNI_REPLACEMENT, the Unicode error replacement character.
 //
 //----------------------------------------------------------------------------
 class Utf {
@@ -101,18 +102,18 @@ public:
 //----------------------------------------------------------------------------
 // Utf::Typedefs and enumerations
 //----------------------------------------------------------------------------
-typedef uint8_t        utf8_t;      // The UTF-8  encoding type
-typedef uint16_t       utf16_t;     // The UTF-16 encoding type
-typedef uint16_t       utf16BE_t;   // The UTF-16BE encoding type
-typedef uint16_t       utf16LE_t;   // The UTF-16LE encoding type
-typedef uint32_t       utf32_t;     // The UTF-32 encoding type
-typedef uint32_t       utf32BE_t;   // The UTF-32BE encoding type
-typedef uint32_t       utf32LE_t;   // The UTF-32LE encoding type
+typedef uint8_t        utf8_t;      // The UTF-8    native unit type
+typedef uint16_t       utf16_t;     // The UTF-16   native unit type
+typedef uint16_t       utf16BE_t;   // The UTF-16BE native unit type
+typedef uint16_t       utf16LE_t;   // The UTF-16LE native unit type
+typedef uint32_t       utf32_t;     // The UTF-32   native unit type
+typedef uint32_t       utf32BE_t;   // The UTF-32BE native unit type
+typedef uint32_t       utf32LE_t;   // The UTF-32LE native unit type
 
 typedef size_t         Column;      // Offset/index in codepoints
-typedef size_t         Points;      // Length in codepoints
-typedef size_t         Offset;      // Offset/index in native units
 typedef size_t         Length;      // Length in native units
+typedef size_t         Offset;      // Offset/index in native units
+typedef size_t         Points;      // Length in codepoints
 
 enum                                // Unicode characters
 {  BYTE_ORDER_MARK=    0x0000'FEFF  // Big endian Byte Order Mark, a.k.a BOM
@@ -130,9 +131,36 @@ enum MODE                           // Decoding/encoding mode
 ,  MODE_LE                          // Little endian mode
 }; // enum MODE
 
-// Decode method: No characters remain (An invalid UTF codepoint)
+// Method decode: No characters remain (An invalid UTF codepoint)
 constexpr static const uint32_t
                        UTF_EOF= EOF; // Decode: No characters remain
+
+// Method get_column: Column indeterminate after set_offset() used.
+constexpr static const Utf::Column
+                       OFFSET_COLUMN= -3; // Indicates set_offset() used
+
+//----------------------------------------------------------------------------
+// Utf::Static utility methods
+//----------------------------------------------------------------------------
+static inline bool                  // TRUE iff codepoint is combining
+   is_combining(                    // Is code a combining character?
+     utf32_t           code) noexcept; // (The codepoint)
+
+static inline bool                  // TRUE iff codepoint is valid unicode
+   is_unicode(                      // Is codepoint valid unicode?
+     utf32_t           code) noexcept; // (The codepoint)
+
+static inline Length                // Length (in native units)
+   strlen(                          // Get length (in bytes)
+     const utf8_t*    addr) noexcept; // Of this U8-string
+
+static inline Length                // Length (in native units)
+   strlen(                          // Get length (in bytes)
+     const utf16_t*    addr) noexcept; // Of this U16-string
+
+static inline Length                // Length (in native units)
+   strlen(                          // Get length (in bytes)
+     const utf32_t*    addr) noexcept; // Of this U32-string
 
 //----------------------------------------------------------------------------
 // Utf::Internal structures
@@ -188,29 +216,6 @@ static const const_iterator
 static const const_iterator&        // Note: All end iterators are equal
    end()                            // Get the built-in end iterator
 {  return the_end; }                // (Conveniently inlinable)
-
-//----------------------------------------------------------------------------
-// Utf::Static utility methods
-//----------------------------------------------------------------------------
-static inline bool                  // TRUE iff codepoint is combining
-   is_combining(                    // Is code a combining character?
-     utf32_t           code);       // (The codepoint)
-
-static inline bool                  // TRUE iff codepoint is valid unicode
-   is_unicode(                      // Is codepoint valid unicode?
-     utf32_t           code);       // (The codepoint)
-
-static inline Length                // Length (in native units)
-   strlen(                          // Get length (in bytes)
-     const utf8_t*    addr);        // Of this U8-string
-
-static inline Length                // Length (in native units)
-   strlen(                          // Get length (in bytes)
-     const utf16_t*    addr);       // Of this U16-string
-
-static inline Length                // Length (in native units)
-   strlen(                          // Get length (in bytes)
-     const utf32_t*    addr);       // Of this U32-string
 }; // class Utf
 
 //----------------------------------------------------------------------------
@@ -683,127 +688,11 @@ void
 // Forward references: The utf*_decoder and utf*_encoder definitions
 //----------------------------------------------------------------------------
 struct utf8_decoder;
-struct utf8_encoder;
 struct utf16_decoder;
-struct utf16_encoder;
 struct utf32_decoder;
+struct utf8_encoder;
+struct utf16_encoder;
 struct utf32_encoder;
-
-/** **************************************************************************
-   synopsis utfN_decoder
-
-   Fields:
-   const utfN_t* buffer;  The data buffer. This entire data buffer *must*
-                       remain constant while the decoder is in use.
-   Length        length;  The data buffer length in native units.
-   Column        column;  The current codepoint index. Method decode()
-                       increments this index whenever a non-combining
-                       codepoint is decoded. (The first buffer codepoint
-                       is *always* considered non-combining.)
-   Offset        offset;  The current codepoint native unit index.
-                       When offset < length, there is more to decode.
-                       The offset is at least one past the current column;
-                       and can be more if combining characters have been
-                       decoded since the last non-combining character.
-   MODE          mode;    (Applies only to utf16_decoder and utf32_decoder.)
-                       The current decoding mode: MODE_RESET, MODE_BE, or
-                       MODE_LE; repectively for indeterminate, big endian,
-                       or little endian.
-
-   Constructors:
-   utfN_decoder()      Cronstruct an empty decoder. The decoder can still be
-                       initialized using the reset(const utfN_t*,Length)
-                       method.
-   utfN_decoder(const utfN_decoder&) Copy constructor (from decoder.)
-                       Note that both data buffer area copies must remain
-                       constant while either decoder is in use.
-   utfN_decoder(const utfN_encoder&) Copy constructor (from encoder.)
-                       The same data area is used for both the decoder and
-                       the encoder. This means that the encoder's data area
-                       must remain constant while the decoder is in use.
-   utfN_decoder(const utfN_t* addr,Length size) Data buffer constructor.
-                       The application specifies the address and length of
-                       the (constant) data buffer.
-   utfN_decoder(const utfN_t* addr) U-string data buffer constructor.
-                       The application specifies the address of the buffer.
-                       Its length is determined using Utf::strlen
-
-   Destructor:
-   (Does nothing.)     The data buffer provided is owned and managed by the
-                       application, not by the decoder.
-
-   Assignment operators:
-   operator=(const utfN_decoder&) Copy operator (from decoder.)
-                       Note that both data buffer area copies must remain
-                       constant while either decoder is in use.
-   operator=(const utfN_encoder&) Copy operator (from encoder.)
-                       The same data area is used for both the decoder and
-                       the encoder. This means that the encoder's data area
-                       must remain constant while the decoder is in use.
-   The reset(const utfN_t*, Length) method is used in lieu of operators
-                       with the same parameters.
-
-************************************************************************** **/
-
-/**
-Length set_column(Column IX);
-
-   \brief Set the column index.
-   \param IX The specified column index.
-   \return The number of units past the end of the decoder range.
-
-       If `IX` is within the decoder's column range,
-         column is set to IX, offset is set accordingly and zero is returned.
-
-       If `IX` is past the end of the decode buffer,
-         column and offset are set at the end of buffer position,
-         and (IX-last_column+1) is returned.
-
-   \par Usage note
-       Use \e set_column to account for Unicode combining characters and
-       \e set_offset otherwise.
-
-******************************************************************************
-Length set_offset(Offset IX)
-
-   \brief Set the offset.
-   \param IX The specified offset index.
-   \return The number of units past the end of the decoder range.
-
-       If `IX` is less than or equal to length,
-         offset is set to IX and zero is returned.
-
-       If `IX` is greater than length,
-         offset is set to length and and (IX-length+1) is returned.
-   \par Side effect
-       Unconditionally invalidates column, setting it to -1.
-******************************************************************************
-unsigned encode(utfN_t)
-
-   \brief Encode the next codepoint, updating column and offset.
-   \param codepoint The codepoint.
-       Invalid codepoints are replaced UNI_REPLACEMENT, the error replacement
-       codepoint.
-   \return The encoding byte length.
-       If the codepoint cannot be encoded within the data buffer, zero is
-       returned and the utf8_encoder is unchanged.
-******************************************************************************
-void utfN_decoder::set_mode(MODE)
-
-   \brief Set the decoding mode
-   \param m The MODE
-     The mode may only be set before any decoding has occurred,
-     and cannot override a Byte Order Mark in the decoding buffer.
-     (A utf_error is thrown if this restriction is violated.)
-******************************************************************************
-void utfN_encoder::set_mode(MODE)
-
-   \brief Set the encoding mode
-   \param m The encoding mode
-     The encoding mode may only be set before any encoding has occurred.
-     (A utf_error is thrown if this restriction is violated or the specified
-     MODE is invalid.)
-**/
 
 //----------------------------------------------------------------------------
 //
@@ -811,7 +700,18 @@ void utfN_encoder::set_mode(MODE)
 //       utf_error
 //
 // Purpose-
-//       The utf (runtime) error
+//       The utf std::runtime_error exception
+//
+// Implementation notes-
+//       utf_error("set_mode usage error")
+//           Method set_mode may only be used to change MODE_RESET into
+//           MODE_BE or MODE_LE. It cannot be used after any decode or encode
+//           invocation.
+//
+//       utf_error("operator=() incomplete")
+//           An encoder assignment can not be completed because the encoder's
+//           buffer is not big enough. (This condition is detected during
+//           the assignment process.)
 //
 //----------------------------------------------------------------------------
 class utf_error : public std::runtime_error{
@@ -844,12 +744,12 @@ Offset                 offset= 0;   // Current buffer unit index
 //----------------------------------------------------------------------------
 public:
    utf8_decoder( void ) = default;  // Default constructor
-   utf8_decoder(const utf8_decoder&); // Copy constructor
-   utf8_decoder(const utf8_encoder&); // Copy constructor
+   utf8_decoder(const utf8_decoder&) noexcept; // Copy constructor
+   utf8_decoder(const utf8_encoder&) noexcept; // Copy constructor
 
-   utf8_decoder(const utf8_t*, Length); // Constructor (size known)
-   utf8_decoder(const utf8_t*);     // U-string constructor
-   utf8_decoder(const char* addr)   // C-string constructor
+   utf8_decoder(const utf8_t*, Length) noexcept; // Constructor (size known)
+   utf8_decoder(const utf8_t*) noexcept;     // U-string constructor
+   utf8_decoder(const char* addr) noexcept // C-string constructor
 {  utf8_decoder((const utf8_t*) addr); } // (Use U-string constructor)
 
    ~utf8_decoder( void ) = default; // Destructor does nothing
@@ -858,25 +758,23 @@ public:
 // utf8_decoder::Assignment operators
 //----------------------------------------------------------------------------
 utf8_decoder&
-    operator=(const utf8_decoder&); // Copy utf8_decoder
+    operator=(const utf8_decoder&) noexcept; // Copy utf8_decoder
 
 utf8_decoder&
-    operator=(const utf8_encoder&); // Copy utf8_encoder
+    operator=(const utf8_encoder&) noexcept; // Copy utf8_encoder
 
 //----------------------------------------------------------------------------
 // utf8_decoder::Accessor methods
 //----------------------------------------------------------------------------
 void
    debug(                           // Debugging display
-     int               line= 0,     // Caller's line number
-     const char*       info= "") const; // Debugging message
+     const char*       info= "") const noexcept; // Debugging message
 
 Column                              // The current column index
-   get_column( void ) const         // Get current column index
-{  return column; }
+   get_column( void ) const;        // Get current column index
 
 Length
-   get_length( void ) const         // Get length
+   get_length( void ) const         // Get length (in native units)
 {  return length; }
 
 Offset
@@ -895,6 +793,12 @@ bool
    is_combining( void ) const       // Is the current character combining?
 {  return is_combining(current()); }
 
+Length                              // Number of units past end of buffer
+   set_column(Column IX);           // Set the column
+
+Length                              // Number of units past end of buffer
+   set_offset(Offset IX);           // Set the offset
+
 //----------------------------------------------------------------------------
 // utf8_decoder::Methods
 //----------------------------------------------------------------------------
@@ -908,17 +812,235 @@ utf32_t                             // The current codepoint
    decode( void );                  // Decode, updating the current codepoint
 
 void
-   reset(const utf8_t*, Length);    // Reset and re-initialize the decoder
+   reset(const utf8_t*, Length) noexcept; // Reset and re-initialize the decoder
 
 void
-   reset( void );                   // Reset the decoder to it's initial state
+   reset( void ) noexcept;          // Reset the decoder to it's initial state
+}; // struct utf8_decoder
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       utf16_decoder
+//
+// Purpose-
+//       The UTF-16 decoder
+//
+//----------------------------------------------------------------------------
+struct utf16_decoder : public Utf {
+friend utf16_encoder;               // For operator=
+
+//----------------------------------------------------------------------------
+// utf16_decoder::Attributes
+//----------------------------------------------------------------------------
+protected:
+const utf16_t*         buffer= nullptr; // Data buffer address
+Length                 length= 0;   // Data length in native units
+Column                 column= -1;  // Current buffer codepoint index
+Offset                 offset= 0;   // Current buffer native unit index
+MODE                   mode= MODE_RESET; // Default, big endian encoding mode
+
+//----------------------------------------------------------------------------
+// utf16_decoder::Constructors/destructor
+//----------------------------------------------------------------------------
+public:
+   utf16_decoder( void ) = default; // Default constructor
+   utf16_decoder(const utf16_decoder&) noexcept; // Copy constructor
+   utf16_decoder(const utf16_encoder&) noexcept; // Copy constructor
+
+   utf16_decoder(const utf16_t*, Length, MODE mode= MODE_RESET) noexcept;
+   utf16_decoder(const utf16_t*, MODE mode= MODE_RESET) noexcept;
+
+   ~utf16_decoder( void ) = default; // Destructor (does nothing)
+
+//----------------------------------------------------------------------------
+// utf16_decoder::Assignment operators
+//----------------------------------------------------------------------------
+utf16_decoder&
+    operator=(const utf16_decoder&) noexcept; // Copy utf16_decoder
+
+utf16_decoder&
+    operator=(const utf16_encoder&) noexcept; // Copy utf16_encoder
+
+//----------------------------------------------------------------------------
+// utf16_decoder::Accessor methods
+//----------------------------------------------------------------------------
+void
+   debug(                           // Debugging display
+     const char*       info= "") const noexcept; // Debugging message
+
+Column                              // The current column index
+   get_column( void ) const;        // Get current column index
+
+Length
+   get_length( void ) const         // Get length (in native units)
+{  return length; }
+
+MODE
+   get_mode( void ) const           // Get current MODE
+{  return mode; }
+
+Offset
+   get_offset( void ) const         // Get current (unit) offset
+{  return offset; }
+
+Offset                              // Unit origin: 0 or 1
+   get_origin( void ) const;        // Get unit origin, 0 or 1
+
+Points
+   get_points( void ) const;        // Get the total number of columns
+
+static bool                         // TRUE iff codepoint is combining
+   is_combining(                    // Is code a combining character?
+     utf32_t           code)        // (The codepoint)
+{  return Utf::is_combining(code); }
+
+bool
+   is_combining( void ) const       // Is the current character combining?
+{  return is_combining(current()); }
 
 Length                              // Number of units past end of buffer
    set_column(Column IX);           // Set the column
 
+void
+   set_mode(MODE);                  // Set encoding mode
+
+int                                 // Return code, 0 OK
+   set_mode( void );                // Initialize encoding mode
+
 Length                              // Number of units past end of buffer
    set_offset(Offset IX);           // Set the offset
-}; // struct utf8_decoder
+
+//----------------------------------------------------------------------------
+// utf16_decoder::Methods
+//----------------------------------------------------------------------------
+utf16_decoder                       // The current column substring
+   copy_column( void ) const;       // Get current column substring
+
+utf32_t                             // The current codepoint
+   current( void ) const;           // Retrieve the current codepoint
+
+utf32_t                             // The current codepoint
+   decode( void );                  // Decode, updating the current codepoint
+
+void                                // Reset the decoder
+   reset(const utf16_t*, Length, MODE= MODE_RESET) noexcept;
+
+void
+   reset( void ) noexcept;          // Reset the decoder to it's initial state
+}; // struct utf16_decoder
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       utf32_decoder
+//
+// Purpose-
+//       The UTF-32 decoder
+//
+//----------------------------------------------------------------------------
+struct utf32_decoder : public Utf {
+friend utf32_encoder;               // For operator=
+
+//----------------------------------------------------------------------------
+// utf32_decoder::Attributes
+//----------------------------------------------------------------------------
+protected:
+const utf32_t*         buffer= nullptr; // Data buffer address
+Length                 length= 0;   // Data length in native units
+Column                 column= -1;  // Current buffer codepoint index
+Offset                 offset= 0;   // Current buffer native unit index
+MODE                   mode= MODE_RESET; // Default, big endian encoding mode
+
+//----------------------------------------------------------------------------
+// utf32_decoder::Constructors/destructor
+//----------------------------------------------------------------------------
+public:
+   utf32_decoder( void ) = default; // Default constructor
+   utf32_decoder(const utf32_decoder&) noexcept; // Copy constructor
+   utf32_decoder(const utf32_encoder&) noexcept; // Copy constructor
+
+   utf32_decoder(const utf32_t*, Length, MODE mode= MODE_RESET) noexcept;
+   utf32_decoder(const utf32_t*, MODE mode= MODE_RESET) noexcept;
+
+   ~utf32_decoder( void ) = default; // Destructor (does nothing)
+
+//----------------------------------------------------------------------------
+// utf32_decoder::Assignment operators
+//----------------------------------------------------------------------------
+utf32_decoder&
+    operator=(const utf32_decoder&) noexcept; // Copy utf32_decoder
+
+utf32_decoder&
+    operator=(const utf32_encoder&) noexcept; // Copy utf32_encoder
+
+//----------------------------------------------------------------------------
+// utf32_decoder::Accessor methods
+//----------------------------------------------------------------------------
+void
+   debug(                           // Debugging display
+     const char*       info= "") const noexcept; // Debugging message
+
+Column                              // The current column index
+   get_column( void ) const;        // Get current column index
+
+Length
+   get_length( void ) const         // Get length (in native units)
+{  return length; }
+
+Offset
+   get_offset( void ) const         // Get current (unit) offset
+{  return offset; }
+
+Offset                              // Unit origin: 0 or 1
+   get_origin( void ) const;        // Get unit origin, 0 or 1
+
+Points
+   get_points( void ) const;        // Get the total number of columns
+
+MODE
+   get_mode( void ) const           // Get current MODE
+{  return mode; }
+
+static bool                         // TRUE iff codepoint is combining
+   is_combining(                    // Is code a combining character?
+     utf32_t           code)        // (The codepoint)
+{  return Utf::is_combining(code); }
+
+bool
+   is_combining( void ) const       // Is the current character combining?
+{  return is_combining(current()); }
+
+Length                              // Number of units past end of buffer
+   set_column(Column IX);           // Set the column
+
+void
+   set_mode(MODE);                  // Set encoding mode
+
+int                                 // Return code, 0 OK
+   set_mode( void );                // Initialize encoding mode
+
+Length                              // Number of units past end of buffer
+   set_offset(Offset IX);           // Set the offset
+
+//----------------------------------------------------------------------------
+// utf32_decoder::Methods
+//----------------------------------------------------------------------------
+utf32_decoder                       // The current column substring
+   copy_column( void ) const;       // Get current column substring
+
+utf32_t                             // The current codepoint
+   current( void ) const;           // Retrieve the current codepoint
+
+utf32_t                             // The current codepoint
+   decode( void );                  // Decode, updating the current codepoint
+
+void                                // Reset the decoder
+   reset(const utf32_t*, Length, MODE= MODE_RESET) noexcept;
+
+void
+   reset( void ) noexcept;          // Reset the decoder to it's initial state
+}; // struct utf32_decoder
 
 //----------------------------------------------------------------------------
 //
@@ -948,7 +1070,7 @@ public:
    utf8_encoder( void ) = default;  // Default constructor
    utf8_encoder(const utf8_encoder&) = delete; // NO copy constructor
 
-   utf8_encoder(utf8_t*, Length);   // Address/length constructor
+   utf8_encoder(utf8_t*, Length) noexcept; // Address/length constructor
 
    ~utf8_encoder( void ) = default; // Destructor does nothing
 
@@ -956,30 +1078,29 @@ public:
 // utf8_encoder::Assignment operators
 //----------------------------------------------------------------------------
 utf8_encoder&
-    operator=(const utf8_decoder&); // Copy utf8_decoder
+    operator=(const utf8_decoder&) noexcept(false); // Copy utf8_decoder
 
 inline utf8_encoder&
-    operator=(const utf8_encoder&); // Copy utf8_encoder
+    operator=(const utf8_encoder&) noexcept(false); // Copy utf8_encoder
 
 utf8_encoder&
-    operator=(const utf16_decoder&); // Copy utf16_decoder
+    operator=(const utf16_decoder&) noexcept(false); // Copy utf16_decoder
 
 inline utf8_encoder&
-    operator=(const utf16_encoder&); // Copy utf16_encoder
+    operator=(const utf16_encoder&) noexcept(false); // Copy utf16_encoder
 
 utf8_encoder&
-    operator=(const utf32_decoder&); // Copy utf32_decoder
+    operator=(const utf32_decoder&) noexcept(false); // Copy utf32_decoder
 
 inline utf8_encoder&
-    operator=(const utf32_encoder&) ;// Copy utf32_encoder
+    operator=(const utf32_encoder&) noexcept(false); // Copy utf32_encoder
 
 //----------------------------------------------------------------------------
 // utf8_encoder::Accessor methods
 //----------------------------------------------------------------------------
 void
    debug(                           // Debugging display
-     int               line= 0,     // Caller's line number
-     const char*       info= "") const; // Debugging message
+     const char*       info= "") const noexcept; // Debugging message
 
 Column                              // The current column index
    get_column( void ) const         // Get current column index
@@ -996,122 +1117,11 @@ unsigned                            // Encoding unit Length
    encode(utf32_t);                 // Encode this value
 
 void
-   reset(utf8_t*, Length);          // Reset the encoder
+   reset(utf8_t*, Length) noexcept; // Reset the encoder
 
 void
-   reset( void );                   // Reset the encoder to it's initial state
+   reset( void ) noexcept;          // Reset the encoder to it's initial state
 }; // struct utf8_encoder
-
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       utf16_decoder
-//
-// Purpose-
-//       The UTF-16 decoder
-//
-//----------------------------------------------------------------------------
-struct utf16_decoder : public Utf {
-friend utf16_encoder;               // For operator=
-
-//----------------------------------------------------------------------------
-// utf16_decoder::Attributes
-//----------------------------------------------------------------------------
-protected:
-const utf16_t*         buffer= nullptr; // Data buffer address
-Length                 length= 0;   // Data length in native units
-Column                 column= -1;  // Current buffer codepoint index
-Offset                 offset= 0;   // Current buffer native unit index
-MODE                   mode= MODE_RESET; // Default, big endian encoding mode
-
-//----------------------------------------------------------------------------
-// utf16_decoder::Constructors/destructor
-//----------------------------------------------------------------------------
-public:
-   utf16_decoder( void ) = default; // Default constructor
-   utf16_decoder(const utf16_decoder&); // Copy constructor
-   utf16_decoder(const utf16_encoder&); // Copy constructor
-
-   utf16_decoder(const utf16_t*, Length, MODE mode= MODE_RESET);
-   utf16_decoder(const utf16_t*);   // U-string constructor
-
-   ~utf16_decoder( void ) = default; // Destructor (does nothing)
-
-//----------------------------------------------------------------------------
-// utf16_decoder::Assignment operators
-//----------------------------------------------------------------------------
-utf16_decoder&
-    operator=(const utf16_decoder&); // Copy utf16_decoder
-
-utf16_decoder&
-    operator=(const utf16_encoder&); // Copy utf16_encoder
-
-//----------------------------------------------------------------------------
-// utf16_decoder::Accessor methods
-//----------------------------------------------------------------------------
-void
-   debug(                           // Debugging display
-     int               line= 0,     // Caller's line number
-     const char*       info= "") const; // Debugging message
-
-Column                              // The current column index
-   get_column( void ) const         // Get current column index
-{  return column; }
-
-Length
-   get_length( void ) const         // Get length
-{  return length; }
-
-MODE
-   get_mode( void ) const           // Get current MODE
-{  return mode; }
-
-Offset
-   get_offset( void ) const         // Get current (unit) offset
-{  return offset; }
-
-Offset                              // Unit origin: 0 or 1
-   get_origin( void );              // Get unit origin, 0 or 1
-
-Points
-   get_points( void ) const;        // Get the total number of columns
-
-static bool                         // TRUE iff codepoint is combining
-   is_combining(                    // Is code a combining character?
-     utf32_t           code)        // (The codepoint)
-{  return Utf::is_combining(code); }
-
-bool
-   is_combining( void ) const       // Is the current character combining?
-{  return is_combining(current()); }
-
-void
-   set_mode(MODE);                  // Set encoding mode
-
-//----------------------------------------------------------------------------
-// utf16_decoder::Methods
-//----------------------------------------------------------------------------
-utf16_decoder                       // The current column substring
-   copy_column( void ) const;       // Get current column substring
-
-utf32_t                             // The current codepoint
-   current( void ) const;           // Retrieve the current codepoint
-
-utf32_t                             // The current codepoint
-   decode( void );                  // Decode, updating the current codepoint
-
-void                                // Reset the decoder
-   reset(const utf16_t*, Length, MODE= MODE_RESET);
-
-void
-   reset( void );                   // Reset the decoder to it's initial state
-
-Length                              // Number of units past end of buffer
-   set_column(Column IX);           // Set the column
-
-Length                              // Number of units past end of buffer
-   set_offset(Offset IX);           // Set the offset
-}; // struct utf16_decoder
 
 //----------------------------------------------------------------------------
 //
@@ -1141,7 +1151,7 @@ MODE                   mode= MODE_RESET; // Default, big endian encoding mode
 public:
    utf16_encoder( void ) = default; // Default constructor
    utf16_encoder(const utf16_encoder&) = delete; // NO copy constructor
-   utf16_encoder(utf16_t*, Length, MODE mode= MODE_RESET);
+   utf16_encoder(utf16_t*, Length, MODE mode= MODE_RESET) noexcept;
 
    ~utf16_encoder( void ) = default; // Destructor (does nothing)
 
@@ -1149,30 +1159,29 @@ public:
 // utf16_encoder::Assignment operators
 //----------------------------------------------------------------------------
 utf16_encoder&
-    operator=(const utf8_decoder&); // Copy utf8_decoder
+    operator=(const utf8_decoder&) noexcept(false); // Copy utf8_decoder
 
 inline utf16_encoder&
-    operator=(const utf8_encoder&); // Copy utf8_encoder
+    operator=(const utf8_encoder&) noexcept(false); // Copy utf8_encoder
 
 utf16_encoder&
-    operator=(const utf16_decoder&); // Copy utf16_decoder
+    operator=(const utf16_decoder&) noexcept(false); // Copy utf16_decoder
 
 inline utf16_encoder&
-    operator=(const utf16_encoder&); // Copy utf16_encoder
+    operator=(const utf16_encoder&) noexcept(false); // Copy utf16_encoder
 
 utf16_encoder&
-    operator=(const utf32_decoder&); // Copy utf32_decoder
+    operator=(const utf32_decoder&) noexcept(false); // Copy utf32_decoder
 
 inline utf16_encoder&
-    operator=(const utf32_encoder&) ;// Copy utf32_encoder
+    operator=(const utf32_encoder&) noexcept(false); // Copy utf32_encoder
 
 //----------------------------------------------------------------------------
 // utf16_encoder::Accessor methods
 //----------------------------------------------------------------------------
 void
    debug(                           // Debugging display
-     int               line= 0,     // Caller's line number
-     const char*       info= "") const; // Debugging message
+     const char*       info= "") const noexcept; // Debugging message
 
 Column                              // The current column index
    get_column( void ) const         // Get current column index
@@ -1187,7 +1196,7 @@ Offset
 {  return offset; }
 
 void
-   set_mode(MODE m);                // Set encoding mode
+   set_mode(MODE);                  // Set encoding mode
 
 //----------------------------------------------------------------------------
 // utf16_encoder::Methods
@@ -1196,122 +1205,11 @@ unsigned                            // The encoding length, in units
    encode(utf32_t);                 // Encode, updating the current codepoint
 
 void                                // Reset the encoder
-   reset(utf16_t*, Length, MODE= MODE_RESET);
+   reset(utf16_t*, Length, MODE mode= MODE_RESET) noexcept;
 
 void
-   reset( void );                   // Reset the encoder to it's initial state
+   reset( void ) noexcept;          // Reset the encoder to it's initial state
 }; // struct utf16_encoder
-
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       utf32_decoder
-//
-// Purpose-
-//       The UTF-32 decoder
-//
-//----------------------------------------------------------------------------
-struct utf32_decoder : public Utf {
-friend utf32_encoder;               // For operator=
-
-//----------------------------------------------------------------------------
-// utf32_decoder::Attributes
-//----------------------------------------------------------------------------
-protected:
-const utf32_t*         buffer= nullptr; // Data buffer address
-Length                 length= 0;   // Data length in native units
-Column                 column= -1;  // Current buffer codepoint index
-Offset                 offset= 0;   // Current buffer native unit index
-MODE                   mode= MODE_RESET; // Default, big endian encoding mode
-
-//----------------------------------------------------------------------------
-// utf32_decoder::Constructors/destructor
-//----------------------------------------------------------------------------
-public:
-   utf32_decoder( void ) = default; // Default constructor
-   utf32_decoder(const utf32_decoder&); // Copy constructor
-   utf32_decoder(const utf32_encoder&); // Copy constructor
-
-   utf32_decoder(const utf32_t*, Length, MODE mode= MODE_RESET);
-   utf32_decoder(const utf32_t*);   // U-string constructor
-
-   ~utf32_decoder( void ) = default; // Destructor (does nothing)
-
-//----------------------------------------------------------------------------
-// utf32_decoder::Assignment operators
-//----------------------------------------------------------------------------
-utf32_decoder&
-    operator=(const utf32_decoder&); // Copy utf32_decoder
-
-utf32_decoder&
-    operator=(const utf32_encoder&); // Copy utf32_encoder
-
-//----------------------------------------------------------------------------
-// utf32_decoder::Accessor methods
-//----------------------------------------------------------------------------
-void
-   debug(                           // Debugging display
-     int               line= 0,     // Caller's line number
-     const char*       info= "") const; // Debugging message
-
-Column                              // The current column index
-   get_column( void ) const         // Get current column index
-{  return column; }
-
-Length
-   get_length( void ) const         // Get length
-{  return length; }
-
-Offset
-   get_offset( void ) const         // Get current (unit) offset
-{  return offset; }
-
-Offset                              // Unit origin: 0 or 1
-   get_origin( void );              // Get unit origin, 0 or 1
-
-Points
-   get_points( void ) const;        // Get the total number of columns
-
-MODE
-   get_mode( void ) const           // Get current MODE
-{  return mode; }
-
-static bool                         // TRUE iff codepoint is combining
-   is_combining(                    // Is code a combining character?
-     utf32_t           code)        // (The codepoint)
-{  return Utf::is_combining(code); }
-
-bool
-   is_combining( void ) const       // Is the current character combining?
-{  return is_combining(current()); }
-
-void
-   set_mode(MODE);                  // Set encoding mode
-
-//----------------------------------------------------------------------------
-// utf32_decoder::Methods
-//----------------------------------------------------------------------------
-utf32_decoder                       // The current column substring
-   copy_column( void ) const;       // Get current column substring
-
-utf32_t                             // The current codepoint
-   current( void ) const;           // Retrieve the current codepoint
-
-utf32_t                             // The current codepoint
-   decode( void );                  // Decode, updating the current codepoint
-
-void                                // Reset the decoder
-   reset(const utf32_t*, Length, MODE= MODE_RESET);
-
-void
-   reset( void );                   // Reset the decoder to it's initial state
-
-Length                              // Number of units past end of buffer
-   set_column(Column IX);           // Set the column
-
-Length                              // Number of units past end of buffer
-   set_offset(Offset IX);           // Set the offset
-}; // struct utf32_decoder
 
 //----------------------------------------------------------------------------
 //
@@ -1342,7 +1240,7 @@ public:
    utf32_encoder( void ) = default; // Default constructor
    utf32_encoder(const utf32_encoder&) = delete; // NO copy constructor
 
-   utf32_encoder(utf32_t*, Length, MODE mode= MODE_RESET);
+   utf32_encoder(utf32_t*, Length, MODE mode= MODE_RESET) noexcept;
 
    ~utf32_encoder( void ) = default; // Destructor (does nothing)
 
@@ -1350,30 +1248,29 @@ public:
 // utf32_encoder::Assignment operators
 //----------------------------------------------------------------------------
 utf32_encoder&
-    operator=(const utf8_decoder&); // Copy utf8_decoder
+    operator=(const utf8_decoder&) noexcept(false); // Copy utf8_decoder
 
 inline utf32_encoder&
-    operator=(const utf8_encoder&); // Copy utf8_encoder
+    operator=(const utf8_encoder&) noexcept(false); // Copy utf8_encoder
 
 utf32_encoder&
-    operator=(const utf16_decoder&); // Copy utf16_decoder
+    operator=(const utf16_decoder&) noexcept(false); // Copy utf16_decoder
 
 inline utf32_encoder&
-    operator=(const utf16_encoder&) ;// Copy utf16_encoder
+    operator=(const utf16_encoder&) noexcept(false); // Copy utf16_encoder
 
 utf32_encoder&
-    operator=(const utf32_decoder&); // Copy utf32_decoder
+    operator=(const utf32_decoder&) noexcept(false); // Copy utf32_decoder
 
 inline utf32_encoder&
-    operator=(const utf32_encoder&) ;// Copy utf32_encoder
+    operator=(const utf32_encoder&) noexcept(false); // Copy utf32_encoder
 
 //----------------------------------------------------------------------------
 // utf32_encoder::Accessor methods
 //----------------------------------------------------------------------------
 void
    debug(                           // Debugging display
-     int               line= 0,     // Caller's line number
-     const char*       info= "") const; // Debugging message
+     const char*       info= "") const noexcept; // Debugging message
 
 Column                              // The current column index
    get_column( void ) const         // Get current column index
@@ -1384,7 +1281,7 @@ Offset
 {  return offset; }
 
 void
-   set_mode(MODE m);                // Set encoding mode
+   set_mode(MODE);                  // Set encoding mode
 
 //----------------------------------------------------------------------------
 // utf32_encoder::Methods
@@ -1393,10 +1290,10 @@ unsigned                            // The encoding length, in units
    encode(utf32_t);                 // Encode, updating the current codepoint
 
 void                                // Reset the encoder
-   reset(utf32_t*, Length, MODE= MODE_RESET);
+   reset(utf32_t*, Length, MODE mode= MODE_RESET) noexcept;
 
 void
-   reset( void );                   // Reset the encoder to it's initial state
+   reset( void ) noexcept;          // Reset the encoder to it's initial state
 }; // struct utf32_encoder
 _LIBPUB_END_NAMESPACE
 

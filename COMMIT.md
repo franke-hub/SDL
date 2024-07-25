@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/06/21
+//       2024/07/25
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,22 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+----
+
+#### 07/25/2024 maint
+
+Revised utf*_decoder and utf*_encoder interfaces so that the current
+column always matches the column as set by set_column().
+This is a cleaner and more logical interface.
+
+Since method decode() updates the offset and column number,
+buffer[offset] applies to the column number of the next codepoint.
+Method set_column() updates both the column and offset fields.
+With this change buffer[offset] is the first character of a column, not
+one past that character.
+
+The editor modules have not been updated yet.
+They (still) do not use the updated decoders and encoders.
 
 ----
 

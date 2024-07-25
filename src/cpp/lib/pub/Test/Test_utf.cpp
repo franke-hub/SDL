@@ -16,7 +16,7 @@
 //       Test Utf.h
 //
 // Last change date-
-//       2024/06/21
+//       2024/07/25
 //
 //----------------------------------------------------------------------------
 #include <endian.h>                 // For endian subroutines
@@ -48,44 +48,130 @@ enum Glyph                          // Glyph definitions
 
 // Byte Order Mark isn't needed for single NUL character.
 static const utf32_t   test00[]=    // COL O32 O16 O08
-{  ASCII_NUL                        //   0   1   1   1
+{  ASCII_NUL                        //   0   0   0   0
 }; // test00                        //   0   1   1   1 (EOF/LENGTH)
 
 // Byte Order Mark isn't needed for single NUL character, but it doesn't hurt.
 // (The BYTE_ORDER_MARK characters are SKIPPED [not encoded] for UTF-8.)
 static const utf32_t   test01[]=    // COL O32 O16 O08
 {  BYTE_ORDER_MARK32                //   -   0   0   *
-,  ASCII_NUL                        //   0   2   2   1
+,  ASCII_NUL                        //   0   1   1   0
 }; // test01                        //   0   2   2   1 (EOF/LENGTH)
 
 // Byte Order Mark required: The target machine's endian mode isn't known.
 static const utf32_t   test02[]=    // COL O32 O16 O08
 {  BYTE_ORDER_MARK32                //   -   0   0   *
-,  COMBO_LEFT                       //   0   2   2   2
-,  COMBO_RIGHT                      //   -   3   3   4
-,  DOTTED_CIRCLE                    //   1   4   4   7
-,  COMBO_LEFT                       //   -   5   5   9
-,  COMBO_RIGHT                      //   -   6   6  11
-,  DOTTED_CIRCLE                    //   2   7   7  14
+,  COMBO_LEFT                       //   0   1   1   0
+,  COMBO_RIGHT                      //   -   2   2   2
+,  DOTTED_CIRCLE                    //   1   3   3   4
+,  COMBO_LEFT                       //   -   4   4   7
+,  COMBO_RIGHT                      //   -   5   5   9
+,  DOTTED_CIRCLE                    //   2   6   6  11
 }; // test02                        //   2   7   7  14 (EOF/LENGTH)
 
 // Byte Order Mark required: The target machine's endian mode isn't known.
 static const utf32_t   test03[]=    // COL O32 O16 O08
 {  BYTE_ORDER_MARK32                //   -   0   0   *
-,  ASCII_NUL                        //   0   2   2   1
-,  DOTTED_CIRCLE                    //   1   3   3   4
-,  COMBO_LEFT                       //   -   4   4   6
-,  COMBO_RIGHT                      //   -   5   5   8
-,  DOTTED_CIRCLE                    //   2   6   6  11
-,  COMBO_RIGHT                      //   -   7   7  13
-,  COMBO_LEFT                       //   -   8   8  15
-,  0x01'2345                        //   3   9  10  19
-,  'x'                              //   4  10  11  20
-,  'y'                              //   5  11  12  21
-,  'z'                              //   6  12  13  22
-,  ASCII_NUL                        //   7  13  14  23
-}; // test03                        //   7  13  14  23 (EOF/LENGTH)
+,  ASCII_NUL                        //   0   1   1   0
+,  DOTTED_CIRCLE                    //   1   2   2   1
+,  COMBO_LEFT                       //   -   3   3   4
+,  COMBO_RIGHT                      //   -   4   4   6
+,  DOTTED_CIRCLE                    //   2   5   5   8
+,  COMBO_RIGHT                      //   -   6   6  11
+,  COMBO_LEFT                       //   -   7   7  13
+,  0x01'2345                        //   3   8   8  15
+,  'x'                              //   4   9  10  19
+,  'y'                              //   5  10  11  20
+,  'z'                              //   6  11  12  21
+,  ASCII_NUL                        //   7  12  13  22
+}; // test03                        //   7  14  14  23 (EOF/LENGTH)
 
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       VERIFY_current
+//
+// Purpose-
+//       Verify decoder.current method
+//
+//----------------------------------------------------------------------------
+static inline int                   // Error count (0 or 1)
+   VERIFY_current(                  // Verify method current()
+     int               line,        // Caller's line number
+     uint32_t          expect,      // Expected result
+     const utf8_decoder&
+                       decoder,     // The decoder
+     Column            column,      // The expected column
+     Offset            offset)      // The expected offset
+{
+     uint32_t actual= decoder.current();
+     if( decoder.get_column() == column && decoder.get_offset() == offset
+         && actual == expect )
+       return 0;
+
+debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
+     debugf("%4d Error: VERIFY(decoder.current())\n", line);
+     debugf("  Actual: 0x%.6X= current() column(%zd) offset(%zd)\n"
+           , actual, decoder.get_column(), decoder.get_offset());
+     debugf("  Expect: 0x%.6X= current() column(%zd) offset(%zd) length(%zd)\n"
+           , expect, column, offset, decoder.get_length());
+debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
+decoder.debug("VERIFY_current");
+
+     return 1;
+}
+
+static inline int                   // Error count (0 or 1)
+   VERIFY_current(                  // Verify method current()
+     int               line,        // Caller's line number
+     uint32_t          expect,      // Expected result
+     const utf16_decoder&
+                       decoder,     // The decoder
+     Column            column,      // The expected column
+     Offset            offset)      // The expected offset
+{
+     uint32_t actual= decoder.current();
+     if( decoder.get_column() == column && decoder.get_offset() == offset
+         && actual == expect )
+       return 0;
+
+debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
+     debugf("%4d Error: VERIFY(decoder.current())\n", line);
+     debugf("  Actual: 0x%.6X= current() column(%zd) offset(%zd)\n"
+           , actual, decoder.get_column(), decoder.get_offset());
+     debugf("  Expect: 0x%.6X= current() column(%zd) offset(%zd) length(%zd)\n"
+           , expect, column, offset, decoder.get_length());
+debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
+decoder.debug("VERIFY_current");
+
+     return 1;
+}
+
+static inline int                   // Error count (0 or 1)
+   VERIFY_current(                  // Verify method current()
+     int               line,        // Caller's line number
+     uint32_t          expect,      // Expected result
+     const utf32_decoder&
+                       decoder,     // The decoder
+     Column            column,      // The expected column
+     Offset            offset)      // The expected offset
+{
+     uint32_t actual= decoder.current();
+     if( decoder.get_column() == column && decoder.get_offset() == offset
+         && actual == expect )
+       return 0;
+
+debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
+     debugf("%4d Error: VERIFY(decoder.current())\n", line);
+     debugf("  Actual: 0x%.6X= current() column(%zd) offset(%zd)\n"
+           , actual, decoder.get_column(), decoder.get_offset());
+     debugf("  Expect: 0x%.6X= current() column(%zd) offset(%zd) length(%zd)\n"
+           , expect, column, offset, decoder.get_length());
+debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
+decoder.debug("VERIFY_current");
+
+     return 1;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -202,11 +288,11 @@ static inline int                   // Error count (0 or 1)
 debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
      debugf("%4d Error: VERIFY(decoder.set_column(%zd) == %zd)\n", line
            , column, length);
-     debugf("  Actual: %zd= set_column(%zd) column(%zd) offset(%zd)\n"
-           , actual, column, decoder.get_column(), decoder.get_offset());
-     debugf("  Expect: %zd= set_column(%zd) column(%zd) offset(%zd) "
-            "length(%zd)\n"
-           , length, column, expect_col, expect_off, decoder.get_length());
+     debugf("  Expect: %zd= set_column(%zd) column(%zd) offset(%zd)\n"
+           , length, column, expect_col, expect_off);
+     debugf("  Actual: %zd= set_column(%zd) column(%zd) offset(%zd) "
+            "length(%zd)\n", actual, column
+           , decoder.get_column(), decoder.get_offset(), decoder.get_length());
 debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
 
      return 1;
@@ -237,11 +323,11 @@ static inline int                   // Error count (0 or 1)
 debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
      debugf("%4d Error: VERIFY(decoder.set_column(%zd) == %zd)\n", line
            , column, length);
-     debugf("  Actual: %zd= set_column(%zd) column(%zd) offset(%zd)\n"
-           , actual, column, decoder.get_column(), decoder.get_offset());
-     debugf("  Expect: %zd= set_column(%zd) column(%zd) offset(%zd) "
-            "length(%zd)\n"
-           , length, column, expect_col, expect_off, decoder.get_length());
+     debugf("  Expect: %zd= set_column(%zd) column(%zd) offset(%zd)\n"
+           , length, column, expect_col, expect_off);
+     debugf("  Actual: %zd= set_column(%zd) column(%zd) offset(%zd) "
+            "length(%zd)\n", actual, column
+           , decoder.get_column(), decoder.get_offset(), decoder.get_length());
 debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
 
      return 1;
@@ -272,11 +358,11 @@ static inline int                   // Error count (0 or 1)
 debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
      debugf("%4d Error: VERIFY(decoder.set_column(%zd) == %zd)\n", line
            , column, length);
-     debugf("  Actual: %zd= set_column(%zd) column(%zd) offset(%zd)\n"
-           , actual, column, decoder.get_column(), decoder.get_offset());
-     debugf("  Expect: %zd= set_column(%zd) column(%zd) offset(%zd) "
-            "length(%zd)\n"
-           , length, column, expect_col, expect_off, decoder.get_length());
+     debugf("  Expect: %zd= set_column(%zd) column(%zd) offset(%zd)\n"
+           , length, column, expect_col, expect_off);
+     debugf("  Actual: %zd= set_column(%zd) column(%zd) offset(%zd) "
+            "length(%zd)\n", actual, column
+           , decoder.get_column(), decoder.get_offset(), decoder.get_length());
 debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
 
      return 1;
@@ -305,15 +391,11 @@ static inline int                   // Error count (0 or 1)
    Column column= decoder.get_column();
 
    // If unexpected result
-   if( actual != length )
+   if( actual != length || ssize_t(column) >= 0 )
      ++error_count;
 
    // If offset set incorrectly
    if( decoder.get_offset() != expect_off )
-     ++error_count;
-
-   // If column set incorrectly
-   if( column != Column(-1) )
      ++error_count;
 
    if( error_count == 0 )
@@ -322,13 +404,12 @@ static inline int                   // Error count (0 or 1)
 debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
      debugf("%4d Error: VERIFY(decoder.set_offset(%zd) == %zd)\n", line
            , offset, length);
-     debugf("  Actual: %zd= set_offset(%zd) offset(%zd)\n"
-           , actual, offset, decoder.get_offset());
+     if( ssize_t(column) >= 0 )
+       debugf("  Expect: get_column(%zd) < 0\n", column);
      debugf("  Expect: %zd= set_offset(%zd) offset(%zd) length(%zd)\n"
            , length, offset, expect_off, decoder.get_length());
-     if( decoder.get_column() != Column(-1) ) {
-       debugf("%zd= decoder.get_column(), EXPECT(-1)\n", column);
-     }
+     debugf("  Actual: %zd= set_offset(%zd) offset(%zd)\n"
+           , actual, offset, decoder.get_offset());
 debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
 
      return 1;
@@ -348,15 +429,11 @@ static inline int                   // Error count (0 or 1)
    Column column= decoder.get_column();
 
    // If unexpected result
-   if( actual != length )
+   if( actual != length || ssize_t(column) >= 0 )
      ++error_count;
 
    // If offset set incorrectly
    if( decoder.get_offset() != expect_off )
-     ++error_count;
-
-   // If column set incorrectly
-   if( column != Column(-1) )
      ++error_count;
 
    if( error_count == 0 )
@@ -365,13 +442,12 @@ static inline int                   // Error count (0 or 1)
 debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
      debugf("%4d Error: VERIFY(decoder.set_offset(%zd) == %zd)\n", line
            , offset, length);
-     debugf("  Actual: %zd= set_offset(%zd) offset(%zd)\n"
-           , actual, offset, decoder.get_offset());
+     if( ssize_t(column) >= 0 )
+       debugf("  Expect: get_column(%zd) < 0\n", column);
      debugf("  Expect: %zd= set_offset(%zd) offset(%zd) length(%zd)\n"
            , length, offset, expect_off, decoder.get_length());
-     if( decoder.get_column() != Column(-1) ) {
-       debugf("%zd= decoder.get_column(), EXPECT(-1)\n", column);
-     }
+     debugf("  Actual: %zd= set_offset(%zd) offset(%zd)\n"
+           , actual, offset, decoder.get_offset());
 debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
 
      return 1;
@@ -391,15 +467,11 @@ static inline int                   // Error count (0 or 1)
    Column column= decoder.get_column();
 
    // If unexpected result
-   if( actual != length )
+   if( actual != length || ssize_t(column) >= 0 )
      ++error_count;
 
    // If offset set incorrectly
    if( decoder.get_offset() != expect_off )
-     ++error_count;
-
-   // If column set incorrectly
-   if( column != Column(-1) )
      ++error_count;
 
    if( error_count == 0 )
@@ -408,13 +480,12 @@ static inline int                   // Error count (0 or 1)
 debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
      debugf("%4d Error: VERIFY(decoder.set_offset(%zd) == %zd)\n", line
            , offset, length);
-     debugf("  Actual: %zd= set_offset(%zd) offset(%zd)\n"
-           , actual, offset, decoder.get_offset());
+     if( ssize_t(column) >= 0 )
+       debugf("  Expect: get_column(%zd) < 0\n", column);
      debugf("  Expect: %zd= set_offset(%zd) offset(%zd) length(%zd)\n"
            , length, offset, expect_off, decoder.get_length());
-     if( decoder.get_column() != Column(-1) ) {
-       debugf("%zd= decoder.get_column(), EXPECT(-1)\n", column);
-     }
+     debugf("  Actual: %zd= set_offset(%zd) offset(%zd)\n"
+           , actual, offset, decoder.get_offset());
 debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
 
      return 1;
@@ -508,6 +579,7 @@ static inline int                   // Number of errors found
    error_count += VERIFY( is_combining(0x00'FE30) == false );
    error_count += VERIFY( is_combining(0x10'FFFF) == false );
    error_count += VERIFY( is_combining(0x11'0000) == false );
+   error_count += VERIFY( is_combining(UTF_EOF)   == false );
 
    // Test is_unicode()
    error_count += VERIFY( is_unicode(0x00'0000) == true  );
@@ -518,8 +590,13 @@ static inline int                   // Number of errors found
    error_count += VERIFY( is_unicode(0x00'E000) == true  );
    error_count += VERIFY( is_unicode(0x10'FFFF) == true  );
    error_count += VERIFY( is_unicode(0x11'0000) == false );
+   error_count += VERIFY( is_unicode(UTF_EOF)   == false );
 
    // Test strlen (Utf::strlen doesn't care about endian, so neither do we.)
+   utf8_t  s08_0[]= {0};
+   utf8_t  s08_1[]= {1, 0};
+   utf8_t  s08_7[]= {1, 2, 3, 4, 5, 6, 7, 0};
+
    utf16_t s16_0[]= {0};
    utf16_t s16_1[]= {1, 0};
    utf16_t s16_7[]= {1, 2, 3, 4, 5, 6, 7, 0};
@@ -527,6 +604,14 @@ static inline int                   // Number of errors found
    utf32_t s32_0[]= {0};
    utf32_t s32_1[]= {1, 0};
    utf32_t s32_7[]= {1, 2, 3, 4, 5, 6, 7, 0};
+
+   error_count += VERIFY( utf_strlen(s08_0) == 0 );
+   error_count += VERIFY( utf_strlen(s08_1) == 1 );
+   error_count += VERIFY( utf_strlen(s08_7) == 7 );
+
+   error_count += VERIFY( sizeof(s08_0) ==  1 );
+   error_count += VERIFY( sizeof(s08_1) ==  2 );
+   error_count += VERIFY( sizeof(s08_7) ==  8 );
 
    error_count += VERIFY( utf_strlen(s16_0) == 0 );
    error_count += VERIFY( utf_strlen(s16_1) == 1 );
@@ -645,12 +730,13 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_offset(__LINE__, 19, decoder, 19, 0);
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test00\n"); // test00 {0}----------------------
-   convert.reset(test00, 1, MODE_BE);
+   if( opt_verbose ) debugf("test00\n"); // test00 {0}------------------------
+   convert.reset(test00, 1);
+   convert.set_mode();
    encoder= convert;
    decoder= encoder;
 
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 1);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 0);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, 0, 1);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, 0, 1);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, 0, 1);
@@ -660,12 +746,13 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_offset(__LINE__,  4, decoder,  5, 1);
    error_count += VERIFY_set_offset(__LINE__, 18, decoder, 19, 1);
 
-   if( opt_verbose ) debugf("test01\n"); // test01 {BOM,0}------------------
-   convert.reset(test01, 2, MODE_RESET);
+   if( opt_verbose ) debugf("test01\n"); // test01 {BOM,0}--------------------
+   convert.reset(test01, 2);
+   convert.set_mode();
    encoder= convert;                // ** DOES NOT CONVERT BOM **
-   decoder= encoder;
+   decoder= encoder;                // test01 {0}----------------
 
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 1);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 0);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, 0, 1);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, 0, 1);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, 0, 1);
@@ -676,14 +763,15 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_offset(__LINE__, 18, decoder, 19, 1);
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test02\n"); // test02 {BOM,combo,...}----------
-   convert.reset(test02, 7, MODE_RESET);
+   if( opt_verbose ) debugf("test02\n"); // test02 {BOM,combo,...}------------
+   convert.reset(test02, 7);
+   convert.set_mode();
    encoder= convert;                // ** DOES NOT CONVERT BOM **
-   decoder= encoder;
+   decoder= encoder;                // test02 {combo,...}--------
 
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0,  0,  2);
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  1,  1,  7);
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  2,  2, 14);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0,  0,  0);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  1,  1,  4);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  2,  2, 11);
    error_count += VERIFY_set_column(__LINE__,  3, decoder,  5,  2, 14);
    error_count += VERIFY_set_column(__LINE__, 17, decoder, 19,  2, 14);
 
@@ -693,21 +781,84 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_offset(__LINE__,  0, decoder,  8,  8);
    error_count += VERIFY_set_offset(__LINE__,  5, decoder, 19, 14);
 
-   //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test03\n"); // test03 {BOM,0,CHAR,combo,...}---
-   convert.reset(test03, 13, MODE_RESET);
-   encoder= convert;                // ** DOES NOT CONVERT BOM **
-   decoder= encoder;
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // test02: test copy_column
+   if( opt_verbose ) debugf("test02.copy_column\n");
+   decoder= encoder;                // test02 {combo,...}--------
+   utf8_decoder column= decoder.copy_column(); // Copy column 0
+   error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    column, 0,  2);
+   error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   column, 0,  4);
+   error_count += VERIFY_decode(__LINE__, -1,            column, 0,  4);
 
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0,  0,  1);
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  1,  1,  4);
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  5,  5, 21);
+   column= decoder.copy_column();   // Copy column 1
+   error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, column, 0,  3);
+   error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    column, 0,  5);
+   error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   column, 0,  7);
+   error_count += VERIFY_decode(__LINE__, -1,            column, 0,  7);
+
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  2,  2, 11);
+   column= decoder.copy_column();   // Copy column 2
+   error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, column, 0,  3);
+   error_count += VERIFY_decode(__LINE__, -1,            column, 0,  3);
+
+   //-------------------------------------------------------------------------
+   if( opt_verbose ) debugf("test03\n"); // test03 {BOM,0,CHAR,combo,...}-----
+   convert.reset(test03, 13);
+   convert.set_mode();
+   encoder= convert;                // ** DOES NOT CONVERT BOM **
+   decoder= encoder;                // test03 {0,CHAR,combo,...}-
+
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0,  0,  0);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  1,  1,  1);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  5,  5, 20);
    error_count += VERIFY_set_column(__LINE__, 12, decoder, 19,  7, 23);
 
    error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0,  0);
    error_count += VERIFY_set_offset(__LINE__,  0, decoder,  5,  5);
    error_count += VERIFY_set_offset(__LINE__,  0, decoder, 19, 19);
    error_count += VERIFY_set_offset(__LINE__,  6, decoder, 29, 23);
+
+   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // test03: test copy_column
+   if( opt_verbose ) debugf("test03.copy_column\n");
+   decoder= encoder;                // test03 {0,CHAR,combo,...}-
+   column= decoder.copy_column();   // Copy column 0
+   error_count += VERIFY_decode(__LINE__, ASCII_NUL,     column, 0,  1);
+   error_count += VERIFY_decode(__LINE__, -1,            column, 0,  1);
+
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  1,  1,  1);
+   column= decoder.copy_column();   // Copy column 1
+   error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, column, 0,  3);
+   error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    column, 0,  5);
+   error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   column, 0,  7);
+   error_count += VERIFY_decode(__LINE__, -1,            column, 0,  7);
+
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  2,  2,  8);
+   column= decoder.copy_column();   // Copy column 2
+   error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, column, 0,  3);
+   error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   column, 0,  5);
+   error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    column, 0,  7);
+   error_count += VERIFY_decode(__LINE__, -1,            column, 0,  7);
+
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  3,  3, 15);
+   column= decoder.copy_column();   // Copy column 3
+   error_count += VERIFY_decode(__LINE__, 0x01'2345,     column, 0,  4);
+   error_count += VERIFY_decode(__LINE__, -1,            column, 0,  4);
+
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  4,  4, 19);
+   column= decoder.copy_column();   // Copy column 4
+   error_count += VERIFY_decode(__LINE__, 'x',           column, 0,  1);
+   error_count += VERIFY_decode(__LINE__, -1,            column, 0,  1);
+   // :
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  7,  7, 22);
+   column= decoder.copy_column();   // Copy column 7
+   error_count += VERIFY_decode(__LINE__, ASCII_NUL,     column, 0,  1);
+   error_count += VERIFY_decode(__LINE__, -1,            column, 0,  1);
+
+   error_count += VERIFY_set_column(__LINE__,  1, decoder,  8,  7, 23);
+   column= decoder.copy_column();   // Copy column 8 (non-existent)
+   error_count += VERIFY_decode(__LINE__, -1,            column, -1, 0);
 
    return error_count;
 }
@@ -735,6 +886,7 @@ static inline int                   // Number of errors found
    utf16_encoder       encoder;     // Encoder
 
    // Test encoder/decoder match
+   memset(buffer, 0xEE, 64);
    for(uint32_t code= 1; code < 0x11'0000; ++code) {
      if( code == BYTE_ORDER_MARK || code == MARK_ORDER_BYTE )
        continue;
@@ -768,15 +920,13 @@ static inline int                   // Number of errors found
          debugf("BE: 0x%.6X: {0x%.4X,0x%.4X} {0x%.4X}\n", code
                , ntohs(buffer[2]), ntohs(buffer[3]), ntohs(buffer[4]));
 
-       // Try little endian mode
-       encoder.reset(buffer, 32);
-       encoder.set_mode(MODE_LE);
+       // Use little endian mode
+       encoder.reset(buffer, 32, MODE_LE);
        one= encoder.encode(code);
        two= encoder.encode(code);
             encoder.encode(0);
        error_count += VERIFY( one == two ); // Encoding lengths must be equal
-       decoder.reset(buffer, encoder.get_offset());
-       decoder.set_mode(MODE_LE);
+       decoder.reset(buffer, encoder.get_offset(), MODE_LE);
 
        edoc= decoder.decode();
        error_count += VERIFY( edoc == code );
@@ -831,15 +981,13 @@ static inline int                   // Number of errors found
          debugf("BE: 0x%.6X: {0x%.4X} {0x%.4X} {0x%.4X}\n", code
                , ntohs(buffer[0]), ntohs(buffer[1]), ntohs(buffer[2]));
 
-       // Try little endian mode
-       encoder.reset(buffer, 32);
-       encoder.set_mode(MODE_LE);
+       // Use little endian mode
+       encoder.reset(buffer, 32, MODE_LE);
        one= encoder.encode(code);
        two= encoder.encode(code);
             encoder.encode(0);
        error_count += VERIFY( one == two ); // Encoding lengths must be equal
-       decoder.reset(buffer, encoder.get_offset());
-       decoder.set_mode(MODE_LE);
+       decoder.reset(buffer, encoder.get_offset(), MODE_LE);
 
        edoc= decoder.decode();
        error_count += VERIFY( edoc == UNI_REPLACEMENT );
@@ -854,13 +1002,11 @@ static inline int                   // Number of errors found
          break;
        }
 
-       decoder.reset(buffer, encoder.get_offset());
-       decoder.set_mode(MODE_LE);
+       decoder.reset(buffer, encoder.get_offset(), MODE_LE);
        buffer[0]= htole16(code);
        error_count += VERIFY( decoder.decode() == UNI_REPLACEMENT );
 
-       encoder.reset(buffer, 32);
-       encoder.set_mode(MODE_LE);
+       encoder.reset(buffer, 32, MODE_LE);
        encoder.encode(UNI_REPLACEMENT);
        error_count += VERIFY( buffer[0] == buffer[1] );
 
@@ -875,8 +1021,9 @@ static inline int                   // Number of errors found
    memset(buffer, 0xFE, 64);
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test_empty\n"); //  test_empty ----------------
+   if( opt_verbose ) debugf("test_empty\n"); //  test_empty ------------------
    convert.reset(test00, 0);        // test_utf16::test_empty
+   convert.set_mode();
    encoder= convert;
    decoder= encoder;
 
@@ -892,12 +1039,13 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_offset(__LINE__, 19, decoder, 19, 0);
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test00\n"); // test00 {0}----------------------
-   convert.reset(test00, 1, MODE_BE);
+   if( opt_verbose ) debugf("test00\n"); // test00 {0}------------------------
+   convert.reset(test00, 1);
+   convert.set_mode();
    encoder= convert;
    decoder= encoder;
 
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 1);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 0);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, 0, 1);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, 0, 1);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, 0, 1);
@@ -907,12 +1055,13 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_offset(__LINE__,  4, decoder,  5, 1);
    error_count += VERIFY_set_offset(__LINE__, 18, decoder, 19, 1);
 
-   if( opt_verbose ) debugf("test01\n"); // test01 {BOM,0}------------------
-   convert.reset(test01, 2, MODE_RESET);
+   if( opt_verbose ) debugf("test01\n"); // test01 {BOM,0}--------------------
+   convert.reset(test01, 2);
+   convert.set_mode();
    encoder= convert;
    decoder= encoder;
 
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 2);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 1);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, 0, 2);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, 0, 2);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, 0, 2);
@@ -924,14 +1073,15 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_offset(__LINE__, 17, decoder, 19, 2);
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test02\n"); // test02 {BOM,combo,...}----------
-   convert.reset(test02, 7, MODE_RESET);
+   if( opt_verbose ) debugf("test02\n"); // test02 {BOM,combo,...}------------
+   convert.reset(test02, 7);
+   convert.set_mode();
    encoder= convert;
    decoder= encoder;
 
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 2);
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  1, 1, 4);
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  2, 2, 7);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 1);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  1, 1, 3);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  2, 2, 6);
    error_count += VERIFY_set_column(__LINE__,  3, decoder,  5, 2, 7);
    error_count += VERIFY_set_column(__LINE__, 17, decoder, 19, 2, 7);
 
@@ -943,14 +1093,15 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_offset(__LINE__, 12, decoder, 19, 7);
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test03\n"); // test03 {BOM,0,CHAR,combo,...}---
-   convert.reset(test03, 13, MODE_RESET);
+   if( opt_verbose ) debugf("test03\n"); // test03 {BOM,0,CHAR,combo,...}-----
+   convert.reset(test03, 13);
+   convert.set_mode();
    encoder= convert;
    decoder= encoder;
 
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0,  0,  2);
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  1,  1,  3);
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  5,  5, 12);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0,  0,  1);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  1,  1,  2);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  5,  5, 11);
    error_count += VERIFY_set_column(__LINE__, 12, decoder, 19,  7, 14);
 
    // Can't set offset at BOM mark, so offset set to 1
@@ -958,15 +1109,6 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_offset(__LINE__,  0, decoder,  1,  1);
    error_count += VERIFY_set_offset(__LINE__,  0, decoder,  5,  5);
    error_count += VERIFY_set_offset(__LINE__,  5, decoder, 19, 14);
-
-   if( error_count || opt_verbose > 1 ) {
-     convert.debug(__LINE__, "convert");
-     encoder.debug(__LINE__, "encoder");
-     decoder.debug(__LINE__, "decoder");
-     debugf("\nbuffer:\n"); pub::utility::dump(buffer, 64);
-     if( error_count )
-       return error_count;
-   }
 
    return error_count;
 }
@@ -993,6 +1135,7 @@ static inline int                   // Number of errors found
    utf32_encoder       encoder;     // Encoder
 
    // Test encoder/decoder match
+   memset(buffer, 0xEE, 128);
    for(uint32_t code= 1; code < 0x11'0000; ++code) {
      if( code == BYTE_ORDER_MARK || code == MARK_ORDER_BYTE )
        continue;
@@ -1024,7 +1167,7 @@ static inline int                   // Number of errors found
          debugf("BE: 0x%.6X: 0x%.8X,0x%.8X\n", code
                , ntohl(buffer[0]), ntohl(buffer[1]));
 
-       // Try little endian mode
+       // Use little endian mode
        encoder.reset(buffer, 32);
        encoder.set_mode(MODE_LE);
        one= encoder.encode(code);
@@ -1084,7 +1227,7 @@ static inline int                   // Number of errors found
          debugf("BE: 0x%.6X: 0x%.8X,0x%.8X\n", code
                , ntohl(buffer[0]), ntohl(buffer[1]));
 
-       // Try little endian mode
+       // Use little endian mode
        encoder.reset(buffer, 32);
        encoder.set_mode(MODE_LE);
        one= encoder.encode(code);
@@ -1129,8 +1272,9 @@ static inline int                   // Number of errors found
    error_count += VERIFY( sizeof(test03) == 52 );
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test_empty\n"); //  test_empty-----------------
+   if( opt_verbose ) debugf("test_empty\n"); //  test_empty-------------------
    decoder.reset(buffer, 0);        // test_utf32::test_empty
+   decoder.set_mode();
 
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, -1, 0);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, -1, 0);
@@ -1143,10 +1287,11 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_offset(__LINE__, 19, decoder, 19, 0);
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test00\n"); // test00 {0}----------------------
-   decoder.reset(test00, 1, MODE_BE);
+   if( opt_verbose ) debugf("test00\n"); // test00 {0}------------------------
+   decoder.reset(test00, 1);
+   decoder.set_mode();
 
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 1);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 0);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, 0, 1);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, 0, 1);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, 0, 1);
@@ -1156,10 +1301,11 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_offset(__LINE__,  4, decoder,  5, 1);
    error_count += VERIFY_set_offset(__LINE__, 18, decoder, 19, 1);
 
-   if( opt_verbose ) debugf("test01\n"); // test01 {BOM,0}------------------
-   decoder.reset(test01, 2, MODE_RESET);
+   if( opt_verbose ) debugf("test01\n"); // test01 {BOM,0}--------------------
+   decoder.reset(test01, 2);
+   decoder.set_mode();
 
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 2);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 1);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, 0, 2);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, 0, 2);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, 0, 2);
@@ -1171,12 +1317,13 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_offset(__LINE__, 17, decoder, 19, 2);
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test02\n"); // test02 {BOM,combo,...}----------
-   decoder.reset(test02, 7, MODE_RESET);
+   if( opt_verbose ) debugf("test02\n"); // test02 {BOM,combo,...}------------
+   decoder.reset(test02, 7);
+   decoder.set_mode();
 
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 2);
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  1, 1, 4);
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  2, 2, 7);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 1);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  1, 1, 3);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  2, 2, 6);
    error_count += VERIFY_set_column(__LINE__,  3, decoder,  5, 2, 7);
    error_count += VERIFY_set_column(__LINE__, 17, decoder, 19, 2, 7);
 
@@ -1188,12 +1335,13 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_offset(__LINE__, 12, decoder, 19, 7);
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test03\n"); // test03 {BOM,0,CHAR,combo,...}---
-   decoder.reset(test03, 13, MODE_RESET);
+   if( opt_verbose ) debugf("test03\n"); // test03 {BOM,0,CHAR,combo,...}-----
+   decoder.reset(test03, 13);
+   decoder.set_mode();
 
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0,  0,  2);
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  1,  1,  3);
-   error_count += VERIFY_set_column(__LINE__,  0, decoder,  5,  5, 11);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  0,  0,  1);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  1,  1,  2);
+   error_count += VERIFY_set_column(__LINE__,  0, decoder,  5,  5, 10);
    error_count += VERIFY_set_column(__LINE__, 12, decoder, 19,  7, 13);
 
    // Can't set offset at BOM mark, so offset set to 1
@@ -1232,17 +1380,17 @@ static inline int                   // Number of errors found
 
    utf32_t             buffer32[32]; // Encoding buffer
    utf32_decoder       decoder32;   // Decoder
-   utf32_encoder       encoder32(buffer32, 32);   // Encoder
+   utf32_encoder       encoder32(buffer32, 32); // Encoder
 
    utf32_decoder       decoder;     // (TEST) decoder
 
    // Test sequences
-   memset(buffer08, 0xFE, sizeof(buffer08));
-   memset(buffer16, 0xFE, sizeof(buffer16));
-   memset(buffer32, 0xFE, sizeof(buffer32));
+   memset(buffer08, 0xE1, sizeof(buffer08));
+   memset(buffer16, 0xE2, sizeof(buffer16));
+   memset(buffer32, 0xE4, sizeof(buffer32));
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test_empty\n"); // test_empty -----------------
+   if( opt_verbose ) debugf("test_empty\n"); // test_empty -------------------
    decoder.reset(test00, 0);
    for(int i= 0; i<3; ++i) {
      switch(i) {
@@ -1275,7 +1423,7 @@ static inline int                   // Number of errors found
    }
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test00\n"); // test00 {0}----------------------
+   if( opt_verbose ) debugf("test00\n"); // test00 {0}------------------------
    decoder.reset(test00, 1);
    for(int i= 0; i<3; ++i) {
      switch(i) {
@@ -1312,8 +1460,9 @@ static inline int                   // Number of errors found
    }
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test01\n"); // test01 {BOM,0}------------------
+   if( opt_verbose ) debugf("test01\n"); // test01 {BOM,0}--------------------
    decoder.reset(test01, 2, MODE_RESET);
+   decoder.set_mode();
    for(int i= 0; i<3; ++i) {
      Offset O= 1;
      switch(i) {
@@ -1348,27 +1497,12 @@ static inline int                   // Number of errors found
      error_count += VERIFY_decode(__LINE__, UTF_EOF,   decoder08, 0,   1);
      error_count += VERIFY_decode(__LINE__, UTF_EOF,   decoder16, 0, O+1);
      error_count += VERIFY_decode(__LINE__, UTF_EOF,   decoder32, 0, O+1);
-
-     if( error_count || (opt_verbose > 1 && i == 2) ) {
-       debugf("\ncase %d: O(%zd)\n", i, O);
-       decoder08.debug(__LINE__, "decoder08");
-       decoder16.debug(__LINE__, "decoder16");
-       decoder32.debug(__LINE__, "decoder32");
-       debugf("\n");
-       encoder08.debug(__LINE__, "encoder08");
-       encoder16.debug(__LINE__, "encoder16");
-       encoder32.debug(__LINE__, "encoder32");
-       debugf("\nbuffer08:\n"); pub::utility::dump(buffer08,  32);
-       debugf("\nbuffer16:\n"); pub::utility::dump(buffer16,  64);
-       debugf("\nbuffer32:\n"); pub::utility::dump(buffer32, 128);
-       if( error_count )
-         return error_count;
-     }
    }
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test02\n"); // test02 {BOM,combo,...}----------
+   if( opt_verbose ) debugf("test02\n"); // test02 {BOM,combo,...}------------
    decoder.reset(test02, 7, MODE_RESET);
+   decoder.set_mode();
    for(int i= 0; i<3; ++i) {
      Offset O= 1;
      switch(i) {
@@ -1396,29 +1530,41 @@ static inline int                   // Number of errors found
      decoder16= encoder16;
      decoder32= encoder32;
 
-     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    decoder08, 0,   2);
-     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    decoder16, 0, O+1);
-     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    decoder32, 0, O+1);
+     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,     decoder08, 0,   2);
+     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,     decoder16, 0, O+1);
+     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,     decoder32, 0, O+1);
 
-     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   decoder08, 0,   4);
-     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   decoder16, 0, O+2);
-     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   decoder32, 0, O+2);
+     error_count += VERIFY_current(__LINE__, COMBO_RIGHT,   decoder08, 0,   2);
+     error_count += VERIFY_current(__LINE__, COMBO_RIGHT,   decoder16, 0, O+1);
+     error_count += VERIFY_current(__LINE__, COMBO_RIGHT,   decoder32, 0, O+1);
 
-     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, decoder08, 1,   7);
-     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, decoder16, 1, O+3);
-     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, decoder32, 1, O+3);
+     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,    decoder08, 1,   4);
+     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,    decoder16, 1, O+2);
+     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,    decoder32, 1, O+2);
 
-     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    decoder08, 1,   9);
-     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    decoder16, 1, O+4);
-     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    decoder32, 1, O+4);
+     error_count += VERIFY_current(__LINE__, DOTTED_CIRCLE, decoder08, 1,   4);
+     error_count += VERIFY_current(__LINE__, DOTTED_CIRCLE, decoder16, 1, O+2);
+     error_count += VERIFY_current(__LINE__, DOTTED_CIRCLE, decoder32, 1, O+2);
 
-     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   decoder08, 1,  11);
-     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   decoder16, 1, O+5);
-     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   decoder32, 1, O+5);
+     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE,  decoder08, 1,   7);
+     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE,  decoder16, 1, O+3);
+     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE,  decoder32, 1, O+3);
 
-     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, decoder08, 2,  14);
-     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, decoder16, 2, O+6);
-     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, decoder32, 2, O+6);
+     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,     decoder08, 1,   9);
+     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,     decoder16, 1, O+4);
+     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,     decoder32, 1, O+4);
+
+     error_count += VERIFY_current(__LINE__, COMBO_RIGHT,   decoder08, 1,   9);
+     error_count += VERIFY_current(__LINE__, COMBO_RIGHT,   decoder16, 1, O+4);
+     error_count += VERIFY_current(__LINE__, COMBO_RIGHT,   decoder32, 1, O+4);
+
+     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,    decoder08, 2,  11);
+     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,    decoder16, 2, O+5);
+     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,    decoder32, 2, O+5);
+
+     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE,  decoder08, 2,  14);
+     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE,  decoder16, 2, O+6);
+     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE,  decoder32, 2, O+6);
 
      error_count += VERIFY_decode(__LINE__, UTF_EOF, decoder08, 2,  14);
      error_count += VERIFY_decode(__LINE__, UTF_EOF, decoder16, 2, O+6);
@@ -1426,8 +1572,9 @@ static inline int                   // Number of errors found
    }
 
    //-------------------------------------------------------------------------
-   if( opt_verbose ) debugf("test03\n"); // test03 {BOM,0,CHAR,combo,...}---
+   if( opt_verbose ) debugf("test03\n"); // test03 {BOM,0,CHAR,combo,...}-----
    decoder.reset(test03, 13, MODE_RESET);
+   decoder.set_mode();
    for(int i= 0; i<3; ++i) {
      Offset O= 1;
      switch(i) {
@@ -1455,73 +1602,73 @@ static inline int                   // Number of errors found
      decoder16= encoder16;
      decoder32= encoder32;
 
-     error_count += VERIFY_decode(__LINE__, ASCII_NUL,     decoder08, 0,    1);
-     error_count += VERIFY_decode(__LINE__, ASCII_NUL,     decoder16, 0, O+ 1);
-     error_count += VERIFY_decode(__LINE__, ASCII_NUL,     decoder32, 0, O+ 1);
+     error_count += VERIFY_decode(__LINE__, ASCII_NUL,      decoder08, 1,    1);
+     error_count += VERIFY_decode(__LINE__, ASCII_NUL,      decoder16, 1, O+ 1);
+     error_count += VERIFY_decode(__LINE__, ASCII_NUL,      decoder32, 1, O+ 1);
 
-     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, decoder08, 1,    4);
-     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, decoder16, 1, O+ 2);
-     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, decoder32, 1, O+ 2);
+     error_count += VERIFY_current(__LINE__, DOTTED_CIRCLE, decoder08, 1,    1);
+     error_count += VERIFY_current(__LINE__, DOTTED_CIRCLE, decoder16, 1, O+ 1);
+     error_count += VERIFY_current(__LINE__, DOTTED_CIRCLE, decoder32, 1, O+ 1);
 
-     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    decoder08, 1,    6);
-     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    decoder16, 1, O+ 3);
-     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    decoder32, 1, O+ 3);
+     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE,  decoder08, 1,    4);
+     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE,  decoder16, 1, O+ 2);
+     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE,  decoder32, 1, O+ 2);
 
-     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   decoder08, 1,    8);
-     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   decoder16, 1, O+ 4);
-     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   decoder32, 1, O+ 4);
+     error_count += VERIFY_current(__LINE__, COMBO_LEFT,    decoder08, 1,    4);
+     error_count += VERIFY_current(__LINE__, COMBO_LEFT,    decoder16, 1, O+ 2);
+     error_count += VERIFY_current(__LINE__, COMBO_LEFT,    decoder32, 1, O+ 2);
 
-     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, decoder08, 2,   11);
-     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, decoder16, 2, O+ 5);
-     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE, decoder32, 2, O+ 5);
+     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,     decoder08, 1,    6);
+     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,     decoder16, 1, O+ 3);
+     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,     decoder32, 1, O+ 3);
 
-     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   decoder08, 2,   13);
-     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   decoder16, 2, O+ 6);
-     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,   decoder32, 2, O+ 6);
+     error_count += VERIFY_current(__LINE__, COMBO_RIGHT,   decoder08, 1,    6);
+     error_count += VERIFY_current(__LINE__, COMBO_RIGHT,   decoder16, 1, O+ 3);
+     error_count += VERIFY_current(__LINE__, COMBO_RIGHT,   decoder32, 1, O+ 3);
 
-     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    decoder08, 2,   15);
-     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    decoder16, 2, O+ 7);
-     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,    decoder32, 2, O+ 7);
+     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,    decoder08, 2,    8);
+     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,    decoder16, 2, O+ 4);
+     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,    decoder32, 2, O+ 4);
 
-     error_count += VERIFY_decode(__LINE__, 0x01'2345,     decoder08, 3,   19);
-     error_count += VERIFY_decode(__LINE__, 0x01'2345,     decoder16, 3, O+ 9);
-     error_count += VERIFY_decode(__LINE__, 0x01'2345,     decoder32, 3, O+ 8);
+     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE,  decoder08, 2,   11);
+     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE,  decoder16, 2, O+ 5);
+     error_count += VERIFY_decode(__LINE__, DOTTED_CIRCLE,  decoder32, 2, O+ 5);
 
-     error_count += VERIFY_decode(__LINE__, utf32_t('x'),  decoder08, 4,   20);
-     error_count += VERIFY_decode(__LINE__, utf32_t('x'),  decoder16, 4, O+10);
-     error_count += VERIFY_decode(__LINE__, utf32_t('x'),  decoder32, 4, O+ 9);
+     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,    decoder08, 2,   13);
+     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,    decoder16, 2, O+ 6);
+     error_count += VERIFY_decode(__LINE__, COMBO_RIGHT,    decoder32, 2, O+ 6);
 
-     error_count += VERIFY_decode(__LINE__, utf32_t('y'),  decoder08, 5,   21);
-     error_count += VERIFY_decode(__LINE__, utf32_t('y'),  decoder16, 5, O+11);
-     error_count += VERIFY_decode(__LINE__, utf32_t('y'),  decoder32, 5, O+10);
+     error_count += VERIFY_current(__LINE__, COMBO_LEFT,    decoder08, 2,   13);
+     error_count += VERIFY_current(__LINE__, COMBO_LEFT,    decoder16, 2, O+ 6);
+     error_count += VERIFY_current(__LINE__, COMBO_LEFT,    decoder32, 2, O+ 6);
 
-     error_count += VERIFY_decode(__LINE__, utf32_t('z'),  decoder08, 6,   22);
-     error_count += VERIFY_decode(__LINE__, utf32_t('z'),  decoder16, 6, O+12);
-     error_count += VERIFY_decode(__LINE__, utf32_t('z'),  decoder32, 6, O+11);
+     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,     decoder08, 3,   15);
+     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,     decoder16, 3, O+ 7);
+     error_count += VERIFY_decode(__LINE__, COMBO_LEFT,     decoder32, 3, O+ 7);
 
-     error_count += VERIFY_decode(__LINE__, ASCII_NUL,     decoder08, 7,   23);
-     error_count += VERIFY_decode(__LINE__, ASCII_NUL,     decoder16, 7, O+13);
-     error_count += VERIFY_decode(__LINE__, ASCII_NUL,     decoder32, 7, O+12);
+     error_count += VERIFY_decode(__LINE__, 0x01'2345,      decoder08, 4,   19);
+     error_count += VERIFY_decode(__LINE__, 0x01'2345,      decoder16, 4, O+ 9);
+     error_count += VERIFY_decode(__LINE__, 0x01'2345,      decoder32, 4, O+ 8);
 
-     error_count += VERIFY_decode(__LINE__, UTF_EOF,       decoder08, 7,   23);
-     error_count += VERIFY_decode(__LINE__, UTF_EOF,       decoder16, 7, O+13);
-     error_count += VERIFY_decode(__LINE__, UTF_EOF,       decoder32, 7, O+12);
+     error_count += VERIFY_decode(__LINE__, utf32_t('x'),   decoder08, 5,   20);
+     error_count += VERIFY_decode(__LINE__, utf32_t('x'),   decoder16, 5, O+10);
+     error_count += VERIFY_decode(__LINE__, utf32_t('x'),   decoder32, 5, O+ 9);
 
-     if( error_count || (opt_verbose > 1 && i == 2) ) {
-       debugf("\ncase %d: O(%zd)\n", i, O);
-       decoder08.debug(__LINE__, "decoder08");
-       decoder16.debug(__LINE__, "decoder16");
-       decoder32.debug(__LINE__, "decoder32");
-       debugf("\n");
-       encoder08.debug(__LINE__, "encoder08");
-       encoder16.debug(__LINE__, "encoder16");
-       encoder32.debug(__LINE__, "encoder32");
-       debugf("\nbuffer08:\n"); pub::utility::dump(buffer08,  32);
-       debugf("\nbuffer16:\n"); pub::utility::dump(buffer16,  64);
-       debugf("\nbuffer32:\n"); pub::utility::dump(buffer32, 128);
-       if( error_count )
-         return error_count;
-     }
+     error_count += VERIFY_decode(__LINE__, utf32_t('y'),   decoder08, 6,   21);
+     error_count += VERIFY_decode(__LINE__, utf32_t('y'),   decoder16, 6, O+11);
+     error_count += VERIFY_decode(__LINE__, utf32_t('y'),   decoder32, 6, O+10);
+
+     error_count += VERIFY_decode(__LINE__, utf32_t('z'),   decoder08, 7,   22);
+     error_count += VERIFY_decode(__LINE__, utf32_t('z'),   decoder16, 7, O+12);
+     error_count += VERIFY_decode(__LINE__, utf32_t('z'),   decoder32, 7, O+11);
+
+     error_count += VERIFY_decode(__LINE__, ASCII_NUL,      decoder08, 7,   23);
+     error_count += VERIFY_decode(__LINE__, ASCII_NUL,      decoder16, 7, O+13);
+     error_count += VERIFY_decode(__LINE__, ASCII_NUL,      decoder32, 7, O+12);
+
+     error_count += VERIFY_decode(__LINE__, UTF_EOF,        decoder08, 7,   23);
+     error_count += VERIFY_decode(__LINE__, UTF_EOF,        decoder16, 7, O+13);
+     error_count += VERIFY_decode(__LINE__, UTF_EOF,        decoder32, 7, O+12);
    }
 
    return error_count;

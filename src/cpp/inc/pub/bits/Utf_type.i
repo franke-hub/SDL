@@ -16,10 +16,10 @@
 //       Allow application import of UTF types
 //
 // Last change date-
-//       2024/06/21
+//       2024/07/25
 //
 // Implementation notes-
-//       To avoid namespace collisions, *ONLY* include this from .cpp files.
+//       To avoid namespace collisions, include this from .cpp files.
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_UTF_TYPE_I_INCLUDED
@@ -55,7 +55,7 @@ enum                             // pub::Utf Unicode characters
 ,  UNI_REPLACEMENT=                 pub::Utf::UNI_REPLACEMENT
 }; // pub::Utf Unicode characters
 
-// (This enum doesn't allow in set_mode)
+// (This enum doesn't compile)
 // enum MODE                       // pub::Utf::MODE
 // {  MODE_RESET=                     pub::Utf::MODE_RESET
 // ,  MODE_BE=                        pub::Utf::MODE_BE
@@ -68,9 +68,13 @@ enum                             // pub::Utf Unicode characters
 #define MODE_BE                       pub::Utf::MODE_BE
 #define MODE_LE                       pub::Utf::MODE_LE
 
-// Decode method: No characters remain (An invalid UTF codepoint)
+// Method decode: No characters remain (An invalid UTF codepoint)
 constexpr static const uint32_t
                        UTF_EOF= EOF; // Decode: No characters remain
+
+// Method get_column: Column indeterminate after set_offset() used.
+constexpr static const pub::Utf::Column
+                       OFFSET_COLUMN= -3; // Indicates set_offset() used
 
 //----------------------------------------------------------------------------
 // Exported Utf subroutines (renaming pub::Utf::strlen)
