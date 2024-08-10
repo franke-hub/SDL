@@ -16,7 +16,7 @@
 ##       View a GPG encrypted file.
 ##
 ## Last change date-
-##       2024/06/13
+##       2024/07/29
 ##
 ## Usage-
 ##       viewgpg [-as userid] filename
@@ -65,8 +65,8 @@ fi
 
 ##############################################################################
 ## Set up editor
-EDITOR=$HOME/bin/editerm
-[[ ! -x $EDITOR ]] && EDITOR=$HOME/bin/editor
+EDITOR=$HOME/bin/editor
+[[ ! -x $EDITOR ]] && EDITOR=$HOME/bin/editerm
 [[ ! -x $EDITOR ]] && EDITOR=/usr/bin/nano
 if [[ ! -x $EDITOR ]] ; then
   echo "No editor found"
