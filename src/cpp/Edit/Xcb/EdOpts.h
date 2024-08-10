@@ -16,11 +16,13 @@
 //       TERM/XCM Editor: Configuration options
 //
 // Last change date-
-//       2024/06/14
+//       2024/07/27
 //
 //----------------------------------------------------------------------------
 #ifndef EDOPTS_H_INCLUDED
 #define EDOPTS_H_INCLUDED
+
+#include <string>                   // For std::string
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -33,7 +35,7 @@ class EdUnit;
 //       EdOpts
 //
 // Purpose-
-//       Xcb vs Term controls.
+//       Xcb/Term control interface.
 //
 //----------------------------------------------------------------------------
 class EdOpts {                      // Editor text Window viewport
@@ -45,6 +47,13 @@ enum VERSION                        // Version information
 {  MAJOR= 3                         // Version 3.0.PATCH
 ,  MINOR= 0
 }; // VERSION
+
+//----------------------------------------------------------------------------
+// EdOpts::Attributes
+//----------------------------------------------------------------------------
+struct alignas(16)
+{  char                _[64];
+}                      local;       // Implementation-defined local area
 
 //----------------------------------------------------------------------------
 // EdOpts::Initialization/termination
@@ -59,22 +68,37 @@ static void
    at_exit( void );                 // Idempotent termination error handler
 
 //----------------------------------------------------------------------------
+// EdOpts::Suspend/resume (Used by EdBifs.cpp)
+//----------------------------------------------------------------------------
+static void
+   resume();                        // Resume NCURSES
+
+static void
+   suspend();                       // Suspend NCURSES
+
+//----------------------------------------------------------------------------
 // EdOpts::Control attributes
 //----------------------------------------------------------------------------
 // TRUE iff opt_bg is implemented
-static bool            is_bg_enabled(); // Is opt_bg implemented?
+static bool
+   is_bg_enabled();                 // Is opt_bg implemented?
 
 // TRUE iff UTF combining characters are supported
-static bool            has_unicode_combining(); // Is UTF combining supported?
+static bool
+   has_unicode_combining();         // Is UTF combining supported?
 
 // TRUE iff Unicode character display is supported
-static bool            has_unicode_support(); // Is Unicode display supported?
+static bool
+   has_unicode_support();           // Is Unicode display supported?
 
 //----------------------------------------------------------------------------
 // EdOpts::Static attributes
 //----------------------------------------------------------------------------
-static const char*     DEFAULT_CONFIG; // The default configuration file
-static const char*     EDITOR;      // The editor's name
-static const char*     PATCH;       // Version patch level
+static std::string
+   DEFAULT_CONFIG();                // The default configuration file
+static std::string
+   EDITOR();                        // The editor's name
+static std::string
+   PATCH();                         // Version patch level
 }; // class EdOpts
 #endif // EDOPTS_H_INCLUDED

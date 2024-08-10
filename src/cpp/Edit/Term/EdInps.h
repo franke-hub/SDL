@@ -16,7 +16,7 @@
 //       Editor: Terminal input services.
 //
 // Last change date-
-//       2024/05/16
+//       2024/07/27
 //
 // Implementation notes-
 //       See EdOuts.h for terminal output services.
@@ -32,6 +32,7 @@
 #include <pub/List.h>               // For pub::List
 
 #include "Active.h"                 // For Active
+#include "EdOpts.h"                 // For EdOpts (local data area)
 #include "EdType.h"                 // For Editor types
 #include "EdUnit.h"                 // For EdUnit, base class
 #include "EdType.h"                 // For Editor types
@@ -93,6 +94,9 @@ const GC_t             gc_sts=  6;  // GC: TOP: File unchanged
 // Operational controls
 int                    operational= false; // TRUE while operational
 int                    poll_char= 0; // Method poll(), read-ahead character
+
+// Option controls
+EdOpts                 opts;        // Local data area, used by EdOpts.i
 
 //----------------------------------------------------------------------------
 // EdInps::Constructor/destructor

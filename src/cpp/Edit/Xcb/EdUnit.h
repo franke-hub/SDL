@@ -89,6 +89,12 @@ static void
 
 static void
    at_exit( void );                 // Idempotent termination handler
+
+static void
+   resume( void );                  // Resume NCURSES operation
+
+static void
+   suspend( void );                 // Suspend NCURSES operation
 }; // struct Init
 
 //----------------------------------------------------------------------------

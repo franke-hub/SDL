@@ -22,6 +22,7 @@
 #ifndef EDITOR_H_INCLUDED
 #define EDITOR_H_INCLUDED
 
+#include <pub/bits/usrconfig.h>     // For ATTRIB_PRINTF macro
 #include <pub/List.h>               // For pub::List
 
 //----------------------------------------------------------------------------

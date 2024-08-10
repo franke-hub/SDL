@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2024/06/14
+//       2024/07/27
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -100,7 +100,7 @@ static int                          // Return code (Always 1)
 
                    "  --fg\t\tRun editor in foreground\n"
                    , __FILE__
-                   , EdOpts::MAJOR, EdOpts::MINOR, EdOpts::PATCH
+                   , EdOpts::MAJOR, EdOpts::MINOR, EdOpts::PATCH().c_str()
           );
 
    return 1;

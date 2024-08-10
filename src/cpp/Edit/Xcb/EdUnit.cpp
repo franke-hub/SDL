@@ -16,7 +16,7 @@
 //       Editor: Input/output interface; Handle editor operations.
 //
 // Last change date-
-//       2024/05/15
+//       2024/07/27
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -245,7 +245,7 @@ void
    EdUnit::op_key_end( void )       // Handle end key
 {  using namespace editor;
 
-   move_cursor_H(view->active.get_cols());
+   move_cursor_H(view->active.get_points() + 1);
 }
 
 void

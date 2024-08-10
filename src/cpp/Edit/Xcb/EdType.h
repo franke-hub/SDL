@@ -16,7 +16,7 @@
 //       Editor: Editor common types
 //
 // Last change date-
-//       2024/05/09
+//       2024/07/27
 //
 //----------------------------------------------------------------------------
 #ifndef EDTYPE_H_INCLUDED
@@ -33,11 +33,36 @@
 //----------------------------------------------------------------------------
 typedef uint32_t                    GC_t;    // Graphic Context type
 
-typedef std::string                 string;  // Import std::string
+typedef std::string                 string;
 
-typedef pub::Utf::utf8_t            utf8_t;  // Import pub::Utf::utf8_t
-typedef pub::Utf::utf16_t           utf16_t; // Import pub::Utf::utf16_t
-typedef pub::Utf::utf32_t           utf32_t; // Import pub::Utf::utf32_t
+typedef pub::Utf::Column            Column;
+typedef pub::Utf::Length            Length;
+typedef pub::Utf::Offset            Offset;
+typedef pub::Utf::Points            Points;
+
+typedef pub::Utf::utf8_t            utf8_t;
+typedef pub::Utf::utf16_t           utf16_t;
+typedef pub::Utf::utf16_t           utf16BE_t;
+typedef pub::Utf::utf32_t           utf32_t;
+
+#if 1
+typedef pub::Utf::MODE              MODE;
+constexpr static const MODE
+                       MODE_BE= pub::Utf::MODE_BE;
+#else
+enum MODE                           // Import MODE
+{  MODE_RESET= pub::Utf::MODE_RESET
+,  MODE_BE= pub::Utf::MODE_BE
+,  MODE_LE= pub::Utf::MODE_LE
+};
+#endif
+
+constexpr static const uint32_t
+                       UTF_EOF= pub::Utf::UTF_EOF;
+
+typedef pub::utf8_decoder           utf8_decoder;
+typedef pub::utf8_encoder           utf8_encoder;
+typedef pub::utf16_encoder          utf16_encoder;
 
 //----------------------------------------------------------------------------
 //

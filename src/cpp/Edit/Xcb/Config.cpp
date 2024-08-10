@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2024/05/13
+//       2024/07/27
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -185,6 +185,7 @@ static int                          // Return code (0 OK)
      debug->set_mode(pub::Debug::MODE_INTENSIVE);
      traceh("Editor PID(%4d) VID: %s %s\n", getpid(), __DATE__, __TIME__);
    }
+debug->set_mode(pub::Debug::MODE_INTENSIVE); // TODO: REMOVE
 
    //-------------------------------------------------------------------------
    // Create memory-mapped trace file
@@ -319,7 +320,7 @@ static void make_dir(std::string path) // Insure directory exists
    }
 }
 
-static void make_file(std::string name, const char* data) // Insure file exists
+static void make_file(std::string name, std::string data) // Insure file exists
 {
    struct stat info;
    int rc= stat(name.c_str(), &info);
@@ -328,8 +329,8 @@ static void make_file(std::string name, const char* data) // Insure file exists
      if( f == nullptr )             // If open failure
        Config::failure("Cannot create %s",  name.c_str());
 
-     size_t L0= strlen(data);
-     size_t L1= fwrite(data, 1, L0, f);
+     size_t L0= data.size();
+     size_t L1= fwrite(data.c_str(), 1, L0, f);
      rc= fclose(f);
      if( L0 != L1 || rc )
        Config::failure("Write failure: %s", name.c_str());
@@ -367,12 +368,14 @@ static void
 
    switch(id) {                     // Handle the signal
      case SIGINT:                   // (Console CTRL-C)
+       Trace::trace(".BUG", __LINE__, text);
+       debug_set_mode(Debug::MODE_INTENSIVE);
        term();                      // Termination cleanup, then
        exit(EXIT_FAILURE);          // Unconditional immediate exit
        break;
 
      case SIGSEGV:                  // (Program fault)
-       Trace::trace(".BUG", __LINE__, "SIGSEGV");
+       Trace::trace(".BUG", __LINE__, text);
        debug_set_mode(Debug::MODE_INTENSIVE);
        EdOpts::at_exit();           // Abnormal termination
        debug_backtrace();           // Attempt diagnosis (recursion aborts)
@@ -382,6 +385,7 @@ static void
        break;
 
      default:                       // (SIGUSR1 || SIGUSR2)
+       Trace::trace(".SIG", __LINE__, text);
        break;                       // (No configured action)
    }
 
@@ -656,8 +660,8 @@ static void
    using namespace config;
 
    // Get EdOpts static variables
-   const char* EDITOR= EdOpts::EDITOR;
-   const char* DEFAULT_CONFIG= EdOpts::DEFAULT_CONFIG;
+   std::string EDITOR= EdOpts::EDITOR();
+   std::string DEFAULT_CONFIG= EdOpts::DEFAULT_CONFIG();
 
    // Initialize HOME, AUTO, and debug_path
    const char* env= getenv("HOME"); // Get HOME directory
@@ -760,12 +764,16 @@ void
    if( info == nullptr )
      info= "";
 
-   traceh("Config::debug(%s) %d\n", info, recursion);
-   if( recursion ) return;
+   debug_flush();
+   traceh("\n============================================================\n");
+   traceh("Config::debug(%s) recursion(%s)\n", info
+         , recursion ? "true" : "false");
+   if( recursion ) {
+     debug_flush();
+     return;
+   }
 
    ++recursion;
-   traceh("\n============================================================\n");
-   traceh("Config::debug(%s)\n", info ? info : "");
 
    Editor::debug(info);
    traceh("\n");
@@ -779,6 +787,8 @@ void
    traceh("\n");
    editor::hist->debug(info);
    traceh("============================================================\n\n");
+   debug_flush();
+
    --recursion;
 }
 

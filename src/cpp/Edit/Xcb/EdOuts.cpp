@@ -16,7 +16,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2024/06/14
+//       2024/07/27
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -33,6 +33,7 @@
 #include <pub/List.h>               // For pub::List
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/Utf.h>                // For pub::Utf classes
+#include <pub/utility.h>            // For pub::utility methods
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For Config, namespace config
@@ -45,12 +46,12 @@
 #include "EdOuts.h"                 // For EdOuts, implemented
 #include "EdType.h"                 // For Editor types
 
+#define PUB _LIBPUB_NAMESPACE       // The PUB library namespacce
 using namespace config;             // For config::opt_*, ...
-using namespace pub::debugging;     // For debugging methods
-using pub::Trace;                   // For pub::Trace
-using pub::Utf;                     // For pub::Utf types
-using pub::utf8_decoder;            // For pub::utf8_decoder
-using pub::utf16_encoder;           // For pub::utf16_encoder
+using namespace PUB;                // For PUB library objects
+using namespace PUB::debugging;     // For debugging methods
+using PUB::Trace;                   // For pub::Trace
+using PUB::utility::dump;           // For pub::utility::dump
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -657,6 +658,9 @@ void
 //       Hide the screen cursor character
 //       Show the screen cursor character
 //
+// Implementation notes-
+//       The XCB editor does not recognize combining characters.
+//
 //----------------------------------------------------------------------------
 void
    EdOuts::hide_cursor( void )      // Hide the character cursor
@@ -664,26 +668,28 @@ void
      debugh("EdOuts(%p)::hide_cursor cr[%u,%u]\n", this
            , editor::view->col, editor::view->row);
 
+#if 0
    EdView* const view= editor::view;
+   Active& active= view->active;
+   active.get_points();
+   utf8_decoder decoder(active.get_buffer(), active.get_used());
 
-   char buffer[8];                  // The cursor encoding buffer
-   size_t column= view->get_column(); // The current column
-   const utf8_t* data= (const utf8_t*)view->active.get_buffer(column);
-   utf32_t code= pub::Utf8::decode(data);
-   if( code == 0 )
+   decoder.set_offset(view->get_column());
+   utf32_t code= decoder.decode();
+   if( code == 0 || code == UTF_EOF )
      code= ' ';
-   pub::Utf8::encode(code, (utf8_t*)buffer);
-   buffer[pub::Utf8::length(code)]= '\0';
 
-   putcr(view->get_gc(), view->col, view->row, buffer);
-}
+   char buffer[8];
+   utf8_encoder encoder(buffer, sizeof(buffer)); ;
+encoder.debug("hide constructed");
+   encoder.encode(code);
 
-void
-   EdOuts::show_cursor( void )      // Show the character cursor
-{  if( opt_hcdm && opt_verbose > 0 )
-     debugh("EdOuts(%p)::show_cursor cr[%u,%u]\n", this
-           , editor::view->col, editor::view->row);
-
+   putcr(view->get_gc(), view->col, view->row
+        , buffer, encoder.get_offset());
+debugf("hide: %d %zd\n", code, encoder.get_offset());
+dump(buffer, encoder.get_offset());
+encoder.debug("hide");
+#else
    EdView* const view= editor::view;
 
    char buffer[8];                  // The cursor encoding buffer
@@ -695,7 +701,58 @@ void
    int L= pub::Utf8::encode(code, (utf8_t*)buffer);
    buffer[L]= '\0';
 
-   putcr(gc_flip, view->col, view->row, buffer);
+   putcr(view->get_gc(), view->col, view->row, buffer);
+//debugf("hide: 0x%.3x %p.%d\n", code, buffer, L);
+//dump(buffer, L+1);
+#endif
+}
+
+void
+   EdOuts::show_cursor( void )      // Show the character cursor
+{  if( opt_hcdm && opt_verbose > 0 )
+     debugh("EdOuts(%p)::show_cursor cr[%u,%u]\n", this
+           , editor::view->col, editor::view->row);
+
+#if 0
+debugf("%4d Outs HCDM\n", __LINE__);
+   EdView* const view= editor::view;
+   Active& active= view->active;
+   active.get_points();
+   utf8_decoder decoder(active.get_buffer(), active.get_used());
+decoder.debug("show constructed");
+
+   decoder.set_offset(view->get_column());
+decoder.debug("show offset");
+   utf32_t code= decoder.decode();
+   if( code == 0 || code == UTF_EOF )
+     code= ' ';
+
+   char buffer[8];
+   utf8_encoder encoder(buffer, sizeof(buffer)); ;
+encoder.debug("show constructed");
+   encoder.encode(code);
+
+   putcr(gc_flip, view->col, view->row
+        , buffer, encoder.get_offset());
+debugf("show: %d %zd\n", code, encoder.get_offset());
+dump(buffer, encoder.get_offset());
+encoder.debug("show");
+#else
+   EdView* const view= editor::view;
+
+   char buffer[8];                  // The cursor encoding buffer
+   size_t column= view->get_column(); // The current column
+   const utf8_t* data= (const utf8_t*)view->active.get_buffer(column);
+   utf32_t code= pub::Utf8::decode(data);
+   if( code == 0 )
+     code= ' ';
+   int L= pub::Utf8::encode(code, (utf8_t*)buffer);
+   buffer[L]= '\0';
+
+   putcr(gc_flip, view->col, view->row, buffer, L);
+//debugf("show: 0x%.3x %p.%d\n", code, buffer, L);
+//dump(buffer, L+1);
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -878,10 +935,11 @@ void
      xcb_gcontext_t    gc,          // The target graphic context
      unsigned          left,        // Left (X) pixel offset
      unsigned          top,         // Top  (Y) pixel offset
-     const char*       text)        // Using this text
+     const char*       text,        // Using this text
+     size_t            length)      // For this length
 {  if( opt_hcdm && opt_verbose > 0 ) {
      char buffer[24];
-     if( strlen(text) < 17 )
+     if( length < 17 )
        strcpy(buffer, text);
      else {
        memcpy(buffer, text, 16);
@@ -895,13 +953,16 @@ void
    enum{ DIM= 256 };                // xcb_image_text_16 maximum UNIT length
    xcb_char2b_t out[DIM];           // UTF16 big endian output buffer
 
-   utf8_decoder  decoder((const utf8_t*)text);
-   utf16_encoder encoder((pub::Utf::utf16BE_t*)out, DIM);
+   utf8_decoder  decoder((const utf8_t*)text, length);
+   utf16_encoder encoder((utf16BE_t*)out, DIM, MODE_BE);
 
    unsigned outlen= 0;              // UTF16 output length, in units
    unsigned outorg= left;           // Current output origin pixel index
    unsigned outpix= left;           // Current output pixel index
    for(utf32_t code= decoder.decode(); code; code= decoder.decode()) {
+     if( code == UTF_EOF )          // If end of file
+       break;
+
 #if 0 // EXPERIMENT: FAILED (This just overwrites the original character.)
      // *** EXPERIMENTAL *** VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
      if( Utf::is_combining(code) ) {
@@ -930,7 +991,7 @@ void
               , uint16_t(outorg), uint16_t(top + font->offset.y), out) );
        outorg= outpix;
        outlen= 0;
-       encoder.reset((pub::Utf::utf16BE_t*)out, DIM);
+       encoder.reset();
      }
 
      outpix += font->length.width;  // Ending pixel (+1)

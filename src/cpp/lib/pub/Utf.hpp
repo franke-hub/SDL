@@ -16,7 +16,7 @@
 //       Implement Utf.h objects: utfN_decoder, utfN_encoder .
 //
 // Last change date-
-//       2024/07/25
+//       2024/07/27
 //
 // Implementation notes-
 //       Included from and part of Utf.cpp
@@ -52,6 +52,27 @@ namespace _LIBPUB_NAMESPACE {
    utf8_decoder::utf8_decoder(      // Constructor
      const utf8_t*     addr) noexcept // Decode buffer address
 :  buffer(addr), length(::strlen((char*)addr) + 1)
+{  }
+
+   utf8_decoder::utf8_decoder(      // Constructor
+     const char*       addr,        // Decode buffer address
+     Length            size) noexcept // Decode buffer length
+#if 0   // This method works
+:  utf8_decoder((utf8_t*)addr, size) // Invoke the utf8_t*/Length constructor
+{  }                                // But don't do anything else
+#elif 1 // This method also works
+:  buffer((utf8_t*)addr), length(size) // Set buffer/length directly
+{  }                                // But don't do anything else
+#else //// WRONG
+///// This creates a utf8_decoder in stack storage but
+///// that just gets discarded when the constructor exits.
+///// THIS utf8_decoder is left empty, as if utf8_decoder(void) was used.
+{  utf8_decoder((utf8_t*)addr), length(size); }
+#endif
+
+   utf8_decoder::utf8_decoder(      // Constructor
+     const char*       addr) noexcept // Decode buffer address
+:  buffer((utf8_t*)addr), length(::strlen(addr) + 1)
 {  }
 
 //----------------------------------------------------------------------------
@@ -101,9 +122,11 @@ void
    utf8_decoder::debug(             // Debugging display
      const char*       info) const noexcept // Informational message
 {
-   debugf("utf8_decoder(%p) debug(%s)\n"
+   traceh("utf8_decoder(%p) debug(%s)\n" // (TODO: RESTORE DEBUGF, not traceh)
           "..buffer(%p) column(%zd) offset(%zd) length(%zd)\n", this, info
          , buffer, column, offset, length);
+
+dump(Debug::get()->get_FILE(), buffer, length); // TODO: REMOVE
 }
 
 //----------------------------------------------------------------------------
@@ -1255,7 +1278,7 @@ void
      utf8_t*           addr,        // Address
      Length            size) noexcept // Length
 :  buffer(addr), length(size)
-{  }
+{  debugf("utf8_encoder(%p).!(%p, %zd)\n", this, addr, size); }
 
 //----------------------------------------------------------------------------
 //

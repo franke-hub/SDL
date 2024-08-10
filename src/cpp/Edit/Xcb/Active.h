@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Active Line descriptor.
 //
 // Last change date-
-//       2021/06/26
+//       2024/07/27
 //
 // Implementation note-
 //       Changed Lines also automatically remove any trailing blanks.
@@ -29,6 +29,8 @@
 #define ACTIVE_H_INCLUDED
 
 #include <sys/types.h>              // For size_t
+
+#include <pub/Utf.h>                // For pub::utf8_decoder/utf8_encoder
 
 //----------------------------------------------------------------------------
 //
@@ -44,10 +46,10 @@ class Active {                      // Active editor line
 // Active::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:                             // UTF-8 size_t aliases
-typedef size_t         Ccount;      // A column count
 typedef size_t         Column;      // A column number
 typedef size_t         Length;      // A length in bytes
 typedef size_t         Offset;      // A column number byte offset
+typedef size_t         Points;      // A column count
 
 enum FSM                            // Finite State Machine states
 {  FSM_RESET= 0                     // Unchanged, Reset
@@ -65,6 +67,10 @@ Length                 buffer_size; // The buffer size, always > buffer_used
 Length                 buffer_used; // The number of bytes used
 
 FSM                    fsm= FSM_RESET; // Finite State Machine (state)
+
+// Temporaries
+pub::utf8_decoder      decoder;     // Decoder: initialize using decoder.reset
+pub::utf8_encoder      encoder;     // Decoder: initialize using encoder.reset
 
 //----------------------------------------------------------------------------
 // Active::Constructors
@@ -110,14 +116,33 @@ const char*                         // The changed text, nullptr if unchanged
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Active::get_cols
+//       Active::get_column
+//       Active::get_offset
 //
 // Purpose-
-//       Return the buffer UTF-8 Column count (trailing blanks removed)
+//       (Unconditionally) access the buffer, leaving trailing blanks
+//       (Unconditionally) access the buffer, leaving trailing blanks
 //
 //----------------------------------------------------------------------------
-Ccount                              // The current UTF-8 Column count
-   get_cols( void );                // Get current UTF-8 Column count
+const char*                         // The current buffer
+   get_column(                      // Get ('\0' delimited) buffer
+     Column            column= 0);  // Starting at this column
+
+const char*                         // The current buffer
+   get_offset(                      // Get ('\0' delimited) buffer
+     Offset            offset= 0);  // Starting at this offset
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Active::get_points
+//
+// Purpose-
+//       Return the UTF-8 Column/Offset count, trailing blanks removed
+//
+//----------------------------------------------------------------------------
+Points                              // The current UTF-8 Column/Offset count
+   get_points( void );              // Get current UTF-8 Column/Offset count
 
 //----------------------------------------------------------------------------
 //
@@ -245,14 +270,14 @@ void
 void
    replace_text(                    // Replace (or insert) text
      Column            column,      // The replacement Column
-     Ccount            ccount,      // The Column count of deleted columns
+     Points            points,      // The number of deleted columns
      const char*       text,        // The replacement (insert) text
      Length            size);       // The replacement (insert) text Length
 
 void
    replace_text(                    // Replace (or insert) text
      Column            column,      // The replacement Column
-     Ccount            ccount,      // The Column count of deleted columns
+     Points            points,      // The number of of deleted columns
      const char*       text);       // The replacement (insert) text
 
 //----------------------------------------------------------------------------
@@ -267,6 +292,23 @@ void
 void
    reset(                           // Set source text
      const char*       text= nullptr); // To this (immutable) text
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Active::reset
+//
+// Purpose-
+//       Reset the Active text string (setting fsm= FSM_CHANGED)
+//
+// Implementation notes-
+//       Used to access buffer. There is no associated source.
+//
+//----------------------------------------------------------------------------
+void
+   reset(                           // Set source text
+     const char*       text,        // From this (const) text
+     size_t            size);       // Of this length
 
 //----------------------------------------------------------------------------
 //

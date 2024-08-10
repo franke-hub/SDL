@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2024/05/05
+//       2024/07/27
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -313,7 +313,7 @@ const char*                         // Error message, nullptr expected
    if( copy_col >= 0 ) {            // If block cut
      redo->lh_col= copy_rh;         // (Invert for cut)
      redo->rh_col= copy_lh;
-     Active::Ccount count= copy_rh - copy_lh + 1;
+     Active::Points count= copy_rh - copy_lh + 1;
      Active& A= *editor::active;    // (Working Active line)
      Copy copy= create_copy(mark_head, mark_tail);
      EdLine* repC= nullptr;         // Replacement cursor line

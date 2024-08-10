@@ -16,7 +16,7 @@
 //       Editor: Terminal output services.
 //
 // Last change date-
-//       2024/05/15
+//       2024/07/27
 //
 // Implementation notes-
 //       Attributes are defined in EdInps.h and EdUnit.h
@@ -179,12 +179,22 @@ virtual void
 //       Draw text at [col,row] position
 //
 //----------------------------------------------------------------------------
+#if 0 // TODO: REMOVE
 virtual void
    putch(                           // Draw character
      GC_t              gc,          // The graphic context
      unsigned          col,         // The column
      unsigned          row,         // The row
      int               text);       // The character
+#endif
+
+virtual void
+   putcr(                           // Draw text
+     GC_t              gc,          // The graphic context
+     unsigned          col,         // The column
+     unsigned          row,         // The row
+     const char*       text,        // The text
+     size_t            size);       // The text length (in bytes)
 
 virtual void
    putcr(                           // Draw text

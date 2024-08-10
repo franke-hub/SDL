@@ -16,7 +16,7 @@
 //       UTF utilities
 //
 // Last change date-
-//       2024/07/25
+//       2024/07/27
 //
 // Usage notes-
 //       To expose Utf types, include "pub/bits/Utf_type.i"
@@ -747,12 +747,14 @@ public:
    utf8_decoder(const utf8_decoder&) noexcept; // Copy constructor
    utf8_decoder(const utf8_encoder&) noexcept; // Copy constructor
 
-   utf8_decoder(const utf8_t*, Length) noexcept; // Constructor (size known)
-   utf8_decoder(const utf8_t*) noexcept;     // U-string constructor
-   utf8_decoder(const char* addr) noexcept // C-string constructor
-{  utf8_decoder((const utf8_t*) addr); } // (Use U-string constructor)
+   utf8_decoder(const utf8_t*, Length) noexcept; // Address/Length constructor
+   utf8_decoder(const utf8_t*) noexcept; // U-string constructor
 
    ~utf8_decoder( void ) = default; // Destructor does nothing
+
+// Alias constructors: cast (const char* => const utf8_t*)
+   utf8_decoder(const char*, Length) noexcept; // Address/Length constructor
+   utf8_decoder(const char*) noexcept; // C-string constructor
 
 //----------------------------------------------------------------------------
 // utf8_decoder::Assignment operators
@@ -813,6 +815,10 @@ utf32_t                             // The current codepoint
 
 void
    reset(const utf8_t*, Length) noexcept; // Reset and re-initialize the decoder
+
+void
+   reset(const char* addr, Length size) noexcept // (Reset alias)
+{  reset((const utf8_t*)addr, size); }
 
 void
    reset( void ) noexcept;          // Reset the decoder to it's initial state
@@ -1070,9 +1076,13 @@ public:
    utf8_encoder( void ) = default;  // Default constructor
    utf8_encoder(const utf8_encoder&) = delete; // NO copy constructor
 
-   utf8_encoder(utf8_t*, Length) noexcept; // Address/length constructor
+   utf8_encoder(utf8_t*, Length) noexcept; // Address/Length constructor
 
    ~utf8_encoder( void ) = default; // Destructor does nothing
+
+// Alias constructor: static cast addr: char* => utf8_t*
+   utf8_encoder(char* addr, Length size) noexcept // (Alias constructor)
+{  utf8_encoder((utf8_t*)addr, size); }
 
 //----------------------------------------------------------------------------
 // utf8_encoder::Assignment operators
@@ -1118,6 +1128,10 @@ unsigned                            // Encoding unit Length
 
 void
    reset(utf8_t*, Length) noexcept; // Reset the encoder
+
+void
+   reset(char* addr, Length size) noexcept // (Reset alias)
+{  reset((utf8_t*)addr, size); }
 
 void
    reset( void ) noexcept;          // Reset the encoder to it's initial state

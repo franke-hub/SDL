@@ -16,9 +16,11 @@
 //       Editor: Implement EdInps.h: Terminal keyboard and mouse handlers.
 //
 // Last change date-
-//       2024/06/14
+//       2024/07/27
 //
 //----------------------------------------------------------------------------
+#define _XOPEN_SOURCE_EXTENDED 1
+
 #include <string>                   // For std::string
 #include <stdio.h>                  // For sprintf
 #include <sys/types.h>              // For system types
@@ -619,6 +621,16 @@ static inline void
      int               key,         // Input key
      uint32_t          state)       // Input key state
 {  if( IO_TRACE && opt_hcdm && opt_verbose > 1 ) trace_keystroke(key, state); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdInps::EdInps
+//
+// Purpose-
+//       Constructor
+//
+//----------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------
 //

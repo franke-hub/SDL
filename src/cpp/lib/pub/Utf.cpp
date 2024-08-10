@@ -16,7 +16,7 @@
 //       Implement Utf.h methods.
 //
 // Last change date-
-//       2024/06/21
+//       2024/07/27
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
@@ -31,10 +31,13 @@
 
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include "pub/Utf.h"                // Implementation class
-#include <pub/utility.h>            // For pub::to_string
+#include <pub/utility.h>            // For pub::to_string, ...
 
-using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
-using _LIBPUB_NAMESPACE::utility::to_string;
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB;                // For PUB library
+using namespace PUB::debugging;     // For debugging methods
+using PUB::utility::dump;           // For dump utility method
+using PUB::utility::to_string;      // For to_string utility method
 
 namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------

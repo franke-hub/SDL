@@ -16,7 +16,7 @@
 //       Editor: Terminal output services.
 //
 // Last change date-
-//       2024/05/07
+//       2024/07/27
 //
 // Implementation notes-
 //       Attributes are defined in EdInps.h and EdUnit.h
@@ -206,14 +206,23 @@ virtual void
      GC_t              gc,          // Using this graphic context
      uint32_t          left,        // At this left (X) offset in Pixels
      uint32_t          top,         // At this top  (Y) offset in Pixels
-     const char*       text);       // Using this text
+     const char*       text,        // Using this text
+     size_t            length);     // For this length
+
+virtual void
+   putxy(                           // Draw text
+     GC_t              gc,          // Using this graphic context
+     uint32_t          left,        // At this left (X) offset in Pixels
+     uint32_t          top,         // At this top  (Y) offset in Pixels
+     const char*       text)        // Using this text
+{  putxy(gc, left, top, text, strlen(text)); }
 
 virtual void
    putxy(                           // Draw text (with default graphic context)
      uint32_t          left,        // Left (X) offset in Pixels
      uint32_t          top,         // Top  (Y) offset in Pixels
      const char*       text)        // Using this text
-{  putxy(gc_font, left, top, text); }
+{  putxy(gc_font, left, top, text, strlen(text)); }
 
 virtual void
    putcr(                           // Draw text
@@ -221,14 +230,31 @@ virtual void
      uint32_t          col,         // At this left (column) offset
      uint32_t          row,         // At this top  (row) offset
      const char*       text)        // Using this text
-{  putxy(gc, get_x(col), get_y(row), text); }
+{  putxy(gc, get_x(col), get_y(row), text, strlen(text)); }
+
+virtual void
+   putcr(                           // Draw text
+     GC_t              gc,          // Using this graphic context
+     uint32_t          col,         // At this left (column) offset
+     uint32_t          row,         // At this top  (row) offset
+     const char*       text,        // Using this text
+     size_t            length)      // For this length
+{  putxy(gc, get_x(col), get_y(row), text, length); }
 
 virtual void
    putcr(                           // Draw text (with default graphic context)
      uint32_t          col,         // At this left (column) offset
      uint32_t          row,         // At this top  (row) offset
      const char*       text)        // Using this text
-{  putcr(gc_font, col, row, text); }
+{  putxy(gc_font, get_x(col), get_y(row), text, strlen(text)); }
+
+virtual void
+   putcr(                           // Draw text (with default graphic context)
+     uint32_t          col,         // At this left (column) offset
+     uint32_t          row,         // At this top  (row) offset
+     const char*       text,        // Using this text
+     size_t            length)      // For this length
+{  putxy(gc_font, get_x(col), get_y(row), text, length); }
 
 //----------------------------------------------------------------------------
 //

@@ -55,18 +55,14 @@ enum                             // pub::Utf Unicode characters
 ,  UNI_REPLACEMENT=                 pub::Utf::UNI_REPLACEMENT
 }; // pub::Utf Unicode characters
 
-// (This enum doesn't compile)
-// enum MODE                       // pub::Utf::MODE
-// {  MODE_RESET=                     pub::Utf::MODE_RESET
-// ,  MODE_BE=                        pub::Utf::MODE_BE
-// ,  MODE_LE=                        pub::Utf::MODE_LE
-// }; // enum MODE
-
-// (So we're cajoled into using #define instead)
-#define MODE                          pub::Utf::MODE
-#define MODE_RESET                    pub::Utf::MODE_RESET
-#define MODE_BE                       pub::Utf::MODE_BE
-#define MODE_LE                       pub::Utf::MODE_LE
+// MODE enumeration
+typedef pub::Utf::MODE              MODE;
+constexpr static const MODE
+                       MODE_RESET= pub::Utf::MODE_RESET;
+constexpr static const MODE
+                       MODE_BE= pub::Utf::MODE_BE;
+constexpr static const MODE
+                       MODE_LE= pub::Utf::MODE_LE;
 
 // Method decode: No characters remain (An invalid UTF codepoint)
 constexpr static const uint32_t

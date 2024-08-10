@@ -16,7 +16,7 @@
 //       XCB Editor: Configuration options.
 //
 // Last change date-
-//       2024/06/14
+//       2024/07/27
 //
 //----------------------------------------------------------------------------
 #include "gui/Device.h"             // For gui::Device, allocated
@@ -30,11 +30,15 @@
 //       EdOpts::initialize
 //       EdOpts::terminate
 //       EdOpts::at_exit
+//       EdOpts::resume
+//       EdOpts::suspend
 //
 // Purpose-
 //       Initialize the EdUnit
 //       Terminate  the EdUnit
 //       Termination handler
+//       Resume NCURSES operation (Does not apply)
+//       Suspend NCURSES operation (Does not apply)
 //
 //----------------------------------------------------------------------------
 EdUnit*                             // The EdUnit
@@ -58,6 +62,14 @@ void
    EdOpts::at_exit( void )          // (Idempotent) termination handler
 {  } // NOT NEEDED
 
+void
+   EdOpts::resume( void )           // Resume NCURSES operaion
+{  } // DOES NOT APPLY
+
+void
+   EdOpts::suspend( void )          // Suspend NCURSES operaion
+{  } // DOES NOT APPLY
+
 //----------------------------------------------------------------------------
 // EdOpts::Option control methods
 //----------------------------------------------------------------------------
@@ -76,17 +88,26 @@ bool                                // TRUE
 //----------------------------------------------------------------------------
 // EdOpts::Static strings
 //----------------------------------------------------------------------------
-const char*            EdOpts::DEFAULT_CONFIG=
-   "[Program]\n"
-   "URL=https://github.com/franke-hub/SDL/tree/trunk/src/cpp/Edit/Xcb\n"
-   "Exec=Edit ; Edit in read-write mode\n"
-   "Exec=View ; Edit in read-only mode\n"
-   "Purpose=XCB based text editor\n"
-   "Version=3.0.0-101\n"
-   "\n"
-   "[Options]\n"
-   ";; (Defaulted) See sample: ~/src/cpp/Edit/Xcb/.Edit.conf\n"
-   ;
+std::string                         // The default configuration file
+   EdOpts::DEFAULT_CONFIG()
+{
+   return
+     "[Program]\n"
+     "URL=https://github.com/franke-hub/SDL/tree/trunk/src/cpp/Edit/Xcb\n"
+     "Exec=Edit ; Edit in read-write mode\n"
+     "Exec=View ; Edit in read-only mode\n"
+     "Purpose=XCB based text editor\n"
+     "Version=3.0.0-101\n"
+     "\n"
+     "[Options]\n"
+     ";; (Defaulted) See sample: ~/src/cpp/Edit/Xcb/.Edit.conf\n"
+     ;
+}
 
-const char*            EdOpts::EDITOR= "editxcb";
-const char*            EdOpts::PATCH= "0-101"; // Patch level
+std::string                         // The Editor's name
+   EdOpts::EDITOR()
+{  return "editxcb"; }
+
+std::string                         // Version patch level
+   EdOpts::PATCH()
+{  return "1-101"; }

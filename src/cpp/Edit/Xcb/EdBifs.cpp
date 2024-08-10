@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2024/06/21
+//       2024/07/27
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -31,7 +31,7 @@
 #include "EdFile.h"                 // For EdFile, EdLine
 #include "EdHist.h"                 // For EdHist
 #include "EdMark.h"                 // For EdMark
-#include "EdUnit.h"                 // For EdUnit
+#include "EdOpts.h"                 // For EdOpts::suspend/resume
 
 using namespace pub::debugging;     // For debugging
 using namespace config;             // For opt_* controls
@@ -47,6 +47,10 @@ enum // Compilation controls
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // Compilation controls
+
+// USE_SUSPEND is experimental. So far it doesn't work
+// EdOpts.h has suspend/resume which also should be removed if not working.
+#define USE_SUSPEND false           // Use suspend/resume TODO: REMOVE
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -195,6 +199,21 @@ static const Command_desc  command_desc[]= // The Command descriptor list
 ,  {command_top,     "TP[",       nullptr} // (TOP)
 ,  {nullptr,         nullptr,     nullptr} // End of list delimiter
 };
+
+#if !USE_SUSPEND // TODO: REMOVE
+// You cannot create a new editor window from the command line.
+// (These commands will never complete normally.)
+static const char*    invalid_command[]= // The invalid command name list
+{  "ED"                             // Editor
+,  "ET"                             // Terminal editor
+,  "VI"                             // /usr/bin/vi
+,  "VIEW"                           // /usr/bin/view
+,  "VT"                             // Terminal editor
+,  "editor"                         // Editor
+,  "editerm"                        // Terminal editor
+,  nullptr                          // End of list indicator
+};
+#endif
 
 //----------------------------------------------------------------------------
 //
@@ -746,6 +765,10 @@ static const char*                  // Error message, nullptr expected
    string output;                   // The output buffer
    input += " 2>&1";                // (Route stderr onto stdout)
 
+#if USE_SUSPEND // TODO: REMOVE
+   EdOpts::suspend();               // Suspend NCURSES function
+#endif
+
    auto pipe= popen(input.c_str(), "r"); // The output pipe
    int rc= EXIT_FAILURE;
 
@@ -772,6 +795,10 @@ static const char*                  // Error message, nullptr expected
      if( pipe )
        pclose(pipe);
    }
+
+#if USE_SUSPEND // TODO: REMOVE
+   EdOpts::resume();                // Resume NCURSES function
+#endif
 
    // Create command input/output pseudo-file
    editor::file_command(parm, output);
@@ -870,6 +897,14 @@ const char*                         // Error message, nullptr if none
        while( *parm == ' ' )        // Ignore leading blanks
          parm++;
      }
+
+#if !USE_SUSPEND // TODO: REMOVE
+     // Handle invalid commands (those that require stdin)
+     for(int i= 0; invalid_command[i]; i++) { // Find command
+       if( strcasecmp(buffer, invalid_command[i]) == 0 )
+         return "Not allowed";
+     }
+#endif
 
      // Process builtin commands, only passing parameters
      for(int i= 0; command_desc[i].name; i++) { // Find command

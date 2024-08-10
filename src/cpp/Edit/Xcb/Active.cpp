@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2024/05/05
+//       2024/07/27
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -24,14 +24,18 @@
 #include <pub/Debug.h>              // For pub::Debug object
 #include <pub/Must.h>               // For pub::must methods
 #include <pub/Utf.h>                // For pub::Utf methods and objects
+#include <pub/utility.h>            // For pub::utility::dump (TODO: REMOVE)
 
 #include "Active.h"                 // Implementation class
 #include "Config.h"                 // For namespace config
+#include "EdOpts.h"                 // For Editor options
 #include "EdType.h"                 // For Editor types
 
+#define PUB _LIBPUB_NAMESPACE
 using namespace config;             // For config::opt_hcdm
-using namespace pub::debugging;     // For debugging
-using namespace pub;                // For namespace must::
+using namespace PUB::debugging;     // For debugging
+using namespace PUB;                // For namespace must::
+using PUB::utility::dump;           // TODO: REMOVE
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -39,9 +43,9 @@ using namespace pub;                // For namespace must::
 enum { BUFFER_SIZE= 2048 };         // Default buffer/expansion size (2**N)
 
 //----------------------------------------------------------------------------
-// Enumerations and typedefs
+// Enumerations, typedefs and imports
 //----------------------------------------------------------------------------
-typedef pub::Utf::utf8_t utf8_t;    // Import pub::Utf::utf8_t
+using pub::Utf;                     // For Utf types and methods
 
 //----------------------------------------------------------------------------
 //
@@ -71,6 +75,7 @@ typedef pub::Utf::utf8_t utf8_t;    // Import pub::Utf::utf8_t
 //----------------------------------------------------------------------------
    Active::Active( void )           // Constructor
 :  source(""), buffer_size(BUFFER_SIZE), buffer_used(0)
+,  decoder(), encoder()
 {
    if( opt_hcdm )
      traceh("Active(%p)::Active\n", this);
@@ -92,12 +97,16 @@ void
    Active::debug(                   // Debugging display
      const char*       info) const  // Associated info
 {
-   if( info ) traceh("Active(%p)::debug(%s) fsm(%d)\n", this, info, fsm);
-   traceh("..source(%s).%zd\n", source, strlen(source));
+   if( info ) traceh("Active(%p)::debug(%s) FSM(%d)\n", this, info, fsm);
+   traceh("..source(%p) buffer(%p) buffer_used(%zd) buffer_size(%zd)\n"
+         , source, buffer, buffer_used, buffer_size);
+   traceh("..source(%3zd.%s)\n", strlen(source), source);
    if( fsm != FSM_RESET ) {
      buffer[buffer_used]= '\0';     // (Buffer is mutable)
-     traceh("..buffer(%s).%zd/%zd\n", buffer, buffer_used, buffer_size);
+     traceh("..buffer(%3zd.%s)\n", buffer_used, buffer);
    }
+   decoder.debug("Active::debug");  // (Last temporary) decoder
+   encoder.debug("Active::debug");  // (Last temporary) encoder
 }
 
 //----------------------------------------------------------------------------
@@ -113,8 +122,9 @@ const char*                         // The current buffer
    Active::get_buffer(              // Get '\0' delimited buffer
      Column            column)      // Starting at this Column
 {
-   // Implementation note: It's possible for index() to modify buffer, so we
-   // can't just return buffer + index(column).
+   // Implementation note:
+   // It's possible for index() to expand and thus modify buffer,
+   // so we can't just return buffer + index(column).
    Offset offset= index(column);
    return buffer + offset;
 }
@@ -140,21 +150,71 @@ const char*                         // The changed text, nullptr if unchanged
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Active::get_cols
+//       Active::get_column
+//       Active::get_offset
 //
 // Purpose-
-//       Return the buffer Column count (trailing blanks removed)
+//       (Unconditionally) access the buffer, leaving trailing blanks.
+//       (Unconditionally) access the buffer, leaving trailing blanks.
 //
 //----------------------------------------------------------------------------
-Active::Ccount                      // The current buffer Column count
-   Active::get_cols( void )         // Get current buffer Column count
+const char*                         // The buffer, beginning at column
+   Active::get_column(              // Get '\0' delimited buffer
+     Column            column)      // Starting at this Column
+{
+   fetch(column);                   // Load the buffer (May expand buffer)
+
+   decoder.reset((const utf8_t*)buffer, buffer_used);
+   Length length= decoder.set_column(column);
+   if( length ) {
+     fetch(buffer_used + length + 1); // Reload the buffer (Expands buffer)
+     decoder.reset((const utf8_t*)buffer, buffer_used); // (Use expanded buffer)
+length=
+     decoder.set_column(column);
+if( length ) { // TODO: REMOVE
+  Config::debug("Active::get_column checkstop");
+  Config::failure("%4d %zd= Active::get_column(%zd)\n", __LINE__, length, column);
+}
+   }
+
+   return buffer + decoder.get_offset();
+}
+
+const char*                         // The buffer, beginning at offset
+   Active::get_offset(              // Get '\0' delimited buffer
+     Offset            offset)      // Starting at this Offset
+{
+   fetch(offset + 1);
+   return buffer + offset;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Active::get_points
+//
+// Purpose-
+//       Return the buffer Column/Offset count (trailing blanks removed)
+//
+//----------------------------------------------------------------------------
+Active::Points                      // The current buffer Column/Offset count
+   Active::get_points( void )       // Get current buffer Column/Offset count
 {
    truncate();                      // (Initialize, remove trailing blanks)
-   Ccount ccount= 0;                // The column count
-   for(auto it= pub::Utf8::const_iterator((const utf8_t*)buffer); *it; ++it)
-     ccount++;
 
-   return ccount;
+   decoder.reset((const utf8_t*)buffer, buffer_used);
+
+   if( EdOpts::has_unicode_combining() )
+     return decoder.get_points();
+
+   size_t points= 0;
+   utf32_t code= decoder.decode();
+   while( code != 0 && code != UTF_EOF ) {
+     ++points;
+     code= decoder.decode();
+   }
+
+   return points;
 }
 
 //----------------------------------------------------------------------------
@@ -284,19 +344,22 @@ Active::Offset                      // The character Offset
    Active::index(                   // Get character Offset for
      Column            column)      // This Column
 {
-   fetch(column);                   // Load the buffer
-   Offset offset= 0;
-   while( column > 0 ) {
-     if( buffer_used <= offset ) {  // If blank fill required
-       fetch(buffer_used + column);
-       offset= buffer_used - 1;
-       break;
-     }
-     offset += pub::Utf8::length(buffer + offset); // Next character length
-     --column;
+   fetch(column);                   // Load the buffer (May expand buffer)
+
+   decoder.reset((const utf8_t*)buffer, buffer_used);
+   Length length= decoder.set_column(column);
+   if( length ) {
+     fetch(buffer_used + length + 1); // Reload the buffer (Expands buffer)
+     decoder.reset((const utf8_t*)buffer, buffer_used); // (Use expanded buffer)
+length=
+     decoder.set_column(column);
+if( length ) { // TODO: REMOVE
+  Config::debug("Active::index checkstop");
+  Config::failure("%4d %zd= Active::index(%zd)\n", __LINE__, length, column);
+}
    }
 
-   return offset;
+   return decoder.get_offset();
 }
 
 //----------------------------------------------------------------------------
@@ -319,8 +382,9 @@ void
      code= pub::Utf::UNI_REPLACEMENT;
 
    char insert_buff[8];             // The insert character encoder buffer
-   pub::Utf8::encode(code, (utf8_t*)insert_buff);
-   replace_text(column, 0, insert_buff, pub::Utf8::length(code));
+   encoder.reset((utf8_t*)insert_buff, sizeof(insert_buff));
+   encoder.encode(code);
+   replace_text(column, 0, insert_buff, encoder.get_offset());
 }
 
 //----------------------------------------------------------------------------
@@ -372,8 +436,9 @@ void
      code= pub::Utf::UNI_REPLACEMENT;
 
    char insert_buff[8];             // The insert character encoder buffer
-   pub::Utf8::encode(code, (utf8_t*)insert_buff);
-   replace_text(column, 1, insert_buff, pub::Utf8::length(code));
+   encoder.reset((utf8_t*)insert_buff, sizeof(insert_buff));
+   encoder.encode(code);
+   replace_text(column, 1, insert_buff, encoder.get_offset());
 }
 
 //----------------------------------------------------------------------------
@@ -388,14 +453,14 @@ void
 void
    Active::replace_text(            // Replace (or insert) text
      Column            column,      // The replacement Column
-     Ccount            ccount,      // The replacement (delete) Ccount
+     Points            points,      // The replacement (delete) Column count
      const char*       text,        // The replacement (insert) text
      Length            insert)      // The replacement (insert) text Length
 {
    Offset origin= index(column);    // The origin offset (+ blank fill)
    Length remove= 0;                // Removal length, in bytes
-   if( ccount )
-     remove= index(column + ccount) - origin;
+   if( points )
+     remove= index(column + points) - origin;
    Length remain= buffer_used - (origin + remove); // Trailing text length
    fetch(origin + insert + remain); // If necessary, expand the buffer
    if( insert || remove ) {         // If inserting or removing text
@@ -414,9 +479,9 @@ void
 void
    Active::replace_text(            // Replace (or insert) text
      Column            column,      // The replacement Column
-     Ccount            ccount,      // The Column count of deleted columns
+     Points            points,      // The number of deleted columns
      const char*       text)        // The replacement (insert) text
-{  replace_text(column, ccount, text, strlen(text)); }
+{  replace_text(column, points, text, strlen(text)); }
 
 //----------------------------------------------------------------------------
 //
@@ -436,6 +501,18 @@ void
 
    source= text;
    fsm= FSM_RESET;
+}
+
+void
+   Active::reset(                   // Set source
+     const char*       text,        // From this (immutable) text
+     size_t            size)        // Of this length
+{
+   source= nullptr;                 // NO ASSOCIATED SOURCE TEXT
+   fsm= FSM_CHANGED;
+
+   resize(size);
+   memcpy(buffer, text, size);
 }
 
 //----------------------------------------------------------------------------
