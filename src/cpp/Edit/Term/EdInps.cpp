@@ -16,7 +16,7 @@
 //       Editor: Implement EdInps.h: Terminal keyboard and mouse handlers.
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/14
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
@@ -63,8 +63,6 @@ enum // Compilation controls
 
 // The color saturation value (Determined experimentally)
 ,  MAX_COLOR= 1000                  // Maximum  color value
-
-,  USE_UTF8= false                  // Use (TODO) UTF-8 code?
 }; // Compilation controls
 
 enum // Key definitions
@@ -1371,7 +1369,7 @@ uint32_t                            // The next character with modifiers
            trace_every_keystroke(pc, key_state);
          }
          key_state &= ~(KS_ALT | KS_CTL);
-         pc= pub::Utf8::UNI_REPLACEMENT; // Unicode error replacement character
+         pc= pub::Utf::UNI_REPLACEMENT; // Unicode error replacement character
          trace_every_keystroke(pc, key_state);
        }
      }

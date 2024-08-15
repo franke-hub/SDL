@@ -16,7 +16,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/14
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
@@ -66,6 +66,8 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
+static const char*     blank= " ";  // A blank string
+
 static pub::signals::Connector<EdMark::ChangeEvent>
                        changeEvent_connector;
 
@@ -443,10 +445,8 @@ void
    const char* text= get_text(line); // Get associated text
    utf8_decoder decoder(text);
    if( col_zero ) {                 // If column offset
-     if( decoder.set_column(col_zero) ) { // If past end of text
-traceh("%4d col_zero(%zd) past end of text\n", __LINE__, col_zero);
+     if( decoder.set_column(col_zero) ) // If past end of text
        return;                      // Nothing to draw
-     }
      text += decoder.get_offset();
    }
 
@@ -472,7 +472,6 @@ traceh("%4d col_zero(%zd) past end of text\n", __LINE__, col_zero);
      active.get_column(col_size+1); // The buffer is the screen length
      const char* buffer= active.get_buffer();
      decoder.reset(buffer, strlen(buffer));
-io_trace(__LINE__, buffer);
 
      decoder.set_column(lh_mark);
      Offset lh_off= decoder.get_offset();
@@ -480,29 +479,18 @@ io_trace(__LINE__, buffer);
      Offset rh_off= decoder.get_offset();
      decoder.set_column(col_size+1);
      Offset off_last= decoder.get_length();
-traceh("%4d lh_mark(%zd) lh_off(%zd) rh_mark(%zd) rh_off(%zd) off_last(%zd)\n"
-      , __LINE__, lh_mark, lh_off, rh_mark, rh_off, off_last);
 
      // Left section
-     if( lh_off ) {
-traceh("left\n");
-io_trace(__LINE__, buffer, lh_off);
+     if( lh_off )
        putcr(gc_font, 0, y, buffer, lh_off);
-     }
 
      // Middle section
-     if( rh_off > lh_off ) {
-traceh("middle\n");
-io_trace(__LINE__, buffer+lh_off, rh_off - lh_off);
+     if( rh_off > lh_off )
        putcr(gc_mark, int(lh_mark), y, buffer+lh_off, rh_off - lh_off);
-     }
 
      // Right section
-     if( off_last > rh_off ) {
-traceh("right\n");
-io_trace(__LINE__, buffer+rh_off, off_last - rh_off);
+     if( off_last > rh_off )
        putcr(gc_font, int(rh_mark), y, buffer+rh_off, off_last - rh_off);
-     }
    } else {
      putcr(gc_font, 0, y, text);
    }
@@ -706,23 +694,17 @@ void
    Active& active= view->active;
    utf8_decoder decoder;
 
-traceh("hide_cursor col(%u,%u)\n", view->col, view->row);
-
    Column column= view->get_column();
    const char* buffer= active.get_column(column);
    decoder.reset(buffer, strlen(buffer));
 
    utf8_decoder copy= decoder.copy_column();
-   putcr(view->get_gc(), view->col, view->row, buffer, copy.get_length());
-
-FILE* stdbug= pub::Debug::get()->get_FILE();
-decoder.debug("decoder");
-copy.debug("copy");
-dump(stdbug, buffer, copy.get_length());
-debug_flush();
-
-Trace::trace(".HID", "hide", buffer, (void*)copy.get_length()
-            , (void*)uintptr_t(view->col), (void*)uintptr_t(view->row));
+   Length length= copy.get_length();
+   if( length == 0 ) {
+     buffer= blank;
+     length= 1;
+   }
+   putcr(view->get_gc(), view->col, view->row, buffer, length);
 }
 
 void
@@ -735,23 +717,17 @@ void
    Active& active= view->active;
    utf8_decoder decoder;
 
-traceh("show_cursor col(%u,%u)\n", view->col, view->row);
-
    Column column= view->get_column();
    const char* buffer= active.get_column(column);
    decoder.reset(buffer, strlen(buffer));
 
    utf8_decoder copy= decoder.copy_column();
-   putcr(gc_flip, view->col, view->row, buffer, copy.get_length());
-
-FILE* stdbug= pub::Debug::get()->get_FILE();
-decoder.debug("decoder");
-copy.debug("copy");
-dump(stdbug, buffer, copy.get_length());
-debug_flush();
-
-Trace::trace(".SHO", "show", buffer, (void*)copy.get_length()
-            , (void*)uintptr_t(view->col), (void*)uintptr_t(view->row));
+   Length length= copy.get_length();
+   if( length == 0 ) {
+     buffer= blank;
+     length= 1;
+   }
+   putcr(gc_flip, view->col, view->row, buffer, length);
 }
 
 //----------------------------------------------------------------------------
@@ -861,7 +837,7 @@ void
      unsigned          row,         // The (Y) row
      const char*       text,        // Using this text
      size_t            size)        // For this byte length
-{  // if( IO_TRACE && opt_hcdm && opt_verbose > 0 ) { // TODO:RESTORE
+{  if( IO_TRACE && opt_hcdm && opt_verbose > 0 ) {
      char buffer[24];
      if( size < 17 ) {
        memcpy(buffer, text, size);
@@ -872,38 +848,23 @@ void
      }
      traceh("EdOuts.putcr(%u,[%d,%d],%3zd.'%s')\n", GC, col, row
            , size, visify(buffer).c_str());
-   // }
+   }
 
    // If nothing to write or col's past the end of the screen, do nothing
-   if( size ==0 ) {
-traceh("%4d size(%zd)\n", __LINE__, size);
+   if( size == 0 || col >= col_size )
      return;
-   }
-
-   if( col >= col_size ) {
-traceh("%4d col(%d) >= col_size(%d)\n", __LINE__, col, col_size);
-     return;
-   }
 
    // Compute output length in bytes
    size_t COL= col_size - col;      // Number of columns left on line
    size_t OUT= size;                // Default: length == size
-traceh("%4d OUT(%zd)\n", __LINE__, OUT);
 
-traceh("%4d text(%p) size(%zd)\n", __LINE__, text, size);
    utf8_decoder decoder(text, size);
-// decoder.debug("HCDM1");
    // Shrink output size if past end of screen
    Points points= decoder.get_points(); // Output length in columns
    if( points > COL ) {
      decoder.set_column(COL);
      OUT= decoder.get_offset();
-traceh("%4d OUT(%zd)\n", __LINE__, OUT);
    }
-
-// TODO: REMOVE
-// traceh("%4d COL(%zd) OUT(%zd) points(%zd)\n", __LINE__, COL, OUT, points);
-// decoder.debug("HCDM2");
 
    // The curses addstr methods provide '\b' and '\t' special handling.
    // This botches our screen handling, so we prevent that by
@@ -912,8 +873,6 @@ traceh("%4d OUT(%zd)\n", __LINE__, OUT);
    Active* active= editor::altact;
    char* output= const_cast<char*>(active->resize(OUT));
    memcpy(output, text, OUT);
-traceh("%4d output(%p) strlen(%zd)\n", __LINE__, output, strlen(output));
-traceh("%4d OUT(%zd)\n", __LINE__, OUT);
 
    char*
    C= (char*)strchr(output, '\b');  // Remove '\b' characters
@@ -931,7 +890,6 @@ traceh("%4d OUT(%zd)\n", __LINE__, OUT);
    // Write the text
    color_set(short(GC), nullptr);   // Set the color
    mvwaddstr(win, row, col, output); // Write the string
-traceh("%4d output(%p) strlen(%zd)\n", __LINE__, output, strlen(output));
 
    // Internal trace
    putcr_record* R= (putcr_record*)Trace::storage_if(sizeof(putcr_record));

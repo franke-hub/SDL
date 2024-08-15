@@ -16,7 +16,7 @@
 //       Test Utf.h
 //
 // Last change date-
-//       2024/07/25
+//       2024/08/14
 //
 //----------------------------------------------------------------------------
 #include <endian.h>                 // For endian subroutines
@@ -84,7 +84,100 @@ static const utf32_t   test03[]=    // COL O32 O16 O08
 ,  'y'                              //   5  10  11  20
 ,  'z'                              //   6  11  12  21
 ,  ASCII_NUL                        //   7  12  13  22
-}; // test03                        //   7  14  14  23 (EOF/LENGTH)
+}; // test03                        //   7  13  14  23 (EOF/LENGTH)
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       VERIFY_set_cpoint
+//
+// Purpose-
+//       Verify decoder.set_column operation
+//
+//----------------------------------------------------------------------------
+static inline int                   // Error count (0 or 1)
+   VERIFY_set_cpoint(               // Verify set_cpoint operation
+     int               line,        // Caller's line number
+     Offset            offset,      // The associated offset
+     utf8_decoder&     decoder,     // The decoder
+     Cpoint            cpoint)      // The set_cpoint parameter
+{
+   int error_count= 0;              // Error counter
+
+   Offset actual= decoder.set_cpoint(cpoint);
+
+   // If unexpected resultant
+   if( actual != offset )
+     ++error_count;
+
+   if( error_count == 0 )
+     return 0;
+
+debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
+     debugf("%4d Error: VERIFY(decoder.set_cpoint(%zd) == %zd)\n", line
+           , cpoint, offset);
+     debugf("  Actual: offset(%zd) cpoint(%zd)\n", actual, cpoint);
+     debugf("  Expect: offset(%zd) cpoint(%zd)\n", offset, cpoint);
+debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
+
+     return 1;
+}
+
+static inline int                   // Error count (0 or 1)
+   VERIFY_set_cpoint(               // Verify set_cpoint operation
+     int               line,        // Caller's line number
+     Offset            offset,      // The associated offset
+     utf16_decoder&    decoder,     // The decoder
+     Cpoint            cpoint)      // The set_cpoint parameter
+{
+   int error_count= 0;              // Error counter
+
+   Offset actual= decoder.set_cpoint(cpoint);
+
+   // If unexpected resultant
+   if( actual != offset )
+     ++error_count;
+
+   if( error_count == 0 )
+     return 0;
+
+debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
+     debugf("%4d Error: VERIFY(decoder.set_cpoint(%zd) == %zd)\n", line
+           , cpoint, offset);
+     debugf("  Actual: offset(%zd) cpoint(%zd)\n", actual, cpoint);
+     debugf("  Expect: offset(%zd) cpoint(%zd)\n", offset, cpoint);
+debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
+
+     return 1;
+}
+
+static inline int                   // Error count (0 or 1)
+   VERIFY_set_cpoint(               // Verify set_cpoint operation
+     int               line,        // Caller's line number
+     Offset            offset,      // The associated offset
+     utf32_decoder&    decoder,     // The decoder
+     Cpoint            cpoint)      // The set_cpoint parameter
+{
+   int error_count= 0;              // Error counter
+
+   Offset actual= decoder.set_cpoint(cpoint);
+
+   // If unexpected resultant
+   if( actual != offset )
+     ++error_count;
+
+   if( error_count == 0 )
+     return 0;
+
+debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
+     debugf("%4d Error: VERIFY(decoder.set_cpoint(%zd) == %zd)\n", line
+           , cpoint, offset);
+     debugf("  Actual: offset(%zd) cpoint(%zd)\n", actual, cpoint);
+     debugf("  Expect: offset(%zd) cpoint(%zd)\n", offset, cpoint);
+debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
+
+     return 1;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -371,129 +464,6 @@ debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       VERIFY_set_offset
-//
-// Purpose-
-//       Verify decoder.set_offset operation
-//
-//----------------------------------------------------------------------------
-static inline int                   // Error count (0 or 1)
-   VERIFY_set_offset(               // Verify set_offset operation
-     int               line,        // Caller's line number
-     Length            length,      // Expected result
-     utf8_decoder&     decoder,     // The decoder
-     Offset            offset,      // The set_offset parameter
-     Offset            expect_off)  // The expected offset
-{
-   int error_count= 0;              // Error counter
-
-   Offset actual= decoder.set_offset(offset);
-   Column column= decoder.get_column();
-
-   // If unexpected result
-   if( actual != length || ssize_t(column) >= 0 )
-     ++error_count;
-
-   // If offset set incorrectly
-   if( decoder.get_offset() != expect_off )
-     ++error_count;
-
-   if( error_count == 0 )
-     return 0;
-
-debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
-     debugf("%4d Error: VERIFY(decoder.set_offset(%zd) == %zd)\n", line
-           , offset, length);
-     if( ssize_t(column) >= 0 )
-       debugf("  Expect: get_column(%zd) < 0\n", column);
-     debugf("  Expect: %zd= set_offset(%zd) offset(%zd) length(%zd)\n"
-           , length, offset, expect_off, decoder.get_length());
-     debugf("  Actual: %zd= set_offset(%zd) offset(%zd)\n"
-           , actual, offset, decoder.get_offset());
-debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
-
-     return 1;
-}
-
-static inline int                   // Error count (0 or 1)
-   VERIFY_set_offset(               // Verify set_offset operation
-     int               line,        // Caller's line number
-     Length            length,      // Expected result
-     utf16_decoder&    decoder,     // The decoder
-     Offset            offset,      // The set_offset parameter
-     Offset            expect_off)  // The expected offset
-{
-   int error_count= 0;              // Error counter
-
-   Offset actual= decoder.set_offset(offset);
-   Column column= decoder.get_column();
-
-   // If unexpected result
-   if( actual != length || ssize_t(column) >= 0 )
-     ++error_count;
-
-   // If offset set incorrectly
-   if( decoder.get_offset() != expect_off )
-     ++error_count;
-
-   if( error_count == 0 )
-     return 0;
-
-debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
-     debugf("%4d Error: VERIFY(decoder.set_offset(%zd) == %zd)\n", line
-           , offset, length);
-     if( ssize_t(column) >= 0 )
-       debugf("  Expect: get_column(%zd) < 0\n", column);
-     debugf("  Expect: %zd= set_offset(%zd) offset(%zd) length(%zd)\n"
-           , length, offset, expect_off, decoder.get_length());
-     debugf("  Actual: %zd= set_offset(%zd) offset(%zd)\n"
-           , actual, offset, decoder.get_offset());
-debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
-
-     return 1;
-}
-
-static inline int                   // Error count (0 or 1)
-   VERIFY_set_offset(               // Verify set_offset operation
-     int               line,        // Caller's line number
-     Length            length,      // Expected result
-     utf32_decoder&    decoder,     // The decoder
-     Offset            offset,      // The set_offset parameter
-     Offset            expect_off)  // The expected offset
-{
-   int error_count= 0;              // Error counter
-
-   Offset actual= decoder.set_offset(offset);
-   Column column= decoder.get_column();
-
-   // If unexpected result
-   if( actual != length || ssize_t(column) >= 0 )
-     ++error_count;
-
-   // If offset set incorrectly
-   if( decoder.get_offset() != expect_off )
-     ++error_count;
-
-   if( error_count == 0 )
-     return 0;
-
-debugf("\n%4d HCDM VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n", line);
-     debugf("%4d Error: VERIFY(decoder.set_offset(%zd) == %zd)\n", line
-           , offset, length);
-     if( ssize_t(column) >= 0 )
-       debugf("  Expect: get_column(%zd) < 0\n", column);
-     debugf("  Expect: %zd= set_offset(%zd) offset(%zd) length(%zd)\n"
-           , length, offset, expect_off, decoder.get_length());
-     debugf("  Actual: %zd= set_offset(%zd) offset(%zd)\n"
-           , actual, offset, decoder.get_offset());
-debugf("%4d ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n", line);
-
-     return 1;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
 //       test_Example
 //
 // Purpose-
@@ -718,16 +688,17 @@ static inline int                   // Number of errors found
    encoder= convert;
    decoder= encoder;
 
+   error_count += VERIFY( decoder.get_lpoint() ==  0 );
+   error_count += VERIFY( decoder.get_points() ==  0 );
+
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, -1, 0);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, -1, 0);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, -1, 0);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, -1, 0);
 
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0, 0);
-   error_count += VERIFY_set_offset(__LINE__,  1, decoder,  1, 0);
-
-   error_count += VERIFY_set_offset(__LINE__,  5, decoder,  5, 0);
-   error_count += VERIFY_set_offset(__LINE__, 19, decoder, 19, 0);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  2);
 
    //-------------------------------------------------------------------------
    if( opt_verbose ) debugf("test00\n"); // test00 {0}------------------------
@@ -736,15 +707,17 @@ static inline int                   // Number of errors found
    encoder= convert;
    decoder= encoder;
 
+   error_count += VERIFY( decoder.get_lpoint() ==  1 );
+   error_count += VERIFY( decoder.get_points() ==  1 );
+
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 0);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, 0, 1);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, 0, 1);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, 0, 1);
 
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0, 0);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  1, 1);
-   error_count += VERIFY_set_offset(__LINE__,  4, decoder,  5, 1);
-   error_count += VERIFY_set_offset(__LINE__, 18, decoder, 19, 1);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  2);
 
    if( opt_verbose ) debugf("test01\n"); // test01 {BOM,0}--------------------
    convert.reset(test01, 2);
@@ -752,15 +725,17 @@ static inline int                   // Number of errors found
    encoder= convert;                // ** DOES NOT CONVERT BOM **
    decoder= encoder;                // test01 {0}----------------
 
+   error_count += VERIFY( decoder.get_lpoint() ==  1 );
+   error_count += VERIFY( decoder.get_points() ==  1 );
+
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 0);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, 0, 1);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, 0, 1);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, 0, 1);
 
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0, 0);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  1, 1);
-   error_count += VERIFY_set_offset(__LINE__,  4, decoder,  5, 1);
-   error_count += VERIFY_set_offset(__LINE__, 18, decoder, 19, 1);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  2);
 
    //-------------------------------------------------------------------------
    if( opt_verbose ) debugf("test02\n"); // test02 {BOM,combo,...}------------
@@ -769,17 +744,23 @@ static inline int                   // Number of errors found
    encoder= convert;                // ** DOES NOT CONVERT BOM **
    decoder= encoder;                // test02 {combo,...}--------
 
+   error_count += VERIFY( decoder.get_lpoint() ==  6 );
+   error_count += VERIFY( decoder.get_points() ==  2 );
+
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0,  0,  0);
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  1,  1,  4);
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  2,  2, 11);
    error_count += VERIFY_set_column(__LINE__,  3, decoder,  5,  2, 14);
    error_count += VERIFY_set_column(__LINE__, 17, decoder, 19,  2, 14);
 
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0,  0);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  1,  1);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  5,  5);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  8,  8);
-   error_count += VERIFY_set_offset(__LINE__,  5, decoder, 19, 14);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  2, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__,  4, decoder,  2);
+   error_count += VERIFY_set_cpoint(__LINE__,  7, decoder,  3);
+   error_count += VERIFY_set_cpoint(__LINE__,  9, decoder,  4);
+   error_count += VERIFY_set_cpoint(__LINE__, 11, decoder,  5);
+   error_count += VERIFY_set_cpoint(__LINE__, 14, decoder,  6);
+   error_count += VERIFY_set_cpoint(__LINE__, 14, decoder,  7);
 
    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    // test02: test copy_column
@@ -809,15 +790,28 @@ static inline int                   // Number of errors found
    encoder= convert;                // ** DOES NOT CONVERT BOM **
    decoder= encoder;                // test03 {0,CHAR,combo,...}-
 
+   error_count += VERIFY( decoder.get_lpoint() == 12 );
+   error_count += VERIFY( decoder.get_points() ==  8 );
+
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0,  0,  0);
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  1,  1,  1);
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  5,  5, 20);
    error_count += VERIFY_set_column(__LINE__, 12, decoder, 19,  7, 23);
 
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0,  0);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  5,  5);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder, 19, 19);
-   error_count += VERIFY_set_offset(__LINE__,  6, decoder, 29, 23);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__,  4, decoder,  2);
+   error_count += VERIFY_set_cpoint(__LINE__,  6, decoder,  3);
+   error_count += VERIFY_set_cpoint(__LINE__,  8, decoder,  4);
+   error_count += VERIFY_set_cpoint(__LINE__, 11, decoder,  5);
+   error_count += VERIFY_set_cpoint(__LINE__, 13, decoder,  6);
+   error_count += VERIFY_set_cpoint(__LINE__, 15, decoder,  7);
+   error_count += VERIFY_set_cpoint(__LINE__, 19, decoder,  8);
+   error_count += VERIFY_set_cpoint(__LINE__, 20, decoder,  9);
+   error_count += VERIFY_set_cpoint(__LINE__, 21, decoder, 10);
+   error_count += VERIFY_set_cpoint(__LINE__, 22, decoder, 11);
+   error_count += VERIFY_set_cpoint(__LINE__, 23, decoder, 12);
+   error_count += VERIFY_set_cpoint(__LINE__, 23, decoder, 13);
 
    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    // test03: test copy_column
@@ -1027,16 +1021,17 @@ static inline int                   // Number of errors found
    encoder= convert;
    decoder= encoder;
 
+   error_count += VERIFY( decoder.get_lpoint() ==  0 );
+   error_count += VERIFY( decoder.get_points() ==  0 );
+
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, -1, 0);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, -1, 0);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, -1, 0);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, -1, 0);
 
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0, 0);
-   error_count += VERIFY_set_offset(__LINE__,  1, decoder,  1, 0);
-
-   error_count += VERIFY_set_offset(__LINE__,  5, decoder,  5, 0);
-   error_count += VERIFY_set_offset(__LINE__, 19, decoder, 19, 0);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  2);
 
    //-------------------------------------------------------------------------
    if( opt_verbose ) debugf("test00\n"); // test00 {0}------------------------
@@ -1045,15 +1040,17 @@ static inline int                   // Number of errors found
    encoder= convert;
    decoder= encoder;
 
+   error_count += VERIFY( decoder.get_lpoint() ==  1 );
+   error_count += VERIFY( decoder.get_points() ==  1 );
+
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 0);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, 0, 1);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, 0, 1);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, 0, 1);
 
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0, 0);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  1, 1);
-   error_count += VERIFY_set_offset(__LINE__,  4, decoder,  5, 1);
-   error_count += VERIFY_set_offset(__LINE__, 18, decoder, 19, 1);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  2);
 
    if( opt_verbose ) debugf("test01\n"); // test01 {BOM,0}--------------------
    convert.reset(test01, 2);
@@ -1061,16 +1058,18 @@ static inline int                   // Number of errors found
    encoder= convert;
    decoder= encoder;
 
+   error_count += VERIFY( decoder.get_lpoint() ==  1 );
+   error_count += VERIFY( decoder.get_points() ==  1 );
+
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 1);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, 0, 2);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, 0, 2);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, 0, 2);
 
-   // Can't set offset at BOM mark, so offset set to 1
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0, 1);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  1, 1);
-   error_count += VERIFY_set_offset(__LINE__,  3, decoder,  5, 2);
-   error_count += VERIFY_set_offset(__LINE__, 17, decoder, 19, 2);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__,  2, decoder,  2);
+   error_count += VERIFY_set_cpoint(__LINE__,  2, decoder,  3);
 
    //-------------------------------------------------------------------------
    if( opt_verbose ) debugf("test02\n"); // test02 {BOM,combo,...}------------
@@ -1079,18 +1078,20 @@ static inline int                   // Number of errors found
    encoder= convert;
    decoder= encoder;
 
+   error_count += VERIFY( decoder.get_lpoint() ==  6 );
+   error_count += VERIFY( decoder.get_points() ==  2 );
+
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 1);
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  1, 1, 3);
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  2, 2, 6);
    error_count += VERIFY_set_column(__LINE__,  3, decoder,  5, 2, 7);
    error_count += VERIFY_set_column(__LINE__, 17, decoder, 19, 2, 7);
 
-   // Can't set offset at BOM mark, so offset set to 1
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0, 1);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  1, 1);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  5, 5);
-   error_count += VERIFY_set_offset(__LINE__,  1, decoder,  8, 7);
-   error_count += VERIFY_set_offset(__LINE__, 12, decoder, 19, 7);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__,  6, decoder,  6);
+   error_count += VERIFY_set_cpoint(__LINE__,  7, decoder,  7);
+   error_count += VERIFY_set_cpoint(__LINE__,  7, decoder,  8);
 
    //-------------------------------------------------------------------------
    if( opt_verbose ) debugf("test03\n"); // test03 {BOM,0,CHAR,combo,...}-----
@@ -1099,16 +1100,21 @@ static inline int                   // Number of errors found
    encoder= convert;
    decoder= encoder;
 
+   error_count += VERIFY( decoder.get_lpoint() == 12 );
+   error_count += VERIFY( decoder.get_points() ==  8 );
+
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0,  0,  1);
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  1,  1,  2);
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  5,  5, 11);
    error_count += VERIFY_set_column(__LINE__, 12, decoder, 19,  7, 14);
 
-   // Can't set offset at BOM mark, so offset set to 1
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0,  1);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  1,  1);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  5,  5);
-   error_count += VERIFY_set_offset(__LINE__,  5, decoder, 19, 14);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__,  8, decoder,  8);
+   error_count += VERIFY_set_cpoint(__LINE__, 10, decoder,  9);
+   error_count += VERIFY_set_cpoint(__LINE__, 13, decoder, 12);
+   error_count += VERIFY_set_cpoint(__LINE__, 14, decoder, 13);
+   error_count += VERIFY_set_cpoint(__LINE__, 14, decoder, 14);
 
    return error_count;
 }
@@ -1276,50 +1282,59 @@ static inline int                   // Number of errors found
    decoder.reset(buffer, 0);        // test_utf32::test_empty
    decoder.set_mode();
 
+   error_count += VERIFY( decoder.get_lpoint() ==  0 );
+   error_count += VERIFY( decoder.get_points() ==  0 );
+
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, -1, 0);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, -1, 0);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, -1, 0);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, -1, 0);
 
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0, 0);
-   error_count += VERIFY_set_offset(__LINE__,  1, decoder,  1, 0);
-   error_count += VERIFY_set_offset(__LINE__,  5, decoder,  5, 0);
-   error_count += VERIFY_set_offset(__LINE__, 19, decoder, 19, 0);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  2);
 
    //-------------------------------------------------------------------------
    if( opt_verbose ) debugf("test00\n"); // test00 {0}------------------------
    decoder.reset(test00, 1);
    decoder.set_mode();
 
+   error_count += VERIFY( decoder.get_lpoint() ==  1 );
+   error_count += VERIFY( decoder.get_points() ==  1 );
+
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 0);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, 0, 1);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, 0, 1);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, 0, 1);
 
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0, 0);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  1, 1);
-   error_count += VERIFY_set_offset(__LINE__,  4, decoder,  5, 1);
-   error_count += VERIFY_set_offset(__LINE__, 18, decoder, 19, 1);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  2);
 
    if( opt_verbose ) debugf("test01\n"); // test01 {BOM,0}--------------------
    decoder.reset(test01, 2);
    decoder.set_mode();
+
+   error_count += VERIFY( decoder.get_lpoint() ==  1 );
+   error_count += VERIFY( decoder.get_points() ==  1 );
 
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 1);
    error_count += VERIFY_set_column(__LINE__,  1, decoder,  1, 0, 2);
    error_count += VERIFY_set_column(__LINE__,  5, decoder,  5, 0, 2);
    error_count += VERIFY_set_column(__LINE__, 19, decoder, 19, 0, 2);
 
-   // Can't set offset at BOM mark, so offset set to 1
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0, 1);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  1, 1);
-   error_count += VERIFY_set_offset(__LINE__,  3, decoder,  5, 2);
-   error_count += VERIFY_set_offset(__LINE__, 17, decoder, 19, 2);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__,  2, decoder,  2);
+   error_count += VERIFY_set_cpoint(__LINE__,  2, decoder,  3);
 
    //-------------------------------------------------------------------------
    if( opt_verbose ) debugf("test02\n"); // test02 {BOM,combo,...}------------
    decoder.reset(test02, 7);
    decoder.set_mode();
+
+   error_count += VERIFY( decoder.get_lpoint() ==  6 );
+   error_count += VERIFY( decoder.get_points() ==  2 );
 
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0, 0, 1);
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  1, 1, 3);
@@ -1327,28 +1342,30 @@ static inline int                   // Number of errors found
    error_count += VERIFY_set_column(__LINE__,  3, decoder,  5, 2, 7);
    error_count += VERIFY_set_column(__LINE__, 17, decoder, 19, 2, 7);
 
-   // Can't set offset at BOM mark, so offset set to 1
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0, 1);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  1, 1);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  5, 5);
-   error_count += VERIFY_set_offset(__LINE__,  1, decoder,  8, 7);
-   error_count += VERIFY_set_offset(__LINE__, 12, decoder, 19, 7);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__,  6, decoder,  6);
+   error_count += VERIFY_set_cpoint(__LINE__,  7, decoder,  7);
+   error_count += VERIFY_set_cpoint(__LINE__,  7, decoder,  8);
 
    //-------------------------------------------------------------------------
    if( opt_verbose ) debugf("test03\n"); // test03 {BOM,0,CHAR,combo,...}-----
    decoder.reset(test03, 13);
    decoder.set_mode();
 
+   error_count += VERIFY( decoder.get_lpoint() == 12 );
+   error_count += VERIFY( decoder.get_points() ==  8 );
+
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  0,  0,  1);
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  1,  1,  2);
    error_count += VERIFY_set_column(__LINE__,  0, decoder,  5,  5, 10);
    error_count += VERIFY_set_column(__LINE__, 12, decoder, 19,  7, 13);
 
-   // Can't set offset at BOM mark, so offset set to 1
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  0,  1);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  1,  1);
-   error_count += VERIFY_set_offset(__LINE__,  0, decoder,  5,  5);
-   error_count += VERIFY_set_offset(__LINE__,  6, decoder, 19, 13);
+   error_count += VERIFY_set_cpoint(__LINE__,  0, decoder,  0);
+   error_count += VERIFY_set_cpoint(__LINE__,  1, decoder,  1);
+   error_count += VERIFY_set_cpoint(__LINE__, 12, decoder, 12);
+   error_count += VERIFY_set_cpoint(__LINE__, 13, decoder, 13);
+   error_count += VERIFY_set_cpoint(__LINE__, 13, decoder, 14);
 
    return error_count;
 }

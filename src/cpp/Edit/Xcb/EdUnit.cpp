@@ -16,7 +16,7 @@
 //       Editor: Input/output interface; Handle editor operations.
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/14
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -26,6 +26,7 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/List.h>               // For pub::List
 #include <pub/Trace.h>              // For pub::Trace
+#include <pub/Utf.h>                // For pub::utf8_decoder
 
 #include "Active.h"                 // For Active
 #include "Config.h"                 // For Config, namespace config
@@ -34,6 +35,7 @@
 #include "EdFile.h"                 // For EdFile
 #include "EdHist.h"                 // For EdHist
 #include "EdMark.h"                 // For EdMark
+#include "EdOpts.h"                 // For EdOpts
 #include "EdUnit.h"                 // For EdUnit, implemented
 
 using namespace config;             // For config::opt_*, ...
@@ -245,7 +247,17 @@ void
    EdUnit::op_key_end( void )       // Handle end key
 {  using namespace editor;
 
-   move_cursor_H(view->active.get_points() + 1);
+   // Handle end key. Processing depends on EdOpts::has_unicode_combining().
+   const char* buffer= view->active.truncate();
+   utf8_decoder decoder(buffer);
+
+   size_t points;
+   if( EdOpts::has_unicode_combining() )
+     points= decoder.get_points() - 1;
+   else
+     points= decoder.get_lpoint() - 1;
+
+   move_cursor_H(points);
 }
 
 void

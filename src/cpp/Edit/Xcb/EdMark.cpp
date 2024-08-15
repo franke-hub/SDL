@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/14
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -25,17 +25,19 @@
 #include <pub/Signals.h>            // For pub::signals::Connector
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 #include <pub/Trace.h>              // For pub::Trace
-#include <pub/Utf.h>                // For pub::Utf8::get_codes
+#include <pub/Utf.h>                // For pub::utf8_decoder
 
 #include "Config.h"                 // For namespace config
 #include "EdData.h"                 // For EdData
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile, EdLine, EdRedo
 #include "EdMark.h"                 // For EdMark (Implementation class)
+#include "EdOpts.h"                 // For EdOpts::has_unicode_combining
 #include "EdUnit.h"                 // For EdUnit
 
 using namespace pub::debugging;     // For debugging
 using pub::Trace;                   // For pub::Trace
+using pub::utf8_decoder;            // For pub::decoder
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -431,12 +433,15 @@ const char*                         // Error message, nullptr expected
    Iterator  tix= tokenizer.begin();
    pub::List<EdLine> list;          // Replacement line list
 
+   bool combo= EdOpts::has_unicode_combining();
    string margin_str(l_margin, ' ');
    string insert_str;
    size_t insert_col= 0;
    while( tix != tokenizer.end() ) {
      string token_str= tix();
-     size_t token_col= pub::Utf8::get_codes(token_str);
+     size_t token_col= combo
+       ? utf8_decoder(token_str.c_str(), token_str.size()).get_points()
+       : utf8_decoder(token_str.c_str(), token_str.size()).get_lpoint();
      if( insert_col == 0) {
        insert_str= margin_str + token_str;
        insert_col= token_col;

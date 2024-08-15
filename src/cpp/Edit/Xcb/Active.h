@@ -16,7 +16,7 @@
 //       Active Line descriptor.
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/14
 //
 // Implementation note-
 //       Changed Lines also automatically remove any trailing blanks.
@@ -135,18 +135,6 @@ const char*                         // The current buffer
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Active::get_points
-//
-// Purpose-
-//       Return the UTF-8 Column/Offset count, trailing blanks removed
-//
-//----------------------------------------------------------------------------
-Points                              // The current UTF-8 Column/Offset count
-   get_points( void );              // Get current UTF-8 Column/Offset count
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       Active::get_used
 //
 // Purpose-
@@ -196,7 +184,7 @@ void
 //       Active::index
 //
 // Purpose-
-//       Address character at column index, fetching and filling if required.
+//       Get offset of character at column index, with fetch and fill.
 //
 //----------------------------------------------------------------------------
 Offset                              // The character buffer Offset

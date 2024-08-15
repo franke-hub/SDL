@@ -16,7 +16,7 @@
 //       Editor: Terminal output services.
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/14
 //
 // Implementation notes-
 //       Attributes are defined in EdInps.h and EdUnit.h
@@ -171,23 +171,12 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Screen output methods-
-//       EdOuts::putch
 //       EdOuts::putcr
 //
 // Purpose-
-//       Draw char at [col,row] position
 //       Draw text at [col,row] position
 //
 //----------------------------------------------------------------------------
-#if 0 // TODO: REMOVE
-virtual void
-   putch(                           // Draw character
-     GC_t              gc,          // The graphic context
-     unsigned          col,         // The column
-     unsigned          row,         // The row
-     int               text);       // The character
-#endif
-
 virtual void
    putcr(                           // Draw text
      GC_t              gc,          // The graphic context

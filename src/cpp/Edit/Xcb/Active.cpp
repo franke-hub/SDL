@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/14
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -24,7 +24,7 @@
 #include <pub/Debug.h>              // For pub::Debug object
 #include <pub/Must.h>               // For pub::must methods
 #include <pub/Utf.h>                // For pub::Utf methods and objects
-#include <pub/utility.h>            // For pub::utility::dump (TODO: REMOVE)
+#include <pub/utility.h>            // For pub::utility::dump
 
 #include "Active.h"                 // Implementation class
 #include "Config.h"                 // For namespace config
@@ -35,7 +35,7 @@
 using namespace config;             // For config::opt_hcdm
 using namespace PUB::debugging;     // For debugging
 using namespace PUB;                // For namespace must::
-using PUB::utility::dump;           // TODO: REMOVE
+using PUB::utility::dump;           // For debugging
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -113,31 +113,19 @@ void
 //
 // Method-
 //       Active::get_buffer
+//       Active::get_changed
 //
 // Purpose-
 //       (Unconditionally) access the buffer, leaving trailing blanks.
+//       Access the buffer if changed. If unchanged, return nullptr.
 //
 //----------------------------------------------------------------------------
 const char*                         // The current buffer
    Active::get_buffer(              // Get '\0' delimited buffer
      Column            column)      // Starting at this Column
-{
-   // Implementation note:
-   // It's possible for index() to expand and thus modify buffer,
-   // so we can't just return buffer + index(column).
-   Offset offset= index(column);
-   return buffer + offset;
-}
+{  return get_column(column); }
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Active::get_changed
-//
-// Purpose-
-//       Access the buffer if changed. If unchanged, return nullptr.
-//
-//----------------------------------------------------------------------------
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const char*                         // The changed text, nullptr if unchanged
    Active::get_changed( void )      // Get changed text string
 {
@@ -169,52 +157,19 @@ const char*                         // The buffer, beginning at column
    if( length ) {
      fetch(buffer_used + length + 1); // Reload the buffer (Expands buffer)
      decoder.reset((const utf8_t*)buffer, buffer_used); // (Use expanded buffer)
-length=
      decoder.set_column(column);
-if( length ) { // TODO: REMOVE
-  Config::debug("Active::get_column checkstop");
-  Config::failure("%4d %zd= Active::get_column(%zd)\n", __LINE__, length, column);
-}
    }
 
    return buffer + decoder.get_offset();
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const char*                         // The buffer, beginning at offset
    Active::get_offset(              // Get '\0' delimited buffer
      Offset            offset)      // Starting at this Offset
 {
    fetch(offset + 1);
    return buffer + offset;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Active::get_points
-//
-// Purpose-
-//       Return the buffer Column/Offset count (trailing blanks removed)
-//
-//----------------------------------------------------------------------------
-Active::Points                      // The current buffer Column/Offset count
-   Active::get_points( void )       // Get current buffer Column/Offset count
-{
-   truncate();                      // (Initialize, remove trailing blanks)
-
-   decoder.reset((const utf8_t*)buffer, buffer_used);
-
-   if( EdOpts::has_unicode_combining() )
-     return decoder.get_points();
-
-   size_t points= 0;
-   utf32_t code= decoder.decode();
-   while( code != 0 && code != UTF_EOF ) {
-     ++points;
-     code= decoder.decode();
-   }
-
-   return points;
 }
 
 //----------------------------------------------------------------------------
@@ -337,11 +292,11 @@ void
 //       Active::index
 //
 // Purpose-
-//       Address character at column index, fetching and filling if required.
+//       Get offset of character at column index, with fetch and fill.
 //
 //----------------------------------------------------------------------------
 Active::Offset                      // The character Offset
-   Active::index(                   // Get character Offset for
+   Active::index(                   // Get character Offset of
      Column            column)      // This Column
 {
    fetch(column);                   // Load the buffer (May expand buffer)
@@ -351,12 +306,7 @@ Active::Offset                      // The character Offset
    if( length ) {
      fetch(buffer_used + length + 1); // Reload the buffer (Expands buffer)
      decoder.reset((const utf8_t*)buffer, buffer_used); // (Use expanded buffer)
-length=
      decoder.set_column(column);
-if( length ) { // TODO: REMOVE
-  Config::debug("Active::index checkstop");
-  Config::failure("%4d %zd= Active::index(%zd)\n", __LINE__, length, column);
-}
    }
 
    return decoder.get_offset();

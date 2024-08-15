@@ -16,7 +16,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/14
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -51,7 +51,8 @@ using namespace config;             // For config::opt_*, ...
 using namespace PUB;                // For PUB library objects
 using namespace PUB::debugging;     // For debugging methods
 using PUB::Trace;                   // For pub::Trace
-using PUB::utility::dump;           // For pub::utility::dump
+using PUB::utility::dump;           // For pub::utility::dump   (debugging)
+using PUB::utility::visify;         // For pub::utility::visify (debugging)
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -668,43 +669,21 @@ void
      debugh("EdOuts(%p)::hide_cursor cr[%u,%u]\n", this
            , editor::view->col, editor::view->row);
 
-#if 0
    EdView* const view= editor::view;
    Active& active= view->active;
-   active.get_points();
-   utf8_decoder decoder(active.get_buffer(), active.get_used());
+   const char* dbuff= active.get_buffer();
+   Length      dused= active.get_used();
 
-   decoder.set_offset(view->get_column());
+   utf8_decoder decoder(dbuff, dused);
+   decoder.set_cpoint(view->get_column());
    utf32_t code= decoder.decode();
    if( code == 0 || code == UTF_EOF )
      code= ' ';
 
-   char buffer[8];
-   utf8_encoder encoder(buffer, sizeof(buffer)); ;
-encoder.debug("hide constructed");
-   encoder.encode(code);
-
-   putcr(view->get_gc(), view->col, view->row
-        , buffer, encoder.get_offset());
-debugf("hide: %d %zd\n", code, encoder.get_offset());
-dump(buffer, encoder.get_offset());
-encoder.debug("hide");
-#else
-   EdView* const view= editor::view;
-
-   char buffer[8];                  // The cursor encoding buffer
-   size_t column= view->get_column(); // The current column
-   const utf8_t* data= (const utf8_t*)view->active.get_buffer(column);
-   utf32_t code= pub::Utf8::decode(data);
-   if( code == 0 )
-     code= ' ';
-   int L= pub::Utf8::encode(code, (utf8_t*)buffer);
-   buffer[L]= '\0';
-
-   putcr(view->get_gc(), view->col, view->row, buffer);
-//debugf("hide: 0x%.3x %p.%d\n", code, buffer, L);
-//dump(buffer, L+1);
-#endif
+   char ebuff[8];
+   utf8_encoder encoder(ebuff, sizeof(ebuff));
+   Length eused= encoder.encode(code);
+   putcr(view->get_gc(), view->col, view->row, ebuff, eused);
 }
 
 void
@@ -713,46 +692,21 @@ void
      debugh("EdOuts(%p)::show_cursor cr[%u,%u]\n", this
            , editor::view->col, editor::view->row);
 
-#if 0
-debugf("%4d Outs HCDM\n", __LINE__);
    EdView* const view= editor::view;
    Active& active= view->active;
-   active.get_points();
-   utf8_decoder decoder(active.get_buffer(), active.get_used());
-decoder.debug("show constructed");
+   const char* dbuff= active.get_buffer();
+   Length      dused= active.get_used();
 
-   decoder.set_offset(view->get_column());
-decoder.debug("show offset");
+   utf8_decoder decoder(dbuff, dused);
+   decoder.set_cpoint(view->get_column());
    utf32_t code= decoder.decode();
    if( code == 0 || code == UTF_EOF )
      code= ' ';
 
-   char buffer[8];
-   utf8_encoder encoder(buffer, sizeof(buffer)); ;
-encoder.debug("show constructed");
-   encoder.encode(code);
-
-   putcr(gc_flip, view->col, view->row
-        , buffer, encoder.get_offset());
-debugf("show: %d %zd\n", code, encoder.get_offset());
-dump(buffer, encoder.get_offset());
-encoder.debug("show");
-#else
-   EdView* const view= editor::view;
-
-   char buffer[8];                  // The cursor encoding buffer
-   size_t column= view->get_column(); // The current column
-   const utf8_t* data= (const utf8_t*)view->active.get_buffer(column);
-   utf32_t code= pub::Utf8::decode(data);
-   if( code == 0 )
-     code= ' ';
-   int L= pub::Utf8::encode(code, (utf8_t*)buffer);
-   buffer[L]= '\0';
-
-   putcr(gc_flip, view->col, view->row, buffer, L);
-//debugf("show: 0x%.3x %p.%d\n", code, buffer, L);
-//dump(buffer, L+1);
-#endif
+   char ebuff[8];
+   utf8_encoder encoder(ebuff, sizeof(ebuff));
+   Length eused= encoder.encode(code);
+   putcr(gc_flip, view->col, view->row, ebuff, eused);
 }
 
 //----------------------------------------------------------------------------
@@ -949,7 +903,6 @@ void
            , gc, left, top, buffer);
    }
 
-#if true
    enum{ DIM= 256 };                // xcb_image_text_16 maximum UNIT length
    xcb_char2b_t out[DIM];           // UTF16 big endian output buffer
 
@@ -962,28 +915,6 @@ void
    for(utf32_t code= decoder.decode(); code; code= decoder.decode()) {
      if( code == UTF_EOF )          // If end of file
        break;
-
-#if 0 // EXPERIMENT: FAILED (This just overwrites the original character.)
-     // *** EXPERIMENTAL *** VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
-     if( Utf::is_combining(code) ) {
-       if( outlen ) {
-         ENQUEUE("xcb_image_text_16", xcb_image_text_16
-                ( c, uint8_t(outlen), widget_id, gc
-                , uint16_t(outorg), uint16_t(top + font->offset.y), out) );
-         outpix -= font->length.width; // (Backspace)
-         outorg= outpix;
-         outlen= 0;
-         encoder.reset((pub::Utf::utf16BE_t*)out, DIM);
-       } else if( left > font->length.width ) { // else (outlen == 0) && ...
-         // Column logic error:
-         // Output started with combining code, not at left edge of screen
-         unexpected(__LINE__);
-         outorg= left - font->length.width;
-         outpix= outorg;
-       }
-     }
-     // *** EXPERIMENTAL *** ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#endif
 
      if( outlen >= (DIM - 4) ) {    // If near the end
        NOQUEUE("xcb_image_text_16", xcb_image_text_16
@@ -1005,36 +936,6 @@ void
      NOQUEUE("xcb_image_text_16", xcb_image_text_16
             ( c, uint8_t(outlen), widget_id, gc
             , uint16_t(outorg), uint16_t(top + font->offset.y), out) );
-#else
-   enum{ DIM= 256 };                // xcb_image_text_16 maximum UNIT length
-   xcb_char2b_t out[DIM];           // UTF16 big endian output buffer
-
-   unsigned outlen= 0;              // UTF16 output buffer length
-   unsigned outorg= left;           // Current output origin index
-   unsigned outpix= left;           // Current output pixel index
-   for(auto it= pub::Utf8::const_iterator((const utf8_t*)text); *it; ++it) {
-     if( outlen > (DIM-4) ) {       // If time for a partial write
-       NOQUEUE("xcb_image_text_16", xcb_image_text_16
-              ( c, uint8_t(outlen), widget_id, gc
-              , uint16_t(outorg), uint16_t(top + font->offset.y), out) );
-       outorg= outpix;
-       outlen= 0;
-     }
-
-     utf32_t code= *it;             // Next encoding
-     outpix += font->length.width;  // Ending pixel (+1)
-     if( outpix >= rect.width || code == 0 ) // If at end of encoding
-       break;
-
-     pub::Utf16::encode(code, (utf16_t*)out + outlen);
-     outlen += pub::Utf16::length(code);
-   }
-
-   if( outlen )                     // If there's something left to render
-     NOQUEUE("xcb_image_text_16", xcb_image_text_16
-            ( c, uint8_t(outlen), widget_id, gc
-            , uint16_t(outorg), uint16_t(top + font->offset.y), out) );
-#endif
 }
 
 //----------------------------------------------------------------------------

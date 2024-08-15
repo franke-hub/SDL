@@ -16,7 +16,7 @@
 //       Allow application import of UTF types
 //
 // Last change date-
-//       2024/07/25
+//       2024/08/14
 //
 // Implementation notes-
 //       To avoid namespace collisions, include this from .cpp files.
@@ -28,8 +28,10 @@
 //----------------------------------------------------------------------------
 // Exported Utf types
 typedef pub::Utf::Column            Column;
+typedef pub::Utf::Cpoint            Cpoint;
 typedef pub::Utf::Points            Points;
 typedef pub::Utf::Length            Length;
+typedef pub::Utf::Lpoint            Lpoint;
 typedef pub::Utf::Offset            Offset;
 
 typedef pub::Utf::utf8_t            utf8_t;
@@ -64,13 +66,9 @@ constexpr static const MODE
 constexpr static const MODE
                        MODE_LE= pub::Utf::MODE_LE;
 
-// Method decode: No characters remain (An invalid UTF codepoint)
-constexpr static const uint32_t
+// Method decode: No characters remain
+constexpr static const utf32_t      // (UTF_EOF is an invalid UTF codepoint)
                        UTF_EOF= EOF; // Decode: No characters remain
-
-// Method get_column: Column indeterminate after set_offset() used.
-constexpr static const pub::Utf::Column
-                       OFFSET_COLUMN= -3; // Indicates set_offset() used
 
 //----------------------------------------------------------------------------
 // Exported Utf subroutines (renaming pub::Utf::strlen)

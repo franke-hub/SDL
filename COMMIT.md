@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/07/25
+//       2024/08/14
 //
 //------------------------------------------------------------------------ -->
 
@@ -30,6 +30,16 @@ within https://opensource.org/licenses/MIT)
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
 ----
+
+#### 08/14/2024 maint
+
+Removed utf*_decoder set_offset and added set_cpoint method.
+This removes the need for OFFSET_COLUMN, and is a cleaner and more logical
+interface.
+
+The editor modules have been updated to use the updated decoders and encoders.
+These modules are now in beta test mode.
+A complete function test is still required.
 
 #### 07/25/2024 maint
 

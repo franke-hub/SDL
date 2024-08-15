@@ -1310,7 +1310,7 @@ void
 
 //============================================================================
 //
-// Method-
+// Struct-
 //       utf8_decoder
 //       utf8_encoder
 //       utf16_decoder
@@ -1319,7 +1319,7 @@ void
 //       utf32_encoder
 //
 // Purpose-
-//       Object implementations
+//       Implementations
 //
 //----------------------------------------------------------------------------
 #include "Utf.hpp"

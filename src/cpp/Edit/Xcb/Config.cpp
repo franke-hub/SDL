@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/14
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -185,7 +185,6 @@ static int                          // Return code (0 OK)
      debug->set_mode(pub::Debug::MODE_INTENSIVE);
      traceh("Editor PID(%4d) VID: %s %s\n", getpid(), __DATE__, __TIME__);
    }
-debug->set_mode(pub::Debug::MODE_INTENSIVE); // TODO: REMOVE
 
    //-------------------------------------------------------------------------
    // Create memory-mapped trace file
