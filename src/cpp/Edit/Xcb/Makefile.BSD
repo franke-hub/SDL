@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2024/05/07
+##       2024/08/23
 ##
 ##############################################################################
 
@@ -80,9 +80,9 @@ include: Include.o
 ## Target: install
 .PHONY: install
 install: default
-	cp Edit editxcb
-	strip editxcb
-	mv -i editxcb $(HOME)/bin/editxcb
+	cp Edit xcbedit
+	strip xcbedit
+	mv -i xcbedit $(HOME)/bin/xcbedit
 
 ##############################################################################
 ## Controls

@@ -16,7 +16,7 @@
 //       Editor: Terminal input services.
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/20
 //
 // Implementation notes-
 //       See EdOuts.h for terminal output services.
@@ -25,9 +25,15 @@
 #ifndef EDINPS_H_INCLUDED
 #define EDINPS_H_INCLUDED
 
+#define USE_CURSESW false           // Use cursesw.h instead of ncurses.h
+
 #include <string>                   // For std::string
 #include <sys/types.h>              // For system types
+#if USE_CURSESW                     // Linux formatting fix attempt (FAILS)
+#include <cursesw.h>                // For cursesw library
+#else                               // The original
 #include <ncurses.h>                // For ncurses library
+#endif
 
 #include <pub/List.h>               // For pub::List
 

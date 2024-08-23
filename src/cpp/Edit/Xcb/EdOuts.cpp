@@ -16,7 +16,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2024/08/14
+//       2024/08/23
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -63,6 +63,40 @@ enum // Compilation controls
 }; // Compilation controls
 
 //----------------------------------------------------------------------------
+//
+// Struct-
+//       putcr_long
+//       putcr_short
+//
+// Purpose-
+//       Internal trace records for putxy operation, converted to putcr.
+//
+//----------------------------------------------------------------------------
+struct putcr_long {
+enum { DATA_SIZE= 40 };             // The output data length
+char                   ident[4];    // The trace type identifier     ".PUT"
+char                   unit[4];     // The trace data sub-identifier "data"
+uint64_t               clock;       // The UTC epoch clock, in nanoseconds
+uint16_t               col;         // The screen (X) column
+uint16_t               row;         // The screen (Y) row
+uint16_t               GC;          // Graphic context
+uint16_t               length;      // The output data length
+char                   data[DATA_SIZE]; // The output data
+}; // struct putcr_long
+
+struct putcr_short {
+enum { DATA_SIZE= 8 };              // The output data length
+char                   ident[4];    // The trace type identifier     ".PUT"
+char                   unit[4];     // The trace data sub-identifier "data"
+uint64_t               clock;       // The UTC epoch clock, in nanoseconds
+uint16_t               col;         // The screen (X) column
+uint16_t               row;         // The screen (Y) row
+uint16_t               GC;          // Graphic context
+uint16_t               length;      // The output data length
+char                   data[DATA_SIZE]; // The output data
+}; // struct putcr_short
+
+//----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
 static pub::signals::Connector<EdMark::ChangeEvent>
@@ -98,7 +132,7 @@ static inline void
      const char*       name)        // Widget name
 :  EdInps(parent, name ? name : "EdOuts")
 {  if( opt_hcdm )
-     debugh("EdOuts(%p)::EdOuts\n", this);
+     traceh("EdOuts(%p)::EdOuts\n", this);
 
    // Handle EdMark::ChangeEvent (lambda function)
    // Purpose: Repair EdOuts::head (if it changed)
@@ -143,7 +177,7 @@ static inline void
 //
 //----------------------------------------------------------------------------
    EdOuts::~EdOuts( void )          // Destructor
-{  if( opt_hcdm ) debugh("EdOuts(%p)::~EdOuts\n", this); }
+{  if( opt_hcdm ) traceh("EdOuts(%p)::~EdOuts\n", this); }
 
 //----------------------------------------------------------------------------
 //
@@ -157,7 +191,7 @@ static inline void
 void
    EdOuts::configure( void )        // Configure the Window
 {  if( opt_hcdm )
-     debugh("EdOuts(%p)::configure\n", this);
+     traceh("EdOuts(%p)::configure\n", this);
 
    // Configure the Window
    bg= config::text_bg;             // (Basic Window colors, for clear)
@@ -183,7 +217,7 @@ void
           ( c, XCB_PROP_MODE_REPLACE, widget_id
           , protocol, 4, 32, 1, &wm_close) );
    if( opt_hcdm )
-     debugh("%4d %s PROTOCOL(%d), atom WM_CLOSE(%d)\n", __LINE__, __FILE__
+     traceh("%4d %s PROTOCOL(%d), atom WM_CLOSE(%d)\n", __LINE__, __FILE__
            , protocol, wm_close);
 
    flush();
@@ -224,7 +258,7 @@ void
    EdOuts::activate(                // Activate
      EdFile*           act_file)    // This file
 {  if( opt_hcdm )
-     debugh("EdOuts(%p)::activate(%s)\n", this
+     traceh("EdOuts(%p)::activate(%s)\n", this
            , act_file ? act_file->get_name().c_str() : "nullptr");
 
    EdData* const data= editor::data;
@@ -381,7 +415,7 @@ void
 void
    EdOuts::draw( void )             // Draw the entire Window
 {  if( opt_hcdm )
-     debugh("EdOuts(%p)::draw\n", this);
+     traceh("EdOuts(%p)::draw\n", this);
 
    Trace::trace(".DRW", " all", head, tail);
    // Clear the drawable window
@@ -409,7 +443,7 @@ void
 
      row_used -= USER_TOP;
      if( opt_hcdm && opt_verbose > 1 )
-       debugh("%4d %s row_used(%d)\n", __LINE__, __FILE__, row_used);
+       traceh("%4d %s row_used(%d)\n", __LINE__, __FILE__, row_used);
    }
 
    draw_top();                      // Draw top (status, hist/message) lines
@@ -432,51 +466,57 @@ void
      unsigned          row,         // The (absolute) row number
      const EdLine*     line)        // The line to draw
 {
-   int y= get_y(int(row));          // Convert row to pixel offset
+// int y= get_y(int(row));          // Convert row to pixel offset
    ssize_t col_zero= editor::data->col_zero;
    const char* text= get_text(line); // Get associated text
-   if( col_zero )                   // If offset
-     text += pub::Utf8::index(text, col_zero);
+   utf8_decoder decoder(text);
+   if( col_zero ) {                 // If column offset
+     if( decoder.set_column(col_zero) ) // If past end of text
+       return;                      // Nothing to draw
+     text += decoder.get_offset();
+   }
+
    if( line->flags & EdLine::F_MARK ) {
      ssize_t col_last= col_zero + col_size; // Last file screen column
-     int lh_mark= 0;                // Default, mark line
-     int rh_mark= col_size;
+     ssize_t lh_mark= 0;            // Default, mark line
+     ssize_t rh_mark= col_size;
      EdMark& mark= *editor::mark;
      if( mark.mark_col >= 0 ) {     // If column mark active
        if( mark.mark_lh > col_last || mark.mark_rh < col_zero ) {
          lh_mark= rh_mark= col_size + 1;
        } else {                     // Otherwise compute screen offsets
-         lh_mark= int( mark.mark_lh - col_zero );
-         rh_mark= lh_mark + int( mark.mark_rh - mark.mark_lh ) + 1;
+         lh_mark= mark.mark_lh - col_zero;
+         rh_mark= lh_mark + (mark.mark_rh - mark.mark_lh) + 1;
        }
      }
 
      // Marked lines are written in three sections:
-     //  R) The unmarked Right section at the end (may be null)
-     //  M) The marked Middle section (may be the entire line)
      //  L) The unmarked Left section at the beginning (may be null)
-     active.reset(text);            // Load, then blank fill the line
-     active.fetch(strlen(text) + col_last + 1);
-     char* L= (char*)active.get_buffer(); // Text, length >= col_last + 1
-     if( unsigned(rh_mark) < col_size ) { // Right section
-       char* R= L + pub::Utf8::index(L, rh_mark);
-       unsigned x= get_x(rh_mark);
-       putxy(gc_font, x, y, R);
-       *R= '\0';                    // (Terminate right section)
-     }
+     //  M) The marked Middle section (may be the entire line)
+     //  R) The unmarked Right section at the end (may be null)
+     active.reset(text);            // Load the line (with col_zero origin)
+     active.get_column(col_size+1); // The buffer is the screen length
+     const char* buffer= active.get_buffer();
+     decoder.reset(buffer, strlen(buffer));
 
-     // Middle section
-     if( lh_mark < 0 ) lh_mark= 0;
-     char* M= L + pub::Utf8::index(L, lh_mark);
-     int x= get_x(lh_mark);
-     putxy(gc_mark, x, y, M);
-     *M= '\0';                      // (Terminate middle section)
+     Offset lh_off= decoder.set_cpoint(lh_mark);
+     Offset rh_off= decoder.set_cpoint(rh_mark);
+     decoder.set_cpoint(col_size+1);
+     Offset off_last= decoder.get_length();
 
      // Left section
-     if( lh_mark > 0 )
-       putxy(gc_font, 1, y, L);
+     if( lh_off )
+       putcr(gc_font, 0, row, buffer, lh_off);
+
+     // Middle section
+     if( rh_off > lh_off )
+       putcr(gc_mark, int(lh_mark), row, buffer+lh_off, rh_off - lh_off);
+
+     // Right section
+     if( off_last > rh_off )
+       putcr(gc_font, int(rh_mark), row, buffer+rh_off, off_last - rh_off);
    } else {
-     putxy(gc_font, 1, y, text);
+     putcr(gc_font, 0, row, text);
    }
 }
 
@@ -500,7 +540,7 @@ void
 void
    EdOuts::draw_history( void )     // Redraw the history line
 {  if( opt_hcdm )
-     debugh("EdOuts(%p)::draw_history view(%s)\n", this
+     traceh("EdOuts(%p)::draw_history view(%s)\n", this
            , editor::view == editor::hist ? "hist" : "data");
 
    EdHist* const hist= editor::hist;
@@ -526,7 +566,7 @@ void
 bool                                // Return code, TRUE if handled
    EdOuts::draw_message( void )     // Message line
 {  if( opt_hcdm )
-     debugh("EdOuts(%p)::draw_message view(%s)\n", this
+     traceh("EdOuts(%p)::draw_message view(%s)\n", this
            , editor::view == editor::hist ? "hist" : "data");
 
    EdMess* mess= editor::file->mess_list.get_head();
@@ -577,7 +617,7 @@ static void
 void
    EdOuts::draw_status( void )      // Redraw the status line
 {  if( opt_hcdm )
-     debugh("EdOuts(%p)::draw_status view(%s)\n", this
+     traceh("EdOuts(%p)::draw_status view(%s)\n", this
            , editor::view == editor::hist ? "hist" : "data");
 
    EdView* const data= editor::data;
@@ -627,7 +667,7 @@ void
      uint32_t          row,         // The row number (absolute)
      const char*       text)        // The text to draw
 {  if( opt_hcdm && opt_verbose > 0 )
-     debugh("draw_text(%d, %d, %s)\n", GC, row, text);
+     traceh("draw_text(%d, %d, %s)\n", GC, row, text);
 
    putcr(GC, 0, row, text);
 }
@@ -666,7 +706,7 @@ void
 void
    EdOuts::hide_cursor( void )      // Hide the character cursor
 {  if( opt_hcdm && opt_verbose > 0 )
-     debugh("EdOuts(%p)::hide_cursor cr[%u,%u]\n", this
+     traceh("EdOuts(%p)::hide_cursor cr[%u,%u]\n", this
            , editor::view->col, editor::view->row);
 
    EdView* const view= editor::view;
@@ -689,7 +729,7 @@ void
 void
    EdOuts::show_cursor( void )      // Show the character cursor
 {  if( opt_hcdm && opt_verbose > 0 )
-     debugh("EdOuts(%p)::show_cursor cr[%u,%u]\n", this
+     traceh("EdOuts(%p)::show_cursor cr[%u,%u]\n", this
            , editor::view->col, editor::view->row);
 
    EdView* const view= editor::view;
@@ -899,8 +939,8 @@ void
        memcpy(buffer, text, 16);
        strcpy(buffer+16, "...");
      }
-     debugh("EdOuts(%p)::putxy(%u,[%d,%d],'%s')\n", this
-           , gc, left, top, buffer);
+     traceh("EdOuts(%p)::putxy(%u,[%d,%d],'%s')\n", this
+           , gc, left, top, visify(buffer).c_str());
    }
 
    enum{ DIM= 256 };                // xcb_image_text_16 maximum UNIT length
@@ -936,6 +976,30 @@ void
      NOQUEUE("xcb_image_text_16", xcb_image_text_16
             ( c, uint8_t(outlen), widget_id, gc
             , uint16_t(outorg), uint16_t(top + font->offset.y), out) );
+
+   // Internal trace
+   if( opt_verbose || opt_iodm ) {
+     size_t cr_size= sizeof(putcr_short);
+     if( length > putcr_short::DATA_SIZE )
+       cr_size= sizeof(putcr_long);
+
+     putcr_long* R= (putcr_long*)Trace::storage_if(int(cr_size));
+     if( R ) {
+       R->col= htons(uint16_t(get_col(left)));
+       R->row= htons(uint16_t(get_row(top)));
+       R->GC= htons(uint16_t(gc));
+       R->length= htons(uint16_t(length));
+       if( length > putcr_short::DATA_SIZE ) {
+         Trace::Buffer<putcr_long::DATA_SIZE> buff(text);
+         memcpy(R->data, buff.temp, putcr_long::DATA_SIZE);
+       } else {
+         Trace::Buffer<putcr_short::DATA_SIZE> buff(text);
+         memcpy(R->data, buff.temp, putcr_short::DATA_SIZE);
+       }
+       memcpy(R->unit, "data", 4);
+       ((Trace::Record*)R)->trace(".OUT"); // Trace::trace(".OUT", "data")
+     }
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -952,11 +1016,11 @@ void
      uint32_t          width,       // New width  (In Pixels)
      uint32_t          height)      // New height (In Pixels)
 {  if( opt_hcdm ) {
-     debugh("EdOuts(%p)::resized(%u,%u)\n", this, width, height);
+     traceh("EdOuts(%p)::resized(%u,%u)\n", this, width, height);
 
      if( opt_verbose > 1 ) {
        gui::WH_size_t size= get_size();
-       debugh("%4d [%d x %d]= get_size\n",  __LINE__, size.width, size.height);
+       traceh("%4d [%d x %d]= get_size\n",  __LINE__, size.width, size.height);
      }
    }
 
@@ -1005,7 +1069,7 @@ int                                 // Return code, 0 OK
    EdOuts::set_font(                // Set the Font
      const char*          name)     // To this name
 {  if( opt_hcdm )
-     debugh("EdOuts(%p)::set_font(%s) geom(%d,%d,%u,%u)\n", this, name
+     traceh("EdOuts(%p)::set_font(%s) geom(%d,%d,%u,%u)\n", this, name
            , config::geom.x, config::geom.y
            , config::geom.width, config::geom.height);
 
@@ -1032,7 +1096,7 @@ void
    EdOuts::set_geom(                // Set the Geometry
      const geometry_t& geom)        // From this Geometry
 {  if( opt_hcdm && opt_verbose > 0 )
-     debugh("EdOuts(%p)::set_geom(%d,%d,%u,%u)\n", this
+     traceh("EdOuts(%p)::set_geom(%d,%d,%u,%u)\n", this
            , geom.x, geom.y, geom.width, geom.height);
 
    col_size= geom.width;

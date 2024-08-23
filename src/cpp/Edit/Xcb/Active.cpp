@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2024/08/14
+//       2024/08/23
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -294,19 +294,33 @@ void
 // Purpose-
 //       Get offset of character at column index, with fetch and fill.
 //
+// Implementation notes-
+//       Type of parameter column depends on EdOpts::has_unicode_combining
+//
 //----------------------------------------------------------------------------
 Active::Offset                      // The character Offset
    Active::index(                   // Get character Offset of
-     Column            column)      // This Column
+     Column            column)      // This Column or Cpoint
 {
    fetch(column);                   // Load the buffer (May expand buffer)
 
    decoder.reset((const utf8_t*)buffer, buffer_used);
-   Length length= decoder.set_column(column);
-   if( length ) {
-     fetch(buffer_used + length + 1); // Reload the buffer (Expands buffer)
-     decoder.reset((const utf8_t*)buffer, buffer_used); // (Use expanded buffer)
-     decoder.set_column(column);
+   if( EdOpts::has_unicode_combining() ) {
+     Length length= decoder.set_column(column);
+     if( length ) {
+       fetch(buffer_used + length + 1); // Reload the buffer (Expands buffer)
+       decoder.reset((const utf8_t*)buffer, buffer_used);
+       decoder.set_column(column);
+     }
+   } else {
+     Offset offset= decoder.set_cpoint(column);
+     if( offset >= decoder.get_length() ) {
+if( column < decoder.get_lpoint() ) throwf("%4d SHOULD NOT OCCUR", __LINE__);
+// TODO: remove above line
+       fetch(buffer_used + (column - decoder.get_lpoint()) + 1);
+       decoder.reset((const utf8_t*)buffer, buffer_used);
+       decoder.set_cpoint(column);
+     }
    }
 
    return decoder.get_offset();

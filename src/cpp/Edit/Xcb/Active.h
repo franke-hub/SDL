@@ -16,7 +16,7 @@
 //       Active Line descriptor.
 //
 // Last change date-
-//       2024/08/14
+//       2024/08/23
 //
 // Implementation note-
 //       Changed Lines also automatically remove any trailing blanks.
@@ -186,10 +186,13 @@ void
 // Purpose-
 //       Get offset of character at column index, with fetch and fill.
 //
+// Implementation notes-
+//       Type of parameter column depends on EdOpts::has_unicode_combining
+//
 //----------------------------------------------------------------------------
 Offset                              // The character buffer Offset
    index(                           // Get character buffer Offset for
-     Column            column);     // This Column
+     Column            column);     // This Column (or Cpoint)
 
 //----------------------------------------------------------------------------
 //

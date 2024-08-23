@@ -16,7 +16,7 @@
 //       Editor: Implement EdInps.h: Terminal keyboard and mouse handlers.
 //
 // Last change date-
-//       2024/08/14
+//       2024/08/20
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
@@ -830,7 +830,13 @@ void
    init_program_modes(win);         // Initialize settings
    def_prog_mode();                 // (Save modes as "program" modes)
 
+#if USE_CURSESW                     // (Defined in EdInps.h)
+   // This compiles, but linux UTF-8 formatting still doesn't work
+   getmaxyx(win, (int&)row_size, (int&)col_size); // Set screen size
+#else
    getmaxyx(win, row_size, col_size); // Set screen size
+#endif
+
    wsetscrreg(win, 0, row_size-1);  // Set scrolling region
    assume_default_colors(fg, bg);   // Set default colors (for clear screen)
    bkgdset(' ');                    // Set the background character

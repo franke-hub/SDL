@@ -16,7 +16,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2024/08/14
+//       2024/08/23
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
@@ -74,23 +74,36 @@ static pub::signals::Connector<EdMark::ChangeEvent>
 //----------------------------------------------------------------------------
 //
 // Struct-
-//       putcr_record
+//       putcr_long
+//       putcr_short
 //
 // Purpose-
-//       Internal trace record for putcr operation.
+//       Internal trace records for putcr operation.
 //
 //----------------------------------------------------------------------------
-struct putcr_record {
-enum { DATA_SIZE= 32 };             // The output data length
+struct putcr_long {
+enum { DATA_SIZE= 40 };             // The output data length
 char                   ident[4];    // The trace type identifier     ".PUT"
 char                   unit[4];     // The trace data sub-identifier "data"
 uint64_t               clock;       // The UTC epoch clock, in nanoseconds
-uint32_t               col;         // The screen (X) column
-uint32_t               row;         // The screen (Y) row
-uint32_t               _0018;       // Reserved/unused
-uint32_t               length;      // The output data length
+uint16_t               col;         // The screen (X) column
+uint16_t               row;         // The screen (Y) row
+uint16_t               GC;          // Graphic context
+uint16_t               length;      // The output data length
 char                   data[DATA_SIZE]; // The output data
-}; // struct putcr_record
+}; // struct putcr_long
+
+struct putcr_short {
+enum { DATA_SIZE= 8 };              // The output data length
+char                   ident[4];    // The trace type identifier     ".PUT"
+char                   unit[4];     // The trace data sub-identifier "data"
+uint64_t               clock;       // The UTC epoch clock, in nanoseconds
+uint16_t               col;         // The screen (X) column
+uint16_t               row;         // The screen (Y) row
+uint16_t               GC;          // Graphic context
+uint16_t               length;      // The output data length
+char                   data[DATA_SIZE]; // The output data
+}; // struct putcr_short
 
 //----------------------------------------------------------------------------
 //
@@ -878,13 +891,13 @@ void
    C= (char*)strchr(output, '\b');  // Remove '\b' characters
    while( C ) {
      *C= '~';
-     C= (char*)strchr(output, '\b');
+     C= (char*)strchr(C+1, '\b');
    }
 
    C= (char*)strchr(output, '\t');  // Remove '\t' characters
    while( C ) {
      *C= '~';
-     C= (char*)strchr(output, '\t');
+     C= (char*)strchr(C+1, '\t');
    }
 
    // Write the text
@@ -892,16 +905,27 @@ void
    mvwaddstr(win, row, col, output); // Write the string
 
    // Internal trace
-   putcr_record* R= (putcr_record*)Trace::storage_if(sizeof(putcr_record));
-   if( R ) {
-     R->col= htonl(col);
-     R->row= htonl(row);
-     R->_0018= 0;
-     R->length= htonl(uint32_t(OUT));
-     Trace::Buffer<putcr_record::DATA_SIZE> buff(output);
-     memcpy(R->data, buff.temp, putcr_record::DATA_SIZE);
-     memcpy(R->unit, "data", 4);
-     ((Trace::Record*)R)->trace(".OUT"); // Trace::trace(".OUT", "data")
+   if( opt_verbose || opt_iodm ) {
+     unsigned cr_size= (unsigned)sizeof(putcr_short);
+     if( OUT > putcr_short::DATA_SIZE )
+       cr_size= (unsigned)sizeof(putcr_long);
+
+     putcr_long* R= (putcr_long*)Trace::storage_if(cr_size);
+     if( R ) {
+       R->col= htons(uint16_t(col));
+       R->row= htons(uint16_t(row));
+       R->GC= htons(uint16_t(GC));
+       R->length= htons(uint16_t(OUT));
+       if( OUT > putcr_short::DATA_SIZE ) {
+         Trace::Buffer<putcr_long::DATA_SIZE> buff(output);
+         memcpy(R->data, buff.temp, putcr_long::DATA_SIZE);
+       } else {
+         Trace::Buffer<putcr_short::DATA_SIZE> buff(output);
+         memcpy(R->data, buff.temp, putcr_short::DATA_SIZE);
+       }
+       memcpy(R->unit, "data", 4);
+       ((Trace::Record*)R)->trace(".OUT"); // Trace::trace(".OUT", "data")
+     }
    }
 }
 

@@ -10,20 +10,23 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       Utf_type.i
+//       Utf.i
 //
 // Purpose-
-//       Allow application import of UTF types
+//       Import UTF types into default namespace.
 //
 // Last change date-
-//       2024/08/14
+//       2024/08/20
 //
 // Implementation notes-
-//       To avoid namespace collisions, include this from .cpp files.
+//       Include this from a .cpp file to import "Utf.h" types.
+//       (Don't include it from a .h file)
 //
 //----------------------------------------------------------------------------
-#ifndef _LIBPUB_BITS_UTF_TYPE_I_INCLUDED
-#define _LIBPUB_BITS_UTF_TYPE_I_INCLUDED
+#ifndef _LIBPUB_UTF_I_INCLUDED
+#define _LIBPUB_UTF_I_INCLUDED
+
+#include "Utf.h"                    // The import source
 
 //----------------------------------------------------------------------------
 // Exported Utf types
@@ -96,4 +99,4 @@ static inline Length                // Length (in native units)
    utf_strlen(                      // Get length (in bytes)
      const utf32_t*    addr)        // Of this U32-string
 {  return pub::Utf::strlen(addr); }
-#endif // _LIBPUB_BITS_UTF_TYPE_I_INCLUDED
+#endif // _LIBPUB_UTF_I_INCLUDED

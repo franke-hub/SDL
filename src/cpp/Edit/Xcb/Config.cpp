@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2024/08/14
+//       2024/08/23
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -49,6 +49,7 @@
 #include "EdHist.h"                 // For EdFile::debug
 #include "EdMark.h"                 // For EdMark::debug
 #include "EdOpts.h"                 // For EdOpts
+#include "EdOuts.h"                 // For -D IODM recompile signal
 #include "EdUnit.h"                 // For EdUnit
 #include "EdView.h"                 // For EdView::debug
 
@@ -101,6 +102,9 @@ static sig_handler_t   usr2_handler= nullptr; // System SIGUSR2 signal handler
 // Debugging controls- From command line -------------------------------------
 int                    config::opt_hcdm= false; // Hard Core Debug Mode?
 int                    config::opt_verbose= 0;  // Verbosity, larger == more
+
+// Debugging controls- From compile-time definition (-D IODM ) ---------------
+int                    config::opt_iodm= false; // I/O Debug Mode?
 
 // Screen colors ----- From configuration file -------------------------------
 uint32_t               config::mark_bg=    0x00C0F0FF; // Text BG (marked)
@@ -181,10 +185,22 @@ static int                          // Return code (0 OK)
    debug->set_head(pub::Debug::HEAD_TIME);
    pub::Debug::set(debug);
 
-   if( opt_hcdm ) {                 // If Hard Core Debug Mode
+   bool opt_intense= opt_hcdm;
+   #ifdef HCDM
+     opt_hcdm= true;
+     opt_intense= true;
+   #endif
+
+   #ifdef IODM
+     opt_iodm= true;
+     opt_intense= true;
+   #endif
+
+   if( opt_intense )                // If Intensive Debug Mode
      debug->set_mode(pub::Debug::MODE_INTENSIVE);
+
+   if( opt_hcdm )                   // If Hard Core Debug Mode
      traceh("Editor PID(%4d) VID: %s %s\n", getpid(), __DATE__, __TIME__);
-   }
 
    //-------------------------------------------------------------------------
    // Create memory-mapped trace file

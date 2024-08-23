@@ -16,7 +16,7 @@
 //       Editor: Command line processor
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/23
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -37,6 +37,7 @@
 #include "Config.h"                 // For namespace config
 #include "Editor.h"                 // For namespace editor
 #include "EdOpts.h"                 // For EdOpts
+#include "EdOuts.h"                 // For -D IODM recompile signal
 #include "EdUnit.h"                 // For EdUnit (start/join)
 
 using pub::Debug;                   // For Debug object
@@ -276,7 +277,7 @@ extern int                          // Return code
      std::string lang= getenv("LANG");
      if( lang.find(".utf8") == std::string::npos
          && lang.find(".UTF-8") == std::string::npos ) {
-       lang += ".utf8";
+       lang += ".UTF-8";
      }
      setlocale(LC_CTYPE, lang.c_str());
 
@@ -287,8 +288,8 @@ extern int                          // Return code
      Config config(argc, argv);     // Configure
      if( opt_hcdm || opt_verbose > 0 ) {
        Config::errorf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
-       Config::errorf("--hcdm(%d) --verbose(%d) --fg(%d)\n"
-                     , opt_hcdm, opt_verbose, !opt_bg);
+       Config::errorf("--hcdm(%d) --iodm(%d) --verbose(%d) --fg(%d)\n"
+                     , opt_hcdm, config::opt_iodm, opt_verbose, !opt_bg);
      }
 
      Editor editor(optind, argc, argv); // Load the initial file set

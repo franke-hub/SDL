@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/08/14
+//       2024/08/23
 //
 //------------------------------------------------------------------------ -->
 
@@ -30,6 +30,24 @@ within https://opensource.org/licenses/MIT)
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
 ----
+
+#### 08/23/2024 maint
+
+The combined editor is now in production test, with no known new errors.
+Known error: include command after a line with a null terminator does not
+build the undo/redo object correctly.
+
+Added fixes: src/cpp/Edit/Xcb, src/cpp/Edit/Term
+
+Renamed ~/src/cpp/Edit/Xcb/editxcb to xcbedit and
+~/src/cpp/Edit/Term/editerm to xtmedit.
+This also required changes to some scripts in ~/bat/.
+
+Removed obsolete Utf objects.
+Moved ~/src/cpp/inc/pub/Utf.i to ~/src/cpp/inc/pub/bits/Utf.i.
+Moved ~/src/cpp/inc/pub/bits/Utf_types.i to ~/src/cpp/inc/pub/Utf.i.
+~/pub/Utf.i is now the include used to define the Utf.h types in the
+application's namespace.
 
 #### 08/14/2024 maint
 

@@ -15,7 +15,7 @@
 ##       C++ build control makefile
 ##
 ## Last change date-
-##       2024/02/10
+##       2024/08/20
 ##
 ## Implementation notes-
 ##       ~/obj/cpp/Makefile links to this file.
@@ -54,7 +54,7 @@ CPP_ :=
 CPP_ += Brian
 CPP_ += Clean    Clone    Copy
 CPP_ += Darwin   Decoder  Diag
-CPP_ += Edit     Edit/Xcb EiDB
+CPP_ += Edit     Edit/Xcb Edit/Term EiDB
 CPP_ += Fileman  Forth
 CPP_ += Grid
 CPP_ += Hello    Howto    HTTP
@@ -62,7 +62,7 @@ CPP_ += Math
 CPP_ += Neuron   NN2      NNC
 CPP_ += Poker
 CPP_ += RFC
-CPP_ += Sample   Sorter   Stock    Stress
+CPP_ += Sample   Sorter   Stock     Stress
 CPP_ += Tools    Traffic
 CPP_ += Util
 CPP_ += Viewer

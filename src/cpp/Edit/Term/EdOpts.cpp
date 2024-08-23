@@ -16,7 +16,7 @@
 //       TERM Editor: Configuration options.
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/23
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For placement operator new
@@ -167,7 +167,7 @@ std::string                         // The default configuration file
 
 std::string                         // The Editor's name
    EdOpts::EDITOR()
-{  return "editerm"; }
+{  return "xtmedit"; }
 
 std::string                         // Version patch level
    EdOpts::PATCH()

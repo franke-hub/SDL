@@ -16,7 +16,7 @@
 //       XCB Editor: Configuration options.
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/23
 //
 //----------------------------------------------------------------------------
 #include "gui/Device.h"             // For gui::Device, allocated
@@ -106,7 +106,7 @@ std::string                         // The default configuration file
 
 std::string                         // The Editor's name
    EdOpts::EDITOR()
-{  return "editxcb"; }
+{  return "xcbedit"; }
 
 std::string                         // Version patch level
    EdOpts::PATCH()

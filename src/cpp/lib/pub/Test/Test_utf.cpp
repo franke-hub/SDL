@@ -16,7 +16,7 @@
 //       Test Utf.h
 //
 // Last change date-
-//       2024/08/14
+//       2024/08/20
 //
 //----------------------------------------------------------------------------
 #include <endian.h>                 // For endian subroutines
@@ -28,7 +28,7 @@
 
 // The tested includes
 #include "pub/Utf.h"                // For pub:: Utf, ...
-#include "pub/bits/Utf_type.i"      // Import Utf.h types
+#include "pub/Utf.i"                // Import Utf.h types
 
 // Namespace accessors
 #define PUB _LIBPUB_NAMESPACE

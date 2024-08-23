@@ -16,14 +16,15 @@
 ##       Set up EDITOR environment variable (heuristic.)
 ##
 ## Last change date-
-##       2024/05/09
+##       2024/08/20
 ##
 ## Usage-
 ##       . setupEDIT
 ##
 ## Implementation note-
 ##       editor:  The ncurses editor
-##       editxcb: The XCB editor
+##       xcbedit: The xcb editor
+##       xtmedit: The xterm editor
 ##
 ##############################################################################
 
@@ -31,8 +32,8 @@
 ## Heuristic: set EDITOR environment variable
 if [[ -z "$EDITOR" ]] ; then        ## If not already specified
   if [[ -n "$DISPLAY" ]] ; then     ## If we have a DISPLAY
-    export EDITOR="$HOME/bin/editxcb" ## Use XCB editor
+    export EDITOR="$HOME/bin/xcbedit" ## Use XCB editor
   else                              ## No Display
-    export EDITOR="$HOME/bin/editerm" ## Use ncurses editor
+    export EDITOR="$HOME/bin/xtmedit" ## Use X-terminal editor
   fi
 fi

@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/23
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -205,12 +205,12 @@ static const Command_desc  command_desc[]= // The Command descriptor list
 // (These commands will never complete normally.)
 static const char*    invalid_command[]= // The invalid command name list
 {  "ED"                             // Editor
-,  "ET"                             // Terminal editor
+,  "ET"                             // Xterm editor
 ,  "VI"                             // /usr/bin/vi
 ,  "VIEW"                           // /usr/bin/view
-,  "VT"                             // Terminal editor
+,  "VT"                             // Xterm editor
 ,  "editor"                         // Editor
-,  "editerm"                        // Terminal editor
+,  "xtmedit"                        // Xterm editor
 ,  nullptr                          // End of list indicator
 };
 #endif

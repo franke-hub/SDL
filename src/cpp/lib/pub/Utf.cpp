@@ -16,7 +16,7 @@
 //       Implement Utf.h methods.
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/23
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
@@ -27,69 +27,27 @@
 #include <cstdlib>                  // For free, malloc, ...
 #include <cstring>                  // For strcpy, strlen, ...
 #include <endian.h>                 // For endian coversion subroutines
-#include <arpa/inet.h>              // For htons, ntohs
+// #include <arpa/inet.h>              // For htons, ntohs
 
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include "pub/Utf.h"                // Implementation class
-#include <pub/utility.h>            // For pub::to_string, ...
+#include "pub/Utf.i"                // Import Utf types
+#include <pub/utility.h>            // For utility methods (debugging)
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB;                // For PUB library
 using namespace PUB::debugging;     // For debugging methods
-using PUB::utility::dump;           // For dump utility method
-using PUB::utility::to_string;      // For to_string utility method
+using PUB::utility::dump;           // For utility::dump (debugging)
 
-namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-enum                                // Compile-time options
+enum
 {  HCDM= false                      // Hard Core Debug Mode?
-
-,  ROUND_SIZE= 16                   // Allocation rounding size (power of two)
-,  ROUND_MASK= ~(ROUND_SIZE-1)      // Allocation rounding mask
-};                                  // Compile-time options
-
-typedef Utf::utf8_t    utf8_t;      // Import Utf::utf8_t
-typedef Utf::utf16_t   utf16_t;     // Import Utf::utf16_t
-typedef Utf::utf32_t   utf32_t;     // Import Utf::utf32_t
-
-enum { UNI_REPLACEMENT= Utf::UNI_REPLACEMENT }; // Import Utf::UNI_REPLACEMENT
-enum UTF16_OPTIONS // UTF-16 iterator controls
-{  UTF16_LE=   0x00000001           // Option: UTF-16 little endian mode
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 };
 
-//----------------------------------------------------------------------------
-// External data areas
-//----------------------------------------------------------------------------
-const Utf::const_iterator
-                       Utf::the_end; // The default end iterator
-
-//----------------------------------------------------------------------------
-//
-// Struct-
-//       Utf::Init
-//
-// Purpose-
-//       Initialization quasi-iterator, ends when next() == 0
-//
-//----------------------------------------------------------------------------
-struct Utf::Init {                  // (Internal) initialization iterator
-using Function= std::function<utf32_t(Init*)>; // Get next value function
-
-const Function         update;      // Get next value function
-const void*            origin;      // Data origin
-size_t                 offset= 0;   // Data offset
-uint32_t               itopts= 0;   // Iterator controls
-uint32_t               filler= 0;   // (Reserved for expansion)
-uint32_t next(void) { return update(this); } // Iterator
-
-   Init(                            // Constructor
-     const void*       data,        // Data origin
-     const Function&   func)        // Get next value function
-:  update(func), origin(data) {}
-};
-
+namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -103,17 +61,15 @@ uint32_t next(void) { return update(this); } // Iterator
 //----------------------------------------------------------------------------
 static inline utf16_t               // (The adjusted value)
    fetch16(                         // Fetch a utf16_t
-     utf16_t              code,     // The code
-     pub::utf16_decoder::MODE
-                          mode)     // The decoder mode
-{  return (mode != pub::Utf::MODE_LE) ? be16toh(code) : le16toh(code); }
+     utf16_t           code,        // The fetched code
+     MODE              mode)        // The decoder mode
+{  return (mode != MODE_LE) ? be16toh(code) : le16toh(code); }
 
 static inline utf16_t               // (The adjusted value)
    store16(                         // Store a utf16_t
-     utf16_t              code,     // The host
-     pub::utf16_encoder::MODE
-                          mode)     // The encoder mode
-{  return (mode != pub::Utf::MODE_LE) ? htobe16(code) : htole16(code); }
+     utf16_t           code,        // The host code
+     MODE              mode)        // The encoder mode
+{  return (mode != MODE_LE) ? htobe16(code) : htole16(code); }
 
 //----------------------------------------------------------------------------
 //
@@ -128,17 +84,15 @@ static inline utf16_t               // (The adjusted value)
 //----------------------------------------------------------------------------
 static inline utf32_t               // (The adjusted value)
    fetch32(                         // Fetch a utf32_t
-     utf32_t              code,     // The fetched code
-     pub::utf32_decoder::MODE
-                          mode)     // The decoder mode
-{  return (mode != pub::Utf::MODE_LE) ? be32toh(code) : le32toh(code); }
+     utf32_t           code,        // The fetched code
+     MODE              mode)        // The decoder mode
+{  return (mode != MODE_LE) ? be32toh(code) : le32toh(code); }
 
 static inline utf32_t               // (The adjusted value)
    store32(                         // Store a utf32_t
-     utf32_t              code,     // The store code
-     pub::utf32_encoder::MODE
-                          mode)     // The encoder mode
-{  return (mode != pub::Utf::MODE_LE) ? htobe32(code) : htole32(code); }
+     utf32_t           code,        // The host code
+     MODE              mode)        // The encoder mode
+{  return (mode != MODE_LE) ? htobe32(code) : htole32(code); }
 
 //----------------------------------------------------------------------------
 //
@@ -151,856 +105,1688 @@ static inline utf32_t               // (The adjusted value)
 //----------------------------------------------------------------------------
 static inline const char*           // The MODE name
    get_mode_name(                   // Get MODE name given
-     pub::Utf::MODE    mode)        // This mode
+     MODE              mode)        // This mode
 {
    const char* mode_name= "**UNDEFINED**";
-   if( mode == pub::Utf::MODE_BE )
+   if( mode == MODE_BE )
      mode_name= "MODE_BE";
-   else if( mode == pub::Utf::MODE_LE )
+   else if( mode == MODE_LE )
      mode_name= "MODE_LE";
-   else if( mode == pub::Utf::MODE_RESET )
+   else if( mode == MODE_RESET )
      mode_name= "MODE_RESET";
 
    return mode_name;
 }
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
-// Subroutine-
-//       utf8code
-//       utf8size
+// Method-
+//       utf8_decoder::utf8_decoder
 //
 // Purpose-
-//       Get code value
-//       Get code length
+//       Constructors
 //
 //----------------------------------------------------------------------------
-static inline utf32_t
-   utf8code(                        // Value of next code,  error corrected
-     const void*          origin,   // Code origin
-     size_t               offset)   // Code offset
+   utf8_decoder::utf8_decoder(      // Copy constructor
+     const utf8_decoder& from) noexcept // Source utf8_decoder
+:  buffer(from.buffer), length(from.length)
+{  }
+
+   utf8_decoder::utf8_decoder(      // Copy constructor
+     const utf8_encoder& from) noexcept // Source utf8_encoder
+:  buffer(from.buffer), length(from.offset)
+{  }
+
+   utf8_decoder::utf8_decoder(      // Constructor
+     const utf8_t*     addr,        // Decode buffer address
+     Length            size) noexcept // Decode buffer length
+:  buffer(addr), length(size)
+{  }
+
+   utf8_decoder::utf8_decoder(      // Constructor
+     const utf8_t*     addr) noexcept // Decode buffer address
+:  buffer(addr), length(::strlen((char*)addr) + 1)
+{  }
+
+   utf8_decoder::utf8_decoder(      // Constructor
+     const char*       addr,        // Decode buffer address
+     Length            size) noexcept // Decode buffer length
+:  utf8_decoder((utf8_t*)addr, size)
+{  }
+
+   utf8_decoder::utf8_decoder(      // Constructor
+     const char*       addr) noexcept // Decode buffer address
+:  buffer((utf8_t*)addr), length(::strlen(addr) + 1)
+{  }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_decoder::operator=
+//
+// Purpose-
+//       Assignment operators
+//
+//----------------------------------------------------------------------------
+utf8_decoder&                       // (Always *this)
+   utf8_decoder::operator=(         // Replace value from
+     const utf8_decoder&
+                       from) noexcept // This decoder
 {
-   const utf8_t* utf= (utf8_t*)origin;
-   utf32_t code= utf[offset];
-   if( code < 0x80 )
-     return code;
+   if( this == &from )              // Disallow self-copy
+     return *this;                  // (Violates const from)
+
+   buffer= from.buffer;
+   length= from.length;
+   reset();
+   return *this;
+}
+
+utf8_decoder&                       // (Always *this)
+   utf8_decoder::operator=(         // Replace value from
+     const utf8_encoder&
+                       from) noexcept // This encoder
+{
+   buffer= from.buffer;
+   length= from.offset;
+   reset();
+   return *this;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_decoder::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+void
+   utf8_decoder::debug(             // Debugging display
+     const char*       info) const noexcept // Informational message
+{
+   traceh("utf8_decoder(%p) debug(%s)\n"
+          "..buffer(%p) column(%zd) offset(%zd) length(%zd)\n", this, info
+         , buffer, column, offset, length);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_decoder::get_column
+//
+// Purpose-
+//       Get the current column index
+//
+//----------------------------------------------------------------------------
+Utf::Column                         // The current Column index
+   utf8_decoder::get_column( void ) const // Get current Column index
+{
+   if( offset < length ) {          // If there is a current character
+     if( column == Column(-1) || !is_combining(current()) )
+       return column + 1;
+   }
+
+   return column;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_decoder::get_lpoint
+//
+// Purpose-
+//       Get the total (non-combining) codepoint count
+//
+//----------------------------------------------------------------------------
+Utf::Lpoint                         // The total codepoint count
+   utf8_decoder::get_lpoint( void ) const // Get total codepoint count
+{
+   utf8_decoder copy(*this);
+   Lpoint lpoint= 0;
+   while( copy.decode() != UTF_EOF )
+     ++lpoint;
+
+   return lpoint;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_decoder::get_points
+//
+// Purpose-
+//       Get the total column count
+//
+//----------------------------------------------------------------------------
+Utf::Points                         // The total column count
+   utf8_decoder::get_points( void ) const // Get total column count
+{
+   utf8_decoder copy(*this);
+   copy.column= 0;
+   while( copy.decode() != UTF_EOF )
+     ;
+
+   return copy.column;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_decoder::set_column
+//
+// Purpose-
+//       Set the column
+//
+//----------------------------------------------------------------------------
+Utf::Length                         // Number of units past end of buffer
+   utf8_decoder::set_column(        // Set the column
+     Column            IX)          // To this column index
+{
+   if( IX <= column ) {
+     column= -1;
+     offset= 0;
+
+     if( IX == 0 )
+       return 0;
+   }
+
+   while( (column + 1) < IX ) {
+     utf32_t code= decode();
+     if( code == UTF_EOF ) {
+       if( column == Column(-1) )   // If empty decoder
+         return IX;
+       return IX - column;
+     }
+   }
+
+   if( offset > 0 ) {
+     while( is_combining(current()) )
+       decode();
+   }
+
+   if( offset < length )
+     return 0;
+
+   return IX - column;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_decoder::set_cpoint
+//
+// Purpose-
+//       Set the specified codepoint.
+//
+//----------------------------------------------------------------------------
+Utf::Offset                         // Offset, column combining not supported
+   utf8_decoder::set_cpoint(        // Set the codepoint
+     Cpoint            cpoint)      // The (non-combining) codepoint index
+{
+   reset();
+   while( cpoint-- ) {
+     utf32_t code= decode();
+     if( code == UTF_EOF )
+       break;
+   }
+
+   return offset;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_decoder::copy_column
+//
+// Purpose-
+//       Copy the current column, including continuation characters
+//
+// Implementation note-
+//       The resultant's column number is zero.
+//
+//----------------------------------------------------------------------------
+utf8_decoder                        // The current column substring
+   utf8_decoder::copy_column( void ) const // Copy the current column
+{
+   utf8_decoder copy;
+
+   copy.buffer= buffer + offset;
+   copy.length= length - offset;
+
+   copy.decode();                   // (Include the current column codepoint)
+   while( copy.is_combining() )     // Include combining codepoints
+     copy.decode();
+
+   copy.length= copy.offset;
+   copy.column= copy.offset= 0;
+
+   return copy;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_decoder::current
+//
+// Purpose-
+//       Decode the current codepoint
+//
+//----------------------------------------------------------------------------
+utf32_t                             // The current encoding
+   utf8_decoder::current( void )  const // Get current encoding
+{
+   if( offset >= length )
+     return UTF_EOF;
+
+   utf32_t code= buffer[offset];
+   if( code < 0x80 )                // If ASCII encoding
+     return code;                   // (Done)
 
    if( code < 0xC0 || code > 0xF7 ) // If invalid start code
-     return UNI_REPLACEMENT;        // Invalid encoding
+     return UNI_REPLACEMENT;        // Use UNI_REPLACEMENT
 
-   int chars= 2;                    // Number of encoding characters
-   if( code < 0xE0 ) {
+   // Multiple character encodings
+   unsigned size= 2;                // Number of encoding characters
+   if( code < 0xE0 ) {              // (0XC0 .. 0xDF)
+//// size= 2;                       // Two character encoding
      code &= 0x1F;
-   } else if( code < 0xF0 ) {
+   } else if( code < 0xF0 ) {       // (0XE0 .. 0xEF)
+     size= 3;                       // Three character encoding
      code &= 0x0F;
-     chars= 3;
-   } else {
+   } else {                         // (0XF0 .. 0xF7)
+     size= 4;                       // Four character encoding
      code &= 0x07;
-     chars= 4;
    }
 
-   for(int i= 1; i<chars; i++) {
-     code <<= 6;
-     int C= utf[offset + i];
-     if( C < 0x80 || C > 0xBF )     // If invalid continuation character
+   // Decode continuation characters, rejecting invalid encodings
+   if( size > (length - offset ) )
+     return UNI_REPLACEMENT;
+
+   for(unsigned i= 1; i<size; ++i) {
+     int C= buffer[offset + i];
+     if( C < 0x80 || C > 0xBF )
        return UNI_REPLACEMENT;
 
-     code |= (C & 0x3F);
+     code <<= 6;
+     code  |= (C & 0x3F);
    }
 
-   bool overlong= false;
-   if( chars == 2 ) {
-     overlong= (code < 0x00080);
-   } else if( chars == 3 ) {
-     overlong= (code < 0x00800);
-   } else {
-     overlong= (code < 0x010000);
+   // Check for overlong encoding (code < 0x80 already handled)
+   if( size == 2 ) {
+     if( code < 0x0000'0080 )
+       return UNI_REPLACEMENT;
+   } else if( size == 3 ) {
+     if( code < 0x0000'0800 )
+       return UNI_REPLACEMENT;
+   } else /* (size == 4) */ {
+     if( code < 0x0001'0000 )
+       return UNI_REPLACEMENT;
    }
-   if( overlong )
-     return UNI_REPLACEMENT;
+
+   if( !is_unicode(code) )
+     code= UNI_REPLACEMENT;
 
    return code;
 }
 
-static inline int
-   utf8size(                        // Length of next code, error corrected
-     const void*          origin,   // Code origin
-     size_t               offset)   // Code offset
-{
-   const utf8_t* utf= (utf8_t*)origin;
-   utf32_t code= utf[offset];
-   if( code < 0x80 )
-       return (code == 0 ? 0 : 1);    // (Zero length for code 0x00, else 1)
-
-   if( code < 0xC0 || code > 0xF7 ) // If invalid start code
-     return 1;                      // (Only one unit skipped)
-
-   int chars= 2;                    // Number of encoding characters
-   if( code >= 0xE0 ) {
-     if( code < 0xF0 )
-       chars= 3;
-     else
-       chars= 4;
-   }
-
-   for(int i= 1; i<chars; i++) {
-     int C= utf[offset + i];
-     if( C < 0x80 || C > 0xBF )
-       return i;
-   }
-
-   return chars;
-}
-
 //----------------------------------------------------------------------------
 //
-// Class-
-//       Utf8::const_iterator
+// Method-
+//       utf8_decoder::decode
 //
 // Purpose-
-//       Implementations
+//       Decode the next codepoint, updating column and offset
 //
 //----------------------------------------------------------------------------
-   Utf8::const_iterator::const_iterator( // Constructor
-     const utf8_t*     data)     // (const) string origin
-:  Utf::const_iterator()
+Utf::utf32_t                        // The current codepoint
+   utf8_decoder::decode( void )     // Decode, updating column and offset
 {
-   origin= data;
-   assert( origin );             // String origin pointer required
+   if( offset >= length )
+     return UTF_EOF;
 
-   value= utf8code(origin, 0);
-}
-
-Utf8::const_iterator& Utf8::const_iterator::operator++() // (Prefix operator)
-{
-   if( value ) {                    // Disallow skip past end
-     offset += utf8size(origin, offset);
-     value   = utf8code(origin, offset);
+   utf32_t code= buffer[offset];
+   if( code < 0x80 ) {              // If ASCII encoding
+     ++column;
+     ++offset;
+     return code;
    }
 
-   return *this;
+   if( code < 0xC0 || code > 0xF7 ) { // If invalid start code
+     ++column;
+     ++offset;
+     return UNI_REPLACEMENT;        // Use UNI_REPLACEMENT
+   }
+
+   // Multiple character encodings
+   unsigned size= 2;                // Number of encoding characters
+   if( code < 0xE0 ) {              // (0XC0 .. 0xDF)
+//// size= 2;                       // Two character encoding
+     code &= 0x1F;
+   } else if( code < 0xF0 ) {       // (0XE0 .. 0xEF)
+     size= 3;                       // Three character encoding
+     code &= 0x0F;
+   } else {                         // (0XF0 .. 0xF7)
+     size= 4;                       // Four character encoding
+     code &= 0x07;
+   }
+
+   // Decode continuation characters, rejecting invalid encodings
+   if( size > (length - offset ) ) {
+     offset= length;
+     return UNI_REPLACEMENT;
+   }
+
+   ++offset;                        // (Account for the lead character)
+   for(unsigned i= 1; i<size; ++i) {
+     int C= buffer[offset++];
+     if( C < 0x80 || C > 0xBF ) {
+       ++column;
+       return UNI_REPLACEMENT;
+     }
+
+     code <<= 6;
+     code  |= (C & 0x3F);
+   }
+
+   // Check for overlong encoding (size == 1 cannot be overlong)
+   if( size == 2 ) {
+     if( code < 0x0000'0080 )
+       code= UNI_REPLACEMENT;
+   } else if( size == 3 ) {
+     if( code < 0x0000'0800 )
+       code= UNI_REPLACEMENT;
+   } else /* (size == 4) */ {
+     if( code < 0x0001'0000 )
+       code= UNI_REPLACEMENT;
+   }
+
+   if( !is_unicode(code) )
+     code= UNI_REPLACEMENT;
+   if( !is_combining(code) || column == Column(-1) )
+     ++column;
+
+   return code;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Utf8::~Utf8
-//       Utf8::Utf8
+//       utf8_decoder::reset
 //
 // Purpose-
-//       Destructor
+//       Reset the decoder
+//
+//----------------------------------------------------------------------------
+void
+   utf8_decoder::reset(             // Reset the decoder
+     const utf8_t*     addr,        // Encoding buffer pointer
+     Length            size) noexcept // Encoding buffer pointer (unit) Length
+{
+   if( addr == nullptr )
+     size= 0;
+   else if( size == 0 )
+     addr= nullptr;
+
+   buffer= addr;
+   length= size;
+   column= -1;
+   offset= 0;
+}
+
+void
+   utf8_decoder::reset( void ) noexcept // Reset the decoder to initial state
+{  column= -1; offset= 0; }         // (Leaving length unchanged)
+
+//============================================================================
+//
+// Method-
+//       utf16_decoder::utf16_decoder
+//
+// Purpose-
 //       Constructors
 //
 //----------------------------------------------------------------------------
-   Utf8::~Utf8( void )              // Destructor
-{  if( HCDM ) debugf("%4d Utf8(%p)::~Utf8\n", __LINE__, this);
+   utf16_decoder::utf16_decoder(    // Copy constructor
+     const utf16_decoder& from) noexcept // Source utf16_decoder
+:  buffer(from.buffer), length(from.length), mode(from.mode)
+{  reset(buffer, length, mode); }
 
-   free(data);
+   utf16_decoder::utf16_decoder(    // Copy constructor
+     const utf16_encoder& from) noexcept // Source utf16_encoder
+:  buffer(from.buffer), length(from.length), mode(from.mode)
+{  reset(buffer, length, mode); }
+
+   utf16_decoder::utf16_decoder(    // Buffer constructor
+     const utf16_t*    addr,        // Buffer address
+     Length            size,        // Buffer length (native units)
+     MODE              mode) noexcept // Encoding mode
+:  buffer(addr), length(size), mode(mode)
+{  reset(buffer, length, mode); }
+
+   utf16_decoder::utf16_decoder(    // Buffer constructor
+     const utf16_t*    addr,        // Buffer address
+     MODE              mode) noexcept // Encoding mode
+:  buffer(addr), length(strlen(addr) + 1), mode(mode)
+{  reset(buffer, length, mode); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_decoder::operator=
+//
+// Purpose-
+//       Assignment operators
+//
+//----------------------------------------------------------------------------
+utf16_decoder&                      // (Always *this)
+   utf16_decoder::operator=(        // Replace value copying (in-place)
+     const utf16_decoder&
+                       from) noexcept // This decoder
+{
+   if( this == &from )              // Disallow self-copy
+     return *this;                  // (Violates const from)
+
+   buffer= from.buffer;
+   length= from.length;
+   mode= from.mode;
+   reset();
+
+   return *this;
 }
 
-   Utf8::Utf8( void )               // Default constructor
-{  if( HCDM ) debugf("%4d Utf8(%p)::Utf8\n", __LINE__, this); }
+utf16_decoder&                      // (Always *this)
+   utf16_decoder::operator=(        // Replace value copying (in-place)
+     const utf16_encoder&
+                       from) noexcept // This encoder
+{
+   buffer= from.buffer;
+   length= from.offset;
+   mode= from.mode;
+   reset();
 
-   Utf8::Utf8(                      // Copy constructor
-     const Utf8&       src)         // Source Utf8
-{  if( HCDM )
-     debugf("%4d Utf8(%p)::Utf8(Utf8& %s)\n", __LINE__, this, src.data);
-
-   init(src.get_init());
-}
-
-   Utf8::Utf8(                      // Move constructor
-           Utf8&&      src)         // Source Utf8
-:  data(src.data), size(src.size), codes(src.codes), units(src.units)
-{  if( HCDM )
-     debugf("%4d Utf8(%p)::Utf8(Utf8&& %s)\n", __LINE__, this, src.data);
-
-   src.reset();
-}
-
-   Utf8::Utf8(                      // Constructor
-     const utf8_t*     src)         // Source utf8_t string
-{  if( HCDM ) debugf("%4d Utf8(%p)::Utf8(char* %s)\n", __LINE__, this, src);
-
-   init(Utf8::get_init(src));
-}
-
-   Utf8::Utf8(                      // Constructor
-     const utf16_t*    src)         // Source utf16_t string
-{  if( HCDM )
-     debugf("%4d Utf8(%p)::Utf8(Utf16& %p)\n", __LINE__, this, src);
-
-   init(Utf16::get_init(src));
-}
-
-   Utf8::Utf8(                      // Constructor
-     const utf32_t*    src)         // Source utf32_t string
-{  if( HCDM )
-     debugf("%4d Utf8(%p)::Utf8(Utf32& %p)\n", __LINE__, this, src);
-
-   init(Utf32::get_init(src));
-}
-
-   Utf8::Utf8(                      // Constructor
-     const Utf16&      src)         // Source Utf16 object
-{  if( HCDM )
-     debugf("%4d Utf8(%p)::Utf8(Utf16& %p)\n", __LINE__, this, &src);
-
-   init(src.get_init());
-}
-
-   Utf8::Utf8(                      // Constructor
-     const Utf32&      src)         // Source Utf32 object
-{  if( HCDM )
-     debugf("%4d Utf8(%p)::Utf8(Utf32& %p)\n", __LINE__, this, &src);
-
-   init(src.get_init());
+   return *this;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Utf8::get_init
-//       Utf8::init
+//       utf16_decoder::debug
 //
 // Purpose-
-//       Initialization
+//       Debugging display
 //
 //----------------------------------------------------------------------------
-static utf32_t                      // Resultant
-   utf8iter(                        // Get next codepoint
-     Utf::Init*        self)        // For this Utf::Init
+void
+   utf16_decoder::debug(            // Debugging display
+     const char*       info) const noexcept // Informational message
 {
-   uint32_t value= utf8code(self->origin, self->offset);
-   if( value )
-     self->offset += utf8size(self->origin, self->offset);
-   return value;
+   traceh("utf16_decoder(%p) debug(%s)\n"
+          "..buffer(%p) column(%zd) offset(%zd) length(%zd) mode(%s)\n", this
+         , info, buffer, column, offset, length, get_mode_name(mode));
 }
 
-Utf::Init
-   Utf8::get_init(                  // Get initializer
-     const utf8_t*     data)        // From data
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_decoder::get_column
+//
+// Purpose-
+//       Get the current column index
+//
+//----------------------------------------------------------------------------
+Utf::Column                         // The current Column index
+   utf16_decoder::get_column( void ) const // Get current Column index
 {
-   if( data == nullptr )
-     data= (const utf8_t*)"";
+   if( offset < length ) {          // If there is a current character
+     if( column == Column(-1) || !is_combining(current()) )
+       return column + 1;
+   }
 
-   Init init(data, utf8iter);
-   return init;
+   return column;
 }
 
-Utf::Init
-   Utf8::get_init( void ) const     // Get initializer
-{  return get_init(data); }
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_decoder::get_lpoint
+//
+// Purpose-
+//       Get the total (non-combining) codepoint count
+//
+//----------------------------------------------------------------------------
+Utf::Lpoint                         // The total codepoint count
+   utf16_decoder::get_lpoint( void ) const // Get total codepoint count
+{
+   utf16_decoder copy(*this);
+   Lpoint lpoint= 0;
+   while( copy.decode() != UTF_EOF )
+     ++lpoint;
+
+   return lpoint;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_decoder::get_origin
+//
+// Purpose-
+//       Get the origin, accounting for BYTE_ORDER_MARK
+//
+//----------------------------------------------------------------------------
+Utf::Offset                         // The origin, either 0 or 1
+   utf16_decoder::get_origin( void ) const // Get the origin
+{
+   if( length == 0 )                // If no room for a BYTE_ORDER_MARK
+     return 0;                      // Use default origin
+
+   if( mode == MODE_RESET ) {       // If the mode isn't set
+     if( be16toh(buffer[0]) == BYTE_ORDER_MARK
+         || be16toh(buffer[0]) == MARK_ORDER_BYTE )
+       return 1;
+
+     return 0;                      // No BYTE_ORDER_MARK found
+   }
+
+   if( fetch16(buffer[0], mode) == BYTE_ORDER_MARK )
+     return 1;
+
+   return 0;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_decoder::get_points
+//
+// Purpose-
+//       Get the total codepoint count
+//
+//----------------------------------------------------------------------------
+Utf::Points                         // The total codepoint count
+   utf16_decoder::get_points( void ) const // Get total codepoint count
+{
+   utf16_decoder copy(*this);
+   copy.column= 0;
+   while( copy.decode() != UTF_EOF )
+     ;
+
+   return copy.column;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_decoder::set_column
+//
+// Purpose-
+//       Set the specified Column
+//
+//----------------------------------------------------------------------------
+Utf::Length                         // The number of units past end of buffer
+   utf16_decoder::set_column(       // Set column to
+     Column            IX)          // This column index
+{
+   if( IX <= column ) {
+     column= -1;
+     offset= get_origin();
+
+     if( IX == 0 )
+       return 0;
+   }
+
+   while( (column + 1) < IX ) {
+     utf32_t code= decode();
+     if( code == UTF_EOF ) {
+       if( column == Column(-1) )   // If empty decoder
+         return IX;
+       return IX - column;
+     }
+   }
+
+   if( offset > get_origin() ) {
+     while( is_combining(current()) )
+       decode();
+   }
+
+   if( offset < length )
+     return 0;
+
+   return IX - column;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_decoder::set_cpoint
+//
+// Purpose-
+//       Set the specified codepoint.
+//
+//----------------------------------------------------------------------------
+Utf::Offset                         // Offset, column combining not supported
+   utf16_decoder::set_cpoint(       // Set the codepoint
+     Cpoint            cpoint)      // The (non-combining) codepoint index
+{
+   reset();
+   offset= 0;
+   while( cpoint-- ) {
+     utf32_t code= decode();
+     if( code == UTF_EOF )
+       break;
+   }
+
+   return offset;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_decoder::set_mode
+//
+// Purpose-
+//       Set/initialize the decoder MODE
+//
+//----------------------------------------------------------------------------
+void
+   utf16_decoder::set_mode(         // Set decoding mode
+     MODE              M)           // The decoding mode
+{
+   if( offset || M > MODE_LE ) {    // If decoding started or invalid MODE
+     traceh("decoder16::set_mode(%d) offset(%zd)\n", M, offset);
+     throw utf_error("set_mode usage error");
+   }
+
+   if( mode != MODE_RESET && M != mode ) { // If mode switch
+     traceh("decoder16::set_mode(%d) mode(%d)\n", M, mode);
+     throw utf_error("set_mode usage error");
+   }
+
+   mode= M;
+}
+
+int                                 // Return code, 0 OK
+   utf16_decoder::set_mode( void )  // Initialize decoding mode
+{
+   if( mode != MODE_RESET )         // If "already initialized" error
+     return -1;                     // (MODE remains unchanged)
+
+   if( offset > 1 )                 // If "decoding started" error
+     return -2;                     // (MODE remains MODE_RESET, big endian)
+
+   // If a little endian BYTE_ORDER_MARK is found, set little endian mode
+   if( length > 0 && be16toh(buffer[0]) == MARK_ORDER_BYTE )
+     mode= MODE_LE;               // Set little endian mode
+   else                           // (May have a big endian BYTE_ORDER_MARK)
+     mode= MODE_BE;               // Use the default mode
+
+   return 0;                      // Mode initialized
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_decoder::copy_column
+//
+// Purpose-
+//       Copy the current column, including continuation characters
+//
+// Implementation note-
+//       The resultant's column number is zero.
+//
+//----------------------------------------------------------------------------
+utf16_decoder                        // The current column substring
+   utf16_decoder::copy_column( void ) const // Copy the current column
+{
+   utf16_decoder copy;
+
+   copy.buffer= buffer + offset;
+   copy.length= length - offset;
+
+   copy.decode();                   // (Include the current column codepoint)
+   while( copy.is_combining() )     // Include combining codepoints
+     copy.decode();
+
+   copy.length= copy.offset;
+   copy.column= copy.offset= 0;
+
+   return copy;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_decoder::current
+//
+// Purpose-
+//       Get the current codepoint
+//
+//----------------------------------------------------------------------------
+utf32_t                             // The current codepoint
+   utf16_decoder::current( void ) const // Get current codepoint
+{
+   if( offset >= length )
+     return UTF_EOF;
+
+   utf32_t code= fetch16(buffer[offset], mode);
+   if( code < 0x00'D800 || code >= 0x00'E000 ) // If standard encoding
+     return code;
+
+   // Surrogate pair encoding
+   if( code >= 0x00'DC00 )          // Second half of encoding first: ERROR
+     return UNI_REPLACEMENT;
+
+   if( 2 > (length - offset ) )     // If second half missing (not in buffer)
+     return UNI_REPLACEMENT;
+
+   utf32_t half= fetch16(buffer[offset+1], mode); // Get second half of pair
+   if( half < 0x00'DC00 || half >= 0x00'E000 ) // If second half invalid
+     return UNI_REPLACEMENT;
+
+   // Resultant is always in unicode range but never in surrogate pair range.
+   code= 0x01'0000 + ((code & 0x00'03FF) << 10 | (half & 0x00'03FF));
+
+   return code;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_decoder::decode
+//
+// Purpose-
+//       Decode the current codepoint, updating column and offset
+//
+//----------------------------------------------------------------------------
+utf32_t                             // The current codepoint
+   utf16_decoder::decode( void )    // Decode, updating column and offset
+{
+   if( offset >= length )
+     return UTF_EOF;
+
+   utf32_t code= fetch16(buffer[offset], mode);
+   if( code < 0x00'D800 || code >= 0x00'E000 ) { // If standard encoding
+     if( !is_combining(code) || column == Column(-1) )
+       ++column;
+     ++offset;
+     return code;
+   }
+
+   // Surrogate pair encoding
+   if( code >= 0x00'DC00 ) {        // Second half of encoding first: ERROR
+     ++column;
+     ++offset;
+     return UNI_REPLACEMENT;
+   }
+
+   if( 2 > (length - offset ) ) {   // If second half missing (not in buffer)
+     ++column;
+     ++offset;
+     return UNI_REPLACEMENT;
+   }
+
+   utf32_t half= fetch16(buffer[offset+1], mode); // Get second half of pair
+   if( half < 0x00'DC00 || half >= 0x00'E000 ) { // If second half invalid
+     ++column;
+     ++offset;
+     return UNI_REPLACEMENT;
+   }
+
+   // Resultant is always in unicode range but never in surrogate pair range.
+   code= 0x01'0000 + ((code & 0x00'03FF) << 10 | (half & 0x00'03FF));
+   if( !is_combining(code) || column == Column(-1) )
+     ++column;
+   offset += 2;
+
+   return code;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_decoder::reset
+//
+// Purpose-
+//       Reset the decoder
+//
+//----------------------------------------------------------------------------
+void
+   utf16_decoder::reset(            // Reset the decoder
+     const utf16_t*    addr,        // Buffer address
+     Length            size,        // Buffer length (in units)
+     MODE              mode) noexcept // The decoding mode
+{
+   if( addr == nullptr )
+     size= 0;
+   else if( size == 0 )
+     addr= nullptr;
+
+   buffer= addr;
+   length= size;
+   this->mode= mode;
+   column= -1;
+   offset= get_origin();
+}
 
 void
-   Utf8::init(                      // Initialize
-     const Init&       init)        // Using this initializer
+   utf16_decoder::reset( void ) noexcept // Reset the decoder to initial state
+{  column= -1; offset= get_origin(); } // (Leaving length and mode unchanged)
+
+//============================================================================
+//
+// Method-
+//       utf32_decoder::utf32_decoder
+//
+// Purpose-
+//       Constructors
+//
+//----------------------------------------------------------------------------
+   utf32_decoder::utf32_decoder(    // Copy constructor
+     const utf32_decoder& from) noexcept // Source utf32_decoder
+:  buffer(from.buffer), length(from.length), mode(from.mode)
+{  reset(buffer, length, mode); }
+
+   utf32_decoder::utf32_decoder(    // Copy constructor
+     const utf32_encoder& from) noexcept // Source utf32_encoder
+:  buffer(from.buffer), length(from.length), mode(from.mode)
+{  reset(buffer, length, mode); }
+
+   utf32_decoder::utf32_decoder(    // Buffer constructor
+     const utf32_t*    addr,        // Buffer address
+     Length            size,        // Buffer length (native units)
+     MODE              mode) noexcept // Encoding mode
+:  buffer(addr), length(size), mode(mode)
+{  reset(buffer, length, mode); }
+
+   utf32_decoder::utf32_decoder(    // Buffer constructor
+     const utf32_t*    addr,        // Buffer address
+     MODE              mode) noexcept // Encoding mode
+:  buffer(addr), length(strlen(addr) + 1), mode(mode)
+{  reset(buffer, length, mode); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_decoder::operator=
+//
+// Purpose-
+//       Assignment operators
+//
+//----------------------------------------------------------------------------
+utf32_decoder&                      // (Always *this)
+   utf32_decoder::operator=(        // Replace value copying (in-place)
+     const utf32_decoder&
+                       from) noexcept // This decoder
 {
-   // Handle empty initializer
-   this->codes= 0;
-   this->units= 0;
-   if( init.origin == nullptr )
-     return;
+   if( this == &from )              // Disallow self-copy
+     return *this;                  // (Violates const from)
 
-   // Count codes and units
-   Init copy= init;
-   size_t codes= 0;
-   size_t units= 0;
-   utf32_t value= copy.next();
-   while( value ) {
-     codes++;
-     units += length(value);
-     value= copy.next();
+   buffer= from.buffer;
+   length= from.length;
+   mode= from.mode;
+   reset();
+
+   return *this;
+}
+
+utf32_decoder&                      // (Always *this)
+   utf32_decoder::operator=(        // Replace value copying (in-place)
+     const utf32_encoder&
+                       from) noexcept // This encoder
+{
+   buffer= from.buffer;
+   length= from.offset;
+   mode= from.mode;
+   reset();
+
+   return *this;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_decoder::debug
+//
+// Purpose-
+//       Debugging display
+//
+//----------------------------------------------------------------------------
+void
+   utf32_decoder::debug(            // Debugging display
+     const char*       info) const noexcept // Informational message
+{
+   traceh("utf32_decoder(%p) debug(%s)\n"
+          "..buffer(%p) column(%zd) offset(%zd) length(%zd) mode(%s)\n", this
+         , info, buffer, column, offset, length, get_mode_name(mode));
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_decoder::get_column
+//
+// Purpose-
+//       Get the current column index
+//
+//----------------------------------------------------------------------------
+Utf::Column                         // The current Column index
+   utf32_decoder::get_column( void ) const // Get current Column index
+{
+   if( offset < length ) {          // If there is a current character
+     if( column == Column(-1) || !is_combining(current()) )
+       return column + 1;
    }
-   if( codes == 0 )                 // If empty source
-     return;
 
-   // If needed, update the data buffer
-   size_t size= units + ROUND_SIZE;
-   size &= ROUND_MASK;
-   if( size > this->size ) {
-     free(data);
-     data= (utf8_t*)malloc(size);
-     if( data == nullptr ) {
-       this->size= 0;
-       throw std::bad_alloc();
+   return column;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_decoder::get_lpoint
+//
+// Purpose-
+//       Get the total (non-combining) codepoint count
+//
+//----------------------------------------------------------------------------
+Utf::Lpoint                         // The total codepoint count
+   utf32_decoder::get_lpoint( void ) const // Get total codepoint count
+{
+   utf32_decoder copy(*this);
+   Lpoint lpoint= 0;
+   while( copy.decode() != UTF_EOF )
+     ++lpoint;
+
+   return lpoint;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_decoder::get_origin
+//
+// Purpose-
+//       Get the origin, accounting for BYTE_ORDER_MARK
+//
+//----------------------------------------------------------------------------
+Utf::Offset                         // The origin, either 0 or 1
+   utf32_decoder::get_origin( void ) const // Get the origin
+{
+   if( length == 0 )                // If no room for a BYTE_ORDER_MARK
+     return 0;                      // Use default origin
+
+   if( mode == MODE_RESET ) {       // If the mode isn't set
+     if( be32toh(buffer[0]) == BYTE_ORDER_MARK32
+         || be32toh(buffer[0]) == MARK_ORDER_BYTE32 )
+       return 1;
+
+     return 0;                      // No BYTE_ORDER_MARK found
+   }
+
+   if( fetch32(buffer[0], mode) == BYTE_ORDER_MARK32 )
+     return 1;
+
+   return 0;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_decoder::get_points
+//
+// Purpose-
+//       Get the total codepoint count
+//
+//----------------------------------------------------------------------------
+Utf::Points                         // The total codepoint count
+   utf32_decoder::get_points( void ) const // Get total codepoint count
+{
+   utf32_decoder copy(*this);
+   copy.column= 0;
+   while( copy.decode() != UTF_EOF )
+     ;
+
+   return copy.column;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_decoder::set_column
+//
+// Purpose-
+//       Set the specified Column
+//
+//----------------------------------------------------------------------------
+Utf::Length                         // The number of (units) past end
+   utf32_decoder::set_column(       // Set column to
+     Column            IX)          // This column index
+{
+   if( IX <= column ) {
+     column= -1;
+     offset= get_origin();
+
+     if( IX == 0 )
+       return 0;
+   }
+
+   while( (column + 1) < IX ) {
+     utf32_t code= decode();
+     if( code == UTF_EOF ) {
+       if( column == Column(-1) )   // If empty decoder
+         return IX;
+       return IX - column;
      }
-     this->size= size;
    }
 
-   // Encode the source
-   copy.offset= 0;                  // Start over
-   value= copy.next();
-   while( value ) {
-     this->codes++;
-     // assert( (this->units + length(value)) < size ); // See TLDR comment
-     this->units += encode(value, data + this->units);
-     value= copy.next();
+   if( offset > get_origin() ) {
+     while( is_combining(current()) )
+       decode();
    }
-   data[units]= '\0';
 
-   // TLDR: Checking overflow for each operation doesn't add protection.
-   // Anything that could cause the data to change between scans could more
-   // easily corrupt the data buffer without needing this code as its proxy.
-   // This after the fact check is too late to avoid a buffer overrun, but
-   // it (or a SEGFAULT) is enough to detect that it happened.
-   assert( this->codes == codes && this->units == units );
+   if( offset < length )
+     return 0;
+
+   return IX - column;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Utf8::operators
+//       utf32_decoder::set_cpoint
 //
 // Purpose-
-//       Operator method implementations
+//       Set the specified codepoint.
 //
 //----------------------------------------------------------------------------
-Utf8& Utf8::operator= (const Utf8& src) // Copy Utf8 object
+Utf::Offset                         // Offset, column combining not supported
+   utf32_decoder::set_cpoint(       // Set the codepoint
+     Cpoint            cpoint)      // The (non-combining) codepoint index
 {
-   if( this != &src )               // (Already equal to self)
-     init(src.get_init());          // (And this would free data before copy)
-
-   return *this;
-}
-
-Utf8& Utf8::operator= (      Utf8&& src) // Move Utf8 object
-{
-   if( this != &src ) {             // (Already equal to self)
-     free(data);                    // (And this would free data before move)
-
-     data= src.data;
-     size= src.size;
-     codes= src.codes;
-     units= src.units;
-
-     src.reset();
+   reset();
+   offset= 0;
+   while( cpoint-- ) {
+     utf32_t code= decode();
+     if( code == UTF_EOF )
+       break;
    }
 
-   return *this;
-}
-
-Utf8& Utf8::operator= (const Utf16& src) // Copy Utf16 object
-{
-   init(src.get_init());
-   return *this;
-}
-
-Utf8& Utf8::operator= (const Utf32& src) // Copy Utf32 object
-{
-   init(src.get_init());
-   return *this;
-}
-
-Utf8& Utf8::operator= (const utf8_t* src) // Copy utf8_t string
-{
-   init(Utf8::get_init(src));
-   return *this;
+   return offset;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Utf8::get_codes
+//       utf32_decoder::set_mode
 //
 // Purpose-
-//       Get the length of a string in codepoints
+//       Set the decoder MODE
 //
 //----------------------------------------------------------------------------
-size_t                              // The length of the (utf8) string
-   Utf8::get_codes(                 // Get length (in codepoints)
-     const std::string src)         // Of this string
+void
+   utf32_decoder::set_mode(         // Set decoding mode
+     MODE              M)           // The decoding mode
 {
-   const char* origin= src.c_str();
-   size_t offset= 0;
-   size_t length= src.length();
-
-   size_t col_count= 0;
-   while( offset < length ) {
-     ++col_count;
-     unsigned L= utf8size(origin, offset);
-     offset += L;
+   if( offset || M > MODE_LE ) {    // If decoding started or invalid MODE
+     traceh("decoder32::set_mode(%d) offset(%zd)\n", M, offset);
+     throw utf_error("set_mode usage error");
    }
 
-   return col_count;
+   if( mode != MODE_RESET && M != mode ) { // If mode switch
+     traceh("decoder32::set_mode(%d) mode(%d)\n", M, mode);
+     throw utf_error("set_mode usage error");
+   }
+
+   mode= M;
+}
+
+int                                 // Return code, 0 OK
+   utf32_decoder::set_mode( void )  // Initialize decoding mode
+{
+   if( mode != MODE_RESET )         // If "already initialized" error
+     return -1;                     // (MODE remains unchanged)
+
+   if( offset > 1 )                 // If "decoding started" error
+     return -2;                     // (MODE remains MODE_RESET, big endian)
+
+   // If a little endian BYTE_ORDER_MARK is found, set little endian mode
+   if( length > 0 && be32toh(buffer[0]) == MARK_ORDER_BYTE32 )
+     mode= MODE_LE;               // Set little endian mode
+   else                           // (May have a big endian BYTE_ORDER_MARK)
+     mode= MODE_BE;               // Use the default mode
+
+   return 0;                      // Mode initialized
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Utf8::decode
+//       utf32_decoder::copy_column
 //
 // Purpose-
-//       Decode the next codepoint
+//       Copy the current column, including continuation characters
+//
+// Implementation note-
+//       The resultant's column number is zero.
+//
+//----------------------------------------------------------------------------
+utf32_decoder                        // The current column substring
+   utf32_decoder::copy_column( void ) const // Copy the current column
+{
+   utf32_decoder copy;
+
+   copy.buffer= buffer + offset;
+   copy.length= length - offset;
+
+   copy.decode();                   // (Include the current column codepoint)
+   while( copy.is_combining() )     // Include combining codepoints
+     copy.decode();
+
+   copy.length= copy.offset;
+   copy.column= copy.offset= 0;
+
+   return copy;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_decoder::current
+//
+// Purpose-
+//       Get the current codepoint
+//
+//----------------------------------------------------------------------------
+utf32_t                             // The current codepoint
+   utf32_decoder::current( void ) const // Get current codepoint
+{
+   if( offset >= length )
+     return UTF_EOF;
+
+   utf32_t code= fetch32(buffer[offset], mode);
+   if( !is_unicode(code) )
+     code= UNI_REPLACEMENT;
+
+   return code;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_decoder::decode
+//
+// Purpose-
+//       Decode the current codepoint, updating column and offset
+//
+//----------------------------------------------------------------------------
+utf32_t                             // The current codepoint
+   utf32_decoder::decode( void )    // Decode, updating column and offset
+{
+   if( offset >= length )           // If EOF position
+     return UTF_EOF;
+
+   utf32_t code= fetch32(buffer[offset++], mode);
+   if( !is_unicode(code) )
+     code= UNI_REPLACEMENT;
+
+   if( !is_combining(code) || column == Column(-1) ) {
+     ++column;
+   }
+
+   return code;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_decoder::reset
+//
+// Purpose-
+//       Reset the decoder
+//
+//----------------------------------------------------------------------------
+void
+   utf32_decoder::reset(            // Reset the decoder
+     const utf32_t*    addr,        // Buffer address
+     Length            size,        // Buffer length (in units)
+     MODE              mode) noexcept // The decoding mode
+{
+   if( addr == nullptr )
+     size= 0;
+   else if( size == 0 )
+     addr= nullptr;
+
+   buffer= addr;
+   length= size;
+   this->mode= mode;
+   column= -1;
+   offset= get_origin();
+}
+
+void
+   utf32_decoder::reset( void ) noexcept // Reset the decoder to initial state
+{  column= -1; offset= get_origin(); } // (Leaving length and mode unchanged)
+
+//============================================================================
+//
+// Method-
+//       utf8_encoder::utf8_encoder
+//
+// Purpose-
+//       Constructors
+//
+//----------------------------------------------------------------------------
+   utf8_encoder::utf8_encoder(      // Address/length encoder
+     utf8_t*           addr,        // Address
+     Length            size) noexcept // Length
+:  buffer(addr), length(size) { }
+
+   utf8_encoder::utf8_encoder(      // Address/length encoder
+     char*             addr,        // Address
+     Length            size) noexcept // Length
+:  utf8_encoder((utf8_t*)addr, size) { }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_encoder::operator=
+//
+// Purpose-
+//       Assignment operators
 //
 // Implementation notes-
-//       REMEMBER, there might not be a terminating character
+//       We *DO NOT COPY* utf16_t or utf32_t initial BYTE_ORDER_MARKs.
 //
 //----------------------------------------------------------------------------
-Utf::utf32_t                        // The next UTF32 codepoint
-   Utf8::decode(                    // Decode next codepoint
-     const utf8_t*     utf)         // Encoding buffer pointer
-{  return utf8code(utf, 0); }
+utf8_encoder&                       // (Always *this)
+   utf8_encoder::operator=(         // Replace value copying
+     const utf8_decoder&
+                       from) noexcept(false) // This decoder
+{
+   if( buffer == from.buffer ) {    // If we're using the same buffer
+     if( from.get_length() > length ) // If buffer length mismatch
+       throw utf_error("operator=() incomplete"); // (offset > length) error
+
+     column= from.get_points();
+     offset= from.get_length();
+     return *this;
+   }
+
+   utf8_decoder copy(from);         // Copy the decoder (so from's constant)
+
+   // Copy the copied decoder, column by column
+   reset();
+   for(;;) {
+     utf32_t code= copy.decode();   // Decode the next codepoint
+     if( code == UTF_EOF )          // If EOF
+       break;
+
+     if( encode(code) == 0 )        // If not enough room
+       throw utf_error("operator=() incomplete");
+   }
+
+   return *this;
+}
+
+utf8_encoder&                       // (Always *this)
+   utf8_encoder::operator=(         // Replace value copying
+     const utf16_decoder&
+                       from) noexcept(false) // This decoder
+{
+   utf16_decoder copy(from);        // Copy the decoder (so from's constant)
+
+   // Copy the copied decoder, column by column
+   reset();
+   for(;;) {
+     utf32_t code= copy.decode();   // Decode the next codepoint
+     if( code == UTF_EOF )          // If EOF
+       break;
+
+     if( encode(code) == 0 )        // If not enough room
+       throw utf_error("operator=() incomplete");
+   }
+
+   return *this;
+}
+
+utf8_encoder&                       // (Always *this)
+   utf8_encoder::operator=(         // Replace value copying
+     const utf32_decoder&
+                       from) noexcept(false) // This decoder
+{
+   utf32_decoder copy(from);        // Copy the decoder (so from's constant)
+
+   // Copy the copied decoder, column by column
+   reset();
+   for(;;) {
+     utf32_t code= copy.decode();   // Decode the next codepoint
+     if( code == UTF_EOF )          // If EOF
+       break;
+
+     if( encode(code) == 0 )        // If not enough room
+       throw utf_error("operator=() incomplete");
+   }
+
+   return *this;
+}
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Utf8::encode
+//       utf8_encoder::debug
 //
 // Purpose-
-//       Encode a codepoint
+//       Debugging display
 //
 //----------------------------------------------------------------------------
-unsigned                            // The UTF8 encoding length
-   Utf8::encode(                    // Get UTF8 encoding
-     utf32_t           code,        // For this codepoint
-     utf8_t*           buff)        // (OUT) Encoding buffer
+void
+   utf8_encoder::debug(             // Debugging display
+     const char*       info) const noexcept // Informational message
 {
-   if( !is_unicode(code) )          // If codepoint is invalid
-     code= UNI_REPLACEMENT;         // Encode replacement character
+   traceh("utf8_encoder(%p) debug(%s)\n"
+          "..buffer(%p) column(%zd) offset(%zd) length(%zd)\n", this, info
+         , buffer, column, offset, length);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_encoder::utf8_encode
+//
+// Purpose-
+//       Encode one codepoint
+//
+// Implementation notes-
+//       Currently no combining codepoints have 4 character encodings, but
+//       who knows what tomorrow brings?
+//       We check whether 4 character encodings are combining anyway.
+//
+//----------------------------------------------------------------------------
+unsigned                            // The encoding length
+   utf8_encoder::encode(            // Encode, updating column and offset
+     utf32_t           code)        // This codepoint
+{
+   if( offset >= length )           // If buffer full
+     return 0;
 
    if( code < 0x0000'0080 ) {       // Single byte encoding
-     buff[0]= (utf8_t)code;
+     buffer[offset++]= (utf8_t)code;
+     ++column;
      return 1;
    }
 
+   Length left= length - offset;    // The available buffer length
    if( code < 0x0000'0800 ) {       // Two byte encoding
-     buff[1]= (utf8_t)((code & 0x3F) | 0x80);
+     if( left < 2 )
+       return 0;
+
+     buffer[offset + 1]= (utf8_t)((code & 0x3F) | 0x80);
      code >>= 6;
-     buff[0]= (utf8_t)(code | 0xC0);
+     buffer[offset + 0]= (utf8_t)(code | 0xC0);
+     if( offset == 0 || !is_combining(code) )
+       ++column;
+     offset += 2;
      return 2;
    }
 
+   if( !is_unicode(code) )          // If invalid codepoint
+     code= UNI_REPLACEMENT;         // Use replacement codepoint
    if( code < 0x0001'0000 ) {       // Three byte encoding
-     buff[2]= (utf8_t)((code & 0x3F) | 0x80);
+     if( left < 3 )
+       return 0;
+
+     buffer[offset + 2]= (utf8_t)((code & 0x3F) | 0x80);
      code >>= 6;
-     buff[1]= (utf8_t)((code & 0x3F) | 0x80);
+     buffer[offset + 1]= (utf8_t)((code & 0x3F) | 0x80);
      code >>= 6;
-     buff[0]= (utf8_t)(code | 0xE0);
+     buffer[offset + 0]= (utf8_t)(code | 0xE0);
+     if( offset == 0 || !is_combining(code) )
+       ++column;
+     offset += 3;
      return 3;
    }
 
    // Four byte encoding
-   buff[3]= (utf8_t)((code & 0x3F) | 0x80);
+   if( left < 4 )
+     return 0;
+
+   buffer[offset + 3]= (utf8_t)((code & 0x3F) | 0x80);
    code >>= 6;
-   buff[2]= (utf8_t)((code & 0x3F) | 0x80);
+   buffer[offset + 2]= (utf8_t)((code & 0x3F) | 0x80);
    code >>= 6;
-   buff[1]= (utf8_t)((code & 0x3F) | 0x80);
+   buffer[offset + 1]= (utf8_t)((code & 0x3F) | 0x80);
    code >>= 6;
-   buff[0]= (utf8_t)(code | 0xF0);
+   buffer[offset + 0]= (utf8_t)(code | 0xF0);
+   if( !is_combining(code) || column == 0 )
+     ++column;
+   offset += 4;
    return 4;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Utf8::index
+//       utf8_encoder::reset
 //
 // Purpose-
-//       Get byte offset for codepoint index
-//
-//----------------------------------------------------------------------------
-size_t                              // The utf8_t* offset
-   Utf8::index(                     // Get utf8_t* offset for
-     const utf8_t*     addr,        // This ('\0' terminated) utf8_t* string
-     size_t            X)           // And this codepoint index
-{
-   size_t O= 0;                     // Current offset
-   while( X > 0 ) {
-     O += utf8size(addr, O);        // The current start character
-     --X;
-   }
-
-   return O;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Utf8::length
-//
-// Purpose-
-//       Get encoding length
-//
-//----------------------------------------------------------------------------
-unsigned                            // The UTF8 encoding length
-   Utf8::length(                    // Get UTF8 encoding length
-     const utf8_t*     buff)        // For this buffer
-{  return utf8size(buff,0); }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Utf8::reset
-//
-// Purpose-
-//       Reset (empty) the Utf8
+//       Reset the encoder
 //
 //----------------------------------------------------------------------------
 void
-   Utf8::reset( void )              // Reset (empty) this Utf8
+   utf8_encoder::reset(             // Reset the encoder
+     utf8_t*           addr,        // Encoding buffer pointer
+     Length            size) noexcept // Encoding buffer pointer (unit) Length
 {
-   free(data);
-   data= nullptr;
-   size= units= codes= 0;
+   if( addr == nullptr )
+     size= 0;
+   else if( size == 0 )
+     addr= nullptr;
+
+   buffer= addr;
+   length= size;
+   column= -1;
+   offset= 0;
 }
 
-//----------------------------------------------------------------------------
-//
-// Utf16 utilities, not directly exposed.
-//
-// Subroutine-
-//       utf16code
-//       utf16size
-//
-// Purpose-
-//       Get code value
-//       Get code length
-//
-//----------------------------------------------------------------------------
-static inline utf16_t               // Corrected value
-   utf16load(                       // Load
-     const utf16_t*       data,     // This data
-     uint32_t             opts)     // Using these options
-{
-   if( opts & UTF16_LE ) {          // If little endian encoding
-     const utf8_t* utf8= (utf8_t*)data; // Invert byte order
-     return (utf8[1] << 8) | utf8[0];
-   }
+void
+   utf8_encoder::reset( void ) noexcept // Reset the encoder to initial state
+{  column= -1; offset= 0; }         // (Leaving length unchanged)
 
-   return ntohs(*data);
-}
-
-static inline utf32_t               // Next encoding
-   utf16code(                       // Value of next code,  error corrected
-     const void*          origin,   // Code origin
-     size_t               offset,   // Code offset
-     uint32_t             itopts)   // Iterator options
-{
-   const utf16_t* utf= (utf16_t*)origin;
-   utf32_t code= utf16load(utf + offset, itopts);
-   if( code >= 0x00D800 && code <= 0x00DFFF ) { // If multi-unit encoding
-     if( code >= 0x00DC00 )         // If sequence error
-       return UNI_REPLACEMENT;
-     uint16_t word= utf16load(utf + offset + 1, itopts);
-     if( word < 0x00DC00 || word > 0x00DFFF ) // If invalid pair
-       return UNI_REPLACEMENT;
-
-     code &= 0x03FF;
-     code <<= 10;
-     code |= (word & 0x03FF);
-     code += 0x010000;
-     if( ! Utf::is_unicode(code) )
-       return UNI_REPLACEMENT;
-   }
-
-   return code;
-}
-
-static inline int                   // Encoding length, in units
-   utf16size(                       // Length of next code, error corrected
-     const void*          origin,   // Code origin
-     size_t               offset,   // Code offset
-     uint32_t             itopts)   // Iteration options
-{
-   const utf16_t* utf= (utf16_t*)origin;
-   utf32_t code= utf16load(utf + offset, itopts);
-   if( code >= 0x00D800 && code <= 0x00DFFF ) { // If multi-unit encoding
-     if( code >= 0x00DC00 )         // If sequence error
-       return 1;
-     uint16_t word= utf16load(utf + offset + 1, itopts);
-     if( word < 0x00DC00 || word > 0x00DFFF ) // If invalid pair
-       return 1;
-
-     return 2;
-   }
-
-   return 1;
-}
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       Utf16::const_iterator
-//
-// Purpose-
-//       Implementations
-//
-//----------------------------------------------------------------------------
-   Utf16::const_iterator::const_iterator( // Constructor
-     const utf16_t*    data)     // (const) string origin
-{
-   origin= data;
-   assert( origin );             // String origin pointer required
-
-   if( ntohs(*data) == MARK_ORDER_BYTE ) // If little endian encoding
-     itopts |= UTF16_LE;
-
-   value= utf16code(origin, 0, itopts);
-}
-
-Utf16::const_iterator& Utf16::const_iterator::operator++() // (Prefix operator)
-{
-   if( value ) {                    // Disallow skip past end
-     offset += utf16size(origin, offset, itopts);
-     value   = utf16code(origin, offset, itopts);
-   }
-
-   return *this;
-}
-
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Method-
-//       Utf16::~Utf16
-//       Utf16::Utf16
+//       utf16_encoder::utf16_encoder
 //
 // Purpose-
-//       Destructor
 //       Constructors
 //
 //----------------------------------------------------------------------------
-   Utf16::~Utf16( void )            // Destructor
-{  if( HCDM ) debugf("%4d Utf16(%p)::~Utf16\n", __LINE__, this);
+   utf16_encoder::utf16_encoder(    // Buffer constructor
+     utf16_t*          addr,        // Buffer address
+     Length            size,        // Buffer length (native units)
+     MODE              mode) noexcept // Encoding mode
+:  buffer(addr), length(size), mode(mode)
+{  reset(buffer, length, mode); }
 
-   free(data);
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_encoder::operator=
+//
+// Purpose-
+//       Assignment operators
+//
+//----------------------------------------------------------------------------
+utf16_encoder&                      // (Always *this)
+   utf16_encoder::operator=(        // Replace value copying
+     const utf8_decoder&
+                       from) noexcept(false) // This decoder
+{
+   utf8_decoder copy(from);         // Copy the decoder (so from's constant)
+
+   // Copy the copied decoder, column by column
+   reset();
+   mode= MODE_BE;
+   for(;;) {
+     utf32_t code= copy.decode();   // Decode the next codepoint
+     if( code == UTF_EOF )          // If EOF
+       break;
+
+     if( encode(code) == 0 )        // If not enough room
+       throw utf_error("operator=() incomplete");
+   }
+
+   return *this;
 }
 
-   Utf16::Utf16( void )             // Default constructor
-{  if( HCDM ) debugf("%4d Utf16(%p)::Utf16\n", __LINE__, this); }
+utf16_encoder&                      // (Always *this)
+   utf16_encoder::operator=(        // Replace value copying
+     const utf16_decoder&
+                       from) noexcept(false) // This decoder
+{
+   mode= from.get_mode();
 
-   Utf16::Utf16(                    // Copy constructor
-     const Utf16&      src)         // Source Utf16
-{  if( HCDM )
-     debugf("%4d Utf16(%p)::Utf16(Utf16& %p)\n", __LINE__, this, src.data);
+   if( buffer == from.buffer ) {    // If we're using the same buffer
+     if( from.get_length() > length ) // If buffer length mismatch
+       throw utf_error("operator=() incomplete"); // (offset > length) error
 
-   init(src.get_init());
+     column= from.get_points();
+     offset= from.get_length();
+     return *this;
+   }
+
+   utf16_decoder copy(from);        // Copy the decoder (so from's constant)
+
+   // Copy the copied decoder, column by column
+   reset();                         // {column= -1; offset= 0;}
+   if( from.get_origin() != 0 )     // If BYTE_ORDER_MARK present
+     encode(BYTE_ORDER_MARK);
+
+   for(;;) {
+     utf32_t code= copy.decode();   // Decode the next codepoint
+     if( code == UTF_EOF )          // If EOF
+       break;
+
+     if( encode(code) == 0 )        // If not enough room
+       throw utf_error("operator=() incomplete");
+   }
+
+   return *this;
 }
 
-   Utf16::Utf16(                    // Move constructor
-           Utf16&&     src)         // Source Utf16
-:  data(src.data), size(src.size), codes(src.codes), units(src.units)
-{  if( HCDM )
-     debugf("%4d Utf16(%p)::Utf16(Utf16&& %p)\n", __LINE__, this, src.data);
+utf16_encoder&                      // (Always *this)
+   utf16_encoder::operator=(        // Replace value copying
+     const utf32_decoder&
+                       from) noexcept(false) // This decoder
+{
+   mode= from.get_mode();
 
-   src.reset();
-}
+   utf32_decoder copy(from);        // Copy the decoder (so from's constant)
 
-   Utf16::Utf16(                    // Constructor
-     const utf8_t*     src)         // Source utf8_t string
-{  if( HCDM )
-     debugf("%4d Utf16(%p)::Utf16(utf8_t* %s)\n", __LINE__, this, src);
+   // Copy the copied decoder, column by column
+   reset();                         // {column= -1; offset= 0;}
+   if( from.get_origin() != 0 )     // If BYTE_ORDER_MARK present
+     encode(BYTE_ORDER_MARK);
 
-   init(Utf8::get_init(src));
-}
+   for(;;) {
+     utf32_t code= copy.decode();   // Decode the next codepoint
+     if( code == UTF_EOF )          // If EOF
+       break;
 
-   Utf16::Utf16(                    // Constructor
-     const utf16_t*    src)         // Source utf16_t string
-{  if( HCDM )
-     debugf("%4d Utf16(%p)::Utf16(utf16_t* %p)\n", __LINE__, this, src);
+     if( encode(code) == 0 )        // If not enough room
+       throw utf_error("operator=() incomplete");
+   }
 
-   init(Utf16::get_init(src));
-}
-
-   Utf16::Utf16(                    // Constructor
-     const utf32_t*    src)         // Source utf32_t string
-{  if( HCDM )
-     debugf("%4d Utf16(%p)::Utf16(utf32_t* %p)\n", __LINE__, this, src);
-
-   init(Utf32::get_init(src));
-}
-
-   Utf16::Utf16(                    // Constructor
-     const Utf8&       src)         // Source Utf8 object
-:  Utf16(src.get_data())
-{  if( HCDM )
-     debugf("%4d Utf16(%p)::Utf16(Utf8& %p)\n", __LINE__, this, &src);
-
-   init(src.get_init());
-}
-
-   Utf16::Utf16(                    // Constructor
-     const Utf32&      src)         // Source Utf32 object
-:  Utf16(src.get_data())
-{  if( HCDM )
-     debugf("%4d Utf16(%p)::Utf16(Utf32& %p)\n", __LINE__, this, &src);
-
-   init(src.get_init());
+   return *this;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Utf16::get_init
-//       Utf16::init
+//       utf16_encoder::debug
 //
 // Purpose-
-//       Initialization
+//       Debugging display
 //
 //----------------------------------------------------------------------------
-static utf32_t                      // Resultant
-   utf16iter(                       // Get next codepoint
-     Utf::Init*        self)        // For this Utf::Init
-{
-   uint32_t value= utf16code(self->origin, self->offset, self->itopts);
-   if( value )
-     self->offset += utf16size(self->origin, self->offset, self->itopts);
-   return value;
-}
-
-Utf::Init
-   Utf16::get_init(                 // Get initializer
-     const utf16_t*    data)        // From data
-{
-   Init init(data, utf16iter);
-   if( ntohs(*data) == MARK_ORDER_BYTE ) // If little endian encoding
-     init.itopts |= UTF16_LE;
-   return init;
-}
-
-Utf::Init
-   Utf16::get_init( void ) const    // Get initializer
-{  return get_init(data); }
-
 void
-   Utf16::init(                     // Initialize
-     const Init&       init)        // Using this initializer
+   utf16_encoder::debug(            // Debugging display
+     const char*       info) const noexcept // Informational message
 {
-   // Handle empty initializer
-   this->codes= 0;
-   this->units= 0;
-   if( init.origin == nullptr )
-     return;
-
-   // Count codes and units
-   Init copy= init;
-   size_t codes= 0;
-   size_t units= 0;
-   utf32_t value= copy.next();
-   while( value ) {
-     codes++;
-     units += length(value);
-     value= copy.next();
-   }
-   if( codes == 0 )                 // If empty source
-     return;
-
-   // If needed, update the data buffer
-   size_t size= units + ROUND_SIZE;
-   size &= ROUND_MASK;
-   if( size > this->size ) {
-     free(data);
-     data= (utf16_t*)malloc(size * sizeof(utf16_t));
-     if( data == nullptr ) {
-       this->size= 0;
-       throw std::bad_alloc();
-     }
-     this->size= size;
-   }
-
-   // Encode the source
-   copy.offset= 0;                  // Start over
-   value= copy.next();
-   while( value ) {
-     this->codes++;
-     // assert( (this->units + length(value)) < size ); // See Utf8 TLDR comment
-     this->units += encode(value, data + this->units);
-     value= copy.next();
-   }
-   data[units]= 0;
-
-   assert( this->codes == codes && this->units == units );
+   traceh("utf16_encoder(%p) debug(%s)\n"
+          "..buffer(%p) column(%zd) offset(%zd) length(%zd) mode(%s)\n", this
+         , info, buffer, column, offset, length, get_mode_name(mode));
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Utf16::operators
+//       utf16_encoder::set_mode
 //
 // Purpose-
-//       Operator method implementations
+//       Set the decoder MODE
 //
 //----------------------------------------------------------------------------
-Utf16& Utf16::operator= (const Utf16& src) // Copy Utf16 object
+void
+   utf16_encoder::set_mode(         // Set encoding mode
+     MODE              M)           // The encoding mode
 {
-   if( this != &src )               // (Already equal to self)
-     init(src.get_init());          // (And this would free data before copy)
-
-   return *this;
-}
-
-Utf16& Utf16::operator= (      Utf16&& src) // Move Utf16 object
-{
-   if( this != &src ) {             // (Already equal to self)
-     free(data);                    // (And this would free data before move)
-
-     data= src.data;
-     size= src.size;
-     codes= src.codes;
-     units= src.units;
-
-     src.reset();
+   if( offset || M > MODE_LE ) {    // If encoding started or invalid MODE
+     traceh("encoder16::set_mode(%d) offset(%zd)\n", M, offset);
+     throw utf_error("set_mode usage error");
    }
 
-   return *this;
-}
-
-Utf16& Utf16::operator= (const utf8_t* src) // Copy utf8_t string
-{
-   init(Utf8::get_init(src));
-   return *this;
-}
-
-Utf16& Utf16::operator= (const Utf8& src) // Copy Utf8 object
-{
-   init(src.get_init());
-   return *this;
-}
-
-Utf16& Utf16::operator= (const Utf32& src) // Copy Utf32 object
-{
-   init(src.get_init());
-   return *this;
+   mode= M;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Utf16::decode
-//       Utf16::encode
+//       utf16_encoder::encode
 //
 // Purpose-
-//       Decode the next codepoint
-//       Encode the next codepoint
+//       Encode a codepoint
 //
 //----------------------------------------------------------------------------
-Utf::utf32_t                        // The next UTF32 codepoint
-   Utf16::decode(                   // Decode next codepoint
-     const utf16_t*    buff)        // Encoding buffer pointer
-{
-   (void)buff; throw std::runtime_error("NOT CODED YET");
-   return 0;
-}
-
-//----------------------------------------------------------------------------
-// Encode a UTF32 codepoint, setting the big endian encoding buffer.
-unsigned                            // The UTF16 encoding length
-   Utf16::encode(                   // Get UTF16 encoding
-     utf32_t           code,        // For this codepoint
-     utf16_t*          buff)        // (OUT) Encoding buffer
+unsigned                            // The encoding length, in units
+   utf16_encoder::encode(           // Encode, updating column and offset
+     utf32_t           code)        // This codepoint
 {
    if( !is_unicode(code) )          // If codepoint is invalid
-     code= UNI_REPLACEMENT;         // Encode replacement character
+     code= UNI_REPLACEMENT;         // Encode replacement character instead
 
-   if( code < 0x010000 ) {
-     *buff= htons((utf16_t)code);
+   if( column == Column(-1) ) {
+     if( offset == 0 && code == BYTE_ORDER_MARK ) {
+       buffer[offset++]= store16(code, mode);
+       return 1;
+     }
+   }
+
+   if( code < 0x01'0000 ) {
+     if( offset >= length )
+       return 0;
+
+     if( !is_combining(code) || column == Column(-1) )
+       ++column;
+
+     buffer[offset++]= store16((utf16_t)code, mode);
+
      return 1;
    }
 
-   code -= 0x010000;
-   buff[1]= htons((code & 0x003ff) | 0xDC00);
+   if( (length - offset) < 2 )
+     return 0;
+
+   if( !is_combining(code) || column == Column(-1) )
+     ++column;
+
+   code -= 0x01'0000;
+   buffer[offset + 1]= store16((code & 0x00'03ff) | 0x00'DC00, mode);
    code >>= 10;
-   buff[0]= htons((code & 0x003ff) | 0xD800);
+   buffer[offset + 0]= store16((code & 0x00'03ff) | 0x00'D800, mode);
+   offset += 2;
 
    return 2;
 }
@@ -1008,318 +1794,240 @@ unsigned                            // The UTF16 encoding length
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Utf16::reset
+//       utf16_encoder::reset
 //
 // Purpose-
-//       Reset (empty) the Utf16
+//       Reset the encoder
 //
 //----------------------------------------------------------------------------
 void
-   Utf16::reset( void )             // Reset (empty) this Utf16
+   utf16_encoder::reset(            // Reset the encoder
+     utf16_t*          addr,        // Buffer address
+     Length            size,        // Buffer length (in units)
+     MODE              mode) noexcept // The decoding mode
 {
-   free(data);
-   data= nullptr;
-   size= units= codes= 0;
+   if( addr == nullptr )
+     size= 0;
+   else if( size == 0 )
+     addr= nullptr;
+
+   buffer= addr;
+   length= size;
+   column= -1;
+   offset= 0;
+   this->mode= mode;
 }
 
-//----------------------------------------------------------------------------
-//
-// Class-
-//       Utf32::const_iterator
-//
-// Purpose-
-//       Implementations
-//
-//----------------------------------------------------------------------------
-   Utf32::const_iterator::const_iterator( // Constructor
-     const utf32_t*    data)     // (const) string origin
-:  Utf::const_iterator()
-{
-   origin= data;
-   assert( origin );             // String origin pointer required
+void
+   utf16_encoder::reset( void ) noexcept // Reset the encoder to initial state
+{  column= -1; offset= 0; }         // (Leaving length and mode unchanged)
 
-   value= *data;
-}
-
-Utf32::const_iterator& Utf32::const_iterator::operator++() // (Prefix operator)
-{
-   if( value ) {                    // Disallow skip past end
-     offset++;
-     value= *((utf32_t*)origin + offset);
-   }
-
-   return *this;
-}
-
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Method-
-//       Utf32::~Utf32
-//       Utf32::Utf32
+//       utf32_encoder::utf32_encoder
 //
 // Purpose-
-//       Destructor
 //       Constructors
 //
 //----------------------------------------------------------------------------
-   Utf32::~Utf32( void )            // Destructor
-{  if( HCDM ) debugf("%4d Utf32(%p)::~Utf32\n", __LINE__, this);
+   utf32_encoder::utf32_encoder(    // Buffer constructor
+     utf32_t*          addr,        // Buffer address
+     Length            size,        // Buffer length (native units)
+     MODE              mode) noexcept // Encoding mode
+:  buffer(addr), length(size), mode(mode)
+{  reset(buffer, length, mode); }
 
-   free(data);
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_encoder::operator=
+//
+// Purpose-
+//       Assignment operators
+//
+//----------------------------------------------------------------------------
+utf32_encoder&                      // (Always *this)
+   utf32_encoder::operator=(        // Replace value copying
+     const utf8_decoder&
+                       from) noexcept(false) // This decoder
+{
+   utf8_decoder copy(from);         // Copy the decoder (so from's constant)
+
+   // Copy the copied decoder, column by column
+   reset();
+   for(;;) {
+     utf32_t code= copy.decode();   // Decode the next codepoint
+     if( code == UTF_EOF )          // If EOF
+       break;
+
+     if( encode(code) == 0 )        // If not enough room
+       throw utf_error("operator=() incomplete");
+   }
+
+   return *this;
 }
 
-   Utf32::Utf32( void )             // Default constructor
-{  if( HCDM ) debugf("%4d Utf32(%p)::Utf32\n", __LINE__, this); }
+utf32_encoder&                      // (Always *this)
+   utf32_encoder::operator=(        // Replace value copying
+     const utf16_decoder&
+                       from) noexcept(false) // This decoder
+{
+   mode= from.get_mode();
 
-   Utf32::Utf32(                    // Copy constructor
-     const Utf32&      src)         // Source Utf32
-{  if( HCDM )
-     debugf("%4d Utf32(%p)::Utf32(Utf32& %p)\n", __LINE__, this, src.data);
+   utf16_decoder copy(from);        // Copy the decoder (so from's constant)
 
-   init(src.get_init());
+   // Copy the copied decoder, column by column
+   reset();                         // {column= -1; offset= 0;}
+   if( from.get_origin() != 0 )     // If BYTE_ORDER_MARK present
+     encode(BYTE_ORDER_MARK);
+   for(;;) {
+     utf32_t code= copy.decode();   // Decode the next codepoint
+     if( code == UTF_EOF )          // If EOF
+       break;
+
+     if( encode(code) == 0 )        // If not enough room
+       throw utf_error("operator=() incomplete");
+   }
+
+   return *this;
 }
 
-   Utf32::Utf32(                    // Move constructor
-           Utf32&&     src)         // Source Utf32
-:  data(src.data), size(src.size), codes(src.codes)
-{  if( HCDM )
-     debugf("%4d Utf32(%p)::Utf32(Utf32&& %p)\n", __LINE__, this, src.data);
+utf32_encoder&                      // (Always *this)
+   utf32_encoder::operator=(        // Replace value copying
+     const utf32_decoder&
+                       from) noexcept(false) // This decoder
+{
+   mode= from.get_mode();
 
-   src.reset();
-}
+   if( buffer == from.buffer ) {    // If we're using the same buffer
+     if( from.get_length() > length ) // If buffer length mismatch
+       throw utf_error("operator=() incomplete"); // (offset > length) error
 
-   Utf32::Utf32(                    // Constructor
-     const utf8_t*     src)         // Source utf8_t string
-{  if( HCDM )
-     debugf("%4d Utf32(%p)::Utf32(utf8_t* %s)\n", __LINE__, this, src);
+     column= from.get_points();
+     offset= from.get_length();
+     return *this;
+   }
 
-   init(Utf8::get_init(src));
-}
+   utf32_decoder copy(from);        // Copy the decoder (so from's constant)
 
-   Utf32::Utf32(                    // Constructor
-     const utf16_t*    src)         // Source utf16_t string
-{  if( HCDM )
-     debugf("%4d Utf32(%p)::Utf32(utf16_t* %p)\n", __LINE__, this, src);
+   // Copy the copied decoder, column by column
+   reset();                         // {column= -1; offset= 0;}
+   if( from.get_origin() != 0 )     // If BYTE_ORDER_MARK present
+     encode(BYTE_ORDER_MARK);
+   for(;;) {
+     utf32_t code= copy.decode();   // Decode the next codepoint
+     if( code == UTF_EOF )          // If EOF
+       break;
 
-   init(Utf16::get_init(src));
-}
+     if( encode(code) == 0 )        // If not enough room
+       throw utf_error("operator=() incomplete");
+   }
 
-   Utf32::Utf32(                    // Constructor
-     const utf32_t*    src)         // Source utf32_t string
-{  if( HCDM )
-     debugf("%4d Utf32(%p)::Utf32(utf32_t* %p)\n", __LINE__, this, src);
-
-   init(Utf32::get_init(src));
-}
-
-   Utf32::Utf32(                    // Constructor
-     const Utf8&       src)         // Source Utf8 object
-{  if( HCDM )
-     debugf("%4d Utf32(%p)::Utf32(Utf8& %p)\n", __LINE__, this, &src);
-
-   init(src.get_init());
-}
-
-   Utf32::Utf32(                    // Constructor
-     const Utf16&      src)         // Source Utf16 object
-{  if( HCDM )
-     debugf("%4d Utf32(%p)::Utf32(Utf16& %p)\n", __LINE__, this, &src);
-
-   init(src.get_init());
+   return *this;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Utf32::get_init
-//       Utf32::init
+//       utf32_encoder::debug
 //
 // Purpose-
-//       Initialization
+//       Debugging display
 //
 //----------------------------------------------------------------------------
-static utf32_t                      // Resultant
-   utf32init(                       // Initialization function
-     Utf::Init*        self)        // For this Utf::Init
-{
-   uint32_t value= *((utf32_t*)self->origin + self->offset);
-   if( value )
-     self->offset++;
-   return value;
-}
-
-Utf::Init
-   Utf32::get_init(                 // Get initializer
-     const utf32_t*    data)        // From data
-{
-   Init init(data, utf32init);
-   return init;
-}
-
-Utf::Init
-   Utf32::get_init( void ) const    // Get initializer
-{  return get_init(data); }
-
 void
-   Utf32::init(                     // Initialize
-     const Init&       init)        // Using this initializer
+   utf32_encoder::debug(            // Debugging display
+     const char*       info) const noexcept // Informational message
 {
-   // Handle empty initializer
-   this->codes= 0;
-   if( init.origin == nullptr )
-     return;
+   traceh("utf32_encoder(%p) debug(%s)\n"
+          "..buffer(%p) column(%zd) offset(%zd) length(%zd) mode(%s)\n", this
+         , info, buffer, column, offset, length, get_mode_name(mode));
+}
 
-   // Count codes (For uint32_t, units == codes)
-   Init copy= init;
-   size_t codes= 0;
-   utf32_t value= copy.next();
-   while( value ) {
-     codes++;
-     value= copy.next();
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_encoder::set_mode
+//
+// Purpose-
+//       Set the decoder MODE
+//
+//----------------------------------------------------------------------------
+void
+   utf32_encoder::set_mode(         // Set encoding mode
+     MODE              M)           // The encoding mode
+{
+   if( offset || M > MODE_LE ) {    // If encoding started or invalid MODE
+     traceh("encoder32::set_mode(%d) offset(%zd)\n", M, offset);
+     throw utf_error("set_mode usage error");
    }
-   if( codes == 0 )                 // If empty source
-     return;
 
-   // If needed, update the data buffer
-   size_t size= codes + ROUND_SIZE;
-   size &= ROUND_MASK;
-   if( size > this->size ) {
-     free(data);
-     data= (utf32_t*)malloc(size * sizeof(utf32_t));
-     if( data == nullptr ) {
-       this->size= 0;
-       throw std::bad_alloc();
+   mode= M;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_encoder::encode
+//
+// Purpose-
+//       Encode a codepoint
+//
+//----------------------------------------------------------------------------
+unsigned                            // The encoding length, in units
+   utf32_encoder::encode(           // Encode, updating column and offset
+     utf32_t           code)        // This codepoint
+{
+   if( offset >= length )           // If buffer full
+     return 0;
+
+   if( !is_unicode(code) )          // If codepoint is invalid
+     code= UNI_REPLACEMENT;         // Encode replacement character instead
+
+   if( column == Column(-1) ) {
+     if( offset == 0 && code == BYTE_ORDER_MARK32 ) {
+       buffer[offset++]= store32(code, mode);
+       return 1;
      }
-     this->size= size;
+
+     column= 0;                     // First column, never combining
+   } else if( !is_combining(code) ) { // Not first column, check combining
+     ++column;
    }
 
-   // Encode the source
-   copy.offset= 0;                  // Start over
-   value= copy.next();
-   while( value ) {
-     // assert( (this->codes + length(value)) < size ); // See Utf8 TLDR comment
-     this->codes += encode(value, data + this->codes);
-     value= copy.next();
-   }
-   data[codes]= 0;
-
-   assert( this->codes == codes );
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Utf32::operators
-//
-// Purpose-
-//       Operator method implementations
-//
-//----------------------------------------------------------------------------
-Utf32& Utf32::operator= (const Utf32& src) // Copy Utf32 object
-{
-   if( this != &src )               // (Already equal to self)
-     init(src.get_init());          // (And this would free data before copy)
-
-   return *this;
-}
-
-Utf32& Utf32::operator= (      Utf32&& src) // Move Utf32 object
-{
-   if( this != &src ) {             // (Already equal to self)
-     free(data);                    // (And this would free data before move)
-
-     data= src.data;
-     size= src.size;
-     codes= src.codes;
-
-     src.reset();
-   }
-
-   return *this;
-}
-
-Utf32& Utf32::operator= (const utf8_t* src) // Copy utf8_t string
-{
-   init(Utf8::get_init(src));
-   return *this;
-}
-
-Utf32& Utf32::operator= (const Utf8& src) // Copy Utf8 object
-{
-   init(src.get_init());
-   return *this;
-}
-
-Utf32& Utf32::operator= (const Utf16& src) // Copy Utf16 object
-{
-   init(src.get_init());
-   return *this;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Utf32::decode
-//
-// Purpose-
-//       Decode the next codepoint
-//
-//----------------------------------------------------------------------------
-Utf::utf32_t                        // The next UTF32 codepoint
-   Utf32::decode(                   // Decode next codepoint
-     const utf32_t*    buff)        // Encoding buffer pointer
-{
-   uint32_t code= *buff;
-   if( !is_unicode(code) )          // If codepoint is invalid
-     code= UNI_REPLACEMENT;         // Encode replacement character
-
-   return code;
-}
-
-//----------------------------------------------------------------------------
-// Encode a UTF32 codepoint, setting the encoding buffer.
-unsigned                            // The UTF32 encoding length
-   Utf32::encode(                   // Get UTF32 encoding
-     utf32_t           code,        // For this codepoint
-     utf32_t*          buff)        // (OUT) Encoding buffer
-{
-   if( !is_unicode(code) )          // If codepoint is invalid
-     code= UNI_REPLACEMENT;         // Encode replacement character
-
-   *buff= code;
+   buffer[offset++]= store32(code, mode);
    return 1;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Utf32::reset
+//       utf32_encoder::reset
 //
 // Purpose-
-//       Reset (empty) the Utf32
+//       Reset the encoder
 //
 //----------------------------------------------------------------------------
 void
-   Utf32::reset( void )             // Reset (empty) this Utf32
+   utf32_encoder::reset(            // Reset the encoder
+     utf32_t*          addr,        // Buffer address
+     Length            size,        // Buffer length (in units)
+     MODE              mode) noexcept // The encoding mode
 {
-   free(data);
-   data= nullptr;
-   size= codes= 0;
-}
-}  // namespace _LIBPUB_NAMESPACE
+   if( addr == nullptr )
+     size= 0;
+   else if( size == 0 )
+     addr= nullptr;
 
-//============================================================================
-//
-// Struct-
-//       utf8_decoder
-//       utf8_encoder
-//       utf16_decoder
-//       utf16_encoder
-//       utf32_decoder
-//       utf32_encoder
-//
-// Purpose-
-//       Implementations
-//
-//----------------------------------------------------------------------------
-#include "Utf.hpp"
+   buffer= addr;
+   length= size;
+   column= -1;
+   offset= 0;
+   this->mode= mode;
+}
+
+void
+   utf32_encoder::reset( void ) noexcept // Reset the encoder to initial state
+{  column= -1; offset= 0; }         // (Leaving length and mode unchanged)
+}  // namespace _LIBPUB_NAMESPACE

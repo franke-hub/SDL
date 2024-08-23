@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2024/05/11
+##       2024/08/23
 ##
 ## Implementation notes-
 ##       See ".USAGE.md" for usage and implementation information.
@@ -25,16 +25,24 @@
 
 ##############################################################################
 ## STATUS:
-2024/05/11 Combined version with NCURSES editor operational
+2024/08/23 Utf.h decoders and encoders used throughout both editors. The
+         xcb editor does not combine characters. The xterm editor does handle
+         combining characters on Cygwin, but these characters display as
+         gibberish on Linux.
 
 ##############################################################################
 ## OPEN:
-2024/05/11 UTF-8 not fully implemented.
-         Combined characters aren't combined, but
-         the column count is correct for what's displayed.
+2024/08/23 UTF-8 does not work properly on Linux.
+         (Hopefull) temporary bypass: On Linux, xtmedit doesn't allow saving
+         filed containing UTF characters. These characters do not display
+         properly. They display properly on Cygwin.
 
 ##############################################################################
 ## CHANGE LOG:
+2024/05/11 UTF fully implemented.
+         Combined characters are combined and
+         the column count is correct for what's displayed.
+
 2024/04/12 Initial version of NCURSES editor using XCB editor logic.
 
 2024/04/11 Margins corrected.
@@ -46,7 +54,7 @@
 2024/04/05 Restructure: Replaced EdTerm.*/EdTinp.cpp with EdOuts.*/EdInps.*
          Rather than including EdTinp.cpp, EdInps is the base for EdOuts
 
-2024/04/02 editxcb feature update
+2024/04/02 xcbedit feature update
 - INSERT  command: Insert file after cursor (with redo/undo)
 - MARGINS command: Set/display margins for paragraph function (ctrl-P)
 - TABS    command: Set/display screen tabs
@@ -97,7 +105,7 @@ Restructured modules, splitting some functions into .hpp files.
          temporary line.
 
 2022/03/15 Use Trace::trace functions rather than Config::trace.
-         Use ~/.config/editxcb/ rather than ~/.config/uuid/.../ for debug
+         Use ~/.config/xcbedit/ rather than ~/.config/uuid/.../ for debug
          and trace output.
 
 2022/03/29 Use Ctrl-Esc to enter ESC character, just like Ctrl-Tab.

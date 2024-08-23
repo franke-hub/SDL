@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2024/08/14
+//       2024/08/23
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -26,6 +26,7 @@
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/Utf.h>                // For pub::utf8_decoder
+#include <pub/utility.h>            // For pub::utility (when debugging)
 
 #include "Config.h"                 // For namespace config
 #include "EdData.h"                 // For EdData
@@ -36,8 +37,10 @@
 #include "EdUnit.h"                 // For EdUnit
 
 using namespace pub::debugging;     // For debugging
+using pub::Debug;                   // For debugging
 using pub::Trace;                   // For pub::Trace
 using pub::utf8_decoder;            // For pub::decoder
+using pub::utility::dump;           // For pub::utility::dump (when debugging)
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -317,6 +320,7 @@ const char*                         // Error message, nullptr expected
      redo->rh_col= copy_lh;
      Active::Points count= copy_rh - copy_lh + 1;
      Active& A= *editor::active;    // (Working Active line)
+
      Copy copy= create_copy(mark_head, mark_tail);
      EdLine* repC= nullptr;         // Replacement cursor line
      EdLine* from= mark_head;       // (Working source line)
