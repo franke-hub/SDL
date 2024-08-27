@@ -16,7 +16,7 @@
 //       EdFile: Implement EdLine.h, EdMess.h, EdRedo.h
 //
 // Last change date-
-//       2024/05/05
+//       2024/08/27
 //
 // Implementation notes-
 //       (Only) included by EdFile.cpp
@@ -24,6 +24,13 @@
 //----------------------------------------------------------------------------
 
 #if USE_REDO_DIAGNOSTICS
+//----------------------------------------------------------------------------
+// Constants for parameterization
+//----------------------------------------------------------------------------
+enum // Compilation controls
+{  USE_OBJECT_COUNT= true           // Use object counting?
+}; // Compilation controls
+
 //----------------------------------------------------------------------------
 //
 // Subroutine-
@@ -601,7 +608,8 @@ void
 //       Constructor/Destructor
 //
 // Implementation notes-
-//       Implicit copy operator only used in EdView for a temporary EdLine
+//       Implicit copy constructor used only in EdView for a temporary EdLine.
+//       (This copy constructor DOES NOT increment object_count.)
 //
 //----------------------------------------------------------------------------
    EdLine::EdLine(                  // Constructor
@@ -611,14 +619,22 @@ void
      traceh("EdLine(%p)::EdLine\n", this);
 
    Trace::trace(".NEW", "line", this);
+
+   if( USE_OBJECT_COUNT )
+     ++object_count;
 }
 
    EdLine::~EdLine( void )          // Destructor
 {  if( HCDM || (opt_hcdm && opt_verbose > 1) )
      traceh("EdLine(%p)::~EdLine\n", this);
 
-   if( (flags & F_AUTO) == 0 )      // Do not trace temporary lines
-     Trace::trace(".DEL", "line", this);
+   if( flags & F_AUTO )             // If this is a temporary line
+     return;                        // Delete means nothing
+
+   Trace::trace(".DEL", "line", this);
+
+   if( USE_OBJECT_COUNT )
+     --object_count;
 }
 
 //----------------------------------------------------------------------------
@@ -635,7 +651,7 @@ void
 {
    char buffer[42]; buffer[41]= '\0';
    strncpy(buffer, text, 41);
-   traceh("%p F(%.4x) D(%.2x,%.2x) '%s'\n", this, flags
+   tracef("%p F(%.4x) D(%.2x,%.2x) '%s'\n", this, flags
          , delim[0], delim[1], buffer);
 }
 
@@ -733,10 +749,10 @@ void
    traceh("  COL [%3zd:%3zd]\n", lh_col, rh_col);
 
    traceh("  INS [");
-   if( head_insert ) traceh("%p<-", head_insert->get_prev());
-   traceh("%p,%p", head_insert, tail_insert);
-   if( tail_insert ) traceh("->%p", tail_insert->get_next());
-   traceh("],\n");
+   if( head_insert ) tracef("%p<-", head_insert->get_prev());
+   tracef("%p,%p", head_insert, tail_insert);
+   if( tail_insert ) tracef("->%p", tail_insert->get_next());
+   tracef("],\n");
 
    for(EdLine* line= head_insert; line; line=line->get_next() ) {
      traceh("    "); line->debug();
@@ -745,10 +761,10 @@ void
    }
 
    traceh("  REM [");
-   if( head_remove ) traceh("%p<-", head_remove->get_prev());
-   traceh("%p,%p", head_remove, tail_remove);
-   if( tail_remove ) traceh("->%p", tail_remove->get_next());
-   traceh("]\n");
+   if( head_remove ) tracef("%p<-", head_remove->get_prev());
+   tracef("%p,%p", head_remove, tail_remove);
+   if( tail_remove ) tracef("->%p", tail_remove->get_next());
+   tracef("]\n");
 
    for(EdLine* line= head_remove; line; line=line->get_next() ) {
      traceh("    "); line->debug();

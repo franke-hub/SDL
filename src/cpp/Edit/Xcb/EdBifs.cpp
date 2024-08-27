@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2024/08/23
+//       2024/08/27
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -24,6 +24,7 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Fileman.h>            // For pub::fileman::Name::get_file_name()
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
+#include <pub/Trace.h>              // For pub::Trace
 
 #include "Config.h"                 // For namespace config
 #include "EdData.h"                 // For EdData
@@ -39,6 +40,7 @@ using namespace config;             // For opt_* controls
 typedef std::string                 string;
 typedef pub::Tokenizer              Tokenizer;
 typedef Tokenizer::Iterator         Iterator;
+typedef pub::Trace                  Trace;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -341,7 +343,7 @@ static const char*                  // Error message, nullptr expected
      C= strchr(parm, '\0');
 
    if( *C != '\0' && *(C+1) != '\0' ) // If delimiter is not final character
-       return "Invalid parameter";
+     return "Invalid parameter";
    *C= '\0';
 
    editor::locate_string= locate;
@@ -527,43 +529,31 @@ static const char*                  // Error message, nullptr expected
    if( file->protect )
      return "Read/only";
 
-   EdLine* prev= data->cursor;      // Insert after the current cursor line
-   if( prev->get_next() == nullptr ) // If it's the last line
-     prev= prev->get_prev();        //  Use the prior line instead
+   // Get the insert point
+   EdLine* insert= data->cursor;    // Insert after the current cursor line
+   if( insert->get_next() == nullptr ) // If it's the last line
+     insert= insert->get_prev();    //  Use the prior line instead
 
-   // Handle insert after no delimiter line
-   // (The top_of_file line has a delimiter.)
-   EdRedo* redo= new EdRedo();      // (First, create the REDO)
-   if( prev->delim[0] == '\0' && prev->delim[1] == '\0' ) {
-     EdLine* head= file->new_line(); // Get new, empty insert line
-     EdLine* tail= head;
-     head= file->new_line(prev->text); // Get "prev" line replacement
+   if( insert->delim[0] == '\0' )   // If insert after a binary line
+     return "Cannot insert after a binary line";
 
-     pub::List<EdLine> list;        // Connect head and tail
-     list.fifo(head);
-     list.fifo(tail);
-
-     // Remove the current "prev" from the file, updating the REDO
-     file->remove(prev);            // (Does not modify edLine->get_prev())
-     redo->head_remove= redo->tail_remove= prev;
-     prev= prev->get_prev();
-   }
-
-   EdLine* tail= file->insert_file(file_name, prev);
-   if( tail == nullptr || tail == prev ) { // If nothing inserted
-     delete redo->head_remove;      // Delete the no delimiter line replacement
-     delete redo;                   // Delete the (unused) redo
-
+   // Insert the file
+   EdLine* tail= file->insert_file(file_name, insert);
+   if( tail == nullptr || tail == insert ) { // If nothing inserted
      return nullptr;                // (Message already enqueued)
    }
 
-   // Update the (completed) redo
-   EdLine* head= prev->get_next();
+   // Trace the insert, create, initialize, and activate the Redo
+   Trace::trace(".INS", " cmd", file, insert);
+   EdRedo* redo= new EdRedo();
+
+   EdLine* head= insert->get_next();
    redo->head_insert= head;
    redo->tail_insert= tail;
+
    file->redo_insert(redo);
 
-   // Update the file state
+   // Redraw the screen
    data->col_zero= data->col= 0;
    file->activate(head);            // Activate the first inserted line
    editor::unit->draw();            // And redraw

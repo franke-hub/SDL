@@ -16,7 +16,7 @@
 //       Editor: Line descriptor
 //
 // Last change date-
-//       2024/03/30
+//       2024/08/27
 //
 // Implementation notes-
 //       Implemented in EdFile.cpp
@@ -59,6 +59,9 @@ enum FLAGS                          // Control flags
 unsigned char          delim[2]= {'\0', 0}; // Delimiter (NONE default)
 //   For [0]= '\n', [1]= either '\r' or '\0' for DOS or Unix format.
 //   For [0]= '\0', [1]= repetition count. {'\0',0}= NO delimiter
+
+// Static attributes (For debugging)
+static size_t          object_count; // Number of allocated lines
 
 //----------------------------------------------------------------------------
 // EdLine::Constructor/Destructor

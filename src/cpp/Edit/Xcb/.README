@@ -15,7 +15,7 @@
 ##       EDITOR README information file.
 ##
 ## Last change date-
-##       2024/08/23
+##       2024/08/27
 ##
 ## Implementation notes-
 ##       See ".USAGE.md" for usage and implementation information.
@@ -25,10 +25,8 @@
 
 ##############################################################################
 ## STATUS:
-2024/08/23 Utf.h decoders and encoders used throughout both editors. The
-         xcb editor does not combine characters. The xterm editor does handle
-         combining characters on Cygwin, but these characters display as
-         gibberish on Linux.
+2024/08/27 Corrected all insert after line with no delimiter conditions.
+         Insert after no-delimiter (binary) line not allowed.
 
 ##############################################################################
 ## OPEN:
@@ -39,6 +37,11 @@
 
 ##############################################################################
 ## CHANGE LOG:
+2024/08/23 Utf.h decoders and encoders used throughout both editors. The
+         xcb editor does not combine characters. The xterm editor does handle
+         combining characters on Cygwin, but these characters display as
+         gibberish on Linux.
+
 2024/05/11 UTF fully implemented.
          Combined characters are combined and
          the column count is correct for what's displayed.

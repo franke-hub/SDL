@@ -16,10 +16,10 @@
 //       Editor: Redo/Undo descriptor
 //
 // Last change date-
-//       2024/03/30
+//       2024/08/27
 //
 // Implementation notes-
-//       Implemented in EdFile.cpp
+//       Implemented in EdRedo.hpp
 //
 //----------------------------------------------------------------------------
 #ifndef EDREDO_H_INCLUDED

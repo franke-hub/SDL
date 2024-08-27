@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2024/05/05
+//       2024/08/27
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -95,6 +95,29 @@ uint32_t               editor::locate_wrap= false;
 size_t                 editor::margins[2]= {1, 78}; // {Left, right} margin
 size_t                 editor::tabs[Editor::TAB_DIM]=
                          {4, 4, 10, 24, 37}; // Tab position array
+
+//----------------------------------------------------------------------------
+// Object counters
+//       Object counters are always initialized zero but individually enabled.
+//       We don't need to check whether they're enabled, just if they're zero.
+//----------------------------------------------------------------------------
+size_t                 EdLine::object_count= 0; // EdLine object counter
+size_t                 EdMark::Copy::object_count= 0; // Copy object counter
+
+namespace {                         // Anonymous namespace
+static struct GlobalDestructor {    // On unload, check EdLine::object_count
+inline
+   ~GlobalDestructor( void )
+{  if( true && false ) debugf("Editor::GlobalDestructor~\n");
+
+   if( EdLine::object_count )       // If EdLine memory leak
+     debugf("EdLine::object_count(%zd)\n", EdLine::object_count);
+
+   if( EdMark::Copy::object_count ) // If EdMark::Copy memory leak
+     debugf("EdMark::Copy::object_count(%zd)\n", EdMark::Copy::object_count);
+}
+}  globalDestructor;
+}  // Anonymous namespace
 
 //----------------------------------------------------------------------------
 //

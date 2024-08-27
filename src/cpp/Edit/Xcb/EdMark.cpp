@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2024/08/23
+//       2024/08/27
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -86,42 +86,6 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       create_copy
-//
-// Purpose-
-//       Copy EdLine sequence
-//
-//----------------------------------------------------------------------------
-struct Copy {                       // Resultant copy
-EdLine*                head= nullptr; // First line copy
-EdLine*                tail= nullptr; // Last  line copy
-size_t                 rows= 0;     // Number of rows copied
-};
-
-static Copy                         // The resultant Copy
-   create_copy(                     // Copy line sequence
-     EdLine*           head,        // First line to copy
-     EdLine*           tail)        // Last  line to copy
-{
-   Copy copy;                       // Resultant
-   pub::List<EdLine> list;
-
-   for(EdLine* line= head; line; line= line->get_next() ) {
-     EdLine* edLine= new EdLine(line->text);
-     list.fifo(edLine);             // (For list structure)
-     copy.rows++;
-     if( line == tail )
-       break;
-   }
-   copy.head= list.get_head();
-   copy.tail= list.get_tail();
-
-   return copy;
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
 //       get_mark
 //
 // Purpose-
@@ -177,6 +141,53 @@ static void
      if( line == tail )
        break;
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdMark::Copy::Copy
+//       EdMark::Copy::~Copy
+//
+// Purpose-
+//       Constructor
+//       Destructor
+//
+//----------------------------------------------------------------------------
+   EdMark::Copy::Copy( void ) noexcept // Constructor
+{  ++object_count; }
+
+   EdMark::Copy::~Copy( void ) noexcept // Destructor
+{  --object_count; }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       EdMark::Copy::create
+//
+// Purpose-
+//       Create a Copy
+//
+//----------------------------------------------------------------------------
+EdMark::Copy                        // The resultant Copy
+   EdMark::Copy::create(            // Copy line sequence
+     EdLine*           head,        // First line to copy
+     EdLine*           tail)        // Last  line to copy
+{
+   Copy copy;                       // Resultant
+   pub::List<EdLine> list;
+
+   for(EdLine* line= head; line; line= line->get_next() ) {
+     EdLine* edLine= new EdLine(line->text);
+     list.fifo(edLine);             // (For list structure)
+     copy.rows++;
+     if( line == tail )
+       break;
+   }
+   copy.head= list.get_head();
+   copy.tail= list.get_tail();
+
+   return copy;
 }
 
 //----------------------------------------------------------------------------
@@ -268,8 +279,7 @@ const char*                         // Error message, nullptr expected
 
    // Remove any current copy/cut
    reset();
-
-   Copy copy= create_copy(mark_head, mark_tail);
+   Copy copy= Copy::create(mark_head, mark_tail);
    copy_list.insert(nullptr, copy.head, copy.tail);
    copy_file= mark_file;
    copy_rows= copy.rows;
@@ -321,7 +331,7 @@ const char*                         // Error message, nullptr expected
      Active::Points count= copy_rh - copy_lh + 1;
      Active& A= *editor::active;    // (Working Active line)
 
-     Copy copy= create_copy(mark_head, mark_tail);
+     Copy copy= Copy::create(mark_head, mark_tail);
      EdLine* repC= nullptr;         // Replacement cursor line
      EdLine* from= mark_head;       // (Working source line)
      for(EdLine* line= copy.head; line; line= line->get_next()) {
@@ -735,7 +745,7 @@ const char*                         // Error message, nullptr expected
    EdRedo* redo= new EdRedo();      // Create the REDO
 
    // Duplicate the copy_list, marking the duplicated lines
-   Copy copy= create_copy(copy_list.get_head(), copy_list.get_tail());
+   Copy copy= Copy::create(copy_list.get_head(), copy_list.get_tail());
    unsigned char delim[2]= {'\n', 0}; // Default UNIX mode
    if( edFile->mode == EdFile::M_DOS )
      delim[1]= '\r';

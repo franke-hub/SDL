@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Line/block mark descriptor
 //
 // Last change date-
-//       2021/06/23
+//       2024/08/27
 //
 //----------------------------------------------------------------------------
 #ifndef EDMARK_H_INCLUDED
@@ -74,6 +74,27 @@ const EdRedo*          redo;        // The changed line lists
 
 static pub::signals::Signal<ChangeEvent>
                        change_signal; // The ChangeEvent Signal
+
+//----------------------------------------------------------------------------
+// struct EdMark::Copy
+//----------------------------------------------------------------------------
+struct Copy {                       // Resultant copy
+EdLine*                head= nullptr; // First line copy
+EdLine*                tail= nullptr; // Last  line copy
+size_t                 rows= 0;     // Number of rows copied
+
+static size_t          object_count; // Current object counter
+
+// Constructor/destructor- - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Copy( void ) noexcept;           // Constructor
+   ~Copy( void ) noexcept;          // Destructor
+
+// Static methods- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+static Copy                         // The resultant Copy
+   create(                          // Copy line sequence
+     EdLine*           head,        // First line to copy
+     EdLine*           tail);       // Last  line to copy
+};
 
 //----------------------------------------------------------------------------
 // EdMark::Constructor/Destructor

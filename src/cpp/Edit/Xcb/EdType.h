@@ -16,7 +16,7 @@
 //       Editor: Editor common types
 //
 // Last change date-
-//       2024/07/27
+//       2024/08/27
 //
 //----------------------------------------------------------------------------
 #ifndef EDTYPE_H_INCLUDED
@@ -45,17 +45,13 @@ typedef pub::Utf::utf16_t           utf16_t;
 typedef pub::Utf::utf16_t           utf16BE_t;
 typedef pub::Utf::utf32_t           utf32_t;
 
-#if 1
 typedef pub::Utf::MODE              MODE;
 constexpr static const MODE
+                       MODE_RESET= pub::Utf::MODE_RESET;
+constexpr static const MODE
                        MODE_BE= pub::Utf::MODE_BE;
-#else
-enum MODE                           // Import MODE
-{  MODE_RESET= pub::Utf::MODE_RESET
-,  MODE_BE= pub::Utf::MODE_BE
-,  MODE_LE= pub::Utf::MODE_LE
-};
-#endif
+constexpr static const MODE
+                       MODE_LE= pub::Utf::MODE_LE;
 
 constexpr static const uint32_t
                        UTF_EOF= pub::Utf::UTF_EOF;

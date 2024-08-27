@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/08/23
+//       2024/08/27
 //
 //------------------------------------------------------------------------ -->
 
@@ -30,6 +30,28 @@ within https://opensource.org/licenses/MIT)
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
 ----
+
+#### 08/27/2024 maint
+
+The combined editor is now in production test, with no known new errors.
+
+We spent a lot of time trying to implement common REDO functions in
+EdRedo.hpp. This was wasted effort: callers still needed to test whether
+or not an insert after a line with a binary delimiter occurred and handle it
+differently in each case.
+
+The include command (in EdBifs.cpp) was too difficult to fix. Rather than
+botching the file when including a file after a binary line, now it's simply
+disallowed. The line insert command (Alt-I) can be used to repair the
+null-delimited binary line, then a file insert after it works properly.
+
+Object counter tests were added to detect memory leaks. So far, so good.
+
+We'll use the updated editor to restructure it. Redo, line, and message
+functions shouldn't be in EdFile. While this restructure isn't strictly
+necessary, it will be a good production test.
+The Utf documentation has been in progress for a while. This and a full
+editor function test need to be completed before a trunk release.
 
 #### 08/23/2024 maint
 
