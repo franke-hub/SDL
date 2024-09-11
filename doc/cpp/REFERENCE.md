@@ -15,7 +15,7 @@
 //       SDL Distribution reference manual
 //
 // Last change date-
-//       2024/03/04
+//       2024/08/30
 //
 -------------------------------------------------------------------------- -->
 
@@ -134,7 +134,7 @@ reporting. __TODO__ Event status checking.
 - Tokenizer.h: A string tokenizer
 - Trace.h: Provides circular trace table controls. When used in conjunction
 with a memory-mapped file, handy for debugging multi-threading problems.
-- Utf.h: UTF encoder/decoder mechanisms
+- [Utf.h:](./Utf.md) Provides UTF decoding and encoding functions.
 - utility.h: A set of utility functions
 - [Worker.h:](./Worker.md) Worker is an interface class that provides thread
 scheduling via WorkerPool, a thread pool manager.

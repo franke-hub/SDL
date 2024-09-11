@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2024/08/27
+//       2024/08/30
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -328,7 +328,7 @@ const char*                         // Error message, nullptr expected
    if( copy_col >= 0 ) {            // If block cut
      redo->lh_col= copy_rh;         // (Invert for cut)
      redo->rh_col= copy_lh;
-     Active::Points count= copy_rh - copy_lh + 1;
+     Active::Count count= copy_rh - copy_lh + 1;
      Active& A= *editor::active;    // (Working Active line)
 
      Copy copy= Copy::create(mark_head, mark_tail);
@@ -454,8 +454,8 @@ const char*                         // Error message, nullptr expected
    while( tix != tokenizer.end() ) {
      string token_str= tix();
      size_t token_col= combo
-       ? utf8_decoder(token_str.c_str(), token_str.size()).get_points()
-       : utf8_decoder(token_str.c_str(), token_str.size()).get_lpoint();
+       ? utf8_decoder(token_str.c_str(), token_str.size()).get_column_count()
+       : utf8_decoder(token_str.c_str(), token_str.size()).get_symbol_count();
      if( insert_col == 0) {
        insert_str= margin_str + token_str;
        insert_col= token_col;
@@ -955,7 +955,7 @@ const char*                         // Error message, nullptr expected
    if( (data.cursor->flags & EdLine::F_MARK) // If moving into marked line
        && mark_lh >= 0              // If column move
        && data.get_column() > size_t(mark_rh) ) { // If move left past mark
-     size_t cols= mark_rh - mark_lh + 1; // Column move count
+     size_t cols= mark_rh - mark_lh + 1; // The column move count
      if( cols <= data.col )         // If column adjustment sufficient
        data.col -= (decltype(data.col))cols;
      else {

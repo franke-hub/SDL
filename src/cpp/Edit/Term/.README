@@ -12,35 +12,29 @@
 ##       .README
 ##
 ## Purpose-
-##       NCURSES EDITOR README information file.
+##       EDITOR README information file. (NCURSES version)
 ##
 ## Last change date-
-##       2024/08/20
+##       2024/09/03
 ##
 ## Implementaton notes-
-##       This editor uses the XCB editor's logic, but uses ncurses for I/O.
+##       This editor uses the XCB editor's logic, but uses NCURSES for I/O.
+##       This is an ADDENDUM to ../Xcb/.README.
 ##
 ##############################################################################
 
 ##############################################################################
 ## STATUS:
-2024/08/20 Operational. All UTF.h decoders and encoders fully operational.
-         Deprecated Utf.h functions removed.
+2024/09/03 Fully operational. NO known problems.
 
 ##############################################################################
 ## CHANGE LOG:
+2024/08/14 Operational. Uses Utf.h utf8_decoder and utf8_encoder
+2024/05/11 Operational. Utf.h unused and not fully implemented
 2024/04/12 Created. Compiles but does not link.
-2024/05/11 Operational. UTF.h unused and not fully implemented
-2024/08/14 Operational. Uses UTF.h utf8_decoder and utf8_encoder
 
 ##############################################################################
 ## OPEN:
-2024/05/11 UTF-8 not fully implemented
-         Combined characters display properly, but the column count is wrong.
-         (pub::Utf is the likely culprit.)
-
-##############################################################################
-## FIXED:
 
 ##############################################################################
 ## CLOSED:

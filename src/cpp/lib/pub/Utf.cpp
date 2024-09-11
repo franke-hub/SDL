@@ -16,11 +16,12 @@
 //       Implement Utf.h methods.
 //
 // Last change date-
-//       2024/08/23
+//       2024/09/12
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
 #include <new>                      // For std::bad_alloc
+#include <stdexcept>                // For std::logic_error, std::runtime_error
 #include <string>                   // For std::string
 
 #include <cassert>                  // For assert
@@ -30,7 +31,7 @@
 // #include <arpa/inet.h>              // For htons, ntohs
 
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
-#include "pub/Utf.h"                // Implementation class
+#include "pub/Utf.h"                // For pub::Utf, ... implemented
 #include "pub/Utf.i"                // Import Utf types
 #include <pub/utility.h>            // For utility methods (debugging)
 
@@ -145,7 +146,7 @@ static inline const char*           // The MODE name
 
    utf8_decoder::utf8_decoder(      // Constructor
      const utf8_t*     addr) noexcept // Decode buffer address
-:  buffer(addr), length(::strlen((char*)addr) + 1)
+:  buffer(addr), length(strlen((char*)addr) + 1)
 {  }
 
    utf8_decoder::utf8_decoder(      // Constructor
@@ -156,7 +157,7 @@ static inline const char*           // The MODE name
 
    utf8_decoder::utf8_decoder(      // Constructor
      const char*       addr) noexcept // Decode buffer address
-:  buffer((utf8_t*)addr), length(::strlen(addr) + 1)
+:  buffer((utf8_t*)addr), length(strlen(addr) + 1)
 {  }
 
 //----------------------------------------------------------------------------
@@ -209,59 +210,21 @@ void
    traceh("utf8_decoder(%p) debug(%s)\n"
           "..buffer(%p) column(%zd) offset(%zd) length(%zd)\n", this, info
          , buffer, column, offset, length);
+   Length L= length * sizeof(utf8_t);
+   dump(Debug::get()->get_FILE(), buffer, L < 32 ? L : 32);
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       utf8_decoder::get_column
-//
-// Purpose-
-//       Get the current column index
-//
-//----------------------------------------------------------------------------
-Utf::Column                         // The current Column index
-   utf8_decoder::get_column( void ) const // Get current Column index
-{
-   if( offset < length ) {          // If there is a current character
-     if( column == Column(-1) || !is_combining(current()) )
-       return column + 1;
-   }
-
-   return column;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       utf8_decoder::get_lpoint
-//
-// Purpose-
-//       Get the total (non-combining) codepoint count
-//
-//----------------------------------------------------------------------------
-Utf::Lpoint                         // The total codepoint count
-   utf8_decoder::get_lpoint( void ) const // Get total codepoint count
-{
-   utf8_decoder copy(*this);
-   Lpoint lpoint= 0;
-   while( copy.decode() != UTF_EOF )
-     ++lpoint;
-
-   return lpoint;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       utf8_decoder::get_points
+//       utf8_decoder::get_column_count
 //
 // Purpose-
 //       Get the total column count
 //
 //----------------------------------------------------------------------------
-Utf::Points                         // The total column count
-   utf8_decoder::get_points( void ) const // Get total column count
+Utf::Count                          // The total column count
+   utf8_decoder::get_column_count( void ) const // Get total column count
 {
    utf8_decoder copy(*this);
    copy.column= 0;
@@ -274,15 +237,55 @@ Utf::Points                         // The total column count
 //----------------------------------------------------------------------------
 //
 // Method-
-//       utf8_decoder::set_column
+//       utf8_decoder::get_column_index
 //
 // Purpose-
-//       Set the column
+//       Get the current column index
 //
 //----------------------------------------------------------------------------
-Utf::Length                         // Number of units past end of buffer
-   utf8_decoder::set_column(        // Set the column
-     Column            IX)          // To this column index
+Utf::Index                          // The current column index
+   utf8_decoder::get_column_index( void ) const // Get current column index
+{
+   if( offset < length ) {          // If there is a current character
+     if( column == Index(-1) || !Utf::is_combining(current()) )
+       return column + 1;
+   }
+
+   return column;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_decoder::get_symbol_count
+//
+// Purpose-
+//       Get the total Symbol count
+//
+//----------------------------------------------------------------------------
+Utf::Count                          // The total Symbol count
+   utf8_decoder::get_symbol_count( void ) const // Get total Symbol count
+{
+   utf8_decoder copy(*this);
+   Count count= 0;
+   while( copy.decode() != UTF_EOF )
+     ++count;
+
+   return count;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf8_decoder::set_column_index
+//
+// Purpose-
+//       Set the column index
+//
+//----------------------------------------------------------------------------
+Utf::Count                          // Number of units past end of buffer
+   utf8_decoder::set_column_index(  // Set column to
+     Index             IX)          // This column Index
 {
    if( IX <= column ) {
      column= -1;
@@ -293,16 +296,16 @@ Utf::Length                         // Number of units past end of buffer
    }
 
    while( (column + 1) < IX ) {
-     utf32_t code= decode();
+     Symbol code= decode();
      if( code == UTF_EOF ) {
-       if( column == Column(-1) )   // If empty decoder
+       if( column == Index(-1) )    // If empty decoder
          return IX;
        return IX - column;
      }
    }
 
    if( offset > 0 ) {
-     while( is_combining(current()) )
+     while( Utf::is_combining(current()) )
        decode();
    }
 
@@ -315,24 +318,37 @@ Utf::Length                         // Number of units past end of buffer
 //----------------------------------------------------------------------------
 //
 // Method-
-//       utf8_decoder::set_cpoint
+//       utf8_decoder::set_symbol_index
 //
 // Purpose-
-//       Set the specified codepoint.
+//       Set the specified Symbol index.
 //
 //----------------------------------------------------------------------------
-Utf::Offset                         // Offset, column combining not supported
-   utf8_decoder::set_cpoint(        // Set the codepoint
-     Cpoint            cpoint)      // The (non-combining) codepoint index
+Utf::Count                          // Number of units past end of buffer
+   utf8_decoder::set_symbol_index(  // Set the
+     Index             IX)          // Symbol Index
 {
    reset();
-   while( cpoint-- ) {
-     utf32_t code= decode();
-     if( code == UTF_EOF )
-       break;
+   if( IX == 0 )
+     return 0;
+
+   Index index= 0;
+   while( index < IX ) {
+     Symbol code= decode();
+     if( code == UTF_EOF ) {
+       if( length == 0 )            // If empty decoder
+         return IX;
+
+       return IX - index + 1;
+     }
+
+     ++index;
    }
 
-   return offset;
+   if( offset < length )
+     return 0;
+
+   return IX - index + 1;
 }
 
 //----------------------------------------------------------------------------
@@ -355,8 +371,8 @@ utf8_decoder                        // The current column substring
    copy.buffer= buffer + offset;
    copy.length= length - offset;
 
-   copy.decode();                   // (Include the current column codepoint)
-   while( copy.is_combining() )     // Include combining codepoints
+   copy.decode();                   // (Include the current column code point)
+   while( copy.is_combining() )     // Include combining code points
      copy.decode();
 
    copy.length= copy.offset;
@@ -371,11 +387,11 @@ utf8_decoder                        // The current column substring
 //       utf8_decoder::current
 //
 // Purpose-
-//       Decode the current codepoint
+//       Retrive the current Symbol
 //
 //----------------------------------------------------------------------------
-utf32_t                             // The current encoding
-   utf8_decoder::current( void )  const // Get current encoding
+Symbol                              // The current Symbol
+   utf8_decoder::current( void ) const // Retrieve the current Symbol
 {
    if( offset >= length )
      return UTF_EOF;
@@ -437,10 +453,10 @@ utf32_t                             // The current encoding
 //       utf8_decoder::decode
 //
 // Purpose-
-//       Decode the next codepoint, updating column and offset
+//       Decode the current Symbol, updating column and offset
 //
 //----------------------------------------------------------------------------
-Utf::utf32_t                        // The current codepoint
+Symbol                              // The current Symbol
    utf8_decoder::decode( void )     // Decode, updating column and offset
 {
    if( offset >= length )
@@ -504,7 +520,7 @@ Utf::utf32_t                        // The current codepoint
 
    if( !is_unicode(code) )
      code= UNI_REPLACEMENT;
-   if( !is_combining(code) || column == Column(-1) )
+   if( !Utf::is_combining(code) || column == Index(-1) )
      ++column;
 
    return code;
@@ -522,7 +538,7 @@ Utf::utf32_t                        // The current codepoint
 void
    utf8_decoder::reset(             // Reset the decoder
      const utf8_t*     addr,        // Encoding buffer pointer
-     Length            size) noexcept // Encoding buffer pointer (unit) Length
+     Length            size) noexcept // Buffer length (in native units)
 {
    if( addr == nullptr )
      size= 0;
@@ -536,8 +552,8 @@ void
 }
 
 void
-   utf8_decoder::reset( void ) noexcept // Reset the decoder to initial state
-{  column= -1; offset= 0; }         // (Leaving length unchanged)
+   utf8_decoder::reset( void ) noexcept // Reset the decoder
+{  column= -1; offset= 0; }
 
 //============================================================================
 //
@@ -568,7 +584,7 @@ void
    utf16_decoder::utf16_decoder(    // Buffer constructor
      const utf16_t*    addr,        // Buffer address
      MODE              mode) noexcept // Encoding mode
-:  buffer(addr), length(strlen(addr) + 1), mode(mode)
+:  buffer(addr), length(utflen(addr) + 1), mode(mode)
 {  reset(buffer, length, mode); }
 
 //----------------------------------------------------------------------------
@@ -625,46 +641,48 @@ void
    traceh("utf16_decoder(%p) debug(%s)\n"
           "..buffer(%p) column(%zd) offset(%zd) length(%zd) mode(%s)\n", this
          , info, buffer, column, offset, length, get_mode_name(mode));
+   Length L= length * sizeof(utf16_t);
+   dump(Debug::get()->get_FILE(), buffer, L < 32 ? L : 32);
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       utf16_decoder::get_column
+//       utf16_decoder::get_column_count
+//
+// Purpose-
+//       Get the total code point count
+//
+//----------------------------------------------------------------------------
+Utf::Count                          // The total column count
+   utf16_decoder::get_column_count( void ) const // Get total column count
+{
+   utf16_decoder copy(*this);
+   copy.column= 0;
+   while( copy.decode() != UTF_EOF )
+     ;
+
+   return copy.column;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_decoder::get_column_index
 //
 // Purpose-
 //       Get the current column index
 //
 //----------------------------------------------------------------------------
-Utf::Column                         // The current Column index
-   utf16_decoder::get_column( void ) const // Get current Column index
+Utf::Index                          // The current column index
+   utf16_decoder::get_column_index( void ) const // Get current column index
 {
    if( offset < length ) {          // If there is a current character
-     if( column == Column(-1) || !is_combining(current()) )
+     if( column == Index(-1) || !Utf::is_combining(current()) )
        return column + 1;
    }
 
    return column;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       utf16_decoder::get_lpoint
-//
-// Purpose-
-//       Get the total (non-combining) codepoint count
-//
-//----------------------------------------------------------------------------
-Utf::Lpoint                         // The total codepoint count
-   utf16_decoder::get_lpoint( void ) const // Get total codepoint count
-{
-   utf16_decoder copy(*this);
-   Lpoint lpoint= 0;
-   while( copy.decode() != UTF_EOF )
-     ++lpoint;
-
-   return lpoint;
 }
 
 //----------------------------------------------------------------------------
@@ -699,35 +717,35 @@ Utf::Offset                         // The origin, either 0 or 1
 //----------------------------------------------------------------------------
 //
 // Method-
-//       utf16_decoder::get_points
+//       utf16_decoder::get_symbol_count
 //
 // Purpose-
-//       Get the total codepoint count
+//       Get the total Symbol count
 //
 //----------------------------------------------------------------------------
-Utf::Points                         // The total codepoint count
-   utf16_decoder::get_points( void ) const // Get total codepoint count
+Utf::Count                          // The total Symbol count
+   utf16_decoder::get_symbol_count( void ) const // Get Symbol point count
 {
    utf16_decoder copy(*this);
-   copy.column= 0;
+   Count count= 0;
    while( copy.decode() != UTF_EOF )
-     ;
+     ++count;
 
-   return copy.column;
+   return count;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       utf16_decoder::set_column
+//       utf16_decoder::set_column_index
 //
 // Purpose-
-//       Set the specified Column
+//       Set the specified column index
 //
 //----------------------------------------------------------------------------
-Utf::Length                         // The number of units past end of buffer
-   utf16_decoder::set_column(       // Set column to
-     Column            IX)          // This column index
+Utf::Count                          // Number of units past end of buffer
+   utf16_decoder::set_column_index( // Set column to
+     Index             IX)          // This column Index
 {
    if( IX <= column ) {
      column= -1;
@@ -738,16 +756,16 @@ Utf::Length                         // The number of units past end of buffer
    }
 
    while( (column + 1) < IX ) {
-     utf32_t code= decode();
+     Symbol code= decode();
      if( code == UTF_EOF ) {
-       if( column == Column(-1) )   // If empty decoder
+       if( column == Index(-1) )    // If empty decoder
          return IX;
        return IX - column;
      }
    }
 
    if( offset > get_origin() ) {
-     while( is_combining(current()) )
+     while( Utf::is_combining(current()) )
        decode();
    }
 
@@ -755,30 +773,6 @@ Utf::Length                         // The number of units past end of buffer
      return 0;
 
    return IX - column;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       utf16_decoder::set_cpoint
-//
-// Purpose-
-//       Set the specified codepoint.
-//
-//----------------------------------------------------------------------------
-Utf::Offset                         // Offset, column combining not supported
-   utf16_decoder::set_cpoint(       // Set the codepoint
-     Cpoint            cpoint)      // The (non-combining) codepoint index
-{
-   reset();
-   offset= 0;
-   while( cpoint-- ) {
-     utf32_t code= decode();
-     if( code == UTF_EOF )
-       break;
-   }
-
-   return offset;
 }
 
 //----------------------------------------------------------------------------
@@ -794,35 +788,49 @@ void
    utf16_decoder::set_mode(         // Set decoding mode
      MODE              M)           // The decoding mode
 {
-   if( offset || M > MODE_LE ) {    // If decoding started or invalid MODE
-     traceh("decoder16::set_mode(%d) offset(%zd)\n", M, offset);
-     throw utf_error("set_mode usage error");
-   }
-
-   if( mode != MODE_RESET && M != mode ) { // If mode switch
-     traceh("decoder16::set_mode(%d) mode(%d)\n", M, mode);
-     throw utf_error("set_mode usage error");
+   if( M > MODE_LE ) {              // If invalid MODE
+     traceh("decoder16::set_mode(%d)\n", M);
+     throw utf_invalid_argument("set_mode: invalid MODE");
    }
 
    mode= M;
 }
 
-int                                 // Return code, 0 OK
-   utf16_decoder::set_mode( void )  // Initialize decoding mode
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf16_decoder::set_symbol_index
+//
+// Purpose-
+//       Set the specified Symbol index.
+//
+//----------------------------------------------------------------------------
+Utf::Count                          // Number of units past end of buffer
+   utf16_decoder::set_symbol_index( // Set the
+     Index             IX)          // Symbol Index
 {
-   if( mode != MODE_RESET )         // If "already initialized" error
-     return -1;                     // (MODE remains unchanged)
+   reset();
+   offset= 0;                       // (Offset includes Byte Order Mark)
+   if( IX == 0 )
+     return 0;
 
-   if( offset > 1 )                 // If "decoding started" error
-     return -2;                     // (MODE remains MODE_RESET, big endian)
+   Index index= 0;
+   while( index < IX ) {
+     Symbol code= decode();
+     if( code == UTF_EOF ) {
+       if( length == 0 )            // If empty decoder
+         return IX;
 
-   // If a little endian BYTE_ORDER_MARK is found, set little endian mode
-   if( length > 0 && be16toh(buffer[0]) == MARK_ORDER_BYTE )
-     mode= MODE_LE;               // Set little endian mode
-   else                           // (May have a big endian BYTE_ORDER_MARK)
-     mode= MODE_BE;               // Use the default mode
+       return IX - index + 1;
+     }
 
-   return 0;                      // Mode initialized
+     ++index;
+   }
+
+   if( offset < length )
+     return 0;
+
+   return IX - index + 1;
 }
 
 //----------------------------------------------------------------------------
@@ -845,8 +853,8 @@ utf16_decoder                        // The current column substring
    copy.buffer= buffer + offset;
    copy.length= length - offset;
 
-   copy.decode();                   // (Include the current column codepoint)
-   while( copy.is_combining() )     // Include combining codepoints
+   copy.decode();                   // (Include the current column code point)
+   while( copy.is_combining() )     // Include combining code points
      copy.decode();
 
    copy.length= copy.offset;
@@ -861,11 +869,11 @@ utf16_decoder                        // The current column substring
 //       utf16_decoder::current
 //
 // Purpose-
-//       Get the current codepoint
+//       Retrieve the current Symbol
 //
 //----------------------------------------------------------------------------
-utf32_t                             // The current codepoint
-   utf16_decoder::current( void ) const // Get current codepoint
+Symbol                              // The current Symbol
+   utf16_decoder::current( void ) const // Retrieve the current Symbol
 {
    if( offset >= length )
      return UTF_EOF;
@@ -897,10 +905,10 @@ utf32_t                             // The current codepoint
 //       utf16_decoder::decode
 //
 // Purpose-
-//       Decode the current codepoint, updating column and offset
+//       Decode the current Symbol, updating column and offset
 //
 //----------------------------------------------------------------------------
-utf32_t                             // The current codepoint
+Symbol                              // The current Symbol
    utf16_decoder::decode( void )    // Decode, updating column and offset
 {
    if( offset >= length )
@@ -908,7 +916,7 @@ utf32_t                             // The current codepoint
 
    utf32_t code= fetch16(buffer[offset], mode);
    if( code < 0x00'D800 || code >= 0x00'E000 ) { // If standard encoding
-     if( !is_combining(code) || column == Column(-1) )
+     if( !Utf::is_combining(code) || column == Index(-1) )
        ++column;
      ++offset;
      return code;
@@ -936,7 +944,7 @@ utf32_t                             // The current codepoint
 
    // Resultant is always in unicode range but never in surrogate pair range.
    code= 0x01'0000 + ((code & 0x00'03FF) << 10 | (half & 0x00'03FF));
-   if( !is_combining(code) || column == Column(-1) )
+   if( !Utf::is_combining(code) || column == Index(-1) )
      ++column;
    offset += 2;
 
@@ -955,7 +963,7 @@ utf32_t                             // The current codepoint
 void
    utf16_decoder::reset(            // Reset the decoder
      const utf16_t*    addr,        // Buffer address
-     Length            size,        // Buffer length (in units)
+     Length            size,        // Buffer length (in native units)
      MODE              mode) noexcept // The decoding mode
 {
    if( addr == nullptr )
@@ -968,11 +976,18 @@ void
    this->mode= mode;
    column= -1;
    offset= get_origin();
+
+   if( offset && this->mode == MODE_RESET ) {
+     if( fetch16(buffer[0], MODE_BE) == MARK_ORDER_BYTE )
+       this->mode= MODE_LE;
+     else
+       this->mode= MODE_BE;
+   }
 }
 
 void
-   utf16_decoder::reset( void ) noexcept // Reset the decoder to initial state
-{  column= -1; offset= get_origin(); } // (Leaving length and mode unchanged)
+   utf16_decoder::reset( void ) noexcept // Reset the decoder
+{  column= -1; offset= get_origin(); }
 
 //============================================================================
 //
@@ -1003,7 +1018,7 @@ void
    utf32_decoder::utf32_decoder(    // Buffer constructor
      const utf32_t*    addr,        // Buffer address
      MODE              mode) noexcept // Encoding mode
-:  buffer(addr), length(strlen(addr) + 1), mode(mode)
+:  buffer(addr), length(utflen(addr) + 1), mode(mode)
 {  reset(buffer, length, mode); }
 
 //----------------------------------------------------------------------------
@@ -1060,46 +1075,48 @@ void
    traceh("utf32_decoder(%p) debug(%s)\n"
           "..buffer(%p) column(%zd) offset(%zd) length(%zd) mode(%s)\n", this
          , info, buffer, column, offset, length, get_mode_name(mode));
+   Length L= length * sizeof(utf32_t);
+   dump(Debug::get()->get_FILE(), buffer, L < 32 ? L : 32);
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       utf32_decoder::get_column
+//       utf32_decoder::get_column_count
+//
+// Purpose-
+//       Get the total code point count
+//
+//----------------------------------------------------------------------------
+Utf::Count                          // The total column count
+   utf32_decoder::get_column_count( void ) const // Get total column count
+{
+   utf32_decoder copy(*this);
+   copy.column= 0;
+   while( copy.decode() != UTF_EOF )
+     ;
+
+   return copy.column;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_decoder::get_column_index
 //
 // Purpose-
 //       Get the current column index
 //
 //----------------------------------------------------------------------------
-Utf::Column                         // The current Column index
-   utf32_decoder::get_column( void ) const // Get current Column index
+Utf::Index                          // The current column index
+   utf32_decoder::get_column_index( void ) const // Get current column index
 {
    if( offset < length ) {          // If there is a current character
-     if( column == Column(-1) || !is_combining(current()) )
+     if( column == Index(-1) || !Utf::is_combining(current()) )
        return column + 1;
    }
 
    return column;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       utf32_decoder::get_lpoint
-//
-// Purpose-
-//       Get the total (non-combining) codepoint count
-//
-//----------------------------------------------------------------------------
-Utf::Lpoint                         // The total codepoint count
-   utf32_decoder::get_lpoint( void ) const // Get total codepoint count
-{
-   utf32_decoder copy(*this);
-   Lpoint lpoint= 0;
-   while( copy.decode() != UTF_EOF )
-     ++lpoint;
-
-   return lpoint;
 }
 
 //----------------------------------------------------------------------------
@@ -1134,35 +1151,35 @@ Utf::Offset                         // The origin, either 0 or 1
 //----------------------------------------------------------------------------
 //
 // Method-
-//       utf32_decoder::get_points
+//       utf32_decoder::get_symbol_count
 //
 // Purpose-
-//       Get the total codepoint count
+//       Get the total Symbol count
 //
 //----------------------------------------------------------------------------
-Utf::Points                         // The total codepoint count
-   utf32_decoder::get_points( void ) const // Get total codepoint count
+Utf::Count                          // The total Symbol count
+   utf32_decoder::get_symbol_count( void ) const // Get total Symbol count
 {
    utf32_decoder copy(*this);
-   copy.column= 0;
+   Count count= 0;
    while( copy.decode() != UTF_EOF )
-     ;
+     ++count;
 
-   return copy.column;
+   return count;
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       utf32_decoder::set_column
+//       utf32_decoder::set_column_index
 //
 // Purpose-
-//       Set the specified Column
+//       Set the specified column index
 //
 //----------------------------------------------------------------------------
-Utf::Length                         // The number of (units) past end
-   utf32_decoder::set_column(       // Set column to
-     Column            IX)          // This column index
+Utf::Count                          // Number of units past end of buffer
+   utf32_decoder::set_column_index( // Set column to
+     Index             IX)          // This column Index
 {
    if( IX <= column ) {
      column= -1;
@@ -1173,16 +1190,16 @@ Utf::Length                         // The number of (units) past end
    }
 
    while( (column + 1) < IX ) {
-     utf32_t code= decode();
+     Symbol code= decode();
      if( code == UTF_EOF ) {
-       if( column == Column(-1) )   // If empty decoder
+       if( column == Index(-1) )    // If empty decoder
          return IX;
        return IX - column;
      }
    }
 
    if( offset > get_origin() ) {
-     while( is_combining(current()) )
+     while( Utf::is_combining(current()) )
        decode();
    }
 
@@ -1190,30 +1207,6 @@ Utf::Length                         // The number of (units) past end
      return 0;
 
    return IX - column;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       utf32_decoder::set_cpoint
-//
-// Purpose-
-//       Set the specified codepoint.
-//
-//----------------------------------------------------------------------------
-Utf::Offset                         // Offset, column combining not supported
-   utf32_decoder::set_cpoint(       // Set the codepoint
-     Cpoint            cpoint)      // The (non-combining) codepoint index
-{
-   reset();
-   offset= 0;
-   while( cpoint-- ) {
-     utf32_t code= decode();
-     if( code == UTF_EOF )
-       break;
-   }
-
-   return offset;
 }
 
 //----------------------------------------------------------------------------
@@ -1229,35 +1222,49 @@ void
    utf32_decoder::set_mode(         // Set decoding mode
      MODE              M)           // The decoding mode
 {
-   if( offset || M > MODE_LE ) {    // If decoding started or invalid MODE
-     traceh("decoder32::set_mode(%d) offset(%zd)\n", M, offset);
-     throw utf_error("set_mode usage error");
-   }
-
-   if( mode != MODE_RESET && M != mode ) { // If mode switch
-     traceh("decoder32::set_mode(%d) mode(%d)\n", M, mode);
-     throw utf_error("set_mode usage error");
+   if( M > MODE_LE ) {              // If invalid MODE
+     traceh("decoder32::set_mode(%d)\n", M);
+     throw utf_invalid_argument("set_mode: invalid MODE");
    }
 
    mode= M;
 }
 
-int                                 // Return code, 0 OK
-   utf32_decoder::set_mode( void )  // Initialize decoding mode
+//----------------------------------------------------------------------------
+//
+// Method-
+//       utf32_decoder::set_symbol_index
+//
+// Purpose-
+//       Set the specified Symbol index.
+//
+//----------------------------------------------------------------------------
+Utf::Count                          // Number of units past end of buffer
+   utf32_decoder::set_symbol_index( // Set the
+     Index             IX)          // Symbol Index
 {
-   if( mode != MODE_RESET )         // If "already initialized" error
-     return -1;                     // (MODE remains unchanged)
+   reset();
+   offset= 0;                       // (Offset includes Byte Order Mark)
+   if( IX == 0 )
+     return 0;
 
-   if( offset > 1 )                 // If "decoding started" error
-     return -2;                     // (MODE remains MODE_RESET, big endian)
+   Index index= 0;
+   while( index < IX ) {
+     Symbol code= decode();
+     if( code == UTF_EOF ) {
+       if( length == 0 )            // If empty decoder
+         return IX;
 
-   // If a little endian BYTE_ORDER_MARK is found, set little endian mode
-   if( length > 0 && be32toh(buffer[0]) == MARK_ORDER_BYTE32 )
-     mode= MODE_LE;               // Set little endian mode
-   else                           // (May have a big endian BYTE_ORDER_MARK)
-     mode= MODE_BE;               // Use the default mode
+       return IX - index + 1;
+     }
 
-   return 0;                      // Mode initialized
+     ++index;
+   }
+
+   if( offset < length )
+     return 0;
+
+   return IX - index + 1;
 }
 
 //----------------------------------------------------------------------------
@@ -1280,8 +1287,8 @@ utf32_decoder                        // The current column substring
    copy.buffer= buffer + offset;
    copy.length= length - offset;
 
-   copy.decode();                   // (Include the current column codepoint)
-   while( copy.is_combining() )     // Include combining codepoints
+   copy.decode();                   // (Include the current column code point)
+   while( copy.is_combining() )     // Include combining code points
      copy.decode();
 
    copy.length= copy.offset;
@@ -1296,11 +1303,11 @@ utf32_decoder                        // The current column substring
 //       utf32_decoder::current
 //
 // Purpose-
-//       Get the current codepoint
+//       Retrieve the current Symbol
 //
 //----------------------------------------------------------------------------
-utf32_t                             // The current codepoint
-   utf32_decoder::current( void ) const // Get current codepoint
+Symbol                              // The current Symbol
+   utf32_decoder::current( void ) const // Retrieve the current Symbol
 {
    if( offset >= length )
      return UTF_EOF;
@@ -1318,20 +1325,20 @@ utf32_t                             // The current codepoint
 //       utf32_decoder::decode
 //
 // Purpose-
-//       Decode the current codepoint, updating column and offset
+//       Decode the current Symbol, updating column and offset
 //
 //----------------------------------------------------------------------------
-utf32_t                             // The current codepoint
+Symbol                              // The current Symbol
    utf32_decoder::decode( void )    // Decode, updating column and offset
 {
-   if( offset >= length )           // If EOF position
+   if( offset >= length )
      return UTF_EOF;
 
    utf32_t code= fetch32(buffer[offset++], mode);
    if( !is_unicode(code) )
      code= UNI_REPLACEMENT;
 
-   if( !is_combining(code) || column == Column(-1) ) {
+   if( !Utf::is_combining(code) || column == Index(-1) ) {
      ++column;
    }
 
@@ -1350,7 +1357,7 @@ utf32_t                             // The current codepoint
 void
    utf32_decoder::reset(            // Reset the decoder
      const utf32_t*    addr,        // Buffer address
-     Length            size,        // Buffer length (in units)
+     Length            size,        // Buffer length (in native units)
      MODE              mode) noexcept // The decoding mode
 {
    if( addr == nullptr )
@@ -1363,11 +1370,18 @@ void
    this->mode= mode;
    column= -1;
    offset= get_origin();
+
+   if( offset && this->mode == MODE_RESET ) {
+     if( fetch32(buffer[0], MODE_BE) == MARK_ORDER_BYTE32 )
+       this->mode= MODE_LE;
+     else
+       this->mode= MODE_BE;
+   }
 }
 
 void
-   utf32_decoder::reset( void ) noexcept // Reset the decoder to initial state
-{  column= -1; offset= get_origin(); } // (Leaving length and mode unchanged)
+   utf32_decoder::reset( void ) noexcept // Reset the decoder
+{  column= -1; offset= get_origin(); }
 
 //============================================================================
 //
@@ -1407,9 +1421,9 @@ utf8_encoder&                       // (Always *this)
 {
    if( buffer == from.buffer ) {    // If we're using the same buffer
      if( from.get_length() > length ) // If buffer length mismatch
-       throw utf_error("operator=() incomplete"); // (offset > length) error
+       throw utf_overflow_error("shared buffer length error");
 
-     column= from.get_points();
+     column= from.get_column_count();
      offset= from.get_length();
      return *this;
    }
@@ -1419,12 +1433,12 @@ utf8_encoder&                       // (Always *this)
    // Copy the copied decoder, column by column
    reset();
    for(;;) {
-     utf32_t code= copy.decode();   // Decode the next codepoint
+     Symbol code= copy.decode();    // Decode the next code point
      if( code == UTF_EOF )          // If EOF
        break;
 
      if( encode(code) == 0 )        // If not enough room
-       throw utf_error("operator=() incomplete");
+       throw utf_overflow_error("assignment incomplete");
    }
 
    return *this;
@@ -1440,12 +1454,12 @@ utf8_encoder&                       // (Always *this)
    // Copy the copied decoder, column by column
    reset();
    for(;;) {
-     utf32_t code= copy.decode();   // Decode the next codepoint
+     Symbol code= copy.decode();    // Decode the next code point
      if( code == UTF_EOF )          // If EOF
        break;
 
      if( encode(code) == 0 )        // If not enough room
-       throw utf_error("operator=() incomplete");
+       throw utf_overflow_error("assignment incomplete");
    }
 
    return *this;
@@ -1461,12 +1475,12 @@ utf8_encoder&                       // (Always *this)
    // Copy the copied decoder, column by column
    reset();
    for(;;) {
-     utf32_t code= copy.decode();   // Decode the next codepoint
+     Symbol code= copy.decode();    // Decode the next code point
      if( code == UTF_EOF )          // If EOF
        break;
 
      if( encode(code) == 0 )        // If not enough room
-       throw utf_error("operator=() incomplete");
+       throw utf_overflow_error("assignment incomplete");
    }
 
    return *this;
@@ -1488,25 +1502,27 @@ void
    traceh("utf8_encoder(%p) debug(%s)\n"
           "..buffer(%p) column(%zd) offset(%zd) length(%zd)\n", this, info
          , buffer, column, offset, length);
+   Length L= offset * sizeof(utf8_t);
+   dump(Debug::get()->get_FILE(), buffer, L < 32 ? L : 32);
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       utf8_encoder::utf8_encode
+//       utf8_encoder::encode
 //
 // Purpose-
-//       Encode one codepoint
+//       Encode one code point
 //
 // Implementation notes-
-//       Currently no combining codepoints have 4 character encodings, but
+//       Currently no combining code points have 4 character encodings, but
 //       who knows what tomorrow brings?
 //       We check whether 4 character encodings are combining anyway.
 //
 //----------------------------------------------------------------------------
-unsigned                            // The encoding length
+unsigned                            // The encoding length, in native units
    utf8_encoder::encode(            // Encode, updating column and offset
-     utf32_t           code)        // This codepoint
+     Symbol            code)        // This Symbol
 {
    if( offset >= length )           // If buffer full
      return 0;
@@ -1525,14 +1541,14 @@ unsigned                            // The encoding length
      buffer[offset + 1]= (utf8_t)((code & 0x3F) | 0x80);
      code >>= 6;
      buffer[offset + 0]= (utf8_t)(code | 0xC0);
-     if( offset == 0 || !is_combining(code) )
+     if( offset == 0 || !Utf::is_combining(code) )
        ++column;
      offset += 2;
      return 2;
    }
 
-   if( !is_unicode(code) )          // If invalid codepoint
-     code= UNI_REPLACEMENT;         // Use replacement codepoint
+   if( !is_unicode(code) )          // If invalid code point
+     code= UNI_REPLACEMENT;         // Use replacement code point
    if( code < 0x0001'0000 ) {       // Three byte encoding
      if( left < 3 )
        return 0;
@@ -1542,7 +1558,7 @@ unsigned                            // The encoding length
      buffer[offset + 1]= (utf8_t)((code & 0x3F) | 0x80);
      code >>= 6;
      buffer[offset + 0]= (utf8_t)(code | 0xE0);
-     if( offset == 0 || !is_combining(code) )
+     if( offset == 0 || !Utf::is_combining(code) )
        ++column;
      offset += 3;
      return 3;
@@ -1559,7 +1575,7 @@ unsigned                            // The encoding length
    buffer[offset + 1]= (utf8_t)((code & 0x3F) | 0x80);
    code >>= 6;
    buffer[offset + 0]= (utf8_t)(code | 0xF0);
-   if( !is_combining(code) || column == 0 )
+   if( !Utf::is_combining(code) || column == 0 )
      ++column;
    offset += 4;
    return 4;
@@ -1591,8 +1607,8 @@ void
 }
 
 void
-   utf8_encoder::reset( void ) noexcept // Reset the encoder to initial state
-{  column= -1; offset= 0; }         // (Leaving length unchanged)
+   utf8_encoder::reset( void ) noexcept // Reset the encoder
+{  column= -1; offset= 0; }
 
 //============================================================================
 //
@@ -1630,12 +1646,12 @@ utf16_encoder&                      // (Always *this)
    reset();
    mode= MODE_BE;
    for(;;) {
-     utf32_t code= copy.decode();   // Decode the next codepoint
+     Symbol code= copy.decode();    // Decode the next code point
      if( code == UTF_EOF )          // If EOF
        break;
 
      if( encode(code) == 0 )        // If not enough room
-       throw utf_error("operator=() incomplete");
+       throw utf_overflow_error("assignment incomplete");
    }
 
    return *this;
@@ -1649,10 +1665,10 @@ utf16_encoder&                      // (Always *this)
    mode= from.get_mode();
 
    if( buffer == from.buffer ) {    // If we're using the same buffer
-     if( from.get_length() > length ) // If buffer length mismatch
-       throw utf_error("operator=() incomplete"); // (offset > length) error
+     if( from.get_length() > length ) // If shared buffer length
+       throw utf_overflow_error("shared buffer length error");
 
-     column= from.get_points();
+     column= from.get_column_count();
      offset= from.get_length();
      return *this;
    }
@@ -1665,12 +1681,12 @@ utf16_encoder&                      // (Always *this)
      encode(BYTE_ORDER_MARK);
 
    for(;;) {
-     utf32_t code= copy.decode();   // Decode the next codepoint
+     Symbol code= copy.decode();    // Decode the next code point
      if( code == UTF_EOF )          // If EOF
        break;
 
      if( encode(code) == 0 )        // If not enough room
-       throw utf_error("operator=() incomplete");
+       throw utf_overflow_error("assignment incomplete");
    }
 
    return *this;
@@ -1691,12 +1707,12 @@ utf16_encoder&                      // (Always *this)
      encode(BYTE_ORDER_MARK);
 
    for(;;) {
-     utf32_t code= copy.decode();   // Decode the next codepoint
+     Symbol code= copy.decode();    // Decode the next code point
      if( code == UTF_EOF )          // If EOF
        break;
 
      if( encode(code) == 0 )        // If not enough room
-       throw utf_error("operator=() incomplete");
+       throw utf_overflow_error("assignment incomplete");
    }
 
    return *this;
@@ -1718,6 +1734,8 @@ void
    traceh("utf16_encoder(%p) debug(%s)\n"
           "..buffer(%p) column(%zd) offset(%zd) length(%zd) mode(%s)\n", this
          , info, buffer, column, offset, length, get_mode_name(mode));
+   Length L= offset * sizeof(utf16_t);
+   dump(Debug::get()->get_FILE(), buffer, L < 32 ? L : 32);
 }
 
 //----------------------------------------------------------------------------
@@ -1726,16 +1744,16 @@ void
 //       utf16_encoder::set_mode
 //
 // Purpose-
-//       Set the decoder MODE
+//       Set the encoder MODE
 //
 //----------------------------------------------------------------------------
 void
    utf16_encoder::set_mode(         // Set encoding mode
      MODE              M)           // The encoding mode
 {
-   if( offset || M > MODE_LE ) {    // If encoding started or invalid MODE
-     traceh("encoder16::set_mode(%d) offset(%zd)\n", M, offset);
-     throw utf_error("set_mode usage error");
+   if( M > MODE_LE ) {              // If invalid MODE
+     traceh("encoder16::set_mode(%d)\n", M);
+     throw utf_invalid_argument("set_mode: invalid MODE");
    }
 
    mode= M;
@@ -1747,39 +1765,31 @@ void
 //       utf16_encoder::encode
 //
 // Purpose-
-//       Encode a codepoint
+//       Encode a code point
 //
 //----------------------------------------------------------------------------
-unsigned                            // The encoding length, in units
+unsigned                            // The encoding length, in native units
    utf16_encoder::encode(           // Encode, updating column and offset
-     utf32_t           code)        // This codepoint
+     Symbol            code)        // This Symbol
 {
-   if( !is_unicode(code) )          // If codepoint is invalid
+   if( offset >= length )           // If buffer full
+     return 0;
+
+   if( !is_unicode(code) )          // If code point is invalid
      code= UNI_REPLACEMENT;         // Encode replacement character instead
 
-   if( column == Column(-1) ) {
-     if( offset == 0 && code == BYTE_ORDER_MARK ) {
-       buffer[offset++]= store16(code, mode);
-       return 1;
-     }
-   }
-
    if( code < 0x01'0000 ) {
-     if( offset >= length )
-       return 0;
-
-     if( !is_combining(code) || column == Column(-1) )
+     if( !Utf::is_combining(code) || column == Index(-1) )
        ++column;
 
      buffer[offset++]= store16((utf16_t)code, mode);
-
      return 1;
    }
 
    if( (length - offset) < 2 )
      return 0;
 
-   if( !is_combining(code) || column == Column(-1) )
+   if( !Utf::is_combining(code) || column == Index(-1) )
      ++column;
 
    code -= 0x01'0000;
@@ -1803,7 +1813,7 @@ unsigned                            // The encoding length, in units
 void
    utf16_encoder::reset(            // Reset the encoder
      utf16_t*          addr,        // Buffer address
-     Length            size,        // Buffer length (in units)
+     Length            size,        // Buffer length (in native units)
      MODE              mode) noexcept // The decoding mode
 {
    if( addr == nullptr )
@@ -1819,8 +1829,8 @@ void
 }
 
 void
-   utf16_encoder::reset( void ) noexcept // Reset the encoder to initial state
-{  column= -1; offset= 0; }         // (Leaving length and mode unchanged)
+   utf16_encoder::reset( void ) noexcept // Reset the encoder
+{  column= -1; offset= 0; }
 
 //============================================================================
 //
@@ -1857,12 +1867,12 @@ utf32_encoder&                      // (Always *this)
    // Copy the copied decoder, column by column
    reset();
    for(;;) {
-     utf32_t code= copy.decode();   // Decode the next codepoint
+     Symbol code= copy.decode();    // Decode the next code point
      if( code == UTF_EOF )          // If EOF
        break;
 
      if( encode(code) == 0 )        // If not enough room
-       throw utf_error("operator=() incomplete");
+       throw utf_overflow_error("assignment incomplete");
    }
 
    return *this;
@@ -1882,12 +1892,12 @@ utf32_encoder&                      // (Always *this)
    if( from.get_origin() != 0 )     // If BYTE_ORDER_MARK present
      encode(BYTE_ORDER_MARK);
    for(;;) {
-     utf32_t code= copy.decode();   // Decode the next codepoint
+     Symbol code= copy.decode();    // Decode the next code point
      if( code == UTF_EOF )          // If EOF
        break;
 
      if( encode(code) == 0 )        // If not enough room
-       throw utf_error("operator=() incomplete");
+       throw utf_overflow_error("assignment incomplete");
    }
 
    return *this;
@@ -1902,9 +1912,9 @@ utf32_encoder&                      // (Always *this)
 
    if( buffer == from.buffer ) {    // If we're using the same buffer
      if( from.get_length() > length ) // If buffer length mismatch
-       throw utf_error("operator=() incomplete"); // (offset > length) error
+       throw utf_overflow_error("shared buffer length error");
 
-     column= from.get_points();
+     column= from.get_column_count();
      offset= from.get_length();
      return *this;
    }
@@ -1916,12 +1926,12 @@ utf32_encoder&                      // (Always *this)
    if( from.get_origin() != 0 )     // If BYTE_ORDER_MARK present
      encode(BYTE_ORDER_MARK);
    for(;;) {
-     utf32_t code= copy.decode();   // Decode the next codepoint
+     Symbol code= copy.decode();    // Decode the next code point
      if( code == UTF_EOF )          // If EOF
        break;
 
      if( encode(code) == 0 )        // If not enough room
-       throw utf_error("operator=() incomplete");
+       throw utf_overflow_error("assignment incomplete");
    }
 
    return *this;
@@ -1943,6 +1953,8 @@ void
    traceh("utf32_encoder(%p) debug(%s)\n"
           "..buffer(%p) column(%zd) offset(%zd) length(%zd) mode(%s)\n", this
          , info, buffer, column, offset, length, get_mode_name(mode));
+   Length L= offset * sizeof(utf32_t);
+   dump(Debug::get()->get_FILE(), buffer, L < 32 ? L : 32);
 }
 
 //----------------------------------------------------------------------------
@@ -1958,9 +1970,9 @@ void
    utf32_encoder::set_mode(         // Set encoding mode
      MODE              M)           // The encoding mode
 {
-   if( offset || M > MODE_LE ) {    // If encoding started or invalid MODE
-     traceh("encoder32::set_mode(%d) offset(%zd)\n", M, offset);
-     throw utf_error("set_mode usage error");
+   if( M > MODE_LE ) {              // If invalid MODE
+     traceh("encoder32::set_mode(%d)\n", M);
+     throw utf_invalid_argument("set_mode: invalid MODE");
    }
 
    mode= M;
@@ -1972,33 +1984,46 @@ void
 //       utf32_encoder::encode
 //
 // Purpose-
-//       Encode a codepoint
+//       Encode a code point
+//
+// Implementation notes-
+//       Note that MARK_ORDER_BYTE32 is an invalid code point. If it's the
+//       first Symbol encoded and the mode hasn't already been set, the
+//       mode is changed to MODE_LE and the encode Symbol is changed to
+//       BYTE_ORDER_MARK32. (It's translated when it's stored.)
+//
+//       If an application sets the mode to MODE_LE before the first Symbol's
+//       encoded, it should then also set the Symbol parameter to
+//       BYTE_ORDER_MARK(32) to properly encode a MARK_ORDER_BYTE32.
 //
 //----------------------------------------------------------------------------
-unsigned                            // The encoding length, in units
+unsigned                            // The encoding length, in native units
    utf32_encoder::encode(           // Encode, updating column and offset
-     utf32_t           code)        // This codepoint
+     Symbol            code)        // This Symbol
 {
    if( offset >= length )           // If buffer full
      return 0;
 
-   if( !is_unicode(code) )          // If codepoint is invalid
+   if( !is_unicode(code) )          // If code point is invalid
      code= UNI_REPLACEMENT;         // Encode replacement character instead
 
-   if( column == Column(-1) ) {
+   if( column == Index(-1) ) {
      if( offset == 0 && code == BYTE_ORDER_MARK32 ) {
        buffer[offset++]= store32(code, mode);
+       if( mode == MODE_RESET )
+         mode= MODE_BE;
        return 1;
      }
 
      column= 0;                     // First column, never combining
-   } else if( !is_combining(code) ) { // Not first column, check combining
+   } else if( !Utf::is_combining(code) ) { // Not first column, check combining
      ++column;
    }
 
    buffer[offset++]= store32(code, mode);
    return 1;
 }
+static_assert(BYTE_ORDER_MARK == BYTE_ORDER_MARK32, "Utf.h is broken");
 
 //----------------------------------------------------------------------------
 //
@@ -2012,7 +2037,7 @@ unsigned                            // The encoding length, in units
 void
    utf32_encoder::reset(            // Reset the encoder
      utf32_t*          addr,        // Buffer address
-     Length            size,        // Buffer length (in units)
+     Length            size,        // Buffer length (in native units)
      MODE              mode) noexcept // The encoding mode
 {
    if( addr == nullptr )
@@ -2028,6 +2053,6 @@ void
 }
 
 void
-   utf32_encoder::reset( void ) noexcept // Reset the encoder to initial state
-{  column= -1; offset= 0; }         // (Leaving length and mode unchanged)
+   utf32_encoder::reset( void ) noexcept // Reset the encoder
+{  column= -1; offset= 0; }
 }  // namespace _LIBPUB_NAMESPACE

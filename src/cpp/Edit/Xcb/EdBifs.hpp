@@ -10,13 +10,13 @@
 //----------------------------------------------------------------------------
 //
 // Include-
-//       EdTabs.hpp
+//       EdBifs.hpp
 //
 // Purpose-
 //       Editor: Handle tabs and margins
 //
 // Last change date-
-//       2024/04/22
+//       2024/08/30
 //
 // Implementation notes-
 //       (Only) included by EdBifs.cpp
@@ -25,6 +25,66 @@
 //       (The {alt-\,tab} sequence inserts a tab into the file.)
 //
 //----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::tab_forward
+//
+// Purpose-
+//       Get next tab column.
+//
+//----------------------------------------------------------------------------
+size_t                              // The next tab column
+   editor::tab_forward(             // Get the tab column
+     size_t            column)      // After this zero-origin column
+{
+   enum {DT= Editor::TAB_DEFAULT};  // The default tab spacing
+
+   size_t used= tabs[0];            // The tab count
+
+   ++column;                        // One-origin column
+   for(size_t i= 1; i <= used; ++i) {
+     if( tabs[i] > column )
+       return tabs[i] - 1;
+   }
+
+   size_t default_tab= ((column+DT)/DT*DT);
+   return default_tab - 1;          // Next default tab stop
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       editor::tab_reverse
+//
+// Purpose-
+//       Get prior tab column.
+//
+//----------------------------------------------------------------------------
+size_t                              // The prior tab column
+   editor::tab_reverse(             // Get the tab column
+     size_t            column)      // Before this zero-origin column
+{
+   enum {DT= Editor::TAB_DEFAULT};  // The default tab spacing
+
+   size_t used= tabs[0];            // The tab count
+
+   ++column;                        // One-origin column
+   if( (used == 0 && column <= DT) || column <= tabs[1] )
+      return 0;
+
+   size_t default_tab= ((column-DT)/DT*DT);
+   if( used == 0 || default_tab > tabs[used] )
+     return default_tab - 1;
+
+   for(size_t i= used; i > 0; --i) {
+     if( tabs[i] < column )
+       return tabs[i] - 1;
+   }
+
+   return 0;                        // (Unexpected)
+}
 
 //----------------------------------------------------------------------------
 //
@@ -209,64 +269,4 @@ static const char*                  // Error message, nullptr expected
    }
    return_string +="}";
    return return_string.c_str();
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       editor::tab_forward
-//
-// Purpose-
-//       Get next tab column.
-//
-//----------------------------------------------------------------------------
-size_t                              // The next tab column
-   editor::tab_forward(             // Get the tab column
-     size_t            column)      // After this zero-origin column
-{
-   enum {DT= Editor::TAB_DEFAULT};  // The default tab spacing
-
-   size_t used= tabs[0];            // The tab count
-
-   ++column;                        // One-origin column
-   for(size_t i= 1; i <= used; ++i) {
-     if( tabs[i] > column )
-       return tabs[i] - 1;
-   }
-
-   size_t default_tab= ((column+DT)/DT*DT);
-   return default_tab - 1;          // Next default tab stop
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       editor::tab_reverse
-//
-// Purpose-
-//       Get prior tab column.
-//
-//----------------------------------------------------------------------------
-size_t                              // The prior tab column
-   editor::tab_reverse(             // Get the tab column
-     size_t            column)      // Before this zero-origin column
-{
-   enum {DT= Editor::TAB_DEFAULT};  // The default tab spacing
-
-   size_t used= tabs[0];            // The tab count
-
-   ++column;                        // One-origin column
-   if( (used == 0 && column <= DT) || column <= tabs[1] )
-      return 0;
-
-   size_t default_tab= ((column-DT)/DT*DT);
-   if( used == 0 || default_tab > tabs[used] )
-     return default_tab - 1;
-
-   for(size_t i= used; i > 0; --i) {
-     if( tabs[i] < column )
-       return tabs[i] - 1;
-   }
-
-   return 0;                        // (Unexpected)
 }

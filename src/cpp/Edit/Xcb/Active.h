@@ -16,7 +16,7 @@
 //       Active Line descriptor.
 //
 // Last change date-
-//       2024/08/23
+//       2024/08/30
 //
 // Implementation note-
 //       Changed Lines also automatically remove any trailing blanks.
@@ -46,10 +46,10 @@ class Active {                      // Active editor line
 // Active::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:                             // UTF-8 size_t aliases
-typedef size_t         Column;      // A column number
+typedef size_t         Count;       // A column or symbol count
+typedef size_t         Index;       // A column or symbol index
 typedef size_t         Length;      // A length in bytes
 typedef size_t         Offset;      // A column number byte offset
-typedef size_t         Points;      // A column count
 
 enum FSM                            // Finite State Machine states
 {  FSM_RESET= 0                     // Unchanged, Reset
@@ -108,7 +108,7 @@ void
 public:
 const char*                         // The current buffer
    get_buffer(                      // Get ('\0' delimited) buffer
-     Column            column= 0);  // Starting at this column
+     Index             column= 0);  // Starting at this column index
 
 const char*                         // The changed text, nullptr if unchanged
    get_changed( void );             // Get ('\0' delimited) changed buffer
@@ -126,7 +126,7 @@ const char*                         // The changed text, nullptr if unchanged
 //----------------------------------------------------------------------------
 const char*                         // The current buffer
    get_column(                      // Get ('\0' delimited) buffer
-     Column            column= 0);  // Starting at this column
+     Index             column= 0);  // Starting at this column index
 
 const char*                         // The current buffer
    get_offset(                      // Get ('\0' delimited) buffer
@@ -187,12 +187,12 @@ void
 //       Get offset of character at column index, with fetch and fill.
 //
 // Implementation notes-
-//       Type of parameter column depends on EdOpts::has_unicode_combining
+//       Type of parameter Index depends on `EdOpts::has_unicode_combining`
 //
 //----------------------------------------------------------------------------
 Offset                              // The character buffer Offset
    index(                           // Get character buffer Offset for
-     Column            column);     // This Column (or Cpoint)
+     Index             column);     // This column or symbol index
 
 //----------------------------------------------------------------------------
 //
@@ -205,7 +205,7 @@ Offset                              // The character buffer Offset
 //----------------------------------------------------------------------------
 void
    insert_char(                     // Insert character
-     Column            column,      // The current Column
+     Index             column,      // The current column index
      int               code);       // The insert character
 
 //----------------------------------------------------------------------------
@@ -219,7 +219,7 @@ void
 //----------------------------------------------------------------------------
 void
    insert_text(                     // Insert text
-     Column            column,      // The insert Column
+     Index             column,      // The insert column index
      const char*       text);       // The insert text
 
 //----------------------------------------------------------------------------
@@ -233,7 +233,7 @@ void
 //----------------------------------------------------------------------------
 void
    remove_char(                     // Remove the character
-     Column            column);     // At this Column
+     Index             column);     // At this column index
 
 //----------------------------------------------------------------------------
 //
@@ -246,7 +246,7 @@ void
 //----------------------------------------------------------------------------
 void
    replace_char(                    // Replace the character
-     Column            column,      // At this Column
+     Index             column,      // At this column index
      int               code);       // With this character
 
 //----------------------------------------------------------------------------
@@ -260,15 +260,15 @@ void
 //----------------------------------------------------------------------------
 void
    replace_text(                    // Replace (or insert) text
-     Column            column,      // The replacement Column
-     Points            points,      // The number of deleted columns
+     Index             column,      // The replacement column index
+     Count             points,      // The number of deleted columns
      const char*       text,        // The replacement (insert) text
      Length            size);       // The replacement (insert) text Length
 
 void
    replace_text(                    // Replace (or insert) text
-     Column            column,      // The replacement Column
-     Points            points,      // The number of of deleted columns
+     Index             column,      // The replacement column index
+     Count             points,      // The number of of deleted columns
      const char*       text);       // The replacement (insert) text
 
 //----------------------------------------------------------------------------

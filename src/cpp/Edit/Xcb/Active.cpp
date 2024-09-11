@@ -16,7 +16,7 @@
 //       Implement Active.h
 //
 // Last change date-
-//       2024/08/23
+//       2024/08/30
 //
 //----------------------------------------------------------------------------
 #include <string.h>                 // For memcpy, memmove, strlen
@@ -122,7 +122,7 @@ void
 //----------------------------------------------------------------------------
 const char*                         // The current buffer
    Active::get_buffer(              // Get '\0' delimited buffer
-     Column            column)      // Starting at this Column
+     Index             column)      // Starting at This column index
 {  return get_column(column); }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -148,16 +148,16 @@ const char*                         // The changed text, nullptr if unchanged
 //----------------------------------------------------------------------------
 const char*                         // The buffer, beginning at column
    Active::get_column(              // Get '\0' delimited buffer
-     Column            column)      // Starting at this Column
+     Index             column)      // Starting at This column index
 {
    fetch(column);                   // Load the buffer (May expand buffer)
 
    decoder.reset((const utf8_t*)buffer, buffer_used);
-   Length length= decoder.set_column(column);
+   Length length= decoder.set_column_index(column);
    if( length ) {
      fetch(buffer_used + length + 1); // Reload the buffer (Expands buffer)
      decoder.reset((const utf8_t*)buffer, buffer_used); // (Use expanded buffer)
-     decoder.set_column(column);
+     decoder.set_column_index(column);
    }
 
    return buffer + decoder.get_offset();
@@ -292,34 +292,32 @@ void
 //       Active::index
 //
 // Purpose-
-//       Get offset of character at column index, with fetch and fill.
+//       Get offset of character at column/symbol index, with fetch and fill.
 //
 // Implementation notes-
-//       Type of parameter column depends on EdOpts::has_unicode_combining
+//       Uses EdOpts::has_unicode_combining to differentiatate column/symbol
 //
 //----------------------------------------------------------------------------
 Active::Offset                      // The character Offset
    Active::index(                   // Get character Offset of
-     Column            column)      // This Column or Cpoint
+     Index             column)      // This column or symbol index
 {
    fetch(column);                   // Load the buffer (May expand buffer)
 
    decoder.reset((const utf8_t*)buffer, buffer_used);
    if( EdOpts::has_unicode_combining() ) {
-     Length length= decoder.set_column(column);
-     if( length ) {
-       fetch(buffer_used + length + 1); // Reload the buffer (Expands buffer)
+     Count count= decoder.set_column_index(column);
+     if( count ) {
+       fetch(buffer_used + count + 1); // Reload the buffer (Expands buffer)
        decoder.reset((const utf8_t*)buffer, buffer_used);
-       decoder.set_column(column);
+       decoder.set_column_index(column);
      }
    } else {
-     Offset offset= decoder.set_cpoint(column);
-     if( offset >= decoder.get_length() ) {
-if( column < decoder.get_lpoint() ) throwf("%4d SHOULD NOT OCCUR", __LINE__);
-// TODO: remove above line
-       fetch(buffer_used + (column - decoder.get_lpoint()) + 1);
+     Count count= decoder.set_symbol_index(column);
+     if( count ) {
+       fetch(buffer_used + count + 1); // Reload the buffer (Expands buffer)
        decoder.reset((const utf8_t*)buffer, buffer_used);
-       decoder.set_cpoint(column);
+       decoder.set_symbol_index(column);
      }
    }
 
@@ -337,7 +335,7 @@ if( column < decoder.get_lpoint() ) throwf("%4d SHOULD NOT OCCUR", __LINE__);
 //----------------------------------------------------------------------------
 void
    Active::insert_char(             // Insert character
-     Column            column,      // The current column
+     Index             column,      // The current column index
      int               code)        // The insert character
 {
    if( code == 0 )                  // Don't insert null characters
@@ -362,7 +360,7 @@ void
 //----------------------------------------------------------------------------
 void
    Active::insert_text(             // Insert text
-     Column            column,      // The insert column
+     Index             column,      // The insert column index
      const char*       text)        // The insert text
 {  replace_text(column, 0, text); }
 
@@ -377,7 +375,7 @@ void
 //----------------------------------------------------------------------------
 void
    Active::remove_char(             // Remove the character
-     Column            column)      // At this column
+     Index             column)      // At this column index
 {  replace_text(column, 1, ""); }   // (Replace it with nothing)
 
 //----------------------------------------------------------------------------
@@ -391,7 +389,7 @@ void
 //----------------------------------------------------------------------------
 void
    Active::replace_char(            // Replace the character
-     Column            column,      // At this column
+     Index             column,      // At this column index
      int               code)        // With this character
 {
    if( code == 0 )                  // Don't insert null characters
@@ -416,8 +414,8 @@ void
 //----------------------------------------------------------------------------
 void
    Active::replace_text(            // Replace (or insert) text
-     Column            column,      // The replacement Column
-     Points            points,      // The replacement (delete) Column count
+     Index             column,      // The replacement column index
+     Count             points,      // The replacement (delete) column count
      const char*       text,        // The replacement (insert) text
      Length            insert)      // The replacement (insert) text Length
 {
@@ -442,8 +440,8 @@ void
 
 void
    Active::replace_text(            // Replace (or insert) text
-     Column            column,      // The replacement Column
-     Points            points,      // The number of deleted columns
+     Index             column,      // The replacement column index
+     Count             points,      // The number of deleted columns
      const char*       text)        // The replacement (insert) text
 {  replace_text(column, points, text, strlen(text)); }
 

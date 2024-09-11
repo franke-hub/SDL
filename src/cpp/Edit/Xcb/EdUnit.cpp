@@ -16,7 +16,7 @@
 //       Editor: Input/output interface; Handle editor operations.
 //
 // Last change date-
-//       2024/08/14
+//       2024/08/30
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -36,7 +36,7 @@
 #include "EdHist.h"                 // For EdHist
 #include "EdMark.h"                 // For EdMark
 #include "EdOpts.h"                 // For EdOpts
-#include "EdUnit.h"                 // For EdUnit, implemented
+#include "EdUnit.h"                 // For EdUnit - implemented
 
 using namespace config;             // For config::opt_*, ...
 using namespace pub::debugging;     // For debugging
@@ -251,13 +251,10 @@ void
    const char* buffer= view->active.truncate();
    utf8_decoder decoder(buffer);
 
-   size_t points;
    if( EdOpts::has_unicode_combining() )
-     points= decoder.get_points() - 1;
+     move_cursor_H(decoder.get_column_count() - 1);
    else
-     points= decoder.get_lpoint() - 1;
-
-   move_cursor_H(points);
+     move_cursor_H(decoder.get_symbol_count() - 1);
 }
 
 void

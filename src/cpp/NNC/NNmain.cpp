@@ -13,7 +13,7 @@
 //       NNmain.cpp
 //
 // Purpose-
-//       Neural Net control program.
+//       Neural Network Compiler control program.
 //
 // Last change date-
 //       2007/01/01

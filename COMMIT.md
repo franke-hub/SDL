@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/08/27
+//       2024/09/11
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,18 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+----
+
+#### 09/11/2024 maint
+
+The combined editors (xcbedit and xtmedit) are now ready.
+
+The Utf.h documentation is ready for github markdown verification.
+
+The documentation updates and most of the code changes in this commit are
+interrelated. The Symbol type was particularly helpful in simplifying the
+documentation while also clarifying the interface definitions.
+
 ----
 
 #### 08/27/2024 maint

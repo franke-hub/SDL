@@ -16,7 +16,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2024/08/23
+//       2024/08/30
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -41,9 +41,9 @@
 #include "EdData.h"                 // For EdData
 #include "EdFile.h"                 // For EdFile
 #include "EdHist.h"                 // For EdHist
-#include "EdInps.h"                 // For EdInps, super class
+#include "EdInps.h"                 // For EdInps - base class
 #include "EdMark.h"                 // For EdMark
-#include "EdOuts.h"                 // For EdOuts, implemented
+#include "EdOuts.h"                 // For EdOuts - implemented
 #include "EdType.h"                 // For Editor types
 
 #define PUB _LIBPUB_NAMESPACE       // The PUB library namespacce
@@ -466,14 +466,14 @@ void
      unsigned          row,         // The (absolute) row number
      const EdLine*     line)        // The line to draw
 {
-// int y= get_y(int(row));          // Convert row to pixel offset
    ssize_t col_zero= editor::data->col_zero;
    const char* text= get_text(line); // Get associated text
    utf8_decoder decoder(text);
    if( col_zero ) {                 // If column offset
-     if( decoder.set_column(col_zero) ) // If past end of text
-       return;                      // Nothing to draw
-     text += decoder.get_offset();
+     if( decoder.set_column_index(col_zero) ) // If past end of text
+       text= "";                    // Use empty text
+     else
+       text += decoder.get_offset();
    }
 
    if( line->flags & EdLine::F_MARK ) {
@@ -484,7 +484,10 @@ void
      if( mark.mark_col >= 0 ) {     // If column mark active
        if( mark.mark_lh > col_last || mark.mark_rh < col_zero ) {
          lh_mark= rh_mark= col_size + 1;
-       } else {                     // Otherwise compute screen offsets
+       } else if( mark.mark_lh < col_zero ) {
+         lh_mark= 0;
+         rh_mark= mark.mark_rh - col_zero + 1;
+       } else {
          lh_mark= mark.mark_lh - col_zero;
          rh_mark= lh_mark + (mark.mark_rh - mark.mark_lh) + 1;
        }
@@ -495,13 +498,14 @@ void
      //  M) The marked Middle section (may be the entire line)
      //  R) The unmarked Right section at the end (may be null)
      active.reset(text);            // Load the line (with col_zero origin)
-     active.get_column(col_size+1); // The buffer is the screen length
+     active.get_column(col_size+1); // Fill buffer to screen length
      const char* buffer= active.get_buffer();
      decoder.reset(buffer, strlen(buffer));
 
-     Offset lh_off= decoder.set_cpoint(lh_mark);
-     Offset rh_off= decoder.set_cpoint(rh_mark);
-     decoder.set_cpoint(col_size+1);
+     decoder.set_symbol_index(lh_mark);
+     Offset lh_off= decoder.get_offset();
+     decoder.set_symbol_index(rh_mark);
+     Offset rh_off= decoder.get_offset();
      Offset off_last= decoder.get_length();
 
      // Left section
@@ -715,7 +719,7 @@ void
    Length      dused= active.get_used();
 
    utf8_decoder decoder(dbuff, dused);
-   decoder.set_cpoint(view->get_column());
+   decoder.set_symbol_index(view->get_column());
    utf32_t code= decoder.decode();
    if( code == 0 || code == UTF_EOF )
      code= ' ';
@@ -738,7 +742,7 @@ void
    Length      dused= active.get_used();
 
    utf8_decoder decoder(dbuff, dused);
-   decoder.set_cpoint(view->get_column());
+   decoder.set_symbol_index(view->get_column());
    utf32_t code= decoder.decode();
    if( code == 0 || code == UTF_EOF )
      code= ' ';

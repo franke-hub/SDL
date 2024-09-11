@@ -16,10 +16,7 @@
 //       Editor: Line descriptor
 //
 // Last change date-
-//       2024/08/27
-//
-// Implementation notes-
-//       Implemented in EdFile.cpp
+//       2024/08/30
 //
 //----------------------------------------------------------------------------
 #ifndef EDLINE_H_INCLUDED

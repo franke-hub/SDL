@@ -16,7 +16,7 @@
 //       Import UTF types into default namespace.
 //
 // Last change date-
-//       2024/08/20
+//       2024/09/12
 //
 // Implementation notes-
 //       Include this from a .cpp file to import "Utf.h" types.
@@ -30,16 +30,15 @@
 
 //----------------------------------------------------------------------------
 // Exported Utf types
-typedef pub::Utf::Column            Column;
-typedef pub::Utf::Cpoint            Cpoint;
-typedef pub::Utf::Points            Points;
-typedef pub::Utf::Length            Length;
-typedef pub::Utf::Lpoint            Lpoint;
-typedef pub::Utf::Offset            Offset;
-
 typedef pub::Utf::utf8_t            utf8_t;
 typedef pub::Utf::utf16_t           utf16_t;
 typedef pub::Utf::utf32_t           utf32_t;
+
+typedef pub::Utf::Count             Count;
+typedef pub::Utf::Index             Index;
+typedef pub::Utf::Length            Length;
+typedef pub::Utf::Offset            Offset;
+typedef pub::Utf::Symbol            Symbol;
 
 typedef pub::utf8_decoder           utf8_decoder;
 typedef pub::utf16_decoder          utf16_decoder;
@@ -70,33 +69,33 @@ constexpr static const MODE
                        MODE_LE= pub::Utf::MODE_LE;
 
 // Method decode: No characters remain
-constexpr static const utf32_t      // (UTF_EOF is an invalid UTF codepoint)
+constexpr static const Symbol       // (UTF_EOF is an invalid UTF code point)
                        UTF_EOF= EOF; // Decode: No characters remain
 
 //----------------------------------------------------------------------------
-// Exported Utf subroutines (renaming pub::Utf::strlen)
-static inline bool                  // TRUE iff codepoint is combining
-   is_combining(                    // Is code a combining character?
-     utf32_t           code)        // (The codepoint)
+// Exported Utf subroutines
+static inline bool                  // TRUE iff Symbol is combining character
+   is_combining(                    // Is Symbol a combining character?
+     Symbol            code)        // (The Symbol)
 {  return pub::Utf::is_combining(code); }
 
-static inline bool                  // TRUE iff codepoint is valid unicode
-   is_unicode(                      // Is codepoint valid unicode?
-     utf32_t           code)        // (The codepoint)
+static inline bool                  // TRUE iff Symbol is within unicode range
+   is_unicode(                      // Is Symbol within unicode range?
+     Symbol            code)        // (The Symbol)
 {  return pub::Utf::is_unicode(code); }
 
 static inline Length                // Length (in native units)
-   utf_strlen(                      // Get length (in bytes)
+   utflen(                          // Get length (in native units)
      const utf8_t*     addr)        // Of this U8-string
-{  return ::strlen((const char*) addr); }
+{  return ::strlen((const char*)addr); }
 
 static inline Length                // Length (in native units)
-   utf_strlen(                      // Get length (in bytes)
+   utflen(                          // Get length (in native units)
      const utf16_t*    addr)        // Of this U16-string
-{  return pub::Utf::strlen(addr); }
+{  return pub::Utf::utflen(addr); }
 
 static inline Length                // Length (in native units)
-   utf_strlen(                      // Get length (in bytes)
+   utflen(                          // Get length (in native units)
      const utf32_t*    addr)        // Of this U32-string
-{  return pub::Utf::strlen(addr); }
+{  return pub::Utf::utflen(addr); }
 #endif // _LIBPUB_UTF_I_INCLUDED

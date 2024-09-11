@@ -16,7 +16,7 @@
 //       Editor: Editor common types
 //
 // Last change date-
-//       2024/08/27
+//       2024/08/30
 //
 //----------------------------------------------------------------------------
 #ifndef EDTYPE_H_INCLUDED
@@ -31,19 +31,21 @@
 //----------------------------------------------------------------------------
 // Typedefs
 //----------------------------------------------------------------------------
-typedef uint32_t                    GC_t;    // Graphic Context type
+typedef uint32_t                    GC_t; // Graphic Context type
 
 typedef std::string                 string;
 
-typedef pub::Utf::Column            Column;
-typedef pub::Utf::Length            Length;
-typedef pub::Utf::Offset            Offset;
-typedef pub::Utf::Points            Points;
-
+// Imported from pub/Utf.h
 typedef pub::Utf::utf8_t            utf8_t;
 typedef pub::Utf::utf16_t           utf16_t;
 typedef pub::Utf::utf16_t           utf16BE_t;
 typedef pub::Utf::utf32_t           utf32_t;
+
+typedef pub::Utf::Count             Count;
+typedef pub::Utf::Index             Index;
+typedef pub::Utf::Length            Length;
+typedef pub::Utf::Offset            Offset;
+typedef pub::Utf::Symbol            Symbol;
 
 typedef pub::Utf::MODE              MODE;
 constexpr static const MODE

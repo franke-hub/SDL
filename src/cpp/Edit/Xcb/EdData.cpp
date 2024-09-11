@@ -13,10 +13,10 @@
 //       EdData.cpp
 //
 // Purpose-
-//       Editor: Implement EdData.h
+//       Editor: Implement EdData.h, EdView.h
 //
 // Last change date-
-//       2024/05/09
+//       2024/08/30
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -31,7 +31,8 @@
 #include "EdFile.h"                 // For EdFile, EdLine
 #include "EdMark.h"                 // For EdMark
 #include "EdUnit.h"                 // For EdUnit
-#include "EdData.h"                 // For EdData (Implementation class)
+#include "EdData.h"                 // For EdData - Implemented
+#include "EdView.h"                 // For EdView - Implemented (base class)
 
 using namespace config;             // For opt_* variables
 using namespace pub::debugging;     // For debugging

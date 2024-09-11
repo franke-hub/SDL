@@ -16,7 +16,7 @@
 //       UTF inline implementations.
 //
 // Last change date-
-//       2024/07/25
+//       2024/09/12
 //
 // Implementation notes-
 //       *ONLY* included from ../Utf.h
@@ -25,14 +25,16 @@
 #ifndef _LIBPUB_BITS_UTF_I_INCLUDED
 #define _LIBPUB_BITS_UTF_I_INCLUDED
 
+#include <cstring>                  // For strlen
+
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 // Utf::is_combining, is codepoint a combining character?
 //   (Combining character ranges valid for UTF version 15.1)
 //----------------------------------------------------------------------------
-bool                                // TRUE iff codepoint is combining
-   Utf::is_combining(               // Is codepoint a combining character?
-     utf32_t           code) noexcept // The codepoint to be tested
+bool                                // TRUE iff Symbol is combining character
+   Utf::is_combining(               // Is Symbol a combining character?
+     Symbol            code) noexcept // (The Symbol)
 {
    // This coding sequence [rather than 'if( code>0x0300 && code<0x0370 )]'
    // returns false at the lowest codepoint, avoiding additional tests.
@@ -74,9 +76,9 @@ bool                                // TRUE iff codepoint is combining
 //----------------------------------------------------------------------------
 // Utf::is_unicode, is codepoint in allowed unicode range?
 //----------------------------------------------------------------------------
-bool                                // TRUE iff codepoint is valid
-   Utf::is_unicode(                 // Is code in allowed unicode range?
-     utf32_t           code) noexcept // The source codepoint
+bool                                // TRUE iff Symbol is within unicode range
+   Utf::is_unicode(                 // Is Symbol in allowed unicode range?
+     Symbol            code) noexcept // (The Symbol)
 {
    if( code  < 0x0000'D800 )        // All codepoints < 0x0000'D800
      return true;                   // are allowed
@@ -91,15 +93,17 @@ bool                                // TRUE iff codepoint is valid
 }
 
 //----------------------------------------------------------------------------
-// Utf::strlen, return U-string Length (Length does not include terminator)
+// Utf::utflen, return U-string Length (Length does not include terminator)
 //----------------------------------------------------------------------------
 Utf::Length                         // The Length, in native units
-   Utf::strlen(                     // Get Length of
+   Utf::utflen(                     // Get Length of
      const utf8_t*     str) noexcept // This U8-string
 {  return ::strlen((const char*)str); }
+static_assert(sizeof(char) == sizeof(Utf::utf8_t)
+           , "sizeof(char) != sizeof(utf8_t)");
 
 Utf::Length                         // The Length, in native units
-   Utf::strlen(                     // Get Length of
+   Utf::utflen(                     // Get Length of
      const utf16_t*    str) noexcept // This U16-string
 {
    Length length= 0;
@@ -112,7 +116,7 @@ Utf::Length                         // The Length, in native units
 }
 
 Utf::Length                         // The Length, in native units
-   Utf::strlen(                     // Get Length of
+   Utf::utflen(                     // Get Length of
      const utf32_t*    str) noexcept // This U32-string
 {
    Length length= 0;

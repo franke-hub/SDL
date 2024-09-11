@@ -26,9 +26,9 @@
 #include "pub/Trace.h"              // For pub::Trace::trace
 
 #include "Editor.h"                 // For Editor::unit
-#include "EdOpts.h"                 // For EdOpts, implemented
-#include "EdInps.h"                 // For EdInps, window control
-#include "EdOuts.h"                 // For EdOuts, allocated
+#include "EdOpts.h"                 // For EdOpts - implemented
+#include "EdInps.h"                 // For EdInps - EdOuts base class
+#include "EdOuts.h"                 // For EdOuts - allocated
 #include "EdUnit.h"                 // For EdUnit::draw
 
 //----------------------------------------------------------------------------

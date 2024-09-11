@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2024/06/14
+//       2024/08/30
 //
 //----------------------------------------------------------------------------
 #include <stdio.h>                  // For printf, fopen, fclose, ...
@@ -26,14 +26,14 @@
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Fileman.h>            // For pub::Name
+#include <pub/List.h>               // For pub::List
 #include <pub/Signals.h>            // For pub::signals::Signal
 #include <pub/Trace.h>              // For pub::Trace
-#include <pub/List.h>               // For pub::List
 
-#include "Config.h"                 // For Config::check
+#include "Config.h"                 // For Config::check, namespace config
 #include "EdData.h"                 // For EdData
 #include "Editor.h"                 // For namespace editor
-#include "EdFile.h"                 // For EdFile
+#include "EdFile.h"                 // For EdFile - implemented
 #include "EdLine.h"                 // For EdLine
 #include "EdMark.h"                 // For EdMark
 #include "EdMess.h"                 // For EdMess
@@ -742,10 +742,10 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 //
 // Include-
-//       EdRedo.hpp
+//       EdFile.hpp
 //
 // Purpose-
-//       Implement EdRedo, EdLine, and EdMess
+//       Implement file redo and undo
 //
 //----------------------------------------------------------------------------
-#include "EdRedo.hpp"
+#include "EdFile.hpp"

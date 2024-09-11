@@ -63,7 +63,7 @@ debug: Edit
 do: Edit
 	@Edit $(EDIT_OPTIONS) Makeproj.out
 
-.PHONY: do
+.PHONY: io
 io: EdOuts.o EdInps.o EdUnit.o Editor.o
 
 .PHONY: hcdm

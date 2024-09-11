@@ -12,10 +12,10 @@
 ##       .README
 ##
 ## Purpose-
-##       EDITOR README information file.
+##       EDITOR README information file. (XCB version)
 ##
 ## Last change date-
-##       2024/08/27
+##       2024/09/03
 ##
 ## Implementation notes-
 ##       See ".USAGE.md" for usage and implementation information.
@@ -25,20 +25,27 @@
 
 ##############################################################################
 ## STATUS:
-2024/08/27 Corrected all insert after line with no delimiter conditions.
-         Insert after no-delimiter (binary) line not allowed.
+2024/09/03 Fully operational. Deprecated Utf.h typedefs and functions removed.
+         NO known problems. In production test (updating Utf.h documentation.)
 
 ##############################################################################
 ## OPEN:
 2024/08/23 UTF-8 does not work properly on Linux.
          (Hopefull) temporary bypass: On Linux, xtmedit doesn't allow saving
-         filed containing UTF characters. These characters do not display
+         files containing UTF characters. These characters do not display
          properly. They display properly on Cygwin.
 
 ##############################################################################
 ## CHANGE LOG:
+2024/09/03 Fixed block column display problems (Term and Xcb versions)
+         If mark.mark_lh < col_zero, the mark disappears for that line and the
+         right-hand mark column was incorrectly calculated.
+
+2024/08/27 Corrected all insert after line with no delimiter conditions.
+         Insert after no-delimiter (binary) line not allowed.
+
 2024/08/23 Utf.h decoders and encoders used throughout both editors. The
-         xcb editor does not combine characters. The xterm editor does handle
+         xcb editor does not combine characters. The xterm editor handles
          combining characters on Cygwin, but these characters display as
          gibberish on Linux.
 
@@ -349,6 +356,3 @@ Restructured modules, splitting some functions into .hpp files.
 2021/08/08 Closed, not reproducable. (Probably fixed by 6/23 or 6/24 change.)
 2021/06/18 Bug: Two cursor blocks on screen.
          Associated with clicking on screen when in history view.
-
-##############################################################################
-## FIXED:

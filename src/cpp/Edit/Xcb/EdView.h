@@ -16,7 +16,7 @@
 //       Editor: Editor data view
 //
 // Last change date-
-//       2024/05/09
+//       2024/08/30
 //
 //----------------------------------------------------------------------------
 #ifndef EDVIEW_H_INCLUDED
@@ -38,7 +38,7 @@
 //       Editor data view.
 //
 // Implementation notes-
-//       EdView implementations are in EdData.cpp
+//       Implemented in EdData.cpp
 //
 //----------------------------------------------------------------------------
 class EdView {                      // Editor data view
@@ -81,12 +81,12 @@ virtual void
 //       EdView::get_column
 //
 // Purpose-
-//       Get the current LINE column
+//       Get the current LINE's column index
 //
 //----------------------------------------------------------------------------
-virtual size_t                      // The current column number
-   get_column( void )               // Get current column number
-{  return col_zero + col; }         // The current column number
+virtual size_t                      // The current column index
+   get_column( void )               // Get current column index
+{  return col_zero + col; }         // The current column index
 
 //----------------------------------------------------------------------------
 //

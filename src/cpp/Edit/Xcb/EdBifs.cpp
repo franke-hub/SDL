@@ -16,7 +16,7 @@
 //       Editor: Built in functions
 //
 // Last change date-
-//       2024/08/27
+//       2024/08/30
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For stat
@@ -959,7 +959,7 @@ const char*                         // Error message, nullptr expected
 //----------------------------------------------------------------------------
 //
 // Include-
-//       EdTabs.hpp
+//       EdBifs.hpp
 //
 // Purpose-
 //       Handle margins and tabs
@@ -974,4 +974,4 @@ const char*                         // Error message, nullptr expected
 //       command_tabs               // Set/display tabs
 //
 //----------------------------------------------------------------------------
-#include "EdTabs.hpp"
+#include "EdBifs.hpp"

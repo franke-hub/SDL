@@ -16,10 +16,7 @@
 //       Editor: Message container
 //
 // Last change date-
-//       2024/03/30
-//
-// Implementation notes-
-//       Implemented in EdFile.cpp
+//       2024/08/30
 //
 //----------------------------------------------------------------------------
 #ifndef EDMESS_H_INCLUDED

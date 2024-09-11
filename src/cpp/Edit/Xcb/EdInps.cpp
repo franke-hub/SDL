@@ -43,7 +43,7 @@
 #include "Editor.h"                 // For namespace editor
 #include "EdFile.h"                 // For EdFile
 #include "EdHist.h"                 // For EdHist
-#include "EdInps.h"                 // For EdInps, implemented
+#include "EdInps.h"                 // For EdInps - implemented
 #include "EdMark.h"                 // For EdMark
 #include "EdOuts.h"                 // For EdOuts, subclass
 

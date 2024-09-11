@@ -21,8 +21,8 @@
 //----------------------------------------------------------------------------
 #include "gui/Device.h"             // For gui::Device, allocated
 
-#include "EdOpts.h"                 // For EdOpts, implemented
-#include "EdOuts.h"                 // For EdOuts, allocated
+#include "EdOpts.h"                 // For EdOpts - implemented
+#include "EdOuts.h"                 // For EdOuts - allocated
 
 //----------------------------------------------------------------------------
 //
