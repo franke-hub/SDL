@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2023 Frank Eskesen.
+//       Copyright (c) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Utility functions.
 //
 // Last change date-
-//       2023/04/22
+//       2024/09/14
 //
 // Implementation notes-
 //       ato* routines:
@@ -144,6 +144,26 @@ long                                // Resultant value
 //----------------------------------------------------------------------------
 uint64_t                            // The nanoseconds since epoch start
    clock( void );                   // Get nanoseconds since epoch start
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       utility::demangle
+//
+// Purpose-
+//       Demangle a mangled name
+//
+// Implementation note-
+//       See: https://en.cppreference.com/w/cpp/language/typeid
+//
+// Usage example-
+//       std::cout << pub::utility::demangle(typeid(pub::utility::demangle))
+//                 << "\n";
+//
+//----------------------------------------------------------------------------
+std::string                         // Resultant string
+   demangle(                        // Demangle a typeid
+     const std::type_info&);        // The typeid(name)
 
 //----------------------------------------------------------------------------
 //

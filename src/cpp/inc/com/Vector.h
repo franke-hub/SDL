@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       The Vector<T> Object is an extendable array of T Object references
 //
 // Last change date-
-//       2014/01/01
+//       2024/09/15
 //
 //----------------------------------------------------------------------------
 #ifndef VECTOR_H_INCLUDED
@@ -58,15 +58,16 @@ Ref<Object>*           refs;        // The Object reference array
 // Vector<Object>::Constructor/Destructor/Assignment
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~Vector<Object>( void );         // Destructor
-   Vector<Object>( void );          // Default constructor
-   Vector<Object>(                  // Copy constructor
+   Vector( void );                  // Default constructor
+   Vector(                          // Copy constructor
      const Vector<Object>&
                        source);     // Source Vector<Object>
 
-   Vector<Object>(                  // Constructor
+   Vector(                          // Constructor
      unsigned          available);  // Initial number of elements
+
+virtual
+   ~Vector( void );                 // Destructor
 
 //----------------------------------------------------------------------------
 // Vector<Object>::Operators
@@ -132,22 +133,22 @@ template<class T> class Vector : public Vector<Object> { // Extendable Array
 // Vector<T>::Constructor/Destructor/Assignment
 //----------------------------------------------------------------------------
 public:
-virtual inline
-   ~Vector<T>( void ) {}            // Destructor
-
 inline
-   Vector<T>( void )                // Default constructor
+   Vector( void )                   // Default constructor
 :  Vector<Object>() {}
 
 inline
-   Vector<T>(                       // Copy constructor
+   Vector(                          // Copy constructor
      const Vector<T>&  source)      // Source Vector<T>
 :  Vector<Object>(source) {}
 
 inline
-   Vector<T>(                       // Constructor
+   Vector(                          // Constructor
      unsigned          available)   // Initial number of elements
 :  Vector<Object>(available) {}
+
+virtual inline
+   ~Vector( void ) {}               // Destructor
 
 inline Vector<T>&                   // Always *this
    operator=(                       // Assignment operator

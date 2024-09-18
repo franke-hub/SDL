@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,13 +16,17 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2023/06/04
+//       2024/09/16
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
 #include <sstream>                  // For std::stringstream
 #include <string>                   // For std::string
 #include <thread>                   // For std::thread
+
+#if __has_include(<cxxabi.h>)
+#  include <cxxabi.h>               // For abi::demangle
+#endif
 
 #include <ctype.h>                  // For isspace
 #include <errno.h>                  // For errno, EINVAL, ERANGE, ...
@@ -269,6 +273,52 @@ uint64_t                            // The nanoseconds since epoch start
    nano += time.tv_nsec;
 
    return nano;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       utility::demangle
+//
+// Purpose-
+//       Demangle a typeid()
+//
+//----------------------------------------------------------------------------
+std::string                         // Resultant std::string
+   demangle(                        // Demangle
+     const std::type_info&
+                       type)        // This typeid(X)
+{
+#if __has_include(<cxxabi.h>)
+   static constexpr const size_t npos= std::string::npos;
+
+   int status;
+   char* demangle= abi::__cxa_demangle(type.name(), nullptr, nullptr, &status);
+   if( demangle == nullptr || status != 0 )
+     return type.name();
+
+   std::string S(demangle);
+   free(demangle);
+
+   // Replace std::string alias
+   for(;;) {
+     const char* alias= "std::__cxx11::basic_string<char, "
+                        "std::char_traits<char>, std::allocator<char> >";
+     size_t X= S.find(alias);
+     if( X == npos )
+       break;
+
+     size_t L= strlen(alias);
+     if( X == 0 )
+       S= "std::string" + S.substr(L, npos);
+     else
+       S= S.substr(0, X) + "std::string" + S.substr(X+L, npos);
+   }
+
+   return S;
+#else
+   return type.name();
+#endif
 }
 
 //----------------------------------------------------------------------------

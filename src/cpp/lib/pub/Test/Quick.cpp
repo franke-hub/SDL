@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2024/02/16
+//       2024/09/14
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For std::free
@@ -50,6 +50,7 @@ using namespace PUB;
 using namespace PUB::debugging;
 using PUB::utility::dump;
 using PUB::Wrapper;
+using std::string;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -577,9 +578,11 @@ static inline int
    using PUB::utility::atoi;
    using PUB::utility::atol;
    using PUB::utility::atox;
+   using PUB::utility::demangle;
 
    errno= 0;                          // No error
 
+   // Test atoi, atol, atox --------------------------------------------------
    error_count += MUST_EQ(atoi("1234567890"), 1234567890);
    error_count += MUST_EQ(atol("123456789012345"), 123456789012345L);
    error_count += MUST_EQ(atox("12abcdefABCDEF"), 0x12abcdefABCDEF);
@@ -669,11 +672,13 @@ static inline int
    if( opt_hcdm )
      printf("%4d %d\n", __LINE__, errno);
 
+   // Test utility::to_string(std::thread::id) -------------------------------
    std::thread::id tid= std::this_thread::get_id();
    error_count += VERIFY(utility::to_string(tid)==Thread::get_id_string(tid));
    if( opt_verbose )
      printf("std::thread::id(%s)\n", Thread::get_id_string(tid).c_str());
 
+   // Test wildchar ----------------------------------------------------------
 static constexpr const char* const lazy=
        "The quick Brown fox jumps over the lazy dog.";
 static constexpr const char* const good=
@@ -711,6 +716,25 @@ static constexpr const char* const good=
    error_count += VERIFY( wildchar::strcasecmp("NOW*", lazy) != 0);
    error_count += VERIFY( wildchar::strcasecmp("NOW*", good) == 0);
    error_count += VERIFY( wildchar::strcasecmp("**NOW* is THE time*to **PARTY**", good) == 0);
+
+   // Test demangle ----------------------------------------------------------
+   Object object;
+   string S= demangle(typeid(pub::utility::demangle));
+   error_count += VERIFY(S == "std::string (std::type_info const&)");
+
+   error_count += VERIFY(demangle(typeid(object)) == "pub::Object");
+   error_count += VERIFY(demangle(typeid(nullptr)) == "decltype(nullptr)");
+
+   Exception* X= new IndexException("IX test");
+   error_count += VERIFY(demangle(typeid(*X)) == "pub::IndexException");
+   error_count += VERIFY(X->get_class_name()  == "pub::IndexException");
+   delete X;
+
+   if( opt_verbose ) {
+     const std::type_info& type= typeid(pub::utility::demangle);
+     printf("demangle type(%s)\n", type.name());
+     printf("demangle name(%s)\n", demangle(type).c_str());
+   }
 
    return error_count;
 }

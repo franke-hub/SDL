@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2023 Frank Eskesen.
+//       Copyright (C) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,13 +16,13 @@
 //       Object method implementations.
 //
 // Last change date-
-//       2023/05/12
+//       2024/09/14
 //
 //----------------------------------------------------------------------------
 #include <typeinfo>                 // For typeid, used in get_class_name
-#include <boost/core/demangle.hpp>  // Used in get_class_name
 #include <stdint.h>                 // For uintptr_t
 #include <stdio.h>                  // For sprintf
+#include <pub/utility.h>            // For pub::utility::demangle
 
 #include "pub/Object.h"             // For pub::Object, implemented
 
@@ -90,10 +90,7 @@ size_t                              // Resultant
 //----------------------------------------------------------------------------
 std::string
    Object::get_class_name( void ) const // Get the class name
-{
-   const char* mangled= typeid(*this).name();
-   return boost::core::demangle(mangled);
-}
+{  return pub::utility::demangle(typeid(*this)); }
 
 //----------------------------------------------------------------------------
 //

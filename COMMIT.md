@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/09/11
+//       2024/09/18
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,9 +29,22 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
 ----
 
-#### 09/11/2024 maint
+#### 09/18/2024 trunk
+
+Removed boost::core::demangle.hpp dependency.
+
+----
+
+#### 09/12/2024 trunk
+
+Merged maint/preview into trunk.
+
+----
+
+#### 09/11/2024 preview
 
 The combined editors (xcbedit and xtmedit) are now ready.
 
