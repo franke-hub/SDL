@@ -2,11 +2,14 @@
 %%
 %%       Copyright (C) 2020 Frank Eskesen.
 %%
-%%       This file is free content, distributed under creative commons CC0,
-%%       explicitly released into the Public Domain.
-%%       (See accompanying html file LICENSE.ZERO or the original contained
-%%       within https://creativecommons.org/publicdomain/zero/1.0/legalcode)
+%%       This file is free content, distributed under cc by-sa version 3.0,
+%%       with attribution required.
+%%       (See accompanying file LICENSE.BY_SA-3.0 or the original contained
+%%       within https://creativecommons.org/licenses/by-sa/3.0/us/legalcode)
 %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%       This copyright applies only to this Lily representation, not to the
+%%       score by Ludwig van Beethoven.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
 %% Title-
