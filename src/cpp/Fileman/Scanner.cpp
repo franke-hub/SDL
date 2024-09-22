@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2023 Frank Eskesen.
+//       Copyright (c) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Source file checker.
 //
 // Last change date-
-//       2023/07/24
+//       2024/09/22
 //
 // Verifications-
 //       File permissions. (Auto-correctable)
@@ -767,6 +767,30 @@ static inline bool                  // TRUE iff name is in "html" format
 {
    string ext= get_extension(name);
    if( ext == "html" || ext == "htm" || ext == "xml" )
+     return true;
+
+   return false;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       is_ignored
+//
+// Function-
+//       Is the specified file in an ignored format?
+//
+//----------------------------------------------------------------------------
+static inline bool                  // TRUE iff name is in an ignored format
+   is_ignored(                      // Is file automatically ignored?
+     const string&     name)        // The filename
+{
+   string ext= get_extension(name);
+   if( ext == "odt" )
+     return true;
+   if( ext == "pdf" )
+     return true;
+   if( ext == "zip" )
      return true;
 
    return false;
@@ -1605,6 +1629,9 @@ static void
        }
 
        string name(file->name);
+       if( is_ignored(name) )       // Ignore .odt, .pdf, and .zip files
+         continue;
+
        Data data(path, name);
        if( data.damaged() ) {
          fprintf(stderr, "File(%s) Damaged\n", data.full().c_str());

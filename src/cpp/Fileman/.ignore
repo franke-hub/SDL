@@ -1,0 +1,46 @@
+## IGNORED paths
+.home/.git/*
+.home/.licenses/*
+.home/bin/*
+.home/obj/*
+.home/src/asm/x86/boot/*
+.home/src/cpp/Clone/test/*
+.home/src/cpp/Dirty/*
+.home/src/cpp/Edit/Test/*
+.home/src/cpp/EiDB/data/OUT/*
+.home/src/cpp/inc/gsl/*
+.home/src/cpp/Tools/codec/data/INP/*
+.home/src/cpp/Wilbur/data/*
+.home/src/cpp/Xample/*
+.home/src/java/Applet/*
+.home/src/java/PMA/*
+.home/src/java/Webapp/usr/fne/sample/*
+.home/src/js/Dirty/*
+.home/src/js/http/node_modules/*
+.home/src/js/sudoku/*
+.home/src/mcs/Dirty/*
+.home/src/mcs/lib/Import/*
+.home/usr/*
+
+## IGNORED files
+.home/bat/bat-CA/openssl.patch
+.home/doc/.README.md
+.home/src/cpp/EiDB/Regression.bat
+.home/src/cpp/NNC/.DOC.txt
+.home/src/cpp/Patterns/make.bat
+.home/src/cpp/Sample/.OBSOLETE/opencv/hello_world.cpp
+.home/src/lily/Eskesen/.Private/Crypto.ly.gpg
+.home/src/py/InfoDB/.ASIDES.odt
+
+## BOOST license
+.home/src/cpp/inc/pub/memory.h
+
+## Files are read-only (and some are zip)
+## .home/src/c/lib/1st/jpeg/*
+
+## Imported, non-standard code copyright.
+.home/src/cpp/Spell/example.cpp
+.home/src/java/Webapp/usr/fne/applet/MenuScroller.java
+
+## Non-standard formats
+## .home/src/obj/git/*
