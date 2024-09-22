@@ -78,33 +78,42 @@ the original authors.
 Most original C++ source code is distributed under the GNU Public License.
 Most original include headers are distributed under the Lesser GPL.
 
-Most documentation, such as this file, and control files (e.g. make files) is
+Control files (e.g. make files) and most documentation (such as this file) are
 distributed using the MIT license.
 
-The Creative Commons license is used (at least) for Lilypond (music) files.
+The Creative Commons license is used for Lilypond (music) files.
 
-Some example content explictly uses the public domain license.
-This content does not require attribution or licensing[^1].
+Some sample content explictly uses the public domain license.
+This content does not require attribution or licensing.
 
 Any and all "look and feel" content in this entire distribution is explicitly
 licensed under the public domain license.
 
-[^1]: Once something is given or released to the public domain,
-no person or entity can then claim exclusive ownership of it.
-(This also applies to the original author.)
-
 License detail:
 - [Boost](.licenses/LICENSE.BOOST-1.0)
+  - ~/src/cpp/inc/pub/memory.h (UNUSED/UNTESTED)
+  - ~/src/cpp/lib/pub/Debug.cpp (Includes: <boost/stacktrace.hpp>)
 - [BSD](.licenses/LICENSE.BSD-3)
+  - ~/src/py/Sample/GUI/Qt/widgets-example.py
 - [Creative Commons V3.0](.licenses/LICENSE.BY_SA-3.0)
+  - ~/src/lily/Eskesen/* (Cheesy, but original, music)
+  - ~/src/lily/Public/* (Lily representations of out of copyright music.)
+  - ~/src/lily/Sample/* (Incomplete sample Lily layouts.
+    Probably should be MIT or public domain license.)
 - [Creative Commons V4.0](.licenses/LICENSE.BY_SA-4.0)
+  - ~/src/java/Sample/Swing/Main.java
 - [GNU GPL (General Public License)](.licenses/LICENSE.GPL-3.0)
+  - Almost all source code.
 - [GNU LGPL (Lesser General Public License)](.licenses/LICENSE.LGPL-3.0)
+  - Almost all include files.
 - [MIT License](.licenses/LICENSE.MIT)
-- [Public domain license](.licenses/LICENSE.ZERO)
+  - Almost all Makefile segments, control and documentation files.
+- [Public domain license](.licenses/LICENSE.ZERO) (Creative Commons CC0)
+  - All control Makefile segments (in ~/src/cpp/ctl/.)
+  - All BASH control files in ~/bat/.home/ except for .bash_logout.
+    (.bash_logout contains no original content.)
 
 #### Installation and running
-
 These instructions assume that you'll be using the SDL package as delivered.
 
 Use `. setupSDL` to set up the `$SDL_ROOT` environment variable and update
@@ -129,6 +138,110 @@ make uninstall.
 __TODO__ Implement C# and Java library installation Makefiles.
 (Only C++ and Python library Makefiles are currently implemented.)
 
+##### Virtualbox prerequisite packages:
+(We recommend downloading and installing Virtualbox rather than using any
+distribution provided packages.
+When updating Virtualbox, always also update the extension pack.)
+- bzip2 gcc make perl
+
+<!-- --------------------------------------------------------------------- -->
+##### Fedora prerequisite packages:
+Bringup packages:
+- firewall-config
+- openssh-server openssh-client
+  - (sudo systemctl enable sshd.service)
+  - (sudo systemctl start  sshd.service)
+- xterm
+- xorg-x11-fonts-misc
+
+Build environment packages:
+- git
+- autoconf
+- automake
+- binutils
+- gcc
+- gcc-c++
+- gdb
+- libtool
+- make
+- patch
+- pkgconf
+
+Build library packages:
+- boost-devel
+- bzip2-devel
+- ImageMagick-c++-devel
+- ImageMagick-devel
+- libcurl-devel
+- ncurses-devel
+- glm-devel
+- openssl-devel
+- libdb-devel libdb-cxx-devel
+- libX11-devel
+- libxcb-devel
+- libxcb-util-devel
+- libxcb-util-image-devel
+- libxcb-util-keysyms-devel
+- libxcb-util-renderutil-devel
+- libxcb-util-wm-devel
+- libxcb-util-xrm-devel
+- libXft-devel
+- mariadb-server
+  - (sudo systemctl enable mariadb)
+- xcb-util-cursor-devel
+- zlib-devel
+
+Other (optional) packages:
+- cvs
+- gimp
+- gpg
+- yum-cron
+
+<!-- --------------------------------------------------------------------- -->
+##### Ubuntu prerequisite packages:
+Bringup packages:
+- firewall-config
+- openssh-server openssh-client
+  - sudo systemctl enable ssh.service
+  - sudo systemctl start  ssh.service
+- xterm
+
+Build environment packages:
+- git
+- autoconf
+- automake
+- binutils
+- gcc
+- g++
+- gdb
+- libtool
+- make
+- patch
+- pkgconf
+
+Build library packages:
+- ImageMagick-c++-devel
+- ImageMagick-devel
+- libboost-all-dev
+- libbz2-dev
+- libcurl4-openssl-dev
+- libglm-dev
+- libdb-dev   libdb++-dev
+- libncurses-dev
+- libssl-dev
+- libx11-dev
+- libxcb-dev
+- libxcb-image0-dev
+- libxcb-xfixes0-dev
+- mariadb-server
+- zlib1g-dev
+
+Other (optional) packages:
+- cvs
+- gimp
+- gpg
+- yum-cron
+
 #### The Distribution
 The distribution primarily uses two git branches:
 - The trunk branch, relatively well tested.
@@ -150,7 +263,7 @@ and does not access the NFS file system.
 #### Subdirectory structure:
 
 ```
-(Root) The distribution root directory, *designated as ~*
+(Root) The distribution root directory, *documented as ~* in this distribution
    ~
    |
    [-- bat ((Mostly bash) scripts)
