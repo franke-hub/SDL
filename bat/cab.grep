@@ -76,4 +76,3 @@ if [[ ! -z "$rs" ]] ; then
   echo $file
   /C/WINDOWS/system32/expand -D "$file" | grep $sparm $string
 fi
-

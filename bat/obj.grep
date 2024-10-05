@@ -89,4 +89,3 @@ else
       nm "$file" 2>/dev/null | grep $sparm $string | grep -v " U " | grep -v " I "
   fi
 fi
-

@@ -69,4 +69,3 @@ cmd="/usr/bin/find $srcdir \( $target \) -print0"
 cmd="$cmd | xargs --null -rl1 obj.grep $sparm \"$string\""
 # echo "bash -c $cmd"
 bash -c "$cmd"
-

@@ -76,4 +76,3 @@ if [[ ! -z "$rs" ]] ; then
   echo $file
   unzip -l "$file" | grep $sparm $string
 fi
-

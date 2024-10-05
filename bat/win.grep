@@ -87,4 +87,3 @@ if [[ ! -z "$rs" ]] ; then
   echo $file
   DUMPBIN "$file" /exports 2>/dev/null | grep $sparm $string
 fi
-

@@ -107,4 +107,3 @@ cmd="/usr/bin/find $srcdir \( $target \) $fparm -print0"
 cmd="$cmd 2>/dev/null | xargs --null grep $gparm \"$srcstr\" ${1}"
 echo "bash -c $cmd"
 bash -c "$cmd 2>/dev/null"
-

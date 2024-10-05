@@ -79,4 +79,3 @@ if [[ ! -z "$rs" ]] ; then
   echo $file
   DUMPBIN "$file" /symbols 2>/dev/null | grep $sparm $string | grep External
 fi
-

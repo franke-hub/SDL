@@ -76,4 +76,3 @@ if [[ ! -z "$rs" ]] ; then
   echo $file
   jar -tvf "$file" | grep $sparm $string
 fi
-
