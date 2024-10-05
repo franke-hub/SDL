@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2022 Frank Eskesen.
+//       Copyright (C) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define the the Named attribute and the NamedObject class.
 //
 // Last change date-
-//       2022/09/02
+//       2024/09/26
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_NAMED_H_INCLUDED
@@ -46,18 +46,20 @@ const std::string      name;        // The name
 // Named::Constructors
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~Named( void ) {}                // Destructor
+   Named( void ) = default;         // Default constructor
 
    Named(                           // Constructor
      const std::string name)        // The associated name
 :  name(name) {}
 
+virtual
+   ~Named( void ) = default;        // Destructor
+
 //----------------------------------------------------------------------------
 // Named::Accessors
 //----------------------------------------------------------------------------
 public:
-const std::string&                  // The associated name
+std::string                         // The associated name
    get_name( void ) const           // Get associated name
 {  return name; }
 }; // class Named
@@ -76,12 +78,14 @@ class NamedObject : public Named, public Object { // The NamedObject type
 // NamedObject::Constructors
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~NamedObject( void ) {}          // Destructor
+   NamedObject( void ) = default;   // Default constructor
 
    NamedObject(                     // Constructor
      const std::string name)        // The associated name
 :  Named(name), Object() {}
+
+virtual
+   ~NamedObject( void ) = default;  // Destructor
 }; // class Named
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_NAMED_H_INCLUDED

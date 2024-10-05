@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2022 Frank Eskesen.
+//       Copyright (c) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,10 +16,11 @@
 //       The base object class.
 //
 // Last change date-
-//       2022/09/02
+//       2024/09/26
 //
 // Implementation notes-
-//       This header is guaranteed to #include "config.h"
+//       All pub library header files are guaranteed to #include "config.h"
+//       either directly or indirectly.
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_OBJECT_H_INCLUDED
@@ -53,20 +54,28 @@ private:
 // No attributes
 
 //----------------------------------------------------------------------------
-// Object::Destructor/Constructor/Assignment
+// Object::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~Object( void );                 // Destructor {}
-   Object( void ) {}                // Default constructor
+   Object( void ) = default;        // Default constructor
+   Object(const Object&) = default; // Copy constructor
 
-   Object(const Object&) {}         // Default copy constructor
-Object& operator=(const Object&) { return *this; } // Default assignment operator
+virtual
+   ~Object( void ) = default;       // Destructor
+
+//----------------------------------------------------------------------------
+// Object::operators
+//----------------------------------------------------------------------------
+Object&
+   operator=(const Object&)         // Assignment operator
+{  return *this; }
+
+virtual                             // A String representation of this Object
+   explicit operator std::string( void ) const; // (explicit) Cast operator
 
 //----------------------------------------------------------------------------
 // Object::Accessors
 //----------------------------------------------------------------------------
-public:
 std::string
    get_class_name( void ) const;    // Get the class name
 
@@ -80,9 +89,6 @@ virtual int                         // Result (<0,=0,>0)
 
 virtual size_t                      // A hash code value for this Object
    hashf( void ) const;             // Create hash code value for Object
-
-virtual                             // A String representation of this Object
-   explicit operator std::string( void ) const; // (explicit) Cast operator
 
 inline std::string                  // The String representation of this Object
    to_string( void ) const          // Get String representation of this Object

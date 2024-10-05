@@ -75,7 +75,7 @@ static int                           // The next character, -1 if stopped
 //         The line length is reduced by one, never going below 0.
 //       TTY tab echoing works as follows:
 //         The '\t' character is inserted into the line and a space is echoed.
-//         (This is done to synchronize backspace handling visiblility.)
+//         (This synchronizes backspace over tab line appearance.)
 //       TTY \r characters are IGNORED.
 //       TTY ctrl-u character deletes the line and all characters typed.
 //

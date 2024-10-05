@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2023 Frank Eskesen.
+//       Copyright (c) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2023/07/23
+//       2024/10/04
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCH_H_INCLUDED
@@ -289,8 +289,8 @@ void
    ;                                // FALSE for outline (debugging) version
 #endif
 
-virtual void                        // The Worker interface (DO NOT MODIFY)
-   work( void );                    // Drain work from Task
+virtual void                        // The Worker interface
+   work( void ) final;              // Drain work from Task
 
 virtual void                        // (IMPLEMENT this method)
    work(                            // Process

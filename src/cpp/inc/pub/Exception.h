@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2022 Frank Eskesen.
+//       Copyright (c) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Standard Exception and built-in Exceptions.
 //
 // Last change date-
-//       2022/09/02
+//       2024/09/29
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_EXCEPTION_H_INCLUDED
@@ -38,8 +38,6 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //
 //----------------------------------------------------------------------------
 class Exception : public Object, public std::runtime_error { // Exception base class
-   using Object::Object;
-
 //----------------------------------------------------------------------------
 // Exception::Attributes
 //----------------------------------------------------------------------------
@@ -53,7 +51,7 @@ public:
 inline
    Exception(                       // String constructor
      const std::string text= default_exception) // Exception descriptor
-:  std::runtime_error(text) {}      // Runtime error
+:  Object(), std::runtime_error(text) {} // (Default) constructor
 
 //----------------------------------------------------------------------------
 // Exception::Object methods
