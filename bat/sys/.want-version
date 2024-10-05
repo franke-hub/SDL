@@ -16,7 +16,7 @@
 ##       Current version information control file.
 ##
 ## Last change date-
-##       2024/03/01
+##       2024/10/01
 ##
 ## Format-
 ##       version-name = version-identifier
@@ -31,10 +31,10 @@
 
 ## CPP libraries
 src/cpp/lib/com = 2024/02/01-00:00
-src/cpp/lib/dev = 2024/02/01-00:00
+src/cpp/lib/dev = 2024/10/01-00:00
 src/cpp/lib/gui = 2024/02/01-00:00
 src/cpp/lib/obj = 2024/02/01-00:00
-src/cpp/lib/pub = 2024/02/01-00:00
+src/cpp/lib/pub = 2024/10/01-00:00
 
 ## Python site-packages
 src/py/site-packages/lib =   2024/03/01-00:00
