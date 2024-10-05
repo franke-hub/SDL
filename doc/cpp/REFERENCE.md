@@ -69,8 +69,7 @@ It defines general-purpose utility objects.
 While a smattering of Doxygen source documentation exists, it will be removed
 after completing this documentation.
 
-__TODO__ Update in progress. Current update:
-Diagnostic.h, Event.h, Exception.h, Fileman.h, Hardware.h
+__TODO__ Update in progress.
 
 - [Allocator.h:](./Allocator.md) An experimental storage allocator.
 (It's use is not currently recommended.)
@@ -83,9 +82,9 @@ The SDL libraries avoid using macros, preferring `enum` where possible.
 collisions.)
 - [Console.h:](./Console.md) Wrappers for console I/O functions.
 - [Debug.h:](./Debug.md) Debugging tools
-- [diag-shared_ptr.h:](./diag-shared_ptr.h) A diagnostic tool for debugging
+- [diag-shared_ptr.h:](./diag-shared_ptr.md) A diagnostic tool for debugging
 std::shared_ptr and std::weak_ptr usage problems.
-- [diag-pristine.h:](./diag-pristine.h) A diagnostic tool for debugging
+- [diag-pristine.h:](./diag-pristine.md) A diagnostic tool for debugging
 "wild store" problems.
 - [Dispatch.h:](./Dispatch.md) Provides lock-free multi-threading control
 mechanisms.

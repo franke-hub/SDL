@@ -15,11 +15,32 @@
 //       Debug.h reference manual
 //
 // Last change date-
-//       2024/03/04
+//       2024/09/24
 //
 -------------------------------------------------------------------------- -->
 ## pub::Debug
 \#include <pub/Debug.h>
+
+Debug.h provides the Debug class as well as subroutines that provide access
+to the default Debug object.
+
+The default Debug object is automatically instantiated either when one of the
+debugging subroutines are used, or by the application.
+All debugging subroutines use the (static) Debug::get method to create
+(if necessary) and/or access the (static) Debug::common object.
+Applications may also create (or destroy) the common Debug object using the
+(static) Debug::set method.
+
+The debugging subroutines reside within the "pub::debugging" namespace and
+generally share the same name as the Debug class methods.
+Debugging subroutines with names identical or similar to standard library
+subroutines prefix "debug_" to the associated class method name.
+
+The Debug library uses static (recursive) mutexes to prevent accidental
+multi-threading interference.
+When using the debugging subroutines dynamic libraries in a multi-threaded
+application, applications should also use the dynamic (i.e. shared) pub
+library (thus avoiding mutex and object duplication.)
 
 #### Methods
 
