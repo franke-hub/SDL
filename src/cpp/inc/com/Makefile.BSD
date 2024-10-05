@@ -15,7 +15,7 @@
 ##       COM library controls and dependencies.
 ##
 ## Last change date-
-##       2024/02/01
+##       2024/09/30
 ##
 ## Implementation notes-
 ##       Include this file from CYGWIN/LINUX Makefiles that use COM library.
@@ -25,13 +25,12 @@ ifeq "" "$(_LIBPUB_COM_MAKEFILE_BSD_INCLUDED)"
 _LIBPUB_COM_MAKEFILE_BSD_INCLUDED := "TRUE"
 
 ###################################### Dependent libraries
+ifeq "" "$(USE_SHARED)"
 LLIBS  += -L$(LIBDIR) -lcom ########## COM library
+$(MAKEXE): $(LIBDIR)/libcom.a
+endif
 
 CLIBS  += -lncurses
 CLIBS  += -lpthread -lssl
 CLIBS  += -lbz2 -lz -lc
-
-##############################################################################
-## Dependencies
-$(MAKEXE): $(LIBDIR)/libcom.a
 endif

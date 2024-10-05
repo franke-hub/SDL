@@ -15,7 +15,7 @@
 ##       GUI library controls and dependencies.
 ##
 ## Last change date-
-##       2024/02/01
+##       2024/09/30
 ##
 ## Implementation notes-
 ##       Include this file from CYGWIN/LINUX Makefiles that use GUI library.
@@ -25,13 +25,12 @@ ifeq "" "$(_LIBPUB_GUI_MAKEFILE_BSD_INCLUDED)"
 _LIBPUB_GUI_MAKEFILE_BSD_INCLUDED := "TRUE"
 
 ###################################### Dependent libraries
+ifeq "" "$(USE_SHARED)"
 LLIBS  += -L$(LIBDIR) -lgui ########## GUI library
-include $(INCDIR)/pub/Makefile.BSD ### PUB library
+$(MAKEXE): $(LIBDIR)/libgui.a
+endif
 
+include $(INCDIR)/pub/Makefile.BSD ### PUB library
 CLIBS  += -ldl
 CLIBS  += -lX11 $(shell pkg-config --libs xcb xcb-xfixes xcb-image)
-
-##############################################################################
-## Dependencies
-$(MAKEXE): $(LIBDIR)/libgui.a
 endif
