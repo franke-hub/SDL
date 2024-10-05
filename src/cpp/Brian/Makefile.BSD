@@ -15,52 +15,127 @@
 ##       CYGWIN/LINUX Makefile customization
 ##
 ## Last change date-
-##       2024/03/01
+##       2024/10/03
 ##
 ##############################################################################
 
 ##############################################################################
 ## Local executables
 MAKEXE := ######################### Default, no executables
-MAKEXE += $(OBJDIR)/Brian
-MAKOBJ := $(patsubst $(OBJDIR)/Brian,,$(MAKOBJ))
+MAKEXE += Brian
+MAKOBJ := $(patsubst $(OBJDIR)/Brian.o,,$(MAKOBJ))
+MAKEXE += HttpClient
+MAKOBJ := $(patsubst $(OBJDIR)/HttpClient.o,,$(MAKOBJ))
 
-LLIBS  += -L. -llocal
+##############################################################################
+## Local options
+COPTS  += -fPIC ###################### Generate position independent code
+
+MODULE := Brian
+CYGDLL :=
+CYGDLL += -shared -o cyg${MODULE}.dll
+CYGDLL += -Wl,--out-implib=cyg${MODULE}.dll.a
+CYGDLL += -Wl,--export-all-symbols
+CYGDLL += -Wl,--enable-auto-import
+
+ifneq "" "$(LINKMAP)"
+CYGMAP : -Wl,-Map -Wl,cyg${MODULE}.map
+LIBMAP : -Wl,-Map -Wl,lib${MODULE}.map
+endif
 
 ##############################################################################
 ## Set default target
 ifeq "" "$(DEFAULT)"
-DEFAULT:= make.dir
+ifeq "" "$(USE_STATIC)"
+DEFAULT:= make.dll
+else
+DEFAULT:= make.lib
+endif
 endif
 
-.PHONY: make.dir
-make.dir: $(MAKEXE)
+.PHONY: default
+.PHONY: make.dll
+.PHONY: make.lib
+default: $(DEFAULT)
 
-.PHONY: make.all
-make.all: $(MAKEXE)
-
-all: make.all
+.PHONY: all dll lib
+all: make.dll
+dll: make.dll
+lib: make.lib
 
 ##############################################################################
-## TARGET: liblocal.a
-liblocal.a: $(MAKOBJ)
-	$(AR) $@ $^
+## TARGET: cygBrian.dll libBrian.dll libBrian.so
+cyg${MODULE}.dll: $(MAKOBJ)
+	$(CC) $(CYGDLL) $^ $(CLIBS) $(CYGMAP)
+	rebase -b 0x2F0000000 $@
 	touch $@
 
-$(MAKEXE): liblocal.a
+lib${MODULE}.so.1.0: $(MAKOBJ)
+	$(CC) -shared -o $@ $^ $(CLIBS) $(LIBMAP)
+
+lib${MODULE}.so: lib${MODULE}.so.1.0
+	ln -sf $< $@
+
+lib${MODULE}.dll: lib${MODULE}.so.1.0
+	ln -sf $< $@
+
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+make.dll: cyg${MODULE}.dll
+else
+make.dll: lib${MODULE}.dll lib${MODULE}.so
+endif
 
 ################################### Add pub controls and dependencies
+USE_SHARED := true
 include $(INCDIR)/pub/Makefile.BSD
+
+ifeq "" "$(USE_STATIC)"
+LLIBS  += -L. -lBrian
+else
+Brian: Brian.o $(MAKOBJ)
+	$(LD) -o $@ $^ $(LLIBS) $(CLOAD) $(CLIBS)
+endif
+
+CLIBS  += -L$(SHRDIR) -lpub
+CLIBS  += $(shell pkg-config --libs libcurl)
+
+##############################################################################
+## TARGET: Executable library
+ifeq "" "$(USE_STATIC)"
+ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
+$(MAKEXE): cyg${MODULE}.dll
+else
+$(MAKEXE): lib${MODULE}.so
+endif
+endif
+
+make.dll: $(MAKEXE)
+make.lib: $(MAKEXE)
 
 ##############################################################################
 ## Run the default program
 .PHONY: do
-do: make.dir
+do: Brian
 	@Brian
+
+##############################################################################
+## Test
+.PHONY: echo
+echo: ;
+	@echo CLIBS  '$(CLIBS)'
+	@echo LLIBS  '$(LLIBS)'
+	@echo LIBDIR '$(LIBDIR)'
+	@echo MAKEXE '$(MAKEXE)'
+	@echo MAKOBJ '$(MAKOBJ)'
+	@echo MODULE '$(MODULE)'
+	@echo USE_SHARED '$(USE_SHARED)'
+	@echo USE_STATIC '$(USE_STATIC)'
 
 ##############################################################################
 ## Makefile cleanup
 clean : clean.dir
 .PHONY: clean.dir
 clean.dir: ;
-	@rm -f liblocal.a
+	@rm -f cyg${MODULE}.dll cyg${MODULE}.dll.a
+	@rm -f lib${MODULE}.dll lib${MODULE}.so*
+	@rm -f typescript

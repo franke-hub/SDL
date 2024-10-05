@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2021 Frank Eskesen.
+//       Copyright (c) 2019-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define the Brian Common area.
 //
 // Last change date-
-//       2021/07/09
+//       2024/10/04
 //
 //----------------------------------------------------------------------------
 #ifndef COMMON_H_INCLUDED
@@ -24,21 +24,6 @@
 
 #include <pub/Dispatch.h>
 #include <pub/Event.h>
-
-//----------------------------------------------------------------------------
-// Constants for parameterization
-//----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-#ifndef SCDM
-#undef  SCDM                        // If defined, Soft Core Debug Mode
-#endif
-
-#ifndef IODM
-#undef  IODM                        // If defined, Input/Output Debug Mode
-#endif
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -138,11 +123,5 @@ void
      pub::dispatch::Item*
                        item)        // -> Item
 {  task->enqueue(item); }
-
-void
-   work(                            // Drive a service
-     std::string       name,        // The Service name
-     pub::dispatch::Item*
-                       item);       // -> work Item
 }; // class Common
 #endif // COMMON_H_INCLUDED

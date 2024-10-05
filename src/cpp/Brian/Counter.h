@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2024 Frank Eskesen.
+//       Copyright (c) 2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -10,55 +10,53 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       ConsoleService.h
+//       Counter.h
 //
 // Purpose-
-//       The ConsoleService.
+//       Debugging object reference Counter.
 //
 // Last change date-
-//       2024/10/04
+//       2024/10/01
+//
+// Implementation note-
+//       In static termination, if c_count != d_count, the values are always
+//       displayed.
+//       Counter.cpp can also be modified to display more aggressively.
 //
 //----------------------------------------------------------------------------
-#ifndef CONSOLESERVICE_H_INCLUDED
-#define CONSOLESERVICE_H_INCLUDED
+#ifndef COUNTER_H_INCLUDED
+#define COUNTER_H_INCLUDED
 
-#include "Service.h"                // For Service, base class
+#include <atomic>                   // For std::atomic<size>
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       ConsoleService
+//       Counter
 //
 // Purpose-
-//       Handle Console input.
+//       Object reference counter.
 //
 //----------------------------------------------------------------------------
-class ConsoleService                // The ConsoleService
-   : public Service, public Service::has_stop, public Service::has_wait {
+class Counter {                     // Object reference counter
 //----------------------------------------------------------------------------
-// ConsoleService::Attributes
-//----------------------------------------------------------------------------
-protected:
-// None defined
-
-//----------------------------------------------------------------------------
-// ConsoleService::Constructors
+// Counter::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-   ConsoleService( void )           // Constructor
-:  Service("Console") {}
-
-   ConsoleService(const ConsoleService&) = delete; // Disallowed copy constructor
-   ConsoleService& operator=(const ConsoleService&) = delete; // Disallowed assignment operator
+typedef std::atomic<size_t>         counter_t; // The individual counter type
 
 //----------------------------------------------------------------------------
-// ConsoleService::Methods
+// Counter::Attributes
 //----------------------------------------------------------------------------
-public:
-virtual void
-   stop( void );                    // Stop the ConsoleService
+static counter_t       c_count;     // Number of constructors
+static counter_t       d_count;     // Number of destructors
 
-virtual void
-   wait( void );                    // Wait for ConsoleService termination
-}; // class ConsoleService
-#endif // CONSOLESERVICE_H_INCLUDED
+//----------------------------------------------------------------------------
+// Counter::Constructors/destructor
+//----------------------------------------------------------------------------
+   Counter( void );                 // Constructor
+
+virtual
+   ~Counter( void );                // Destructor
+}; // class Counter
+#endif // COUNTER_H_INCLUDED

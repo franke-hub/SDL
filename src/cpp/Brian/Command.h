@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019 Frank Eskesen.
+//       Copyright (c) 2019-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,17 +16,19 @@
 //       A Command is a Named work handler.
 //
 // Last change date-
-//       2019/01/01
+//       2024/10/04
 //
 //----------------------------------------------------------------------------
 #ifndef COMMAND_H_INCLUDED
 #define COMMAND_H_INCLUDED
 
-#include <map>
-#include <string>
+#include <map>                      // For std::map
+#include <memory>                   // For std::shared_ptr
+#include <mutex>                    // For std::mutex
+#include <string>                   // For std::string
 
-#include <pub/Debug.h>
-#include <pub/Named.h>
+#include <pub/Named.h>              // For pub::Named, base class
+#include <pub/Object.h>             // For work resultant
 
 //----------------------------------------------------------------------------
 //
@@ -36,96 +38,47 @@
 // Purpose-
 //       A Command is a Named work handler
 //
+// Implementation notes-
+//       The constructor inserts the Command into the map.
+//       The destructor  removes the Command from the map.
+//
 //----------------------------------------------------------------------------
 class Command : public pub::Named { // Command
 //----------------------------------------------------------------------------
-// Command::Attributes
-//----------------------------------------------------------------------------
-protected:
-// None defined
-
-//----------------------------------------------------------------------------
-// Command::Constructors
+// Command::Enumerations and typedefs
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~Command( void ) {}              // Destructor
+typedef std::map<std::string, Command*>       Map_t; // The Map type
+typedef Map_t::iterator                       MapIter_t; // The Map iterator
+typedef std::shared_ptr<pub::Object>          resultant; // Method work result
+
+//----------------------------------------------------------------------------
+// Command::Constructors/destructor
+//----------------------------------------------------------------------------
    Command(                         // Constructor
-     const char*       name)        // The Command name
-:  pub::Named(name) {}
+     const char*       name);       // The Command name
 
    Command(const Command&) = delete; // Disallowed copy constructor
    Command& operator=(const Command&) = delete; // Disallowed assignment operator
 
+virtual
+   ~Command( void );                // Destructor
+
 //----------------------------------------------------------------------------
 // Command::Accessors
 //----------------------------------------------------------------------------
-public:
-// std::string get_name() const     // Return the Named attribute
+static Map_t*                       // The Command Map*
+   get_map( void );                 // Get the Command Map
+
+static Command*                     // The associated Command, if present
+   locate(std::string);             // Get associated Command
 
 //----------------------------------------------------------------------------
 // Command::Methods
 //----------------------------------------------------------------------------
-public:
-virtual void
+virtual resultant                   // Resultant, command dependent
    work(                            // Process the Command
      int               argc,        // Argument count
      char*             argv[]);     // Argument array
 }; // class Command
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       CommandMap
-//
-// Purpose-
-//       The name to Command map
-//
-//----------------------------------------------------------------------------
-extern class CommandMap {           // The CommandMap
-//----------------------------------------------------------------------------
-// CommandMap::Enumerations and typedefs
-//----------------------------------------------------------------------------
-public:
-typedef std::map<std::string, Command*>
-                       Map_t;       // The Map_t
-typedef Map_t::iterator
-                       MapIter_t;
-
-//----------------------------------------------------------------------------
-// CommandMap::Attributes
-//----------------------------------------------------------------------------
-protected:
-static Map_t           map;         // The actual map
-
-public:                             // Attribute accessors
-MapIter_t begin() noexcept
-{  return map.begin(); }
-
-const MapIter_t begin() const noexcept
-{  return map.begin(); }
-
-MapIter_t end() noexcept
-{  return map.end(); }
-
-const MapIter_t end() const noexcept
-{  return map.end(); }
-
-//----------------------------------------------------------------------------
-// CommandMap::operators
-//----------------------------------------------------------------------------
-public:
-Command*                            // The associated Command, if present
-   locate(std::string name) const;  // Get associated Command
-
-void
-   remove(Command* command);        // Remove associated Command
-
-Command&                            // The associated Command
-   operator[](std::string name) const; // Locate Command, name must be registered
-
-Command&                            // The associated Command
-   operator[](Command* command);    // Insert Command, name must be unique
-}  CommandMap;
-
 #endif // COMMAND_H_INCLUDED

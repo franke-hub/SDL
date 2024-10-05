@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2023 Frank Eskesen.
+//       Copyright (c) 2019-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,112 +16,187 @@
 //       Command object methods
 //
 // Last change date-
-//       2023/08/04
+//       2024/09/30
 //
 //----------------------------------------------------------------------------
-#include <map>                      // For std::map
-#include <mutex>                    // For std::mutex
+#include <stdexcept>                // For std::out_of_range
 
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/Exception.h>          // For pub::Exception
+#include <pub/Latch.h>              // For pub::Latch
 #include <pub/utility.h>            // For pub::utility::to_string
 
-#include "Command.h"
-#include "Common.h"
+#include "Command.h"                // For Command, implemented
+#include "Common.h"                 // For Common::shutdown
 
-using pub::Exception;
 using pub::utility::to_string;
 using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-#include <pub/ifmacro.h>
-
-//----------------------------------------------------------------------------
-// External data areas
-//----------------------------------------------------------------------------
-CommandMap::Map_t       CommandMap::map; // The actual CommandMap
-class CommandMap        CommandMap; // The map accessor object
+enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+}; // (generic) enum
 
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static std::mutex       mutex;      // Synchronization control
+static Command::Map_t* _map= nullptr; // The actual Command Map*
+static pub::Latch      mutex;      // Map insert/remove synchronization Latch
+
+//----------------------------------------------------------------------------
+// Global destructor
+//----------------------------------------------------------------------------
+namespace {                         // Anonymous namespace
+static int             global_destructor_invoked= false;
+static struct GlobalDestructor {    // On unload, remove Debug::global
+inline
+   ~GlobalDestructor( void )
+{  if( HCDM ) debugf("Command::GlobalDestructor~\n");
+
+   delete _map;
+   _map= nullptr;
+
+   global_destructor_invoked= true;
+}
+}  globalDestructor;
+}  // Anonymous namespace
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       CommandMap::locate()
-//       CommandMap::remove()
-//       CommandMap::operator[]
+// Subroutine-
+//       insert
+//       remove
 //
 // Purpose-
 //       Locate|remove|iinsert operations
 //
 //----------------------------------------------------------------------------
-Command*                            // The associated Command, if present
-   CommandMap::locate(              // Get associated Command
-     std::string       name) const  // With this name
+static void
+   insert(                          // Insert
+     Command*          command)     // This Command
 {
-   Command* command= nullptr;       // The associated Command
+   typedef Command::Map_t           Map_t;
+   typedef Command::MapIter_t       MapIter_t;
+
+   if( global_destructor_invoked )  // Do nothing if in unloading state
+     return;
+
+   std::string name= command->get_name();
+   Map_t* map= Command::get_map();
 
    {{{{
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-     const MapIter_t mi= map.find(name);
-     if( mi != map.end() )          // If it's mapped
+     const MapIter_t mi= map->find(name);
+     if( mi != map->end() )         // If it's already mapped
+       throw std::out_of_range(to_string("Command::insert(%s) is a duplicate"
+                                        , name.c_str()));
+
+     (*map)[name]= command;
+//   map->insert({name, command});
+   }}}}
+}
+
+static void
+   remove(                          // Remove
+     Command*          command)     // This Command
+{
+   typedef Command::Map_t           Map_t;
+   typedef Command::MapIter_t       MapIter_t;
+
+   if( global_destructor_invoked )  // Do nothing if in unloading state
+     return;
+
+   std::string name= command->get_name();
+   Map_t* map= Command::get_map();
+
+   {{{{
+     std::lock_guard<decltype(mutex)> lock(mutex);
+
+     const MapIter_t mi= map->find(name);
+     if( mi != map->end() && mi->second == command )
+       map->erase(mi);
+   }}}}
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Command::Command
+//
+// Purpose-
+//       Constructor
+//
+//----------------------------------------------------------------------------
+   Command::Command(                // Constructor
+     const char*       name)        // The Command name
+:  pub::Named(name)
+{  insert(this); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Command::~Command
+//
+// Purpose-
+//       Destructor
+//
+//----------------------------------------------------------------------------
+   Command::~Command( void )        // Destructor
+{  remove(this); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Command::get_map
+//
+// Purpose-
+//       Return the Map_t*
+//
+// Implementation notes-
+//       The map is required during static initialization, and can be
+//       erroneously requested during static destruction.
+//
+//----------------------------------------------------------------------------
+Command::Map_t*                     // The Map_t*
+   Command::get_map( void )         // Get Map_t*
+{
+   if( global_destructor_invoked )  // (Should not occur)
+     return nullptr;                // (SEGFAULT expected)
+
+   if( _map == nullptr )
+     _map= new Map_t();
+
+   return _map;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Command::locate
+//
+// Purpose-
+//       Locate associated Command
+//
+//----------------------------------------------------------------------------
+Command*                            // The associated Command, if present
+   Command::locate(                 // Get the Command associated
+     std::string       name)        // With this name
+{
+   Command* command= nullptr;       // The associated Command
+   Map_t* map= get_map();
+
+   {{{{
+     std::lock_guard<decltype(mutex)> lock(mutex);
+
+     const MapIter_t mi= map->find(name);
+     if( mi != map->end() )          // If it's mapped
        command= mi->second;
    }}}}
 
    return command;
-}
-
-void
-   CommandMap::remove(              // Remove
-     Command*          command)     // This Command
-{
-   std::string name= command->get_name();
-
-   std::lock_guard<decltype(mutex)> lock(mutex);
-
-   const MapIter_t mi= map.find(name);
-   if( mi != map.end() && mi->second == command )
-     map.erase(mi);
-}
-
-Command&                            // The associated Command
-   CommandMap::operator[](          // Locate a Command
-     std::string       name) const  // With this name
-{
-   Command* command= locate(name);  // Get associated Command
-
-   if( command == nullptr )         // If the Command isn't mapped
-       throw Exception(to_string("CommandMap::[%s] not found",
-                       name.c_str()));
-
-   return *command;
-}
-
-Command&                            // The associated Command
-   CommandMap::operator[](          // Insert
-     Command*          command)     // This Command
-{
-   std::string name= command->get_name();
-
-   std::lock_guard<decltype(mutex)> lock(mutex);
-
-   const MapIter_t mi= map.find(name);
-   if( mi != map.end() )            // If it's already mapped
-     throw Exception(to_string("CommandMap::insert(%s) duplicated",
-                     name.c_str()));
-
-   map[name]= command;
-   return *command;
 }
 
 //----------------------------------------------------------------------------
@@ -133,67 +208,8 @@ Command&                            // The associated Command
 //       Process Command
 //
 //----------------------------------------------------------------------------
-void
+Command::resultant                  // Resultant, Command dependent
    Command::work(int, char**)       // Handle Command
 //   int               argc,        // Argument count (UNUSED parameter)
 //   char*             argv[])      // Argument array (UNUSED parameter)
-{  }
-
-//----------------------------------------------------------------------------
-//
-// Static class-
-//       Command_list
-//
-// Purpose-
-//       List the commands
-//
-//----------------------------------------------------------------------------
-static class Command_list : public Command {
-public:
-virtual
-   ~Command_list() {}
-   Command_list() : Command("list")
-{  CommandMap[this]; }
-
-virtual void
-   work(int, char**)                // Handle Command
-//   int               argc,        // Argument count (UNUSED parameter)
-//   char*             argv[])      // Argument array (UNUSED parameter)
-{
-   debugf("Command list: ");
-   typedef CommandMap::MapIter_t MapIter_t;
-   for(MapIter_t mi= CommandMap.begin(); mi != CommandMap.end(); ++mi) {
-     if( mi != CommandMap.begin() )
-       debugf(", ");
-     std::string s= mi->first;
-
-     debugf("%s", s.c_str());
-   }
-   debugf("\n");
-}
-} command_list; // static class Command_list
-
-//----------------------------------------------------------------------------
-//
-// Static class-
-//       Command_quit
-//
-// Purpose-
-//       Terminate processing
-//
-//----------------------------------------------------------------------------
-static class Command_quit : public Command {
-public:
-virtual
-   ~Command_quit() {}
-   Command_quit() : Command("quit")
-{  CommandMap[this]; }
-
-virtual void
-   work(                            // Handle Command
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
-{  Command::work(argc, argv);
-   Common::get()->shutdown();
-}
-} command_quit; // static class Command_quit
+{  return nullptr; }

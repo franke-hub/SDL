@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019 Frank Eskesen.
+//       Copyright (c) 2019-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       The ConsoleCommand is the standard command handler.
 //
 // Last change date-
-//       2019/01/01
+//       2024/09/30
 //
 // Implementation notes-
 //       argv[0] *INP* The input string
@@ -48,19 +48,20 @@ protected:
 // ConsoleCommand::Constructors
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~ConsoleCommand( void ) {}       // Destructor
    ConsoleCommand( void )           // Constructor
 :  Command("Console") {}
 
    ConsoleCommand(const ConsoleCommand&) = delete; // Disallowed copy constructor
    ConsoleCommand& operator=(const ConsoleCommand&) = delete; // Disallowed assignment operator
 
+virtual
+   ~ConsoleCommand( void ) {}       // Destructor
+
 //----------------------------------------------------------------------------
 // ConsoleCommand::Methods
 //----------------------------------------------------------------------------
 public:
-virtual void
+virtual Command::resultant          // Resultant
    work(                            // Process the ConsoleCommand
      int               argc,        // Argument count
      char*             argv[]);     // Argument array

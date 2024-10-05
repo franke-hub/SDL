@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021 Frank Eskesen.
+//       Copyright (c) 2021-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define HTTP client objects. (( UNUSED ))
 //
 // Last change date-
-//       2021/07/09
+//       2024/09/30
 //
 // Implementation notes-
 //       argv[0] *INP* The input string
@@ -27,7 +27,6 @@
 #define HTTPCLIENT_H_INCLUDED
 
 #include <string>
-#include "Command.h"
 #include "Service.h"
 
 //----------------------------------------------------------------------------

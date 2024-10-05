@@ -16,56 +16,84 @@
 //       Brian mainline.
 //
 // Last change date-
-//       2024/03/04
-//
-// Controls-
-//       If the first parameter is not a switch parameter, it specifies the
-//       log file name (and sets intensive debug mode.)
-//
-//       (No other parameters are available.)
+//       2024/10/04
 //
 //----------------------------------------------------------------------------
 #include <getopt.h>                 // For getopt()
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
-#include <com/Signal.h>
-#include <pub/Debug.h>
-#include <pub/Exception.h>
+#include <pub/Debug.h>              // For namespace debugging
+#include <pub/Exception.h>          // For catch(pub::Exception)
 
-#include "Command.h"
-#include "Common.h"
-#include "Install.h"
-#include "Service.h"
-#include "DirtyInstall.h"           // TODO: REMOVE: BRINGUP TEST
+#include "Common.h"                 // For Common
+#include "ConsoleCommand.h"         // For ConsoleCommand
+#include "ConsoleService.h"         // For ConsoleService
 
-using _PUB_NAMESPACE::Debug;
-using namespace _PUB_NAMESPACE::debugging;
-using _PUB_NAMESPACE::Exception;
+#define PUB _PUB_NAMESPACE
+using PUB::Debug;
+using namespace PUB::debugging;
+using PUB::Exception;
+
+//----------------------------------------------------------------------------
+// Constants for parameterization
+//----------------------------------------------------------------------------
+enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+}; // (generic) enum
+
+//----------------------------------------------------------------------------
+// Console control
+//----------------------------------------------------------------------------
+ConsoleCommand         console_command; // The Console Command
+ConsoleService         console_service; // The Console Service
 
 //----------------------------------------------------------------------------
 // Options
 //----------------------------------------------------------------------------
-static const char*     opt_debug= nullptr; // --debug{=filename}
+static int             opt_hcdm= HCDM; // --hcdm
+static int             opt_verbose= VERBOSE; // --verbose{=verbosity}
 static int             opt_help= false; // --help or error
+
 static int             opt_index;   // Option index
-static int             opt_verbose= 0; // --verbose{=verbosity}
 
 static struct option   OPTS[]=      // Options
-{  {"help",    no_argument,       &opt_help,    true}
-
-,  {"debug",   required_argument, nullptr,      0}
+{  {"hcdm",    no_argument,       &opt_hcdm,    true}
 ,  {"verbose", optional_argument, nullptr,      0}
+,  {"help",    no_argument,       &opt_help,    true}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
 enum OPT_INDEX
-{  OPT_HELP
-,  OPT_DEBUG
+{  OPT_HCDM
 ,  OPT_VERBOSE
+,  OPT_HELP
 };
+
+//----------------------------------------------------------------------------
+// Internal data areas
+//----------------------------------------------------------------------------
+static Debug*          debug= nullptr; // Our Debug object
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       Command_trap
+//
+// Purpose-
+//       Allow for breakpoints here
+//
+//----------------------------------------------------------------------------
+static class Command_trap : public Command {
+public:
+   Command_trap() : Command("trap")
+{  }
+
+virtual Command::resultant          // Resultant
+   work(int, char**)                // Handle Command
+{  debugf("trap\n");                // Line 0092
+   return nullptr;
+}
+} command_trap; // static class Command_trap
 
 //----------------------------------------------------------------------------
 //
@@ -81,25 +109,7 @@ enum OPT_INDEX
 //----------------------------------------------------------------------------
 static inline void
    exit_handler( void )             // Exit handler
-{
-   // printf("Brian: exit_handler\n");
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       setup
-//
-// Purpose-
-//       Set up termination handlers.
-//
-//----------------------------------------------------------------------------
-static inline void
-   setup( void )                    // Set up termination handlers
-{
-   if( atexit(exit_handler) != 0 )  // If cannot register handler
-     throw "atexit failure";
-}
+{  if( HCDM ) printf("Brian: exit_handler\n"); }
 
 //----------------------------------------------------------------------------
 //
@@ -120,6 +130,22 @@ static void
           );
 
    exit(EXIT_FAILURE);
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       init
+//
+// Purpose-
+//       Set up termination handlers.
+//
+//----------------------------------------------------------------------------
+static inline void
+   init( void )                      // Initialize
+{
+   if( atexit(exit_handler) != 0 )  // If cannot register handler
+     throw "atexit failure";
 }
 
 //----------------------------------------------------------------------------
@@ -149,8 +175,8 @@ static void
        case 0:
          switch( opt_index )
          {
-           case OPT_DEBUG:
-             opt_debug= optarg;
+           case OPT_HCDM:           // Flags
+           case OPT_HELP:
              break;
 
            case OPT_VERBOSE:
@@ -191,8 +217,8 @@ static void
    if( opt_help )
      info();
 
-   if( opt_debug && opt_verbose == 0 )
-     opt_verbose= 1;
+   if( opt_verbose < VERBOSE )
+     opt_verbose= VERBOSE;
 }
 
 //----------------------------------------------------------------------------
@@ -216,38 +242,31 @@ extern int                          // Return code
    // Initialiize
    //-------------------------------------------------------------------------
    parm(argc, argv);
+   init();
 
-   Debug debug(opt_debug);
-   Debug::set(&debug);
+   debug= new Debug();
+   Debug::set(debug);
    debug_set_head(Debug::HEAD_TIME | Debug::HEAD_THREAD);
-   if( opt_verbose > 5 )
+   if( true || opt_hcdm || opt_verbose > 1 )
      debug_set_mode(Debug::MODE_INTENSIVE);
 
    //-------------------------------------------------------------------------
    // Operate Brian
    //-------------------------------------------------------------------------
    try {
-     common= Common::make();        // Initialize makefile
-     traceh("============================================================\n");
-     traceh("======== Starting %s\n", common->get_name().c_str());
-     traceh("============================================================\n");
-
-     // Install Commands and Services
-     Install install;               // Install Commands and Services
-
-     // Bringup testing
-     DirtyInstall dirty;
+     common= Common::make();        // Create the Common area
+     if( opt_hcdm || opt_verbose > 1 ) {
+       traceh("==========================================================\n");
+       traceh("======== Starting %s\n", common->get_name().c_str());
+       traceh("==========================================================\n");
+     }
 
      // Initialization complete
-     debugf("Brian started...\n");
-
-//   sleep(30);                     // 30 second runtime
-//   common->shutdown();            // TODO: REMOVE: BRINGUP
-     common->wait();
+     printf("Brian started...\n");
 
      if( false ) {                  // (Handled properly)
        debugf("Should raise SIGSEGV\n");
-       Common* common= NULL;
+       Common* common= nullptr;
        common->shutdown();
        debugf("ShouldNotOccur\n");
      }
@@ -263,6 +282,8 @@ extern int                          // Return code
        throw "That's all, Folks";
        debugf("ShouldNotOccur\n");
      }
+
+     common->wait();                // (Wait for quit command)
    } catch(const char* X) {
      debugf("Exception(const char* %s)\n", X);
    } catch(Exception& X) {
@@ -277,9 +298,8 @@ extern int                          // Return code
    // Terminate
    //-------------------------------------------------------------------------
    delete common;
-   debugf("...Brian complete\n");
+   printf("...Brian complete\n");
    Debug::set(nullptr);
 
    return 0;
 }
-

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021 Frank Eskesen.
+//       Copyright (c) 2021-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,40 +16,32 @@
 //       ConsoleCommand and ConsoleService object methods
 //
 // Last change date-
-//       2021/07/09
+//       2024/10/04
 //
 //----------------------------------------------------------------------------
-#include <mutex>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <termios.h>
-#include <unistd.h>
+#include <ctype.h>                  // For isspace
+#include <string.h>                 // For strlen
+#include <unistd.h>                 // For isatty, STDIN_FILENO, ...
 
 #include <pub/Console.h>            // For pub::Console
 #include <pub/Debug.h>              // For debugging
 #include <pub/Thread.h>             // For ConsoleThread
+#include <pub/utility.h>            // For pub::utility::visify
 
-#include "ConsoleCommand.h"
-#include "ConsoleService.h"
-#include "Install.h"
+#include "ConsoleCommand.h"         // For class ConsoleCommand
+#include "ConsoleService.h"         // For class ConsoleService
 
-using namespace pub::debugging;     // For debugging
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB::debugging;     // For debugging subroutines
+using PUB::utility::visify;         // Using pub::utility::visify
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-#include <pub/ifmacro.h>
-
-//----------------------------------------------------------------------------
-// Internal data areas
-//----------------------------------------------------------------------------
-static std::mutex      consoleMutex; // Unlocked when ConsoleThread completes
+enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+}; // (generic) enum
 
 //----------------------------------------------------------------------------
 //
@@ -60,16 +52,16 @@ static std::mutex      consoleMutex; // Unlocked when ConsoleThread completes
 //       Strip leading and trailing whitespace.
 //
 //----------------------------------------------------------------------------
-static char*
+static char*                        // The stripped string
    strip(                           // Strip leading and trailing whitespace
-     char*             C)           // From this string
+     char*             C)           // From this string (MODIFIED)
 {
+   while( isspace(*C) )             // Strip leading whitespace
+     ++C;
+
    int L= strlen((char*)C);
    while( L > 0 && isspace(C[L-1]) ) // Strip trailing whitespace
      C[--L]= '\0';
-
-   while( isspace(*C) )             // Strip leading whitespace
-     ++C;
 
    return C;
 }
@@ -95,13 +87,10 @@ char                   inp[4096];   // The input string buffer
 // ConsoleThread::Constructors
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~ConsoleThread( void )           // Destructor
-{  }
-
    ConsoleThread( void )            // Constructor
 :  Thread()
-{
+{  if( HCDM ) debugf("ConsoleThread(%p).!\n", this);
+
    if( !isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO) ) {
      errorf("ERROR: ConsoleThread only supports terminal input/output\n");
      exit(1);
@@ -110,6 +99,10 @@ virtual
    pub::Console::start();
    start();
 }
+
+virtual
+   ~ConsoleThread( void )           // Destructor
+{  if( HCDM ) debugf("ConsoleThread(%p).~\n", this); }
 
 //----------------------------------------------------------------------------
 // ConsoleThread::Methods
@@ -130,13 +123,15 @@ char*                               // The input line
    pub::Console::puts(">>> ");      // Input prompt
    pub::Console::gets(inp, sizeof(inp)-1);
    char* C= strip(inp);
-   debugf("==> %s\n", C);
+   if( HCDM )
+     debugf("==> %s\n", C);
    return C;
 }
 
 virtual void
    run( void )                      // The operational thread
-{
+{  if( HCDM ) debugf("ConsoleThread(%p).run\n", this);
+
    operational= true;
    sleep(1);                        // One second startup delay
 
@@ -174,28 +169,11 @@ virtual void
        }
        argv[++argc]= nullptr;
 
-       std::string cmd= argv[0];
-       Command* command= CommandMap.locate(cmd);
+       Command* command= Command::locate(argv[0]);
        if( command ) {
          command->work(argc, argv);
        } else {
-         char* C= argv[0];
-         bool buggy= false;
-         for(int i= 0; C[i] != '\0'; i++) {
-           if( !isprint(C[i]) ) {
-             buggy= true;
-             break;
-           }
-         }
-
-         if( buggy ) {
-           for(int i= 0; C[i] != '\0'; i++) {
-             debugf("%.2x ", C[i]);
-           }
-         } else {
-           debugf("%s", argv[0]);
-         }
-           debugf(": Command not found\n");
+         debugf("Command '%s' not found\n", visify(argv[0]).c_str());
        }
      }
    }
@@ -203,19 +181,20 @@ virtual void
 
 virtual void
    stop( void )                     // Terminate the thread
-{
-   traceh("ConsoleThread::stop()\n");
+{  if( HCDM ) debugf("ConsoleThread(%p).stop\n", this);
+
    pub::Console::stop();
    operational= false;
 }
 
 virtual void
    wait( void )                     // Wait for termination completion
-{  traceh("ConsoleThread::wait()\n");
+{  if( HCDM ) debugf("ConsoleThread(%p).wait\n", this);
+
    pub::Console::wait();
    join();
 }
-} consoleThread; // Our ConsoleWorker
+} consoleThread; // Our ConsoleThread
 
 //----------------------------------------------------------------------------
 //
@@ -226,7 +205,7 @@ virtual void
 //       Process ConsoleCommand work item.
 //
 //----------------------------------------------------------------------------
-void
+Command::resultant                  // Resultant
    ConsoleCommand::work(            // Handle
      int               argc,        // Argument count
      char*             argv[])      // Argument array
@@ -234,9 +213,11 @@ void
 
    for(int i= 0; i<argc; i++)
      debugf("[%2d] \"%s\"\n", i, argv[i]);
+
+   return nullptr;
 }
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Method-
 //       ConsoleService::stop
@@ -247,7 +228,10 @@ void
 //----------------------------------------------------------------------------
 void
    ConsoleService::stop( void )     // Stop the ConsoleService
-{  consoleThread.stop(); }          // Stop the ConsoleThread
+{  if( HCDM ) debugf("ConsoleService(%p).stop\n", this);
+
+   consoleThread.stop();            // Stop the ConsoleThread
+}
 
 //----------------------------------------------------------------------------
 //
@@ -260,19 +244,7 @@ void
 //----------------------------------------------------------------------------
 void
    ConsoleService::wait( void )     // Wait for ConsoleService termination
-{  consoleThread.wait(); }          // Wait for ConsoleThread
+{  if( HCDM ) debugf("ConsoleService(%p).wait\n", this);
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ConsoleService::work
-//
-// Purpose-
-//       Process ConsoleService work item.
-//
-//----------------------------------------------------------------------------
-void
-   ConsoleService::work(            // Handle
-     pub::dispatch::Item*
-                       item)        // This work Item
-{  Service::work(item); }           // NOT CODED YET
+   consoleThread.wait();            // Wait for ConsoleThread
+}

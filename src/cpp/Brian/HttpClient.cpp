@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2021 Frank Eskesen.
+//       Copyright (c) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Curl-based HTTP client.
 //
 // Last change date-
-//       2021/07/15
+//       2024/09/29
 //
 // Prerequisites-
 //       cURL: http://curl.haxx.se/ (Also google "cURL")
@@ -37,20 +37,15 @@
 #include <sys/timeb.h>              // For struct timeb, ftime
 #include <sys/types.h>              // For int64_t
 
-//----------------------------------------------------------------------------
-// Constant for parameterization
-//----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
+#include <pub/bits/usrconfig.h>     // For ATTRIB_PRINTF macro
 
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-#ifndef TRUE
-#define TRUE  1
-#endif
+//----------------------------------------------------------------------------
+// Constants for parameterization
+//----------------------------------------------------------------------------
+enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+}; // (generic) enum
 
 //----------------------------------------------------------------------------
 // Constant for parameterization
@@ -60,16 +55,10 @@
 #define DELAY_OK  600               // Delay interval, successful access
 
 //----------------------------------------------------------------------------
-// Macros
-//----------------------------------------------------------------------------
-#include <com/ifmacro.h>            // For IFHCDM()
-#include <com/define.h>             // For _ATTRIBUTE_PRINTF
-
-//----------------------------------------------------------------------------
 // Printf functions, forward reference
 //----------------------------------------------------------------------------
-static void logger(const char*, ...) _ATTRIBUTE_PRINTF(1, 2);
-static void shouldNotOccur(const char*, ...) _ATTRIBUTE_PRINTF(1, 2);
+static void logger(const char*, ...) ATTRIB_PRINTF(1, 2);
+static void shouldNotOccur(const char*, ...) ATTRIB_PRINTF(1, 2);
 
 //----------------------------------------------------------------------------
 // Configuration controls
@@ -190,7 +179,9 @@ static int                          // Number of bytes written
 {
    (void)handle;                    // (Indicate unused)
 
-   IFHCDM( logger("accr(%p,%u,%u,%p) %u\n", addr, length, chunk, handle, respSize); )
+   if( HCDM )
+     logger("accr(%p,%zu,%zu,%p) %u\n", addr, length, chunk, handle, respSize);
+
    if( length >= sizeof(response) || chunk >= sizeof(response) )
      return 0;                      // ERROR: RESPONSE TOO BIG
 
@@ -202,7 +193,8 @@ static int                          // Number of bytes written
    respSize += length;              // Update the length
    response[respSize]= '\0';        // Set trailing delimiter
 
-   IFHCDM( logger("%d response(%s)\n", respSize, response); )
+   if( HCDM )
+     logger("%d response(%s)\n", respSize, response);
 
    return length;
 }
@@ -292,7 +284,8 @@ public:
 inline
    ~AutoCURL( void )                // Destructor
 {
-   IFHCDM( logger("AutoCURL(%p)::~AutoCURL(%p)\n", this, handle); )
+   if( HCDM )
+     logger("AutoCURL(%p)::~AutoCURL(%p)\n", this, handle);
 
    if( handle != NULL )             // (Always true, but good practice)
    {
@@ -306,12 +299,15 @@ inline
      CURL*             handle)      // CURL handle
 :  handle(handle)
 {
-   IFHCDM( logger("AutoCURL(%p)::AutoCURL(%p)\n", this, handle); )
+   if( HCDM )
+     logger("AutoCURL(%p)::AutoCURL(%p)\n", this, handle);
 
    // Common initialization functions
-   IFHCDM( curl_easy_setopt(handle, CURLOPT_VERBOSE, long(TRUE)); )
+   if( HCDM )
+     curl_easy_setopt(handle, CURLOPT_VERBOSE, long(true));
+
    curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, error_buffer); // Error message buffer
-   curl_easy_setopt(handle, CURLOPT_NOPROGRESS, long(TRUE)); // No progress meter
+   curl_easy_setopt(handle, CURLOPT_NOPROGRESS, long(true)); // No progress meter
 // curl_easy_setopt(handle, CURLOPT_USERAGENT, USER_AGENT); // Set user agent
    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, accr); // Response accumulator
    curl_easy_setopt(handle, CURLOPT_WRITEDATA, long(0)); // UNUSED
@@ -335,7 +331,8 @@ public:
 inline
    ~InitTerm( void )                // Destructor
 {
-   IFHCDM( logger("InitTerm(%p)::~InitTerm()\n", this); )
+   if( HCDM )
+     logger("InitTerm(%p)::~InitTerm()\n", this);
 
    // CURL global termination
    if( initCURL == 0 )
@@ -358,7 +355,8 @@ inline
    InitTerm( void )                 // Constructor
 :  initCURL(CURLcode(-1))
 {
-   IFHCDM( logger("InitTerm(%p)::InitTerm()\n", this); )
+   if( HCDM )
+     logger("InitTerm(%p)::InitTerm()\n", this);
 
    // CURL global initialization
    initCURL= curl_global_init(CURL_GLOBAL_ALL);
@@ -422,7 +420,7 @@ static CURLcode                     // The response code
      const char*       url,         // And this URL
      const char*       dateTime)    // Date and time (for error message)
 {
-   IFHCDM( logger("fetchURL(%s)\n", url); )
+   if( HCDM ) logger("fetchURL(%s)\n", url);
 
    // Initialize the response
    respSize= 0;
@@ -522,7 +520,8 @@ static int64_t                      // The host IP address, 0 if unavailable
    }
 
    strcpy(this_iptext, response);   // Response is actual IP address
-   IFHCDM( logger("this_iptext(%s)\n", this_iptext); )
+   if( HCDM )
+     logger("this_iptext(%s)\n", this_iptext);
 
    return ntohl(inet_addr(this_iptext));
 }
@@ -554,7 +553,8 @@ static int                          // Number of seconds to delay
 
    // Initialize CURL, set up handle cleanup code
    CURL* handle= curl_easy_init();
-   IFHCDM( logger("%p= curl_easy_init()\n", handle); )
+   if( HCDM )
+     logger("%p= curl_easy_init()\n", handle);
    if( handle == NULL )
    {
      logger("%s ERROR: %4d curl_easy_init() failure\n", dateTime, __LINE__);
@@ -570,7 +570,9 @@ static int                          // Number of seconds to delay
      if( myip_ipaddr == 0 )         // If failure
        return DELAY_IP;
 
-     IFHCDM( logger("%4d look(%llx) myip(%llx)\n", __LINE__, look_ipaddr, myip_ipaddr); )
+     if( HCDM )
+       logger("%4d look(%zx) myip(%zx)\n", __LINE__
+             , look_ipaddr, myip_ipaddr);
      if( look_ipaddr == myip_ipaddr )
      {
        strcpy(last_iptext, this_iptext);
@@ -580,7 +582,8 @@ static int                          // Number of seconds to delay
 
      // If the last IP address we got was the same, skip update
      // (A problem probably exists, but we can't correct it automatically.)
-     IFHCDM( logger("last_iptext(%s)\n", last_iptext); )
+     if( HCDM )
+       logger("last_iptext(%s)\n", last_iptext);
      if( strcmp(last_iptext, this_iptext) == 0 )
      {
        logger("%s last_iptext == this_iptext(%s), no update performed\n",
@@ -664,7 +667,8 @@ static int                          // Number of seconds to delay
 
    // Initialize CURL, set up handle cleanup code
    CURL* handle= curl_easy_init();
-   IFHCDM( logger("%p= curl_easy_init()\n", handle); )
+   if( HCDM )
+     logger("%p= curl_easy_init()\n", handle);
    if( handle == NULL )
    {
      logger("%s ERROR: %4d curl_easy_init() failure\n", dateTime, __LINE__);
@@ -678,7 +682,8 @@ static int                          // Number of seconds to delay
    if( myip_ipaddr == 0 )           // If failure
      return DELAY_NG;
 
-   IFHCDM( logger("%4d look(%llx) myip(%llx)\n", __LINE__, look_ipaddr, myip_ipaddr); )
+   if( HCDM )
+     logger("%4d look(%zx) myip(%zx)\n", __LINE__, look_ipaddr, myip_ipaddr);
    if( look_ipaddr == myip_ipaddr )
    {
      strcpy(last_iptext, this_iptext);
@@ -688,7 +693,8 @@ static int                          // Number of seconds to delay
 
    // If the last IP address we got was the same, skip update
    // (A problem probably exists, but we can't correct it automatically.)
-   IFHCDM( logger("last_iptext(%s)\n", last_iptext); )
+   if( HCDM )
+     logger("last_iptext(%s)\n", last_iptext);
    if( strcmp(last_iptext, this_iptext) == 0 )
    {
      struct in_addr ipaddr= {htonl(look_ipaddr)};
@@ -951,10 +957,10 @@ static void
    //-------------------------------------------------------------------------
    // Defaults
    //-------------------------------------------------------------------------
-   ERROR= FALSE;                    // Set defaults
-   HELPI= FALSE;
-   sw_output= FALSE;
-   sw_verify= FALSE;
+   ERROR= false;                    // Set defaults
+   HELPI= false;
+   sw_output= false;
+   sw_verify= false;
 
    //-------------------------------------------------------------------------
    // Argument analysis
@@ -967,7 +973,7 @@ static void
      {
        if( strcmp("-help", argp) == 0 // If help request
            || strcmp(argp, "--help") == 0 )
-         HELPI= TRUE;
+         HELPI= true;
 
        else if( memcmp(argp, "-inp:", 5) == 0 )
          INP_FILE_NAME= replace(INP_FILE_NAME, argp+5);
@@ -976,23 +982,23 @@ static void
          LOG_FILE_NAME= replace(LOG_FILE_NAME, argp+5);
 
        else if( memcmp(argp, "-out:", 5) == 0 ) {
-         sw_output = TRUE;
+         sw_output = true;
          LOG_FILE_NAME= replace(LOG_FILE_NAME, argp+5);
        }
 
        else if( strcmp(argp, "-v") == 0 // Not a published parameter
            || strcmp(argp, "-verify") == 0 )
-         sw_verify= TRUE;
+         sw_verify= true;
 
        else                         // If invalid switch
        {
-         ERROR= TRUE;
+         ERROR= true;
          fprintf(stderr, "Invalid parameter '%s'\n", argv[argi]);
        }
      }
      else                           // If filename parameter
      {
-       ERROR= TRUE;
+       ERROR= true;
        fprintf(stderr, "Unexpected parameter '%s'\n", argv[argi]);
      }
    }
@@ -1066,7 +1072,8 @@ extern int                          // Return code
    for(;;)
    {
      int delay= updater();
-     IFHCDM( logger("%d= updater()\n", delay); )
+     if( HCDM )
+       logger("%d= updater()\n", delay);
      if( delay == 0 )
        break;
 
@@ -1076,4 +1083,3 @@ extern int                          // Return code
 
    return EXIT_FAILURE;
 }
-

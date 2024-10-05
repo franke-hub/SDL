@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2021 Frank Eskesen.
+//       Copyright (c) 2019-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,18 +16,18 @@
 //       A service is a Named and mapped DispatchTask
 //
 // Last change date-
-//       2021/07/09
+//       2024/10/04
 //
 //----------------------------------------------------------------------------
 #ifndef SERVICE_H_INCLUDED
 #define SERVICE_H_INCLUDED
 
-#include <map>
-#include <string>
+#include <map>                      // For std::map
+#include <memory>                   // For std::shared_ptr, std::weak_ptr
+#include <string>                   // For std::string
 
-#include <pub/Debug.h>
-#include <pub/Dispatch.h>
-#include <pub/Named.h>
+#include <pub/Dispatch.h>           // For pub::dispatch::Task, base class
+#include <pub/Named.h>              // For pub::Named, base class
 
 //----------------------------------------------------------------------------
 //
@@ -35,114 +35,68 @@
 //       Service
 //
 // Purpose-
-//       A Service is a Named dispatch::Task Object
+//       A Service is a NamedObject
 //
 //----------------------------------------------------------------------------
-class Service : public pub::dispatch::Task, public pub::NamedObject { // Service
+class Service : public pub::NamedObject { // Service
 //----------------------------------------------------------------------------
 // Service::Enumerations and typedefs
 //----------------------------------------------------------------------------
 public:
-typedef pub::dispatch::Task Task;
-typedef pub::dispatch::Item Item;
-typedef pub::dispatch::Wait Wait;
+typedef std::map<std::string, Service*>       Map_t; // The Map type
+typedef Map_t::iterator                       MapIter_t; // The Map iterator
+
+// Import pub::dispatch::classes
+typedef pub::dispatch::Task                   Task; // (Base class)
+typedef pub::dispatch::Item                   Item; // (Method work parameter)
 
 //----------------------------------------------------------------------------
 // Service::Attributes
 //----------------------------------------------------------------------------
 protected:
-// None defined
+// No attributes defined
 
 //----------------------------------------------------------------------------
-// Service::Constructors
+// Service::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~Service( void ) {}              // Destructor
    Service(                         // Constructor
-     const char*       name)        // The service name
-:  Task(), pub::NamedObject(name) {}
+     const char*       name);       // The service name
 
    Service(const Service&) = delete; // Disallowed copy constructor
    Service& operator=(const Service&) = delete; // Disallowed assignment operator
 
+virtual
+   ~Service( void );                // Destructor
+
 //----------------------------------------------------------------------------
 // Service::Accessors
 //----------------------------------------------------------------------------
-public:
-// std::string get_name() const     // Return the Named attribute
+static Map_t*                       // The Service Map*
+   get_map( void );                 // Get the Service Map
+
+static Service*                     // The associated Service, if present
+   locate(std::string);             // Get associated Service
 
 //----------------------------------------------------------------------------
-// Service::Methods
+// Service::Optional methods
 //----------------------------------------------------------------------------
-public:
+struct has_start {
 virtual void
-   start( void );                   // Start the Service
+   start( void )
+{  }
+}; // struct has_start
 
+struct has_stop {
 virtual void
-   stop( void );                    // Stop the Service
+   stop( void )
+{  }
+}; // struct has_stop
 
+struct has_wait {
 virtual void
-   wait( void );                    // Wait for stop completion
-
-virtual void                        // (OVERRIDE this method)
-   work(                            // Process
-     Item*             item);       // This work Item
+   wait( void )
+{  }
+}; // struct has_wait
 }; // class Service
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       ServiceMap
-//
-// Purpose-
-//       The name to Service map
-//
-//----------------------------------------------------------------------------
-extern class ServiceMap {           // The ServiceMap
-//----------------------------------------------------------------------------
-// ServiceMap::Enumerations and typedefs
-//----------------------------------------------------------------------------
-public:
-typedef std::map<std::string, Service*>
-                       Map_t;       // The Map_t
-typedef Map_t::iterator
-                       MapIter_t;
-
-//----------------------------------------------------------------------------
-// ServiceMap::Attributes
-//----------------------------------------------------------------------------
-protected:
-static Map_t           map;         // The actual map
-
-public:                             // Attribute accessors
-MapIter_t begin() noexcept
-{  return map.begin(); }
-
-const MapIter_t begin() const noexcept
-{  return map.begin(); }
-
-MapIter_t end() noexcept
-{  return map.end(); }
-
-const MapIter_t end() const noexcept
-{  return map.end(); }
-
-//----------------------------------------------------------------------------
-// ServiceMap::operators
-//----------------------------------------------------------------------------
-public:
-Service*                            // The associated Service, if present
-   locate(std::string name) const;  // Get associated Service
-
-void
-   remove(Service* command);        // Remove associated Service
-
-Service&                            // The associated Service
-   operator[](std::string name) const; // Locate Service, name must be registered
-
-Service&                            // The associated Service
-   operator[](Service* service);    // Insert Service, name must be unique
-}  ServiceMap;
-
 #endif // SERVICE_H_INCLUDED

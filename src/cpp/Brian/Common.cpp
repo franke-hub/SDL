@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2023 Frank Eskesen.
+//       Copyright (c) 2019-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,15 +16,18 @@
 //       Brian Common object methods
 //
 // Last change date-
-//       2023/08/04
+//       2024/10/04
 //
 //----------------------------------------------------------------------------
+#include <sys/stat.h>               // For struct stat
+
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Thread.h>             // For pub::Thread::sleep
 
-#include "Common.h"
+#include "Command.h"                // For Command
 #include "Service.h"                // For Service
+#include "Common.h"                 // For Common, implemented
 
 using pub::Debug;
 using namespace pub::debugging;     // For debugging
@@ -34,17 +37,16 @@ using pub::Thread;
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-#include <pub/ifmacro.h>
+enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+}; // (generic) enum
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
 #define ID_AGENT   "Brian"
-#define ID_VERSION "0.0-2023-08-04"
+#define ID_VERSION "0.0-2024-09-28"
 
 //----------------------------------------------------------------------------
 // External data areas
@@ -55,31 +57,9 @@ Common*                Common::common= nullptr; // THE common singleton
 // Internal data areas
 //----------------------------------------------------------------------------
 static const char*     user_agent=
-                          ID_AGENT "/" ID_VERSION "/Bringup"
-                          " {f.n.eskesen@gmail.com, "
-                          "machine learning experiment}";
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Common::~Common
-//
-// Purpose-
-//       Destructor.
-//
-// Notes-
-//       All Threads have completed or we wouldn't be here.
-//
-//----------------------------------------------------------------------------
-   Common::~Common( void )          // Destructor
-{  traceh("Common(%p)::~Common()\n", this);
-
-   //-------------------------------------------------------------------------
-   // Terminate dispatcher services
-   pub::dispatch::Disp::shutdown();
-
-   common= nullptr;                // Delete the singleton pointer
-}
+                          ID_AGENT "/" ID_VERSION
+                          "/Bringup: machine learning experiment"
+                          ",Contact: {frank @ eskesystems com}";
 
 //----------------------------------------------------------------------------
 //
@@ -94,12 +74,34 @@ static const char*     user_agent=
 :  event()
 ,  fsm(FSM_RESET)
 ,  brian(user_agent)
-{  traceh("Common(%p)::Common()\n", this);
+{  if( HCDM ) traceh("Common(%p)::Common()\n", this);
    common= this;
 
    //-------------------------------------------------------------------------
    // Go into READY state
    fsm= FSM_READY;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Common::~Common
+//
+// Purpose-
+//       Destructor.
+//
+// Notes-
+//       All Threads have completed or we wouldn't be here.
+//
+//----------------------------------------------------------------------------
+   Common::~Common( void )          // Destructor
+{  if( HCDM ) traceh("Common(%p)::~Common()\n", this);
+
+   //-------------------------------------------------------------------------
+   // Terminate dispatcher services
+   pub::dispatch::Disp::shutdown();
+
+   common= nullptr;                // Delete the singleton pointer
 }
 
 //----------------------------------------------------------------------------
@@ -114,7 +116,7 @@ static const char*     user_agent=
 Common*                             // -> THE Common area (Singleton)
    Common::make( void )             // Go into READY state
 {
-#if 0
+#if 1
    //-------------------------------------------------------------------------
    // Environmental check: L/libpub.a MUST NOT exist
    //   (com library must be obtained from DLL.)
@@ -122,16 +124,15 @@ Common*                             // -> THE Common area (Singleton)
    // Implementation notes: This is not the only error that occurs.
    //   + Loader.cpp: dlopen (frequently) hangs
    //-------------------------------------------------------------------------
-   std::string s= "L/libpub.a";
-   FILE* f= fopen(s.c_str(), "rb");
-   if( f != nullptr )              // If file exists
-   {
-     fprintf(stderr, "Warning: File(%s) exists\n", s.c_str());
+   const char* file_name= "L/libpub.a";
+   struct stat info;
+   int rc= stat(file_name, &info);
+   if( rc == 0 ) {
+     fprintf(stderr, "Warning: File(%s) exists\n", file_name);
      fprintf(stderr, ".. Library object Debug.o must be located in a DLL"
                        " to prevent reloading\n"
                      ".. a separate copy of it each time we load a DLL.\n"
                      "!! YOU HAVE BEEN WARNED !!\n");
-     fclose(f);
    }
 #endif
 
@@ -165,21 +166,31 @@ Common*                             // -> THE Common area (Singleton)
 //----------------------------------------------------------------------------
 void
    Common::shutdown( void )         // Go into CLOSE state
-{  traceh("Common(%p)::shutdown() fsm(%d)\n", this, fsm);
+{  if( HCDM ) traceh("Common(%p)::shutdown() fsm(%d)\n", this, fsm);
 
    //-------------------------------------------------------------------------
    // Go into shutdown state
    fsm= FSM_CLOSE;
 
    //-------------------------------------------------------------------------
-   // Terminate services
-   typedef ServiceMap::MapIter_t MapIter_t;
-// Haven't figured out a gnu++17 foreach syntax that works
-// for(MapIter_t mi : ServiceMap) mi.second->stop(); // DOES NOT COMPILE
+   // Stop all *Stoppable" services
+   typedef Service::Map_t           Map_t;
+   typedef Service::MapIter_t       MapIter_t;
+   Map_t* map= Service::get_map();
 
-   for(MapIter_t mi= ServiceMap.begin(); mi != ServiceMap.end(); ++mi) {
+#if 0
+// Haven't figured out a gnu++17 foreach syntax that works
+   if( false ) {
+     for(MapIter_t mi: *map)        // ** DOES NOT COMPILE **
+       mi.second->stop();
+   }
+#endif
+
+   for(MapIter_t mi= map->begin(); mi != map->end(); ++mi) {
      Service* service= mi->second;
-     service->stop();
+     Service::has_stop* method= dynamic_cast<Service::has_stop*>(service);
+     if( method )
+       method->stop();
    }
 
    event.post(0);                   // Termination initiated
@@ -196,7 +207,7 @@ void
 //----------------------------------------------------------------------------
 void
    Common::wait( void )             // Wait for termination
-{  traceh("Common(%p)::wait() fsm(%d)...\n", this, fsm);
+{  if( HCDM ) traceh("Common(%p)::wait() fsm(%d)...\n", this, fsm);
 
    //-------------------------------------------------------------------------
    // Wait for termination signal
@@ -204,32 +215,17 @@ void
 
    //-------------------------------------------------------------------------
    // Wait for service terminations
-   typedef ServiceMap::MapIter_t MapIter_t;
-   for(MapIter_t mi= ServiceMap.begin(); mi != ServiceMap.end(); ++mi) {
+   typedef Service::Map_t           Map_t;
+   typedef Service::MapIter_t       MapIter_t;
+   Map_t* map= Service::get_map();
+   for(MapIter_t mi= map->begin(); mi != map->end(); ++mi) {
      Service* service= mi->second;
-     service->wait();
+     Service::has_wait* method= dynamic_cast<Service::has_wait*>(service);
+     if( method )
+       method->wait();
    }
 
    //-------------------------------------------------------------------------
    // Complete shutdown
    fsm= FSM_RESET;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Common::work
-//
-// Purpose-
-//       Drive a service
-//
-//----------------------------------------------------------------------------
-void
-   Common::work(                    // Drive a Service
-     std::string       name,        // The Service's name
-     pub::dispatch::Item*
-                       item)        // The associated work Item
-{  // debugf("Common::work(%s,%p)\n", name.c_str(), item);
-   Service& service= ServiceMap[name]; // Locate the Service
-   work(&service, item);            // Drive the Service
 }
