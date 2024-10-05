@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2022 Frank Eskesen.
+//       Copyright (C) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Compile header files that have no associated library module.
 //
 // Last change date-
-//       2022/09/02
+//       2024/09/30
 //
 //----------------------------------------------------------------------------
 #include "pub/Event.h"
@@ -27,3 +27,4 @@
 #include "pub/Semaphore.h"
 #include "pub/Signals.h"
 #include "pub/Statistic.h"
+#include "pub/String.h"

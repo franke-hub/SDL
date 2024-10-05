@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2024/09/14
+//       2024/09/30
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For std::free
@@ -40,6 +40,7 @@
 #include "pub/Reporter.h"           // For pub::Reporter
 #include "pub/Signals.h"            // See test_Signals
 #include "pub/Statistic.h"          // For pub::Statistic
+#include "pub/String.h"             // For pub::String (Experimental)
 #include "pub/Thread.h"             // For pub::Thread
 #include "pub/Trace.h"              // See test_Trace
 #include "pub/utility.h"            // For pub::utility
@@ -50,11 +51,18 @@ using namespace PUB;
 using namespace PUB::debugging;
 using PUB::utility::dump;
 using PUB::Wrapper;
+using std::cout;
 using std::string;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
+// Reverse the #define and #undef statements to change the selection
+#ifndef TEST_COMPILE_ERRORS         // Test compilation errors?
+#define TEST_COMPILE_ERRORS true    // Test compilation errors
+#undef  TEST_COMPILE_ERRORS         // Don't test compilation errors
+#endif
+
 #ifndef HCDM
 #undef  HCDM                        // If defined, Hard Core Debug Mode
 #endif
@@ -81,6 +89,7 @@ static int             opt_latch= false; // --latch
 static int             opt_misc= false; // --misc
 static int             opt_report= false; // --report
 static int             opt_signals= false; // --signals
+static int             opt_string= false; // (Only set if --all)
 static int             opt_trace= false; // --trace
 
 static struct option   opts[]=      // Options
@@ -1053,16 +1062,61 @@ static inline int
 
    return error_count;
 }
-   // pub::signals::Event is the parameter to the Event handler
-   struct Event {                   // Our event type
-     float             X;           // X value
-     float             Y;           // Y value
 
-     Event(float X_, float Y_) : X(X_), Y(Y_) {}
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       test_String
+//
+// Purpose-
+//       (Minimally) test ~/src/cpp/inc/pub/String.h
+//
+//----------------------------------------------------------------------------
+static inline int
+   test_String( void )              // Test pub/String.h
+{
+   if( opt_verbose )
+     debugf("\ntest_String\n");
 
-     int               index= 0;    // (For testing pass by reference)
-     int               count= 0;    // (For testing local variables)
-   }; // struct Event
+   int                 error_count= 0; // Number of errors encountered
+
+   pub::String ps= "The pub::String";
+   std::string ss= "The std::string";
+
+   error_count += VERIFY( ps == "The pub::String" );
+   error_count += VERIFY( "The std::string" == ss );
+
+   #ifdef TEST_COMPILE_ERRORS // - - - - - - - - - - - - - - - - - - - - - - -
+     error_count += VERIFY( "The pub::String" == ps ); // No reverse comparison
+     cout << "a) '" << ( ps += " abcd" ) << "'\n"; // No implicit conversion
+   #endif // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+   ss= ( (std::string)ps += " abcd" );
+   error_count += VERIFY( ps == "The pub::String" );
+   error_count += VERIFY( ss == "The pub::String abcd" );
+   if( opt_verbose ) {
+     cout << "1) ps: '" << ps << "'\n";
+     cout << "   ss: '" << ss << "'\n";
+   }
+
+   ss= ( (std::string&)ps += " abcd" );
+   error_count += VERIFY( ps == "The pub::String abcd" );
+   error_count += VERIFY( ss == "The pub::String abcd" );
+   if( opt_verbose ) {
+     cout << "2) ps: '" << ps << "'\n";
+     cout << "   ss: '" << ss << "'\n";
+   }
+
+   ss= ( ps.get_string() += " efgh" );
+   error_count += VERIFY( ps == "The pub::String abcd efgh" );
+   error_count += VERIFY( ss == "The pub::String abcd efgh" );
+   if( opt_verbose ) {
+     cout << "3) ps: '" << ps << "'\n";
+     cout << "   ss: '" << ss << "'\n";
+   }
+
+   return error_count;
+}
 
 //----------------------------------------------------------------------------
 //
@@ -1076,7 +1130,8 @@ static inline int
 static inline int
    test_TEST( void )                  // Test TEST.H
 {
-   debugf("\ntest_TEST\n");
+   if( opt_verbose )
+     debugf("\ntest_TEST\n");
 
    int                 error_count= 0; // Number of errors encountered
 
@@ -1384,6 +1439,7 @@ extern int                          // Return code
        opt_misc= true;
        opt_report= true;
        opt_signals= true;
+       opt_string= true;
        // opt_trace= true;          // Select separately (needs validation)
      }
 
@@ -1410,6 +1466,7 @@ extern int                          // Return code
      if( opt_misc )    error_count += test_Misc();
      if( opt_report)   error_count += test_Reporter();
      if( opt_signals ) error_count += test_Signals();
+     if( opt_string )  error_count += test_String();
      if( opt_trace )   error_count += test_Trace();
 //   if( true )        error_count += test_dirty(); // Optional bringup test
 

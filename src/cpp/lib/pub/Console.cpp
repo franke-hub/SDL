@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2022 Frank Eskesen.
+//       Copyright (C) 2019-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,24 +16,33 @@
 //       Console subroutine methods.
 //
 // Last change date-
-//       2022/09/02
+//       2024/10/03
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <termios.h>
-#include <unistd.h>
+#include <stdarg.h>                 // For va_* macros
+#include <termios.h>                // For struct termios, ...
+#include <unistd.h>                 // For isatty, STDIN_FILENO, ...
 
 #include "pub/Console.h"            // For pub::Console, implemented
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Event.h>              // For pub::Event
-#include <pub/Exception.h>          // For pub::Exception
 
 using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
 
 namespace _LIBPUB_NAMESPACE {
+//----------------------------------------------------------------------------
+// Constants for parameterization
+//----------------------------------------------------------------------------
+enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+
+,  CTL_U= 21                        // Control-U character
+,  ESC=   27                        // ESCape character
+}; // (generic) enum
+
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
@@ -118,10 +127,9 @@ char*                               // addr || nullptr iff non-operational
      char*             addr,        // Input address
      unsigned          size)        // Input length
 {
-   if( addr == nullptr || size == 0 )
-   {
+   if( addr == nullptr || size == 0 ) {
      fprintf(stderr, "Console::gets(%p,%u) PARMERR\n", addr, size);
-     throw Exception("Invalid parameter");
+     throw std::invalid_argument("Console::gets");
    }
 
    unsigned used= 0;                // Number of bytes used
@@ -142,7 +150,7 @@ char*                               // addr || nullptr iff non-operational
 
        continue;
      }
-     else if( C == 21 || C == -1 ) { // If Ctrl-U (or not operational)
+     else if( C == CTL_U || C == -1 ) { // If Ctrl-U (or not operational)
        while( used > 0 )
        {
          puts("\b \b");
@@ -153,10 +161,11 @@ char*                               // addr || nullptr iff non-operational
          return nullptr;
        continue;
      }
-     else if( C == 27 ) {           // If ESCape, ignore 3 character sequence
+     else if( C == ESC ) {          // If ESCape, ignore 3 character sequence
        getch();
        getch();
        putch('\a');
+       continue;
      }
      else if( C == '\r' )           // Silently ignore carriage return
        continue;
@@ -248,8 +257,7 @@ void
    if( !isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO) )
      throwf("Console only supports terminal input/output");
 
-   if( registered == false )        // If not registered
-   {
+   if( !registered ) {              // If not registered
      atexit(handle_atexit);         // Register exit handler
      registered= true;              // Indicate registered
    }

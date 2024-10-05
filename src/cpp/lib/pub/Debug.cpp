@@ -87,7 +87,7 @@ static RecursiveLatch  mutex;       // Recursive serialization Latch
 #endif
 static Debug*          internal= nullptr; // The auto-allocated Debug object
 
-namespace {
+namespace {                         // Anonymous namespace
 static int             global_destructor_invoked= false;
 static struct GlobalDestructor {    // On unload, remove Debug::global
 inline
