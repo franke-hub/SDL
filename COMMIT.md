@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/09/18
+//       2024/10/05
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,22 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 10/05/2024 maint
+
+Added auto-recompile trigger for dev and pub libraries to account for a
+pub::Object::~Object linkage change.
+
+Restructured ~/src/cpp/Brian/.
+- Updated the Command and Service objects.
+- Added USE_STATIC environmental control to select whether to build a STATIC
+or a SHARED (dynamic) library.
+
+Regardless of whether static or shared library linkage is chosen, simply
+adding an object module containing a static Command or Service object
+automatically adds that Command or Service to its map.
 
 ----
 
