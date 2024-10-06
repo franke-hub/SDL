@@ -32,7 +32,7 @@ is maintained in git, changes are always recorded.
 
 ----
 
-#### 10/05/2024 maint
+#### 10/05/2024 maint/trunk
 
 Added auto-recompile trigger for dev and pub libraries to account for a
 pub::Object::~Object linkage change.
