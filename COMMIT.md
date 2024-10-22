@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/10/05
+//       2024/10/22
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,25 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 10/22/2024 maint
+
+~/src/cpp/Brian updated.
+- Synchronized Brian/Console and ~/lib/cpp/pub/Console
+   ~/lib/cpp/pub/Console decodes escape sequences, but doesn't do anything with
+them.
+- Added some type include files that might be useful. They might also be
+discarded. (They bring some std and pub library includes into the current
+namespace.)
+- src/cpp/HTTP/* moved to src/cpp/HTTP/openssl
+- src/cpp/HTTP/socket added
+  - It contains an *extremely simple* HTTP server and a Curl-based HTTP client.
+(This is something simple to use as a starting point for an HttpServer in
+Brian.)
+- The dispatch Wait object now returns the post code. Object destructors
+were moved after the constructors and deleted assignment operators.
 
 ----
 
