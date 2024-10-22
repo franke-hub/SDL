@@ -1,0 +1,71 @@
+##############################################################################
+##
+##       Copyright (C) 2022-2024 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       Makefile.BSD
+##
+## Purpose-
+##       CYGWIN/LINUX Makefile customization
+##
+## Last change date-
+##       2024/10/08
+##
+##############################################################################
+
+##############################################################################
+## Local library
+MAKEXE := ############################
+MAKEXE += Main
+MAKOBJ := $(patsubst $(OBJDIR)/Main.o,,$(MAKOBJ))
+MAKEXE += HttpClient
+MAKOBJ := $(patsubst $(OBJDIR)/HttpClient.o,,$(MAKOBJ))
+
+LLIBS  += -L. -llocal
+
+##############################################################################
+## Set default target
+ifeq "" "$(DEFAULT)"
+DEFAULT:= $(MAKEXE)
+endif
+
+.PHONY: default
+default: $(DEFAULT)
+
+##############################################################################
+## Controls
+include $(INCDIR)/pub/Makefile.BSD
+CLIBS  += $(shell pkg-config --libs libcurl)
+
+##############################################################################
+## Build local library
+liblocal.a: $(MAKOBJ)
+	$(AR) $@ $(MAKOBJ)
+
+$(MAKEXE): liblocal.a
+
+##############################################################################
+## TARGET: do
+.PHONY: do
+do: Main
+	@Main
+
+##############################################################################
+## TARGET: echo
+.PHONY: echo
+echo: ;
+	@echo MAKEXE: "$(MAKEXE)"
+	@echo MAKOBJ: "$(MAKOBJ)"
+
+##############################################################################
+## Makefile cleanup
+clean : clean.dir
+.PHONY: clean.dir
+clean.dir: ;
+	@rm -f liblocal.a

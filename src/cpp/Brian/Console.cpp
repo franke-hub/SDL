@@ -13,27 +13,38 @@
 //       Console.cpp
 //
 // Purpose-
-//       ConsoleCommand and ConsoleService object methods
+//       Operate the input terminal
 //
 // Last change date-
-//       2024/10/04
+//       2024/10/22
+//
+// Implementation note-
+//       When running using a static library build, HCDM debugging displays in
+//       start() and run() should be disabled. The debug RecursiveLatch unlock
+//       may fail with a terminating error.
+//       (This should not occur, but has not been debugged.)
 //
 //----------------------------------------------------------------------------
+#include <mutex>                    // For std::mutex, std::lock_guard
 #include <ctype.h>                  // For isspace
 #include <string.h>                 // For strlen
 #include <unistd.h>                 // For isatty, STDIN_FILENO, ...
 
 #include <pub/Console.h>            // For pub::Console
 #include <pub/Debug.h>              // For debugging
-#include <pub/Thread.h>             // For ConsoleThread
+#include <pub/Thread.h>             // For pub::Thread
 #include <pub/utility.h>            // For pub::utility::visify
 
-#include "ConsoleCommand.h"         // For class ConsoleCommand
-#include "ConsoleService.h"         // For class ConsoleService
+#include "Command.h"                // For class Command
+#include "Service.h"                // For class Service
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging subroutines
-using PUB::utility::visify;         // Using pub::utility::visify
+using PUB::utility::visify;         // For method pub::utility::visify
+
+using PUB::Console;                 // For class pub::Console
+using PUB::Debug;                   // For class pub::Debug
+using PUB::Thread;                  // For class pub::Thread
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -41,6 +52,8 @@ using PUB::utility::visify;         // Using pub::utility::visify
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
+
+,  USE_COMMAND_ECHOING= true        // Echo commands to trace file?
 }; // (generic) enum
 
 //----------------------------------------------------------------------------
@@ -68,14 +81,14 @@ static char*                        // The stripped string
 
 //----------------------------------------------------------------------------
 //
-// Class-
+// Static class-
 //       ConsoleThread
 //
 // Purpose-
 //       The ConsoleThread.
 //
 //----------------------------------------------------------------------------
-static class ConsoleThread : public pub::Thread { // The ConsoleThread
+static class ConsoleThread : public Thread { // The ConsoleThread
 //----------------------------------------------------------------------------
 // ConsoleThread::Attributes
 //----------------------------------------------------------------------------
@@ -96,7 +109,7 @@ public:
      exit(1);
    }
 
-   pub::Console::start();
+   Console::start();
    start();
 }
 
@@ -110,21 +123,25 @@ virtual
 public:
 int
    getch( void )                    // Get character from stdin
-{ return pub::Console::getch(); }
+{ return Console::getch(); }
 
 void
    putch(                           // Put character onto stdout
      int               C)           // The character
-{  pub::Console::putch(C); }
+{  Console::putch(C); }
 
 char*                               // The input line
    readline( void )                 // Read input line
 {
-   pub::Console::puts(">>> ");      // Input prompt
-   pub::Console::gets(inp, sizeof(inp)-1);
+   Console::puts(">>> ");           // Input prompt
+   Console::gets(inp, sizeof(inp)-1);
    char* C= strip(inp);
-   if( HCDM )
-     debugf("==> %s\n", C);
+   if( USE_COMMAND_ECHOING ) {
+     std::lock_guard<Debug> lock(*Debug::get());
+
+     tracef("\n");
+     traceh("==> %s\n", C);
+   }
    return C;
 }
 
@@ -183,7 +200,7 @@ virtual void
    stop( void )                     // Terminate the thread
 {  if( HCDM ) debugf("ConsoleThread(%p).stop\n", this);
 
-   pub::Console::stop();
+   Console::stop();
    operational= false;
 }
 
@@ -191,60 +208,47 @@ virtual void
    wait( void )                     // Wait for termination completion
 {  if( HCDM ) debugf("ConsoleThread(%p).wait\n", this);
 
-   pub::Console::wait();
+   Console::wait();
    join();
 }
-} consoleThread; // Our ConsoleThread
+}  consoleThread; // Our ConsoleThread
 
 //----------------------------------------------------------------------------
 //
-// Method-
-//       ConsoleCommand::work
+// Class-
+//       ConsoleService
 //
 // Purpose-
-//       Process ConsoleCommand work item.
+//       Control ConsoleThread termination
 //
 //----------------------------------------------------------------------------
-Command::resultant                  // Resultant
-   ConsoleCommand::work(            // Handle
-     int               argc,        // Argument count
-     char*             argv[])      // Argument array
-{  Command::work(argc, argv);
-
-   for(int i= 0; i<argc; i++)
-     debugf("[%2d] \"%s\"\n", i, argv[i]);
-
-   return nullptr;
-}
-
-//============================================================================
-//
-// Method-
-//       ConsoleService::stop
-//
-// Purpose-
-//       Stop the ConsoleService, stopping the ConsoleThread.
-//
+class ConsoleService                // The ConsoleService
+:  public Service, public Service::has_stop, public Service::has_wait {
 //----------------------------------------------------------------------------
-void
-   ConsoleService::stop( void )     // Stop the ConsoleService
+// ConsoleService::Constructors
+//----------------------------------------------------------------------------
+public:
+   ConsoleService( void )           // Constructor
+:  Service("Console") {}
+
+   ConsoleService(const ConsoleService&) = delete; // Disallowed copy constructor
+   ConsoleService& operator=(const ConsoleService&) = delete; // Disallowed assignment operator
+
+//----------------------------------------------------------------------------
+// ConsoleService::Methods
+//----------------------------------------------------------------------------
+public:
+virtual void
+   stop( void )                     // Stop the ConsoleService
 {  if( HCDM ) debugf("ConsoleService(%p).stop\n", this);
 
    consoleThread.stop();            // Stop the ConsoleThread
 }
 
-//----------------------------------------------------------------------------
-//
-// Method-
-//       ConsoleService::wait
-//
-// Purpose-
-//       Wait for ConsoleService termination.
-//
-//----------------------------------------------------------------------------
-void
-   ConsoleService::wait( void )     // Wait for ConsoleService termination
+virtual void
+   wait( void )                     // Wait for ConsoleService termination
 {  if( HCDM ) debugf("ConsoleService(%p).wait\n", this);
 
    consoleThread.wait();            // Wait for ConsoleThread
 }
+}  consoleService; // class ConsoleService

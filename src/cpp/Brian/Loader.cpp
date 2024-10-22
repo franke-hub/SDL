@@ -16,20 +16,22 @@
 //       Attempt to load a command and a service just by existing.
 //
 // Last change date-
-//       2024/10/01
+//       2024/10/22
 //
 //----------------------------------------------------------------------------
+#include <mutex>                    // For std::mutex, std::lock_guard
+
 #include <pub/Debug.h>              // For namespace debugging
 
 #include "Common.h"                 // For Common::shutdown
 #include "Command.h"                // For Command (base class)
 #include "Service.h"                // For Service (base class)
 
-#include "Thing.h"                  // For (debugging) Thing
+#include "Thing.h"                  // For (a debugging) Thing
 
 #define PUB _LIBPUB_NAMESPACE
-using PUB::Debug;
-using namespace PUB::debugging;
+using namespace PUB::debugging;     // For debugging subroutines
+using PUB::Debug;                   // For class Debug
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -78,14 +80,14 @@ static struct SecondDestructor {
 
 //----------------------------------------------------------------------------
 //
-// Static class-
+// Class-
 //       Command_list
 //
 // Purpose-
 //       List commands or services
 //
 //----------------------------------------------------------------------------
-static class Command_list : public Command {
+class Command_list : public Command {
 public:
    Command_list() : Command("list")
 {  }
@@ -95,67 +97,69 @@ virtual Command::resultant          // Resultant
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
+   std::lock_guard<Debug> lock(*Debug::get());
+
    std::string arg1("command");
    if( argc > 1 )
      arg1= argv[1];
 
    if( arg1 != "service" && arg1 != "services" ) {
-     printf("Commands:\n");
+     debugf("Commands:\n");
      Command::Map_t* map= Command::get_map();
 
      size_t column= 0;                // Output column
      for(Command::MapIter_t mi= map->begin(); mi != map->end(); ++mi) {
        std::string s= mi->first;
        if( column + s.size() > 78 ) {
-         printf("\n");
+         debugf("\n");
          column= 0;
        }
 
        if( column != 0 ) {
-         printf(", ");
+         debugf(", ");
          column += 2;
        }
-       printf("%s", s.c_str());
+       debugf("%s", s.c_str());
 
        column += s.size();
      }
    } else {
-     printf("Services:\n");
+     debugf("Services:\n");
      Service::Map_t* map= Service::get_map();
 
      size_t column= 0;                // Output column
      for(Service::MapIter_t mi= map->begin(); mi != map->end(); ++mi) {
        std::string s= mi->first;
        if( column + s.size() > 78 ) {
-         printf("\n");
+         debugf("\n");
          column= 0;
        }
 
        if( column != 0 ) {
-         printf(", ");
+         debugf(", ");
          column += 2;
        }
-       printf("%s", s.c_str());
+       debugf("%s", s.c_str());
 
        column += s.size();
      }
    }
-   printf("\n");
+   debugf("\n");
 
    return nullptr;
 }
-} command_list; // static class Command_list
+}  command_list; // static class Command_list
 
 //----------------------------------------------------------------------------
 //
-// Static class-
+// Class-
 //       Command_quit
 //
 // Purpose-
 //       Terminate processing
 //
 //----------------------------------------------------------------------------
-static class Command_quit : public Command {
+class Command_quit : public Command {
 public:
    Command_quit() : Command("quit")
 {  }
@@ -163,7 +167,7 @@ public:
 virtual Command::resultant          // Resultant
    work(int, char**)                // Handle Command
 {  Common::get()->shutdown(); return nullptr; }
-} command_quit; // static class Command_quit
+}  command_quit; // static class Command_quit
 
 //----------------------------------------------------------------------------
 //
@@ -186,4 +190,4 @@ virtual Command::resultant          // Resultant
 
    return std::make_shared<Thing>(); // See if it auto-magically disappears
 }
-} command_junk; // static class Command_junk
+}  command_junk; // static class Command_junk

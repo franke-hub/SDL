@@ -13,10 +13,10 @@
 //       Curl.h
 //
 // Purpose-
-//       PROTOTYPE: Curl Services desriptor
+//       PROTOTYPE: Curl Services descriptor
 //
 // Last change date-
-//       2024/10/05
+//       2024/10/07
 //
 //----------------------------------------------------------------------------
 #ifndef CURL_H_INCLUDED
@@ -29,56 +29,89 @@
 //============================================================================
 //
 // Class-
-//       Service_fetchURL
+//       Curl_service
 //
 // Purpose-
 //       Rate-limited web page fetch
 //
 //----------------------------------------------------------------------------
-class Service_fetchURL : public Service {
+class Curl_service : public Service {
+public:
 //----------------------------------------------------------------------------
 // Attributes
 pub::dispatch::Task&   task;        // Our associated Task
 
 //----------------------------------------------------------------------------
 //
+// Class-
+//       Curl_service::Item
+//
+// Purpose-
+//       Task work Item
+//
+//----------------------------------------------------------------------------
+class Item : public pub::dispatch::Item { // The task's work Item
+public:
+typedef pub::dispatch::Done         Done_t;
+typedef pub::dispatch::Item         Item_t;
+
+std::string            request;     // The web page to fetch
+std::string            response;    // The web page content
+
+pub::dispatch::Wait    _wait;       // Our Wait Done object
+
+   Item(                            // Constructor
+     std::string       url)         // The web page URL
+:  Item_t(&_wait), request(url) {}
+
+   Item(                            // Constructor
+     std::string       url,         // The web page URL
+     Done_t*           done)        // Replacement Done
+:  Item_t(done), request(url) {}
+
+void
+   wait( void )                     // Wait for work Item completion
+{  _wait.wait(); }
+}; // class Curl_service::Item
+
+//----------------------------------------------------------------------------
+//
 // Methods-
-//       Service_fetchURL
-//       ~Service_fetchURL
+//       Curl_service
+//       ~Curl_service
 //
 // Purpose-
 //       Constructor
 //       Destructor
 //
 //----------------------------------------------------------------------------
-public:
-   Service_fetchURL();              // (Default) constructor
-   ~Service_fetchURL();             // Destructor
+   Curl_service();                  // (Default) constructor
+   ~Curl_service();                 // Destructor
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Service_fetchURL::curl
+//       Curl_service::async
 //
 // Purpose-
-//       (Asynchronously) display a web page
+//       (Asynchronously) display a web page [rate limited, immediate return]
 //
 //----------------------------------------------------------------------------
 void
-   curl(                            // Asynchronously display
+   async(                           // Asynchronously display
      const char*       url);        // This URL (web page)
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Service_fetchURL::fetch
+//       Curl_service::curl
 //
 // Purpose-
-//       Fetch a URL
+//       Fetch a URL [rate limited, delayed return]
 //
 //----------------------------------------------------------------------------
 std::string                         // The web page string
-   fetch(                           // Fetch
+   curl(                            // Fetch
      const char*       url);        // This URL (web page)
 };
 #endif // CURL_H_INCLUDED

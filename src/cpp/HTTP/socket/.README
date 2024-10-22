@@ -1,0 +1,55 @@
+##############################################################################
+##
+##       Copyright (C) 2019-2024 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##############################################################################
+##
+## Title-
+##       ~/src/cpp/HTTP/socket/.README
+##
+## Purpose-
+##       Development status, history, and reminders.
+##
+## Last change date-
+##       2024/10/09
+##
+##############################################################################
+
+##############################################################################
+## This subdirectory contains an extremely simple HTTP Client and Server.
+##
+## HttpClient (command) uses CURL, so it's pretty robust.
+##
+## HttpListen accepts connections on port 8080, creating a Server (defined in
+##    HttpServer.*) for each accepted Socket. There's minimal error recovery.
+##
+## The Server is a self-starting and self-deleting Thread. It reads from the
+##    accepted Socket (but ignores the data), then writes an HTTP/1.1 OK
+##    message. Error recovery is almost non-existent.
+##
+##############################################################################
+
+##############################################################################
+## STATUS:
+2024/10/09 .README updated
+
+##############################################################################
+## DONE:
+2024/10/08 Development started
+2024/10/08 Operational on Cygwin
+
+##############################################################################
+## BUGS:
+
+##############################################################################
+## TODO:
+
+##############################################################################
+## FIXED:
+
+##############################################################################
+## CLOSED:

@@ -16,7 +16,7 @@
 //       Brian mainline.
 //
 // Last change date-
-//       2024/10/04
+//       2024/10/07
 //
 //----------------------------------------------------------------------------
 #include <getopt.h>                 // For getopt()
@@ -24,9 +24,8 @@
 #include <pub/Debug.h>              // For namespace debugging
 #include <pub/Exception.h>          // For catch(pub::Exception)
 
+#include "Command.h"                // For Command
 #include "Common.h"                 // For Common
-#include "ConsoleCommand.h"         // For ConsoleCommand
-#include "ConsoleService.h"         // For ConsoleService
 
 #define PUB _PUB_NAMESPACE
 using PUB::Debug;
@@ -40,12 +39,6 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // (generic) enum
-
-//----------------------------------------------------------------------------
-// Console control
-//----------------------------------------------------------------------------
-ConsoleCommand         console_command; // The Console Command
-ConsoleService         console_service; // The Console Service
 
 //----------------------------------------------------------------------------
 // Options
@@ -263,6 +256,7 @@ extern int                          // Return code
 
      // Initialization complete
      printf("Brian started...\n");
+     traceh("Brian started...\n");
 
      if( false ) {                  // (Handled properly)
        debugf("Should raise SIGSEGV\n");
@@ -298,6 +292,7 @@ extern int                          // Return code
    // Terminate
    //-------------------------------------------------------------------------
    delete common;
+   traceh("...Brian complete\n");
    printf("...Brian complete\n");
    Debug::set(nullptr);
 

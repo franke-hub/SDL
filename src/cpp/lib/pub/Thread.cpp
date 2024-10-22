@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2023 Frank Eskesen.
+//       Copyright (C) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2023/04/21
+//       2024/10/20
 //
 // Implementation note-
 //       The global Thread synchronization mutex is used to insure that:
@@ -39,6 +39,7 @@
 
 #include <pub/Debug.h>              // For debugging
 #include <pub/Exception.h>          // For debugging
+#include <pub/Latch.h>              // For pub::Latch
 #include <pub/Named.h>              // For pub::Named
 #include "pub/Thread.h"             // For pub::Thread, implemened
 
@@ -70,7 +71,8 @@ int                    joinable= true; // TRUE while thread is joinable
    tls(Thread* thread= nullptr) : thread(thread) { }
 }; // struct tls
 
-static std::recursive_mutex
+// std::recursive_mutex may not be initialized during static initialization
+static pub::RecursiveLatch
                        mutex;       // Global synchronization mutex
 
 static tls             tl_main;     // Main tls

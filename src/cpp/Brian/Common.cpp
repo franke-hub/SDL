@@ -16,7 +16,7 @@
 //       Brian Common object methods
 //
 // Last change date-
-//       2024/10/04
+//       2024/10/22
 //
 //----------------------------------------------------------------------------
 #include <sys/stat.h>               // For struct stat
@@ -60,6 +60,40 @@ static const char*     user_agent=
                           ID_AGENT "/" ID_VERSION
                           "/Bringup: machine learning experiment"
                           ",Contact: {frank @ eskesystems com}";
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       force_load
+//
+// Purpose-
+//       Create module dependencies
+//
+// Implementation notes-
+//       We need to reference these entry points to get them loaded.
+//       Note that we don't need to include any files.
+//       (The entry points are externally accessible.)
+//
+//----------------------------------------------------------------------------
+class  ConsoleService;              // Forward references
+class  Command_list;
+class  Command_quit;
+
+extern ConsoleService  consoleService; // (In Console.cpp)
+extern Command_list    command_list; // (In Loader.cpp)
+extern Command_quit    command_quit; // (In Loader.cpp)
+static void
+   force_load( void )               // Create module dependencies
+{
+   ConsoleService* service= &consoleService; // Needed? Maybe. (Untested)
+   Command_list*   list= &command_list;
+   Command_quit*   quit= &command_quit;
+
+   debugf("You might want or need to update Common::force_load()\n");
+
+   if( HCDM )
+     debugf("service(%p) list(%p) quit(%p)\n", service, list, quit);
+}
 
 //----------------------------------------------------------------------------
 //
@@ -118,21 +152,26 @@ Common*                             // -> THE Common area (Singleton)
 {
 #if 1
    //-------------------------------------------------------------------------
-   // Environmental check: L/libpub.a MUST NOT exist
-   //   (com library must be obtained from DLL.)
+   // Environmental check: L/libBrian.a MUST NOT exist
+   //   (We must be running using DLLs.)
    //
-   // Implementation notes: This is not the only error that occurs.
+   // Implementation notes: This is not the only error that can occur.
+   //   + The Debug RecursiveLatch can be obtained in one thread and released
+   //     in another, causing a terminating abort. See Console.cpp heading.
    //   + Loader.cpp: dlopen (frequently) hangs
    //-------------------------------------------------------------------------
-   const char* file_name= "L/libpub.a";
+   const char* file_name= "./libBrian.a";
    struct stat info;
    int rc= stat(file_name, &info);
    if( rc == 0 ) {
-     fprintf(stderr, "Warning: File(%s) exists\n", file_name);
-     fprintf(stderr, ".. Library object Debug.o must be located in a DLL"
-                       " to prevent reloading\n"
-                     ".. a separate copy of it each time we load a DLL.\n"
-                     "!! YOU HAVE BEEN WARNED !!\n");
+     debugf("Warning: File(%s) exists\n", file_name);
+     debugf(".. This implies that you probably aren't using DLLs\n");
+     debugf(".. Library object Debug.o must be located in a DLL"
+               " to prevent reloading\n"
+             ".. a separate copy of it each time we load a DLL.\n"
+             "!! YOU HAVE BEEN WARNED !!\n");
+
+     force_load();                  // Force module dependencies
    }
 #endif
 

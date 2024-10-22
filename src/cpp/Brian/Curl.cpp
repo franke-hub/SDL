@@ -16,7 +16,7 @@
 //       Curl Commands and Services
 //
 // Last change date-
-//       2024/10/05
+//       2024/10/07
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -24,21 +24,23 @@
 
 #include <curl/curl.h>              // For CURL subroutines
 
-#include "pub/Clock.h"              // For pub::Clock
-#include "pub/Debug.h"              // For namespace pub::debugging
-#include "pub/String.h"             // For pub::String
-#include "pub/Thread.h"             // For pub::Thread::sleep
+#include <pub/Clock.h>              // For pub::Clock
+#include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/String.h>             // For pub::String
+#include <pub/Thread.h>             // For pub::Thread::sleep
+#include <pub/utility.h>            // For pub::utility::to_string
 
 #include "Command.h"                // For class Command
 #include "Counter.h"                // For DEBUGGING object Counter
 #include "Service.h"                // For class Service
-#include "Curl.h"                   // For Service_fetchURL, implemented
+#include "Curl.h"                   // For Curl_service, implemented
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB;                // For pub objects
 using namespace PUB::debugging;     // For debugging subroutines
 using PUB::Clock;
 using PUB::Thread;
+using PUB::utility::to_string;
 
 typedef PUB::dispatch::Done         Done; // Import pub::dispatch Objects
 typedef PUB::dispatch::Item         Item;
@@ -54,6 +56,11 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // (generic) enum
+
+#ifndef INCLUDE_SERVICE_TEST_COMMANDS // Build service test commands?
+#undef  INCLUDE_SERVICE_TEST_COMMANDS
+#define INCLUDE_SERVICE_TEST_COMMANDS
+#endif
 
 static constexpr double FETCH_INTERVAL= 30.0; // Minimum request interval
 
@@ -96,7 +103,7 @@ static const char* type_name_list[8]=
      type_name= type_name_list[type];
 
    if( HCDM )
-     debugf("curl_debug(%p,%d:%s,%p,'%zu',%p)\n", handle, type, type_name
+     debugh("curl_debug(%p,%d:%s,%p,'%zu',%p)\n", handle, type, type_name
            , text, size, unused);
 
    if( VERBOSE > 1 ) {
@@ -105,7 +112,7 @@ static const char* type_name_list[8]=
          --size;
 
        std::string mess(text, size);
-       debugf("%s: '%s'\n", type_name, mess.c_str());
+       debugh("%s: '%s'\n", type_name, mess.c_str());
      }
    }
 
@@ -130,7 +137,7 @@ static size_t                       // Number of bytes accepted
      size_t            size,        // Text length
      void*             unused)      // User data (UNUSED)
 {  if( HCDM )
-     debugf("curl_response(%p,'%zu','%zu',%p)\n", text, chunk, size, unused);
+     debugh("curl_response(%p,'%zu','%zu',%p)\n", text, chunk, size, unused);
 
    if( size ) {                     // If data received
      std::string part(text, size);
@@ -141,50 +148,26 @@ static size_t                       // Number of bytes accepted
 }
 } // extern "C"
 
-//----------------------------------------------------------------------------
+//============================================================================
 //
 // Class-
-//       FetchURL_task
+//       Command_curl
 //
 // Purpose-
-//       Rate-limited web page fetch
+//       Read a and display a web page
 //
 //----------------------------------------------------------------------------
-class FetchURL_task : public Task { // Our work handler
-//----------------------------------------------------------------------------
-// class FetchURL_task::Request
-public:
-class Request : public Item {       // Our work Item
-public:
-std::string            response;    // The web page content
-std::string            url;         // The web page to fetch
-
-pub::dispatch::Wait    _wait;       // Our Done object
-
-   Request(                         // Constructor
-     std::string       url)         // The web page URL
-:  Item(&_wait), url(url) {}
-
-void
-   wait( void )                     // Wait for completion
-{  _wait.wait(); }
-}; // class FetchURL_task::Request
-
+class Command_curl : public Command {
 //----------------------------------------------------------------------------
 // Attributes
 protected:
 CURL*                  handle= nullptr; // The CURL handle
 char                   error_buffer[CURL_ERROR_SIZE+8]; // Error message buffer
 
-double                 last= 0.0;   // Last request time
-
+//-------------------------------------------------------------------------
 public:
-//----------------------------------------------------------------------------
-// FetchURL_task::Constructor/destructor
-   FetchURL_task( void )            // Constructor
-:  Task()
-{  if( HCDM ) debugf("FetchURL_task!\n");
-
+   Command_curl( void ) : Command("curl") // Constructor
+{
    handle= curl_easy_init();
    if( handle == nullptr )
      return;
@@ -207,10 +190,8 @@ public:
    curl_easy_setopt(handle, CURLOPT_WRITEDATA, nullptr);
 }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   ~FetchURL_task()                 // Destructor
-{  if( HCDM && false ) debugf("FetchURL_task~\n");
-
+   ~Command_curl( void )            // Destructor
+{
    if( handle ) {
      curl_easy_cleanup(handle);
      handle= nullptr;
@@ -220,190 +201,36 @@ public:
 //----------------------------------------------------------------------------
 //
 // Method-
-//       FetchURL_task::fetch
+//       Command_curl::curl
 //
 // Purpose-
 //       Fetch a URL
 //
-//----------------------------------------------------------------------------
-std::string                         // The web page string
-   fetch(                           // Fetch
-     const char*       url)         // This URL
-{
-   if( handle == nullptr )          // If construction failed
-     return "";                     // All fetches fail
-
-   static std::mutex mutex;         // (Protects static CURL interface)
-   std::lock_guard<decltype(mutex)> lock(mutex);
-
-   if( HCDM ) debugf("FetchURL_task::fetch(%s)\n", url);
-
-   response= "";                    // (Re)initialize the accumulator string
-
-   // Fetch the URL
-   curl_easy_setopt(handle, CURLOPT_URL, url);
-   CURLcode cc= curl_easy_perform(handle);
-
-   // If error, write message
-   if( cc )
-     fprintf(stderr, "ERROR: %d= fetchURL(%s) %s\n", cc, url, error_buffer);
-
-   return response;                 // Return (copying the response string)
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       FetchURL_task::work
-//
-// Purpose-
-//       Request
-//
-//----------------------------------------------------------------------------
-void
-   work(                            // Handle
-     Item*             item)        // This Sevice_fetchURL::Request
-{
-   Request* request= dynamic_cast<Request*>(item);
-   if( request == nullptr ) {       // If invalid Item type
-     item->post(Item::CC_ERROR_FC);
-     return;
-   }
-
-   if( HCDM ) debugf("FetchURL_task::work(%s)\n", request->url.c_str());
-
-   // Rate limiter
-   double now= Clock::now();        // The current time
-   if( now - last < FETCH_INTERVAL ) {  // If too soon
-     Thread::sleep(FETCH_INTERVAL - (now - last)); // Delay
-     now= Clock::now();
-   }
-   last= now;
-
-   request->response= fetch(request->url.c_str());
-   item->post(Item::CC_NORMAL);
-}
-}; // class FetchURL_task
-static FetchURL_task fetchURL_task;
-
-//============================================================================
-//
-// Method-
-//       Service_fetchURL::Service_fetchURL
-//       Service_fetchURL::~Service_fetchURL
-//
-// Purpose-
-//       Constructor
-//       Destructor
-//
-//----------------------------------------------------------------------------
-   Service_fetchURL::Service_fetchURL() // Constructor
-   : Service("fetchURL"), task(fetchURL_task)
-{  if( HCDM ) debugf("Service_fetchURL!\n"); }
-
-   Service_fetchURL::~Service_fetchURL() // Destructor
-{  if( HCDM && false ) debugf("Service_fetchURL~\n"); }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Service_fetchURL::curl
-//
-// Purpose-
-//       Asynchrounously display a web page
-//
-//----------------------------------------------------------------------------
-void
-   Service_fetchURL::curl(          // Display the web page
-     const char*       url)         // At this URL
-{  if( HCDM ) debugf("Service_fetchURL.curl(%s)\n", url);
-
-   typedef FetchURL_task::Request   Request;
-
-   class Curl_done : public Done {
-   Counter             counter;     // DEBUGGING object counter
-
-   public:
-      Curl_done( void ) : Done() {}
-
-   virtual void
-      done(Item* item)
-   {
-     if( HCDM || VERBOSE > 0 )
-       debugf("Curl_done(%p).item(%p)\n", this, item);
-     Request* request= (Request*)item;
-     debugf("URL(%s):\n%s\n", request->url.c_str(), request->response.c_str());
-
-     delete item;
-     delete this;
-   }
-   }; // class CurlDone
-
-   Curl_done* done= new Curl_done();
-   Request* item= new Request(url);
-   if( HCDM || VERBOSE > 0 )
-     debugf("CURL: done(%p) item(%p)\n", done, item);
-
-   item->done= done;
-   task.enqueue(item);
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Service_fetchURL::fetch
-//
-// Purpose-
-//       Fetch a web page
+// Implementation notes-
+//       This method runs serially without any *other* delay.
 //
 //----------------------------------------------------------------------------
 std::string                         // The web page
-   Service_fetchURL::fetch(         // Get web page
-     const char*       url)         // At this URL
-{  if( HCDM ) debugf("Service_fetchURL.fetch(%s)\n", url);
-
-   FetchURL_task::Request item(url); // Our work item
-   task.enqueue(&item);             // Enqueue request
-   item.wait();                     // Wait for completion
-
-   return item.response;            // Return response string
-}
-static Service_fetchURL fetchURL_service;
-
-//============================================================================
-//
-// Class-
-//       Command_curl
-//
-// Purpose-
-//       Read a and display a web page
-//
-//----------------------------------------------------------------------------
-class Command_curl : public Command {
-//-------------------------------------------------------------------------
-public:
-   Command_curl() : Command("curl")
-{  }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Command_curl::fetchURL
-//
-// Purpose-
-//       Fetch a URL
-//
-//----------------------------------------------------------------------------
-void
-   fetchURL(                        // Fetch the associated URL
+   curl(                            // Fetch the associated URL
      const char*       url)         // And this URL
 {
-   if( true ) {
-     std::string output= fetchURL_service.fetch(url); // Synchronous display
-     debugf("\ncurl: %s\n%s\n", url, output.c_str());
-   } else {
-     fetchURL_service.curl(url);    // Asynchonous display
+   static std::mutex mutex;         // (Protects static CURL interface)
+   std::lock_guard<decltype(mutex)> lock(mutex);
+
+   if( HCDM && false ) debugh("Command_curl::curl(%s)\n", url);
+
+   response= "";                    // Reset the accumulator string
+   if( handle ) {                   // If construction succeeded
+     // Fetch the URL
+     curl_easy_setopt(handle, CURLOPT_URL, url);
+     CURLcode cc= curl_easy_perform(handle);
+
+     // If error, return error string
+     if( cc )
+       response= to_string("ERROR: %d= curl(%s) %s\n", cc, url, error_buffer);
    }
+
+   return response;                 // Return (copying the response string)
 }
 
 //----------------------------------------------------------------------------
@@ -412,7 +239,7 @@ void
 //       work
 //
 // Purpose-
-//       Run the Command
+//       Run the curl Command, invoking the curl method
 //
 //----------------------------------------------------------------------------
 virtual Command::resultant          // Resultant
@@ -422,20 +249,235 @@ virtual Command::resultant          // Resultant
 {
    //-------------------------------------------------------------------------
    // Verify parameters
-   const char* web_page= "localhost:6419";
+   const char* url= "localhost:6419";
 
    if( argc < 2 )                   // If no URL specified
      fprintf(stderr, "URL parameter missing\n");
    else if( argc > 2 )              // If more than one URL specified
      fprintf(stderr, "Only one URL parameter can be specified\n");
    else
-     web_page= argv[1];
+     url= argv[1];
 
    //-------------------------------------------------------------------------
    // Read and display the web page
-   fetchURL(web_page);
+   std::string output= curl(url);
+   debugf("curl '%s':\n%s\n", url, output.c_str());
 
    return nullptr;
 }
 }; // class Command_curl
 static Command_curl command_curl;
+
+//============================================================================
+//
+// Class-
+//       Curl_task
+//
+// Purpose-
+//       Rate-limited web page fetch
+//
+//----------------------------------------------------------------------------
+class Curl_task : public Task {     // Our work handler
+double                 last= 0.0;   // Last request time
+
+public:
+//----------------------------------------------------------------------------
+// Curl_task::Constructor/destructor
+   Curl_task( void )                // Constructor
+:  Task()
+{  if( HCDM ) debugh("Curl_task!\n"); }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   ~Curl_task()                     // Destructor
+{  if( HCDM && false ) debugh("Curl_task~\n"); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Curl_task::work
+//
+// Purpose-
+//       Handle work (Curl_item)
+//
+//----------------------------------------------------------------------------
+void
+   work(                            // Handle
+     Item*             _item)       // This Curl_item
+{
+   typedef Curl_service::Item       Curl_item;
+   Curl_item* item= dynamic_cast<Curl_item*>(_item);
+   if( item == nullptr )    {       // If invalid Item type
+     _item->post(Item::CC_ERROR_FC);
+     return;
+   }
+
+   if( HCDM ) debugh("Curl_task::work(%s)\n", item->request.c_str());
+
+   // Rate limiter
+   double now= Clock::now();        // The current time
+   if( now - last < FETCH_INTERVAL ) {  // If too soon
+     Thread::sleep(FETCH_INTERVAL - (now - last)); // Delay
+     now= Clock::now();
+   }
+
+   item->response= command_curl.curl(item->request.c_str());
+   item->post(Item::CC_NORMAL);
+
+   last= now;
+}
+}; // class Curl_task
+static Curl_task curl_task;
+
+//============================================================================
+//
+// Method-
+//       Curl_service::Curl_service
+//       Curl_service::~Curl_service
+//
+// Purpose-
+//       Constructor
+//       Destructor
+//
+//----------------------------------------------------------------------------
+   Curl_service::Curl_service()     // Constructor
+:  Service("curl"), task(curl_task)
+{  if( HCDM ) debugh("Curl_service!\n"); }
+
+   Curl_service::~Curl_service()    // Destructor
+{  if( HCDM && false ) debugh("Curl_service~\n"); }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Curl_service::async
+//
+// Purpose-
+//       Asynchrounously display a web page [rate limited]
+//
+//----------------------------------------------------------------------------
+void
+   Curl_service::async(             // Asynchronously display the web page
+     const char*       url)         // At this URL
+{  if( HCDM ) debugh("Curl_service.async(%s)\n", url);
+
+   typedef Curl_service::Item       Curl_item;
+
+   class Curl_done : public pub::dispatch::Done {
+   Counter             counter;     // DEBUGGING object counter
+
+   public:
+      Curl_done( void ) : Done() {}
+
+   virtual void
+      done(pub::dispatch::Item* _item)
+   {
+     if( HCDM || VERBOSE > 0 )
+       debugh("Curl_done(%p).item(%p)\n", this, _item);
+     Curl_item* item= (Curl_item*)_item;
+     debugh("Curl_service.async(%s):\n%s\n"
+           , item->request.c_str(), item->response.c_str());
+
+     delete item;
+     delete this;
+   }
+   }; // class CurlDone
+
+   Curl_done* done= new Curl_done();
+   Item* item= new Item(url, done);
+   if( HCDM || VERBOSE > 0 )
+     debugh("CURL: done(%p) item(%p)\n", done, item);
+
+   task.enqueue(item);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Curl_service::curl
+//
+// Purpose-
+//       Fetch a web page [rate limited]
+//
+//----------------------------------------------------------------------------
+std::string                         // The web page
+   Curl_service::curl(              // Get web page
+     const char*       url)         // At this URL
+{  if( HCDM ) debugh("Curl_service.curl(%s)\n", url);
+
+   Item item(url);                  // Our work item
+   task.enqueue(&item);             // Enqueue request
+   item.wait();                     // Wait for completion
+
+   return item.response;            // Return response string
+}
+static Curl_service curl_service;
+
+//----------------------------------------------------------------------------
+//
+// Commands-
+//       Curl_service tests
+//
+// Purpose-
+//       Test the Curl_service
+//
+//----------------------------------------------------------------------------
+#ifdef INCLUDE_SERVICE_TEST_COMMANDS
+static class Curl_service_async : public Command {
+public:
+   Curl_service_async( void ) : Command("curlserv-async") {}
+
+virtual resultant
+   work(int argc, char* argv[])
+{
+   const char* url= "localhost:6419";
+   if( argc == 2 )                  // If URL specified
+     url= argv[1];
+   curl_service.async(url);
+
+   return nullptr;
+}
+} curl_service_async;
+
+static class Curl_service_curl : public Command {
+public:
+   Curl_service_curl( void ) : Command("curlserv-curl") {}
+
+virtual resultant
+   work(int argc, char* argv[])
+{
+   const char* url= "localhost:6419";
+   if( argc == 2 )                  // If URL specified
+     url= argv[1];
+   std::string output= curl_service.curl(url);
+   debugh("curlserv-curl(%s):\n%s\n", url, output.c_str());
+
+   return nullptr;
+}
+} curl_service_curl;
+
+static class Curl_service_url : public Command {
+public:
+   Curl_service_url( void ) : Command("curlserv-url") {}
+
+virtual resultant
+   work(int argc, char* argv[])
+{
+   const char* url= "localhost:6419";
+   if( argc == 2 )                  // If URL specified
+     url= argv[1];
+
+   Service* service= Service::locate("curl");
+   Curl_service* curl_service= dynamic_cast<Curl_service*>(service);
+   if( curl_service == nullptr ) {
+     debugf("ERROR: Didn't find \"curl\" service\n");
+   } else {
+     Curl_service::Item item(url);
+     curl_service->task.enqueue(&item);
+     item.wait();
+     debugh("curlserv-url(%s):\n%s\n", url, item.response.c_str());
+   }
+
+   return nullptr;
+}
+} curl_service_url;
+#endif

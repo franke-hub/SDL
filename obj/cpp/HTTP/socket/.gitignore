@@ -1,12 +1,18 @@
 ##############################################################################
 ##
-##       Copyright (C) 2018-2020 Frank Eskesen.
+##       Copyright (C) 2022 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
 ##       within https://opensource.org/licenses/MIT)
 ##
 ##############################################################################
-## ~/src/cpp/HTTP/.gitignore
+## ~/obj/cpp/*/.gitignore
 ##############################################################################
-/Dirty.cpp
+/*
+!/.gitignore
+!/H
+!/L
+!/M
+!/Makefile
+!/S

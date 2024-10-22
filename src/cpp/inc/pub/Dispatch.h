@@ -16,7 +16,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2024/10/04
+//       2024/10/10
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCH_H_INCLUDED
@@ -132,15 +132,16 @@ static void
 //----------------------------------------------------------------------------
 class Done {                        // The dispatch::Done callback Object
 //----------------------------------------------------------------------------
-// Done::Constructors
+// Done::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~Done( void ) {}                 // Destructor
    Done( void ) {}                  // Default constructor
 
    Done(const Done&) = delete;      // Disallowed copy constructor
    Done& operator=(const Done&) = delete; // Disallowed assignment operator
+
+virtual
+   ~Done( void ) {}                 // Destructor
 
 //----------------------------------------------------------------------------
 // Done::Methods
@@ -258,17 +259,17 @@ protected:
 AI_list<Item>          itemList;    // The Work item list
 
 //----------------------------------------------------------------------------
-// Task::Constructor/Destructor
+// Task::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
    Task( void )                     // Default constructor
 :  Worker(), itemList() {}
 
-virtual
-   ~Task( void );                   // Destructor
-
    Task(const Task&) = delete;      // Disallowed copy constructor
    Task& operator=(const Task&) = delete; // Disallowed assignment operator
+
+virtual
+   ~Task( void );                   // Destructor
 
 //----------------------------------------------------------------------------
 // Task::Methods
@@ -322,18 +323,20 @@ protected:
 function_t             callback;    // The Work item handler
 
 //----------------------------------------------------------------------------
-// LambdaDone::Constructors
+// LambdaDone::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~LambdaDone( void ) = default;   // Destructor
    LambdaDone( void )               // Default constructor
-:  Done() { }                       // (Callback not initialized)
+:  Done() {}                        // (Callback not initialized)
+
    LambdaDone(function_t f)         // Constructor
 :  Done(), callback(f) {}
 
    LambdaDone(const LambdaDone&) = delete; // Disallowed copy constructor
    LambdaDone& operator=(const LambdaDone&) = delete; // Disallowed assignment operator
+
+virtual
+   ~LambdaDone( void ) = default;   // Destructor
 
 //----------------------------------------------------------------------------
 // LambdaDone::Methods
@@ -376,15 +379,16 @@ private:
 Event                  event;       // For wait/post
 
 //----------------------------------------------------------------------------
-// Wait::Constructors
+// Wait::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
-virtual
-   ~Wait( void ) {}                 // Destructor
    Wait( void ) : Done() {}         // Constructor
 
    Wait(const Wait&) = delete;      // Disallowed copy constructor
    Wait& operator=(const Wait&) = delete; // Disallowed assignment operator
+
+virtual
+   ~Wait( void ) {}                 // Destructor
 
 //----------------------------------------------------------------------------
 // Wait::Methods
@@ -393,15 +397,15 @@ void
    reset( void )                    // Reset for re-use
 {  event.reset(); }
 
-void
+int32_t                             // The event code (Always positive)
    wait( void )                     // Wait for work Item completion
-{  event.wait(); }
+{  return event.wait(); }
 
 private:
 virtual void
    done(                            // Complete
-     Item*)                         // This (ignored) work Item
-{  event.post(); }
+     Item*             item)        // This work Item
+{  event.post(item->cc); }
 }; // class Wait
 
 //----------------------------------------------------------------------------
@@ -442,7 +446,6 @@ public:
 
 virtual
    ~LambdaTask( void ) = default;   // Destructor
-
 
 //----------------------------------------------------------------------------
 // LambdaTask::Methods

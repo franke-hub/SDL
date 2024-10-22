@@ -16,7 +16,7 @@
 //       The Console object.
 //
 // Last change date-
-//       2022/09/02
+//       2022/10/11
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_CONSOLE_H_INCLUDED
@@ -45,10 +45,6 @@ public:
    Console& operator=(const Console&) = delete; // Disallowed assignment operator
 
 //----------------------------------------------------------------------------
-// Console::Methods
-//----------------------------------------------------------------------------
-public:
-//----------------------------------------------------------------------------
 //
 // Method-
 //       getch
@@ -57,8 +53,12 @@ public:
 //       Read input character. The character is NOT echoed.
 //
 //----------------------------------------------------------------------------
-static int                           // The next character, -1 if stopped
-   getch( void );                    // Get next character, no echo
+static int                          // The next character, -1 if stopped
+   getch( void );                   // Get next character, no echo
+
+static int                          // The next character, -1 if none
+   getch(                           // Get next character, no echo
+     int               delay);      // Delay in milliseconds (Max 25500)
 
 //----------------------------------------------------------------------------
 //
