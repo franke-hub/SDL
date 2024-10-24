@@ -59,9 +59,9 @@ static int                          // Error count
      std::string error= name.resolve();
      if( opt_verbose ) {
        if( error == "" )              // If no error
-         debugf("OK: '%s'= resolve(%s)\n", name.name.c_str(), C);
+         debugf("OK: '%s'= Name.resolve(%s)\n", name.name.c_str(), C);
        else {
-         debugf("NG: '%s'= resolve(%s)\n", error.c_str(), C);
+         debugf("NG: '%s'= Name.resolve(%s)\n", error.c_str(), C);
        }
      }
 

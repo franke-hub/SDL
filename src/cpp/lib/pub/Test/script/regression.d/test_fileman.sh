@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2020-2022 Frank Eskesen.
+##       Copyright (C) 2020-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,7 +16,7 @@
 ##       Fileman regression set
 ##
 ## Last change date-
-##       2022/04/22
+##       2024/10/24
 ##
 ##############################################################################
 DO=TestFile
@@ -84,15 +84,15 @@ OK ./././.                          ## Remove trailing blanks
 OK H resolve utf8.sh                ## Link resolution
 OK junk                             ## Link to missing file S/junk (OK)
 OK *.xxyyz                          ## Non-existent (OK)
+OK zero                             ## Past filesystem origin (OK, now)
 ## set +x
 
 ##############################################################################
 [[ $verb > 0 ]] && echo "Regression tests, expect failure"
 ## set -x
 NG ./ .//. S/.//.                   ## Empty file names
-NG zero                             ## Name /..
 NG loop                             ## SYMLINK_MAX
-NG miss/ing S/miss/ing              ## miss missing
+NG miss/ing S/miss/ing              ## Path miss missing
 ## set +x
 
 ##############################################################################

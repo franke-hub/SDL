@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2020-2023 Frank Eskesen.
+//       Copyright (c) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Fileman.h object methods
 //
 // Last change date-
-//       2023/11/21
+//       2024/10/23
 //
 // Implementation note-
 //       TODO: Deprecate, rename to Data.h; rename line=>get_list; etc.
@@ -38,7 +38,9 @@
 #include <pub/List.h>               // For pub::List
 #include <pub/utility.h>            // For pub::utility::dump
 
-using namespace _LIBPUB_NAMESPACE::debugging;
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB::debugging;     // For debugging subroutines
+// using std::string;               // For convenience (not currently used)
 
 namespace _LIBPUB_NAMESPACE::fileman { // The fileman namespace
 //----------------------------------------------------------------------------
@@ -46,6 +48,8 @@ namespace _LIBPUB_NAMESPACE::fileman { // The fileman namespace
 //----------------------------------------------------------------------------
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+
 ,  MIN_POOL_SIZE= 65536             // Minimum pool size
 };
 #define MIN_SYMLOOP 256             // Minimum maximum symlink loop count
@@ -469,11 +473,16 @@ std::string                         // The invalid path ("" if none)
    unsigned sym_count= 0;           // Symbolic link count
 
    for(;;) {                        // Resolve symbolic links
-//   debugf("\nVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n");
-//   debugf("     '          1         2         3         4         5         6         7'\n");
-//   debugf("%4zd '01234567890123456789012345678901234567890123456789012345678901234567890'\n", X);
-//   debugf("%4d '%s'\n", __LINE__, full_name.c_str());
-//   if( X < full_name.length() && full_name[X] != '/' ) return "INTERNAL ERROR";
+     if( HCDM ) {
+       debugf("\nVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\n");
+       debugf("     '          1         2         3         4         5"
+                     "         6         7'\n");
+       debugf("%4zd '012345678901234567890123456789012345678901234567890"
+                     "12345678901234567890'\n", X);
+       debugf("%4d '%s'\n", __LINE__, full_name.c_str());
+       if( X < full_name.length() && full_name[X] != '/' )
+         return "INTERNAL ERROR";
+     }
 
      X++;                           // (Skip '/' character)
      size_t L= full_name.length();
@@ -491,7 +500,10 @@ std::string                         // The invalid path ("" if none)
      init_part= full_name.substr(0, X); // DOES NOT include trailing '/'
      last_part= full_name.substr(X);    // INCLUDES leading '/' (or "")
 
-//   debugf("%4d '%s'[%zd]'%s'\n", __LINE__, init_part.c_str(), X, last_part.c_str());
+     if( HCDM ) {
+       debugf("%4d '%s'[%zd]'%s'\n", __LINE__, init_part.c_str(), X
+             , last_part.c_str());
+     }
      std::string file_part= get_file_name(init_part);
 
      // Handle special case file_part names: "", "." and ".."
@@ -506,12 +518,18 @@ std::string                         // The invalid path ("" if none)
      }
 
      if( file_part == ".." ) {
-       if( full_name.substr(0, 3) == "/.." )
-         return full_name + " (Name /..)";
+       if( full_name.size() >= 4 && full_name.substr(0,4) == "/../" ) {
+         init_part= "";
+       } else {
+         init_part= get_path_name(init_part);
+         init_part= get_path_name(init_part);
+       }
 
-       init_part= get_path_name(init_part);
-       init_part= get_path_name(init_part);
        X= init_part.length();
+       if( HCDM ) {
+         debugf("'%s'+'%s' init_part + last_part\n"
+               , init_part.c_str(), last_part.c_str());
+       }
        full_name= init_part + last_part;
        continue;
      }
