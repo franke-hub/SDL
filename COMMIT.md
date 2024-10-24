@@ -32,6 +32,16 @@ is maintained in git, changes are always recorded.
 
 ----
 
+#### 10/24/2024 maint
+
+Cygwin on Windows 11 can sometimes modify a symbolic link so that it links
+before the origin, e.g. "/../../var" becomes "/var" . This is actually what
+Cygwin and Linux do natively, so ~/src/cpp/lib/pub/Fileman.cpp filename
+resolver needs to accept this rather than reject it. This commit corrects it
+along with the associated regression test.
+
+----
+
 #### 10/22/2024 maint
 
 ~/src/cpp/Brian updated.
