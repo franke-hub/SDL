@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2022 Frank Eskesen.
+//       Copyright (c) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Primitive mechanisms for granting access to a resource.
 //
 // Last change date-
-//       2022/11/11
+//       2024/11/20
 //
 // Implementation notes-
 //       Internal logic for these mechanisms are further described in
@@ -28,9 +28,10 @@
 //
 //       Latch objects do not inherit from Object. They do not and never will
 //       contain virtual methods. Only the XCL_latch requires construction.
-//       All other latch types may be used within constructors.
+//       All other latch types may be used during static initialization.
 //
 //       Refer to the implemenation notes for each latch type.
+//         Basic_latch     Primitive exclusive latch (no Thread checking)
 //         Latch           Primitive exclusive latch
 //         RecursiveLatch  Primitive recursive exclusive latch
 //         SHR_latch       The shared part of a shared/exclusive latch pair
@@ -53,6 +54,72 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 //
 // Struct-
+//       Basic_latch
+//
+// Purpose-
+//       Primitive (exclusive) spin latch.
+//
+// Implementation notes-
+//       (Explicitly) does not check thread::id in lock or unlock.
+//
+//----------------------------------------------------------------------------
+struct Basic_latch {                // Latch descriptor
+//----------------------------------------------------------------------------
+// Basic_latch::Attributes
+//----------------------------------------------------------------------------
+typedef size_t         latch_t;     // The Basic_latch spin latch type
+
+std::atomic<latch_t>   latch{0};    // The BASIC spin latch
+
+//----------------------------------------------------------------------------
+// Basic_latch::Methods
+//----------------------------------------------------------------------------
+bool                                // TRUE if latch is held
+   is_held( void ) const            // Is latch held
+{  return latch.load() != 0; }
+
+void
+   lock( void )                     // Obtain the Basic_latch
+{
+   for(uint32_t spinCount= 0;;++spinCount) {
+     if( try_lock() )
+       return;
+
+     if( spinCount & 0x00000008 ) {
+       std::this_thread::sleep_for(std::chrono::nanoseconds(spinCount));
+       if( spinCount >= 0x00008000 )
+         spinCount <<= 1;
+     } else {
+       std::this_thread::yield();
+     }
+   }
+}
+
+void
+   reset( void )                    // Initialize/Reset the Basic_latch
+{  latch.store(0); }                // Note: Unchecked
+
+bool                                // TRUE iff successful
+   try_lock( void )                 // Attempt to obtain the Basic_latch
+{  latch_t oldValue= 0;
+   latch_t newValue= 1;
+   return latch.compare_exchange_strong(oldValue, newValue);
+}
+
+void
+   unlock( void )                   // Release the Basic_latch
+{
+   // Verify that the latch is held
+   if( latch.load() == 0 )
+     throw std::runtime_error("Basic_latch unlock error");
+
+   latch.store(0);                  // Release the Basic_latch
+}
+}; // struct Basic_latch
+
+//----------------------------------------------------------------------------
+//
+// Struct-
 //       Latch
 //
 // Purpose-
@@ -72,6 +139,10 @@ std::atomic<std::thread::id>
 //----------------------------------------------------------------------------
 // Latch::Methods
 //----------------------------------------------------------------------------
+bool                                // TRUE if latch is held
+   is_held( void ) const            // Is latch held
+{  return latch.load() != std::thread::id(); }
+
 void
    lock( void )                     // Obtain the Latch
 {
@@ -127,6 +198,10 @@ uintptr_t              count{};     // Share count
 //----------------------------------------------------------------------------
 // RecursiveLatch::Methods
 //----------------------------------------------------------------------------
+bool                                // TRUE if latch is held
+   is_held( void ) const            // Is latch held
+{  return latch.load() != std::thread::id(); }
+
 void
    lock( void )                     // Obtain the Latch
 {
@@ -217,9 +292,16 @@ struct SHR_latch {                  // SHR_latch descriptor
 //----------------------------------------------------------------------------
 std::atomic<uintptr_t> count{};     // The number of shared users
 
+static constexpr const uintptr_t
+       HBIT= sizeof(uintptr_t) == 8 ? 0x8000000000000000L : 0x80000000;
+
 //----------------------------------------------------------------------------
 // SHR_latch::Methods
 //----------------------------------------------------------------------------
+bool                                // TRUE if latch is held
+   is_held( void ) const            // Is latch held (shared or exclusive)
+{  return count.load() != 0; }
+
 void
    lock( void )                     // Obtain the SHR_latch
 {
@@ -234,9 +316,6 @@ void
 bool                                // TRUE iff successful
    try_lock( void )                 // Attempt to obtain the latch
 {
-   static constexpr const uintptr_t
-       HBIT= sizeof(uintptr_t) == 8 ? 0x8000000000000000L : 0x80000000;
-
    uintptr_t oldValue= count.load();
    if( oldValue & HBIT )            // (Disallow SHR_latch if XCL reservation)
      return false;
@@ -248,9 +327,6 @@ bool                                // TRUE iff successful
 void
    unlock( void )                   // Release the SHR_latch
 {
-   static constexpr const uintptr_t
-       HBIT= sizeof(uintptr_t) == 8 ? 0x8000000000000000L : 0x80000000;
-
    // Unlock, detecting unlock when not locked errors
    uintptr_t oldValue= count.load();
    for(;;) {
@@ -268,6 +344,9 @@ void
 struct XCL_latch {                  // XCL_latch descriptor
 SHR_latch&             share;       // The associated SHR_latch
 std::thread::id        thread{std::thread::id()}; // The owning XCL thread
+
+static constexpr const uintptr_t
+       HBIT= sizeof(uintptr_t) == 8 ? 0x8000'0000'0000'0000L : 0x8000'0000;
 
 //----------------------------------------------------------------------------
 // XCL_latch::Constructor
@@ -288,9 +367,6 @@ std::thread::id        thread{std::thread::id()}; // The owning XCL thread
 void
    downgrade( void )                // Downgrade XCL_latch to SHR_latch
 {
-   static constexpr const uintptr_t
-       HBIT= sizeof(uintptr_t) == 8 ? 0x8000'0000'0000'0000L : 0x8000'0000;
-
    if( thread != std::this_thread::get_id()
        || share.count.load() != HBIT )
      throw std::runtime_error("XCL_latch downgrade error");
@@ -298,6 +374,10 @@ void
    thread= std::thread::id();
    share.count.store(1);
 }
+
+bool                                // TRUE if latch is held
+   is_held( void ) const            // Is latch (exclusively) held
+{  return share.count.load() & HBIT; }
 
 void
    lock( void )                     // Obtain the XCL_latch
@@ -333,9 +413,6 @@ void
 bool                                // TRUE iff successful
    try_lock( void )                 // Attempt to obtain the XCL_latch
 {
-   static constexpr const uintptr_t
-       HBIT= sizeof(uintptr_t) == 8 ? 0x8000'0000'0000'0000L : 0x8000'0000;
-
    // Reserve the Latch for exclusive use
    uintptr_t oldValue= share.count.load();
    for(;;) {
@@ -380,6 +457,10 @@ struct NullLatch {                  // NullLatch descriptor
 //----------------------------------------------------------------------------
 // NullLatch::Methods
 //----------------------------------------------------------------------------
+bool                                // TRUE if latch is held
+   is_held( void ) const            // Is latch held
+{  return false; }
+
 void
    lock( void ) {}                  // Obtain the NullLatch
 
@@ -417,6 +498,10 @@ std::atomic<std::thread::id>
 //----------------------------------------------------------------------------
 // TestLatch::Methods
 //----------------------------------------------------------------------------
+bool                                // TRUE if latch is held
+   is_held( void ) const            // Is latch held
+{  return latch.load() != std::thread::id(); }
+
 void
    lock( void )                     // Obtain the Latch
 {

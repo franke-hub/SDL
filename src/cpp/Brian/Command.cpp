@@ -16,19 +16,24 @@
 //       Command object methods
 //
 // Last change date-
-//       2024/09/30
+//       2024/11/15
 //
 //----------------------------------------------------------------------------
+#include <new>                      // For std::bad_alloc
+#include <functional>               // For std::function
 #include <stdexcept>                // For std::out_of_range
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Latch.h>              // For pub::Latch
-#include <pub/utility.h>            // For pub::utility::to_string
+#include <pub/utility.h>            // For pub::utility::to_string, ...
 
 #include "Command.h"                // For Command, implemented
 #include "Common.h"                 // For Common::shutdown
 
+using pub::utility::find_space;     // Import utility functions
+using pub::utility::skip_space;
 using pub::utility::to_string;
+using pub::utility::visify;
 using namespace pub::debugging;     // For debugging
 
 //----------------------------------------------------------------------------
@@ -65,12 +70,34 @@ inline
 
 //----------------------------------------------------------------------------
 //
+// Struct-
+//       at_exit
+//
+// Purpose-
+//       Add TODO function on scope exit
+//
+//----------------------------------------------------------------------------
+struct at_exit {
+typedef std::function<void(void)>   TODO_t; // The TODO function type
+TODO_t                 todo;        // The todo function
+
+   at_exit(                         // Constructor: Sets TODO function
+     TODO_t            f)           // The TODO function
+{  todo= f; }                       // Set TODO function
+
+   ~at_exit( void )                 // Destructor: Runs TODO function
+{  todo(); }                        // Run TODO function
+}; // struct at_exit
+
+//----------------------------------------------------------------------------
+//
 // Subroutine-
 //       insert
 //       remove
 //
 // Purpose-
-//       Locate|remove|iinsert operations
+//       Insert Command into map
+//       Remove Command from map
 //
 //----------------------------------------------------------------------------
 static void
@@ -150,6 +177,78 @@ static void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Command::command
+//
+// Purpose-
+//       Parse and run the provided Command
+//
+//----------------------------------------------------------------------------
+Command::resultant                  // Resultant, Command dependent
+   Command::command(                // Locate and run the Command associated
+     std::string       cmd)         // With this command string
+{
+   enum{               MAXV= 128 }; // Argument array size
+
+   int                 argc;
+   char*               argv[MAXV];
+   char                buffer[1024];
+
+   if( cmd.size() == 0 )            // If empty command
+     return nullptr;
+
+   char* B= buffer;
+   char* C= B;
+   if( cmd.size() >= sizeof(buffer) ) {
+     C= (char*)malloc(cmd.size() + 1);
+     if( C == nullptr )
+       throw std::bad_alloc();
+   }
+
+   strcpy(C, cmd.c_str());          // Copy the command
+
+   at_exit alpha([C,B](){
+     if( C != B )
+       free(C);
+   });
+
+   C= skip_space(C);                // Ignore leading white space
+   if( *C == '#' || *C == '\0' )    // If comment or empty command
+     return nullptr;
+
+   for(argc= 0; argc<MAXV-1; argc++) {
+     if( *C == '\"' || *C == '\'' ) { // If quoted parameter
+       int Q= *C;                   // Quote delimiter
+       C++;                         // Skip the quote
+       argv[argc]= (char*)C;
+       while( *C != Q && *C != '\0' )
+         C++;
+     } else {
+       argv[argc]= (char*)C;
+       C= find_space(C);
+     }
+
+     if( *C == '\0' )
+       break;
+     *C= '\0';
+     C++;
+
+     C= skip_space(C);
+     if( *C == '\0' )
+       break;
+   }
+   argv[++argc]= nullptr;
+
+   Command* command= Command::locate(argv[0]);
+   if( command )
+     return command->main(argc, argv);
+
+   debugf("Command '%s' not found\n", visify(argv[0]).c_str());
+   return nullptr;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Command::get_map
 //
 // Purpose-
@@ -202,14 +301,14 @@ Command*                            // The associated Command, if present
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Command::work
+//       Command::main
 //
 // Purpose-
 //       Process Command
 //
 //----------------------------------------------------------------------------
 Command::resultant                  // Resultant, Command dependent
-   Command::work(int, char**)       // Handle Command
+   Command::main(int, char**)       // Handle Command
 //   int               argc,        // Argument count (UNUSED parameter)
 //   char*             argv[])      // Argument array (UNUSED parameter)
 {  return nullptr; }

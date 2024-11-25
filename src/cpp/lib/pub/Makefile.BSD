@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/03/21
+##       2024/11/12
 ##
 ##############################################################################
 
@@ -65,12 +65,12 @@ libpub.a: $(MAKOBJ)
 ##############################################################################
 ## TARGETS: cygpub.dll libpub.so.1.0
 cygpub.dll: $(MAKOBJ)
-	$(CC) $(CYGDLL) $^ $(CLIBS)
+	$(CC) -g $(CYGDLL) $^ $(CLIBS)
 	rebase -b 0x220000000 $@
 	touch $@
 
 libpub.so.1.0: $(MAKOBJ)
-	$(CC) $(LINKMAP) -shared -o $@ $^ $(CLIBS)
+	$(CC) $(LINKMAP) -g -shared -o $@ $^ $(CLIBS)
 	touch $@
 
 ##############################################################################

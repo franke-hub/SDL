@@ -16,7 +16,7 @@
 //       Operate the input terminal
 //
 // Last change date-
-//       2024/10/22
+//       2024/11/15
 //
 // Implementation note-
 //       When running using a static library build, HCDM debugging displays in
@@ -42,7 +42,6 @@
 using namespace PUB::debugging;     // For debugging subroutines
 using PUB::utility::visify;         // For method pub::utility::visify
 
-using PUB::Console;                 // For class pub::Console
 using PUB::Debug;                   // For class pub::Debug
 using PUB::Thread;                  // For class pub::Thread
 
@@ -50,7 +49,7 @@ using PUB::Thread;                  // For class pub::Thread
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= false                      // Hard Core Debug Mode?
+{  HCDM= true                       // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  USE_COMMAND_ECHOING= true        // Echo commands to trace file?
@@ -81,19 +80,18 @@ static char*                        // The stripped string
 
 //----------------------------------------------------------------------------
 //
-// Static class-
+// Class-
 //       ConsoleThread
 //
 // Purpose-
 //       The ConsoleThread.
 //
 //----------------------------------------------------------------------------
-static class ConsoleThread : public Thread { // The ConsoleThread
+class ConsoleThread : public Thread { // The ConsoleThread
 //----------------------------------------------------------------------------
 // ConsoleThread::Attributes
 //----------------------------------------------------------------------------
 bool                   operational; // Operational state?
-unsigned               used;        // The input string length (used)
 char                   inp[4096];   // The input string buffer
 
 //----------------------------------------------------------------------------
@@ -102,20 +100,21 @@ char                   inp[4096];   // The input string buffer
 public:
    ConsoleThread( void )            // Constructor
 :  Thread()
-{  if( HCDM ) debugf("ConsoleThread(%p).!\n", this);
+{  if( HCDM ) debugh("ConsoleThread(%p).!\n", this);
 
    if( !isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO) ) {
      errorf("ERROR: ConsoleThread only supports terminal input/output\n");
      exit(1);
    }
 
-   Console::start();
-   start();
+   pub::Console::start();
+   if( HCDM )
+     debugh("pub::Console::start completed\n");
 }
 
 virtual
    ~ConsoleThread( void )           // Destructor
-{  if( HCDM ) debugf("ConsoleThread(%p).~\n", this); }
+{  if( HCDM ) debugh("ConsoleThread(%p).~\n", this); }
 
 //----------------------------------------------------------------------------
 // ConsoleThread::Methods
@@ -123,95 +122,80 @@ virtual
 public:
 int
    getch( void )                    // Get character from stdin
-{ return Console::getch(); }
+{  return pub::Console::getch(); }
 
 void
    putch(                           // Put character onto stdout
      int               C)           // The character
-{  Console::putch(C); }
+{  pub::Console::putch(C); }
 
 char*                               // The input line
    readline( void )                 // Read input line
 {
-   Console::puts(">>> ");           // Input prompt
-   Console::gets(inp, sizeof(inp)-1);
+   pub::Console::puts(">>> ");           // Input prompt
+   pub::Console::gets(inp, sizeof(inp)-1);
    char* C= strip(inp);
    if( USE_COMMAND_ECHOING ) {
      std::lock_guard<Debug> lock(*Debug::get());
 
-     tracef("\n");
-     traceh("==> %s\n", C);
+     traceh("==> '%s'\n", C);
    }
    return C;
 }
 
 virtual void
    run( void )                      // The operational thread
-{  if( HCDM ) debugf("ConsoleThread(%p).run\n", this);
+{  if( HCDM ) debugh("ConsoleThread(%p).run\n", this);
 
    operational= true;
    sleep(1);                        // One second startup delay
 
    while( operational ) {
      char* C= readline();
-     if( operational ) {
-       if( *C == '\0' ) continue;   // Ignore empty command line
-
-       enum{ MAXV= 128 };           // Argument array size
-       int   argc;
-       char* argv[MAXV];
-
-       for(argc= 0; argc<MAXV-1; argc++) {
-         if( *C == '\"' || *C == '\'' ) { // If quoted parameter
-           int Q= *C;               // Quote delimiter
-           C++;                     // Skip the quote
-           argv[argc]= (char*)C;
-           while( *C != Q && *C != '\0' )
-             C++;
-         } else {
-           argv[argc]= (char*)C;
-           while( !isspace(*C) && *C != '\0' )
-             C++;
-         }
-
-         if( *C == '\0' )
-           break;
-         *C= '\0';
-         C++;
-
-         while( isspace(*C) )
-           C++;
-         if( *C == '\0' )
-           break;
-       }
-       argv[++argc]= nullptr;
-
-       Command* command= Command::locate(argv[0]);
-       if( command ) {
-         command->work(argc, argv);
-       } else {
-         debugf("Command '%s' not found\n", visify(argv[0]).c_str());
-       }
-     }
+     if( operational )
+       Command::command(C);         // Run the command, ignoring any resultant
    }
+
+debugh("ConsoleThread(%p)::run EXIT\n", this);
 }
 
 virtual void
    stop( void )                     // Terminate the thread
-{  if( HCDM ) debugf("ConsoleThread(%p).stop\n", this);
+{  if( HCDM ) debugh("ConsoleThread(%p).stop\n", this);
 
-   Console::stop();
    operational= false;
+   pub::Console::stop();
+debugh("ConsoleThread.stopped (invoked pub::Console::stop)\n");
 }
 
 virtual void
    wait( void )                     // Wait for termination completion
-{  if( HCDM ) debugf("ConsoleThread(%p).wait\n", this);
+{  if( HCDM ) debugh("ConsoleThread(%p).wait\n", this);
 
-   Console::wait();
+debugh("ConsoleThread(%p)::wait()\n", this);
+debugh("...pub::Console::wait()...\n");
+   pub::Console::wait();            // Wait for the Console
+debugh("...pub::Console::...wait() complete\n");
+debugh("...Thread::current(%p)\n", Thread::current());
+debugh("...ConsoleThread(%p)::joinable(%d)\n", this, joinable());
+
+   // We have unexplained Cygwin-only issues with join never completing.
+   // Extra super debug mode diagnostics...
+   if( true  ) {
+debugh("%4d ...BEFORE ConsoleThread(%p)::join()\n", __LINE__, this);
+debugh(" "); Thread::static_debug("ConsoleThread join");
+debugh(" "); debug("ConsoleThread join invoked");
+   }
+
+debugf("\n\n\n");
+debugh("%4d ...ConsoleThread(%p)::join() NOW <<<PROBLEM>>\n", __LINE__, this);
    join();
+debugh("%4d ...JOINED, HOORAY! ConsoleThread(%p)::join() DONE\n", __LINE__, this);
+
+debugh(" "); debug("ConsoleThread join complete");
+debugh("...ConsoleThread(%p)::join() complete\n", this);
 }
-}  consoleThread; // Our ConsoleThread
+}; // ConsoleThread
 
 //----------------------------------------------------------------------------
 //
@@ -223,7 +207,16 @@ virtual void
 //
 //----------------------------------------------------------------------------
 class ConsoleService                // The ConsoleService
-:  public Service, public Service::has_stop, public Service::has_wait {
+:  public Service
+,  public Service::has_start
+,  public Service::has_stop
+,  public Service::has_wait {
+//----------------------------------------------------------------------------
+// ConsoleService::Attributes
+//----------------------------------------------------------------------------
+public:
+ConsoleThread*         console_thread= nullptr;
+
 //----------------------------------------------------------------------------
 // ConsoleService::Constructors
 //----------------------------------------------------------------------------
@@ -234,21 +227,51 @@ public:
    ConsoleService(const ConsoleService&) = delete; // Disallowed copy constructor
    ConsoleService& operator=(const ConsoleService&) = delete; // Disallowed assignment operator
 
+virtual
+   ~ConsoleService( void )          // Destructor
+{
+   delete console_thread;
+   console_thread= nullptr;
+}
+
 //----------------------------------------------------------------------------
 // ConsoleService::Methods
 //----------------------------------------------------------------------------
 public:
 virtual void
-   stop( void )                     // Stop the ConsoleService
-{  if( HCDM ) debugf("ConsoleService(%p).stop\n", this);
+   start(Service* S)                // Start the ConsoleService
+{  if( HCDM ) debugh("ConsoleService(%p).start(%p)\n", this, S);
+   Service::has_start::start(this);
 
-   consoleThread.stop();            // Stop the ConsoleThread
+   if( console_thread ) {
+     debugh("ConsoleService::start ERROR: already started\n");
+     return;
+   }
+
+   console_thread= new ConsoleThread();
+   console_thread->start();
+debugh("ConsoleService: ConsoleThread(%p) started\n", console_thread);
 }
 
 virtual void
-   wait( void )                     // Wait for ConsoleService termination
-{  if( HCDM ) debugf("ConsoleService(%p).wait\n", this);
+   stop(Service*)                   // Stop the ConsoleService
+{  if( HCDM ) debugh("ConsoleService(%p).stop\n", this);
+   Service::has_stop::stop(this);
 
-   consoleThread.wait();            // Wait for ConsoleThread
+   console_thread->stop();          // Stop the ConsoleThread
+debugh("ConsoleService: ConsoleThread(%p) stopped\n", console_thread);
+}
+
+virtual void
+   wait(Service* )                  // Wait for ConsoleService termination
+{  if( HCDM ) debugh("ConsoleService(%p).wait\n", this);
+   Service::has_wait::wait(this);
+
+   console_thread->wait();          // Wait for the ConsoleThread
+debugh("ConsoleService: ConsoleThread(%p) wait complete\n", console_thread);
+
+   debugh("DELETING console_thread\n");
+   delete console_thread;
+   console_thread= nullptr;
 }
 }  consoleService; // class ConsoleService

@@ -16,14 +16,15 @@
 //       Define the Brian Common area.
 //
 // Last change date-
-//       2024/10/04
+//       2024/11/02
 //
 //----------------------------------------------------------------------------
 #ifndef COMMON_H_INCLUDED
 #define COMMON_H_INCLUDED
 
-#include <pub/Dispatch.h>
-#include <pub/Event.h>
+#include <pub/Dispatch.h>           // For pub::dispatch::Disp::delay
+#include <pub/Event.h>              // For pub::Event
+#include "pub/Signals.h"            // For pub::signals interface
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -111,10 +112,10 @@ void*                               // Cancellation token
 {  return pub::dispatch::Disp::delay(seconds, item); }
 
 void
-   shutdown( void );                // Go into SHUTDOWN (CLOSE) state
+   shutdown( void );                // Initiate shutdown
 
 void
-   wait( void );                    // Wait for termination
+   wait( void );                    // Wait for shutdown, Services stopped
 
 void
    work(                            // Drive the Task
@@ -124,4 +125,47 @@ void
                        item)        // -> Item
 {  task->enqueue(item); }
 }; // class Common
+
+//----------------------------------------------------------------------------
+//
+// Struct-
+//       StaticCommon
+//
+// Purpose-
+//       Define the Brian StaticCommon area.
+//
+// Implementation notes-
+//       This area may be is during static initalization, but it must be
+//       initialized first using StaticCommon::make(). This *constructs* the
+//       StaticCommon area, if not already constructed. This area is always
+//       available (without using make) after static construction completes.
+//
+//       StaticCommon may *NOT* be used during static termination.
+//
+//----------------------------------------------------------------------------
+struct StaticCommon {               // StaticCommon data area
+//----------------------------------------------------------------------------
+// StaticCommon::Enumerations and typedefs
+//----------------------------------------------------------------------------
+public:
+struct Event {                      // The Common::Event struct
+}  event;                           // (A usable dummy Event)
+
+typedef struct Event                   Sevent_t; // The Signal Event type
+typedef pub::signals::Signal<Sevent_t> Signal_t; // The Signal type
+
+//----------------------------------------------------------------------------
+// StaticCommon::Initializer
+//----------------------------------------------------------------------------
+// Idempotent: Constructs StaticCommon and initializes static_common
+static StaticCommon*                // (Return value can be ignored)
+   make( void );                    // Initialize the StaticCommon
+
+//----------------------------------------------------------------------------
+// StaticCommon::Signals
+//----------------------------------------------------------------------------
+Signal_t               startup_complete; // Startup complete Signal
+Signal_t               shutdown_started; // Shutdown started Signal
+}; // class StaticCommon
+extern StaticCommon*   static_common;
 #endif // COMMON_H_INCLUDED

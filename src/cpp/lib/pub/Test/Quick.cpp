@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2024/09/30
+//       2024/11/20
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For std::free
@@ -49,8 +49,10 @@
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB;
 using namespace PUB::debugging;
+using PUB::diag::Pristine;
 using PUB::utility::dump;
 using PUB::Wrapper;
+
 using std::cout;
 using std::string;
 
@@ -425,11 +427,16 @@ static inline int
      debugf("..Testing: Latch\n");
    Latch latch;
 
+   error_count += MUST_EQ(false, latch.is_held());
    latch.lock();
+   error_count += MUST_EQ(true,  latch.is_held());
    latch.unlock();
+   error_count += MUST_EQ(false, latch.is_held());
 
-   latch.try_lock();
+   error_count += MUST_EQ(true,  latch.try_lock());
+   error_count += MUST_EQ(true,  latch.is_held());
    latch.unlock();
+   error_count += MUST_EQ(false, latch.is_held());
 
    try {                            // Test unlock when not held
      latch.unlock();
@@ -443,19 +450,25 @@ static inline int
    if( opt_verbose )
      debugf("..Testing: RecursiveLatch\n");
    RecursiveLatch recursive;
+
+   error_count += MUST_EQ(false, recursive.is_held());
    tid= recursive.latch.load();
    error_count += MUST_EQ(tid, null_id);
    error_count += MUST_EQ(recursive.count, 0);
 
    {{{{ std::lock_guard<decltype(recursive)> lock1(recursive);
+     error_count += MUST_EQ(true,  recursive.is_held());
      error_count += MUST_EQ(recursive.count, 1);
 
      {{{{ std::lock_guard<decltype(recursive)> lock2(recursive);
+       error_count += MUST_EQ(true,  recursive.is_held());
        error_count += MUST_EQ(recursive.count, 2);
      }}}}
 
      error_count += MUST_EQ(recursive.count, 1);
+     error_count += MUST_EQ(true,  recursive.is_held());
    }}}}
+   error_count += MUST_EQ(false, recursive.is_held());
    tid= recursive.latch.load();
    error_count += MUST_EQ(tid, null_id);
    error_count += MUST_EQ(recursive.count, 0);
@@ -473,9 +486,13 @@ static inline int
      debugf("..Testing: SHR_latch/XCL_latch\n");
    SHR_latch shr;
    XCL_latch xcl(shr);
+   error_count += MUST_EQ(false, shr.is_held());
+   error_count += MUST_EQ(false, xcl.is_held());
 
    {{{{ std::lock_guard<decltype(shr)> lock1(shr);
      error_count += MUST_EQ(shr.count, 1);
+     error_count += MUST_EQ(true,  shr.is_held());
+     error_count += MUST_EQ(false, xcl.is_held());
 //   if( xcl.try_lock() )             // (Deadlock if SHR+XCL on same thread)
 //     error_count += MUST_NOT(Obtain exclusive while shared);
 
@@ -485,21 +502,31 @@ static inline int
      error_count += MUST_EQ(shr.count, 1);
    }}}}
    error_count += MUST_EQ(shr.count, 0);
+   error_count += MUST_EQ(false, shr.is_held());
+   error_count += MUST_EQ(false, xcl.is_held());
 
    if( xcl.try_lock() )
    {
+     error_count += MUST_EQ(true,  shr.is_held());
+     error_count += MUST_EQ(true,  xcl.is_held());
      error_count += MUST_EQ(shr.count, HBIT);
      xcl.unlock();;
      error_count += MUST_EQ(shr.count, 0);
    } else {
      error_count += MUST_NOT(Fail to obtain exclusive latch);
    }
+   error_count += MUST_EQ(false, shr.is_held());
+   error_count += MUST_EQ(false, xcl.is_held());
 
    {{{{ std::lock_guard<decltype(xcl)> lock(xcl);
      error_count += MUST_EQ(shr.count, HBIT);
+     error_count += MUST_EQ(true,  shr.is_held());
+     error_count += MUST_EQ(true,  xcl.is_held());
    }}}}
    error_count += MUST_EQ(shr.count, 0);
    error_count += MUST_EQ(xcl.thread, null_id);
+   error_count += MUST_EQ(false, shr.is_held());
+   error_count += MUST_EQ(false, xcl.is_held());
 
    // Test release share lock when not held
    try {
@@ -534,14 +561,16 @@ static inline int
    //-------------------------------------------------------------------------
    if( opt_verbose )
      debugf("..Testing: TestLatch\n");
-   TestLatch testlatch;
+   TestLatch test_latch;
    tid= recursive.latch.load();
    error_count += MUST_EQ(tid, null_id);
+   error_count += MUST_EQ(false, test_latch.is_held());
 
-   {{{{ std::lock_guard<decltype(testlatch)> lock1(testlatch);
+   {{{{ std::lock_guard<decltype(test_latch)> lock1(test_latch);
+     error_count += MUST_EQ(true, test_latch.is_held());
      try {
-       {{{{ std::lock_guard<decltype(testlatch)> lock2(testlatch);
-         error_count += MUST_NOT(Recursively hold TestLatch);
+       {{{{ std::lock_guard<decltype(test_latch)> lock2(test_latch);
+         error_count += MUST_NOT(Recursively hold test_latch);
        }}}}
      } catch(std::runtime_error& X) {
        if( opt_verbose )
@@ -550,17 +579,22 @@ static inline int
        error_count += MUST_EQ(tid, null_id);
      }
    }}}}
+   error_count += MUST_EQ(false, test_latch.is_held());
 
    //-------------------------------------------------------------------------
    if( opt_verbose )
      debugf("..Testing: NullLatch\n");
    NullLatch fake_latch;
+   error_count += MUST_EQ(false, fake_latch.is_held());
 
    {{{{ std::lock_guard<decltype(fake_latch)> lock1(fake_latch);
+        error_count += MUST_EQ(false, fake_latch.is_held());
         std::lock_guard<decltype(fake_latch)> lock2(fake_latch);
         std::lock_guard<decltype(fake_latch)> lock3(fake_latch);
         std::lock_guard<decltype(fake_latch)> lock4(fake_latch);
+        error_count += MUST_EQ(false, fake_latch.is_held());
    }}}}
+   error_count += MUST_EQ(false, fake_latch.is_held());
 
    return error_count;
 }
@@ -683,9 +717,8 @@ static inline int
 
    // Test utility::to_string(std::thread::id) -------------------------------
    std::thread::id tid= std::this_thread::get_id();
-   error_count += VERIFY(utility::to_string(tid)==Thread::get_id_string(tid));
    if( opt_verbose )
-     printf("std::thread::id(%s)\n", Thread::get_id_string(tid).c_str());
+     printf("std::thread::id(%s)\n", utility::to_string(tid).c_str());
 
    // Test wildchar ----------------------------------------------------------
 static constexpr const char* const lazy=

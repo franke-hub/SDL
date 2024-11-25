@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2023 Frank Eskesen.
+//       Copyright (C) 2019-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2023/06/30
+//       2024/11/20
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -57,7 +57,7 @@ class WorkerThread;                 // The Worker thread
 //----------------------------------------------------------------------------
 enum { MAX_THREADS= 32 };           // The built-in thread pool size
 
-static Latch           mutex;       // Access mutex
+static Latch           pool_mutex;  // Pool access mutex
 static WorkerThread*   pool[MAX_THREADS]; // The built-in thread pool
 // tic WorkerThread*   static_pool[MAX_THREADS]; // The built-in thread pool
 // tic WorkerThread**  pool= static_pool; // The current thread pool
@@ -148,7 +148,7 @@ inline void
 
    if( operational )
    {{{{ // PERFORMANCE CRITICAL ==============================================
-     std::lock_guard<decltype(mutex)> lock(mutex);
+     std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
 
      if( used < size ) {
        pool[used++]= thread;
@@ -246,7 +246,7 @@ unsigned                            // The maximum number of pooled threads
 void
    WorkerPool::setMaxThreads(        // Get maximum number of pooled threads
      unsigned          new_size)     // The maximum number of pooled threads
-{  std::lock_guard<decltype(mutex)> lock(mutex);
+{  std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
 
    if( new_size < used ) {
      for(int i= new_size; i<used; i++) {
@@ -322,7 +322,7 @@ void
    debugf("%'16zd workers\n",     workers.load());
 
    if( info ) {
-     std::lock_guard<decltype(mutex)> lock(mutex);
+     std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
      for(unsigned i= 0; i<used; i++) {
        WorkerThread* thread= pool[i];
        debugf("[%4d] %#.14zx\n", i, intptr_t(thread));
@@ -341,7 +341,7 @@ void
 //----------------------------------------------------------------------------
 void
    WorkerPool::reset( void )        // Reset (Empty) the WorkerThread pool
-{  std::lock_guard<decltype(mutex)> lock(mutex);
+{  std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
 
    for(unsigned i= 0; i<used; i++) {
      WorkerThread* thread= pool[i];
@@ -381,7 +381,7 @@ void
    WorkerThread* thread= nullptr;
 
    {{{{ // PERFORMANCE CRITICAL ==============================================
-     std::lock_guard<decltype(mutex)> lock(mutex);
+     std::lock_guard<decltype(pool_mutex)> lock(pool_mutex);
 
      if( used > 0 )
        thread= pool[--used];

@@ -16,7 +16,7 @@
 ##       Extract nickname for subdirectory
 ##
 ## Last change date-
-##       2024/04/11
+##       2024/11/02
 ##
 ## Usage-
 ##       cd `nickdir alias_name`
@@ -32,6 +32,7 @@ __FULLDIR=""
 case $1 in
   list)
     echo      aiml=`nickdir aiml`
+    echo     brian=`nickdir brian`
     echo     clone=`nickdir clone`
     echo       com=`nickdir com`
     echo       cpp=`nickdir cpp`
@@ -80,6 +81,10 @@ case $1 in
     __FULLDIR="$HOME/src/cpp/$1"
     ;;
 
+  src/brian | src/Brian)
+    __FULLDIR="$HOME/src/cpp/Brian"
+    ;;
+
   src | src/cpp)
     __FULLDIR="$HOME/src/cpp"
     ;;
@@ -114,7 +119,7 @@ case $1 in
 
   ############################################################################
   ## C++ object directories
-  [c,C]lone | [e,E]dit | [f,F]orth | [s,S]ample | [w,W]ilbur)
+  [b,B]rian | [c,C]lone | [e,E]dit | [f,F]orth | [s,S]ample | [w,W]ilbur)
     eval __i=`echo ${1:0:1} | tr "[a-z]" "[A-Z]"`
     __FULLDIR="$HOME/obj/cpp/${__i}${1:1}"
     unset __i

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement diag-pristine.h.
 //
 // Last change date-
-//       2023/12/05
+//       2024/11/01
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace pub::debugging methods
@@ -29,6 +29,7 @@ using namespace PUB::debugging;
 using utility::dump;
 
 namespace _LIBPUB_NAMESPACE {
+namespace diag {
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -94,4 +95,5 @@ int
 
    return 0;
 }
+}  // namespace diag
 }  // namespace _LIBPUB_NAMESPACE

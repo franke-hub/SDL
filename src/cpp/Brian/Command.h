@@ -16,7 +16,7 @@
 //       A Command is a Named work handler.
 //
 // Last change date-
-//       2024/10/04
+//       2024/11/15
 //
 //----------------------------------------------------------------------------
 #ifndef COMMAND_H_INCLUDED
@@ -67,6 +67,9 @@ virtual
 //----------------------------------------------------------------------------
 // Command::Accessors
 //----------------------------------------------------------------------------
+static resultant                    // The Command's resultant
+   command(std::string);            // Parse and run the associated Command
+
 static Map_t*                       // The Command Map*
    get_map( void );                 // Get the Command Map
 
@@ -77,7 +80,7 @@ static Command*                     // The associated Command, if present
 // Command::Methods
 //----------------------------------------------------------------------------
 virtual resultant                   // Resultant, command dependent
-   work(                            // Process the Command
+   main(                            // Process the Command
      int               argc,        // Argument count
      char*             argv[]);     // Argument array
 }; // class Command

@@ -15,8 +15,10 @@
 //       Development journal
 //
 // Last change date-
-//       2024/03/20
+//       2024/11/25
 //
+-------------------------------------------------------------------------- -->
+<!-- -------------------------------------------------------------------------
 -------------------------------------------------------------------------- -->
 
 # ~/doc/Journal/Journal.md
@@ -28,9 +30,93 @@ set of libraries, programs, and associated documentation.
 
 ----
 
-#### 03/20/2024
-I've been negligent in updating this Journal.
+#### 11/25/2024
 
+The termination problem is some sort of timing problem. Running Brian at
+this point sometimes completes normally and sometimes doesn't.
+I'm going to work on other items but commit all changes as-is, leaving
+lots of debugging statements embedded and active.
+
+The current versions of some Brian modules contains *scads* of diagnostic
+code that attempt to diagnose the termination problem.
+
+The pub library also has lots of debugging hooks left in them.
+The Thread functions have been converted so that pthread is used instead of
+std::thread.
+While this will (eventually) allow the addition of a timed join method, Brian
+thread completion probably didn't have anything to do with the Thread library.
+When it fails, it fails in the same way with pthread or std::thread.
+I have examples of failure and success with the same source code, so
+tracking down the problem *should* at least be possible.
+
+Code comments have not always been synchronized with the code, especially
+those in preprocessor statements relating to changes that made the code work
+or not. I think that the termination TIMING problem went from constant to
+intermittent before that became more obvious.
+
+----
+
+#### 11/10/2024
+
+I'm updating ~/src/cpp/Brian and having a difficult time debugging Console.cpp.
+Lots of debugging code's been added to Console.cpp and Thread.cpp.
+
+The current test sequence is as follows:
+- Common::Common runs
+- Brian raises "startup_complete"
+- HttpServer handles startup_complete event, invoking the "init" command
+(in HttpServer)
+- The "init" command:
+  - starts a listener at hostname:8080
+  - starts a listener at localhost:8081
+  - Uses the "curl" command to:
+    - curl hostname:8080
+    - curl localhost:8081
+
+This sequence creates two ServerThreads to (separately) handle curl's requests.
+These threads send a response, then terminate.
+
+The ServerThreads are self-deleting:
+- Their read operation times out
+- (Immediately) before exiting, they delete themselves.
+  - The ServerThread destructor invokes Thread::detach
+
+After waiting for all the automatic initialization commands to complete, the
+"quit" command invokes Common::shutdown.
+ConsoleService (in Console.cpp) doesn't shut down properly.
+
+Console.cpp defines the ConsoleService, which manages the ConsoleThread.
+- ConsoleService::stop allocates the ConsoleThread, and then invokes
+console_thread->start (NO PROBLEM)
+- ConsoleService::stop invokes console_thread->stop (NO PROBLEM)
+- ConsoleService::wait invokes ConsoleThread::wait
+- ConsoleThread::wait:
+  - invokes pub::Console::wait (which completes)
+  - invokes Thread::join (which now has lot's of debugging messages)
+  - Thread::join invokes std::thread::join (which HANGS)
+- ConsoleThread::run EXITS
+  - Thread::drain handles run complete, passing ownership of the tlss to
+Thread completion, i.e. Thread::detach or Thread::join
+  - Thread::drain EXITS. Now std::thread should complete the join
+  - But it *doesn't*. All the debugging hooks indicates that it *should*
+complete.
+
+There is some sort of weird interaction with the self-deleting ServerThreads.
+When the "curl" commands are omitted, ConsoleService, Thread::join completes
+rather than hangs.
+
+<!-- -------------------------------------------------------------------------
+MARKER: When the self-deleting thread completes, tlss->std_thread is NULLED.
+
+QUESTION: Does that ID need to be valid when a detached thread exits?
+Should ~tlss be the only one to zilch it out?
+
+TESTING: ADD self-deleting thread to Dirty.cpp test
+-------------------------------------------------------------------------- -->
+
+----
+
+#### 03/20/2024
 I spent a lot of time working on HTTP/2, getting RFC7541 and a reference
 implementation of HPACK compression working. I don't think that's been useful
 since HTTP/3 is the newer thing and that looks like too much effort to try to

@@ -15,18 +15,28 @@
 ##       CYGWIN/LINUX Makefile customization
 ##
 ## Last change date-
-##       2024/10/22
+##       2024/11/12
+##
+## Implementation notes-
+##       export USE_STATIC=true to build static library (for use with gdb)
 ##
 ##############################################################################
-
-##############################################################################
-## Local executables
 MAKEXE := ######################### Default, no executables
+MAKEXE += recompile.brian
 MAKEXE += Brian
 MAKOBJ := $(patsubst $(OBJDIR)/Brian.o,,$(MAKOBJ))
 MAKEXE += HttpClient
 MAKOBJ := $(patsubst $(OBJDIR)/HttpClient.o,,$(MAKOBJ))
-ignore += Include #################### Include is only built on demand
+
+##############################################################################
+## Optional executables, built on demand
+## Dirty:   Used for debugging, not distributed
+## Include: Used for include file testing (distributed)
+OPTEXE += Dirty ##################### Dirty, if provided, only built on demand
+MAKOBJ := $(patsubst $(OBJDIR)/Dirty.o,,$(MAKOBJ))
+OPTEXE += Dirty-demo################## Dirty, if provided, only built on demand
+MAKOBJ := $(patsubst $(OBJDIR)/Dirty-demo.o,,$(MAKOBJ))
+OPTEXE += Include #################### Include is only built on demand
 MAKOBJ := $(patsubst $(OBJDIR)/Include.o,,$(MAKOBJ))
 
 ##############################################################################
@@ -39,6 +49,10 @@ CYGDLL += -shared -o cyg${MODULE}.dll
 CYGDLL += -Wl,--out-implib=cyg${MODULE}.dll.a
 CYGDLL += -Wl,--export-all-symbols
 CYGDLL += -Wl,--enable-auto-import
+
+ifneq "" "$(LINKMAP)"
+CYGDLL += -Wl,-Map -Wl,cyg${MODULE}.map ## Generate linker map
+endif
 
 ##############################################################################
 ## Set default target
@@ -70,22 +84,28 @@ lib${MODULE}.a: $(MAKOBJ)
 
 ##############################################################################
 ## TARGET: $(MAKEXE)
+LLIBS  += -L. -lBrian
+
 ifeq "" "$(USE_STATIC)"
   USE_SHARED:= true
   ifeq "CYGWIN" "$(findstring CYGWIN,$(shell uname))"
-    $(MAKEXE): cyg${MODULE}.dll
+    $(MAKEXE) $(OPTEXE): cyg${MODULE}.dll D/cygpub.dll
   else
-    $(MAKEXE): lib${MODULE}.dll lib${MODULE}.so
+    $(MAKEXE) $(OPTEXE): lib${MODULE}.so D/libpub.so
   endif
 else
-  $(MAKEXE): lib${MODULE}.a
+  $(MAKEXE) $(OPTEXE): lib${MODULE}.a L/libpub.a
 endif
 
 include $(INCDIR)/pub/Makefile.BSD
 
-LLIBS  += -L. -lBrian
 CLIBS  += -L$(SHRDIR) -lpub
 CLIBS  += $(shell pkg-config --libs libcurl)
+
+## Always recompile Brian
+PHONY: recompile.brian
+recompile.brian: ;
+	rm -f Brian.o
 
 ##############################################################################
 ## Run the default program
@@ -103,6 +123,7 @@ echo: ;
 	@echo MAKEXE '$(MAKEXE)'
 	@echo MAKOBJ '$(MAKOBJ)'
 	@echo MODULE '$(MODULE)'
+	@echo OPTEXE '$(OPTEXE)'
 	@echo USE_SHARED '$(USE_SHARED)'
 	@echo USE_STATIC '$(USE_STATIC)'
 
@@ -114,4 +135,4 @@ clean.dir: ;
 	@rm -f cyg${MODULE}.dll cyg${MODULE}.dll.a
 	@rm -f lib${MODULE}.dll lib${MODULE}.so*
 	@rm -f lib${MODULE}.a
-	@rm -f typescript
+	@rm -f typescript Dirty* trace* ##### (Testing files)

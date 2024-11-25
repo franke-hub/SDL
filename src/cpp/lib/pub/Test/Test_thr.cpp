@@ -16,7 +16,7 @@
 //       Test Thread function.
 //
 // Last change date-
-//       2024/03/04
+//       2024/11/01
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
@@ -572,19 +572,18 @@ static inline void
        interval.start();
        if( opt_verbose ) {
          debugf("\n");
-         debugf("%10.6f %4d Creating hanging threads\n", interval.stop()
-               , __LINE__);
+         debugf("%10.6f %4d Creating %d hanging threads\n", interval.stop()
+               , __LINE__, MAXHANGERS);
        }
        for(int i=0; i<MAXHANGERS; i++)
          hangingThread();
 
        if( opt_verbose ) {
          debugf("\n");
-         debugf("%10.6f %4d Creating Noisy threads\n", interval.stop()
-               , __LINE__);
+         debugf("%10.6f %4d Creating %d Noisy threads\n", interval.stop()
+               , __LINE__, MAXNOISY);
        }
-       for(int i=0; i<MAXNOISY; i++)
-       {
+       for(int i=0; i<MAXNOISY; i++) {
          sprintf(buffer, "%.4d", i);
          noisyArray[i]= new NoisyThread(buffer, noisy_delay);
          noisyArray[i]->safeStart();
@@ -592,8 +591,8 @@ static inline void
 
        if( opt_verbose ) {
          debugf("\n");
-         debugf("%10.6f %4d Creating Quiet threads\n", interval.stop()
-               , __LINE__);
+         debugf("%10.6f %4d Creating %d Quiet threads\n", interval.stop()
+               , __LINE__, MAXQUIET);
        }
        for(int i=0; i<MAXQUIET; i++)
          quietArray[i]= new QuietThread();
@@ -606,14 +605,13 @@ static inline void
        prior= interval.stop();
        begin= prior;
        if( opt_verbose ) {
-         debugf("%10.6f %4d Starting Quiet threads\n", interval.stop()
-               , __LINE__);
+         debugf("%10.6f %4d Starting %d Quiet threads\n", interval.stop()
+               , __LINE__, MAXQUIET);
          fflush(stdout);
        }
        double maxstart= 0.0;
        double minstart= 99999.0;
-       for(int i=0; i<MAXQUIET; i++)
-       {
+       for(int i=0; i<MAXQUIET; i++) {
          quietArray[i]->start();
          double now= interval.stop();
          double del= now - prior;
@@ -626,6 +624,7 @@ static inline void
              fflush(stdout);        // CYGWIN: better performance if used
          }
        }
+
        prior= interval.stop();
        double totstart= prior - begin;
        begin= prior;
@@ -634,12 +633,11 @@ static inline void
        double minjoin= 99999.0;
        if( opt_verbose ) {
          debugf("\n");
-         debugf("%10.6f %4d Joining Quiet threads\n", interval.stop()
-               , __LINE__);
+         debugf("%10.6f %4d Joining  %d Quiet threads\n", interval.stop()
+               , __LINE__, MAXQUIET);
          fflush(stdout);
        }
-       for(int i=0; i<MAXQUIET; i++)
-       {
+       for(int i=0; i<MAXQUIET; i++) {
          if( HCDM && i == 0 )
            tracef("%10.6f [0]\n", interval.stop());
          quietArray[i]->join();
@@ -667,14 +665,14 @@ static inline void
        if( opt_verbose )
          debugf("%10.6f %4d Joining Noisy threads\n", interval.stop()
                , __LINE__);
-       for(int i=0; i<MAXNOISY; i++)
-       {
+       for(int i=0; i<MAXNOISY; i++) {
          noisyArray[i]->join();
          delete noisyArray[i];
        }
 
        if( opt_verbose ) {
-         debugf("%10.6f %4d All threads completed\n", interval.stop(), __LINE__);
+         debugf("%10.6f %4d All threads completed\n\n", interval.stop()
+               , __LINE__);
          debugf("maxstart(%10.6f) minstart(%10.6f) avgstart(%10.6f)\n",
                 maxstart, minstart, (double)totstart / (double)MAXQUIET);
          debugf(" maxjoin(%10.6f)  minjoin(%10.6f)  avgjoin(%10.6f)\n",
@@ -732,7 +730,7 @@ extern int
    tc.on_main([tr](int, char*[])
    {
      if( opt_verbose )
-       debugf("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
+       debugh("%s: %s %s\n", __FILE__, __DATE__, __TIME__);
 
      for(int i= 0; i<8; i++)        // Test Event object
        standardThread();

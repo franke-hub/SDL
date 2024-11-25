@@ -257,7 +257,7 @@ void
 
    debugf("..[%d] cur_op_count(%'zd)\n", serial, cur_op_count.load());
    debugf("..ready(%d) send_end(%d)\n"
-         , ready.is_post(), send_end.is_post());
+         , ready.has_posted(), send_end.has_posted());
    if( client ) client->debug("ClientThread");
 }
 
@@ -509,7 +509,7 @@ virtual void
    // Initialize
    send_end.reset();
    do_NEXT= [this](void) {
-     if( !send_end.is_post() )
+     if( !send_end.has_posted() )
        send_end.post();
    };
 

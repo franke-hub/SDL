@@ -16,7 +16,7 @@
 //       Debugging diagnostic: Catch "wild stores" clobbering objects.
 //
 // Last change date-
-//       2023/12/14
+//       2024/11/21
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DIAG_PRISTINE_H_INCLUDED
@@ -27,6 +27,7 @@
 #include "pub/bits/pubconfig.h"     // For _LIBPUB macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
+namespace diag {
 //----------------------------------------------------------------------------
 //
 // Class-
@@ -49,7 +50,7 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 class Pristine {                    // Pristine base class
 //----------------------------------------------------------------------------
-// Pristine::Typedefs and enumerations
+// diag::Pristine::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 typedef uint64_t       Word;        // Our checkword type
@@ -60,7 +61,7 @@ enum                                // (For 4K range
 };
 
 //----------------------------------------------------------------------------
-// Pristine::Attributes
+// diag::Pristine::Attributes
 //----------------------------------------------------------------------------
 public:
 // opt_hcdm: If true and an error occurs, the array is dumped
@@ -70,22 +71,20 @@ protected:
 Word                   array[DIM]= {}; // The check array
 
 //----------------------------------------------------------------------------
-// Pristine::Destructor, constructors
+// diag::Pristine::Constructors, destructor
 //----------------------------------------------------------------------------
 public:
-   Pristine( void )                 // Default constructor
-:  Pristine(Word(0x7654321089ABCDEF)) {} // (The default checkword)
-
-   Pristine(Word word);             // Checkword constructor
+   Pristine(uint64_t word= uint64_t(0x7654321089ABCDEF)); // Default constructor
 
    ~Pristine( void );               // Destructor [invokes check("Destructor")]
 
 //----------------------------------------------------------------------------
-// Pristine::check, check for wild store
+// diag::Pristine::check, check for wild store
 //----------------------------------------------------------------------------
 int                                 // Return code, 0 if no error found
    check(                           // Debugging check
      const char*       info="") const; // Caller information
 }; // class Pristine
+}  // namespace diag
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_DIAG_PRISTINE_H_INCLUDED

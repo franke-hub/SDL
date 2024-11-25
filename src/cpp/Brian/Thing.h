@@ -16,10 +16,7 @@
 //       Debugging object (with reference Counter.)
 //
 // Last change date-
-//       2024/10/04
-//
-// Implementation notes-
-//       No static implementation. Thing.cpp does not exist.
+//       2024/11/01
 //
 //----------------------------------------------------------------------------
 #ifndef THING_H_INCLUDED
@@ -28,7 +25,7 @@
 #include <memory>                   // For invoker's std::make_shared
 
 #include <pub/Object.h>             // For pub::Object, base class
-#include "Counter.h"                // For Counter
+#include <pub/diag-counter.h>       // For pub::diag::Counter (DEBUGGING)
 
 //----------------------------------------------------------------------------
 //
@@ -44,7 +41,7 @@ class Thing : public pub::Object {  // Object with reference Counter
 // Thing::Attributes
 //----------------------------------------------------------------------------
 protected:
-Counter                counter;     // Constructor/destructor counter
+pub::diag::Counter     counter;     // Constructor/destructor counter
 
 //----------------------------------------------------------------------------
 // Thing::Constructors/destructor
@@ -54,5 +51,24 @@ public:
 :  pub::Object() {}
 
 // Destructor declaration not required
-}; // class Counter
+}; // class Thing
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       NoisyThing
+//
+// Purpose-
+//       An Object with a noisy constructor and destructor
+//
+//----------------------------------------------------------------------------
+class NoisyThing {                  // The NoisyThing
+//----------------------------------------------------------------------------
+// NoisyThing::Constructors/destructor
+//----------------------------------------------------------------------------
+public:
+   NoisyThing( void );              // Constructor
+
+   ~NoisyThing( void );             // Destructor
+}; // class NoisyThing
 #endif // THING_H_INCLUDED

@@ -19,7 +19,6 @@
 //       2024/09/12
 //
 //----------------------------------------------------------------------------
-#include <functional>               // For std::function
 #include <new>                      // For std::bad_alloc
 #include <stdexcept>                // For std::logic_error, std::runtime_error
 #include <string>                   // For std::string

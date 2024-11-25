@@ -16,13 +16,14 @@
 //       Console subroutine methods.
 //
 // Last change date-
-//       2022/10/22
+//       2024/11/14
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
 
 #include <assert.h>                 // For assert
 #include <ctype.h>                  // For isdigit
+#include <errno.h>                  // For errno (TODO: TEMPORARY?)
 #include <stdarg.h>                 // For va_* macros
 #include <termios.h>                // For struct termios, ...
 #include <unistd.h>                 // For isatty, STDIN_FILENO, ...
@@ -31,14 +32,16 @@
 #define XK_XKB_KEYS                 // For XK_ISO_Left_Tab
 #include <X11/keysymdef.h>          // For key code definitions
 
-#include <pub/Clock.h>              // For pub::Clock::now
 #include "pub/Console.h"            // For pub::Console, implemented
+#include "pub/diag-stack.h"         // For pub::diag::Stack
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Event.h>              // For pub::Event
+#include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For pub::utility::visify
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging
+using PUB::diag::Stack;             // For convenience
 using PUB::utility::visify;         // For convenience
 
 using std::string;                  // For convenience
@@ -70,7 +73,7 @@ static string          inp_buffer;  // Enqueued input string
 static int             in_getch= false; // TRUE while running getch()
 static int             operational= 0; // Initialized counter
 static int             registered= false; // One-time initialization flag
-static int             used_tracef= false; // Does debug.out have extra info?
+static int             used_trace= false; // Does debug.out have extra info?
 
 //----------------------------------------------------------------------------
 // ESC sequences
@@ -136,7 +139,7 @@ static int                          // The decoded esc sequence, or -1
 {  if( HCDM ) {
      tracef("Console::get_sequence inp_buffer(%s)\n"
            , visify(inp_buffer).c_str());
-     used_tracef= true;
+     used_trace= true;
    }
 
    if( inp_buffer.size() < 2 )     // If inp_buffer's too small for a sequence
@@ -144,7 +147,7 @@ static int                          // The decoded esc sequence, or -1
 
    if( inp_buffer[0] != ESC ) {    // (Should not occur)
      tracef("Console::get_sequence (correctable) logic error\n");
-     used_tracef= true;
+     used_trace= true;
      return -1;
    }
 
@@ -189,7 +192,7 @@ static int
 {
    if( VERBOSE ) {                  // Conditionally, display error message
      tracef("Unknown ESC sequence(%s)\n", visify(str).c_str());
-     used_tracef= true;
+     used_trace= true;
    }
 
    inp_buffer= inp_buffer.substr(str.size()); // (Usually empties inp_buffer)
@@ -210,7 +213,7 @@ static int                          // ESC
 {
    if( VERBOSE ) {                  // Conditionally display error message
      tracef("Invalid ESC sequence(%s)\n", visify(inp_buffer).c_str());
-     used_tracef= true;
+     used_trace= true;
    }
 
    inp_buffer= inp_buffer.substr(1); // Remove the ESC
@@ -236,7 +239,7 @@ static int                          // The decoded esc sequence
 {  if( HCDM ) {
      tracef("Console::esc_sequence inp_buffer(%s)\n"
            , visify(inp_buffer).c_str());
-     used_tracef= true;
+     used_trace= true;
    }
 
    // Insert the ESC (probably back) into inp_buffer.
@@ -316,7 +319,7 @@ static int                          // The next buffered character, or -1
    if( HCDM ) {
      tracef("Console::get_buffered(%s.%zd)\n", visify(inp_buffer).c_str()
            , inp_buffer.size());
-     used_tracef= true;
+     used_trace= true;
    }
 
    int C= inp_buffer[0];            // Get the first buffer character
@@ -346,10 +349,15 @@ static int                          // The next buffered character, or -1
 //
 //----------------------------------------------------------------------------
 static void handle_atexit( void ) { // atexit target subroutine
+traceh("handle_atexit operational(%d) in_getch(%d)\n", operational, in_getch);
    if( in_getch ) {
      operational= 0;
      tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
+tracef("%4d CONSOLE HCDM - atexit, restored stdin attributes\n", __LINE__);
    }
+else {
+tracef("%4d CONSOLE HCDM - atexit, no action needed.\n", __LINE__);
+}
 }
 
 //----------------------------------------------------------------------------
@@ -365,36 +373,77 @@ int                                 // The next input character
    Console::getch(                  // Get next input character
      int               timeout)     // Timeout in milliseconds
 {
-   if( timeout < 0 || timeout > 25500 ) // If timout > maximum for
+   static std::mutex   mutex;       // (getch uses a separate mutex)
+   static bool         once= true;  // (Only set restore attributes once)
+   int                 C= -1;       // (Used inside and outside of mutex)
+
+   if( !operational )               // If non-operational
+     return -1;
+
+   if( timeout < 0 || timeout > 25500 ) // If timout > VTIME maximum
      timeout= 25500;
 
-   std::lock_guard<decltype(mutex)> lock(mutex); // One user at a time
+   {{{{
+     std::lock_guard<decltype(mutex)> lock(mutex); // One user at a time
 
-   tcgetattr(STDIN_FILENO, &oldattr); // Set restore attributes
-   in_getch= true;                  // Indicate getch running
+     if( once ) {                   // (Requires mutex protection)
+       tcgetattr(STDIN_FILENO, &oldattr); // Set restore attributes
+       once= false;
+     }
 
-   // Update the attributes
-   struct termios newattr = oldattr;
-   newattr.c_lflag &= ~( ICANON | ECHO ); // NOT (cononical or echo)
-   newattr.c_cc[VMIN] = 1;          // Single character
-   newattr.c_cc[VTIME] = (timeout + 50)/100; // Set timeout
-   if( HCDM && VERBOSE > 1 ) {
-     tracef("\n%8.1f VTIME 0x%.2x\n", pub::Clock::now(), newattr.c_cc[VTIME]);
-     used_tracef= true;
-   }
-   tcsetattr(STDIN_FILENO, TCSANOW, &newattr);
+     // Update the attributes
+     struct termios newattr= oldattr;
+     newattr.c_lflag &= ~( ICANON | ECHO ); // NOT (cononical or echo)
+#ifdef _OS_CYGWIN
+     newattr.c_cc[VMIN] = 0;        // (No characters required)
+#else
+     newattr.c_cc[VMIN] = 1;        // (One character required)
+#endif
+     newattr.c_cc[VTIME] = (timeout + 50)/100; // Set timeout
+     if( HCDM && VERBOSE > 1 ) {
+       traceh("Console.getch: VTIME 0x%.2x\n", newattr.c_cc[VTIME]);
+       used_trace= true;
+     }
 
-   // Read the character
-   int C= ::getchar();
-   if( HCDM && VERBOSE > 1 )
-     tracef("%8.1f C(%.2x)\n", pub::Clock::now(), C);
+     in_getch= true;                // Indicate getch running
+//traceh("%4d Console in_getch(%d)\n", __LINE__, in_getch);
+     tcsetattr(STDIN_FILENO, TCSANOW, &newattr); // Set the new attributes
+#if 1
+     C= ::getchar();
+
+#if 1  // ******** INTERNAL TRACE ********************************************
+     struct Record : public Trace::Record {
+       struct termios  ios;
+     };
+
+     Record* record= (Record*)Trace::storage_if(sizeof(Record));
+     if( record ) {
+       int  IC= htonl((C << 8) | operational);
+       char CC[4];
+       memcpy(CC, &IC, 4);
+
+       record->ios= newattr;
+       record->trace(".GCH", CC
+                    , (void*)(size_t(C)<<8 | operational));
+     }
+#endif // ******** INTERNAL TRACE ********************************************
+#else
+     char buffer[8];
+     ssize_t L= read(STDIN_FILENO, buffer, 1);
+     if( L == 1 )
+       C= buffer[0];
+traceh("%4d Console L(%zd) C(0x%.2x) %d:%s\n", __LINE__, L, C, errno, strerror(errno));
+#endif
+     tcsetattr(STDIN_FILENO, TCSANOW, &oldattr); // Restore the old attributes
+     in_getch= false;               // Attributes restored
+//traceh("%4d Console in_getch(%d)\n", __LINE__, in_getch);
+   }}}}
 
    if( C == 0x007f )                // Handle nasty surprise
      C= '\b';
 
-   // Restore the attributes
-   tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
-   in_getch= false;                 // Attributes restored
+   if( HCDM && VERBOSE > 1 )
+     traceh("Console::getch: C(%.2x)\n", C);
 
    return C;
 }
@@ -439,6 +488,11 @@ char*                               // addr || nullptr iff non-operational
      char*             addr,        // Input address
      unsigned          size)        // Input length
 {
+#if 1  // ADDING THIS STATEMENT MAKES IT WORK
+   Stack stack; stack.debug("Console::gets");
+#elif 0 // ADDING THIS STATEMENT *DOESN'T* MAKES IT WORK
+   Stack stack; stack.trace("Console::gets");
+#endif
    if( addr == nullptr || size < 2 ) {
      fprintf(stderr, "Console::gets(%p,%u) PARMERR\n", addr, size);
      throw std::invalid_argument("Console::gets");
@@ -532,8 +586,8 @@ char*                               // addr || nullptr iff non-operational
          case XK_F10:
          case XK_F11:
          case XK_F12:
-           tracef("F%d key has no function\n", C - XK_F1 + 1);
-           used_tracef= true;
+           traceh("F%d key has no function\n", C - XK_F1 + 1);
+           used_trace= true;
            continue;
 
          // NEED TO HANDLE CURSOR MOVEMENT, UP, DOWN, LEFT, RIGHT, HOME, END
@@ -547,8 +601,8 @@ char*                               // addr || nullptr iff non-operational
          case XK_Insert:
          case XK_Delete:
          default:
-           tracef("Key 0x%.4x NOT CODED YET, ignored\n", C);
-           used_tracef= true;
+           traceh("Key 0x%.4x NOT CODED YET, ignored\n", C);
+           used_trace= true;
            continue;
        }
      }
@@ -642,11 +696,10 @@ void
      registered= true;              // Indicate registered
    }
 
-   if( operational == 0 )
-     event.reset();
+   if( operational == 0 )           // If first start or restart
+     event.reset();                 // (Reset the stop complete event)
 
    operational++;
-   used_tracef= false;
 }
 
 //----------------------------------------------------------------------------
@@ -660,18 +713,27 @@ void
 //----------------------------------------------------------------------------
 void
    Console::stop( void )            // Stop the Console
-{
+{  if( HCDM ) traceh("\n\npub::Console::stop operational(%d)\n", operational);
+
    std::lock_guard<decltype(mutex)> lock(mutex); // One user at a time
 
-   if( operational > 0 )
+   if( operational > 0 ) {
      operational--;
 
-   if( operational == 0 )
-     event.post(0);
+traceh("%4d CONSOLE STOP HCDM - operational(%d)\n", __LINE__, operational);
+     if( operational == 0 ) {
+       tcsetattr(STDIN_FILENO, TCSANOW, &oldattr); // Restore STDIN attributes
+traceh("%4d CONSOLE STOP HCDM - Restored stdin attributes\n", __LINE__);
+       event.post(0);
+     }
+   } else {
+     // Other than this message, this error is ignored. (Fix your application)
+     debugf("ERROR: Console::stop without corresponding start\n");
+   }
 
-   if( used_tracef ) {
-     debugf("\ndebug.out contains tracef information\n");
-     used_tracef= false;
+   if( used_trace ) {
+     debugf("\ntracing used, debug.out contains additional information\n");
+     used_trace= false;
    }
 }
 
@@ -681,10 +743,14 @@ void
 //       Console::wait
 //
 // Purpose-
-//       Wait for termination.
+//       Wait for associated stop (from application.)
 //
 //----------------------------------------------------------------------------
 void
    Console::wait( void )            // Wait for termination
-{  event.wait(); }
+{
+traceh("\n\n%4d pub::Console::wait operational(%d)...\n", __LINE__, operational);
+   event.wait();
+traceh("%4d pub::Console::wait ...operational(%d)\n", __LINE__, operational);
+}
 }  // namespace _LIBPUB_NAMESPACE

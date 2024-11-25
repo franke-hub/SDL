@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/10/22
+//       2024/11/25
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,16 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 11/25/2024 maint (With extensive diagnostics)
+
+Looking at a Brian termination problem. Sometimes it completes and sometimes
+it doesn't.
+When it doesn't complete pub::Console appears to be in some sort
+of loop.
+(The loop is known, but exactly what's looping hasn't been determined yet.)
 
 ----
 

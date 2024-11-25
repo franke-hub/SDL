@@ -179,7 +179,7 @@ static inline void
      const char*       name)        // This event name
 {
    const char* status= "wait";      // Default, wait status
-   if( event.is_post() )            // If posted
+   if( event.has_posted() )         // If posted
      status= "post";
 
    debugh("%s %s\n", name, status);

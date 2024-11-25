@@ -10,22 +10,24 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       Counter.cpp
+//       pub/diag-counter.cpp
 //
 // Purpose-
-//       Debugging object reference Counter.
+//       Implement pub/diag-counter.h
 //
 // Last change date-
-//       2024/10/01
+//       2024/11/01
 //
 //----------------------------------------------------------------------------
+#include "pub/diag-counter.h"       // For pub::diag::counter, implemented
 #include <pub/Debug.h>              // For namespace pub::debugging
 
-#include "Counter.h"                // For Counter, implemented
+#define PUB _LIBPUB_NAMESPACE
+using PUB::Debug;
+using namespace PUB::debugging;     // For debugging subroutines
 
-using pub::Debug;
-using namespace pub::debugging;     // For debugging
-
+namespace _LIBPUB_NAMESPACE {
+namespace diag {
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
@@ -53,22 +55,16 @@ static const char*                  // "" or "s"
 namespace {                         // Anonymous namespace
 static struct Static_global {
    Static_global( void )
-{  if( HCDM ) debugf("Counter::Static_global!\n"); }
+{  if( HCDM ) debugf("diag::Counter Static_global!\n"); }
 
    ~Static_global( void )
-{  if( HCDM ) debugf("Counter::Static_global~\n");
+{  if( HCDM ) debugf("diag::Counter Static_global~\n");
 
    if( Counter::c_count != Counter::d_count ) {
-     debugf("Counter constructors != destructors\n");
-     debugf("%8zd constructor%s\n", Counter::c_count.load()
-           , plural(Counter::c_count.load()));
-     debugf("%8zd destructor%s\n",  Counter::d_count.load()
-           , plural(Counter::d_count.load()));
+     debugf("\n");
+     Counter::debug("constructors != destructors");
    } else if( VERBOSE ) {
-     debugf("%8zd constructor%s\n", Counter::c_count.load()
-           , plural(Counter::c_count.load()));
-     debugf("%8zd destructor%s\n",  Counter::d_count.load()
-           , plural(Counter::d_count.load()));
+     Counter::debug("VERBOSE");
    }
 }
 }  Static_global;
@@ -83,8 +79,8 @@ static struct Static_global {
 //       Constructor.
 //
 //----------------------------------------------------------------------------
-   Counter::Counter( void )           // Default constructor
-{  if( HCDM ) debugf("Counter(%p)!\n", this);
+   Counter::Counter( void )         // Default constructor
+{  if( HCDM ) debugf("pub::diag::Counter(%p)!\n", this);
 
    ++c_count;
 }
@@ -97,12 +93,32 @@ static struct Static_global {
 // Purpose-
 //       Destructor.
 //
-// Notes-
-//       All Threads have completed or we wouldn't be here.
-//
 //----------------------------------------------------------------------------
    Counter::~Counter( void )          // Destructor
-{  if( HCDM ) debugf("Counter(%p)~\n", this);
+{  if( HCDM ) debugf("pub::diag::Counter(%p)~\n", this);
 
    ++d_count;
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Counter::debug
+//
+// Purpose-
+//       Write debugging message.
+//
+//----------------------------------------------------------------------------
+void
+   Counter::debug(                  // Debugging display
+     const char*       info)        // Caller information
+{
+   debugf("pub::diag::Counter::debug(%s)\n", info);
+
+   debugf("%8zd constructor%s\n", Counter::c_count.load()
+         , plural(Counter::c_count.load()));
+   debugf("%8zd destructor%s\n",  Counter::d_count.load()
+         , plural(Counter::d_count.load()));
+}
+}  // namespace diag
+}  // namespace _LIBPUB_NAMESPACE

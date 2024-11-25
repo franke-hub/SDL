@@ -16,10 +16,11 @@
 //       Include a command and a service.
 //
 // Last change date-
-//       2024/10/04
+//       2024/11/15
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace debugging
+#include <pub/Dispatch.h>           // For namespace pub::dispatch
 
 #include "Command.h"                // For Command (base class)
 #include "Service.h"                // For Service (base class)
@@ -27,12 +28,13 @@
 #define PUB _LIBPUB_NAMESPACE
 using PUB::Debug;
 using namespace PUB::debugging;
+using namespace PUB::dispatch;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= false                      // Hard Core Debug Mode?
+{  HCDM= true                       // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // (generic) enum
 
@@ -47,27 +49,37 @@ class SampleService
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Constructors
 public:
-   SampleService( void )           // Constructor
+   SampleService( void )            // Constructor
 :  Service("sample") {}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Methods
 virtual void
-   start( void )                    // Start the Service
-{  if( HCDM ) debugf("SampleService::start\n"); }
+   start(Service* S)                // Start the Service
+{  if( HCDM ) debugh("SampleService::start\n");
+
+   Service::has_start::start(S);
+}
 
 virtual void
-   stop( void )                     // Stop the Service
-{  if( HCDM ) debugf("SampleService::stop\n"); }
+   stop(Service* S)                 // Stop the Service
+{  if( HCDM ) debugh("SampleService::stop\n");
+
+   Service::has_stop::stop(S);
+}
 
 virtual void
-   wait( void )                     // Wait for stop completion
-{  if( HCDM ) debugf("SampleService::wait\n"); }
+   wait(Service* S)                 // Wait for stop completion
+
+{  if( HCDM ) debugh("SampleService::wait\n");
+
+   Service::has_wait::wait(S);
+}
 
 virtual void
-   work(Item*)                      // Handle work, ignoring parameter
+   work(Item* item)                 // Handle work item
 {
-   debugf("Service list:\n");
+   debugh("Service list:\n");
 
    // List the Services
    Map_t* map= get_map();
@@ -89,6 +101,9 @@ virtual void
      column += s.size();
    }
    debugf("\n");
+
+   if( item )
+     item->post();
 }
 } sampleService; // class SampleService
 
@@ -105,17 +120,17 @@ public:
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Methods
 virtual Command::resultant          // Resultant
-   work(int, char**)                // Process the Sample Command
+   main(int, char**)                // Process the Sample Command
 //   int               argc,        // Argument count (UNUSED)
 //   char*             argv[])      // Argument array (UNUSED)
-{  if( HCDM ) debugf("SampleCommand::work\n\n");
+{  if( HCDM ) debugh("SampleCommand::main\n\n");
 
    Service* service= Service::locate("sample");
    SampleService* sample= dynamic_cast<SampleService*>(service);
    if( sample )
      sample->work(nullptr);
    else
-     debugf("Couldn't locate SampleService \"sample\"\n");
+     debugh("Couldn't locate SampleService \"sample\"\n");
 
    return nullptr;
 }

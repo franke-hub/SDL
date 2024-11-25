@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2022 Frank Eskesen.
+//       Copyright (c) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,16 +16,17 @@
 //       Define the Thread control object.
 //
 // Last change date-
-//       2022/11/08
+//       2024/11/18
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_THREAD_H_INCLUDED
 #define _LIBPUB_THREAD_H_INCLUDED
 
-#include <thread>                   // For std::thread
+#include <string>                   // For std::string
+#include <pthread.h>                // For pthread
 
-#include <pub/Object.h>             // For pub::Object, base class
-#include <pub/utility.h>            // For utility::to_string(std::thread::id)
+#include "pub/Event.h"              // For pub::Event
+#include "pub/Latch.h"              // For pub::Basic_latch
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
@@ -36,46 +37,64 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 // Purpose-
 //       A standard Thread representation.
 //
-// Implementation notes-
-//       Invoking the Thread destructor for a running Thread:
-//         detaches the Thread (if it wasn't already detached,) and causes
-//         Thread::current() to return nullptr for that Thread.
-//         Note that, once deleted, a deleted Thread must not be accessed.
-//       Invoking detach for a running thread detaches the thread, but
-//         Thread::current() still returns the Thread*.
+// TEMPORARY implementation notes:
+//       handle_t The native handle. std::thread.get_handle()
+//       NOTE: Latches are BASIC_LATCH, NOT RECURSIVE!
 //
 //----------------------------------------------------------------------------
 class Thread {                      // The Thread object
-//----------------------------------------------------------------------------
-// Thread::Enumerations and typedefs
-//----------------------------------------------------------------------------
 public:
-typedef std::string    string;
-typedef std::thread    thread_t;
-typedef thread_t::id   id_t;
+//----------------------------------------------------------------------------
+// Thread::tlss || Thread Local Storage struct
+//----------------------------------------------------------------------------
+struct tlss {                       // Thread Local Storage
+typedef pthread_t      handle_t;    // The native handle type
+
+RecursiveLatch         mutex;       // Protects this struct
+int                    fsm= 0;      // Finite State Machine
+
+Thread*                pub_thread= {}; // The current pub::Thread
+handle_t               std_thread= {}; // The associated system thread
+
+// This Event is used during Thread startup
+pub::Event             drive_initialized; // Thread::drive init complete
+
+// Constructor/destructor
+   tlss(Thread* thread);            // TODO: REPLACE WITH INLINE VERSION
+   ~tlss( void );
+
+// Methods
+void
+   debug(                           // Write debugging message
+     const char*       info= "") const; // (Optional) caller informationn
+
+void
+   set_fsm(int);                    // Update the state
+}; // struct tlss
 
 //----------------------------------------------------------------------------
 // Thread::Attributes
 //----------------------------------------------------------------------------
-protected:
-id_t                   id;          // The thread id
-thread_t               thread;      // The std::thread (while active)
-void*                  _tls= nullptr; // (Internal)
+typedef tlss::handle_t handle_t;    // Import tlss::handle_t
+
+private:
+mutable RecursiveLatch mutex;       // Mutex, protects _tlss *ONLY*
+tlss*                  _tlss= nullptr; // (Internal, valid only while running)
 
 public:
-static const id_t      null_id;     // The thread id of a non-executing thread
+static const handle_t  null_handle; // The handle of a non-executing thread
 
 //----------------------------------------------------------------------------
 // Thread::Constructors/Destructors
 //----------------------------------------------------------------------------
    Thread( void );
 
-virtual
-   ~Thread( void );
-
 // Disallowed: Copy constructor, assignment operator
    Thread(const Thread&) = delete;
 Thread& operator=(const Thread&) = delete;
+
+virtual
+   ~Thread( void );
 
 //----------------------------------------------------------------------------
 // Thread::Debugging methods
@@ -86,30 +105,17 @@ virtual void
 
 static void
    static_debug(                    // Thread(*) debugging display
-      const char*      info=nullptr); // Caller information
+      const char*      info="");    // Caller information
 
 //----------------------------------------------------------------------------
 // Thread::Accessor methods
 //----------------------------------------------------------------------------
-id_t                                // The Thread ID (when active)
-   get_id( void ) const             // Get Thread ID
-{  return id; }
-
-std::thread::native_handle_type     // The Thread handle
-   get_handle( void )               // Get Thread (native) handle
-{  return thread.native_handle(); }
-
-static string                       // Associated string
-   get_id_string(                   // Represent id as a string
-     const id_t&         id);       // The thread id
-
-std::string                         // Associated string
-   get_id_string( void ) const      // Represent id as a string
-{  return get_id_string(id); }
+handle_t                            // The native Thread handle (when active)
+   get_handle( void ) const         // Get native Thread handle
+{  return _tlss ? _tlss->std_thread : null_handle; }
 
 bool                                // TRUE iff Thread is joinable
-   joinable( void ) const           // Is this Thread joinable?
-{  return thread.joinable(); }
+   joinable( void ) const;          // Is this Thread joinable?
 
 //----------------------------------------------------------------------------
 // Thread::Static methods
@@ -131,14 +137,17 @@ static void
 void
    detach( void );                  // Detach execution thread
 
-virtual void
-   join( void )                     // Wait for this Thread to complete
-{  thread.join(); }
+void
+   join( void );                    // Wait for this Thread to complete
 
-// OVERRIDE this method
+int                                 // Return code, 0 or errno
+   join(double);                    // Join with timeout
+
+// OVERRIDE this method. (There is no default implementation.)
 virtual void
    run( void ) = 0;                 // Operate this thread
 
+// Thread::start creates the system thread that drives the run method.
 void
    start( void );                   // Start this Thread
 
@@ -146,9 +155,9 @@ void
 // Thread::Internal methods
 //----------------------------------------------------------------------------
 protected:
-static void
-   drive(                           // Drive (start)
-     Thread*           thread);     // This Thread
+static void*                        // (Thread return code, always nullptr)
+   drive(                           // Drive (run)
+     void*             _thread);    // This Thread
 }; // class Thread
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_THREAD_H_INCLUDED

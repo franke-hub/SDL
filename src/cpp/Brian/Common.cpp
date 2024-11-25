@@ -16,9 +16,10 @@
 //       Brian Common object methods
 //
 // Last change date-
-//       2024/10/22
+//       2024/11/02
 //
 //----------------------------------------------------------------------------
+#include <new>                      // For in-place operator new
 #include <sys/stat.h>               // For struct stat
 
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -38,8 +39,8 @@ using pub::Thread;
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= false                      // Hard Core Debug Mode?
-,  VERBOSE= 0                       // Verbosity, higher is more verbose
+{  HCDM= true                       // Hard Core Debug Mode?
+,  VERBOSE= 1                       // Verbosity, higher is more verbose
 }; // (generic) enum
 
 //----------------------------------------------------------------------------
@@ -51,7 +52,8 @@ enum
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-Common*                Common::common= nullptr; // THE common singleton
+Common*                Common::common= nullptr; // THE Common singleton
+StaticCommon*          static_common= nullptr; // THE StaticCommon singleton
 
 //----------------------------------------------------------------------------
 // Internal data areas
@@ -61,38 +63,48 @@ static const char*     user_agent=
                           "/Bringup: machine learning experiment"
                           ",Contact: {frank @ eskesystems com}";
 
+static union {
+double                 for_alignment;
+char                   for_space[sizeof(StaticCommon)];
+} the_static_common;
+
+//----------------------------------------------------------------------------
+// Static initialization/termination
+//----------------------------------------------------------------------------
+namespace {                         // Anonymous namespace
+static struct StaticGlobal {
+   StaticGlobal(void)               // Constructor, static initialization
+{  StaticCommon::make(); }          // Insure make invoked
+
+   ~StaticGlobal(void)              // Destructor, static termination
+{
+   // We don't delete static common, it's constructed in-place
+   static_common->~StaticCommon();  // Run StaticCommon destructor
+   static_common= nullptr;          // StaticCommon is now gone
+}
+}  staticGlobal;
+}  // Anonymous namespace
+
 //----------------------------------------------------------------------------
 //
-// Subroutine-
-//       force_load
+// Method-
+//       StaticCommon::make
 //
 // Purpose-
-//       Create module dependencies
-//
-// Implementation notes-
-//       We need to reference these entry points to get them loaded.
-//       Note that we don't need to include any files.
-//       (The entry points are externally accessible.)
+//       StaticCommon pseudo-allocator and constructor.
 //
 //----------------------------------------------------------------------------
-class  ConsoleService;              // Forward references
-class  Command_list;
-class  Command_quit;
+StaticCommon*                       // (Can be ignored)
+   StaticCommon::make( void )       // Construct StaticCommon
+{  if( HCDM ) debugh("StaticCommon::make %p\n", static_common);
 
-extern ConsoleService  consoleService; // (In Console.cpp)
-extern Command_list    command_list; // (In Loader.cpp)
-extern Command_quit    command_quit; // (In Loader.cpp)
-static void
-   force_load( void )               // Create module dependencies
-{
-   ConsoleService* service= &consoleService; // Needed? Maybe. (Untested)
-   Command_list*   list= &command_list;
-   Command_quit*   quit= &command_quit;
-
-   debugf("You might want or need to update Common::force_load()\n");
-
-   if( HCDM )
-     debugf("service(%p) list(%p) quit(%p)\n", service, list, quit);
+   // static_common is only initialized once, always in static initialization
+   if( static_common == nullptr ) {
+     static_common= new(&the_static_common) StaticCommon();
+     if( HCDM )
+       debugh("new static_common(%p)\n", static_common);
+   }
+   return static_common;
 }
 
 //----------------------------------------------------------------------------
@@ -170,8 +182,6 @@ Common*                             // -> THE Common area (Singleton)
                " to prevent reloading\n"
              ".. a separate copy of it each time we load a DLL.\n"
              "!! YOU HAVE BEEN WARNED !!\n");
-
-     force_load();                  // Force module dependencies
    }
 #endif
 
@@ -186,6 +196,7 @@ Common*                             // -> THE Common area (Singleton)
    //-------------------------------------------------------------------------
    // Initialize
    //-------------------------------------------------------------------------
+   Service::start_all();            // Start all services (from main task)
 
    //-------------------------------------------------------------------------
    // Allow time for activation to complete
@@ -211,28 +222,7 @@ void
    // Go into shutdown state
    fsm= FSM_CLOSE;
 
-   //-------------------------------------------------------------------------
-   // Stop all *Stoppable" services
-   typedef Service::Map_t           Map_t;
-   typedef Service::MapIter_t       MapIter_t;
-   Map_t* map= Service::get_map();
-
-#if 0
-// Haven't figured out a gnu++17 foreach syntax that works
-   if( false ) {
-     for(MapIter_t mi: *map)        // ** DOES NOT COMPILE **
-       mi.second->stop();
-   }
-#endif
-
-   for(MapIter_t mi= map->begin(); mi != map->end(); ++mi) {
-     Service* service= mi->second;
-     Service::has_stop* method= dynamic_cast<Service::has_stop*>(service);
-     if( method )
-       method->stop();
-   }
-
-   event.post(0);                   // Termination initiated
+   event.post(0);                   // Indicate shutdown initiated
 }
 
 //----------------------------------------------------------------------------
@@ -241,30 +231,22 @@ void
 //       Common::wait
 //
 // Purpose-
-//       Complete Common termination.
+//       Wait for shutdown, Services stopped.
 //
 //----------------------------------------------------------------------------
 void
-   Common::wait( void )             // Wait for termination
+   Common::wait( void )             // Wait for shutdown initiated
 {  if( HCDM ) traceh("Common(%p)::wait() fsm(%d)...\n", this, fsm);
 
    //-------------------------------------------------------------------------
-   // Wait for termination signal
+   // Wait for shutdown's completion post, resuming main task
    event.wait();
 
-   //-------------------------------------------------------------------------
-   // Wait for service terminations
-   typedef Service::Map_t           Map_t;
-   typedef Service::MapIter_t       MapIter_t;
-   Map_t* map= Service::get_map();
-   for(MapIter_t mi= map->begin(); mi != map->end(); ++mi) {
-     Service* service= mi->second;
-     Service::has_wait* method= dynamic_cast<Service::has_wait*>(service);
-     if( method )
-       method->wait();
-   }
+   StaticCommon::Sevent_t& Sevent= static_common->event;
+   static_common->shutdown_started.signal(Sevent); // Raise shutdown started
 
    //-------------------------------------------------------------------------
-   // Complete shutdown
-   fsm= FSM_RESET;
+   // Wait for all services to complete (from main task)
+   Service::stop_all();             // Stop all Services
+   Service::wait_all();             // Wait for Services stop completion
 }

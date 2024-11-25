@@ -16,7 +16,7 @@
 //       Debugging control.
 //
 // Last change date-
-//       2024/03/05
+//       2024/10/28
 //
 // Implementation notes-
 //       A file name of ">" or "1>" writes the log to stdout.
@@ -203,6 +203,13 @@ public:
 void
    backtrace( void );               // Write backtrace information
 
+[[noreturn]]
+_LIBPUB_PRINTF(2, 3)
+virtual void
+   abortf(                          // Write to trace and stderr, then abort
+     const char*       fmt,         // The PRINTF format string
+                       ...);        // The PRINTF argument list
+
 _LIBPUB_PRINTF(2, 3)
 virtual void
    debugf(                          // Write to trace and stdout
@@ -245,6 +252,13 @@ virtual void
    traceh(                          // Write to trace with heading
      const char*       fmt,         // The PRINTF format string
                        ...);        // The PRINTF argument list
+
+[[noreturn]]
+_LIBPUB_PRINTF(2, 0)
+virtual void
+   vabortf(                         // Write to trace and stderr, then abort
+     const char*       fmt,         // The PRINTF format string
+     va_list           argptr);     // VALIST
 
 _LIBPUB_PRINTF(2, 0)
 virtual void
@@ -348,6 +362,13 @@ void
    debug_set_mode(                  // Set the Mode
      Debug::Mode       mode);       // To this Mode
 
+[[noreturn]]
+_LIBPUB_PRINTF(1, 2)
+void
+   abortf(                          // Write to trace and stderr, then abort
+     const char*       fmt,         // The PRINTF format string
+                       ...);        // The PRINTF argument list
+
 _LIBPUB_PRINTF(1, 2)
 void
    debugf(                          // Write to trace and stdout
@@ -390,6 +411,13 @@ void
    traceh(                          // Write to trace, with heading
      const char*       fmt,         // The PRINTF format string
                        ...);        // PRINTF argruments
+
+[[noreturn]]
+_LIBPUB_PRINTF(1, 0)
+void
+   vabortf(                         // Write to trace and stderr, then abort
+     const char*       fmt,         // The PRINTF format string
+     va_list           argptr);     // VALIST
 
 _LIBPUB_PRINTF(1, 0)
 void

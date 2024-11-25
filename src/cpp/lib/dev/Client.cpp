@@ -487,7 +487,7 @@ void
 
    debugf("..serialno(%d), sequence(%d)\n", serialno, sequence);
    debugf("..agent(%p) context(%p) proto_id(%s) rd_complete(%u)\n"
-         , agent, context, proto_id, rd_complete.is_post());
+         , agent, context, proto_id, rd_complete.has_posted());
    debugf("..size_inp(%'zd) size_out(%'zd)\n", size_inp, size_out);
    socket->debug("Client.socket");
    debugf("task_inp:\n"); task_inp.debug(info);
@@ -573,8 +573,8 @@ void
      }
    }}}}
 
-   if( !rd_complete.is_post() )     // Post out_task wait
-     rd_complete.post(dispatch::Item::CC_PURGE);
+   if( !rd_complete.has_posted() )  // If posting is still required
+     rd_complete.post(dispatch::Item::CC_PURGE); // Post out_task wait
 }
 
 //----------------------------------------------------------------------------

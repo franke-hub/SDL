@@ -16,13 +16,12 @@
 //       Implement utility namespace methods.
 //
 // Last change date-
-//       2024/09/16
+//       2024/11/20
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
 #include <sstream>                  // For std::stringstream
 #include <string>                   // For std::string
-#include <thread>                   // For std::thread
 
 #if __has_include(<cxxabi.h>)
 #  include <cxxabi.h>               // For abi::demangle
@@ -38,7 +37,6 @@
 #include <time.h>                   // For clock_gettime, ...
 
 #include <pub/Debug.h>              // For Debug object (see dump())
-#include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
 #include "pub/utility.h"            // For utility functions, implemented
 
@@ -735,9 +733,16 @@ std::string                         // Resultant
 }
 
 std::string                         // Resultant
-   to_string(                       // Create string from std::thread::id
-     const std::thread::id& id)     // The std::thread::id
-{  return Thread::get_id_string(id); }
+   to_string(                       // Create string from
+     const std::thread::id& id)     // This std::thread::id
+{
+   if( id == std::thread::id() )
+     return "null_id";
+
+   std::stringstream ss;
+   ss << id;
+   return ss.str();
+}
 
 std::string                         // Resultant string
    to_string(                       // Get id string

@@ -16,7 +16,7 @@
 //       Debug object methods.
 //
 // Last change date-
-//       2024/03/05
+//       2024/10/28
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
@@ -28,6 +28,7 @@
 #include <errno.h>                  // For errno
 #include <inttypes.h>               // For PRIx64
 #include <stdarg.h>                 // For va_list, ...
+#include <stdlib.h>                 // For abort
 #include <string.h>                 // For strerrno
 #include <stdio.h>                  // For FILE I/O
 #include <time.h>                   // For clock_gettime, timespec, ...
@@ -80,6 +81,8 @@ int                    debugging::options::pub_verbose= -1;
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
+static char            buffer[512]; // Work buffer (Mutex protected)
+
 #if false
 static std::recursive_mutex mutex;  // Recursive serialization Latch
 #else
@@ -514,6 +517,31 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Debug::abortf
+//
+// Function-
+//       Debugging (stderr + trace + abort) printf facility.
+//
+//----------------------------------------------------------------------------
+[[noreturn]]
+_LIBPUB_PRINTF(2, 3)
+void
+   Debug::abortf(                   // Debug printf exception facility
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // The remaining arguments
+{
+   va_list             argptr;      // Argument list pointer
+
+   va_start(argptr, fmt);           // Initialize va_ functions
+   vabortf(fmt, argptr);            // ALWAYS THROWS EXCEPTION
+   va_end(argptr);                  // Close va_ functions
+
+   throw "ShouldNotOccur";
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Debug::debugf
 //
 // Function-
@@ -666,6 +694,52 @@ void
    va_start(argptr, fmt);           // Initialize va_ functions
    vtraceh(fmt, argptr);            // Message with heading
    va_end(argptr);                  // Close va_ functions
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Debug::vabortf
+//
+// Function-
+//       Debugging (stderr + trace + abort) printf facility.
+//
+//----------------------------------------------------------------------------
+[[noreturn]]
+_LIBPUB_PRINTF(2, 0)
+void
+   Debug::vabortf(                  // Debug vprintf abort facility
+     const char*       fmt,         // The PRINTF format string
+     va_list           argptr)      // VALIST
+{
+   std::lock_guard<decltype(mutex)> lock(mutex);
+
+   fflush(stdout);
+
+   {{{{
+     va_list errptr;
+     va_copy(errptr, argptr);
+     vfprintf(stderr, fmt, errptr); // Write to stderr
+     va_end(errptr);
+
+     fprintf(stderr, "\n");
+   }}}}
+   fflush(stderr);
+
+   // If trace file is already open and is neither stdout nor stderr
+   if( handle != nullptr && handle != stdout && handle != stderr )
+   {{{{
+     va_list logptr;
+     va_copy(logptr, argptr);
+     vfprintf(handle, fmt, logptr); // Write to trace
+     va_end(logptr);
+
+     fprintf(handle, "\n");
+     fflush(handle);                // Flush the handle buffer
+     flush();                       // Intensive buffer flush
+   }}}}
+
+   abort();
 }
 
 //----------------------------------------------------------------------------
@@ -852,11 +926,9 @@ void
 
      fprintf(handle, "\n");
      fflush(handle);                // Flush the handle buffer
-     if( mode == MODE_INTENSIVE )   // If intensive trace mode
-       flush();                     // Intensive buffer flush
+     flush();                       // Intensive buffer flush
    }}}}
 
-static char            buffer[512]; // Work buffer (Mutex protected)
    int L= vsnprintf(buffer, sizeof(buffer), fmt, argptr);
    if( L < 0 || size_t(L) >= sizeof(buffer) ) // If cannot properly format
      throw std::runtime_error(fmt); // Just use the format string
@@ -995,6 +1067,20 @@ void
    Debug::get()->set_mode(mode);
 }
 
+[[noreturn]]
+_LIBPUB_PRINTF(1, 2)
+void
+   abortf(                          // Debug printf abort facility
+     const char*       fmt,         // The PRINTF format string
+                       ...)         // The remaining arguments
+{
+   va_list             argptr;      // Argument list pointer
+
+   va_start(argptr, fmt);           // Initialize va_ functions
+   vabortf(fmt, argptr);            // ALWAYS ABORTS
+   va_end(argptr);                  // Close va_ functions
+}
+
 _LIBPUB_PRINTF(1, 2)
 void
    debugf(                          // Debug debug printf facility
@@ -1085,6 +1171,17 @@ void
    va_start(argptr, fmt);           // Initialize va_ functions
    vtraceh(fmt, argptr);
    va_end(argptr);                  // Close va_ functions
+}
+
+[[noreturn]]
+_LIBPUB_PRINTF(1, 0)
+void
+   vabortf(                         // Debug vprintf abort facility
+     const char*       fmt,         // The PRINTF format string
+     va_list           argptr)      // VALIST
+{  std::lock_guard<decltype(mutex)> lock(mutex);
+   Debug::get()->vabortf(fmt, argptr);
+   throw "ShouldNotOccur";
 }
 
 _LIBPUB_PRINTF(1, 0)

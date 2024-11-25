@@ -16,7 +16,7 @@
 //       Curl Commands and Services
 //
 // Last change date-
-//       2024/10/07
+//       2024/11/15
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -26,12 +26,12 @@
 
 #include <pub/Clock.h>              // For pub::Clock
 #include <pub/Debug.h>              // For namespace pub::debugging
+#include <pub/diag-counter.h>       // For pub::diag::Counter (DEBUGGING)
 #include <pub/String.h>             // For pub::String
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/utility.h>            // For pub::utility::to_string
 
 #include "Command.h"                // For class Command
-#include "Counter.h"                // For DEBUGGING object Counter
 #include "Service.h"                // For class Service
 #include "Curl.h"                   // For Curl_service, implemented
 
@@ -236,14 +236,14 @@ std::string                         // The web page
 //----------------------------------------------------------------------------
 //
 // Method-
-//       work
+//       main
 //
 // Purpose-
 //       Run the curl Command, invoking the curl method
 //
 //----------------------------------------------------------------------------
 virtual Command::resultant          // Resultant
-   work(                            // Handle Command
+   main(                            // Handle Command
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
@@ -266,7 +266,7 @@ virtual Command::resultant          // Resultant
    return nullptr;
 }
 }; // class Command_curl
-static Command_curl command_curl;
+Command_curl command_curl;
 
 //============================================================================
 //
@@ -363,7 +363,7 @@ void
    typedef Curl_service::Item       Curl_item;
 
    class Curl_done : public pub::dispatch::Done {
-   Counter             counter;     // DEBUGGING object counter
+// pub::diag::Counter  counter;     // DEBUGGING object counter TODO: REMOVE
 
    public:
       Curl_done( void ) : Done() {}

@@ -16,7 +16,7 @@
 //       Define the the Named attribute and the NamedObject class.
 //
 // Last change date-
-//       2024/09/26
+//       2024/11/04
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_NAMED_H_INCLUDED
@@ -40,7 +40,7 @@ class Named {                       // The Named attribute
 // Named::Attributes
 //----------------------------------------------------------------------------
 protected:
-const std::string      name;        // The name
+std::string            name;        // The name
 
 //----------------------------------------------------------------------------
 // Named::Constructors
@@ -49,8 +49,8 @@ public:
    Named( void ) = default;         // Default constructor
 
    Named(                           // Constructor
-     const std::string name)        // The associated name
-:  name(name) {}
+     const std::string _name)       // The associated name
+:  name(_name) {}
 
 virtual
    ~Named( void ) = default;        // Destructor
@@ -62,6 +62,11 @@ public:
 std::string                         // The associated name
    get_name( void ) const           // Get associated name
 {  return name; }
+
+void
+   set_name(                        // Set associated name
+     const std::string _name)       // To this name
+{  name= _name; }                   // _name= nullptr disallowed
 }; // class Named
 
 //----------------------------------------------------------------------------

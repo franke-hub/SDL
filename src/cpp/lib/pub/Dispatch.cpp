@@ -25,7 +25,7 @@
 #include <pub/Clock.h>              // DispatchTTL completion time
 #include <pub/Debug.h>              // For debugging
 #include "pub/Dispatch.h"           // For dispatch objects, implemented
-#include <pub/Latch.h>              // For pub::Latch, mutex substitute
+#include "pub/Latch.h"              // For pub::Latch, mutex substitute
 #include "pub/List.h"               // For pub::AI_list
 #include <pub/Named.h>              // For pub::Named, Timers is a Named Thread
 #include <pub/Semaphore.h>          // For pub::Semaphore, Timers event

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2022 Frank Eskesen.
+//       Copyright (c) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,10 +16,7 @@
 //       Event (wait/post) implementation.                                                   ts.
 //
 // Last change date-
-//       2022/11/14
-//
-// Implementation note-
-//       An Event is not (currently) an Object.
+//       2024/10/29
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_EVENT_H_INCLUDED
@@ -41,6 +38,9 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 // Purpose-
 //       Event descriptor.
 //
+// Implementation note-
+//       Events cannot be used during static initialization.
+//
 //----------------------------------------------------------------------------
 class Event {                       // Event descriptor
 //----------------------------------------------------------------------------
@@ -53,24 +53,23 @@ std::condition_variable
 std::mutex             mutex;       // Protects cv
 
 //----------------------------------------------------------------------------
-// Event::Destructor/Constructor/Assignment
+// Event::Constructors/Assignment/Destructor
 //----------------------------------------------------------------------------
 public:
-   ~Event( void ) {}                // Destructor
-
-inline
    Event( void )                    // Default constructor
 :  code(0), cv(), mutex() { }
 
    Event(const Event&) = delete;    // Disallowed copy constructor
 Event& operator=(const Event&) = delete; // Disallowed assignment operator
 
+   ~Event( void ) = default;        // Destructor
+
 //----------------------------------------------------------------------------
 // Event::Accessor methods
 //----------------------------------------------------------------------------
 bool                                // TRUE iff posted
-   is_post( void ) const            // Is Event in posted state?
-{  return code != 0; }
+   has_posted( void ) const         // Is Event in posted state?
+{  return code & 0x8000'0000; }     // (High order bit indicates posted)
 
 //----------------------------------------------------------------------------
 // Event::Methods
@@ -80,7 +79,7 @@ void
      uint32_t          code= 0)     // (31 bit) completion code
 {  std::unique_lock<decltype(mutex)> lock(mutex);
 
-   this->code= code | 0x80000000;   // (High order bit indicates posted)
+   this->code= code | 0x8000'0000;   // (High order bit indicates posted)
    cv.notify_all();
 }
 
@@ -95,10 +94,10 @@ int32_t                             // The event code (Always positive)
    wait( void )                     // Wait for Event
 {  std::unique_lock<decltype(mutex)> lock(mutex);
 
-   while( !code )                   // Handle spurious wake-ups
+   while( !has_posted() )           // Handle spurious wake-ups
      cv.wait(lock);
 
-   return code & 0x7fffffff;        // 31-bit post code
+   return code & 0x7fff'ffff;       // 31-bit post code
 }
 }; // class Event
 _LIBPUB_END_NAMESPACE

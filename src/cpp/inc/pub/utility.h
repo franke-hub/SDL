@@ -16,7 +16,7 @@
 //       Utility functions.
 //
 // Last change date-
-//       2024/09/14
+//       2024/11/20
 //
 // Implementation notes-
 //       ato* routines:
@@ -32,12 +32,13 @@
 
 #include <functional>               // For std::function
 #include <string>                   // For std::string
-#include <thread>                   // For std::thread
+#include <thread>                   // For std::thread::id
 
 #include <ctype.h>                  // For toupper()
 #include <stdarg.h>                 // For va_* functions
 #include <stdio.h>                  // For ::FILE*
 
+#include "pub/Thread.h"             // For pub::Thread::get_* methods
 #include "pub/bits/utility.h"       // For internal utility functions
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
@@ -309,11 +310,13 @@ std::string                         // Resultant
 
 std::string                         // Resultant
    to_string(                       // Create string from std::thread::id
-     const std::thread::id& id);    // The std::thread::id
+     const std::thread::id&
+                       id);         // The std::thread::id
 
 std::string                         // Resultant string
    to_string(                       // Get id string
-     volatile const std::thread::id& id); // For this id
+     volatile const std::thread::id&
+                       id);         // The std::thread::id
 
 //----------------------------------------------------------------------------
 //

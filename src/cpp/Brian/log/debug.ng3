@@ -1,0 +1,483 @@
+1732509128.960 Command_listen!
+1732509128.960 startup_event_handler_t!
+1732509128.960 StaticCommon::make 0x0
+1732509128.960 new static_common(0x100446080)
+1732509128.960 Service::insert(listen)
+1732509128.960  195 Service Debug::get(0xa00013440)
+1732509128.960 Service_listen!
+1732509128.997 Service::insert(curl)
+1732509128.997  195 Service Debug::get(0xa00013440)
+1732509128.997 Service::insert(Console)
+1732509128.997  195 Service Debug::get(0xa00013440)
+1732509128.997 Service::insert(ÿ-ff)
+1732509128.997  195 Service Debug::get(0xa00013440)
+1732509128.997 Service::insert(-7f)
+1732509128.997  195 Service Debug::get(0xa00013440)
+1732509128.997 Service::insert(service-732)
+1732509128.997  195 Service Debug::get(0xa00013440)
+1732509128.997 StaticCommon::make 0x100446080
+1732509128.997 service(0x1004461c0) curl(0x100446200) init(0x1004463a0) handler(0x0)
+1732509128.997 <@000000000000> Debug::get(0xa00013440)
+Warning: File(./libBrian.a) exists
+.. This implies that you probably aren't using DLLs
+.. Library object Debug.o must be located in a DLL to prevent reloading
+.. a separate copy of it each time we load a DLL.
+!! YOU HAVE BEEN WARNED !!
+1732509129.005 <@000000000000> Common(0xa00050ed0)::Common()
+1732509129.007 <@000000000000> Service::start_all...
+1732509129.008 <@000000000000> ConsoleService(0x1004461c0).start(0x1004461c0)
+1732509129.010 <@000000000000> Service(Console)::has_start::start
+1732509129.012 <@000000000000> Thread(0xa0006ab10)!
+1732509129.013 <@000000000000> ConsoleThread(0xa0006ab10).!
+1732509129.015 <@000000000000> pub::Console::start completed
+1732509129.017 <@000000000000> Thread(0xa0006ab10)::start
+1732509129.018 <@000000000000> Thread::tlss(0xa0006bbe0)!(0xa0006ab10)
+1732509129.020 <@000000000000>  641 Thread(0xa0006ab10).start _tlss(0xa0006bbe0)
+1732509129.021 <@000000000000> Thread(0xa0006ab10)::drive _tlss(0xa0006bbe0)
+1732509129.023 <@000a0006ab10> Thread::tlss(0xa0006bbe0)::set_fsm START=>DRIVE
+1732509129.024 <@000000000000> ConsoleService: ConsoleThread(0xa0006ab10) started
+diag-stack::Stack(0x7ffdfcc90)::debug(before run)
+..origin(0x0007ffc00000) active(0x0007ffdfcc10) ending(0x0007ffe00000)
+..length(    0x00200000)   used(    0x000033f0)   left(    0x001fcc10)
+1732509129.045 <@000a0006ab10> ConsoleThread(0xa0006ab10).run
+1732509130.028 <@000000000000> ==============================================================
+1732509130.035 <@000000000000> ======== Starting Brian/0.0-2024-09-28/Bringup: machine learning experiment,Contact: {frank @ eskesystems com}
+1732509130.041 <@000000000000> ======== Compiled Nov 24 2024 22:39:46
+1732509130.046 <@000000000000> ========  Started Nov 24 2024 23:32:08
+1732509130.050 <@000000000000> ==============================================================
+1732509130.054 <@000000000000> OPTIMIZE:   -g
+1732509130.057 <@000000000000> USE_STATIC: true
+1732509130.061 <@000000000000> Stack type: ENDING_DOWN
+diag-stack::Stack(0x7ffffcb40)::trace(Brian.init)
+..origin(0x0007ffe00000) active(0x0007ffffcad0) ending(0x000800000000)
+..length(    0x00200000)   used(    0x00003530)   left(    0x001fcad0)
+1732509130.081 <@000000000000>  526 HttpServer startup_complete.handler
+1732509130.083 <@000000000000> Command_listen::start(bigblue:8080)
+1732509130.118 <@000000000000> 0x0= locate(bigblue:8080)
+1732509130.120 <@000000000000> Thread(0xa0006c4e0)!
+1732509130.122 <@000000000000> Listen(0xa0006c4e0)!(bigblue:8080)
+1732509130.123 <@000000000000> Listen(0xa0006c4e0)::build
+1732509130.130 <@000000000000> Listen(0xa0006c4e0) socket(0xa0006c530) url(bigblue:8080)
+1732509130.145 <@000000000000>  online: bigblue:8080
+1732509130.147 <@000000000000> 0x0= locate(bigblue:8080)
+1732509130.148 <@000000000000> Command_listen::insert(bigblue:8080)
+1732509130.150 <@000000000000> Thread(0xa0006c4e0)::start
+1732509130.151 <@000000000000> Thread::tlss(0xa0006c600)!(0xa0006c4e0)
+1732509130.153 <@000000000000>  641 Thread(0xa0006c4e0).start _tlss(0xa0006c600)
+1732509130.155 <@000000000000> Thread(0xa0006c4e0)::drive _tlss(0xa0006c600)
+1732509130.157 <@000a0006c4e0> Thread::tlss(0xa0006c600)::set_fsm START=>DRIVE
+diag-stack::Stack(0x7ffbfcc90)::debug(before run)
+..origin(0x0007ffa00000) active(0x0007ffbfcc10) ending(0x0007ffc00000)
+..length(    0x00200000)   used(    0x000033f0)   left(    0x001fcc10)
+1732509130.162 <@000a0006c4e0> Listen(0xa0006c4e0).run
+1732509130.181 <@000000000000> Command_listen::start(localhost:8081)
+1732509130.195 <@000000000000> 0x0= locate(localhost:8081)
+1732509130.198 <@000000000000> Thread(0xa0006ce10)!
+1732509130.200 <@000000000000> Listen(0xa0006ce10)!(localhost:8081)
+1732509130.202 <@000000000000> Listen(0xa0006ce10)::build
+1732509130.203 <@000000000000> Listen(0xa0006ce10) socket(0xa0006ce60) url(localhost:8081)
+1732509130.206 <@000000000000>  online: localhost:8081
+1732509130.208 <@000000000000> 0x0= locate(localhost:8081)
+1732509130.209 <@000000000000> Command_listen::insert(localhost:8081)
+1732509130.211 <@000000000000> Thread(0xa0006ce10)::start
+1732509130.213 <@000000000000> Thread::tlss(0xa0006cf30)!(0xa0006ce10)
+1732509130.215 <@000000000000>  641 Thread(0xa0006ce10).start _tlss(0xa0006cf30)
+1732509130.217 <@000000000000> Thread(0xa0006ce10)::drive _tlss(0xa0006cf30)
+1732509130.219 <@000a0006ce10> Thread::tlss(0xa0006cf30)::set_fsm START=>DRIVE
+diag-stack::Stack(0x7ff9fcc90)::debug(before run)
+..origin(0x0007ff800000) active(0x0007ff9fcc10) ending(0x0007ffa00000)
+..length(    0x00200000)   used(    0x000033f0)   left(    0x001fcc10)
+1732509130.224 <@000a0006ce10> Listen(0xa0006ce10).run
+1732509130.431 <@000a0006c4e0> Thread(0xa00028b60)!
+1732509130.438 <@000a0006c4e0> Server(0xa00028b60)!(0xa00028ad0)
+1732509130.445 <@000a0006c4e0> Listen(bigblue:8080) 0xa00028b60= new Server(0xa00028ad0)
+1732509130.452 <@000a0006c4e0> Thread(0xa00028b60)::start
+1732509130.459 <@000a0006c4e0> Thread::tlss(0xa0002aba0)!(0xa00028b60)
+1732509130.466 <@000a0006c4e0>  641 Thread(0xa00028b60).start _tlss(0xa0002aba0)
+1732509130.474 <@000000000000> Thread(0xa00028b60)::drive _tlss(0xa0002aba0)
+1732509130.481 <@000a00028b60> Thread::tlss(0xa0002aba0)::set_fsm START=>DRIVE
+diag-stack::Stack(0x7ff7fcc90)::debug(before run)
+..origin(0x0007ff600000) active(0x0007ff7fcc10) ending(0x0007ff800000)
+..length(    0x00200000)   used(    0x000033f0)   left(    0x001fcc10)
+1732509130.502 <@000a00028b60> Server(0xa00028b60)::run
+Thread(0xa00028b60)::debug(Server::run [ENTRY])
+..mutex(free) joinable(1) _tlss(0xa0002aba0)
+Thread::tlss(0xa0002aba0)::debug(Server::run [ENTRY])
+..mutex(free) fsm(DRIVE) pub_thread(0xa00028b60) std_thread(0xa00024450)
+1732509130.536 <@000a00028b60> Thread(0xa00028b60)::detach _tlss(0xa0002aba0)
+1732509130.543 <@000a00028b60> Thread(0xa00028b60,0xa00024450).detach
+Thread::tlss(0xa0002aba0)::debug(Before detach)
+..mutex(held) fsm(DRIVE) pub_thread(0xa00028b60) std_thread(0xa00024450)
+1732509130.563 <@000a00028b60>  451 Thread.detach HCDM TIMING
+1732509130.571 <@000a00028b60>  456 Thread.detach HCDM TIMING
+1732509130.578 <@000a00028b60>  459 Thread(0xa00028b60).detach _tlss(0xa0002aba0) fsm(DRIVE) detached
+1732509130.583 <@000a00028b60> Thread::tlss(0xa0002aba0)::set_fsm DRIVE=>DETACHED
+Thread(0xa00028b60)::debug(detach DRIVE=>DETACHED)
+ 381 Thread invalid fsm(DETACHED)
+..mutex(held) joinable(0) _tlss(0xa0002aba0)
+Thread::tlss(0xa0002aba0)::debug(detach DRIVE=>DETACHED)
+..mutex(held) fsm(DETACHED) pub_thread(0x0) std_thread(0x0)
+Thread::static_debug(Detach[DRIVE] exit)
+               4 max_running
+               4 started
+               0 completed
+               4 running
+               1 detached
+1732509130.619 <@000000000000>  472 detach EXIT, _tlss==nullptr
+1732509130.621 <@000000000000>  943 Server HCDM
+Thread(0xa00028b60)::debug(Server::run [DETACHED])
+..mutex(free) joinable(0) _tlss(0x0)
+diag-stack::Stack(0x7ff7fcc00)::debug(Server.run)
+..origin(0x0007ff600000) active(0x0007ff7fcb40) ending(0x0007ff800000)
+..length(    0x00200000)   used(    0x000034c0)   left(    0x001fcb40)
+diag-stack::Stack(0x7ff7fcc00)::debug(In Server.run, before calling request)
+..origin(0x0007ff600000) active(0x0007ff7fcb70) ending(0x0007ff800000)
+..length(    0x00200000)   used(    0x00003490)   left(    0x001fcb70)
+1732509130.636 <@000000000000> Server(0xa00028b60)::request({{{{
+GET / HTTP/1.1
+Host: bigblue:8080
+Accept: */*
+
+
+}}}})
+diag-stack::Stack(0x7ff7fcb30)::debug(Server.request)
+..origin(0x0007ff600000) active(0x0007ff7fcac0) ending(0x0007ff800000)
+..length(    0x00200000)   used(    0x00003540)   left(    0x001fcac0)
+1732509130.641 <@000000000000> Server(0xa00028b60)::response(200,{{{{
+<html><head><title>PAGE 200</title></head>
+<body><h1 align="center">Default Response Page</h1>
+No Body's Home, Paige
+</body></html>
+
+}}}})
+diag-stack::Stack(0x7ff7fcab0)::debug(Server.response)
+..origin(0x0007ff600000) active(0x0007ff7fca30) ending(0x0007ff800000)
+..length(    0x00200000)   used(    0x000035d0)   left(    0x001fca30)
+ 921 HCDM Server::response 0xa00033a18=sc(resp)
+1732509130.649 <@000000000000> Server(0xa00028b60)::write({{{{
+HTTP/1.1 200 OK
+Content-type: text/html
+Content-length: 136
+
+<html><head><title>PAGE 200</title></head>
+<body><h1 align="center">Default Response Page</h1>
+No Body's Home, Paige
+</body></html>
+
+}}}})
+diag-stack::Stack(0x7ff7fca20)::debug(Server.write)
+..origin(0x0007ff600000) active(0x0007ff7fc9b0) ending(0x0007ff800000)
+..length(    0x00200000)   used(    0x00003650)   left(    0x001fc9b0)
+1019 Server::write 0xa00033a18=sc(text)
+diag-stack::Stack(0x7ff7fca20)::debug(After socket->write)
+..origin(0x0007ff600000) active(0x0007ff7fc9e0) ending(0x0007ff800000)
+..length(    0x00200000)   used(    0x00003620)   left(    0x001fc9e0)
+diag-stack::Stack(0x7ff7fcc00)::debug(In Server.run, after  calling request)
+..origin(0x0007ff600000) active(0x0007ff7fcb70) ending(0x0007ff800000)
+..length(    0x00200000)   used(    0x00003490)   left(    0x001fcb70)
+curl 'bigblue:8080':
+<html><head><title>PAGE 200</title></head>
+<body><h1 align="center">Default Response Page</h1>
+No Body's Home, Paige
+</body></html>
+
+diag-stack::Stack(0x7ffdfcb50)::debug(Console::gets)
+..origin(0x0007ffc00000) active(0x0007ffdfcae0) ending(0x0007ffe00000)
+..length(    0x00200000)   used(    0x00003520)   left(    0x001fcae0)
+1732509130.899 <@000a0006ce10> Thread(0xa00098990)!
+1732509130.901 <@000a0006ce10> Server(0xa00098990)!(0xa00084630)
+1732509130.903 <@000a0006ce10> Listen(localhost:8081) 0xa00098990= new Server(0xa00084630)
+1732509130.904 <@000a0006ce10> Thread(0xa00098990)::start
+1732509130.906 <@000a0006ce10> Thread::tlss(0xa00033530)!(0xa00098990)
+1732509130.908 <@000a0006ce10>  641 Thread(0xa00098990).start _tlss(0xa00033530)
+1732509130.910 <@000000000000> Thread(0xa00098990)::drive _tlss(0xa00033530)
+1732509130.911 <@000a00098990> Thread::tlss(0xa00033530)::set_fsm START=>DRIVE
+diag-stack::Stack(0x7ff5fcc90)::debug(before run)
+..origin(0x0007ff400000) active(0x0007ff5fcc10) ending(0x0007ff600000)
+..length(    0x00200000)   used(    0x000033f0)   left(    0x001fcc10)
+1732509130.917 <@000a00098990> Server(0xa00098990)::run
+Thread(0xa00098990)::debug(Server::run [ENTRY])
+..mutex(free) joinable(1) _tlss(0xa00033530)
+Thread::tlss(0xa00033530)::debug(Server::run [ENTRY])
+..mutex(free) fsm(DRIVE) pub_thread(0xa00098990) std_thread(0xa00033580)
+1732509130.926 <@000a00098990> Thread(0xa00098990)::detach _tlss(0xa00033530)
+1732509130.928 <@000a00098990> Thread(0xa00098990,0xa00033580).detach
+Thread::tlss(0xa00033530)::debug(Before detach)
+..mutex(held) fsm(DRIVE) pub_thread(0xa00098990) std_thread(0xa00033580)
+1732509130.932 <@000a00098990>  451 Thread.detach HCDM TIMING
+1732509130.934 <@000a00098990>  456 Thread.detach HCDM TIMING
+1732509130.936 <@000a00098990>  459 Thread(0xa00098990).detach _tlss(0xa00033530) fsm(DRIVE) detached
+1732509130.938 <@000a00098990> Thread::tlss(0xa00033530)::set_fsm DRIVE=>DETACHED
+Thread(0xa00098990)::debug(detach DRIVE=>DETACHED)
+ 381 Thread invalid fsm(DETACHED)
+..mutex(held) joinable(0) _tlss(0xa00033530)
+Thread::tlss(0xa00033530)::debug(detach DRIVE=>DETACHED)
+..mutex(held) fsm(DETACHED) pub_thread(0x0) std_thread(0x0)
+Thread::static_debug(Detach[DRIVE] exit)
+               5 max_running
+               5 started
+               0 completed
+               5 running
+               2 detached
+1732509130.958 <@000000000000>  472 detach EXIT, _tlss==nullptr
+1732509130.960 <@000000000000>  943 Server HCDM
+Thread(0xa00098990)::debug(Server::run [DETACHED])
+..mutex(free) joinable(0) _tlss(0x0)
+diag-stack::Stack(0x7ff5fcc00)::debug(Server.run)
+..origin(0x0007ff400000) active(0x0007ff5fcb40) ending(0x0007ff600000)
+..length(    0x00200000)   used(    0x000034c0)   left(    0x001fcb40)
+diag-stack::Stack(0x7ff5fcc00)::debug(In Server.run, before calling request)
+..origin(0x0007ff400000) active(0x0007ff5fcb70) ending(0x0007ff600000)
+..length(    0x00200000)   used(    0x00003490)   left(    0x001fcb70)
+1732509130.972 <@000000000000> Server(0xa00098990)::request({{{{
+GET / HTTP/1.1
+Host: localhost:8081
+Accept: */*
+
+
+}}}})
+diag-stack::Stack(0x7ff5fcb30)::debug(Server.request)
+..origin(0x0007ff400000) active(0x0007ff5fcac0) ending(0x0007ff600000)
+..length(    0x00200000)   used(    0x00003540)   left(    0x001fcac0)
+1732509130.977 <@000000000000> Server(0xa00098990)::response(200,{{{{
+<html><head><title>PAGE 200</title></head>
+<body><h1 align="center">Default Response Page</h1>
+No Body's Home, Paige
+</body></html>
+
+}}}})
+diag-stack::Stack(0x7ff5fcab0)::debug(Server.response)
+..origin(0x0007ff400000) active(0x0007ff5fca30) ending(0x0007ff600000)
+..length(    0x00200000)   used(    0x000035d0)   left(    0x001fca30)
+ 921 HCDM Server::response 0xa0009b3c8=sc(resp)
+1732509130.983 <@000000000000> Server(0xa00098990)::write({{{{
+HTTP/1.1 200 OK
+Content-type: text/html
+Content-length: 136
+
+<html><head><title>PAGE 200</title></head>
+<body><h1 align="center">Default Response Page</h1>
+No Body's Home, Paige
+</body></html>
+
+}}}})
+diag-stack::Stack(0x7ff5fca20)::debug(Server.write)
+..origin(0x0007ff400000) active(0x0007ff5fc9b0) ending(0x0007ff600000)
+..length(    0x00200000)   used(    0x00003650)   left(    0x001fc9b0)
+1019 Server::write 0xa0009b3c8=sc(text)
+diag-stack::Stack(0x7ff5fca20)::debug(After socket->write)
+..origin(0x0007ff400000) active(0x0007ff5fc9e0) ending(0x0007ff600000)
+..length(    0x00200000)   used(    0x00003620)   left(    0x001fc9e0)
+diag-stack::Stack(0x7ff5fcc00)::debug(In Server.run, after  calling request)
+..origin(0x0007ff400000) active(0x0007ff5fcb70) ending(0x0007ff600000)
+..length(    0x00200000)   used(    0x00003490)   left(    0x001fcb70)
+curl 'localhost:8081':
+<html><head><title>PAGE 200</title></head>
+<body><h1 align="center">Default Response Page</h1>
+No Body's Home, Paige
+</body></html>
+
+1732509131.000 <@000000000000> Common(0xa00050ed0)::wait() fsm(1)...
+1732509134.309 <@000000000000> Server(0xa00028b60): recvmsg error 11:Resource temporarily unavailable
+1732509134.316 <@000000000000>  980 Server(0xa00028b60)::run Thread(0xa00028b60)::debug([before delete self])
+..mutex(free) joinable(0) _tlss(0x0)
+1732509134.334 <@000000000000>  982 Server(0xa00028b60)::run delete self...
+diag-stack::Stack(0x7ff7fcc00)::debug(Server.run exit)
+..origin(0x0007ff600000) active(0x0007ff7fcb70) ending(0x0007ff800000)
+..length(    0x00200000)   used(    0x00003490)   left(    0x001fcb70)
+1732509134.353 <@000000000000> Server(0xa00028b60)~
+1732509134.359 <@000000000000> Server(0xa00028b60)::close(0xa00028ad0)
+Server(0xa00028b60) close/delete socket(0xa00028ad0)
+1732509134.371 <@000000000000>  874 Server(0xa00028b60)::close(0x0) EXIT
+diag-stack::Stack(0x7ff7fcb20)::debug(Server~)
+..origin(0x0007ff600000) active(0x0007ff7fcab0) ending(0x0007ff800000)
+..length(    0x00200000)   used(    0x00003550)   left(    0x001fcab0)
+1732509134.383 <@000000000000> Server(0xa00028b60)~ EXIT
+1732509134.386 <@000000000000> Thread(0xa00028b60)~ _tlss(0x0)
+1732509134.390 <@000000000000>  300 Thread~ EXIT
+1732509134.393 <@000000000000>  985 (deleted) Server(0xa00028b60)::run EXIT
+1732509134.395 <@000000000000>  738 Thread(0xa00028b60).drive _tlss(0xa0002aba0,0xa0002aba0) run's done
+1732509134.397 <@000000000000>  743 Thread(0xa00028b60).drive NOTE: Thread state unknown, it may have been deleted
+1732509134.399 <@000000000000>  768 Thread(0xa00028b60) tlss(0xa0002aba0,0xa0002aba0) drive FSM(DETACHED) (run exit)
+Thread::tlss(0xa0002aba0)::debug(run exit)
+..mutex(held) fsm(DETACHED) pub_thread(0x0) std_thread(0x0)
+diag-stack::Stack(0x7ff7fcc90)::debug(Detached run complete)
+..origin(0x0007ff600000) active(0x0007ff7fcc10) ending(0x0007ff800000)
+..length(    0x00200000)   used(    0x000033f0)   left(    0x001fcc10)
+1732509134.410 <@000000000000>  820 Thread(0xa00028b60) tlss(0xa0002aba0,0xa0002aba0) drive (detached thread completed)
+Thread::static_debug(A detached thread completed)
+               5 max_running
+               5 started
+               1 completed
+               4 running
+               1 detached
+Thread::tlss(0xa0002aba0)::debug(A detached thread completed)
+..mutex(free) fsm(DETACHED) pub_thread(0x0) std_thread(0x0)
+1732509134.428 <@000000000000> Thread::tlss(0xa0002aba0)~
+1732509134.430 <@000000000000>  830 HCDM Thread(0xa00028b60).drive EXIT FSM==DETACHED
+1732509134.608 <@000000000000> Server(0xa00098990): recvmsg error 11:Resource temporarily unavailable
+1732509134.610 <@000000000000>  980 Server(0xa00098990)::run Thread(0xa00098990)::debug([before delete self])
+..mutex(free) joinable(0) _tlss(0x0)
+1732509134.616 <@000000000000>  982 Server(0xa00098990)::run delete self...
+diag-stack::Stack(0x7ff5fcc00)::debug(Server.run exit)
+..origin(0x0007ff400000) active(0x0007ff5fcb70) ending(0x0007ff600000)
+..length(    0x00200000)   used(    0x00003490)   left(    0x001fcb70)
+1732509134.620 <@000000000000> Server(0xa00098990)~
+1732509134.622 <@000000000000> Server(0xa00098990)::close(0xa00084630)
+Server(0xa00098990) close/delete socket(0xa00084630)
+1732509134.625 <@000000000000>  874 Server(0xa00098990)::close(0x0) EXIT
+diag-stack::Stack(0x7ff5fcb20)::debug(Server~)
+..origin(0x0007ff400000) active(0x0007ff5fcab0) ending(0x0007ff600000)
+..length(    0x00200000)   used(    0x00003550)   left(    0x001fcab0)
+1732509134.630 <@000000000000> Server(0xa00098990)~ EXIT
+1732509134.631 <@000000000000> Thread(0xa00098990)~ _tlss(0x0)
+1732509134.633 <@000000000000>  300 Thread~ EXIT
+1732509134.634 <@000000000000>  985 (deleted) Server(0xa00098990)::run EXIT
+1732509134.636 <@000000000000>  738 Thread(0xa00098990).drive _tlss(0xa00033530,0xa00033530) run's done
+1732509134.637 <@000000000000>  743 Thread(0xa00098990).drive NOTE: Thread state unknown, it may have been deleted
+1732509134.638 <@000000000000>  768 Thread(0xa00098990) tlss(0xa00033530,0xa00033530) drive FSM(DETACHED) (run exit)
+Thread::tlss(0xa00033530)::debug(run exit)
+..mutex(held) fsm(DETACHED) pub_thread(0x0) std_thread(0x0)
+diag-stack::Stack(0x7ff5fcc90)::debug(Detached run complete)
+..origin(0x0007ff400000) active(0x0007ff5fcc10) ending(0x0007ff600000)
+..length(    0x00200000)   used(    0x000033f0)   left(    0x001fcc10)
+1732509134.647 <@000000000000>  820 Thread(0xa00098990) tlss(0xa00033530,0xa00033530) drive (detached thread completed)
+Thread::static_debug(A detached thread completed)
+               5 max_running
+               5 started
+               2 completed
+               3 running
+               0 detached
+Thread::tlss(0xa00033530)::debug(A detached thread completed)
+..mutex(free) fsm(DETACHED) pub_thread(0x0) std_thread(0x0)
+1732509134.661 <@000000000000> Thread::tlss(0xa00033530)~
+1732509134.662 <@000000000000>  830 HCDM Thread(0xa00098990).drive EXIT FSM==DETACHED
+1732509137.395 <@000a0006ab10> ==> ''
+diag-stack::Stack(0x7ffdfcb50)::debug(Console::gets)
+..origin(0x0007ffc00000) active(0x0007ffdfcae0) ending(0x0007ffe00000)
+..length(    0x00200000)   used(    0x00003520)   left(    0x001fcae0)
+1732509137.595 <@000a0006ab10> ==> ''
+diag-stack::Stack(0x7ffdfcb50)::debug(Console::gets)
+..origin(0x0007ffc00000) active(0x0007ffdfcae0) ending(0x0007ffe00000)
+..length(    0x00200000)   used(    0x00003520)   left(    0x001fcae0)
+1732509137.754 <@000a0006ab10> ==> ''
+diag-stack::Stack(0x7ffdfcb50)::debug(Console::gets)
+..origin(0x0007ffc00000) active(0x0007ffdfcae0) ending(0x0007ffe00000)
+..length(    0x00200000)   used(    0x00003520)   left(    0x001fcae0)
+1732509139.123 <@000a0006ab10> ==> 'quit'
+1732509139.125 <@000a0006ab10> Common(0xa00050ed0)::shutdown() fsm(1)
+1732509139.127 <@000000000000> Service::stop_all...
+1732509139.128 <@000000000000> Service_listen::stop(Service*)
+1732509139.130 <@000000000000> >>>>>>>>Service_listen stopping...>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+1732509139.132 <@000000000000> Command_listen::stop
+1732509139.134 <@000000000000> >>>>>>>>Command_listen stopping listeners
+1732509139.136 <@000000000000> Listen(0xa0006ce10)::stop 'localhost:8081'
+1732509139.138 <@000000000000> Listen(0xa0006ce10)::close
+1732509139.140 <@000000000000> offline: localhost:8081
+1732509139.141 <@000000000000> Listen(0xa0006c4e0)::stop 'bigblue:8080'
+1732509139.143 <@000000000000> Listen(0xa0006c4e0)::close
+1732509139.144 <@000000000000> offline: bigblue:8080
+1732509139.146 <@000000000000> <<<<<<<<Command_listen all listeners stopped
+1732509139.148 <@000000000000> <<<<<<<<...Service_listen stopped<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+1732509139.150 <@000000000000> ConsoleService(0x1004461c0).stop
+1732509139.152 <@000000000000> Service(Console)::has_stop::stop
+1732509139.153 <@000000000000> ConsoleThread(0xa0006ab10).stop
+1732509139.155 <@000000000000>  723 CONSOLE STOP HCDM - operational(0)
+1732509139.157 <@000000000000>  726 CONSOLE STOP HCDM - Restored stdin attributes
+1732509139.158 <@000000000000> ConsoleThread.stopped (invoked pub::Console::stop)
+1732509139.160 <@000000000000> ConsoleService: ConsoleThread(0xa0006ab10) stopped
+1732509139.161 <@000000000000> ...Service::stop_all (completed)
+1732509139.163 <@000000000000> Service::wait_all...
+1732509139.164 <@000000000000> Waiting for service(0x100446130) ÿ-ff...
+1732509139.166 <@000000000000> name(\0xFF-ff)
+1732509139.168 <@000000000000> Service(ÿ-ff)::has_wait::wait
+1732509139.169 <@000000000000> ...Service(0x100446130) ÿ-ff completed
+1732509139.171 <@000000000000> Waiting for service(0x100446150) -7f...
+1732509139.173 <@000000000000> name(\0x7F-7f)
+1732509139.174 <@000000000000> Service(-7f)::has_wait::wait
+1732509139.176 <@000000000000> ...Service(0x100446150) -7f completed
+1732509139.177 <@000000000000> Waiting for service(0x100446170) service-732...
+1732509139.179 <@000000000000> name(service-732)
+1732509139.180 <@000000000000> Service(service-732)::has_wait::wait
+1732509139.182 <@000000000000> ...Service(0x100446170) service-732 completed
+1732509139.183 <@000000000000> Waiting for service(0x100446440) listen...
+1732509139.185 <@000000000000> Service_listen::wait(Service*)
+1732509139.187 <@000000000000> >>>>>>>>Service_listen waiting...>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+1732509139.189 <@000000000000> Command_listen::wait
+1732509139.190 <@000000000000> >>>>>>>>Command_listen waiting for listeners
+1732509139.192 <@000000000000> Listen(0xa0006ce10)::wait 'localhost:8081'
+1732509139.193 <@000000000000> Listen(0xa0006ce10) localhost:8081 join...>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+1732509139.195 <@000000000000> Thread(0xa0006ce10)::join _tlss(0xa0006cf30)->fsm(DRIVE)
+1732509139.196 <@000000000000>  525 Thread(0xa0006ce10,0xa0006cf80).join  _tlss(0xa0006cf30) join...
+1732509139.197 <@000000000000> Thread::tlss(0xa0006cf30)::set_fsm DRIVE=>JOINING
+Thread::tlss(0xa0006cf30)::debug(before join)
+..mutex(free) fsm(JOINING) pub_thread(0xa0006ce10) std_thread(0xa0006cf80)
+JOINING(0xa0006ce10,0xa0006cf80)...
+localhost JOIN
+
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SPLIT <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+1732509139.214 <@000a0006c4e0> Listen::run EXIT (bigblue)
+1732509139.216 <@000a0006c4e0>  738 Thread(0xa0006c4e0).drive _tlss(0xa0006c600,0xa0006c600) run's done
+1732509139.217 <@000a0006c4e0>  743 Thread(0xa0006c4e0).drive NOTE: Thread state unknown, it may have been deleted
+1732509139.219 <@000a0006c4e0>  768 Thread(0xa0006c4e0) tlss(0xa0006c600,0xa0006c600) drive FSM(DRIVE) (run exit)
+Thread::tlss(0xa0006c600)::debug(run exit)
+..mutex(held) fsm(DRIVE) pub_thread(0xa0006c4e0) std_thread(0xa0006c650)
+1732509139.223 <@000a0006c4e0> Thread::tlss(0xa0006c600)::set_fsm DRIVE=>OWNER
+Thread::static_debug(FSM==OWNER)
+               5 max_running
+               5 started
+               3 completed (bigblue   + detached)
+               2 running   (localhost + console)
+               0 detached
+
+
+
+Thread(0xa0006c4e0)::debug(FSM==OWNER)
+..mutex(free) joinable(1) _tlss(0xa0006c600)
+Thread::tlss(0xa0006c600)::debug(FSM==OWNER)
+..mutex(held) fsm(OWNER) pub_thread(0xa0006c4e0) std_thread(0xa0006c650)
+1732509139.240 <@000000000000>  794 HCDM Thread(0xa0006c4e0).drive EXIT FSM==OWNER
+
+
+
+diag-stack::Stack(0x7ffdfcb50)::debug(Console::gets)
+..origin(0x0007ffc00000) active(0x0007ffdfcae0) ending(0x0007ffe00000)
+..length(    0x00200000)   used(    0x00003520)   left(    0x001fcae0)
+1732509139.249 <@000a0006ab10> ==> ''
+1732509139.250 <@000a0006ab10> ConsoleThread(0xa0006ab10)::run EXIT
+1732509139.252 <@000a0006ab10>  738 Thread(0xa0006ab10).drive _tlss(0xa0006bbe0,0xa0006bbe0) run's done
+1732509139.253 <@000a0006ab10>  743 Thread(0xa0006ab10).drive NOTE: Thread state unknown, it may have been deleted
+1732509139.254 <@000a0006ab10>  768 Thread(0xa0006ab10) tlss(0xa0006bbe0,0xa0006bbe0) drive FSM(DRIVE) (run exit)
+Thread::tlss(0xa0006bbe0)::debug(run exit)
+..mutex(held) fsm(DRIVE) pub_thread(0xa0006ab10) std_thread(0xa0006bc30)
+1732509139.259 <@000a0006ab10> Thread::tlss(0xa0006bbe0)::set_fsm DRIVE=>OWNER
+Thread::static_debug(FSM==OWNER)
+               5 max_running
+               5 started
+               4 completed
+               1 running
+               0 detached
+Thread(0xa0006ab10)::debug(FSM==OWNER)
+..mutex(free) joinable(1) _tlss(0xa0006bbe0)
+Thread::tlss(0xa0006bbe0)::debug(FSM==OWNER)
+..mutex(held) fsm(OWNER) pub_thread(0xa0006ab10) std_thread(0xa0006bc30)
+1732509139.275 <@000000000000>  794 HCDM Thread(0xa0006ab10).drive EXIT FSM==OWNER
+1732509139.298 <@000a0006ce10> Listen::run EXIT
+1732509139.300 <@000a0006ce10>  738 Thread(0xa0006ce10).drive _tlss(0xa0006cf30,0xa0006cf30) run's done
+1732509139.302 <@000a0006ce10>  743 Thread(0xa0006ce10).drive NOTE: Thread state unknown, it may have been deleted
+1732509139.303 <@000a0006ce10>  768 Thread(0xa0006ce10) tlss(0xa0006cf30,0xa0006cf30) drive FSM(JOINING) (run exit)
+Thread::tlss(0xa0006cf30)::debug(run exit)
+..mutex(held) fsm(JOINING) pub_thread(0xa0006ce10) std_thread(0xa0006cf80)
+1732509139.308 <@000a0006ce10> Thread::tlss(0xa0006cf30)::set_fsm JOINING=>OWNER
+Thread::static_debug(FSM==OWNER)
+               5 max_running
+               5 started
+               5 completed
+               0 running
+               0 detached
+Thread(0xa0006ce10)::debug(FSM==OWNER)
+..mutex(free) joinable(1) _tlss(0xa0006cf30)
+Thread::tlss(0xa0006cf30)::debug(FSM==OWNER)
+..mutex(held) fsm(OWNER) pub_thread(0xa0006ce10) std_thread(0xa0006cf80)
+1732509139.326 <@000000000000>  794 HCDM Thread(0xa0006ce10).drive EXIT FSM==OWNER
