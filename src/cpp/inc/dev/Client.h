@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2023/07/30
+//       2024/11/26
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
@@ -32,6 +32,7 @@
 #include <pub/Dispatch.h>           // For pub::Dispatch objects
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Ioda.h>               // For pub::Ioda
+#include <pub/Select.h>             // For pub::Select
 #include <pub/Socket.h>             // For pub::Socket
 
 #include "pub/http/Stream.h"        // For pub::http::Stream, ...
@@ -67,6 +68,9 @@ public:
 typedef std::function<void(dispatch::Item*)>  f_iotask; // (Internal)
 typedef std::function<void(void)>             f_reader; // (Internal)
 typedef std::function<void(void)>             f_writer; // (Internal)
+
+typedef size_t                                sequence_t;
+typedef size_t                                serialno_t;
 
 typedef ClientAgent*                          agent_ptr;
 typedef std::shared_ptr<ClientStream>         stream_ptr;
@@ -112,8 +116,8 @@ LambdaTask             task_out;    // Writer task
 
 int                    events= 0;   // Current polling events
 int                    fsm= FSM_RESET; // Finite State Machine state
-int                    serialno= 0; // Client serial number
-int                    sequence= 0; // ClientItem sequence number
+sequence_t             sequence= 0; // ClientItem sequence number
+serialno_t             serialno= 0; // Client serial number
 
 //----------------------------------------------------------------------------
 // Client::Constructor, creator, destructor
@@ -142,7 +146,7 @@ bool
 
 int                                 // The socket handle (<0 if not connected)
    get_handle( void ) const         // Get socket handle
-{  return socket->get_handle(); }
+{  return socket ? socket->get_handle() : -1; }
 
 const sockaddr_u&                   // The Client's internet address
    get_host_addr( void ) const      // Get Client's internet address
@@ -155,6 +159,9 @@ const sockaddr_u&                   // The Server's internet address
 const char*
    get_proto_id( void ) const       // Get protocol/version
 {  return proto_id; }
+
+pub::Select&
+   get_select( void );              // Get Select&
 
 std::shared_ptr<Client>
    get_self( void ) const           // Get self-reference

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       HTTP Listen object.
 //
 // Last change date-
-//       2023/04/16
+//       2024/12/04
 //
 // Implementation notes-
 //       The Listen object is the Server analog to a Client Agent.
@@ -27,6 +27,14 @@
 #ifndef _LIBPUB_HTTP_LISTEN_H_INCLUDED
 #define _LIBPUB_HTTP_LISTEN_H_INCLUDED
 
+#define LISTEN_VERSION 20241204
+#define LISTEN_OLD (LISTEN_VERSION < 20241125)
+#define LISTEN_NEW (LISTEN_VERSION > 20241124)
+
+#if LISTEN_NEW
+#else
+#endif
+
 #include <cstdlib>                  // For size_t
 #include <cstring>                  // For memcmp
 #include <functional>               // For std::function
@@ -35,8 +43,8 @@
 #include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
 
-#include <pub/config.h>             // For _ATTRIBUTE_PRINTF macro
 #include <pub/Debug.h>              // For pub::Debug
+#include <pub/Select.h>             // For pub::Select
 #include <pub/Socket.h>             // For pub::Socket
 
 #include "pub/http/Options.h"       // For pub::http::Options
@@ -170,6 +178,11 @@ const char*                         // The Option value
    get_option(                      // Get Option value
      const char*       name) const  // For this Option name
 {  return opts.locate(name); }
+
+#if LISTEN_NEW
+pub::Select&
+   get_select( void ) const;        // Get Select&
+#endif
 
 void
    on_close(const f_close& f)       // Set close event handler

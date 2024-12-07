@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       HTTP Agent objects: ClientAgent and ListenAgent.
 //
 // Last change date-
-//       2023/04/16
+//       2024/11/26
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_AGENT_H_INCLUDED
@@ -173,7 +173,7 @@ typedef Map_t::iterator
 //----------------------------------------------------------------------------
 // ClientAgent::Attributes
 //----------------------------------------------------------------------------
-Select                 select;      // The Client Socket selector
+pub::Select            select;      // The Client Socket selector
 int                    connect_error= 0; // Latest connect error
 bool                   operational= true; // TRUE while operational
 
@@ -193,6 +193,13 @@ public:
 // ClientAgent::debug
 //----------------------------------------------------------------------------
 void debug(const char* info= "") const; // Debugging display
+
+//----------------------------------------------------------------------------
+// ClientAgent::Accessor methods
+//----------------------------------------------------------------------------
+pub::Select&                        // Our Selector (Full access)
+   get_select( void )               // Get Selector
+{  return select; }
 
 //----------------------------------------------------------------------------
 //
@@ -333,7 +340,7 @@ typedef Map_t::iterator
 //----------------------------------------------------------------------------
 // ListenAgent::Attributes
 //----------------------------------------------------------------------------
-Select                 select;      // The Server Socket selector
+pub::Select            select;      // The Server Socket selector
 int                    connect_error= 0; // Latest connect error
 bool                   operational= true; // TRUE while operational
 
@@ -353,6 +360,13 @@ public:
 // ListenAgent::debug
 //----------------------------------------------------------------------------
 void debug(const char* info= "") const; // Debugging display
+
+//----------------------------------------------------------------------------
+// ListenAgent::Accessor methods
+//----------------------------------------------------------------------------
+pub::Select&                        // Our Selector (Full access)
+   get_select( void )               // Get Selector
+{  return select; }
 
 //----------------------------------------------------------------------------
 //

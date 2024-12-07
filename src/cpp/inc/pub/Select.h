@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2022 Frank Eskesen.
+//       Copyright (c) 2019-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,11 +16,24 @@
 //       Socket polling controller/selector.
 //
 // Last change date-
-//       2022/12/16
+//       2024/11/25
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SELECT_H_INCLUDED
 #define _LIBPUB_SELECT_H_INCLUDED
+
+#define SELECT_VERSION 20241126
+#define SELECT_OLD (SELECT_VERSION < 20241125)
+#define SELECT_NEW (SELECT_VERSION > 20241124)
+
+#define _LIBPUB_USE_UNUSED false
+
+#if SELECT_NEW
+#else
+#endif
+
+#if SELECT_OLD
+#endif
 
 #include <functional>               // For std::function
 #include <mutex>                    // For std::mutex
@@ -98,7 +111,7 @@ public:
    ~Select();
 
 //----------------------------------------------------------------------------
-// Select::Implement lockable
+// Select::Implement lockable (SHR)
 //----------------------------------------------------------------------------
 void
    lock( void )
@@ -124,7 +137,7 @@ const struct pollfd*                // The associated pollfd
      const Socket*     socket) const // For this Socket
 {  std::lock_guard<decltype(shr_latch)> lock(shr_latch);
 
-   int fd= socket->handle;
+   int fd= socket->get_handle();
    if( fd < 0 || fd >= size ) {     // (Not valid, most likely closed)
      errno= EBADF;
      return nullptr;
@@ -139,6 +152,7 @@ const struct pollfd*                // The associated pollfd
    return &pollfd[fd];
 }
 
+#if _LIBPUB_USE_UNUSED
 const Socket*                       // The associated Socket*
    get_socket(                      // Extract Socket
      int               fd) const    // For this file descriptor
@@ -151,7 +165,42 @@ const Socket*                       // The associated Socket*
 
    return fdsock[fd];
 }
+#endif
 
+#if SELECT_NEW
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Select::close
+//
+// Purpose-
+//       Close the Socket
+//
+// Implementation note-
+//       Calling close when aready closed is an (ignorable) error.
+//       Close *MUST NOT* be called from a Socket asynchronous event handler.
+//
+//----------------------------------------------------------------------------
+int                                 // Return code, 0 expected
+   close(                           // Close a Socket
+     Socket*           socket);     // The associated Socket
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Select::empty
+//
+// Purpose-
+//       Remove *all* Sockets from the Select
+//
+//----------------------------------------------------------------------------
+void
+   empty( void );                   // Empty the Select
+#endif
+
+//----------------------------------------------------------------------------
+// Select::Selection control methods
+//----------------------------------------------------------------------------
 void
    flush( void );                   // Flush enqueued operations
 

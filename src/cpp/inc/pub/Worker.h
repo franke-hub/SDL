@@ -22,7 +22,7 @@
 #ifndef _LIBPUB_WORKER_H_INCLUDED
 #define _LIBPUB_WORKER_H_INCLUDED
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------

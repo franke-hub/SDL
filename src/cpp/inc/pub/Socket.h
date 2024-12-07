@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2022 Frank Eskesen.
+//       Copyright (c) 2019-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,14 +16,10 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2022/12/06
+//       2024/11/25
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
-//
-//       SocketException is only thrown for usage errors and SHOULD NOT OCCUR
-//       conditions. Recoverable SNO conditions result in an error message
-//       which, unless described as a user error, should be reported.
 //
 //       Methods get_host_port, get_peer_port, set_host_port, and set_peer_port
 //       apply only to family AF_INET and AF_INET6 sockets.
@@ -31,6 +27,14 @@
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SOCKET_H_INCLUDED
 #define _LIBPUB_SOCKET_H_INCLUDED
+
+#define SOCKET_VERSION 20241126
+#define SOCKET_OLD (SOCKET_VERSION < 20241125)
+#define SOCKET_NEW (SOCKET_VERSION > 20241124)
+
+#if SOCKET_OLD
+#else
+#endif
 
 #include <atomic>                   // For std::atomic
 #include <functional>               // For std::function
@@ -50,16 +54,12 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------
 // Forward references
 //----------------------------------------------------------------------------
+#if SOCKET_OLD
 class Select;                       // Socket select controller
+#endif
 
 //----------------------------------------------------------------------------
-//
-// Class-
-//       SocketException
-//
-// Purpose-
-//       Socket Exception.
-//
+// SocketException | Thrown when an invalid parameter is detected
 //----------------------------------------------------------------------------
 class SocketException : public Exception { using Exception::Exception;
 }; // class SocketException
@@ -77,20 +77,14 @@ class SocketException : public Exception { using Exception::Exception;
 //
 //----------------------------------------------------------------------------
 class Socket : public Object {      // Standard posix socket wrapper
+#if SOCKET_OLD
 friend class Select;
+#endif
 
-//----------------------------------------------------------------------------
-// Socket::Typedefs and enumerations
-//----------------------------------------------------------------------------
 public:
-static const int       CLOSED= -1;  // Closed socket handle
-typedef in_port_t      Port;        // A port type
-typedef std::function<void(int)>              f_select;
-
 //----------------------------------------------------------------------------
-// Socket::sockaddr_u, Socket::sockaddr_x
+// Socket::sockaddr_x | Extended sockaddr (currently only used for AF_UNIX)
 //----------------------------------------------------------------------------
-// Extended sockaddr, currently only used for AF_UNIX
 struct sockaddr_x {                 // Extended sockaddr
 sa_family_t            x_family;    // Socket address family
 uint16_t               _0002[10];   // (Unused)
@@ -98,6 +92,9 @@ uint16_t               x_socksize;  // Length (x_sockaddr)
 sockaddr*              x_sockaddr;  // Sockaddr copy (Possibly this)
 }; // struct sockaddr_x
 
+//----------------------------------------------------------------------------
+// Socket::sockaddr_u | Aligned multi-family socket type union
+//----------------------------------------------------------------------------
 union sockaddr_u {                  // Aligned multi-family union
 uint64_t               su_align[4]; // Alignment and maximum size (32)
 sa_family_t            su_af;       // Socket address family
@@ -140,12 +137,21 @@ std::string                         // The display string
 }; // union sockaddr_u
 
 //----------------------------------------------------------------------------
+// Socket::Typedefs and enumerations
+//----------------------------------------------------------------------------
+static const int       CLOSED= -1;  // Closed socket handle
+typedef in_port_t      Port;        // A port type
+typedef std::function<void(int)>    f_select; // Select event handler type
+
+//----------------------------------------------------------------------------
 // Socket::Attributes
 //----------------------------------------------------------------------------
 protected:
 std::mutex             mutex;       // Open/close mutex
+#if SOCKET_OLD
 std::atomic<Select*>   select= nullptr; // The associated Select
-f_select               h_select;    // Selection handler
+#endif
+f_select               h_select;    // Selection event handler
 
 int                    handle= CLOSED; // The socket handle (handle)
 short                  family= 0;   // The connection address family
@@ -193,7 +199,7 @@ static void
 //----------------------------------------------------------------------------
 public:
 /*****************************************************************************
-  @brief Drive the selection handler
+  @brief Drive a polling event handler
 
   @param revent: The polling revent
 *****************************************************************************/
@@ -260,9 +266,11 @@ socklen_t                           // The peer internet address length
    get_peer_size( void ) const      // Get peer internet address length
 {  return peer_size; }
 
+#if SOCKET_OLD
 Select*                             // The Select
    get_select( void )               // Get Select
 {  return select.load(); }
+#endif
 
 const char*                         // The unix socket file name
    get_unix_name( void ) const;     // Get unix socket file name

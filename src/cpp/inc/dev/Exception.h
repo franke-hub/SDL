@@ -25,7 +25,7 @@
 #include <stdexcept>                // For std::exception, ...
 #include <string>                   // For std::string
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
 #include "dev/bits/devconfig.h"     // For HTTP config controls
 

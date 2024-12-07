@@ -29,7 +29,7 @@
 #include <cstdint>                  // For uint8_t, ...
 #include <stdio.h>                  // For EOF
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------

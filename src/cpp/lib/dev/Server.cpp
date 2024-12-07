@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,9 +16,10 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2023/07/29
+//       2024/11/26
 //
 //----------------------------------------------------------------------------
+#include <atomic>                   // For std::atomic<serialno_t>
 #include <new>                      // For std::bad_alloc
 #include <cstring>                  // For memset
 #include <mutex>                    // For std::mutex, ..., base class
@@ -108,7 +109,8 @@ static const char*     proto[HTTP_PROTO_LENGTH]=
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static std::atomic_int _serialno= 2; // Serial number
+static std::atomic<Server::serialno_t>
+                       _serialno= 2; // Server serial number
 
 //----------------------------------------------------------------------------
 // Event reporting
@@ -135,63 +137,6 @@ static struct StaticGlobal {
 }
 }  staticGlobal;
 }  // Anonymous namespace
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       ServerItem
-//
-// Purpose-
-//       The Server I/O dispatch::Item
-//
-//----------------------------------------------------------------------------
-class ServerItem : public dispatch::Item {
-public:
-typedef std::shared_ptr<Server>     server_ptr;
-
-enum                                // Function codes
-{  FC_CLOSE= 2                      // CLOSE
-};
-
-Ioda                   ioda;        // The Input/Output Data Area
-server_ptr             server;      // The associated Server
-int                    serialno;    // Server serial number
-int                    sequence;    // ServerItem sequence number
-
-   ServerItem(                      // Constructor
-     server_ptr        S)           // The Server
-:  dispatch::Item(), ioda()
-,  server(S), serialno(S->serialno), sequence(++S->sequence)
-{  if( HCDM && VERBOSE > 2 ) debugh("ServerItem(%p)!\n", this);
-   if( USE_ITRACE )
-     Trace::trace(".NEW", "SITM", this);
-
-   if( USE_REPORT )
-     item_count.inc();
-
-   INS_DEBUG_OBJ("ServerItem");
-}
-
-virtual
-   ~ServerItem( void )              // Destructor
-{  if( HCDM && VERBOSE > 2 ) debugh("ServerItem(%p)~\n", this);
-   if( USE_ITRACE )
-     Trace::trace(".DEL", "SITM", this);
-
-   if( USE_REPORT )
-     item_count.dec();
-
-   REM_DEBUG_OBJ("ServerItem");
-}
-
-virtual void
-   debug(const char* info) const
-{  debugf("ServerItem(%p)::debug(%s) server(%p)\n", this, info, server.get());
-
-   debugf("..serialno(%d) sequence(%d)\n", serialno, sequence);
-   debugf("..fc(%d) cc(%d) done(%p)\n", fc, cc, done);
-}
-}; // class ServerItem
 
 //----------------------------------------------------------------------------
 //
@@ -260,6 +205,63 @@ static inline void*
 //
 //----------------------------------------------------------------------------
 static inline void* i2v(intptr_t i) { return (void*)i; }
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       ServerItem
+//
+// Purpose-
+//       The Server I/O dispatch::Item
+//
+//----------------------------------------------------------------------------
+class ServerItem : public dispatch::Item {
+public:
+typedef std::shared_ptr<Server>     server_ptr;
+
+enum                                // Function codes
+{  FC_CLOSE= 2                      // CLOSE
+};
+
+Ioda                   ioda;        // The Input/Output Data Area
+server_ptr             server;      // The associated Server
+Server::sequence_t     sequence;    // ServerItem sequence number
+Server::serialno_t     serialno;    // Server serial number
+
+   ServerItem(                      // Constructor
+     server_ptr        S)           // The Server
+:  dispatch::Item(), ioda(), server(S)
+,  sequence(++S->sequence), serialno(S->serialno)
+{  if( HCDM && VERBOSE > 2 ) debugh("ServerItem(%p)!\n", this);
+   if( USE_ITRACE )
+     Trace::trace(".NEW", "SITM", this);
+
+   if( USE_REPORT )
+     item_count.inc();
+
+   INS_DEBUG_OBJ("ServerItem");
+}
+
+virtual
+   ~ServerItem( void )              // Destructor
+{  if( HCDM && VERBOSE > 2 ) debugh("ServerItem(%p)~\n", this);
+   if( USE_ITRACE )
+     Trace::trace(".DEL", "SITM", this);
+
+   if( USE_REPORT )
+     item_count.dec();
+
+   REM_DEBUG_OBJ("ServerItem");
+}
+
+virtual void
+   debug(const char* info) const
+{  debugf("ServerItem(%p)::debug(%s) server(%p)\n", this, info, server.get());
+
+   debugf("..sequence(%zd) serialno(%zd)\n", sequence, serialno);
+   debugf("..fc(%d) cc(%d) done(%p)\n", fc, cc, done);
+}
+}; // class ServerItem
 
 //----------------------------------------------------------------------------
 //
@@ -344,12 +346,11 @@ static inline void* i2v(intptr_t i) { return (void*)i; }
 
    // Close and delete the socket
    close();
-   delete socket;
+
+   REM_DEBUG_OBJ("*Server*");
 
    if( USE_REPORT )
      server_count.dec();
-
-   REM_DEBUG_OBJ("*Server*");
 
    // Implementation note:
    // After return, C++ invokes task_inp and task_out destructors
@@ -384,13 +385,30 @@ void
 {  debugf("Server(%p)::debug(%s) fsm(%d) %s\n", this, info
          , fsm, get_peer_addr().to_string().c_str());
 
-   debugf("..serialno(%d), sequence(%d)\n", serialno, sequence);
+   debugf("..sequence(%zd) serialno(%zd)\n", sequence, serialno);
    debugf("..listen(%p) socket(%p)\n", listen, socket);
    debugf("..size_inp(%'zd) size_out(%'zd)\n", size_inp, size_out);
    socket->debug("Server::debug");
    debugf("task_inp:\n"); task_inp.debug(info);
    debugf("task_out:\n"); task_out.debug(info);
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Server::get_select
+//
+// Purpose-
+//       Access the Select
+//
+// Implementation notes-
+//       Server.h defines class Listen but doesn't include it, and
+//       Listen.h defines class ListenAgent but doesn't include it.
+//
+//----------------------------------------------------------------------------
+pub::Select&                        // Get (Agent's) Select
+   Server::get_select( void )       // Get (Agent's) Select
+{  return listen->get_agent()->get_select(); }
 
 //----------------------------------------------------------------------------
 //
@@ -449,20 +467,26 @@ void
 //
 //----------------------------------------------------------------------------
 void
-   Server::close( void )            // Terminate the Server
+   Server::close( void )            // Close the Server
 {  if( HCDM ) debugh("Server(%p)::close() fsm(%d)\n", this, fsm);
-   if( USE_ITRACE )
+   if( USE_ITRACE && socket )
      Trace::trace(".SRV", ".CLS", this, i2v(get_handle()));
 
    {{{{
      std::lock_guard<Server> lock(*this);
 
-     if( fsm != FSM_RESET ) {
+     if( socket ) {
        fsm= FSM_RESET;
-       // Note: Listen::disconnect uses socket->get_peer_addr(), therefore
-       // listen->disconnet() must precede socket->close()
+       // Note: Agent::disconnect uses socket->get_peer_addr(), therefore
+       // agent->disconnect() must precede socket->close()
        listen->disconnect(this);    // (Only called once)
-       socket->close();             // (Only called once)
+
+       Select& select= get_select();
+       select.remove(socket);
+       select.flush();
+       socket->close();
+       delete socket;
+       socket= nullptr;
      }
    }}}}
 }
@@ -484,9 +508,7 @@ void
 
    if( fsm == FSM_READY ) {
      fsm= FSM_CLOSE;                // Close in progress
-     Select* select= socket->get_select();
-     if( select )
-       select->modify(socket, 0);   // Remove from poll list
+     get_select().modify(socket, 0); // Remove Socket from poll list
 
      ServerItem* item= new ServerItem(get_self());
      item->fc= item->FC_CLOSE;
@@ -718,7 +740,7 @@ if( L < 0 && IS_BLOCK ) {
 }
 
    if( L == 0 || (L < 0 && errno == ECONNRESET) ) { // If connection reset
-     close_enq();                   // Schedule Client close
+     close_enq();                   // Schedule Server close
      return;
    }
 
@@ -756,9 +778,7 @@ void
    if( ioda_out.get_used() == 0 ) {
      if( events & POLLOUT ) {
        events &= ~POLLOUT;
-       Select* select= socket->get_select();
-       if( select )
-         select->modify(socket, POLLIN);
+       get_select().modify(socket, POLLIN);
      }
      return;
    }
@@ -790,9 +810,7 @@ void
 
        if( events & POLLOUT ) {
          events &= ~POLLOUT;
-         Select* select= socket->get_select();
-         if( select )
-           select->modify(socket, POLLIN);
+         get_select().modify(socket, POLLIN);
        }
        return;
      }
@@ -810,7 +828,6 @@ void
    ioda_out.discard(ioda_off);
 
    events |= POLLOUT;
-   Select* select= socket->get_select();
-   select->modify(socket, POLLIN | POLLOUT);
+   get_select().modify(socket, POLLIN | POLLOUT);
 }
 }  // namespace _LIBPUB_NAMESPACE::http

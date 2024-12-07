@@ -25,7 +25,7 @@
 //       The mainline file's "look and feel" is explicitly not copyrighted.
 //
 //----------------------------------------------------------------------------
-#include <pub/config.h>             // For _PUB_NAMESPACE macro
+#include "pub/config.h"             // For _PUB_NAMESPACE macro
 #include <pub/Debug.h>              // For namespace debugging
 #include "Sample.h"                 // Object declarations
 

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       HTTP Server object.
 //
 // Last change date-
-//       2023/07/29
+//       2024/11/26
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_SERVER_H_INCLUDED
@@ -63,6 +63,9 @@ typedef std::function<void(dispatch::Item*)>  f_iotask; // (Internal)
 typedef std::function<void(void)>             f_reader; // (Internal)
 typedef std::function<void(void)>             f_writer; // (Internal)
 
+typedef size_t                                sequence_t;
+typedef size_t                                serialno_t;
+
 typedef Ioda::Mesg                            Mesg;
 typedef Socket::sockaddr_u                    sockaddr_u;
 typedef dispatch::LambdaTask                  LambdaTask;
@@ -105,8 +108,8 @@ LambdaTask             task_out;    // Writer task
 
 int                    events= 0;   // Current polling events
 int                    fsm= FSM_RESET; // Finite State Machine state
-int                    serialno= 0; // Server serial number
-int                    sequence= 0; // ServerItem sequence number
+sequence_t             sequence= 0; // ServerItem sequence number
+serialno_t             serialno= 0; // Server serial number
 
 //----------------------------------------------------------------------------
 // Server::Constructor, creator, destructor
@@ -126,7 +129,7 @@ void debug(const char* info= "") const; // Debugging display
 
 int                                 // The socket handle
    get_handle( void ) const         // Get socket handle
-{  return socket->get_handle(); }
+{  return socket ? socket->get_handle() : -1; }
 
 Listen*                             // The Listener
    get_listen( void ) const         // Get Listener
@@ -139,6 +142,9 @@ const sockaddr_u&                   // The Server's internet address
 const sockaddr_u&                   // The Client's internet address
    get_peer_addr( void ) const      // Get Client's internet address
 {  return socket->get_peer_addr(); }
+
+pub::Select&
+   get_select( void );              // Get Select&
 
 server_ptr                          // Self-reference
    get_self( void ) const           // Get self-reference

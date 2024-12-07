@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement http/Agent.h
 //
 // Last change date-
-//       2023/12/13
+//       2024/11/26
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::shared_ptr
@@ -37,6 +37,7 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Dispatch.h>           // For pub::dispatch::Wait
 #include <pub/Exception.h>          // For pub::Exception
+#include <pub/Select.h>             // For pub::Select
 #include <pub/Socket.h>             // For pub::Socket::sockaddr_u
 #include <pub/Trace.h>              // For pub::Trace
 
@@ -176,9 +177,10 @@ static in_port_t                    // The port numbername
 //----------------------------------------------------------------------------
 void
    ClientAgent::debug(const char* info) const // Debugging display
-{  debugf("\nhttp::CAgent(%p)::debug(%s)\n", this, info);
+{  std::lock_guard<decltype(mutex)> mlock(mutex);
 
-   std::lock_guard<decltype(mutex)> mlock(mutex);
+   std::lock_guard<Debug> dlock(*Debug::get()); // (Insures sequential data)
+   debugf("\nhttp::CAgent(%p)::debug(%s)\n", this, info);
 
    // ClientAgent information
    int index= 0;                    // (Artificial) index
@@ -194,14 +196,9 @@ void
    }
 
    // Select information
-   const Select* select= &this->select;
-   if( select ) {
-     debugf("\n");
-     std::lock_guard<Select> slock(*const_cast<Select*>(select));
-     select->debug("CAgent");
-   } else {
-     debugf("..select(nullptr) ** SHOULD NOT OCCUR **\n");
-   }
+   debugf("\n");
+   std::lock_guard<pub::Select> slock(const_cast<Select&>(select));
+   select.debug("CAgent");
 
    debugf("--------------------------------\n");
    debugf("\n");
@@ -511,9 +508,10 @@ void
 //----------------------------------------------------------------------------
 void
    ListenAgent::debug(const char* info) const // Debugging display
-{  debugf("\nhttp::LAgent(%p)::debug(%s)\n", this, info);
+{  std::lock_guard<decltype(mutex)> mlock(mutex);
 
-   std::lock_guard<decltype(mutex)> mlock(mutex);
+   std::lock_guard<Debug> dlock(*Debug::get()); // (Insures sequential data)
+   debugf("\nhttp::LAgent(%p)::debug(%s)\n", this, info);
 
    // ListenAgent information
    int index= 0;                    // (Artificial) index
@@ -706,6 +704,9 @@ void
 
    operational= false;
    select.flush();
+
+//select.debug("LAgent::stop"); // TODO: REMOVE
+//debug("stop"); // TODO REMOVE
 
    if( HCDM ) debugh("%4d ...LAgent(%p)::stop\n", __LINE__, this);
 }

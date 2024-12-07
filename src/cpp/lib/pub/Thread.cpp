@@ -60,15 +60,14 @@ namespace _LIBPUB_NAMESPACE {
 // USE_HCDM_DEBUGGING uses debugging versions of Thread.h inlines.
 #define USE_HCDM_DEBUGGING          // Use Thread.h debugging implementations?
 
-// Production mode settings: HCDM= false; SCDM= false; VERBOSE= 1
+// Production mode settings: HCDM= false; VERBOSE= 1
 enum
-{  HCDM= true                       // Hard Core Debug Mode?
-,  SCDM= true                       // Soft Core Debug Mode?
+{  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 // Production mode settings: USE_CHECK= true; USE_TIMING= false
 ,  USE_CHECK= true                  // Use self-checking code?
-,  USE_TIMING= true                 // Use timing code?
+,  USE_TIMING= false                // Use timing code?
 }; // generic enum
 
 enum FSM                            // Finite State Machine states
@@ -297,7 +296,7 @@ void
 
    if( _tlss )                      // (Avoid NOP detach call)
      detach();
-debugh("%4d Thread~ EXIT\n", __LINE__);
+//debugh("%4d Thread~ EXIT\n", __LINE__);
 }
 
 //----------------------------------------------------------------------------
@@ -435,7 +434,7 @@ debugh("%4d Thread(%p) _tlss == nullptr (DUPLICATE) DETACH\n", __LINE__, this);
 
    if( _tlss ) {{{{
      std::lock_guard<decltype(tlss::mutex)> lock(_tlss->mutex);
-debugh("Thread(%p,0x%zx).detach\n", this, intptr_t(_tlss->std_thread));
+//debugh("Thread(%p,0x%zx).detach\n", this, intptr_t(_tlss->std_thread));
 
      fsm= _tlss->fsm;
      if( fsm != FSM_DRIVE && fsm != FSM_OWNER ) {
@@ -447,13 +446,13 @@ debugh("Thread(%p,0x%zx).detach\n", this, intptr_t(_tlss->std_thread));
      // At this point the Thread should be detachable (or joinable.)
      // If (somehow) it's not, join will return an error, which indicates a
      // problem in this code
-_tlss->debug("Before detach");
-debugh("%4d Thread.detach HCDM TIMING\n", __LINE__);
+//_tlss->debug("Before detach");
+//debugh("%4d Thread.detach HCDM TIMING\n", __LINE__);
      int rc= pthread_detach(_tlss->std_thread);
      if( rc )
        errorh("pthread_detach(0x%zx) error %d:%s\b"
              , intptr_t(_tlss->std_thread), rc, strerror(rc));
-debugh("%4d Thread.detach HCDM TIMING\n", __LINE__);
+//debugh("%4d Thread.detach HCDM TIMING\n", __LINE__);
 
      if( USE_TIMING )
        traceh("%4d Thread(%p).detach _tlss(%p) fsm(%s) detached\n", __LINE__
@@ -465,11 +464,11 @@ debugh("%4d Thread.detach HCDM TIMING\n", __LINE__);
        _tlss->pub_thread= nullptr;  // (Thread cannot be referenced)
        _tlss->std_thread= null_handle; // (Thread ID meaningless)
 //_tlss->std_thread= pthread_t(intptr_t(-1)); // (Thread ID meaningless)
-debug("detach DRIVE=>DETACHED"); // _tlss not zeroed yet, so full debug
+//debug("detach DRIVE=>DETACHED"); // _tlss not zeroed yet, so full debug
        this->_tlss= nullptr;        // We do not own the tlss
 
-Thread::static_debug("Detach[DRIVE] exit");
-debugh("%4d detach EXIT, _tlss==nullptr\n", __LINE__);
+//Thread::static_debug("Detach[DRIVE] exit");
+//debugh("%4d detach EXIT, _tlss==nullptr\n", __LINE__);
        return;
      }
    }}}} // (End of scope: lock_guard tlss::mutex)
@@ -479,13 +478,13 @@ debugh("%4d detach EXIT, _tlss==nullptr\n", __LINE__);
      if( USE_CHECK && _tlss->fsm != FSM_OWNER )
        abortf("Thread.cpp: _tlss->fsm!=FSM_OWNER");
 
-debug("detach DRIVE=>FSM_OWNER [tlss delete]");
+//debug("detach DRIVE=>FSM_OWNER [tlss delete]");
      delete _tlss;                // (We own it, so we delete it)
      this->_tlss= nullptr;        // The tlss is no longer meaningful
    }
 
-debug("Detach exit");
-Thread::static_debug("Detach exit");
+//debug("Detach exit");
+//Thread::static_debug("Detach exit");
    if( USE_TIMING ) {
      traceh("%4d Thread(%p).detach _tlss(%p,%p) fsm(%s) EXIT\n", __LINE__
            , this, _tlss, this->_tlss, "N/A");
@@ -542,8 +541,8 @@ void
    // Once we set the FSM to FSM_JOINING nobody's going to change it (except
    // possibly to OWNER.) In any case nobody gets to delete the tlss but us.
 
-_tlss->debug("before join");        // TODO: REMOVE
-debugf("JOINING(%p,0x%zx)...\n", this, intptr_t(_tlss->std_thread));
+//_tlss->debug("before join");        // TODO: REMOVE
+//debugf("JOINING(%p,0x%zx)...\n", this, intptr_t(_tlss->std_thread));
 
    int rc= pthread_join(_tlss->std_thread, nullptr);
    if( rc ) {                       // Handle join error
@@ -716,7 +715,7 @@ void*                               // (Always nullptr)
 
      // Run the Thread, catching exceptions
      try {
-Stack stack; stack.debug("before run");
+//Stack stack; stack.debug("before run");
        thread->run();
      } catch(Exception& X) {         // Exceptions get message, but complete
        debugh("%4d Thread(%p)::run, Exception: %s\n", __LINE__
@@ -766,7 +765,7 @@ Stack stack; stack.debug("before run");
        if( USE_TIMING )
          traceh("%4d Thread(%p) tlss(%p,%p) drive FSM(%s) (run exit)\n"
                , __LINE__, thread, _tlss, tl_tlss, f2c(fsm));
-_tlss->debug("run exit");
+//_tlss->debug("run exit");
 
        if( fsm != FSM_DETACHED ) {  // If the Thread isn't detached
          if( USE_CHECK ) {
@@ -787,11 +786,11 @@ _tlss->debug("run exit");
          tl_tlss= nullptr;          // tl_tlss available for re-use
 
 // We hold the tlss::mutex, so `thread` and thread->_tlss` are still valid.
-Thread::static_debug("FSM==OWNER");
-thread->debug("FSM==OWNER");
+//Thread::static_debug("FSM==OWNER");
+//thread->debug("FSM==OWNER");
 
 // Last message before exit <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-debugh("%4d HCDM Thread(%p).drive EXIT FSM==OWNER\n", __LINE__, thread);
+//debugh("%4d HCDM Thread(%p).drive EXIT FSM==OWNER\n", __LINE__, thread);
          return nullptr;
        }
      }}}}
@@ -812,7 +811,7 @@ debugh("%4d HCDM Thread(%p).drive EXIT FSM==OWNER\n", __LINE__, thread);
          abortf("Thread.cpp: _tlss->mutex.is_held()==true");
      }
 
-Stack stack; stack.debug("Detached run complete");
+//Stack stack; stack.debug("Detached run complete");
 
      // We have exclusive control of the tlss, but we're about to delete it.
      if( USE_TIMING )
@@ -821,13 +820,13 @@ Stack stack; stack.debug("Detached run complete");
 
 // (We don't know (or care) whether or not the Thread has been deleted, but
 // we know that _tlss->pub_thread == nullptr.) [and `thread` can't be used]
-Thread::static_debug("A detached thread completed");
-_tlss->debug("A detached thread completed");
+//Thread::static_debug("A detached thread completed");
+//_tlss->debug("A detached thread completed");
 
      delete _tlss;                  // Delete the tlss
      tl_tlss= nullptr;              // Reset the thread local storage pointer
 // Last message before exit <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-debugh("%4d HCDM Thread(%p).drive EXIT FSM==DETACHED\n", __LINE__, thread);
+//debugh("%4d HCDM Thread(%p).drive EXIT FSM==DETACHED\n", __LINE__, thread);
      return nullptr;
    } catch(Exception& X) {          // (Exception handling)
      debugh("%4d Thread(%p)::drive, Exception: %s\n", __LINE__
@@ -841,8 +840,8 @@ debugh("%4d HCDM Thread(%p).drive EXIT FSM==DETACHED\n", __LINE__, thread);
    Thread::static_debug("Exception"); // (We don't know if thread is valid)
 
 // Last message before exit <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-   debugh("%4d HCDM Thread(%p) tlss(*,%p) drive EXCEPTION EXIT\n", __LINE__
-         , thread, tl_tlss);        // (Stack _tlss not available)
+// debugh("%4d HCDM Thread(%p) tlss(*,%p) drive EXCEPTION EXIT\n", __LINE__
+//       , thread, tl_tlss);        // (Stack _tlss not available)
    return nullptr;
 }
 } // namespace _LIBPUB_NAMESPACE

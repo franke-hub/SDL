@@ -34,7 +34,7 @@
 #include <sys/signal.h>             // For signal, ...
 #include <sys/stat.h>               // For stat
 
-#include <pub/config.h>             // For ATTRIB_PRINTF macro
+#include "pub/config.h"             // For ATTRIB_PRINTF macro
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include <pub/Fileman.h>            // For namespace pub::fileman
 #include <pub/Parser.h>             // For pub::Parser

@@ -28,7 +28,7 @@
 #include <sys/stat.h>               // For S_* constants and macros
 #include <semaphore.h>              // For semaphore
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------

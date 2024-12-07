@@ -29,8 +29,6 @@
 #include <string.h>                 // For strerrno
 #include <xcb/xcb.h>                // For generic_error_t
 
-#include <pub/config.h>             // For _ATTRIBUTE_* macros
-
 #include "gui/Types.h"              // For namespace gui types
 
 namespace gui {

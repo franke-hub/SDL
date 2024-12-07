@@ -16,12 +16,13 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2024/03/04
+//       2024/12/04
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE                 // For ppoll
 #endif
+
 #include <atomic>                   // For std::atomic<>
 #include <new>                      // For std::bad_alloc
 #include <string>                   // For std::string
@@ -856,11 +857,12 @@ int                    operational= false; // TRUE while operational
 // Constructors/Destructor
 //----------------------------------------------------------------------------
    PacketServer()
-:  Thread(), event() {}
+:  Thread(), event() { }
 
    ~PacketServer()
 {
-   packet.close();                  // If open, removes from select
+   select.empty();
+   packet.close();
 }
 
 //----------------------------------------------------------------------------
@@ -972,6 +974,8 @@ virtual void
      debugf("%4d std::Exception what(%s)\n", __LINE__, X.what());
    }
 
+   select.empty();
+
    // Statistics
    if( opt_verbose ) {
      debugf("Packet std_server info:\n");
@@ -1044,6 +1048,7 @@ void
 {
    operational= false;              // Indicate terminated
    event.reset();
+   select.empty();
    packet.close();
 }
 }; // class PacketServer
@@ -1409,6 +1414,30 @@ virtual void
 //----------------------------------------------------------------------------
 //
 // Method-
+//       StreamServer::close
+//
+// Purpose-
+//       Close the StreamServer listen socket (when inserted)
+//
+//----------------------------------------------------------------------------
+int                                 // Close return code
+   close( void )                    // Close the StreamServer Socket
+{
+   int rc= 0;                       // No problem if already closed
+
+   if( listen->get_handle() >= 0 ) { // If not already closed
+     if( USE_APOLL == USE_POLL_SELECT ) {
+       select.remove(listen);
+     }
+     rc= listen->close();
+   }
+
+   return rc;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       StreamServer::run
 //
 // Purpose-
@@ -1528,7 +1557,8 @@ virtual void
      debugf("%4d std::Exception what(%s)\n", __LINE__, X.what());
    }
 
-   listen->close();
+   select.empty();
+   close();
 
    // Statistics
    if( opt_verbose ) {
@@ -1568,9 +1598,10 @@ void
      debugf("%4d %s stop\n", __LINE__, __FILE__);
    }
 
-   int rc= listen->close();         // Close the listener Socket
+   int rc= close();                 // Close the listener Socket
    if( USE_STOP_HCDM || opt_verbose > 1 )
-     TRACE("%d= listen->close()", rc);
+     TRACE("%d= close()", rc);
+   select.empty();
 
    //-------------------------------------------------------------------------
    // Create a dummy connection to complete any pending accept, ignoring any

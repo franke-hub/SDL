@@ -26,7 +26,7 @@
 #include <string>                   // For std::string
 #include <getopt.h>                 // For opt* controls
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
 //----------------------------------------------------------------------------
 // Built-in options (External, in default namespace)

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2023/07/29
+//       2024/11/26
 //
 // Implmentation note-
 //       TODO: Test _read() disconnect (close processing)
@@ -24,7 +24,7 @@
 //----------------------------------------------------------------------------
 #define OPENSSL_API_COMPAT 30000    // Deprecate OSSL functions < 3.0.0
 
-#include <atomic>                   // For std::atomic<int>
+#include <atomic>                   // For std::atomic<serialno_t>
 #include <cassert>                  // For assert
 #include <cerrno>                   // For errno
 #include <cinttypes>                // For integer types
@@ -79,11 +79,6 @@ namespace _LIBPUB_NAMESPACE::http {  // Implementation namespace
 #define IS_RETRY (errno == EINTR)
 
 //----------------------------------------------------------------------------
-// Forward references
-//----------------------------------------------------------------------------
-static inline void* i2v(intptr_t);
-
-//----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
@@ -102,7 +97,7 @@ enum
 //----------------------------------------------------------------------------
 // Typedefs and enumerations
 //----------------------------------------------------------------------------
-typedef Ioda::Mesg     Mesg;
+typedef Ioda::Mesg     Mesg;        // For convenience
 
 enum EVT                            // Event states
 {  EVT_RESET= 0                     // Reset - idle
@@ -141,7 +136,8 @@ static const char*     proto[HTTP_PROTO_LENGTH]=
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static std::atomic_int _serialno= 1; // Serial number
+static std::atomic<Client::serialno_t>
+                       _serialno= 1; // Client serial number
 
 //----------------------------------------------------------------------------
 // Event reporting
@@ -171,69 +167,6 @@ static struct StaticGlobal {
 }
 }  staticGlobal;
 }  // Anonymous namespace
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       ClientItem
-//
-// Purpose-
-//       The Client DispatchItem
-//
-//----------------------------------------------------------------------------
-class ClientItem : public dispatch::Item { // Client DispatchItem
-public:
-typedef std::shared_ptr<Client>               client_ptr;
-typedef std::shared_ptr<ClientStream>         stream_ptr;
-
-enum                                // Function codes
-{  FC_CLOSE= 2                      // CLOSE
-};
-
-client_ptr             client;      // The associated Client
-int                    serialno;    // Client serial number
-int                    sequence;    // ClientItem sequence number
-stream_ptr             stream;      // The associated ClientStream
-Ioda                   ioda;        // The Input/Output Data Area
-
-   ClientItem(                      // Constructor
-     client_ptr        C,           // The Client
-     stream_ptr        S)           // The ClientStream
-:  dispatch::Item(), client(C), serialno(C->serialno), sequence(++C->sequence)
-,  stream(S), ioda()
-{  if( HCDM && VERBOSE > 0 ) debugh("ClientItem(%p)!\n", this);
-
-   if( USE_ITRACE )
-     Trace::trace(".NEW", "CITM", this);
-
-   if( USE_REPORT )
-     item_count.inc();
-
-   INS_DEBUG_OBJ("ClientItem");
-}
-
-virtual
-   ~ClientItem( void )              // Destructor
-{  if( HCDM && VERBOSE > 0 ) debugh("ClientItem(%p)~\n", this);
-
-   if( USE_ITRACE )
-     Trace::trace(".DEL", "CITM", this, i2v(fc));
-
-   if( USE_REPORT )
-     item_count.dec();
-
-   REM_DEBUG_OBJ("ClientItem");
-}
-
-virtual void
-   debug(const char* info) const
-{  debugf("ClientItem(%p)::debug(%s) client(%p) stream(%p)\n", this, info
-         , client.get(), stream.get());
-
-   debugf("..serialno(%d) sequence(%d)\n", serialno, sequence);
-   debugf("..fc(%d) cc(%d) done(%p)\n", fc, cc, done);
-}
-}; // class ClientItem
 
 //----------------------------------------------------------------------------
 //
@@ -375,7 +308,9 @@ static inline void*
 //       Convert intptr_t  to void*
 //
 //----------------------------------------------------------------------------
-static inline void* i2v(intptr_t i) { return (void*)i; }
+static inline void*
+   i2v(intptr_t i)
+{ return (void*)i; }
 
 //----------------------------------------------------------------------------
 //
@@ -399,6 +334,69 @@ static inline SSL_CTX*
 
    return context;
 }
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       ClientItem
+//
+// Purpose-
+//       The Client DispatchItem
+//
+//----------------------------------------------------------------------------
+class ClientItem : public dispatch::Item { // Client DispatchItem
+public:
+typedef std::shared_ptr<Client>               client_ptr;
+typedef std::shared_ptr<ClientStream>         stream_ptr;
+
+enum                                // Function codes
+{  FC_CLOSE= 2                      // CLOSE
+};
+
+Ioda                   ioda;        // The Input/Output Data Area
+client_ptr             client;      // The associated Client
+Client::sequence_t     sequence;    // ClientItem sequence number
+Client::serialno_t     serialno;    // Client serial number
+stream_ptr             stream;      // The associated ClientStream
+
+   ClientItem(                      // Constructor
+     client_ptr        C,           // The Client
+     stream_ptr        S)           // The ClientStream
+:  dispatch::Item(), ioda(), client(C)
+,  sequence(++C->sequence), serialno(C->serialno), stream(S)
+{  if( HCDM && VERBOSE > 0 ) debugh("ClientItem(%p)!\n", this);
+
+   if( USE_ITRACE )
+     Trace::trace(".NEW", "CITM", this);
+
+   if( USE_REPORT )
+     item_count.inc();
+
+   INS_DEBUG_OBJ("ClientItem");
+}
+
+virtual
+   ~ClientItem( void )              // Destructor
+{  if( HCDM && VERBOSE > 0 ) debugh("ClientItem(%p)~\n", this);
+
+   if( USE_ITRACE )
+     Trace::trace(".DEL", "CITM", this, i2v(fc));
+
+   if( USE_REPORT )
+     item_count.dec();
+
+   REM_DEBUG_OBJ("ClientItem");
+}
+
+virtual void
+   debug(const char* info) const
+{  debugf("ClientItem(%p)::debug(%s) client(%p) stream(%p)\n", this, info
+         , client.get(), stream.get());
+
+   debugf("..sequence(%zd) serialno(%zd)\n", sequence, serialno);
+   debugf("..fc(%d) cc(%d) done(%p)\n", fc, cc, done);
+}
+}; // class ClientItem
 
 //----------------------------------------------------------------------------
 //
@@ -436,17 +434,8 @@ static inline SSL_CTX*
    if( USE_ITRACE )
      Trace::trace(".DEL", "HCLI", this, stream.get());
 
-   // Delete the socket
-   if( socket ) {
-     Select* select= socket->get_select();
-     if( select )
-       select->flush();
-
-     delete socket;
-     socket= nullptr;
-     if( USE_REPORT )
-       socket_count.dec();
-   }
+   // Close and delete the socket
+   close();
 
    if( context )                    // If context exists
      SSL_CTX_free(context);
@@ -485,7 +474,7 @@ void
 {  debugf("Client(%p)::debug(%s) fsm(%d) events(0x%.2x)\n"
          , this, info, fsm, events);
 
-   debugf("..serialno(%d), sequence(%d)\n", serialno, sequence);
+   debugf("..sequence(%zd) serialno(%zd)\n", sequence, serialno);
    debugf("..agent(%p) context(%p) proto_id(%s) rd_complete(%u)\n"
          , agent, context, proto_id, rd_complete.has_posted());
    debugf("..size_inp(%'zd) size_out(%'zd)\n", size_inp, size_out);
@@ -493,6 +482,22 @@ void
    debugf("task_inp:\n"); task_inp.debug(info);
    debugf("task_out:\n"); task_out.debug(info);
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Client::get_select
+//
+// Purpose-
+//       Access the Select
+//
+// Implementation notes-
+//       Client.h defines class ClientAgent but doesn't include it.
+//
+//----------------------------------------------------------------------------
+pub::Select&                        // Get (Agent's) Select
+   Client::get_select( void )       // Get (Agent's) Select
+{  return agent->get_select(); }
 
 //----------------------------------------------------------------------------
 //
@@ -534,8 +539,7 @@ void
      if( events & (EVT_WR_HEAD | EVT_WR_DATA) ) {
        h_writer();
      } else {
-       Select* select= socket->get_select();
-       select->modify(socket, POLLIN);
+       get_select().modify(socket, POLLIN);
      }
      return;
    }
@@ -564,12 +568,20 @@ void
    {{{{
      std::lock_guard<Client> lock(*this);
 
-     if( fsm != FSM_RESET ) {
+     if( socket ) {
        fsm= FSM_RESET;
        // Note: Agent::disconnect uses socket->get_peer_addr(), therefore
        // agent->disconnect() must precede socket->close()
        agent->disconnect(this);     // (Only called once)
-       socket->close();             // (Only called once)
+
+       Select& select= get_select();
+       select.remove(socket);
+       select.flush();
+       socket->close();
+       delete socket;
+       socket= nullptr;
+       if( USE_REPORT )
+         socket_count.dec();
      }
    }}}}
 
@@ -594,9 +606,7 @@ void
 
    if( fsm == FSM_READY ) {
      fsm= FSM_CLOSE;                // Close in progress
-     Select* select= socket->get_select();
-     if( select )
-       select->modify(socket, 0);   // Remove from poll list
+     get_select().modify(socket, 0); // Remove Socket from poll list
 
      ClientItem* item= new ClientItem(get_self(), stream);
      item->fc= item->FC_CLOSE;
@@ -610,7 +620,7 @@ void
 //       Client::connect
 //
 // Purpose-
-//       Connect to server
+//       Connect to Server
 //
 //----------------------------------------------------------------------------
 Socket*                             // Resultant Socket (nullptr if failure)
@@ -995,7 +1005,7 @@ void
          return;
        }
 
-       // Implementation note: if there's no data, the server could have
+       // Implementation note: if there's no data, the Server could have
        // alreaday received the request and sent the response.
        events &= ~EVT_WR_HEAD;
        if( events & EVT_WR_DATA ) { // If there's data to be sent
@@ -1095,7 +1105,7 @@ if( L < 0 && IS_BLOCK ) {
 }
 
    if( L == 0 || (L < 0 && errno == ECONNRESET) ) { // If connection reset
-     close();                       // Schedule Client close
+     close_enq();                       // Schedule Client close
      return;
    }
 
@@ -1152,9 +1162,7 @@ ssize_t                             // Written length
 
    if( !IS_BLOCK )
      throw io_error(to_string("Client::write %d:%s", errno, strerror(errno)));
-   Select* select= socket->get_select();
-   if( select )
-     select->modify(socket, POLLIN | POLLOUT);
+   get_select().modify(socket, POLLIN | POLLOUT);
    return -1;
 }
 }  // namespace _LIBPUB_NAMESPACE::http

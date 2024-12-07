@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/11/25
+//       2024/12/06
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,15 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 12/06/2024 maint (With extensive diagnostics, commented out)
+
+The Brian termination problem hasn't been debugged.
+
+Extensive diagnostics remain in the code, commented out so they don't affect
+regression test output. (This applies to both the dev and the pub libraries.)
 
 ----
 

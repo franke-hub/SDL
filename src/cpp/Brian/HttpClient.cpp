@@ -37,7 +37,7 @@
 #include <sys/timeb.h>              // For struct timeb, ftime
 #include <sys/types.h>              // For int64_t
 
-#include <pub/bits/usrconfig.h>     // For ATTRIB_PRINTF macro
+#include "pub/config.h"             // For ATTRIB_PRINTF macro
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

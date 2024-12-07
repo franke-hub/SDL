@@ -22,7 +22,7 @@
 #ifndef _LIBPUB_BITS_USRCONFIG_H_INCLUDED
 #define _LIBPUB_BITS_USRCONFIG_H_INCLUDED
 
-#include <pub/bits/pubconfig.h>
+#include "pub/bits/pubconfig.h"
 
 //----------------------------------------------------------------------------
 // Standard constants

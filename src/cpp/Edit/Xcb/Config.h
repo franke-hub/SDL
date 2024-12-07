@@ -24,7 +24,7 @@
 
 #include <string>                   // For std::string
 
-#include <pub/config.h>             // For ATTRIB_PRINTF macro
+#include "pub/config.h"             // For ATTRIB_PRINTF macro
 #include <pub/Signals.h>            // For pub::signals
 
 #include "EdType.h"                 // For common editor types

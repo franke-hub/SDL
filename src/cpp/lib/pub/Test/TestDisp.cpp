@@ -44,6 +44,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <pub/config.h>             // For ATTRIB_PRINTF, ATTRIB_NORETURN
 #include <pub/TEST.H>               // For test functions and macros
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/Dispatch.h"           // For pub::dispatch objects, tested

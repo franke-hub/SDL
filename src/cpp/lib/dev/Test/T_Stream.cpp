@@ -435,6 +435,7 @@ static void
        debug_backtrace();           // Attempt diagnosis (recursion aborts)
        debugf("..terminated..\n");
        term();
+       debugf("..EXIT_FAILURE..\n");
        exit(EXIT_FAILURE);
        break;
 
@@ -555,11 +556,16 @@ static void
    term( void )                     // Terminate
 {
    // Remove client/server agent
+//debugh("T_Stream::term\n"); // TODO: REMOVE
+//client_agent->debug("term");
+//listen_agent->debug("term");
+
    delete client_agent;
    delete listen_agent;
    client_agent= nullptr;
    listen_agent= nullptr;
 
+#if 1  // TODO: REMOVE
    //-------------------------------------------------------------------------
    // Restore system signal handlers
    if( sys1_handler ) signal(SIGINT,  sys1_handler);
@@ -575,6 +581,11 @@ static void
      munmap(trace_table, opt_trace);
      trace_table= nullptr;
    }
+#else  // TODO: REMOVE
+(void)sys1_handler; // TODO: REMOVE
+(void)sys2_handler; // TODO: REMOVE
+Trace::trace(".XIT", 0, "T_STREAM TERM"); // TODO: REMOVE
+#endif // TODO: REMOVE
 
    // Terminate debugging
 #if 0  // TODO: REMOVE (when thread/worker tracing removed)
@@ -881,6 +892,8 @@ extern int
        server->ended.wait();
        delete server;
      }
+
+     Trace::trace(".TXT", __LINE__, "TC.main ended");
    } catch(PUB::Exception& X) { // - - - - - - - - - - - - - - - - - - - - - -
      ++error_count;
      debugf("%4d T_Stream: %s\n", __LINE__, ((string)X).c_str());

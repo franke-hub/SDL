@@ -25,7 +25,7 @@
 #include <sys/stdint.h>             // (This include is guaranteed)
 #include <sys/types.h>              // (This include is guaranteed)
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 _LIBPUB_END_NAMESPACE

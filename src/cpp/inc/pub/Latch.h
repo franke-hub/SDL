@@ -48,7 +48,7 @@
 #include <thread>                   // For std::thread::id
 #include <stdint.h>                 // For uint32_t
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------

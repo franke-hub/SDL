@@ -15,7 +15,7 @@
 ##       Build control makefile.
 ##
 ## Last change date-
-##       2024/02/01
+##       2024/12/05
 ##
 ##############################################################################
 
@@ -55,6 +55,7 @@ PY_    := $(SDL_ROOT)/obj/py
 install: environment
 	(cd $(CPP_); $(MAKE) install)
 	(cd $(PY_);  $(MAKE) install)
+	@echo "** make $@ completed OK **"
 
 ##----------------------------------------------------------------------------
 reinstall: environment
@@ -70,16 +71,19 @@ uninstall: environment
 update: environment
 	(cd $(CPP_); $(MAKE) update)
 	(cd $(PY_);  $(MAKE) update)
+	@echo "** make $@ completed OK **"
 
 ##----------------------------------------------------------------------------
 check: environment
 	(cd $(CPP_); $(MAKE) check)
 	(cd $(PY_);  $(MAKE) check)
+	@echo "** make $@ completed OK **"
 
 ##----------------------------------------------------------------------------
 compile: environment
 	(cd $(CPP_); $(MAKE) compile)
 	(cd $(PY_);  $(MAKE) compile)
+	@echo "** make $@ completed OK **"
 
 ##----------------------------------------------------------------------------
 clean: defined-root
@@ -90,6 +94,7 @@ clean: defined-root
 pristine: defined-root
 	(cd $(CPP_); $(MAKE) pristine)
 	(cd $(PY_);  $(MAKE) pristine)
+	@echo "** make $@ completed OK **"
 
 ##############################################################################
 ## TARGET: environment: Insure $SDL_ROOT is defined and valid

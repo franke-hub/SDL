@@ -36,7 +36,7 @@
 // Even though _LIBPUB_ macros are unused we still need this include.
 // It's needed here to follow the rule that any and all pub include files
 // directly or indirectly include pub/bits/pubconfig.h
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
 //----------------------------------------------------------------------------
 //

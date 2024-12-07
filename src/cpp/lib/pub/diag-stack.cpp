@@ -19,7 +19,9 @@
 //       2024/11/22
 //
 //----------------------------------------------------------------------------
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE                 // For pthread_getattr_np
+#endif
 
 #include <mutex>                    // For std::lock_guard
 

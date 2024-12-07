@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2023 Frank Eskesen.
+//       Copyright (C) 2019-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,12 +16,13 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2023/04/26
+//       2024/11/25
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE                 // For ppoll
 #endif
+
 #define OPENSSL_API_COMPAT 30000    // Deprecate OSSL functions < 3.0.0
 
 #include <new>                      // For std::bad_alloc
@@ -45,12 +46,14 @@
 #include <sys/un.h>                 // For sockaddr_un
 #include <sys/time.h>               // For timeval, ...
 
+#include "pub/Socket.h"             // For pub::Socket, implemented
 #include <pub/utility.h>            // For to_string(), ...
 #include <pub/Debug.h>              // For debugging
 #include <pub/Must.h>               // For pub::must::malloc
-
+#include <pub/Trace.h>              // For pub::Trace
+#if SOCKET_OLD
 #include "pub/Select.h"             // For pub::Select
-#include "pub/Socket.h"             // For pub::Socket, implemented
+#endif
 
 using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
 
@@ -68,13 +71,28 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  IODM= false                      // I/O Debug Mode?
 ,  IOEM= true                       // I/O error Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  USE_CHECKING= true               // Use internal cross-checking?
+,  USE_ITRACE= true                 // Use internal trace?
 }; // enum
 
 // Maximum/minimum sockaddr_u lengths
 static int constexpr   max_sock= (int)sizeof(sockaddr_u);
 static int constexpr   min_sock= (int)sizeof(sockaddr::sa_family);
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       i2v
+//
+// Purpose-
+//       Convert intptr_t  to void*
+//
+//----------------------------------------------------------------------------
+static inline void*
+   i2v(intptr_t i)
+{ return (void*)i; }
 
 //----------------------------------------------------------------------------
 //
@@ -99,23 +117,6 @@ static void
      ec= ERR_get_error();
    }
    errno= ERRNO;                    // Restore errno
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       sno_exception
-//
-// Purpose-
-//       Message: A should not occur situation occured.
-//
-//----------------------------------------------------------------------------
-[[noreturn]]
-static void
-   sno_exception(int line)
-{
-   errorf("%4d %s Should not occur (but did)\n", line, __FILE__);
-   throw std::runtime_error("Should not occur");
 }
 
 //----------------------------------------------------------------------------
@@ -185,7 +186,7 @@ void
    } else {
      if( size_t(size) > sizeof(sockaddr_u) ) {
        errorf("socket length(%d) > maximum(%d)\n", size, max_sock);
-       sno_exception(__LINE__);
+       throw SocketException("Invalid sockaddr_u::copy length");
      }
 
      memcpy(this, addr, size);
@@ -275,17 +276,23 @@ std::string
 {  if( HCDM )
      debugh("Socket(%p)::Socket()\n", this);
 
+   if( USE_ITRACE )
+     Trace::trace(".NEW", "=SOK", this);
+
    host_size= sizeof(host_addr);
    peer_size= sizeof(peer_addr);
 }
 
    Socket::Socket(                  // Copy constructor
-     const Socket&     source)      // Source Socket
+     const Socket&     that)        // Source Socket
 :  Object()
 {  if( HCDM )
-     debugh("Socket(%p)::Socket(%p)\n", this, &source);
+     debugh("Socket(%p)::Socket(%p)\n", this, &that);
 
-   copy(source);
+   if( USE_ITRACE )
+     Trace::trace(".NEW", "=SOK", this, &that);
+
+   copy(that);
 }
 
 //----------------------------------------------------------------------------
@@ -300,6 +307,9 @@ std::string
    Socket::~Socket( void )          // Destructor
 {  if( HCDM )
      debugh("Socket(%p)::~Socket()\n", this);
+
+   if( USE_ITRACE )
+     Trace::trace(".DEL", "=SOK", this, i2v(handle));
 
    close();
 }
@@ -362,8 +372,13 @@ void
 
    debugf("..%s::%s\n", host_addr.to_string().c_str()
          , peer_addr.to_string().c_str());
+#if SOCKET_OLD
    debugf("..family(%d) type(%d) select(%p)\n"
          , family, type, select.load());
+#else
+   debugf("..family(%d) type(%d)\n"
+         , family, type);
+#endif
    debugf("..host_size(%d), peer_size(%d)\n", host_size, peer_size);
 }
 
@@ -506,6 +521,9 @@ Socket*                             // The new connection Socket
    result->peer_size= peersize;
    result->peer_addr.copy(&peeraddr, peersize);
 
+   if( USE_ITRACE )
+     Trace::trace(".SOK", "=ACC", this, result, i2v(handle), i2v(client));
+
    return result;
 }
 
@@ -575,13 +593,18 @@ int                                 // Return code, 0 OK
 {  if( HCDM )
      debugh("Socket(%p)::close() handle(%d)\n", this, handle);
 
+   if( USE_ITRACE )
+     Trace::trace(".SOK", "=CLS", this, i2v(handle));
+
 // std::lock_guard<decltype(mutex)> lock(mutex);
 
+#if SOCKET_OLD
    Select* select= this->select.load();
    if( select ) {                   // If Select active
      select->remove(this);          // ENQ remove, ignoring errors
      select->flush();               // Insure REMOVE completes
    }
+#endif
 
    int rc= 0;
    if( handle >= 0 ) {
@@ -797,6 +820,9 @@ int                                 // Return code, 0 OK
    if( handle < 0 )                 // (Errors unexpected)
      return handle;
 
+   if( USE_ITRACE )
+     Trace::trace(".SOK", "OPEN", this, i2v(handle));
+
    return 0;
 }
 
@@ -850,6 +876,12 @@ ssize_t                             // Number of bytes read
 {
    ssize_t L= ::read(handle, (char*)addr, size);
    if( IODM ) trace(__LINE__, "%zd= read()", L);
+
+// NEED TO DECIDE WHETHER OR NOT TO TRACE DATA
+// READ AND WRITE TRACE MIGHT NEED TO BE PUT IN SUBROUTINE OR SUBROUTINES
+// if( USE_ITRACE && VERBOSE )
+//   Trace::trace(".SOK", "READ", this, L);
+
    return L;
 }
 
@@ -942,7 +974,7 @@ ssize_t                             // The number of bytes written
      peeraddr= ((sockaddr_u*)peeraddr)->su_x.x_sockaddr;
      if( peeraddr == nullptr ) {
        errorf("Socket::sendto peer_addr not initialized");
-       sno_exception(__LINE__);
+       throw SocketException("Invalid peeraddr");
      }
    }
    ssize_t L= ::sendto(handle, addr, size, flag, peeraddr, peersize);
@@ -1007,12 +1039,19 @@ ssize_t                             // Number of bytes sent
    SSL_socket::SSL_socket(          // Constructor
      SSL_CTX*          context)     // The associated SSL Context
 :  Socket(), ssl_ctx(context), ssl(nullptr)
-{  if( HCDM ) debugh("SSL_socket(%p)::SSL_socket(%p)\n", this, context); }
+{  if( HCDM ) debugh("SSL_socket(%p)::SSL_socket(%p)\n", this, context);
+
+   if( USE_ITRACE )
+     Trace::trace(".SSL", "=NEW", this, context);
+}
 
    SSL_socket::SSL_socket(          // Copy constructor
      const SSL_socket& source)      // Source SSL_socket
 :  Socket(source), ssl_ctx(source.ssl_ctx), ssl(nullptr)
-{  }
+{
+   if( USE_ITRACE )
+     Trace::trace(".SSL", "=NEW", this, source.ssl_ctx);
+}
 
 //----------------------------------------------------------------------------
 //
@@ -1025,6 +1064,9 @@ ssize_t                             // Number of bytes sent
 //----------------------------------------------------------------------------
    SSL_socket::~SSL_socket( void )  // Destructor
 {  if( HCDM ) debugh("SSL_socket(%p)::~SSL_socket() ssl(%p)\n", this, ssl);
+
+   if( USE_ITRACE )
+     Trace::trace(".SSL", "=DEL", this);
 
    if( ssl )                        // If SSL state exists
      SSL_free(ssl);                 // Delete it
@@ -1147,6 +1189,8 @@ Socket*                             // The new connection SSL_socket
      delete result;
      return nullptr;
    }
+   if( USE_ITRACE )
+     Trace::trace(".SSL", "=ACC", this, result, i2v(handle), i2v(client));
 
    return result;
 }
@@ -1160,7 +1204,7 @@ Socket*                             // The new connection SSL_socket
 //       Connect to peer
 //
 // Implementation notes-
-//       Currently, SocketException is thrown if SSL_new or SSL_connect fails.
+//       Currently, a runtime_error is thrown if SSL_new or SSL_connect fails.
 //       We may need to instead provide error recovery information.
 //
 //----------------------------------------------------------------------------
@@ -1177,7 +1221,7 @@ int                                 // Return code (0 OK)
      if( IODM ) trace(__LINE__, "%p= SSL_new", ssl);
        if( ssl == nullptr ) {
        display_ERR();
-       throw SocketException("SSL_new failure"); // (SHOULD NOT OCCUR)
+       throw std::runtime_error("SSL_new failure"); // (SHOULD NOT OCCUR)
      }
      SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
 
@@ -1186,9 +1230,11 @@ int                                 // Return code (0 OK)
      if( IODM ) trace(__LINE__, "%d= SSL_connect(%p)", rc, ssl);
      if( SSL_connect(ssl) < 0 ) {
        display_ERR();
-       throw SocketException("SSL_connect failure"); // (SHOULD NOT OCCUR)
+       throw std::runtime_error("SSL_connect failure"); // (SHOULD NOT OCCUR)
      }
    }
+   if( USE_ITRACE )
+     Trace::trace(".SSL", "CONN", this, i2v(handle));
 
    return rc;
 }

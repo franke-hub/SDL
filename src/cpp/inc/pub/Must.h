@@ -27,7 +27,7 @@
 #include <stdlib.h>                 // For ::free, ::malloc
 #include <string.h>                 // For ::strdup
 
-#include <pub/bits/pubconfig.h>     // For _LIBPUB_ macros
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 namespace must {                    // Add checking to malloc storage functions

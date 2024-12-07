@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2023/12/13
+//       2024/12/04
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -260,6 +260,21 @@ void
    }
 }
 
+#if LISTEN_NEW
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Listen::get_select
+//
+// Purpose-
+//       Access our Select object
+//
+//----------------------------------------------------------------------------
+pub::Select&
+   Listen::get_select( void ) const // Get Select&
+{  return get_agent()->select; }
+#endif
+
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -367,14 +382,28 @@ void
 
        agent->disconnect(this);     // Remove our map entry
      }
+
+#if LISTEN_NEW
+     // Close the Listen Socket
+     if( listen.get_handle() >= 0 ) {
+       Select& select= get_select();
+       select.remove(&listen);
+       select.flush();
+       int rc= listen.close();
+       if( rc && (HCDM || VERBOSE > 1) )
+         report_error(__LINE__, "close");
+     }
+#endif
    }}}}
 
    reset();                         // Close all servers
 
+#if LISTEN_OLD
    // Close the Listen Socket
    int rc= listen.close();
    if( rc && (HCDM || VERBOSE > 1) )
      report_error(__LINE__, "close");
+#endif
 
    h_close();                       // Drive the close handler
 }
