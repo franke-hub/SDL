@@ -16,7 +16,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2024/11/22
+//       2024/12/09
 //
 // Implementation note-
 //       We use Thread Local Storage to maintain the Thread::tlss state.
@@ -40,10 +40,10 @@
 #include "pub/Latch.h"              // For pub::Latch
 #include <pub/Named.h>              // For pub::Named
 #include "pub/Thread.h"             // For pub::Thread, implemened
+#include "pub/utility.i"            // For conversion subroutines
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging methods
-// using PUB::utility::to_string;      // For convenience
 using std::atomic_size_t;           // For convenience
 using std::string;                  // For convenience
 
@@ -174,23 +174,6 @@ static const char*                  // "free" || "held"
 
    return "free";
 }
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       s2c
-//
-// Purpose-
-//       Get the C-string from a string (String to C-string)
-//
-// Implementation notes-
-//       The C-string is valid until the std::string changes.
-//
-//----------------------------------------------------------------------------
-static const char*                  // The C-string
-   s2c(                             // Get the C-string
-     const std::string&_str)        // Of this std::string
-{  return _str.c_str(); }           // (Fewer characters to type)
 
 //----------------------------------------------------------------------------
 //

@@ -16,7 +16,7 @@
 //       Utility functions.
 //
 // Last change date-
-//       2024/11/20
+//       2024/12/09
 //
 // Implementation notes-
 //       ato* routines:
@@ -38,7 +38,7 @@
 #include <stdarg.h>                 // For va_* functions
 #include <stdio.h>                  // For ::FILE*
 
-#include "pub/Thread.h"             // For pub::Thread::get_* methods
+#include "pub/utility.i"            // For inline utility functions
 #include "pub/bits/utility.h"       // For internal utility functions
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
@@ -63,7 +63,6 @@ extern volatile int    zero;        // By convention, always 0
 // Functions used to avoid compiler quirks or optimizations
 extern bool is_null(void*);         // Allows is_null(this)
 extern int  nop( void );            // Returns zero. Don't tell the compiler!
-
 
 //----------------------------------------------------------------------------
 //

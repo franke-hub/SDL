@@ -105,7 +105,7 @@ CLIBS  += $(shell pkg-config --libs libcurl)
 ## Always recompile Brian
 PHONY: recompile.brian
 recompile.brian: ;
-	rm -f Brian.o
+##	rm -f Brian.o
 
 ##############################################################################
 ## Run the default program

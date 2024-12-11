@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2024/12/04
+//       2024/12/09
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -41,6 +41,7 @@
 #include "pub/Select.h"             // For pub::Select, minimally tested
 #include "pub/Socket.h"             // For pub::Socket, tested
 #include <pub/Thread.h>             // For pub::Thread
+#include "pub/utility.i"            // For pub::b2c
 #include <pub/Worker.h>             // For pub::Worker, pub::WorkerPool, ...
 #include "pub/Wrapper.h"            // For pub::Wrapper
 
@@ -519,20 +520,6 @@ static void
 
    WorkerPool::reset();
 }
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       torf
-//
-// Purpose-
-//       Return "true" or "false"
-//
-//----------------------------------------------------------------------------
-static const char*                  // "true" or "false"
-   torf(                            // True or False?
-     int               cc)          // For this condition
-{  return cc ? "true" : "false"; }
 
 //----------------------------------------------------------------------------
 //
@@ -1746,23 +1733,23 @@ int
        debugf("\n");
        debugf("Settings:\n");
        debugf("%5d: runtime\n",  opt_runtime);
-       debugf("%5s: server: %s\n" , torf(bool(opt_server)), host_name.c_str());
-       debugf("%5s: hcdm\n",   torf(opt_hcdm));
+       debugf("%5s: server: %s\n" , b2c(bool(opt_server)), host_name.c_str());
+       debugf("%5s: hcdm\n",   b2c(opt_hcdm));
        debugf("%5d: verbose\n",opt_verbose);
 
        debugf("%5d: af: %s\n", opt_af, af_name(opt_af));
-       debugf("%5s: client\n", torf(opt_client));
-       debugf("%5s: packet\n", torf(opt_packet));
-       debugf("%5s: ssl\n",    torf(opt_ssl));
-       debugf("%5s: stream\n", torf(opt_stream));
-       debugf("%5s: thread\n", torf(opt_thread));
-       debugf("%5s: worker\n", torf(opt_worker));
+       debugf("%5s: client\n", b2c(opt_client));
+       debugf("%5s: packet\n", b2c(opt_packet));
+       debugf("%5s: ssl\n",    b2c(opt_ssl));
+       debugf("%5s: stream\n", b2c(opt_stream));
+       debugf("%5s: thread\n", b2c(opt_thread));
+       debugf("%5s: worker\n", b2c(opt_worker));
 
        // Debugging, experimentation
        debugf("\n");
-       debugf("%5s: USE_LINGER\n", torf(USE_LINGER));
-       debugf("%5s: USE_PACKET_CONFIRM\n", torf(USE_PACKET_CONFIRM));
-       debugf("%5s: USE_PACKET_CONNECT\n", torf(USE_PACKET_CONNECT));
+       debugf("%5s: USE_LINGER\n", b2c(USE_LINGER));
+       debugf("%5s: USE_PACKET_CONFIRM\n", b2c(USE_PACKET_CONFIRM));
+       debugf("%5s: USE_PACKET_CONNECT\n", b2c(USE_PACKET_CONNECT));
 
        debugf("%5d: USE_APOLL: %s\n", USE_APOLL, poll_method[USE_APOLL]);
        debugf("%5d: USE_RPOLL: %s\n", USE_RPOLL, poll_method[USE_RPOLL]);

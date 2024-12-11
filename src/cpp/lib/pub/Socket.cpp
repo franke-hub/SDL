@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2024/11/25
+//       2024/12/09
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -47,13 +47,14 @@
 #include <sys/time.h>               // For timeval, ...
 
 #include "pub/Socket.h"             // For pub::Socket, implemented
-#include <pub/utility.h>            // For to_string(), ...
 #include <pub/Debug.h>              // For debugging
 #include <pub/Must.h>               // For pub::must::malloc
-#include <pub/Trace.h>              // For pub::Trace
 #if SOCKET_OLD
 #include "pub/Select.h"             // For pub::Select
 #endif
+#include <pub/Trace.h>              // For pub::Trace
+#include <pub/utility.h>            // For namespace pub::utility::
+#include "pub/utility.i"            // For conversion routines
 
 using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
 
@@ -80,19 +81,6 @@ enum
 // Maximum/minimum sockaddr_u lengths
 static int constexpr   max_sock= (int)sizeof(sockaddr_u);
 static int constexpr   min_sock= (int)sizeof(sockaddr::sa_family);
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       i2v
-//
-// Purpose-
-//       Convert intptr_t  to void*
-//
-//----------------------------------------------------------------------------
-static inline void*
-   i2v(intptr_t i)
-{ return (void*)i; }
 
 //----------------------------------------------------------------------------
 //

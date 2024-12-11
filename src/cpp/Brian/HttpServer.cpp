@@ -16,7 +16,7 @@
 //       Implement HttpServer.h
 //
 // Last change date-
-//       2024/11/15
+//       2024/12/07
 //
 // Implementation note-
 //       Derived from ~/src/cpp/HTTP/socket/Server.cpp 2024/10/24
@@ -76,14 +76,14 @@ static const char*     page200=     // The 200 Dummy File message
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       sc
+//       s2c
 //
 // Purpose-
 //       Convert std::string to its C-String
 //
 //----------------------------------------------------------------------------
 static const char*                  // The C-string
-   sc(const std::string& S)         // String to C-string conversion
+   s2c(const std::string& S)        // String to C-string conversion
 {  return S.c_str(); }              // (Mostly for reduced typing)
 
 //============================================================================
@@ -130,13 +130,13 @@ void
    done(                            // Handle termination of
      Listen*           listener)    // This Listener
 {  string url= listener->get_url();
-   if( HCDM ) debugh("Command_listen::done(%s)\n", sc(url));
+   if( HCDM ) debugh("Command_listen::done(%s)\n", s2c(url));
 
 {{{{
    std::lock_guard<decltype(mutex)> lock(mutex);
    remove(listener);
 }}}}
-// debugh("Listener(%s) removed\n", sc(url)); // (Don't debug with lock)
+// debugh("Listener(%s) removed\n", s2c(url)); // (Don't debug with lock)
 }
 
 //----------------------------------------------------------------------------
@@ -162,14 +162,14 @@ Listen*                             // The Listener, if inserted
 
    if( locate(url) ) {              // If already in map
      // TODO: How was a duplicate Listen allowed to be created?
-     debugh("Command_listen::insert(%s) failed, duplicate\n", sc(url));
+     debugh("Command_listen::insert(%s) failed, duplicate\n", s2c(url));
      delete listener;
      return nullptr;
    }
 
    map[url]= listener;
    if( HCDM )
-     debugh("Command_listen::insert(%s)\n", sc(url));
+     debugh("Command_listen::insert(%s)\n", s2c(url));
    return listener;
 }
 
@@ -184,7 +184,7 @@ Listen*                             // The Listener, if available
      listener= mi->second;
 
    if( HCDM )
-     debugh("%p= locate(%s)\n", listener, sc(url));
+     debugh("%p= locate(%s)\n", listener, s2c(url));
    return listener;
 }
 
@@ -198,10 +198,10 @@ void
    if( mi != map.end() && mi->second == listener ) {
      map.erase(mi);
      if( HCDM )
-       debugh("Command_listen::remove(%s)\n", sc(url));
+       debugh("Command_listen::remove(%s)\n", s2c(url));
    } else {
      if( HCDM )
-       debugh("Command_listen::remove(%s) failed, not found\n", sc(url));
+       debugh("Command_listen::remove(%s) failed, not found\n", s2c(url));
    }
 }
 
@@ -228,13 +228,13 @@ void
    } else {
      url += to_string(":%d", DEFAULT_PORT);
    }
-// debugh("URL(%s)\n", sc(url));
+// debugh("URL(%s)\n", s2c(url));
 
    std::lock_guard<decltype(mutex)> lock(mutex);
 
    Listen* listener= locate(url);
    if( listener ) {
-     debugh("There is already a Listener at '%s'\n", sc(url));
+     debugh("There is already a Listener at '%s'\n", s2c(url));
      return;
    }
 
@@ -248,11 +248,11 @@ void
 
       delete listener;              // (Message already written)
    } catch(std::exception& X) {
-     debugh("Unable to start Listener at '%s' %s\n", sc(url), X.what());
+     debugh("Unable to start Listener at '%s' %s\n", s2c(url), X.what());
      delete(listener);
      listener= nullptr;
    } catch(...) {
-     debugh("Unable to start Listener at '%s', Exception\n", sc(url));
+     debugh("Unable to start Listener at '%s', Exception\n", s2c(url));
      delete(listener);
      listener= nullptr;
    }
@@ -284,7 +284,7 @@ void
    // Display all Listeners
    debugf("Listeners:\n");
    for(auto& it: list) {
-     debugf("%s\n", sc(it->get_url()));
+     debugf("%s\n", s2c(it->get_url()));
    }
 }
 
@@ -328,7 +328,7 @@ void
    stop(                            // Stop
      Listen*           listener)    // This Listener
 {  string url= listener->get_url();
-   if( HCDM ) debugh("Command_listen::stop(%s)\n", sc(url));
+   if( HCDM ) debugh("Command_listen::stop(%s)\n", s2c(url));
 
 debugf("%4d HTTP %p< < < < < < < < < < < < < < < < < < < < < < < < < < < <\n", __LINE__, listener);
    listener->stop();
@@ -390,7 +390,7 @@ debugh("<<<<<<<<Command_listen waited\n");
 void
    wait(                            // Wait for
      Listen*           listener)    // This Listener
-{  if( HCDM ) debugh("Command_listen::wait(%s)\n", sc(listener->get_url()));
+{  if( HCDM ) debugh("Command_listen::wait(%s)\n", s2c(listener->get_url()));
 
    listener->wait();
 }
@@ -583,7 +583,7 @@ void
    stop(                            // Stop
      Listen*           listen)      // This Listener
 {  if( HCDM )
-     debugh("Service_listen::stop(Listen(%s))\n", sc(listen->get_url()));
+     debugh("Service_listen::stop(Listen(%s))\n", s2c(listen->get_url()));
 
    command_listen.stop(listen);
 }
@@ -610,7 +610,7 @@ void
    wait(                            // Wait for
      Listen*           listen)      // This Listener
 {  if( HCDM )
-     debugh("Service_listen::wait(Listen(%s))\n", sc(listen->get_url()));
+     debugh("Service_listen::wait(Listen(%s))\n", s2c(listen->get_url()));
 
    command_listen.wait(listen);
 }
@@ -643,13 +643,13 @@ void
      return;
    }
    if( HCDM )
-     debugh("Listen(%p) socket(%p) url(%s)\n", this, socket, sc(url));
+     debugh("Listen(%p) socket(%p) url(%s)\n", this, socket, s2c(url));
 
    // (Needed before the bind)
    int optval= true;
    socket->set_option(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
-   rc= socket->bind(sc(url));       // Set Listener host:port
+   rc= socket->bind(s2c(url));      // Set Listener host:port
    if( rc ) {                       // If failure
      errorh("Listen ERROR: ");
      perror("bind failed");
@@ -664,7 +664,7 @@ void
    }
 
    operational= true;               // We are operational
-   debugh(" online: %s\n", sc(url));
+   debugh(" online: %s\n", s2c(url));
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -678,7 +678,7 @@ void
    Listen::Listen(                  // Constructor
      std::string       _url)        // "hostname:port" URL
 :  Thread(), url(_url)
-{  if( HCDM ) debugh("Listen(%p)!(%s)\n", this, sc(_url));
+{  if( HCDM ) debugh("Listen(%p)!(%s)\n", this, s2c(_url));
 
    build();                         // Common construction
 }
@@ -716,7 +716,7 @@ void
 
      delete socket;
      socket= nullptr;
-     debugh("offline: %s\n", sc(url)); // (Only one offline message)
+     debugh("offline: %s\n", s2c(url)); // (Only one offline message)
    }
 }
 
@@ -758,7 +758,7 @@ void
        // If it was also self-starting it could complete before the message
        // indicating it started was displayed.
        if( HCDM )
-         debugh("Listen(%s) %p= new Server(%p)\n", sc(url), thread, server);
+         debugh("Listen(%s) %p= new Server(%p)\n", s2c(url), thread, server);
        thread->start();             // Start the Thread
      }
    } catch( std::exception& X ) {
@@ -766,7 +766,7 @@ void
    } catch(...) {
      debugh("Listen::run catch(...)\n");
    }
-debugh("Listen::run EXIT\n");
+debugh("Listen(%s)::run EXIT\n", s2c(url));
 }
 
 //----------------------------------------------------------------------------
@@ -780,9 +780,28 @@ debugh("Listen::run EXIT\n");
 //----------------------------------------------------------------------------
 void
    Listen::stop( void )             // Terminate Socket listening
-{  if( HCDM ) debugh("Listen(%p)::stop '%s'\n", this, sc(url));
+{  if( HCDM ) debugh("Listen(%p)::stop '%s'\n", this, s2c(url));
 
+   operational= false;
    close();                         // Close the Socket
+
+   //-------------------------------------------------------------------------
+   // Create a dummy connection to complete any pending accept, ignoring any
+   // errors that occur.
+   try {
+     Socket dummy_connector;
+     int rc= dummy_connector.open(AF_INET, SOCK_STREAM, PF_UNSPEC);
+     if( rc == 0 ) {
+       rc= dummy_connector.connect(url);
+       if( HCDM ) {
+         debugf("%4d HCDM %d= socket.connect(%s)\n", __LINE__
+               , rc, url.c_str());
+       }
+     } else if( HCDM ) {
+       debugf("%4d HCDM %d= socket.open\n", __LINE__, rc);
+     }
+   } catch(...) {
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -796,14 +815,14 @@ void
 //----------------------------------------------------------------------------
 void
    Listen::wait( void )             // Wait for Listener completion
-{  if( HCDM ) debugh("Listen(%p)::wait '%s'\n", this, sc(url));
+{  if( HCDM ) debugh("Listen(%p)::wait '%s'\n", this, s2c(url));
 
 // MARKER TODO: REMOVE
-debugh("Listen(%p) %s join...>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", this, sc(url));
+debugh("Listen(%p) %s join...>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", this, s2c(url));
    join();                             // Wait for Listener completion
-debugh("Listen(%p) %s ...join complete<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", this, sc(url));
+debugh("Listen(%p) %s ...join complete<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", this, s2c(url));
    command_listen.done(this);       // Remove us from the map (once)
-debugh("Listen(%p) %s ...wait complete<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", this, sc(url));
+debugh("Listen(%p) %s ...wait complete<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", this, s2c(url));
 }
 
 //----------------------------------------------------------------------------
@@ -819,7 +838,7 @@ debugh("Listen(%p) %s ...wait complete<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", 
 //----------------------------------------------------------------------------
    Server::Server(                  // Constructor
      pub::Socket*      _socket)     // The server Socket
-:  Thread(), socket(_socket)
+:  pub::dispatch::Item(), Thread(), socket(_socket)
 {  if( HCDM ) debugh("Server(%p)!(%p)\n", this, _socket);
 
    // Get Host and Port names
@@ -844,7 +863,7 @@ debugh("Listen(%p) %s ...wait complete<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", 
 
    // Close and delete the socket
    close();                         // (Close deletes the Socket)
-Stack stack; stack.debug("Server~");
+// Stack stack; stack.debug("Server~");
 debugh("Server(%p)~ EXIT\n", this); // (Bye-bye Server)
 }
 
@@ -887,8 +906,8 @@ void
    Server::request(                 // Handle HTTP request
      std::string       text)        // The request text
 {  if( HCDM )
-      debugh("Server(%p)::request({{{{\n%s\n}}}})\n", this, sc(text));
-Stack stack; stack.debug("Server.request");
+      debugh("Server(%p)::request({{{{\n%s\n}}}})\n", this, s2c(text));
+// Stack stack; stack.debug("Server.request");
 
     // NOT CODED YET, DUMMY RESPONSE
     response(200, page200);
@@ -909,16 +928,16 @@ void
      std::string       html)        // The response HTML
 {  if( HCDM ) {
      debugh("Server(%p)::response(%d,{{{{\n%s\n}}}})\n", this, status
-           , sc(html));
+           , s2c(html));
    }
 
-Stack stack; stack.debug("Server.response");
+// Stack stack; stack.debug("Server.response");
    std::string resp= to_string("HTTP/1.1 %d OK\r\n", status);
    resp += "Content-type: text/html\r\n";
    resp += to_string("Content-length: %zd\r\n", html.size());
    resp += "\r\n";
    resp += html;
-debugf("%4d HCDM Server::response %p=sc(resp)\n", __LINE__, sc(resp));
+debugf("%4d HCDM Server::response %p=s2c(resp)\n", __LINE__, s2c(resp));
 
    write(resp);
 }
@@ -936,17 +955,17 @@ void
    Server::run( void )              // Operate the Socket
 {  if( HCDM ) debugh("Server(%p)::run\n", this);
 
-debug("Server::run [ENTRY]");       // Get debug info
+Thread::debug("Server::run [ENTRY]");       // Get debug info
 
    // Run detached
    detach();
 debugh("%4d Server HCDM\n", __LINE__);
-debug("Server::run [DETACHED]");    // Get debug info
+Thread::debug("Server::run [DETACHED]");    // Get debug info
 
 
 
 #if 1
-Stack stack; stack.debug("Server.run");
+// Stack stack; stack.debug("Server.run");
    try {
      ssize_t L;
      while( operational ) {
@@ -962,11 +981,11 @@ Stack stack; stack.debug("Server.run");
        }
 
        // Handle the request
-#if 1  // THIS BOTCHES IT WHEN TRUE! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-stack.update(); stack.debug("In Server.run, before calling request");
+#if 1  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+// stack.update(); stack.debug("In Server.run, before calling request");
        ioda.set_used(L);
        request((std::string)ioda);
-stack.update(); stack.debug("In Server.run, after  calling request");
+// stack.update(); stack.debug("In Server.run, after  calling request");
 #endif
      }
    } catch( std::exception& X ) {
@@ -978,10 +997,11 @@ stack.update(); stack.debug("In Server.run, after  calling request");
 
 // (Nothing prevents message interleave here.)
 debugh("%4d Server(%p)::run ", __LINE__, this);
-debug("[before delete self]");
+Thread::debug("[before delete self]");
 debugh("%4d Server(%p)::run delete self...\n", __LINE__, this);
-stack.update(); stack.debug("Server.run exit");
-   delete this;                     // (Self deletion)
+// stack.update(); stack.debug("Server.run exit");
+// delete this;                     // (Self deletion)
+   pub::dispatch::Disp::post((pub::dispatch::Item*)this); // (Self deletion)
 debugh("%4d (deleted) Server(%p)::run EXIT\n", __LINE__, this);
 }
 
@@ -1014,11 +1034,11 @@ void
    Server::write(                   // Send response data
      std::string       text)        // The response text
 {  if( HCDM )
-     debugh("Server(%p)::write({{{{\n%s\n}}}})\n", this, sc(text));
-Stack stack; stack.debug("Server.write");
-debugf("%4d Server::write %p=sc(text)\n", __LINE__, sc(text));
+     debugh("Server(%p)::write({{{{\n%s\n}}}})\n", this, s2c(text));
+// Stack stack; stack.debug("Server.write");
+debugf("%4d Server::write %p=s2c(text)\n", __LINE__, s2c(text));
 
    // TODO: Add error checking
-   socket->write(sc(text), text.size());
-stack.update(); stack.debug("After socket->write");
+   socket->write(s2c(text), text.size());
+// stack.update(); stack.debug("After socket->write");
 }

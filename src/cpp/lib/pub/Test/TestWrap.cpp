@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022-2023 Frank Eskesen.
+//       Copyright (c) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test pub/Wrapper.h
 //
 // Last change date-
-//       2023/04/29
+//       2024/12/09
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::runtime_error
@@ -30,6 +30,7 @@
 // The tested includes
 #include <pub/TEST.H>               // For VERIFY, ...
 #include <pub/Debug.h>              // For debugging
+#include "pub/utility.i"            // For pub::b2c
 
 #include "pub/Wrapper.h"            // For class Wrapper, verified
 
@@ -117,19 +118,6 @@ static void
 {
    throw std::runtime_error("just testing");
 }
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       torf
-//
-// Purpose-
-//       Convert condition to "true" or "false" string
-//
-//----------------------------------------------------------------------------
-static inline const char*
-   torf(bool condition)
-{  return condition ? "true" : "false"; }
 
 //----------------------------------------------------------------------------
 //
@@ -243,21 +231,21 @@ extern int                          // Return code
 
      if( opt_verbose ) {
        debugf("\nOptions:\n");
-       debugf("%5s hcdm\n", torf(opt_hcdm));
+       debugf("%5s hcdm\n", b2c(opt_hcdm));
        debugf("%5d verbose\n", opt_verbose);
-       debugf("%5s args\n", torf(opt_args));
-       debugf("%5s debug\n", torf(opt_debug));
-       debugf("%5s feedme: %s\n", torf(bool(opt_feedme)), opt_feedme);
-       debugf("%5s that\n", torf(opt_that));
-       debugf("%5s this\n", torf(opt_this));
-       debugf("%5s throw\n", torf(opt_throw));
-       debugf("%5s trace: %#x\n", torf(opt_trace), opt_trace);
+       debugf("%5s args\n", b2c(opt_args));
+       debugf("%5s debug\n", b2c(opt_debug));
+       debugf("%5s feedme: %s\n", b2c(bool(opt_feedme)), opt_feedme);
+       debugf("%5s that\n", b2c(opt_that));
+       debugf("%5s this\n", b2c(opt_this));
+       debugf("%5s throw\n", b2c(opt_throw));
+       debugf("%5s trace: %#x\n", b2c(opt_trace), opt_trace);
 
-       debugf("%5s -a\n", torf(opt_a));
-       debugf("%5s -b\n", torf(opt_b));
-       debugf("%5s -c: %s\n", torf(bool(opt_c)), opt_c);
-       debugf("%5s -d: %s\n", torf(bool(opt_d)), opt_d);
-       debugf("%5s -e\n", torf(opt_e));
+       debugf("%5s -a\n", b2c(opt_a));
+       debugf("%5s -b\n", b2c(opt_b));
+       debugf("%5s -c: %s\n", b2c(bool(opt_c)), opt_c);
+       debugf("%5s -d: %s\n", b2c(bool(opt_d)), opt_d);
+       debugf("%5s -e\n", b2c(opt_e));
      }
 
      if( opt_args )

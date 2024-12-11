@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2024/11/26
+//       2024/12/09
 //
 // Implmentation note-
 //       TODO: Test _read() disconnect (close processing)
@@ -49,6 +49,7 @@
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For namespace pub::utility
+#include "pub/utility.i"            // For conversion routines
 
 #include "pub/http/Agent.h"         // For pub::http::ClientAgent (owner)
 #include "pub/http/Client.h"        // For pub::http::Client, implementated
@@ -298,19 +299,6 @@ static void
 static inline void*
    a2v(int events, int revents, int fd)
 {  return (void*)(intptr_t(events)  << 48 | intptr_t(revents) << 32 | fd); }
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       i2v
-//
-// Purpose-
-//       Convert intptr_t  to void*
-//
-//----------------------------------------------------------------------------
-static inline void*
-   i2v(intptr_t i)
-{ return (void*)i; }
 
 //----------------------------------------------------------------------------
 //

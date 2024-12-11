@@ -1,0 +1,39 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2024 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       altcheck
+##
+## Purpose-
+##       Check altspell output (single word)
+##
+## Last change date-
+##       2024/12/07
+##
+## Usage-
+##       altspell word ... | altcheck word
+##
+##############################################################################
+
+word=$1
+[[ -z "$word" ]] && { echo "Check word missing"; exit 1; }
+
+read heading                        ## Read (and ignore) heading
+
+read code same n m rem
+
+if [[ "$code" == "*" ]] ; then
+  echo "OK: $word"
+  exit 0
+fi
+
+echo NG: $word, try: $rem
+exit 1

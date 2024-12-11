@@ -16,13 +16,14 @@
 //       Console subroutine methods.
 //
 // Last change date-
-//       2024/11/14
+//       2024/12/09
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
 
 #include <assert.h>                 // For assert
 #include <ctype.h>                  // For isdigit
+#include <endian.h>                 // For be64toh, ...
 #include <errno.h>                  // For errno (TODO: TEMPORARY?)
 #include <stdarg.h>                 // For va_* macros
 #include <termios.h>                // For struct termios, ...
@@ -33,15 +34,14 @@
 #include <X11/keysymdef.h>          // For key code definitions
 
 #include "pub/Console.h"            // For pub::Console, implemented
-#include "pub/diag-stack.h"         // For pub::diag::Stack
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Trace.h>              // For pub::Trace
-#include <pub/utility.h>            // For pub::utility::visify
+#include <pub/utility.h>            // For namespace pub::utility
+#include "pub/utility.i"            // For conversion routines
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging
-using PUB::diag::Stack;             // For convenience
 using PUB::utility::visify;         // For convenience
 
 using std::string;                  // For convenience
@@ -137,8 +137,7 @@ const static ESC_keydef_sequence key_table[]=
 static int                          // The decoded esc sequence, or -1
    get_sequence( void )             // Get decoded esc sequence
 {  if( HCDM ) {
-     tracef("Console::get_sequence inp_buffer(%s)\n"
-           , visify(inp_buffer).c_str());
+     tracef("Console::get_sequence inp_buffer(%s)\n", s2c(visify(inp_buffer)));
      used_trace= true;
    }
 
@@ -191,7 +190,7 @@ static int
      string            str)         // The unknown ESC sequence
 {
    if( VERBOSE ) {                  // Conditionally, display error message
-     tracef("Unknown ESC sequence(%s)\n", visify(str).c_str());
+     tracef("Unknown ESC sequence(%s)\n", s2c(visify(str)));
      used_trace= true;
    }
 
@@ -212,7 +211,7 @@ static int                          // ESC
    esc_sequence_part( void )        // Handle an ESC start error
 {
    if( VERBOSE ) {                  // Conditionally display error message
-     tracef("Invalid ESC sequence(%s)\n", visify(inp_buffer).c_str());
+     tracef("Invalid ESC sequence(%s)\n", s2c(visify(inp_buffer)));
      used_trace= true;
    }
 
@@ -237,8 +236,7 @@ static int                          // ESC
 static int                          // The decoded esc sequence
    esc_sequence( void )             // Decode an esc sequence
 {  if( HCDM ) {
-     tracef("Console::esc_sequence inp_buffer(%s)\n"
-           , visify(inp_buffer).c_str());
+     tracef("Console::esc_sequence inp_buffer(%s)\n", s2c(visify(inp_buffer)));
      used_trace= true;
    }
 
@@ -317,7 +315,7 @@ static int                          // The next buffered character, or -1
      return -1;
 
    if( HCDM ) {
-     tracef("Console::get_buffered(%s.%zd)\n", visify(inp_buffer).c_str()
+     tracef("Console::get_buffered(%s.%zd)\n", s2c(visify(inp_buffer))
            , inp_buffer.size());
      used_trace= true;
    }
@@ -349,15 +347,10 @@ static int                          // The next buffered character, or -1
 //
 //----------------------------------------------------------------------------
 static void handle_atexit( void ) { // atexit target subroutine
-traceh("handle_atexit operational(%d) in_getch(%d)\n", operational, in_getch);
    if( in_getch ) {
      operational= 0;
      tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
-tracef("%4d CONSOLE HCDM - atexit, restored stdin attributes\n", __LINE__);
    }
-else {
-tracef("%4d CONSOLE HCDM - atexit, no action needed.\n", __LINE__);
-}
 }
 
 //----------------------------------------------------------------------------
@@ -398,6 +391,7 @@ int                                 // The next input character
      newattr.c_cc[VMIN] = 0;        // (No characters required)
 #else
      newattr.c_cc[VMIN] = 1;        // (One character required)
+newattr.c_cc[VMIN] = 0;        // (No characters required)
 #endif
      newattr.c_cc[VTIME] = (timeout + 50)/100; // Set timeout
      if( HCDM && VERBOSE > 1 ) {
@@ -408,8 +402,17 @@ int                                 // The next input character
      in_getch= true;                // Indicate getch running
 //traceh("%4d Console in_getch(%d)\n", __LINE__, in_getch);
      tcsetattr(STDIN_FILENO, TCSANOW, &newattr); // Set the new attributes
-#if 1
+#if 0
      C= ::getchar();
+#else
+     char buffer[8];
+     ssize_t L= read(STDIN_FILENO, buffer, 1);
+     if( L == 1 )
+       C= buffer[0];
+traceh("%4d Console L(%zd) C(0x%.2x) %d:%s\n", __LINE__, L, C, errno, strerror(errno));
+#endif
+     tcsetattr(STDIN_FILENO, TCSANOW, &oldattr); // Restore the old attributes
+     in_getch= false;               // Attributes restored
 
 #if 1  // ******** INTERNAL TRACE ********************************************
      struct Record : public Trace::Record {
@@ -421,21 +424,13 @@ int                                 // The next input character
        int  IC= htonl((C << 8) | operational);
        char CC[4];
        memcpy(CC, &IC, 4);
+       memcpy(&record->ios, &newattr, sizeof(record->ios));
 
        record->ios= newattr;
        record->trace(".GCH", CC
-                    , (void*)(size_t(C)<<8 | operational));
+                    , i2v(i2i(C)<<8 | operational));
      }
 #endif // ******** INTERNAL TRACE ********************************************
-#else
-     char buffer[8];
-     ssize_t L= read(STDIN_FILENO, buffer, 1);
-     if( L == 1 )
-       C= buffer[0];
-traceh("%4d Console L(%zd) C(0x%.2x) %d:%s\n", __LINE__, L, C, errno, strerror(errno));
-#endif
-     tcsetattr(STDIN_FILENO, TCSANOW, &oldattr); // Restore the old attributes
-     in_getch= false;               // Attributes restored
 //traceh("%4d Console in_getch(%d)\n", __LINE__, in_getch);
    }}}}
 
@@ -487,15 +482,18 @@ char*                               // addr || nullptr iff non-operational
    Console::gets(                   // Get input string
      char*             addr,        // Input address
      unsigned          size)        // Input length
-{
-#if 1  // ADDING THIS STATEMENT MAKES IT WORK
-   Stack stack; stack.debug("Console::gets");
-#elif 0 // ADDING THIS STATEMENT *DOESN'T* MAKES IT WORK
-   Stack stack; stack.trace("Console::gets");
-#endif
+{  if( HCDM )
+      traceh("pub::Console::gets(%p,%d) operational(%d)\n", addr, size
+            , operational);
+
    if( addr == nullptr || size < 2 ) {
      fprintf(stderr, "Console::gets(%p,%u) PARMERR\n", addr, size);
      throw std::invalid_argument("Console::gets");
+   }
+
+   if( !operational ) {
+     addr[0]= '\0';
+     return nullptr;
    }
 
    unsigned used= 0;                // Number of bytes used

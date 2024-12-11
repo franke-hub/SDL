@@ -16,9 +16,16 @@
 //       Compile header files that have no associated library module.
 //
 // Last change date-
-//       2024/09/30
+//       2024/12/09
+//
+// Implementation note-
+//       For dependency testing, include the file to be tested first.
+//       For complete dependency testing, copy the file list, then delete the
+//       top file and compile one at a time until done.
 //
 //----------------------------------------------------------------------------
+#include "pub/utility.i"
+
 #include "pub/Event.h"
 #include "pub/Exception.h"
 #include "pub/Interval.h"
@@ -28,3 +35,4 @@
 #include "pub/Signals.h"
 #include "pub/Statistic.h"
 #include "pub/String.h"
+#include "pub/utility.i"

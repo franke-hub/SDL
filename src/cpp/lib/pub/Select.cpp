@@ -16,7 +16,7 @@
 //       Select.h method implementations.
 //
 // Last change date-
-//       2024/12/04
+//       2024/12/09
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -45,7 +45,6 @@
 #include <sys/un.h>                 // For sockaddr_un
 #include <sys/time.h>               // For timeval, ...
 
-#include <pub/utility.h>            // For to_string(), ...
 #include <pub/Debug.h>              // For debugging
 #include <pub/Dispatch.h>           // For pub::dispatch objects
 #include <pub/Event.h>              // For pub::Event
@@ -54,6 +53,7 @@
 #include "pub/Socket.h"             // For pub::Socket
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
+#include "pub/utility.i"            // For conversion routines, ...
 
 using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
 
@@ -113,53 +113,12 @@ static std::atomic_int serial= 0;   // Connector serial number
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       i2i     integer to intptr_t
-//       i2v     integer to void*
-//       v2i     void* to intptr_t
-//       c2v     C-string to void*
 //       o2v     control_op [op,events,fd] to void*
 //
 // Purpose-
-//       Convert integer to intptr_t
-//       Convert integer to void*
-//       Convert void* to intptr_t
-//       Convert C-string to void*
 //       Convert control_op [op,events,fd] to void*
 //
 //----------------------------------------------------------------------------
-static inline intptr_t
-   i2i(intptr_t i)
-{  return i; }
-
-//- - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - -
-static inline void*
-   i2v(intptr_t i)
-{  return (void*)i; }
-
-//- - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - -
-static inline intptr_t
-   v2i(void* v)
-{  return intptr_t(v); }
-
-//- - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - -
-static inline void*
-   c2v(const char* _c)
-{
-   union {
-     char      buffer[2*sizeof(void*)];
-     void*     result[2];
-   } u;
-
-   u.result[0]= 0; u.result[1]= 0;
-   if( strlen(_c) <= sizeof(void*) )
-     strcpy(u.buffer, _c);
-   else
-     memcpy(u.buffer, _c, sizeof(void*));
-
-   return i2v(be64toh(v2i(u.result[0])));
-}
-
-//- - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - -
 static inline void*
    o2v(const control_op& op)
 {  return i2v(i2i(op.op)<<56 | i2i(op.events)<<32 | op.fd); }
@@ -1112,7 +1071,7 @@ Socket*                             // The next selected Socket, or nullptr
      ipix= next;
 
      if( USE_ITRACE )
-       Trace::trace(".SEL", "POLL", this, i2v(intptr_t(next)<<32 | rc));
+       Trace::trace(".SEL", "POLL", this, i2v(i2i(next)<<32 | rc));
    }}}}
 
    return select();
@@ -1169,7 +1128,7 @@ Socket*                             // The next selected Socket, or nullptr
      ipix= next;
 
      if( USE_ITRACE )
-       Trace::trace(".SEL", "POLL", this, i2v(intptr_t(next)<<32 | rc));
+       Trace::trace(".SEL", "POLL", this, i2v(i2i(next)<<32 | rc));
    }}}}
 
    return select();

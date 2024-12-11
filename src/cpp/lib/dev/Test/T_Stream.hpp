@@ -16,25 +16,11 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2024/03/04
+//       2024/12/09
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
 #define T_STREAM_HPP_INCLUDED
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       i2v
-//
-// Purpose-
-//       Integer to void, shorthand for (void*)(intptr_t(i))
-//
-//----------------------------------------------------------------------------
-static void*                        // The void*
-   i2v(                             // Convert intptr_t to void*
-     intptr_t          i)           // The intptr_t
-{  return (void*)i; }
 
 //----------------------------------------------------------------------------
 //

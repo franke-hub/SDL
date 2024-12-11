@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2024/03/04
+//       2024/12/09
 //
 // Arguments-
 //       With no arguments, --client defaulted
@@ -61,7 +61,8 @@
 #include <pub/Statistic.h>          // For pub::Statistic
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
-#include <pub/utility.h>            // For pub::utility::to_string, visify
+#include <pub/utility.h>            // For namespace pub::utility::
+#include "pub/utility.i"            // For pub::b2c
 #include <pub/Worker.h>             // For pub::WorkerPool
 #include <pub/Wrapper.h>            // For pub::Wrapper::atol, ...
 
@@ -456,20 +457,6 @@ static void
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       torf
-//
-// Purpose-
-//       Return "true" or "false"
-//
-//----------------------------------------------------------------------------
-static const char*                  // "true" or "false"
-   torf(                            // True or False?
-     int               cc)          // For this condition
-{  return cc ? "true" : "false"; }
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
 //       init
 //
 // Purpose-
@@ -835,18 +822,18 @@ extern int
      debugf("%5.1f: runtime\n",  opt_runtime);
      debugf("%5s: server: %s%s\n", use_remote_server ? "using" : "local"
            , host.c_str(), port.c_str());
-     debugf("%5s: hcdm\n",   torf(opt_hcdm));
-     debugf("%5s: iodm\n",   torf(opt_iodm));
+     debugf("%5s: hcdm\n",   b2c(opt_hcdm));
+     debugf("%5s: iodm\n",   b2c(opt_iodm));
      debugf("%5d: verbose\n",opt_verbose);
 
-     debugf("%5s: client\n", torf(opt_client));
-     debugf("%5s: ssl\n",    torf(opt_ssl));
+     debugf("%5s: client\n", b2c(opt_client));
+     debugf("%5s: ssl\n",    b2c(opt_ssl));
      if( opt_stress )
-       debugf("%5s: stress=%d\n", torf(opt_stress), opt_stress);
+       debugf("%5s: stress=%d\n", b2c(opt_stress), opt_stress);
      else
-       debugf("%5s: stress\n", torf(opt_stress));
-     debugf("%5s: trace 0x%.8zx\n", torf(opt_trace), opt_trace);
-     debugf("%5s: worker\n", torf(opt_worker));
+       debugf("%5s: stress\n", b2c(opt_stress));
+     debugf("%5s: trace 0x%.8zx\n", b2c(opt_trace), opt_trace);
+     debugf("%5s: worker\n", b2c(opt_worker));
 
      // Debugging, experimentation
      debugf("\n");

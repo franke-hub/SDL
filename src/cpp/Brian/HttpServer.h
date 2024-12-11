@@ -10,22 +10,23 @@
 //----------------------------------------------------------------------------
 //
 // Title-
-//       http/Server.h
+//       HttpServer.h
 //
 // Purpose-
 //       HTTP Server object.
 //
 // Last change date-
-//       2024/11/15
+//       2024/12/07
 //
 //----------------------------------------------------------------------------
-#ifndef _SERVER_H_INCLUDED
-#define _SERVER_H_INCLUDED
+#ifndef _HTTPSERVER_H_INCLUDED
+#define _HTTPSERVER_H_INCLUDED
 
 #include <mutex>                    // For std::recursive_mutex
 #include <string>                   // For std::string
 
 #include <pub/diag-pristine.h>      // TODO REMOVE
+#include <pub/Dispatch.h>           // For pub::dispatch::Item, ...
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Thread.h>             // For pub::Thread
 
@@ -120,7 +121,7 @@ virtual void
 //       Server objects delete themself when complete.
 //
 //----------------------------------------------------------------------------
-class Server : public pub::Thread {  // Server class
+class Server : pub::dispatch::Item, public pub::Thread { // Server class
 //----------------------------------------------------------------------------
 // Server::Attributes
 //----------------------------------------------------------------------------
@@ -175,4 +176,4 @@ void
    write(                           // Write response text
      std::string       text);       // The response text
 }; // class Server
-#endif // _SERVER_H_INCLUDED
+#endif // _HTTPSERVER_H_INCLUDED

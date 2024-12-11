@@ -16,7 +16,7 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2024/11/26
+//       2024/12/09
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<serialno_t>
@@ -40,7 +40,8 @@
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/Trace.h>              // For pub::Trace
-#include <pub/utility.h>            // For pub::utility::to_string, ...
+#include <pub/utility.h>            // For namespace pub::utility::
+#include "pub/utility.i"            // For conversion routines
 
 #include "pub/http/Agent.h"         // For pub::http::ListenAgent
 #include "pub/http/Exception.h"     // For pub::http::exceptions
@@ -194,17 +195,6 @@ static void
 static inline void*
    a2v(int events, int revents, int fd)
 {  return (void*)(intptr_t(events)  << 48 | intptr_t(revents) << 32 | fd); }
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       i2v
-//
-// Purpose-
-//       Convert intptr_t  to void*
-//
-//----------------------------------------------------------------------------
-static inline void* i2v(intptr_t i) { return (void*)i; }
 
 //----------------------------------------------------------------------------
 //

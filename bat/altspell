@@ -1,0 +1,43 @@
+#!/bin/bash
+##----------------------------------------------------------------------------
+##
+##       Copyright (C) 2016-2024 Frank Eskesen.
+##
+##       This file is free content, distributed under the MIT license.
+##       (See accompanying file LICENSE.MIT or the original contained
+##       within https://opensource.org/licenses/MIT)
+##
+##----------------------------------------------------------------------------
+##
+## Title-
+##       altspell
+##
+## Purpose-
+##       Spell checker, with alternatives
+##
+## Last change date-
+##       2024/12/07
+##
+## Usage-
+##       altspell word ...
+##
+##############################################################################
+
+type aspell >/dev/null 2>/dev/null
+if [[ $? == 0 ]] ; then
+  for i in "$@"
+  do
+    echo $i | aspell -a | altcheck $i
+  done
+  exit 0
+fi
+type hunspell >/dev/null 2>/dev/null
+if [[ $? == 0 ]] ; then
+  for i in "$@"
+  do
+    echo $i | hunspell -a -d en_US,local | altcheck $i
+  done
+  exit 0
+fi
+
+echo No spell checker available. Install aspell or hunspell.

@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/12/06
+//       2024/12/11
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,14 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 12/11/2024 maint
+
+The 12/06/2024 maint comments still apply.
+
+Added common inline conversion routines to ~/src/cpp/inc/pub/utility.i.
 
 ----
 
