@@ -16,7 +16,7 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2024/12/04
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -260,7 +260,6 @@ void
    }
 }
 
-#if LISTEN_NEW
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -273,7 +272,6 @@ void
 pub::Select&
    Listen::get_select( void ) const // Get Select&
 {  return get_agent()->select; }
-#endif
 
 //----------------------------------------------------------------------------
 //
@@ -383,7 +381,6 @@ void
        agent->disconnect(this);     // Remove our map entry
      }
 
-#if LISTEN_NEW
      // Close the Listen Socket
      if( listen.get_handle() >= 0 ) {
        Select& select= get_select();
@@ -393,18 +390,9 @@ void
        if( rc && (HCDM || VERBOSE > 1) )
          report_error(__LINE__, "close");
      }
-#endif
    }}}}
 
    reset();                         // Close all servers
-
-#if LISTEN_OLD
-   // Close the Listen Socket
-   int rc= listen.close();
-   if( rc && (HCDM || VERBOSE > 1) )
-     report_error(__LINE__, "close");
-#endif
-
    h_close();                       // Drive the close handler
 }
 

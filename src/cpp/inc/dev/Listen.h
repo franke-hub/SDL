@@ -16,7 +16,7 @@
 //       HTTP Listen object.
 //
 // Last change date-
-//       2024/12/04
+//       2024/12/20
 //
 // Implementation notes-
 //       The Listen object is the Server analog to a Client Agent.
@@ -26,14 +26,6 @@
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_LISTEN_H_INCLUDED
 #define _LIBPUB_HTTP_LISTEN_H_INCLUDED
-
-#define LISTEN_VERSION 20241204
-#define LISTEN_OLD (LISTEN_VERSION < 20241125)
-#define LISTEN_NEW (LISTEN_VERSION > 20241124)
-
-#if LISTEN_NEW
-#else
-#endif
 
 #include <cstdlib>                  // For size_t
 #include <cstring>                  // For memcmp
@@ -179,10 +171,8 @@ const char*                         // The Option value
      const char*       name) const  // For this Option name
 {  return opts.locate(name); }
 
-#if LISTEN_NEW
 pub::Select&
    get_select( void ) const;        // Get Select&
-#endif
 
 void
    on_close(const f_close& f)       // Set close event handler

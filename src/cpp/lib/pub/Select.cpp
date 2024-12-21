@@ -16,7 +16,7 @@
 //       Select.h method implementations.
 //
 // Last change date-
-//       2024/12/09
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -392,9 +392,6 @@ control_op             op;          // The control operation
    poll->revents= 0;
    fdpndx[fd]= 0;
    fdsock[fd]= reader;
-#if SELECT_OLD
-   reader->select= this;
-#endif
    ++used;
 
    rc= reader->set_flags( reader->get_flags() | O_NONBLOCK );
@@ -412,7 +409,6 @@ control_op             op;          // The control operation
 
    if( USE_ITRACE )
      Trace::trace(".DEL", "=SEL", this);
-//debug("Select~ HCDM REMOVE"); // TODO: REMOVE
 
    // Complete any pending operations. Hopefully they're close ops.
    control();
@@ -426,9 +422,6 @@ control_op             op;          // The control operation
 
      fdpndx[fd]= -1;
      fdsock[fd]= nullptr;
-#if SELECT_OLD
-     reader->select= nullptr;
-#endif
      --used;
    }
 
@@ -477,17 +470,11 @@ control_op             op;          // The control operation
          errorf(FMT, __LINE__, this, socket, fd);
          sno_handled(__LINE__);     // See ** USER DEBUGGING NOTE **, above
          debug("Additional debugging information");
-#if SELECT_OLD
-         socket->select= nullptr;
-#endif
-debugf("%4d HCDM exit(1)\n", __LINE__); exit(1); // TODO: REMOVE
        } else if( USE_CHECKING ) {
          sno_handled(__LINE__);     // (socket[fd] == nullptr)
-debugf("%4d HCDM exit(1)\n", __LINE__); exit(1); // TODO: REMOVE
        }
      } else if( USE_CHECKING ) {
        sno_handled(__LINE__);       // (pollfd[px].fd >= size)
-debugf("%4d HCDM exit(1)\n", __LINE__); exit(1); // TODO: REMOVE
      }
    }
 
@@ -581,7 +568,6 @@ int                                 // Number of detected errors
    return error_count;
 }
 
-#if SELECT_NEW
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -637,7 +623,6 @@ void
      int fd= pollfd[px].fd;
      if( fd >= 0 && fd < size ) {
        Socket* socket= fdsock[fd];
-// debugf("Select::empty Socket(%p) fd(%d) handle(%d)\n", socket, fd, socket->get_handle());
        if( socket ) {               // (The Socket handle isn't relevant)
          fdsock[fd]= nullptr;
          fdpndx[fd]= -1;
@@ -648,9 +633,7 @@ void
    // Initial state: Only the reader socket remains
    ipix= next= 0;
    used= 1;
-// debug("Select::empty"); // TODO REMOVE
 }
-#endif
 
 //----------------------------------------------------------------------------
 //
@@ -829,9 +812,6 @@ void
              fdpndx[pollfd[i].fd]= i;
            }
 
-#if SELECT_OLD
-           socket->select= nullptr;
-#endif
            fdsock[fd]= nullptr;
            fdpndx[fd]= -1;
            if( px <= ipix )
@@ -903,15 +883,6 @@ int                                 // Return code, 0 expected
    if( fd < 0 )
      return op_errno(EINVAL);
 
-#if SELECT_OLD
-   Select* old_value= nullptr;
-   if( !socket->select.compare_exchange_strong(old_value, this) ) {
-     errorf("Select(%p)::insert(%p) but Select(%p) already inserted\n", this
-           , socket, old_value);
-     return op_errno(EINVAL);
-   }
-#endif
-
    control_op op= {OP_INSERT, 0, (uint16_t)events, fd, socket};
    control(op);                     // Enqueue the INSERT operation
 
@@ -936,11 +907,6 @@ int                                 // Return code, 0 expected
      int               events)      // The associated poll events
 {  if( HCDM )
      debugh("Select(%p)::modify(%p,0x%.4x)\n", this, socket, events);
-
-#if SELECT_OLD
-   if( socket->select != this )     // If Socket/Select mismatch
-     return op_errno(EINVAL);
-#endif
 
    int fd= socket->get_handle();
    if( fd < 0 || fd >= size || fdsock[fd] != socket ) // If inconsistent
@@ -976,21 +942,8 @@ int                                 // Return code, 0 expected
    std::lock_guard<decltype(shr_latch)> lock(shr_latch);
 
    int fd= socket->get_handle();
-#if SELECT_NEW
    if( fd < 0 || fd >= size )       // If closed or invalid file descriptor
-{  // TODO: REMOVE ...
-//debugf("Select(%p)::remove(%p) invalid FD(%d) size(%d)\n", this, socket, fd, size);
-     return op_errno(EINVAL);
-}
-#else
-   if( fd < 0 || socket->select != this ) // If socket is closed or invalid
-     return op_errno(EINVAL);
-
-   if( fd >= size ) {               // If Socket handle out of range
-     debugf("%4d %s *UNEXPECTED* %.4x\n", __LINE__, __FILE__, fd);
-     return op_errno(EINVAL);
-   }
-#endif
+{  return op_errno(EINVAL); }
 
    int px= fdpndx[fd];
    if( fdsock[fd] != socket || px < 0 || px >= used ) {

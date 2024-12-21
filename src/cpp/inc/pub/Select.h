@@ -16,24 +16,11 @@
 //       Socket polling controller/selector.
 //
 // Last change date-
-//       2024/11/25
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SELECT_H_INCLUDED
 #define _LIBPUB_SELECT_H_INCLUDED
-
-#define SELECT_VERSION 20241126
-#define SELECT_OLD (SELECT_VERSION < 20241125)
-#define SELECT_NEW (SELECT_VERSION > 20241124)
-
-#define _LIBPUB_USE_UNUSED false
-
-#if SELECT_NEW
-#else
-#endif
-
-#if SELECT_OLD
-#endif
 
 #include <functional>               // For std::function
 #include <mutex>                    // For std::mutex
@@ -152,22 +139,6 @@ const struct pollfd*                // The associated pollfd
    return &pollfd[fd];
 }
 
-#if _LIBPUB_USE_UNUSED
-const Socket*                       // The associated Socket*
-   get_socket(                      // Extract Socket
-     int               fd) const    // For this file descriptor
-{  std::lock_guard<decltype(shr_latch)> lock(shr_latch);
-
-   if( fd < 0 || fd >= size ) {
-     errno= EINVAL;
-     return nullptr;
-   }
-
-   return fdsock[fd];
-}
-#endif
-
-#if SELECT_NEW
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -196,7 +167,6 @@ int                                 // Return code, 0 expected
 //----------------------------------------------------------------------------
 void
    empty( void );                   // Empty the Select
-#endif
 
 //----------------------------------------------------------------------------
 // Select::Selection control methods
