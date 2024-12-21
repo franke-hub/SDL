@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2021-2023 Frank Eskesen.
+//       Copyright (C) 2021-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       ~/src/cpp/inc/pub/Dispatcher.h Stress test
 //
 // Last change date-
-//       2023/08/04
+//       2024/12/20
 //
 // Parameters-
 //       --help        (Display help message)
@@ -58,6 +58,7 @@
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For pub::utility::atol
+#include "pub/utility.i"            // For pub::utility conversion routines
 #include <pub/macro/try_catch.h>    // For TRY_CATCH macro
 
 // Global controls                  // Enable class access
@@ -443,7 +444,7 @@ extern int                          // Return code
           , opt_iterations, opt_multi);
 
    if( opt_verbose >= 0 ) {         // If verbose, display --options
-     #define TF pub::utility::to_ascii // TF: True or False
+     #define TF pub::b2c            // TF: True or False
 
      debugf("--first(%s) --verbose(%d) --trace(%'u,0x%.8x)\n"
             , TF(opt_first), opt_verbose, opt_trace, opt_trace);

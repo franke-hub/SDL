@@ -16,7 +16,7 @@
 //       Utility inline functions.
 //
 // Last change date-
-//       2024/12/09
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_UTILITY_I_INCLUDED
@@ -76,6 +76,10 @@ static inline const char*
 static inline intptr_t
    v2i(void* v)
 {  return intptr_t(v); }
+
+static inline intptr_t
+   v2i(const void* v)
+{  return v2i(const_cast<void*>(v)); }
 
 //- - - - - - - - - - - - - - - - - -- - - - - - - - - - - - - - - - - - - - -
 static inline void*

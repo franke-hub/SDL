@@ -16,7 +16,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2024/10/10
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCH_H_INCLUDED
@@ -280,15 +280,11 @@ virtual void
 void
    enqueue(                         // Enqueue
      Item*             item)        // This work Item
-#if true                            // TRUE for (preferred) inline version
 {
    Item* tail= itemList.fifo(item); // Insert work Item
    if( tail == nullptr )            // If the list was empty
      WorkerPool::work(this);        // Schedule this Task
 }
-#else
-   ;                                // FALSE for outline (debugging) version
-#endif
 
 virtual void                        // The Worker interface
    work( void ) final;              // Drain work from Task

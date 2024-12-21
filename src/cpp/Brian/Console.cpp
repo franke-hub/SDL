@@ -16,7 +16,7 @@
 //       Operate the input terminal
 //
 // Last change date-
-//       2024/11/15
+//       2024/12/20
 //
 // Implementation note-
 //       When running using a static library build, HCDM debugging displays in
@@ -49,7 +49,7 @@ using PUB::Thread;                  // For class pub::Thread
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= true                       // Hard Core Debug Mode?
+{  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  USE_COMMAND_ECHOING= true        // Echo commands to trace file?
@@ -132,12 +132,13 @@ void
 char*                               // The input line
    readline( void )                 // Read input line
 {
+   if( USE_COMMAND_ECHOING ) {
+     tracef("\n");
+   }
    pub::Console::puts(">>> ");           // Input prompt
    pub::Console::gets(inp, sizeof(inp)-1);
    char* C= strip(inp);
    if( USE_COMMAND_ECHOING ) {
-     std::lock_guard<Debug> lock(*Debug::get());
-
      traceh("==> '%s'\n", C);
    }
    return C;
@@ -155,8 +156,6 @@ virtual void
      if( operational )
        Command::command(C);         // Run the command, ignoring any resultant
    }
-
-debugh("ConsoleThread(%p)::run EXIT\n", this);
 }
 
 virtual void
@@ -165,35 +164,14 @@ virtual void
 
    operational= false;
    pub::Console::stop();
-debugh("ConsoleThread.stopped (invoked pub::Console::stop)\n");
 }
 
 virtual void
    wait( void )                     // Wait for termination completion
 {  if( HCDM ) debugh("ConsoleThread(%p).wait\n", this);
 
-debugh("ConsoleThread(%p)::wait()\n", this);
-debugh("...pub::Console::wait()...\n");
    pub::Console::wait();            // Wait for the Console
-debugh("...pub::Console::...wait() complete\n");
-debugh("...Thread::current(%p)\n", Thread::current());
-debugh("...ConsoleThread(%p)::joinable(%d)\n", this, joinable());
-
-   // We have unexplained Cygwin-only issues with join never completing.
-   // Extra super debug mode diagnostics...
-   if( true  ) {
-debugh("%4d ...BEFORE ConsoleThread(%p)::join()\n", __LINE__, this);
-debugh(" "); Thread::static_debug("ConsoleThread join");
-debugh(" "); debug("ConsoleThread join invoked");
-   }
-
-debugf("\n\n\n");
-debugh("%4d ...ConsoleThread(%p)::join() NOW <<<PROBLEM>>\n", __LINE__, this);
    join();
-debugh("%4d ...JOINED, HOORAY! ConsoleThread(%p)::join() DONE\n", __LINE__, this);
-
-debugh(" "); debug("ConsoleThread join complete");
-debugh("...ConsoleThread(%p)::join() complete\n", this);
 }
 }; // ConsoleThread
 
@@ -250,7 +228,6 @@ virtual void
 
    console_thread= new ConsoleThread();
    console_thread->start();
-debugh("ConsoleService: ConsoleThread(%p) started\n", console_thread);
 }
 
 virtual void
@@ -259,7 +236,6 @@ virtual void
    Service::has_stop::stop(this);
 
    console_thread->stop();          // Stop the ConsoleThread
-debugh("ConsoleService: ConsoleThread(%p) stopped\n", console_thread);
 }
 
 virtual void
@@ -268,9 +244,6 @@ virtual void
    Service::has_wait::wait(this);
 
    console_thread->wait();          // Wait for the ConsoleThread
-debugh("ConsoleService: ConsoleThread(%p) wait complete\n", console_thread);
-
-   debugh("DELETING console_thread\n");
    delete console_thread;
    console_thread= nullptr;
 }

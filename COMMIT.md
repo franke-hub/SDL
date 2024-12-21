@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/12/11
+//       2024/12/20
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,24 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 12/20/2024 maint
+
+The Brian termination problem is Cygwin-only. It does not occur on Linux.
+The diagnostics associated with this have been removed from the code and,
+since it doesn't occur on Linux, we are leaving this as-is.
+
+Additional Cygwin diagnostic information:
+When running Brian under gdb and issuing two curl operations, a SEGFAULT
+occurs with a garbage stack. The SEGFAULT does not appear unless running
+under gdb.
+Brian usually hangs waiting for a join to complete, even though the waiting
+thread exited after the join request was made.
+
+This commit prepares the trunk commit. If no problems are found, the maint
+branch will be merged and the trunk committed.
 
 ----
 

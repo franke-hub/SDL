@@ -16,9 +16,10 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2024/08/30
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
+#include <endian.h>                 // For htobe16
 #include <stdio.h>                  // For printf, fopen, fclose, ...
 #include <stdlib.h>                 // For various
 #include <unistd.h>                 // For unlink
@@ -29,6 +30,7 @@
 #include <pub/List.h>               // For pub::List
 #include <pub/Signals.h>            // For pub::signals::Signal
 #include <pub/Trace.h>              // For pub::Trace
+#include "pub/utility.i"            // For utility conversion routines
 
 #include "Config.h"                 // For Config::check, namespace config
 #include "EdData.h"                 // For EdData

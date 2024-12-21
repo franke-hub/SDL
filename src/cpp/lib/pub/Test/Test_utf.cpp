@@ -16,10 +16,11 @@
 //       Test Utf.h
 //
 // Last change date-
-//       2024/09/12
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #include <endian.h>                 // For endian subroutines
+#include <arpa/inet.h>              // For ntohl
 
 #include <pub/Debug.h>              // For debugging subroutines
 #include <pub/utility.h>            // For debugging subroutines

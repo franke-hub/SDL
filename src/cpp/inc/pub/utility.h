@@ -16,7 +16,7 @@
 //       Utility functions.
 //
 // Last change date-
-//       2024/12/09
+//       2024/12/20
 //
 // Implementation notes-
 //       ato* routines:
@@ -34,9 +34,9 @@
 #include <string>                   // For std::string
 #include <thread>                   // For std::thread::id
 
-#include <ctype.h>                  // For toupper()
-#include <stdarg.h>                 // For va_* functions
-#include <stdio.h>                  // For ::FILE*
+#include <cctype>                   // For toupper()
+#include <cstdarg>                  // For va_* functions
+#include <cstdio>                   // For ::FILE*
 
 #include "pub/utility.i"            // For inline utility functions
 #include "pub/bits/utility.h"       // For internal utility functions
@@ -272,19 +272,6 @@ int                                 // Resultant 0, !0
      const char*       L,           // Left hand side (May contain wildchars)
      const char*       R);          // Right hand side
 }  // namespace wildchar
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       utility::to_ascii
-//
-// Purpose-
-//       Convert boolean to ascii
-//
-//----------------------------------------------------------------------------
-static inline const char*           // Resultant
-   to_ascii(bool what)              // Convert boolean to ascii
-{  return what ? "true" : "false"; }
 
 //----------------------------------------------------------------------------
 //

@@ -16,7 +16,7 @@
 //       Service object methods
 //
 // Last change date-
-//       2024/11/02
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #include <forward_list>             // For std::forward_list
@@ -43,7 +43,7 @@ using namespace pub::debugging;     // For debugging
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= true                       // Hard Core Debug Mode?
+{  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // (generic) enum
 
@@ -102,9 +102,7 @@ void
 void
    Service::has_stop::stop(         // Stop
      Service*          S)           // This Service
-{  if( HCDM )
-     debugh("Service(%s)::has_stop::stop\n", S->get_name().c_str());
-}
+{  if( HCDM ) debugh("Service(%s)::has_stop::stop\n", S->get_name().c_str()); }
 
 //----------------------------------------------------------------------------
 //
@@ -118,9 +116,7 @@ void
 void
    Service::has_wait::wait(         // Wait for
      Service*          S)           // This Service to complete
-{  if( HCDM )
-     debugh("Service(%s)::has_wait::wait\n", S->get_name().c_str());
-}
+{  if( HCDM ) debugh("Service(%s)::has_wait::wait\n", S->get_name().c_str()); }
 
 //----------------------------------------------------------------------------
 //
@@ -191,9 +187,6 @@ Service*                            // The inserted or current Service
      Service*          service)     // This Service
 {  if( HCDM ) debugh("Service::insert(%s)\n", service->get_name().c_str());
 
-// Where did debug go to?
-debugh("%4d Service Debug::get(%p)\n", __LINE__, Debug::get());
-
    Map_t* map= get_map();           // Get/create the map
    if( map == nullptr )
      return nullptr;
@@ -211,8 +204,11 @@ debugh("%4d Service Debug::get(%p)\n", __LINE__, Debug::get());
                                           , name.c_str()));
      }
 
-     (*map)[name]= service;
-//   map->insert({name, service});
+     // For exposition: Both versions operate correctly
+     if( false )
+       (*map)[name]= service;
+     else
+       map->insert({name, service});
    }}}}
 
    return service;
@@ -371,9 +367,7 @@ void
      Service* service= it;
      has_wait* method= dynamic_cast<has_wait*>(service);
      if( method ) {
-debugh("Waiting for service(%p) %s...\n", service, service->get_name().c_str());
        method->wait(service);
-debugh("...Service(%p) %s completed\n", service, service->get_name().c_str());
      }
    }
 

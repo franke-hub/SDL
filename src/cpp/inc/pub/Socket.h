@@ -16,7 +16,7 @@
 //       Standard socket (including openssl sockets) wrapper.
 //
 // Last change date-
-//       2024/11/25
+//       2024/12/20
 //
 // Implementation notes-
 //       Error recovery is the user's responsibility.
@@ -27,14 +27,6 @@
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SOCKET_H_INCLUDED
 #define _LIBPUB_SOCKET_H_INCLUDED
-
-#define SOCKET_VERSION 20241126
-#define SOCKET_OLD (SOCKET_VERSION < 20241125)
-#define SOCKET_NEW (SOCKET_VERSION > 20241124)
-
-#if SOCKET_OLD
-#else
-#endif
 
 #include <atomic>                   // For std::atomic
 #include <functional>               // For std::function
@@ -51,13 +43,6 @@
 #include <pub/Object.h>             // For base class, ...
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
-//----------------------------------------------------------------------------
-// Forward references
-//----------------------------------------------------------------------------
-#if SOCKET_OLD
-class Select;                       // Socket select controller
-#endif
-
 //----------------------------------------------------------------------------
 // SocketException | Thrown when an invalid parameter is detected
 //----------------------------------------------------------------------------
@@ -77,10 +62,6 @@ class SocketException : public Exception { using Exception::Exception;
 //
 //----------------------------------------------------------------------------
 class Socket : public Object {      // Standard posix socket wrapper
-#if SOCKET_OLD
-friend class Select;
-#endif
-
 public:
 //----------------------------------------------------------------------------
 // Socket::sockaddr_x | Extended sockaddr (currently only used for AF_UNIX)
@@ -148,9 +129,6 @@ typedef std::function<void(int)>    f_select; // Select event handler type
 //----------------------------------------------------------------------------
 protected:
 std::mutex             mutex;       // Open/close mutex
-#if SOCKET_OLD
-std::atomic<Select*>   select= nullptr; // The associated Select
-#endif
 f_select               h_select;    // Selection event handler
 
 int                    handle= CLOSED; // The socket handle (handle)
@@ -265,12 +243,6 @@ Port                                // The peer Port number
 socklen_t                           // The peer internet address length
    get_peer_size( void ) const      // Get peer internet address length
 {  return peer_size; }
-
-#if SOCKET_OLD
-Select*                             // The Select
-   get_select( void )               // Get Select
-{  return select.load(); }
-#endif
 
 const char*                         // The unix socket file name
    get_unix_name( void ) const;     // Get unix socket file name
@@ -421,18 +393,28 @@ int                                 // Return code (0 OK)
                        timeout,     // Timeout
      const sigset_t*   sigmask);    // Signal set mask
 
+int                                 // Return code (0 OK)
+   shutdown(                        // Shutdown the socket
+     int               how);        // Shutdown control flags
+
+// I/O Methods - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 virtual ssize_t                     // The number of bytes read
    read(                            // Read from the peer socket
      void*             addr,        // Data address
      size_t            size);       // Maximum data length
 
-ssize_t                             // The number of bytes read
+virtual ssize_t                     // The number of bytes written
+   write(                           // Write to the socket
+     const void*       addr,        // Data address
+     size_t            size);       // Data length
+
+virtual ssize_t                     // The number of bytes read
    recv(                            // Receive from the peer socket
      void*             addr,        // Data address
      size_t            size,        // Maximum data length
      int               flag);       // Receive options
 
-ssize_t                             // The number of bytes read
+virtual ssize_t                     // The number of bytes read
    recvfrom(                        // Read from some socket
      void*             addr,        // Data address
      size_t            size,        // Data length
@@ -440,23 +422,23 @@ ssize_t                             // The number of bytes read
      sockaddr*         peeraddr,    // Source peer address
      socklen_t*        peersize);   // Source peer address length
 
-ssize_t                             // The number of bytes written
+virtual ssize_t                     // The number of bytes written
    recvmsg(                         // Receive message from some socket
      msghdr*           msg,         // Message header
      int               flag);       // Recv options
 
-ssize_t                             // The number of bytes written
+virtual ssize_t                     // The number of bytes written
    send(                            // Write to the peer socket
      const void*       addr,        // Data address
      size_t            size,        // Data length
      int               flag);       // Send options
 
-ssize_t                             // The number of bytes written
+virtual ssize_t                     // The number of bytes written
    sendmsg(                         // Write to some socket
      const msghdr*     msg,         // Message header
      int               flag);       // Send options
 
-ssize_t                             // The number of bytes written
+virtual ssize_t                     // The number of bytes written
    sendto(                          // Write to some socket
      const void*       addr,        // Data address
      size_t            size,        // Data length
@@ -464,21 +446,12 @@ ssize_t                             // The number of bytes written
      const sockaddr*   peeraddr,    // Target peer address
      socklen_t         peersize);   // Target peer address length
 
-ssize_t                             // The number of bytes written
+virtual ssize_t                     // The number of bytes written
    sendto(                          // Write to the peer socket
      const void*       addr,        // Data address
      size_t            size,        // Data length
      int               flag)        // Send options
 {  return sendto(addr, size, flag, (sockaddr*)&peer_addr, peer_size); }
-
-int                                 // Return code (0 OK)
-   shutdown(                        // Shutdown the socket
-     int               how);        // Shutdown control flags
-
-virtual ssize_t                     // The number of bytes written
-   write(                           // Write to the socket
-     const void*       addr,        // Data address
-     size_t            size);       // Data length
 }; // class Socket
 
 //----------------------------------------------------------------------------
@@ -558,6 +531,7 @@ int                                 // Return code (0 OK)
      const std::string&nps)         // Peer "name:port" string
 {  return Socket::connect(nps); }   // Invokes connect(const sockaddr*,socklen)
 
+// I/O Methods - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 virtual ssize_t                     // The number of bytes read
    read(                            // Read from the socket
      void*             addr,        // Data address
@@ -567,6 +541,54 @@ virtual ssize_t                     // The number of bytes written
    write(                           // Write to the socket
      const void*       addr,        // Data address
      size_t            size);       // Data length
+
+//----------------------------------------------------------------------------
+// SSL_socket DOES NOT IMPLEMENT METHODS
+//   recv, recvfrom, recvmsg, send, sendmsg, and sendto are
+//----------------------------------------------------------------------------
+virtual ssize_t                     // The number of bytes read
+   recv(                            // Receive from the peer socket
+     void*             addr,        // Data address
+     size_t            size,        // Maximum data length
+     int               flag);       // Receive options
+
+virtual ssize_t                     // The number of bytes read
+   recvfrom(                        // Read from some socket
+     void*             addr,        // Data address
+     size_t            size,        // Data length
+     int               flag,        // Send options
+     sockaddr*         peeraddr,    // Source peer address
+     socklen_t*        peersize);   // Source peer address length
+
+virtual ssize_t                     // The number of bytes written
+   recvmsg(                         // Receive message from some socket
+     msghdr*           msg,         // Message header
+     int               flag);       // Recv options
+
+virtual ssize_t                     // The number of bytes written
+   send(                            // Write to the peer socket
+     const void*       addr,        // Data address
+     size_t            size,        // Data length
+     int               flag);       // Send options
+
+virtual ssize_t                     // The number of bytes written
+   sendmsg(                         // Write to some socket
+     const msghdr*     msg,         // Message header
+     int               flag);       // Send options
+
+virtual ssize_t                     // The number of bytes written
+   sendto(                          // Write to some socket
+     const void*       addr,        // Data address
+     size_t            size,        // Data length
+     int               flag,        // Send options
+     const sockaddr*   peeraddr,    // Target peer address
+     socklen_t         peersize);   // Target peer address length
+
+virtual ssize_t                     // The number of bytes written
+   sendto(                          // Write to the peer socket
+     const void*       addr,        // Data address
+     size_t            size,        // Data length
+     int               flag);       // Send options
 }; // class SSL_socket
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_SOCKET_H_INCLUDED

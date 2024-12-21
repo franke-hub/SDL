@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2023 Frank Eskesen.
+//       Copyright (C) 2022-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Internal use utilities, included separately
 //
 // Last change date-
-//       2023/06/04
+//       2024/12/19
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_UTILITY_H_INCLUDED
@@ -42,32 +42,6 @@ void
      int               line,        // Source line number
      const char*       file,        // Source file name
      const char*       mess);       // Error messsage
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       utility::iotrace
-//
-// Purpose-
-//       Trace I/O operation
-//
-//----------------------------------------------------------------------------
-_LIBPUB_FLATTEN
-_LIBPUB_HOT                         // Performance critical path
-static inline void
-   iotrace(                         // I/O internal trace
-     const char*       ident,       // Trace identifier
-     const void*       addr,        // Data address
-     ssize_t           size)        // Data length
-{
-   if( size > 0 ) {
-     Trace::Record* record= Trace::trace();
-     if( record ) {
-       Trace::Buffer<16> buff(addr, size);
-       record->trace(ident, (uint32_t)size, buff.temp);
-     }
-   }
-}
 
 //----------------------------------------------------------------------------
 //

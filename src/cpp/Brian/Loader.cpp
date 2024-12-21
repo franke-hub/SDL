@@ -13,10 +13,13 @@
 //       Loader.cpp
 //
 // Purpose-
-//       Attempt to load a command and a service just by existing.
+//       Load built-in classes
 //
 // Last change date-
-//       2024/11/15
+//       2024/12/20
+//
+// Implementation notes-
+//       TODO: REMOVE TESTING CODE
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
@@ -122,7 +125,7 @@ extern struct startup_event_handler_t
                    se_handler= &startup_event_handler;
 #endif
 
-   if( HCDM || true )
+   if( HCDM )
      debugh("service(%p) curl(%p) init(%p) handler(%p)\n"
            , service, curl, init, se_handler);
 #endif
@@ -288,88 +291,3 @@ virtual Command::resultant          // Resultant
    return std::make_shared<Thing>(); // See if it auto-magically disappears
 }
 }  command_junk; // static class Command_junk
-
-//----------------------------------------------------------------------------
-//
-// Static class-
-//       Service_732_ff
-//
-// Purpose-
-//       Test map sequencing [FIRST]
-//
-//----------------------------------------------------------------------------
-const unsigned char  name_ff[]= {0xff, '-', 'f', 'f', 0};
-
-class Service_732_ff
-:  public Service
-,  public Service::has_wait
-{
-public:
-   Service_732_ff() : Service((const char*)name_ff)
-{  }
-
-virtual void
-   wait(Service* S)                 // Wait for stop completion
-{  if( HCDM ) debugh("Service_732_ff::wait\n");
-
-   debugh("name(%s)\n", pub::utility::visify(get_name()).c_str());
-   Service::has_wait::wait(S);
-}
-}; // Service_732_ff
-static Service_732_ff service_ff;
-
-//----------------------------------------------------------------------------
-//
-// Static class-
-//       Service_732_7f
-//
-// Purpose-
-//       Test map sequencing [LAST]
-//
-//----------------------------------------------------------------------------
-const char  name_7f[]= {0x7f, '-', '7', 'f', 0};
-
-class Service_732_7f
-:  public Service
-,  public Service::has_wait
-{
-public:
-   Service_732_7f() : Service(name_7f)
-{  }
-
-virtual void
-   wait(Service* S)                 // Wait for stop completion
-{  if( HCDM ) debugh("Service_732_7f::wait\n");
-
-   debugh("name(%s)\n", pub::utility::visify(get_name()).c_str());
-   Service::has_wait::wait(S);
-}
-}; // Service_732_7f
-static Service_732_7f service_7f;
-
-//----------------------------------------------------------------------------
-//
-// Static class-
-//       Service_732
-//
-// Purpose-
-//       Test map sequencing
-//
-//----------------------------------------------------------------------------
-class Service_732
-:  public Service
-,  public Service::has_wait
-{
-public:
-   Service_732() : Service("service-732")
-{  }
-
-virtual void
-   wait(Service* S)                 // Wait for stop completion
-{  if( HCDM ) debugh("Service_732::wait\n");
-
-   debugh("name(%s)\n", pub::utility::visify(get_name()).c_str());
-   Service::has_wait::wait(S);
-}
-}; // Service_732
-static Service_732 service_732;

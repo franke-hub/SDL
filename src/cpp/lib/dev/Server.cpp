@@ -16,7 +16,7 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2024/12/09
+//       2024/12/19
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<serialno_t>
@@ -701,7 +701,8 @@ void
        if( size > L )
          size= L;
        if( USE_ITRACE )
-         utility::iotrace(".S<<", addr, size);
+         Trace::io_trace(".SRV", ".S<<", this, i2v(socket->get_handle())
+                        , addr, size);
        iodm(line, "read", addr, size);
 
        // Enqueue IODA to input task
@@ -788,7 +789,8 @@ void
        if( size > L )
          size= L;
        if( USE_ITRACE )
-         utility::iotrace(".S>>", addr, size);
+         Trace::io_trace(".SRV", ".S>>", this, i2v(socket->get_handle())
+                        , addr, size);
        iodm(__LINE__, "sendmsg", addr, size);
 
        size_t want= ioda_out.get_used() - ioda_off;

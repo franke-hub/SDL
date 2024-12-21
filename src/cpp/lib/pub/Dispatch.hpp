@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2023 Frank Eskesen.
+//       Copyright (C) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Work dispatcher, including local definitions.
 //
 // Last change date-
-//       2023/05/28
+//       2024/12/20
 //
 // Implementation note-
 //       *ONLY* included from Dispatch.cpp (in namespace pub::dispatch)
@@ -50,12 +50,14 @@ virtual void                        // (IMPLEMENT this method)
    work(                            // Process
      Item*             item)        // This work Item
 {
+   if( USE_ITRACE )
+     Trace::trace(".DSP", "=ALT", this, item);
+
    defer_wait.inc();
    item->post(item->cc);            // Post it, completion code already set
    defer_wait.dec();
 }
-
-} defer_Task; // Internal Defer_task
+} defer_task; // Internal Defer_task
 
 //----------------------------------------------------------------------------
 //

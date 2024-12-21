@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2023 Frank Eskesen.
+//       Copyright (C) 2018-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2023/06/20
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #include <assert.h>                 // For assert
@@ -49,7 +49,7 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
-,  USE_ITRACE= false                // Use internal tracing?
+,  USE_ITRACE= true                 // Use internal tracing?
 ,  USE_REPORT= false                // Use event Reporter?
 }; // enum
 
@@ -156,7 +156,12 @@ void
    Disp::enqueue(                   // Enqueue
      Task*             task,        // Onto this Task
      Item*             item)        // This work Item
-{  task->enqueue(item); }
+{
+   if( USE_ITRACE )
+     Trace::trace(".DSP", "=ENQ", task, item);
+
+   task->enqueue(item);
+}
 
 //----------------------------------------------------------------------------
 //
@@ -195,10 +200,10 @@ void
      int               _cc)         // With this completion code
 {
    if( USE_ITRACE )
-     Trace::trace(".DSP", "dfer", &defer_Task, item);
+     Trace::trace(".DSP", ">ALT", &defer_task, item);
 
    item->cc= _cc;                   // Set the completion code
-   defer_Task.enqueue(item);
+   defer_task.enqueue(item);
 }
 
 //----------------------------------------------------------------------------
@@ -398,13 +403,15 @@ void
 //       dispatch::Task::work
 //
 // Purpose-
-//       Implement Pure Virtual Method, should never be called.
+//       Implement Pure Virtual Method (should never be called.)
 //
 //----------------------------------------------------------------------------
 void
    Task::work(                      // Process
      Item*             item)        // This work Item
-{  debugh("%4d dispatch::Task(%p)::work(%p) PVM\n", __LINE__, this, item);
+{  if( HCDM )
+     debugh("%4d dispatch::Task(%p)::work(%p) PVM\n", __LINE__, this, item);
+
    item->post();
 }
 }  // namespace _LIBPUB_NAMESPACE::dispatch

@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2024/12/09
+//       2024/12/19
 //
 // Implmentation note-
 //       TODO: Test _read() disconnect (close processing)
@@ -1064,7 +1064,8 @@ void
        if( size > L )
          size= L;
        if( USE_ITRACE )
-         utility::iotrace(".C<<", addr, size);
+         Trace::io_trace(".CLI", ".C<<", this, i2v(socket->get_handle())
+                        , addr, size);
        iodm(line, "read", addr, size);
 
        // Enqueue IODA to input task
@@ -1131,7 +1132,8 @@ ssize_t                             // Written length
        if( size > L )
          size= L;
        if( USE_ITRACE )
-         utility::iotrace(".C>>", addr, size);
+         Trace::io_trace(".CLI", ".C>>", this, i2v(socket->get_handle())
+                        , addr, size);
 
        iodm(line, "sendmsg", addr, size);
 

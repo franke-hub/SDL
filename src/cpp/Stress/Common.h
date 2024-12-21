@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2022 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Main::Task sequencing controls, including a trace table.
 //
 // Last change date-
-//       2022/11/13
+//       2024/12/20
 //
 // Implementation notes-
 //       Defines class Main and class Task.
@@ -273,9 +273,9 @@ void
 
    // State: Task[busy]; Main[into_idle]
    count= ++main_count;
-   if( HCDM ) debugh("%4d HCDM.m:done %u/%u\n", __LINE__, count, opt_multi);
+   if( HCDM ) debugh("%4d HCDM done %u/%u\n", __LINE__, count, opt_multi);
    if( count >= opt_multi ) {       // If all Tasks are complete
-     if( HCDM ) debugh("%4d HCDM.m:done post(main2idle)\n", __LINE__);
+     if( HCDM ) debugh("%4d HCDM done post(main2idle)\n", __LINE__);
      main_2idle.post();
    }
 
@@ -285,14 +285,14 @@ void
 
    // State: Task[idle...]; Main[idle]
    count= ++task_count;
-   if( HCDM ) debugh("%4d HCDM.m:done %u/%u\n", __LINE__, count, opt_multi);
+   if( HCDM ) debugh("%4d HCDM done %u/%u\n", __LINE__, count, opt_multi);
    if( count >= opt_multi ) {       // If all Tasks are idle
-     if( HCDM ) debugh("%4d HCDM.m:done post(task2done)\n", __LINE__);
+     if( HCDM ) debugh("%4d HCDM done post(task2done)\n", __LINE__);
      task_count= 0;
      task_2idle.reset();
      task_2done.post();
    }
-   if( HCDM ) debugh("%4d HCDM.m:done wait(task2done)\n", __LINE__);
+   if( HCDM ) debugh("%4d HCDM done wait(task2done)\n", __LINE__);
    task_2done.wait();
    // State: Task[idle]; Main[idle]
 
@@ -314,9 +314,9 @@ virtual void
 
    test_prefix();                   // Pre-test callback
 
-   if( HCDM ) traceh("%4d HCDM.m\n", __LINE__);
+   if( HCDM ) traceh("%4d HCDM\n", __LINE__);
    done(__LINE__);                  // Wait for all Tasks to start
-   if( HCDM ) debugh("%4d HCDM.m\n", __LINE__);
+   if( HCDM ) debugh("%4d HCDM\n", __LINE__);
 
    //-------------------------------------------------------------------------
    // Run the test
@@ -325,14 +325,8 @@ virtual void
      try {
        test();                      // Run the test
      } catch(...) {
-       unsigned size= sizeof(Trace::Record);
-       Trace::Record* record= (Trace::Record*)Trace::storage_if(size);
-       Trace::table->deactivate();  // Terminate testing
-       if( record ) {               // (Trace termination trace entry.)
-         memset(record, 0, size);
-         strcpy(record->value, "Exception");
-         record->trace(ident, __LINE__);
-       }
+       Trace::trace(".BUG", __LINE__, "Exception");
+       Trace::stop();
 
        opt_verbose= 5;              // (Force trace table dump)
        throw;                       // Rethrow the exception
@@ -346,15 +340,11 @@ virtual void
    if( opt_first) {
      // Option: the first Task completion deactivates tracing
      // Note: It's possible for multiple Tasks to finish "simultaneously"
-     Trace::Record* record= (Trace::Record*)Trace::storage_if(sizeof(Trace));
-     Trace::table->deactivate();    // Deactivate the Trace
-     if( record ) {                 // (Trace termination trace entry.)
-       memset(record, 0, sizeof(Trace));
-       record->trace(".HLT", __LINE__);
-     }
+     Trace::trace(".HLT", __LINE__, "opt_first");
+     Trace::stop();
    }
 
-   if( HCDM ) debugh("%4d HCDM.m\n", __LINE__); // MUST follow deactivate
+   if( HCDM ) debugh("%4d HCDM\n", __LINE__); // MUST follow deactivate
    test_suffix();                   // Post-test callback
 
    // Tell Main that we're done
@@ -452,12 +442,12 @@ static void
      int rc= 1;
      int fd= open(TRACE_FILE, O_RDWR | O_CREAT, S_IRWXU);
      if( fd < 0 ) {
-       fprintf(stderr, "%4d HCDM.m open(%s) ", __LINE__, TRACE_FILE);
+       fprintf(stderr, "%4d HCDM open(%s) ", __LINE__, TRACE_FILE);
        perror("failed");
      } else {
        rc= ftruncate(fd, opt_trace); // (Expand to opt_trace)
        if( rc ) {
-         fprintf(stderr, "%4d HCDM.m ftruncate(%s,%.8x) ", __LINE__
+         fprintf(stderr, "%4d HCDM ftruncate(%s,%.8x) ", __LINE__
                  , TRACE_FILE, opt_trace);
          perror("failed");
        }
@@ -465,7 +455,7 @@ static void
      if( rc == 0 ) {
        trace_table= mmap(nullptr, opt_trace, PROT_RW, MAP_SHARED, fd, 0);
        if( trace_table == MAP_FAILED ) { // If no can do
-         fprintf(stderr, "%4d HCDM.m mmap(%s,%.8x) ", __LINE__
+         fprintf(stderr, "%4d HCDM mmap(%s,%.8x) ", __LINE__
                  , TRACE_FILE, opt_trace);
          perror("failed");
          trace_table= nullptr;
@@ -578,7 +568,7 @@ static void
    task_2done.reset();
    task_2idle.post();
 
-   if( HCDM ) debugh("%4d HCDM.m wait(task2done)\n", __LINE__);
+   if( HCDM ) debugh("%4d HCDM wait(task2done)\n", __LINE__);
    task_2done.wait();
 
    // State: Main[idle], Task[idle]

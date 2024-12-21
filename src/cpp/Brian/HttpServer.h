@@ -16,7 +16,7 @@
 //       HTTP Server object.
 //
 // Last change date-
-//       2024/12/07
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #ifndef _HTTPSERVER_H_INCLUDED
@@ -25,8 +25,7 @@
 #include <mutex>                    // For std::recursive_mutex
 #include <string>                   // For std::string
 
-#include <pub/diag-pristine.h>      // TODO REMOVE
-#include <pub/Dispatch.h>           // For pub::dispatch::Item, ...
+#include "pub/Dispatch.h"           // For pub::dispatch::Item, ...
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Thread.h>             // For pub::Thread
 
@@ -126,13 +125,9 @@ class Server : pub::dispatch::Item, public pub::Thread { // Server class
 // Server::Attributes
 //----------------------------------------------------------------------------
 protected:
-pub::diag::Pristine    prefix;      // TODO: REMOVE
-
 std::recursive_mutex   mutex;       // Mutex, protects termination sequence
 pub::Socket*           socket= nullptr; // The connection Socket
 bool                   operational= false; // TRUE while operational
-
-pub::diag::Pristine    suffix= 0xABCDEF0123456789L; // TODO: REMOVE
 
 //----------------------------------------------------------------------------
 // Server::Constructor/destructor

@@ -16,7 +16,7 @@
 //       Brian mainline.
 //
 // Last change date-
-//       2024/11/24
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #include <fcntl.h>                  // For open, O_*, ...
@@ -26,7 +26,6 @@
 #include <unistd.h>                 // For close, ...
 #include <sys/mman.h>               // For mmap, munmap, ...
 
-#include <pub/diag-stack.h>         // For pub::diag::Stack
 #include <pub/Debug.h>              // For namespace debugging
 #include <pub/Exception.h>          // For catch(pub::Exception)
 #include <pub/Thread.h>             // For pub::Thread::sleep
@@ -40,7 +39,6 @@
 #define PUB _PUB_NAMESPACE
 using PUB::Debug;                   // For Debug object
 using PUB::Exception;               // For Exception handling
-using PUB::diag::Stack;             // For Stack, Stack methods
 using PUB::Thread;                  // For Thread::sleep
 using PUB::Trace;                   // For Debug object
 using namespace PUB::debugging;     // For debugging subroutines
@@ -200,17 +198,14 @@ static inline void
      strcpy(buffer, "Today");       // Set ridiculous time
 
    common= Common::make();          // Create the Common area
-   traceh("==============================================================\n");
-   debugh("======== Starting %s\n", common->get_name().c_str());
+   debugh("==============================================\n");
+   debugh("======== Starting Brian\n");
    debugh("======== Compiled %s %s\n", __DATE__, __TIME__);
    debugh("========  Started %s\n", buffer);
-   traceh("==============================================================\n");
+   debugh("==============================================\n");
    if( opt_verbose ) {              // Display environment
-     Stack stack;
      debugh("OPTIMIZE:   %s\n", getenv("OPTIMIZE"));
      debugh("USE_STATIC: %s\n", getenv("USE_STATIC"));
-     debugh("Stack type: %s\n", stack.type());
-     stack.trace("Brian.init");
    }
 
    // Initialize trace table
@@ -358,10 +353,8 @@ extern int                          // Return code
    parm(argc, argv);
 
    debug_set_head(Debug::HEAD_TIME | Debug::HEAD_THREAD);
-   if( true || opt_hcdm || opt_verbose > 1 ) { // TODO: Remove trues
+   if( opt_hcdm || opt_verbose > 1 ) {
      debug_set_mode(Debug::MODE_INTENSIVE);
-     if( true )
-       debugh("Debug::get(%p)\n", Debug::get());
    }
 
    //-------------------------------------------------------------------------

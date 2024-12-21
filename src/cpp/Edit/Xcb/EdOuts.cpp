@@ -16,10 +16,11 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2024/08/30
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
+#include <endian.h>                 // For htobe16
 #include <stdio.h>                  // For sprintf
 #include <sys/types.h>              // For system types
 #include <xcb/xproto.h>             // For XCB types
@@ -989,19 +990,18 @@ void
 
      putcr_long* R= (putcr_long*)Trace::storage_if(int(cr_size));
      if( R ) {
-       R->col= htons(uint16_t(get_col(left)));
-       R->row= htons(uint16_t(get_row(top)));
-       R->GC= htons(uint16_t(gc));
-       R->length= htons(uint16_t(length));
+       R->col= htobe16(uint16_t(get_col(left)));
+       R->row= htobe16(uint16_t(get_row(top)));
+       R->GC= htobe16(uint16_t(gc));
+       R->length= htobe16(uint16_t(length));
        if( length > putcr_short::DATA_SIZE ) {
          Trace::Buffer<putcr_long::DATA_SIZE> buff(text);
-         memcpy(R->data, buff.temp, putcr_long::DATA_SIZE);
+         memcpy(R->data, buff.get(), putcr_long::DATA_SIZE);
        } else {
          Trace::Buffer<putcr_short::DATA_SIZE> buff(text);
-         memcpy(R->data, buff.temp, putcr_short::DATA_SIZE);
+         memcpy(R->data, buff.get(), putcr_short::DATA_SIZE);
        }
-       memcpy(R->unit, "data", 4);
-       ((Trace::Record*)R)->trace(".OUT"); // Trace::trace(".OUT", "data")
+       ((Trace::Record*)R)->trace(".OUT", "data");
      }
    }
 }

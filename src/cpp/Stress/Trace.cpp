@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2023 Frank Eskesen.
+//       Copyright (C) 2020-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       ~/src/cpp/inc/pub/Trace.h Stress test
 //
 // Last change date-
-//       2023/08/04
+//       2024/12/20
 //
 // Parameters-
 //       --help        (Display help message)
@@ -51,6 +51,7 @@
 #include <pub/Named.h>              // For pub::Named (Threads are named)
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/utility.h>            // For pub::utility::atol
+#include "pub/utility.i"            // For pub::utility conversion routines
 #include <pub/macro/try_catch.h>    // For TRY_CATCH macro
 
 #include "pub/Trace.h"              // This is what we test
@@ -419,7 +420,7 @@ extern int                          // Return code
           , opt_iterations, opt_multi);
 
    if( opt_verbose >= 0 ) {         // If verbose, display --options
-     #define TF pub::utility::to_ascii // TF: True or False
+     #define TF pub::b2c            // TF: True or False
 
      unsigned records= opt_trace / sizeof(Record); // Nominal record count
      records--;                     // (Header)

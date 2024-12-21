@@ -16,7 +16,7 @@
 //       Debugging control.
 //
 // Last change date-
-//       2024/10/28
+//       2024/12/20
 //
 // Implementation notes-
 //       A file name of ">" or "1>" writes the log to stdout.
@@ -32,8 +32,8 @@
 #ifndef _LIBPUB_DEBUG_H_INCLUDED
 #define _LIBPUB_DEBUG_H_INCLUDED
 
-#include <stdarg.h>                 // For va_* functions
-#include <stdio.h>                  // For FILE definition
+#include <cstdarg>                  // For va_* functions
+#include <cstdio>                   // For FILE definition
 #include <string>                   // For std::string
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros

@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2024/12/09
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -49,10 +49,7 @@
 #include "pub/Socket.h"             // For pub::Socket, implemented
 #include <pub/Debug.h>              // For debugging
 #include <pub/Must.h>               // For pub::must::malloc
-#if SOCKET_OLD
-#include "pub/Select.h"             // For pub::Select
-#endif
-#include <pub/Trace.h>              // For pub::Trace
+#include "pub/Trace.h"              // For pub::Trace
 #include <pub/utility.h>            // For namespace pub::utility::
 #include "pub/utility.i"            // For conversion routines
 
@@ -72,7 +69,7 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  IODM= false                      // I/O Debug Mode?
 ,  IOEM= true                       // I/O error Debug Mode?
-,  VERBOSE= 0                       // Verbosity, higher is more verbose
+,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 ,  USE_CHECKING= true               // Use internal cross-checking?
 ,  USE_ITRACE= true                 // Use internal trace?
@@ -106,6 +103,19 @@ static void
    }
    errno= ERRNO;                    // Restore errno
 }
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       not_implemented
+//
+// Purpose-
+//       Throw runtime_error("NOT IMPLEMENTED")
+//
+//----------------------------------------------------------------------------
+static void
+   not_implemented( void )          // Throw NOT IMPLEMENTED runtime_error
+{  throw std::runtime_error("NOT IMPLEMENTED"); }
 
 //----------------------------------------------------------------------------
 //
@@ -265,7 +275,7 @@ std::string
      debugh("Socket(%p)::Socket()\n", this);
 
    if( USE_ITRACE )
-     Trace::trace(".NEW", "=SOK", this);
+     Trace::trace(".SOK", "=NEW", this);
 
    host_size= sizeof(host_addr);
    peer_size= sizeof(peer_addr);
@@ -278,7 +288,7 @@ std::string
      debugh("Socket(%p)::Socket(%p)\n", this, &that);
 
    if( USE_ITRACE )
-     Trace::trace(".NEW", "=SOK", this, &that);
+     Trace::trace(".SOK", "=NEW", this, &that);
 
    copy(that);
 }
@@ -297,7 +307,7 @@ std::string
      debugh("Socket(%p)::~Socket()\n", this);
 
    if( USE_ITRACE )
-     Trace::trace(".DEL", "=SOK", this, i2v(handle));
+     Trace::trace(".SOK", "=DEL", this, i2v(handle));
 
    close();
 }
@@ -360,13 +370,8 @@ void
 
    debugf("..%s::%s\n", host_addr.to_string().c_str()
          , peer_addr.to_string().c_str());
-#if SOCKET_OLD
-   debugf("..family(%d) type(%d) select(%p)\n"
-         , family, type, select.load());
-#else
    debugf("..family(%d) type(%d)\n"
          , family, type);
-#endif
    debugf("..host_size(%d), peer_size(%d)\n", host_size, peer_size);
 }
 
@@ -584,16 +589,7 @@ int                                 // Return code, 0 OK
    if( USE_ITRACE )
      Trace::trace(".SOK", "=CLS", this, i2v(handle));
 
-// std::lock_guard<decltype(mutex)> lock(mutex);
-
-#if SOCKET_OLD
-   Select* select= this->select.load();
-   if( select ) {                   // If Select active
-     select->remove(this);          // ENQ remove, ignoring errors
-     select->flush();               // Insure REMOVE completes
-   }
-#endif
-
+   std::lock_guard<decltype(mutex)> lock(mutex);
    int rc= 0;
    if( handle >= 0 ) {
      // Reset host_addr/peer_addr, host_size/peer_size, and handle
@@ -646,6 +642,8 @@ int                                 // Return code (0 OK)
              , ((sockaddr_u*)&hostaddr)->to_string().c_str(), hostsize
              , errno, strerror(errno));
    }
+   if( USE_ITRACE )
+     Trace::trace(".SOK", "CONN", this, i2v(handle));
 
    return rc;
 }
@@ -809,7 +807,7 @@ int                                 // Return code, 0 OK
      return handle;
 
    if( USE_ITRACE )
-     Trace::trace(".SOK", "OPEN", this, i2v(handle));
+     Trace::trace(".SOK", "=OPN", this, i2v(handle));
 
    return 0;
 }
@@ -851,128 +849,6 @@ int                                 // Return code
 //----------------------------------------------------------------------------
 //
 // Method-
-//       Socket::read
-//
-// Purpose-
-//       Read from the Socket
-//
-//----------------------------------------------------------------------------
-ssize_t                             // Number of bytes read
-   Socket::read(                    // Read from the Socket
-     void*             addr,        // Data address
-     size_t            size)        // Data length
-{
-   ssize_t L= ::read(handle, (char*)addr, size);
-   if( IODM ) trace(__LINE__, "%zd= read()", L);
-
-// NEED TO DECIDE WHETHER OR NOT TO TRACE DATA
-// READ AND WRITE TRACE MIGHT NEED TO BE PUT IN SUBROUTINE OR SUBROUTINES
-// if( USE_ITRACE && VERBOSE )
-//   Trace::trace(".SOK", "READ", this, L);
-
-   return L;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Socket::recv
-//       Socket::recvfrom
-//       Socket::recvmsg
-//
-// Purpose-
-//       Receive from the Socket
-//
-//----------------------------------------------------------------------------
-ssize_t                             // Number of bytes read
-   Socket::recv(                    // Receive from the Socket
-     void*             addr,        // Data address
-     size_t            size,        // Data length
-     int               flag)        // Receive options
-{
-   ssize_t L= ::recv(handle, addr, size, flag);
-   if( IODM ) trace(__LINE__, "%zd= recv()", L);
-   return L;
-}
-
-ssize_t                             // The number of bytes read
-   Socket::recvfrom(                // Read from the socket
-     void*             addr,        // Data address
-     size_t            size,        // Data length
-     int               flag,        // Send options
-     sockaddr*         peer_addr,   // Source peer address
-     socklen_t*        peer_size)   // Source peer address length
-{
-   ssize_t L= ::recvfrom(handle, addr, size, flag, peer_addr, peer_size);
-   if( IODM ) trace(__LINE__, "%zd= recvfrom()", L);
-   return L;
-}
-
-ssize_t                             // The number of bytes written
-   Socket::recvmsg(                 // Receive message from the peer
-     msghdr*           msg,         // Message header
-     int               flag)        // Send options
-{
-   ssize_t L= ::recvmsg(handle, msg, flag);
-   if( IODM ) trace(__LINE__, "%zd= recvmsg()", L);
-   return L;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Socket::send
-//       Socket::sendmsg
-//       Socket::sendto
-//
-// Purpose-
-//       Transmit to the Socket
-//
-//----------------------------------------------------------------------------
-ssize_t                             // Number of bytes sent
-   Socket::send(                    // Write to the Socket
-     const void*       addr,        // Data address
-     size_t            size,        // Data length
-     int               flag)        // Transmit options
-{
-   ssize_t L= ::send(handle, addr, size, flag);
-   if( IODM ) trace(__LINE__, "%zd= send()", L);
-   return L;
-}
-
-ssize_t                             // The number of bytes written
-   Socket::sendmsg(                 // Write to the socket
-     const msghdr*     msg,         // Message header
-     int               flag)        // Send options
-{
-   ssize_t L= ::sendmsg(handle, msg, flag);
-   if( IODM ) trace(__LINE__, "%zd= sendmsg()", L);
-   return L;
-}
-
-ssize_t                             // The number of bytes written
-   Socket::sendto(                  // Write to the socket
-     const void*       addr,        // Data address
-     size_t            size,        // Data length
-     int               flag,        // Send options
-     const sockaddr*   peeraddr,    // Target peer address
-     socklen_t         peersize)    // Target peer address length
-{
-   if( family == AF_UNIX && (void*)peeraddr == (void*)&peer_addr ) {
-     peeraddr= ((sockaddr_u*)peeraddr)->su_x.x_sockaddr;
-     if( peeraddr == nullptr ) {
-       errorf("Socket::sendto peer_addr not initialized");
-       throw SocketException("Invalid peeraddr");
-     }
-   }
-   ssize_t L= ::sendto(handle, addr, size, flag, peeraddr, peersize);
-   if( IODM ) trace(__LINE__, "%zd= sendto()", L);
-   return L;
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
 //       Socket::shutdown
 //
 // Purpose-
@@ -999,6 +875,31 @@ int                                 // Return code, 0 OK
 //----------------------------------------------------------------------------
 //
 // Method-
+//       Socket::read
+//
+// Purpose-
+//       Read from the Socket
+//
+//----------------------------------------------------------------------------
+ssize_t                             // Number of bytes read
+   Socket::read(                    // Read from the Socket
+     void*             addr,        // Data address
+     size_t            size)        // Data length
+{
+   ssize_t L= ::read(handle, (char*)addr, size);
+   if( IODM ) trace(__LINE__, "%zd= read()", L);
+
+   if( USE_ITRACE && VERBOSE && L >= 0 ) {
+     Trace::trace(".SOK", __LINE__, "This is a test");
+     Trace::io_trace(".SOK", "<<RD", this, i2v(handle), addr, L);
+   }
+
+   return L;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       Socket::write
 //
 // Purpose-
@@ -1012,6 +913,145 @@ ssize_t                             // Number of bytes sent
 {
    ssize_t L= ::write(handle, (char*)addr, size);
    if( IODM ) trace(__LINE__, "%zd= write()", L);
+
+   if( USE_ITRACE && VERBOSE && L >= 0 ) {
+     Trace::io_trace(".SOK", ">>WR", this, i2v(handle), (char*)addr, L);
+   }
+   return L;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::recv
+//       Socket::recvfrom
+//       Socket::recvmsg
+//
+// Purpose-
+//       Receive from the Socket
+//
+//----------------------------------------------------------------------------
+ssize_t                             // Number of bytes read
+   Socket::recv(                    // Receive from the Socket
+     void*             addr,        // Data address
+     size_t            size,        // Data length
+     int               flag)        // Receive options
+{
+   ssize_t L= ::recv(handle, addr, size, flag);
+   if( IODM ) trace(__LINE__, "%zd= recv()", L);
+
+   if( USE_ITRACE && VERBOSE && L >= 0 ) {
+     Trace::io_trace(".SOK", "RECV", this, i2v(handle), addr, L);
+   }
+
+   return L;
+}
+
+ssize_t                             // The number of bytes read
+   Socket::recvfrom(                // Read from the socket
+     void*             addr,        // Data address
+     size_t            size,        // Data length
+     int               flag,        // Send options
+     sockaddr*         peer_addr,   // Source peer address
+     socklen_t*        peer_size)   // Source peer address length
+{
+   ssize_t L= ::recvfrom(handle, addr, size, flag, peer_addr, peer_size);
+   if( IODM ) trace(__LINE__, "%zd= recvfrom()", L);
+
+   if( USE_ITRACE && VERBOSE && L >= 0 ) {
+     Trace::io_trace(".SOK", "FRCV", this, i2v(handle), addr, L);
+   }
+
+   return L;
+}
+
+ssize_t                             // The number of bytes received
+   Socket::recvmsg(                 // Receive message from the peer
+     msghdr*           msg,         // Message header
+     int               flag)        // Send options
+{
+   ssize_t L= ::recvmsg(handle, msg, flag);
+   if( IODM ) trace(__LINE__, "%zd= recvmsg()", L);
+
+   if( USE_ITRACE && VERBOSE && L >= 0 ) {
+     void* addr= msg->msg_iov[0].iov_base;
+     ssize_t LL= msg->msg_iov[0].iov_len;
+     if( LL > L )
+       LL= L;
+     Trace::io_trace(".SOK", "RMSG", this, i2v(handle), addr, LL);
+   }
+
+   return L;
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Socket::send
+//       Socket::sendmsg
+//       Socket::sendto
+//
+// Purpose-
+//       Transmit to the Socket
+//
+//----------------------------------------------------------------------------
+ssize_t                             // Number of bytes sent
+   Socket::send(                    // Write to the Socket
+     const void*       addr,        // Data address
+     size_t            size,        // Data length
+     int               flag)        // Transmit options
+{
+   ssize_t L= ::send(handle, addr, size, flag);
+   if( IODM ) trace(__LINE__, "%zd= send()", L);
+
+   if( USE_ITRACE && VERBOSE && L >= 0 ) {
+     Trace::io_trace(".SOK", "SEND", this, i2v(handle), addr, L);
+   }
+
+   return L;
+}
+
+ssize_t                             // The number of bytes written
+   Socket::sendmsg(                 // Write to the socket
+     const msghdr*     msg,         // Message header
+     int               flag)        // Send options
+{
+   ssize_t L= ::sendmsg(handle, msg, flag);
+   if( IODM ) trace(__LINE__, "%zd= sendmsg()", L);
+
+   if( USE_ITRACE && VERBOSE && L >= 0 ) {
+     void* addr= msg->msg_iov[0].iov_base;
+     ssize_t LL= msg->msg_iov[0].iov_len;
+     if( LL > L )
+       LL= L;
+     Trace::io_trace(".SOK", "SMSG", this, i2v(handle), addr, LL);
+   }
+
+   return L;
+}
+
+ssize_t                             // The number of bytes written
+   Socket::sendto(                  // Write to the socket
+     const void*       addr,        // Data address
+     size_t            size,        // Data length
+     int               flag,        // Send options
+     const sockaddr*   peeraddr,    // Target peer address
+     socklen_t         peersize)    // Target peer address length
+{
+   if( family == AF_UNIX && (void*)peeraddr == (void*)&peer_addr ) {
+     peeraddr= ((sockaddr_u*)peeraddr)->su_x.x_sockaddr;
+     if( peeraddr == nullptr ) {
+       errorf("Socket::sendto peer_addr not initialized");
+       throw SocketException("Invalid peeraddr");
+     }
+   }
+   ssize_t L= ::sendto(handle, addr, size, flag, peeraddr, peersize);
+   if( IODM ) trace(__LINE__, "%zd= sendto()", L);
+
+   if( USE_ITRACE && VERBOSE && L >= 0 ) {
+     Trace::io_trace(".SOK", "SND2", this, i2v(handle), addr, L);
+   }
+
    return L;
 }
 
@@ -1207,7 +1247,7 @@ int                                 // Return code (0 OK)
    if( rc == 0 ) {
      ssl= SSL_new(ssl_ctx);
      if( IODM ) trace(__LINE__, "%p= SSL_new", ssl);
-       if( ssl == nullptr ) {
+     if( ssl == nullptr ) {
        display_ERR();
        throw std::runtime_error("SSL_new failure"); // (SHOULD NOT OCCUR)
      }
@@ -1244,6 +1284,10 @@ ssize_t                             // Number of bytes read
    ssize_t L= SSL_read(ssl, addr, size);
    if( IODM ) trace(__LINE__, "%zd= SSL_read()", L);
 
+   if( USE_ITRACE && VERBOSE && L >= 0 ) {
+     Trace::io_trace(".SSL", "<<RD", this, i2v(handle), addr, L);
+   }
+
    return L;
 }
 
@@ -1264,6 +1308,70 @@ ssize_t                             // Number of bytes sent
    ssize_t L= SSL_write(ssl, addr, size);
    if( IODM ) trace(__LINE__, "%zd= SSL_write()", L);
 
+   if( USE_ITRACE && VERBOSE && L >= 0 ) {
+     Trace::io_trace(".SSL", ">>WR", this, i2v(handle), addr, L);
+   }
+
    return L;
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       SSL_socket::recv, recvfrom, recvmsg, send, sendmsg, and sendto
+//
+// Purpose-
+//       These methods are not implemented
+//
+//----------------------------------------------------------------------------
+ssize_t                             // The number of bytes read
+   SSL_socket::recv(                // Receive from the peer socket
+     void*,                         // Data address
+     size_t,                        // Maximum data length
+     int)                           // Receive options
+{  not_implemented(); return 0; }
+
+ssize_t                             // The number of bytes read
+   SSL_socket::recvfrom(            // Read from some socket
+     void*,                         // Data address
+     size_t,                        // Data length
+     int,                           // Send options
+     sockaddr*,                     // Source peer address
+     socklen_t*)                    // Source peer address length
+{  not_implemented(); return 0; }
+
+ssize_t                             // The number of bytes written
+   SSL_socket::recvmsg(             // Receive message from some socket
+     msghdr*,                       // Message header
+     int)                           // Recv options
+{  not_implemented(); return 0; }
+
+ssize_t                             // The number of bytes written
+   SSL_socket::send(                // Write to the peer socket
+     const void*,                   // Data address
+     size_t,                        // Data length
+     int)                           // Send options
+{  not_implemented(); return 0; }
+
+ssize_t                             // The number of bytes written
+   SSL_socket::sendmsg(             // Write to some socket
+     const msghdr*,                 // Message header
+     int)                           // Send options
+{  not_implemented(); return 0; }
+
+ssize_t                             // The number of bytes written
+   SSL_socket::sendto(              // Write to some socket
+     const void*,                   // Data address
+     size_t,                        // Data length
+     int,                           // Send options
+     const sockaddr*,               // Target peer address
+     socklen_t)                     // Target peer address length
+{  not_implemented(); return 0; }
+
+ssize_t                             // The number of bytes written
+   SSL_socket::sendto(              // Write to the peer socket
+     const void*,                   // Data address
+     size_t,                        // Data length
+     int)                           // Send options
+{  not_implemented(); return 0; }
 } // namespace _LIBPUB_NAMESPACE

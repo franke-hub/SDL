@@ -16,18 +16,20 @@
 //       Console subroutine methods.
 //
 // Last change date-
-//       2024/12/09
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
+#include <cassert>                  // (Instead of assert.h)
+#include <cctype>                   // Move ctype.h macros into std::
+#include <cstdarg>                  // (Instead of stdarg.h)
+#include <cerrno>                   // (Instead of errno.h)
+#include <cstdio>                   // Move stdio.h macros into std::
 #include <mutex>                    // For std::mutex, std::lock_guard
 
-#include <assert.h>                 // For assert
-#include <ctype.h>                  // For isdigit
 #include <endian.h>                 // For be64toh, ...
-#include <errno.h>                  // For errno (TODO: TEMPORARY?)
-#include <stdarg.h>                 // For va_* macros
 #include <termios.h>                // For struct termios, ...
 #include <unistd.h>                 // For isatty, STDIN_FILENO, ...
+#include <arpa/inet.h>              // For htonl
 
 #define XK_MISCELLANY               // For most keyboard keys
 #define XK_XKB_KEYS                 // For XK_ISO_Left_Tab
@@ -256,15 +258,16 @@ static int                          // The decoded esc sequence
        return C;                    // Return the decoded sequence
    }
 
+   // If stand-alone ESC or non-operational
+   if( inp_buffer.size() == 1 || (!operational) ) {
+     inp_buffer= "";
+     return ESC;
+   }
+
    // Check for a known, complete sequence.
    int C= get_sequence();
    if( C >= 0 )
      return C;
-
-   if( inp_buffer.size() == 1 ) {    // If stand-alone ESC
-     inp_buffer= "";
-     return ESC;
-   }
 
    // We have what should be a complete ESC sequence, but maybe it isn't.
    // For incomplete or invalid ESC sequences, we invoke esc_sequence part.
@@ -335,26 +338,6 @@ static int                          // The next buffered character, or -1
 
 //----------------------------------------------------------------------------
 //
-// Subroutine-
-//       handle_atexit
-//
-// Purpose-
-//       Restore original termios settings.
-//
-// Implementation notes-
-//       We need to restore the original termios settings if the main thread
-//       exits while getch is running
-//
-//----------------------------------------------------------------------------
-static void handle_atexit( void ) { // atexit target subroutine
-   if( in_getch ) {
-     operational= 0;
-     tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
-   }
-}
-
-//----------------------------------------------------------------------------
-//
 // Method-
 //       Console::getch
 //
@@ -391,7 +374,6 @@ int                                 // The next input character
      newattr.c_cc[VMIN] = 0;        // (No characters required)
 #else
      newattr.c_cc[VMIN] = 1;        // (One character required)
-newattr.c_cc[VMIN] = 0;        // (No characters required)
 #endif
      newattr.c_cc[VTIME] = (timeout + 50)/100; // Set timeout
      if( HCDM && VERBOSE > 1 ) {
@@ -400,38 +382,30 @@ newattr.c_cc[VMIN] = 0;        // (No characters required)
      }
 
      in_getch= true;                // Indicate getch running
-//traceh("%4d Console in_getch(%d)\n", __LINE__, in_getch);
      tcsetattr(STDIN_FILENO, TCSANOW, &newattr); // Set the new attributes
-#if 0
+#if 1
      C= ::getchar();
 #else
      char buffer[8];
      ssize_t L= read(STDIN_FILENO, buffer, 1);
      if( L == 1 )
        C= buffer[0];
-traceh("%4d Console L(%zd) C(0x%.2x) %d:%s\n", __LINE__, L, C, errno, strerror(errno));
 #endif
      tcsetattr(STDIN_FILENO, TCSANOW, &oldattr); // Restore the old attributes
      in_getch= false;               // Attributes restored
 
 #if 1  // ******** INTERNAL TRACE ********************************************
      struct Record : public Trace::Record {
-       struct termios  ios;
+       struct termios ios;
      };
 
      Record* record= (Record*)Trace::storage_if(sizeof(Record));
      if( record ) {
-       int  IC= htonl((C << 8) | operational);
-       char CC[4];
-       memcpy(CC, &IC, 4);
-       memcpy(&record->ios, &newattr, sizeof(record->ios));
-
        record->ios= newattr;
-       record->trace(".GCH", CC
-                    , i2v(i2i(C)<<8 | operational));
+       record->trace(".CON", "=GCH"
+                    , i2i(operational), i2i(C));
      }
 #endif // ******** INTERNAL TRACE ********************************************
-//traceh("%4d Console in_getch(%d)\n", __LINE__, in_getch);
    }}}}
 
    if( C == 0x007f )                // Handle nasty surprise
@@ -617,6 +591,26 @@ char*                               // addr || nullptr iff non-operational
 
 //----------------------------------------------------------------------------
 //
+// Subroutine-
+//       handle_atexit
+//
+// Purpose-
+//       Restore original termios settings.
+//
+// Implementation notes-
+//       We need to restore the original termios settings if the main thread
+//       exits while getch is running
+//
+//----------------------------------------------------------------------------
+static void handle_atexit( void ) { // atexit target subroutine
+   if( in_getch ) {
+     operational= 0;
+     tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
+   }
+}
+
+//----------------------------------------------------------------------------
+//
 // Method-
 //       Console::printf
 //
@@ -718,15 +712,14 @@ void
    if( operational > 0 ) {
      operational--;
 
-traceh("%4d CONSOLE STOP HCDM - operational(%d)\n", __LINE__, operational);
      if( operational == 0 ) {
        tcsetattr(STDIN_FILENO, TCSANOW, &oldattr); // Restore STDIN attributes
-traceh("%4d CONSOLE STOP HCDM - Restored stdin attributes\n", __LINE__);
        event.post(0);
      }
    } else {
      // Other than this message, this error is ignored. (Fix your application)
      debugf("ERROR: Console::stop without corresponding start\n");
+     errno= EPERM;                  // (Permanent error)
    }
 
    if( used_trace ) {
@@ -746,9 +739,5 @@ traceh("%4d CONSOLE STOP HCDM - Restored stdin attributes\n", __LINE__);
 //----------------------------------------------------------------------------
 void
    Console::wait( void )            // Wait for termination
-{
-traceh("\n\n%4d pub::Console::wait operational(%d)...\n", __LINE__, operational);
-   event.wait();
-traceh("%4d pub::Console::wait ...operational(%d)\n", __LINE__, operational);
-}
+{  event.wait(); }
 }  // namespace _LIBPUB_NAMESPACE

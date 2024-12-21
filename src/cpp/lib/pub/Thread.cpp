@@ -16,7 +16,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2024/12/09
+//       2024/12/17
 //
 // Implementation note-
 //       We use Thread Local Storage to maintain the Thread::tlss state.
@@ -40,6 +40,7 @@
 #include "pub/Latch.h"              // For pub::Latch
 #include <pub/Named.h>              // For pub::Named
 #include "pub/Thread.h"             // For pub::Thread, implemened
+#include "pub/Trace.h"              // For pub::Trace
 #include "pub/utility.i"            // For conversion subroutines
 
 #define PUB _LIBPUB_NAMESPACE
@@ -60,13 +61,15 @@ namespace _LIBPUB_NAMESPACE {
 // USE_HCDM_DEBUGGING uses debugging versions of Thread.h inlines.
 #define USE_HCDM_DEBUGGING          // Use Thread.h debugging implementations?
 
-// Production mode settings: HCDM= false; VERBOSE= 1
+// Production mode settings: HCDM= false; VERBOSE= 1;
+//   USE_CHECK= false; USE_ITRACE= false; USE_TIMING=false
 enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 // Production mode settings: USE_CHECK= true; USE_TIMING= false
 ,  USE_CHECK= true                  // Use self-checking code?
+,  USE_ITRACE= true                 // Use internal trace?
 ,  USE_TIMING= false                // Use timing code?
 }; // generic enum
 
@@ -260,7 +263,11 @@ void
 //
 //----------------------------------------------------------------------------
    Thread::Thread( void )           // Constructor
-{  if( HCDM || USE_TIMING ) debugh("Thread(%p)!\n", this); }
+{  if( HCDM || USE_TIMING ) debugh("Thread(%p)!\n", this);
+
+   if( USE_ITRACE )
+     Trace::trace(".THR", "=NEW", this, nullptr);
+}
 
 //----------------------------------------------------------------------------
 //
@@ -276,6 +283,9 @@ void
 //----------------------------------------------------------------------------
    Thread::~Thread( void )          // Destructor
 {  if( HCDM || USE_TIMING ) debugh("Thread(%p)~ _tlss(%p)\n", this, _tlss);
+
+   if( USE_ITRACE )
+     Trace::trace(".THR", "=DEL", this, _tlss);
 
    if( _tlss )                      // (Avoid NOP detach call)
      detach();
@@ -404,6 +414,9 @@ void
 {  if( HCDM || USE_TIMING )
      debugh("Thread(%p)::detach _tlss(%p)\n", this, _tlss);
 
+   if( USE_ITRACE )
+     Trace::trace(".THR", "=DET", this, _tlss);
+
    // The Thread::mutex lock is held until this method exits
    std::lock_guard<decltype(mutex)> lock(mutex); // Protects _tlss *only*
    tlss* _tlss= this->_tlss;
@@ -423,6 +436,8 @@ debugh("%4d Thread(%p) _tlss == nullptr (DUPLICATE) DETACH\n", __LINE__, this);
      if( fsm != FSM_DRIVE && fsm != FSM_OWNER ) {
        debugh("%4d Thread(%p)::detach rejected, FSM(%s)\n", __LINE__
              , this, f2c(fsm));
+       if( USE_ITRACE )
+         Trace::trace(".THR", "DREJ", this, i2v(fsm));
        return;
      }
 
@@ -432,10 +447,14 @@ debugh("%4d Thread(%p) _tlss == nullptr (DUPLICATE) DETACH\n", __LINE__, this);
 //_tlss->debug("Before detach");
 //debugh("%4d Thread.detach HCDM TIMING\n", __LINE__);
      int rc= pthread_detach(_tlss->std_thread);
-     if( rc )
+     if( rc ) {
+       if( USE_ITRACE )
+         Trace::trace(".THR", "DERR", this, i2v(i2i(fsm)<<32 | rc));
+
        errorh("pthread_detach(0x%zx) error %d:%s\b"
              , intptr_t(_tlss->std_thread), rc, strerror(rc));
 //debugh("%4d Thread.detach HCDM TIMING\n", __LINE__);
+     }
 
      if( USE_TIMING )
        traceh("%4d Thread(%p).detach _tlss(%p) fsm(%s) detached\n", __LINE__
@@ -452,6 +471,8 @@ debugh("%4d Thread(%p) _tlss == nullptr (DUPLICATE) DETACH\n", __LINE__, this);
 
 //Thread::static_debug("Detach[DRIVE] exit");
 //debugh("%4d detach EXIT, _tlss==nullptr\n", __LINE__);
+       if( USE_ITRACE )
+         Trace::trace(".THR", "=FSM", this, i2v(fsm));
        return;
      }
    }}}} // (End of scope: lock_guard tlss::mutex)
@@ -462,12 +483,16 @@ debugh("%4d Thread(%p) _tlss == nullptr (DUPLICATE) DETACH\n", __LINE__, this);
        abortf("Thread.cpp: _tlss->fsm!=FSM_OWNER");
 
 //debug("detach DRIVE=>FSM_OWNER [tlss delete]");
+     if( USE_ITRACE )
+       Trace::trace(".THR", "-TLS", this, _tlss);
      delete _tlss;                // (We own it, so we delete it)
      this->_tlss= nullptr;        // The tlss is no longer meaningful
    }
 
 //debug("Detach exit");
 //Thread::static_debug("Detach exit");
+   if( USE_ITRACE )
+     Trace::trace(".THR", "DXIT", this, _tlss);
    if( USE_TIMING ) {
      traceh("%4d Thread(%p).detach _tlss(%p,%p) fsm(%s) EXIT\n", __LINE__
            , this, _tlss, this->_tlss, "N/A");
@@ -488,6 +513,9 @@ void
 {  if( HCDM || USE_TIMING )
      debugh("Thread(%p)::join _tlss(%p)->fsm(%s)\n", this, _tlss
            , _tlss ? f2c(_tlss->fsm) : "N/A" );
+
+   if( USE_ITRACE )
+     Trace::trace(".THR", "JOIN", this, _tlss);
 
    tlss* _tlss= nullptr;            // (Not valid yet)
 
@@ -510,11 +538,15 @@ void
 
      int fsm= _tlss->fsm;
      if( fsm != FSM_DRIVE && fsm != FSM_OWNER ) {
+       if( USE_ITRACE )
+         Trace::trace(".THR", "JREJ", this, i2v(fsm));
        debugh("Thread(%p)::join rejected, FSM(%s)\n", this, f2c(fsm));
        throw std::runtime_error("join rejected");
      }
 
      _tlss->set_fsm(FSM_JOINING); // (This state prevents detach)
+     if( USE_ITRACE )
+       Trace::trace(".THR", "JFSM", this, i2v(_tlss->fsm));
    }}}}
 
 // If we map Threads, how do we handle state after run exit but before Thread
@@ -545,6 +577,8 @@ void
    // protection to set it to nullptr.
    std::lock_guard<decltype(mutex)> lock(mutex); // Protects this->_tlss *only*
 
+   if( USE_ITRACE )
+     Trace::trace(".THR", "-TLS", this, _tlss);
    delete _tlss;                  // (The thread's tl_tlss is already null)
    this->_tlss= nullptr;
 
@@ -618,6 +652,8 @@ void
 
    tlss* _tlss= new tlss(this);     // Allocate a new tlss
    this->_tlss= _tlss;              // (Pass its address to Thread::drive)
+   if( USE_ITRACE )
+     Trace::trace(".THR", "+TLS", this, _tlss);
 
    if( USE_TIMING )
      traceh("%4d Thread(%p).start _tlss(%p)\n", __LINE__, this, _tlss);
@@ -639,11 +675,15 @@ void
          continue;
        }
 
+       if( USE_ITRACE )
+         Trace::trace(".THR", "-TLS", this, _tlss);
        this->_tlss= nullptr;
        delete _tlss;
        throw std::runtime_error("Thread::start EAGAIN retry count exceeded");
      }
 
+     if( USE_ITRACE )
+       Trace::trace(".THR", "-TLS", this, _tlss);
      this->_tlss= nullptr;
      delete _tlss;
      throw std::runtime_error("Thread::start error: "
@@ -699,6 +739,8 @@ void*                               // (Always nullptr)
      // Run the Thread, catching exceptions
      try {
 //Stack stack; stack.debug("before run");
+       if( USE_ITRACE )
+         Trace::trace(".THR", ">run", thread, _tlss);
        thread->run();
      } catch(Exception& X) {         // Exceptions get message, but complete
        debugh("%4d Thread(%p)::run, Exception: %s\n", __LINE__
@@ -750,6 +792,8 @@ void*                               // (Always nullptr)
                , __LINE__, thread, _tlss, tl_tlss, f2c(fsm));
 //_tlss->debug("run exit");
 
+       if( USE_ITRACE )
+         Trace::trace(".THR", "<run", thread, i2v(fsm));
        if( fsm != FSM_DETACHED ) {  // If the Thread isn't detached
          if( USE_CHECK ) {
            if( _tlss != thread->_tlss)
@@ -774,6 +818,8 @@ void*                               // (Always nullptr)
 
 // Last message before exit <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 //debugh("%4d HCDM Thread(%p).drive EXIT FSM==OWNER\n", __LINE__, thread);
+         if( USE_ITRACE )
+           Trace::trace(".THR", "<xit", thread, nullptr);
          return nullptr;
        }
      }}}}
@@ -806,6 +852,8 @@ void*                               // (Always nullptr)
 //Thread::static_debug("A detached thread completed");
 //_tlss->debug("A detached thread completed");
 
+     if( USE_ITRACE )
+       Trace::trace(".THR", "-TLS", thread, _tlss);
      delete _tlss;                  // Delete the tlss
      tl_tlss= nullptr;              // Reset the thread local storage pointer
 // Last message before exit <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

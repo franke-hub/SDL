@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2023 Frank Eskesen.
+//       Copyright (C) 2019-2024 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Trace object methods.
 //
 // Last change date-
-//       2023/05/22
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE                 // For sched_getcpu
@@ -172,14 +172,11 @@ void
      const char*       info)        // Caller information
 {
    debugf("Trace(%p)::static_debug(%s)\n", table, info);
+   debugf("..CHECK(%s) HCDM(%s)\n", pub::b2c(CHECK), pub::b2c(HCDM));
    if( table )
      debugf("..next(0x%.8x) size(0x%.8x) zero(0x%.2x) last(0x%.8x) wrap(%lu)\n"
            , table->next.load(), table->size, table->zero, table->last
            , table->wrap);
-
-   #define TF utility::to_ascii     // TF: True or False
-   debugf("..CHECK(%s) HCDM(%s)\n", TF(CHECK), TF(HCDM));
-   #undef TF
 }
 
 //----------------------------------------------------------------------------
@@ -304,7 +301,7 @@ void
    Trace::start( void )             // Resume tracing
 {
    if( table ) {
-     table->deactivate();
+     table->reactivate();
      Trace::trace(".SYS", "<go>");
    }
 }

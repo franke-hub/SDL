@@ -16,7 +16,7 @@
 //       Include a command and a service.
 //
 // Last change date-
-//       2024/11/15
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #include <pub/Debug.h>              // For namespace debugging
@@ -34,7 +34,7 @@ using namespace PUB::dispatch;
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= true                       // Hard Core Debug Mode?
+{  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // (generic) enum
 

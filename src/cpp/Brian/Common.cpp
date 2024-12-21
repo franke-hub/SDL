@@ -16,7 +16,7 @@
 //       Brian Common object methods
 //
 // Last change date-
-//       2024/11/02
+//       2024/12/20
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For in-place operator new
@@ -39,7 +39,7 @@ using pub::Thread;
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= true                       // Hard Core Debug Mode?
+{  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 }; // (generic) enum
 
@@ -120,7 +120,7 @@ StaticCommon*                       // (Can be ignored)
 :  event()
 ,  fsm(FSM_RESET)
 ,  brian(user_agent)
-{  if( HCDM ) traceh("Common(%p)::Common()\n", this);
+{  if( HCDM ) traceh("Common(%p)!\n", this);
    common= this;
 
    //-------------------------------------------------------------------------
@@ -141,7 +141,7 @@ StaticCommon*                       // (Can be ignored)
 //
 //----------------------------------------------------------------------------
    Common::~Common( void )          // Destructor
-{  if( HCDM ) traceh("Common(%p)::~Common()\n", this);
+{  if( HCDM ) traceh("Common(%p)~\n", this);
 
    //-------------------------------------------------------------------------
    // Terminate dispatcher services
