@@ -22,8 +22,8 @@
 //       NN_clock_V  nn_rdval(neuron[clock])
 //
 //----------------------------------------------------------------------------
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 
 #include <com/Debug.h>
 

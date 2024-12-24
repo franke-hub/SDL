@@ -18,13 +18,14 @@
 //       2020/10/12
 //
 //----------------------------------------------------------------------------
-#include<ctype.h>
-#include<errno.h>
-#include<math.h>
-#include<stdio.h>
-#include<string.h>
-#include<stdlib.h>
-#include<unistd.h>
+#include <cctype>
+#include <cerrno>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+
+#include <unistd.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

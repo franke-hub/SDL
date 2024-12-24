@@ -26,7 +26,7 @@
 #ifndef CRC32_H_INCLUDED
 #define CRC32_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
 
 //----------------------------------------------------------------------------
 //

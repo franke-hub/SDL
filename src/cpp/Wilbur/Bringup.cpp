@@ -30,9 +30,8 @@
 //       --testTimers      (Test Dispatch::DispatchTimers)
 //
 //----------------------------------------------------------------------------
-#include <exception>
-
-#include <string.h>
+#include <exception>                // For std::exception
+#include <cstring>                  // For memcpy
 
 #include <com/Clock.h>
 #include <com/DataSource.h>

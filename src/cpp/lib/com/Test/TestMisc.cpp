@@ -19,23 +19,21 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <new>                      // For new(void*) {in-place operator}
-#include <iostream>                 // For cout <<, endl
-
-#include <math.h>                   // For fabs()
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <com/Debug.h>
-#include <com/Random.h>
+#include <new>                      // For std::new {in-place operator}
+#include <iostream>                 // For std::cout <<, endl
+#include <cmath>                    // For fabs()
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 
 #include "com/Clock.h"
+#include <com/Debug.h>
 #include "com/Exception.h"
 #include "com/Handler.h"
 #include "com/istring.h"
 #include "com/MinMax.h"
 #include "com/Normalizer.h"
+#include <com/Random.h>
 #include "com/Signal.h"
 #include "com/Thread.h"
 #include "com/Trace.h"

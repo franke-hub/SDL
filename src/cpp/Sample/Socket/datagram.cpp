@@ -18,22 +18,23 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <com/Debug.h>
-#include <com/define.h>
-#include <com/Signal.h>
-
 #include <pthread.h>                // Must be first (per doc)
 
-#include <assert.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <cassert>
+#include <cerrno>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
 #include <unistd.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+
+#include <com/Debug.h>
+#include <com/define.h>
+#include <com/Signal.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

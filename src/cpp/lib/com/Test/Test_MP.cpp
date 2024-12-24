@@ -19,13 +19,14 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <new>
-#include <assert.h>
-#include <limits.h>                 // For INT_MAX
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>                 // For atoi, malloc
-#include <string.h>
+#include <new>                      // For std:: (In-place operator new)
+#include <cassert>                  // For assert
+#include <climits>                  // For INT_MAX
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>                  // For atoi, malloc
+#include <cstring>
+
 #include <unistd.h>                 // For fork, sleep
 
 #ifdef _OS_WIN

@@ -19,16 +19,14 @@
 //       2024/11/20
 //
 //----------------------------------------------------------------------------
-#include <cstdlib>                  // For std::free
-#include <ctype.h>                  // For isprint()
-#include <iostream>                 // For cout
+#include <iostream>                 // For std::cout
 #include <string>                   // For std::string
 #include <thread>                   // For std::thread::id
-
-#include <errno.h>                  // For errno, ...
-#include <limits.h>                 // For INT_MIN, INT_MAX, ...
-#include <stddef.h>                 // For offsetof
-#include <stdlib.h>                 // For getenv
+#include <cctype>                   // For isprint()
+#include <cerrno>                   // For errno, ...
+#include <climits>                  // For INT_MIN, INT_MAX, ...
+#include <cstddef>                  // For offsetof
+#include <cstdlib>                  // For getenv
 
 #include "pub/TEST.H"               // For error counting
 #include "pub/Debug.h"              // For namespace pub::debugging

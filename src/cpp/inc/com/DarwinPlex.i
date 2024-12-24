@@ -22,7 +22,7 @@
 #ifndef DARWINPLEX_I_INCLUDED
 #define DARWINPLEX_I_INCLUDED
 
-#include <assert.h>
+#include <cassert>
 
 //----------------------------------------------------------------------------
 //

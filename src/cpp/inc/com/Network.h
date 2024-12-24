@@ -42,7 +42,7 @@
 #ifndef NETWORK_H_INCLUDED
 #define NETWORK_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
 
 //----------------------------------------------------------------------------
 //

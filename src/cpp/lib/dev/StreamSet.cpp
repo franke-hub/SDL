@@ -19,15 +19,14 @@
 //       2023/07/29
 //
 //----------------------------------------------------------------------------
-#include <new>                      // For std::bad_alloc
 #include <atomic>                   // For std::atomic
-#include <cstring>                  // For memset
+#include <new>                      // For std::bad_alloc
 #include <stdexcept>                // For std::runtime_error, ...
 #include <string>                   // For std::string
-
-#include <assert.h>                 // For assert
-#include <stdio.h>                  // For fprintf
-#include <stdint.h>                 // For integer types
+#include <cassert>                  // For assert
+#include <cstdio>                   // For fprintf
+#include <cstdint>                  // For integer types
+#include <cstring>                  // For memset
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Dispatch.h>           // For namespace pub::dispatch
@@ -35,7 +34,6 @@
 #include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For pub::to_string, ...
-
 #include "pub/http/Client.h"        // For pub::http::Client
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Request.h"       // For pub::http::Request

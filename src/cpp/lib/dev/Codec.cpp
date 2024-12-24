@@ -20,8 +20,8 @@
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::runtime_error
-#include <ctype.h>                  // For isspace
-#include <stdio.h>                  // For EOF
+#include <cctype>                   // For isspace
+#include <cstdio>                   // For EOF
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Ioda.h>               // For pub::Ioda

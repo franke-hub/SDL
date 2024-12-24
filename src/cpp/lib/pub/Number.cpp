@@ -20,14 +20,13 @@
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
-#include <cstring>                  // For memset
 #include <ostream>                  // For std::ostream
 #include <stdexcept>                // For std::out_of_range, ...
 #include <string>                   // For std::string
-
-#include <assert.h>                 // For assert
-#include <stdio.h>                  // For fprintf
-#include <stdint.h>                 // For integer types
+#include <cassert>                  // For assert
+#include <cstdio>                   // For fprintf
+#include <cstdint>                  // For integer types
+#include <cstring>                  // For memset
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception

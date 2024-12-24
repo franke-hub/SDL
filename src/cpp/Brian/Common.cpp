@@ -19,7 +19,8 @@
 //       2024/12/20
 //
 //----------------------------------------------------------------------------
-#include <new>                      // For in-place operator new
+#include <new>                      // For std:: (in-place operator new)
+
 #include <sys/stat.h>               // For struct stat
 
 #include <pub/Debug.h>              // For namespace pub::debugging

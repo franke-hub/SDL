@@ -26,7 +26,7 @@
 //       testhand | tee testhand.out
 //
 //----------------------------------------------------------------------------
-#include <time.h>
+#include <ctime>
 
 #include "Poker.h"
 

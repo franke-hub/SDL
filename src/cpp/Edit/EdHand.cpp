@@ -19,15 +19,15 @@
 //       2018/01/01 (Version 2, Release 1)
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <com/syslib.h>
 
+#include "EdHand.h"
 #include "EdLine.h"
 #include "EdRing.h"
-
-#include "EdHand.h"
 
 //----------------------------------------------------------------------------
 //

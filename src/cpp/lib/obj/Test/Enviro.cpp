@@ -23,17 +23,16 @@
 // #define _LARGEFILE_SOURCE 1
 // #define _LARGEFILE64_SOURCE 1
 
-#include <stdio.h>
-#include <limits.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <sys/stat.h>
+#include <exception>                // For std::exception
+#include <string>                   // For std::string
+#include <climits>
+#include <cstdio>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
-#include <exception>
-#include <string>
-using namespace std;
+#include <sys/stat.h>
 
 #include "com/define.h"
 #include "com/ifmacro.h"
@@ -41,7 +40,9 @@ using namespace std;
 #include "com/Random.h"
 #include "com/Unconditional.h"
 #include "obj/Object.h"
+
 using namespace _OBJ_NAMESPACE;
+using namespace std;
 
 #ifdef _OS_WIN
   #include <Windows.h>

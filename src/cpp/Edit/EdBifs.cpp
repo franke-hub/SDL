@@ -19,16 +19,16 @@
 //       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cctype>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+
 #include <com/istring.h>
 #include <com/Parser.h>
 
-#include "Editor.h"
-
 #include "Active.h"
+#include "Editor.h"
 #include "EdLine.h"
 #include "EdRing.h"
 #include "EdView.h"

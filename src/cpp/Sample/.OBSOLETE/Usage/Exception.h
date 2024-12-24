@@ -22,9 +22,10 @@
 #ifndef EXCEPTION_H_INCLUDED
 #define EXCEPTION_H_INCLUDED
 
+#include <stdexcept>                // For std::exception
+#include <typeinfo>                 // For std::type_info
+
 #include <boost/core/demangle.hpp>
-#include <stdexcept>
-#include <typeinfo>
 
 //----------------------------------------------------------------------------
 //

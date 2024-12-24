@@ -21,14 +21,14 @@
 //----------------------------------------------------------------------------
 // #define NDEBUG                   // TODO: USE (to disable asserts)
 #include <new>                      // For std::bad_alloc
+#include <stdexcept>                // For std::runtime_error, ...
+#include <string>                   // For std::string
 #include <cassert>                  // For assert
 #include <cctype>                   // For isblank
 #include <cstdio>                   // For fprintf, EOF
 #include <cstdint>                  // For integer types
 #include <cstdlib>                  // For malloc, size_t
 #include <cstring>                  // For memcpy, memset, ...
-#include <stdexcept>                // For std::runtime_error, ...
-#include <string>                   // For std::string
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception

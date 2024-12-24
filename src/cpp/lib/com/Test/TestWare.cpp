@@ -23,13 +23,13 @@
 //       even when function calls are commented out.
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <inttypes.h>
-#include <math.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cinttypes>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Clock.h>
 #include <com/Debug.h>

@@ -21,10 +21,13 @@
 #ifndef GUI_TYPES_H_INCLUDED
 #define GUI_TYPES_H_INCLUDED
 
-#include <stdint.h>                 // This include is guaranteed
-#include <string>                   // This include is guaranteed
-#include <com/define.h>             // This include is guaranteed
-#include <com/Logger.h>
+// Guaranteed includes vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+#include <string>                   // For std::string
+#include <cstdint>                  // For integer types
+
+#include <com/define.h>             // For common definitions
+#include <com/Logger.h>             // For com::Logger
+// Guaranteed includes ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #ifndef GUI_CONSTANT_H_INCLUDED
 #include "Constant.h"

@@ -18,9 +18,10 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
+
 #include <unistd.h>
 #include <sys/wait.h>
 

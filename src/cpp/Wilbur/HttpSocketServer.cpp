@@ -19,7 +19,8 @@
 //       2012/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
+#include <cstdio>
+
 #include <sys/stat.h>
 
 #include <com/Debug.h>
@@ -33,10 +34,10 @@
 #include "HttpServer.h"
 #include "HttpServerPlugin.h"
 #include "HttpServerPluginMap.h"
+#include "HttpSocketServer.h"
 #include "Loader.h"
 #include "Properties.h"
 
-#include "HttpSocketServer.h"
 using namespace std;
 
 //----------------------------------------------------------------------------

@@ -19,24 +19,23 @@
 //       2024/11/20
 //
 //----------------------------------------------------------------------------
-#include "pub/Lock.h"               // The test object
-
 #include <mutex>                    // For std::lock_guard
-#include <ctype.h>                  // For isprint()
-#include <errno.h>                  // For errno
+#include <cctype>                   // For isprint()
+#include <cerrno>                   // For errno
+#include <climits>                  // For INT_MAX, INT_MIN
+#include <cstdio>                   // For printf
+#include <cstring>                  // For strerror
+
 #include <fcntl.h>                  // For O_* constants
 #include <getopt.h>                 // For getopt_long()
-#include <limits.h>                 // For INT_MAX, INT_MIN
 #include <spawn.h>                  // For posix_spawn functions
-#include <stdio.h>                  // For printf
-//nclude <stdlib.h>                 // For various
-#include <string.h>                 // For strerror
 #include <unistd.h>                 // For getpid, ...
 #include <sys/stat.h>               // For S_* constants and macros
 #include <sys/wait.h>               // For waitpid
 
 #include <pub/Debug.h>              // For debugging functions
 #include <pub/Exception.h>          // For pub::Exception, std::exception
+#include "pub/Lock.h"               // The pub::Lock, Tested
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Wrapper.h>            // For class Wrapper
 

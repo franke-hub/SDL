@@ -30,10 +30,10 @@
 //       stdout: The updated database.
 //
 //----------------------------------------------------------------------------
-#include <stdarg.h>                 // For error()
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
+#include <cstdarg>                  // For error()
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
+#include <cstring>                  // For strcmp
 
 #include <com/Debug.h>
 #include <com/List.h>

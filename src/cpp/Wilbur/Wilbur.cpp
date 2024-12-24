@@ -25,11 +25,10 @@
 //       (No other parameters are available.)
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <exception>
+#include <exception>                // For std::exception
+#include <cstdio>                   // For printf
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Debug.h>
 #include <com/Exception.h>

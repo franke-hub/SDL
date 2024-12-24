@@ -23,8 +23,8 @@
 #define DATASOURCE_H_INCLUDED
 
 #include <string>                   // For std::string
-#include <stddef.h>                 // For size_t
-#include <stdint.h>                 // For integer types
+#include <cstdlib>                  // For size_t
+#include <cstdint>                  // For integer types
 
 //----------------------------------------------------------------------------
 //

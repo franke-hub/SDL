@@ -20,12 +20,12 @@
 //
 //----------------------------------------------------------------------------
 #define __STDC_FORMAT_MACROS
-#include <inttypes.h>
+#include <cinttypes>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 

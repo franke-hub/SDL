@@ -19,9 +19,10 @@
 //
 //----------------------------------------------------------------------------
 #include <iostream>
-using namespace std;
 
 #include "Sample.h"
+
+using namespace std;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

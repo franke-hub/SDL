@@ -19,12 +19,11 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
 
 #include <com/Debug.h>
-
 #include "com/istring.h"
 
 //----------------------------------------------------------------------------
@@ -233,4 +232,3 @@ char*
 #ifdef __cplusplus
 } // extern "C"
 #endif
-

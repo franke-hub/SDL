@@ -23,6 +23,7 @@
 #define URLCONNECTION_H_INCLUDED
 
 #include <string>
+
 #include <com/Socket.h>
 
 #ifndef URL_H_INCLUDED

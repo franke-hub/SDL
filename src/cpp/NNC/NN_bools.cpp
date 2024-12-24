@@ -25,8 +25,8 @@
 //       NN_nor_V    nn_rdval(neuron[nor])
 //
 //----------------------------------------------------------------------------
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 
 #include <com/Debug.h>
 

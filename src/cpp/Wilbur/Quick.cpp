@@ -19,13 +19,13 @@
 //       2018/01/01
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>                  // For isprint()
-#include <getopt.h>                 // For getopt()
-#include <stdio.h>                  // For fprintf
-#include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
-
 #include <memory>                   // For std::unique_ptr, ...
+#include <cctype>                   // For isprint()
+#include <cstdio>                   // For fprintf
+#include <cstdlib>                  // For various
+#include <cstring>                  // For strcmp
+
+#include <getopt.h>                 // For getopt()
 
 #include <com/Debug.h>
 #include <com/Random.h>

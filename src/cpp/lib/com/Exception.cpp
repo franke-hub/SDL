@@ -19,16 +19,17 @@
 //       2014/01/01
 //
 //----------------------------------------------------------------------------
+#include <cstdlib>
+
+#include <unistd.h>
+
 #if defined(__GNUC__) && defined(_OS_LINUX) // For backtrace
   #include <execinfo.h>
   #include <ucontext.h>
 #endif
 
-#include <stdlib.h>
-#include <unistd.h>
 #include <com/Debug.h>
 #include <com/define.h>
-
 #include "com/Exception.h"
 
 //----------------------------------------------------------------------------
@@ -65,4 +66,3 @@ void
    }
 #endif
 }
-

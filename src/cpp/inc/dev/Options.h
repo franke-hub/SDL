@@ -23,11 +23,11 @@
 #define _LIBPUB_HTTP_OPTIONS_H_INCLUDED
 
 #include <string>                   // For std::string
+
 #include <strings.h>                // For strcasecmp
 
-#include <pub/List.h>               // For pub::List
-
 #include "dev/bits/devconfig.h"     // For HTTP config controls
+#include <pub/List.h>               // For pub::List
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 namespace http {

@@ -18,11 +18,10 @@
 //       2018/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <string>
+#include <string>                   // For std::string
+#include <cstdio>                   // For printf
+#include <cstdlib>
+#include <cstring>
 
 //----------------------------------------------------------------------------
 //

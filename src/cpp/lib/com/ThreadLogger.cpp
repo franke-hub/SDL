@@ -19,13 +19,12 @@
 //       2013/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdint>
+#include <cstdlib>
 
 #include <com/Clock.h>
 #include <com/Thread.h>
-
 #include "com/ThreadLogger.h"       // Includes Debug.h
 
 //----------------------------------------------------------------------------

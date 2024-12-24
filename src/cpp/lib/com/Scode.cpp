@@ -19,12 +19,11 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include <com/define.h>
 #include <com/Debug.h>
-
 #include "com/Scode.h"
 
 //----------------------------------------------------------------------------

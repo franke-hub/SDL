@@ -23,8 +23,8 @@
 #undef  HCDM                        // If defined, Hard Core Debug Mode
 #endif
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include <com/Color.h>
 #include <com/Debug.h>

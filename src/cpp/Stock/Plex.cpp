@@ -19,10 +19,11 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <errno.h>
-#include <limits.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
+#include <cstring>
+
 #include <sys/stat.h>
 
 #include <com/Checksum.h>

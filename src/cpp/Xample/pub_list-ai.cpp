@@ -1,6 +1,6 @@
-#include <assert.h>                 // For assert
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For size_t
+#include <cassert>                  // For assert
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For size_t
 
 #include <pub/Dispatch.h>           // For namespace PUB::dispatch
 #include <pub/List.h>               // For PUB::AI_list, ...

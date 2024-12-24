@@ -24,7 +24,7 @@
 
 #include <list>                     // For std::list
 #include <string>                   // For std::string
-#include <string.h>                 // For strcmp, ...
+#include <cstring>                  // For strcmp, ...
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/List.h>               // For pub::List

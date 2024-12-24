@@ -19,14 +19,12 @@
 //       2023/10/19
 //
 //----------------------------------------------------------------------------
-#include <cstdint>                  // For uint32_t, uint16_t, ...
-
-#include <locale.h>                 // For setlocale
 #include <stdexcept>                // For std::runtime_error
 #include <string>                   // For std::string
-
-#include <assert.h>                 // For assert
-#include <string.h>                 // For
+#include <cstdint>                  // For uint32_t, uint16_t, ...
+#include <clocale>                  // For setlocale
+#include <cassert>                  // For assert
+#include <cstring>
 
 // The tested includes
 #include <pub/TEST.H>               // For VERIFY, ...

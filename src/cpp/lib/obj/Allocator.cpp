@@ -22,17 +22,16 @@
 #include <algorithm>                // For std::max, std::min
 #include <atomic>                   // For std::atomic
 #include <mutex>                    // For std::lock_guard
-#include <new>                      // For placement operator new
-#include <stdint.h>                 // For uint32_t
-#include <string.h>                 // For memset (in PageAllocator)
+#include <new>                      // For placement operator new (std::)
+#include <cstdint>                  // For uint32_t
+#include <cstring>                  // For memset (in PageAllocator)
 
 #include <com/Debug.h>
 #include <obj/built_in.h>           // For PageAllocator
+#include "obj/Allocator.h"          // Also includes Latch.h
 #include "obj/List.h"
 #include "obj/Object.h"
 #include "obj/Statistic.h"
-
-#include "obj/Allocator.h"          // Also includes Latch.h
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

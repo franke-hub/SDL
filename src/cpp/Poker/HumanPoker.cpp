@@ -19,8 +19,8 @@
 //       2023/08/07
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>
-#include <errno.h>
+#include <cctype>
+#include <cerrno>
 
 #include "Poker.h"
 

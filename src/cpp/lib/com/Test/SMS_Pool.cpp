@@ -19,11 +19,11 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <new>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <new>                      // For std:: (In-place operator new)
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Debug.h>
 #include <com/define.h>
@@ -298,4 +298,3 @@ long                                // The number of supported subpools
    return 0;
 #endif
 }
-

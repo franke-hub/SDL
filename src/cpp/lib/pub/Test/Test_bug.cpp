@@ -19,9 +19,7 @@
 //       2024/03/04
 //
 //----------------------------------------------------------------------------
-#include <errno.h>                  // For errno
-#include <stdio.h>  // TODO: REMOVE
-#include <stdlib.h> // TODO: REMOVE
+#include <cerrno>                   // For errno
 
 #include "pub/Debug.h"              // For Debug, tested
 #include <pub/Wrapper.h>            // For class Wrapper

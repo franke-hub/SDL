@@ -28,10 +28,9 @@
 #ifndef _PUB_HTTP_FRAME_HPP_INCLUDED
 #define _PUB_HTTP_FRAME_HPP_INCLUDED
 
-#include <stdint.h>                 // For uint8_t, uint32_t, ...
+#include <cstdint>                  // For uint8_t, uint32_t, ...
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
-
 #include "dev/bits/devconfig.h"     // For HTTP config controls
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)

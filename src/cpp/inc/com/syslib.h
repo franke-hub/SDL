@@ -22,7 +22,7 @@
 #ifndef SYSLIB_H_INCLUDED
 #define SYSLIB_H_INCLUDED
 
-#include <string.h>
+#include <cstring>
 
 #ifndef SYSMAC_H_INCLUDED
 #include "sysmac.h"                 // This include is guaranteed

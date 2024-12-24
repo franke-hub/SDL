@@ -19,17 +19,17 @@
 //       2020/10/06
 //
 //----------------------------------------------------------------------------
-#include <list>
-#include <string>
+#include <list>                     // For std::list
+#include <string>                   // For std::string
+#include <cassert>                  // For assert
+#include <cerrno>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
-#include <assert.h>
-#include <errno.h>
 #include <fcntl.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 #include <unistd.h>
 
 #include "X11Device.h"              // (Include BEFORE Magick++.h)

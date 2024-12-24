@@ -22,17 +22,16 @@
 #ifndef _LIBPUB_HTTP_SERVER_H_INCLUDED
 #define _LIBPUB_HTTP_SERVER_H_INCLUDED
 
-#include <cstdint>                  // For integer types
 #include <functional>               // For std::function
 #include <memory>                   // For std::shared_ptr
 #include <mutex>                    // For std::mutex, super class
 #include <string>                   // For std::string
+#include <cstdint>                  // For integer types
 
 #include <pub/Dispatch.h>           // For namespace pub::dispatch objects
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Ioda.h>               // For pub::Ioda
 #include <pub/Socket.h>             // For pub::Socket
-
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Request.h"       // For pub::http::Request
 #include "pub/http/Stream.h"        // For pub::http::Stream

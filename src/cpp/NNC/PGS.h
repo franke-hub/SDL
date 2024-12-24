@@ -22,7 +22,7 @@
 #ifndef PGS_H_INCLUDED
 #define PGS_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
 
 #ifndef DEBUG_H_INCLUDED
 #include <com/Debug.h>

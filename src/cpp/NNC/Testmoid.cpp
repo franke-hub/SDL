@@ -19,8 +19,8 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 
 #include "Neuron.h"
 #include "Fanin.h"

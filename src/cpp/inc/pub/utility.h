@@ -33,12 +33,12 @@
 #include <functional>               // For std::function
 #include <string>                   // For std::string
 #include <thread>                   // For std::thread::id
-
+#include <typeinfo>                 // For std::type_info
 #include <cctype>                   // For toupper()
 #include <cstdarg>                  // For va_* functions
-#include <cstdio>                   // For ::FILE*
+#include <cstdio>                   // For FILE*
 
-#include "pub/utility.i"            // For inline utility functions
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 #include "pub/bits/utility.h"       // For internal utility functions
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
@@ -230,7 +230,7 @@ char*                               // Resultant
 // Implementation note-
 //       Unsigned string comparison is used, allowing UTF8 comparison.
 //
-//       ::strcasecmp and ::strncasecmp might not be included in string.h,
+//       ::strcasecmp and ::strncasecmp might not be included in cstring,
 //       but they are always included here.
 //
 //----------------------------------------------------------------------------

@@ -22,14 +22,15 @@
 //       ':' is the first character of the optstring parameter.
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>                  // For isprint()
-#include <errno.h>                  // For errno
+#include <cctype>                   // For isprint()
+#include <cerrno>                   // For errno
+#include <climits>                  // For INT_MAX, INT_MIN
+#include <cstdarg>                  // For va_list
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
+#include <cstring>                  // For strcmp
+
 #include <getopt.h>                 // For getopt_long()
-#include <limits.h>                 // For INT_MAX, INT_MIN
-#include <stdarg.h>                 // For va_list
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
 
 //----------------------------------------------------------------------------
 // Options

@@ -32,7 +32,7 @@
 #ifndef WRITER_H_INCLUDED
 #define WRITER_H_INCLUDED
 
-#include <stdarg.h>
+#include <cstdarg>
 
 #ifndef DEFINE_H_INCLUDED
 #include "define.h"

@@ -21,8 +21,9 @@
 //----------------------------------------------------------------------------
 #include <exception>
 #include <string>                   // For std::string
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
+
 #include <sys/stat.h>               // For S_IREAD ...
 
 #include <com/Debug.h>
@@ -31,7 +32,6 @@
 
 #include "ocrw.h"
 #include "RdCommon.h"
-
 #include "ClientThread.h"
 
 using std::string;

@@ -19,10 +19,11 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 #include <windows.h>
 #include <sys/stat.h>
@@ -32,7 +33,6 @@
 #include <com/define.h>
 #include <com/Exception.h>
 #include <com/FileName.h>
-
 #include "com/SharedMem.h"
 
 //----------------------------------------------------------------------------

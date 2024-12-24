@@ -19,9 +19,8 @@
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::shared_ptr
-
-#include <stdio.h>                  // For printf
-#include <string.h>                 // For strcmp
+#include <cstdio>                   // For printf
+#include <cstring>                  // For strcmp
 
 //----------------------------------------------------------------------------
 // Struct: Thing

@@ -23,15 +23,14 @@
 #include <stdexcept>                // For std::runtime_error
 #include <sstream>                  // For std::stringstream
 #include <thread>                   // For std::this_thread
+#include <cerrno>                   // For errno
+#include <cinttypes>                // For PRIx64
+#include <cstdarg>                  // For va_list, ...
+#include <cstdlib>                  // For abort
+#include <cstring>                  // For strerrno
+#include <cstdio>                   // For FILE I/O
+#include <ctime>                    // For clock_gettime, timespec, ...
 
-#include <assert.h>                 // For debugging
-#include <errno.h>                  // For errno
-#include <inttypes.h>               // For PRIx64
-#include <stdarg.h>                 // For va_list, ...
-#include <stdlib.h>                 // For abort
-#include <string.h>                 // For strerrno
-#include <stdio.h>                  // For FILE I/O
-#include <time.h>                   // For clock_gettime, timespec, ...
 #include <unistd.h>                 // For isatty
 
 #define BOOST_STACKTRACE_LINK       // (Use static library)

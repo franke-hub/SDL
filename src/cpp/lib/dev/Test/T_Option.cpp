@@ -20,11 +20,11 @@
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
+#include <cstring>                  // For strcmp
 
 #include <pub/TEST.H>               // For VERIFY macro
 #include <pub/Debug.h>              // For debugging classes and functions
 #include <pub/Wrapper.h>            // For pub::Wrapper
-
 #include "pub/http/Options.h"       // For pub::http::Options, tested
 
 #define PUB _LIBPUB_NAMESPACE

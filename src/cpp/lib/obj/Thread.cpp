@@ -26,8 +26,9 @@
 //            called once. The thread.detach() method is idempotent.
 //
 //----------------------------------------------------------------------------
-#include <mutex>                    // Used by Thread::start() sequence
-#include <sstream>                  // Used by get_id_string
+#include <mutex>                    // For std::mutex, std::lock_guard
+#include <sstream>                  // For std::stringstream
+#include <thread>                   // For std::thread::id
 
 #include "obj/Thread.h"
 

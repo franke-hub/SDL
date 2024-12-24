@@ -22,8 +22,9 @@
 #ifndef OBJ_THREAD_H_INCLUDED
 #define OBJ_THREAD_H_INCLUDED
 
+#include <thread>                   // For std::thread, ...
+
 #include "Object.h"
-#include <thread>
 
 namespace _OBJ_NAMESPACE {
 //----------------------------------------------------------------------------

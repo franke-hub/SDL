@@ -19,12 +19,13 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <cassert>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
 #include <unistd.h>
 
 #include <com/define.h>

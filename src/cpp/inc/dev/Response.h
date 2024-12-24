@@ -28,7 +28,6 @@
 
 #include <pub/Ioda.h>               // For pub::Ioda
 #include <pub/Statistic.h>          // For pub::Statistic
-
 #include "pub/http/Options.h"       // For pub::http::Options
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)

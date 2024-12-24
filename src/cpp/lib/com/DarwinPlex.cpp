@@ -19,19 +19,18 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stdio.h>
-
-#include <com/define.h>
-#include <com/Debug.h>
-#include <com/Interval.h>
-#include <com/Random.h>
+#include <cassert>
+#include <cstdio>
 
 #include "com/DarwinUnit.h"
 #include "com/DarwinPlex.h"
 #if !(INLINING)
 #include "com/DarwinPlex.i"
 #endif
+#include <com/define.h>
+#include <com/Debug.h>
+#include <com/Interval.h>
+#include <com/Random.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

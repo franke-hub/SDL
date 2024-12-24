@@ -21,7 +21,8 @@
 //----------------------------------------------------------------------------
 #ifndef OBJ_ARRAY_H_INCLUDED
 #define OBJ_ARRAY_H_INCLUDED
-#include <array>
+
+#include <array>                    // For std::array
 
 #include "Object.h"                 // Ref instances refer to Objects
 #include "Exception.h"              // Exceptions can be thrown

@@ -24,9 +24,10 @@
 //       nnurel     Release access
 //
 //----------------------------------------------------------------------------
+#include <cstdio>
+#include <cstdlib>
+
 #include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
 #include <com/Debug.h>

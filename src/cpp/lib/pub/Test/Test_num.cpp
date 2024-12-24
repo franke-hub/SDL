@@ -19,10 +19,10 @@
 //       2023/04/29
 //
 //----------------------------------------------------------------------------
-#include <inttypes.h>               // For PRId64, PRIx64 printf format macros
-#include <iostream>                 // For cout
-#include <stdio.h>                  // For sprintf
-#include <string.h>                 // For strcpy
+#include <iostream>                 // For std::cout, ...
+#include <cinttypes>                // For PRId64, PRIx64 printf format macros
+#include <cstdio>                   // For sprintf
+#include <cstring>                  // For strcpy
 
 #include <pub/TEST.H>               // For VERIFY macro
 #include <pub/Debug.h>              // For namespace pub::debugging

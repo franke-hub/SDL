@@ -19,8 +19,10 @@
 //       2012/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
+#include <cstdio>
+
 #include <sys/stat.h>
+
 #include <com/Debug.h>
 #include <com/istring.h>            // for memicmp
 #include <com/Thread.h>

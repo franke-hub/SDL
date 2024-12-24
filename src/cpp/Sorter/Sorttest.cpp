@@ -18,10 +18,11 @@
 //       2023/01/11
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
 #include <com/Interval.h>
 #include <com/Random.h>
 

@@ -49,19 +49,19 @@
 //                        Error if nnnn != 0xffff || mmmm == 0x0000
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 
 #include <com/Atomic.h>
 #include <com/Debug.h>
 #include <com/Exception.h>
+#include "com/Latch.h"
 #include <com/SharedMem.h>
 #include <com/Thread.h>
-
-#include "com/Latch.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

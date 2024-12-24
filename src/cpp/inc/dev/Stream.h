@@ -22,11 +22,11 @@
 #ifndef _LIBPUB_HTTP_STREAM_H_INCLUDED
 #define _LIBPUB_HTTP_STREAM_H_INCLUDED
 
-#include <cstdlib>                  // For size_t
 #include <functional>               // For std::function
 #include <memory>                   // For std::shared_ptr
 #include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
+#include <cstdlib>                  // For size_t
 
 #include <pub/Dispatch.h>           // For pub::dispatch objects
 #include <pub/Ioda.h>               // For pub::Ioda

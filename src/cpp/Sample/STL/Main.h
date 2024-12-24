@@ -22,17 +22,18 @@
 #ifndef MAIN_H_INCLUDED
 #define MAIN_H_INCLUDED
 
-#include <stdarg.h>
-#include <stdio.h>
+#include <iostream>                 // For std::stream objecs
+#include <cstdarg>                  // For va_ functions
+#include <cstdio>
 #include <cstddef>
-#include <iostream>
-#include <string.h>
-#include <sys/types.h>
+#include <cstring>
 
-using namespace std;
+#include <sys/types.h>
 
 #include <com/Logger.h>
 #include <com/Verify.h>
+
+using namespace std;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

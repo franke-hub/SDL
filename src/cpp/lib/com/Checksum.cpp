@@ -19,20 +19,20 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
+#include <cassert>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+
 #ifdef _OS_WIN
 #include <winsock.h>
 #else
 #include <netinet/in.h>
 #endif
 
+#include "com/Checksum.h"
 #include <com/define.h>
 #include <com/Debug.h>
-
-#include "com/Checksum.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

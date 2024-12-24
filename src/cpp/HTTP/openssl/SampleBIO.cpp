@@ -25,18 +25,17 @@
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard, ...
+#include <cerrno>                   // For errno
+#include <cstring>                  // For memset, ...
 
-#include <errno.h>                  // For errno
 #include <fcntl.h>                  // For open, O_*, ...
 #include <getopt.h>                 // For getopt()
-#include <string.h>                 // For memset, ...
 #include <openssl/bio.h>            // For openssl BIO methods
 #include <openssl/err.h>            // For openssl ERR methods
 #include <unistd.h>                 // For close, ...
 #include <sys/mman.h>               // For mmap, ...
 #include <sys/time.h>               // For timeval
 
-#include <pub/utility.h>            // For to_string, visify
 #include <pub/Debug.h>              // For debugging
 #include <pub/Interval.h>           // For pub::Interval
 #include <pub/Semaphore.h>          // For pub::Semaphore
@@ -45,12 +44,13 @@
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/Worker.h>             // For pub::Worker, pub::WorkerPool
+#include <pub/utility.h>            // For to_string, visify
 
 #include "SampleBIO.h"              // For debugging routines
 
-using namespace _PUB_NAMESPACE;     // For Socket, ...
-using namespace _PUB_NAMESPACE::debugging; // For debugging
-using _PUB_NAMESPACE::utility::visify; // For visify
+using namespace _LIBPUB_NAMESPACE;  // For Socket, ...
+using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
+using _LIBPUB_NAMESPACE::utility::visify; // For visify
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

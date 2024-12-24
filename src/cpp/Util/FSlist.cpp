@@ -19,12 +19,13 @@
 //       2023/08/07
 //
 //----------------------------------------------------------------------------
-#include <errno.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <cerrno>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
 #include <sys/stat.h>
 
 #include <com/Debug.h>

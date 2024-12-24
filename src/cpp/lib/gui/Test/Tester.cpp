@@ -19,8 +19,9 @@
 //       2021/02/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
+
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/stat.h>               // For stat
 #include <xcb/xcb.h>                // For XCB interfaces

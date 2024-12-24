@@ -46,7 +46,7 @@
 #include <atomic>                   // For std::atomic
 #include <stdexcept>                // For std::runtime_error
 #include <thread>                   // For std::thread::id
-#include <stdint.h>                 // For uint32_t
+#include <cstdint>                  // For uint32_t
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 

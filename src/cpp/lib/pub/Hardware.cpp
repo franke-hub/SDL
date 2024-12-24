@@ -23,9 +23,9 @@
 //       calls are not optimized away.
 //
 //----------------------------------------------------------------------------
+#include <atomic>                   // For std::atomic_uint64_t
 
-#include <atomic>                   // For atomic_uint64_t
-#include "pub/Hardware.h"
+#include "pub/Hardware.h"           // For pub::Hardware, implemented
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------

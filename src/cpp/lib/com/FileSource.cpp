@@ -19,11 +19,13 @@
 //       2010/01/01
 //
 //----------------------------------------------------------------------------
+#include <cstdio>
+#include <cstring>
+
 #include <fcntl.h>
-#include <stdio.h>
-#include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
+
 #include <com/FileName.h>
 
 #ifdef _OS_WIN

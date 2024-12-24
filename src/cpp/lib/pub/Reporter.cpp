@@ -27,13 +27,12 @@
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
 #include <string>                   // For std::string
-#include <stdint.h>                 // For integer types
+#include <cstdint>                  // For integer types
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
-
 #include "pub/Reporter.h"           // For pub::Reporter, implemented
-#include "pub/Statistic.h"          // For pub::Statistic, implemented
+#include "pub/Statistic.h"          // For pub::ActiveRecord, implemented
 
 using namespace _LIBPUB_NAMESPACE;
 using namespace _LIBPUB_NAMESPACE::debugging;

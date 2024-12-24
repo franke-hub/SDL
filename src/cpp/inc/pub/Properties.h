@@ -25,8 +25,8 @@
 #ifndef _LIBPUB_PROPERTIES_H_INCLUDED
 #define _LIBPUB_PROPERTIES_H_INCLUDED
 
-#include <map>
-#include <string>
+#include <map>                      // For std::map
+#include <string>                   // For std::string
 
 #include <pub/utility.h>            // For pub::utility::opt_lt_istr
 

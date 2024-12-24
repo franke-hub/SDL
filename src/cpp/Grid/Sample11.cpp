@@ -24,10 +24,11 @@
 //       25 30 25
 //
 //----------------------------------------------------------------------------
-#include <stdarg.h>                 // For va_list
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
+#include <cstdarg>                  // For va_list
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
+#include <cstring>                  // For strcmp
+
 #include <sys/stat.h>               // For struct stat
 
 #include "Position.h"

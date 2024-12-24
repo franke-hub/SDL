@@ -20,6 +20,7 @@
 //
 //----------------------------------------------------------------------------
 #include "pub/diag-counter.h"       // For pub::diag::counter, implemented
+
 #include <pub/Debug.h>              // For namespace pub::debugging
 
 #define PUB _LIBPUB_NAMESPACE

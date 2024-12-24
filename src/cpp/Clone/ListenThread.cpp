@@ -19,7 +19,8 @@
 //       2014/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdlib.h>
+#include <cstdlib>
+
 #include <unistd.h>
 
 #include <com/Atomic.h>

@@ -22,13 +22,12 @@
 #ifndef OCRW_H_INCLUDED
 #define OCRW_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
 
 #if defined(_OS_WIN)
   #include <direct.h>
   #include <io.h>
 #endif
-
 #include <fcntl.h>
 #include <unistd.h>
 

@@ -21,9 +21,9 @@
 //----------------------------------------------------------------------------
 #include <map>
 #include <iostream>
-#include <stdio.h>
-#include <string>
-#include <string.h>
+#include <string>                   // For std::string
+#include <cstdio>                  // For printf
+#include <cstring>
 
 #include "Command.h"
 

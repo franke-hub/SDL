@@ -66,10 +66,12 @@
 
 #include <atomic>                   // For std::atomic_uint64_t, ...
 #include <new>                      // For in-place operator new
+#include <cstdint>                  // For uint32_t, __WORDSIZE, ...
+#include <cstring>                  // For memset, memcpy, strcpy
+#include <ctime>                    // For CLOCK_REALTIME
+
 #include <endian.h>                 // For be64toh, ...
-#include <stdint.h>                 // For uint32_t, __WORDSIZE, ...
-#include <string.h>                 // For memset, memcpy, strcpy
-#include <time.h>                   // For CLOCK_REALTIME
+
 #include "utility.i"                // For conversion routines
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros

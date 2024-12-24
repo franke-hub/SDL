@@ -19,8 +19,8 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -54,4 +54,3 @@ extern int                          // Return code
    printf("\n");
    return 0;
 }
-

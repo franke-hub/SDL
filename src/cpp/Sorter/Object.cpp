@@ -18,9 +18,9 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
 
 #include "Object.h"
 

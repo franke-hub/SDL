@@ -19,11 +19,11 @@
 //       2022/02/09
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>                  // For printf, sprintf
-#include <string.h>                 // For strcpy, ...
-#include <sys/stat.h>               // For stat
+#include <cstdio>                   // For printf, sprintf
+#include <cstring>                  // For strcpy, ...
 
 #include <hunspell/hunspell.hxx>    // For hunspell C++ interface
+#include <sys/stat.h>               // For stat
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/List.h>               // For List

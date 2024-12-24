@@ -22,14 +22,15 @@
 #ifndef _LIBPUB_HTTP_AGENT_H_INCLUDED
 #define _LIBPUB_HTTP_AGENT_H_INCLUDED
 
-#include <cstdlib>                  // For size_t
-#include <cstring>                  // For memcmp
 #include <functional>               // For std::function
 #include <list>                     // For std::list
 #include <map>                      // For std::map
 #include <memory>                   // For std::shared_ptr
 #include <mutex>                    // For std::mutex, std::lock_guard
 #include <string>                   // For std::string
+#include <cstdlib>                  // For size_t
+#include <cstring>                  // For memcmp
+
 #include <netinet/in.h>             // For in_port_t
 #include <sys/socket.h>             // For socket
 

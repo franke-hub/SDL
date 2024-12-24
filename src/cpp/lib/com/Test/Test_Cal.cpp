@@ -23,16 +23,15 @@
 //       Output: Julian day
 //
 //----------------------------------------------------------------------------
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <cinttypes>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
 #include <com/Debug.h>
 #include <com/Exception.h>
 #include <com/Random.h>
-
 #include "com/Clock.h"
 #include "com/Calendar.h"
 #include "com/Julian.h"

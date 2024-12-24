@@ -20,8 +20,8 @@
 //
 //----------------------------------------------------------------------------
 #include <new.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 
 #include <Unused/Unit.h>
 #include <Unused/UnitCallBack.h>
@@ -51,4 +51,3 @@ extern int                          // Return code
 
    return 0;                        // Normal completion
 }
-

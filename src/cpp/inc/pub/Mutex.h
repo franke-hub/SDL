@@ -23,6 +23,7 @@
 #define _LIBPUB_MUTEX_H_INCLUDED
 
 #include <mutex>                    // For std::mutex base class
+
 #include <pub/Object.h>             // For pub::Object, base class
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)

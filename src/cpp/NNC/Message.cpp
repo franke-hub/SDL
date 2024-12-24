@@ -19,14 +19,15 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <new>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <new>                      // For std:: (In-place operator new)
+#include <cstdio>                   // For printf
+#include <cstdlib>
+#include <cstring>
 
 #include <com/define.h>
 #include <com/Debug.h>
 #include <com/Reader.h>
+
 #include "Message.h"
 
 //----------------------------------------------------------------------------

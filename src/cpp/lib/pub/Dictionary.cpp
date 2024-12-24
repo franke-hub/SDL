@@ -20,8 +20,8 @@
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
+#include <cstring>                  // For strcmp, ...
 
-#include <string.h>                 // For strcmp, ...
 #include <sys/stat.h>               // For struct stat
 
 #include <pub/Debug.h>              // For namespace pub::debugging

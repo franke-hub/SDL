@@ -32,7 +32,7 @@
 
 #include <atomic>                   // For std::atomic
 #include <mutex>                    // For std::mutex
-#include <stdint.h>                 // For uint32_t
+#include <cstdint>                  // For uint32_t
 
 #include "obj/Object.h"
 #include "obj/Latch.h"

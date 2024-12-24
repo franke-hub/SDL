@@ -19,7 +19,7 @@
 //       2020/10/02
 //
 // Implementation notes-
-//       if defined(HCDM), inttypes.h is required.
+//       if defined(HCDM), cinttypes is required.
 //
 //----------------------------------------------------------------------------
 #ifndef BINARY_I_INCLUDED

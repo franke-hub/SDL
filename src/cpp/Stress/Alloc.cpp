@@ -38,17 +38,17 @@
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic
 #include <exception>                // For std::exception
-#include <random>                   // For randomization features
+#include <random>                   // For std:: randomization features
+#include <cassert>                  // For assert()
+#include <cctype>                   // For isprint()
+#include <cerrno>                   // For errno
+#include <climits>                  // For INT_MAX, INT_MIN
+#include <csignal>                  // For signal
+#include <cstdarg>                  // For va_list
+#include <cstdio>                   // For printf
+#include <cstring>                  // For strcmp
 
-#include <assert.h>                 // For assert()
-#include <ctype.h>                  // For isprint()
-#include <errno.h>                  // For errno
 #include <getopt.h>                 // For getopt_long()
-#include <limits.h>                 // For INT_MAX, INT_MIN
-#include <signal.h>                 // For signal
-#include <stdarg.h>                 // For va_list
-#include <stdio.h>                  // For printf
-#include <string.h>                 // For strcmp
 #include <unistd.h>                 // For getpid, ...
 
 #include "pub/Allocator.h"          // For pub::Allocator

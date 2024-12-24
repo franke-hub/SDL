@@ -19,7 +19,8 @@
 //       2023/06/20 (Editor Version 2, Release 2 support)
 //
 //----------------------------------------------------------------------------
-#include <stdlib.h>                 // For setenv()
+#include <cstdlib>                  // For setenv()
+
 #include <curses.h>                 // Uses CURSES
 
 //----------------------------------------------------------------------------

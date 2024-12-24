@@ -19,9 +19,10 @@
 //       2024/05/05
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
+#include <cstring>                  // For strcmp
+
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/stat.h>               // For stat
 

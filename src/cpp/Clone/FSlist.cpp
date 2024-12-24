@@ -19,15 +19,22 @@
 //       2023/08/07
 //
 //----------------------------------------------------------------------------
-#include <assert.h>                // Used in timeTest
-#include <errno.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <cassert>                  // Used in timeTest
+#include <cerrno>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
 #include <unistd.h>
 #include <sys/stat.h>
+
+#if defined(_OS_WIN)
+  #include <sys/utime.h>
+#else
+  #include <utime.h>
+#endif
 
 #include <com/Calendar.h>
 #include <com/Clock.h>
@@ -37,12 +44,6 @@
 #include <com/FileName.h>
 #include <com/Julian.h>             // Used in timeTest
 #include <com/List.h>
-
-#if defined(_OS_WIN)
-  #include <sys/utime.h>
-#else
-  #include <utime.h>
-#endif
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

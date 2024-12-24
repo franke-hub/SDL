@@ -48,7 +48,7 @@
 #ifndef RANDOM_H_INCLUDED
 #define RANDOM_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
 
 //----------------------------------------------------------------------------
 //

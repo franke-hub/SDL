@@ -19,12 +19,12 @@
 //       2020/10/02
 //
 //----------------------------------------------------------------------------
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <com/Debug.h>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
+#include <com/Debug.h>
 #include "com/DataSource.h"
 
 //----------------------------------------------------------------------------

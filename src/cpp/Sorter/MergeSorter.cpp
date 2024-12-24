@@ -21,9 +21,9 @@
 //       10000 Timing: 6.76 (#2) Uses a duplicate array.
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
 
 #include "MergeSorter.h"
 

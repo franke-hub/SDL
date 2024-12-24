@@ -19,9 +19,9 @@
 //       2022/09/02
 //
 //----------------------------------------------------------------------------
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstddef>
+#include <cstdio>
+#include <cstdlib>
 
 #include "pub/Parser.h"             // For pub::Parser
 

@@ -22,8 +22,9 @@
 #ifndef RDCOMMON_H_INCLUDED
 #define RDCOMMON_H_INCLUDED
 
-#include <new>                      // For std::size_t
+#include <new>                      // For std:: (In-place operator new)
 #include <string>                   // For std::string
+#include <cstdlib>                  // For std::size_t
 
 #include <com/define.h>
 #include <com/Thread.h>

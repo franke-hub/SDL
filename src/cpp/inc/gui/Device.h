@@ -24,8 +24,8 @@
 
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
-#include <pub/Signals.h>            // For pub::signals
 
+#include <pub/Signals.h>            // For pub::signals
 #include "gui/Widget.h"             // For Widget
 #include "gui/Window.h"             // Our base class
 

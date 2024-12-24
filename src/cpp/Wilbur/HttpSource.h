@@ -23,6 +23,7 @@
 #define HTTPSOURCE_H_INCLUDED
 
 #include <string>
+
 #include <com/DataSource.h>
 #include <com/Socket.h>
 

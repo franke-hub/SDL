@@ -23,10 +23,11 @@
 #undef  HCDM                        // If defined, Hard Core Debug Mode
 #endif
 
-#include <ctype.h>                  // Used in debug traces
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cctype>                   // Used in debug traces
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+
 #include <unistd.h>                 // For STDIN_FILENO
 #include <sys/ioctl.h>              // For ioctl, TIOCGWINSZ
 
@@ -36,10 +37,9 @@
 #include <com/Color.h>
 #include <com/Debug.h>
 #include <com/syslib.h>
-#include <com/Unconditional.h>
-
 #include "com/Terminal.h"
 #include "com/TextScreen.h"
+#include <com/Unconditional.h>
 
 #undef  inline                      // INLINEs are inline
 

@@ -32,8 +32,8 @@
 //     * (Not implemented yet)
 //
 //----------------------------------------------------------------------------
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 
 #include <com/Debug.h>
 

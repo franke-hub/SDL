@@ -19,9 +19,9 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>
-#include <errno.h>
-#include <stdlib.h>
+#include <cctype>
+#include <cerrno>
+#include <cstdlib>
 
 #include <com/Debug.h>
 #include "com/syslib.h"

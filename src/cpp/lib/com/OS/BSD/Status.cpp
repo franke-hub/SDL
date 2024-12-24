@@ -19,18 +19,18 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <errno.h>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+
 #include <semaphore.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include <com/Barrier.h>
 #include <com/define.h>
 #include <com/Debug.h>
+#include "com/Status.h"
 #include <com/Thread.h>
 #include <com/Unconditional.h>
-
-#include "com/Status.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

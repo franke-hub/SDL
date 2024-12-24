@@ -32,8 +32,7 @@
 
 #include "Service.h"                // For Service, implemented
 
-
-#define PUB _PUB_NAMESPACE
+#define PUB _LIBPUB_NAMESPACE
 using PUB::Debug;                   // For pub::Debug::get()
 using PUB::Exception;               // For pub::Exception
 using PUB::utility::to_string;      // For pub::utility::to_string

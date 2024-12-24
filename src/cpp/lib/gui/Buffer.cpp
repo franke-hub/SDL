@@ -22,15 +22,15 @@
 #include <exception>                // For std::exception
 #include <new>                      // For std::bad_alloc
 #include <stdexcept>                // For std::range_error
+
 #include <xcb/xcb.h>                // For xcb basic types
 #include <xcb/xproto.h>             // For xcb types and prototypes
 #include <xcb/xcb_image.h>          // For xcb_image_t, associated functions
 
-#include <pub/Debug.h>              // For namespace pub::debugging
+#include "gui/Buffer.h"             // Implementation class
 #include "gui/Global.h"             // For opt_* definitions, ...
 #include <gui/Pixmap.h>             // For gui::Pixmap
-
-#include "gui/Buffer.h"             // Implementation class
+#include <pub/Debug.h>              // For namespace pub::debugging
 
 using namespace pub::debugging;     // For debugging methods
 

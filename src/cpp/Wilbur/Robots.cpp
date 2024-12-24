@@ -30,12 +30,11 @@
 //         Disallow: /*?            Disallow any request with a ? in it
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>                  // For tolower
-#include <stdio.h>
-#include <string>
-
-#include <stdlib.h>
-#include <string.h>
+#include <string>                   // For std::string
+#include <cctype>                   // For tolower
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/DataSource.h>
 #include <com/Debug.h>

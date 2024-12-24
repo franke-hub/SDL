@@ -19,11 +19,11 @@
 //       2018/01/01 DB4/5 compatibility
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stddef.h>                 // For offsetof
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cstddef>                  // For offsetof
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Debug.h>
 #include <com/Barrier.h>

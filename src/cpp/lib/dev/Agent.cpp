@@ -21,17 +21,16 @@
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::shared_ptr
 #include <new>                      // For std::bad_alloc
-#include <cassert>                  // For assert
-#include <cstring>                  // For memset
 #include <map>                      // For std::map
 #include <memory>                   // For std::shared_ptr
 #include <stdexcept>                // For std::out_of_range, ...
 #include <string>                   // For std::string
+#include <cassert>                  // For assert
+#include <cstdio>                   // For fprintf
+#include <cstdint>                  // For integer types
+#include <cstring>                  // For memset, strcmp, ...
 
 #include <netdb.h>                  // For addrinfo, ...
-#include <stdio.h>                  // For fprintf
-#include <stdint.h>                 // For integer types
-#include <string.h>                 // For strcmp
 #include <arpa/inet.h>              // For inet_ntop()
 
 #include <pub/Debug.h>              // For namespace pub::debugging
@@ -40,7 +39,6 @@
 #include <pub/Select.h>             // For pub::Select
 #include <pub/Socket.h>             // For pub::Socket::sockaddr_u
 #include <pub/Trace.h>              // For pub::Trace
-
 #include "pub/http/Agent.h"         // For pub::http::Agent, implemented
 #include "pub/http/Client.h"        // For pub::http::Client
 #include "pub/http/Listen.h"        // For pub::http::Listen

@@ -26,7 +26,6 @@
 #define EDOUTS_H_INCLUDED
 
 #include <string>                   // For std::string
-#include <sys/types.h>              // For
 
 #include "Active.h"                 // For Active
 #include "EdInps.h"                 // For EdInps (base class)

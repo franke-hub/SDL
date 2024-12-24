@@ -21,9 +21,8 @@
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::out_of_range exception, ...
 #include <string>                   // For std::string
-
-#include <ctype.h>                  // For isspace
-#include <string.h>                 // For memcmp, strstr
+#include <cctype>                   // For isspace
+#include <cstring>                  // For memcmp, strstr
 
 #include "pub/Tokenizer.h"          // For pub::Tokenizer, implemented
 

@@ -23,8 +23,8 @@
 //       NN_while_V  nn_rdval(neuron[while])
 //
 //----------------------------------------------------------------------------
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 
 #include <com/Debug.h>
 

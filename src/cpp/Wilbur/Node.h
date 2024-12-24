@@ -23,6 +23,7 @@
 #define NODE_H_INCLUDED
 
 #include <string>
+
 #include <com/List.h>
 
 //----------------------------------------------------------------------------

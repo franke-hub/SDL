@@ -19,27 +19,27 @@
 //
 //----------------------------------------------------------------------------
 #include <pthread.h>                // Must be first
+
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <sched.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#ifdef _OS_WIN
+#include <signal.h>                 // Must follow com/Signal.h
+#endif
 #include <unistd.h>
+#ifdef _OS_BSD
+#include <sys/signal.h>
+#endif
 #include <sys/time.h>
 #include <sys/timeb.h>
 
 #include <com/Debug.h>
 
-#ifdef _OS_BSD
-#include <sys/signal.h>
-#endif
-
 #if defined(_OS_CYGWIN) || defined(_OS_LINUX)
 #define sigvec struct sigaction     // Must follow sys/signal.h
-#endif
-
-#ifdef _OS_WIN
-#include <signal.h>                 // Must follow com/Signal.h
 #endif
 
 //----------------------------------------------------------------------------

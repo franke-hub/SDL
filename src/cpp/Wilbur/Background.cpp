@@ -19,8 +19,9 @@
 //       2011/01/01
 //
 //----------------------------------------------------------------------------
-#include <new>
-#include <stdio.h>
+#include <new>                      // For std:: (In-place operator new)
+#include <cstdio>                   // For EOF
+
 #include <com/Thread.h>
 
 #include "Common.h"
@@ -202,4 +203,3 @@ void
    else
      schedule(&task, item);         // Defer processing
 }
-

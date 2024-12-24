@@ -19,10 +19,11 @@
 //       2020/10/04
 //
 //----------------------------------------------------------------------------
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 #include <com/Debug.h>

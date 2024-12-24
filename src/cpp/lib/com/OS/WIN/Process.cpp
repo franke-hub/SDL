@@ -19,10 +19,11 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 #include <windows.h>
 #ifdef _OS_WIN
@@ -30,7 +31,6 @@
 #endif
 
 #include <com/FileName.h>
-
 #include "com/Process.h"
 
 //----------------------------------------------------------------------------

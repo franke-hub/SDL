@@ -25,8 +25,9 @@
 #ifndef GUI_GLOBAL_H_INCLUDED
 #define GUI_GLOBAL_H_INCLUDED
 
-#include <errno.h>                  // For errno
-#include <string.h>                 // For strerrno
+#include <cerrno>                   // For errno
+#include <cstring>                  // For strerrno
+
 #include <xcb/xcb.h>                // For generic_error_t
 
 #include "gui/Types.h"              // For namespace gui types

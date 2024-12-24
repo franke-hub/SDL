@@ -23,9 +23,8 @@
 #include <iostream>                 // For std::cout, std::cerr
 #include <memory>                   // For std::shared_ptr, ...
 #include <mutex>                    // For std::lock_guard
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For random
-#include <string.h>
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For random
 
 #include <pub/Debug.h>              // For pub::debugging methods
 #include "pub/Event.h"              // For pub::Event

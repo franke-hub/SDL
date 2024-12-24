@@ -22,8 +22,8 @@
 //       Derived from public domain software.
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>                  // For debugging statements
-#include <string.h>                 // For memset
+#include <cstdio>                   // For debugging statements
+#include <cstring>                  // For memset
 
 #include "com/CRC32.h"
 

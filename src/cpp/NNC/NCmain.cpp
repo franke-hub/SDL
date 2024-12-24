@@ -19,14 +19,15 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <exception>
-#include <iostream>
-#include <ctype.h>
+#include <exception>                // For std::exception
+#include <iostream>                 // For std::stream objects
+#include <cctype>                   // For indeterminate
+#include <cstdio>                   // For sprintf, ...
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
 #include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 
 #include <com/Debug.h>
 #include <com/define.h>

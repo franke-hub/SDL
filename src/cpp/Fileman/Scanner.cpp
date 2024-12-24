@@ -73,15 +73,16 @@
 #define _GNU_SOURCE                 // For strcasestr
 #include <string>                   // For std::string
 
-#include <assert.h>                 // For bringup debugging
-#include <ctype.h>                  // For isprint()
-#include <errno.h>                  // For errno
+#include <cassert>                  // For bringup debugging
+#include <cctype>                   // For isprint()
+#include <cerrno>                   // For errno
+#include <climits>                  // For INT_MAX, INT_MIN
+#include <cstdio>                   // For printf, ...
+#include <cstdlib>                  // For exit, ...
+#include <cstring>                  // For strcmp, ...
+#include <ctime>                    // For localtime, ...
+
 #include <getopt.h>                 // For getopt_long()
-#include <limits.h>                 // For INT_MAX, INT_MIN
-#include <stdio.h>                  // For printf, ...
-#include <stdlib.h>                 // For exit, ...
-#include <string.h>                 // For strcmp, ...
-#include <time.h>                   // For localtime, ...
 
 #include <pub/Debug.h>              // For debugging
 #include <pub/Properties.h>         // For pub::Properties
@@ -284,7 +285,7 @@ static inline bool                  // TRUE iff string starts with value
 //       Case insensitive strstr.
 //
 //----------------------------------------------------------------------------
-#if 0                               // (Included in /usr/include/string.h)
+#if 0                               // (Included in /usr/include/cstring)
 static const char*                  // First match, or nullptr
    strcasestr(                      // Case insensitive strstr
      const char*       lhs,         // Source string
@@ -311,7 +312,7 @@ static const char*                  // First match, or nullptr
 
    return nullptr;
 }
-#endif                              // (Included in /usr/include/string.h)
+#endif                              // (Included in /usr/include/cstring)
 
 //----------------------------------------------------------------------------
 //

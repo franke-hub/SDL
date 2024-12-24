@@ -19,12 +19,11 @@
 //       2024/09/14
 //
 //----------------------------------------------------------------------------
-#include <typeinfo>                 // For typeid, used in get_class_name
-#include <stdint.h>                 // For uintptr_t
-#include <stdio.h>                  // For sprintf
-#include <pub/utility.h>            // For pub::utility::demangle
+#include <cstdint>                  // For uintptr_t
+#include <cstdio>                   // For sprintf
 
 #include "pub/Object.h"             // For pub::Object, implemented
+#include <pub/utility.h>            // For pub::utility::demangle
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

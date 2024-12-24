@@ -19,17 +19,16 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
+#include <cassert>
+#include <cstdio>
+#include <cstring>
 
 #include <com/Bit.h>
+#include "com/DarwinUnit.h"
 #include <com/define.h>
 #include <com/Debug.h>
 #include <com/Random.h>
 #include <com/List.h>
-
-#include "com/DarwinUnit.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

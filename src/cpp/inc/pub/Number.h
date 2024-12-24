@@ -23,9 +23,8 @@
 #define _LIBPUB_NUMBER_H_INCLUDED
 
 #include <ostream>                  // For std::ostream
-#include <string>                   // For std::string
+#include <string>                   // For std::string, size_t
 #include <utility>                  // For std::pair
-#include <stdint.h>                 // For size_t
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 

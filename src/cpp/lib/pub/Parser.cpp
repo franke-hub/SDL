@@ -20,8 +20,8 @@
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
-#include <errno.h>                  // For errno
-#include <stdio.h>                  // For fopen, fclose, fread
+#include <cerrno>                   // For errno
+#include <cstdio>                   // For fopen, fclose, fread
 
 #include "pub/Parser.h"             // Implementation class
 

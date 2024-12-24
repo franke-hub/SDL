@@ -19,8 +19,9 @@
 //       2013/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
+
 #include <windows.h>
 
 #include <com/define.h>

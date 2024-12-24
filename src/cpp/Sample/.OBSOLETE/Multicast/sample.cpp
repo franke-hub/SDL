@@ -32,22 +32,23 @@
 //       on one or more machines.  More applications result in more messages.
 //
 //----------------------------------------------------------------------------
+#include <cassert>
+#include <cerrno>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
+#include <netdb.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+
 #include <com/Logger.h>             // Use logger for append
 #include <com/define.h>
 #include <com/Signal.h>
-
-#include <arpa/inet.h>
-#include <assert.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

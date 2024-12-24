@@ -37,8 +37,8 @@
 #define OBJ_OBJECT_H_INCLUDED
 
 #include <atomic>                   // For std::atomic
-#include <stdint.h>                 // For int32_t (Precise size required)
 #include <string>                   // For std::string
+#include <cstdint>                  // For int32_t (Precise size required)
 
 #include "define.h"                 // For _OBJ_NAMESPACE (and more)
 

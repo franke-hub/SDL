@@ -19,7 +19,7 @@
 //       2024/08/30
 //
 //----------------------------------------------------------------------------
-#include <string.h>                 // For memcpy, memmove, strlen
+#include <cstring>                  // For memcpy, memmove, strlen
 
 #include <pub/Debug.h>              // For pub::Debug object
 #include <pub/Must.h>               // For pub::must methods

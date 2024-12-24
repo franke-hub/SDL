@@ -19,11 +19,11 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/define.h>
 #include <com/params.h>

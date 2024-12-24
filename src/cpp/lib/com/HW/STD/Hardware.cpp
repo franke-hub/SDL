@@ -39,4 +39,3 @@ uint64_t                            // The timestamp counter
 {
    return timeStamp++;
 }
-

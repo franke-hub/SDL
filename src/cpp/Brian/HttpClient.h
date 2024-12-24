@@ -27,6 +27,7 @@
 #define HTTPCLIENT_H_INCLUDED
 
 #include <string>
+
 #include "Service.h"
 
 //----------------------------------------------------------------------------

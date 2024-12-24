@@ -26,8 +26,8 @@
 #include <openssl/bio.h>            // For openssl BIO methods
 
 #include <pub/Debug.h>              // For debugging
-using namespace _PUB_NAMESPACE;     // For Debug, ...
-using namespace _PUB_NAMESPACE::debugging; // For debugging
+using namespace _LIBPUB_NAMESPACE;  // For Debug, ...
+using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
 
 #if (OPENSSL_VERSION_NUMBER > 0x01000210fL)
 // Definitions removed sometime after 1.0.2p

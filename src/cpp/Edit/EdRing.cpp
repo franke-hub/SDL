@@ -20,11 +20,12 @@
 //
 //----------------------------------------------------------------------------
 #include <new>
-#include <assert.h>
-#include <inttypes.h>               // For PRI*64
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cinttypes>                // For PRI*64
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <sys/stat.h>
 
 #include <com/Media.h>

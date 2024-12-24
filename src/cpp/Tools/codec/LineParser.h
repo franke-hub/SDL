@@ -22,8 +22,8 @@
 #ifndef LINEPARSER_H_INCLUDED
 #define LINEPARSER_H_INCLUDED
 
-#include <stdint.h>
-#include <string.h>
+#include <cstdint>
+#include <cstring>
 
 #include <com/Parser.h>
 

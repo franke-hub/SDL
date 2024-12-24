@@ -19,8 +19,9 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
+
 #include <windows.h>
 
 #include <com/Atomic.h>
@@ -28,9 +29,8 @@
 #include <com/Debug.h>
 #include <com/Latch.h>
 #include <com/List.h>
-#include <com/Unconditional.h>
-
 #include "com/Thread.h"
+#include <com/Unconditional.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

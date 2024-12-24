@@ -19,8 +19,9 @@
 //       2012/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
+
 #include <com/Socket.h>
 #include <com/Software.h>
 

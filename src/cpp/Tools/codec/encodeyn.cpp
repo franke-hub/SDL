@@ -19,9 +19,9 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cinttypes>
+#include <cstdio>
+#include <cstdlib>
 
 #include <com/params.h>
 #include <com/FileInfo.h>

@@ -30,7 +30,7 @@
 //       testdist | tee testdist.out
 //
 //----------------------------------------------------------------------------
-#include <time.h>
+#include <ctime>
 
 #include "Poker.h"
 #include "TestDist.h"

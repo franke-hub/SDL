@@ -33,4 +33,3 @@
    Ident::~Ident( void )            // Destructor
 {
 }
-

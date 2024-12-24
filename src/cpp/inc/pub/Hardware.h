@@ -25,7 +25,8 @@
 #ifndef _LIBPUB_HARDWARE_H_INCLUDED
 #define _LIBPUB_HARDWARE_H_INCLUDED
 
-#include <stdint.h>                 // For uint64_t
+#include <cstdint>                  // For uint64_t
+
 #include "bits/pubconfig.h"         // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)

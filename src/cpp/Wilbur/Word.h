@@ -22,8 +22,9 @@
 #ifndef WORD_H_INCLUDED
 #define WORD_H_INCLUDED
 
-#include <stdexcept>                // For runtime_error
+#include <stdexcept>                // For std::runtime_error
 #include <map>                      // For std::map
+
 #include <com/Subpool.h>            // For Subpool
 
 //----------------------------------------------------------------------------

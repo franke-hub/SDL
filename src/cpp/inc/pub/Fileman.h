@@ -26,6 +26,7 @@
 #define _LIBPUB_FILEMAN_H_INCLUDED
 
 #include <string>                   // For std::string
+
 #include <sys/stat.h>               // For struct stat
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros

@@ -19,11 +19,12 @@
 //       2023/05/19
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 
 #include "makeproj.hpp"

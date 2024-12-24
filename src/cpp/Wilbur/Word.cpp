@@ -19,20 +19,19 @@
 //       2018/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdarg.h>                 // For va_list
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
-
 #include <map>                      // For std::map
 #include <stdexcept>                // For std::runtime_error
+#include <cstdarg>                  // For va_list
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
+#include <cstring>                  // For strcmp
 
 #include <com/Debug.h>
 #include <com/Must.h>
 #include <com/Random.h>
 #include <com/Subpool.h>
-#include "Context.h"
 
+#include "Context.h"
 #include "Word.h"
 
 //----------------------------------------------------------------------------

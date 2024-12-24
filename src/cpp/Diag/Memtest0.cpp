@@ -20,13 +20,15 @@
 //
 //----------------------------------------------------------------------------
 #include <atomic>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 
 #include <com/define.h>
 #include <com/Random.h>
+
 #include "Test_Mem.h"
 
 //----------------------------------------------------------------------------

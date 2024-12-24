@@ -24,11 +24,13 @@
 //
 //----------------------------------------------------------------------------
 #define USE_WINDOW FALSE            // TRUE to create control window
+
+#include <cstdio>
+
 #if defined(_OS_CYGWIN) || defined(_OS_WIN)
   #include <process.h>
 #endif
 #include <unistd.h>
-#include <stdio.h>
 
 #include <com/Barrier.h>
 #include <com/Status.h>

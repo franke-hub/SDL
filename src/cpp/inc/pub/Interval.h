@@ -22,8 +22,7 @@
 #ifndef _LIBPUB_INTERVAL_H_INCLUDED
 #define _LIBPUB_INTERVAL_H_INCLUDED
 
-#include <chrono>
-#include <stdint.h>
+#include <chrono>                   // For std::chrono
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 

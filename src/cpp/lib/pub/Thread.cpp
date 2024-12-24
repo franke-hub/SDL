@@ -27,14 +27,13 @@
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<> statistics
-#include <chrono>                   // Used by Thread::sleep()
-#include <mutex>                    // For lock_guard, mutex
+#include <chrono>                   // For std::chrono::microseconds
+#include <mutex>                    // For std::lock_guard, mutex
 #include <stdexcept>                // For std::runtime_error
 #include <string>                   // For std::string
-#include <errno.h>                  // For errno definitions
-#include <string.h>                 // For strerror, ...
+#include <cerrno>                   // For errno
+#include <cstring>                  // For strerror, ...
 
-#include "pub/diag-stack.h"         // For pub::diag::Stack
 #include <pub/Debug.h>              // For debugging
 #include <pub/Exception.h>          // For debugging
 #include "pub/Latch.h"              // For pub::Latch
@@ -48,8 +47,6 @@ using namespace PUB::debugging;     // For debugging methods
 using std::atomic_size_t;           // For convenience
 using std::string;                  // For convenience
 
-typedef PUB::diag::Stack
-                       Stack;       // For convenience
 typedef PUB::Thread    Thread;      // For convenience
 typedef Thread::tlss   tlss;        // For convenience
 typedef tlss::handle_t handle_t;    // For convenience
@@ -738,7 +735,6 @@ void*                               // (Always nullptr)
 
      // Run the Thread, catching exceptions
      try {
-//Stack stack; stack.debug("before run");
        if( USE_ITRACE )
          Trace::trace(".THR", ">run", thread, _tlss);
        thread->run();
@@ -840,24 +836,15 @@ void*                               // (Always nullptr)
          abortf("Thread.cpp: _tlss->mutex.is_held()==true");
      }
 
-//Stack stack; stack.debug("Detached run complete");
-
      // We have exclusive control of the tlss, but we're about to delete it.
      if( USE_TIMING )
        traceh("%4d Thread(%p) tlss(%p,%p) drive (detached thread completed)\n"
              , __LINE__, thread, _tlss, tl_tlss);
 
-// (We don't know (or care) whether or not the Thread has been deleted, but
-// we know that _tlss->pub_thread == nullptr.) [and `thread` can't be used]
-//Thread::static_debug("A detached thread completed");
-//_tlss->debug("A detached thread completed");
-
      if( USE_ITRACE )
        Trace::trace(".THR", "-TLS", thread, _tlss);
      delete _tlss;                  // Delete the tlss
      tl_tlss= nullptr;              // Reset the thread local storage pointer
-// Last message before exit <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-//debugh("%4d HCDM Thread(%p).drive EXIT FSM==DETACHED\n", __LINE__, thread);
      return nullptr;
    } catch(Exception& X) {          // (Exception handling)
      debugh("%4d Thread(%p)::drive, Exception: %s\n", __LINE__
@@ -869,10 +856,6 @@ void*                               // (Always nullptr)
      debugh("%4d Thread(%p)::drive, catch(...)\n", __LINE__, thread);
    }
    Thread::static_debug("Exception"); // (We don't know if thread is valid)
-
-// Last message before exit <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-// debugh("%4d HCDM Thread(%p) tlss(*,%p) drive EXCEPTION EXIT\n", __LINE__
-//       , thread, tl_tlss);        // (Stack _tlss not available)
    return nullptr;
 }
 } // namespace _LIBPUB_NAMESPACE

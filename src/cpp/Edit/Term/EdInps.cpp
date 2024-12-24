@@ -21,13 +21,13 @@
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
 
+#include <cstdio>                   // For sprintf
 #include <string>                   // For std::string
-#include <stdio.h>                  // For sprintf
-#include <sys/types.h>              // For system types
 
 #include <ncurses.h>                // For ncurses (== curses.h)
 #include <term.h>                   // For ncurses terminal
 #  undef set_clock                  // (MACRO in term.h)
+#include <sys/types.h>              // For system types
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Fileman.h>            // For pub::fileman::Name

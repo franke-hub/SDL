@@ -19,15 +19,16 @@
 //       2020/10/03 (Version 2, Release 1) - Extra compiler warnings
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <com/syslib.h>
 
+#include "Active.h"
 #include "EdLine.h"
 #include "EdRing.h"
-#include "Active.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

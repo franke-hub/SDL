@@ -29,7 +29,7 @@
 #include <ostream>                  // For std::ostream
 #include <string>                   // For std::string
 
-#include "config.h"                 // For _LIBPUB_ macros
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------

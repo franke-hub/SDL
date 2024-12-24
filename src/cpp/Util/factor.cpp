@@ -23,9 +23,9 @@
 //       Caclulation takes about 9 minutes on a 166Mhz Pentium.
 //
 //----------------------------------------------------------------------------
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdint.h>
+#include <cinttypes>
+#include <cstdio>
+#include <cstdint>
 
 #include <com/Binary.h>
 #include <com/Debug.h>

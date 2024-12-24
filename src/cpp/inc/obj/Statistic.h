@@ -23,6 +23,7 @@
 #define OBJ_STATISTIC_H_INCLUDED
 
 #include <atomic>
+
 #include "obj/config/config.h"
 
 namespace _OBJ_NAMESPACE {

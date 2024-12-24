@@ -19,8 +19,8 @@
 //       2021/04/02
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "com/Debug.h"
 #include "com/Logger.h"

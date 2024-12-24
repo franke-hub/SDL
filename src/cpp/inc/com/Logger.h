@@ -23,7 +23,7 @@
 #define LOGGER_H_INCLUDED
 
 #ifndef DEBUG_H_INCLUDED
-#include "Debug.h"                  /* Also includes stdarg.h               */
+#include "Debug.h"                  /* Also includes cstdarg                */
 #endif
 
 //----------------------------------------------------------------------------

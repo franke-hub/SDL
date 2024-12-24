@@ -19,10 +19,11 @@
 //       2023/11/13
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <functional>
+#include <functional>               // For std::function
+#include <cassert>                  // For assert
+#include <cstring>
+
 #include <getopt.h>
-#include <string.h>
 
 #include <pub/Debug.h>
 #include <pub/Exception.h>

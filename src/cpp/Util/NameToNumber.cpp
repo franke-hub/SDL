@@ -19,9 +19,9 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
 
 //----------------------------------------------------------------------------
 // Internal data areas

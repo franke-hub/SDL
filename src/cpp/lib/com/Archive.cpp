@@ -20,17 +20,19 @@
 //
 //----------------------------------------------------------------------------
 #define _FILE_OFFSET_BITS 64
-#define __STDC_FORMAT_MACROS        // For linux inttypes.h
+#define __STDC_FORMAT_MACROS        // For linux cinttypes
 
-#include <assert.h>
-#include <inttypes.h>               // For PRId64
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cinttypes>                // For PRId64
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 #include <zlib.h>
 #include <sys/stat.h>
 
+#include "com/Archive.h"
 #include <com/AutoPointer.h>
 #include <com/Calendar.h>           // For FAT_DATE_TIME
 #include <com/Clock.h>              // For FAT_DATE_TIME
@@ -42,8 +44,6 @@
 #include <com/FileSource.h>
 #include <com/istring.h>
 #include <com/List.h>
-
-#include "com/Archive.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

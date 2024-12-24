@@ -22,10 +22,9 @@
 #ifndef _LIBPUB_EVENT_H_INCLUDED
 #define _LIBPUB_EVENT_H_INCLUDED
 
-#include <condition_variable>
-#include <iostream>
-#include <mutex>
-#include <stdint.h>
+#include <condition_variable>       // For std::condition_variable
+#include <mutex>                    // For std::mutex
+#include <cstdint>                  // For uint32_t
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 

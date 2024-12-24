@@ -22,20 +22,17 @@
 //       If the time is in DST, one extra hour is added to its value!
 //
 //----------------------------------------------------------------------------
-#include <errno.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <cerrno>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/timeb.h>
 #include <sys/types.h>
-
-#if defined(_OS_BSD)
-//  #include <sys/time.h>
-#endif
 
 //----------------------------------------------------------------------------
 // Macros (OS dependencies)

@@ -19,11 +19,10 @@
 //       2012/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdlib.h>                 // For NULL
-#include <string.h>                 // For strdup
+#include <cstdlib>                  // For NULL
+#include <cstring>                  // For strdup
 
 #include <com/Unconditional.h>
-
 #include "com/SafeParser.h"
 
 //----------------------------------------------------------------------------

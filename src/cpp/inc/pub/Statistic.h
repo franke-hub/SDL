@@ -27,7 +27,7 @@
 
 #include <atomic>                   // For std::atomic_uint64_t, ...
 #include <string>                   // For std::string
-#include <stdint.h>                 // For uint64_t
+#include <cstdint>                  // For uint64_t
 
 #include <pub/Reporter.h>           // For pub::Reporter
 

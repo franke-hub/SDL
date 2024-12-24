@@ -25,21 +25,21 @@
 #include <chrono>                   // For durations
 #include <mutex>                    // For std::lock_guard
 #include <thread>                   // For std::thread
+#include <cctype>                   // For isprint()
+#include <cerrno>                   // For errno
+#include <climits>                  // For INT_MAX, INT_MIN
+#include <cstdarg>                  // For va_list
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
+#include <cstring>                  // For strcmp
+#include <ctime>                    // For timespec
 
-#include <ctype.h>                  // For isprint()
-#include <errno.h>                  // For errno
 #include <fcntl.h>                  // For O_* constants
 #include <getopt.h>                 // For getopt_long()
-#include <limits.h>                 // For INT_MAX, INT_MIN
 #include <mqueue.h>                 // For mq_* functions
 #include <semaphore.h>              // For semaphore
 #include <signal.h>                 // For sigevent
 #include <spawn.h>                  // For posix_spawn functions
-#include <stdarg.h>                 // For va_list
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
-#include <time.h>                   // For timespec
 #include <unistd.h>                 // For getpid, ...
 #include <sys/stat.h>               // For S_* constants and macros
 #include <sys/wait.h>               // For waitpid
@@ -48,6 +48,7 @@
 #include <pub/Exception.h>          // For pub::Exception, std::exception
 #include <pub/Latch.h>              // For pub::NullLatch
 #include <pub/utility.h>            // For pub::utility::dump (debugging)
+
 using pub::Debug;                   // For Debug object
 using namespace pub::debugging;     // For debugging functions
 

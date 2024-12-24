@@ -21,10 +21,9 @@
 //----------------------------------------------------------------------------
 #include <com/Atomic.h>
 #include <com/Debug.h>
+#include "com/RecursiveBarrier.h"
 #include <com/Software.h>
 #include <com/Thread.h>
-
-#include "com/RecursiveBarrier.h"
 
 //----------------------------------------------------------------------------
 //

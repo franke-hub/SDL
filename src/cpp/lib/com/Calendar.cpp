@@ -19,11 +19,10 @@
 //       2020/10/02
 //
 //----------------------------------------------------------------------------
+#include "com/Calendar.h"
 #include <com/Clock.h>
 #include <com/Debug.h>
 #include <com/Julian.h>
-
-#include "com/Calendar.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

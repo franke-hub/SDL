@@ -33,21 +33,19 @@
 //       See ./.TIMING for timing test information.
 //
 //----------------------------------------------------------------------------
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <exception>
+#include <exception>                // For std::exception, ...
+#include <cinttypes>
+#include <cstdio>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Atomic.h>
 #include <com/Clock.h>
 #include <com/Debug.h>
+#include "com/Dispatch.h"
 #include <com/Thread.h>
 #include <com/ThreadLogger.h>
-
-#include "com/Dispatch.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

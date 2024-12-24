@@ -35,16 +35,17 @@
 //        --verify filename (Verify words in filename)
 //
 //----------------------------------------------------------------------------
-#define __STDC_FORMAT_MACROS        // For linux inttypes.h
+#define __STDC_FORMAT_MACROS        // For linux cinttypes
+#include <exception>
 #include <iostream>
-#include <string>
+#include <string>                   // For std::string
+#include <cassert>
+#include <cinttypes>                // For PRI*64
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
-#include <assert.h>
-#include <inttypes.h>               // For PRI*64
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 #include <sys/wait.h>               // For WEXITSTATUS, WSTOPSIG
 
 //nclude "com/DebugObject.h"        // For debugging
@@ -56,9 +57,6 @@
 #include <com/Signal.h>
 #include <com/Thread.h>
 #include <sys/stat.h>
-
-#include <exception>
-#include <string>
 
 #include "Approximately.h"
 #include "DateParser.h"

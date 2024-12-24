@@ -19,11 +19,11 @@
 //       2023/09/21
 //
 //----------------------------------------------------------------------------
-#include <new>
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include <new>                      // For std:: (In-place operator new)
+#include <cassert>                  // For assert
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/List.h"               // For pub::List, tested

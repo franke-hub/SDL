@@ -37,17 +37,22 @@
 //       --verbose (Vebose)
 //          Run noisily.
 //
+// Implementation notes-
+//       This *USES* Fileman.h classes to display directories and
+//       subdirectories. It *DOES NOT* implement Fileman.h
+//
 //----------------------------------------------------------------------------
-#include <assert.h>                 // For debugging
-#include <getopt.h>                 // For getopt_long()
-#include <limits.h>                 // For INT_MAX, INT_MIN
-#include <stdio.h>                  // For printf, fprintf, ...
-#include <string.h>                 // For memset
-#include <stdlib.h>                 // For exit
-#include <unistd.h>                 // For readlink
-#include <pub/utility.h>            // For pub::utility::atoi
+#include <cassert>                  // For debugging
+#include <climits>                  // For INT_MAX, INT_MIN
+#include <cstdio>                   // For printf, fprintf, ...
+#include <cstring>                  // For memset
+#include <cstdlib>                  // For exit
 
-#include "pub/Fileman.h"
+#include <getopt.h>                 // For getopt_long()
+#include <unistd.h>                 // For readlink
+
+#include "pub/Fileman.h"            // For Fileman classes
+#include <pub/utility.h>            // For pub::utility::atoi
 
 using pub::fileman::Path;
 
@@ -544,4 +549,3 @@ extern int                          // Return code
    //-------------------------------------------------------------------------
    return(0);
 }
-

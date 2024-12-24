@@ -24,8 +24,8 @@
 
 #include <map>
 #include <string>
-#include <com/Barrier.h>
 
+#include <com/Barrier.h>
 #include "com/Dispatch.h"           // Base class (also includes List)
 
 //----------------------------------------------------------------------------

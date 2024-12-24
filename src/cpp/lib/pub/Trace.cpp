@@ -24,13 +24,13 @@
 #endif
 
 #include <atomic>                   // For std::atomic
-#include <time.h>                   // For clock_gettime
 #include <mutex>                    // For std::lock_guard
 #include <new>                      // For std::bad_alloc
+#include <cstring>                  // For memcpy, strncpy
+#include <ctime>                    // For clock_gettime
+
 #include <sched.h>                  // For sched_getcpu
-#include <string.h>                 // For memcpy, strncpy
 #include <unistd.h>                 // For sysconf
-#include <arpa/inet.h>              // For htonl
 
 #include <pub/Debug.h>              // For debugging
 #include "pub/Trace.h"              // For pub::Trace, implemented

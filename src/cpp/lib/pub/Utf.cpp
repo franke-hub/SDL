@@ -22,12 +22,11 @@
 #include <new>                      // For std::bad_alloc
 #include <stdexcept>                // For std::logic_error, std::runtime_error
 #include <string>                   // For std::string
-
 #include <cassert>                  // For assert
 #include <cstdlib>                  // For free, malloc, ...
 #include <cstring>                  // For strcpy, strlen, ...
+
 #include <endian.h>                 // For endian coversion subroutines
-// #include <arpa/inet.h>              // For htons, ntohs
 
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include "pub/Utf.h"                // For pub::Utf, ... implemented

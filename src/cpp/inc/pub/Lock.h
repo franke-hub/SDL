@@ -24,9 +24,10 @@
 
 #include <stdexcept>                // For std::logic_error
 #include <string>                   // For std::string
+
 #include <fcntl.h>                  // For O_* constants
-#include <sys/stat.h>               // For S_* constants and macros
 #include <semaphore.h>              // For semaphore
+#include <sys/stat.h>               // For S_* constants and macros
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 

@@ -22,10 +22,9 @@
 //       Only Window.cpp invokes xcbcheck and only xcbcheck invoked xcbdebug
 //
 //----------------------------------------------------------------------------
+#include "gui/Global.h"             // Implementation class
 #include <pub/Debug.h>              // For Debug object
 #include <pub/Trace.h>              // For Trace object
-
-#include "gui/Global.h"             // Implementation class
 
 using pub::Debug;                   // For Debug object
 using namespace pub::debugging;     // For debugging

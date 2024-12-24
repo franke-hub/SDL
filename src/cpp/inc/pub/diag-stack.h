@@ -22,7 +22,7 @@
 #ifndef _LIBPUB_DIAG_STACK_H_INCLUDED
 #define _LIBPUB_DIAG_STACK_H_INCLUDED
 
-#include <stdint.h>                 // For size_t, ssize_t
+#include <cstdlib>                  // For size_t
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB macros
 

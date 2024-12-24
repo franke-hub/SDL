@@ -49,16 +49,16 @@
 #include <exception>                // For std::exception
 #include <memory>                   // For std::shared_ptr, std::unique_ptr
 #include <string>                   // For std::string
+#include <cctype>                   // For isprint, toupper
+#include <cerrno>                   // For errno
+#include <climits>                  // For INT_MAX, INT_MIN
+#include <cmath>                    // For sqrt
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
+#include <cstdarg>                  // For va_list
 
-#include <ctype.h>                  // For isprint, toupper
-#include <errno.h>                  // For errno
 #include <fcntl.h>                  // For O_* constants
 #include <getopt.h>                 // For getopt_long
-#include <limits.h>                 // For INT_MAX, INT_MIN
-#include <math.h>                   // For sqrt
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
-#include <stdarg.h>                 // For va_list
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/stat.h>               // For stat
 #include <sys/types.h>              // For type definitions

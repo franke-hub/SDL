@@ -30,7 +30,7 @@
 //       on unreachable paths are not instantiated.
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>                  // For printf, fprintf
+#include <cstdio>                   // For printf, fprintf
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

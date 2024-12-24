@@ -65,7 +65,7 @@
 #include <functional>               // For std::function
 #include <memory>                   // For std::shared_ptr, std::weak_ptr
 #include <mutex>                    // For std::lock_guard
-#include <stdio.h>                  // For printf
+#include <cstdio>                   // For printf
 
 #include <pub/List.h>               // For pub::List
 #include <pub/Latch.h>              // For pub::XCL_latch, SHR_latch

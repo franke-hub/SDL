@@ -19,19 +19,20 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>                  // For isspace()
-#include <stdarg.h>                 // For botch()
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cctype>                   // For isspace()
+#include <cstdarg>                  // For botch()
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 
 #include <com/Debug.h>              // Used in debug method
 #include <com/Buffer.h>
 #include <com/Reader.h>
 #include <com/Writer.h>
-
 #include "com/XmlParser.h"
+
 using std::string;
 
 //----------------------------------------------------------------------------

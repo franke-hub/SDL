@@ -21,7 +21,7 @@
 //       10000 Timing: 59.55 (#4) Not good for very large arrays.
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
+#include <cstdio>
 
 #include "ShellSorter.h"
 

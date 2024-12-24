@@ -19,9 +19,9 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Atomic.h>
 #include <com/Barrier.h>
@@ -30,7 +30,6 @@
 #include <com/Semaphore.h>
 #include <com/Software.h>
 #include <com/Unconditional.h>
-
 #include "com/ThreadLock.h"
 
 #if defined(__GNUC__)

@@ -19,15 +19,12 @@
 //       2023/06/24
 //
 //----------------------------------------------------------------------------
-// #include <string>                   // For std::string
-
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/http/HTTP.h"          // For pub::http::HTTP, implemented
 
 #define _PUB _LIBPUB_NAMESPACE
 using namespace _PUB;
 using namespace _PUB::debugging;
-// using std::string;
 
 namespace _LIBPUB_NAMESPACE::http { // Implementation namespace
 //----------------------------------------------------------------------------

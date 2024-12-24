@@ -23,9 +23,10 @@
 //       The remaining lines are the possible answers.
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+
 #include <unistd.h>
 
 #include <com/Debug.h>

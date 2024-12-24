@@ -26,8 +26,9 @@
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::mutex, std::lock_guard
-#include <ctype.h>                  // For isspace
-#include <string.h>                 // For strlen
+#include <cctype>                   // For isspace
+#include <cstring>                  // For strlen
+
 #include <unistd.h>                 // For isatty, STDIN_FILENO, ...
 
 #include <pub/Console.h>            // For pub::Console

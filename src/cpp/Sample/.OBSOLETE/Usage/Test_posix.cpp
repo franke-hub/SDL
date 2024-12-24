@@ -20,9 +20,10 @@
 //
 //----------------------------------------------------------------------------
 // POSIX (gcc) library includes
-#include <assert.h>
+#include <cassert>
+#include <cstdio>
+
 #include <pthread.h>
-#include <stdio.h>
 #include <sys/socket.h>
 
 #include "built_in.h"

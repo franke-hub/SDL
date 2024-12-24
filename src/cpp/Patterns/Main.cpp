@@ -21,8 +21,8 @@
 //       Compile only
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
 
 #if 0 // Many of these do not compile
 #include "Behavioral/ChainOfResponsibility.h"

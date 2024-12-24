@@ -20,16 +20,14 @@
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<serialno_t>
-#include <new>                      // For std::bad_alloc
-#include <cstring>                  // For memset
 #include <mutex>                    // For std::mutex, ..., base class
+#include <new>                      // For std::bad_alloc
 #include <stdexcept>                // For std::out_of_range, ...
 #include <string>                   // For std::string
-
-#include <assert.h>                 // For assert
-#include <stdio.h>                  // For fprintf
-#include <stdint.h>                 // For integer types
-#include <sys/socket.h>             // For socket usage
+#include <cassert>                  // For assert
+#include <cstdio>                   // For fprintf
+#include <cstdint>                  // For integer types
+#include <cstring>                  // For memset
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Dispatch.h>           // For namespace pub::dispatch objects
@@ -42,7 +40,6 @@
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For namespace pub::utility::
 #include "pub/utility.i"            // For conversion routines
-
 #include "pub/http/Agent.h"         // For pub::http::ListenAgent
 #include "pub/http/Exception.h"     // For pub::http::exceptions
 #include "pub/http/Listen.h"        // For pub::http::Listen (owner)

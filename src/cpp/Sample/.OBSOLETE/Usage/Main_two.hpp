@@ -22,10 +22,9 @@
 //       This was originally developed for implementation testing.
 //
 //----------------------------------------------------------------------------
-#include <exception>
-
-#include <stdio.h>
-#include <string.h>
+#include <exception>                // For std::exception
+#include <cstdio>                   // For printf
+#include <cstring>
 
 #include "Command.h"
 #include "TemplateException.h"

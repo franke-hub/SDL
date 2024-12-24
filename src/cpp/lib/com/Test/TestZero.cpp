@@ -19,12 +19,11 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Debug.h>
 #include <com/Verify.h>
-
 #include "com/Zeroed.h"
 
 //----------------------------------------------------------------------------

@@ -26,9 +26,9 @@
 //----------------------------------------------------------------------------
 #include <exception>
 #include <string>                   // For std::string
+#include <cstdlib>                  // For size_t
+#include <cstring>
 
-#include <stdlib.h>
-#include <string.h>
 #include <sys/stat.h>               // For S_IREAD ...
 
 #include <com/Atomic.h>

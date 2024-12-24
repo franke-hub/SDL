@@ -27,7 +27,6 @@
 
 #include <pub/Debug.h>              // For Debug object
 #include <pub/utility.h>            // For pub::utility::clock
-
 #include "gui/Device.h"             // For Device
 #include "gui/Global.h"             // For opt_* definitions
 #include "gui/Pixmap.h"             // For Pixmap, base class

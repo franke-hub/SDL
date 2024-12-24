@@ -19,8 +19,9 @@
 //       2021/07/17
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
+
 #include <unistd.h>
 
 #if defined(_OS_WIN) || defined(_OS_CYGWIN)

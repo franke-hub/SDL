@@ -23,9 +23,9 @@
 //       preferred, and usually necessary.
 //
 //----------------------------------------------------------------------------
-#include <cstdio>
+#include <exception>                // For std::exception
+#include <cstdio>                   // For printf
 #include <cstdlib>
-#include <exception>
 
 using namespace std;
 

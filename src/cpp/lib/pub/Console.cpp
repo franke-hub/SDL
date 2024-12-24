@@ -19,17 +19,16 @@
 //       2024/12/20
 //
 //----------------------------------------------------------------------------
-#include <cassert>                  // (Instead of assert.h)
-#include <cctype>                   // Move ctype.h macros into std::
-#include <cstdarg>                  // (Instead of stdarg.h)
-#include <cerrno>                   // (Instead of errno.h)
-#include <cstdio>                   // Move stdio.h macros into std::
 #include <mutex>                    // For std::mutex, std::lock_guard
+#include <cassert>                  // For assert
+#include <cctype>                   // For isdigit, ...
+#include <cerrno>                   // For errno
+#include <cstdarg>                  // For va_arg, ...
+#include <cstdio>                   // For printf, ...
 
 #include <endian.h>                 // For be64toh, ...
 #include <termios.h>                // For struct termios, ...
 #include <unistd.h>                 // For isatty, STDIN_FILENO, ...
-#include <arpa/inet.h>              // For htonl
 
 #define XK_MISCELLANY               // For most keyboard keys
 #define XK_XKB_KEYS                 // For XK_ISO_Left_Tab

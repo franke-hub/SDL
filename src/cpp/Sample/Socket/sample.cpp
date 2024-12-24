@@ -18,25 +18,26 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
+#include <cassert>
+#include <cerrno>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
+#include <unistd.h>
+#include <netinet/in.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <sys/timeb.h>
+
 #include <com/Clock.h>
 #include <com/Debug.h>
 #include <com/define.h>
 #include <com/Memory.h>
 #include <com/Signal.h>
 #include <com/Thread.h>
-
-#include <assert.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <netinet/in.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/timeb.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

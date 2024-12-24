@@ -22,7 +22,7 @@
 #ifndef LATCH_H_INCLUDED
 #define LATCH_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
 
 //----------------------------------------------------------------------------
 //

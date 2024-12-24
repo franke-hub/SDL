@@ -19,13 +19,6 @@
 //       2023/09/21
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include "pub/List.h"               // For pub::List, implemented
 

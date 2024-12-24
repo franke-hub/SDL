@@ -19,7 +19,7 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdlib.h>
+#include <cstdlib>
 
 #include <com/Debug.h>
 #include "com/Handler.h"

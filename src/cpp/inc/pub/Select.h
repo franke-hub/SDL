@@ -25,7 +25,8 @@
 #include <functional>               // For std::function
 #include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
-#include <errno.h>                  // For EINVAL
+#include <cerrno>                   // For errno, EINVAL ...
+
 #include <fcntl.h>                  // For fcntl
 #include <netinet/in.h>             // For struct sockaddr_ definitions
 #include <sys/poll.h>               // For struct pollfd, ...

@@ -22,9 +22,9 @@
 #ifndef THING_H_INCLUDED
 #define THING_H_INCLUDED
 
-#include <cstddef>                   // For size_t
 #include <memory>                    // For std::shared_ptr, ...
-#include <stdint.h>                  // For uint32_t
+#include <cstdlib>                   // For size_t
+#include <cstdint>                   // For uint32_t
 
 #include <obj/Object.h>              // For obj::Object
 

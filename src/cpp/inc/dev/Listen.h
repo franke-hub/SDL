@@ -27,18 +27,17 @@
 #ifndef _LIBPUB_HTTP_LISTEN_H_INCLUDED
 #define _LIBPUB_HTTP_LISTEN_H_INCLUDED
 
-#include <cstdlib>                  // For size_t
-#include <cstring>                  // For memcmp
 #include <functional>               // For std::function
 #include <map>                      // For std::map
 #include <memory>                   // For std::shared_ptr
 #include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
+#include <cstdlib>                  // For size_t
+#include <cstring>                  // For memcmp
 
 #include <pub/Debug.h>              // For pub::Debug
 #include <pub/Select.h>             // For pub::Select
 #include <pub/Socket.h>             // For pub::Socket
-
 #include "pub/http/Options.h"       // For pub::http::Options
 #include "pub/http/Request.h"       // For pub::http::ServerRequest
 

@@ -27,7 +27,7 @@
 //                  Exclude element 0
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
+#include <cstdio>
 
 #include <com/Debug.h>
 

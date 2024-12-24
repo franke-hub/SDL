@@ -36,8 +36,9 @@
 #define _LIBPUB_IODA_H_INCLUDED
 
 #include <string>                   // For std::string
-#include <stdint.h>                 // For uint32_t
-#include <stdio.h>                  // For EOF
+#include <cstdint>                  // For uint32_t
+#include <cstdio>                   // For EOF
+
 #include <sys/socket.h>             // For struct msghdr
 
 #include <pub/List.h>               // For pub::List

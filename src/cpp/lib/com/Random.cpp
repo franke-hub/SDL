@@ -19,14 +19,13 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
+#include <cstdio>
 
 #include <com/Atomic.h>
 #include <com/Debug.h>
 #include <com/Hardware.h>
-#include <com/Thread.h>
-
 #include "com/Random.h"
+#include <com/Thread.h>
 
 //----------------------------------------------------------------------------
 // Typedefs and enumerations

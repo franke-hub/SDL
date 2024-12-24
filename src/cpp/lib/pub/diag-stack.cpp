@@ -24,9 +24,9 @@
 #endif
 
 #include <mutex>                    // For std::lock_guard
+#include <cerrno>                   // For errno
+#include <cstring>                  // For strerror
 
-#include <errno.h>                  // For errno
-#include <string.h>                 // For strerror
 #include <pthread.h>                // For pthread interface
 #include <unistd.h>                 // For pause
 

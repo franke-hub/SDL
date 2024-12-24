@@ -21,9 +21,10 @@
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
 
+#include <cstdio>                   // For sprintf
 #include <string>                   // For std::string
+
 #include <endian.h>                 // For htobe16
-#include <stdio.h>                  // For sprintf
 #include <sys/types.h>              // For system types
 
 #include <pub/Debug.h>              // For namespace pub::debugging

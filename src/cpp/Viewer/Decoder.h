@@ -22,7 +22,7 @@
 #ifndef DECODER_H_INCLUDED
 #define DECODER_H_INCLUDED
 
-#include <stdint.h>                 // For uint32_t
+#include <cstdint>                  // For uint32_t
 
 //----------------------------------------------------------------------------
 //

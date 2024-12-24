@@ -21,9 +21,7 @@
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::runtime_error
 #include <string>                   // For std::string
-
-#include <assert.h>
-#include <string.h>
+#include <cassert>                  // For assert
 
 #include <pub/Debug.h>
 
@@ -31,8 +29,7 @@
 #include <pub/TEST.H>               // For VERIFY, ...
 #include <pub/Debug.h>              // For debugging
 #include "pub/utility.i"            // For pub::b2c
-
-#include "pub/Wrapper.h"            // For class Wrapper, verified
+#include "pub/Wrapper.h"            // For class Wrapper, tested
 
 // Namespace accessors
 #define PUB _LIBPUB_NAMESPACE

@@ -21,14 +21,14 @@
 //----------------------------------------------------------------------------
 #include <com/Signal.h>             // Prevent system defines from botching
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-
 #include <exception>
-#include <string>
 #include <map>
+#include <string>                   // For std::string
+#include <cstdio>                   // For printf
+#include <cstdlib>
+#include <cstring>
+
+#include <sys/stat.h>
 
 #include <com/AutoDelete.h>
 #include <com/Buffer.h>

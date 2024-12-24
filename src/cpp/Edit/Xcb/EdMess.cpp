@@ -19,8 +19,9 @@
 //       2024/08/28
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>                  // For printf, fopen, fclose, ...
-#include <stdlib.h>                 // For various
+#include <cstdio>                   // For printf, fopen, fclose, ...
+#include <cstdlib>                  // For various
+
 #include <unistd.h>                 // For unlink
 #include <sys/stat.h>               // For stat
 

@@ -21,22 +21,22 @@
 //----------------------------------------------------------------------------
 #include <pthread.h>                // Must be first
 
-#include <errno.h>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <sched.h>
 #include <semaphore.h>
 #include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 #include <com/Atomic.h>
 #include <com/Debug.h>
 #include <com/Latch.h>
 #include <com/List.h>
-#include <com/Unconditional.h>
-
 #include "com/Thread.h"
+#include <com/Unconditional.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

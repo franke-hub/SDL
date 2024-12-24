@@ -25,10 +25,11 @@
 //       4) cvs update Test_000.cpp (to restore this file)
 //
 //----------------------------------------------------------------------------
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <com/Debug.h>
 #include <com/Verify.h>
 

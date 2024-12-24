@@ -20,11 +20,12 @@
 //----------------------------------------------------------------------------
 #include <pthread.h>                // Must be first
 
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <sched.h>
 #include <semaphore.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/timeb.h>

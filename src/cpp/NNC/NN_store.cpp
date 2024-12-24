@@ -22,8 +22,8 @@
 //       NN_store_V  nn_rdval(neuron[store])
 //
 //----------------------------------------------------------------------------
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 
 #include <com/Debug.h>
 

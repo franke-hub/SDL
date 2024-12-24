@@ -43,7 +43,7 @@
 #ifndef BINARY_H_INCLUDED
 #define BINARY_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
 
 #ifndef DEFINE_H_INCLUDED
 #include "define.h"

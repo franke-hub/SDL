@@ -51,8 +51,8 @@
 //       ranking= p(win) + p(tie), once per rank
 //
 //----------------------------------------------------------------------------
-#include <time.h>
-#include <string.h>
+#include <cstring>
+#include <ctime>
 
 #include "Poker.h"
 

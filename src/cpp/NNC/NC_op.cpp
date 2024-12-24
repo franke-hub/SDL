@@ -19,11 +19,11 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <iostream>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <iostream>                 // For std::stream objects
+#include <cctype>                   // For isalnum, ...
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Debug.h>
 #include <com/define.h>

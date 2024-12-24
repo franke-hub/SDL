@@ -28,14 +28,14 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <cassert>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 
-#include <assert.h>
 #include <endian.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 

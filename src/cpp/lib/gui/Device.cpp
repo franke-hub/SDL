@@ -19,16 +19,13 @@
 //       2024/04/06
 //
 //----------------------------------------------------------------------------
-#include <limits.h>                 // For UINT_MAX
-#include <mutex>                    // For mutex, std::lock_guard
-#include <string.h>                 // For strlen, ...
+#include <mutex>                    // For std::mutex, std::lock_guard
+#include <climits>                  // For UINT_MAX
+#include <cstring>                  // For strlen, ...
+
 #include <unistd.h>                 // For close, ftruncate
 #include <X11/Xlib.h>               // For X11 Display type
 #include <X11/XKBlib.h>             // For XkbKeycodeToKeysym
-
-#include <pub/Debug.h>              // For Debug object
-#include <pub/Trace.h>              // For Trace object
-#include <pub/utility.h>            // For pub::utility::dump
 
 #include "gui/Device.h"             // Implementation class
 #include "gui/Global.h"             // For opt_* definitions
@@ -36,6 +33,9 @@
 #include "gui/Types.h"              // For enum KEY_STATE, DEV_EVENT_MASK
 #include "gui/Widget.h"             // For Widget
 #include "gui/Window.h"             // For Window (Base class)
+#include <pub/Debug.h>              // For Debug object
+#include <pub/Trace.h>              // For Trace object
+#include <pub/utility.h>            // For pub::utility::dump
 
 using pub::Debug;                   // For Debug object
 using pub::Trace;                   // For Trace object

@@ -45,18 +45,19 @@
 //----------------------------------------------------------------------------
 #include <iostream>                 // C++ iostream
 #include <list>                     // C++ list
-using namespace std;
+#include <cmath>                    // For sqrt
+#include <cstdarg>                  // For va_list
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
+#include <cstring>                  // For strcmp
 
-#include <stdarg.h>                 // For va_list
-#include <math.h>                   // For sqrt
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
 #include <sys/stat.h>               // For struct stat
 
 #include "Position.h"
 #include "XY.h"
 #include "XYZ.h"
+
+using namespace std;
 
 //----------------------------------------------------------------------------
 // Constant for parameterization

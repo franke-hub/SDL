@@ -25,11 +25,12 @@
 //----------------------------------------------------------------------------
 #include <pthread.h>                // Must be first
 
-#include <assert.h>
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <climits>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>

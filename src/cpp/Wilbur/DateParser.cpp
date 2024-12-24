@@ -19,7 +19,8 @@
 //       2012/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
+#include <cstdio>
+
 #include <com/istring.h>
 #include <com/Clock.h>
 #include <com/Debug.h>

@@ -21,9 +21,10 @@
 #ifndef _CLEAN_H_INCLUDED
 #define _CLEAN_H_INCLUDED
 
-#include <stdlib.h>                 // For malloc
-#include <stdio.h>                  // For printf
-#include <sys/types.h>              // For size_t
+#include <cstdlib>                  // For malloc, size_t
+#include <cstdio>                   // For printf
+
+#include <sys/types.h>
 
 //----------------------------------------------------------------------------
 //

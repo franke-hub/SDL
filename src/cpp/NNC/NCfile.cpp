@@ -24,10 +24,11 @@
 //       NC_RD      Read source file
 //
 //----------------------------------------------------------------------------
-#include <errno.h>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+
 #include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #ifdef _OS_CYGWIN

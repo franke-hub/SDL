@@ -22,7 +22,7 @@
 #ifndef XY_H_INCLUDED
 #define XY_H_INCLUDED
 
-#include <math.h>
+#include <cmath>
 
 class XY {                          // X and Y value
 public:

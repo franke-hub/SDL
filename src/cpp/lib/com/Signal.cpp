@@ -24,11 +24,12 @@
 #ifdef _OS_BSD
   #include <pthread.h>              // Must be first
 #endif
-#define __STDC_FORMAT_MACROS        // For linux inttypes.h
-#include <inttypes.h>               // For PRId64, PRIx64, etc.
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#define __STDC_FORMAT_MACROS        // For linux inttypes
+#include <cinttypes>                // For PRId64, PRIx64, etc.
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 
 #include <com/Barrier.h>

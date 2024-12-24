@@ -36,7 +36,7 @@
 #ifndef MESSAGE_H_INCLUDED
 #define MESSAGE_H_INCLUDED
 
-#include <stdarg.h>
+#include <cstdarg>
 
 #ifndef LIST_INCLUDED
 #include "com/List.h"

@@ -19,14 +19,14 @@
 //       2023/06/20 (Editor Version 2, Release 2 support)
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>                  // Used in debug traces
+#include <cctype>                   // Used in debug traces
+
 #include <unistd.h>
 
 #include <com/Debug.h>
+#include "com/Keyboard.h"
 #include <com/KeyCode.h>
 #include <com/syslib.h>
-
-#include "com/Keyboard.h"
 #include "com/Terminal.h"
 
 //----------------------------------------------------------------------------

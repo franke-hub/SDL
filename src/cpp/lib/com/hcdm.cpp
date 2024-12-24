@@ -27,4 +27,3 @@
 int                    hcdm= 0;     // Hard Core Debug Mode control
 int                    iodm= 0;     // I/O Debug Mode control
 int                    scdm= 0;     // Soft Core Debug Mode control
-

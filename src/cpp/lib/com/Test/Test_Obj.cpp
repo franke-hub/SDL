@@ -19,14 +19,12 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <iostream>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <iostream>                 // For std::stream types, std::cout, ...
+#include <cstdio>                    // For printf
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Debug.h>
-
 #include "com/Object.h"
 #include "com/Vector.h"
 

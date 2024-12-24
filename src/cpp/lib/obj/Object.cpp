@@ -20,9 +20,10 @@
 //
 //----------------------------------------------------------------------------
 #include <typeinfo>                 // For typeid, used in get_class_name
-#include <boost/core/demangle.hpp>  // Used in get_class_name
-#include <com/Debug.h>              // For debugging
 
+#include <boost/core/demangle.hpp>  // Used in get_class_name
+
+#include <com/Debug.h>              // For debugging
 #include "obj/Object.h"
 
 //----------------------------------------------------------------------------

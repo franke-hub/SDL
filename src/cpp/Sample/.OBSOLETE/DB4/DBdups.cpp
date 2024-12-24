@@ -22,18 +22,17 @@
 //       DBdups
 //
 //----------------------------------------------------------------------------
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <exception>
+#include <iostream>                 // For std::stream objects
+#include <cstdint>                  // For integer types
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
+#include <db_cxx.h>
 #include <netinet/in.h>
 #include <sys/stat.h>
-
-#include <exception>
-#include <iostream>
-#include <db_cxx.h>
-using namespace std;
 
 #include <com/Atomic.h>
 #include <com/Debug.h>
@@ -47,6 +46,8 @@ using namespace std;
 #include <com/Thread.h>
 
 #include "DBdups.h"
+
+using namespace std;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

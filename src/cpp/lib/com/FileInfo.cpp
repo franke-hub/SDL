@@ -19,35 +19,31 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#define __STDC_FORMAT_MACROS        // For linux inttypes.h
-#include <inttypes.h>               // For PRId64
+#define __STDC_FORMAT_MACROS        // For linux cinttypes
+#include <cinttypes>                // For PRId64
+#include <cstdio>                   // For FILENAME_MAX
+#include <cstdlib>
+#include <cstring>
 
-#include <stdio.h>                  // For FILENAME_MAX
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
 
 #include <com/Clock.h>
 #include <com/Debug.h>
 #include <com/define.h>
+#include "com/FileInfo.h"
 #include <com/FileName.h>
 #include <com/Julian.h>
 
-#include "com/FileInfo.h"
-
 #if   defined(_OS_BSD)
   #include <utime.h>                // For utime
-
 #elif defined(_OS_WIN)
   #include <windows.h>              // For S_xxxxx
   #include <winsim.h>               // For S_xxxxx
   #include <io.h>                   // For chmod
   #include <sys/utime.h>            // For utime
-
 #else
 #error "Unsupported  version"
-
 #endif // _OS_VER
 
 #ifdef _OS_CYGWIN

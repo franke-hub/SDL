@@ -19,10 +19,10 @@
 //       2018/01/01
 //
 //----------------------------------------------------------------------------
-#define __STDC_FORMAT_MACROS        // For linux inttypes.h
-#include <assert.h>
-#include <inttypes.h>               // For PRI*64
-#include <stdio.h>
+#define __STDC_FORMAT_MACROS        // For linux cinttypes
+#include <cassert>
+#include <cinttypes>                // For PRI*64
+#include <cstdio>
 
 #include <com/Julian.h>
 #include <com/Thread.h>

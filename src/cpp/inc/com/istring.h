@@ -22,9 +22,9 @@
 #ifndef ISTRING_H_INCLUDED
 #define ISTRING_H_INCLUDED
 
-#include <ostream>                  // For operator <<
-#include <string>                   // For char_traits<char> base class
-#include <string.h>                 // Include case sensitive methods
+#include <ostream>                  // For std::ostream operator <<
+#include <string>                   // For std::char_traits<char> base class
+#include <cstring>                  // Include case sensitive methods
 
 #ifdef __cplusplus
 extern "C" {

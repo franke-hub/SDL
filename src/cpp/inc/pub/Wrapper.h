@@ -24,6 +24,7 @@
 
 #include <functional>               // For std::function
 #include <string>                   // For std::string
+
 #include <getopt.h>                 // For opt* controls
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros

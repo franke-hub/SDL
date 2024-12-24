@@ -23,17 +23,16 @@
 // #define _LARGEFILE_SOURCE 1
 // #define _LARGEFILE64_SOURCE 1
 
-#include <stdio.h>
-#include <limits.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <sys/stat.h>
+#include <exception>                // For std::exception
+#include <string>                   // For std::string
+#include <cstdio>                   // For printf
+#include <climits>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
-#include <exception>
-#include <string>
-using namespace std;
+#include <sys/stat.h>
 
 #include "pub/TEST.H"               // For VERIFY, ...
 #include "pub/Clock.h"              // For pub::Clock
@@ -70,6 +69,8 @@ using namespace std;
 using namespace PUB;
 using namespace PUB::debugging;
 using PUB::Wrapper;                 // For pub::Wrapper class
+
+using namespace std;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -424,18 +425,18 @@ static inline int
 //       test_stdlib
 //
 // Purpose-
-//       Test cstdlib, stdlib.h
+//       Test cstdlib, cstdlib
 //
 // Implementation notes-
 //       Expect exception or SEGFAULT if failure
 //
 //----------------------------------------------------------------------------
 static inline int
-   test_stdlib( void )              // Test cstdlib, stdlib.h (free)
+   test_stdlib( void )              // Test cstdlib, cstdlib (free)
 {
 // debugf("test_stdlib, fault if error\n"); // (Silent test)
 
-   ::free(NULL);                    // Test stdlib.h
+   ::free(NULL);                    // Test cstdlib
    std::free(nullptr);              // Test cstdlib
 
    return 0;

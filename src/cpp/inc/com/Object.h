@@ -33,10 +33,11 @@
 #ifndef OBJECT_H_INCLUDED
 #define OBJECT_H_INCLUDED
 
-#include <stdarg.h>                 // For String printf methods
-#include <ostream>                  // For global operators
-#include <stdint.h>                 // For int32_t (Precise size required)
-#include <string>                   // String base class
+#include <ostream>                  // For global std::cout operators
+#include <string>                   // For std::string
+#include <cstdarg>                  // For va_ functions/macros
+#include <cstdint>                  // For int32_t (Precise size required)
+
 #include <com/define.h>             // For NULL, _ATTRIBUTE_PRINTF
 
 //----------------------------------------------------------------------------

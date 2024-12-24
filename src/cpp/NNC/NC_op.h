@@ -23,7 +23,6 @@
 #define NC_OP_H_INCLUDED
 
 #include <ostream>
-using std::ostream;
 
 #ifndef LIST_H_INCLUDED
 #include <com/List.h>
@@ -36,6 +35,8 @@ using std::ostream;
 #ifndef NN_H_INCLUDED
 #include "NN.h"
 #endif
+
+using std::ostream;
 
 //----------------------------------------------------------------------------
 // Forward references

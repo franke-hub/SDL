@@ -19,7 +19,7 @@
 //       2017/01/01
 //
 //----------------------------------------------------------------------------
-#include <time.h>
+#include <ctime>
 
 #include "Poker.h"
 #include "ExtendedTexasStrategy.h"

@@ -27,8 +27,6 @@
 #ifndef SERVICE_H_INCLUDED
 #define SERVICE_H_INCLUDED
 
-// #include <map>                      // For std::map
-// #include <memory>                   // For std::shared_ptr, std::weak_ptr
 #include <string>                   // For std::string
 
 #include <pub/Named.h>              // For pub::Named, base class

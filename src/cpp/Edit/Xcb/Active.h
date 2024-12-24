@@ -28,7 +28,9 @@
 #ifndef ACTIVE_H_INCLUDED
 #define ACTIVE_H_INCLUDED
 
-#include <sys/types.h>              // For size_t
+#include <cstdlib>                  // For size_t
+
+#include <sys/types.h>
 
 #include <pub/Utf.h>                // For pub::utf8_decoder/utf8_encoder
 

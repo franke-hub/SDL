@@ -23,6 +23,8 @@
 #define _LIBPUB_THREAD_H_INCLUDED
 
 #include <string>                   // For std::string
+// #include <thread>                // Note:: std::thread not used
+
 #include <pthread.h>                // For pthread
 
 #include "pub/Event.h"              // For pub::Event

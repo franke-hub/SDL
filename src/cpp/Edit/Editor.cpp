@@ -19,17 +19,19 @@
 //       2023/06/19 (Version 2, Release 2) - Keys similar to Xcb/Edit
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cctype>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <com/Clock.h>
 #include <com/istring.h>
 #include <com/KeyCode.h>
 #include <com/Parser.h>
 
 #include "Active.h"
+#include "Editor.h"
 #include "EdDraw.h"
 #include "EdHand.h"
 #include "EdLine.h"
@@ -38,8 +40,6 @@
 #include "EdRing.h"
 #include "EdView.h"
 #include "Status.h"
-
-#include "Editor.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

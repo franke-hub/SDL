@@ -19,9 +19,9 @@
 //       2014/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 
 #include <com/Atomic.h>
 #include <com/AutoPointer.h>

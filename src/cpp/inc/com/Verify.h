@@ -47,8 +47,8 @@
 #ifndef VERIFY_H_INCLUDED
 #define VERIFY_H_INCLUDED
 
-#include <stdarg.h>
-#include <string.h>
+#include <cstdarg>
+#include <cstring>
 
 #ifndef DEBUG_H_INCLUDED
 #include <com/Debug.h>

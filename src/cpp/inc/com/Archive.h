@@ -26,7 +26,8 @@
 #ifndef ARCHIVE_H_INCLUDED
 #define ARCHIVE_H_INCLUDED
 
-#include<stdint.h>
+#include<cstdint>
+
 #include<sys/types.h>               // For time_t
 
 #ifndef DATASOURCE_H_INCLUDED

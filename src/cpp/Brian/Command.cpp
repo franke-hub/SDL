@@ -19,9 +19,10 @@
 //       2024/11/15
 //
 //----------------------------------------------------------------------------
-#include <new>                      // For std::bad_alloc
 #include <functional>               // For std::function
+#include <new>                      // For std::bad_alloc
 #include <stdexcept>                // For std::out_of_range
+#include <cstring>                  // For strcpy
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Latch.h>              // For pub::Latch

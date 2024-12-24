@@ -19,8 +19,8 @@
 //       2012/01/01
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>                  // For isspace()
-#include <math.h>                   // For pow()
+#include <cctype>                   // For isspace()
+#include <cmath>                    // For pow()
 
 #include <com/define.h>             // For FALSE, TRUE
 #include "com/Parser.h"

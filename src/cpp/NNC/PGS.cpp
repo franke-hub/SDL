@@ -26,14 +26,15 @@
 //           traceLevel = 0..19   ; Less..More tracing (> 10 HCDM)
 //
 //----------------------------------------------------------------------------
-#define __STDC_FORMAT_MACROS        // For linux inttypes.h
+#define __STDC_FORMAT_MACROS        // For linux cinttypes
 
-#include <errno.h>
+#include <cerrno>
+#include <cinttypes>                // For PRId64
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+
 #include <fcntl.h>
-#include <inttypes.h>               // For PRId64
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
 

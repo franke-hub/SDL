@@ -19,8 +19,8 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 
 #include "com/Normalizer.h"
 

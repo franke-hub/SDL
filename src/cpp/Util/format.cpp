@@ -25,9 +25,9 @@
 //       -mode:unix  [End each line with "\n"]
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/define.h>
 

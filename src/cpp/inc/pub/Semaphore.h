@@ -22,10 +22,10 @@
 #ifndef _LIBPUB_SEMAPHORE_H_INCLUDED
 #define _LIBPUB_SEMAPHORE_H_INCLUDED
 
-#include <chrono>
-#include <condition_variable>
-#include <mutex>
-#include <stdint.h>                 // For uint64_t
+#include <chrono>                   // For std::chrono
+#include <condition_variable>       // For std::condition_variable
+#include <mutex>                    // For std::mutex
+#include <cstdint>                  // For uint64_t
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 

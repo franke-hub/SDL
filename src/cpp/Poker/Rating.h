@@ -22,7 +22,7 @@
 #ifndef RATING_H_INCLUDED
 #define RATING_H_INCLUDED
 
-#include <stdio.h>
+#include <cstdio>
 
 //----------------------------------------------------------------------------
 //

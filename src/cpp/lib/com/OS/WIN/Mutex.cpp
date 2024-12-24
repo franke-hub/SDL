@@ -19,15 +19,16 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
+
 #include <windows.h>
 
 #include <com/define.h>
 #include <com/Exception.h>
 #include <com/Debug.h>
-#include <com/Thread.h>
 #include "com/Mutex.h"
+#include <com/Thread.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

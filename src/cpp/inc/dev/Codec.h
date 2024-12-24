@@ -25,8 +25,8 @@
 #include <functional>               // For std::function
 #include <string>                   // For std::string, size_t
 
-#include <pub/Ioda.h>               // For pub::Ioda
 
+#include <pub/Ioda.h>               // For pub::Ioda
 #include "pub/http/bits/devconfig.h" // For HTTP config controls
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)

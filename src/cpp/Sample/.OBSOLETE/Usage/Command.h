@@ -25,8 +25,8 @@
 #include <map>
 #include <iostream>
 #include <sstream>
-#include <string>
-#include <string.h>
+#include <string>                   // For std::string
+#include <cstring>                  // For strcmp
 
 #include "Exception.h"
 

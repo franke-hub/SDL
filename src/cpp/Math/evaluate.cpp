@@ -18,12 +18,12 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <errno.h>
-#include <limits.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cerrno>
+#include <climits>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/params.h>
 

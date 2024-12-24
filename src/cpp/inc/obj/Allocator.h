@@ -29,7 +29,6 @@
 #include "define.h"                 // For _OBJ_NAMESPACE, ...
 #include "Latch.h"
 #include "Statistic.h"
-
 #include "detail/Allocator.h"
 
 namespace _OBJ_NAMESPACE {

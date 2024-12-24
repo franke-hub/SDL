@@ -24,11 +24,10 @@
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
 
-#include <pub/Debug.h>              // For Debug object
-
 #include "gui/Device.h"             // For Device
 #include "gui/Layout.h"             // Implementation class
 #include "gui/Window.h"             // For Window
+#include <pub/Debug.h>              // For Debug object
 
 using pub::Debug;                   // For Debug object
 using namespace pub::debugging;     // For debugging

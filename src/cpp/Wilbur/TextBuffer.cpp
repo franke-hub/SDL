@@ -24,11 +24,12 @@
 //       modify the text buffer and use the get method to retrieve data.
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>

@@ -19,10 +19,11 @@
 //       2008/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdarg>
+#include <cstdlib>
+#include <cstring>
+
 #include <sys/stat.h>
 #include <sys/types.h>
 

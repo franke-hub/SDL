@@ -25,11 +25,13 @@
 #define _VERIFY_H_INCLUDED
 
 #include <sstream>                  // Used by id_string
+
 #include <pub/Debug.h>
 #include <pub/ifmacro.h>
 #include <pub/utility.h>
 
-using _PUB_NAMESPACE::utility::to_string;
+#define PUB _LIBPUB_NAMESPACE
+using PUB::utility::to_string;
 
 //----------------------------------------------------------------------------
 // Macros

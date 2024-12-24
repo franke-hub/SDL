@@ -19,9 +19,9 @@
 //       2008/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Debug.h>
 #include <com/Reader.h>

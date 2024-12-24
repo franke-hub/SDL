@@ -25,8 +25,8 @@
 #ifndef DEBUG_H_INCLUDED            // Conflicts with com/Debug.h
 #define DEBUG_H_INCLUDED
 
-#include <stdarg.h>
-#include <stdio.h>
+#include <cstdarg>
+#include <cstdio>
 
 #ifdef __GNUC__
 static inline void

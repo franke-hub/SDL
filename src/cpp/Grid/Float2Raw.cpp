@@ -26,11 +26,12 @@
 //       stdout: The raw floating point file.
 //
 //----------------------------------------------------------------------------
-#include <stdarg.h>                 // For va_list
-#include <math.h>                   // For sqrt
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
+#include <cmath>                    // For sqrt
+#include <cstdarg>                  // For va_list
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
+#include <cstring>                  // For strcmp
+
 #include <sys/stat.h>               // For struct stat
 
 //----------------------------------------------------------------------------

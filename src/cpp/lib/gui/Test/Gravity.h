@@ -24,12 +24,13 @@
 
 #include <memory>                   // For std::shared_ptr, std::unique_ptr
 #include <string>                   // For std::string
-#include <math.h>                   // For sqrt(), ...
+#include <cmath>                    // For sqrt(), ...
+
 #include <xcb/xcb_image.h>          // For xcb_image_t, associated functions
 
-#include <pub/List.h>               // For pub::List
 #include <gui/Types.h>              // For GUI types
 #include <gui/Window.h>             // For gui::Window
+#include <pub/List.h>               // For pub::List
 
 namespace sim {                     // Simulation objects
 //----------------------------------------------------------------------------

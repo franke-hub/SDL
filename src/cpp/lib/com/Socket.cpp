@@ -20,11 +20,13 @@
 //
 //----------------------------------------------------------------------------
 #define FD_SETSIZE 512
-#include <errno.h>
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cerrno>
+#include <climits>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
 #include <unistd.h>
 
 #ifdef _OS_WIN
@@ -37,7 +39,6 @@
 #ifdef _OS_BSD
 #define __need_timeval
 #include <netdb.h>
-#include <time.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/poll.h>

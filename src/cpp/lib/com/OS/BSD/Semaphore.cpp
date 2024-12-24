@@ -19,20 +19,20 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <errno.h>
+#include <cerrno>
+#include <cstring>
+#include <ctime>
+
 #include <malloc.h>
 #include <semaphore.h>
-#include <string.h>
-#include <time.h>
 
 #include <com/Clock.h>
 #include <com/Debug.h>
 #include <com/define.h>
 #include <com/Exception.h>
+#include "com/Semaphore.h"
 #include <com/Thread.h>
 #include <com/Unconditional.h>
-
-#include "com/Semaphore.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

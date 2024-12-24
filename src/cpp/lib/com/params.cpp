@@ -19,14 +19,12 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdlib.h>
+#include <cstdlib>
 
 #include <com/syslib.h>
-
 #include "com/params.h"
 
 extern "C" {
-
 /****************************************************************************/
 /*                                                                          */
 /* Subroutine-                                                              */
@@ -174,5 +172,4 @@ extern long                         /* Parameter value                      */
 
    return(atox(parm));              /* Return integer value                 */
 }
-
 } // extern "C"

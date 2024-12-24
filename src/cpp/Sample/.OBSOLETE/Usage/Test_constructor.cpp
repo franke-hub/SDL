@@ -27,10 +27,9 @@
 //
 //----------------------------------------------------------------------------
 #include <exception>
-#include <string>
-
-#include <assert.h>
-#include <stdio.h>
+#include <string>                   // For std::string
+#include <cassert>                  // For assert
+#include <cstdio>
 
 #include <pub/Debug.h>
 using namespace pub::debugging;

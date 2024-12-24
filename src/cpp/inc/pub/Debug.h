@@ -32,9 +32,9 @@
 #ifndef _LIBPUB_DEBUG_H_INCLUDED
 #define _LIBPUB_DEBUG_H_INCLUDED
 
+#include <string>                   // For std::string
 #include <cstdarg>                  // For va_* functions
 #include <cstdio>                   // For FILE definition
-#include <string>                   // For std::string
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 

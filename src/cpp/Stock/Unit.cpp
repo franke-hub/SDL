@@ -46,9 +46,9 @@
 //       [19] (Unused, feedback)
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Bit.h>
 #include <com/Debug.h>

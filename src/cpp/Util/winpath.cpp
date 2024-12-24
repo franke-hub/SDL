@@ -23,8 +23,8 @@
 //       name parameters.
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 //----------------------------------------------------------------------------
 //
@@ -61,4 +61,3 @@ extern int                          // Return code
 
    return 0;
 }
-

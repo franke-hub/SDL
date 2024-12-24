@@ -19,10 +19,8 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-
-#include <com/define.h>
-#include <com/Debug.h>
+#include <cstdio>
 
 #include "com/Color.h"
-
+#include <com/define.h>
+#include <com/Debug.h>

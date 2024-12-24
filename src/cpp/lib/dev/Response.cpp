@@ -20,20 +20,18 @@
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
-#include <cstring>                  // For memset
 #include <stdexcept>                // For std::out_of_range, ...
 #include <string>                   // For std::string
-
-#include <assert.h>                 // For assert
-#include <stdio.h>                  // For fprintf
-#include <stdint.h>                 // For integer types
+#include <cassert>                  // For assert
+#include <cstdio>                   // For fprintf
+#include <cstdint>                  // For integer types
+#include <cstring>                  // For memset
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/Ioda.h>               // For pub::Ioda
 #include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/utility.h>            // For pub::to_string, ...
-
 #include "pub/http/Client.h"        // For pub::http::Client
 #include "pub/http/Exception.h"     // For pub::http::exceptions
 #include "pub/http/HTTP.h"          // For pub::http::HTTP

@@ -19,14 +19,14 @@
 //       2023/10/19
 //
 //----------------------------------------------------------------------------
-#include <cassert>                  // For assert
-#include <cstdint>                  // For uint32_t, uint16_t, ...
-#include <cstring>                  // For memcpy, memcmp, ...
-#include <cctype>                   // For isprint
 #include <functional>               // For std::hash<std::string>
 #include <new>                      // For std::bad_alloc, placement new
 #include <stdexcept>                // For std::runtime_error
 #include <string>                   // For std::string
+#include <cassert>                  // For assert
+#include <cstdint>                  // For uint32_t, uint16_t, ...
+#include <cstring>                  // For memcpy, memcmp, ...
+#include <cctype>                   // For isprint
 
 #include <pub/Must.h>               // For pub::must::strdup
 #include <pub/utility.h>            // For pub::utility::dump

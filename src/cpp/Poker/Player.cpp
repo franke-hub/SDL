@@ -19,10 +19,10 @@
 //       2017/01/01
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cctype>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
 #undef minor                        // Garbage clean up
 
 #include "Define.h"

@@ -19,18 +19,17 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/define.h>
-#include <com/params.h>
-#include <com/syslib.h>
-
 #include <com/Debug.h>
 #include <com/Interval.h>
+#include <com/params.h>
 #include <com/Random.h>
+#include <com/syslib.h>
 
 #include "Test_SMS.h"
 

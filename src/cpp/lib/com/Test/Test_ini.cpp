@@ -19,9 +19,9 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstddef>
+#include <cstdio>
+#include <cstdlib>
 
 #include "com/ParseINI.h"
 

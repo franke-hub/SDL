@@ -19,15 +19,15 @@
 //       2024/08/23
 //
 //----------------------------------------------------------------------------
+#include <cctype>                   // For isprint, toupper
+#include <cerrno>                   // For errno
+#include <climits>                  // For INT_MAX, INT_MIN
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
 #include <exception>                // For std::exception
 #include <string>                   // For std::string
 
-#include <ctype.h>                  // For isprint, toupper
-#include <errno.h>                  // For errno
 #include <getopt.h>                 // For getopt_long
-#include <limits.h>                 // For INT_MAX, INT_MIN
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/types.h>              // For type definitions
 

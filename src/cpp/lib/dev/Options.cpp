@@ -22,19 +22,18 @@
 #include <algorithm>                // For std::swap
 #include <memory>                   // For std::shared_ptr
 #include <new>                      // For std::bad_alloc
-#include <cstring>                  // For memset
 #include <stdexcept>                // For std::runtime_error
 #include <string>                   // For std::string
+#include <cassert>                  // For assert
+#include <cerrno>                   // For errno
+#include <cstdio>                   // For fprintf
+#include <cstdint>                  // For integer types
+#include <cstring>                  // For memset
 
-#include <assert.h>                 // For assert()
-#include <errno.h>                  // For errno
-#include <stdio.h>                  // For fprintf()
-#include <stdint.h>                 // For integer types
-#include <arpa/inet.h>              // For inet_ntop()
+#include <arpa/inet.h>              // For inet_ntop
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
-
 #include "pub/http/Options.h"       // For pub::http::Options, implemented
 
 using namespace _LIBPUB_NAMESPACE;

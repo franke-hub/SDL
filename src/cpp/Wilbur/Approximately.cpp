@@ -19,7 +19,8 @@
 //       2014/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdlib.h>                 // For rand
+#include <cstdlib>                  // For rand
+
 #include <com/Debug.h>              // For debugging
 #include <com/Random.h>             // (Alternate implemenatation)
 

@@ -18,14 +18,18 @@
 // Last change date-
 //       2024/12/20
 //
+// Implementation notes-
+//       While utility.h includes this file, it may be included separately.
+//
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_UTILITY_I_INCLUDED
 #define _LIBPUB_UTILITY_I_INCLUDED
 
 #include <string>                   // For std::string
+#include <cstdint>                  // For intptr_t
+#include <cstring>                  // For strlen, strcpy, memcpy, ...
+
 #include <endian.h>                 // For be64toh
-#include <stdint.h>                 // For intptr_t
-#include <string.h>                 // For strlen, strcpy, memcpy, ...
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
@@ -49,8 +53,18 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //       Convert C-string to void*
 //
 // Implementation notes-
-//       Except for the more complex c2v conversion, these routines are simple
-//       shortcuts for static cast operations.
+//       The subroutines are simple cast operations. Their names are as short
+//       as possible while still containing still containing some meaning.
+//       They have been found useful in Trace::trace invocations, since
+//       these calls have all void* or all intptr_t parameters but not all
+//       data match these types. The b2c and s2c conversions are useful in
+//       printf/debugf invocations, mainly to reduce typing.
+//
+//       Given bool b and string s, a printf statement could be:
+//         printf("%s(%s)\n", s.c_str(), b ? "true" : "false"); // or
+//         printf("%s(%s)\n", s2c(s), b2c(b)); // (With a lot less typing)
+//         // (Of course, you'll need to import pub or pub::s2c and pub::b2c
+//         // into your namespace so it's only useful if you use them a lot.)
 //
 //----------------------------------------------------------------------------
 static inline const char*           // "true" or "false"

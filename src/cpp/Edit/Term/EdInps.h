@@ -28,6 +28,7 @@
 #define USE_CURSESW false           // Use cursesw.h instead of ncurses.h
 
 #include <string>                   // For std::string
+
 #include <sys/types.h>              // For system types
 #if USE_CURSESW                     // Linux formatting fix attempt (FAILS)
 #include <cursesw.h>                // For cursesw library

@@ -19,15 +19,14 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
-#include <com/Debug.h>
-#include <com/Verify.h>
-
-#include "com/Media.h"
 #include "com/Buffer.h"
+#include <com/Debug.h>
+#include "com/Media.h"
+#include <com/Verify.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

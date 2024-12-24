@@ -26,6 +26,7 @@
 #define PROPERTIES_H_INCLUDED
 
 #include <map>
+
 #include <com/istring.h>
 
 #ifndef INTERFACE_H_INCLUDED

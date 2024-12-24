@@ -22,7 +22,7 @@
 #ifndef SOFTWARE_H_INCLUDED
 #define SOFTWARE_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
 
 //----------------------------------------------------------------------------
 //

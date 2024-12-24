@@ -25,16 +25,14 @@
 //----------------------------------------------------------------------------
 #include <map>
 #include <new>
-#include <string>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <string>                   // For std::string
+#include <cstdio>                   // For printf
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Barrier.h>
 
 #include "Common.h"
-
 #include "NetClient.h"
 
 using std::map;

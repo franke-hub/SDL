@@ -38,12 +38,12 @@
 //       stdout: The vistor log list.
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>                  // For isdigit()
-#include <stdarg.h>                 // For error()
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
-#include <time.h>                   // For localtime
+#include <cctype>                   // For isdigit()
+#include <cstdarg>                  // For error()
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
+#include <cstring>                  // For strcmp
+#include <ctime>                    // For localtime
 
 #include <com/Calendar.h>
 #include <com/Debug.h>

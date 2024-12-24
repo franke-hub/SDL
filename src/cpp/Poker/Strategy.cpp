@@ -19,7 +19,7 @@
 //       2018/01/01
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
+#include <cassert>
 
 #include "Define.h"
 #include "Player.h"

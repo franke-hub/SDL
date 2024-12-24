@@ -21,7 +21,7 @@
 //       10000 Timing: 7.15 (#3) Good for large arrays.
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
+#include <cstdio>
 
 #include "HeapSorter.h"
 

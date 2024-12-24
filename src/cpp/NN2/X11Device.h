@@ -23,18 +23,17 @@
 #define X11DEVICE_H_INCLUDED
 
 #include <list>
-#include <string>
+#include <string>                   // For std::string
+#include <cassert>                  // For assert
+#include <cerrno>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
-#include <assert.h>
-#include <errno.h>
 #include <fcntl.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 #include <unistd.h>
-
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xos.h>

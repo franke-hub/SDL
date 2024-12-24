@@ -19,9 +19,10 @@
 //       2024/12/20
 //
 //----------------------------------------------------------------------------
+#include <cstdio>                   // For printf, fopen, fclose, ...
+#include <cstdlib>                  // For various
+
 #include <endian.h>                 // For htobe16
-#include <stdio.h>                  // For printf, fopen, fclose, ...
-#include <stdlib.h>                 // For various
 #include <unistd.h>                 // For unlink
 #include <sys/stat.h>               // For stat
 

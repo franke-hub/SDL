@@ -20,16 +20,16 @@
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
+#include <cctype>                   // For isprint()
+#include <cerrno>                   // For errno
+#include <climits>                  // For INT_MAX, INT_MIN
+#include <cstdarg>                  // For va_list
+#include <cstdio>                   // For fprintf, vfprintf
+#include <cstdlib>                  // For various
+#include <cstring>                  // For strerror
 
-#include <ctype.h>                  // For isprint()
-#include <errno.h>                  // For errno
 #include <fcntl.h>                  // For open, O_*, ...
 #include <getopt.h>                 // For getopt_long()
-#include <limits.h>                 // For INT_MAX, INT_MIN
-#include <stdarg.h>                 // For va_list
-#include <stdio.h>                  // For fprintf, vfprintf
-#include <stdlib.h>                 // For various
-#include <string.h>                 // For strerror
 #include <unistd.h>                 // For close, ...
 #include <sys/mman.h>               // For mmap, ...
 

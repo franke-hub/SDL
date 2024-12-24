@@ -19,11 +19,11 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cctype>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/define.h>
 #include <com/Debug.h>

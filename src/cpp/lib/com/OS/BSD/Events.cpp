@@ -19,19 +19,19 @@
 //       2012/01/01
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <errno.h>
+#include <cassert>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <semaphore.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include <com/Exception.h>
 #include <com/define.h>
 #include <com/Debug.h>
-#include <com/Unconditional.h>
-
 #include "com/Events.h"
+#include <com/Unconditional.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

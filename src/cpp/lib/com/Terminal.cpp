@@ -19,13 +19,12 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 
 #include <com/Debug.h>
 #include <com/syslib.h>
-
 #include "com/Terminal.h"
 
 //----------------------------------------------------------------------------
@@ -61,4 +60,3 @@
    Terminal::~Terminal( void )      // Constructor
 {
 }
-

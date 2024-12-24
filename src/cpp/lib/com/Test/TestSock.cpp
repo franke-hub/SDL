@@ -24,22 +24,22 @@
 // -or-  TestSock send_delay hostname:hostport (on different command line)
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 
 #include <com/define.h>
 #include <com/Debug.h>
 #include <com/istring.h>
 #include <com/Logger.h>
+#include "com/Media.h"
 #include <com/Network.h>
+#include "com/Socket.h"
 #include <com/Software.h>
 #include <com/Thread.h>
 #include <com/Verify.h>
-
-#include "com/Media.h"
-#include "com/Socket.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

@@ -22,7 +22,7 @@
 #ifndef SIGNAL_H_INCLUDED
 #define SIGNAL_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
 
 #ifndef LIST_H_INCLUDED
 #include "List.h"

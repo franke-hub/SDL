@@ -22,18 +22,17 @@
 //       Stress {iterations {threads {things}}}
 //
 //----------------------------------------------------------------------------
-#include <array>
-#include <chrono>
-#include <condition_variable>
-#include <iostream>
-#include <mutex>
-#include <random>
-#include <string>
+#include <array>                    // For std::array
+#include <chrono>                   // For std::chrono
+#include <condition_variable>       // For std::condition_variable
+#include <iostream>                 // For std::stream types
+#include <mutex>                    // For std::mutex
+#include <random>                   // For std::random types
+#include <string>                   // For std::string
+#include <cstdio>                   // For fprintf, sprintf, ...
+#include <cstdlib>                  // For size_t, ...
+#include <cstring>                  // For strcmp, ...
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 #include <com/Debug.h>

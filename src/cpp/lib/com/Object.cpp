@@ -19,15 +19,14 @@
 //       2023/05/12
 //
 //----------------------------------------------------------------------------
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdint.h>                  // For uintptr_t
-#include <stdlib.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdint>                  // For uintptr_t
+#include <cstdlib>
 
 #include <com/Atomic.h>
 #include <com/AutoPointer.h>
-#include <com/Debug.h>               // For throwf()
-
+#include <com/Debug.h>              // For throwf()
 #include "com/Object.h"
 
 #ifdef _OS_WIN

@@ -26,7 +26,7 @@
 #define _LIBPUB_HTTP_DATA_H_INCLUDED
 
 #include <string>                   // For std::string
-#include <stdint.h>                 // For uint8_t
+#include <cstdint>                  // For uint8_t
 
 #include "pub/Buffer.h"             // For pub::Buffer
 #include <pub/List.h>               // For pub::List

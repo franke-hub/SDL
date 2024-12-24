@@ -19,9 +19,10 @@
 //       2021/01/28
 //
 //----------------------------------------------------------------------------
-#include <setjmp.h>                 // For jpeg library interface
-#include <stdio.h>                  // For fprintf
-#include <stdlib.h>                 // For standard library (free, exit)
+#include <csetjmp>                  // For jpeg library interface
+#include <cstdio>                   // For fprintf
+#include <cstdlib>                  // For standard library (free, exit)
+
 #include <sys/types.h>              // (Needed by jpeglib.h)
 #include <jpeglib.h>                // For jpeg library
 

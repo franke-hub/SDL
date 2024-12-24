@@ -19,7 +19,7 @@
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::runtime exception
-#include <string.h>                 // For strcmp
+#include <cstring>                  // For strcmp
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception

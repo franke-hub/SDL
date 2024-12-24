@@ -19,9 +19,11 @@
 //       2013/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
+
 #include <unistd.h>
+
 #include <com/Debug.h>
 #include <com/Random.h>
 

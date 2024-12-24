@@ -23,7 +23,7 @@
 #define WINSIM_H_INCLUDED
 #ifdef _OS_WIN
 
-#include <stdio.h>                  // for FILENAME_MAX
+#include <cstdio>                   // for FILENAME_MAX
 
 //----------------------------------------------------------------------------
 //

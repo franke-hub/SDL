@@ -19,13 +19,12 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-// #include "../../../../src/cpp/lib/com/Binary.cpp"
-#include <inttypes.h>
-#include <iostream>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <iostream>                 // For std::stream objects
+#include <cinttypes>                // For integer types
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Debug.h>
 #include <com/Interval.h>

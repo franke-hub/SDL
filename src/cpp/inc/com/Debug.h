@@ -31,8 +31,8 @@
 #ifndef DEBUG_H_INCLUDED
 #define DEBUG_H_INCLUDED
 
-#include <stdarg.h>
-#include <stdio.h>                  // For FILE definition
+#include <cstdarg>
+#include <cstdio>                   // For FILE definition
 
 #ifndef DEFINE_H_INCLUDED
 #include "define.h"                 // For NULL

@@ -25,9 +25,9 @@
 #ifndef OBJ_EVENT_H_INCLUDED
 #define OBJ_EVENT_H_INCLUDED
 
-#include <condition_variable>
-#include <mutex>
-#include <stdint.h>
+#include <condition_variable>       // For std::condition_variable
+#include <mutex>                    // For std::mutex
+#include <cstdint>                  // For uint32_t, ...
 
 #include "define.h"                 // For _OBJ_NAMESPACE (and more)
 

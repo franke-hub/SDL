@@ -19,21 +19,20 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <new>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <new>                      // For std:: (In-place operator new)
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Barrier.h>
 #include <com/Debug.h>
 #include <com/Exception.h>
+#include <com/Hardware.h>
+#include "com/Service.h"
 #include <com/SharedMem.h>
+#include <com/Software.h>
 #include <com/sysmac.h>
 #include <com/Trace.h>
-#include <com/Software.h>
-#include <com/Hardware.h>
-
-#include "com/Service.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

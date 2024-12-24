@@ -18,11 +18,14 @@
 // Last change date-
 //       2022/09/02
 //
-// Usage notes, requires:
-//       #include <pub/Exception.h> // For pub::Exception, std::exception
-//       #include <stdio>           // For fprintf
+// Implementation notes-
+//       May be redefined and included multiple times.
 //
 //----------------------------------------------------------------------------
+#include <cstdio>                   // For fprintf
+
+#include <pub/Exception.h>          // For pub::Exception, std::exception
+
 #undef  TRY_CATCH                   // (Allow redefine)
 #define TRY_CATCH(x) try { x        \
    } catch(pub::Exception& X) {     \

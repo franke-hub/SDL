@@ -21,16 +21,16 @@
 //----------------------------------------------------------------------------
 #include <exception>                // For std::exception
 #include <string>                   // For std::string
+#include <cctype>                   // For isprint, toupper
+#include <cerrno>                   // For errno
+#include <climits>                  // For INT_MAX, INT_MIN
+#include <csemaphore>               // For sem_open, sem_close
+#include <cstdarg>                  // For va_list
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
 
-#include <ctype.h>                  // For isprint, toupper
-#include <errno.h>                  // For errno
 #include <fcntl.h>                  // For O_* constants
 #include <getopt.h>                 // For getopt_long
-#include <limits.h>                 // For INT_MAX, INT_MIN
-#include <semaphore.h>              // For sem_open, sem_close
-#include <stdarg.h>                 // For va_list
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/mman.h>               // For mmap, shm_open, ...
 #include <sys/stat.h>               // For S_* constants

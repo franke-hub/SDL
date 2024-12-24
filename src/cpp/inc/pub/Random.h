@@ -35,7 +35,7 @@
 #include <atomic>                   // For std::atomic<uint64_t>
 #include <cstdint>                  // For integer types, UINT32_MAX
 
-#include "config.h"                 // For _LIBPUB_ macros
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------

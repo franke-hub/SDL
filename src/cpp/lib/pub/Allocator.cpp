@@ -21,7 +21,7 @@
 //----------------------------------------------------------------------------
 #include <exception>                // For std::bad_alloc, ...
 #include <mutex>                    // For std::lock_guard
-#include <stdlib.h>                 // For malloc, free
+#include <cstdlib>                  // For malloc, free
 
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include "pub/Allocator.h"          // For pub::Allocator, implemented

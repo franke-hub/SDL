@@ -27,7 +27,7 @@
 #ifndef TRACE_H_INCLUDED
 #define TRACE_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
 
 //----------------------------------------------------------------------------
 //

@@ -32,7 +32,27 @@ is maintained in git, changes are always recorded.
 
 ----
 
-#### 12/20/2024 maint
+#### 12/24/2024 maint/trunk
+
+Lots of physical changes but no logical changes.
+
+All "include <assert.h>" statements changed to "include <cassert>".
+All "include <ctype.h>" statements changed to "include <cctype>".
+All "include <errno.h>" statements changed to "include <cerror>".
+All "include <limits.h>" statements changed to "include <climits>".
+and so on, in *all* files for all applicable include files.
+
+The "~/obj/cpp/lib/pub/Test/regression" and "~/obj/cpp/lib/dev/Test/regression"
+tests were successfully run, all cpp source files were compiled (including
+files that aren't distributed,) and all object files were verified that they
+ran, but not that they actually did anything useful since input files were
+missing.
+
+(We should, but don't, have regression scripts in all the object files.)
+
+----
+
+#### 12/20/2024 maint/trunk
 
 The Brian termination problem is Cygwin-only. It does not occur on Linux.
 The diagnostics associated with this have been removed from the code and,

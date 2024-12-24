@@ -19,19 +19,18 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <inttypes.h>
-#include <math.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cinttypes>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Debug.h>
-#include <com/Interval.h>
-#include <com/Verify.h>
-
 #include "com/Hardware.h"
+#include <com/Interval.h>
 #include "com/Random.h"
+#include <com/Verify.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

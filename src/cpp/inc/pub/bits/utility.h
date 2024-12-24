@@ -13,7 +13,7 @@
 //       bits/utility.h
 //
 // Purpose-
-//       Internal use utilities, included separately
+//       Internal use utilities, included separately by ../utility.h
 //
 // Last change date-
 //       2024/12/19
@@ -21,9 +21,6 @@
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_BITS_UTILITY_H_INCLUDED
 #define _LIBPUB_BITS_UTILITY_H_INCLUDED
-
-#include <errno.h>                  // For errno
-#include <pub/Trace.h>              // For pub::Trace
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 namespace utility {

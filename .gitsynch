@@ -15,7 +15,7 @@
 ##       Time/date/version marker for maint branch merge operation.
 ##
 ## Last change date-
-##       2024/12/20 23:59
+##       2024/12/24 18:00
 ##
 ## Implementation note-
 ##       DO NOT UPDATE THE CHANGE DATE WITHOUT RUNNING REGRESSION TESTS!

@@ -25,7 +25,8 @@
 #include <atomic>                   // For std::atomic
 #include <functional>               // For std::less<>
 
-#include "bits/List.h"              // For List template definitions, ...
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
+#include "bits/List.h"              // For List template implementations, ...
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------

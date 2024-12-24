@@ -23,7 +23,7 @@
 #define _PUB_HTTP_STATUS_H_INCLUDED
 
 #include <string>                   // For std::string
-#include <stdint.h>                 // For size_t
+#include <cstdlib>                  // For size_t
 
 namespace pub::http {
 //----------------------------------------------------------------------------

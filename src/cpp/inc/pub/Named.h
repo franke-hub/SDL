@@ -23,7 +23,8 @@
 #define _LIBPUB_NAMED_H_INCLUDED
 
 #include <string>                   // For std::string
-#include <pub/Object.h>             // For pub::Object.h
+
+#include <pub/Object.h>             // For pub::Object
 
 _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //----------------------------------------------------------------------------

@@ -19,11 +19,11 @@
 //       2012/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
+#include <cstdio>
+
 #include <com/Debug.h>
 
 #include "Common.h"
-
 #include "HttpServer.h"
 #include "HttpServerPlugin.h"
 

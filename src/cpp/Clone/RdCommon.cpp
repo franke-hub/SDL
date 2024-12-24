@@ -25,15 +25,16 @@
 //       LOG_FILE=name Log file name (rdist.log)
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <cassert>
+#include <cctype>
+#include <cerrno>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
 #include <sys/stat.h>               // For S_IREAD ...
 #include <sys/types.h>
 

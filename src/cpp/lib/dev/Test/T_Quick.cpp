@@ -20,15 +20,14 @@
 //
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
-#include <stdint.h>                 // For standard integer types
-#include <string.h>                 // For std::string, size_t
+#include <string>                   // For std::string, size_t
+#include <cstdint>                  // For standard integer types
 
 #include <pub/TEST.H>               // For VERIFY macros
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
 #include <pub/utility.h>            // For pub::utility::dump/visify
 #include <pub/Wrapper.h>            // For pub::Wrapper
-
 #include "pub/http/Codec.h"         // For pub::http::Codec, tested
 
 #define PUB _LIBPUB_NAMESPACE

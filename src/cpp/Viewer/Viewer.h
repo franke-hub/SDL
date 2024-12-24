@@ -24,6 +24,7 @@
 
 #include <xcb/xproto.h>              // For xcb prototypes, etc.
 #include <xcb/xcb_image.h>           // For struct xcb_image
+
 #include <gui/Window.h>              // Viewer base class
 
 #include "JpegDecoder.h"             // Jpeg decoder

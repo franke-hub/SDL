@@ -25,4 +25,3 @@
 // External data areas
 //----------------------------------------------------------------------------
 // Command*               Command::_command= NULL; // The built-in Command instance
-

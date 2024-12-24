@@ -22,10 +22,11 @@
 #ifndef TYPES_H_INCLUDED
 #define TYPES_H_INCLUDED
 
-#include <cstdint>                  // For integer types
 #include <memory>                   // For std::shared_ptr
 #include <new>                      // For std::bad_alloc
 #include <string>                   // For std::string
+#include <cstdint>                  // For integer types
+
 #include <sys/types.h>              // For standard types
 
 #include <pub/Debug.h>              // For namespace pub::debugging

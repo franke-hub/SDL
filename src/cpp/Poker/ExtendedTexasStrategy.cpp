@@ -19,9 +19,9 @@
 //       2017/01/01
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
+#include <cassert>
+#include <cctype>
+#include <cerrno>
 
 #include "Define.h"
 #include "Player.h"

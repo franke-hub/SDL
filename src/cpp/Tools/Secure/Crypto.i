@@ -25,17 +25,17 @@
 //       Argv[3]  = File to be used for key
 //
 //----------------------------------------------------------------------------
-#include "ocrw.h"
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 #include <unistd.h>
 #include <sys/stat.h>
 
 #include <com/Debug.h>
 #include <com/define.h>             // TRUE, FALSE, NULL
 
+#include "ocrw.h"
 #include "Crypto.h"
 #include "Stack.h"
 

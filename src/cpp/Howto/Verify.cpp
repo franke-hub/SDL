@@ -25,12 +25,13 @@
 //       test_0001   Verifies automatic constructor/destructor invocations.
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>                  // For isprint()
+#include <cctype>                   // For isprint()
+#include <cstdarg>                  // For va_list
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
+#include <cstring>                  // For strcmp
+
 #include <getopt.h>                 // For getopt()
-#include <stdarg.h>                 // For va_list
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
-#include <string.h>                 // For strcmp
 
 #include <pub/Debug.h>              // For debugging
 #include <pub/Exception.h>          // For Exception

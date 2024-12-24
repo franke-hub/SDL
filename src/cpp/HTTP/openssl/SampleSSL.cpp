@@ -21,14 +21,14 @@
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
 #include <mutex>                    // For std::lock_guard, ...
+#include <cerrno>                   // For errno
+#include <cstring>                  // For memset, ...
 
-#include <errno.h>                  // For errno
 #include <fcntl.h>                  // For open, O_*, ...
 #include <getopt.h>                 // For getopt()
-#include <string.h>                 // For memset, ...
+#include <unistd.h>                 // For close, ...
 #include <openssl/err.h>            // For ERR_error_string
 #include <openssl/ssl.h>            // For openssl SSL methods
-#include <unistd.h>                 // For close, ...
 #include <sys/mman.h>               // For mmap, ...
 #include <sys/time.h>               // For timeval
 
@@ -41,9 +41,10 @@
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Worker.h>             // For pub::Worker, pub::WorkerPool
 
-using namespace _PUB_NAMESPACE;     // For Socket, ...
-using namespace _PUB_NAMESPACE::debugging; // Debugging functions
-using _PUB_NAMESPACE::utility::visify;
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB;                // For Socket, ...
+using namespace PUB::debugging;     // Debugging functions
+using PUB::utility::visify;
 using std::atomic;
 using std::string;
 

@@ -19,26 +19,27 @@
 //       2021/07/24
 //
 //----------------------------------------------------------------------------
-#include <chrono>
-#include <iostream>
-#include <mutex>
-#include <string>
+#include <chrono>                   // For std::chrono
+#include <iostream>                 // For std::stream types
+#include <mutex>                    // For std::mutex
+#include <string>                   // For std::string
+#include <cassert>                  // For assert
+#include <cstdio>                   // For
+#include <cstdlib>                  // For size_t, ...
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
-#include "com/Debug.h"
+#include "com/Debug.h"              // For debugf, ...
 #include "obj/Object.h"
 #include "obj/Array.h"
 #include "obj/Latch.h"
 #include "obj/List.h"
 #include "obj/String.h"
 #include "obj/Thread.h"
-using namespace _OBJ_NAMESPACE;
 
 #include "Thing.h"
+
+using namespace _OBJ_NAMESPACE;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -542,4 +543,3 @@ extern int                          // Return code
 
    return 0;
 }
-

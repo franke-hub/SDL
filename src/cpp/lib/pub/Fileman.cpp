@@ -22,16 +22,16 @@
 //       TODO: Deprecate, rename to Data.h; rename line=>get_list; etc.
 //
 //----------------------------------------------------------------------------
-#include <assert.h>                 // For assert
+#include <cassert>                  // For assert
+#include <cerrno>                   // For errno
+#include <climits>                  // For PATH_MAX, SYMLINK_MAX, SYMLOOP_MAX
+#include <cstdarg>                  // For va_* functions
+#include <cstdio>                   // For fprintf, ...
+#include <cstring>                  // For strcpy, ...
+
 #include <dirent.h>                 // For struct dirent
-#include <errno.h>                  // For errno
-#include <limits.h>                 // For PATH_MAX, SYMLINK_MAX, SYMLOOP_MAX
-#include <stdarg.h>                 // For va_* functions
-#include <stdio.h>                  // For fprintf, ...
-#include <string.h>                 // For strcpy, ...
 #include <unistd.h>                 // For getcwd, ...
 #include <sys/stat.h>               // For struct stat, lstat
-#include <sys/types.h>              // For system types
 
 #include <pub/Debug.h>              // For pub::debugging
 #include "pub/Fileman.h"            // For pub::fileman, implemented

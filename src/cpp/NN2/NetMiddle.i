@@ -19,7 +19,7 @@
 //       2018/01/01
 //
 // Implementation notes-
-//       For 64-bit GCC compile only (Does not use inttypes.h macros.)
+//       For 64-bit GCC compile only (Does not use cinttypes macros.)
 //
 //       The current implementation only forwards triggered FanoutNeurons to
 //       the next Layer. Each FanoutNeuron Layer therefore delays one cycle.

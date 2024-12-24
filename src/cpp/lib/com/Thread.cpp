@@ -19,9 +19,18 @@
 //       2023/05/12
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <errno.h>
-#include <stdio.h>
+#ifdef _OS_BSD
+#include <pthread.h>                // Must be first
+#include <sched.h>
+#endif
+
+#ifdef _OS_WIN
+#include <windows.h>
+#endif
+
+#include <cassert>
+#include <cerrno>
+#include <cstdio>
 
 #include <com/Atomic.h>
 #include <com/Barrier.h>
@@ -29,17 +38,7 @@
 #include <com/Debug.h>
 #include <com/List.h>
 #include <com/Mutex.h>
-
 #include "com/Thread.h"
-
-#ifdef _OS_WIN
-#include <windows.h>
-#endif
-
-#ifdef _OS_BSD
-#include <pthread.h>                // Must be first
-#include <sched.h>
-#endif
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

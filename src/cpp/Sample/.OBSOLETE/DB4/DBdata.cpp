@@ -19,19 +19,20 @@
 //       2019/04/08
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <db_cxx.h>
-
 #include <exception>
-#include <iostream>
-using namespace std;
+#include <iostream>                 // For std::stream objects
+#include <cstdio>                   // For printf
+#include <cstdlib>
+#include <cstring>
+
+#include <db_cxx.h>
 
 #include <com/Debug.h>
 #include <com/FileData.h>
 
 #include "DBdata.h"
+
+using namespace std;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

@@ -186,6 +186,7 @@ static const Command_desc  command_desc[]= // The Command descriptor list
 
 // Spelling errors/typos
 ,  {nullptr,         "",          nullptr} // Command aliases follow
+,  {command_file,    "FO;E",      nullptr} // (FILE)
 ,  {command_insert,  "INCLUDE",   nullptr} // (INSERT)
 ,  {command_margins, "MARGIN",    nullptr} // (MARGINS)
 ,  {command_save,    "SAFE",      nullptr} // (SAVE)

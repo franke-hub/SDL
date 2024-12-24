@@ -19,8 +19,8 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include <com/Color.h>
 #include <com/Debug.h>

@@ -19,8 +19,9 @@
 //       2015/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
+
 #include <sys/stat.h>
 
 #include <com/istring.h>

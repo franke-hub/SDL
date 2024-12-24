@@ -36,9 +36,9 @@
 #ifndef OBJ_BUILT_IN_H_INCLUDED
 #define OBJ_BUILT_IN_H_INCLUDED
 
-#include <ostream>                  // For global operators
-#include <stdarg.h>                 // For to_string
-#include <stdio.h>                  // For vsnprintf
+#include <ostream>                  // For global std::stream operators
+#include <cstdarg>                  // For va_ functions/macros
+#include <cstdio>                   // For vsnprintf
 
 #include "Object.h"
 #include "Exception.h"

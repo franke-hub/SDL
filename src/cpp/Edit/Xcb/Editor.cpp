@@ -22,10 +22,11 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE                 // For strcasestr
 #endif
-#include <assert.h>                 // For assert
-#include <stdio.h>                  // For printf
-#include <stdlib.h>                 // For various
-#include <string.h>                 // For string functions
+#include <cassert>                  // For assert
+#include <cstdio>                   // For printf
+#include <cstdlib>                  // For various
+#include <cstring>                  // For string functions
+
 #include <unistd.h>                 // For close, ftruncate
 #include <sys/stat.h>               // For stat
 

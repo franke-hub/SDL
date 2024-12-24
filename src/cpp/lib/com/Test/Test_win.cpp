@@ -19,9 +19,10 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>
-#include <stdio.h>
-#include <string.h>
+#include <cctype>
+#include <cstdio>
+#include <cstring>
+
 #include <windows.h>
 
 #include <com/Debug.h>

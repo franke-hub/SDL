@@ -23,18 +23,18 @@
 //       Note: Windows: dir \\computer_name always fails.
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 #include <sys/stat.h>
 
 #include <com/define.h>
 #include <com/istring.h>
 #include <com/Debug.h>
-#include <com/Unconditional.h>
-
 #include "com/FileName.h"
+#include <com/Unconditional.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -56,7 +56,7 @@
 //----------------------------------------------------------------------------
 // _OS_WIN
 #if   defined(_OS_WIN)
-#include <ctype.h>                  // toupper
+#include <cctype>                   // toupper
 #include <direct.h>                 // _getdcwd, _getdrive
 
 const char*            PATH_SEPARATOR= "\\"; // _OS_WIN Path separator

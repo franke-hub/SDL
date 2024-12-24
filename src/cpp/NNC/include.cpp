@@ -19,8 +19,8 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdio>
+#include <cstdlib>
 
 #include "NC_cfg.h"
 #include "NC_com.h"

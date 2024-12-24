@@ -22,10 +22,10 @@
 #ifndef _LIBPUB_MUST_H_INCLUDED
 #define _LIBPUB_MUST_H_INCLUDED
 
-#include <new>                      // For bad_alloc
-#include <stdio.h>                  // For fprintf()
-#include <stdlib.h>                 // For ::free, ::malloc
-#include <string.h>                 // For ::strdup
+#include <new>                      // For std::bad_alloc
+#include <cstdio>                   // For fprintf()
+#include <cstdlib>                  // For free, malloc
+#include <cstring>                  // For strdup
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 

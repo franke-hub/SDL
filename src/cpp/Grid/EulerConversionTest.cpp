@@ -20,9 +20,10 @@
 //
 //----------------------------------------------------------------------------
 #define GLM_ENABLE_EXPERIMENTAL     // Wasn't needed before but needed now
-#include <glm/gtx/quaternion.hpp>
 #include <iostream>
-#include <math.h>
+#include <cmath>
+
+#include <glm/gtx/quaternion.hpp>
 
 #define PI M_PI
 #define RADTODEG(x) ( (x) * 180.0 / PI )

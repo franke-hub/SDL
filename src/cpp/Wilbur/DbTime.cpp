@@ -22,10 +22,10 @@
 //       TODO: NOT CODED YET. (All methods scaffolded)
 //
 //----------------------------------------------------------------------------
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Barrier.h>
 #include <com/Debug.h>

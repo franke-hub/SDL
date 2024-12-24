@@ -19,10 +19,10 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdexcept>
+#include <stdexcept>                // For std::runtime_error, ...
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Debug.h>
 #include <com/Unconditional.h>

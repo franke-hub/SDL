@@ -22,10 +22,11 @@
 #ifndef STD_TYPES_H_INCLUDED
 #define STD_TYPES_H_INCLUDED
 
-#include <cstdint>                  // For integer types
 #include <memory>                   // For std::make_shared, std::shared_ptr
 #include <new>                      // For std::bad_alloc
 #include <string>                   // For std::string
+#include <cstdint>                  // For integer types
+
 #include <sys/types.h>              // For standard types
 
 using std::make_shared;

@@ -19,10 +19,11 @@
 //       2018/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 #include <sys/types.h>
 

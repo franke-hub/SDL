@@ -19,19 +19,19 @@
 //       2014/01/01
 //
 //----------------------------------------------------------------------------
+#include <cstdint>
+
 #ifdef _OS_WIN
   #include <windows.h>
   #include <sys/timeb.h>
 #else
-  #include <time.h>
+  #include <ctime>
   #include <sys/timeb.h>
 #endif
-#include <stdint.h>
-
-#include <com/Debug.h>
-#include <com/Julian.h>
 
 #include "com/Clock.h"
+#include <com/Debug.h>
+#include <com/Julian.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

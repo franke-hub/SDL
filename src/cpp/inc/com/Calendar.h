@@ -42,7 +42,7 @@
 #ifndef CALENDAR_H_INCLUDED
 #define CALENDAR_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
 
 //----------------------------------------------------------------------------
 // Forward references

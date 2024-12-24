@@ -23,7 +23,7 @@
 //
 //----------------------------------------------------------------------------
 #include <memory>                   // For std::shared_ptr
-#include <stdio.h>                  // For perror
+#include <cstdio>                   // For perror
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Socket.h>             // For pub::Socket

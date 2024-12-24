@@ -25,7 +25,6 @@
 #include "DateParser.h"
 #include "Diagnostic.h"
 #include "Global.h"
-
 #include "HttpResponse.h"
 
 //----------------------------------------------------------------------------

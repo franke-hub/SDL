@@ -19,8 +19,9 @@
 //       2024/08/30
 //
 //----------------------------------------------------------------------------
+#include <cstdio>                   // For sprintf
 #include <string>                   // For std::string
-#include <stdio.h>                  // For sprintf
+
 #include <sys/types.h>              // For system types
 
 #include <pub/Debug.h>              // For namespace pub::debugging

@@ -19,13 +19,15 @@
 //       2007/01/01                 Version 2, Release 1
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdint.h>                 // For int32_t
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdint>                  // For int32_t
+#include <cstdlib>
+
 #include <sys/stat.h>
 
 #include <com/nativeio.h>
 #include <com/sysmac.h>             // For min()
+
 #include "Crypto.h"
 
 //----------------------------------------------------------------------------

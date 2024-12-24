@@ -51,7 +51,7 @@
 #elif false
   #define IT "pub/http/Protocol.h"
 #else
-  #define IT "cstdio"               // Include something
+  #define IT <cstdio>               // Include something
 #endif
 
 //----------------------------------------------------------------------------

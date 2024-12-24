@@ -21,7 +21,7 @@
 //       10000 Timing: 5.21 (#1) A stack intensive, but quick sorter.
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
+#include <cstdio>
 
 #include "QuickSorter.h"
 

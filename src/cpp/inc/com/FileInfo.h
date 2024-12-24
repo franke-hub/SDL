@@ -27,7 +27,7 @@
 #ifndef FILEINFO_H_INCLUDED
 #define FILEINFO_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
 
 #ifndef CLOCK_H_INCLUDED
 #include "Clock.h"

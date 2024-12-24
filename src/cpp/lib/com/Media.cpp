@@ -19,18 +19,17 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/define.h>
 #include <com/Debug.h>
 #include <com/istring.h>
+#include "com/Media.h"
 #include <com/Socket.h>
 #include <com/Software.h>
-
-#include "com/Media.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

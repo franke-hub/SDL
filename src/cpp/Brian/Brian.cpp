@@ -19,10 +19,11 @@
 //       2024/12/20
 //
 //----------------------------------------------------------------------------
+#include <cstdlib>                  // For getenv
+#include <ctime>                    // For time subroutines
+
 #include <fcntl.h>                  // For open, O_*, ...
 #include <getopt.h>                 // For getopt()
-#include <stdlib.h>                 // For getenv
-#include <time.h>                   // For time subroutines
 #include <unistd.h>                 // For close, ...
 #include <sys/mman.h>               // For mmap, munmap, ...
 
@@ -36,7 +37,7 @@
 #include "Common.h"                 // For Common
 #include "Loader.h"                 // For Loader
 
-#define PUB _PUB_NAMESPACE
+#define PUB _LIBPUB_NAMESPACE
 using PUB::Debug;                   // For Debug object
 using PUB::Exception;               // For Exception handling
 using PUB::Thread;                  // For Thread::sleep

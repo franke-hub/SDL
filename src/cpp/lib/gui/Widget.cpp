@@ -20,10 +20,9 @@
 //
 //----------------------------------------------------------------------------
 #include <exception>                // For std::invalid_argument
-#include <mutex>                    // For mutex, std::lock_guard
+#include <mutex>                    // For std::mutex, std::lock_guard
 
 #include <pub/Debug.h>              // For Debug object
-
 #include "gui/Global.h"             // For gui::opt_hcdm, gui::opt_verbose
 #include "gui/Widget.h"             // Implementation class
 

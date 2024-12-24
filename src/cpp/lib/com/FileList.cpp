@@ -23,25 +23,21 @@
 //       Note: Windows: dir \\computer_name always fails.
 //
 //----------------------------------------------------------------------------
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>                  // toupper
+#include <cctype>                   // For toupper
+#include <cstdlib>
+#include <cstring>
 
 #include <com/define.h>             // TRUE, FALSE
 #include <com/Debug.h>
 #include <com/FileName.h>
-
 #include "com/FileList.h"
 
 #if    defined(_OS_BSD)
   #include <dirent.h>               // opendir, readdir, ...
-
 #elif  defined(_OS_WIN)
   #include "winsim.h"               // opendir, readdir, ...
-
 #else
 #error "Unsupported  version"
-
 #endif // _OS_VER
 
 //----------------------------------------------------------------------------

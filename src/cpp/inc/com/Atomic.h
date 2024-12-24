@@ -22,7 +22,7 @@
 #ifndef ATOMIC_H_INCLUDED
 #define ATOMIC_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
 
 /*--------------------------------------------------------------------------*/
 /* Typedefs                                                                 */

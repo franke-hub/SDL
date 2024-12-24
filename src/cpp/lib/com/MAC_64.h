@@ -22,8 +22,8 @@
 //       No source module includes this header. It is only for documentation.
 //
 //----------------------------------------------------------------------------
-#include <inttypes.h>               // For PRI*64
-#include <stdio.h>                  // For printf
+#include <cinttypes>                // For PRI*64
+#include <cstdio>                   // For printf
 
    #ifdef SHOULD_NOT OCCUR
      int64_t           V = 12345678901234567890;

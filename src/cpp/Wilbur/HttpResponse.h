@@ -23,6 +23,7 @@
 #define HTTPRESPONSE_H_INCLUDED
 
 #include <string>
+
 #include <sys/types.h>
 
 #ifndef HTTPREQUEST_H_INCLUDED

@@ -37,13 +37,13 @@
 //       The FileName object has no restrictions on path or name lengths.
 //       The only method which references the file system is resolve().
 //       Method resolve requires all protions of the filename fit within
-//       the stdio.h FILENAME_MAX limit.
+//       the cstdio FILENAME_MAX limit.
 //
 //       The FileName object generally requires exception handling since
 //       some object methods throw a "Storage shortage" exception.
 //       The FileName static methods provide equivalent function and
 //       none throw exceptions. However, some static methods require the
-//       result fit within the stdio.h FILENAME_MAX limit.
+//       result fit within the cstdio FILENAME_MAX limit.
 //
 // Method compare-
 //       This yields the same result as strcmp or stricmp, depending upon

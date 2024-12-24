@@ -23,9 +23,9 @@
 //       NN_abort_S  nn_rdstr(neuron[abort])
 //
 //----------------------------------------------------------------------------
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
 
 #include <com/Debug.h>
 

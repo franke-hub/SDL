@@ -22,16 +22,16 @@
 //       cURL: http://curl.haxx.se/ (Also google "cURL")
 //
 //----------------------------------------------------------------------------
-#include <stdarg.h>                 // Use ... arguments
-#include <ctype.h>                  // For isdigit
-#include <netdb.h>                  // For gethostbyname
-#include <stdint.h>                 // For int64_t
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>                   // For asctime
-#include <unistd.h>                 // For sleep
+#include <cctype>                   // For isdigit
+#include <cstdarg>                  // Use ... arguments
+#include <cstdint>                  // For int64_t
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>                    // For asctime
 
+#include <netdb.h>                  // For gethostbyname
+#include <unistd.h>                 // For sleep
 #include <arpa/inet.h>              // For inet_addr
 #include <curl/curl.h>
 #include <sys/timeb.h>              // For struct timeb, ftime

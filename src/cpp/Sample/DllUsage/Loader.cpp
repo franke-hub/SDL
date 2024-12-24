@@ -19,10 +19,11 @@
 //       2012/01/01
 //
 //----------------------------------------------------------------------------
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <dlfcn.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include <com/Debug.h>
 

@@ -19,9 +19,8 @@
 //       2018/01/01
 //
 //----------------------------------------------------------------------------
-#include <exception>
-
-#include <stdio.h>
+#include <exception>                // For std::exception
+#include <cstdio>                   // For printf
 
 #include "Command.h"
 #include "Exception.h"              // (Already included from Command.h)

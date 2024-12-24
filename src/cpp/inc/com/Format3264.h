@@ -19,5 +19,5 @@
 //       2016/01/01
 //
 //----------------------------------------------------------------------------
-#define __STDC_FORMAT_MACROS        // For linux inttypes.h
-#include <inttypes.h>               // For PRId64, PRIx64, etc.
+#define __STDC_FORMAT_MACROS        // For linux cinttypes
+#include <cinttypes>                // For PRId64, PRIx64, etc.

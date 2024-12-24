@@ -19,15 +19,16 @@
 //       2024/08/23
 //
 //----------------------------------------------------------------------------
+#include <cctype>                   // For isspace
+#include <cerrno>                   // For errno
+#include <climits>                  // For INT_MAX, INT_MIN, ...
+#include <cstdarg>                  // For va_* functions
+#include <cstdio>                   // For fprintf
+#include <cstdlib>                  // For various
+#include <cstring>                  // For strcpy, strerror, ...
 #include <string>                   // For std::string
-#include <ctype.h>                  // For isspace
-#include <errno.h>                  // For errno
+
 #include <fcntl.h>                  // For open, O_*, ...
-#include <limits.h>                 // For INT_MAX, INT_MIN, ...
-#include <stdarg.h>                 // For va_* functions
-#include <stdio.h>                  // For fprintf
-#include <stdlib.h>                 // For various
-#include <string.h>                 // For strcpy, strerror, ...
 #include <unistd.h>                 // For close, ...
 #include <arpa/inet.h>              // For htons
 #include <sys/mman.h>               // For mmap, ...

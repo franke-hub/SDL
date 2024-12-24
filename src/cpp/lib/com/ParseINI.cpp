@@ -19,11 +19,11 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <com/sysmac.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
+#include <com/sysmac.h>
 #include "com/ParseINI.h"
 
 //----------------------------------------------------------------------------

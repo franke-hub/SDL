@@ -19,7 +19,7 @@
 //       2024/10/10
 //
 //----------------------------------------------------------------------------
-#include <assert.h>                 // For assert()
+#include <cassert>                  // For assert()
 
 #include "Command.h"                // (Compile test only)
 #include "Service.h"                // (Compile test only)

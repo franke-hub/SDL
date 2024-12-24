@@ -19,11 +19,12 @@
 //       2023/08/07
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cassert>
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+
 #include <unistd.h>
 #include <sys/stat.h>
 

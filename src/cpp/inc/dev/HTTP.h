@@ -22,8 +22,8 @@
 #ifndef _LIBPUB_HTTP_HTTP_H_INCLUDED
 #define _LIBPUB_HTTP_HTTP_H_INCLUDED
 
-#include <cstdlib>                  // For size_t
 #include <string>                   // For std::string
+#include <cstdlib>                  // For size_t
 
 #include "dev/bits/devconfig.h"     // For HTTP config controls
 

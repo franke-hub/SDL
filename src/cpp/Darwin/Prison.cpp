@@ -20,9 +20,9 @@
 //       2020/10/04
 //
 //----------------------------------------------------------------------------
-#include <limits.h>
-#include <stdlib.h>
-#include <string.h>
+#include <climits>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Debug.h>
 #include <com/define.h>

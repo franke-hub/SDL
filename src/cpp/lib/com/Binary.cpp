@@ -19,17 +19,17 @@
 //       2020/10/02
 //
 //----------------------------------------------------------------------------
-#define __STDC_FORMAT_MACROS        // For linux inttypes.h
-#include <inttypes.h>               // For PRId64
+#define __STDC_FORMAT_MACROS        // For linux cinttypes
 
-#include <ostream>
-#include <string>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <com/Debug.h>
+#include <ostream>                  // For std::ostream, ...
+#include <string>                   // For std::string
+#include <cinttypes>                // For PRId64
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "com/Binary.h"
+#include <com/Debug.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

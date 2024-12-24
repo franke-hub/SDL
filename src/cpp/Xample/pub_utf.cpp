@@ -1,5 +1,6 @@
-#include <cstdio>                   // For EOF
 #include <exception>                // For std::runtime_error
+#include <cstdio>                   // For EOF
+
 #include "pub/Utf.i"                // Import Utf.h symbols into namespace
 
 enum { DIM= 512 };                  // Input/output buffer size

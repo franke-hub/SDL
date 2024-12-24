@@ -19,11 +19,10 @@
 //       2020/06/13
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <exception>
+#include <exception>                // For std::exception, ...
+#include <cstdio>                   // For sprintf, ...
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Debug.h>
 #include "com/FileInfo.h"

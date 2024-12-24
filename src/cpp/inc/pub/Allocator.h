@@ -22,7 +22,7 @@
 #ifndef _LIBPUB_ALLOCATOR_H_INCLUDED
 #define _LIBPUB_ALLOCATOR_H_INCLUDED
 
-#include <sys/types.h>              // For size_t
+#include <cstdlib>                  // For size_t
 
 #include <pub/Latch.h>              // For Latch
 #include <pub/List.h>               // For List

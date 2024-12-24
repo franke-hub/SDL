@@ -19,15 +19,16 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/AutoPointer.h>
 #include <com/Barrier.h>
 #include <com/Debug.h>
 #include <com/Reader.h>
 #include <com/Writer.h>
+
 #include "YncodeCodec.h"
 
 //----------------------------------------------------------------------------

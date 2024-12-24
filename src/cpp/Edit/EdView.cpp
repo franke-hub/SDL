@@ -19,23 +19,22 @@
 //       2023/06/19 (Version 2, Release 2)
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <com/istring.h>
 #include <com/syslib.h>
 
-#include "Editor.h"
-
 #include "Active.h"
+#include "Editor.h"
 #include "EdLine.h"
 #include "EdMark.h"
 #include "EdRing.h"
-#include "Status.h"
-
 #include "EdView.h"
+#include "Status.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

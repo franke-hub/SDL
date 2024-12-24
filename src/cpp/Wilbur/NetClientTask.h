@@ -25,12 +25,10 @@
 #ifndef NETCLIENTTASK_H_INCLUDED
 #define NETCLIENTTASK_H_INCLUDED
 
-#ifndef NETCLIENT_H_INCLUDED
-#include "NetClient.h"              // Includes com/Dispatch.h (string, Barrier)
-#endif
-
 #include <com/Clock.h>              // For KeepAlive clock
+
 #include "HttpCached.h"
+#include "NetClient.h"              // Includes com/Dispatch.h (string, Barrier)
 #include "Robots.h"
 
 //----------------------------------------------------------------------------

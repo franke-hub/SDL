@@ -20,19 +20,19 @@
 //
 //----------------------------------------------------------------------------
 #include <cassert>                  // For assert
-#include <cstdint>                  // For size_t
-#include <cstdlib>                  // For rand, srand
+#include <clocale>                  // For setlocale
+#include <cstdint>                  // For ...
+#include <cstdlib>                  // For size_t, rand, srand
+#include <cstring>                  // For memcmp, ...
 #include <ctime>                    // For time
-#include <locale.h>                 // For setlocale
 
 #include <pub/TEST.H>               // For VERIFY macros
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include <pub/Exception.h>          // For pub::Exception
+#include "pub/Ioda.h"               // For pub::Ioda, ... (Tested)
 #include <pub/Reporter.h>           // For pub::Reporter
 #include <pub/utility.h>            // For pub::utilities
 #include <pub/Wrapper.h>            // For pub::Wrapper
-
-#include "pub/Ioda.h"               // For pub::Ioda, ... (Tested)
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB;

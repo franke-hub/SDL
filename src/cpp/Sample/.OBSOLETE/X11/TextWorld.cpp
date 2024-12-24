@@ -27,16 +27,18 @@
 //       the Pixmap is modified. It must be allocated/release for each use.
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+#include <X11/keysym.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+
 #include <com/Debug.h>
 #include <com/define.h>
 #include <com/Interval.h>
 #include <com/Thread.h>
-#include <X11/keysym.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

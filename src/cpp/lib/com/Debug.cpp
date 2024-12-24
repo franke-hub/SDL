@@ -19,22 +19,16 @@
 //       2021/04/02
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <ctype.h>
+#include <cassert>
+#include <cctype>
+#include <cinttypes>                // For PRIx64
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <fcntl.h>
-#include <inttypes.h>               // For PRIx64
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
-
-#include <com/RecursiveBarrier.h>
-#include <com/Clock.h>              // For Clock::current()
-#include <com/Software.h>           // For Software::getTid
-#include <com/Thread.h>             // For Thread::yield
-
-#include "com/Debug.h"
 
 #ifdef _OS_WIN
   #include <windows.h>              // For GetCurrentThreadId
@@ -46,6 +40,12 @@
     #define va_copy(dest, src) dest= src
   #endif
 #endif
+
+#include <com/RecursiveBarrier.h>
+#include <com/Clock.h>              // For Clock::current()
+#include "com/Debug.h"
+#include <com/Software.h>           // For Software::getTid
+#include <com/Thread.h>             // For Thread::yield
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

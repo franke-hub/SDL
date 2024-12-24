@@ -28,8 +28,9 @@
 #include <syslog.h>
 
 #else
-#include <stdarg.h>
-#include <stdio.h>
+#include <cstdarg>
+#include <cstdio>
+
 #define LOG_CONS 0
 #define LOG_ERR  0
 #define LOG_PID  0

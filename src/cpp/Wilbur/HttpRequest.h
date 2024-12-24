@@ -23,6 +23,7 @@
 #define HTTPREQUEST_H_INCLUDED
 
 #include <string>
+
 #include "Properties.h"
 
 //----------------------------------------------------------------------------

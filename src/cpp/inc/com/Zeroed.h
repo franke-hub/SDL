@@ -22,7 +22,9 @@
 #ifndef ZEROED_H_INCLUDED
 #define ZEROED_H_INCLUDED
 
-#include "types.h"                  // For size_t
+#include <cstdlib>                  // For size_t
+
+#include "types.h"                  // For ...
 
 //----------------------------------------------------------------------------
 //

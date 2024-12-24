@@ -19,16 +19,16 @@
 //       2012/01/01
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <limits.h>
+#include <cassert>
+#include <climits>
+
 #include <windows.h>
 
 #include <com/Exception.h>
 #include <com/define.h>
 #include <com/Debug.h>
-#include <com/Unconditional.h>
-
 #include "com/Events.h"
+#include <com/Unconditional.h>
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

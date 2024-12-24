@@ -19,18 +19,18 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <errno.h>
+#include <cerrno>
+#include <cstring>
+
 #include <malloc.h>
 #include <semaphore.h>
-#include <string.h>
 
 #include <com/define.h>
 #include <com/Exception.h>
 #include <com/Debug.h>
+#include "com/Mutex.h"
 #include <com/Thread.h>
 #include <com/Unconditional.h>
-
-#include "com/Mutex.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

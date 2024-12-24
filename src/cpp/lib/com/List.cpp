@@ -19,11 +19,12 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 
 #include <com/Atomic.h>

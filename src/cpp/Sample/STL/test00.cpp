@@ -19,8 +19,9 @@
 //       2017/01/01
 //
 //----------------------------------------------------------------------------
-#include <cstddef>
-#include <iostream>
+#include <iostream>                 // For std::stream objects
+#include <cstddef>                  // For ...
+#include <cstdlib>                  // For size_t, ...
 
 #include "Main.h"
 #include "Function.h"

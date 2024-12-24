@@ -20,19 +20,19 @@
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
-#include <cstring>                  // For memset()
 #include <mutex>                    // For std::mutex, std::lock_guard
 #include <memory>                   // For std::shared_ptr
 #include <stdexcept>                // For std::out_of_range, ...
 #include <string>                   // For std::string
+#include <cassert>                  // For assert
+#include <cerrno>                   // For errno
+#include <cstdio>                   // For fprintf
+#include <cstdint>                  // For integer types
+#include <cstring>                  // For memset
 
-#include <assert.h>                 // For assert macro
-#include <errno.h>                  // For errno
-#include <netdb.h>                  // For gethostbyname()
-#include <stdio.h>                  // For fprintf()
-#include <stdint.h>                 // For integer types
+#include <netdb.h>                  // For gethostbyname
 #include <unistd.h>                 // For gethostname
-#include <arpa/inet.h>              // For inet_ntop()
+#include <arpa/inet.h>              // For inet_ntop
 #include <netinet/in.h>             // For struct sockaddr_
 #include <sys/socket.h>             // For socket functions
 
@@ -42,7 +42,6 @@
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For pub::utility::to_string(), ...
-
 #include "pub/http/Agent.h"         // For pub::http::ListenAgent, owner
 #include "pub/http/Listen.h"        // For pub::http::Listen, implemented
 #include "pub/http/Options.h"       // For pub::http::Options

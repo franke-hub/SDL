@@ -19,7 +19,6 @@
 //       2024/12/20
 //
 //----------------------------------------------------------------------------
-#include <assert.h>                 // For assert
 #include <mutex>                    // For std::lock_guard
 
 #include <pub/Clock.h>              // DispatchTTL completion time
@@ -35,7 +34,7 @@
 #include <pub/Worker.h>             // For pub::Worker
 
 // DEBUGGING: TODO REMOVE- - - - - - - - - - - - - - - - - - - - - - - - - - -
-#include <stdio.h>                  // For sprintf
+#include <cstdio>                   // For sprintf
 #include <pub/Reporter.h>           // For pub::Reporter
 // DEBUGGING: TODO REMOVE- - - - - - - - - - - - - - - - - - - - - - - - - - -
 

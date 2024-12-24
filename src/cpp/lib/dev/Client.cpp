@@ -25,19 +25,19 @@
 #define OPENSSL_API_COMPAT 30000    // Deprecate OSSL functions < 3.0.0
 
 #include <atomic>                   // For std::atomic<serialno_t>
+#include <new>                      // For std::bad_alloc
+#include <stdexcept>                // For std::runtime_error, ...
+#include <string>                   // For std::string
 #include <cassert>                  // For assert
 #include <cerrno>                   // For errno
 #include <cinttypes>                // For integer types
 #include <cstdio>                   // For fprintf
 #include <cstring>                  // For memcmp, memset
-#include <new>                      // For std::bad_alloc
-#include <stdexcept>                // For std::runtime_error, ...
-#include <string>                   // For std::string
+#include <ctime>                    // For clock_gettime
 
 #include <arpa/inet.h>              // For inet_ntop
 #include <openssl/err.h>            // For openssl error handling
 #include <openssl/ssl.h>            // For openssl core library
-#include <time.h>                   // For clock_gettime
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Dispatch.h>           // For pub::Dispatch objects
@@ -50,7 +50,6 @@
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For namespace pub::utility
 #include "pub/utility.i"            // For conversion routines
-
 #include "pub/http/Agent.h"         // For pub::http::ClientAgent (owner)
 #include "pub/http/Client.h"        // For pub::http::Client, implementated
 #include "pub/http/Exception.h"     // For pub::http::exceptions

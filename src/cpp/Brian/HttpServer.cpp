@@ -26,7 +26,7 @@
 #include <map>                      // For std::map
 #include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
-#include <stdio.h>                  // For perror
+#include <cstdio>                   // For perror
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Ioda.h>               // For pub::Ioda

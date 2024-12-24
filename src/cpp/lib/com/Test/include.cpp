@@ -19,13 +19,13 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
-#include <com/Verify.h>
+#include <cstdio>
+#include <cstdlib>
 
 #include "com/ASCII.h"
 #include "com/KeyCode.h"
 #include "com/ScanCode.h"
+#include <com/Verify.h>
 
 //----------------------------------------------------------------------------
 // Macros

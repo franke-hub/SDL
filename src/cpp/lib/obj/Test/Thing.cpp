@@ -28,7 +28,6 @@
 #include <mutex>                    // For std::lock_guard
 #include <new>                      // For in-place ::delete
 
-#include <assert.h>                 // For assert()
 #include <com/Debug.h>              // For com::Debug
 #include <obj/Object.h>             // For obj::Object
 #include <obj/Latch.h>              // For obj::Latch

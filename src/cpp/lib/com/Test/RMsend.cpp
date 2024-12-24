@@ -19,15 +19,15 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <new>
-#include <limits.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <new>                      // For std:: (In-place operator new)
+#include <climits>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 
-#include "RMconn.h"
 #include <com/define.h>
 #include <com/Clock.h>
 #include <com/Debug.h>
@@ -39,6 +39,8 @@
 #include <com/Software.h>
 #include <com/SharedMem.h>
 #include <com/Thread.h>
+
+#include "RMconn.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

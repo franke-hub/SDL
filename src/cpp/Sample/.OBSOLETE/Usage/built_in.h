@@ -22,8 +22,8 @@
 #ifndef BUILT_IN_H_INCLUDED
 #define BUILT_IN_H_INCLUDED
 
-#include <string>
-#include <stdarg.h>
+#include <string>                   // For std::string
+#include <cstdarg>                  // For va_ functions
 
 #include "define.h"
 #include "Exception.h"

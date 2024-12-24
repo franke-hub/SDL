@@ -21,12 +21,11 @@
 //----------------------------------------------------------------------------
 #include <exception>                // For std::runtime_error
 
-#include <pub/Debug.h>              // For namespace pub::debugging
-
 #include "gui/Global.h"             // For opt_* definitions, ...
 #include "gui/Device.h"             // For gui::Device
 #include "gui/Font.h"               // Implementation class
 #include "gui/Types.h"              // For type definitions
+#include <pub/Debug.h>              // For namespace pub::debugging
 
 using pub::Debug;                   // For Debug object
 using namespace pub::debugging;     // For debugging

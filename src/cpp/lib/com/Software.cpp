@@ -23,7 +23,8 @@
 #include <pthread.h>
 #endif
 
-#include <errno.h>
+#include <cerrno>
+
 #include <unistd.h>
 
 #if defined(_OS_WIN)
@@ -37,7 +38,6 @@
 #endif
 
 #include <com/Debug.h>
-
 #include "com/Software.h"
 
 //----------------------------------------------------------------------------

@@ -24,11 +24,12 @@
 //       top file and compile one at a time until done.
 //
 //----------------------------------------------------------------------------
-#include "pub/utility.i"
-
 #include "pub/Event.h"
+
+#include "pub/diag-stack.h"
 #include "pub/Exception.h"
 #include "pub/Interval.h"
+#include "pub/Ioda.h"
 #include "pub/Latch.h"
 #include "pub/Mutex.h"
 #include "pub/Semaphore.h"
@@ -36,3 +37,5 @@
 #include "pub/Statistic.h"
 #include "pub/String.h"
 #include "pub/utility.i"
+
+#include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros

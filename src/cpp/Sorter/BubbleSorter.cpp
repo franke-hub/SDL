@@ -21,7 +21,7 @@
 //       10000 Timing: 622.09 (#5) CPU intensive sorter, simple but slow.
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
+#include <cstdio>
 
 #include "BubbleSorter.h"
 

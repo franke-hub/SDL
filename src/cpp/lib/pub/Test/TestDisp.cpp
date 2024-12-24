@@ -34,15 +34,14 @@
 //       See ./.TIMING for timing test information.
 //
 //----------------------------------------------------------------------------
-#include <atomic>
-#include <exception>
-
-#include <inttypes.h>
-#include <locale.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+#include <atomic>                   // For std::atomic
+#include <exception>                // For std::exception
+#include <cinttypes>                // For integer types
+#include <clocale>
+#include <cstdio>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 
 #include <pub/config.h>             // For ATTRIB_PRINTF, ATTRIB_NORETURN
 #include <pub/TEST.H>               // For test functions and macros

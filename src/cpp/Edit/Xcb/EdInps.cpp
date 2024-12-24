@@ -19,8 +19,9 @@
 //       2024/05/24
 //
 //----------------------------------------------------------------------------
+#include <cstdio>                   // For sprintf
 #include <string>                   // For std::string
-#include <stdio.h>                  // For sprintf
+
 #include <sys/types.h>              // For system types
 #include <xcb/xproto.h>             // For XCB types
 #include <xcb/xfixes.h>             // For XCB xfixes extension

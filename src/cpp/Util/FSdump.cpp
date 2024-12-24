@@ -24,11 +24,13 @@
 //       length   = The dump length [default remainder of file]
 //
 //----------------------------------------------------------------------------
-#include <errno.h>                  // For errno
+#include <cerrno>                   // For errno
+#include <cstdint>                  // For ...
+#include <cstdio>                   // For printf, stdout
+#include <cstdlib>                  // For size_t
+#include <cstring>                  // For strerror
+
 #include <fcntl.h>                  // For open
-#include <stdint.h>                 // For size_t
-#include <stdio.h>                  // For printf, stdout
-#include <string.h>                 // For strerror
 #include <unistd.h>                 // For close
 #include <sys/mman.h>               // For mmap
 #include <sys/stat.h>               // For stat

@@ -23,17 +23,16 @@
 // #define _LARGEFILE_SOURCE 1
 // #define _LARGEFILE64_SOURCE 1
 
-#include <stdio.h>
-#include <limits.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <sys/stat.h>
+#include <exception>                // For std::exception, ...
+#include <string>                   // For std::string
+#include <climits>
+#include <cstdio>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
-#include <exception>
-#include <string>
-using namespace std;
+#include <sys/stat.h>
 
 #include "com/define.h"
 #include "com/Debug.h"
@@ -67,6 +66,8 @@ using namespace std;
 #elif !defined(_CC_MSC) && !defined(_CC_GCC)
   #error "_ADDR64 indeterminate"
 #endif
+
+using namespace std;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -532,11 +533,11 @@ static inline int
 //       test_stdlib
 //
 // Purpose-
-//       Test stdlib.h function
+//       Test cstdlib function
 //
 //----------------------------------------------------------------------------
 static inline int
-   test_stdlib( void )              // Test stdlib.h
+   test_stdlib( void )              // Test cstdlib
 {
    int                 result= 0;   // Resultant
 
@@ -852,7 +853,7 @@ int                                 // Return code
      result |= environment();       // Test compliation environment
      result |= test_types();        // Test types
 
-//   result |= test_stdlib();       // Test stdlib.h functions
+//   result |= test_stdlib();       // Test cstdlib functions
 //   result |= demo_std_exception_usage_error(); // Demo std::exception usage error
 //   result |= test_std_exception();          // Test std::exception
 //   result |= test_std_string();             // Test std::string

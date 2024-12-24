@@ -19,12 +19,13 @@
 //       2007/01/01
 //
 //----------------------------------------------------------------------------
-#include <ctype.h>
-#include <errno.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cctype>
+#include <cerrno>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <unistd.h>
 
 #include "Dendrite.h"

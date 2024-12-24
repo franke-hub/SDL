@@ -22,16 +22,21 @@
 //       FSdups
 //
 //----------------------------------------------------------------------------
-#include <stdarg.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <exception>
 #include <iostream>
-#include <string>
-typedef std::string string;
+#include <string>                   // For std::string
+#include <cstdarg>                  // For va_ functions
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+#ifdef _OS_BSD
+  #include <netinet/in.h>          // For ntohl, htonl
+#endif
+#ifdef _OS_WIN
+  #include <winsock2.h>            // For ntohl, htonl
+#endif
 
 #include <com/define.h>
 #include <com/FileData.h>
@@ -40,13 +45,7 @@ typedef std::string string;
 #include <com/FileName.h>
 #include <com/List.h>
 
-#ifdef _OS_BSD
-  #include <netinet/in.h>          // For ntohl, htonl
-#endif
-
-#ifdef _OS_WIN
-  #include <winsock2.h>            // For ntohl, htonl
-#endif
+typedef std::string string;
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

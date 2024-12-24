@@ -42,10 +42,11 @@
 //       Used in conjunction with RdClient for file distribution.
 //
 //----------------------------------------------------------------------------
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include <sys/types.h>
 
 #include <com/Debug.h>

@@ -20,8 +20,9 @@
 //
 //----------------------------------------------------------------------------
 #include <cstdio>
-#include <stdlib.h>
-#include <string.h>                 // For memset
+#include <cstdlib>
+#include <cstring>                  // For memset
+
 #include <unistd.h>
 #include <xcb/xcb.h>                // For xcb definitions
 #include <xcb/xproto.h>             // For xcb prototypes

@@ -19,7 +19,7 @@
 //       2024/09/12
 //
 // Usage notes-
-//       To expose Utf class types, include "pub/Utf.i"
+//       To expose Utf class types in your .cpp file, include "pub/Utf.i"
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_UTF_H_INCLUDED
@@ -27,7 +27,7 @@
 
 #include <stdexcept>                // For std::utf_invalid_argument, ...
 #include <cstdint>                  // For uint8_t, ...
-#include <stdio.h>                  // For EOF
+#include <cstdio>                   // For EOF
 
 #include "pub/bits/pubconfig.h"     // For _LIBPUB_ macros
 

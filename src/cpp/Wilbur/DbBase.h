@@ -22,10 +22,12 @@
 #ifndef DBBASE_H_INCLUDED
 #define DBBASE_H_INCLUDED
 
-#include <db_cxx.h>                 // This include is guaranteed
-#include <stdarg.h>                 // This include is required (va_list)
-#include <stdint.h>                 // This include is required (uint*_t)
 #include <string>                   // This include is guaranteed
+#include <cstdarg>                  // This include is required (va_list)
+#include <cstdint>                  // This include is required (uint*_t)
+
+#include <db_cxx.h>                 // This include is guaranteed
+
 #include <com/define.h>             // This include is required (_ATTRIBUTE_PRINTF)
 #include <com/List.h>               // This include is required (base class)
 

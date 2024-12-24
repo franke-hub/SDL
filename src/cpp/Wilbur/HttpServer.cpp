@@ -19,8 +19,10 @@
 //       2012/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
+#include <cstdio>
+
 #include <sys/stat.h>
+
 #include <com/Debug.h>
 #include <com/istring.h>            // for memicmp
 
@@ -28,10 +30,9 @@
 #include "DateParser.h"
 #include "HttpRequest.h"
 #include "HttpResponse.h"
+#include "HttpServer.h"
 #include "Properties.h"
 #include "TextBuffer.h"
-
-#include "HttpServer.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

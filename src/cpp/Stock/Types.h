@@ -22,7 +22,7 @@
 #ifndef TYPES_H_INCLUDED
 #define TYPES_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
 
 #ifndef DEFINE_H_INCLUDED
 #include <com/define.h>

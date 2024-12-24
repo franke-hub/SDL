@@ -22,8 +22,8 @@
 #ifndef NNTYPE_H_INCLUDED
 #define NNTYPE_H_INCLUDED
 
-#include <ctype.h>
-#include <stdint.h>
+#include <cctype>
+#include <cstdint>
 
 #ifndef DEFINE_H_INCLUDED
 #include <com/define.h>

@@ -19,15 +19,15 @@
 //       2023/08/04
 //
 //----------------------------------------------------------------------------
-#define __STDC_FORMAT_MACROS        // For linux inttypes.h
+#define __STDC_FORMAT_MACROS        // For linux cinttypes
 #include <string>
 
-#include <assert.h>
-#include <inttypes.h>               // For PRIx64
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cassert>
+#include <cinttypes>                // For PRIx64
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <com/Debug.h>
 #include <com/Julian.h>
@@ -38,9 +38,8 @@
 #include "DbHttp.h"
 #include "DbMeta.h"
 #include "DbText.h"
-#include "Url.h"
-
 #include "HttpCached.h"
+#include "Url.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

@@ -19,8 +19,8 @@
 //       2017/01/01
 //
 //----------------------------------------------------------------------------
-#include <assert.h>
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
 
 #include "Player.h"
 #include "Rating.h"

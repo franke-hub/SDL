@@ -19,9 +19,9 @@
 //       2018/01/01
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <string.h>
-#include <string>
+#include <string>                   // For std::string
+#include <cstdio>                   // For printf
+#include <cstring>
 
 #include <com/Barrier.h>
 #include <com/Dispatch.h>           // For base class
@@ -29,9 +29,8 @@
 
 #include "Common.h"
 #include "Diagnostic.h"
-#include "HttpSocketServer.h"
-
 #include "HttpServerThread.h"
+#include "HttpSocketServer.h"
 
 //----------------------------------------------------------------------------
 // Constants for parameterization

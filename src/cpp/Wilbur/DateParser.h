@@ -22,8 +22,9 @@
 #ifndef DATEPARSER_H_INCLUDED
 #define DATEPARSER_H_INCLUDED
 
-#include <sys/types.h>              // For time_t
 #include <string>                   // For std::string
+
+#include <sys/types.h>              // For time_t
 
 //----------------------------------------------------------------------------
 //

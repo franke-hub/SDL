@@ -19,11 +19,10 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <stdlib.h>
-
-#include <com/Unconditional.h>
+#include <cstdlib>
 
 #include "com/Memory.h"
+#include <com/Unconditional.h>
 
 //----------------------------------------------------------------------------
 //

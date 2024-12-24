@@ -25,16 +25,16 @@
 //        85.6 MB/sec Windows [Internal]
 //
 //----------------------------------------------------------------------------
-#include <atomic>
+#include <atomic>                   // For std::atomic
+#include <cassert>                  // For assert
+#include <cerrno>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
-#include <assert.h>
-#include <errno.h>
 #include <netdb.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 #include <unistd.h>
 #include <netinet/in.h>
 #include <sys/stat.h>
@@ -43,6 +43,7 @@
 
 #include <com/Random.h>
 #include <pub/Clock.h>
+#include <pub/config.h>
 #include <pub/Debug.h>
 #include <pub/Named.h>
 #include <pub/Semaphore.h>

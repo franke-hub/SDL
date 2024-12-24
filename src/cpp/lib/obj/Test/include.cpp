@@ -19,8 +19,8 @@
 //       2020/10/03
 //
 //----------------------------------------------------------------------------
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 
 #include "com/Debug.h"
 
@@ -36,7 +36,6 @@
 #include "obj/Statistic.h"
 #include "obj/String.h"
 #include "obj/Thread.h"
-
 #include "obj/built_in.h"
 #include "obj/define.h"
 #include "obj/ifmacro.h"
@@ -60,4 +59,3 @@ extern int                          // Return code
    printf("Compile-only test\n");
    return 0;
 }
-

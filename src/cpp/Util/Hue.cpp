@@ -22,10 +22,10 @@
 //       The matching algorithm is simplistic, giving equal weight to colors.
 //
 //----------------------------------------------------------------------------
-#include <limits.h>                 // For INT_MAX
-#include <stdio.h>                  // For printf
-//nclude <stdlib.h>
-#include <string.h>                 // For strdup
+#include <climits>                  // For INT_MAX
+#include <cstdio>                   // For printf
+//nclude <cstdlib>
+#include <cstring>                  // For strdup
 
 #include <pub/List.h>               // For pub::List
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
