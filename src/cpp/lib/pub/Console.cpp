@@ -19,6 +19,7 @@
 //       2024/12/20
 //
 //----------------------------------------------------------------------------
+#include <stdexcept>                // For std::invalid_argument
 #include <mutex>                    // For std::mutex, std::lock_guard
 #include <cassert>                  // For assert
 #include <cctype>                   // For isdigit, ...
