@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2024 Frank Eskesen.
+//       Copyright (c) 2018-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2024/12/20
+//       2025/01/09
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCH_H_INCLUDED
@@ -154,7 +154,7 @@ virtual void                        // OVERRIDE this method
 
 //----------------------------------------------------------------------------
 //
-// Struct-
+// Class-
 //       Item
 //
 // Purpose-
@@ -169,10 +169,11 @@ virtual void                        // OVERRIDE this method
 //         if done == nullptr, the Item is deleted.
 //
 //----------------------------------------------------------------------------
-struct Item : public AI_list<Item>::Link { // A dispatcher work item
+class Item : public AI_list<Item>::Link { // A dispatcher work item
 //----------------------------------------------------------------------------
 // Item::Enumerations and typedefs
 //----------------------------------------------------------------------------
+public:
 enum CC                             // Completion codes
 {  CC_NORMAL= 0                     // Normal (OK)
 ,  CC_PURGE= -1                     // Function purged
@@ -232,7 +233,7 @@ void
      delete this;
    }
 }
-}; // struct Item
+}; // class Item
 
 //----------------------------------------------------------------------------
 //
