@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2024 Frank Eskesen.
+//       Copyright (C) 2018-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2024/12/20
+//       2025/01/11
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -48,7 +48,7 @@ enum
 {  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
-,  USE_ITRACE= true                 // Use internal tracing?
+,  USE_ITRACE= false                // Use internal tracing?
 ,  USE_REPORT= false                // Use event Reporter?
 }; // enum
 

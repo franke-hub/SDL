@@ -243,8 +243,8 @@ void
    // Wait for shutdown's completion post, resuming main task
    event.wait();
 
-   StaticCommon::Sevent_t& Sevent= static_common->event;
-   static_common->shutdown_started.signal(Sevent); // Raise shutdown started
+   StaticCommon::Event event= static_common->event;
+   static_common->shutdown_started.signal(event); // Raise shutdown started
 
    //-------------------------------------------------------------------------
    // Wait for all services to complete (from main task)

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021-2024 Frank Eskesen.
+//       Copyright (c) 2021-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Operate the input terminal
 //
 // Last change date-
-//       2024/12/20
+//       2025/01/03
 //
 // Implementation note-
 //       When running using a static library build, HCDM debugging displays in
@@ -37,6 +37,7 @@
 #include <pub/utility.h>            // For pub::utility::visify
 
 #include "Command.h"                // For class Command
+#include "Common.h"                 // For class Common
 #include "Service.h"                // For class Service
 
 #define PUB _LIBPUB_NAMESPACE
@@ -55,6 +56,12 @@ enum
 
 ,  USE_COMMAND_ECHOING= true        // Echo commands to trace file?
 }; // (generic) enum
+
+//----------------------------------------------------------------------------
+// Internal data areas
+//----------------------------------------------------------------------------
+// The mutex protects the creation/deletion of ConsoleService::console_thread.
+std::mutex             mutex;       // (Hidden) mutex
 
 //----------------------------------------------------------------------------
 //
@@ -107,10 +114,6 @@ public:
      errorf("ERROR: ConsoleThread only supports terminal input/output\n");
      exit(1);
    }
-
-   pub::Console::start();
-   if( HCDM )
-     debugh("pub::Console::start completed\n");
 }
 
 virtual
@@ -149,6 +152,10 @@ virtual void
    run( void )                      // The operational thread
 {  if( HCDM ) debugh("ConsoleThread(%p).run\n", this);
 
+   pub::Console::start();
+   if( HCDM )
+     debugh("pub::Console::start completed\n");
+
    operational= true;
    sleep(1);                        // One second startup delay
 
@@ -157,6 +164,8 @@ virtual void
      if( operational )
        Command::command(C);         // Run the command, ignoring any resultant
    }
+
+   pub::Console::stop();
 }
 
 virtual void
@@ -164,7 +173,6 @@ virtual void
 {  if( HCDM ) debugh("ConsoleThread(%p).stop\n", this);
 
    operational= false;
-   pub::Console::stop();
 }
 
 virtual void
@@ -172,7 +180,6 @@ virtual void
 {  if( HCDM ) debugh("ConsoleThread(%p).wait\n", this);
 
    pub::Console::wait();            // Wait for the Console
-   join();
 }
 }; // ConsoleThread
 
@@ -209,6 +216,7 @@ public:
 virtual
    ~ConsoleService( void )          // Destructor
 {
+   std::lock_guard<decltype(mutex)> lock(mutex);
    delete console_thread;
    console_thread= nullptr;
 }
@@ -222,6 +230,7 @@ virtual void
 {  if( HCDM ) debugh("ConsoleService(%p).start(%p)\n", this, S);
    Service::has_start::start(this);
 
+   std::lock_guard<decltype(mutex)> lock(mutex);
    if( console_thread ) {
      debugh("ConsoleService::start ERROR: already started\n");
      return;
@@ -236,7 +245,9 @@ virtual void
 {  if( HCDM ) debugh("ConsoleService(%p).stop\n", this);
    Service::has_stop::stop(this);
 
-   console_thread->stop();          // Stop the ConsoleThread
+   std::lock_guard<decltype(mutex)> lock(mutex);
+   if( console_thread )
+     console_thread->stop();        // Stop the ConsoleThread
 }
 
 virtual void
@@ -245,7 +256,38 @@ virtual void
    Service::has_wait::wait(this);
 
    console_thread->wait();          // Wait for the ConsoleThread
+   console_thread->join();          // Join (complete) the ConsoleThread
+
+   std::lock_guard<decltype(mutex)> lock(mutex);
    delete console_thread;
    console_thread= nullptr;
 }
 }  consoleService; // class ConsoleService
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       Command_quit
+//
+// Purpose-
+//       Terminate processing
+//
+//----------------------------------------------------------------------------
+class Command_quit : public Command {
+public:
+   Command_quit() : Command("quit")
+{  }
+
+virtual Command::resultant          // Resultant
+   main(int, char**)                // Handle Command
+{
+   {{{{
+     std::lock_guard<decltype(mutex)> lock(mutex);
+     if( consoleService.console_thread )
+       consoleService.console_thread->stop();
+   }}}}
+
+   Common::get()->shutdown();
+   return nullptr;
+}
+}  command_quit; // static class Command_quit

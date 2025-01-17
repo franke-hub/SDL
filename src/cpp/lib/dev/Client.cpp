@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2024 Frank Eskesen.
+//       Copyright (C) 2022-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement http/Client.h
 //
 // Last change date-
-//       2024/12/19
+//       2025/01/11
 //
 // Implmentation note-
 //       TODO: Test _read() disconnect (close processing)
@@ -282,7 +282,7 @@ static void
    if( IODM && VERBOSE > 0 ) {
      string V((const char*)addr, size);
      V= visify(V);
-     debugh("%4d Client::%s(%p,%zd)\n%s\n", line, op, addr, size, V.c_str());
+     debugh("%4d Client::%s(%p,%zd)\n%s\n", line, op, addr, size, s2c(V));
    }
 }
 
@@ -433,7 +433,9 @@ virtual void
    REM_DEBUG_OBJ("*Client*");
 
    // Implementation note:
-   // After return, C++ invokes task_inp and task_out destructors
+   // After return, C++ invokes task_inp and task_out destructors, therefore
+   // the last shared_ptr<Client> must not be deleted while running on either
+   // the task_inp or task_out Task.
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -442,7 +444,7 @@ std::shared_ptr<Client>             // (New) Client
      ClientAgent*      owner)       // Our ClientAgent
 {  if( HCDM ) debugh("Client::make(%p)\n", owner);
 
-   std::shared_ptr<Client> client= std::make_shared<Client>(owner);
+   std::shared_ptr<Client> client(new Client(owner));
    client->self= client;
    return client;
 }
@@ -669,7 +671,7 @@ Socket*                             // Resultant Socket (nullptr if failure)
      if( IODM ) {
        int ERRNO= errno;
        traceh("%4d Client %d= connect(%s)\n", __LINE__, rc
-             , addr_u->to_string().c_str());
+             , s2c(addr_u->to_string()));
        errno= ERRNO;
      }
      if( rc ) {                       // If unable to connect
@@ -683,7 +685,7 @@ Socket*                             // Resultant Socket (nullptr if failure)
        return nullptr;
      }
      if( HCDM )
-       debugf("Client(%p): %s connected\n", this, addr_u->to_string().c_str());
+       debugf("Client(%p): %s connected\n", this, s2c(addr_u->to_string()));
    } else {                         // If SSL
      initialize_SSL();              // Initialize SSL
      context= new_client_CTX();
@@ -894,7 +896,7 @@ void
          if( Q.method != HTTP_POST && Q.method != HTTP_PUT ) {
            if( VERBOSE > 0 )
              fprintf(stderr, "Method(%s) does not permit content\n"
-                    , Q.method.c_str());
+                    , s2c(Q.method));
            item->post(-400);
            return;
          }
@@ -936,7 +938,7 @@ void
        error(X.what());
      } catch(Exception& X) {
        close_enq();
-       errorh("%4d %s %s\n", __LINE__, __FILE__, ((std::string)X).c_str());
+       errorh("%4d %s %s\n", __LINE__, __FILE__, s2c((std::string)X));
        error(X.what());
      } catch(std::exception& X) {
        close_enq();
@@ -1099,7 +1101,7 @@ if( L < 0 && IS_BLOCK ) {
 
    // Report I/O error
    string S= to_string("Client::read %d:%s", errno, strerror(errno));
-   error(S.c_str());
+   error(s2c(S));
    throw io_error(S);
 }
 

@@ -49,7 +49,7 @@ class Service;
 //----------------------------------------------------------------------------
 class Common {                      // Common data area
 //----------------------------------------------------------------------------
-// Common::Enumerations and typedefs
+// Common::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum FSM                            // Finite State Machine
@@ -145,10 +145,11 @@ void
 //----------------------------------------------------------------------------
 struct StaticCommon {               // StaticCommon data area
 //----------------------------------------------------------------------------
-// StaticCommon::Enumerations and typedefs
+// StaticCommon::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-struct Event {                      // The Common::Event struct
+const struct Event {                // The Common::Event struct
+int                    id= 0;       // Event identifier, usually ignored
 }  event;                           // (A usable dummy Event)
 
 typedef struct Event                   Sevent_t; // The Signal Event type
@@ -164,6 +165,7 @@ static StaticCommon*                // (Return value can be ignored)
 //----------------------------------------------------------------------------
 // StaticCommon::Signals
 //----------------------------------------------------------------------------
+Signal_t               run_diagnostics;  // Run diagnostics  Signal
 Signal_t               startup_complete; // Startup complete Signal
 Signal_t               shutdown_started; // Shutdown started Signal
 }; // class StaticCommon

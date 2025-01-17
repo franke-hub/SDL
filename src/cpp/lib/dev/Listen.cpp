@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2024 Frank Eskesen.
+//       Copyright (C) 2022-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement http/Listen.h
 //
 // Last change date-
-//       2024/12/20
+//       2025/01/11
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std::bad_alloc
@@ -42,6 +42,7 @@
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/utility.h>            // For pub::utility::to_string(), ...
+#include "pub/utility.i"            // For conversion routines
 #include "pub/http/Agent.h"         // For pub::http::ListenAgent, owner
 #include "pub/http/Listen.h"        // For pub::http::Listen, implemented
 #include "pub/http/Options.h"       // For pub::http::Options
@@ -182,8 +183,8 @@ static void
 
    // We are operational
    log.set_file_mode("ab");
-   debugf("Server: http://%s\n", addr.to_string().c_str());
-     logf("Server: http://%s\n", addr.to_string().c_str());
+   debugf("Server: http://%s\n", s2c(addr.to_string()));
+     logf("Server: http://%s\n", s2c(addr.to_string()));
 
    if( USE_REPORT )
      listen_count.inc();
@@ -218,12 +219,10 @@ std::shared_ptr<Listen>
      socklen_t         size,        // sizeof(addr)
      const Options*    opts)        // Listener Options
 {  if( HCDM )
-     debugh("Listen::make(%p,%p) %s\n", agent, opts, addr.to_string().c_str());
+     debugh("Listen::make(%p,%p) %s\n", agent, opts, s2c(addr.to_string()));
 
-   std::shared_ptr<Listen> listen=
-      std::make_shared<Listen>(agent, addr, size, opts);
+   std::shared_ptr<Listen> listen(new Listen(agent, addr, size, opts));
    listen->self= listen;
-
    return listen;
 }
 
@@ -252,7 +251,7 @@ void
      string S= server->get_peer_addr().to_string();
      if( index )
        debugf("\n");
-     debugf(">>[%2d] Server(%p): %s\n", index, server.get(), S.c_str());
+     debugf(">>[%2d] Server(%p): %s\n", index, server.get(), s2c(S));
      server->debug(info);
      ++index;
      debugf("--------------------------------\n");
@@ -533,8 +532,7 @@ void
      // Check for duplicate
      const_iterator it= map.find(key);
      if( it != map.end() ) {
-       debugh("Listen::map_insert(%s) duplicate\n"
-             , key.to_string().c_str());
+       debugh("Listen::map_insert(%s) duplicate\n", s2c(key.to_string()));
        return;
      }
 
@@ -548,7 +546,7 @@ void
    }}}}
 
    if( HCDM )
-     debugh("Listen(%p)::insert(%s) %p\n", this, key.to_string().c_str()
+     debugh("Listen(%p)::insert(%s) %p\n", this, s2c(key.to_string())
            , server.get() );
 }
 
@@ -569,7 +567,7 @@ std::shared_ptr<Server>             // The associated Server
 
    if( HCDM )
      debugh("%p= Listen(%p)::locate(%s)\n", server.get(), this
-           , id.to_string().c_str());
+           , s2c(id.to_string()));
 
    return server;
 }
@@ -585,7 +583,7 @@ void
      iterator it= map.find(id);     // Locate the entry
      if( it == map.end() ) {        // If not found
        debugh("Listen(%p)::map_remove(%s) not found\n", this
-             , id.to_string().c_str());
+             , s2c(id.to_string()));
        return;
      }
 
@@ -597,6 +595,6 @@ void
    }}}}
 
    if( HCDM )
-     debugh("Listen(%p)::remove(%s)\n", this, id.to_string().c_str());
+     debugh("Listen(%p)::remove(%s)\n", this, s2c(id.to_string()));
 }
 }  // namespace _LIBPUB_NAMESPACE::http

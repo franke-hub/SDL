@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2024 Frank Eskesen.
+//       Copyright (C) 2022-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       HTTP Listen object.
 //
 // Last change date-
-//       2024/12/20
+//       2025/01/11
 //
 // Implementation notes-
 //       The Listen object is the Server analog to a Client Agent.
@@ -117,14 +117,16 @@ void
                        ...) const;  // The PRINTF argument list
 
 //----------------------------------------------------------------------------
-// Listen::Constructor, destructor, creator, init_request (helper)
+// Listen::Constructor, destructor, creator
 //----------------------------------------------------------------------------
-public:
+protected:
    Listen(                          // Constructor
      ListenAgent*      agent,       // The creating ListenAgent
      const sockaddr_u& addr,        // Target internet address
      socklen_t         size,        // sizeof(addr)
      const Options*    opts= nullptr); // Listen options
+
+public:
    ~Listen( void );                 // Destructor
 
 static std::shared_ptr<Listen>      // The Listener

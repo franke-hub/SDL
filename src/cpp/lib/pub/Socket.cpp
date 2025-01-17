@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2024 Frank Eskesen.
+//       Copyright (C) 2019-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2024/12/20
+//       2025/01/11
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -72,7 +72,7 @@ enum
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 
 ,  USE_CHECKING= true               // Use internal cross-checking?
-,  USE_ITRACE= true                 // Use internal trace?
+,  USE_ITRACE= false                // Use internal trace?
 }; // enum
 
 // Maximum/minimum sockaddr_u lengths
@@ -218,7 +218,7 @@ void
 //       Convert (sockaddr_u) to string
 //
 // Implementation notes-
-//       Families AF_INET, AF_INET6, and IF_UNIX are currently supported.
+//       Families AF_INET, AF_INET6, and AF_UNIX are currently supported.
 //       Others can be added if desired.
 //
 //----------------------------------------------------------------------------

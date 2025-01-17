@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2024 Frank Eskesen.
+//       Copyright (c) 2024-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Load built-in classes
 //
 // Last change date-
-//       2024/12/20
+//       2025/01/16
 //
 // Implementation notes-
 //       TODO: REMOVE TESTING CODE
@@ -33,7 +33,7 @@
 #include "Loader.h"                 // For Loader, implemented
 #include "Service.h"                // For Service (base class)
 
-#include "Thing.h"                  // For (a debugging) Thing
+#include "HttpMapper.h"             // For HttpMapper::status
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging subroutines
@@ -225,25 +225,6 @@ virtual Command::resultant          // Resultant
 //----------------------------------------------------------------------------
 //
 // Class-
-//       Command_quit
-//
-// Purpose-
-//       Terminate processing
-//
-//----------------------------------------------------------------------------
-class Command_quit : public Command {
-public:
-   Command_quit() : Command("quit")
-{  }
-
-virtual Command::resultant          // Resultant
-   main(int, char**)                // Handle Command
-{  Common::get()->shutdown(); return nullptr; }
-}  command_quit; // static class Command_quit
-
-//----------------------------------------------------------------------------
-//
-// Class-
 //       Command_status
 //
 // Purpose-
@@ -258,36 +239,17 @@ public:
 virtual Command::resultant          // Resultant
    main(int, char**)                // Handle Command
 {
+   // Reset WorkerPool
+   pub::WorkerPool::reset();
+   pub::Thread::sleep(0.25);
+
    // Display Thread status
    pub::Thread::static_debug("status");
 
    // Display Listener status
    debugf("\n");
-   Command::command("listen status");
+   HttpMapper::get()->status();
 
    return nullptr;
 }
 }  command_status; // static class Command_status
-
-//----------------------------------------------------------------------------
-//
-// Static class-
-//       Command_junk
-//
-// Purpose-
-//       Return something
-//
-//----------------------------------------------------------------------------
-static class Command_junk : public Command {
-public:
-   Command_junk() : Command("junk")
-{  }
-
-virtual Command::resultant          // Resultant
-   main(int, char**)                // Handle Command
-{
-   debugh("junk junk junk junk. Yeah!\n");
-
-   return std::make_shared<Thing>(); // See if it auto-magically disappears
-}
-}  command_junk; // static class Command_junk

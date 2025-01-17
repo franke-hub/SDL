@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2024 Frank Eskesen.
+//       Copyright (C) 2019-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Worker object methods.
 //
 // Last change date-
-//       2024/11/20
+//       2025/01/16
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<>
@@ -37,14 +37,10 @@ using std::atomic_size_t;
 //----------------------------------------------------------------------------
 // Constants for parameterization
 //----------------------------------------------------------------------------
-#ifndef HCDM
-#undef  HCDM                        // If defined, Hard Core Debug Mode
-#endif
-
-//----------------------------------------------------------------------------
-// Dependent macros
-//----------------------------------------------------------------------------
-#include <pub/ifmacro.h>
+enum                                // Generic enum
+{  HCDM= false                      // Hard Core Debug Mode?
+,  VERBOSE= 0                       // Verbosity, higher is more verbose
+}; // (Generic) enum
 
 namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
@@ -70,6 +66,23 @@ static atomic_size_t   running(0);  // Current number of running threads
 static const unsigned  size= MAX_THREADS; // Size of thread pool
 static unsigned        used= 0;     // Current number of pool threads
 static atomic_size_t   workers(0);  // Number of WorkerPool::work() invocations
+
+//----------------------------------------------------------------------------
+// Global constructor/destructor
+//----------------------------------------------------------------------------
+namespace {                         // Anonymous namespace
+static struct Global_init_term {
+   Global_init_term( void )
+{  if( HCDM ) debugh("Worker::Global_init_term!\n"); }
+
+   ~Global_init_term( void )
+{  if( HCDM ) debugh("Worker::Global_init_term~\n");
+
+   WorkerPool::reset();
+   Thread::sleep(0.25);
+}
+}  global_init_term;
+}  // Anonymous namespace
 
 //----------------------------------------------------------------------------
 //

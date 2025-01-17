@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2024 Frank Eskesen.
+//       Copyright (C) 2022-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       HTTP Server object.
 //
 // Last change date-
-//       2024/11/26
+//       2025/01/11
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_SERVER_H_INCLUDED
@@ -111,15 +111,16 @@ sequence_t             sequence= 0; // ServerItem sequence number
 serialno_t             serialno= 0; // Server serial number
 
 //----------------------------------------------------------------------------
-// Server::Constructor, creator, destructor
+// Server::Constructor, destructor, creator
 //----------------------------------------------------------------------------
-public:
+protected:
    Server(Listen*, Socket*);        // Constructor
+
+public:
+   ~Server( void );                 // Destructor
 
 static std::shared_ptr<Server>
    make(Listen*, Socket*);          // Creator
-
-   ~Server( void );                 // Destructor
 
 //----------------------------------------------------------------------------
 // Server::Accessor methods

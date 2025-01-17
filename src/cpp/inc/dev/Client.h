@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2024 Frank Eskesen.
+//       Copyright (C) 2022-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       HTTP Client object.
 //
 // Last change date-
-//       2024/11/26
+//       2025/01/11
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_HTTP_CLIENT_H_INCLUDED
@@ -119,17 +119,18 @@ sequence_t             sequence= 0; // ClientItem sequence number
 serialno_t             serialno= 0; // Client serial number
 
 //----------------------------------------------------------------------------
-// Client::Constructor, creator, destructor
+// Client::Constructor, destructor, creator
 //----------------------------------------------------------------------------
-public:
+protected:
    Client(                          // Constructor
      ClientAgent*      owner);      // Our Agent
+
+public:
+   ~Client( void );                 // Destructor
 
 static std::shared_ptr<Client>      // The Client
    make(                            // Create Client
      ClientAgent*      owner);      // Our Agent
-
-   ~Client( void );                 // Destructor
 
 //----------------------------------------------------------------------------
 // Client::debug

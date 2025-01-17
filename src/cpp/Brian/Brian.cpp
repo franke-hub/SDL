@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2024 Frank Eskesen.
+//       Copyright (c) 2019-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Brian mainline.
 //
 // Last change date-
-//       2024/12/20
+//       2025/01/17
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For getenv
@@ -26,15 +26,17 @@
 #include <getopt.h>                 // For getopt()
 #include <unistd.h>                 // For close, ...
 #include <sys/mman.h>               // For mmap, munmap, ...
+#include <sys/signal.h>             // For signal, ...
 
 #include <pub/Debug.h>              // For namespace debugging
 #include <pub/Exception.h>          // For catch(pub::Exception)
+#include <pub/Signals.h>            // For pub::signals
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Trace.h>              // For pub::Trace
+#include <pub/Worker.h>             // For pub::WorkerPool
 
-#include "_STATUS.H"                // For _STATUS
 #include "Command.h"                // For Command
-#include "Common.h"                 // For Common
+#include "Common.h"                 // For Common, StaticCommon
 #include "Loader.h"                 // For Loader
 
 #define PUB _LIBPUB_NAMESPACE
@@ -76,6 +78,12 @@ enum OPT_INDEX
 };
 
 //----------------------------------------------------------------------------
+// Forward references
+//----------------------------------------------------------------------------
+static void sig_handler(int);       // The signal handler
+static inline void term( void );    // Terminate
+
+//----------------------------------------------------------------------------
 // External references
 //----------------------------------------------------------------------------
 Loader                 loader;      // Include built-in objects
@@ -85,6 +93,13 @@ Loader                 loader;      // Include built-in objects
 //----------------------------------------------------------------------------
 Common*                common= nullptr; // Brian's Common area
 void*                  trace_table= nullptr; // Internal trace table
+
+// Signal handlers
+typedef void           (*sig_handler_t)(int);
+static sig_handler_t   sys1_handler= nullptr; // System SIGINT  signal handler
+static sig_handler_t   sys2_handler= nullptr; // System SIGSEGV signal handler
+static sig_handler_t   usr1_handler= nullptr; // System SIGUSR1 signal handler
+static sig_handler_t   usr2_handler= nullptr; // System SIGUSR2 signal handler
 
 //----------------------------------------------------------------------------
 //
@@ -121,8 +136,8 @@ static void
 {
    fprintf(stderr, "Brian [options]\n"
                    "Options:\n"
-                   "  --debug=file_name\n"
-                   "  --verbosity{=value}\n"
+                   "  --hcdm\n"
+                   "  --verbose{=value}\n"
           );
 
    exit(EXIT_FAILURE);
@@ -190,6 +205,9 @@ static void*                        // The (initialized) trace file
 static inline void
    init( void )                     // Initialize
 {
+   // Set intensive debug mode
+   debug_set_mode(Debug::MODE_INTENSIVE);
+
    // Startup message
    char buffer[64];
    time_t now= time(nullptr);       // The current time
@@ -212,9 +230,77 @@ static inline void
    // Initialize trace table
    trace_table= init_trace("./trace.mem", opt_trace);
 
+   //-------------------------------------------------------------------------
+   // Initialize signal handling
+   sys1_handler= signal(SIGINT,  sig_handler);
+   sys2_handler= signal(SIGSEGV, sig_handler);
+   usr1_handler= signal(SIGUSR1, sig_handler);
+   usr2_handler= signal(SIGUSR2, sig_handler);
+
    // Startup complete event
-   StaticCommon::Sevent_t& event= static_common->event;
+   StaticCommon::Sevent_t event= static_common->event;
    static_common->startup_complete.signal(event); // Raise startup_complete
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       sig_handler
+//
+// Purpose-
+//       Handle signals.
+//
+//----------------------------------------------------------------------------
+static void
+   sig_handler(                     // Handle signals
+     int               id)          // The signal identifier
+{
+   static int recursion= 0;         // Signal recursion depth
+   if( recursion ) {                // If signal recursion
+     fprintf(stderr, "sig_handler(%d) recursion\n", id);
+     fflush(stderr);
+     exit(EXIT_FAILURE);
+   }
+
+   // Handle signal
+   recursion++;                     // Disallow recursion
+   const char* text= "<<Unexpected>>";
+   if( id == SIGINT ) text= "SIGINT";
+   else if( id == SIGSEGV ) text= "SIGSEGV";
+   else if( id == SIGUSR1 ) text= "SIGUSR1";
+   else if( id == SIGUSR2 ) text= "SIGUSR2";
+   fprintf(stderr, "sig_handler(%d) %s\n", id, text);
+
+   switch(id) {                     // Handle the signal
+     case SIGINT:                   // (Console CTRL-C)
+       Trace::trace(".BUG", __LINE__, text);
+       debug_set_mode(Debug::MODE_INTENSIVE);
+       term();                      // Termination cleanup, then
+       exit(EXIT_FAILURE);          // Unconditional immediate exit
+       break;
+
+     case SIGSEGV:                  // (Program fault)
+       Trace::trace(".BUG", __LINE__, text);
+       debug_set_mode(Debug::MODE_INTENSIVE);
+       debug_backtrace();           // Attempt diagnosis (recursion aborts)
+       debugf("SIGSEGV: terminated\n");
+       exit(EXIT_FAILURE);
+       break;
+
+     case SIGUSR1:                  // Diagnostic signal
+     case SIGUSR2: {
+       Trace::trace(".SIG", __LINE__, text);
+       StaticCommon::Sevent_t event;
+       event.id= id;
+       static_common->run_diagnostics.signal(event);
+       break;
+     }
+     default:                       // (Unexpected)
+       Trace::trace(".BUG", __LINE__, text);
+       break;                       // (No configured action)
+   }
+
+   recursion--;
 }
 
 //----------------------------------------------------------------------------
@@ -387,11 +473,11 @@ extern int                          // Return code
      //-----------------------------------------------------------------------
      // Wait for quit command
      common->wait();
+     pub::WorkerPool::reset();
 
      // Termination delay longer than Server read timeout
      // printf("(Termination delay)\n");
-     // Thread::sleep(3.125);          // Termination cleanup delay
-
+     // Thread::sleep(3.125);       // Termination cleanup delay
    } catch(const char* X) {
      debugh("Exception(const char* %s)\n", X);
    } catch(Exception& X) {

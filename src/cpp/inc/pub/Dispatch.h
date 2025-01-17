@@ -16,7 +16,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2025/01/09
+//       2025/01/15
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCH_H_INCLUDED
@@ -37,12 +37,12 @@ namespace dispatch {
 class Done;                         // pub::dispatch::Done
 class Item;                         // pub::dispatch::Item
 class Task;                         // pub::dispatch::Task
-class Timers;                       // pub::dispatch:Timers (INTERNAL)
+class Timers;                       // pub::dispatch::Timers (INTERNAL)
 
 //----------------------------------------------------------------------------
 //
 // Static class-
-//       dispatch::Disp
+//       pub::dispatch::Disp
 //
 // Purpose-
 //       Work dispatcher. (All methods are static.)
@@ -50,26 +50,26 @@ class Timers;                       // pub::dispatch:Timers (INTERNAL)
 //----------------------------------------------------------------------------
 class Disp {                        // The dispatcher (static class)
 //----------------------------------------------------------------------------
-// Disp::Attributes
+// pub::dispatch::Disp::Attributes
 //----------------------------------------------------------------------------
 private:
 static Latch           mutex;       // Timers mutex
 static Timers*         timers;      // The Timers Thread
 
 //----------------------------------------------------------------------------
-// Disp::Constructors
+// pub::dispatch::Disp::Constructors
 //----------------------------------------------------------------------------
 public:
    Disp( void ) = delete;           // There are NO constructors
 
 //----------------------------------------------------------------------------
-// Disp::Methods
+// pub::dispatch::Disp::Methods
 //----------------------------------------------------------------------------
 static void
    debug( void );                    // Debugging display
 
 //----------------------------------------------------------------------------
-// Disp::cancel()
+// pub::dispatch::Disp::cancel()
 //
 // Call this method to cancel a timer workUnit. If cancelled, the associated
 // Item COMPLETES with a completion code of Item::CC_PURGE.
@@ -79,7 +79,7 @@ static void
      void*             token);      // Cancellation token
 
 //----------------------------------------------------------------------------
-// Disp::delay()
+// pub::dispatch::Disp::delay()
 //
 // The associated Item completes after the specified number of seconds with
 // a completion code of CC_NORMAL. The delay may be cancelled by calling the
@@ -91,7 +91,7 @@ static void*                        // Cancellation token
      Item*             item);       // Complete this work Item
 
 //----------------------------------------------------------------------------
-// Disp::enqueue()
+// pub::dispatch::Disp::enqueue()
 //
 // Insert an Item onto a Task's todo list. Tasks handle one Item at a time,
 // under one execution Thread.
@@ -102,7 +102,7 @@ static void
      Item*             item);       // This Item
 
 //----------------------------------------------------------------------------
-// Disp::post()
+// pub::dispatch::Disp::post()
 //
 // Pass the work Item to a different task for completion.
 //----------------------------------------------------------------------------
@@ -112,19 +112,19 @@ static void
      int               _cc= 0);     // With this completion code
 
 //----------------------------------------------------------------------------
-// Disp::shutdown()
+// pub::dispatch::Disp::shutdown()
 //
 // Terminate Dispatcher delay processing. When this function is invoked, all
 // current delay() operations are posted with the CC_PURGE completion code.
 //----------------------------------------------------------------------------
 static void
    shutdown( void );                // Terminate delay processing
-}; // class Disp
+}; // class pub::dispatch::Disp
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       dispatch::Done
+//       pub::dispatch::Done
 //
 // Purpose-
 //       The Dispatcher Done callback Object
@@ -132,7 +132,7 @@ static void
 //----------------------------------------------------------------------------
 class Done {                        // The dispatch::Done callback Object
 //----------------------------------------------------------------------------
-// Done::Constructors/destructor
+// pub::dispatch::Done::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
    Done( void ) {}                  // Default constructor
@@ -144,18 +144,18 @@ virtual
    ~Done( void ) {}                 // Destructor
 
 //----------------------------------------------------------------------------
-// Done::Methods
+// pub::dispatch::Done::Methods
 //----------------------------------------------------------------------------
 public:
 virtual void                        // OVERRIDE this method
    done(                            // Complete
      Item*             item) = 0;   // This work Item
-}; // class Done
+}; // class pub::dispatch::Done
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       Item
+//       pub::dispatch::Item
 //
 // Purpose-
 //       The Dispatcher work Item Object.
@@ -171,14 +171,15 @@ virtual void                        // OVERRIDE this method
 //----------------------------------------------------------------------------
 class Item : public AI_list<Item>::Link { // A dispatcher work item
 //----------------------------------------------------------------------------
-// Item::Enumerations and typedefs
+// pub::dispatch::Item::Enumerations and typedefs
 //----------------------------------------------------------------------------
 public:
 enum CC                             // Completion codes
 {  CC_NORMAL= 0                     // Normal (OK)
 ,  CC_PURGE= -1                     // Function purged
 ,  CC_ERROR= -2                     // Generic error
-,  CC_ERROR_FC= -3                  // Invalid function code
+,  CC_ERROR_FC= -3                  // Invalid Function Code
+,  CC_ERROR_IT= -4                  // Invalid Item Type
 }; // enum CC
 
 enum FC                             // Function codes
@@ -188,14 +189,14 @@ enum FC                             // Function codes
 }; // enum FC
 
 //----------------------------------------------------------------------------
-// Item::Attributes
+// pub::dispatch::Item::Attributes
 //----------------------------------------------------------------------------
 int                    fc= FC_VALID;  // Function code
 int                    cc= CC_NORMAL; // Completion code
 Done*                  done= nullptr; // Completion callback
 
 //----------------------------------------------------------------------------
-// Item::Constructors/destructor
+// pub::dispatch::Item::Constructors/destructor
 //----------------------------------------------------------------------------
    Item( void ) = default;          // Default constructor
 
@@ -216,7 +217,7 @@ private:
    Item& operator=(const Item&) = delete; // Disallowed assignment operator
 
 //----------------------------------------------------------------------------
-// Item::Methods
+// pub::dispatch::Item::Methods
 //----------------------------------------------------------------------------
 public:
 virtual void
@@ -233,12 +234,12 @@ void
      delete this;
    }
 }
-}; // class Item
+}; // class pub::dispatch::Item
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       dispatch::Task
+//       pub::dispatch::Task
 //
 // Purpose-
 //       The Dispatch Task.
@@ -254,13 +255,13 @@ void
 //----------------------------------------------------------------------------
 class Task : public Worker {        // Dispatch Task
 //----------------------------------------------------------------------------
-// Task::Attributes
+// pub::dispatch::Task::Attributes
 //----------------------------------------------------------------------------
 protected:
 AI_list<Item>          itemList;    // The Work item list
 
 //----------------------------------------------------------------------------
-// Task::Constructors/destructor
+// pub::dispatch::Task::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
    Task( void )                     // Default constructor
@@ -273,7 +274,7 @@ virtual
    ~Task( void );                   // Destructor
 
 //----------------------------------------------------------------------------
-// Task::Methods
+// pub::dispatch::Task::Methods
 //----------------------------------------------------------------------------
 virtual void
    debug(const char* info= "") const; // Debugging display
@@ -287,73 +288,20 @@ void
      WorkerPool::work(this);        // Schedule this Task
 }
 
-virtual void                        // The Worker interface
-   work( void ) final;              // Drain work from Task
-
+protected:
 virtual void                        // (IMPLEMENT this method)
    work(                            // Process
      Item*             item);       // This work Item
-}; // class Task
-
-//----------------------------------------------------------------------------
-//
-// Class-
-//       dispatch::LambdaDone
-//
-// Purpose-
-//       The Dispatcher Done callback Object
-//
-// Implementation notes-
-//       The LambdaDone object uses the done() method to provide an
-//       alternate method for overriding it.
-//       The original done() method now "belongs" to LambdaDone.
-//
-//----------------------------------------------------------------------------
-class LambdaDone : public Done {    // The dispatch::LambdaDone callback Object
-//----------------------------------------------------------------------------
-// LambdaDone::Attributes
-//----------------------------------------------------------------------------
-public:
-typedef std::function<void(Item*)> function_t; // Work handler
-
-protected:
-function_t             callback;    // The Work item handler
-
-//----------------------------------------------------------------------------
-// LambdaDone::Constructors/destructor
-//----------------------------------------------------------------------------
-public:
-   LambdaDone( void )               // Default constructor
-:  Done() {}                        // (Callback not initialized)
-
-   LambdaDone(function_t f)         // Constructor
-:  Done(), callback(f) {}
-
-   LambdaDone(const LambdaDone&) = delete; // Disallowed copy constructor
-   LambdaDone& operator=(const LambdaDone&) = delete; // Disallowed assignment operator
-
-virtual
-   ~LambdaDone( void ) = default;   // Destructor
-
-//----------------------------------------------------------------------------
-// LambdaDone::Methods
-//----------------------------------------------------------------------------
-public:
-void
-   on_done(function_t f)            // Replace callback
-{  callback= f; }
 
 private:
-virtual void
-   done(                            // Complete
-     Item*             item)        // This work Item
-{  callback(item); }
-}; // class LambdaDone
+void                                // The Worker interface
+   work( void ) final;              // Drain work from Task
+}; // class pub::dispatch::Task
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       Wait
+//       pub::dispatch::Wait
 //
 // Purpose-
 //       The Wait until done Object
@@ -370,13 +318,13 @@ virtual void
 //----------------------------------------------------------------------------
 class Wait : public Done {          // The dispatcher Wait until Done Object
 //----------------------------------------------------------------------------
-// Wait::Attributes
+// pub::dispatch::Wait::Attributes
 //----------------------------------------------------------------------------
 private:
 Event                  event;       // For wait/post
 
 //----------------------------------------------------------------------------
-// Wait::Constructors/destructor
+// pub::dispatch::Wait::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
    Wait( void ) : Done() {}         // Constructor
@@ -388,7 +336,7 @@ virtual
    ~Wait( void ) {}                 // Destructor
 
 //----------------------------------------------------------------------------
-// Wait::Methods
+// pub::dispatch::Wait::Methods
 //----------------------------------------------------------------------------
 void
    reset( void )                    // Reset for re-use
@@ -401,14 +349,76 @@ int32_t                             // The event code (Always positive)
 private:
 virtual void
    done(                            // Complete
-     Item*             item)        // This work Item
+     Item*             item) final  // This work Item
 {  event.post(item->cc); }
-}; // class Wait
+}; // class pub::dispatch::Wait
+
+//----------------------------------------------------------------------------
+//
+// Typedef-
+//       pub::dispatch::Work_i
+//
+// Purpose-
+//       Work method interface
+//
+//----------------------------------------------------------------------------
+typedef std::function<void(Item*)>
+                        Work_i;     // The work method interface
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       dispatch::LambdaTask
+//       pub::dispatch::LambdaDone
+//
+// Purpose-
+//       The Dispatcher Done callback Object
+//
+// Implementation notes-
+//       The LambdaDone object uses the done() method to provide an
+//       alternate method for overriding it.
+//       The original done() method now "belongs" to LambdaDone.
+//
+//----------------------------------------------------------------------------
+class LambdaDone : public Done {    // The dispatch::LambdaDone callback Object
+//----------------------------------------------------------------------------
+// pub::dispatch::LambdaDone::Attributes
+//----------------------------------------------------------------------------
+protected:
+Work_i                 do_done;     // The completion handler
+
+//----------------------------------------------------------------------------
+// pub::dispatch::LambdaDone::Constructors/destructor
+//----------------------------------------------------------------------------
+public:
+   LambdaDone( void )               // Default constructor
+:  Done() {}                        // (Callback not initialized)
+
+   LambdaDone(Work_i f)             // Constructor
+:  Done(), do_done(f) {}
+
+   LambdaDone(const LambdaDone&) = delete; // Disallowed copy constructor
+   LambdaDone& operator=(const LambdaDone&) = delete; // Disallowed assignment operator
+
+virtual
+   ~LambdaDone( void ) = default;   // Destructor
+
+//----------------------------------------------------------------------------
+// pub::dispatch::LambdaDone::Methods
+//----------------------------------------------------------------------------
+void
+   on_done(Work_i f)                // Replace do_done
+{  do_done= f; }
+
+virtual void
+   done(                            // Complete
+     Item*             item) final  // This work Item
+{  do_done(item); }
+}; // class pub::dispatch::LambdaDone
+
+//----------------------------------------------------------------------------
+//
+// Class-
+//       pub::dispatch::LambdaTask
 //
 // Purpose-
 //       A Dispatch Task using a std::function
@@ -426,11 +436,8 @@ virtual void
 //
 //----------------------------------------------------------------------------
 class LambdaTask : public Task {    // Dispatch Lambda Task
-public:
-typedef std::function<void(Item*)> function_t; // Work handler
-
 protected:
-function_t             callback;    // The Work item handler
+Work_i                 do_work;     // The Work item handler
 
 public:
    LambdaTask( void )               // Default constructor
@@ -438,26 +445,25 @@ public:
 {  }
 
    LambdaTask(                      // Instantiate work method
-     function_t        f)           // With this lambda function
-:  Task(), callback(f) {}
+     Work_i            f)           // With this lambda function
+:  Task(), do_work(f) {}
 
 virtual
    ~LambdaTask( void ) = default;   // Destructor
 
 //----------------------------------------------------------------------------
-// LambdaTask::Methods
+// pub::dispatch::LambdaTask::Methods
 //----------------------------------------------------------------------------
 void
    on_work(                         // Instantiate work method
-     function_t        f)           // With this lambda function
-{  callback= f; }
+     Work_i            f)           // With this lambda function
+{  do_work= f; }
 
-private:
 virtual void
    work(                            // Process
-     Item*             item)        // This work Item
-{  callback(item); }
-}; // class LambdaTask
+     Item*             item) final  // This work Item
+{  do_work(item); }
+}; // class pub::dispatch::LambdaTask
 }  // namespace dispatch
 _LIBPUB_END_NAMESPACE
 #endif // _LIBPUB_DISPATCH_H_INCLUDED

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2024 Frank Eskesen.
+//       Copyright (C) 2019-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Select.h method implementations.
 //
 // Last change date-
-//       2024/12/20
+//       2025/01/11
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -70,7 +70,7 @@ enum
 ,  USE_AF= AF_INET                  // Use this address family
 ,  USE_CHECKING= true               // Use internal cross-checking?
 ,  USE_DO_SELECT= true              // Use internal socket->handler method?
-,  USE_ITRACE= true                 // Use internal trace?
+,  USE_ITRACE= false                // Use internal trace?
 }; // enum
 
 //----------------------------------------------------------------------------

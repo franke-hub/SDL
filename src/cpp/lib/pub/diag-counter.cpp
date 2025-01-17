@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2024 Frank Eskesen.
+//       Copyright (c) 2024-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement pub/diag-counter.h
 //
 // Last change date-
-//       2024/11/01
+//       2025/01/15
 //
 //----------------------------------------------------------------------------
 #include "pub/diag-counter.h"       // For pub::diag::counter, implemented
@@ -42,6 +42,7 @@ enum
 //----------------------------------------------------------------------------
 Counter::counter_t     Counter::c_count= 0; //  Constructor count
 Counter::counter_t     Counter::d_count= 0; //  Destructor count
+int                    Counter::hcdm= false; // Hard Core Debug Mode?
 
 //----------------------------------------------------------------------------
 // Subroutine plural: returns "" if argument is 1, otherwise "s"
@@ -81,7 +82,7 @@ static struct Static_global {
 //
 //----------------------------------------------------------------------------
    Counter::Counter( void )         // Default constructor
-{  if( HCDM ) debugf("pub::diag::Counter(%p)!\n", this);
+{  if( HCDM || hcdm ) debugf("pub::diag::Counter(%p)!\n", this);
 
    ++c_count;
 }
@@ -96,7 +97,7 @@ static struct Static_global {
 //
 //----------------------------------------------------------------------------
    Counter::~Counter( void )          // Destructor
-{  if( HCDM ) debugf("pub::diag::Counter(%p)~\n", this);
+{  if( HCDM || hcdm ) debugf("pub::diag::Counter(%p)~\n", this);
 
    ++d_count;
 }
@@ -121,5 +122,19 @@ void
    debugf("%8zd destructor%s\n",  Counter::d_count.load()
          , plural(Counter::d_count.load()));
 }
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       Counter::set_hcdm
+//
+// Purpose-
+//       Set/clear Hard Core Debug Mode
+//
+//----------------------------------------------------------------------------
+void
+   Counter::set_hcdm(               // Set/clear Hard Core Debug Mode
+     bool              _mode)       // New Hard Core Debug Mode
+{  hcdm= _mode; }
 }  // namespace diag
 }  // namespace _LIBPUB_NAMESPACE

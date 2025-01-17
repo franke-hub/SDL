@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2018-2024 Frank Eskesen.
+//       Copyright (C) 2018-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Thread method implementations.
 //
 // Last change date-
-//       2024/12/17
+//       2025/01/11
 //
 // Implementation note-
 //       We use Thread Local Storage to maintain the Thread::tlss state.
@@ -66,7 +66,7 @@ enum
 
 // Production mode settings: USE_CHECK= true; USE_TIMING= false
 ,  USE_CHECK= true                  // Use self-checking code?
-,  USE_ITRACE= true                 // Use internal trace?
+,  USE_ITRACE= false                // Use internal trace?
 ,  USE_TIMING= false                // Use timing code?
 }; // generic enum
 

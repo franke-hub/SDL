@@ -45,7 +45,7 @@
 //----------------------------------------------------------------------------
 class Command : public pub::Named { // Command
 //----------------------------------------------------------------------------
-// Command::Enumerations and typedefs
+// Command::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 typedef std::map<std::string, Command*>       Map_t; // The Map type

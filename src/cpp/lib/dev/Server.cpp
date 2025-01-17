@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2024 Frank Eskesen.
+//       Copyright (C) 2022-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement http/Server.h
 //
 // Last change date-
-//       2024/12/19
+//       2025/01/11
 //
 //----------------------------------------------------------------------------
 #include <atomic>                   // For std::atomic<serialno_t>
@@ -38,7 +38,7 @@
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Statistic.h>          // For pub::Active_record
 #include <pub/Trace.h>              // For pub::Trace
-#include <pub/utility.h>            // For namespace pub::utility::
+#include <pub/utility.h>            // For namespace pub::utility
 #include "pub/utility.i"            // For conversion routines
 #include "pub/http/Agent.h"         // For pub::http::ListenAgent
 #include "pub/http/Exception.h"     // For pub::http::exceptions
@@ -174,7 +174,7 @@ static void
 
      string V((const char*)addr, size);
      V= visify(V);
-     traceh("%4d Server::%s(%p,%zd)\n%s\n", line, op, addr, size, V.c_str());
+     traceh("%4d Server::%s(%p,%zd)\n%s\n", line, op, addr, size, s2c(V));
 
      errno= ERRNO;
    }
@@ -350,10 +350,7 @@ std::shared_ptr<Server>             // The Server
      Socket*           socket)      // The server Socket
 {  if( HCDM ) debugh("Server::make(%p,%p)\n", listen, socket);
 
-   std::shared_ptr<Server> server=
-      std::make_shared<Server>(listen, socket);
-//debugf("%4d Server make %p\n", __LINE__, &server);
-
+   std::shared_ptr<Server> server(new Server(listen, socket));
    server->self= server;
    return server;
 }
@@ -370,7 +367,7 @@ std::shared_ptr<Server>             // The Server
 void
    Server::debug(const char* info) const  // Debugging display
 {  debugf("Server(%p)::debug(%s) fsm(%d) %s\n", this, info
-         , fsm, get_peer_addr().to_string().c_str());
+         , fsm, s2c(get_peer_addr().to_string()));
 
    debugf("..sequence(%zd) serialno(%zd)\n", sequence, serialno);
    debugf("..listen(%p) socket(%p)\n", listen, socket);
@@ -734,7 +731,7 @@ if( L < 0 && IS_BLOCK ) {
 
    // Report I/O error
    string S= to_string("Server::read %d:%s", errno, strerror(errno));
-   error(S.c_str());
+   error(s2c(S));
    throw io_error(S);
 }
 

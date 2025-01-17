@@ -23,6 +23,9 @@
 //       novice user to understand what a Service is or how it might be used.
 //       That information (and more) can be found in "./Service.md",
 //
+//       TODO: change enumerations and typedefs to typedefs and enumerations
+//             GLOBAL, SYSTEM-WIDE
+//
 //----------------------------------------------------------------------------
 #ifndef SERVICE_H_INCLUDED
 #define SERVICE_H_INCLUDED
@@ -43,7 +46,7 @@
 class Service : public pub::Named { // Service
 friend class Common;
 //----------------------------------------------------------------------------
-// Service::Enumerations and typedefs
+// Service::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 typedef std::map<std::string, Service*>       Map_t; // The Map type

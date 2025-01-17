@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2024 Frank Eskesen.
+//       Copyright (c) 2024-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Diagnositic class/struct instance counter, used for debugging.
 //
 // Last change date-
-//       2024/11/01
+//       2025/01/15
 //
 // Implementation notes-
 //       To verify that a class or struct object doesn't leak memory, i.e.
@@ -71,6 +71,7 @@ typedef std::atomic<std::size_t>    counter_t; // The individual counter type
 //----------------------------------------------------------------------------
 static counter_t       c_count;     // Number of constructors
 static counter_t       d_count;     // Number of destructors
+static int             hcdm;        // Hard Core Debug Mode?
 
 //----------------------------------------------------------------------------
 // pub::diag::Counter::Constructors/destructor
@@ -86,6 +87,12 @@ virtual
 static void
    debug(                           // Debugging display
      const char*       info= "");   // Caller information
+
+//----------------------------------------------------------------------------
+// pub::diag::Counter::set_hcdm || Set/clear Hard Core Debug Mode
+//----------------------------------------------------------------------------
+static void
+   set_hcdm(bool);                  // Set/clear Hard Core Debug Mode
 }; // class Counter
 }  // namespace diag
 _LIBPUB_END_NAMESPACE

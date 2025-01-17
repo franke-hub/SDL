@@ -16,7 +16,7 @@
 ##       Run timing tests
 ##
 ## Last change date-
-##       2025/01/09
+##       2025/01/15
 ##
 ##############################################################################
 
@@ -43,6 +43,8 @@ echo "TEST: test_time.sh Timing tests (started)"
 ##############################################################################
 ## Run timing tests
 cmd TimeDisp
+cmd TimeDisp --items=4096 --tasks=32
+
 cmd TestDisp --timing
 cmd TestSock --runtime=30 --verbose --packet --stream --thread --worker
 cmd TestSock --runtime=30 --verbose --stream --thread --worker --ssl
