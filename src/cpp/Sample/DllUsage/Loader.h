@@ -54,7 +54,7 @@ class Interface;
 //----------------------------------------------------------------------------
 class Loader {                      // DLL Loader
 //----------------------------------------------------------------------------
-// Loader::Enumerations and typedefs
+// Loader::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 typedef    Interface* (*Makef)(void);

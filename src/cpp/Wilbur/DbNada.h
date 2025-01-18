@@ -53,7 +53,7 @@
 //----------------------------------------------------------------------------
 class DbNada : public DbBase {      // The Nada database
 //----------------------------------------------------------------------------
-// DbWord::Enumerations and typedefs
+// DbWord::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum                                // Generic enum

@@ -44,7 +44,7 @@
 //----------------------------------------------------------------------------
 struct Segment {                    // File Segment
 //----------------------------------------------------------------------------
-// Segment: Enumerations and typedefs
+// Segment: Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum {                              // Constants for parameterization
    SIZE=                      16384 // The data size of each segment

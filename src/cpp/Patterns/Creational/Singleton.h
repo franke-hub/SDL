@@ -35,7 +35,7 @@
 //----------------------------------------------------------------------------
 class Singleton : public Object {
 //----------------------------------------------------------------------------
-// Singleton::Enumerations and typedefs
+// Singleton::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 // None defined
@@ -119,7 +119,7 @@ static Singleton*
 class SampleSingleton : public Object
 {
 //----------------------------------------------------------------------------
-// SampleSingleton::Enumerations and typedefs
+// SampleSingleton::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -229,7 +229,7 @@ static HashTable       hashTable;   // Name-value pair
 class SampleSingleton0 : public SampleSingleton
 {
 //----------------------------------------------------------------------------
-// SampleSingleton0::Enumerations and typedefs
+// SampleSingleton0::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -274,7 +274,7 @@ static SampleSingleton0  __SampleSingleton0; // Instantiate, add to registry
 class SampleSingleton1 : public SampleSingleton
 {
 //----------------------------------------------------------------------------
-// SampleSingleton1::Enumerations and typedefs
+// SampleSingleton1::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined

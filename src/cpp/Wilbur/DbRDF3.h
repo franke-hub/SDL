@@ -77,7 +77,7 @@ Db*                    ixS2X;       // SUBJ  to INDEX database (multi-value)
 Db*                    ixO2X;       // OBJ   to INDEX database (multi-value)
 
 //----------------------------------------------------------------------------
-// DbRDF3::Enumerations and typedefs
+// DbRDF3::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum                                // Generic enum

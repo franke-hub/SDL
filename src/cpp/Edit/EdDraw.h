@@ -38,7 +38,7 @@ class Terminal;
 //----------------------------------------------------------------------------
 class EdDraw {                      // Editor display object.
 //----------------------------------------------------------------------------
-// EdDraw::Enumerations and typedefs
+// EdDraw::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum ColorSet                       // Color set

@@ -64,7 +64,7 @@ private:
 uint64_t               mask;        // The signal mask
 
 //----------------------------------------------------------------------------
-// Signal::Enumerations and typedefs
+// Signal::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum SignalCode                     // Signal code

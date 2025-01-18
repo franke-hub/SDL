@@ -35,7 +35,7 @@
 //----------------------------------------------------------------------------
 class Interface {                   // Generally has no base class
 //----------------------------------------------------------------------------
-// Interface::Enumerations and typedefs
+// Interface::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 // None defined
@@ -97,7 +97,7 @@ virtual int
 //----------------------------------------------------------------------------
 class SampleInterface1 : public Object, virtual public Interface {
 //----------------------------------------------------------------------------
-// SampleInterface1::Enumerations and typedefs
+// SampleInterface1::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 // None defined
@@ -139,7 +139,7 @@ virtual int
 //----------------------------------------------------------------------------
 class SampleInterface2 : public Object, virtual public Interface {
 //----------------------------------------------------------------------------
-// SampleInterface2::Enumerations and typedefs
+// SampleInterface2::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 // None defined

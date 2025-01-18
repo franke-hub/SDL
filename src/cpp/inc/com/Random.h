@@ -180,7 +180,7 @@ virtual void
 //----------------------------------------------------------------------------
 class PerfectRandom : public Random { // Perfect random number generator
 //----------------------------------------------------------------------------
-// PerfectRandom::Enumerations and typedefs
+// PerfectRandom::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum

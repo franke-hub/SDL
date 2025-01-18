@@ -49,7 +49,7 @@ class NetClient : public DispatchTask {
 friend NetClientTask;
 
 //----------------------------------------------------------------------------
-// NetClient::Enumerations and typedefs
+// NetClient::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum FSM                            // Finite State Machine States

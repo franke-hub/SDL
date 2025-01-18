@@ -65,7 +65,7 @@ struct DasdHeader                   // Disk file header
 struct DasdNew : public DasdHeader  // Disk file header
 {
 //----------------------------------------------------------------------------
-// DasdNew::Enumerations and typedefs
+// DasdNew::Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum
 {

@@ -38,7 +38,7 @@
 class EdMark                        // Editor mark descriptor
 {
 //----------------------------------------------------------------------------
-// Edit::Enumerations and typedefs
+// Edit::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum State                          // Mark state

@@ -39,7 +39,7 @@
 class AbstractObject : public Object
 {
 //----------------------------------------------------------------------------
-// AbstractObject::Enumerations and typedefs
+// AbstractObject::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -78,7 +78,7 @@ protected:
 class AbstractCreator : public Object
 {
 //----------------------------------------------------------------------------
-// AbstractCreator::Enumerations and typedefs
+// AbstractCreator::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -149,7 +149,7 @@ protected:
 class SampleAbstractObject : public AbstractObject
 {
 //----------------------------------------------------------------------------
-// SampleAbstractObject::Enumerations and typedefs
+// SampleAbstractObject::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -188,7 +188,7 @@ protected:
 class SampleAbstractCreator : public AbstractCreator
 {
 //----------------------------------------------------------------------------
-// SampleAbstractCreator::Enumerations and typedefs
+// SampleAbstractCreator::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -227,7 +227,7 @@ protected:
 class SampleCreator1ConcreteObject : public SampleAbstractObject
 {
 //----------------------------------------------------------------------------
-// SampleCreator1ConcreteObject::Enumerations and typedefs
+// SampleCreator1ConcreteObject::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -266,7 +266,7 @@ protected:
 class SampleConcreteCreator1 : public SampleAbstractCreator
 {
 //----------------------------------------------------------------------------
-// SampleConcreteCreator1::Enumerations and typedefs
+// SampleConcreteCreator1::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -305,7 +305,7 @@ protected:
 class SampleCreator2ConcreteObject : public SampleAbstractObject
 {
 //----------------------------------------------------------------------------
-// SampleCreator2ConcreteObject::Enumerations and typedefs
+// SampleCreator2ConcreteObject::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -344,7 +344,7 @@ protected:
 class SampleConcreteCreator2 : public SampleAbstractCreator
 {
 //----------------------------------------------------------------------------
-// SampleConcreteCreator2::Enumerations and typedefs
+// SampleConcreteCreator2::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined

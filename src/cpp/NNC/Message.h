@@ -100,7 +100,7 @@ inline const char*                  // The (unformatted) message text
 }; // struct Message::MessageLink
 
 //----------------------------------------------------------------------------
-// Message::Enumerations and typedefs
+// Message::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum Ident                          // Message identifier (alias)

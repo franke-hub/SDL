@@ -41,7 +41,7 @@ namespace _OBJ_NAMESPACE {
 //----------------------------------------------------------------------------
 class Thread : public Object {      // The Thread Object
 //----------------------------------------------------------------------------
-// Thread::Enumerations and typedefs
+// Thread::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 typedef std::thread::id  id;

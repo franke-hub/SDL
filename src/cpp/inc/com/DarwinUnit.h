@@ -37,7 +37,7 @@
 //----------------------------------------------------------------------------
 class DarwinUnit {                  // DarwinUnit
 //----------------------------------------------------------------------------
-// DarwinUnit::Enumerations and typedefs
+// DarwinUnit::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 typedef unsigned long  Evaluation;  // Resultant for evaluate()

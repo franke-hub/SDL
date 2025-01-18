@@ -47,7 +47,7 @@ class Fanin;
 class Neuron                        // Neuron descriptor
 {
 //----------------------------------------------------------------------------
-// Neuron::Enumerations and typedefs
+// Neuron::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum                                // Generic constants

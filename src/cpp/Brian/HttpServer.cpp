@@ -280,7 +280,7 @@ std::shared_ptr<HttpServer>         // Creator
    std::shared_ptr<HttpServer> server(new HttpServer(_owner, _socket));
    server->self= server;
 
-// _owner->insert(server);
+   _owner->insert(server);
    return server;
 }
 
@@ -345,8 +345,8 @@ void
    std::lock_guard<decltype(mutex)> lock(mutex);
    if( socket ) {                   // (Only close/delete socket once)
      // Remove this HttpServer from HttpListen's map
-//   owner->remove(get_self());
-     if( HCDM ) debugh("close %s\n", s2c(get_peer()));
+     owner->remove(get_self());
+     if( HCDM ) debugh("HttpServer(%p)::close %s\n", this, s2c(get_peer()));
 
      socket->close();
      delete socket;

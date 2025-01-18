@@ -171,7 +171,7 @@ virtual void                        // OVERRIDE this method
 //----------------------------------------------------------------------------
 class Item : public AI_list<Item>::Link { // A dispatcher work item
 //----------------------------------------------------------------------------
-// pub::dispatch::Item::Enumerations and typedefs
+// pub::dispatch::Item::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum CC                             // Completion codes

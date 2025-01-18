@@ -60,7 +60,7 @@ uint32_t               traceOffset; // Trace area offset
 uint32_t               traceLength; // Trace area length
 
 //----------------------------------------------------------------------------
-// Service::Global::Enumerations and typedefs
+// Service::Global::Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum
 {  VALIDATOR=          0xfe010002   // Dataword validator

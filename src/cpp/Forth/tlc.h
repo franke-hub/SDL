@@ -52,7 +52,7 @@ using namespace pub::debugging;
 #include <pub/ifmacro.h>
 
 //----------------------------------------------------------------------------
-// Enumerations and typedefs
+// Typedefs and enumerations
 //----------------------------------------------------------------------------
 typedef void     (*Code)(void);     // A Code element
 typedef intptr_t   Data;            // A Data stack entry
@@ -125,7 +125,7 @@ T                                   // The top Stack element
 //----------------------------------------------------------------------------
 class WordMap {                     // The Name to Word Map
 //----------------------------------------------------------------------------
-// WordMap::Enumerations and typedefs
+// WordMap::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 typedef std::map<std::string, Word*>

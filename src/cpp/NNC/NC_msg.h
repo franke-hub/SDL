@@ -38,7 +38,7 @@
 class NC_msg : public Message       // Message table
 {
 //----------------------------------------------------------------------------
-// NC_msg::Enumerations and typedefs
+// NC_msg::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum MessageId                      // Message identifiers

@@ -22,7 +22,7 @@
 struct DasdOld : public DasdHeader  // Disk file header
 {
 //----------------------------------------------------------------------------
-// DasdOld::Enumerations and typedefs
+// DasdOld::Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum
 {

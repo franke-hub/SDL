@@ -44,7 +44,7 @@
 //----------------------------------------------------------------------------
 class FileInfo {
 //----------------------------------------------------------------------------
-// FileInfo::Enumerations and typedefs
+// FileInfo::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 typedef uint64_t       FileSize;    // File size, in bytes

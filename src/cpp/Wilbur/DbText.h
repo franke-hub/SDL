@@ -60,7 +60,7 @@ protected:
 Db*                    dbIndex;     // INDEX to VALUE database
 
 //----------------------------------------------------------------------------
-// DbText::Enumerations and typedefs
+// DbText::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum                                // Generic enum

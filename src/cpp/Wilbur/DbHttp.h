@@ -70,7 +70,7 @@ Db*                    ixName;      // NAME  to INDEX database
 Db*                    ixTime;      // TIME  to INDEX database
 
 //----------------------------------------------------------------------------
-// DbHttp::Enumerations and typedefs
+// DbHttp::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum                                // Generic enum

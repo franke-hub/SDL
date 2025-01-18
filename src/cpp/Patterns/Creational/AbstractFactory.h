@@ -39,7 +39,7 @@
 class AbstractFactory : public Object
 {
 //----------------------------------------------------------------------------
-// AbstractFactory::Enumerations and typedefs
+// AbstractFactory::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -110,7 +110,7 @@ protected:
 class SampleAbstractObject1 : public Object
 {
 //----------------------------------------------------------------------------
-// SampleAbstractObject1::Enumerations and typedefs
+// SampleAbstractObject1::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -149,7 +149,7 @@ protected:
 class SampleAbstractObject2 : public Object
 {
 //----------------------------------------------------------------------------
-// SampleAbstractObject2::Enumerations and typedefs
+// SampleAbstractObject2::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -188,7 +188,7 @@ protected:
 class SampleAbstractFactory : public AbstractFactory
 {
 //----------------------------------------------------------------------------
-// SampleAbstractFactory::Enumerations and typedefs
+// SampleAbstractFactory::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -230,7 +230,7 @@ protected:
 class SampleFactory1ConcreteObject1 : public AbstractObject1
 {
 //----------------------------------------------------------------------------
-// SampleFactory1ConcreteObject1::Enumerations and typedefs
+// SampleFactory1ConcreteObject1::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -269,7 +269,7 @@ protected:
 class SampleFactory1ConcreteObject2 : public AbstractObject2
 {
 //----------------------------------------------------------------------------
-// SampleFactory1ConcreteObject2::Enumerations and typedefs
+// SampleFactory1ConcreteObject2::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -308,7 +308,7 @@ protected:
 class SampleConcreteFactory1 : public SampleAbstractFactory
 {
 //----------------------------------------------------------------------------
-// SampleConcreteFactory1::Enumerations and typedefs
+// SampleConcreteFactory1::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -350,7 +350,7 @@ protected:
 class SampleFactory2ConcreteObject1 : public AbstractObject1
 {
 //----------------------------------------------------------------------------
-// SampleFactory2ConcreteObject1::Enumerations and typedefs
+// SampleFactory2ConcreteObject1::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -389,7 +389,7 @@ protected:
 class SampleFactory2ConcreteObject2 : public AbstractObject2
 {
 //----------------------------------------------------------------------------
-// SampleFactory2ConcreteObject2::Enumerations and typedefs
+// SampleFactory2ConcreteObject2::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -428,7 +428,7 @@ protected:
 class SampleConcreteFactory2 : public SampleAbstractFactory
 {
 //----------------------------------------------------------------------------
-// SampleConcreteFactory2::Enumerations and typedefs
+// SampleConcreteFactory2::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined

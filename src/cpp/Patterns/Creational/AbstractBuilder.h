@@ -39,7 +39,7 @@
 class AbstractBuilder : public Object
 {
 //----------------------------------------------------------------------------
-// AbstractBuilder::Enumerations and typedefs
+// AbstractBuilder::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -77,7 +77,7 @@ protected:
 class AbstractDirector : public Object
 {
 //----------------------------------------------------------------------------
-// AbstractDirector::Enumerations and typedefs
+// AbstractDirector::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -150,7 +150,7 @@ protected:
 class SampleAbstractBuilder : public AbstractBuilder
 {
 //----------------------------------------------------------------------------
-// SampleAbstractBuilder::Enumerations and typedefs
+// SampleAbstractBuilder::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -195,7 +195,7 @@ protected:
 class SampleConcreteBuilder1 : public SampleAbstractBuilder
 {
 //----------------------------------------------------------------------------
-// SampleConcreteBuilder1::Enumerations and typedefs
+// SampleConcreteBuilder1::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -246,7 +246,7 @@ protected:
 class SampleConcreteBuilder2 : public SampleAbstractBuilder
 {
 //----------------------------------------------------------------------------
-// SampleConcreteBuilder2::Enumerations and typedefs
+// SampleConcreteBuilder2::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined

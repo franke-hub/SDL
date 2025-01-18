@@ -46,7 +46,7 @@
 //----------------------------------------------------------------------------
 class NetClientItem : public DispatchItem {
 //----------------------------------------------------------------------------
-// NetClientItem::Enumerations and typedefs
+// NetClientItem::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum FC                             // Function codes

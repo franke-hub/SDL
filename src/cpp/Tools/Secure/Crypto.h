@@ -55,7 +55,7 @@
 #define BYTES_PER_WORD 4            // Number of bytes in a word (for #if)
 
 //----------------------------------------------------------------------------
-// Enumerations and typedefs
+// Typedefs and enumerations
 //----------------------------------------------------------------------------
 typedef uint32_t       Word;        // The unit of encryption
 

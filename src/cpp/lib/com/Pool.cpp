@@ -118,7 +118,7 @@ public:
    char                bot[ROUND - sizeof(AQEHead)];
 
 //----------------------------------------------------------------------------
-// PoolLink::Enumerations and typedefs
+// PoolLink::Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum
 {

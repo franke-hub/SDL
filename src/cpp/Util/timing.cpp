@@ -40,7 +40,7 @@
 #define ARRAY_SIZE          4000000 // Size of data array (in words)
 
 //----------------------------------------------------------------------------
-// Enumerations and typedefs
+// Typedefs and enumerations
 //----------------------------------------------------------------------------
 typedef void           (PROGRAM)(void); // A timing program
 

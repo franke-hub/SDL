@@ -107,7 +107,7 @@ uint32_t               language;    // Default language (index)
 uint32_t               langMask;    // Default language mask
 
 //----------------------------------------------------------------------------
-// DbWord::Enumerations and typedefs
+// DbWord::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum                                // Generic enum

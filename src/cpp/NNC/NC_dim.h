@@ -34,7 +34,7 @@
 struct NC_dim                       // Dimensionality
 {
 //----------------------------------------------------------------------------
-// NC_dim::Enumerations and typedefs
+// NC_dim::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum

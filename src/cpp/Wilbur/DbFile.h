@@ -74,7 +74,7 @@ Db*                    dbIndex;     // INDEX to VALUE database
 Db*                    ixValue;     // VALUE to INDEX database
 
 //----------------------------------------------------------------------------
-// DbFile::Enumerations and typedefs
+// DbFile::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum                                // Generic enum

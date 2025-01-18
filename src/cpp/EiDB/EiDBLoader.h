@@ -44,7 +44,7 @@ class Extractor;
 class EiDBLoader                    // Exon/Intron DataBase Loader
 {
 //----------------------------------------------------------------------------
-// EiDBLoader::Enumerations and typedefs
+// EiDBLoader::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum LOADMODE                       // Load mode

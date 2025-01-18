@@ -37,7 +37,7 @@
 //----------------------------------------------------------------------------
 class EdLine : public List<EdLine>::Link { // Editor line
 //----------------------------------------------------------------------------
-// EdLine::Enumerations and typedefs
+// EdLine::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum Delimiter                      // Delimiters

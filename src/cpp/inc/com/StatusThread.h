@@ -72,7 +72,7 @@ Semaphore              event;       // State switch event Semaphore
 ATOMIC32               fsm;         // Finite State Machine
 
 //----------------------------------------------------------------------------
-// StatusThread::Enumerations and typedefs
+// StatusThread::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum FSM                            // Finite State Machine states

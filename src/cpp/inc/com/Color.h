@@ -33,7 +33,7 @@
 //----------------------------------------------------------------------------
 struct RGBColor {                   // RGB Color enumeration
 //----------------------------------------------------------------------------
-// RGBColor::Enumerations and Typedefs
+// RGBColor::Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum                                // Red, Green, Blue array standard colors
 {
@@ -69,7 +69,7 @@ enum                                // Red, Green, Blue array standard colors
 //----------------------------------------------------------------------------
 struct VGAColor {                   // VGA Color enumeration
 //----------------------------------------------------------------------------
-// VGAColor::Enumerations and Typedefs
+// VGAColor::Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum                                // Video Graphics Array standard colors
 {

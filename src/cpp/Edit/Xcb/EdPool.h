@@ -42,7 +42,7 @@
 //----------------------------------------------------------------------------
 class EdPool : public pub::List<EdPool>::Link { // Editor text pool descriptor
 //----------------------------------------------------------------------------
-// EdPool::Enumerations and typedefs
+// EdPool::Typedefs and enumerations
 public:
 enum // Compile time constants
 {  MIN_SIZE= 65536                  // Minimum text pool size

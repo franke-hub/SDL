@@ -43,7 +43,7 @@
 //----------------------------------------------------------------------------
 class DarwinPlex {                  // DarwinUnit group
 //----------------------------------------------------------------------------
-// DarwinPlex::Enumerations and typedefs
+// DarwinPlex::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 typedef unsigned long  Generation;  // Generation index

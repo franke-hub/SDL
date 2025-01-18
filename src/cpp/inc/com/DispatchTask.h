@@ -49,7 +49,7 @@ friend class DispatchMaster;        // Only DispatchMaster accesses AU_Link
 friend class DispatchThread;        // Only DispatchThread invokes drain()
 
 //----------------------------------------------------------------------------
-// DispatchTask::Enumerations and typedefs
+// DispatchTask::Typedefs and enumerations
 //----------------------------------------------------------------------------
 protected:
 enum FSM                            // Finite State Machine

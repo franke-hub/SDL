@@ -60,7 +60,7 @@ class Prison;
 //----------------------------------------------------------------------------
 class Prisoner : public DarwinUnit {// Prisoner
 //----------------------------------------------------------------------------
-// Prisoner::Enumerations and typedefs
+// Prisoner::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum                                // Generic enumeration

@@ -50,7 +50,7 @@ class NetClientTask : public DispatchTask { // Host-specific NetClientItem proce
 friend class NetClient;
 
 //----------------------------------------------------------------------------
-// NetClientTask::Enumerations and typedefs
+// NetClientTask::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum FSM                            // Finite State Machine States

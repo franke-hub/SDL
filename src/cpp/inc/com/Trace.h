@@ -50,7 +50,7 @@ uint32_t               size;        // Available size of trace table
 uint32_t               wrap[4];     // Wrap counter
 
 //----------------------------------------------------------------------------
-// Trace::Enumerations and Typedefs
+// Trace::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum                                // Generic enum

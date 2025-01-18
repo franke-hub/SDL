@@ -37,7 +37,7 @@
 //----------------------------------------------------------------------------
 class Prison : public DarwinPlex {  // Prison
 //----------------------------------------------------------------------------
-// Prison::Enumerations and typedefs
+// Prison::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum CompletionReason               // Completion reason

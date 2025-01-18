@@ -87,7 +87,7 @@ namespace NETWORK_H_NAMESPACE {
 inline std::string demangle(const char*); // Instantiated in this file
 
 //----------------------------------------------------------------------------
-// NN::Enumerations and typedefs
+// NN::Typedefs and enumerations
 //----------------------------------------------------------------------------
 typedef std::size_t    size_t;      // Import std::size_t type
 

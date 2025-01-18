@@ -84,7 +84,7 @@ class CountingReader;
 struct NC_com : public Zeroed        // NC: Common area
 {
 //----------------------------------------------------------------------------
-// NC_com::Enumerations and typedefs
+// NC_com::Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum Pass                           // Pass number
 {

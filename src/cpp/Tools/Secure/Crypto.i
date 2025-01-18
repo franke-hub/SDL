@@ -47,7 +47,7 @@
 #define outfile             argv[2] // Output file name
 
 //----------------------------------------------------------------------------
-// Enumerations and typedefs
+// Typedefs and enumerations
 //----------------------------------------------------------------------------
 struct Tcw                          // Translation control words
 {

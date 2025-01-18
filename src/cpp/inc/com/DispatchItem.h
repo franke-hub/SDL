@@ -46,7 +46,7 @@
 class DispatchItem : public AU_List<DispatchItem>::Link { // A dispatcher work item
 friend class DispatchTask;          // Accesses AU_Link in method debug
 //----------------------------------------------------------------------------
-// DispatchItem::Enumerations and typedefs
+// DispatchItem::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum CC                             // Completion codes

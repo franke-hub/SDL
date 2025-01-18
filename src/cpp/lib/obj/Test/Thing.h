@@ -59,7 +59,7 @@
 class Thing;                            // Forward reference
 class Thing_base {                      // Self-checking Thing
 //----------------------------------------------------------------------------
-// Thing_base::Enumerations and Typedefs
+// Thing_base::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum // Generic enum

@@ -55,7 +55,7 @@
 #define STS_RALT             0x0001 // Right ALT key is depressed
 
 //----------------------------------------------------------------------------
-// Enumerations and Typedefs
+// Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum State                          // Keyboard state
 {  SYSREQ=                   0x8000 // SysReq key

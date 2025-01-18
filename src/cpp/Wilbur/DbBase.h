@@ -53,7 +53,7 @@ class DbTxn;                        // Used here
 //----------------------------------------------------------------------------
 class DbBase : public List<DbBase>::Link { // DbBase
 //----------------------------------------------------------------------------
-// DbBase::Enumerations and typedefs
+// DbBase::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum FSM                            // Finite State Machine

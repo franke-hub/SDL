@@ -34,7 +34,7 @@
 struct Neuron                       // Neuron descriptor
 {
 //----------------------------------------------------------------------------
-// Neuron::Enumerations and typedefs
+// Neuron::Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum                                // Generic constants
 {

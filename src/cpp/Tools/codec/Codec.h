@@ -44,7 +44,7 @@ class Writer;
 class Codec : public Ecode          // Codec
 {
 //----------------------------------------------------------------------------
-// Codec::Enumerations and typedefs
+// Codec::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum ReturnCode                     // Generic Return Codes

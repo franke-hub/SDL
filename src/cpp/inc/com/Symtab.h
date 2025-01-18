@@ -59,7 +59,7 @@ struct Symbol                       // A symbol in the symbol table
 }; // enum Symbol
 
 //----------------------------------------------------------------------------
-// Symtab::Enumerations and typedefs
+// Symtab::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum Events                         // Event values

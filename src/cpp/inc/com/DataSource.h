@@ -65,7 +65,7 @@ unsigned long          line;        // Line number
 unsigned int           column;      // Column number
 
 //----------------------------------------------------------------------------
-// DataSource::Enumerations and typedefs
+// DataSource::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum CC                             // Character code

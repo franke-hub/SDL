@@ -82,7 +82,7 @@ class Status;                       // Status
 //----------------------------------------------------------------------------
 class Editor : public EdDraw {      // Editor object
 //----------------------------------------------------------------------------
-// Edit::Enumerations and typedefs
+// Edit::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum

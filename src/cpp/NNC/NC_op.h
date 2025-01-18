@@ -99,7 +99,7 @@ virtual ostream&
 class NC_opArith : public NC_op     // Arithmetic Operator
 {
 //----------------------------------------------------------------------------
-// NC_opArith::Enumerations and typedefs
+// NC_opArith::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum Op                             // Operation code

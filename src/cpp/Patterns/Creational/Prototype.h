@@ -39,7 +39,7 @@
 class Prototype : public Object
 {
 //----------------------------------------------------------------------------
-// Prototype::Enumerations and typedefs
+// Prototype::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -108,7 +108,7 @@ protected:
 class SamplePrototype : public Prototype
 {
 //----------------------------------------------------------------------------
-// SamplePrototype::Enumerations and typedefs
+// SamplePrototype::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -150,7 +150,7 @@ protected:
 class SamplePrototype1 : public SamplePrototype
 {
 //----------------------------------------------------------------------------
-// SamplePrototype1::Enumerations and typedefs
+// SamplePrototype1::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined
@@ -192,7 +192,7 @@ protected:
 class SamplePrototype2 : public SamplePrototype
 {
 //----------------------------------------------------------------------------
-// SamplePrototype2::Enumerations and typedefs
+// SamplePrototype2::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
    // None defined

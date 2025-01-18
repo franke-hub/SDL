@@ -38,7 +38,7 @@
 struct NN_cfg                       // Configuration controls
 {
 //----------------------------------------------------------------------------
-// NN_cfg::Enumerations and typedefs
+// NN_cfg::Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum                                // VPS controls
 {

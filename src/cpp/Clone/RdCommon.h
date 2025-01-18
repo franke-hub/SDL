@@ -101,7 +101,7 @@ enum                                // Generic constants
 #endif
 
 //----------------------------------------------------------------------------
-// Enumerations and typedefs
+// Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum HOST_INFO                      // Value masks for HostInfo
 {  INFO_UNUSED_BITS=   0x0FF00888   // Unassigned bits

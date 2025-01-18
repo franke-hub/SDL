@@ -45,7 +45,7 @@
 //----------------------------------------------------------------------------
 class EdRing : public List<EdRing>::Link { // Editor ring file descriptor
 //----------------------------------------------------------------------------
-// EdRing::Enumerations and typedefs
+// EdRing::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum

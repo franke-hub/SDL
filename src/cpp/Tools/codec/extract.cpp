@@ -106,7 +106,7 @@ struct Segment {                    // File Segment
 //----------------------------------------------------------------------------
 struct Content {                    // File content
 //----------------------------------------------------------------------------
-// Content::Enumerations and typedefs
+// Content::Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum Code                           // Encoding
 {  CodeRESET                        // Encoding not specified
@@ -168,7 +168,7 @@ void
 //----------------------------------------------------------------------------
 struct Multipart {                  // Multipart content
 //----------------------------------------------------------------------------
-// Multipart::Enumerations and typedefs
+// Multipart::Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum Code                           // Content-Transfer-Encoding
 {  CodeRESET                        // Not specified
@@ -255,7 +255,7 @@ const char*                         // Return message (NULL OK)
 //----------------------------------------------------------------------------
 struct Plainpart {                  // Plainpart content
 //----------------------------------------------------------------------------
-// Plainpart::Enumerations and typedefs
+// Plainpart::Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum FileState                      // Subject state
 {  FILE_1of1                        // Simple subject

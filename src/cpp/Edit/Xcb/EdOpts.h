@@ -41,7 +41,7 @@ class EdUnit;
 class EdOpts {                      // Editor text Window viewport
 public:
 //----------------------------------------------------------------------------
-// EdOpts::Enumerations and typedefs
+// EdOpts::Typedefs and enumerations
 //----------------------------------------------------------------------------
 enum VERSION                        // Version information
 {  MAJOR= 3                         // Version 3.0.PATCH

@@ -61,7 +61,7 @@ class NC_tab;
 //----------------------------------------------------------------------------
 class NC_sym : public Symtab::Symbol { // Symbol table entry
 //----------------------------------------------------------------------------
-// NC_sym::Enumerations and typedefs
+// NC_sym::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum

@@ -84,7 +84,7 @@ struct Global;
 //----------------------------------------------------------------------------
 class Common {                      // Common data area
 //----------------------------------------------------------------------------
-// Common::Enumerations and typedefs
+// Common::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
 enum FSM                            // Finite State Machine

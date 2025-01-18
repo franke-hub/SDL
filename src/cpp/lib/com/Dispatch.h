@@ -237,7 +237,7 @@ virtual void
 //----------------------------------------------------------------------------
 class DispatchTimers : public NamedThread {
 //----------------------------------------------------------------------------
-// DispatchTimers::Enumerations and typedefs
+// DispatchTimers::Typedefs and enumerations
 //----------------------------------------------------------------------------
 protected:
 enum FSM                            // Finite State Machine states
