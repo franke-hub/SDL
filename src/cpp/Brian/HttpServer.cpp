@@ -16,7 +16,7 @@
 //       Implement HttpServer.h
 //
 // Last change date-
-//       2025/01/16
+//       2025/01/19
 //
 // Implementation note-
 //       Derived from ~/src/cpp/HTTP/socket/HttpServer.cpp 2024/10/24
@@ -101,7 +101,7 @@ void operator()(pub::dispatch::Item* _item)
    if( item == nullptr ) {
      _item->post(_item->CC_ERROR_IT);
    } else {
-     HttpServer::Server_t server= item->server;
+     Server_t server= item->server;
      if( !server->is_operational() ) {
        server->close();
        pub::dispatch::Disp::post(item, Item_t::CC_PURGE);

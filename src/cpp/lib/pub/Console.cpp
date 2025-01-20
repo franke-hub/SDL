@@ -58,6 +58,8 @@ enum
 
 ,  CTL_U= 21                        // Control-U character
 ,  ESC=   27                        // ESCape character
+
+,  USE_ITRACE= false                // Use internal trace?
 }; // (generic) enum
 
 static constexpr const char ESC_STR[]= {ESC, 0}; // ESC character string
@@ -394,18 +396,18 @@ int                                 // The next input character
      tcsetattr(STDIN_FILENO, TCSANOW, &oldattr); // Restore the old attributes
      in_getch= false;               // Attributes restored
 
-#if 1  // ******** INTERNAL TRACE ********************************************
-     struct Record : public Trace::Record {
-       struct termios ios;
-     };
+     if( USE_ITRACE && VERBOSE ) {
+       struct Record : public Trace::Record {
+         struct termios ios;
+       };
 
-     Record* record= (Record*)Trace::storage_if(sizeof(Record));
-     if( record ) {
-       record->ios= newattr;
-       record->trace(".CON", "=GCH"
-                    , i2i(operational), i2i(C));
+       Record* record= (Record*)Trace::storage_if(sizeof(Record));
+       if( record ) {
+         record->ios= newattr;
+         record->trace(".CON", "=GCH"
+                      , i2i(operational), i2i(C));
+       }
      }
-#endif // ******** INTERNAL TRACE ********************************************
    }}}}
 
    if( C == 0x007f )                // Handle nasty surprise

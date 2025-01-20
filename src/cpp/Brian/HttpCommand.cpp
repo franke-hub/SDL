@@ -16,7 +16,7 @@
 //       Implement HttpCommand and HttpService
 //
 // Last change date-
-//       2025/01/16
+//       2025/01/19
 //
 //----------------------------------------------------------------------------
 #include <forward_list>             // For std::forward_list
@@ -461,8 +461,11 @@ virtual resultant                   // Resultant, command dependent
      Command::command("curl " + local);
 
      Command::command("status");
-     StaticCommon::Event event;
-     static_common->run_diagnostics.signal(event);
+
+     if( false ) {                  // Auto-generate diagnostic signal?
+       StaticCommon::Event event;
+       static_common->run_diagnostics.signal(event);
+     }
    }
 
    return nullptr;

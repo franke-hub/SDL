@@ -16,7 +16,7 @@
 //       Work dispatcher.
 //
 // Last change date-
-//       2025/01/15
+//       2025/01/19
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_DISPATCH_H_INCLUDED
@@ -264,8 +264,7 @@ AI_list<Item>          itemList;    // The Work item list
 // pub::dispatch::Task::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
-   Task( void )                     // Default constructor
-:  Worker(), itemList() {}
+   Task( void );                    // Default constructor
 
    Task(const Task&) = delete;      // Disallowed copy constructor
    Task& operator=(const Task&) = delete; // Disallowed assignment operator

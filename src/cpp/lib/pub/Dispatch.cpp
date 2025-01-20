@@ -16,7 +16,7 @@
 //       Implement Dispatch object methods
 //
 // Last change date-
-//       2025/01/11
+//       2025/01/19
 //
 //----------------------------------------------------------------------------
 #include <mutex>                    // For std::lock_guard
@@ -263,6 +263,22 @@ void
 //============================================================================
 //
 // Method-
+//       dispatch::Task::Task
+//
+// Purpose-
+//       Constructor.
+//
+//----------------------------------------------------------------------------
+   Task::Task( void )               // (Default) constructor
+:  Worker(), itemList()
+{
+   if( USE_ITRACE )
+     Trace::trace(".DSP", "NEWT", this);
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       dispatch::Task::~Task
 //
 // Purpose-
@@ -297,6 +313,8 @@ void
      if( USE_ITRACE )
        Trace::trace(".DSP", "wend", this, tail);
    }
+   if( USE_ITRACE )
+     Trace::trace(".DSP", "DELT", this);
 }
 
 //----------------------------------------------------------------------------

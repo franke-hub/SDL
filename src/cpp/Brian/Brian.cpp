@@ -16,7 +16,7 @@
 //       Brian mainline.
 //
 // Last change date-
-//       2025/01/17
+//       2025/01/19
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For getenv
@@ -223,8 +223,11 @@ static inline void
    debugh("========  Started %s\n", buffer);
    debugh("==============================================\n");
    if( opt_verbose ) {              // Display environment
-     debugh("OPTIMIZE:   %s\n", getenv("OPTIMIZE"));
-     debugh("USE_STATIC: %s\n", getenv("USE_STATIC"));
+     const char*
+     option= getenv("OPTIMIZE");
+     debugh("OPTIMIZE:   %s\n", option ? option : "<nullptr>");
+     option= getenv("USE_STATIC");
+     debugh("USE_STATIC: %s\n", option ? option : "<nullptr>");
    }
 
    // Initialize trace table
