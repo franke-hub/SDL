@@ -25,6 +25,7 @@
 #include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
 #include <cstdio>                   // For perror
+#include <unistd.h>                 // For gethostname
 
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Ioda.h>               // For pub::Ioda
@@ -266,7 +267,10 @@ virtual resultant                   // Resultant, command dependent
 //   int               argc,        // Argument count (UNUSED)
 //   char*             argv[])      // Argument array (UNUSED)
 {
-   std::string host= getenv("HOSTNAME");
+   char host_name[256];             // Our HOSTNAME
+   host_name[0]= '\0';
+   gethostname(host_name, sizeof(host_name));
+   std::string host= host_name;
    host += ":8080";
 
    std::string local="localhost:8081";
@@ -319,7 +323,7 @@ Connector              connector;   // Our connector
    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    // Our startup_complete signal handler.
    connector= static_common->startup_complete.connect([](Event&) {
-     if( HCDM ) debugh("%4d HttpServer startup_complete.handler\n", __LINE__);
+     if( HCDM ) debugh("%4d HttpCommand startup_complete.handler\n", __LINE__);
 
      Command::command("http-init"); // Process the "http-init" command
    });

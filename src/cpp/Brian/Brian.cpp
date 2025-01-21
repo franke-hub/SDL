@@ -28,8 +28,10 @@
 #include <sys/mman.h>               // For mmap, munmap, ...
 #include <sys/signal.h>             // For signal, ...
 
+#include "pub/diag-shared_ptr.h"    // For Debug_ptr::debug
 #include <pub/Debug.h>              // For namespace debugging
 #include <pub/Exception.h>          // For catch(pub::Exception)
+#include <pub/Signals.h>            // For pub::Signals interface
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/Worker.h>             // For pub::WorkerPool
@@ -48,6 +50,8 @@ using PUB::Exception;               // For Exception handling
 using PUB::Thread;                  // For Thread::sleep
 using PUB::Trace;                   // For Debug object
 using namespace PUB::debugging;     // For debugging subroutines
+
+typedef PUB::signals::Connector     Connector; // For convenience
 
 //----------------------------------------------------------------------------
 // Constants for parameterization
@@ -96,6 +100,7 @@ Loader                 loader;      // Include built-in objects
 //----------------------------------------------------------------------------
 Common*                common= nullptr; // Brian's Common area
 void*                  trace_table= nullptr; // Internal trace table
+Connector              diagnostic_connector; // Our run_agnostics connector
 
 // Signal handlers
 typedef void           (*sig_handler_t)(int);
@@ -124,6 +129,23 @@ virtual Command::resultant          // Resultant
    return nullptr;
 }
 } command_trap; // static class Command_trap
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       diagnostics
+//
+// Purpose-
+//       Drive utility diagnostics, not related to specific object
+//
+//----------------------------------------------------------------------------
+static void
+   diagnostics( void)               // Drive utility diagnostics
+{
+   debugf("Brian::diagnostics\n");
+
+   std::pub_diag::Debug_ptr::debug("Diagnostics");
+}
 
 //----------------------------------------------------------------------------
 //
@@ -243,11 +265,18 @@ static inline void
    usr1_handler= signal(SIGUSR1, sig_handler);
    usr2_handler= signal(SIGUSR2, sig_handler);
 
-   // Startup complete event
+   //-------------------------------------------------------------------------
+   // Initialize diagnostics handler
+   typedef pub::signals::Event Event;
+   diagnostic_connector= static_common->run_diagnostics.connect([](Event&) {
+     diagnostics();
+   });
+
+   // Raise Startup_complete event
    struct Startup_complete : public pub::signals::Event {
    } startup_complete;
 
-   static_common->startup_complete.signal(startup_complete); // Raise startup_complete
+   static_common->startup_complete.signal(startup_complete);
 }
 
 //----------------------------------------------------------------------------
