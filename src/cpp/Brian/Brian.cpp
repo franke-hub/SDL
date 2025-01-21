@@ -16,7 +16,7 @@
 //       Brian mainline.
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/21
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For getenv
@@ -211,6 +211,10 @@ static inline void
    // Set intensive debug mode
    debug_set_mode(Debug::MODE_INTENSIVE);
 
+   // Initialize Common areas
+   common= Common::make();          // Create the Common area
+   StaticCommon::make();            // Initialize the StaticCommon area
+
    // Startup message
    char buffer[64];
    time_t now= time(nullptr);       // The current time
@@ -219,7 +223,6 @@ static inline void
    if( L == 0 )                     // If ridiculous resultant
      strcpy(buffer, "Today");       // Set ridiculous time
 
-   common= Common::make();          // Create the Common area
    debugh("==============================================\n");
    debugh("======== Starting Brian\n");
    debugh("======== Compiled %s %s\n", __DATE__, __TIME__);
@@ -241,8 +244,10 @@ static inline void
    usr2_handler= signal(SIGUSR2, sig_handler);
 
    // Startup complete event
-   StaticCommon::Event_t& event= static_common->event;
-   static_common->startup_complete.signal(event); // Raise startup_complete
+   struct Startup_complete : public pub::signals::Event {
+   } startup_complete;
+
+   static_common->startup_complete.signal(startup_complete); // Raise startup_complete
 }
 
 //----------------------------------------------------------------------------
@@ -455,8 +460,6 @@ extern int                          // Return code
      int               argc,        // Argument count
      char*             argv[])      // Argument array
 {
-// Signal  signal;                  // Signal handler
-
    //-------------------------------------------------------------------------
    // Initialiize
    //-------------------------------------------------------------------------

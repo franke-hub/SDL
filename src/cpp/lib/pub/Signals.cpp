@@ -16,7 +16,7 @@
 //       Implement Signals.h
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/21
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
@@ -40,7 +40,7 @@ namespace signals {
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= false                      // Hard Core Debug Mode?
+{  HCDM= true                       // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  USE_ITRACE= true                 // Use internal trace?
@@ -77,7 +77,13 @@ enum
 void
    pub::signals::Listener::signal(  // Tell this Listener about
      Event&            event) const // This Event
-{  function(event); }               // Invoke the associated function
+{  if( HCDM )
+     debugf("Listener(%p)::signal(%s)\n", this, s2c(demangle(typeid(event))));
+
+   function(event);                 // Invoke the associated function
+   if( HCDM && VERBOSE )
+     debugf("%4d HCDM function complete\n", __LINE__);
+}
 
 //----------------------------------------------------------------------------
 //
