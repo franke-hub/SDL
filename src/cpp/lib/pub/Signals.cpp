@@ -40,7 +40,7 @@ namespace signals {
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= true                       // Hard Core Debug Mode?
+{  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  USE_ITRACE= true                 // Use internal trace?
@@ -81,8 +81,6 @@ void
      debugf("Listener(%p)::signal(%s)\n", this, s2c(demangle(typeid(event))));
 
    function(event);                 // Invoke the associated function
-   if( HCDM && VERBOSE )
-     debugf("%4d HCDM function complete\n", __LINE__);
 }
 
 //----------------------------------------------------------------------------

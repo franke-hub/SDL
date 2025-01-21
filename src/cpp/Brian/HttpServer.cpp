@@ -56,6 +56,7 @@ enum
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  INP_SIZE= 65536                  // Input buffer size
+,  USE_ITEM_HCDM= true              // Use HttpServer::Item traces?
 }; // enum
 
 //----------------------------------------------------------------------------
@@ -232,14 +233,14 @@ void operator()(pub::dispatch::Item* _item)
 //
 //----------------------------------------------------------------------------
    HttpServer::Item::Item( void )   // Constructor
-{  // if( HCDM )
+{  if( HCDM || USE_ITEM_HCDM )
      traceh("HttpServer::Item(%p)!\n", this);
 
    INS_DEBUG_OBJ("HttpServer::Item");
 }
 
    HttpServer::Item::~Item( void )  // Destructor
-{  // if( HCDM )
+{  if( HCDM || USE_ITEM_HCDM )
      traceh("HttpServer::Item(%p)~\n", this);
 
    REM_DEBUG_OBJ("HttpServer::Item");

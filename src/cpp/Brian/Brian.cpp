@@ -67,6 +67,7 @@ enum
 static int             opt_hcdm= HCDM; // --hcdm
 static int             opt_verbose= VERBOSE; // --verbose{=verbosity}
 static int             opt_help= false; // --help or error
+static int             opt_sizes= false; // --sizes
 static unsigned        opt_trace= 0x0010'0000; // Trace table size
 
 static int             opt_index;   // Option index
@@ -75,6 +76,7 @@ static struct option   OPTS[]=      // Options
 {  {"hcdm",    no_argument,       &opt_hcdm,    true}
 ,  {"verbose", optional_argument, nullptr,      0}
 ,  {"help",    no_argument,       &opt_help,    true}
+,  {"sizes",   no_argument,       &opt_sizes,   true}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
 
@@ -82,6 +84,7 @@ enum OPT_INDEX
 {  OPT_HCDM
 ,  OPT_VERBOSE
 ,  OPT_HELP
+,  OPT_SIZES
 };
 
 //----------------------------------------------------------------------------
@@ -163,6 +166,7 @@ static void
                    "Options:\n"
                    "  --hcdm\n"
                    "  --verbose{=value}\n"
+                   "  --sizes\n"
           );
 
    exit(EXIT_FAILURE);
@@ -431,6 +435,7 @@ static void
          {
            case OPT_HCDM:           // Flags
            case OPT_HELP:
+           case OPT_SIZES:
              break;
 
            case OPT_VERBOSE:
@@ -555,9 +560,8 @@ extern int                          // Return code
    traceh("...Brian complete\n");
    printf("...Brian complete\n");
 
-   if( true ) {
+   if( opt_sizes )
      sizes();                       // Display interesting object sizes
-   }
 
    return 0;
 }
