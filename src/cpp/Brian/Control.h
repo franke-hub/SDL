@@ -16,7 +16,7 @@
 //       The Control interface
 //
 // Last change date-
-//       2025/01/07
+//       2025/01/20
 //
 // Implementation notes-
 //       A Control is a replaceable interface. (The actual interface for a
@@ -29,6 +29,7 @@
 #include <map>                      // For std::map, ...
 #include <string>                   // For std::string
 
+#include "shared_ptr-debug.h"       // For shared_ptr debugging control
 #include <pub/Named.h>              // For pub::Named, base class
 
 //----------------------------------------------------------------------------

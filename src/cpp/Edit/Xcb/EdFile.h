@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,14 +16,14 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2024/05/16
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef EDFILE_H_INCLUDED
 #define EDFILE_H_INCLUDED
 
 #include <pub/List.h>               // For pub::List
-#include <pub/Signals.h>            // For namespace pub::signals
+#include "pub/Signals.h"            // For pub::Signals interface
 
 #include "Editor.h"                 // For Editor
 #include "EdLine.h"                 // For EdLine, EdHide
@@ -71,11 +71,11 @@ unsigned               col= 0;      // The current cursor column (offset)
 unsigned               row= 0;      // The current cursor row (offset)
 
 // Signals -------------------------------------------------------------------
-struct CloseEvent {                 // File close event
+struct CloseEvent : public pub::signals::Event { // File close event
 EdFile*                file;
 };
 
-static pub::signals::Signal<CloseEvent>
+static pub::signals::Signal
                        close_signal; // The CloseEvent Signal
 
 //----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       EdFile: Implement EdFile.h REDO/UNDO functions
 //
 // Last change date-
-//       2024/12/20
+//       2025/01/20
 //
 // Implementation notes-
 //       (Only) included by EdFile.cpp
@@ -91,9 +91,15 @@ static bool                         // TRUE if invalid undo
 //       Redo/Undo list consistency check
 //
 //----------------------------------------------------------------------------
-static pub::signals::Connector<const char*> config_check=
-   config::check_signal()->connect([](const char*& info)
+static pub::signals::Connector config_check=
+   config::check_signal()->connect([](pub::signals::Event& _event)
 {
+   CheckEvent* event= dynamic_cast<CheckEvent*>(&_event);
+   if( event == nullptr )
+     sno(__LINE__, "check_signal not a CheckEvent");
+
+   const char* info= event->info;
+
    // Verify undo/redo lists
    EdRedo* undo= editor::file->undo_list.get_tail();
    while( undo ) {

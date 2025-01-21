@@ -16,7 +16,7 @@
 //       Brian mainline.
 //
 // Last change date-
-//       2025/01/17
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For getenv
@@ -30,7 +30,6 @@
 
 #include <pub/Debug.h>              // For namespace debugging
 #include <pub/Exception.h>          // For catch(pub::Exception)
-#include <pub/Signals.h>            // For pub::signals
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/Worker.h>             // For pub::WorkerPool
@@ -38,6 +37,10 @@
 #include "Command.h"                // For Command
 #include "Common.h"                 // For Common, StaticCommon
 #include "Loader.h"                 // For Loader
+
+#include "HttpMapper.h"             // For HttpMapper [sizeof]
+#include "HttpListen.h"             // For HttpListen [sizeof]
+#include "HttpServer.h"             // For HttpServer [sizeof]
 
 #define PUB _LIBPUB_NAMESPACE
 using PUB::Debug;                   // For Debug object
@@ -238,7 +241,7 @@ static inline void
    usr2_handler= signal(SIGUSR2, sig_handler);
 
    // Startup complete event
-   StaticCommon::Sevent_t event= static_common->event;
+   StaticCommon::Event_t& event= static_common->event;
    static_common->startup_complete.signal(event); // Raise startup_complete
 }
 
@@ -248,11 +251,11 @@ static inline void
 //       sig_handler
 //
 // Purpose-
-//       Handle signals.
+//       Handle system signals.
 //
 //----------------------------------------------------------------------------
 static void
-   sig_handler(                     // Handle signals
+   sig_handler(                     // Handle system signals
      int               id)          // The signal identifier
 {
    static int recursion= 0;         // Signal recursion depth
@@ -290,8 +293,7 @@ static void
      case SIGUSR1:                  // Diagnostic signal
      case SIGUSR2: {
        Trace::trace(".SIG", __LINE__, text);
-       StaticCommon::Sevent_t event;
-       event.id= id;
+       StaticCommon::DiagnosticEvent event(id);
        static_common->run_diagnostics.signal(event);
        break;
      }
@@ -301,6 +303,27 @@ static void
    }
 
    recursion--;
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       sizes
+//
+// Purpose-
+//       Display object sizes
+//
+//----------------------------------------------------------------------------
+#define SIZEOF(x) debugf("  " #x ": 0x%.4zx, %4zd\n", sizeof(x), sizeof(x));
+
+static inline void
+   sizes( void )                    // Display object sizes
+{
+   debugf("\nObject sizes:\n");
+   SIZEOF(HttpMapper);
+   SIZEOF(HttpListen);
+   SIZEOF(HttpServer);
+   debugf("\n\n");
 }
 
 //----------------------------------------------------------------------------
@@ -377,7 +400,7 @@ static void
              break;
 
            case OPT_VERBOSE:
-             opt_verbose= 2;         // Default "extra" verbosity
+             opt_verbose= VERBOSE + 1; // Default "extra" verbosity
              if( optarg )
                opt_verbose= atoi(optarg);
              break;
@@ -480,12 +503,16 @@ extern int                          // Return code
      // Thread::sleep(3.125);       // Termination cleanup delay
    } catch(const char* X) {
      debugh("Exception(const char* %s)\n", X);
+     debug_backtrace();
    } catch(Exception& X) {
      debugh("%4d %s\n", __LINE__, std::string(X).c_str());
+     debug_backtrace();
    } catch(std::exception& X) {
      debugh("catch(std::exception.what(%s))\n", X.what());
+     debug_backtrace();
    } catch(...) {
      debugh("Exception(...)\n");
+     debug_backtrace();
    }
 
    //-------------------------------------------------------------------------
@@ -495,6 +522,10 @@ extern int                          // Return code
 
    traceh("...Brian complete\n");
    printf("...Brian complete\n");
+
+   if( true ) {
+     sizes();                       // Display interesting object sizes
+   }
 
    return 0;
 }

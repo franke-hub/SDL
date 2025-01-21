@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdFile.h
 //
 // Last change date-
-//       2024/12/20
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For printf, fopen, fclose, ...
@@ -29,7 +29,7 @@
 #include <pub/Debug.h>              // For namespace pub::debugging
 #include <pub/Fileman.h>            // For pub::Name
 #include <pub/List.h>               // For pub::List
-#include <pub/Signals.h>            // For pub::signals::Signal
+#include "pub/Signals.h"            // For pub::Signals interface
 #include <pub/Trace.h>              // For pub::Trace
 #include "pub/utility.i"            // For utility conversion routines
 
@@ -61,8 +61,22 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-pub::signals::Signal<EdFile::CloseEvent>
-                       EdFile::close_signal; // CloseEvent signal
+pub::signals::Signal   EdFile::close_signal; // CloseEvent signal
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       sno
+//
+// Purpose-
+//       Handle Should Not Occur condition
+//
+//----------------------------------------------------------------------------
+static void
+   sno(                             // Handle Should Not Occur condition
+     int               line,        // Source line number
+     const char*       what)        // Error condition
+{  Config::failure("%4d EdFile sno(%s)\n", line, what); }
 
 //----------------------------------------------------------------------------
 //

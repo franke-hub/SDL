@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement Config.h
 //
 // Last change date-
-//       2024/08/23
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #include <cctype>                   // For isspace
@@ -39,7 +39,7 @@
 #include <pub/Debug.h>              // For pub::Debug, namespace pub::debugging
 #include <pub/Fileman.h>            // For namespace pub::fileman
 #include <pub/Parser.h>             // For pub::Parser
-#include <pub/Signals.h>            // For pub::signals
+#include "pub/Signals.h"            // For pub::Signals interface
 #include <pub/Trace.h>              // For pub::Trace
 
 #include "Active.h"                 // For Active
@@ -135,16 +135,16 @@ std::string            config::HOME; // HOME directory (getenv("HOME"))
 
 // (Internal) -------- Global event signals ----------------------------------
 // Implementation note: Static signals *MUST BE* initialized on access
-static pub::signals::Signal<const char*>*
+static pub::signals::Signal*
                        the_check_signal= nullptr;
 
-pub::signals::Signal<const char*>*  // The RAII check_signal (pointer)
-   config::check_signal(void)
+pub::signals::Signal*               // The RAII check_signal (pointer)
+   config::check_signal(void)       // Access/create the_check_signal
 {
    static pub::Latch latch;
    std::lock_guard<pub::Latch> lock(latch);
    if( the_check_signal == nullptr )
-     the_check_signal= new pub::signals::Signal<const char*>();
+     the_check_signal= new pub::signals::Signal();
 
    return the_check_signal;
 }
@@ -749,9 +749,11 @@ static void
 //
 // Method-
 //       Config::check
+//       Config::check_signal
 //
 // Purpose-
 //       Raise check_signal (Run debugging consistency checks)
+//       Create check_signal
 //
 // Implementation notes-
 //       Listener: EdFile.hpp
@@ -760,7 +762,11 @@ static void
 void
    Config::check(                   // Debugging consistency check
      const char*       info)        // Informational text
-{  check_signal()->signal(info); }
+{
+   CheckEvent event;
+   event.info= info;
+   check_signal()->signal(event);
+}
 
 //----------------------------------------------------------------------------
 //

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2021-2024 Frank Eskesen.
+//       Copyright (c) 2021-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Define HTTP client objects. (( UNUSED ))
 //
 // Last change date-
-//       2024/09/30
+//       2025/01/20
 //
 // Implementation notes-
 //       argv[0] *INP* The input string
@@ -28,6 +28,7 @@
 
 #include <string>
 
+#include "shared_ptr-debug.h"       // For shared_ptr debugging control
 #include "Service.h"
 
 //----------------------------------------------------------------------------

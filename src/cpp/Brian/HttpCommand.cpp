@@ -16,7 +16,7 @@
 //       Implement HttpCommand and HttpService
 //
 // Last change date-
-//       2025/01/19
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #include <forward_list>             // For std::forward_list
@@ -34,8 +34,8 @@
 #include <pub/utility.i>            // For conversion subroutines
 
 #include "HttpListen.h"             // For HttpListen
-#include "HttpMapper.h"             // For HttpMapper, TODO: REMOVE
-#include "HttpServer.h"             // For HttpServer, implemented
+#include "HttpMapper.h"             // For HttpMapper
+#include "HttpServer.h"             // For HttpServer
 
 #include "Common.h"                 // For Common::start Signal
 #include "Command.h"                // For Command
@@ -72,17 +72,9 @@ enum
 //
 //----------------------------------------------------------------------------
 class Command_listen : public Command {
-//----------------------------------------------------------------------------
-// Command_listen::Attributes
-protected:
-typedef std::map<string, std::shared_ptr<HttpListen>> Map_t; // Our map type
-typedef Map_t::iterator             Map_iter_t; // Our map iterator type
-
-Map_t                   map;        // Our Listener Map
-std::recursive_mutex    mutex;      // Protects map
-
 //-------------------------------------------------------------------------
 // Command_listen::Constructors/destructor
+//-------------------------------------------------------------------------
 public:
    Command_listen( void )           // Constructor
 :  Command("listen")
@@ -92,98 +84,6 @@ public:
 // in the destructor.
    ~Command_listen( void )          // Destructor
 {  if( HCDM ) debugh("Command_listen~\n"); }
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Command_listen::done
-//
-// Purpose-
-//       Handle Listener termination
-//
-//----------------------------------------------------------------------------
-void
-   done(                            // Handle termination of
-     std::shared_ptr<HttpListen>
-                       listener)    // This Listener
-{  string url= listener->get_host();
-   if( HCDM ) debugh("Command_listen::done(%s)\n", s2c(url));
-
-{{{{
-   std::lock_guard<decltype(mutex)> lock(mutex);
-   remove(listener);
-}}}}
-
-   if( HCDM )
-     debugh("Listener(%s) removed\n", s2c(url)); // (Don't debug with lock)
-}
-
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Command_listen::insert
-//       Command_listen::locate
-//       Command_listen::remove
-//
-// Purpose-
-//       Insert a Listener into the Map
-//       Locate a Listener
-//       Remove a Listener
-//
-// Implementation notes:
-//       Caller must hold mutex
-//
-//----------------------------------------------------------------------------
-std::shared_ptr<HttpListen>         // The Listener, if inserted
-   insert(                          // Insert
-     std::shared_ptr<HttpListen>
-                       listener)    // This Listener
-{  string url= listener->get_host();
-
-   if( locate(url) ) {              // If already in map
-     // TODO: How was a duplicate Listen allowed to be created?
-     debugh("Command_listen::insert(%s) failed, duplicate\n", s2c(url));
-     return nullptr;
-   }
-
-   map[url]= listener;
-   if( HCDM )
-     debugh("Command_listen::insert(%s)\n", s2c(url));
-   return listener;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-std::shared_ptr<HttpListen>         // The Listener, if available
-   locate(                          // Locate Listener
-     string            url)         // With this URL
-{
-   std::shared_ptr<HttpListen> listener; // Default, not found
-   const Map_iter_t mi= map.find(url);
-   if( mi != map.end() )            // If found
-     listener= mi->second;
-
-   if( HCDM )
-     debugh("%p= locate(%s)\n", listener.get(), s2c(url));
-   return listener;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void
-   remove(                          // Remove
-     std::shared_ptr<HttpListen>
-                       listener)    // This Listener
-{  string url= listener->get_host();
-
-   const Map_iter_t mi= map.find(url);
-   if( mi != map.end() && mi->second == listener ) {
-     map.erase(mi);
-     if( HCDM )
-       debugh("Command_listen::remove(%s)\n", s2c(url));
-   } else {
-     if( HCDM )
-       debugh("Command_listen::remove(%s) failed, not found\n", s2c(url));
-   }
-}
 
 //----------------------------------------------------------------------------
 //
@@ -209,9 +109,7 @@ void
      url += to_string(":%d", DEFAULT_PORT);
    }
 
-   std::lock_guard<decltype(mutex)> lock(mutex);
-
-   std::shared_ptr<HttpListen> listener= locate(url);
+   std::shared_ptr<HttpListen> listener= HttpMapper::get()->locate(url);
    if( listener ) {
      debugh("There is already a Listener at '%s'\n", s2c(url));
      return;
@@ -220,7 +118,7 @@ void
    try {
      listener= HttpListen::make(url);
      if( listener->is_operational() ) {
-       insert(listener);
+       // insert(listener);
        listener->start();
      }
 
@@ -247,33 +145,17 @@ void
    status( void )                   // Display active listeners
 {  if( HCDM ) debugh("Command_listen::status\n");
 
-   std::forward_list<std::shared_ptr<HttpListen>> list; // Listener list
-
-   // Copy the std::shared_ptr<HttpListen> from the map into the list
-   {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex);
-     for(auto& it: map) {
-       list.push_front(it.second);
-     }
-   }}}}
-
-   // Display all Listeners
-   debugf("Listeners:\n");
-   for(auto& it: list) {
-     debugf("%s\n", s2c(it->get_host()));
-   }
+   HttpMapper::get()->status();
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
 //       Command_listen::stop(void)
-//       Command_listen::stop(std::shared_ptr<HttpListen>)
 //       Command_listen::stop(const char*)
 //
 // Purpose-
 //       Stop all Listeners
-//       Stop one Listener
 //       Stop one Listener
 //
 //----------------------------------------------------------------------------
@@ -281,59 +163,25 @@ void
    stop( void )                     // Stop *ALL* Listeners
 {  if( HCDM ) debugh("Command_listen::stop\n");
 
-   std::forward_list<std::shared_ptr<HttpListen>> list; // Listener list
-
-   // Copy the std::shared_ptr<HttpListen> from the map into the list
-   {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex);
-     for(auto& it: map) {
-       list.push_front(it.second);
-     }
-   }}}}
-
-   // Stop all Listeners
-   for(auto& it: list) {
-     it->stop();
-   }
+   HttpMapper::get()->stop();
 }
 
 void
-   stop(                            // Stop
-     std::shared_ptr<HttpListen>
-                       listener)    // This Listener
-{  string url= listener->get_host();
-   if( HCDM ) debugh("Command_listen::stop(%s)\n", s2c(url));
-
-   listener->stop();
-}
-
-bool                                // If listener extant
    stop(                            // Stop the listener
      const char*       _url)        // At this URL
 {  if( HCDM ) debugh("Command_listen::stop(%s)\n", _url ? _url : "");
 
-   std::lock_guard<decltype(mutex)> lock(mutex);
-
-   std::shared_ptr<HttpListen> listener= locate(_url);
-   if( listener ) {
-     listener->stop();
-     return true;
-   }
-
-   debugh("Listener::stop(%s) URL not active\n", _url);
-   return false;
+   HttpMapper::get()->stop(_url);
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
 //       Command_listen::wait(void)
-//       Command_listen::wait(std::shared_ptr<HttpListen>)
 //       Command_listen::wait(const char*)
 //
 // Purpose-
 //       Wait for all Listeners
-//       Wait for one Listener
 //       Wait for one Listener
 //
 //----------------------------------------------------------------------------
@@ -341,29 +189,7 @@ void
    wait( void )                     // Wait for *ALL* Listeners
 {  if( HCDM ) debugh("Command_listen::wait\n");
 
-   std::forward_list<std::shared_ptr<HttpListen>> list; // Listener list
-
-   // Copy the std::shared_ptr<HttpListen> from the map into the list
-   {{{{
-     std::lock_guard<decltype(mutex)> lock(mutex);
-     for(auto& it: map) {
-       list.push_front(it.second);
-     }
-   }}}}
-
-   // Wait for all Listeners
-   for(auto& it: list) {
-     it->wait();
-   }
-}
-
-void
-   wait(                            // Wait for
-     std::shared_ptr<HttpListen>
-                       listener)    // This Listener
-{  if( HCDM ) debugh("Command_listen::wait(%s)\n", s2c(listener->get_host()));
-
-   listener->wait();
+   HttpMapper::get()->wait();
 }
 
 void
@@ -371,15 +197,7 @@ void
      const char*       _url)        // At this URL
 {  if( HCDM ) debugh("Command_listen::wait(%s)\n", _url ? _url : "");
 
-   std::lock_guard<decltype(mutex)> lock(mutex);
-
-   std::shared_ptr<HttpListen> listener= locate(_url);
-   if( listener ) {
-     listener->wait();
-     return;
-   }
-
-   debugh("Listener::wait(%s) URL not active\n", _url);
+   HttpMapper::get()->wait(_url);
 }
 
 //----------------------------------------------------------------------------
@@ -407,8 +225,8 @@ virtual Command::resultant          // Resultant
        debugf("listen %s, URL missing\n", argv[1]);
    } else if( strcasecmp(argv[1], "stop") == 0 ) {
      if( argc >= 2 ) {
-       if( stop(argv[2]) )
-         wait(argv[2]);
+       stop(argv[2]);
+       wait(argv[2]);
      } else {
        debugf("listen %s, URL missing\n", argv[1]);
      }
@@ -463,7 +281,7 @@ virtual resultant                   // Resultant, command dependent
      Command::command("status");
 
      if( false ) {                  // Auto-generate diagnostic signal?
-       StaticCommon::Event event;
+       StaticCommon::DiagnosticEvent event;
        static_common->run_diagnostics.signal(event);
      }
    }
@@ -489,8 +307,8 @@ Command_init command_init;
 //
 //----------------------------------------------------------------------------
 struct startup_event_handler_t {    // Handle startup event
-typedef StaticCommon::Event                   Event;
-typedef pub::signals::Connector<Event>        Connector;
+typedef pub::signals::Event         Event;
+typedef pub::signals::Connector     Connector;
 Connector              connector;   // Our connector
 
    startup_event_handler_t( void )  // Constructor
@@ -555,16 +373,6 @@ virtual void
    command_listen.stop();
 }
 
-void
-   stop(                            // Stop
-     std::shared_ptr<HttpListen>
-                       listen)      // This Listener
-{  if( HCDM )
-     debugh("Service_listen::stop(Listen(%s))\n", s2c(listen->get_host()));
-
-   command_listen.stop(listen);
-}
-
 //----------------------------------------------------------------------------
 //
 // Method-
@@ -579,16 +387,6 @@ virtual void
 {  if( HCDM ) debugh("Service_listen::wait(Service*)\n");
 
    command_listen.wait();
-}
-
-void
-   wait(                            // Wait for
-     std::shared_ptr<HttpListen>
-                       listen)      // This Listener
-{  if( HCDM )
-     debugh("Service_listen::wait(Listen(%s))\n", s2c(listen->get_host()));
-
-   command_listen.wait(listen);
 }
 }; // class Service_listen
 static Service_listen service_listen;

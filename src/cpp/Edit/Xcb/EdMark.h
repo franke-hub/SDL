@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Line/block mark descriptor
 //
 // Last change date-
-//       2024/08/27
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef EDMARK_H_INCLUDED
@@ -25,7 +25,7 @@
 #include <sys/types.h>              // For system types
 
 #include <pub/List.h>               // For List
-#include <pub/Signals.h>            // For namespace pub::signals
+#include "pub/Signals.h"            // For pub::Signals interface
 
 //----------------------------------------------------------------------------
 // Forward references
@@ -67,12 +67,16 @@ ssize_t                copy_lh= -1; // Copy left-hand column
 ssize_t                copy_rh= -1; // Copy right-hand column
 
 // Signals -------------------------------------------------------------------
-struct ChangeEvent {                // File change event
+struct ChangeEvent : public pub::signals::Event { // File change event
 EdFile*                file;        // The changed file
 const EdRedo*          redo;        // The changed line lists
+
+   ChangeEvent(EdFile* _file, EdRedo* _redo) // Constructor
+:  file(_file), redo(_redo)
+{  }
 };
 
-static pub::signals::Signal<ChangeEvent>
+static pub::signals::Signal
                        change_signal; // The ChangeEvent Signal
 
 //----------------------------------------------------------------------------

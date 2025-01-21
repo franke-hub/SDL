@@ -16,7 +16,7 @@
 //       Implement HttpServer.h
 //
 // Last change date-
-//       2025/01/19
+//       2025/01/20
 //
 // Implementation note-
 //       Derived from ~/src/cpp/HTTP/socket/HttpServer.cpp 2024/10/24
@@ -154,7 +154,7 @@ void operator()(pub::dispatch::Item* _item)
      ioda.set_rd_mesg(mesg, INP_SIZE);
      ssize_t L= socket->recvmsg(&mesg, 0);
      if( L <= 0 ) {
-       if( HCDM || VERBOSE )
+       if( HCDM && VERBOSE )
          errorh("HttpServer(%p): recvmsg error %d:%s\n", server.get()
                , errno, strerror(errno));
 
@@ -204,7 +204,7 @@ void operator()(pub::dispatch::Item* _item)
      ioda.set_wr_mesg(mesg);
      ssize_t L= socket->sendmsg(&mesg, 0);
      if( L <= 0 ) {
-       if( HCDM || VERBOSE )
+       if( HCDM && VERBOSE )
          errorh("HttpServer(%p): sendmsg error %d:%s\n", server.get()
                , errno, strerror(errno));
 
@@ -223,6 +223,31 @@ void operator()(pub::dispatch::Item* _item)
 //----------------------------------------------------------------------------
 //
 // Method-
+//       HttpServer::Item::Item
+//       HttpServer::Item::~Item
+//
+// Purpose-
+//       Constructor
+//       Destructor
+//
+//----------------------------------------------------------------------------
+   HttpServer::Item::Item( void )   // Constructor
+{  // if( HCDM )
+     traceh("HttpServer::Item(%p)!\n", this);
+
+   INS_DEBUG_OBJ("HttpServer::Item");
+}
+
+   HttpServer::Item::~Item( void )  // Destructor
+{  // if( HCDM )
+     traceh("HttpServer::Item(%p)~\n", this);
+
+   REM_DEBUG_OBJ("HttpServer::Item");
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       HttpServer::HttpServer
 //       HttpServer::~HttpServer
 //
@@ -237,9 +262,16 @@ void operator()(pub::dispatch::Item* _item)
 :  owner(_owner), socket(_socket)
 {  if( HCDM )
      debugh("HttpServer(%p)!(%p) %s\n", this, _socket, s2c(get_peer()));
+   INS_DEBUG_OBJ("HttpServer");
 
    // Set run_diagnostics handler
-   connector= static_common->run_diagnostics.connect([this](Event&) {
+   typedef pub::signals::Event Event;
+   typedef StaticCommon::DiagnosticEvent DiagnosticEvent;
+   connector= static_common->run_diagnostics.connect([this](Event& _event) {
+     DiagnosticEvent* event= dynamic_cast<DiagnosticEvent*>(&_event);
+     if( event )
+       debugf("DiagnosticEvent %d\n", event->id);
+
      debug("diagnostics");
    });
 
@@ -268,6 +300,8 @@ void operator()(pub::dispatch::Item* _item)
    // Close and delete the socket
    if( socket )                     // If Socket exists
      close();                       // Close and delete the Socket
+
+   REM_DEBUG_OBJ("HttpServer");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

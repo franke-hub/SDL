@@ -53,10 +53,6 @@ enum
 //----------------------------------------------------------------------------
 HttpMapper*            HttpMapper::singleton= nullptr; // *THE* HttpMapper
 
-void*                               // (An HttpMapper**)
-HttpMapper::get_terminator( void )
-{  return &singleton; }
-
 //----------------------------------------------------------------------------
 // Global constructor/destructor
 //----------------------------------------------------------------------------
@@ -68,9 +64,7 @@ static struct Global_init_term {
    ~Global_init_term( void )
 {  if( HCDM ) debugh("HttpMapper::Global_init_term~\n");
 
-// TODO: RESTORE DELETE
-// delete *(HttpMapper**)HttpMapper::get_terminator();
-// debugf("%4d %s\n", __LINE__, __FILE__);
+   HttpMapper::shutdown();
 }
 }  global_init_term;
 }  // Anonymous namespace
@@ -87,11 +81,14 @@ static struct Global_init_term {
 //----------------------------------------------------------------------------
    HttpMapper::HttpMapper( void )   // (Default) constructor
 {  if( HCDM ) debugh("HttpMapper(%p)!\n", this);
+   INS_DEBUG_OBJ("HttpMapper");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    HttpMapper::~HttpMapper( void )  // Destructor
 {  if( HCDM ) debugh("HttpMapper(%p)~\n", this);
+
+   REM_DEBUG_OBJ("HttpMapper");
 }
 
 //----------------------------------------------------------------------------
@@ -105,7 +102,7 @@ static struct Global_init_term {
 //----------------------------------------------------------------------------
 HttpMapper*                         // The (singleton) HttpMapper
    HttpMapper::make( void )         // Make: HttpMapper*
-{  if( HCDM ) debugh("HttpMapper::make()\n");
+{  if( HCDM ) debugh("HttpMapper::make\n");
 
    std::mutex mutex;                // Single-threaded make
    std::lock_guard<decltype(mutex)> lock(mutex);
@@ -121,6 +118,26 @@ HttpMapper*                         // The (singleton) HttpMapper
 //----------------------------------------------------------------------------
 //
 // Method-
+//       HttpMapper::shutdown
+//
+// Purpose-
+//       Termination shutdown
+//
+//----------------------------------------------------------------------------
+void
+   HttpMapper::shutdown( void )     // Termination shutdown
+{  if( HCDM ) debugh("HttpMapper::shutdown\n");
+
+   if( singleton ) {
+     singleton->debug("shutdown");
+     delete singleton;
+     singleton= nullptr;
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
 //       HttpMapper::debug
 //
 // Purpose-
@@ -131,7 +148,8 @@ void
    HttpMapper::debug(               // Debugging display
      const char*       info) const  // Informational display
 {  if( HCDM ) debugh("HttpMapper(%p)::debug(%s)\n", this, info);
-   // NOT CODED YET
+
+   status();
 }
 
 //----------------------------------------------------------------------------
@@ -151,23 +169,26 @@ void
 //----------------------------------------------------------------------------
 void
    HttpMapper::insert(              // Insert onto Map
-     HttpListen*       listen)      // This Listener
+     Listen_t          listen)      // This Listener
 {  if( HCDM ) debugh("HttpMapper::insert(%s)\n", s2c(listen->get_host()));
 
    std::string name= listen->get_host();
    {{{{
      std::lock_guard<decltype(mutex)> lock(mutex);
 
-     const MapIter_t mi= map.find(name);
+     MapIter_t mi= map.find(name);
      if( mi != map.end() )          // If it's already mapped
        throw std::out_of_range(
            to_string("HttpMapper::insert(%s) is a duplicate", s2c(name)) );
 
      // For exposition: Both versions operate correctly
      if( true )
-       map.insert({name, listen->get_self()});
+       map.insert({name, listen});
      else
-       map[name]= listen->get_self();
+       map[name]= listen;
+
+     mi= map.find(name);
+     INS_DEBUG_MAP("Mapper.MAP", &mi->second);
    }}}}
 }
 
@@ -190,7 +211,7 @@ std::shared_ptr<HttpListen>
 
 void
    HttpMapper::remove(              // Remove from Map
-     HttpListen*       listen)      // This HttpListen
+     Listen_t          listen)      // This HttpListen
 {  if( HCDM ) debugh("HttpMapper::remove(%s)\n", s2c(listen->get_host()));
 
    std::string name= listen->get_host();
@@ -198,8 +219,10 @@ void
      std::lock_guard<decltype(mutex)> lock(mutex);
 
      const MapIter_t mi= map.find(name);
-     if( mi != map.end() )          // If it's mapped
+     if( mi != map.end() ) {        // If it's mapped
+       REM_DEBUG_MAP("Mapper.MAP", &mi->second);
        map.erase(mi);               // (Remove it from the map)
+     }
    }}}}
 }
 
@@ -220,4 +243,88 @@ void
    for(auto& it: list) {
      it->status();
    }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       HttpMapper::stop(void)
+//       HttpMapper::stop(const char*)
+//
+// Purpose-
+//       Stop all Listeners
+//       Stop one Listener
+//
+//----------------------------------------------------------------------------
+void
+   HttpMapper::stop( void )         // Stop *ALL* Listeners
+{  if( HCDM ) debugh("HttpMapper::stop\n");
+
+   std::forward_list<std::shared_ptr<HttpListen>> list; // Listener list
+
+   // Copy the std::shared_ptr<HttpListen> from the map into the list
+   {{{{
+     std::lock_guard<decltype(mutex)> lock(mutex);
+     for(auto& it: map) {
+       list.push_front(it.second);
+     }
+   }}}}
+
+   // Stop all Listeners
+   for(auto& it: list) {
+     it->stop();
+   }
+}
+
+void
+   HttpMapper::stop(                // Stop the Listener
+     const char*       _url)        // At this URL
+{  if( HCDM ) debugh("HttpMapper::stop(%s)\n", _url ? _url : "");
+
+   std::shared_ptr<HttpListen> listener= locate(_url);
+   if( listener ) {
+     listener->stop();
+   }
+}
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       HttpMapper::wait(void)
+//       HttpMapper::wait(const char*)
+//
+// Purpose-
+//       Wait for all Listeners
+//       Wait for one Listener
+//
+//----------------------------------------------------------------------------
+void
+   HttpMapper::wait( void )         // Wait for *ALL* Listeners
+{  if( HCDM ) debugh("HttpMapper::wait\n");
+
+   std::forward_list<std::shared_ptr<HttpListen>> list; // Listener list
+
+   // Copy the std::shared_ptr<HttpListen> from the map into the list
+   {{{{
+     std::lock_guard<decltype(mutex)> lock(mutex);
+     for(auto& it: map) {
+       list.push_front(it.second);
+     }
+   }}}}
+
+   // Wait for and remove each Listener
+   for(auto& it: list) {
+     it->wait();
+     remove(it);
+   }
+}
+
+void
+   HttpMapper::wait(                // Wait for the Listener
+     const char*       _url)        // At this URL
+{  if( HCDM ) debugh("HttpMapper::wait(%s)\n", _url ? _url : "");
+
+   std::shared_ptr<HttpListen> listener= HttpMapper::get()->locate(_url);
+   if( listener )
+     listener->wait();
 }

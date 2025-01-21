@@ -2,10 +2,10 @@
 //
 //       Copyright (C) 2022-2025 Frank Eskesen.
 //
-//       This file is free content, distributed under the Lesser GNU
-//       General Public License, version 3.0.
-//       (See accompanying file LICENSE.LGPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
@@ -16,7 +16,7 @@
 //       The HttpListen agent
 //
 // Last change date-
-//       2025/01/16
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef HTTPMAPPER_H_INCLUDED
@@ -27,6 +27,7 @@
 #include <mutex>                    // For std::recursive_mutex
 #include <string>                   // For std::string
 
+#include "shared_ptr-debug.h"       // For shared_ptr debugging control
 #include "HttpListen.h"             // For HttpListen
 #include "HttpServer.h"             // For HttpServer
 
@@ -78,13 +79,14 @@ void
 
 //----------------------------------------------------------------------------
 // HttpMapper::get || Get the HttpMapper singleton
+// HttpMapper::shutdown || Delete the HttpMapper singleton
 //----------------------------------------------------------------------------
 static HttpMapper*                  // The HttpMapper singleton
    get( void )                      // Get HttpMapper singleton
 {  return singleton ? singleton : make(); }
 
-static void*                        // Get HttpMapper terminator
-   get_terminator( void );          // Get HttpMapper terminator
+static void
+   shutdown( void );                // Delete the HttpMapper singleton
 
 //----------------------------------------------------------------------------
 //
@@ -103,7 +105,7 @@ static void*                        // Get HttpMapper terminator
 //----------------------------------------------------------------------------
 void
    insert(                          // Insert onto Map
-     HttpListen*       listen);     // This Listener
+     Listen_t          listen);     // This Listener
 
 std::shared_ptr<HttpListen>
    locate(                          // Locate with Map
@@ -111,9 +113,45 @@ std::shared_ptr<HttpListen>
 
 void
    remove(                          // Remove from Map
-     HttpListen*       listen);     // This Listener
+     Listen_t          listen);     // This Listener
 
 void
    status( void ) const;            // Display Listener Map
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       HttpMapper::stop(void)
+//       HttpMapper::stop(const char*)
+//
+// Purpose-
+//       Stop all Listeners
+//       Stop one Listener
+//
+//----------------------------------------------------------------------------
+void
+   stop( void );                    // Stop *ALL* Listeners
+
+void
+   stop(                            // Stop the Listener
+     const char*       _url);       // At this URL
+
+//----------------------------------------------------------------------------
+//
+// Method-
+//       HttpMapper::wait(void)
+//       HttpMapper::wait(const char*)
+//
+// Purpose-
+//       Wait for all Listeners
+//       Wait for one Listener
+//
+//----------------------------------------------------------------------------
+void
+   wait( void );                    // Wait for *ALL* Listeners
+
+void
+   wait(                            // Wait for the Listener
+     const char*       _url);       // At this URL
 }; // class HttpMapper
 #endif // HTTPMAPPER_H_INCLUDED

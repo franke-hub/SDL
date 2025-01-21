@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2024 Frank Eskesen.
+//       Copyright (C) 2022-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       T_Stream.cpp classes
 //
 // Last change date-
-//       2024/12/09
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef T_STREAM_HPP_INCLUDED
@@ -199,8 +199,8 @@ std::shared_ptr<Client>client;      // The Client
 std::atomic_size_t     cur_op_count= 0; // The number of running requests
 std::mutex             mutex;       // Protects client
 
-Event                  ready;       // Thread ready event
-Event                  send_end;    // Send completion event (for run_one)
+pub::Event             ready;       // Thread ready event
+pub::Event             send_end;    // Send completion event (for run_one)
 
 static std::atomic_int client_serial; // Global serial number
 int                    serial= -1;  // Serial number
@@ -912,8 +912,8 @@ public:
 std::shared_ptr<Listen>
                        listen;      // Our Listener
 
-Event                  ready;       // Thread ready Event
-Event                  ended;       // Thread ended Event
+pub::Event             ready;       // Thread ready Event
+pub::Event             ended;       // Thread ended Event
 
 bool                   operational= false; // TRUE while operational
 

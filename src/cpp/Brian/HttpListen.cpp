@@ -16,7 +16,7 @@
 //       Implement HttpListen.h
 //
 // Last change date-
-//       2025/01/16
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #include <forward_list>             // For std::forward_list
@@ -59,22 +59,6 @@ enum
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       io_error
-//
-// Purpose-
-//       Handle I/O error
-//
-//----------------------------------------------------------------------------
-static inline void // UNUSED??
-   io_error(                        // Handle I/O error
-     HttpListen*       listen)      // For this Listener
-{
-   errorh("HttpListen(%p) ERROR: %d:%s\n", listen, errno, strerror(errno));
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
 //       op_error
 //
 // Purpose-
@@ -84,10 +68,12 @@ static inline void // UNUSED??
 static void
    op_error(                        // Handle operation error
      HttpListen*       listen,      // For this Listener
-     const char*       op)          // And this operation
+     int               line,        // At this source line number
+     const char*       op)          // Attempting this operation
 {
-   errorh("HttpListen(%p) %s ERROR: %d:%s\n", listen, op
-         , errno, strerror(errno));
+   errorh("%4d HttpListen(%p) '%s'\n%s ERROR: %d:%s\n", line, listen
+         , s2c(listen->get_host())
+         , op, errno, strerror(errno));
 }
 
 //----------------------------------------------------------------------------
@@ -106,6 +92,7 @@ static void
    HttpListen::HttpListen( void )   // (Default) constructor
 :  Thread(), host(Socket::gethostname() + to_string(":%d", DEFAULT_PORT))
 {  if( HCDM ) debugh("HttpListen(%p)!\n", this);
+   INS_DEBUG_OBJ("HttpListen");
 
    _build();                        // Common construction
 }
@@ -114,6 +101,7 @@ static void
      std::string       _host)       // "hostname:port"
 :  Thread(), host(_host)
 {  if( HCDM ) debugh("HttpListen(%p)!(%s)\n", this, s2c(_host));
+   INS_DEBUG_OBJ("HttpListen");
 
    _build();                        // Common construction
 }
@@ -122,14 +110,18 @@ static void
    HttpListen::~HttpListen( void )  // Destructor
 {  if( HCDM ) debugh("HttpListen(%p)~\n", this);
 
-   HttpMapper::get()->remove(this);
+// We can't get to the destructor while a shared_ptr<Listen> exists, and the
+// Mapper's map has one of these shared_ptrs.
+// HttpMapper::get()->remove(this);
    close();
+
+   REM_DEBUG_OBJ("HttpListen");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void
    HttpListen::_build( void )       // Common construction,
-{  if( HCDM ) debugh("HttpListen(%p)::build\n", this);
+{  if( HCDM ) debugh("HttpListen(%p)::build(%s)\n", this, s2c(host));
 
    // Create and initialize the Listener Socket
    socket= new pub::Socket();       // Create the Socket
@@ -148,13 +140,13 @@ void
 
    rc= socket->bind(s2c(host));     // Set Listener host:port
    if( rc ) {                       // If failure
-     op_error(this, "bind");
+     op_error(this, __LINE__, "bind");
      return;
    }
 
    rc= socket->listen();            // Begin listening
    if( rc ) {                       // If failure
-     op_error(this, "listen");
+     op_error(this, __LINE__, "listen");
      return;
    }
 
@@ -178,7 +170,7 @@ std::shared_ptr<HttpListen>
    std::shared_ptr<HttpListen> listen(new HttpListen());
    listen->self= listen;
 
-   HttpMapper::get()->insert(listen.get());
+   HttpMapper::get()->insert(listen);
    return listen;
 }
 
@@ -193,7 +185,7 @@ std::shared_ptr<HttpListen>
    std::shared_ptr<HttpListen> listen(new HttpListen(_host));
    listen->self= listen;
 
-   HttpMapper::get()->insert(listen.get());
+   HttpMapper::get()->insert(listen);
    return listen;
 }
 
@@ -232,7 +224,7 @@ void
    if( socket ) {
      int rc= socket->close();
      if( rc )                       // If failure
-       op_error(this, "close");     // (Message only, ignoring the error)
+       op_error(this, __LINE__, "close"); // (Message only, ignoring the error)
 
      delete socket;
      socket= nullptr;
@@ -350,7 +342,7 @@ void
        Socket* server_socket= socket->accept(); // Get next HttpServer Socket
        if( server_socket == nullptr ) { // If accept error
          if( operational )          // (No message if non-operational)
-           op_error(this, "accept"); // (Message only, error ignored)
+           op_error(this, __LINE__, "accept"); // (Message only, error ignored)
 
          continue;
        }
@@ -393,11 +385,11 @@ void
      int rc= dummy_connector.open(AF_INET, SOCK_STREAM, PF_UNSPEC);
      if( rc == 0 ) {
        rc= dummy_connector.connect(host);
-       if( HCDM ) {
-         debugf("%4d HCDM %d= socket.connect(%s)\n", __LINE__, rc, s2c(host));
+       if( HCDM && VERBOSE ) {
+         op_error(this, __LINE__, "(stop) socket.connect");
        }
-     } else if( HCDM ) {
-       debugf("%4d HCDM %d= socket.open\n", __LINE__, rc);
+     } else if( HCDM && VERBOSE ) {
+       op_error(this, __LINE__, "(stop) socket.open");
      }
    } catch(...) {
    }
@@ -417,6 +409,4 @@ void
 {  if( HCDM ) debugh("HttpListen(%p)::wait '%s'\n", this, s2c(host));
 
    join();                          // Wait for HttpListen completion
-// TODO FIX FIX FIX
-// command_listen.done(self.lock()); // Remove us from the map (once)
 }

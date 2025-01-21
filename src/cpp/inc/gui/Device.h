@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2021 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       XCB device descriptor
 //
 // Last change date-
-//       2021/01/18
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef GUI_DEVICE_H_INCLUDED
@@ -25,7 +25,7 @@
 #include <xcb/xcb.h>                // For XCB interfaces
 #include <xcb/xproto.h>             // For XCB types
 
-#include <pub/Signals.h>            // For pub::signals
+#include "pub/Signals.h"            // For pub::Signals interface
 #include "gui/Widget.h"             // For Widget
 #include "gui/Window.h"             // Our base class
 
@@ -45,7 +45,7 @@ namespace gui {
 //         xcb_mapping_notify_event_t  // Mapping notify event
 //
 //----------------------------------------------------------------------------
-struct DeviceEvent {                // Device Event descriptor
+struct DeviceEvent : public pub::signals::Event { // Device Event descriptor
 xcb_generic_event_t*   event;       // (Generic) event
 
    DeviceEvent(                     // Default/event constructor
@@ -67,8 +67,7 @@ class Device : public Window {      // XCB device driver
 // gui::Device::Attributes
 //----------------------------------------------------------------------------
 public:
-pub::signals::Signal<DeviceEvent>
-                       signal;      // The DeviceEvent signal
+pub::signals::Signal   signal;      // The DeviceEvent signal
 Display*               display= nullptr; // X11 Display
 bool                   operational= true; // TRUE while operational
 

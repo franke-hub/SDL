@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2024 Frank Eskesen.
+//       Copyright (c) 2024-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,12 +16,13 @@
 //       PROTOTYPE: Curl Services descriptor
 //
 // Last change date-
-//       2024/10/07
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef CURL_H_INCLUDED
 #define CURL_H_INCLUDED
 
+#include "shared_ptr-debug.h"       // For shared_ptr debugging control
 #include <pub/Dispatch.h>           // For pub::dispatch::Task
 
 #include "Service.h"                // For Service, base class

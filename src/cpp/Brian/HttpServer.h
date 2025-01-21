@@ -2,10 +2,10 @@
 //
 //       Copyright (C) 2022-2025 Frank Eskesen.
 //
-//       This file is free content, distributed under the Lesser GNU
-//       General Public License, version 3.0.
-//       (See accompanying file LICENSE.LGPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
@@ -16,7 +16,7 @@
 //       The HTTP Server object.
 //
 // Last change date-
-//       2025/01/16
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef HTTPSERVER_H_INCLUDED
@@ -27,9 +27,10 @@
 #include <mutex>                    // For std::recursive_mutex
 #include <string>                   // For std::string
 
+#include "shared_ptr-debug.h"       // For shared_ptr debugging control
 #include <pub/Dispatch.h>           // For pub::dispatch::Item, ...
 #include <pub/Ioda.h>               // For pub::Ioda
-#include <pub/Signals.h>            // For pub::Signals
+#include "pub/Signals.h"            // For pub::signals interface
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Thread.h>             // For pub::Thread, base class
 
@@ -59,8 +60,8 @@ typedef pub::Socket                 Socket_t;
 typedef pub::dispatch::LambdaTask   Task_t;
 typedef pub::dispatch::Work_i       Work_i;
 
-typedef StaticCommon::Event                   Event;
-typedef pub::signals::Connector<Event>        Connector;
+typedef StaticCommon::Event_t       Event;
+typedef pub::signals::Connector     Connector;
 
 //----------------------------------------------------------------------------
 // HttpServer::Item | Work Item
@@ -69,6 +70,9 @@ class Item : public pub::dispatch::Item {
 public:
 Server_t               server;      // The associated Server
 Ioda_t                 ioda;        // The I/O data area
+
+   Item( void );                    // Constructor
+   ~Item( void );                   // Destructor
 }; // class HttpServer::Item
 
 //----------------------------------------------------------------------------

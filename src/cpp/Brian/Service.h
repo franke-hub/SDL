@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2024 Frank Eskesen.
+//       Copyright (c) 2019-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       The Service interface
 //
 // Last change date-
-//       2024/11/02
+//       2025/01/20
 //
 // Implementation notes-
 //       While Service.h documents its interfaces, that's not enough for a
@@ -29,6 +29,7 @@
 
 #include <string>                   // For std::string
 
+#include "shared_ptr-debug.h"       // For shared_ptr debugging control
 #include <pub/Named.h>              // For pub::Named, base class
 
 //----------------------------------------------------------------------------

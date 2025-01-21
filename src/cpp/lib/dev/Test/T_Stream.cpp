@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2024 Frank Eskesen.
+//       Copyright (C) 2022-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2024/12/09
+//       2025/01/20
 //
 // Arguments-
 //       With no arguments, --client defaulted
@@ -58,7 +58,7 @@
 #include <pub/Event.h>              // For pub::Event
 #include <pub/Ioda.h>               // For pub::Ioda
 #include <pub/Reporter.h>           // For pub::Reporter
-#include <pub/Signals.h>            // For namespace pub::signals
+#include "pub/Signals.h"            // For pub::Signals interface
 #include <pub/Statistic.h>          // For pub::Statistic
 #include <pub/Thread.h>             // For pub::Thread
 #include <pub/Trace.h>              // For pub::Trace
@@ -163,8 +163,8 @@ Connector<SIG>         interruptConnector=
 typedef std::atomic_size_t          atomic_count_t;
 static atomic_count_t  error_count= 0; // Error counter
 static atomic_count_t  send_op_count= 0; // The total send complete count
-static Event           test_ended;  // The test ended Event
-static Event           test_start;  // The start test Event
+static pub::Event      test_ended;  // The test ended Event
+static pub::Event      test_start;  // The start test Event
 static int             running= false; // Test running indicator
 
 //----------------------------------------------------------------------------

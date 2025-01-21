@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2024 Frank Eskesen.
+//       Copyright (c) 2019-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Brian Common object methods
 //
 // Last change date-
-//       2024/12/20
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std:: (in-place operator new)
@@ -243,7 +243,7 @@ void
    // Wait for shutdown's completion post, resuming main task
    event.wait();
 
-   StaticCommon::Event event= static_common->event;
+   pub::signals::Event event;
    static_common->shutdown_started.signal(event); // Raise shutdown started
 
    //-------------------------------------------------------------------------

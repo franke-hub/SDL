@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2024/12/20
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #include <cstdio>                   // For sprintf
@@ -101,24 +101,23 @@ char                   data[DATA_SIZE]; // The output data
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static pub::signals::Connector<EdMark::ChangeEvent>
+static pub::signals::Connector
                        changeEvent_connector;
 
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       unexpected
+//       sno
 //
 // Purpose-
-//       An unexpected event occurred. (Conditionally) write debugging message.
+//       Handle Should Not Occur condition
 //
 //----------------------------------------------------------------------------
-static inline void
-   unexpected(int line)             // Handle unexpected event @ __LINE__
-{
-   if( true )
-     debugh("\n%4d %s HCDM **UNEXPECTED**\n\n", line, __FILE__);
-}
+static void
+   sno(                             // Handle Should Not Occur condition
+     int               line,        // Source line number
+     const char*       what)        // Error condition
+{  Config::failure("%4d EdOuts sno(%s)\n", line, what); }
 
 //----------------------------------------------------------------------------
 //
@@ -138,10 +137,15 @@ static inline void
 
    // Handle EdMark::ChangeEvent (lambda function)
    // Purpose: Repair EdOuts::head (if it changed)
-   using Event= EdMark::ChangeEvent;
-   changeEvent_connector= EdMark::change_signal.connect([this](Event& event) {
-     EdFile* file= event.file;
-     const EdRedo* redo= event.redo;
+   using Event= pub::signals::Event;
+   using ChangeEvent= EdMark::ChangeEvent;
+   changeEvent_connector= EdMark::change_signal.connect([this](Event& _event) {
+     ChangeEvent* event= dynamic_cast<ChangeEvent*>(&_event);
+     if( event == nullptr )
+       sno(__LINE__, "change_signal not a ChangeEvent");
+
+     EdFile* file= event->file;
+     const EdRedo* redo= event->redo;
 
      // If the head line was removed, we need to adjust it so that we point
      // to a head line that's actually in the file.

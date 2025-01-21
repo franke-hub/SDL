@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2024/08/23
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
@@ -25,7 +25,7 @@
 #include <string>                   // For std::string
 
 #include "pub/config.h"             // For ATTRIB_PRINTF macro
-#include <pub/Signals.h>            // For pub::signals
+#include "pub/Signals.h"            // For pub::Signals interface
 
 #include "EdType.h"                 // For common editor types
 
@@ -157,8 +157,12 @@ extern std::string     HOME;        // The HOME directory
 //----------------------------------------------------------------------------
 // config::Signals
 //----------------------------------------------------------------------------
-extern pub::signals::Signal<const char*>* // The RAII Check signal
-   check_signal();                  // Run consistency checks
+struct CheckEvent : public pub::signals::Event {
+const char*            info;        // Signal information
+}; // struct CheckEvent
+
+extern pub::signals::Signal*        // The CheckEvent Signal (RAII)
+   check_signal( void );            // Get CheckEvent Signal
 
 //----------------------------------------------------------------------------
 // Static string constants

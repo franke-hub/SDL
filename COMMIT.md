@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (C) 2023-2024 Frank Eskesen.
+//       Copyright (C) 2023-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2024/12/20
+//       2025/01/21
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,31 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 01/21/2025 maint
+
+~/src/cpp/inc/pub/Signals.h was restructured to aid in debugging.
+
+The test build machine fails to run ~/src/cpp/Brian, getting an exception
+because of a string constructed from nullptr. This error does not occur in
+other environments.
+
+Debugging this problem hasn't been possible. It appears to be occuring during
+startup complete Signal handling, but the event handler doesn't appear to be
+invoked. The Signals restructuring requires all Events to be derived from a
+new Signals::Event struct which is basically just a tag. Event handlers now
+need to dynamically cast the provided basic Event type into the expected
+derived type rather than simply rely on template type matching.
+
+All current Signals usage has been revised to use the changed interface.
+This updated interface should allow additional debugging code to be added more
+easily.
+
+Brian modules now also test for failure to delete shared_ptr objects.
+Interestingly, adding debugging statements seems to affect whether or not the
+shared_ptr's are left in limbo.
 
 ----
 

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2024 Frank Eskesen.
+//       Copyright (c) 2019-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       A Command is a Named work handler.
 //
 // Last change date-
-//       2024/11/15
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef COMMAND_H_INCLUDED
@@ -27,6 +27,7 @@
 #include <mutex>                    // For std::mutex
 #include <string>                   // For std::string
 
+#include "shared_ptr-debug.h"       // For shared_ptr debugging control
 #include <pub/Named.h>              // For pub::Named, base class
 #include <pub/Object.h>             // For work resultant
 

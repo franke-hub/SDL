@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,13 +16,13 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2024/08/30
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
 
 #include <pub/Debug.h>              // For namespace pub::debugging
-#include <pub/Signals.h>            // For pub::signals::Connector
+#include "pub/Signals.h"            // For pub::Signals interface
 #include <pub/Tokenizer.h>          // For pub::Tokenizer
 #include <pub/Trace.h>              // For pub::Trace
 #include <pub/Utf.h>                // For pub::utf8_decoder
@@ -53,14 +53,13 @@ enum // Compilation controls
 //----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-static pub::signals::Connector<EdFile::CloseEvent>
+static pub::signals::Connector
                        closeEvent_connector;
 
 //----------------------------------------------------------------------------
 // External data areas
 //----------------------------------------------------------------------------
-pub::signals::Signal<EdMark::ChangeEvent>
-                       EdMark::change_signal; // ChangeEvent signal
+pub::signals::Signal   EdMark::change_signal; // ChangeEvent signal
 
 //----------------------------------------------------------------------------
 //
@@ -145,6 +144,21 @@ static void
 
 //----------------------------------------------------------------------------
 //
+// Subroutine-
+//       sno
+//
+// Purpose-
+//       Handle Should Not Occur condition
+//
+//----------------------------------------------------------------------------
+static void
+   sno(                             // Handle Should Not Occur condition
+     int               line,        // Source line number
+     const char*       what)        // Error condition
+{  Config::failure("%4d EdMark sno(%s)\n", line, what); }
+
+//----------------------------------------------------------------------------
+//
 // Method-
 //       EdMark::Copy::Copy
 //       EdMark::Copy::~Copy
@@ -202,14 +216,19 @@ EdMark::Copy                        // The resultant Copy
    EdMark::EdMark( void )           // Constructor
 {
    // Initialize EdFile::CloseEvent handler
-   using Event= EdFile::CloseEvent;
-   closeEvent_connector= EdFile::close_signal.connect([this](Event& event) {
-     if( event.file == mark_file ) {
+   using Event= pub::signals::Event;
+   using CloseEvent= EdFile::CloseEvent;
+   closeEvent_connector= EdFile::close_signal.connect([this](Event& _event) {
+     CloseEvent* event= dynamic_cast<CloseEvent*>(&_event);
+     if( event == nullptr )
+       sno(__LINE__, "close_signal not a CloseEvent");
+
+     if( event->file == mark_file ) {
        mark_file= nullptr;
        mark_head= mark_tail= mark_line= nullptr;
        mark_lh= mark_rh= mark_col= -1;
      }
-     if( event.file == copy_file ) {
+     if( event->file == copy_file ) {
        copy_file= nullptr;
      }
    });
@@ -384,7 +403,7 @@ const char*                         // Error message, nullptr expected
    mark_file->redo_insert(redo);
 
    // Raise ChangeEvent signal
-   ChangeEvent event= {mark_file, redo};
+   ChangeEvent event(mark_file, redo);
    change_signal.signal(event);
    undo();                          // (No mark remains after cut)
 
@@ -504,7 +523,7 @@ const char*                         // Error message, nullptr expected
    editor::unit->draw();
 
    // Raise ChangeEvent signal
-   ChangeEvent event= {edFile, redo};
+   ChangeEvent event(edFile, redo);
    change_signal.signal(event);
 
    return nullptr;
@@ -577,7 +596,7 @@ void
    }
 
    // Raise ChangeEvent signal
-   ChangeEvent event= {file, redo};
+   ChangeEvent event(file, redo);
    change_signal.signal(event);
 }
 
@@ -837,7 +856,7 @@ const char*                         // Error message, nullptr expected
    edFile->activate(edLine);
 
    // Raise ChangeEvent signal
-   ChangeEvent event= {edFile, redo};
+   ChangeEvent event(edFile, redo);
    change_signal.signal(event);
 
    return nullptr;

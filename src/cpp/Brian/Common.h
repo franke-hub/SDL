@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2019-2024 Frank Eskesen.
+//       Copyright (c) 2019-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,12 +16,13 @@
 //       Define the Brian Common area.
 //
 // Last change date-
-//       2024/11/02
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef COMMON_H_INCLUDED
 #define COMMON_H_INCLUDED
 
+#include "shared_ptr-debug.h"       // For shared_ptr debugging control
 #include <pub/Dispatch.h>           // For pub::dispatch::Disp::delay
 #include <pub/Event.h>              // For pub::Event
 #include "pub/Signals.h"            // For pub::signals interface
@@ -148,12 +149,8 @@ struct StaticCommon {               // StaticCommon data area
 // StaticCommon::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-const struct Event {                // The Common::Event struct
-int                    id= 0;       // Event identifier, usually ignored
-}  event;                           // (A usable dummy Event)
-
-typedef struct Event                   Sevent_t; // The Signal Event type
-typedef pub::signals::Signal<Sevent_t> Signal_t; // The Signal type
+typedef pub::signals::Event         Event_t; // The Signal Event type
+typedef pub::signals::Signal        Signal_t; // The Signal type
 
 //----------------------------------------------------------------------------
 // StaticCommon::Initializer
@@ -165,6 +162,19 @@ static StaticCommon*                // (Return value can be ignored)
 //----------------------------------------------------------------------------
 // StaticCommon::Signals
 //----------------------------------------------------------------------------
+struct DiagnosticEvent : public pub::signals::Event { // Diagnostic Event
+int                    id= 0;       // The interrupt signal type
+
+   DiagnosticEvent( void ) = default; // Default constructor
+
+   DiagnosticEvent(int _id)         // Constructor
+:  id(_id)
+{  }
+}; // DiagnosticEvent
+
+Event_t                event;       // (A default Event)
+DiagnosticEvent        diagnostic_event; // (A default DiagnosticEvent)
+
 Signal_t               run_diagnostics;  // Run diagnostics  Signal
 Signal_t               startup_complete; // Startup complete Signal
 Signal_t               shutdown_started; // Shutdown started Signal

@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2024 Frank Eskesen.
+//       Copyright (c) 2024-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,11 +16,13 @@
 //       Include built-in objects
 //
 // Last change date-
-//       2024/10/27
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef LOADER_H_INCLUDED
 #define LOADER_H_INCLUDED
+
+#include "shared_ptr-debug.h"       // For shared_ptr debugging control
 
 //----------------------------------------------------------------------------
 //

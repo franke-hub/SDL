@@ -2,10 +2,10 @@
 //
 //       Copyright (C) 2022-2025 Frank Eskesen.
 //
-//       This file is free content, distributed under the Lesser GNU
-//       General Public License, version 3.0.
-//       (See accompanying file LICENSE.LGPL-3.0 or the original
-//       contained within https://www.gnu.org/licenses/lgpl-3.0.en.html)
+//       This file is free content, distributed under the GNU General
+//       Public License, version 3.0.
+//       (See accompanying file LICENSE.GPL-3.0 or the original
+//       contained within https://www.gnu.org/licenses/gpl-3.0.en.html)
 //
 //----------------------------------------------------------------------------
 //
@@ -16,7 +16,7 @@
 //       The HTTP Listen object.
 //
 // Last change date-
-//       2025/01/16
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef HTTPLISTEN_H_INCLUDED
@@ -26,6 +26,7 @@
 #include <mutex>                    // For std::recursive_mutex
 #include <string>                   // For std::string
 
+#include "shared_ptr-debug.h"       // For shared_ptr debugging control
 #include <pub/Dispatch.h>           // For pub::dispatch objects
 #include <pub/Socket.h>             // For pub::Socket
 #include <pub/Thread.h>             // For pub::Thread, base class

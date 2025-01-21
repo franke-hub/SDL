@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2020-2024 Frank Eskesen.
+//       Copyright (C) 2020-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2024/08/27
+//       2025/01/20
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -32,7 +32,7 @@
 
 #include <pub/Debug.h>              // For Debug, namespace pub::debugging
 #include <pub/Fileman.h>            // For namespace pub::fileman
-#include <pub/Signals.h>            // For pub::signals
+#include "pub/Signals.h"            // For pub::Signals interface
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Trace.h>              // For pub::Trace
 
