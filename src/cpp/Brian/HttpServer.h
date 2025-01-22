@@ -16,7 +16,7 @@
 //       The HTTP Server object.
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/22
 //
 //----------------------------------------------------------------------------
 #ifndef HTTPSERVER_H_INCLUDED
@@ -60,7 +60,7 @@ typedef pub::Socket                 Socket_t;
 typedef pub::dispatch::LambdaTask   Task_t;
 typedef pub::dispatch::Work_i       Work_i;
 
-typedef StaticCommon::Event_t       Event;
+typedef StaticCommon::Event_t       Event_t;
 typedef pub::signals::Connector     Connector;
 
 //----------------------------------------------------------------------------

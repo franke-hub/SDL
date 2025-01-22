@@ -16,7 +16,7 @@
 //       Define the Brian Common area.
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/22
 //
 //----------------------------------------------------------------------------
 #ifndef COMMON_H_INCLUDED
@@ -149,7 +149,7 @@ struct StaticCommon {               // StaticCommon data area
 // StaticCommon::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-typedef pub::signals::Event         Event_t; // The Signal Event type
+typedef pub::signals::Event_t       Event_t; // The Signal Event type
 typedef pub::signals::Signal        Signal_t; // The Signal type
 
 //----------------------------------------------------------------------------
@@ -162,7 +162,7 @@ static StaticCommon*                // (Return value can be ignored)
 //----------------------------------------------------------------------------
 // StaticCommon::Signals
 //----------------------------------------------------------------------------
-struct DiagnosticEvent : public pub::signals::Event { // Diagnostic Event
+struct DiagnosticEvent : public Event_t { // Diagnostic Event
 int                    id= 0;       // The interrupt signal type
 
    DiagnosticEvent( void ) = default; // Default constructor

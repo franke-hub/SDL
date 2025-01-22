@@ -16,7 +16,7 @@
 //       Brian Common object methods
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/22
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For std:: (in-place operator new)
@@ -243,7 +243,7 @@ void
    // Wait for shutdown's completion post, resuming main task
    event.wait();
 
-   pub::signals::Event event;
+   pub::signals::Event_t event;
    static_common->shutdown_started.signal(event); // Raise shutdown started
 
    //-------------------------------------------------------------------------

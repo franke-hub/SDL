@@ -16,7 +16,7 @@
 //       Implement Signals.h
 //
 // Last change date-
-//       2025/01/21
+//       2025/01/22
 //
 //----------------------------------------------------------------------------
 #include <functional>               // For std::function
@@ -49,36 +49,36 @@ enum
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::Listener::Listener
-//       pub::signals::Listener::~Listener
+//       pub::signals::Slot::Slot
+//       pub::signals::Slot::~Slot
 //
 // Purpose-
 //       Constructor
 //       Destructor
 //
 //----------------------------------------------------------------------------
-   Listener::Listener(
+   Slot::Slot(                      // Constructor
      const Function&   _function)   // The Event handler function
 :  function(_function)
 {  }
 
-   Listener::~Listener( void )      // Destructor
+   Slot::~Slot( void )              // Destructor
 {  }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::Listener::signal
+//       pub::signals::Slot::signal
 //
 // Purpose-
-//       Tell Listener about an Event
+//       Tell Slot about an Event
 //
 //----------------------------------------------------------------------------
 void
-   pub::signals::Listener::signal(  // Tell this Listener about
-     Event&            event) const // This Event
+   pub::signals::Slot::signal(      // Tell this Slot about
+     Event_t&          event) const // This Event
 {  if( HCDM )
-     debugf("Listener(%p)::signal(%s)\n", this, s2c(demangle(typeid(event))));
+     debugf("Slot(%p)::signal(%s)\n", this, s2c(demangle(typeid(event))));
 
    function(event);                 // Invoke the associated function
 }
@@ -86,94 +86,93 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::ListenerList::ListenerList
-//       pub::signals::ListenerList::~ListenerList
+//       pub::signals::SlotList::SlotList
+//       pub::signals::SlotList::~SlotList
 //
 // Purpose-
 //       Constructor
 //       Destructor
 //
 //----------------------------------------------------------------------------
-   ListenerList::ListenerList( void ) // (Default) constructor
+   SlotList::SlotList( void )       // (Default) constructor
 :  SHR(), list()
 {  }
 
-   ListenerList::~ListenerList( void ) // Destructor
+   SlotList::~SlotList( void )      // Destructor
 {
    // Implementation note: No action is needed or can be performed here.
-   // Only Connectors may delete Listeners and (since it's now being deleted,)
+   // Only Connectors may delete Slots and (since it's now being deleted,)
    // no Connectors (who only have weak_ptr references to this List) can find
-   // it. On the other hand, we must not not access the ListenerList since the
-   // Listeners on the list are owned by by Connectors, not us.
+   // it. On the other hand, we must not not access the SlotList since the
+   // Slots on the list are owned by by Connectors, not us.
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::ListenerList::debug
+//       pub::signals::SlotList::debug
 //
 // Purpose-
 //       Debugging display, invoked by Signals::Signal::debug
 //
 //----------------------------------------------------------------------------
 void
-   ListenerList::debug(const char* info) const // Debugging display
+   SlotList::debug(const char* info) const // Debugging display
 
 {
-   debugf("ListenerList::debug(%s)\n", info);
+   debugf("SlotList::debug(%s)\n", info);
 
    size_t X= 0;                     // Pseudo-index
    std::lock_guard<decltype(SHR)> lock(SHR);
    for(Slot_t* slot= list.get_head(); slot; slot= slot->get_next()) {
      debugf("[%2zd] %p\n", X++, slot);
    }
-   debugf("[%2zd] Listener%s\n", X, X == 1 ? "" : "s");
+   debugf("[%2zd] Slot%s\n", X, X == 1 ? "" : "s");
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::ListenerList::signal
+//       pub::signals::SlotList::signal
 //
 // Purpose-
 //       Signal Event occurance
 //
 // Implementation notes-
-//       The signal method does not return until all Listeners are (serially)
+//       The signal method does not return until all Slots are (serially)
 //       driven. The Event object is passed by reference and may be modified
-//       by Listeners for any (application-defined) purposes.
+//       by Slots for any (application-defined) purposes.
 //
 //----------------------------------------------------------------------------
-void                                // (All Listeners are signaled)
-   ListenerList::signal(            // Signal all Listeners about
-     Event&            event) const // This Event
+void
+   SlotList::signal(                // Signal all Slots with
+     Event_t&          event) const // This Event
 {  if( HCDM )
-     debugf("ListenerList(%p)::signal(%s)\n", this
-           , s2c(demangle(typeid(event))));
+     debugf("SlotList(%p)::signal(%s)\n", this, s2c(demangle(typeid(event))));
 
    // Livelock (an application loop) occurs if an application attempts to
-   // modify the Slot (Listener) list during this loop.
+   // modify the SlotList during this loop.
    size_t X= 0;                     // Pseudo-index
    std::lock_guard<decltype(SHR)> lock(SHR); // While holding the shared Latch
    for(Slot_t* slot= list.get_head(); slot; slot= slot->get_next()) {
      if( HCDM && VERBOSE )
        debugf("[%2zd] %p %s\n", X++, slot, s2c(demangle(typeid(event))));
-     slot->signal(event);           // signal the Listener
+     slot->signal(event);           // signal the Slot
    }
 }
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::ListenerList::insert
+//       pub::signals::SlotList::insert
 //
 // Purpose-
-//       Add Slot_t into ListenerList
+//       Add Slot_t into SlotList
 //
 //----------------------------------------------------------------------------
 void
-   ListenerList::insert(            // Insert
-     Slot_t*           slot)        // This Listener (FIFO ordering)
+   SlotList::insert(                // Insert
+     Slot_t*           slot)        // This Slot (FIFO ordering)
 {
    XCL_latch XCL(SHR);              // While holding the exclusive Latch
    std::lock_guard<decltype(XCL)> lock(XCL);
@@ -184,20 +183,20 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::ListenerList::remove
+//       pub::signals::SlotList::remove
 //
 // Purpose-
-//       Remove Slot_t from ListenerList
+//       Remove Slot_t from SlotList
 //
 //----------------------------------------------------------------------------
 void
-   ListenerList::remove(            // Remove
-     Slot_t*           slot)        // This Listener
+   SlotList::remove(                // Remove
+     Slot_t*           slot)        // This Slot
 {
    XCL_latch XCL(SHR);              // While holding the exclusive Latch
    std::lock_guard<decltype(XCL)> lock(XCL);
 
-   list.remove(slot, slot);         // Remove the Listener
+   list.remove(slot, slot);         // Remove the Slot
 }
 
 //----------------------------------------------------------------------------
@@ -216,8 +215,8 @@ void
 {  }
 
    Connector::Connector(            // Constructor
-     Strong_t&         _list,       // The ListenerList (shared_ptr reference)
-     Slot_t*           _slot)       // The Listener (raw pointer)
+     Strong_t&         _list,       // The SlotList (shared_ptr reference)
+     Slot_t*           _slot)       // The Slot     (raw pointer)
 :  list(_list), slot(_slot)         // (We only keep a weak_ptr<List_t>)
 {  }
 
@@ -266,7 +265,7 @@ Connector&
 void
    Connector::debug(const char* info) const
 {
-   debugf("Connector(%p)::debug(%s) lock_state(%s) Listener(%p)\n", this, info
+   debugf("Connector(%p)::debug(%s) lock_state(%s) Slot(%p)\n", this, info
          , list.lock() ? "connected" : "reset", slot);
 }
 
@@ -316,7 +315,7 @@ void
 //
 //----------------------------------------------------------------------------
    Signal::Signal( void )           // Constructor
-:  list(std::make_shared<ListenerList>())
+:  list(std::make_shared<SlotList>())
 {  }
 
    Signal::~Signal( void )          // Destructor
@@ -344,24 +343,24 @@ void
 //       pub::signals::Signal::connect
 //
 // Purpose-
-//       Connect a Signal and a Listener
+//       Connect a Signal and a Slot
 //
 // Implementation note-
 //       The resultant (move copied) Connector contains (a newly created)
-//       Listener, which contains the actual Event handler logic.
+//       Slot, which contains the actual Event handler logic.
 //
 //       Use Connector method disconnect, reset, or the destructor
-//       to destroy this Signal/Listener connection.
+//       to destroy this Signal/Slot connection.
 //
-//       The Signal and Listener are loosely connected. Invoking Signal::reset
-//       or Signal::~Signal disconnects any and all associated Listeners.
+//       The Signal and Slot are loosely connected. Invoking Signal::reset
+//       or Signal::~Signal disconnects any and all associated Slots.
 //
 //----------------------------------------------------------------------------
 Connector                           // The Signal/Function connector
    Signal::connect(                 // Connect a Signal Event handler
      const Function&   function)    // The Signal Event handler function
 {
-   Listener* slot= new Listener(function);
+   Slot* slot= new Slot(function);
 
    list->insert(slot);
    Connector connector(list, slot);
@@ -374,12 +373,12 @@ Connector                           // The Signal/Function connector
 //       pub::signals::Signal::reset
 //
 // Purpose-
-//       Reset the Signal, removing all Listeners
+//       Reset the Signal, removing all Slots
 //
  //----------------------------------------------------------------------------
 void
-   Signal::reset( void )            // Reset the Signal, removing all Listeners
-{  list= std::make_shared<ListenerList>(); } // Reset the ListenerList
+   Signal::reset( void )            // Reset the Signal, removing all Slots
+{  list= std::make_shared<SlotList>(); } // Reset the SlotList
 
 //----------------------------------------------------------------------------
 //
@@ -387,12 +386,12 @@ void
 //       pub::signals::Signal::signal
 //
 // Purpose-
-//       Serially invoke each connected Listener
+//       Serially invoke each connected Slot
 //
 //----------------------------------------------------------------------------
 void
-   Signal::signal(                  // Serially invoke each connected Listener
-     Event&            event) const // Using this Event (parameter)
+   Signal::signal(                  // Serially invoke each connected Slot
+     Event_t&          event) const // Using this Event (parameter)
 {  list->signal(event); }
 }  // namespace signals
 }  // namespace _LIBPUB_NAMESPACE

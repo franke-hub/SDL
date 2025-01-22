@@ -16,7 +16,7 @@
 //       EdFile: Implement EdFile.h REDO/UNDO functions
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/22
 //
 // Implementation notes-
 //       (Only) included by EdFile.cpp
@@ -92,7 +92,7 @@ static bool                         // TRUE if invalid undo
 //
 //----------------------------------------------------------------------------
 static pub::signals::Connector config_check=
-   config::check_signal()->connect([](pub::signals::Event& _event)
+   config::check_signal()->connect([](pub::signals::Event_t& _event)
 {
    CheckEvent* event= dynamic_cast<CheckEvent*>(&_event);
    if( event == nullptr )

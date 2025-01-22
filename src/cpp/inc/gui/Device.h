@@ -16,7 +16,7 @@
 //       XCB device descriptor
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/22
 //
 //----------------------------------------------------------------------------
 #ifndef GUI_DEVICE_H_INCLUDED
@@ -45,7 +45,7 @@ namespace gui {
 //         xcb_mapping_notify_event_t  // Mapping notify event
 //
 //----------------------------------------------------------------------------
-struct DeviceEvent : public pub::signals::Event { // Device Event descriptor
+struct DeviceEvent : public pub::signals::Event_t { // Device Event descriptor
 xcb_generic_event_t*   event;       // (Generic) event
 
    DeviceEvent(                     // Default/event constructor

@@ -16,7 +16,7 @@
 //       Editor: File descriptor
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/22
 //
 //----------------------------------------------------------------------------
 #ifndef EDFILE_H_INCLUDED
@@ -71,7 +71,7 @@ unsigned               col= 0;      // The current cursor column (offset)
 unsigned               row= 0;      // The current cursor row (offset)
 
 // Signals -------------------------------------------------------------------
-struct CloseEvent : public pub::signals::Event { // File close event
+struct CloseEvent : public pub::signals::Event_t { // File close event
 EdFile*                file;
 };
 

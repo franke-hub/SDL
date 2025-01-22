@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2024 Frank Eskesen.
+//       Copyright (c) 2018-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Quick verification tests.
 //
 // Last change date-
-//       2024/11/20
+//       2025/01/22
 //
 //----------------------------------------------------------------------------
 #include <iostream>                 // For std::cout
@@ -869,26 +869,26 @@ static inline int
 
    using namespace PUB::signals;
 
-   // pub::signals::Event is the parameter to the Event handler
-   struct Event {                   // Our event type
+   // pub::signals::MyEvent is the parameter to the Event handler
+   struct MyEvent : public pub::signals::Event_t { // Our event type
      float             X;           // X value
      float             Y;           // Y value
 
-     Event(float X_, float Y_) : X(X_), Y(Y_) {}
+     MyEvent(float X_, float Y_) : X(X_), Y(Y_) {}
 
      int               index= 0;    // (Tests local variables, pass by ref)
-   }; // struct Event
+   }; // struct MyEvent
 
-   using click_conn=   Connector<Event>;
-   using click_event=  Event;
-   using click_signal= Signal<Event>;
+   using click_conn=   Connector;
+   using click_event=  MyEvent;
+   using click_signal= Signal;
 
    struct gui_element : public pub::Named {
-     click_signal      clicked;     // Our Signal<Event>
+     click_signal      clicked;     // Our Signal
 
-     // When a mouse_down Event occurs, drive our Signal<Event> Listeners
+     // When a mouse_down Event occurs, drive our Signal Listeners
      void mouse_down(float X,float Y)
-     { Event E(X,Y); clicked.signal(E); }
+     { MyEvent E(X,Y); clicked.signal(E); }
 
      gui_element(const char* name= nullptr) : Named(name) {}
    };
@@ -896,7 +896,8 @@ static inline int
    // Define some Listener functions.
    // Here the functions are defined using operator() methods.
    struct Listener_A {
-     void operator()(click_event& E) {
+     void operator()(Event_t& _E) {
+       click_event& E= static_cast<click_event&>(_E);
        A_counter++;
        if( opt_verbose )
          debugf("SA: A was counted for %.0f,%.0f\n", E.X, E.Y);
@@ -904,7 +905,8 @@ static inline int
    };
 
    struct Listener_B {
-     void operator()(click_event& E) {
+     void operator()(Event_t& _E) {
+       click_event& E= static_cast<click_event&>(_E);
        B_counter++;
        if( opt_verbose )
          debugf("SB: B was counted for %.0f,%.0f\n", E.X, E.Y);
@@ -921,13 +923,15 @@ static inline int
 
    // Here we define Listener functions at the same time that we initialize
    // their associated Connections
-   connection_1= A.clicked.connect([](click_event& E) {
+   connection_1= A.clicked.connect([](Event_t& _E) {
+       click_event& E= static_cast<click_event&>(_E);
        A_counter++;
        if( opt_verbose )
          debugf("LA: A was counted for %.0f,%.0f\n", E.X, E.Y);
    });
 
-   connection_2= B.clicked.connect([](click_event& E) {
+   connection_2= B.clicked.connect([](Event_t& _E) {
+       click_event& E= static_cast<click_event&>(_E);
        B_counter++;
        if( opt_verbose )
          debugf("LB: B was counted for %.0f,%.0f\n", E.X, E.Y);
@@ -954,8 +958,9 @@ static inline int
    // out of scope.
    {{{{ // (Begin scope)
      // Create a temporary Connector and its associated Listener
-     auto temporary= A.clicked.connect([](click_event& E)
+     auto temporary= A.clicked.connect([](Event_t& _E)
      {
+       click_event& E= static_cast<click_event&>(_E);
        A_counter++;
        if( opt_verbose )
          debugf("LT: A was counted for %.0f,%.0f\n", E.X, E.Y);
@@ -1054,7 +1059,8 @@ static inline int
    for(int i= 0; i<33; i++)
    {
      if( i & 1 ) { // Capture order isn't important
-       l_array[i]= B.clicked.connect([i, &error_count, &B2](Event& event) {
+       l_array[i]= B.clicked.connect([i, &error_count, &B2](Event_t& _E) {
+         MyEvent& event= static_cast<MyEvent&>(_E);
          B2++;
          if( opt_verbose > 1 ) {
            debugf("B.click i(%2d) event.index(%2d) B2(%2d)\n"
@@ -1066,7 +1072,8 @@ static inline int
          event.index += 2;
        });
      } else { // (Address capture notation == capture by reference)
-       l_array[i]= A.clicked.connect([i, &A2, &error_count](Event& event) {
+       l_array[i]= A.clicked.connect([i, &A2, &error_count](Event_t& _E) {
+         MyEvent& event= static_cast<MyEvent&>(_E);
          A2++;
          if( opt_verbose > 1 ) {
            debugf("A.click i(%2d) event.index(%2d) A2(%2d)\n"

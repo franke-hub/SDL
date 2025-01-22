@@ -16,7 +16,7 @@
 //       Editor: Implement Editor.h
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/22
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -32,7 +32,6 @@
 
 #include <pub/Debug.h>              // For Debug, namespace pub::debugging
 #include <pub/Fileman.h>            // For namespace pub::fileman
-#include "pub/Signals.h"            // For pub::Signals interface
 #include <pub/Thread.h>             // For pub::Thread::sleep
 #include <pub/Trace.h>              // For pub::Trace
 

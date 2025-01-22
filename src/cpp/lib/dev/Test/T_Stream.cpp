@@ -16,7 +16,7 @@
 //       Test the Stream objects.
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/22
 //
 // Arguments-
 //       With no arguments, --client defaulted
@@ -133,7 +133,7 @@ static constexpr CC*   priv_file= "private.pem"; // The private key file
 //----------------------------------------------------------------------------
 // Internal data area types
 //----------------------------------------------------------------------------
-struct SIG {                        // The signal event
+struct SIG : public pub::signals::Event_t { // The signal event
 int                    id;          // The interrupt ID
    SIG(int id) : id(id) {}          // Constructor
 }; // SIG
@@ -151,11 +151,13 @@ static ClientAgent*    client_agent= nullptr; // Our ClientAgent
 static ListenAgent*    listen_agent= nullptr; // Our ListenAgent
 
 // Interrupt handler
-Signal<SIG>            interruptSignal;
-Connector<SIG>         interruptConnector=
-   interruptSignal.connect([](SIG sig) {
-     if( opt_verbose )
-       debugf("System signal(%d)\n", sig.id);
+Signal                 interruptSignal;
+Connector              interruptConnector=
+   interruptSignal.connect([](pub::signals::Event_t& _sig) {
+     SIG* sig= dynamic_cast<SIG*>(&_sig);
+     if( sig && opt_verbose )
+       debugf("System signal(%d)\n", sig->id);
+
      std::pub_diag::Debug_ptr::debug("Signal");
    });
 

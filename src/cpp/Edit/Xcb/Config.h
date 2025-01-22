@@ -16,7 +16,7 @@
 //       Editor: Configuration controls
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/22
 //
 //----------------------------------------------------------------------------
 #ifndef CONFIG_H_INCLUDED
@@ -157,7 +157,7 @@ extern std::string     HOME;        // The HOME directory
 //----------------------------------------------------------------------------
 // config::Signals
 //----------------------------------------------------------------------------
-struct CheckEvent : public pub::signals::Event {
+struct CheckEvent : public pub::signals::Event_t {
 const char*            info;        // Signal information
 }; // struct CheckEvent
 

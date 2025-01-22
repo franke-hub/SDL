@@ -16,7 +16,7 @@
 //       Brian mainline.
 //
 // Last change date-
-//       2025/01/21
+//       2025/01/22
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For getenv
@@ -271,13 +271,13 @@ static inline void
 
    //-------------------------------------------------------------------------
    // Initialize diagnostics handler
-   typedef pub::signals::Event Event;
-   diagnostic_connector= static_common->run_diagnostics.connect([](Event&) {
+   typedef pub::signals::Event_t Event_t;
+   diagnostic_connector= static_common->run_diagnostics.connect([](Event_t&) {
      diagnostics();
    });
 
    // Raise Startup_complete event
-   struct Startup_complete : public pub::signals::Event {
+   struct Startup_complete : public pub::signals::Event_t {
    } startup_complete;
 
    static_common->startup_complete.signal(startup_complete);

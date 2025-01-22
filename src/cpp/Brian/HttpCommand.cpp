@@ -16,7 +16,7 @@
 //       Implement HttpCommand and HttpService
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/22
 //
 //----------------------------------------------------------------------------
 #include <forward_list>             // For std::forward_list
@@ -311,7 +311,7 @@ Command_init command_init;
 //
 //----------------------------------------------------------------------------
 struct startup_event_handler_t {    // Handle startup event
-typedef pub::signals::Event         Event;
+typedef pub::signals::Event_t       Event_t;
 typedef pub::signals::Connector     Connector;
 Connector              connector;   // Our connector
 
@@ -322,7 +322,7 @@ Connector              connector;   // Our connector
 
    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    // Our startup_complete signal handler.
-   connector= static_common->startup_complete.connect([](Event&) {
+   connector= static_common->startup_complete.connect([](Event_t&) {
      if( HCDM ) debugh("%4d HttpCommand startup_complete.handler\n", __LINE__);
 
      Command::command("http-init"); // Process the "http-init" command

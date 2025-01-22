@@ -16,7 +16,7 @@
 //       Implement HttpServer.h
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/22
 //
 // Implementation note-
 //       Derived from ~/src/cpp/HTTP/socket/HttpServer.cpp 2024/10/24
@@ -266,9 +266,9 @@ void operator()(pub::dispatch::Item* _item)
    INS_DEBUG_OBJ("HttpServer");
 
    // Set run_diagnostics handler
-   typedef pub::signals::Event Event;
+   typedef pub::signals::Event_t Event_t;
    typedef StaticCommon::DiagnosticEvent DiagnosticEvent;
-   connector= static_common->run_diagnostics.connect([this](Event& _event) {
+   connector= static_common->run_diagnostics.connect([this](Event_t& _event) {
      DiagnosticEvent* event= dynamic_cast<DiagnosticEvent*>(&_event);
      if( event )
        debugf("DiagnosticEvent %d\n", event->id);

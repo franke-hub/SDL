@@ -16,7 +16,7 @@
 //       Editor: Implement EdOuts.h: Terminal output services
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/22
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
@@ -189,7 +189,7 @@ static void
 
    // Handle EdMark::ChangeEvent (lambda function)
    // Purpose: Repair EdOuts::head (if it changed)
-   using Event= pub::signals::Event;
+   using Event= pub::signals::Event_t;
    using ChangeEvent= EdMark::ChangeEvent;
    changeEvent_connector= EdMark::change_signal.connect([this](Event& _event) {
      ChangeEvent* event= dynamic_cast<ChangeEvent*>(&_event);

@@ -13,50 +13,65 @@
 //       Signals.h
 //
 // Purpose-
-//       Loosely coupled event detection and event processing mechanism.
+//       Loosely coupled event detection/processing mechanism.
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/22
 //
 // Implementation notes-
 //       Signal objects are defined in namespace pub::signals
-//       This is an implemenation of the Signals and Slots, or a detached
-//       Observer interface.
+//       This is an implemenation of the "detached Observer" interface,
+//       a.k.a. "Signals and Slots"
 //
 // Usage notes-
 //       See related documentation: ~/doc/cpp/Signals.md for more detail.
 //       Briefly, the Signal interface consists of three objects:
-//         Event: The (application defined) signal Event parameter object
-//         Connector: "Connects" a Signal and a Listener
+//         Event_t: The (application defined) signal parameter object
+//         Connector: "Connects" a Signal and a Slot.
 //         Signal: The signal generation object
-//       An important internal object exists:
-//         Listener: The Event handler container
+//       Important internal objects exist:
+//         Slot: A std::function<void(Event_t&)> container.
+//         SlotList: The set of connected Slot objects.
 //
-//       An application defines the Event, the event handler parameter.
-//       Signal processing uses this Event as a template, defining the
-//       Connector, Signal, and Listener objects.
+//       Applications define their Event_t handler using the Signal::connect
+//       method. In order to use unique parameters, the application creates
+//       a struct or class publicly derived from Event_t containing these
+//       additional parameters. A short example:
+//       ```
+//         using namespace pub::signals;
+//         struct MyEvent : public Event_t { // My parameter list
+//           int x,y;
+//           MyEvent(int _x, int _y) : x(_x), y(_y) {}
+//         };
 //
-//       A Connector "connects" a Signal to a Listener. The Listener is an
-//       internal object managaged by the Signal interface which contains
-//       an Event handler (function).
+//         Signal my_signal;        // My Signal
+//         Connector my_connector= my_signal.connect([](Event_t& _event) {
+//           MyEvent& event= static_cast<MyEvent&>(_event);
+//           printf("TEST: {%d,%d}\n", event.x, event.y);
+//         });
 //
-//       When an application detects an event, it invokes Signal::signal
-//       which invokes currently "connected" Event handlers.
+//         MyEvent my_event(17,19);
+//         my_signal.signal(my_event);
+//       ```
 //
 // Thread safety-
-//       Signal objects are NOT thread-safe. Usage restrictions disallow
+//       Signal objects are NOT thread-safe. Usage restrictions even disallow
 //       certain operations even within single threaded applications.
 //
 // Usage restrictions-
-//       Event handlers *MUST NOT* modify Signal handler's Listener lists.
-//       That is, an Event handler must not invoke Signal::connect. It also
-//       must not allow Connector::reset to be invoked, either directly or
-//       indirectly via Connector::disconnect or invoking a Connector's
-//       destructor.
+//       We invoke Event_t handlers with a shared SlotList latch, therefore
+//       Event handlers *MUST NOT* modify a Signal's SlotList.
+//       That is, an Event handler must not invoke Signal::connect.
+//       It also must not allow Connector::reset or Connector::disconnect to
+//       be invoked, either directly or indirectly. (A Connector's destructor
+//       invokes Connector::reset.)
+//       Violating this restriction currently results in a Latch livelock,
+//       an infinite application program loop while trying to obtain exclusive
+//       SlotList access while holding shared access.
 //
-//       Currently, violating this restriction results in a Latch livelock,
-//       an infinite application program loop.
-//       This implementation may change. Your results are unpredictable.
+//       While an Event_t parameter may be modified by an Event_t handler,
+//       when a Signal contains multiple active Connections, the sequence that
+//       these Connections is invoked is not specified.
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_SIGNALS_H_INCLUDED
@@ -76,98 +91,95 @@ namespace signals {
 //----------------------------------------------------------------------------
 //
 // Struct-
-//       pub::signals::Event
+//       pub::signals::Event_t
 //
 // Purpose-
-//       Define the signals::Event base struct
+//       Define the pub::signals::Event_t base struct
 //
 // Implementation notes-
 //       All application Events inherit from this struct.
 //
 //----------------------------------------------------------------------------
-struct Event {                      // The signals Event base class
-   Event( void ) = default;         // Constructor
+struct Event_t {                    // The signals Event base class
+   Event_t( void ) = default;       // Constructor
 
 virtual
-   ~Event( void ) = default;        // Destructor
-};
+   ~Event_t( void ) = default;      // Destructor
+}; // struct Event_t
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       pub::signals::Listener
+//       pub::signals::Slot
 //
 // Purpose-
-//       Listener descriptor, contains a std::function<void(Event&)> object.
-//
-// Implementation notes-
-//       A Listener is often called a Slot in the literature.
+//       Slot descriptor, contains a std::function<void(Event_t&)> object.
 //
 //----------------------------------------------------------------------------
-class Listener : public List<Listener>::Link { // Listener descriptor
+class Slot : public List<Slot>::Link { // Slot descriptor
 //----------------------------------------------------------------------------
-// pub::signals::Listener::Typedefs and enumerations
+// pub::signals::Slot::Typedefs and enumerations
 //----------------------------------------------------------------------------
 protected:
-typedef std::function<void(Event&)> Function; // Event handler function
+typedef std::function<void(Event_t&)>         Function;
 
 //----------------------------------------------------------------------------
-// pub::signals::Listener::Attributes
+// pub::signals::Slot::Attributes
 //----------------------------------------------------------------------------
-const Function         function;    // The Event handler function
+const Function         function;    // The Event_t handler function
 
 //----------------------------------------------------------------------------
-// pub::signals::Listener::Constructor/destructor
+// pub::signals::Slot::Constructor/destructor
 //----------------------------------------------------------------------------
 public:
-   Listener(const Function&);       // Constructor
+   Slot(const Function&);           // Constructor
 
-   ~Listener( void );               // Destructor
+   ~Slot( void );                   // Destructor
 
 //----------------------------------------------------------------------------
-// pub::signals::Listener::signal
+// pub::signals::Slot::signal
 //----------------------------------------------------------------------------
 void
-   signal(Event&) const;             // Tell this Listener about an Event
-}; // class Listener
+   signal(Event_t&) const;          // Tell this Slot about an Event
+}; // class Slot
 
 //----------------------------------------------------------------------------
 //
 // Class-
-//       pub::signals::ListenerList
+//       pub::signals::SlotList
 //
 // Purpose-
-//       The List<Listener> container, with locking controls
+//       The List<Slot> container, with locking controls
 //
 // Implementation notes-
-//       Locking controls prevent an application from modifying a ListenerList
+//       Locking controls prevent an application from modifying a SlotList
 //       while it's being traversed by the signal method. This changes an
 //       otherwise unpredicable result into a predicable one: application
 //       livelock. The XCL_latch cannot be obtained while a SHR_latch exists.
 //
 //----------------------------------------------------------------------------
-class ListenerList {                // The List of Listeners (container)
+class SlotList {                    // The List of connected Slots
 //----------------------------------------------------------------------------
-// pub::signals::ListenerList::Attributes
+// pub::signals::SlotList::Attributes
 //----------------------------------------------------------------------------
 protected:
-typedef Listener       Slot_t;      // The Listener class alias
+typedef Slot           Slot_t;      // The Slot class alias
 
-mutable SHR_latch      SHR;         // Protects the List of Listeners
-List<Slot_t>           list;        // The actual List of Listeners
+mutable SHR_latch      SHR;         // Protects the List of Slots
+List<Slot_t>           list;        // The actual List of Slots
 
 //----------------------------------------------------------------------------
-// pub::signals::ListenerList::Constructor/Destructor
+// pub::signals::SlotList::Constructor/Destructor
 //----------------------------------------------------------------------------
 public:
-   ListenerList( void );            // Default constructor
+   SlotList( void );                // Default constructor
 
-   ~ListenerList( void );           // Destructor
+   ~SlotList( void );               // Destructor
 
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::ListenerList::debug
+//       pub::signals::SlotList::debug
 //
 // Purpose-
 //       Debugging display, invoked by Signals::Signal::debug
@@ -179,32 +191,32 @@ void
 //----------------------------------------------------------------------------
 //
 // Method-
-//       pub::signals::ListenerList::signal
+//       pub::signals::SlotList::signal
 //
 // Purpose-
 //       Signal Event occurance
 //
 // Implementation notes-
-//       The signal method does not return until all Listeners are (serially)
+//       The signal method does not return until all Slots are (serially)
 //       driven. The Event object is passed by reference and may be modified
-//       by Listeners for any (application-defined) purposes.
+//       by Slots for any (application-defined) purposes.
 //
 //----------------------------------------------------------------------------
-void                                // (All Listeners are signaled)
-   signal(Event&) const;            // Signal all Listeners with Event
+void                                // (All Slots are signaled)
+   signal(Event_t&) const;          // Signal all Slots with Event_t
 
 //----------------------------------------------------------------------------
-// pub::signals::ListenerList::insert
+// pub::signals::SlotList::insert
 //----------------------------------------------------------------------------
 void
-   insert(Slot_t*);                 // Insert Listener Slot (FIFO ordering)
+   insert(Slot_t*);                 // Insert Slot (FIFO ordering)
 
 //----------------------------------------------------------------------------
-// pub::signals::ListenerList::remove
+// pub::signals::SlotList::remove
 //----------------------------------------------------------------------------
 void
-   remove(Slot_t*);                 // Remove Listener Slot
-}; // class ListenerList
+   remove(Slot_t*);                 // Remove Slot
+}; // class SlotList
 
 //----------------------------------------------------------------------------
 //
@@ -212,32 +224,32 @@ void
 //       signals::Connector
 //
 // Purpose-
-//       Signal/Listener connection control.
+//       Signal/Slot connection control.
 //
 // Implementation notes-
 //       A Connector can be moved but cannot be copied.
 //
-//       When active, a connector contains a raw Listener* and a std::weak_ptr
-//       to the Signal's ListenerList. This implements loose coupling between
-//       to the Signal's ListenerList. The Signal and the Listener are loosely
+//       When active, a connector contains a raw Slot* and a std::weak_ptr
+//       to the Signal's SlotList. This implements loose coupling between
+//       to the Signal's SlotList. The Signal and the Slot are loosely
 //       connected. One does not rely on the existence of the other.
 //
 //----------------------------------------------------------------------------
-class Connector {                   // Signal/Listener Connector
+class Connector {                   // Signal/Slot Connector
 //----------------------------------------------------------------------------
 // pub::signals::Connector::Typedefs and enumerations
 //----------------------------------------------------------------------------
 protected:
-typedef ListenerList   List_t;      // ListenerList type
-typedef Listener       Slot_t;      // Listener type
+typedef SlotList       List_t;      // SlotList type
+typedef Slot           Slot_t;      // Slot type
 typedef ::std::shared_ptr<List_t>   Strong_t;
 typedef ::std::weak_ptr<List_t>     Weak_t;
 
 //----------------------------------------------------------------------------
 // pub::signals::Connector::Attributes
 //----------------------------------------------------------------------------
-Weak_t                 list;        // The ListenerList (weak_ptr)
-Slot_t*                slot;        // The Listener (raw pointer)
+Weak_t                 list;        // The SlotList (weak_ptr)
+Slot_t*                slot;        // The Slot (raw pointer)
 
 //----------------------------------------------------------------------------
 // pub::signals::Connector::Constructors
@@ -246,8 +258,8 @@ public:
    Connector( void );               // Default constructor
 
    Connector(                       // Constructor
-     Strong_t&         _list,       // The ListenerList (shared_ptr reference)
-     Slot_t*           _slot);      // The Listener (raw pointer)
+     Strong_t&         _list,       // The SlotList (shared_ptr reference)
+     Slot_t*           _slot);      // The Slot (raw pointer)
 
    Connector(const Connector&) = delete; // *NO* copy constructor
 
@@ -324,14 +336,14 @@ class Signal {                      // Signal descriptor
 // pub::signals::Signal::Typedefs and enumerations
 //----------------------------------------------------------------------------
 public:
-typedef std::function<void(Event&)> Function; // Event handler Function
+typedef std::function<void(Event_t&)>          Function;
 
 //----------------------------------------------------------------------------
 // pub::signals::Signal::Attributes
 //----------------------------------------------------------------------------
 protected:
-::std::shared_ptr<ListenerList>
-                       list;        // The ListenerList List
+::std::shared_ptr<SlotList>
+                       list;        // The SlotList List
 
 //----------------------------------------------------------------------------
 // pub::signals::Signal::constructors/destructor
@@ -367,17 +379,14 @@ void
 //       pub::signals::Signal::connect
 //
 // Purpose-
-//       Connect a Signal and a Listener
+//       Connect a Signal and a Slot
 //
 // Implementation note-
 //       The resultant (move copied) Connector contains (a newly created)
-//       Listener, which contains the actual Event handler logic.
+//       Slot, which contains the actual Event handler logic.
 //
-//       Use Connector method disconnect, reset, or the destructor
-//       to destroy this Signal/Listener connection.
-//
-//       The Signal and Listener are loosely connected. Invoking Signal::reset
-//       or Signal::~Signal disconnects any and all associated Listeners.
+//       Use either of the Connector methods reset or disconnect to remove the
+//       Signal/Slot connection.
 //
 //----------------------------------------------------------------------------
 Connector                           // The Signal/Function connector
@@ -393,8 +402,8 @@ Connector                           // The Signal/Function connector
 //
 //----------------------------------------------------------------------------
 void
-   emit(                            // Serially invoke connected Listeners
-     Event&            event) const // Using this Event (parameter)
+   emit(                            // Serially invoke connected Slots
+     Event_t&          event) const // Using this Event (parameter)
 {  signal(event); }
 
 //----------------------------------------------------------------------------
@@ -403,11 +412,11 @@ void
 //       pub::signals::Signal::reset
 //
 // Purpose-
-//       Reset the Signal, removing all Listeners
+//       Reset the Signal, removing all Slots
 //
 //----------------------------------------------------------------------------
 void
-   reset( void );                   // Reset the Signal, removing all Listeners
+   reset( void );                   // Reset the Signal, removing all Slots
 
 //----------------------------------------------------------------------------
 //
@@ -415,11 +424,11 @@ void
 //       pub::signals::Signal::signal
 //
 // Purpose-
-//       Serially invoke all connected Listeners
+//       Serially invoke all connected Slots
 //
 //----------------------------------------------------------------------------
 void
-   signal(Event&) const;            // Serially invoke connected Listeners
+   signal(Event_t&) const;          // Serially invoke connected Slots
 }; // class pub::signals::Signal
 }  // namespace signals
 _LIBPUB_END_NAMESPACE

@@ -16,7 +16,7 @@
 //       Editor: Implement EdMark.h
 //
 // Last change date-
-//       2025/01/20
+//       2025/01/22
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -216,7 +216,7 @@ EdMark::Copy                        // The resultant Copy
    EdMark::EdMark( void )           // Constructor
 {
    // Initialize EdFile::CloseEvent handler
-   using Event= pub::signals::Event;
+   using Event= pub::signals::Event_t;
    using CloseEvent= EdFile::CloseEvent;
    closeEvent_connector= EdFile::close_signal.connect([this](Event& _event) {
      CloseEvent* event= dynamic_cast<CloseEvent*>(&_event);
