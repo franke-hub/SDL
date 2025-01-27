@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014 Frank Eskesen.
+//       Copyright (c) 2014-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Implement ListenThread object methods
 //
 // Last change date-
-//       2014/01/01
+//       2025/01/26
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>
@@ -29,6 +29,7 @@
 #include <com/define.h>             // For NULL
 #include <com/Socket.h>
 
+#include "RdPatch.h"                // For get_sockaddr
 #include "ListenThread.h"
 #include "ServerThread.h"
 
@@ -140,9 +141,20 @@ long                                // Return code (always 0)
    if( socket == NULL )
      throwf("ListenThread:%d unable to create socket", __LINE__);
 
+   // PATCH: Use /etc/host name ----------------------------------------------
+   int socklen;
+   std::string nps= socket->getHostName();
+   nps += ":" + std::to_string(port);
+   if( get_sockaddr(nps, socket->hInet, &socklen) != 0 ) {
+     debugf("Host(%s) not in /etc/hosts\n", socket->getHostName());
+     return -1;
+   }
+   socket->hSize= socklen;
+
    msgout("Server: Host(%s:%d) Path(%s) %s\n",
           socket->getHostName(), port, path,
-          Socket::addrToChar(Socket::getAddr()));
+          Socket::addrToChar(socket->getHostAddr()));
+   // PATCH: Use /etc/host name ----------------------------------------------
 
    // Operate the thread
    fsm= FSM_READY;                  // Indicate operational

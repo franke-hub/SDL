@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2007-2020 Frank Eskesen.
+//       Copyright (c) 2007-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Socket descriptor.
 //
 // Last change date-
-//       2020/10/03
+//       2025/01/26
 //
 //----------------------------------------------------------------------------
 #ifndef SOCKET_H_INCLUDED
@@ -116,7 +116,7 @@ friend class SockSelect;
 //----------------------------------------------------------------------------
 // Socket::Attributes
 //----------------------------------------------------------------------------
-protected:
+public:                             // public for src/cpp/Clone access
 int                    fsm;         // Finite State Machine
 int                    handle;      // Socket handle
 SocketST               st;          // Socket type

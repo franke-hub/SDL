@@ -16,7 +16,7 @@
 //       Socket method implementations.
 //
 // Last change date-
-//       2025/01/11
+//       2025/01/25
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -46,14 +46,17 @@
 #include <sys/un.h>                 // For sockaddr_un
 #include <sys/time.h>               // For timeval, ...
 
-#include "pub/Socket.h"             // For pub::Socket, implemented
+#include <pub/Data.h>               // For namespace pub::data
 #include <pub/Debug.h>              // For debugging
 #include <pub/Must.h>               // For pub::must::malloc
+#include "pub/Socket.h"             // For pub::Socket, implemented
+#include <pub/Tokenizer.h>          // For pub::Tokenizer
 #include "pub/Trace.h"              // For pub::Trace
 #include <pub/utility.h>            // For namespace pub::utility::
 #include "pub/utility.i"            // For conversion routines
 
-using namespace _LIBPUB_NAMESPACE::debugging; // For debugging
+#define PUB _LIBPUB_NAMESPACE
+using namespace PUB::debugging;     // For debugging subroutines
 
 namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
@@ -102,6 +105,80 @@ static void
      ec= ERR_get_error();
    }
    errno= ERRNO;                    // Restore errno
+}
+
+//----------------------------------------------------------------------------
+//
+// Subroutine-
+//       etc_addr
+//
+// Purpose-
+//       Look up host name in /etc/hosts
+//
+//----------------------------------------------------------------------------
+static int                          // Return code, 0 OK
+   etc_addr(                        // Convert "host" to sockaddr
+     const std::string&host,        // The host name string
+     sockaddr*         sock,        // OUT: The sockaddr
+     socklen_t*        size)        // INP/OUT: The addr length
+{  if( HCDM )
+     debugf("Socket::etc_addr(%s,%p,%d)\n", s2c(host), sock, *size);
+
+   using namespace PUB::data;
+   Data file("/etc/", "hosts");
+   pub::DHDL_list<Line>& list= file.line();
+
+   for(Line* line= list.get_head(); line; line= line->get_next() ) {
+     pub::Tokenizer tokenizer(line->text);
+     pub::Tokenizer::Iterator it= tokenizer.begin();
+     if( it != tokenizer.end() ) {
+       std::string addr= it();
+
+       if( addr[0] != '#' ) {
+         for(it= ++it; it != tokenizer.end(); ++it) {
+           if( it() == host ) {
+             struct in_addr v4_addr;
+             int
+             rc= inet_pton(AF_INET, s2c(addr), &v4_addr);
+             if( rc == 1 ) {
+               if( size_t(*size) < sizeof(sockaddr_in) ) {
+                 errno= ENOMEM;
+                 return -1;
+               }
+
+               memset(sock, 0, sizeof(sockaddr_in));
+               ((sockaddr_in*)sock)->sin_family= AF_INET;
+               ((sockaddr_in*)sock)->sin_addr= v4_addr;
+               *size= sizeof(sockaddr_in);
+               return 0;
+             }
+
+             struct in6_addr v6_addr;
+             rc= inet_pton(AF_INET6, s2c(addr), &v6_addr);
+             if( rc == 1 ) {
+               if( size_t(*size) < sizeof(sockaddr_in6) ) {
+                 errno= ENOMEM;
+                 return -1;
+               }
+
+               memset(sock, 0, sizeof(sockaddr_in6));
+               ((sockaddr_in6*)sock)->sin6_family= AF_INET6;
+               ((sockaddr_in6*)sock)->sin6_addr= v6_addr;
+               *size= sizeof(sockaddr_in6);
+               return 0;
+             }
+
+             if( HCDM && VERBOSE )
+               debugf("/etc/hosts invalid line: '%s'\n", line->text);
+             return -1;
+           }
+         }
+       }
+     }
+   }
+
+   // Not found
+   return -1;
 }
 
 //----------------------------------------------------------------------------
@@ -368,10 +445,9 @@ void
 {
    debugf("Socket(%p)::debug(%s) handle(%d)\n", this, info, handle);
 
-   debugf("..%s::%s\n", host_addr.to_string().c_str()
-         , peer_addr.to_string().c_str());
-   debugf("..family(%d) type(%d)\n"
-         , family, type);
+   debugf("..%s<=>%s\n", s2c(host_addr.to_string())
+                       , s2c(peer_addr.to_string()));
+   debugf("..family(%d) type(%d)\n", family, type);
    debugf("..host_size(%d), peer_size(%d)\n", host_size, peer_size);
 }
 
@@ -558,7 +634,7 @@ int                                 // Return code (0 OK)
    Socket::bind(                    // Bind to address
      const std::string&nps)         // Host name:port string
 {  if( HCDM )
-     debugh("Socket(%p)::bind(%s)\n", this, nps.c_str());
+     debugh("Socket(%p)::bind(%s)\n", this, s2c(nps));
 
    sockaddr_storage hostaddr;
    socklen_t hostsize= sizeof(hostaddr);
@@ -639,7 +715,7 @@ int                                 // Return code (0 OK)
 
      if( HCDM )
        debugf("%4d HCDM %d= getsockname(%s,%d) %d:%s\n", __LINE__, rc
-             , ((sockaddr_u*)&hostaddr)->to_string().c_str(), hostsize
+             , s2c(((sockaddr_u*)&hostaddr)->to_string()), hostsize
              , errno, strerror(errno));
    }
    if( USE_ITRACE )
@@ -652,7 +728,7 @@ int                                 // Return code (0 OK)
    Socket::connect(                 // Connect to address
      const std::string&nps)         // Peer name:port string
 {  if( HCDM )
-     debugh("Socket(%p)::connect(%s)\n", this, nps.c_str());
+     debugh("Socket(%p)::connect(%s)\n", this, s2c(nps));
 
    sockaddr_storage peeraddr;
    socklen_t peersize= sizeof(peeraddr);
@@ -700,35 +776,46 @@ int                                 // Return code, 0 OK
      const std::string&nps,         // The "host:port" name string
      sockaddr*         addr,        // OUT: The sockaddr
      socklen_t*        size,        // INP/OUT: The addr length
-     int               family)      // The preferred address family
+     int               family,      // The preferred address family
+     int               protocol)    // The socket protocol
 {  if( HCDM )
-     debugh("Socket::name_to_addr(%s,%p,%d,%d)\n"
-           , nps.c_str(), addr, *size, family);
+     debugh("Socket::name_to_addr(%s,%p,%d,%d,%d)\n"
+           , s2c(nps), addr, *size, family, protocol);
 
    if( family == AF_UNIX ) {
      if( nps.size() >= sizeof(sockaddr_un::sun_path)
          || size_t(*size) <= (nps.size()+offsetof(sockaddr_un, sun_path)) ) {
        errno= EINVAL;
        if( IOEM )
-         trace(__LINE__, "'%s' AF_UNIX name too long", nps.c_str());
+         trace(__LINE__, "'%s' AF_UNIX name too long", s2c(nps));
        return -1;
      }
 
      *size= offsetof(sockaddr_un, sun_path) + nps.size();
      addr->sa_family= AF_UNIX;
-     strcpy(((sockaddr_un*)addr)->sun_path, nps.c_str());
+     strcpy(((sockaddr_un*)addr)->sun_path, s2c(nps));
      return 0;
    }
 
-   size_t x= nps.find(':');
-   if( x == std::string::npos ) {
+   // Separate name string and port number
+   size_t x= nps.size();
+   while( --x ) {
+     char C= nps[x];
+     if( C < '0' || C > '9' ) {
+       if( C == ':' )
+         break;
+
+       debugf("Socket::name_to_addr(%s) invalid port number\n", nps.c_str());
+       errno= EINVAL;
+       return EINVAL;
+     }
+   }
+   if( x == 0 && nps[0] != ':' ) {
+     debugf("Socket::name_to_addr(%s) missing ':' delimiter\n", nps.c_str());
      errno= EINVAL;
-     if( IOEM )
-       trace(__LINE__, "'%s' name:port missing ':' delimiter", nps.c_str());
-     return -1;
+     return EINVAL;
    }
 
-   // Generate IpV4 or IpV6 address, preferring the specified address family
    std::string name;
    if( x )
      name= nps.substr(0, x);
@@ -739,29 +826,41 @@ int                                 // Return code, 0 OK
    if( port == "" )
      port= "0";
 
+   // If name is specified in /etc/hosts, use the associated address
+   if( etc_addr(name, addr, size) == 0 ) {
+     ((sockaddr_in*)addr)->sin_port= htons((short)std::stoi(port));
+     return 0;
+   }
+
+   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Select the first matching entry returned by getaddrinfo
    addrinfo* info= nullptr;         // Resultant info
-   int rc= getaddrinfo(name.c_str(), port.c_str(), nullptr, &info);
-   if( IODM ) trace(__LINE__, "%d= getaddrinfo(%s)", rc, nps.c_str());
+   int rc= getaddrinfo(s2c(name), s2c(port), nullptr, &info);
+   if( IODM ) trace(__LINE__, "%d= getaddrinfo(%s)", rc, s2c(nps));
    if( rc ) {                       // If unable to get addrinfo
      if( IOEM )
-       trace(__LINE__, "'%s' name:port invalid/unknown", nps.c_str());
+       trace(__LINE__, "'%s' name:port invalid/unknown", s2c(nps));
      *size= 0;
      errno= EINVAL;
      rc= -1;
    } else {
      addrinfo* used= info;
-     if( family != AF_UNSPEC ) {
-       while( used ) {
-         if( family == used->ai_family )
+     while( used ) {
+       if( protocol == 0 || protocol == used->ai_protocol ) {
+         if( family == AF_UNSPEC || family == used->ai_family )
            break;
-
-         used= used->ai_next;
        }
-       if( used == nullptr )
-         used= info;
+
+       used= used->ai_next;
      }
-     memcpy(addr, used->ai_addr, used->ai_addrlen);
-     *size= used->ai_addrlen;
+     if( used ) {
+       memcpy(addr, used->ai_addr, used->ai_addrlen);
+       *size= used->ai_addrlen;
+     } else {
+       rc= -1;
+       errno= EINVAL;
+     }
+
      freeaddrinfo(info);
    }
    return rc;

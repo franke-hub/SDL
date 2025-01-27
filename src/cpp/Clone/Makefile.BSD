@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2007-2021 Frank Eskesen.
+##       Copyright (c) 2007-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2021/09/06
+##       2025/01/26
 ##
 ##############################################################################
 
@@ -25,6 +25,8 @@ MAKEXE :=
 MAKEXE += rdserver
 MAKEXE += rdclient
 MAKEXE += FSlist
+
+MAKLIB := RdCommon.o RdPatch.o CommonThread.o
 
 ##############################################################################
 ## Set default target
@@ -37,13 +39,14 @@ default: $(DEFAULT)
 ##############################################################################
 ## Controls
 include $(INCDIR)/com/Makefile.BSD
+include $(INCDIR)/pub/Makefile.BSD
 
 ##############################################################################
 ## TARGET: RdClient
-rdclient: RdClient.o RdCommon.o CommonThread.o ClientThread.o
+rdclient: RdClient.o $(MAKLIB) ClientThread.o
 	$(CC) -o $@ $^ $(CLIBS)
 
 ##############################################################################
 ## TARGET: RdServer
-rdserver: RdServer.o RdCommon.o CommonThread.o ListenThread.o ServerThread.o
+rdserver: RdServer.o $(MAKLIB) ListenThread.o ServerThread.o
 	$(CC) -o $@ $^ $(CLIBS)

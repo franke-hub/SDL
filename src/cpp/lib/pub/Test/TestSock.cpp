@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2022-2024 Frank Eskesen.
+//       Copyright (c) 2022-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Test Socket object.
 //
 // Last change date-
-//       2024/12/09
+//       2025/01/26
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -76,6 +76,7 @@ enum                                // Generic enum
 ,  USE_SSL=    false                // --ssl
 ,  USE_STREAM= false                // --stream
 ,  USE_THREAD= true                 // --thread
+,  USE_TRACE=  0x00100000           // --trace default size
 ,  USE_WORKER= true                 // --worker
 }; // Generic enum
 
@@ -171,6 +172,9 @@ static atomic<size_t>  ssr_again;   // Number of read if_retry() retries
 static atomic<size_t>  ssr_count;   // Number of read operations completed
 static atomic<size_t>  ssw_count;   // Number of write operations completed
 
+// The internal trace table
+static void*           table= nullptr; // The Trace table
+
 //----------------------------------------------------------------------------
 // Extended options
 //----------------------------------------------------------------------------
@@ -182,6 +186,7 @@ static const char*     opt_server= nullptr;
 static int             opt_ssl=    USE_SSL;
 static int             opt_stream= USE_STREAM;
 static int             opt_thread= USE_THREAD;
+static int             opt_trace=  false;
 static int             opt_worker= USE_WORKER;
 static struct option   opts[]=      // The getopt_long parameter: longopts
 {  {"af",        required_argument, nullptr,           0}
@@ -193,6 +198,7 @@ static struct option   opts[]=      // The getopt_long parameter: longopts
 ,  {"ssl",       no_argument,       &opt_ssl,       true}
 ,  {"stream",    no_argument,       &opt_stream,    true}
 ,  {"thread",    no_argument,       &opt_thread,    true}
+,  {"trace",     optional_argument, &opt_trace,     USE_TRACE}
 ,  {"worker",    no_argument,       &opt_worker,    true}
 
 // These options can be used if USE_THREAD or USE_WORKER defaulted true
@@ -1643,16 +1649,20 @@ int
 
      fprintf(stderr, "  --server\t={host:port} Remote server\n");
      fprintf(stderr, "  --thread\tRun multi-threaded stream client\n");
+     fprintf(stderr, "  --trace\t{=size}Use trace table {size}\n");
      fprintf(stderr, "  --worker\tRun multi-threaded stream server\n");
    });
 
-   tc.on_init([](int argc, char** argv)
+   tc.on_init([tr](int argc, char** argv)
    {
      if( HCDM )
        opt_hcdm= true;
 
      if( VERBOSE > opt_verbose )
        opt_verbose= VERBOSE;
+
+     if( opt_trace )
+       table= tr->init_trace("./trace.mem", opt_trace);
 
      if( opt_hcdm || true ) {
        debug_set_head(Debug::HEAD_THREAD | Debug::HEAD_TIME);
@@ -1743,6 +1753,7 @@ int
        debugf("%5s: ssl\n",    b2c(opt_ssl));
        debugf("%5s: stream\n", b2c(opt_stream));
        debugf("%5s: thread\n", b2c(opt_thread));
+       debugf("%5s: trace 0x%.8x\n", b2c(opt_trace), opt_trace);
        debugf("%5s: worker\n", b2c(opt_worker));
 
        // Debugging, experimentation
@@ -1881,25 +1892,31 @@ int
          fprintf(stderr, "--af=%s not supported\n", value);
          return -1;
        }
-     } else
-
-     if( name == "runtime" ) {
+     } else if( name == "runtime" ) {
        if( value == nullptr )
          value= "5";
        opt_runtime= tr->ptoi(value, name.c_str());
-     } else
-
-     if( name == "server" ) {
+     } else if( name == "server" ) {
        opt_server= "";
        if( value )
          opt_server= value;
+     } else if( name == "server" ) {
+       opt_server= "";
+       if( value )
+         opt_server= value;
+     } else if( name == "trace" ) {
+       if( value )
+         opt_trace= tr->ptoi(value);
      }
 
      return 0;
    });
 
-   tc.on_term([]()
+   tc.on_term([tr]()
    {
+     if( table )
+       tr->term_trace(table, opt_trace);
+
      if( client_CTX )
        SSL_CTX_free(client_CTX);
      if( server_CTX )

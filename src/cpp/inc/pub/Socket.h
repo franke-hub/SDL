@@ -374,7 +374,8 @@ static int                          // Return code, 0 OK
      const std::string&nps,         // The "name:port" name string
      sockaddr*         addr,        // OUT: The sockaddr
      socklen_t*        size,        // INP/OUT: Length of sockaddr
-     int               family= 0);  // The preferred address family
+     int               family= 0,  // The preferred address family
+     int               protocol= 0); // The socket protocol (default: ANY)
 
 int                                 // Return code (0 OK)
    open(                            // Open the Socket

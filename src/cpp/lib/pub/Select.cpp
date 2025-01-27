@@ -943,11 +943,11 @@ int                                 // Return code, 0 expected
 
    int fd= socket->get_handle();
    if( fd < 0 || fd >= size )       // If closed or invalid file descriptor
-{  return op_errno(EINVAL); }
+     return op_errno(EINVAL);
 
    int px= fdpndx[fd];
    if( fdsock[fd] != socket || px < 0 || px >= used ) {
-#if 1 // We need to debug this
+#if 0 // Attempt to debug this
      Trace::trace(".SEL", "RBUG", this, c2v("DEBUG")
                  , socket, i2v(fd), i2v(px), i2v(__LINE__));
      Trace::stop();                 // Terminate tracing

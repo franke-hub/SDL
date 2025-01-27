@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2014-2020 Frank Eskesen.
+//       Copyright (c) 2014-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       The (multi-threaded) client.
 //
 // Last change date-
-//       2020/10/03
+//       2025/01/26
 //
 // Usage-
 //       RdClient <-options> <server_host<:server_port> <client_path>>
@@ -72,6 +72,7 @@
 #include <com/Unconditional.h>
 
 #include "RdCommon.h"
+#include "RdPatch.h"
 #include "ClientThread.h"
 
 //----------------------------------------------------------------------------
@@ -274,7 +275,21 @@ static void
    // Connect to the Server
    //-------------------------------------------------------------------------
    Socket* socket= new Socket(Socket::ST_STREAM);
-   HOST32 addr= socket->nameToAddr(hostName);
+
+   // PATCH: Use /etc/host name, if available --------------------------------
+   char addrout[32];                // sockaddr* result
+   int  sockout= 32;                // socklen_t result
+   HOST32 addr= 0;                  // Resultant in_addr
+   std::string nps= socket->getHostName();
+   nps += ":" + std::to_string(port);
+   if( get_sockaddr(nps, addrout, &sockout) == 0 ) {
+     PEER32* hostaddr= (PEER32*)(addrout+4); // (Always AF_INET)
+     addr= peerToHost(*hostaddr);
+   } else {
+     addr= socket->nameToAddr(hostName);
+   }
+   // PATCH: Use /etc/host name, if available --------------------------------
+
    if( addr == 0 )
      throwf("%4d Invalid host name(%s) %s",
             __LINE__, hostName, socket->getSocketEI());
@@ -347,4 +362,3 @@ extern int                          // Return code
    IFHCDM( debugf("%4d RdClient::main() COMPLETE\n", __LINE__); )
    return(0);
 }
-
