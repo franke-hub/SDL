@@ -15,7 +15,7 @@
 ##       CYGWIN/LINUX Makefile versioning
 ##
 ## Last change date-
-##       2025/01/26
+##       2025/01/27
 ##
 ##############################################################################
 
@@ -30,6 +30,7 @@ MAKLIB := RdCommon.o RdPatch.o CommonThread.o
 
 ##############################################################################
 ## Set default target
+.PHONY: default
 ifeq "" "$(DEFAULT)"
 DEFAULT:= $(MAKEXE)
 endif
@@ -40,6 +41,13 @@ default: $(DEFAULT)
 ## Controls
 include $(INCDIR)/com/Makefile.BSD
 include $(INCDIR)/pub/Makefile.BSD
+
+##############################################################################
+## TARGET: install
+.PHONY: install
+install: rdclient rdserver
+	strip $^
+	cp -idp $^ ~/bin
 
 ##############################################################################
 ## TARGET: RdClient

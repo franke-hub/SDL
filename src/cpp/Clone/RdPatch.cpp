@@ -16,11 +16,10 @@
 //       Common routines used by RdClient and RdServer.
 //
 // Last change date-
-//       2025/01/26
+//       2025/01/27
 //
 // Implementation notes-
 //       PATCH: Use /etc/hosts name if available
-//
 //
 //----------------------------------------------------------------------------
 #include <cerrno>                   // For errno, ...
@@ -50,7 +49,7 @@ enum
 //----------------------------------------------------------------------------
 //
 // Subroutine-
-//       etc_sockaddr
+//       etc_addr
 //
 // Purpose-
 //       Get socket information for name from "/etc/hosts" file
@@ -60,7 +59,7 @@ enum
 //
 //----------------------------------------------------------------------------
 static int                          // Return code, 0 OK
-   etc_sockaddr(                    // Convert "host:port" to sockaddr
+   etc_addr(                        // Convert "host:port" to sockaddr
      const std::string&host,        // The host name string
      sockaddr*         sock,        // OUT: The sockaddr
      socklen_t*        size)        // INP/OUT: The sockaddr length
@@ -146,17 +145,18 @@ int                                 // Return code, 0 OK
    size_t x= nps.size();
    while( --x ) {
      char C= nps[x];
-     if( C == ':' )
-       break;
      if( C < '0' || C > '9' ) {
-       errno= EINVAL;
+       if( C == ':' )
+         break;
+
        debugf("get_sock_addr(%s) invalid port number)\n", nps.c_str());
+       errno= EINVAL;
        return EINVAL;
      }
    }
-   if( x == 0 ) {
-     errno= EINVAL;
+   if( x == 0 && nps[0] != ':' ) {
      debugf("Socket::name_to_addr(%s) missing ':' delimiter\n", nps.c_str());
+     errno= EINVAL;
      return EINVAL;
    }
 
@@ -174,12 +174,14 @@ int                                 // Return code, 0 OK
    if( port == "" )
      port= "0";
 
-   // If hostname is in "/etc/hosts", use that value
-   if( etc_sockaddr(name, addr, size) == 0 ) {
+   // If name is specified in /etc/hosts, use the associated address
+   if( etc_addr(name, addr, size) == 0 ) {
      ((sockaddr_in*)addr)->sin_port= htons((short)std::stoi(port));
      return 0;
    }
 
+   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   // Select the first usable entry returned by getaddrinfo
    addrinfo* info= nullptr;         // Resultant info
    int rc= getaddrinfo(name.c_str(), port.c_str(), nullptr, &info);
    if( rc ) {                       // If unable to get addrinfo
@@ -206,7 +208,4 @@ int                                 // Return code, 0 OK
      freeaddrinfo(info);
    }
    return rc;
-
-   // Not found
-   return -1;
 }
