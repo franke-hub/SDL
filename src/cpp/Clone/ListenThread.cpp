@@ -16,7 +16,7 @@
 //       Implement ListenThread object methods
 //
 // Last change date-
-//       2025/01/26
+//       2025/01/30
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>
@@ -142,7 +142,7 @@ long                                // Return code (always 0)
      throwf("ListenThread:%d unable to create socket", __LINE__);
 
    // PATCH: Use /etc/host name ----------------------------------------------
-   int socklen;
+   int socklen= sizeof(socket->hInet); // (Set maximum size)
    std::string nps= socket->getHostName();
    nps += ":" + std::to_string(port);
    if( get_sockaddr(nps, socket->hInet, &socklen) != 0 ) {

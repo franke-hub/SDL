@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2022-2023 Frank Eskesen.
+//       Copyright (c) 2022-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       SDL: PUB library description
 //
 // Last change date-
-//       2023/12/04
+//       2025/01/27
 //
 -------------------------------------------------------------------------- -->
 
@@ -35,11 +35,10 @@ a brief overview of featured functions.
 
 ----
 
-PUB (public) is the currently preferred include library, found in
-../../inc/pub.
-This subdirectory contains the implementation code.
+PUB (public) is the currently preferred include library. The interfaces are in
+../../inc/pub and this subdirectory contains the implementation code.
 It contains updated versions of certain COM library functions with improved
-performance and usability characteristics as well as additional functions.
+performance and usability characteristics as well as additional function.
 
 ## USAGE NOTE
 There is no attempt to keep interfaces consistent across time, but we do
@@ -48,6 +47,76 @@ When an interface changes, we also modify every usage within the distribution
 to match the updated interface.
 We now recompile every distributed source module whenever a new trunk is
 distributed.
+
+----
+
+## 2025/01/27
+
+A new testcase, TimeDisp.cpp, counts the number of work items processed. This
+involves an Item enqueue to a Task, and Item processing by the Task. Item
+processing adds one to the operation counter. The Item adds one to its Task
+array counter and the Task adds one to its Item array counter. These two
+counter arrays sums (must) match.
+
+TimeDisp runs for a set time and calculates the number of operations per
+(elapsed) second.
+
+----
+
+Some conversion routines were added to ~/src/cpp/inc/pub/utility.i. These
+routines are for coding convenience.
+
+Most of the conversion routines made it a bit simpler to code Trace::trace
+statements. The s2c (std::string to C-string) conversion shortens printf
+statement, e.g.
+
+```
+std::string name= "something";
+printf("name(%s)\n", name.c_str()); // becomes
+printf("name(%s)\n", s2c(name));    // saving 4 keystrokes (for each string)
+```
+
+With compiler optimization active, there shouldn't be any extra overhead.
+
+----
+
+We modified the Socket interface so that if a host name was present in
+/etc/hosts, the associated address would be used. This change was partially
+backported to ~/src/cpp/Clone. (Clone generally supports only the AF_INET
+address family, IPV4. The pub/Socket interface also supports AF_INET6 and
+AF_UNIX.) This change prevents the selection of the VirtualBox virtual adapter
+(at 192.168.56.1) from being selected as the host address. Physical machines
+on the same LAN use the /etc/hosts address.
+
+This doesn't help applications such as ping which don't use the pub/Socket
+interface, Machines on the LAN other than the host cannot access the virtual
+adapter. This was a problem for ~/src/cpp/Clone: its listener at 192.168.56.1
+wouldn't be found.
+
+----
+
+The Signals interface was changed so that all Event objects (which are used to
+pass parameters) need to be derived from a base type rather than specified by
+a template. This was done because of difficulties trying to debug a signal
+that wasn't handled properly and resulted in an exception.
+
+This change has its disadvantages. The Event parameter was strongly typed; now
+it's more loosly typed. It's possible for an Event handler to be given an
+Event that it's not prepared to handle. If a Event handler uses static cast to
+access its expected Event, problems will occur. While dynamic casting avoids
+this particular problem, the problem isn't detected until runtime.
+
+----
+
+## 2024/12/24
+
+We updated (almost) all source code files replacing #include <xxxx.h> with C++
+standard #include <cxxxx> where possible. Source files in ~/src/cpp/EiDB are
+part of a report and were not modified.
+
+Note that istring.h contains multiple case insensitive subroutines that have
+no C implementations: memicmp, stristr, and strichr. It also defines istring,
+a case insensitive std::basic_string. It hasn't been modified by this update.
 
 ----
 

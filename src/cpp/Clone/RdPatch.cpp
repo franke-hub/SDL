@@ -16,7 +16,7 @@
 //       Common routines used by RdClient and RdServer.
 //
 // Last change date-
-//       2025/01/27
+//       2025/01/30
 //
 // Implementation notes-
 //       PATCH: Use /etc/hosts name if available
@@ -141,6 +141,14 @@ int                                 // Return code, 0 OK
    struct sockaddr* addr= (struct sockaddr*)_addr;
    socklen_t*       size= (socklen_t*)_size;
 
+   // Validate parameters
+   if( size_t(*size) < sizeof(sockaddr_in) ) {
+     debugf("%4d RdPatch length(%d) < minimum(%zd)\n", __LINE__, *size
+           , sizeof(sockaddr_in));
+     errno= EINVAL;
+     return EINVAL;
+   }
+
    // Separate host name and port number from string
    size_t x= nps.size();
    while( --x ) {
@@ -155,7 +163,8 @@ int                                 // Return code, 0 OK
      }
    }
    if( x == 0 && nps[0] != ':' ) {
-     debugf("Socket::name_to_addr(%s) missing ':' delimiter\n", nps.c_str());
+     debugf("%4d RdPatch name(%s) missing ':' delimiter\n", __LINE__
+           , nps.c_str());
      errno= EINVAL;
      return EINVAL;
    }
@@ -192,14 +201,17 @@ int                                 // Return code, 0 OK
    } else {
      addrinfo* used= info;
      while( used ) {
-       if( used->ai_socktype == SOCK_STREAM )
+       if( used->ai_family == AF_INET && used->ai_socktype == SOCK_STREAM )
          break;
 
        used= used->ai_next;
      }
      if( used ) {
-       memcpy(addr, used->ai_addr, used->ai_addrlen);
-       *size= used->ai_addrlen;
+       memset(addr, 0, sizeof(sockaddr_in));
+       ((sockaddr_in*)addr)->sin_family= AF_INET;
+       ((sockaddr_in*)addr)->sin_addr= ((sockaddr_in*)used->ai_addr)->sin_addr;
+       ((sockaddr_in*)addr)->sin_port= htons((short)std::stoi(port));
+       *size= sizeof(sockaddr_in);
      } else {
        rc= -1;
        errno= EINVAL;
