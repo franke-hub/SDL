@@ -16,7 +16,7 @@
 //       The (multi-threaded) client.
 //
 // Last change date-
-//       2025/01/26
+//       2025/01/31
 //
 // Usage-
 //       RdClient <-options> <server_host<:server_port> <client_path>>
@@ -280,7 +280,7 @@ static void
    char addrout[32];                // sockaddr* result
    int  sockout= 32;                // socklen_t result
    HOST32 addr= 0;                  // Resultant in_addr
-   std::string nps= socket->getHostName();
+   std::string nps= hostName;
    nps += ":" + std::to_string(port);
    if( get_sockaddr(nps, addrout, &sockout) == 0 ) {
      PEER32* hostaddr= (PEER32*)(addrout+4); // (Always AF_INET)
