@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/01/21
+//       2025/01/31
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,16 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 01/31/2025 maint
+
+This commit was contains a back port of fixes so that it uses a host address
+as specified in /etc/hosts, if one is present.
+
+(Multiple local commits are included. It wasn't fixed exactly right the first
+time.)
 
 ----
 
