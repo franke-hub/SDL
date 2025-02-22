@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/01/31
+//       2025/02/21
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,23 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 02/21/2025 maint/trunk
+
+Fix: ~/bat/dnf.status updated for new interface.
+
+~/src/cpp/Clone rdclient/rdserver testing was delayed due to travel plans, a
+week-long illness, and a misconfiguration of the build test machine's
+firewall. (TCP and UDP ports 1024-65535 were not enabled.)
+
+These programs did not operate correctly on Cygwin since a change to
+VirtualBox's virtual adapter code resulted in the virtual adapter's selection
+as the host address. Since this address is unknown in the local lan, other
+machines on the lan were unable to connect to it. Since programs in the
+~/src/cpp/Clone subdirectory are based on the COM library, fixes to adjust to
+the new VirtualBox adapter code needed to be back-ported.
 
 ----
 
