@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2019-2024 Frank Eskesen.
+//       Copyright (C) 2019-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Console subroutine methods.
 //
 // Last change date-
-//       2024/12/20
+//       2025/02/24
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::invalid_argument
@@ -53,7 +53,7 @@ namespace _LIBPUB_NAMESPACE {
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= false                      // Hard Core Debug Mode?
+{  HCDM= true                       // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  CTL_U= 21                        // Control-U character
@@ -141,7 +141,8 @@ const static ESC_keydef_sequence key_table[]=
 static int                          // The decoded esc sequence, or -1
    get_sequence( void )             // Get decoded esc sequence
 {  if( HCDM ) {
-     tracef("Console::get_sequence inp_buffer(%s)\n", s2c(visify(inp_buffer)));
+     tracef("pub::Console::get_sequence inp_buffer(%s)\n"
+           , s2c(visify(inp_buffer)));
      used_trace= true;
    }
 
@@ -149,7 +150,7 @@ static int                          // The decoded esc sequence, or -1
      return -1;
 
    if( inp_buffer[0] != ESC ) {    // (Should not occur)
-     tracef("Console::get_sequence (correctable) logic error\n");
+     tracef("pub::Console::get_sequence (correctable) logic error\n");
      used_trace= true;
      return -1;
    }
@@ -192,8 +193,7 @@ static int                          // The decoded esc sequence, or -1
 static int
    esc_sequence_full(               // Handle an unknown ESC sequence
      string            str)         // The unknown ESC sequence
-{
-   if( VERBOSE ) {                  // Conditionally, display error message
+{  if( VERBOSE ) {                  // Conditionally, display error message
      tracef("Unknown ESC sequence(%s)\n", s2c(visify(str)));
      used_trace= true;
    }
@@ -213,8 +213,7 @@ static int
 //----------------------------------------------------------------------------
 static int                          // ESC
    esc_sequence_part( void )        // Handle an ESC start error
-{
-   if( VERBOSE ) {                  // Conditionally display error message
+{  if( VERBOSE ) {                  // Conditionally display error message
      tracef("Invalid ESC sequence(%s)\n", s2c(visify(inp_buffer)));
      used_trace= true;
    }
@@ -240,7 +239,8 @@ static int                          // ESC
 static int                          // The decoded esc sequence
    esc_sequence( void )             // Decode an esc sequence
 {  if( HCDM ) {
-     tracef("Console::esc_sequence inp_buffer(%s)\n", s2c(visify(inp_buffer)));
+     tracef("pub::Console::esc_sequence inp_buffer(%s)\n"
+           , s2c(visify(inp_buffer)));
      used_trace= true;
    }
 
@@ -320,7 +320,7 @@ static int                          // The next buffered character, or -1
      return -1;
 
    if( HCDM ) {
-     tracef("Console::get_buffered(%s.%zd)\n", s2c(visify(inp_buffer))
+     tracef("pub::Console::get_buffered(%s.%zd)\n", s2c(visify(inp_buffer))
            , inp_buffer.size());
      used_trace= true;
    }
@@ -350,7 +350,11 @@ static int                          // The next buffered character, or -1
 int                                 // The next input character
    Console::getch(                  // Get next input character
      int               timeout)     // Timeout in milliseconds
-{
+{  if( HCDM ) {
+     tracef("pub::Console::getch(%d)\n", timeout);
+     used_trace= true;
+   }
+
    static std::mutex   mutex;       // (getch uses a separate mutex)
    static bool         once= true;  // (Only set restore attributes once)
    int                 C= -1;       // (Used inside and outside of mutex)
@@ -421,7 +425,11 @@ int                                 // The next input character
 
 int                                 // The next input character
    Console::getch( void )           // Get next input character
-{
+{  if( HCDM ) {
+     tracef("pub::Console::getch()\n");
+     used_trace= true;
+   }
+
    while( inp_buffer.size() > 2 ) { // If possible ESC sequence(s)
      if( inp_buffer[0] == ESC ) {   // If ESC sequence present
        int C= get_buffered();       // Get (and remove from inp_buffer) the ESC

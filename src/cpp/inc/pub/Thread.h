@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (c) 2018-2024 Frank Eskesen.
+//       Copyright (c) 2018-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the Lesser GNU
 //       General Public License, version 3.0.
@@ -16,14 +16,14 @@
 //       Define the Thread control object.
 //
 // Last change date-
-//       2024/11/18
+//       2025/02/24
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_THREAD_H_INCLUDED
 #define _LIBPUB_THREAD_H_INCLUDED
 
 #include <string>                   // For std::string
-// #include <thread>                // Note:: std::thread not used
+#include <thread>                   // For std::this_thread::yield
 
 #include <pthread.h>                // For pthread
 
@@ -37,11 +37,7 @@ _LIBPUB_BEGIN_NAMESPACE_VISIBILITY(default)
 //       Thread
 //
 // Purpose-
-//       A standard Thread representation.
-//
-// TEMPORARY implementation notes:
-//       handle_t The native handle. std::thread.get_handle()
-//       NOTE: Latches are BASIC_LATCH, NOT RECURSIVE!
+//       A pthread based Thread representation.
 //
 //----------------------------------------------------------------------------
 class Thread {                      // The Thread object

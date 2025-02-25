@@ -16,7 +16,7 @@
 //       Implement HttpCommand and HttpService
 //
 // Last change date-
-//       2025/01/22
+//       2025/02/24
 //
 //----------------------------------------------------------------------------
 #include <forward_list>             // For std::forward_list
@@ -60,7 +60,6 @@ enum
 
 ,  DEFAULT_PORT= 8080               // Default port number
 ,  INP_SIZE= 65536                  // Input buffer size
-,  USE_CURL= true                   // Initialization: Read from listeners?
 }; // enum
 
 //============================================================================
@@ -277,18 +276,6 @@ virtual resultant                   // Resultant, command dependent
 
    Command::command("listen start " + host);
    Command::command("listen start " + local);
-
-   if( USE_CURL ) {
-     Command::command("curl " + host);
-     Command::command("curl " + local);
-
-     Command::command("status");
-
-     if( false ) {                  // Auto-generate diagnostic signal?
-       StaticCommon::DiagnosticEvent event;
-       static_common->run_diagnostics.signal(event);
-     }
-   }
 
    return nullptr;
 }

@@ -16,7 +16,7 @@
 //       Operate the input terminal
 //
 // Last change date-
-//       2025/01/03
+//       2025/02/24
 //
 // Implementation note-
 //       When running using a static library build, HCDM debugging displays in
@@ -51,7 +51,7 @@ using PUB::Thread;                  // For class pub::Thread
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= false                      // Hard Core Debug Mode?
+{  HCDM= true                       // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  USE_COMMAND_ECHOING= true        // Echo commands to trace file?
@@ -164,13 +164,14 @@ virtual void
      if( operational )
        Command::command(C);         // Run the command, ignoring any resultant
    }
-
-   pub::Console::stop();
 }
 
 virtual void
    stop( void )                     // Terminate the thread
 {  if( HCDM ) debugh("ConsoleThread(%p).stop\n", this);
+
+   if( operational )
+     pub::Console::stop();
 
    operational= false;
 }
@@ -255,12 +256,14 @@ virtual void
 {  if( HCDM ) debugh("ConsoleService(%p).wait\n", this);
    Service::has_wait::wait(this);
 
-   console_thread->wait();          // Wait for the ConsoleThread
-   console_thread->join();          // Join (complete) the ConsoleThread
-
    std::lock_guard<decltype(mutex)> lock(mutex);
-   delete console_thread;
-   console_thread= nullptr;
+   if( console_thread ) {
+     console_thread->wait();        // Wait for the ConsoleThread
+     console_thread->join();        // Join (complete) the ConsoleThread
+
+     delete console_thread;
+     console_thread= nullptr;
+   }
 }
 }  consoleService; // class ConsoleService
 

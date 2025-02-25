@@ -16,7 +16,7 @@
 //       Brian mainline.
 //
 // Last change date-
-//       2025/01/22
+//       2025/02/24
 //
 //----------------------------------------------------------------------------
 #include <cstdlib>                  // For getenv
@@ -57,7 +57,7 @@ typedef PUB::signals::Connector     Connector; // For convenience
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= false                      // Hard Core Debug Mode?
+{  HCDM= true                       // Hard Core Debug Mode?
 ,  VERBOSE= 1                       // Verbosity, higher is more verbose
 }; // (generic) enum
 
@@ -67,6 +67,7 @@ enum
 static int             opt_hcdm= HCDM; // --hcdm
 static int             opt_verbose= VERBOSE; // --verbose{=verbosity}
 static int             opt_help= false; // --help or error
+static int             opt_regression= false; // --regression
 static int             opt_sizes= false; // --sizes
 static unsigned        opt_trace= 0x0010'0000; // Trace table size
 
@@ -76,6 +77,7 @@ static struct option   OPTS[]=      // Options
 {  {"hcdm",    no_argument,       &opt_hcdm,    true}
 ,  {"verbose", optional_argument, nullptr,      0}
 ,  {"help",    no_argument,       &opt_help,    true}
+,  {"regression", no_argument,    &opt_regression,     true}
 ,  {"sizes",   no_argument,       &opt_sizes,   true}
 ,  {0, 0, 0, 0}                     // (End of option list)
 };
@@ -84,6 +86,7 @@ enum OPT_INDEX
 {  OPT_HCDM
 ,  OPT_VERBOSE
 ,  OPT_HELP
+,  OPT_REGRESSION
 ,  OPT_SIZES
 };
 
@@ -435,6 +438,7 @@ static void
          {
            case OPT_HCDM:           // Flags
            case OPT_HELP:
+           case OPT_REGRESSION:
            case OPT_SIZES:
              break;
 
@@ -528,6 +532,11 @@ extern int                          // Return code
        debugh("Should throw(const char*)\n");
        throw "That's all, Folks";
        debugh("ShouldNotOccur\n");
+     }
+
+     // Regresssion test
+     if( opt_regression ) {
+       Command::command("regression");
      }
 
      //-----------------------------------------------------------------------
