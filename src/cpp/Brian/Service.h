@@ -16,7 +16,7 @@
 //       The Service interface
 //
 // Last change date-
-//       2025/01/20
+//       2025/03/01
 //
 // Implementation notes-
 //       While Service.h documents its interfaces, that's not enough for a
@@ -96,25 +96,8 @@ static Service*                     // The Service now mapped to the same name
 static Service*                     // The Service mapped to the name (if any)
    locate(std::string);             // Locate the associated Service
 
-Service*                            // The removed or current Service
-   remove(Service*);                // Get associated Service
-
-//----------------------------------------------------------------------------
-// Service::Methods
-//----------------------------------------------------------------------------
-// Note: these methods just invoke the associated static method.
-//       TODO: DETERMINE USABILITY
-// Service*                            // The Service now mapped to the same name
-//    insert( void )                   // Insert this Service into the map
-// {  return insert(this); }
-//
-// Service*                            // The Service mapped to the name (if any)
-//    locate( void )                   // Locate this Service (by name)
-// {  return locate get_name(); )
-//
-// Service*                            // (This Service, if removed)
-//    remove( void )                   // Remove this Service from the map
-// {  return remove(this); }
+static Service*                     // The removed or current Service
+   remove(Service*);                // Remove associated Service
 
 //----------------------------------------------------------------------------
 // Service::Service Manager methods.

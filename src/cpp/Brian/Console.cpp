@@ -16,7 +16,7 @@
 //       Operate the input terminal
 //
 // Last change date-
-//       2025/02/24
+//       2025/03/01
 //
 // Implementation note-
 //       When running using a static library build, HCDM debugging displays in
@@ -34,15 +34,14 @@
 #include <pub/Console.h>            // For pub::Console
 #include <pub/Debug.h>              // For debugging
 #include <pub/Thread.h>             // For pub::Thread
-#include <pub/utility.h>            // For pub::utility::visify
 
 #include "Command.h"                // For class Command
 #include "Common.h"                 // For class Common
+#include "Console.h"                // For class CommonThread, CommonService
 #include "Service.h"                // For class Service
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging subroutines
-using PUB::utility::visify;         // For method pub::utility::visify
 
 using PUB::Debug;                   // For class pub::Debug
 using PUB::Thread;                  // For class pub::Thread
@@ -51,16 +50,20 @@ using PUB::Thread;                  // For class pub::Thread
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= true                       // Hard Core Debug Mode?
+{  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  USE_COMMAND_ECHOING= true        // Echo commands to trace file?
 }; // (generic) enum
 
 //----------------------------------------------------------------------------
+// External data areas
+//----------------------------------------------------------------------------
+ConsoleService         consoleService; // The ConsoleService
+
+//----------------------------------------------------------------------------
 // Internal data areas
 //----------------------------------------------------------------------------
-// The mutex protects the creation/deletion of ConsoleService::console_thread.
 std::mutex             mutex;       // (Hidden) mutex
 
 //----------------------------------------------------------------------------
@@ -88,26 +91,17 @@ static char*                        // The stripped string
 
 //----------------------------------------------------------------------------
 //
-// Class-
-//       ConsoleThread
+// Methods-
+//       ConsoleThread::ConsoleThread
+//       ConsoleThread::~ConsoleThread
 //
 // Purpose-
-//       The ConsoleThread.
+//       Constructor.
+//       Destructor.
 //
 //----------------------------------------------------------------------------
-class ConsoleThread : public Thread { // The ConsoleThread
-//----------------------------------------------------------------------------
-// ConsoleThread::Attributes
-//----------------------------------------------------------------------------
-bool                   operational; // Operational state?
-char                   inp[4096];   // The input string buffer
-
-//----------------------------------------------------------------------------
-// ConsoleThread::Constructors
-//----------------------------------------------------------------------------
-public:
-   ConsoleThread( void )            // Constructor
-:  Thread()
+   ConsoleThread::ConsoleThread( void ) // Constructor
+:  pub::Thread()
 {  if( HCDM ) debugh("ConsoleThread(%p).!\n", this);
 
    if( !isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO) ) {
@@ -116,25 +110,23 @@ public:
    }
 }
 
-virtual
-   ~ConsoleThread( void )           // Destructor
+   ConsoleThread::~ConsoleThread( void ) // Destructor
 {  if( HCDM ) debugh("ConsoleThread(%p).~\n", this); }
 
 //----------------------------------------------------------------------------
 // ConsoleThread::Methods
 //----------------------------------------------------------------------------
-public:
 int
-   getch( void )                    // Get character from stdin
+   ConsoleThread::getch( void )     // Get character from stdin
 {  return pub::Console::getch(); }
 
 void
-   putch(                           // Put character onto stdout
+   ConsoleThread::putch(            // Put character onto stdout
      int               C)           // The character
 {  pub::Console::putch(C); }
 
 char*                               // The input line
-   readline( void )                 // Read input line
+   ConsoleThread::readline( void )  // Read input line
 {
    if( USE_COMMAND_ECHOING ) {
      tracef("\n");
@@ -148,13 +140,13 @@ char*                               // The input line
    return C;
 }
 
-virtual void
-   run( void )                      // The operational thread
+void
+   ConsoleThread::run( void )       // The operational thread
 {  if( HCDM ) debugh("ConsoleThread(%p).run\n", this);
 
    pub::Console::start();
    if( HCDM )
-     debugh("pub::Console::start completed\n");
+     debugh("pub::Console::started\n");
 
    operational= true;
    sleep(1);                        // One second startup delay
@@ -163,11 +155,14 @@ virtual void
      char* C= readline();
      if( operational )
        Command::command(C);         // Run the command, ignoring any resultant
+
    }
+
+   if( HCDM && VERBOSE > 0 ) debugh("pub::Console::run complete\n");
 }
 
-virtual void
-   stop( void )                     // Terminate the thread
+void
+   ConsoleThread::stop( void )      // Terminate the thread
 {  if( HCDM ) debugh("ConsoleThread(%p).stop\n", this);
 
    if( operational )
@@ -176,46 +171,28 @@ virtual void
    operational= false;
 }
 
-virtual void
-   wait( void )                     // Wait for termination completion
+void
+   ConsoleThread::wait( void )      // Wait for termination completion
 {  if( HCDM ) debugh("ConsoleThread(%p).wait\n", this);
 
    pub::Console::wait();            // Wait for the Console
 }
-}; // ConsoleThread
 
 //----------------------------------------------------------------------------
 //
-// Class-
-//       ConsoleService
+// Methods-
+//       ConsoleService::ConsoleService
+//       ConsoleService::~ConsoleService
 //
 // Purpose-
-//       Control ConsoleThread termination
+//       Constructors
+//       Destructors
 //
 //----------------------------------------------------------------------------
-class ConsoleService                // The ConsoleService
-:  public Service
-,  public Service::has_start
-,  public Service::has_stop
-,  public Service::has_wait {
-//----------------------------------------------------------------------------
-// ConsoleService::Attributes
-//----------------------------------------------------------------------------
-public:
-ConsoleThread*         console_thread= nullptr;
-
-//----------------------------------------------------------------------------
-// ConsoleService::Constructors
-//----------------------------------------------------------------------------
-public:
-   ConsoleService( void )           // Constructor
+   ConsoleService::ConsoleService( void )      // Constructor
 :  Service("Console") {}
 
-   ConsoleService(const ConsoleService&) = delete; // Disallowed copy constructor
-   ConsoleService& operator=(const ConsoleService&) = delete; // Disallowed assignment operator
-
-virtual
-   ~ConsoleService( void )          // Destructor
+   ConsoleService::~ConsoleService( void )     // Destructor
 {
    std::lock_guard<decltype(mutex)> lock(mutex);
    delete console_thread;
@@ -225,9 +202,8 @@ virtual
 //----------------------------------------------------------------------------
 // ConsoleService::Methods
 //----------------------------------------------------------------------------
-public:
-virtual void
-   start(Service* S)                // Start the ConsoleService
+void
+   ConsoleService::start(Service* S) // Start the ConsoleService
 {  if( HCDM ) debugh("ConsoleService(%p).start(%p)\n", this, S);
    Service::has_start::start(this);
 
@@ -241,8 +217,8 @@ virtual void
    console_thread->start();
 }
 
-virtual void
-   stop(Service*)                   // Stop the ConsoleService
+void
+   ConsoleService::stop(Service*)   // Stop the ConsoleService
 {  if( HCDM ) debugh("ConsoleService(%p).stop\n", this);
    Service::has_stop::stop(this);
 
@@ -251,8 +227,8 @@ virtual void
      console_thread->stop();        // Stop the ConsoleThread
 }
 
-virtual void
-   wait(Service* )                  // Wait for ConsoleService termination
+void
+   ConsoleService::wait(Service*)   // Wait for ConsoleService termination
 {  if( HCDM ) debugh("ConsoleService(%p).wait\n", this);
    Service::has_wait::wait(this);
 
@@ -265,7 +241,6 @@ virtual void
      console_thread= nullptr;
    }
 }
-}  consoleService; // class ConsoleService
 
 //----------------------------------------------------------------------------
 //

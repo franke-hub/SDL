@@ -16,7 +16,7 @@
 //       Implement regression test
 //
 // Last change date-
-//       2025/02/24
+//       2025/03/01
 //
 //----------------------------------------------------------------------------
 #include <string>                   // For std::string
@@ -39,7 +39,7 @@ using std::string;                  // For convenience
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= true                       // Hard Core Debug Mode?
+{  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 }; // enum
 

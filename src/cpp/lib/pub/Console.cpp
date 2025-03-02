@@ -16,7 +16,7 @@
 //       Console subroutine methods.
 //
 // Last change date-
-//       2025/02/24
+//       2025/03/01
 //
 //----------------------------------------------------------------------------
 #include <stdexcept>                // For std::invalid_argument
@@ -53,12 +53,13 @@ namespace _LIBPUB_NAMESPACE {
 // Constants for parameterization
 //----------------------------------------------------------------------------
 enum
-{  HCDM= true                       // Hard Core Debug Mode?
+{  HCDM= false                      // Hard Core Debug Mode?
 ,  VERBOSE= 0                       // Verbosity, higher is more verbose
 
 ,  CTL_U= 21                        // Control-U character
 ,  ESC=   27                        // ESCape character
 
+,  USE_GETCHAR= true                // Use ::getchar v. read(STDIN_FILENO,..)
 ,  USE_ITRACE= false                // Use internal trace?
 }; // (generic) enum
 
@@ -141,7 +142,7 @@ const static ESC_keydef_sequence key_table[]=
 static int                          // The decoded esc sequence, or -1
    get_sequence( void )             // Get decoded esc sequence
 {  if( HCDM ) {
-     tracef("pub::Console::get_sequence inp_buffer(%s)\n"
+     traceh("pub::Console::get_sequence inp_buffer(%s)\n"
            , s2c(visify(inp_buffer)));
      used_trace= true;
    }
@@ -150,7 +151,7 @@ static int                          // The decoded esc sequence, or -1
      return -1;
 
    if( inp_buffer[0] != ESC ) {    // (Should not occur)
-     tracef("pub::Console::get_sequence (correctable) logic error\n");
+     traceh("pub::Console::get_sequence (correctable) logic error\n");
      used_trace= true;
      return -1;
    }
@@ -194,7 +195,7 @@ static int
    esc_sequence_full(               // Handle an unknown ESC sequence
      string            str)         // The unknown ESC sequence
 {  if( VERBOSE ) {                  // Conditionally, display error message
-     tracef("Unknown ESC sequence(%s)\n", s2c(visify(str)));
+     traceh("Unknown ESC sequence(%s)\n", s2c(visify(str)));
      used_trace= true;
    }
 
@@ -214,7 +215,7 @@ static int
 static int                          // ESC
    esc_sequence_part( void )        // Handle an ESC start error
 {  if( VERBOSE ) {                  // Conditionally display error message
-     tracef("Invalid ESC sequence(%s)\n", s2c(visify(inp_buffer)));
+     traceh("Invalid ESC sequence(%s)\n", s2c(visify(inp_buffer)));
      used_trace= true;
    }
 
@@ -239,7 +240,7 @@ static int                          // ESC
 static int                          // The decoded esc sequence
    esc_sequence( void )             // Decode an esc sequence
 {  if( HCDM ) {
-     tracef("pub::Console::esc_sequence inp_buffer(%s)\n"
+     traceh("pub::Console::esc_sequence inp_buffer(%s)\n"
            , s2c(visify(inp_buffer)));
      used_trace= true;
    }
@@ -320,7 +321,7 @@ static int                          // The next buffered character, or -1
      return -1;
 
    if( HCDM ) {
-     tracef("pub::Console::get_buffered(%s.%zd)\n", s2c(visify(inp_buffer))
+     traceh("pub::Console::get_buffered(%s.%zd)\n", s2c(visify(inp_buffer))
            , inp_buffer.size());
      used_trace= true;
    }
@@ -351,7 +352,7 @@ int                                 // The next input character
    Console::getch(                  // Get next input character
      int               timeout)     // Timeout in milliseconds
 {  if( HCDM ) {
-     tracef("pub::Console::getch(%d)\n", timeout);
+     traceh("pub::Console::getch(%d)\n", timeout);
      used_trace= true;
    }
 
@@ -376,11 +377,7 @@ int                                 // The next input character
      // Update the attributes
      struct termios newattr= oldattr;
      newattr.c_lflag &= ~( ICANON | ECHO ); // NOT (cononical or echo)
-#ifdef _OS_CYGWIN
      newattr.c_cc[VMIN] = 0;        // (No characters required)
-#else
-     newattr.c_cc[VMIN] = 1;        // (One character required)
-#endif
      newattr.c_cc[VTIME] = (timeout + 50)/100; // Set timeout
      if( HCDM && VERBOSE > 1 ) {
        traceh("Console.getch: VTIME 0x%.2x\n", newattr.c_cc[VTIME]);
@@ -389,7 +386,7 @@ int                                 // The next input character
 
      in_getch= true;                // Indicate getch running
      tcsetattr(STDIN_FILENO, TCSANOW, &newattr); // Set the new attributes
-#if 1
+#if USE_GETCHAR
      C= ::getchar();
 #else
      char buffer[8];
@@ -426,7 +423,7 @@ int                                 // The next input character
 int                                 // The next input character
    Console::getch( void )           // Get next input character
 {  if( HCDM ) {
-     tracef("pub::Console::getch()\n");
+     traceh("pub::Console::getch()\n");
      used_trace= true;
    }
 
@@ -749,5 +746,8 @@ void
 //----------------------------------------------------------------------------
 void
    Console::wait( void )            // Wait for termination
-{  event.wait(); }
+{  if( HCDM ) traceh("%4d pub::Console.wait\n", __LINE__);
+
+   event.wait();
+}
 }  // namespace _LIBPUB_NAMESPACE
