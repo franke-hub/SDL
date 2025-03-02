@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/02/21
+//       2025/03/01
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,13 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 03/01/2025 maint/trunk
+
+Brian regression operational. Tweaking ~/src/cpp/lib/pub/Console.cpp was
+required.
 
 ----
 

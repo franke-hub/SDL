@@ -44,6 +44,7 @@
 
 #define PUB _LIBPUB_NAMESPACE
 using namespace PUB::debugging;     // For debugging
+using PUB::utility::dump;           // For convenience
 using PUB::utility::visify;         // For convenience
 
 using std::string;                  // For convenience
@@ -59,7 +60,7 @@ enum
 ,  CTL_U= 21                        // Control-U character
 ,  ESC=   27                        // ESCape character
 
-,  USE_GETCHAR= true                // Use ::getchar v. read(STDIN_FILENO,..)
+,  USE_GETCHAR= false               // Use ::getchar v. read(STDIN_FILENO,..)
 ,  USE_ITRACE= false                // Use internal trace?
 }; // (generic) enum
 
@@ -530,7 +531,7 @@ char*                               // addr || nullptr iff non-operational
 
          case '\t':
            addr[used++]= C;
-           putchar(' ');
+           putch(' ');
            continue;
            break;
 
@@ -587,7 +588,7 @@ char*                               // addr || nullptr iff non-operational
      }
 
      addr[used++]= C;
-     putchar(C);
+     putch(C);
      if( C == '\n' )
        break;
    }
