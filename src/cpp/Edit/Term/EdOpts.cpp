@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2024 Frank Eskesen.
+//       Copyright (C) 2024-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,13 +16,14 @@
 //       TERM Editor: Configuration options.
 //
 // Last change date-
-//       2024/08/23
+//       2025/03/04
 //
 //----------------------------------------------------------------------------
 #include <new>                      // For placement operator new
 #include <string>                   // For std::string
 
 #include <ncurses.h>                // For ncurses (== curses.h)
+
 #include "pub/Trace.h"              // For pub::Trace::trace
 
 #include "Editor.h"                 // For Editor::unit
@@ -35,10 +36,6 @@
 // Local data area
 //----------------------------------------------------------------------------
 struct Local {
-bool                   unicode_combining= true; // Default combining support
-bool                   unicode_support= true; // Default unicode support
-
-// Static methods
 static inline Local*                // Our local data area
    get(                             // Get Local data area
      EdInps*           inps= static_cast<EdInps*>(editor::unit))
@@ -75,16 +72,6 @@ EdUnit*                             // The EdUnit
    atexit(EdOpts::at_exit);         // Set termination handler
 
    EdOuts* unit= new EdOuts();      // Our new Unit*
-   EdInps* inps= static_cast<EdInps*>(unit);
-   Local* local= new(Local::get(inps)) Local();
-
-   // Cygwin implements UTF8 correctly, but linux Fedora and Ubuntu do not.
-   // Fedora displays Unicode characters incorrectly as M-L~... with lines
-   // spilling over into the next line.
-   if( getenv("CYGWIN") == nullptr ) {
-     local->unicode_combining= false;
-     local->unicode_support= false;
-   }
 
    return unit;                     // The associated EdUnit
 }
@@ -140,11 +127,11 @@ bool                                // FALSE
 
 bool                                // TRUE (by default)
    EdOpts::has_unicode_combining( void ) // Unicode combining chars supported?
-{  return Local::get()->unicode_combining; }
+{  return true; }
 
 bool                                // TRUE (by default)
    EdOpts::has_unicode_support( void ) // Is Unicode display supported?
-{  return Local::get()->unicode_support; }
+{  return true; }
 
 //----------------------------------------------------------------------------
 // EdOpts::Static strings
@@ -158,7 +145,7 @@ std::string                         // The default configuration file
      "Exec=Edit ; Edit in read-write mode\n"
      "Exec=View ; Edit in read-only mode\n"
      "Purpose=NCURSES based text editor\n"
-     "Version=3.0.0-101\n"
+     "Version=3.0.0-102\n"
      "\n"
      "[Options]\n"
      ";; (Defaulted) See sample: ~/src/cpp/Edit/Term/.Edit.conf\n"
@@ -171,4 +158,4 @@ std::string                         // The Editor's name
 
 std::string                         // Version patch level
    EdOpts::PATCH()
-{  return "1-101"; }
+{  return "1-102"; }

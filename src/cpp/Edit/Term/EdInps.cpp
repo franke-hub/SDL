@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 //
-//       Copyright (C) 2024 Frank Eskesen.
+//       Copyright (C) 2024-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the GNU General
 //       Public License, version 3.0.
@@ -16,7 +16,7 @@
 //       Editor: Implement EdInps.h: Terminal keyboard and mouse handlers.
 //
 // Last change date-
-//       2024/08/28
+//       2025/03/04
 //
 //----------------------------------------------------------------------------
 #define _XOPEN_SOURCE_EXTENDED 1
@@ -24,7 +24,6 @@
 #include <cstdio>                   // For sprintf
 #include <string>                   // For std::string
 
-#include <ncurses.h>                // For ncurses (== curses.h)
 #include <term.h>                   // For ncurses terminal
 #  undef set_clock                  // (MACRO in term.h)
 #include <sys/types.h>              // For system types
@@ -185,6 +184,8 @@ struct curses_error : public std::runtime_error {
    EdInps::EdInps( void )           // Constructor
 {  if( opt_hcdm )
      traceh("EdInps(%p)::EdInps\n", this);
+
+   setlocale(LC_ALL, "");           // (Before initscr)
 }
 
 //----------------------------------------------------------------------------
@@ -258,7 +259,9 @@ void
      setenv("TERM", "xterm-256color", true);
    }
 
-   try {                            // Activate NCURSES
+   //-------------------------------------------------------------------------
+   // Activate NCURSES
+   try {
      win= initscr();                // Open the WINDOW
      start_color();
 
@@ -373,12 +376,7 @@ void
    init_program_modes(win);         // Initialize settings
    def_prog_mode();                 // (Save modes as "program" modes)
 
-#if USE_CURSESW                     // (Defined in EdInps.h)
-   // This compiles, but linux UTF-8 formatting still doesn't work
    getmaxyx(win, (int&)row_size, (int&)col_size); // Set screen size
-#else
-   getmaxyx(win, row_size, col_size); // Set screen size
-#endif
 
    wsetscrreg(win, 0, row_size-1);  // Set scrolling region
    assume_default_colors(fg, bg);   // Set default colors (for clear screen)

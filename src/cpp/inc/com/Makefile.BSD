@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2021-2024 Frank Eskesen.
+##       Copyright (c) 2021-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       COM library controls and dependencies.
 ##
 ## Last change date-
-##       2024/09/30
+##       2025/03/04
 ##
 ## Implementation notes-
 ##       Include this file from CYGWIN/LINUX Makefiles that use COM library.
@@ -30,7 +30,7 @@ LLIBS  += -L$(LIBDIR) -lcom ########## COM library
 $(MAKEXE): $(LIBDIR)/libcom.a
 endif
 
-CLIBS  += -lncurses
+CLIBS  += -lncursesw
 CLIBS  += -lpthread -lssl
 CLIBS  += -lbz2 -lz -lc
 endif

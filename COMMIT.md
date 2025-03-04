@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/03/01
+//       2025/03/04
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,15 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 03/04/2025 maint/trunk
+
+~/src/cpp/Edit/Term editor operational in all environments.
+
+The actual problem was in ~/src/cpp/inc/com/Makefile.BSD, which caused the
+ncurses library to be used instead of ncursesw.
 
 ----
 
