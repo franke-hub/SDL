@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2018-2024 Frank Eskesen.
+##       Copyright (c) 2018-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,12 +15,9 @@
 ##       CYGWIN/LINUX Makefile customization.
 ##
 ## Last change date-
-##       2024/03/01
+##       2025/03/21
 ##
 ##############################################################################
-
-##############################################################################
-## Local module list
 
 ##############################################################################
 ## Local library
@@ -28,10 +25,16 @@ LIBOBJ := ############################
 LIBOBJ += Empty.o
 MAKEXE := $(patsubst $(OBJDIR)/Empty,,$(MAKEXE))
 
-## Attempting static link
-ignore += -flinker-output=exec
-ignore += -static
 LLIBS  += -L. -llocal
+
+##############################################################################
+## Set default "make do" and "make it" target and options
+ifeq "" "$(MAKEIT)"
+MAKEIT := TestTime ################### The "make do" and "make it" target
+endif
+ifeq "" "$(MAKOPT)"
+MAKOPT := --all ###################### The "make do" options
+endif
 
 ##############################################################################
 ## Set default target
@@ -70,10 +73,11 @@ dirty: Dirty
 	@Dirty
 
 ##############################################################################
-## Run the default program
-.PHONY: do
-do: TestDisp
-	TestDisp --timing
+## Compile or run the default program
+.PHONY: do, it
+it: $(MAKEIT)
+do: $(MAKEIT)
+	$^ $(MAKOPT)
 
 ##############################################################################
 ## Run the Quick program

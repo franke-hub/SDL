@@ -15,13 +15,13 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/03/04
+//       2025/04/02
 //
 //------------------------------------------------------------------------ -->
 
 # ~/COMMIT.md
 
-Copyright (C) 2023-2024 Frank Eskesen.
+Copyright (C) 2023-2025 Frank Eskesen.
 
 This file is free content, distributed under the MIT license.
 (See the accompanying file LICENSE.MIT or the original contained
@@ -29,6 +29,43 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 04/02/2025 maint/trunk
+
+Modified:
+- ~/src/cpp/lib/pub/Clock.cpp and ~/src/cpp/inc/pub/Clock.h
+  - (No significant changes. Added comments but no algorithmic changes.)
+
+- ~/src/cpp/lib/pub/Test/Makefile.BSD
+  - Changed default test object to build or test TestTime
+  - Removed some meaningless comments
+
+- ~/src/cpp/lib/pub/Test/script/regression.d/test_base.sh
+  - Added regression test: TestTime
+
+Added:
+- ~/src/cpp/inc/pub/Calendar.h   (The Calendar interface)
+- ~/src/cpp/inc/pub/Julian.h     (The Julian interface)
+- ~/src/cpp/lib/pub/Calendar.cpp (Most of the Calendar.h implementation)
+- ~/src/cpp/lib/pub/Cal400.cpp   (Calendar::day2ymd table implementation)
+- ~/src/cpp/lib/pub/Julian.cpp   (Julian.h implementation)
+- ~/src/cpp/lib/pub/Test/.H      (A link ~/src/cpp/inc/pub)
+- ~/src/cpp/lib/pub/Test/TestTime.cpp (The Calendar, Clock and Julian
+regression test)
+
+The Calendar and Julian modules are loosely based on the COM library versions.
+(This is part of the work needed to convert ~/src/cpp/Clone to the PUB
+library.)
+
+This is likely to be the last change to the SDL project for quite a while as
+focus shifts to a new project that documents algorithms.
+
+There is, however, some known work left to do in the SDL project:
+- Convert ~/src/cpp/Clone to use the PUB library rather than the COM library.
+- One algorithm (yet to be documented) does not have a PUB library reference
+implementation.
 
 ----
 

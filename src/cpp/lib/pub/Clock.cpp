@@ -16,14 +16,14 @@
 //       Clock object methods.
 //
 // Last change date-
-//       2022/09/02
+//       2025/03/30
 //
 //----------------------------------------------------------------------------
-#include <ctime>
+#include <ctime>                    // For clock_gettime
 
-#include <sys/timeb.h>
+#include <sys/timeb.h>              // For struct timeb
 
-#include "pub/Clock.h"
+#include "pub/Clock.h"              // For pub::Clock, implemented
 
 namespace _LIBPUB_NAMESPACE {
 //----------------------------------------------------------------------------
@@ -32,23 +32,17 @@ namespace _LIBPUB_NAMESPACE {
 //       Clock::now
 //
 // Purpose-
-//       Return the current time of day. (Seconds past PC Epoch.)
-//
-// Implementation notes-
-//       On Windows systems, the best resolution that can be obtained is
-//       about 1/64 second. The call GetSystemTimePreciseAsFileTime links
-//       but fails when the function is actually called.
+//       Return the number of seconds since the PC epoch.
 //
 //----------------------------------------------------------------------------
-double                              // The time of day
-   Clock::now( void )               // Get the the current time
+double                              // Seconds since the PC epoch
+   Clock::now( void )               // Get the current time
 {
-   double              result;      // Resultant time
    struct timespec     ticker;      // UTC time base
 
    clock_gettime(CLOCK_REALTIME, &ticker); //
-   result  = (double)ticker.tv_sec;
-   result += (double)ticker.tv_nsec / 1000000000.0;
-   return result;
+   double seconds= (double)ticker.tv_sec;
+   seconds += (double)ticker.tv_nsec / 1000000000.0;
+   return seconds;
 }
-}  // namespace _LIBPUB_NAMESPACE
+} // namespace _LIBPUB_NAMESPACE

@@ -13,15 +13,10 @@
 //       Clock.h
 //
 // Purpose-
-//       A Clock contains a positive time offset from an Epoch.
+//       A Clock contains the number of seconds difference from an epoch.
 //
 // Last change date-
-//       2022/09/02
-//
-// Implementation notes-
-//       An Epoch is an arbitrary time origin which cannot change without
-//       a machine reboot. The current Epoch began Jan 1, 1970 and provides
-//       for at least microsecond clock resolution until the year 2100.
+//       2025/03/21
 //
 //----------------------------------------------------------------------------
 #ifndef _LIBPUB_CLOCK_H_INCLUDED
@@ -43,130 +38,115 @@ class Clock {                       // Local clock
 //----------------------------------------------------------------------------
 // Clock::Attributes
 //----------------------------------------------------------------------------
-private:
-double                 time;        // Seconds since Epoch
+protected:
+double                 second;      // Seconds since Epoch
 
 //----------------------------------------------------------------------------
-// Clock::Constructors
+// Clock::Constructors/destructor
 //----------------------------------------------------------------------------
 public:
-   ~Clock( void ) {}                // Destructor
-
-   Clock( void )                    // Default Constructor (Current time)
-:  time(now()) {}
+   Clock( void )                    // Default Constructor
+:  second(now()) {}                 // (Initializes to current time)
 
    Clock(                           // Copy Constructor
-     const Clock&      source)      // Source
-:  time(source.time) {}
+     const Clock&      clock)       // Source Clock
+:  second(clock.second) {}
 
    Clock(                           // Constructor
-     double            source)      // Source (seconds since Epoch)
-:  time(source) {}
+     double            second)      // (The number of seconds since the epoch)
+:  second(second) {}
 
-Clock&                              // Resultant
-   operator=(                       // Assignment operator
-     const Clock&      source)      // Source
-{
-   time= source.time;
-   return *this;
-}
-
-Clock&                              // Resultant
-   operator=(                       // Assignment operator
-     double            source)      // Source (seconds since Epoch)
-{
-   time= source;
-   return *this;
-}
+   ~Clock( void ) = default;        // Destructor
 
 //----------------------------------------------------------------------------
 // Clock::Operators
 //----------------------------------------------------------------------------
-public:
+// Cast operators- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   explicit operator double( void ) const // Cast to double
+{  return second; }                 // (Seconds since epoch)
+
+// Assignment operators- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Clock&                              // Resultant
+   operator=(                       // Assignment operator
+     double            second)      // Source (seconds since epoch)
+{  this->second= second; return *this; }
+
+Clock&                              // Resultant
+   operator=(                       // Assignment operator
+     const Clock&      clock)       // Source Clock
+{  second= clock.second; return *this; }
+
+// Arithmetic operators- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Clock&                              // Resultant
    operator+=(                      // Add to this
      const Clock&      rhs)         // Addend
-{  time += rhs.time;
-   return *this;
-}
+{  second += rhs.second; return *this; }
+
+Clock&                              // Resultant
+   operator-=(                      // Subtract from this
+     const Clock&      rhs)         // Subtrahend
+{  second -= rhs.second; return *this; }
 
 friend Clock                        // Resultant
    operator+(                       // (Global) Add to
      const Clock&      lhs,         // Augend
      const Clock&      rhs)         // Addend
-{  Clock sum(lhs);
-   sum += rhs;
-   return sum;
-}
-
-Clock&                              // Resultant
-   operator-=(                      // Subtract from this
-     const Clock&      rhs)         // Subtrahend
-{  time -= rhs.time;
-   return *this;
-}
+{  Clock out(lhs); out += rhs; return out; }
 
 friend Clock                        // Resultant
    operator-(                       // (Global) Subtract from
      const Clock&      lhs,         // Minuend
      const Clock&      rhs)         // Subtrahend
-{  Clock diff(lhs);
-   diff -= rhs;
-   return diff;
-}
+{  Clock out(lhs); out -= rhs; return out; }
+
+// Comparison operators- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool                                // Resultant
+   operator==(                      // Compare to
+     const Clock&      rhs) const   // Comprahend
+{  return second == rhs.second; }
 
 bool                                // Resultant
    operator!=(                      // Compare to
      const Clock&      rhs) const   // Comprahend
-{  return time != rhs.time; }
-
-bool                                // Resultant
-   operator<=(                      // Compare to
-     const Clock&      rhs) const   // Comprahend
-{  return time <= rhs.time; }
-
-bool                                // Resultant
-   operator==(                      // Compare to
-     const Clock&      rhs) const   // Comprahend
-{  return time == rhs.time; }
-
-bool                                // Resultant
-   operator>=(                      // Compare to
-     const Clock&      rhs) const   // Comprahend
-{  return time >= rhs.time; }
+{  return second != rhs.second; }
 
 bool                                // Resultant
    operator<(                       // Compare to
      const Clock&      rhs) const   // Comprahend
-{  return time < rhs.time; }
+{  return second < rhs.second; }
+
+bool                                // Resultant
+   operator<=(                      // Compare to
+     const Clock&      rhs) const   // Comprahend
+{  return second <= rhs.second; }
 
 bool                                // Resultant
    operator>(                       // Compare to
      const Clock&      rhs) const   // Comprahend
-{  return time > rhs.time; }
+{  return second > rhs.second; }
 
-   explicit operator double( void ) const // Cast to double
-{  return time; }
+bool                                // Resultant
+   operator>=(                      // Compare to
+     const Clock&      rhs) const   // Comprahend
+{  return second >= rhs.second; }
 
 //----------------------------------------------------------------------------
-// Clock::Accessors
+// Clock::Accessor methods
 //----------------------------------------------------------------------------
-public:
-double                              // The seconds since epoch
-   get( void ) const                // Get seconds since epoch
-{  return time; }
+double                              // The number of seconds since the epoch
+   get( void ) const                // Get number of seconds since the epoch
+{  return second; }
 
 void
    set(                             // Set the Clock
-     double            time)        // Time, seconds sincd epoch
-{  this->time= time; }
+     double            second)      // The number of seconds since the epoch
+{  this->second= second; }
 
 //----------------------------------------------------------------------------
 // Clock::Methods
 //----------------------------------------------------------------------------
-public:
-static double                       // The number of seconds since the Epoch
-   now( void );                     // Get number of seconds since the Epoch
+static double                       // The number of seconds since the epoch
+   now( void );                     // Get number of seconds since the epoch
 };
 _LIBPUB_END_NAMESPACE
 #endif  // _LIBPUB_CLOCK_H_INCLUDED
