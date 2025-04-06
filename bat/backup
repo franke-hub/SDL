@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2018-2019 Frank Eskesen.
+##       Copyright (C) 2018-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -13,10 +13,10 @@
 ##       backup
 ##
 ## Purpose-
-##       Handle rsync defaulted options.
+##       Handle rsync defaulted options (for .BACKUP.sh or .PUSH.sh)
 ##
 ## Last change date-
-##       2019/10/07
+##       2025/04/06
 ##
 ## Changeable options-
 ##       --del   (Delete files from receiver. Removes --max-delete=0)
@@ -75,6 +75,7 @@ fi
 ## Verify opt/rem parameter
 if [[ -z "$1" ]] ; then
   [[ -x "./.BACKUP.sh" ]] && { exec ./.BACKUP.sh; exit $?; }
+  [[ -x "./.PUSH.sh" ]] &&   { exec ./.PUSH.sh; exit $?; }
 
   echo "Missing opt/rem parameter"
   exit 1
@@ -82,6 +83,7 @@ fi
 
 if [[ "$1" != "opt" && "$1" != "rem" ]] ; then
   [[ -x "./.BACKUP.sh" ]] && { exec ./.BACKUP.sh "$@"; exit $?; }
+  [[ -x "./.PUSH.sh" ]] &&   { exec ./.PUSH.sh "$@"; exit $?; }
 
   echo "Invalid opt/rem parameter"
   exit 1
