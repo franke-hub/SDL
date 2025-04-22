@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2010-2024 Frank Eskesen.
+##       Copyright (C) 2010-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -16,10 +16,29 @@
 ##       Edit a GPG encrypted file.
 ##
 ## Last change date-
-##       2024/08/20
+##       2025/04/13
 ##
 ## Usage-
-##       editgpg [-as userid] filename
+##       editgpg [-as user] filename
+##
+## Implementation notes-
+##       GPG configuration information is kept in ~/.gnupg/.
+##       Using information in filename.gpg, GPG automatically selects the
+##       decryption key.
+##
+##       There is no default encryption key.
+##       - Use the default configuration file, ~/.gnupg/gpg.conf to define the
+##         default encryption key.
+##       - This default encryption key *MUST* be in the secret key list.
+##       IF YOU ENCODE WITH AN ENCRYPTION KEY YOU CANNOT DECODE, YOUR DATA
+##       WILL BE IRRETRIEVABLY LOST.
+##
+##       "gpg --list-keys" displays your key ring.
+##       "gpg --list-secret-keys" displays your secret key ring.
+##
+## See also:
+##       GPG user's guide:  https://www.gnupg.org/documentation/guides.html
+##       GPG user's manual: https://www.gnupg.org/documentation/manuals.html
 ##
 ##############################################################################
 
@@ -28,51 +47,72 @@
 function usage
 {
   echo ""
-  echo "$0: Edit a GPG encrypted file"
-  echo "Usage: $0 [-as username] file"
-  echo "Filename file.gpg must exist"
-  echo "The GPG encrypted file is decrypted into \"file\", and this"
-  echo "unencrypted file is edited. If \"file\" exists when the editor"
-  echo "exits, the file is reencrypted into \"file.gpg\""
+  echo "$0: Edit a file encrypted by GPG."
+  echo "Usage: $0 filename"
+  echo "File \"filename.gpg\" must exist; \"filename\" should not."
+  echo "The GPG encrypted file is decrypted into \"filename\", "
+  echo "then this unencrypted file is edited."
+  echo "If \"filename\" still exists when the editor exits, the file is"
+  echo "the file is reencrypted and replaces \"filename.gpg\" "
+
+  echo ""
+  echo "The information in \"filename.gpg\" allows GPG to automatically"
+  echo "select the decryption key."
+
+  echo ""
+  echo "GPG configuration information is kept in ~/.gnupg/gpg.conf"
+  echo "There is no default encryption key."
+  echo "- Use the default configuration file, ~/.gnupg/gpg.conf to define the"
+  echo "  default encryption key."
+  echo " -This default encryption key *MUST* be in your secret key list."
+
+  echo ""
+  echo "  ** WARNING**"
+  echo "    IF YOU CANNOT DECODE THE ENCRYPTION KEY, YOUR DATA WILL BE LOST."
+  echo "    IT'S IRRETRIEVABLY LOST; THE ORIGINAL FILE IS *DELETED*"
 }
 
 ##############################################################################
 ## Parameter check
-GPGUSER=$USER
+if [[ "$1" = "-help" || "$1" = "--help" ]] ; then
+  usage
+  exit 1
+fi
+
 GPGFILE=$1
-if [ "$GPGFILE" = "-as" ] ; then
+if [[ -z "$GPGFILE" ]] ; then
+  echo "ERROR: Filename not specified"
+  usage
+  exit 1
+fi
+
+if [[ ! -z "$2" ]] ; then
   shift
-  GPGUSER=$1
-  shift
-  GPGFILE=$1
-  if [ -z "$GPGUSER" ] ; then
-    echo "Error: username not specified"
-    usage
-    exit 1
+  echo "ERROR: Extra parameters: $@"
+  usage
+  exit 1
+fi
+
+if [[ ! -f "$GPGFILE.gpg" ]] ; then
+  echo "ERROR: File \"$GPGFILE.gpg\" does not exist"
+  if [[ -f "$GPGFILE" ]] ; then
+    echo "(Since \"$GPGFILE\" exists, consider using \"intogpg $GPGFILE\")"
   fi
-fi
-
-if [ -z "$GPGFILE" ] ; then
-  echo "Error: filename not specified"
   usage
   exit 1
 fi
 
-if [ ! -z "$2" ] ; then
-  echo "Error: Extra parameter(s)"
+if [[ -f "$GPGFILE.gpg~" ]] ; then
+  echo "ERROR: File \"$GPGFILE.gpg~\" exists"
+  echo "(This file temporarily saves \"$GPGFILE.gpg\". Maybe \"$GPGFILE.gpg\" can't be decrypted.)"
   usage
   exit 1
 fi
 
-if [ ! -f "$GPGFILE.gpg" ] ; then
-  echo "Error: file \"$GPGFILE.gpg\" does not exist"
-  usage
-  exit 1
-fi
-
-if [ -f "$GPGFILE" ] ; then
-  echo "Error: file \"$GPGFILE\" exists, but should not."
-  echo "(It may be left over from an earlier error.)"
+if [[ -f "$GPGFILE" ]] ; then
+  echo "ERROR: File \"$GPGFILE\" exists, but should not."
+  echo "(It may be left over from some earlier error.)"
+  echo "(Since \"$GPGFILE.gpg\" exists, you might use \"remove $GPGFILE\")"
   exit 1
 fi
 
@@ -88,10 +128,10 @@ fi
 
 ##############################################################################
 ## Decrypt
-gpg --output $GPGFILE --decrypt $GPGFILE.gpg
+gpg --output $GPGFILE --decrypt $GPGFILE.gpg 2>/dev/null
 rc=$?
-if [ $rc != 0 ] ; then
-  echo "Error: Decryption failure."
+if [[ $rc != 0 ]] ; then
+  echo "ERROR: Decryption failure."
   echo "No file changed."
   exit 1
 fi
@@ -99,7 +139,7 @@ fi
 ##############################################################################
 ## Edit, check resultant
 $EDITOR $GPGFILE
-if [ ! -f "$GPGFILE" ] ; then
+if [[ ! -f "$GPGFILE" ]] ; then
   echo "File \"$GPGFILE\" deleted. No change will occur."
   exit 0
 fi
@@ -107,16 +147,16 @@ fi
 ##############################################################################
 ## Encrypt
 rm $GPGFILE.gpg
-gpg --recipient $GPGUSER --encrypt $GPGFILE
+gpg --encrypt $GPGFILE
 rc=$?
-if [ $rc != 0 ] ; then
+if [[ $rc != 0 ]] ; then
   echo ""
-  echo "gpg --recipient $GPGUSER --encrypt $GPGFILE"
-  echo "Error: Encryption failure."
-  echo "EMERGENCY ACTION REQUIRED."
-  echo "File \"$GPGFILE\" exists but \"$GPGFILE.gpg\" does not."
+  echo "gpg $GPGUSER --encrypt $GPGFILE"
+  echo "ERROR: Encryption failure $rc."
+  echo "File \"$GPGFILE\" still exists; \"$GPGFILE.gpg\" might not be valid."
+  echo "Consider using \"intogpg $GPGUSER $GPGFILE\" to retry encrypting."
   exit 2
 fi
-remove $GPGFILE
 
+remove $GPGFILE
 exit 0
