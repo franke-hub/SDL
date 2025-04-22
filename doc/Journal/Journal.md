@@ -641,6 +641,6 @@ so the pub library should too.
 I added a connect(std\::string) method to Socket.h to make it easier to connect
 using the LAN, which also makes it easier to run clients and servers on
 different machines. I did run into one nasty error which deserves special
-mention. It's the first one documented in './Nasties.md'.
+mention. See [Too Many Open Sockets](./Debugging.md#too-many-sockets).
 
 ----

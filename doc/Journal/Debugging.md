@@ -1,19 +1,25 @@
 <!-- -------------------------------------------------------------------------
 //
+//       Copyright (C) 2022-2025 Frank Eskesen.
+//
+//       This file is free content, distributed under the MIT license.
+//       (See accompanying file LICENSE.MIT or the original contained
+//       within https://opensource.org/licenses/MIT)
+//
+//----------------------------------------------------------------------------
+//
 // Title-
-//       Nasties.md
+//       Debugging.md
 //
 // Purpose-
 //       Document difficult to debug problems.
 //
 // Last change date-
-//       2022/06/02
+//       2025/04/22
 //
 -------------------------------------------------------------------------- -->
 
-# ~/doc/Journal/Nasties.md
-
-Copyright (C) 2022 Frank Eskesen.
+Copyright (C) 2022-2025 Frank Eskesen.
 
 This file is free content, distributed under the MIT license.
 (See accompanying file LICENSE.MIT or the original contained
@@ -23,9 +29,136 @@ within https://opensource.org/licenses/MIT)
 
 This journal records problems that were particularly difficult to debug.
 
+- [\[SSH Fails "kex_exchange_identification"\]](#kex_exchange_id) <br/>
+- [\[Too Many Open Sockets\]](#too-many-sockets) <br/>
+
 ----
 
-### 2022/05/15
+# <a id="kex_exchange_id">SSH fails reporting "kex_exchange_identification" error.</a>
+## (This fix is pretty obscure.)
+
+I have a LAN containing multiple physical and virtual machines.
+
+After switching routers on my LAN, I ran into a strange issue:
+**SSH from Windows to Fedora stopped working**, even though:
+
+- All machines could ping each other
+- Fedora → Windows SSH worked fine
+- Windows → Windows SSH also worked
+- Fedora could SSH everywhere
+
+But when I tried to SSH from Windows (OpenSSH) to Fedora, I consistently got
+this error:
+
+kex_exchange_identification: read: Software caused connection abort banner
+exchange: Connection to 192.168.50.xxx port 22: Software caused connection
+abort
+
+Meanwhile, Fedora logged this:
+
+Connection reset by 192.168.50.xxx port [some port]
+
+## The Fix
+
+**I had to manually change Window's IP subnet mask from `255.255.255.0` to
+`255.255.255.255`.**
+
+Yes, really.
+
+After that change, SSH to Fedora worked immediately.
+
+## How I Found It
+
+I have two virtual Ubuntu machines
+- Ubuntu[0] could SSH everywhere
+- Ubuntu[1] failed in the same way the Windows machines failed.
+
+I compared the network settings on the two Ubuntu machines.
+The only significant network difference was the subnet mask.
+
+Setting the mask to `255.255.255.255` (which normally means no subnet )
+_somehow_ fixed the handshake failure, even on the Windows machines.
+
+## Why This Works
+
+Maybe it was because my network configuration changed recently:
+
+I did recently change my physical router.
+The old one had a network address of '192.168.0.1', and
+the new one uses the network address '192.168.50.1'.
+
+I also have a virtual box virtual adapter on my windows machine
+(which runs all my VirtualBox virtual machines)
+has a network adapter of '192.168.56.1'.
+
+My fedora machine also has a virtual box virtual adapter (virbr0) which has a
+network adapter of 192.168.122.1.
+It hasn't had any virtual machines configured for a long time.
+
+### But the truth is, I don't know what causes this problem or why the fix
+works.
+
+But if you're seeing this error *and everything else seems fine*, try this.
+
+## How to fix it.
+
+### On the router itself
+
+[(Reference)](https://www.digitalcitizen.life/change-subnet-mask-windows-10/)
+See: "How to change the Subnet Mask from the router's interface"
+
+I didn't actually see this until writing this note and can't vouch for it,
+but it looks like maybe I should've tried this first.
+
+### Windows 10 or 11 with manual IP
+
+1. Go to `Control Panel > Network and Internet > Network Connections`
+2. Right-click your active adapter → Properties
+3. Select **Internet Protocol Version 4 (TCP/IPv4)** → Properties
+4. Set:
+   - IP address: your manual IP
+   - Subnet mask: `255.255.255.255`
+   - Gateway and DNS as needed
+
+Apply, save, and try SSH again.
+
+### Windows using DHCP
+
+[(Reference)](https://www.digitalcitizen.life/change-subnet-mask-windows-10/)
+See: How to change the Subnet Mask in Windows using PowerShell
+
+- Open an administrator Windows PowerShell prompt
+- Use "Get-NetAdapter -physical" to list your network adapters.
+Each adapter is associated with an ifIndex (Interface Index.)
+- Use "Set-NetIPAddress -InterfaceIndex {number} -PrefixLength 32", which sets
+your subnet mask to 255.255.255.255.
+
+(Maybe there's more to it than this because the change didn't persist after a
+reboot.)
+Because the change didn't persist, I changed my DHCP Windows machine to static
+IP and used the manual method instead.
+
+### Ubuntu with manual IP
+
+- Use the "Edit Connections" menu from network conections menu on the top of
+the display screen.
+- Select the network to change
+- Change the netmask to 32 (indicating 32 bits, or 255,255,255,255)
+
+### Fedora with manual IP
+
+- nmcli connection show (Displays the device names)
+- sudo ifconfig {device} netmask 255.255.255.255
+- ifconfig ## Verify the change
+
+### Reboot test
+
+After making network changes on any machine, reboot to make sure they still
+work. If there are problems, now's the time to fix them.
+
+----
+
+# <a id="too-many-sockets">Too Many Open Sockets</a>
 
 At this writing, ~/src/cpp/lib/pub/Test/TestSock.cpp's HTTP stress test ran a
 server under a separate thread, and a client that sent a request, read the
@@ -65,185 +198,19 @@ are in limbo anyway so the SO_LINGER reset doesn't add any extra client
 recovery complexity.
 
 Note that only a linger with l_onoff= 1 and l_linger=0 prevents the socket from
-going into TIME_WAIT state. Sample code:
+going into TIME_WAIT state.
+
+Use this sample code before closing your socket:
+
 ```
     struct linger option;
     option.l_onoff= 1;
     option.l_linger= 0;
     int rc= setsockopt(handle, SOL_SOCKET, SO_LINGER, &option, sizeof(option));
-    if( rc != 0 ) { /* Replace comment with your error recovery procedure */ }
+    if( rc != 0 ) { /* Replace this comment with your error recovery procedure */ }
 ```
-The code used to diagnose the problem is included below. (This is a cleaned up
-version. There were a lot more debugging statements used while the actual
-problem and its solution were less clear.) The code has since been removed
-from the source since it clutters the logic.
 
-```
-//----------------------------------------------------------------------------
-//
-// Method-
-//       Socket::accept (in ~/src/cpp/lib/pub/Socket.cpp)
-//
-// Purpose-
-//       Aaccept new connections
-//
-//----------------------------------------------------------------------------
-Socket*                             // The new connection Socket
-   Socket::accept( void )           // Get new connection Socket
-{  if( HCDM )
-     debugh("Socket(%p)::accept handle(%d)\n", this, handle);
-
-   // Accept the next connection
-   int client;
-   for(;;) {
-     /* IMPLEMENTATION NOTE: *************************************************
-     A problem occurs in Test/TestSock --stress, where clients only use
-     connections for one HTTP operation. After about 30K operations clients
-     fail to connect and the server ::accept operation does not complete.
-
-     Problem 1) The server accept operation blocks.
-     It's only this part of the problem that we can address here. The options
-     tried are coded below. Options 0 and 1 rely on the client to fix the
-     problem and options 2 and 3 prevent the accept from blocking. We don't
-     want to leave Socket operations in an unrecoverable blocked state if it's
-     reasonably avoidable. Option 3 only has about a 0.5% overhead over the
-     entire HTTP operation sequence, and is the implementation chosen.
-
-     Problem 2) Clients fail to connect.
-     This occurs because sockets are left in the TIME_WAIT state after close,
-     and the rapid re-use of ports exhausts the port space. In a server, this
-     can only be fixed using SO_LINGER with linger l_onoff=1 and l_linger=0
-     to immediately close its half of the socket. It only needs to do this
-     when it detects a client close or a transmission error, so there's no
-     associated client recovery required.
-
-     We implement this SO_LINGER logic in TestSock's StreamServer::serve
-     method. With that logic and StreamServer::stop's normal recovery logic,
-     TestSock --stress runs properly with any of the options below.
-
-     Implementation options are coded below.
-     ************************************************************************/
-
-// ===========================================================================
-#define ACCEPT_OPTION 3
-#define ACCEPT_HCDM false
-
-#if false                           // (Used for option verification)
-static int once= true;
-     if( once ) {
-       once= false;
-       debugf("%4d HCDM ACCEPT_OPTION(%d)\n", __LINE__, ACCEPT_OPTION);
-     }
-#endif
-
-#if ACCEPT_OPTION == 0
-     // Do nothing...
-     //
-     // The client fails to connect after about 30K operations and the ::accept
-     // operation hangs.
-     //
-     // 6025 ops/second Timing w/TestSock USE_LINGER == true
-
-#elif ACCEPT_OPTION == 1
-     // Add a short time delay
-     //
-     // The client fails to connect after about 30K operations and the ::accept
-     // operation hangs.
-     //
-     // 3200 ops/second Timing w/TestSock setting SO_LINGER option
-
-     usleep(125);
-
-#elif ACCEPT_OPTION == 2
-     // Use select to insure that the accept won't block.
-     //
-     // The client fails to connect after about 30K operations.
-     // The server does not see the client's failing connection attempts.
-     // With TestSock's StreamServer::stop method disabled, the select times
-     // out, and the "::accept would block" path is driven.
-     //
-     // With the stop method enabled, the listener socket is closed well before
-     // the select timeout. In this instance (for some unknown reason) select
-     // returns 1, so the accept fails with "Bad file descriptor" because it's
-     // using the CLOSED handle.
-     //
-     // 5825 ops/second Timing w/TestSock USE_LINGER == true
-
-     struct timeval tv= {};
-     tv.tv_usec= 1000000;
-
-     fd_set rd_set;
-     FD_ZERO(&rd_set);
-     FD_SET(handle, &rd_set);
-     int rc= select(handle+1, &rd_set, nullptr, nullptr, &tv);
-     if( ACCEPT_HCDM )
-       traceh("%4d %d=select(%d) tv(%zd,%zd) %d:%s\n", __LINE__, rc, handle+1
-             , tv.tv_sec, tv.tv_usec, errno, strerror(errno));
-     if( rc == 0 ) {                // If timeout
-       if( IODM )
-         debugh("%4d %s ::accept would block\n", __LINE__, __FILE__);
-       return nullptr;
-     }
-
-#elif ACCEPT_OPTION == 3
-     // Use poll to insure that the accept won't block.
-     //
-     // The client fails to connect after about 30K operations.
-     // The server does not see the client's failing connection attempts.
-     // When the poll times out (or fails) the accept is simply skipped,
-     // and nullptr returned (indicating a transient error.)
-     //
-     // 6000 ops/second Timing w/TestSock USE_LINGER == true
-
-     pollfd pfd= {};
-     pfd.fd= handle;
-     pfd.events= POLLIN;
-     int rc= poll(&pfd, 1, 1000);   // 1 second timeout (1000 ms)
-     if( ACCEPT_HCDM )
-       traceh("%4d %d=poll() {%.4x,%.4x}\n", __LINE__, rc
-             , pfd.events, pfd.revents);
-     if( rc <= 0 ) {                // If polling error or timeout
-       if( IODM ) {
-         if( rc < 0 )
-           trace(__LINE__, "%d= poll()", rc);
-         else
-           debugh("%4d %s ::accept would block\n", __LINE__, __FILE__);
-       }
-       return nullptr;
-     }
-#endif // ====================================================================
-
-     if( ACCEPT_HCDM && false  )
-       traceh("%4d HCDM accept\n", __LINE__);
-     peer_size= sizeof(peer_addr);
-     client= ::accept(handle, (sockaddr*)&peer_addr, &peer_size);
-     if( ACCEPT_HCDM )
-       traceh("%4d HCDM(%d) %d %d,%d accepted %d %d:%s\n", __LINE__, handle
-             , ACCEPT_OPTION, get_host_port(), get_peer_port(), client
-             , errno, strerror(errno));
-
-     if( client >= 0 )              // If valid handle
-       break;
-
-     if( handle < 0 )               // If socket is currently closed
-       return nullptr;              // (Expected)
-
-     if( errno != EINTR ) {         // If not interrupted
-       if( IODM )
-         errorp("listen [accept]");
-
-       return nullptr;
-     }
-   }
-
-   // NOTE: Copy constructor only copies host_addr/size and peer_addr/size.
-   Socket* result= new Socket(*this);
-   result->handle= client;
-   if( IODM )
-     trace(__LINE__, "%p[%d]= listen", result, client);
-
-   return result;
-}
-```
+Error recovery code is optional.
+(Aside from writing an error message, there's really not a lot you can do.)
 
 ----
