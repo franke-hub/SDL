@@ -17,6 +17,7 @@
 !!============================================================================
 xterm*background:      Ivory
 xterm*foreground:      Black
+xterm*font:            -misc-fixed-medium-r-semicondensed--13-120-75-75-c-60-iso10646-1
 xterm*fontWarnings:    0
 xterm*scrollBar:       false
 xterm*savelines:       1000
