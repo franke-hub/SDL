@@ -1355,7 +1355,7 @@ void
 
    // Client closed or in error state. Allow immediate port re-use
    // When used, this code avoids a client "Connection refused" problem.
-   if( USE_LINGER ) {               // Optional only for debugging
+   if( USE_LINGER ) {               // (Recommended)
      struct linger optval;
      optval.l_onoff= 1;
      optval.l_linger= 0;

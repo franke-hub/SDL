@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (c) 2023 Frank Eskesen.
+//       Copyright (c) 2023-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 //       Distribution development detail
 //
 // Last change date-
-//       2023/09/22
+//       2025/04/20
 //
 -------------------------------------------------------------------------- -->
 
@@ -29,17 +29,22 @@ within https://opensource.org/licenses/MIT)
 
 ---
 
-#### Progress/status notes
+### Development progress/status notes
 - [DEV library](../src/cpp/lib/dev/README.md)
 - [GUI library](../src/cpp/lib/gui/README.md)
 - [PUB library](../src/cpp/lib/pub/README.md)
 
-[Development Journal](Journal/Journal.md)
+---
+
+### Debugging notes
+- [Generic debugging](Journal/Debugging.md)
+- [Socket programming](Journal/Socket.md)
 
 ---
-#### Debugging notes
-- [Debugging nuisances](Journal/Nasties.md)
-- [Socket programming](Journal/Socket.md)
+
+### Other resources
+<!-- (TODO) - [Computer usage Journal](Journal/Computer.md) -->
+- [Development Journal](Journal/Journal.md)
 
 ---
 [Back](../README.md)
