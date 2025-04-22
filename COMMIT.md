@@ -15,7 +15,7 @@
 //       Contains brief descriptions of project commits.
 //
 // Last change date-
-//       2025/04/02
+//       2025/04/22
 //
 //------------------------------------------------------------------------ -->
 
@@ -29,6 +29,31 @@ within https://opensource.org/licenses/MIT)
 
 Minor changes are not documented in this change log, but since the distribution
 is maintained in git, changes are always recorded.
+
+----
+
+#### 04/22/2025 maint/trunk
+
+Modified:
+- ~/bat/restore
+Similar to ~/bat/backup, but using rsync fetch rather than store.
+
+- ~/doc
+Added description of an obscure problem along with its solution.
+Other sections were rewritten for clarity.
+
+- ~/src/cpp/Edit/Xcb/.README, ~/src/cpp/Edit/Term/.README
+Reformatted .README information for clarity.
+
+- ~/bat/editgpg, ~/bat/fromgpg, ~/bat/intogpg, and  ~/bat/viewgpg <br/>
+These scripts now allow selection of the public key to be used for encryption.
+(The user is specified using the "~/.gnupg/gpg.conf" file.)
+- To use, specify
+  - "default-recipient-self"
+  - "default-key" using ending code from the public key you want to use
+
+***MAKE SURE*** that you use a public key that you can decrypt, i.e.
+a public key you created and where have the secret key.
 
 ----
 
