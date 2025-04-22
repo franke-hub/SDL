@@ -1,6 +1,6 @@
 ##############################################################################
 ##
-##       Copyright (c) 2020-2024 Frank Eskesen.
+##       Copyright (c) 2020-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -15,7 +15,7 @@
 ##       EDITOR README information file. (XCB version)
 ##
 ## Last change date-
-##       2024/09/03
+##       2025/04/16
 ##
 ## Implementation notes-
 ##       See ".USAGE.md" for usage and implementation information.
@@ -25,18 +25,22 @@
 
 ##############################################################################
 ## STATUS:
-2024/09/03 Fully operational. Deprecated Utf.h typedefs and functions removed.
-         NO known problems. In production test (updating Utf.h documentation.)
+2025/04/16 Fully operational, but with 1 open problem.
+         In production. Ongoing documentation update.
 
 ##############################################################################
 ## OPEN:
-2024/08/23 UTF-8 does not work properly on Linux.
-         (Hopefull) temporary bypass: On Linux, xtmedit doesn't allow saving
-         files containing UTF characters. These characters do not display
-         properly. They display properly on Cygwin.
+2025/04/16 xcbedit/xtmedit Don't handle some UTF characters correctly.
+           We rely on XCB or NCURSES to handle the characters but they don't
+           handle some of them.
 
 ##############################################################################
 ## CHANGE LOG:
+2024/08/23 UTF-8 does not work properly on Linux.
+         (Hopefully) temporary bypass: On Linux, xtmedit doesn't allow saving
+         files containing UTF characters. These characters do not display
+         properly. They display properly on Cygwin.
+
 2024/09/03 Fixed block column display problems (Term and Xcb versions)
          If mark.mark_lh < col_zero, the mark disappears for that line and the
          right-hand mark column was incorrectly calculated.
