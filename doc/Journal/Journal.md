@@ -15,7 +15,7 @@
 //       Development journal
 //
 // Last change date-
-//       2025/04/24
+//       2025/04/25
 //
 -------------------------------------------------------------------------- -->
 <!-- -------------------------------------------------------------------------
@@ -27,8 +27,6 @@ This file is free content, distributed under the MIT license.
 (See the accompanying file LICENSE.MIT or the original contained
 within https://opensource.org/licenses/MIT)
 
-[\[Last change date:\]](#most-recent-change) 2025/04/24
-
 ----
 
 This journal provides SDL (Software Development Lab) commentary.
@@ -36,7 +34,10 @@ This journal provides SDL (Software Development Lab) commentary.
 It's only updated occasionally, and it is what it is.
 (Incomplete, mostly)
 
-Today's update sorts entries in date order, rather than reverse date order.
+[\[Last change date:\]](#most-recent-change) 2025/04/25
+
+Journal entries are now sorted in date order rather than reverse date order.
+(Oldest first, newest last)
 
 ----
 
@@ -309,8 +310,12 @@ long and complex comment was added to the source code explaining the rationale
 behind the message. A short "how to fix your code" comment was also added.
 See ~/src/cpp/lib/pub/Socket.cpp, method SocketSelect\::~SocketSelect.
 
-2025/04/24 Note: While a Select can reference a Socket, the Socket no longer
-references the Select. This code should be (but hasn't been) removed.
+2025/04/25 Update: While a Select references Sockets, the Socket no longer
+references the Select. (This was really a design flaw.)
+In the Select destructor, it's no longer meaningful to check whether or not
+Sockets are in a Select's database.
+This checking, an the "how to fix your code" comment were removed and replaced
+with another comment that explains why that code was changed.
 
 ### 2022/09/02 Maint commit
 
@@ -664,9 +669,7 @@ those in preprocessor statements relating to changes that made the code work
 or not. I think that the termination TIMING problem went from constant to
 intermittent before that became more obvious.
 
-----
-
-### <a id=most-recent-change>2025/04/24</a>
+### 2025/04/24
 
 The 2024/11/25 termination problem was fixed in the 2025/03/01 commit.
 Fixes were required in both ~/src/cpp/Brian/. and
@@ -690,8 +693,6 @@ I'm trying to learn about the Xen hypervisor. While that work's unlikely to
 result in any SDL change, it is likely to result in fewer actual SDL changes
 than you might otherwise expect.
 
-----
-
 The recently DONE list
 - Migrated the Calendar and Julian objects to the PUB library
   - ~/src/cpp/Clone uses COM library's Julian object
@@ -703,5 +704,17 @@ The recently DONE list
 - Global changes, mostly for consistency
   - Changed "Enumerations and typedefs" to "Typedefs and enumerations"
   - Changed all C++ includes of type \<xxx.h\> to \<cxxx\>
+
+----
+
+### <a id=most-recent-change>2025/04/25</a>
+
+- Journal entries are now sorted in date order rather than reverse date order.
+(Oldest first, newest last)
+
+- Removed unnecessary error checking in the Select::~Select (destructor)
+method implemented in ~/src/cpp/lib/pub/Select.cpp.
+Now that Sockets don't reference Select objects, it's not an issue whether or
+not Socket objects appear in a Select object's database.
 
 ----

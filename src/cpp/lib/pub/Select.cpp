@@ -16,7 +16,7 @@
 //       Select.h method implementations.
 //
 // Last change date-
-//       2025/01/11
+//       2025/04/25
 //
 //----------------------------------------------------------------------------
 #ifndef _GNU_SOURCE
@@ -151,21 +151,6 @@ static void
 {
    errorf("%4d %s Should not occur (but did)\n", line, __FILE__);
    throw std::runtime_error("Should not occur");
-}
-
-//----------------------------------------------------------------------------
-//
-// Subroutine-
-//       sno_handled
-//
-// Purpose-
-//       Message: A should not occur situation has been handled
-//
-//----------------------------------------------------------------------------
-static int
-   sno_handled(int line)
-{  errorf("%4d %s Should not occur (but handled)\n", line, __FILE__);
-   return 0;
 }
 
 //----------------------------------------------------------------------------
@@ -410,75 +395,21 @@ control_op             op;          // The control operation
    if( USE_ITRACE )
      Trace::trace(".DEL", "=SEL", this);
 
-   // Complete any pending operations. Hopefully they're close ops.
+   // Complete any pending operations. Hopefully they're close or flush ops.
    control();
 
-   // Manually remove our reader socket from our tables
-   if( reader ) {                   // If we have a reader socket
-     int fd= reader->get_handle();  // Get the poll index
-     int px= fdpndx[fd];
-     for(int i= px; i<(used-1); ++i)
-       pollfd[i]= pollfd[i+1];
-
-     fdpndx[fd]= -1;
-     fdsock[fd]= nullptr;
-     --used;
-   }
-
-   // Delete the AF_UNIX file node
-   if( USE_AF == AF_UNIX && false )
-     unlink(reader->get_unix_name());
-
-#if true // THIS CODE SHOULD BE REMOVED- - - - - - - - - - - - - - - - - - - -
-// Locking here can't be necessary. Consider that if it was, then right after
-// the lock's released any waiter's going to reference deallocated storage.
-// Users must insure that there are no dangling references to deleted Select
-// objects. That is, all Sockets must be removed.
-// We obtain the shr_latch anyway so that if a dangling reference error
-// occurs, debugging information is more consistent.
-
-// Disassociating a Socket from the Select *shouldn't* be necessary here.
-// If it was, then there's a good chance that whatever code was using the
-// Select will still think it exists.
-// An example might help explain why:
-// Select accesses are protected by the xcl_latch. A Select references
-// each inserted Socket and each inserted Socket references the Select.
-// Suppose the Select destructor is called and then an associated Socket
-// is closed in a different thread before the destructor completes. The Socket
-// close operation invokes Select::remove, which blocks but then resumes
-// after the destructor exits. Select::remove then references the (at
-// least partially) deleted Select.
-// Perhaps we could gimshuckle some way of fixing this particular problem, but
-// applications also need to correlate Select and Socket references and
-// insure that their Select object isn't deleted while Sockets reference
-// it. We can't check the application's correlation method, we can only check
-// our own. So we check, and if there's a *possible* dangling reference we
-// complain knowing that if a problem does exist, it will be hard to debug.
-
-// >>>>>>>>>>>>>>>>>>>>>>>> ** USER DEBUGGING NOTE ** <<<<<<<<<<<<<<<<<<<<<<<<
-// Before deleting a Select object, you should insure that no Socket
-// objects still reference it. That will remove the annoying error message
-// you got and quite likely also avoid some hard to debug future error.
-// >>>>>>>>>>>>>>>>>>>>>>>> ** USER DEBUGGING NOTE ** <<<<<<<<<<<<<<<<<<<<<<<<
-   std::lock_guard<decltype(shr_latch)> lock(shr_latch);
-   for(int px= 0; px < used; ++px) {
-     int fd= pollfd[px].fd;
-     if( fd >= 0 && fd < size ) {
-       Socket* socket= fdsock[fd];
-       if( socket ) {
-         #define FMT "%4d Select(%p) Socket(%p) fd(%d) User error: " \
-                     "Dangling reference\n"
-         errorf(FMT, __LINE__, this, socket, fd);
-         sno_handled(__LINE__);     // See ** USER DEBUGGING NOTE **, above
-         debug("Additional debugging information");
-       } else if( USE_CHECKING ) {
-         sno_handled(__LINE__);     // (socket[fd] == nullptr)
-       }
-     } else if( USE_CHECKING ) {
-       sno_handled(__LINE__);       // (pollfd[px].fd >= size)
-     }
-   }
-#endif   // THIS CODE SHOULD BE REMOVED- - - - - - - - - - - - - - - - - - - -
+   // Implementation notes:
+   // A check for "Sockets still in the Select table" was removed from here.
+   // While Select objects contain Socket references, the reference to a
+   // Select object from a Socket has been removed, fixing a design  flaw.
+   // Sockets still do provide a std::function that Select invokes, but we're
+   // deleting the Select, so this Select (at least) isn't going to invoke it.
+   //
+   // To avoid an error message, we used to manually remove the reader Socket
+   // from our tables before making that check. That's no longer needed.
+   //
+   // We're in the Select destructor. Latching isn't useful. Any other thread
+   // that could still access this Select will SEGFAULT if it does.
 
    free(pollfd);
    free(fdpndx);
@@ -491,7 +422,7 @@ control_op             op;          // The control operation
    fdsock= nullptr;
    reader= nullptr;
    writer= nullptr;
-   size= 0;
+   used= size= next= ipix= 0;
 }
 
 //----------------------------------------------------------------------------

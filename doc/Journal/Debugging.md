@@ -95,8 +95,7 @@ My fedora machine also has a virtual box virtual adapter (virbr0) which has a
 network adapter of 192.168.122.1.
 It hasn't had any virtual machines configured for a long time.
 
-### But the truth is, I don't know what causes this problem or why the fix
-works.
+### But the truth is, I don't know what causes this problem or why the fix works.
 
 But if you're seeing this error *and everything else seems fine*, try this.
 
