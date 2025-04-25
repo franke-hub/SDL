@@ -15,13 +15,11 @@
 //       Distribution development detail
 //
 // Last change date-
-//       2025/04/20
+//       2025/04/24
 //
 -------------------------------------------------------------------------- -->
 
-# ~/doc/index.md (Development detail)
-
-Copyright (C) 2020-2023 Frank Eskesen.
+Copyright (C) 2020-2025 Frank Eskesen.
 
 This file is free content, distributed under the MIT license.
 (See the accompanying file LICENSE.MIT or the original contained

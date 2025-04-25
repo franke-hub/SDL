@@ -429,6 +429,7 @@ control_op             op;          // The control operation
    if( USE_AF == AF_UNIX && false )
      unlink(reader->get_unix_name());
 
+#if true // THIS CODE SHOULD BE REMOVED- - - - - - - - - - - - - - - - - - - -
 // Locking here can't be necessary. Consider that if it was, then right after
 // the lock's released any waiter's going to reference deallocated storage.
 // Users must insure that there are no dangling references to deleted Select
@@ -477,6 +478,7 @@ control_op             op;          // The control operation
        sno_handled(__LINE__);       // (pollfd[px].fd >= size)
      }
    }
+#endif   // THIS CODE SHOULD BE REMOVED- - - - - - - - - - - - - - - - - - - -
 
    free(pollfd);
    free(fdpndx);

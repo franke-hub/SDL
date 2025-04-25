@@ -1,6 +1,6 @@
 <!-- -------------------------------------------------------------------------
 //
-//       Copyright (C) 2022-2024 Frank Eskesen.
+//       Copyright (C) 2022-2025 Frank Eskesen.
 //
 //       This file is free content, distributed under the MIT license.
 //       (See accompanying file LICENSE.MIT or the original contained
@@ -15,193 +15,39 @@
 //       Development journal
 //
 // Last change date-
-//       2024/11/25
+//       2025/04/24
 //
 -------------------------------------------------------------------------- -->
 <!-- -------------------------------------------------------------------------
 -------------------------------------------------------------------------- -->
 
-# ~/doc/Journal/Journal.md
+Copyright (C) 2022-2025 Frank Eskesen.
+
+This file is free content, distributed under the MIT license.
+(See the accompanying file LICENSE.MIT or the original contained
+within https://opensource.org/licenses/MIT)
+
+[\[Last change date:\]](#most-recent-change) 2025/04/24
 
 ----
 
-This journal is a record of the SDL (Software Development Lab) distribution: a
-set of libraries, programs, and associated documentation.
+This journal provides SDL (Software Development Lab) commentary.
+
+It's only updated occasionally, and it is what it is.
+(Incomplete, mostly)
+
+Today's update sorts entries in date order, rather than reverse date order.
 
 ----
 
-#### 11/25/2024
+### 2022/01/11
 
-The termination problem is some sort of timing problem. Running Brian at
-this point sometimes completes normally and sometimes doesn't.
-I'm going to work on other items but commit all changes as-is, leaving
-lots of debugging statements embedded and active.
-
-The current versions of some Brian modules contains *scads* of diagnostic
-code that attempt to diagnose the termination problem.
-
-The pub library also has lots of debugging hooks left in them.
-The Thread functions have been converted so that pthread is used instead of
-std::thread.
-While this will (eventually) allow the addition of a timed join method, Brian
-thread completion probably didn't have anything to do with the Thread library.
-When it fails, it fails in the same way with pthread or std::thread.
-I have examples of failure and success with the same source code, so
-tracking down the problem *should* at least be possible.
-
-Code comments have not always been synchronized with the code, especially
-those in preprocessor statements relating to changes that made the code work
-or not. I think that the termination TIMING problem went from constant to
-intermittent before that became more obvious.
-
-----
-
-#### 11/10/2024
-
-I'm updating ~/src/cpp/Brian and having a difficult time debugging Console.cpp.
-Lots of debugging code's been added to Console.cpp and Thread.cpp.
-
-The current test sequence is as follows:
-- Common::Common runs
-- Brian raises "startup_complete"
-- HttpServer handles startup_complete event, invoking the "init" command
-(in HttpServer)
-- The "init" command:
-  - starts a listener at hostname:8080
-  - starts a listener at localhost:8081
-  - Uses the "curl" command to:
-    - curl hostname:8080
-    - curl localhost:8081
-
-This sequence creates two ServerThreads to (separately) handle curl's requests.
-These threads send a response, then terminate.
-
-The ServerThreads are self-deleting:
-- Their read operation times out
-- (Immediately) before exiting, they delete themselves.
-  - The ServerThread destructor invokes Thread::detach
-
-After waiting for all the automatic initialization commands to complete, the
-"quit" command invokes Common::shutdown.
-ConsoleService (in Console.cpp) doesn't shut down properly.
-
-Console.cpp defines the ConsoleService, which manages the ConsoleThread.
-- ConsoleService::stop allocates the ConsoleThread, and then invokes
-console_thread->start (NO PROBLEM)
-- ConsoleService::stop invokes console_thread->stop (NO PROBLEM)
-- ConsoleService::wait invokes ConsoleThread::wait
-- ConsoleThread::wait:
-  - invokes pub::Console::wait (which completes)
-  - invokes Thread::join (which now has lot's of debugging messages)
-  - Thread::join invokes std::thread::join (which HANGS)
-- ConsoleThread::run EXITS
-  - Thread::drain handles run complete, passing ownership of the tlss to
-Thread completion, i.e. Thread::detach or Thread::join
-  - Thread::drain EXITS. Now std::thread should complete the join
-  - But it *doesn't*. All the debugging hooks indicates that it *should*
-complete.
-
-There is some sort of weird interaction with the self-deleting ServerThreads.
-When the "curl" commands are omitted, ConsoleService, Thread::join completes
-rather than hangs.
-
-<!-- -------------------------------------------------------------------------
-MARKER: When the self-deleting thread completes, tlss->std_thread is NULLED.
-
-QUESTION: Does that ID need to be valid when a detached thread exits?
-Should ~tlss be the only one to zilch it out?
-
-TESTING: ADD self-deleting thread to Dirty.cpp test
--------------------------------------------------------------------------- -->
-
-----
-
-#### 03/20/2024
-I spent a lot of time working on HTTP/2, getting RFC7541 and a reference
-implementation of HPACK compression working. I don't think that's been useful
-since HTTP/3 is the newer thing and that looks like too much effort to try to
-implement anyway.
-
-I've been working on updating the documentation. Doing that, however, I'm
-easily distracted. It's not enjoyable. I write computer code easily. English,
-however, is hard. Right now I'm 3/4 of the way through updating pub::Debug
-documentation and verifying that the links work. Mushing through this I find
-things I should have done differently, so I do them differently.
-
-I fooled around with some AI stuff starting in December. It turns out that my
-graphics card is too old to be useful, so there's not much that I can do with
-the open source packages. That's on hold for now.
-
-January was pretty much a bust due to Covid. It left me foggy for three weeks.
-
-I spent most of February restructuring the makefiles. I'm not sure how much of
-that was necessary or just change. Anyway, were errors left over that were
-found by running make in different conditions.
-
-March is gone and there are a lot of changed files, mostly because of interface
-updates. The next commit is coming soon, but the pub::Debug documentation will
-not be completed. I want to get all the known makefile glitches fixed and then
-maybe get back to that.
-
-However, I'm finding that I'd like to get both the ncurses editor and the xcb
-editor working with the same functionality. This means (at least) adding undo
-capability into the ncurses editor and paragraph formatting into the xcb
-editor. That's the plan, anyway. We'll see.
-
-----
-
-#### 08/05/2023 maint commit
-Created configure/build Makefiles and fixed most compile problems found in full
-recompile. (~/src/cpp/Clone/FSlist.cpp temporarily deprecated.)
-
-This greatly simplifies installation and removal, including building
-prerequisite executables needed to build the libraries.
-
-----
-
-### 2023/07/28 trunk/maint commit
-
-I'm not sure switching to the Creative Commons CC0 license was a good idea.
-I'm looking for an alternative public domain license that also releases
-distribution patent and trademark ownership.
-
-----
-
-### 2023/07/16
-
-Completed documentation for Dispatch.h and supporting functions.
-(The supporting functions documentation is incomplete, only documenting
-Dispatch.h requirements.)
-
-Some functions were renamed for clarity and, as usual, miscellaneous small
-updates were made.
-
-----
-
-### 2023/06/15
-
-Working on documenting the C++ library interfaces.
-The multi-threading paradigm provided by Dispatch.h is something that
-might be especially useful, so it's first on the to-do list.
-
-The Journal's been reordered so that the latest information is at the top.
-This makes it somewhat easier to find new information.
-
-### 2023/06/03
-
-The HTTP client/server for HTTP/1.1 is working well.
-
-Two issues (Issue #2 and Issue #3) took a frustratingly long time to debug.
-[More detail](../../cpp/lib/pub/README.md)
-
-### 2023/04/05
-
-March was mostly spent getting and recovering from a severe cold.
-(Testing ruled out Covid, Flu-A, Flu-B or RSV.)
-
-Testing ~/src/cpp/lib/pub/Test/TestDisp.cpp showed a significant but unexpected
-Linux throughput performance improvement. (Windows performance didn't change.)
-This was most likely due to changes in the Linux kernel and runtime library.
+Paused working on HTTP client/server for a bit, instead updating editxcb so
+that the status line wasn't hidden by the history line.
+After completing that update, also updated ~/src/cpp/Util/worder.cpp splitting
+off worder.hpp which improves and isolates the Dictionary function.
+While it's true that the Dictionary was on the back burner, updating it added
+significant testing time for the updated editxcb.
 
 ### 2022/02/02
 
@@ -222,134 +68,249 @@ The rest of February and the beginning of March have been mostly reserved for
 non-programming activities.
 Grandkids are turning 8 and 10, and the golfer application will get some use.
 
-### 2022/01/11
+### 2022/05/15
 
-Paused working on HTTP client/server for a bit, instead updating editxcb so
-that the status line wasn't hidden by the history line.
-After completing that update, also updated ~/src/cpp/Util/worder.cpp splitting
-off worder.hpp which improves and isolates the Dictionary function.
-While it's true that the Dictionary was on the back burner, updating it added
-significant testing time for the updated editxcb.
+The current high level goal is to develop a C++ HTTP1/2 stream client/server
+package loosely based on Nodejs's javascript package.
 
-### 2022/12/18
+This is under development in ~/src/cpp/Dirty/http, and is not a visible part
+of the distributed code. It's in a messy state because SSL socket usage is not
+well understood. ~/src/cpp/HTTP contains sample SSL socket programs using
+openssl/bio.h and openssl/ssl.h. These currently don't run well, but I thought
+fixing them would improve my understanding of socket and SSL. This got too
+confusing with the openssl interfaces.
 
-Library change information moved to ~/src/cpp/lib/pub/ and ~/src/cpp/lib/dev as
-appropriate. We'll use this Journal for status of a more general nature.
+There wasn't a current basic socket test in the pub library, so the next step
+was to build one. The resulting program is
+~/src/cpp/lib/pub/Test/TestSock.cpp, which is a simple HTTP client/server
+stressor and datagram socket test. The com library supports datagram sockets,
+so the pub library should too.
 
-### 2022/11/19 Trunk/maint commit (push)
+I added a connect(std\::string) method to Socket.h to make it easier to connect
+using the LAN, which also makes it easier to run clients and servers on
+different machines. I did run into one nasty error which deserves special
+mention. See [Too Many Open Sockets](./Debugging.md#too-many-sockets).
 
-The associated code was published yesterday, 11/18, largely fixing the worst
-(but not all of) the dev library problems.
+### 2022/05/18
 
-The major problem was in ~/src/lib/pub/Select::remove(). A socket remove would
-be enqueued and almost immediately deleted. If a poll was also outstanding, the
-Select's socket could point at freed storage.
+Completed implementation of ~/src/cpp/lib/pub/TestSock.cpp, a datagram and
+HTTP protocol stress tester.
 
-### 2022/11/17 Maint commit
+Implemented pub\::SocketSelect class in Socket.h/Socket.cpp, used by
+TestSock.cpp --datagram stress test.
 
-I wanted to update the dev library to connect for each operation similarly
-to TestSock. This has proven to be more difficult than expected. The commit
-has code to test this change, but it's not driven by default.
+### 2022/05/19
 
-While some error paths have been tested, the dev library is still fragile.
-While the standard stress test usually works, it's not at 100 percent.
-The new connection per operation code is not just fragile, it's broken.
-Static debugging doesn't find the stress test problems and gdb isn't always
-helpful. More memory trace debugging is required.
+Note that SocketSelect is marked "NOT THREAD SAFE" in the implementation
+notes. It actually *is* thread-safe since all operations are mutex locked.
+It's not *usable* by multiple threads because a select operation blocks any
+update to SocketSelect while it's in progress. Select operations can have an
+arbitrarily long timeout.
 
-### 2022/10/26 Next steps
+I looks like pub\::SocketSelect can be greatly improved, working more like
+Linux epoll in non-Linux environments. The Socket lookup can be made easier
+and quicker by having the list of Sockets indexed by the file descriptor. We
+can add an additional Socket, owned by SocketSelect, that can be part of every
+poll request. With this, when a change to the polling list needs to be made,
+it can be instantiated quickly. Also, we can separately maintain a (locked)
+updated polling list which would be instantiated at the next
+SocketSelect\::select operation. When the updated polling list is created, we
+signal the change by writing a simple message on the owned socket, completing
+any active poll operation.
 
-- Harden pub library code (static deconstruction.)
-- Drive dev library code error paths
-- Cleanup
-  - Remove pub/Buffer (it's been replaced by dev/Ioda)
-  - Remove dev/Global (moving code to .OBSOLETE subdirectory)
-  - General dev library code inspection.
-- Investigate Cygwin performance anomalies running ~/obj/dev/Test/T_Stream
+We can also cross-correlate the SocketSelect and the Socket. A Socket can
+contain a pointer to the SocketSelector so that it can automatically be
+removed from the Socket list on deletion. We may need some sort of sequence
+validation to be sure that a Socket on the file descriptor indexed list
+hasn't been replaced during a poll event.
 
-### 2022/10/24 Trunk commit ~/src/cpp/lib/dev HTTP/1 operational
+We can also add some sort of Socket callback function instead of the polling
+select. This would would be a std\::function residing in the Socket, and we
+could use Worker (pool) threads to drive them. This could be implemented as a
+derived class of SocketSelect (say SocketDriver or SocketThread) that would do
+all the polling.
 
-Commit: Both Client and Server use asynchronous polling.
+### 2022/05/23
 
-The HTTP server remains in development. Known bugs exist, and only HTTP/1
-without encryption is currently supported.
+Updated SocketSelect lookup logic. It uses the indexing described above which
+actually needed a file descriptor to pollfd index also. The separate socket
+owned by SocketSelect for poll interruption isn't implemented yet. It uses
+getrlimit to determine the maximum number of open files and allocates both
+the file descriptor indexed Socket* array and file descriptor to pollfd entry
+array using that maximum size. No reallocation is needed; tables can hold the
+the maximum number of file descriptors (and therefore the maximum possible
+file descriptor index.)
 
-Cygwin throughput is best when only one Client/Server pair is used, i.e.
-`T_Stream --server --stress=1` This needs investigation.
+~/src/cpp/HTTP/SampleBIO.cpp and ~/src/cpp/HTTP/SampleSSL.cpp are operational,
+but not fully tested. They haven't been tested using multiple browsers,
+leaving the bug_1000 logic untested.
 
-Linux throughput has dramatically improved. This version matches
-../pub/Test/TestSock throughput when four client threads are used and
-scales linearly at least up to ten clients. (Test termination problems
-currently preclude using more clients than that.)
+Both SampleBIO and SampleSSL were failing because they didn't use the
+SO_LINGER reset logic needed for address/port pair re-use. SampleSSL was
+originally coded to use host address 127.0.0.1 rather than the host name. The
+Socket.cpp library routing changed so that the host's network address is used
+by default, so that had to be accounted for also.
 
-I originally went looking for a red herring when investigating this problem,
-adding timing event recording to the Client/Server path. Doing this, I found
-that the client and server thread clocks were not closely synchronized.
-In fact, the Server clock (in both Cygwin and Linux) ran about .15 seconds
-behind the Client clock. The Server would seem to receive a request nearly
-.15 seconds before it was sent and the Client would receive its (asynchronous)
-response more than .15 seconds after it was sent.
+Synchronization commit: As usual miscellaneous changes are also included.
 
-Investigation showed that yes, different CPUs (on different threads) can be
-out of synch. I didn't find anything indicating that the synchronization
-error would be this large. While considering writing a clock synchronization
-thread (which the kernel should be able to generally do without actually
-needing a thread) the red herring began to stink.
+Not included: TODO: ~/src/cpp/HTTP/Sample* and ~/src/cpp/lib/pub/TestSock.cpp
+have lots of common features. They should be synchronized so that each one
+has the structure of the others.
 
-Linux top and the gnome-system-monitor both showed that essentially *no*
-multi-threading occurred, so I switched to implementing Server polling.
-This requires multi-threading both when servicing requests and when receiving
-reponses. With a few glitches here and there this, proved easy to do using
-Client.cpp to model the changes needed in Server.cpp.
-More server multi-threading fixed the throughput issue, and polling reduced
-the overhead compared to ~/src/cpp/lib/pub/TestSock.cpp.
+### 2022/06/02
 
-I'm temporarily leaving the timing code (in ~/src/cpp/lib/dev/Global.cpp and
-../../inc/dev/Global.h) and spread throughout the HTTP/1 send/receive path.
-The Global code will be moved to ~/src/cpp/lib/.OBSOLETE/dev rather than
-simply discarded but the recording hooks will be removed.
-If you're interested in these later, use gitk to look at today's version.
+Socket.cpp/TestSock.cpp experimental results running short stress tests:
+- A 5 second test was more than enough. Operations/second throughput remained
+essentially unchanged when a 24 hour test was used.
+- In general, using \::poll rather than \::select got better throughput. Select
+operations are not used in Socket.cpp. SocketSelect\::select uses \::poll, which
+can handle more sockets anyway. (Maybe SocketSelect\::select should be renamed
+to SocketSelect\::poll.)
+- The number of stress test client threads has interesting effects,
+particularly in the PacketClient stress test.
+  - For PacketClient, when the client and server are on the same machine an
+extra thread hinders rather than help. The increase in lost packets is larger
+than the increase in sent packets. When run on different machines the number
+of successful round-trip completions more than doubles. Presumably this is
+because one client can be sending while the other is receiving and the server
+isn't overloaded. With three client threads throughput decreases.
+  - For StreamClient more clients resulted in more throughput up to a point.
+After that point there was no appreciable difference for a large range of
+client threads, then throughput slowly decreased.
 
-### 2022/10/16
+### 2022/06/03 Don't make this stupid mistake
 
-Commit: Client uses asynchronous polling. Also includes Diagnostic.h and
-Recorder.h commits.
+Because if you do, your VFT (Virtual Function Table) becomes inconsistent.
+The virtual function table is an array of virtual functions that the compiler
+considers invariant.
 
-We now use Ioda (Input/Output Data Area) rather than Data for buffering.
-This features minimal data copying when moving data between components,
-and when discarding leading data.
+Socket.h
+```
+#ifdef _GNU_SOURCE
+virtual int                         // Return code (0 OK)
+   ppoll(                           // Poll this Socket
+     struct pollfd*    pfd,         // The (system) pollfd
+     const struct timespec*
+                       timeout,     // Timeout
+     const sigset_t*   sigmask)     // Signal set mask
+{  /* inline implementation */ }
+#endif
+```
 
-While the Windows throughput is essentially unchanged, the Linux throughput
-has dramatically regressed. This needs to be fixed but I also wanted to
-synchronize the maint and trunk branches.
+Move your implementation to the .cpp file. A virtual function should never
+be conditionally defined.
+You can easily wind up pointing at the wrong function.
 
-#### inc/dev/Recorder.h
-Used for generic statistic recording, reporting, and resetting.
-Recorders are inserted into or removed from a global table. The recorded
-information is displayed on demand.
+Yup, I actually did this. DOH.
+But this isn't the only way to botch up virtual function tables.
 
-#### inc/pub/Diagnostic.h
-Contains debugging diagnostic objects.
-- Pristine, used to check for "wild stores" clobbering objects. A Pristine
-object is (temporarily) placed before and after an object suspected of
-being somehow clobbered by wild stores.
-- namespace std::pub_diag, used for shared_ptr tracking. Useful for finding
-shared_ptr instances. This uses conditional macros to redefine make_shared,
-shared_ptr, and weak_ptr so most code is unchanged. It also defines and
-conditionally activates INS_DEBUG_OBJ(x) and REM_DEBUG_OBJ(x) macros to
-be placed in objects containing shared pointers of interest.
+This problem occurs if you change the ordering of virtual functions
+in *any* way, again because VFT ordering must remain consistent.
+When virtual functions are used, all object users must recompile when virtual
+function ordering or signatures change.
+This includes the function implementation and all function callers.
 
-Unless activated, namespace std::pub_diag has no overhead. When activated,
-objects and their shared_ptrs can be displayed at any time using the
-static method std::Debug_ptr::debug. This turned out to be useful and was
-probably quicker to implement than tracking down one instance where a
-shared_ptr<Stream> was not being cleared. (This also happened to be a
-memory leak of an object not managed by a shared_ptr.)
+I repeat **this** (failure to recompile after virtual function reordering)
+error more often than I'd like to admit, but mia culpa.
 
-While (C++11) template<T,U> dynamic_pointer_cast(shared_ptr<U>) is implemented,
-the other associated pointer_casts are not used in the dev library and
-are not implemented both because they weren't needed and couldn't be properly
-tested.
+The files ~/bat/sys/.want-version and ~/bat/sys/configure.sh exist in order
+to force automatic library recompiles, often without considering whether or
+not the recompiles are actually needed. (Better safe than sorry.)
+
+While the COM, DEV, GUI, OBJ, and PUB library makefiles obey the recompile
+ordering, only the DEV/Test and PUB/Test collections have been updated.
+Other application makefiles need to be updated. That's on the TODO list, but
+with a pretty low priority rating.
+
+### 2022/06/05
+
+While debugging and inserting a simple statement to the latched code in
+Worker.cpp, I noticed that it adversely affected the timing of TestDisp.cpp.
+I moved the statistic updating outside of the latched code, using atomic
+operations instead. Even though there's slightly more code there, TestDisp.cpp
+now has better throughput. I also added statistics to Thread.cpp.
+
+The ~/src/cpp/HTTP samples have been updated and are now more consistent with
+TestSock.cpp. This process also served as a TestSock.cpp code inspection.
+There's more to be done to clean up the samples, but they're OK for now. It's
+time for a synchronization commit and getting back to the stream server,
+which is still not ready for distribution. Before the trunk commit, some maint
+commits will be needed for distribution verification. In particular, object
+subdirectories might have excessive .gitignore'd files.
+
+### 2022/06/05 Interesting bug
+
+~/src/cpp/HTTP/Makefile.BSD (temporarily) contained
+```
+test: ;
+	@echo -e "a\nb\nc\n"
+```
+which echoed `-e a\n\b\nc` (with the newline escapes properly handled but on
+my distribution test machine incorrectly including the -e .) To remove the -e
+this was changed to
+```
+test: ;
+	@printf "a\nb\nc\n"
+```
+Automatic certificate generation was added along the way for no extra charge.
+
+### 2022/06/08 Socket updated
+
+- Removed attempts at error recovery. It's now entirely the user's
+responsibility. Since it now closely matches the socket interface, it's no
+longer considered experimental.
+- Might want to implement some SSL_ interfaces, like SSL_set_mode. It's used
+in SSL_accept but maybe should be set by the user instead. Don't know enough
+yet to know what else might be needed.
+- No longer track setting send/recv timeout option. The retry logic that tried
+to use it was marginal at best.
+- Renamed SSL_Socket to SSL_socket.
+- Can now handle sockaddr* longer than host/peer_addr. (Extended size has been
+coded but not tested.)
+- As usual, when finding things that should have been be done better they've
+been implemented.
+
+### 2022/06/11 Conditional statement idioms
+
+- `if( condition || true )` (true)
+- `if( condition && true )` (condition)
+<br><br>
+- `if( condition || false )` (condition)
+- `if( condition && false )` (false)
+
+This idiom allows a conditional statement to be temporarily modified when
+testing. Because the same number of characters are used, modifying is slightly
+easier than:
+
+- `if( condition || true )` (true)
+- `if( condition || false )` (condition)
+<br><br>
+- `if( condition && true )` (condition)
+- `if( condition && false )` (false)
+
+When compiled using optimization, there's no runtime overhead with either
+method. These coding idioms are used to quickly compare options and (since
+they have no effect on optimized code generation) are sometimes left in
+distributed code.
+
+### 2022/06/12 Maint commit
+
+SocketSelect tables now start off relatively small, supporting file descriptor
+numbers less than 32 can grow in stages up to the maximum allowed value. The
+tables do not shrink since the storage used is reasonably small (20 bytes per
+file descriptor number) and shrinkage is likely to be temporary anyway.
+
+TestSock was switched to use SocketSelect polling. Errors found during testing
+were fixed. One error was notable. The SocketSelect destructor removes the
+Socket\::selector field, which points to the SocketSelect object. Because of
+locking considerations, this removal isn't as benign as it might first appear
+and now results in a user error message that refers to the source code. A
+long and complex comment was added to the source code explaining the rationale
+behind the message. A short "how to fix your code" comment was also added.
+See ~/src/cpp/lib/pub/Socket.cpp, method SocketSelect\::~SocketSelect.
+
+2025/04/24 Note: While a Select can reference a Socket, the Socket no longer
+references the Select. This code should be (but hasn't been) removed.
 
 ### 2022/09/02 Maint commit
 
@@ -418,229 +379,329 @@ to the client or server application.
 Read polling will always be active, but write polling will only be used when
 a transmission blocks.
 
-### 2022/06/12 Maint commit
+### 2022/10/16
 
-SocketSelect tables now start off relatively small, supporting file descriptor
-numbers less than 32 can grow in stages up to the maximum allowed value. The
-tables do not shrink since the storage used is reasonably small (20 bytes per
-file descriptor number) and shrinkage is likely to be temporary anyway.
+Commit: Client uses asynchronous polling. Also includes Diagnostic.h and
+Recorder.h commits.
 
-TestSock was switched to use SocketSelect polling. Errors found during testing
-were fixed. One error was notable. The SocketSelect destructor removes the
-Socket\::selector field, which points to the SocketSelect object. Because of
-locking considerations, this removal isn't as benign as it might first appear
-and now results in a user error message that refers to the source code. A
-long and complex comment was added to the source code explaining the rationale
-behind the message. A short "how to fix your code" comment was also added.
-See ~/src/cpp/lib/pub/Socket.cpp, method SocketSelect\::~SocketSelect.
+We now use Ioda (Input/Output Data Area) rather than Data for buffering.
+This features minimal data copying when moving data between components,
+and when discarding leading data.
 
-### 2022/06/11 Conditional idiom
+While the Windows throughput is essentially unchanged, the Linux throughput
+has dramatically regressed. This needs to be fixed but I also wanted to
+synchronize the maint and trunk branches.
 
-- `if( condition || true )` (true)
-- `if( condition && true )` (condition)
-<br><br>
-- `if( condition || false )` (condition)
-- `if( condition && false )` (false)
+#### inc/dev/Recorder.h
+Used for generic statistic recording, reporting, and resetting.
+Recorders are inserted into or removed from a global table. The recorded
+information is displayed on demand.
 
-This idiom allows a conditional statement to be temporarily modified when
-testing. Because the same number of characters are used, modifying is slightly
-easier than:
+#### inc/pub/Diagnostic.h
+Contains debugging diagnostic objects.
+- Pristine, used to check for "wild stores" clobbering objects. A Pristine
+object is (temporarily) placed before and after an object suspected of
+being somehow clobbered by wild stores.
+- namespace std::pub_diag, used for shared_ptr tracking. Useful for finding
+shared_ptr instances. This uses conditional macros to redefine make_shared,
+shared_ptr, and weak_ptr so most code is unchanged. It also defines and
+conditionally activates INS_DEBUG_OBJ(x) and REM_DEBUG_OBJ(x) macros to
+be placed in objects containing shared pointers of interest.
 
-- `if( condition || true )` (true)
-- `if( condition || false )` (condition)
-<br><br>
-- `if( condition && true )` (condition)
-- `if( condition && false )` (false)
+Unless activated, namespace std::pub_diag has no overhead. When activated,
+objects and their shared_ptrs can be displayed at any time using the
+static method std::Debug_ptr::debug. This turned out to be useful and was
+probably quicker to implement than tracking down one instance where a
+shared_ptr<Stream> was not being cleared. (This also happened to be a
+memory leak of an object not managed by a shared_ptr.)
 
-When compiled using optimization, there's no runtime overhead with either
-method. These coding idioms are used to quickly compare options and sometimes
-left in distributed code.
+While (C++11) template<T,U> dynamic_pointer_cast(shared_ptr<U>) is implemented,
+the other associated pointer_casts are not used in the dev library and
+are not implemented both because they weren't needed and couldn't be properly
+tested.
 
-### 2022/06/08 Socket updated
+### 2022/10/24 Trunk commit ~/src/cpp/lib/dev HTTP/1 operational
 
-- Removed attempts at error recovery. It's now entirely the user's
-responsibility. Since it now closely matches the socket interface, it's no
-longer considered experimental.
-- Might want to implement some SSL_ interfaces, like SSL_set_mode. It's used
-in SSL_accept but maybe should be set by the user instead. Don't know enough
-yet to know what else might be needed.
-- No longer track setting send/recv timeout option. The retry logic that tried
-to use it was marginal at best.
-- Renamed SSL_Socket to SSL_socket.
-- Can now handle sockaddr* longer than host/peer_addr. (Extended size has been
-coded but not tested.)
-- As usual, when finding things that should have been be done better they've
-been implemented.
+Commit: Both Client and Server use asynchronous polling.
 
-### 2022/06/05
+The HTTP server remains in development. Known bugs exist, and only HTTP/1
+without encryption is currently supported.
 
-While debugging and inserting a simple statement to the latched code in
-Worker.cpp, I noticed that it adversely affected the timing of TestDisp.cpp.
-I moved the statistic updating outside of the latched code, using atomic
-operations instead. Even though there's slightly more code there, TestDisp.cpp
-now has better throughput. I also added statistics to Thread.cpp.
+Cygwin throughput is best when only one Client/Server pair is used, i.e.
+`T_Stream --server --stress=1` This needs investigation.
 
-The ~/src/cpp/HTTP samples have been updated and are now more consistent with
-TestSock.cpp. This process also served as a TestSock.cpp code inspection.
-There's more to be done to clean up the samples, but they're OK for now. It's
-time for a synchronization commit and getting back to the stream server,
-which is still not ready for distribution. Before the trunk commit, some maint
-commits will be needed for distribution verification. In particular, object
-subdirectories might have excessive .gitignore'd files.
+Linux throughput has dramatically improved. This version matches
+../pub/Test/TestSock throughput when four client threads are used and
+scales linearly at least up to ten clients. (Test termination problems
+currently preclude using more clients than that.)
 
-### 2022/06/05 Interesting bug
+I originally went looking for a red herring when investigating this problem,
+adding timing event recording to the Client/Server path. Doing this, I found
+that the client and server thread clocks were not closely synchronized.
+In fact, the Server clock (in both Cygwin and Linux) ran about .15 seconds
+behind the Client clock. The Server would seem to receive a request nearly
+.15 seconds before it was sent and the Client would receive its (asynchronous)
+response more than .15 seconds after it was sent.
 
-~/src/cpp/HTTP/Makefile.BSD (temporarily) contained
-```
-test: ;
-	@echo -e "a\nb\nc\n"
-```
-which echoed `-e a\n\b\nc` (with the newline escapes properly handled but on
-my distribution test machine wrongly including the "-e".) To remove the "-e"
-this had to be changed to
-```
-test: ;
-	@printf "a\nb\nc\n"
-```
-Automatic certificate generation was added along the way for no extra charge.
+Investigation showed that yes, different CPUs (on different threads) can be
+out of synch. I didn't find anything indicating that the synchronization
+error would be this large. While considering writing a clock synchronization
+thread (which the kernel should be able to generally do without actually
+needing a thread) the red herring began to stink.
 
-### 2022/06/03 Don't make this stupid mistake
+Linux top and the gnome-system-monitor both showed that essentially *no*
+multi-threading occurred, so I switched to implementing Server polling.
+This requires multi-threading both when servicing requests and when receiving
+reponses. With a few glitches here and there this, proved easy to do using
+Client.cpp to model the changes needed in Server.cpp.
+More server multi-threading fixed the throughput issue, and polling reduced
+the overhead compared to ~/src/cpp/lib/pub/TestSock.cpp.
 
-Because if you do, your VFT (Virtual Function Table) becomes inconsistent.
-The virtual function table is an array of virtual functions that the compiler
-considers invariant, whether or not it actually is.
+I'm temporarily leaving the timing code (in ~/src/cpp/lib/dev/Global.cpp and
+../../inc/dev/Global.h) and spread throughout the HTTP/1 send/receive path.
+The Global code will be moved to ~/src/cpp/lib/.OBSOLETE/dev rather than
+simply discarded but the recording hooks will be removed.
+If you're interested in these later, use gitk to look at today's version.
 
-Socket.h
-```
-#ifdef _GNU_SOURCE
-virtual int                         // Return code (0 OK)
-   ppoll(                           // Poll this Socket
-     struct pollfd*    pfd,         // The (system) pollfd
-     const struct timespec*
-                       timeout,     // Timeout
-     const sigset_t*   sigmask)     // Signal set mask
-{  /* implementation */ }
-#endif
-```
+### 2022/10/26 Next steps
 
-Move your implementation to the .cpp file. A virtual function should never
-be conditionally defined. You'll wind up pointing at the wrong function.
-Sometimes. Sometimes not.
+- Harden pub library code (static deconstruction.)
+- Drive dev library code error paths
+- Cleanup
+  - Remove pub/Buffer (it's been replaced by dev/Ioda)
+  - Remove dev/Global (moving code to .OBSOLETE subdirectory)
+  - General dev library code inspection.
+- Investigate Cygwin performance anomalies running ~/obj/dev/Test/T_Stream
 
-Yup, I actually did this. DOH.
+### 2022/11/17 Maint commit
 
-The same sort of problem can occur if you modify the order of virtual function
-declarations. A library and all users need to recompile their code to stay in
-synch
+I wanted to update the dev library to connect for each operation similarly
+to TestSock. This has proven to be more difficult than expected. The commit
+has code to test this change, but it's not driven by default.
 
-### 2022/06/02
+While some error paths have been tested, the dev library is still fragile.
+While the standard stress test usually works, it's not at 100 percent.
+The new connection per operation code is not just fragile, it's broken.
+Static debugging doesn't find the stress test problems and gdb isn't always
+helpful. More memory trace debugging is required.
 
-Socket.cpp/TestSock.cpp experimental results running short stress tests:
-- A 5 second test was more than enough. Operations/second throughput remained
-essentially unchanged when a 24 hour test was used.
-- In general, using \::poll rather than \::select got better throughput. Select
-operations are not used in Socket.cpp. SocketSelect\::select uses \::poll, which
-can handle more sockets anyway. (Maybe SocketSelect\::select should be renamed
-to SocketSelect\::poll.)
-- The number of stress test client threads has interesting effects,
-particularly in the PacketClient stress test.
-  - For PacketClient, when the client and server are on the same machine an
-extra thread hinders rather than help. The increase in lost packets is larger
-than the increase in sent packets. When run on different machines the number
-of successful round-trip completions more than doubles. Presumably this is
-because one client can be sending while the other is receiving and the server
-isn't overloaded. With three client threads throughput decreases.
-  - For StreamClient more clients resulted in more throughput up to a point.
-After that point there was no appreciable difference for a large range of
-client threads, then throughput slowly decreased.
+### 2022/11/19 Trunk/maint commit (push)
 
-### 2022/05/23
+The associated code was published yesterday, 11/18, largely fixing the worst
+(but not all of) the dev library problems.
 
-Updated SocketSelect lookup logic. It uses the indexing described above which
-actually needed a file descriptor to pollfd index also. The separate socket
-owned by SocketSelect for poll interruption isn't implemented yet. It uses
-getrlimit to determine the maximum number of open files and allocates both
-the file descriptor indexed Socket* array and file descriptor to pollfd entry
-array using that maximum size. No reallocation is needed; tables can hold the
-the maximum number of file descriptors (and therefore the maximum possible
-file descriptor index.)
+The major problem was in ~/src/lib/pub/Select::remove(). A socket remove would
+be enqueued and almost immediately deleted. If a poll was also outstanding, the
+Select's socket could point at freed storage.
 
-~/src/cpp/HTTP/SampleBIO.cpp and ~/src/cpp/HTTP/SampleSSL.cpp are operational,
-but not fully tested. They haven't been tested using multiple browsers,
-leaving the bug_1000 logic untested.
+### 2022/12/18
 
-Both SampleBIO and SampleSSL were failing because they didn't use the
-SO_LINGER reset logic needed for address/port pair re-use. SampleSSL was
-originally coded to use host address 127.0.0.1 rather than the host name. The
-Socket.cpp library routing changed so that the host's network address is used
-by default, so that had to be accounted for also.
+Library change information moved to ~/src/cpp/lib/pub/ and ~/src/cpp/lib/dev as
+appropriate. We'll use this Journal for status of a more general nature.
 
-Synchronization commit: As usual miscellaneous changes are also included.
+----
 
-Not included: TODO: ~/src/cpp/HTTP/Sample* and ~/src/cpp/lib/pub/TestSock.cpp
-have lots of common features. They should be synchronized so that each one
-has the structure of the others.
+### 2023/04/05
 
-### 2022/05/19
+March was mostly spent getting and recovering from a severe cold.
+(Testing ruled out Covid, Flu-A, Flu-B or RSV.)
 
-Note that SocketSelect is marked "NOT THREAD SAFE" in the implementation
-notes. It actually *is* thread-safe since all operations are mutex locked.
-It's not *usable* by multiple threads because a select operation blocks any
-update to SocketSelect while it's in progress. Select operations can have an
-arbitrarily long timeout.
+Testing ~/src/cpp/lib/pub/Test/TestDisp.cpp showed a significant but unexpected
+Linux throughput performance improvement. (Windows performance didn't change.)
+This was most likely due to changes in the Linux kernel and runtime library.
 
-I looks like pub\::SocketSelect can be greatly improved, working more like
-Linux epoll in non-Linux environments. The Socket lookup can be made easier
-and quicker by having the list of Sockets indexed by the file descriptor. We
-can add an additional Socket, owned by SocketSelect, that can be part of every
-poll request. With this, when a change to the polling list needs to be made,
-it can be instantiated quickly. Also, we can separately maintain a (locked)
-updated polling list which would be instantiated at the next
-SocketSelect\::select operation. When the updated polling list is created, we
-signal the change by writing a simple message on the owned socket, completing
-any active poll operation.
+### 2023/06/03
 
-We can also cross-correlate the SocketSelect and the Socket. A Socket can
-contain a pointer to the SocketSelector so that it can automatically be
-removed from the Socket list on deletion. We may need some sort of sequence
-validation to be sure that a Socket on the file descriptor indexed list
-hasn't been replaced during a poll event.
+The HTTP client/server for HTTP/1.1 is working well.
 
-We can also add some sort of Socket callback function instead of the polling
-select. This would would be a std\::function residing in the Socket, and we
-could use Worker (pool) threads to drive them. This could be implemented as a
-derived class of SocketSelect (say SocketDriver or SocketThread) that would do
-all the polling.
+Two issues (Issue #2 and Issue #3) took a frustratingly long time to debug.
+[More detail](../../cpp/lib/pub/README.md)
 
-### 2022/05/18
+### 2023/06/15
 
-Completed implementation of ~/src/cpp/lib/pub/TestSock.cpp, a datagram and
-HTTP protocol stress tester.
+Working on documenting the C++ library interfaces.
+The multi-threading paradigm provided by Dispatch.h is something that
+might be especially useful, so it's first on the to-do list.
 
-Implemented pub\::SocketSelect class in Socket.h/Socket.cpp, used by
-TestSock.cpp --datagram stress test.
+The Journal's been reordered so that the latest information is at the top.
+This makes it somewhat easier to find new information.
 
-### 2022/05/15
+### 2023/07/16
 
-The current high level goal is to develop a C++ HTTP1/2 stream client/server
-package loosely based on Nodejs's javascript package.
+Completed documentation for Dispatch.h and supporting functions.
+(The supporting functions documentation is incomplete, only documenting
+Dispatch.h requirements.)
 
-This is under development in ~/src/cpp/Dirty/http, and is not a visible part
-of the distributed code. It's in a messy state because SSL socket usage is not
-well understood. ~/src/cpp/HTTP contains sample SSL socket programs using
-openssl/bio.h and openssl/ssl.h. These currently don't run well, but I thought
-fixing them would improve my understanding of socket and SSL. This got too
-confusing with the openssl interfaces.
+Some functions were renamed for clarity and, as usual, miscellaneous small
+updates were made.
 
-There wasn't a current basic socket test in the pub library, so the next step
-was to build one. The resulting program is
-~/src/cpp/lib/pub/Test/TestSock.cpp, which is a simple HTTP client/server
-stressor and datagram socket test. The com library supports datagram sockets,
-so the pub library should too.
+### 2023/07/28 trunk/maint commit
 
-I added a connect(std\::string) method to Socket.h to make it easier to connect
-using the LAN, which also makes it easier to run clients and servers on
-different machines. I did run into one nasty error which deserves special
-mention. See [Too Many Open Sockets](./Debugging.md#too-many-sockets).
+I'm not sure switching to the Creative Commons CC0 license was a good idea.
+I'm looking for an alternative public domain license that also releases
+distribution patent and trademark ownership.
+
+### 2023/08/05 maint commit
+Created configure/build Makefiles and fixed most compile problems found in full
+recompile. (~/src/cpp/Clone/FSlist.cpp temporarily deprecated.)
+
+This greatly simplifies installation and removal, including building
+prerequisite executables needed to build the libraries.
+
+----
+
+### 2024/03/20
+I spent a lot of time working on HTTP/2, getting RFC7541 and a reference
+implementation of HPACK compression working. I don't think that's been useful
+since HTTP/3 is the newer thing and that looks like too much effort to try to
+implement anyway.
+
+I've been working on updating the documentation. Doing that, however, I'm
+easily distracted. It's not enjoyable. I write computer code easily. English,
+however, is hard. Right now I'm 3/4 of the way through updating pub::Debug
+documentation and verifying that the links work. Mushing through this I find
+things I should have done differently, so I do them differently.
+
+I fooled around with some AI stuff starting in December. It turns out that my
+graphics card is too old to be useful, so there's not much that I can do with
+the open source packages. That's on hold for now.
+
+January was pretty much a bust due to Covid. It left me foggy for three weeks.
+
+I spent most of February restructuring the makefiles. I'm not sure how much of
+that was necessary or just change. Anyway, were errors left over that were
+found by running make in different conditions.
+
+March is gone and there are a lot of changed files, mostly because of interface
+updates. The next commit is coming soon, but the pub::Debug documentation will
+not be completed. I want to get all the known makefile glitches fixed and then
+maybe get back to that.
+
+However, I'm finding that I'd like to get both the ncurses editor and the xcb
+editor working with the same functionality. This means (at least) adding undo
+capability into the ncurses editor and paragraph formatting into the xcb
+editor. That's the plan, anyway. We'll see.
+
+### 2024/11/10
+
+I'm updating ~/src/cpp/Brian and having a difficult time debugging Console.cpp.
+Lots of debugging code's been added to Console.cpp and Thread.cpp.
+
+The current test sequence is as follows:
+- Common::Common runs
+- Brian raises "startup_complete"
+- HttpServer handles startup_complete event, invoking the "init" command
+(in HttpServer)
+- The "init" command:
+  - starts a listener at hostname:8080
+  - starts a listener at localhost:8081
+  - Uses the "curl" command to:
+    - curl hostname:8080
+    - curl localhost:8081
+
+This sequence creates two ServerThreads to (separately) handle curl's requests.
+These threads send a response, then terminate.
+
+The ServerThreads are self-deleting:
+- Their read operation times out
+- (Immediately) before exiting, they delete themselves.
+  - The ServerThread destructor invokes Thread::detach
+
+After waiting for all the automatic initialization commands to complete, the
+"quit" command invokes Common::shutdown.
+ConsoleService (in Console.cpp) doesn't shut down properly.
+
+Console.cpp defines the ConsoleService, which manages the ConsoleThread.
+- ConsoleService::stop allocates the ConsoleThread, and then invokes
+console_thread->start (NO PROBLEM)
+- ConsoleService::stop invokes console_thread->stop (NO PROBLEM)
+- ConsoleService::wait invokes ConsoleThread::wait
+- ConsoleThread::wait:
+  - invokes pub::Console::wait (which completes)
+  - invokes Thread::join (which now has lot's of debugging messages)
+  - Thread::join invokes std::thread::join (which HANGS)
+- ConsoleThread::run EXITS
+  - Thread::drain handles run complete, passing ownership of the tlss to
+Thread completion, i.e. Thread::detach or Thread::join
+  - Thread::drain EXITS. Now std::thread should complete the join
+  - But it *doesn't*. All the debugging hooks indicates that it *should*
+complete.
+
+There is some sort of weird interaction with the self-deleting ServerThreads.
+When the "curl" commands are omitted, ConsoleService, Thread::join completes
+rather than hangs.
+
+<!-- -------------------------------------------------------------------------
+MARKER: When the self-deleting thread completes, tlss->std_thread is NULLED.
+
+QUESTION: Does that ID need to be valid when a detached thread exits?
+Should ~tlss be the only one to zilch it out?
+
+TESTING: ADD self-deleting thread to Dirty.cpp test
+-------------------------------------------------------------------------- -->
+
+### 2024/11/25
+
+The termination problem is some sort of timing problem. Running Brian at
+this point sometimes completes normally and sometimes doesn't.
+I'm going to work on other items but commit all changes as-is, leaving
+lots of debugging statements embedded and active.
+
+The current versions of some Brian modules contains *scads* of diagnostic
+code that attempt to diagnose the termination problem.
+
+The pub library also has lots of debugging hooks left in them.
+The Thread functions have been converted so that pthread is used instead of
+std::thread.
+While this will (eventually) allow the addition of a timed join method, Brian
+thread completion probably didn't have anything to do with the Thread library.
+When it fails, it fails in the same way with pthread or std::thread.
+I have examples of failure and success with the same source code, so
+tracking down the problem *should* at least be possible.
+
+Code comments have not always been synchronized with the code, especially
+those in preprocessor statements relating to changes that made the code work
+or not. I think that the termination TIMING problem went from constant to
+intermittent before that became more obvious.
+
+----
+
+### <a id=most-recent-change>2025/04/24</a>
+
+The 2024/11/25 termination problem was fixed in the 2025/03/01 commit.
+Fixes were required in both ~/src/cpp/Brian/. and
+~/src/cpp/lib/pub/Console.cpp
+
+The current TODO list: (Roughly in priority order)
+- Fix the 04/22/2024 commit glitches and omissions
+- Document the dispatcher paradigm
+- Finish PUB library documentation, or at least work on it more
+- Document the script library
+- Document the C++ program library
+
+(There's more, but that's enough to list for now.)
+
+I'm trying to focus more on documenting existing functions rather than
+updating them or creating something new. Since I don't write English quickly
+or well as code, it's hard to stay focused.
+Sometimes I just need a coding break.
+
+I'm trying to learn about the Xen hypervisor. While that work's unlikely to
+result in any SDL change, it is likely to result in fewer actual SDL changes
+than you might otherwise expect.
+
+----
+
+The recently DONE list
+- Migrated the Calendar and Julian objects to the PUB library
+  - ~/src/cpp/Clone uses COM library's Julian object
+  - The COM library implementation had holes
+- Fixed some NCURSES editor problems with UTF-8 combining characters
+- Fixed Brian termination problems
+- VirtualBox changed VirualBoxAdapter; Fixed associated problems
+- Changed home router. Fixed associated problems.
+- Global changes, mostly for consistency
+  - Changed "Enumerations and typedefs" to "Typedefs and enumerations"
+  - Changed all C++ includes of type \<xxx.h\> to \<cxxx\>
 
 ----

@@ -1,7 +1,7 @@
 ##
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2023-2024 Frank Eskesen.
+##       Copyright (C) 2023-2025 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -10,13 +10,13 @@
 ##----------------------------------------------------------------------------
 ##
 ## Title-
-##       /home/data/.config/.want-version
+##       ~/bat/sys/.want-version
 ##
 ## Purpose-
-##       Current version information control file.
+##       Required recompile control file.
 ##
 ## Last change date-
-##       2024/11/01
+##       2025/04/24
 ##
 ## Format-
 ##       version-name = version-identifier
@@ -25,17 +25,17 @@
 ##       Version control is used to force recompilation outside of normal
 ##       dependency controls.
 ##
-##       See configure.sh for more information.
+##       See ~/bat/sys/configure.sh for more information.
 ##
 ##############################################################################
 
 ## CPP libraries
-src/cpp/lib/com = 2024/02/01-00:00
-src/cpp/lib/dev = 2024/10/01-00:00
-src/cpp/lib/gui = 2024/02/01-00:00
-src/cpp/lib/obj = 2024/02/01-00:00
-src/cpp/lib/pub = 2024/11/01-00:00
+src/cpp/lib/com = 2025/05/01-00:00
+src/cpp/lib/dev = 2025/05/01-00:00
+src/cpp/lib/gui = 2025/05/01-00:00
+src/cpp/lib/obj = 2025/05/01-00:00
+src/cpp/lib/pub = 2025/05/01-00:00
 
 ## Python site-packages
-src/py/site-packages/lib =   2024/03/01-00:00
-src/py/site-packages/stdio = 2024/03/01-00:00
+src/py/site-packages/lib =   2025/05/01-00:00
+src/py/site-packages/stdio = 2025/05/01-00:00
