@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2016-2022 Frank Eskesen.
+##       Copyright (C) 2016-2024 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -10,34 +10,80 @@
 ##----------------------------------------------------------------------------
 ##
 ## Title-
-##       spell
+##       altspell
 ##
 ## Purpose-
-##       Spell checker.
+##       Spell checker, with alternatives
 ##
 ## Last change date-
-##       2022/11/18
+##       2024/12/07
 ##
 ## Usage-
-##       spell word ...
+##       altspell {-q} word ...
+##         -q Use quick option: only reports OK or NG.
 ##
 ##############################################################################
 
+##############################################################################
+## If recursion to check hunspell or aspell word with alternatives
+if [[ "$1" == "--" && "$2" != "" ]] ; then
+  word=$2
+  read heading                      ## Read (and ignore) heading
+  read code same n m rem
+  if [[ "$code" == "*" ]] ; then
+    echo "OK: $word"
+    exit 0
+  fi
+
+  echo NG: $word, try: $rem
+  exit 1
+fi
+
+##############################################################################
+## Spell checking
+okng=0                              ## Default, don't use quick mode
+rc=0                                ## Default, no error found
+[[ "$1" == "-q" ]] && { okng=1; shift; }
 type hunspell >/dev/null 2>/dev/null
 if [[ $? == 0 ]] ; then
   for i in "$@"
   do
-    errors=`echo $i | hunspell -l -d en_US,local`
-    if [[ -z "$errors" ]] ; then echo OK: $i
-    else echo "NG: $errors"
+    if [[ $okng == 0 ]] ; then
+      echo $i | hunspell -a -d en_US,local | $0 -- $i
+    else
+      error=`echo $i | hunspell -l -d en_US,local`
+      if [[ -z "$error" ]] ; then
+        echo "OK: $i"
+      else
+        echo "NG: $error"
+        rc=1
+      fi
     fi
   done
-else
+  exit $rc
+fi
+type aspell >/dev/null 2>/dev/null
+if [[ $? == 0 ]] ; then
+  echo aspell
+  parm=""
+  file="$HOME/Library/Spelling/local.dic"
+  [[ -r "$file" ]] && parm="--wordlists=$file"
   for i in "$@"
   do
-    errors=`echo $i | aspell list`
-    if [[ -z "$errors" ]] ; then echo OK: $i
-    else echo "NG: $errors"
+    if [[ $okng == 0 ]] ; then
+      echo $i | aspell $parm -a | $0 -- $i
+    else
+      error=`echo $i | aspell $parm list`
+      if [[ -z "$error" ]] ; then
+        echo "OK: $i"
+      else
+        echo "NG: $error"
+        rc=1
+      fi
     fi
   done
+  exit $rc
 fi
+
+echo "No spell checker available. Install hunspell or aspell."
+exit 1

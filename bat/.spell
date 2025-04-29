@@ -1,7 +1,7 @@
 #!/bin/bash
 ##----------------------------------------------------------------------------
 ##
-##       Copyright (C) 2024 Frank Eskesen.
+##       Copyright (C) 2016-2022 Frank Eskesen.
 ##
 ##       This file is free content, distributed under the MIT license.
 ##       (See accompanying file LICENSE.MIT or the original contained
@@ -10,30 +10,34 @@
 ##----------------------------------------------------------------------------
 ##
 ## Title-
-##       altcheck
+##       spell
 ##
 ## Purpose-
-##       Check altspell output (single word)
+##       Spell checker.
 ##
 ## Last change date-
-##       2024/12/07
+##       2022/11/18
 ##
 ## Usage-
-##       altspell word ... | altcheck word
+##       spell word ...
 ##
 ##############################################################################
 
-word=$1
-[[ -z "$word" ]] && { echo "Check word missing"; exit 1; }
-
-read heading                        ## Read (and ignore) heading
-
-read code same n m rem
-
-if [[ "$code" == "*" ]] ; then
-  echo "OK: $word"
-  exit 0
+type hunspell >/dev/null 2>/dev/null
+if [[ $? == 0 ]] ; then
+  for i in "$@"
+  do
+    errors=`echo $i | hunspell -l -d en_US,local`
+    if [[ -z "$errors" ]] ; then echo OK: $i
+    else echo "NG: $errors"
+    fi
+  done
+else
+  for i in "$@"
+  do
+    errors=`echo $i | aspell list`
+    if [[ -z "$errors" ]] ; then echo OK: $i
+    else echo "NG: $errors"
+    fi
+  done
 fi
-
-echo NG: $word, try: $rem
-exit 1
